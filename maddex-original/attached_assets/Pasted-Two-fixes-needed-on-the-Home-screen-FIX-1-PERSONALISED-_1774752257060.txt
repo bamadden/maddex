@@ -1,0 +1,74 @@
+Two fixes needed on the Home screen:
+
+FIX 1 — PERSONALISED GREETING NOT SHOWING:
+The greeting "Good morning/afternoon/evening, [name]" 
+is not appearing on the Home screen.
+
+Please fix this by:
+
+1. After login, fetch the user's profile from Supabase:
+   const { data: profile } = await supabase
+     .from('profiles')
+     .select('first_name, last_name')
+     .eq('id', user.id)
+     .single()
+
+2. Store first_name in app state so it's accessible 
+   on the Home screen
+
+3. Add the greeting at the top of the Home screen 
+   above the MaddenAI market signal card:
+
+   function getGreeting(firstName) {
+     const hour = new Date().toLocaleString('en-AU', {
+       timeZone: 'Australia/Sydney',
+       hour: 'numeric',
+       hour12: false
+     })
+     const h = parseInt(hour)
+     let greeting = ''
+     if (h >= 5  && h < 12) greeting = 'Good morning'
+     if (h >= 12 && h < 17) greeting = 'Good afternoon'
+     if (h >= 17 && h < 21) greeting = 'Good evening'
+     if (h >= 21 || h < 5)  greeting = 'Good night'
+     return `${greeting}, ${firstName}.`
+   }
+
+4. Display style:
+   - Font size slightly larger than body text
+   - Font weight light (300) not bold
+   - Colour: muted — not full white
+   - No emoji
+   - If first_name is not yet loaded show nothing 
+     at all — no placeholder, no "Good morning, User"
+
+FIX 2 — AVATAR SHOWING ? INSTEAD OF INITIALS:
+The circular avatar in the top right of the Home 
+screen header is showing a ? instead of the user's 
+initials.
+
+Please fix by:
+
+1. Pull first_name and last_name from the profile 
+   that was fetched after login
+
+2. Build initials like this:
+   const initials = [
+     profile?.first_name?.[0] || '',
+     profile?.last_name?.[0]  || ''
+   ].join('').toUpperCase()
+
+3. Display initials inside the circle — not a ? 
+   and not a person icon
+
+4. If profile hasn't loaded yet show the circle 
+   empty/blank — not a fallback character
+
+5. Make sure the profile fetch happens early enough 
+   in the app load sequence that both the greeting 
+   and the avatar have the data they need before 
+   the Home screen renders
+
+Both the greeting and the avatar pull from the same 
+profile fetch — do it once and share the result 
+across both components.

@@ -1,0 +1,61 @@
+"Please upgrade the MaddenAI personalisation system completely.
+ 
+1. Add the file maddenAI_personalisation.js to the src folder
+   (it's already been created — just integrate it)
+ 
+2. Import buildCompleteSystemPrompt and buildUserContext 
+   from ./maddenAI_personalisation
+ 
+3. Replace the existing system prompt building logic with:
+   
+   const systemPrompt = buildCompleteSystemPrompt(
+     userProfile,  // from Supabase profiles table
+     marketData    // from fetchAllMarketData()
+   )
+ 
+4. Make sure userProfile is fetched fresh from Supabase 
+   on every chat session start — not just on app load:
+   
+   const { data: freshProfile } = await supabase
+     .from('profiles')
+     .select('*')
+     .eq('id', user.id)
+     .single()
+ 
+5. Pass freshProfile into buildCompleteSystemPrompt 
+   so the AI always has the latest profile data
+ 
+6. Run these 6 test conversations and confirm each 
+   gives a meaningfully different response:
+ 
+   Test 1: Profile: Beginner + Conservative + Under $50k
+   Ask: 'How do I start investing?'
+   Expected: Simple, encouraging, mentions government 
+   co-contribution, LISTO, small ETF start, no jargon
+ 
+   Test 2: Profile: Advanced + Aggressive + $180k+
+   Ask: 'How do I start investing?'
+   Expected: Sophisticated — trusts, SMSF threshold, 
+   franking value at 45% rate, concentrated positions
+ 
+   Test 3: Profile: Intermediate + Moderate + $80k-$120k 
+   + Retirement goal + Mid-career
+   Ask: 'Should I put more into super?'
+   Expected: Salary sacrifice maths (saves 22c/dollar), 
+   concessional cap of $30k, unused cap carry-forward
+ 
+   Test 4: Profile: Beginner + Growth + Early career
+   Ask: 'What is BHP?'
+   Expected: Plain English explanation, materials sector 
+   context, China demand link — no assumed knowledge
+ 
+   Test 5: Profile: Advanced + Income + $120k-$180k
+   Ask: 'What is BHP?'
+   Expected: Technical — P/E vs sector, iron ore spread, 
+   franking value at 37% rate, dividend sustainability
+ 
+   Test 6: All fields = Prefer not to say
+   Ask: 'What should I invest in?'
+   Expected: Asks ONE clarifying question, does not 
+   give generic advice without knowing their situation"
+*/

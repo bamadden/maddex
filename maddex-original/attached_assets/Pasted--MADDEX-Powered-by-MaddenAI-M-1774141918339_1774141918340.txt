@@ -1,0 +1,860 @@
+// ============================================================
+// MADDEX — Powered by MaddenAI
+// Madden Group | Full Multi-Screen App
+// ============================================================
+// REPLIT SETUP:
+// 1. Paste this file into src/App.jsx
+// 2. Run: npm install recharts
+// 3. When ready for live AI: add VITE_ANTHROPIC_API_KEY in Secrets
+// ============================================================
+
+import { useState, useRef, useEffect } from "react";
+import {
+  LineChart, Line, PieChart, Pie, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  ResponsiveContainer, Tooltip
+} from "recharts";
+
+// ============================================================
+// DESIGN TOKENS
+// ============================================================
+const C = {
+  bg:       "#0B1222",
+  card:     "#111827",
+  cardBorder:"#1E2A44",
+  accent:   "#287BFF",
+  accentDim:"rgba(40,123,255,0.15)",
+  gold:     "#F5A623",
+  goldDim:  "rgba(245,166,35,0.12)",
+  pos:      "#00C389",
+  posDim:   "rgba(0,195,137,0.12)",
+  neg:      "#FF4F5A",
+  negDim:   "rgba(255,79,90,0.12)",
+  neutral:  "#6B7FA3",
+  text:     "#E8EDF5",
+  textMuted:"#6B7FA3",
+  textDim:  "#3D4F6E",
+};
+
+// ============================================================
+// MADDEX AI ENGINE
+// When VITE_ANTHROPIC_API_KEY is set, this calls Claude.
+// Until then, returns rich placeholder responses.
+// ============================================================
+
+const SYSTEM_PROMPT = `You are MaddenAI, the intelligence engine powering Maddex — a financial platform for everyday Australians by Madden Group.
+
+Your role is to provide clear, actionable financial intelligence. You must always respond in this exact JSON format:
+
+{
+  "asset": "Asset name or topic",
+  "price": "Current price or N/A",
+  "change": "+2.4% today",
+  "buyProbability": 72,
+  "sentiment": "Bullish",
+  "sentimentScore": 71,
+  "insight": "Your main insight paragraph here (2-3 sentences, plain English)",
+  "riskNote": "Key risk to be aware of",
+  "nextStep": "One clear action the user could consider",
+  "disclaimer": "General information only. Not personal financial advice. Consult a licensed adviser before making financial decisions."
+}
+
+Rules:
+- Always use plain Australian English
+- buyProbability is 0-100 (your AI confidence score)
+- sentiment is: Bullish / Mildly Bullish / Neutral / Mildly Bearish / Bearish
+- Never recommend specific buy/sell actions directly
+- Always include the disclaimer
+- If the question is general (not about a specific asset), set asset to "Market Overview" and adapt the format accordingly`;
+
+const PLACEHOLDER_RESPONSES = {
+  default: {
+    asset: "Market Overview",
+    price: "N/A",
+    change: "Mixed today",
+    buyProbability: 58,
+    sentiment: "Mildly Bullish",
+    sentimentScore: 62,
+    insight: "Australian markets are showing resilience despite global headwinds. The ASX 200 is holding key support levels while tech and materials sectors lead gains. RBA's rate hold stance is providing stability for rate-sensitive assets.",
+    riskNote: "Global inflation data due this week could shift sentiment quickly.",
+    nextStep: "Watch the RBA minutes release for clues on the next rate move.",
+    disclaimer: "General information only. Not personal financial advice. Consult a licensed adviser before making financial decisions."
+  },
+  btc: {
+    asset: "Bitcoin (BTC)",
+    price: "AUD $98,450",
+    change: "+2.8% today",
+    buyProbability: 68,
+    sentiment: "Bullish",
+    sentimentScore: 71,
+    insight: "Bitcoin is showing strong momentum with institutional inflows accelerating. The recent ETF approval cycle has brought significant new capital into the market. On-chain data shows long-term holders accumulating rather than selling.",
+    riskNote: "Crypto remains highly volatile — position sizing is critical. Regulatory news can move prices 10-20% in hours.",
+    nextStep: "If considering exposure, a small allocation (5-10% of portfolio) spread over multiple buy points is a common approach.",
+    disclaimer: "General information only. Not personal financial advice. Consult a licensed adviser before making financial decisions."
+  },
+  nvda: {
+    asset: "NVIDIA (NVDA)",
+    price: "USD $875.40",
+    change: "+6.4% today",
+    buyProbability: 74,
+    sentiment: "Bullish",
+    sentimentScore: 78,
+    insight: "NVIDIA continues to dominate the AI chip market with no serious competitor in sight for data centre GPUs. Revenue growth is accelerating as hyperscalers increase capex. The stock trades at a premium but earnings have consistently beaten estimates.",
+    riskNote: "Valuation is stretched at current multiples. Any miss on forward guidance could trigger a sharp pullback.",
+    nextStep: "Watch the next earnings call closely — forward guidance will be the key signal.",
+    disclaimer: "General information only. Not personal financial advice. Consult a licensed adviser before making financial decisions."
+  },
+  super: {
+    asset: "Superannuation",
+    price: "N/A",
+    change: "Long-term focus",
+    buyProbability: 85,
+    sentiment: "Bullish",
+    sentimentScore: 85,
+    insight: "Superannuation remains one of Australia's most powerful wealth-building tools due to its concessional tax treatment. Contributions are taxed at just 15% instead of your marginal rate. The compounding effect over decades is significant — an extra $200/month at age 30 can mean $150,000+ more at retirement.",
+    riskNote: "Super is illiquid — you generally can't access it until preservation age (60). Don't over-contribute if you need short-term liquidity.",
+    nextStep: "Check if you're making voluntary concessional contributions up to the $27,500 annual cap — this is one of the highest-return 'investments' available to most Australians.",
+    disclaimer: "General information only. Not personal financial advice. Consult a licensed adviser before making financial decisions."
+  }
+};
+
+function getPlaceholderResponse(query) {
+  const q = query.toLowerCase();
+  if (q.includes("btc") || q.includes("bitcoin") || q.includes("crypto")) return PLACEHOLDER_RESPONSES.btc;
+  if (q.includes("nvda") || q.includes("nvidia")) return PLACEHOLDER_RESPONSES.nvda;
+  if (q.includes("super") || q.includes("superannuation")) return PLACEHOLDER_RESPONSES.super;
+  return PLACEHOLDER_RESPONSES.default;
+}
+
+async function callMaddenAI(messages) {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+  // No API key — return placeholder after realistic delay
+  if (!apiKey) {
+    await new Promise(r => setTimeout(r, 1200));
+    const lastMsg = messages[messages.length - 1]?.content || "";
+    return getPlaceholderResponse(lastMsg);
+  }
+
+  // Live Claude API call
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages,
+      }),
+    });
+    const data = await response.json();
+    const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("") || "";
+    const clean = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  } catch {
+    return PLACEHOLDER_RESPONSES.default;
+  }
+}
+
+// ============================================================
+// MOCK DATA
+// ============================================================
+const portfolioHistory = [
+  { d: "Mon", v: 122400 }, { d: "Tue", v: 119800 }, { d: "Wed", v: 123100 },
+  { d: "Thu", v: 121500 }, { d: "Fri", v: 124200 }, { d: "Sat", v: 125100 }, { d: "Sun", v: 126780 },
+];
+
+const allocation = [
+  { name: "Equities", value: 56, color: C.accent },
+  { name: "Crypto",   value: 22, color: C.gold },
+  { name: "Cash",     value: 7,  color: C.neutral },
+  { name: "Bonds",    value: 9,  color: C.pos },
+  { name: "Alts",     value: 6,  color: "#A78BFA" },
+];
+
+const holdings = [
+  { ticker: "NVDA", name: "NVIDIA",        value: 28400, change: +6.4, sentiment: "Bullish",  sentimentColor: C.pos },
+  { ticker: "BTC",  name: "Bitcoin",       value: 22100, change: +2.8, sentiment: "Bullish",  sentimentColor: C.pos },
+  { ticker: "VAS",  name: "Vanguard ASX",  value: 18700, change: +0.4, sentiment: "Neutral",  sentimentColor: C.neutral },
+  { ticker: "BHP",  name: "BHP Group",     value: 14200, change: -3.1, sentiment: "Bearish",  sentimentColor: C.neg },
+  { ticker: "AAPL", name: "Apple",         value: 12300, change: +1.2, sentiment: "Mildly Bullish", sentimentColor: C.pos },
+];
+
+const watchlist = [
+  { ticker: "ETH",   name: "Ethereum",   price: "$5,840", forecast: "Mildly Bullish", note: "Layer 2 adoption accelerating. Watch $6k resistance." },
+  { ticker: "CBA",   name: "Comm. Bank",  price: "$128.40", forecast: "Neutral",       note: "Fairly valued at current levels. Dividend solid." },
+  { ticker: "TSLA",  name: "Tesla",       price: "$182.60", forecast: "Mildly Bearish", note: "Margin pressure continuing. Robotaxi timeline uncertain." },
+];
+
+const sectorData = [
+  { sector: "Tech",        strength: 88 },
+  { sector: "Energy",      strength: 52 },
+  { sector: "Financials",  strength: 71 },
+  { sector: "Healthcare",  strength: 64 },
+  { sector: "Crypto",      strength: 74 },
+  { sector: "Materials",   strength: 45 },
+];
+
+const topMovers = [
+  { ticker: "NVDA", change: +6.4, why: "Blowout earnings; data centre demand surges past expectations." },
+  { ticker: "BHP",  change: -3.1, why: "Iron ore prices fell on weak Chinese manufacturing data." },
+  { ticker: "BTC",  change: +2.8, why: "Spot ETF inflows hit monthly record; institutional demand rising." },
+];
+
+const newsItems = [
+  { headline: "RBA holds rates steady at 4.35%", time: "2h ago", impact: "Positive for AUD", impactColor: C.pos, summary: "The Reserve Bank left the cash rate unchanged, citing easing inflation. Markets now pricing first cut in Q3 2025." },
+  { headline: "Tech stocks rally on AI chip demand", time: "4h ago", impact: "Positive for equities", impactColor: C.pos, summary: "NASDAQ surged 2.1% as semiconductor companies beat earnings expectations. AI infrastructure spend showing no signs of slowing." },
+  { headline: "Oil prices fall on demand concerns", time: "6h ago", impact: "Neutral for ASX", impactColor: C.neutral, summary: "Brent crude dropped 3.2% on weak Chinese manufacturing data. Energy sector under pressure globally." },
+  { headline: "ASX 200 holds 8,000 support level", time: "8h ago", impact: "Neutral for equities", impactColor: C.neutral, summary: "Australian equities consolidated near key technical support. Materials dragged the index while tech outperformed." },
+  { headline: "AUD/USD strengthens on rate hold", time: "10h ago", impact: "Positive for AUD", impactColor: C.pos, summary: "The Australian dollar rose 0.4% against the USD following the RBA decision. Export competitiveness slightly reduced." },
+];
+
+const aiRecs = [
+  { ticker: "NVDA", change: +6.4,  confidence: 82, signal: "Buy",  color: C.pos  },
+  { ticker: "BTC",  change: +2.8,  confidence: 68, signal: "Buy",  color: C.pos  },
+  { ticker: "AUD",  change: +0.4,  confidence: 55, signal: "Hold", color: C.neutral },
+  { ticker: "BHP",  change: -3.1,  confidence: 61, signal: "Sell", color: C.neg  },
+];
+
+const QUICK_PROMPTS = [
+  "Show top gainers today",
+  "Why did my portfolio drop?",
+  "Explain franking credits",
+  "Should I buy BTC now?",
+  "Summarise today's market",
+  "Best way to use my super",
+];
+
+// ============================================================
+// MAIN APP
+// ============================================================
+export default function MaddexApp() {
+  const [tab, setTab] = useState("home");
+
+  return (
+    <div style={S.root}>
+      <div style={S.appShell}>
+        {/* SCREEN */}
+        <div style={S.screenArea}>
+          {tab === "home"      && <HomeScreen      onChat={() => setTab("chat")} />}
+          {tab === "portfolio" && <PortfolioScreen onChat={() => setTab("chat")} />}
+          {tab === "trends"    && <TrendsScreen    onChat={() => setTab("chat")} />}
+          {tab === "news"      && <NewsScreen      onChat={() => setTab("chat")} />}
+          {tab === "chat"      && <ChatScreen />}
+        </div>
+
+        {/* BOTTOM NAV */}
+        <nav style={S.nav}>
+          {[
+            { id: "home",      icon: "⊞", label: "Home"      },
+            { id: "portfolio", icon: "◈", label: "Portfolio"  },
+            { id: "trends",    icon: "↗", label: "Trends"     },
+            { id: "news",      icon: "◎", label: "News"       },
+            { id: "chat",      icon: "✦", label: "AI Chat"    },
+          ].map(t => (
+            <button
+              key={t.id}
+              style={{ ...S.navBtn, ...(tab === t.id ? S.navBtnActive : {}) }}
+              onClick={() => setTab(t.id)}
+            >
+              <span style={S.navIcon}>{t.icon}</span>
+              <span style={S.navLabel}>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body, #root { height: 100%; background: ${C.bg}; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${C.cardBorder}; border-radius: 2px; }
+        button { font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer; border: none; background: none; }
+        input, textarea { font-family: 'Plus Jakarta Sans', sans-serif; }
+        textarea { resize: none; }
+        textarea:focus, input:focus { outline: none; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes pulse { 0%,100%{opacity:0.4;transform:scale(0.85)} 50%{opacity:1;transform:scale(1)} }
+        @keyframes shimmer { 0%{opacity:0.5} 50%{opacity:1} 100%{opacity:0.5} }
+        .fade-up { animation: fadeUp 0.4s ease both; }
+      `}</style>
+    </div>
+  );
+}
+
+// ============================================================
+// HOME SCREEN
+// ============================================================
+function HomeScreen({ onChat }) {
+  return (
+    <Screen title="Daily Snapshot" subtitle="Sunday, 22 March">
+      {/* PORTFOLIO CARD */}
+      <Card style={{ marginBottom: 16, animationDelay: "0ms" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+          <div>
+            <div style={S.label}>Total Portfolio</div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>
+              $126,780
+            </div>
+            <div style={{ color: C.pos, fontSize: 13, fontWeight: 500, marginTop: 2 }}>▲ +$1,680 today (+1.3%)</div>
+          </div>
+          <div style={{ ...S.badge, background: C.posDim, color: C.pos }}>All-time high</div>
+        </div>
+        <ResponsiveContainer width="100%" height={64}>
+          <LineChart data={portfolioHistory}>
+            <Line type="monotone" dataKey="v" stroke={C.pos} strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card>
+
+      {/* QUICK METRICS */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16, animationDelay: "60ms" }}>
+        {[
+          { label: "Cash",       value: "$8,450",    sub: "Available"       },
+          { label: "Top Gainer", value: "NVDA +6.4%", sub: "Today",  color: C.pos },
+          { label: "Top Loser",  value: "BHP −3.1%",  sub: "Today",  color: C.neg },
+          { label: "AI Alerts",  value: "2",          sub: "New signals"    },
+        ].map((m, i) => (
+          <Card key={i} style={{ padding: "12px 14px" }}>
+            <div style={S.label}>{m.label}</div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: m.color || C.text, fontFamily: "'Syne',sans-serif", marginTop: 2 }}>{m.value}</div>
+            <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{m.sub}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* AI RECOMMENDATIONS */}
+      <SectionHeader title="AI Recommendations" action="See all" />
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginBottom: 16 }}>
+        {aiRecs.map((r, i) => (
+          <Card key={i} style={{ minWidth: 140, padding: "14px", cursor: "pointer", animationDelay: `${i * 40}ms` }} onClick={onChat}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color: C.text }}>{r.ticker}</div>
+              <div style={{ ...S.badge, background: r.color + "22", color: r.color, fontSize: 10 }}>{r.signal}</div>
+            </div>
+            <div style={{ color: r.change > 0 ? C.pos : C.neg, fontSize: 12, marginBottom: 8 }}>
+              {r.change > 0 ? "▲" : "▼"} {Math.abs(r.change)}%
+            </div>
+            <div style={S.label}>AI Confidence</div>
+            <div style={{ position: "relative", height: 4, background: C.cardBorder, borderRadius: 2, marginTop: 4 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${r.confidence}%`, background: r.color, borderRadius: 2 }} />
+            </div>
+            <div style={{ fontSize: 12, color: r.color, marginTop: 4, fontWeight: 500 }}>{r.confidence}%</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* MARKET PULSE */}
+      <SectionHeader title="Market Pulse" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {newsItems.slice(0, 3).map((n, i) => (
+          <Card key={i} style={{ padding: "12px 14px", animationDelay: `${i * 40}ms` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ fontSize: 13.5, color: C.text, fontWeight: 500, lineHeight: 1.4 }}>{n.headline}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: "nowrap" }}>{n.time}</div>
+            </div>
+            <div style={{ ...S.badge, background: n.impactColor + "22", color: n.impactColor, marginTop: 8, display: "inline-flex" }}>{n.impact}</div>
+          </Card>
+        ))}
+      </div>
+    </Screen>
+  );
+}
+
+// ============================================================
+// PORTFOLIO SCREEN
+// ============================================================
+function PortfolioScreen({ onChat }) {
+  const [subTab, setSubTab] = useState("holdings");
+
+  return (
+    <Screen title="Portfolio" subtitle="$126,780 total">
+      {/* ALLOCATION PIE */}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <PieChart width={100} height={100}>
+            <Pie data={allocation} cx={45} cy={45} innerRadius={28} outerRadius={45} dataKey="value" strokeWidth={0}>
+              {allocation.map((a, i) => <Cell key={i} fill={a.color} />)}
+            </Pie>
+          </PieChart>
+          <div style={{ flex: 1 }}>
+            {allocation.map((a, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: a.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: C.textMuted, flex: 1 }}>{a.name}</span>
+                <span style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>{a.value}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* SUB TABS */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        {["holdings", "watchlist"].map(t => (
+          <button key={t} style={{ ...S.chip, ...(subTab === t ? S.chipActive : {}) }} onClick={() => setSubTab(t)}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "holdings" && (
+        <>
+          {holdings.map((h, i) => (
+            <Card key={i} style={{ padding: "12px 14px", marginBottom: 8, animationDelay: `${i * 40}ms` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={S.tickerBadge}>{h.ticker.slice(0, 2)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, fontSize: 14, color: C.text }}>{h.ticker}</span>
+                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, color: C.text }}>${h.value.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: C.textMuted }}>{h.name}</span>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: 12, color: h.change > 0 ? C.pos : C.neg }}>
+                        {h.change > 0 ? "▲" : "▼"} {Math.abs(h.change)}%
+                      </span>
+                      <div style={{ ...S.badge, background: h.sentimentColor + "22", color: h.sentimentColor, fontSize: 10 }}>
+                        {h.sentiment}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </>
+      )}
+
+      {subTab === "watchlist" && (
+        <>
+          {watchlist.map((w, i) => (
+            <Card key={i} style={{ padding: "14px", marginBottom: 8, cursor: "pointer", animationDelay: `${i * 40}ms` }} onClick={onChat}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div>
+                  <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color: C.text }}>{w.ticker}</span>
+                  <span style={{ fontSize: 12, color: C.textMuted, marginLeft: 8 }}>{w.name}</span>
+                </div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, color: C.text }}>{w.price}</div>
+              </div>
+              <div style={{ ...S.badge, background: C.accentDim, color: C.accent, marginBottom: 6 }}>{w.forecast}</div>
+              <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>{w.note}</div>
+            </Card>
+          ))}
+        </>
+      )}
+
+      {/* AI FORECAST */}
+      <SectionHeader title="AI Forecasts" style={{ marginTop: 8 }} />
+      <Card style={{ padding: 14 }}>
+        {[
+          { asset: "BTC",     forecast: "Mildly bullish — momentum building toward resistance." },
+          { asset: "AUD/USD", forecast: "Likely range-bound — RBA hold limits upside." },
+          { asset: "Super",   forecast: "Stable — long-term compounding remains optimal." },
+        ].map((f, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, paddingBottom: i < 2 ? 10 : 0, marginBottom: i < 2 ? 10 : 0, borderBottom: i < 2 ? `1px solid ${C.cardBorder}` : "none" }}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13, color: C.accent, minWidth: 52 }}>{f.asset}</div>
+            <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5 }}>{f.forecast}</div>
+          </div>
+        ))}
+      </Card>
+    </Screen>
+  );
+}
+
+// ============================================================
+// TRENDS SCREEN
+// ============================================================
+function TrendsScreen({ onChat }) {
+  return (
+    <Screen title="Market Trends" subtitle="Global intelligence">
+      {/* MARKET OVERVIEW */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {[
+          { name: "S&P 500",  value: "5,820",  change: +0.8  },
+          { name: "NASDAQ",   value: "18,340", change: +1.4  },
+          { name: "ASX 200",  value: "8,120",  change: +0.3  },
+          { name: "BTC",      value: "$98.4k", change: +2.8  },
+          { name: "Gold",     value: "$3,024", change: -0.4  },
+          { name: "AUD/USD",  value: "0.6480", change: +0.4  },
+        ].map((m, i) => (
+          <Card key={i} style={{ padding: "12px 14px", animationDelay: `${i * 30}ms` }}>
+            <div style={S.label}>{m.name}</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, fontWeight: 700, color: C.text, marginTop: 2 }}>{m.value}</div>
+            <div style={{ fontSize: 12, color: m.change > 0 ? C.pos : C.neg, marginTop: 2 }}>
+              {m.change > 0 ? "▲" : "▼"} {Math.abs(m.change)}%
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* SECTOR STRENGTH */}
+      <SectionHeader title="Sector Strength" />
+      <Card style={{ marginBottom: 16 }}>
+        <ResponsiveContainer width="100%" height={220}>
+          <RadarChart data={sectorData}>
+            <PolarGrid stroke={C.cardBorder} />
+            <PolarAngleAxis dataKey="sector" tick={{ fill: C.textMuted, fontSize: 11 }} />
+            <Radar dataKey="strength" stroke={C.accent} fill={C.accent} fillOpacity={0.15} strokeWidth={1.5} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      {/* TOP MOVERS */}
+      <SectionHeader title="Top Movers" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {topMovers.map((m, i) => (
+          <Card key={i} style={{ padding: "12px 14px", animationDelay: `${i * 40}ms` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <div style={S.tickerBadge}>{m.ticker.slice(0, 2)}</div>
+              <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, color: C.text }}>{m.ticker}</span>
+              <span style={{ marginLeft: "auto", color: m.change > 0 ? C.pos : C.neg, fontWeight: 600 }}>
+                {m.change > 0 ? "▲" : "▼"} {Math.abs(m.change)}%
+              </span>
+            </div>
+            <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5 }}>{m.why}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* CRYPTO MOMENTUM */}
+      <SectionHeader title="Crypto Momentum Index" />
+      <Card style={{ padding: "16px 14px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 28, fontWeight: 700, color: C.gold }}>56</div>
+          <div style={{ ...S.badge, background: C.goldDim, color: C.gold }}>Mildly Bullish</div>
+        </div>
+        <div style={{ position: "relative", height: 8, background: C.cardBorder, borderRadius: 4 }}>
+          <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: "56%", background: `linear-gradient(90deg, ${C.neg}, ${C.gold}, ${C.pos})`, borderRadius: 4 }} />
+          <div style={{ position: "absolute", left: "56%", top: -2, width: 12, height: 12, borderRadius: "50%", background: C.gold, border: `2px solid ${C.bg}`, transform: "translateX(-50%)" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+          <span style={{ fontSize: 10, color: C.neg }}>Bearish</span>
+          <span style={{ fontSize: 10, color: C.textMuted }}>Neutral</span>
+          <span style={{ fontSize: 10, color: C.pos }}>Bullish</span>
+        </div>
+      </Card>
+    </Screen>
+  );
+}
+
+// ============================================================
+// NEWS SCREEN
+// ============================================================
+function NewsScreen({ onChat }) {
+  return (
+    <Screen title="Market News" subtitle="AI-filtered intelligence">
+      {/* TODAY'S HIGHLIGHTS */}
+      <SectionHeader title="Today's Highlights" />
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginBottom: 16 }}>
+        {newsItems.slice(0, 3).map((n, i) => (
+          <Card key={i} style={{ minWidth: 200, padding: 14, animationDelay: `${i * 40}ms` }}>
+            <div style={{ ...S.badge, background: n.impactColor + "22", color: n.impactColor, marginBottom: 8 }}>{n.impact}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.text, lineHeight: 1.4, marginBottom: 6 }}>{n.headline}</div>
+            <div style={{ fontSize: 11.5, color: C.textMuted, lineHeight: 1.5 }}>{n.summary}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* FULL FEED */}
+      <SectionHeader title="News Feed" />
+      {newsItems.map((n, i) => (
+        <Card key={i} style={{ marginBottom: 8, padding: "14px", animationDelay: `${i * 30}ms` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.text, lineHeight: 1.4 }}>{n.headline}</div>
+            <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: "nowrap" }}>{n.time}</div>
+          </div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5, marginBottom: 10 }}>{n.summary}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ ...S.badge, background: n.impactColor + "22", color: n.impactColor }}>{n.impact}</div>
+            <button style={S.ghostBtn} onClick={onChat}>Discuss with AI →</button>
+          </div>
+        </Card>
+      ))}
+    </Screen>
+  );
+}
+
+// ============================================================
+// CHAT SCREEN
+// ============================================================
+function ChatScreen() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [apiLive] = useState(!!import.meta.env.VITE_ANTHROPIC_API_KEY);
+  const endRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const send = async (text) => {
+    const q = text || input.trim();
+    if (!q || loading) return;
+    setInput("");
+
+    const newMsgs = [...messages, { role: "user", content: q }];
+    setMessages(newMsgs);
+    setLoading(true);
+
+    const apiMessages = newMsgs.map(m => ({ role: m.role, content: m.content }));
+    const result = await callMaddenAI(apiMessages);
+
+    setMessages([...newMsgs, { role: "assistant", data: result }]);
+    setLoading(false);
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      {/* HEADER */}
+      <div style={S.screenHeader}>
+        <div>
+          <div style={S.screenTitle}>MaddenAI</div>
+          <div style={S.screenSubtitle}>Financial Intelligence Engine</div>
+        </div>
+        <div style={{ ...S.badge, background: apiLive ? C.posDim : C.goldDim, color: apiLive ? C.pos : C.gold }}>
+          {apiLive ? "● Live" : "● Demo mode"}
+        </div>
+      </div>
+
+      {/* MESSAGES */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: "center", padding: "32px 0" }}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 8 }}>
+              Ask MaddenAI anything.
+            </div>
+            <div style={{ fontSize: 13.5, color: C.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+              Markets · Super · Investing · Tax · Crypto
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+              {QUICK_PROMPTS.map(p => (
+                <button key={p} style={S.chip} onClick={() => send(p)}>{p}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((m, i) => (
+          <div key={i}>
+            {m.role === "user" ? (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                <div style={S.userBubble}>{m.content}</div>
+              </div>
+            ) : (
+              <AIResponseCard data={m.data} />
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 0" }}>
+            <div style={S.aiDot} />
+            <div style={{ display: "flex", gap: 4 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: C.accent, animation: "pulse 1.2s ease-in-out infinite", animationDelay: `${i * 200}ms` }} />
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: C.textMuted }}>MaddenAI is analysing...</span>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {/* INPUT */}
+      <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.cardBorder}` }}>
+        {messages.length > 0 && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", paddingBottom: 2 }}>
+            {QUICK_PROMPTS.slice(0, 3).map(p => (
+              <button key={p} style={{ ...S.chip, whiteSpace: "nowrap", flexShrink: 0 }} onClick={() => send(p)}>{p}</button>
+            ))}
+          </div>
+        )}
+        <div style={S.inputRow}>
+          <textarea
+            ref={inputRef}
+            style={S.textarea}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="Ask about markets, super, investing..."
+            rows={1}
+          />
+          <button
+            style={{ ...S.sendBtn, opacity: input.trim() && !loading ? 1 : 0.3 }}
+            onClick={() => send()}
+            disabled={!input.trim() || loading}
+          >↑</button>
+        </div>
+        {!apiLive && (
+          <div style={{ fontSize: 10.5, color: C.textMuted, textAlign: "center", marginTop: 8 }}>
+            Demo mode — add VITE_ANTHROPIC_API_KEY to Replit Secrets to go live
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AI RESPONSE CARD
+// ============================================================
+function AIResponseCard({ data }) {
+  if (!data) return null;
+  const sentColor = data.sentiment?.toLowerCase().includes("bull") ? C.pos
+    : data.sentiment?.toLowerCase().includes("bear") ? C.neg : C.neutral;
+
+  return (
+    <div style={{ marginBottom: 16 }} className="fade-up">
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+        <div style={S.aiDot} />
+        <span style={{ fontSize: 11, color: C.textMuted }}>MaddenAI</span>
+      </div>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        {/* ASSET HEADER */}
+        <div style={{ padding: "14px 14px 12px", borderBottom: `1px solid ${C.cardBorder}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 17, fontWeight: 700, color: C.text }}>{data.asset}</div>
+              {data.price !== "N/A" && <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, color: C.textMuted, marginTop: 2 }}>{data.price}</div>}
+            </div>
+            {data.change && <div style={{ fontSize: 13, color: data.change?.startsWith("+") ? C.pos : C.neg, fontWeight: 500 }}>{data.change}</div>}
+          </div>
+        </div>
+
+        {/* SCORES */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+          <div style={{ padding: "10px 14px", borderRight: `1px solid ${C.cardBorder}`, borderBottom: `1px solid ${C.cardBorder}` }}>
+            <div style={S.label}>Buy Probability</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 20, fontWeight: 700, color: C.accent, marginTop: 2 }}>{data.buyProbability}%</div>
+            <div style={{ position: "relative", height: 3, background: C.cardBorder, borderRadius: 2, marginTop: 6 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${data.buyProbability}%`, background: C.accent, borderRadius: 2 }} />
+            </div>
+          </div>
+          <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.cardBorder}` }}>
+            <div style={S.label}>Sentiment</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 14, fontWeight: 700, color: sentColor, marginTop: 2 }}>{data.sentiment}</div>
+            <div style={{ position: "relative", height: 3, background: C.cardBorder, borderRadius: 2, marginTop: 6 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${data.sentimentScore}%`, background: sentColor, borderRadius: 2 }} />
+            </div>
+          </div>
+        </div>
+
+        {/* INSIGHT */}
+        <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.cardBorder}` }}>
+          <div style={S.label}>AI Insight</div>
+          <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6, marginTop: 6 }}>{data.insight}</div>
+        </div>
+
+        {/* RISK + NEXT STEP */}
+        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.cardBorder}`, background: C.negDim }}>
+          <div style={{ fontSize: 11, color: C.neg, fontWeight: 600, marginBottom: 3 }}>RISK NOTE</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5 }}>{data.riskNote}</div>
+        </div>
+        <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.cardBorder}`, background: C.accentDim }}>
+          <div style={{ fontSize: 11, color: C.accent, fontWeight: 600, marginBottom: 3 }}>NEXT STEP</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5 }}>{data.nextStep}</div>
+        </div>
+
+        {/* ACTIONS */}
+        <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
+          <button style={S.actionBtn}>+ Watchlist</button>
+          <button style={S.actionBtn}>Compare</button>
+          <button style={S.actionBtn}>Show chart</button>
+        </div>
+
+        {/* DISCLAIMER */}
+        <div style={{ padding: "8px 14px", background: C.bg, borderTop: `1px solid ${C.cardBorder}` }}>
+          <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.5 }}>⚠ {data.disclaimer}</div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================================
+// SHARED COMPONENTS
+// ============================================================
+function Screen({ title, subtitle, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div style={S.screenHeader}>
+        <div style={S.screenTitle}>{title}</div>
+        {subtitle && <div style={S.screenSubtitle}>{subtitle}</div>}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Card({ children, style, onClick }) {
+  return (
+    <div
+      className="fade-up"
+      style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: 14, ...style }}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ title, action, style }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, ...style }}>
+      <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 13, fontWeight: 600, color: C.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" }}>{title}</div>
+      {action && <button style={S.ghostBtn}>{action}</button>}
+    </div>
+  );
+}
+
+// ============================================================
+// STYLES
+// ============================================================
+const S = {
+  root: { height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "#060c18", fontFamily: "'Plus Jakarta Sans', sans-serif" },
+  appShell: { width: "100%", maxWidth: 430, height: "100vh", display: "flex", flexDirection: "column", background: C.bg, position: "relative", overflow: "hidden" },
+  screenArea: { flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" },
+
+  screenHeader: { padding: "20px 16px 14px", borderBottom: `1px solid ${C.cardBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 },
+  screenTitle: { fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" },
+  screenSubtitle: { fontSize: 12, color: C.textMuted, marginTop: 2 },
+
+  nav: { display: "flex", background: C.card, borderTop: `1px solid ${C.cardBorder}`, flexShrink: 0 },
+  navBtn: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "10px 4px 12px", color: C.textMuted, transition: "color 0.15s" },
+  navBtnActive: { color: C.accent },
+  navIcon: { fontSize: 18, lineHeight: 1 },
+  navLabel: { fontSize: 9.5, letterSpacing: "0.04em" },
+
+  label: { fontSize: 10.5, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 500 },
+  badge: { display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500 },
+
+  chip: { background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "6px 14px", fontSize: 12, color: C.textMuted, cursor: "pointer" },
+  chipActive: { background: C.accentDim, borderColor: C.accent, color: C.accent },
+
+  tickerBadge: { width: 36, height: 36, borderRadius: 10, background: C.accentDim, color: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 12, flexShrink: 0 },
+
+  ghostBtn: { fontSize: 12, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0 },
+  actionBtn: { flex: 1, padding: "7px 0", background: C.bg, border: `1px solid ${C.cardBorder}`, borderRadius: 8, fontSize: 11.5, color: C.textMuted, cursor: "pointer" },
+
+  userBubble: { background: C.accent, color: "#fff", borderRadius: "16px 16px 4px 16px", padding: "10px 14px", maxWidth: "80%", fontSize: 14, lineHeight: 1.5 },
+  aiDot: { width: 24, height: 24, borderRadius: 7, background: C.accentDim, border: `1px solid ${C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 11, color: C.accent, fontWeight: 700 },
+
+  inputRow: { display: "flex", gap: 10, alignItems: "flex-end", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "10px 10px 10px 14px" },
+  textarea: { flex: 1, background: "none", border: "none", color: C.text, fontSize: 14, lineHeight: 1.5, maxHeight: 120, overflowY: "auto" },
+  sendBtn: { width: 34, height: 34, minWidth: 34, borderRadius: 10, background: C.accent, color: "#fff", fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", transition: "opacity 0.15s" },
+};

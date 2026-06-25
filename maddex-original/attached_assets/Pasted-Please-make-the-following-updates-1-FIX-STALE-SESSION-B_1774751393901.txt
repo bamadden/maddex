@@ -1,0 +1,105 @@
+Please make the following updates:
+
+1. FIX STALE SESSION BUG:
+   On every app load, after calling getSession(), also call 
+   supabase.auth.getUser() to verify the session is still 
+   valid against the Supabase server.
+   
+   If getUser() returns an error or null user, immediately:
+   - Clear the local session via supabase.auth.signOut()
+   - Clear any local state (userProfile, portfolio, watchlist)
+   - Redirect to the Login screen
+   
+   This ensures deleted or expired accounts can't remain 
+   logged in via cached tokens.
+
+2. DELETE ACCOUNT FEATURE:
+   Add a "Close Account" section at the bottom of the 
+   Account screen, above the Sign Out button.
+   
+   SUBSCRIPTION CHECK LOGIC:
+   Check the user's subscription_tier in the profiles table:
+   
+   If subscription_tier is 'trial' or 'free' or null:
+     → Allow deletion immediately (see flow below)
+   
+   If subscription_tier is 'core', 'prime', or 'apex':
+     → Block deletion. Show this message in a red info box:
+     "You have an active Maddex subscription. To close your 
+      account, please cancel your subscription first and wait 
+      until the end of your current billing period. Once your 
+      subscription has expired, you can return here to 
+      close your account."
+     → Show a "Manage Subscription" button below it
+     → Do not show the delete button at all
+
+   DELETION FLOW (for eligible users):
+   
+   Step 1 — Show a subtle "Close Account" text button 
+   in muted red at the bottom of the Account screen.
+   Small, not prominent — this should not be easy to 
+   accidentally tap.
+   
+   Step 2 — Tapping it opens a confirmation modal with:
+   Title: "Close your account?"
+   Body: "This will permanently delete your Maddex account, 
+   including your portfolio, watchlist, and all saved data. 
+   This cannot be undone."
+   Two buttons:
+   - "Cancel" (dismisses modal, does nothing)
+   - "Yes, close my account" (red, confirms deletion)
+   
+   Step 3 — Tapping "Yes, close my account" shows a 
+   second confirmation — a text input asking the user 
+   to type "DELETE" to confirm. The final delete button 
+   stays disabled until they type it exactly.
+   
+   Step 4 — Once confirmed, in this exact order:
+   a. Delete all rows from portfolio where user_id = user.id
+   b. Delete all rows from watchlist where user_id = user.id  
+   c. Delete the row from profiles where id = user.id
+   d. Call supabase.auth.admin.deleteUser(user.id) 
+      — if this is not available client-side, call a 
+      server function or use supabase.auth.signOut() 
+      and flag the account for deletion
+   e. Clear all local app state
+   f. Show "Your account has been closed." message
+   g. Redirect to the Login screen after 2 seconds
+   
+   Step 5 — If any deletion step fails, show:
+   "Something went wrong. Please contact 
+   support@maddex.com.au to complete your account closure."
+   Do not leave the user in a broken state.
+
+3. SUPABASE — ADD DELETE PERMISSIONS:
+   The portfolio and watchlist tables already have RLS 
+   policies for the user to manage their own data so 
+   deletes will work there.
+   
+   For the profiles table, add a delete policy:
+   In Supabase SQL Editor run:
+   
+   create policy "Users can delete own profile"
+     on public.profiles for delete using (auth.uid() = id);
+   
+   Note: Deleting the auth.users record itself requires 
+   admin privileges. If client-side deletion of the auth 
+   user is not available, after signing out flag the 
+   profile with deleted_at = now() and handle cleanup 
+   via a Supabase Edge Function or manual admin review.
+   Instead add a deleted_at column:
+   alter table public.profiles 
+   add column if not exists deleted_at timestamptz;
+   
+   When deleted_at is set, treat the account as closed 
+   and block login by signing out immediately on app load 
+   if deleted_at is not null.
+
+4. ACCOUNT SCREEN ORDER:
+   The Account screen bottom section should read:
+   [Manage Subscription button]
+   [Sign Out button]  
+   [Close Account — subtle red text link at very bottom]
+   
+   Close Account should be the last thing on the screen,
+   small and unobtrusive.

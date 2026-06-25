@@ -1,0 +1,401 @@
+import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import {
+  fetchCryptoMarkets, fetchCoinHistory, fetchFearGreed, fetchTrendingCoins,
+  transformCryptoMarkets, transformCoinHistory, transformFearGreed,
+  COIN_IDS,
+} from '../../services/api'
+import { calculateCryptoMomentumIndex, scoreToColor, explainScore } from '../../services/maddenAiScoring'
+import { useStore } from '../../store/useStore'
+import { fmt } from '../../utils/format'
+import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+// ── Sparkline ──────────────────────────────────────────────────────────────────
+
+function Sparkline({ prices, pct }) {
+  if (!prices?.length) return <span className="w-16 inline-block" />
+  const sampled = prices.filter((_, i) => i % 4 === 0)
+  const min = Math.min(...sampled), max = Math.max(...sampled)
+  const range = max - min || 1
+  const w = 64, h = 20
+  const pts = sampled.map((p, i) =>
+    `${(i / (sampled.length - 1)) * w},${h - ((p - min) / range) * (h - 2) - 1}`
+  ).join(' ')
+  const color = (pct ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="inline-block opacity-80">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── Sentiment ──────────────────────────────────────────────────────────────────
+
+function calcSentiment(pct24h, pct7d) {
+  let score = 50
+  score += Math.min(22, Math.max(-22, (pct24h ?? 0) * 2.5))
+  score += Math.min(14, Math.max(-14, (pct7d  ?? 0) * 1.0))
+  return Math.round(Math.min(100, Math.max(0, score)))
+}
+
+function SentimentBadge({ pct24h, pct7d }) {
+  const score = calcSentiment(pct24h, pct7d)
+  const { label, color } =
+    score >= 75 ? { label: 'EXT GREED', color: 'var(--color-gain-bright)' } :
+    score >= 60 ? { label: 'GREED',     color: 'var(--color-gain)' } :
+    score >= 45 ? { label: 'NEUTRAL',   color: 'var(--color-neutral)' } :
+    score >= 30 ? { label: 'FEAR',      color: '#ff8c00' } :
+                  { label: 'EXT FEAR',  color: 'var(--color-loss-bright)' }
+  return (
+    <span className="text-2xs font-bold px-1 py-0.5 border-l-2 leading-none" style={{ color, borderColor: color }}>
+      {score} · {label}
+    </span>
+  )
+}
+
+// ── Fear & Greed Gauge ─────────────────────────────────────────────────────────
+
+function FearGreedGauge({ data }) {
+  const getColor = (v) =>
+    v >= 75 ? 'var(--color-gain-bright)' :
+    v >= 55 ? 'var(--color-neutral)' :
+    v >= 45 ? '#f0c040' :
+    v >= 25 ? '#ff8c00' :
+              'var(--color-loss-bright)'
+  const { value, label, prev, weekAgo, monthAgo } = data
+  const color = getColor(value)
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-1 py-1.5">
+      <div className="text-2xs text-terminal-gold tracking-widest font-bold mb-1">FEAR &amp; GREED</div>
+      <svg viewBox="0 0 120 70" style={{ width: '100%', maxWidth: 100, height: 'auto', display: 'block' }}>
+        <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="#0d2244" strokeWidth="10" />
+        <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={`${(value / 100) * 157} 157`} strokeLinecap="butt" />
+        <text x="60" y="60" textAnchor="middle" fill={color} fontSize="22" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
+      </svg>
+      <div className="text-2xs font-bold mt-0.5" style={{ color }}>{label.toUpperCase()}</div>
+      <div className="grid grid-cols-3 gap-x-2 gap-y-0 mt-1 text-2xs w-full text-center">
+        {[['PREV', prev], ['WEEK', weekAgo], ['MO', monthAgo]].map(([l, v]) => (
+          <div key={l}>
+            <div className="text-terminal-text-dim/60 text-[9px]">{l}</div>
+            <div className="text-[10px]" style={{ color: getColor(v) }}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Chart tooltip ──────────────────────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label, currency }) {
+  if (!active || !payload?.length) return null
+  const val = payload[0].value
+  const formatted = currency === 'AUD'
+    ? fmt.aud(val)
+    : `US$${val.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+  return (
+    <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
+      <div className="text-terminal-text-dim">{label}</div>
+      <div className="text-terminal-gold font-semibold">{formatted}</div>
+    </div>
+  )
+}
+
+// ── Crypto Momentum Index ──────────────────────────────────────────────────────
+// Multi-factor MaddenAI score: mcap-weighted 24h/7d momentum + breadth + F&G + volume.
+
+function CryptoMomentumBar({ momentum }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!momentum) return null
+  const color = scoreToColor(momentum.score)
+  const { bullish, neutral, bearish } = momentum.breakdown ?? { bullish: 33, neutral: 34, bearish: 33 }
+
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="flex items-center gap-3 px-2 py-1 cursor-pointer" onClick={() => setExpanded((v) => !v)}>
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0">CRYPTO MOMENTUM INDEX</span>
+        <span className="text-sm font-bold flex-shrink-0" style={{ color }}>{momentum.score}</span>
+        <span className="text-2xs font-semibold flex-shrink-0" style={{ color }}>{momentum.label.toUpperCase()}</span>
+        <div className="flex h-1.5 w-28 overflow-hidden flex-shrink-0">
+          <div style={{ width: `${bullish}%`, backgroundColor: 'var(--color-gain)' }} />
+          <div style={{ width: `${neutral}%`, backgroundColor: 'var(--color-neutral)' }} />
+          <div style={{ width: `${bearish}%`, backgroundColor: 'var(--color-loss)' }} />
+        </div>
+        <span className="text-2xs text-terminal-text-dim/50 ml-auto flex-shrink-0">{expanded ? '▲' : '▼'}</span>
+      </div>
+      {expanded && (
+        <div className="px-2 pb-1.5 text-2xs text-terminal-text-dim border-t border-terminal-border/50 pt-1">
+          {explainScore(momentum)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Trending ───────────────────────────────────────────────────────────────────
+
+function TrendingSection() {
+  const { data: trending, isLoading } = useQuery({
+    queryKey: ['trendingCoins'],
+    queryFn:  fetchTrendingCoins,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+  const coins = trending?.coins?.slice(0, 10) ?? []
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="panel-header flex items-center gap-2">
+        TRENDING
+        <span className="text-terminal-gold text-2xs font-normal normal-case">CoinGecko</span>
+        {isLoading && <span className="text-terminal-text-dim text-2xs animate-pulse">...</span>}
+      </div>
+      <div className="flex gap-1.5 px-2 pb-1.5 overflow-x-auto">
+        {coins.map(({ item: c }, i) => (
+          <div key={c.id} className="flex items-center gap-1 border border-terminal-border/50 px-1.5 py-0.5 flex-shrink-0">
+            <span className="text-2xs text-terminal-text-dim">#{i + 1}</span>
+            <span className="text-2xs font-bold text-terminal-gold">{c.symbol.toUpperCase()}</span>
+            {c.data?.price_change_percentage_24h?.usd != null && (
+              <span className="text-2xs font-semibold" style={{
+                color: c.data.price_change_percentage_24h.usd >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+              }}>
+                {c.data.price_change_percentage_24h.usd >= 0 ? '▲' : '▼'}{Math.abs(c.data.price_change_percentage_24h.usd).toFixed(1)}%
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Timeframe config ───────────────────────────────────────────────────────────
+
+const TIMEFRAMES = ['1D', '7D', '1M', '3M', '1Y']
+const TF_DAYS    = { '1D': 1, '7D': 7, '1M': 30, '3M': 90, '1Y': 365 }
+const TOP_COINS  = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'LINK']
+
+// ── Main Module ────────────────────────────────────────────────────────────────
+//
+//  LAYOUT:
+//  Row 1 │ Fear & Greed (40%) | Price chart (60%)  ← clamp(160px,22vh,200px)
+//  Row 2 │ Trending coins — horizontal scroll       ← ~52px
+//  Row 3 │ Top 20 Table — fills remainder, scrollable
+
+export default function CryptoModule() {
+  const [selectedCoin, setSelectedCoin] = useState('BTC')
+  const [timeframe, setTimeframe]       = useState('3M')
+  const { openModal, currency } = useStore()
+  const vsCurrency = currency.toLowerCase()
+  const currPrefix = currency === 'AUD' ? 'A$' : 'US$'
+
+  const { data: rawMarketsResult, isError: marketsError, refetch: refetchMarkets } = useQuery({
+    queryKey: ['cryptoMarkets', vsCurrency],
+    queryFn:  () => fetchCryptoMarkets(vsCurrency),
+    staleTime: 60_000,
+    retry: 1,
+  })
+
+  const { data: rawFearGreed } = useQuery({
+    queryKey: ['fearGreed'],
+    queryFn:  fetchFearGreed,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  const days = TF_DAYS[timeframe] ?? 90
+  const { data: rawHistory, isFetching: chartLoading, isError: historyError, refetch: refetchHistory } = useQuery({
+    queryKey: ['coinHistory', selectedCoin, vsCurrency, days],
+    queryFn:  () => fetchCoinHistory(COIN_IDS[selectedCoin] ?? selectedCoin.toLowerCase(), vsCurrency, days),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  const rawMarkets = rawMarketsResult?.data
+  const markets    = rawMarkets   ? transformCryptoMarkets(rawMarkets, vsCurrency) : null
+  const fearGreed  = rawFearGreed ? transformFearGreed(rawFearGreed)               : null
+  const chartData  = rawHistory   ? transformCoinHistory(rawHistory)               : null
+
+  const momentum = useMemo(() => {
+    if (!rawMarkets) return null
+    const coins = rawMarkets.map((c) => ({
+      symbol: c.symbol?.toUpperCase(),
+      change24h: c.price_change_percentage_24h,
+      change7d: c.price_change_percentage_7d_in_currency,
+      volume24h: c.total_volume,
+      marketCap: c.market_cap,
+    }))
+    return calculateCryptoMomentumIndex({ coins, fearGreed })
+  }, [rawMarkets, fearGreed])
+
+  const yAxisFmt = (v) => {
+    if (v >= 1_000_000) return `${currPrefix}${(v / 1_000_000).toFixed(1)}M`
+    if (v >= 1_000)     return `${currPrefix}${(v / 1_000).toFixed(0)}K`
+    return `${currPrefix}${v.toFixed(0)}`
+  }
+
+  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+
+  const handleOpenModal = (coin) => openModal?.({
+    symbol: coin.symbol, name: coin.name, price: coin.price,
+    pct: coin.pct24h, change: null, type: 'crypto', coinId: COIN_IDS[coin.symbol],
+  })
+
+  const askAI = (coin) => {
+    const prompt = `Analyse ${coin.name} (${coin.symbol}): price ${currPrefix}${coin.price.toLocaleString('en-AU', { maximumFractionDigits: 2 })}, 24h ${coin.pct24h.toFixed(2)}%, 7d ${(coin.pct7d ?? 0).toFixed(2)}%, mkt cap ${currPrefix}${coin.mktCap}. Sentiment: ${calcSentiment(coin.pct24h, coin.pct7d)}/100. Provide brief outlook for AUD-based investors.`
+    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
+  }
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+
+      {/* ── Row 1: Fear & Greed (40%) + Price chart (60%) ── */}
+      <div className="flex border-b border-terminal-border flex-shrink-0 divide-x divide-terminal-border"
+        style={{ height: 'clamp(160px, 22vh, 200px)' }}>
+
+        {/* Fear & Greed */}
+        <div className="flex-shrink-0 overflow-hidden" style={{ width: '38%' }}>
+          {fearGreed
+            ? <FearGreedGauge data={fearGreed} />
+            : <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">F&amp;G LOADING...</div>
+          }
+        </div>
+
+        {/* Price chart */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {/* Chart header with coin + timeframe selectors */}
+          <div className="flex items-center gap-1 px-2 py-0.5 border-b border-terminal-border/50 flex-shrink-0 flex-wrap">
+            <span className="text-2xs text-terminal-text-dim font-bold">{selectedCoin}/{currency}</span>
+            <div className="flex gap-0.5 flex-wrap">
+              {TOP_COINS.map(coin => (
+                <button key={coin} onClick={() => setSelectedCoin(coin)}
+                  className={`px-1 py-0 text-[9px] transition-colors ${
+                    selectedCoin === coin
+                      ? 'bg-terminal-gold text-terminal-bg font-bold'
+                      : 'text-terminal-text-dim hover:text-terminal-text'
+                  }`}>
+                  {coin}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-0.5 ml-auto">
+              {TIMEFRAMES.map(tf => (
+                <button key={tf} onClick={() => setTimeframe(tf)}
+                  className={`px-1 py-0 text-[9px] transition-colors ${
+                    timeframe === tf
+                      ? 'border border-terminal-gold text-terminal-gold'
+                      : 'text-terminal-text-dim hover:text-terminal-gold'
+                  }`}>
+                  {tf}
+                </button>
+              ))}
+            </div>
+            {chartLoading && <span className="text-terminal-text-dim text-[9px] animate-pulse">...</span>}
+          </div>
+
+          {/* Chart */}
+          <div className="flex-1 min-h-0 px-0.5 pb-0.5">
+            {historyError && !rawHistory ? (
+              <DataUnavailable label="CHART UNAVAILABLE" onRetry={refetchHistory} className="h-full" />
+            ) : chartData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 2, right: 4, left: 2, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="cryptoGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#0d2244" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 7 }} tickFormatter={yAxisFmt} domain={['auto', 'auto']} width={46} />
+                  <Tooltip content={<ChartTooltip currency={currency} />} />
+                  <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5}
+                    fill="url(#cryptoGrad)" dot={false} isAnimationActive={false} connectNulls />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
+                LOADING CHART...
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Row 1.5: Crypto Momentum Index ── */}
+      <CryptoMomentumBar momentum={momentum} />
+
+      {/* ── Row 2: Trending ── */}
+      <TrendingSection />
+
+      {/* ── Row 3: Top 20 Table ── */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="panel-header sticky top-0 bg-terminal-header flex items-center gap-2 flex-wrap">
+          <span>TOP 20 BY MKT CAP ({currency})</span>
+          {rawMarkets
+            ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {updatedTime}</span>
+            : !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
+          }
+          {marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
+        </div>
+
+        {marketsError ? (
+          <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
+        ) : markets ? (
+          <table className="terminal-table w-full">
+            <thead className="sticky top-7 bg-terminal-header">
+              <tr>
+                <th className="px-2 text-right w-7">#</th>
+                <th className="px-2 text-left">ASSET</th>
+                <th className="px-2 text-right">PRICE</th>
+                <th className="px-2 text-right">24H%</th>
+                <th className="px-2 text-right hidden sm:table-cell">7D%</th>
+                <th className="px-2 text-right hidden md:table-cell">SENTIMENT</th>
+                <th className="px-2 text-right hidden lg:table-cell">7D CHART</th>
+                <th className="px-2 text-right hidden md:table-cell">MKT CAP</th>
+                <th className="px-2 text-right">AI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {markets.map(coin => (
+                <tr key={coin.symbol} className="hover:bg-terminal-accent/30 cursor-pointer" onClick={() => handleOpenModal(coin)}>
+                  <td className="px-2 py-0.5 text-2xs text-terminal-text-dim text-right">{coin.rank}</td>
+                  <td className="px-2 py-0.5">
+                    <span className="text-2xs font-bold text-terminal-text-bright">{coin.symbol}</span>
+                    <span className="text-2xs text-terminal-text-dim ml-1 hidden xl:inline">{coin.name}</span>
+                  </td>
+                  <td className="px-2 py-0.5 text-2xs text-right font-semibold whitespace-nowrap">
+                    {currency === 'AUD' ? fmt.aud(coin.price) : `US$${coin.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                  </td>
+                  <td className="px-2 py-0.5 text-2xs text-right font-semibold"
+                    style={{ color: coin.pct24h >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+                    {fmt.pct(coin.pct24h)}
+                  </td>
+                  <td className="px-2 py-0.5 text-2xs text-right font-semibold hidden sm:table-cell"
+                    style={{ color: (coin.pct7d ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+                    {fmt.pct(coin.pct7d)}
+                  </td>
+                  <td className="px-2 py-0.5 text-right hidden md:table-cell">
+                    <SentimentBadge pct24h={coin.pct24h} pct7d={coin.pct7d} />
+                  </td>
+                  <td className="px-2 py-0.5 text-right hidden lg:table-cell">
+                    <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
+                  </td>
+                  <td className="px-2 py-0.5 text-2xs text-right text-terminal-text-dim hidden md:table-cell">
+                    {currPrefix}{coin.mktCap}
+                  </td>
+                  <td className="px-2 py-0.5 text-right" onClick={e => { e.stopPropagation(); askAI(coin) }}>
+                    <span className="text-2xs text-terminal-gold hover:text-terminal-text-bright cursor-pointer border border-terminal-gold/30 px-1 py-0.5">AI</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </div>
+
+    </div>
+  )
+}
