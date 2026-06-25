@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/yahoo/:path*",
+      "destination": "https://query1.finance.yahoo.com/:path*"
+    },
+    {
+      "source": "/api/frankfurter/:path*",
+      "destination": "https://api.frankfurter.app/:path*"
+    },
+    {
+      "source": "/api/opensky/:path*",
+      "destination": "https://opensky-network.org/:path*"
+    },
+    {
+      "source": "/api/rba/:path*",
+      "destination": "https://api.rba.gov.au/:path*"
+    },
+    {
+      "source": "/api/stooq/:path*",
+      "destination": "https://stooq.com/:path*"
+    }
+  ]
+}

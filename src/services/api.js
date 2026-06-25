@@ -5,7 +5,7 @@ import axios from 'axios'
 const _cache = new Map()
 const setCache = (k, v, ttlMs) => _cache.set(k, { v, exp: Date.now() + ttlMs })
 const getCache = (k) => { const e = _cache.get(k); return (e && Date.now() < e.exp) ? e.v : null }
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))  // eslint-disable-line no-unused-vars
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // Cache-busting for Yahoo requests: the timestamped URL goes out on the wire so
 // no browser/CDN layer serves a stale response; the stable (timestamp-free) URL
@@ -512,13 +512,56 @@ export const transformFearGreed = ({ data }) => ({
   monthAgo: parseInt(data[29]?.value ?? 50, 10),
 })
 
-// ─── Frankfurter FX (via proxy → /api/frankfurter) ───────────────────────────
+// ─── Frankfurter FX (via proxy → /api/frankfurter, direct fallback) ──────────
+// Frankfurter has CORS enabled, so a direct browser call works if the proxy
+// (Vite dev middleware / Vercel rewrite) is down or misconfigured.
+
+const FRANKFURTER_DIRECT   = 'https://api.frankfurter.app'
+const FRANKFURTER_ATTEMPTS = 3
+const FRANKFURTER_RETRY_MS = 2000
+
+async function frankfurterAttempt(url, label) {
+  const start = Date.now()
+  try {
+    const { data } = await axios.get(url, { timeout: 8000 })
+    const ms = Date.now() - start
+    console.log(`[MADDEN API] Frankfurter [${label}] ${url} → 200 OK (${ms}ms)`)
+    return data
+  } catch (e) {
+    const ms     = Date.now() - start
+    const status = e.response?.status ?? 'NETWORK ERROR'
+    console.warn(`[MADDEN API] Frankfurter [${label}] ${url} → ${status} (${ms}ms) — ${e.message}`)
+    throw e
+  }
+}
 
 export const fetchFxRates = async (base = 'AUD') => {
-  const { data } = await axios.get(`/api/frankfurter/latest?from=${base}`)
-  if (!data?.rates) throw new Error('Frankfurter: no rates in response')
-  console.log('[MADDEN API] Frankfurter /latest?from=' + base + ':', Object.keys(data.rates).length, 'currencies')
-  return data.rates
+  const proxyUrl  = `/api/frankfurter/latest?from=${base}`
+  const directUrl = `${FRANKFURTER_DIRECT}/latest?from=${base}`
+  let lastErr = null
+
+  for (let i = 1; i <= FRANKFURTER_ATTEMPTS; i++) {
+    try {
+      const data = await frankfurterAttempt(proxyUrl, `proxy ${i}/${FRANKFURTER_ATTEMPTS}`)
+      if (!data?.rates) throw new Error('No rates in response')
+      console.log('[MADDEN API] Frankfurter (proxy) /latest?from=' + base + ':', Object.keys(data.rates).length, 'currencies')
+      return data.rates
+    } catch (e) {
+      lastErr = e
+      if (i < FRANKFURTER_ATTEMPTS) await sleep(FRANKFURTER_RETRY_MS)
+    }
+  }
+
+  // Proxy exhausted — fall back to a direct browser call (Frankfurter allows CORS)
+  try {
+    const data = await frankfurterAttempt(directUrl, 'direct fallback')
+    if (!data?.rates) throw new Error('No rates in response')
+    console.log('[MADDEN API] Frankfurter (direct) /latest?from=' + base + ':', Object.keys(data.rates).length, 'currencies')
+    return data.rates
+  } catch (e) {
+    console.error('[MADDEN API] Frankfurter unavailable after', FRANKFURTER_ATTEMPTS, 'proxy attempts + direct fallback')
+    throw lastErr ?? e
+  }
 }
 
 export const FX_PAIR_DEFS = [
@@ -640,10 +683,59 @@ export const fetchRBARate = fetchRBACashRate
 const RSS2JSON_BASE = 'https://api.rss2json.com/v1/api.json'
 
 const RSS_FEEDS = [
-  { url: 'https://www.afr.com/rss',                                       source: 'AFR'     },
-  { url: 'https://feeds.reuters.com/reuters/businessNews',                source: 'Reuters' },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',        source: 'CNBC'    },
+  { url: 'https://www.afr.com/rss',                                       source: 'AFR'         },
+  { url: 'https://feeds.reuters.com/reuters/businessNews',                source: 'Reuters'     },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',        source: 'CNBC'        },
+  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',          source: 'MarketWatch' },
+  // Bloomberg Markets has no public RSS feed — omitted rather than faked.
 ]
+
+// ─── News categories (tabs) — an article can match more than one ────────────
+export const NEWS_CATEGORIES = ['ALL', 'AU MARKETS', 'US MARKETS', 'CRYPTO', 'COMMODITIES', 'FX', 'MACRO', 'GEOPOLITICAL']
+
+const NEWS_CATEGORY_RE = {
+  'AU MARKETS':   /\bASX\b|\bRBA\b|australia|australian|\bAUD\b/i,
+  'US MARKETS':   /\bFed\b|wall street|\bS&P\b|\bNASDAQ\b|\bNYSE\b/i,
+  CRYPTO:         /bitcoin|ethereum|crypto|blockchain|defi/i,
+  COMMODITIES:    /iron ore|\bgold\b|\boil\b|\bLNG\b|copper|wheat/i,
+  FX:             /\bAUD\b|currency|forex|central bank|exchange rate/i,
+  MACRO:          /inflation|\bGDP\b|unemployment|interest rate|recession/i,
+  GEOPOLITICAL:   /china|trade war|sanctions?|conflict|tariff/i,
+}
+
+function classifyNewsCategories(title, description = '') {
+  const text = `${title} ${description}`
+  return Object.entries(NEWS_CATEGORY_RE)
+    .filter(([, re]) => re.test(text))
+    .map(([key]) => key)
+}
+
+// ─── Sentiment (keyword-derived, not a model call) ───────────────────────────
+const BULLISH_RE = /surge|soar|rall(y|ies)|jump(s|ed)?|record high|upgrade|outperform|ris(e|es|ing)|climbs?|beats?|strong|gains?\b/i
+const BEARISH_RE = /plunge|crash|slump|tumbl|drop(s|ped)?|falls?|misses?|downgrade|underperform|declin|weak|recession|sell-?off/i
+
+function inferSentiment(title, description = '') {
+  const text = `${title} ${description}`
+  const bull = BULLISH_RE.test(text)
+  const bear = BEARISH_RE.test(text)
+  if (bull && !bear) return 'BULLISH'
+  if (bear && !bull) return 'BEARISH'
+  return 'NEUTRAL'
+}
+
+// ─── Dedup by headline similarity ────────────────────────────────────────────
+const normalizeHeadline = (h) => h.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
+
+function dedupeByHeadline(items) {
+  const seenPrefixes = []
+  return items.filter((item) => {
+    const norm = normalizeHeadline(item.headline)
+    const prefix = norm.slice(0, 40)
+    if (prefix.length > 15 && seenPrefixes.includes(prefix)) return false
+    seenPrefixes.push(prefix)
+    return true
+  })
+}
 
 // Separate world/geo news feeds for the Global Intelligence module
 export const GEO_RSS_FEEDS = [
@@ -689,7 +781,9 @@ const stripHtml = (html) => {
 export const fetchNews = async () => {
   const results = await Promise.allSettled(
     RSS_FEEDS.map(({ url, source }) =>
-      axios.get(RSS2JSON_BASE, { params: { rss_url: url, count: 20 } })
+      // rss2json's free tier rejects the `count` param outright (requires a paid key) —
+      // omit it and rely on the feed's own default item count instead.
+      axios.get(RSS2JSON_BASE, { params: { rss_url: url } })
         .then(({ data }) => ({ data, source }))
     )
   )
@@ -703,22 +797,25 @@ export const fetchNews = async () => {
       const pubDate = item.pubDate ? new Date(item.pubDate) : new Date()
       const tag     = inferNewsTag(item.title, item.categories)
       items.push({
-        id:       id++,
-        time:     pubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        id:         id++,
+        time:       pubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
         pubDate,
         source,
         tag,
-        headline: item.title?.trim() || '(No title)',
-        summary:  stripHtml(item.description || item.content),
-        link:     item.link,
-        tickers:  extractTickers(item.title, item.description),
-        priority: ['AFR', 'ASX', 'RBA'].includes(source) || tag === 'AU' ? 0 : 1,
+        categories: classifyNewsCategories(item.title, item.description),
+        sentiment:  inferSentiment(item.title, item.description),
+        headline:   item.title?.trim() || '(No title)',
+        summary:    stripHtml(item.description || item.content),
+        link:       item.link,
+        tickers:    extractTickers(item.title, item.description),
+        priority:   ['AFR', 'ASX', 'RBA'].includes(source) || tag === 'AU' ? 0 : 1,
       })
     }
   }
-  items.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
-  console.log('[MADDEN API] RSS2JSON news:', items.length, 'articles')
-  return items
+  const deduped = dedupeByHeadline(items)
+  deduped.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
+  console.log('[MADDEN API] RSS2JSON news:', deduped.length, 'articles (', items.length - deduped.length, 'duplicates removed)')
+  return deduped
 }
 
 // ─── OpenSky Network (via proxy → /api/opensky) ──────────────────────────────
@@ -751,7 +848,7 @@ export const transformFlightData = (raw) => {
 export const fetchGeoNews = async () => {
   const results = await Promise.allSettled(
     GEO_RSS_FEEDS.map(({ url, source }) =>
-      axios.get(RSS2JSON_BASE, { params: { rss_url: url, count: 25 } })
+      axios.get(RSS2JSON_BASE, { params: { rss_url: url } })
         .then(({ data }) => ({ data, source }))
     )
   )

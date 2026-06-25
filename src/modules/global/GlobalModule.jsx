@@ -532,6 +532,44 @@ function detectImpact(text) {
   return 'GLOBAL'
 }
 
+// ─── Dynamic chokepoint status from live news ────────────────────────────────
+// cp.status in CHOKEPOINTS is the last-known baseline. Live news can escalate
+// it to DISRUPTED or de-escalate it back to OPEN; with no fresh signal we keep
+// the baseline rather than guessing.
+const CHOKE_DISRUPT_RE = /block|clos|attack|strikes?|halt|suspend|sink|seiz|explod|sank/i
+const CHOKE_REOPEN_RE  = /reopen|resum|lift(ed|s)?|clear(ed)?|restor|normal/i
+
+function computeChokeStatus(cp, related) {
+  if (!related.length) return cp.status
+  const text = related.map((r) => `${r.headline} ${r.summary ?? ''}`).join(' ').toLowerCase()
+  if (CHOKE_REOPEN_RE.test(text))  return 'OPEN'
+  if (CHOKE_DISRUPT_RE.test(text)) return 'DISRUPTED'
+  return 'MONITORED'
+}
+
+function timeAgo(date) {
+  if (!date) return null
+  const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000)
+  if (mins < 1)  return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+// ─── Dynamic conflict-zone severity from live news ───────────────────────────
+const ZONE_KEYWORDS = {
+  'Ukraine war':      /ukraine|kyiv|zelensky|kharkiv|zaporizhzhia/i,
+  'Gaza / West Bank': /gaza|west bank|hamas|israel|idf/i,
+  'Yemen / Red Sea':  /yemen|houthi|red sea|hormuz/i,
+  Sudan:              /sudan|khartoum|rsf\b/i,
+  Syria:              /\bsyria\b|damascus/i,
+  Myanmar:            /myanmar|burma|rohingya/i,
+  'Taiwan Strait':    /taiwan|pla\b|china military|taiwan strait/i,
+}
+const SEVERITY_TO_COLOR  = { CRITICAL: '#ff1744', HIGH: '#ff6d00', MEDIUM: '#f59e0b', LOW: '#4a6580' }
+const SEVERITY_TO_RADIUS = { CRITICAL: 9, HIGH: 7, MEDIUM: 5, LOW: 4 }
+
 const GEO_RISK_RE = /sanction|conflict|trade.?war|tariff|embargo|military|geopolitic|tension|coup|invasion|escalat|naval|nuclear|attack|crisis|war\b|protest|strike\b/i
 const COUNTRY_KEYWORDS = {
   'Ukraine': /ukraine|kyiv|zelensky|zaporizhzhia|kharkiv|dnipro/i,
@@ -726,6 +764,27 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
     }).filter(Boolean).filter(r => r.d)
   }, [pathGen, activeLayers.air])
 
+  // Dynamic conflict-zone severity — escalate color/radius from live news
+  // matching each zone's keywords; falls back to the static baseline when
+  // there's no fresh signal, so a zone never silently looks calmer than it is.
+  const dynamicConflictZones = useMemo(() => {
+    return CONFLICT_ZONES.map(cz => {
+      const re = ZONE_KEYWORDS[cz.name]
+      if (!re || !geoNewsItems?.length) return cz
+      const related = geoNewsItems.filter(n => re.test(`${n.headline} ${n.summary ?? ''}`))
+      if (!related.length) return cz
+      const worstSeverity = related
+        .map(n => detectSeverity(`${n.headline} ${n.summary ?? ''}`))
+        .sort((a, b) => ({ CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }[a] - { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }[b]))[0]
+      return {
+        ...cz,
+        color:  SEVERITY_TO_COLOR[worstSeverity]  ?? cz.color,
+        radius: Math.max(cz.radius, SEVERITY_TO_RADIUS[worstSeverity] ?? cz.radius),
+        liveSeverity: worstSeverity,
+      }
+    })
+  }, [geoNewsItems])
+
   // Search: rotate globe to center searched country
   const searchId = useMemo(() => {
     if (!search.trim()) return null
@@ -875,8 +934,8 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           </g>
         ))}
 
-        {/* Conflict zone pulses */}
-        {activeLayers.geopolitical && CONFLICT_ZONES.map(cz => {
+        {/* Conflict zone pulses — color/radius escalate dynamically from live news */}
+        {activeLayers.geopolitical && dynamicConflictZones.map(cz => {
           if (!isVisible(cz.lon, cz.lat, rotation)) return null
           const pos = projection([cz.lon, cz.lat])
           if (!pos) return null
@@ -1233,7 +1292,7 @@ function MaritimeTab({ newsItems }) {
       const text = (n.headline + ' ' + (n.summary ?? '')).toLowerCase()
       return cp.keywords.some(kw => text.includes(kw.toLowerCase()))
     }).slice(0, 2)
-    return { ...cp, related }
+    return { ...cp, status: computeChokeStatus(cp, related), related, updatedAgo: timeAgo(related[0]?.pubDate) }
   }), [newsItems])
 
   const disrupted  = chokeStatuses.filter(c => c.status === 'DISRUPTED').length
@@ -1294,6 +1353,9 @@ function MaritimeTab({ newsItems }) {
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-2xs text-terminal-gold">{cp.cargoValue}</span>
                   <span className="text-2xs text-terminal-text-dim">· {cp.commodity}</span>
+                  {cp.updatedAgo && (
+                    <span className="text-2xs text-terminal-text-dim/60 ml-auto">UPDATED {cp.updatedAgo.toUpperCase()}</span>
+                  )}
                 </div>
               </div>
               <span className="text-terminal-text-dim text-2xs flex-shrink-0">{expanded === cp.name ? '▲' : '▼'}</span>
@@ -1630,7 +1692,7 @@ function CommodityFlowsTab({ onAskAI }) {
 
 // ─── Tab: Geopolitical Risk ───────────────────────────────────────────────────
 
-function GeoRiskTab({ newsItems, isLoading, onAskAI }) {
+function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
   const [filter, setFilter] = useState('ALL')
 
   const geoItems = useMemo(() => {
@@ -1738,8 +1800,9 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI }) {
           </div>
         ))}
       </div>
-      <div className="px-3 py-1 text-2xs text-terminal-text-dim/50 border-t border-terminal-border flex-shrink-0">
-        Sources: Reuters World · BBC World · Reuters Top News (RSS2JSON)
+      <div className="px-3 py-1 text-2xs text-terminal-text-dim/50 border-t border-terminal-border flex-shrink-0 flex items-center justify-between">
+        <span>Sources: Reuters World · BBC World · Reuters Top News (RSS2JSON)</span>
+        {updatedAt > 0 && <span>FEED UPDATED {timeAgo(new Date(updatedAt))?.toUpperCase()}</span>}
       </div>
     </div>
   )
@@ -1892,6 +1955,7 @@ export default function GlobalModule() {
   const [now, setNow] = useState(
     () => new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST'
   )
+  const [nowMs, setNowMs] = useState(0)
   const [tick, setTick] = useState(0)
   const [activeTab, setActiveTab]     = useState('maritime')
   const [selectedCountry, setSelectedCountry] = useState(null)
@@ -1904,10 +1968,13 @@ export default function GlobalModule() {
 
   // Time tick (30s)
   useEffect(() => {
-    const id = setInterval(() => {
+    const update = () => {
       setNow(new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST')
+      setNowMs(Date.now())
       setTick(t => t + 1)
-    }, 30_000)
+    }
+    update()
+    const id = setInterval(update, 30_000)
     return () => clearInterval(id)
   }, [])
 
@@ -1925,14 +1992,18 @@ export default function GlobalModule() {
     queryKey: ['news'],
     queryFn:  fetchNews,
     staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
     retry: 1,
   })
 
-  // Geo-specific news (Reuters World + BBC)
-  const { data: geoNewsItems, isLoading: geoNewsLoading } = useQuery({
+  // Geo-specific news (Reuters World + BBC) — refetched every 10 minutes so
+  // chokepoint status / conflict-zone severity track breaking news, not just
+  // the last manual refresh.
+  const { data: geoNewsItems, isLoading: geoNewsLoading, dataUpdatedAt: geoNewsUpdatedAt } = useQuery({
     queryKey: ['geoNews'],
     queryFn:  fetchGeoNews,
-    staleTime: 5 * 60_000,
+    staleTime: 10 * 60_000,
+    refetchInterval: 10 * 60_000,
     retry: 1,
   })
 
@@ -1943,6 +2014,17 @@ export default function GlobalModule() {
     const seen = new Set()
     return all.filter(n => { if (seen.has(n.headline)) return false; seen.add(n.headline); return true })
   }, [geoNewsItems, newsItems])
+
+  // Critical-event alert banner — any CRITICAL-severity geo article from the last 60 minutes
+  const criticalAlert = useMemo(() => {
+    if (!nowMs) return null
+    const cutoff = nowMs - 60 * 60 * 1000
+    return allNewsItems
+      .filter(n => n.pubDate && new Date(n.pubDate).getTime() >= cutoff)
+      .map(n => ({ ...n, severity: detectSeverity(`${n.headline} ${n.summary ?? ''}`) }))
+      .filter(n => n.severity === 'CRITICAL')
+      .sort((a, b) => b.pubDate - a.pubDate)[0] ?? null
+  }, [allNewsItems, nowMs])
 
   const toggleLayer = useCallback((id) => {
     setLayers(prev => ({ ...prev, [id]: !prev[id] }))
@@ -1968,6 +2050,15 @@ export default function GlobalModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+
+      {/* Critical-event alert banner */}
+      {criticalAlert && (
+        <div className="flex items-center gap-3 px-3 py-1 bg-terminal-red/15 border-b border-terminal-red/50 flex-shrink-0 animate-pulse">
+          <span className="text-terminal-red text-2xs font-bold tracking-widest flex-shrink-0">⚠ CRITICAL EVENT</span>
+          <span className="text-2xs text-terminal-text truncate">{criticalAlert.headline}</span>
+          <span className="text-2xs text-terminal-text-dim flex-shrink-0">{timeAgo(criticalAlert.pubDate)} · {criticalAlert.source}</span>
+        </div>
+      )}
 
       {/* Layer toggles */}
       <LayerToggleBar layers={layers} onToggle={toggleLayer} />
@@ -2034,7 +2125,7 @@ export default function GlobalModule() {
             ) : activeTab === 'commodities' ? (
               <CommodityFlowsTab onAskAI={handleAskAI} />
             ) : activeTab === 'geopolitical' ? (
-              <GeoRiskTab newsItems={allNewsItems} isLoading={geoNewsLoading} onAskAI={handleAskAI} />
+              <GeoRiskTab newsItems={allNewsItems} isLoading={geoNewsLoading} onAskAI={handleAskAI} updatedAt={geoNewsUpdatedAt} />
             ) : activeTab === 'sessions' ? (
               <MarketSessionsTab now={now} />
             ) : null}

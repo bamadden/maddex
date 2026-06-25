@@ -47,8 +47,8 @@ export const CENTRAL_BANK_RATES = [
 // Sources: abs.gov.au | rba.gov.au
 
 export const AU_MACRO = [
-  // RBA Cash Rate: 4.10% as at June 2025 RBA Board meeting — source: rba.gov.au
-  { name: 'RBA Cash Rate',       value: '4.10%', prev: '4.35%', date: '2025-06-03', beat: null, src: 'rba.gov.au' },
+  // RBA Cash Rate: 4.35% as at May 2026 RBA Board meeting — source: rba.gov.au
+  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.10%', date: '2026-05-20', beat: null, src: 'rba.gov.au' },
   // AU CPI YoY: 2.4% Q1 2026 — ABS Cat. 6401.0, released 2026-04-29
   { name: 'AU CPI YoY',          value: '2.4%',  prev: '2.3%',  date: '2026-04-29', beat: null, src: 'abs.gov.au/6401.0' },
   { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
@@ -174,7 +174,7 @@ export const BREAKING_NEWS_THRESHOLD_MINUTES = 30
 // Holdings are stored in localStorage under 'madden_portfolio_v2' — no demo data
 export const DEMO_PORTFOLIO_HOLDINGS = []
 
-export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'WOW.AX', 'CSL.AX', 'AAPL', 'NVDA', 'BTC']
+export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX', 'AAPL', 'NVDA', 'BTC-USD']
 
 // ─── RBA Rate History (Jan 2022 – Jun 2026) ─────────────────────────────────
 // SOURCE: rba.gov.au board decisions

@@ -12,6 +12,86 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts'
 
+// ─── Data freshness helpers ───────────────────────────────────────────────────
+// Every macro indicator carries its official release `date` (ISO) and `src`
+// (domain). Freshness is computed from that date — never assumed — so the
+// badge always reflects how old the underlying official release actually is.
+
+const monthYear = (iso) => {
+  if (!iso) return '—'
+  const d = new Date(iso + 'T00:00:00')
+  if (isNaN(d)) return '—'
+  return d.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })
+}
+
+const daysSince = (iso) => {
+  const d = new Date(iso + 'T00:00:00')
+  if (isNaN(d)) return Infinity
+  return Math.floor((Date.now() - d.getTime()) / 86400000)
+}
+
+const freshnessLevel = (iso) => {
+  const days = daysSince(iso)
+  if (days <= 30) return 'green'
+  if (days <= 90) return 'amber'
+  return 'red'
+}
+
+const FRESHNESS_COLOR = {
+  green: 'bg-terminal-green text-terminal-green border-terminal-green/40',
+  amber: 'bg-terminal-gold text-terminal-gold border-terminal-gold/40',
+  red:   'bg-terminal-red text-terminal-red border-terminal-red/40',
+}
+
+const FRESHNESS_LABEL = { green: 'FRESH (<1MO)', amber: 'AGEING (1-3MO)', red: 'STALE (>3MO)' }
+
+function FreshnessDot({ date }) {
+  const level = freshnessLevel(date)
+  return <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${FRESHNESS_COLOR[level].split(' ')[0]}`} title={FRESHNESS_LABEL[level]} />
+}
+
+function SourceLink({ src }) {
+  if (!src) return null
+  const domain = src.split('/')[0]
+  return (
+    <a
+      href={`https://${src}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="text-terminal-blue-bright hover:text-terminal-gold hover:underline"
+    >
+      {domain}
+    </a>
+  )
+}
+
+// Next official release date per indicator — only populated where the release
+// calendar is well known; indicators without a confirmed next date are left
+// blank rather than guessed.
+const NEXT_RELEASE = {
+  'RBA Cash Rate':       '1 July 2026',
+  'AU CPI YoY':          '30 July 2026 (Q2 2026)',
+  'AU CPI Trimmed Mean': '30 July 2026 (Q2 2026)',
+  'AU Unemployment':     '19 June 2026',
+  'AU GDP QoQ':          'September 2026',
+  'AU GDP Annual':       'September 2026',
+}
+
+// Overall "DATA FRESHNESS" badge — worst-case across the 4 headline indicators
+function OverallFreshnessBadge({ indicators }) {
+  const dates = indicators.map((n) => AU_MACRO.find((m) => m.name === n)?.date).filter(Boolean)
+  if (!dates.length) return null
+  const worst = dates.reduce((acc, d) => (daysSince(d) > daysSince(acc) ? d : acc), dates[0])
+  const level = freshnessLevel(worst)
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-2xs font-bold px-2 py-0.5 border ${FRESHNESS_COLOR[level]} bg-opacity-10`}>
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${FRESHNESS_COLOR[level].split(' ')[0]}`} />
+      DATA FRESHNESS: {FRESHNESS_LABEL[level]}
+    </span>
+  )
+}
+
 const importanceDots = (level) => {
   const filled = level === 'high' ? 3 : level === 'medium' ? 2 : 1
   return (
@@ -793,6 +873,16 @@ export default function MacroModule() {
         />
       )}
 
+      {/* Data freshness summary — worst-case across headline indicators */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-terminal-border flex-shrink-0">
+        <OverallFreshnessBadge indicators={['RBA Cash Rate', 'AU CPI YoY', 'AU Unemployment', 'AU GDP QoQ']} />
+        <span className="text-2xs text-terminal-text-dim">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-green mr-1" />GREEN &lt;1mo old ·
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mx-1" />AMBER 1-3mo ·
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-red mx-1" />RED &gt;3mo
+        </span>
+      </div>
+
       {/* ── Section 1: RBA Dashboard ── */}
       <RBADashboard askAI={askAI} />
 
@@ -805,7 +895,7 @@ export default function MacroModule() {
           </span>
           <span className="text-terminal-gold font-bold text-sm">{rbaRateStr}</span>
           <span className="text-2xs text-terminal-text-dim font-normal normal-case">
-            AS AT MAY 2026
+            AS AT {monthYear(AU_MACRO.find((m) => m.name === 'RBA Cash Rate')?.date).toUpperCase()}
           </span>
           <div className="flex items-center gap-4 ml-auto">
             {MEETINGS.map(m => <MeetingCountdown key={m.label} meeting={m} />)}
@@ -815,7 +905,10 @@ export default function MacroModule() {
         <div className="grid grid-cols-4 xl:grid-cols-8 border-b border-terminal-border">
           {AU_MACRO.slice(0, 8).map((ind) => (
             <div key={ind.name} className="border-r border-terminal-border p-2 hover:bg-terminal-accent/20">
-              <div className="text-2xs text-terminal-text-dim mb-0.5 leading-tight">{ind.name}</div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <FreshnessDot date={ind.date} />
+                <div className="text-2xs text-terminal-text-dim leading-tight">{ind.name}</div>
+              </div>
               <div className="text-sm font-bold text-terminal-text-bright">
                 {ind.name === 'RBA Cash Rate' ? rbaRateStr : ind.value}
               </div>
@@ -827,12 +920,12 @@ export default function MacroModule() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className="text-2xs text-terminal-text-dim">{ind.date}</span>
-                <span className="text-2xs text-terminal-text-dim">
-                  {ind.name === 'RBA Cash Rate' ? 'RBA' : 'ABS'}
-                </span>
+              <div className="text-2xs text-terminal-text-dim mt-0.5">
+                as at {monthYear(ind.date)} · <SourceLink src={ind.src} />
               </div>
+              {NEXT_RELEASE[ind.name] && (
+                <div className="text-2xs text-terminal-gold/70 mt-0.5">NEXT: {NEXT_RELEASE[ind.name]}</div>
+              )}
             </div>
           ))}
         </div>
@@ -950,7 +1043,10 @@ export default function MacroModule() {
                   </div>
                   {indicators.map((ind) => (
                     <div key={ind.name} className="py-0.5 border-b border-terminal-border/20">
-                      <div className="text-2xs text-terminal-text-dim">{ind.name}</div>
+                      <div className="flex items-center gap-1">
+                        <FreshnessDot date={ind.date} />
+                        <span className="text-2xs text-terminal-text-dim">{ind.name}</span>
+                      </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-terminal-text-bright">{ind.value}</span>
                         {ind.beat !== null && (
@@ -959,7 +1055,9 @@ export default function MacroModule() {
                           </span>
                         )}
                       </div>
-                      <div className="text-2xs text-terminal-text-dim">PREV: {ind.prev} · {ind.date}</div>
+                      <div className="text-2xs text-terminal-text-dim">
+                        PREV: {ind.prev} · as at {monthYear(ind.date)} · <SourceLink src={ind.src} />
+                      </div>
                     </div>
                   ))}
                 </div>

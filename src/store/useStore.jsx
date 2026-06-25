@@ -7,9 +7,19 @@ const getStoredCurrency = () => {
   try { return localStorage.getItem('madden_currency') || 'AUD' } catch { return 'AUD' }
 }
 
+const WATCHLIST_KEY = 'madden_watchlist_v1'
+
+const getStoredWatchlist = () => {
+  try {
+    const raw = localStorage.getItem(WATCHLIST_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) && parsed.length ? parsed : WATCHLIST_DEFAULT_SYMBOLS
+  } catch { return WATCHLIST_DEFAULT_SYMBOLS }
+}
+
 export function StoreProvider({ children }) {
   const [activeModule, setActiveModule] = useState('markets')
-  const [watchlist, setWatchlist]       = useState(WATCHLIST_DEFAULT_SYMBOLS)
+  const [watchlist, setWatchlist]       = useState(getStoredWatchlist)
   const [cmdHistory, setCmdHistory]     = useState([])
   const [chatOpen, setChatOpen]         = useState(false)
   const [currency, setCurrencyState]    = useState(getStoredCurrency)
@@ -32,14 +42,33 @@ export function StoreProvider({ children }) {
     setCurrencyState(c)
   }, [])
 
-  const addToWatchlist = useCallback((sym) => {
-    const s = sym.toUpperCase().trim()
-    setWatchlist((prev) => (prev.includes(s) ? prev : [...prev, s]))
+  const persistWatchlist = useCallback((next) => {
+    try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next)) } catch {}
+    return next
   }, [])
 
+  const addToWatchlist = useCallback((sym) => {
+    const s = sym.toUpperCase().trim()
+    setWatchlist((prev) => persistWatchlist(prev.includes(s) ? prev : [...prev, s]))
+  }, [persistWatchlist])
+
   const removeFromWatchlist = useCallback((sym) => {
-    setWatchlist((prev) => prev.filter((s) => s !== sym))
-  }, [])
+    setWatchlist((prev) => persistWatchlist(prev.filter((s) => s !== sym)))
+  }, [persistWatchlist])
+
+  const reorderWatchlist = useCallback((fromIndex, toIndex) => {
+    setWatchlist((prev) => {
+      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= prev.length || toIndex >= prev.length) return prev
+      const next = [...prev]
+      const [moved] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, moved)
+      return persistWatchlist(next)
+    })
+  }, [persistWatchlist])
+
+  const clearWatchlist = useCallback(() => {
+    setWatchlist(persistWatchlist([]))
+  }, [persistWatchlist])
 
   const pushCmdHistory = useCallback((cmd) => {
     setCmdHistory((prev) => [cmd, ...prev].slice(0, 50))
@@ -85,7 +114,7 @@ export function StoreProvider({ children }) {
     <StoreContext.Provider
       value={{
         activeModule, setActiveModule,
-        watchlist, addToWatchlist, removeFromWatchlist,
+        watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist,
         cmdHistory, pushCmdHistory,
         chatOpen, setChatOpen,
         currency, setCurrency,

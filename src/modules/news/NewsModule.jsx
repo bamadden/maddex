@@ -1,25 +1,69 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchNews } from '../../services/api'
+import { fetchNews, NEWS_CATEGORIES } from '../../services/api'
 import { BREAKING_NEWS_THRESHOLD_MINUTES } from '../../data/placeholders'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 
-const TAG_VARIANTS = {
-  MACRO:    'gold',
-  AU:       'gold',
-  EQUITY:   'blue',
-  ENERGY:   'red',
-  FX:       'default',
-  CRYPTO:   'green',
-  RATES:    'default',
-  'M&A':    'gold',
-  INTL:     'blue',
-  EARNINGS: 'red',
+const READ_KEY = 'madden_news_read_v1'
+
+function loadReadSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) ?? '[]')) } catch { return new Set() }
+}
+function saveReadSet(set) {
+  try { localStorage.setItem(READ_KEY, JSON.stringify([...set].slice(-500))) } catch {}
 }
 
-const AU_PRIORITY_SOURCES = new Set(['AFR', 'ASX', 'RBA'])
+function timeAgo(pubDate) {
+  if (!pubDate) return '—'
+  const mins = Math.floor((Date.now() - new Date(pubDate).getTime()) / 60000)
+  if (mins < 1)  return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+const SENTIMENT_CLASS = {
+  BULLISH: 'text-terminal-green border-terminal-green/40',
+  BEARISH: 'text-terminal-red border-terminal-red/40',
+  NEUTRAL: 'text-terminal-text-dim border-terminal-border',
+}
+
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'that', 'this', 'will', 'have', 'after',
+  'says', 'over', 'into', 'more', 'than', 'their', 'about', 'what', 'when',
+  'where', 'which', 'while', 'been', 'being', 'were', 'they', 'them', 'your',
+  'also', 'could', 'would', 'should', 'still', 'amid', 'some', 'most', 'first',
+  'last', 'next', 'years', 'year', 'week', 'said', 'just', 'such', 'each',
+])
+
+function extractTrending(items) {
+  const counts = {}
+  for (const item of items) {
+    const words = item.headline.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .filter((w) => w.length > 3 && !STOPWORDS.has(w))
+    for (const w of words) counts[w] = (counts[w] ?? 0) + 1
+  }
+  return Object.entries(counts).filter(([, c]) => c > 1).sort((a, b) => b[1] - a[1]).slice(0, 8)
+}
+
+function extractTopTickers(items) {
+  const counts = {}
+  for (const item of items) for (const t of (item.tickers ?? [])) counts[t] = (counts[t] ?? 0) + 1
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8)
+}
+
+function overallSentiment(items) {
+  const bull = items.filter((i) => i.sentiment === 'BULLISH').length
+  const bear = items.filter((i) => i.sentiment === 'BEARISH').length
+  if (bull === 0 && bear === 0) return { label: 'NEUTRAL', bull, bear }
+  const ratio = bull / (bull + bear)
+  if (ratio > 0.6) return { label: 'RISK ON', bull, bear }
+  if (ratio < 0.4) return { label: 'RISK OFF', bull, bear }
+  return { label: 'NEUTRAL', bull, bear }
+}
 
 function isBreakingNews(item) {
   if (!item?.pubDate) return false
@@ -27,10 +71,71 @@ function isBreakingNews(item) {
   return ageMs <= BREAKING_NEWS_THRESHOLD_MINUTES * 60 * 1000
 }
 
+const TAG_VARIANTS = {
+  MACRO: 'gold', AU: 'gold', EQUITY: 'blue', ENERGY: 'red', FX: 'default',
+  CRYPTO: 'green', RATES: 'default', 'M&A': 'gold', INTL: 'blue', EARNINGS: 'red',
+}
+
+function ArticleCard({ item, isExpanded, isUnread, onToggle, onAskAI }) {
+  const breaking = isBreakingNews(item)
+  return (
+    <div
+      className={`border-b border-terminal-border/50 px-3 py-2 cursor-pointer transition-colors ${
+        breaking ? 'border-l-2 border-l-terminal-red/50' : ''
+      } hover:bg-terminal-accent/15`}
+      onClick={() => onToggle(item)}
+    >
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />}
+        <span className="text-2xs font-bold text-terminal-text-bright">{item.source}</span>
+        <span className="text-2xs text-terminal-text-dim">— {timeAgo(item.pubDate)}</span>
+        <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{item.tag}</Badge>
+        <span className={`text-2xs px-1 py-0 border ${SENTIMENT_CLASS[item.sentiment]}`}>{item.sentiment}</span>
+        {breaking && <span className="text-2xs text-terminal-red font-bold animate-pulse">● BREAKING</span>}
+      </div>
+      <p className="text-xs font-bold text-terminal-text-bright leading-snug">{item.headline}</p>
+      {!isExpanded && item.summary && (
+        <p className="text-2xs text-terminal-text-dim leading-relaxed mt-0.5 line-clamp-2">{item.summary}</p>
+      )}
+      <div className="flex items-center justify-between mt-1.5 flex-wrap gap-1">
+        <div className="flex gap-1.5 flex-wrap">
+          {item.tickers?.slice(0, 4).map((t) => (
+            <span key={t} className="text-2xs text-terminal-blue-bright">${t}</span>
+          ))}
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onAskAI(item) }}
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors px-1"
+          title="Ask AI about this article"
+        >
+          ▲ ASK AI
+        </button>
+      </div>
+      {isExpanded && (
+        <div className="mt-2 pt-2 border-t border-terminal-border/30">
+          {item.summary && <p className="text-2xs text-terminal-text leading-relaxed mb-2">{item.summary}</p>}
+          {item.link && (
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
+            >
+              READ FULL ARTICLE →
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function NewsModule() {
-  const [activeTag, setActiveTag]   = useState('ALL')
-  const [selected, setSelected]     = useState(null)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [activeCategory, setActiveCategory] = useState('ALL')
+  const [searchTerm, setSearchTerm]   = useState('')
+  const [expandedId, setExpandedId]   = useState(null)
+  const [readIds, setReadIds]         = useState(loadReadSet)
   const { addChatMessage, setChatOpen, newsFilter, setNewsFilter } = useStore()
 
   // Apply news filter from command bar (NEWS {keyword} command)
@@ -45,34 +150,30 @@ export default function NewsModule() {
     queryKey: ['news'],
     queryFn:  fetchNews,
     staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
     retry: 1,
   })
 
-  const rawFeed = liveNews && liveNews.length > 0 ? liveNews : []
+  const rawFeed = useMemo(() => (liveNews && liveNews.length > 0 ? liveNews : []), [liveNews])
   const isLive  = !!liveNews && !isError && liveNews.length > 0
 
-  // Apply search filter
   const searchFiltered = searchTerm
     ? rawFeed.filter((n) => n.headline.toLowerCase().includes(searchTerm.toLowerCase()) || n.summary?.toLowerCase().includes(searchTerm.toLowerCase()))
     : rawFeed
 
-  // AU articles: tag==='AU' or source in AU_PRIORITY_SOURCES
-  const sortedFeed = [...searchFiltered].sort((a, b) => {
-    const aPriority = (AU_PRIORITY_SOURCES.has(a.source) || a.tag === 'AU') ? 0 : 1
-    const bPriority = (AU_PRIORITY_SOURCES.has(b.source) || b.tag === 'AU') ? 0 : 1
-    return aPriority - bPriority
-  })
+  const byCategory = activeCategory === 'ALL'
+    ? searchFiltered
+    : searchFiltered.filter((n) => n.categories?.includes(activeCategory))
 
-  const allTags = ['ALL', 'AU', ...new Set(rawFeed.map((n) => n.tag).filter((t) => t !== 'AU'))]
+  const unreadCountFor = (cat) => {
+    const pool = cat === 'ALL' ? rawFeed : rawFeed.filter((n) => n.categories?.includes(cat))
+    return pool.filter((n) => !readIds.has(n.id) && !readIds.has(n.headline)).length
+  }
 
-  const filtered = activeTag === 'ALL'
-    ? sortedFeed
-    : activeTag === 'AU'
-      ? sortedFeed.filter((n) => n.tag === 'AU' || AU_PRIORITY_SOURCES.has(n.source))
-      : sortedFeed.filter((n) => n.tag === activeTag)
-
-  const displaySelected  = selected ?? filtered[0]
-  const latestBreaking   = filtered.find(isBreakingNews)
+  const latestBreaking = rawFeed.find(isBreakingNews)
+  const trending  = useMemo(() => extractTrending(rawFeed), [rawFeed])
+  const topTickers = useMemo(() => extractTopTickers(rawFeed), [rawFeed])
+  const sentiment  = useMemo(() => overallSentiment(rawFeed), [rawFeed])
 
   const askAI = (item) => {
     setChatOpen(true)
@@ -83,7 +184,15 @@ export default function NewsModule() {
     })
   }
 
-  // Show error state if news API failed and we have no articles
+  const handleToggle = (item) => {
+    setExpandedId((prev) => (prev === item.id ? null : item.id))
+    if (!readIds.has(item.id)) {
+      const next = new Set(readIds); next.add(item.id); next.add(item.headline)
+      setReadIds(next)
+      saveReadSet(next)
+    }
+  }
+
   if (isError && rawFeed.length === 0) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
@@ -105,17 +214,17 @@ export default function NewsModule() {
         <div className="flex items-center gap-3 px-3 py-1 bg-terminal-red/10 border-b border-terminal-red/40 flex-shrink-0 animate-pulse">
           <span className="text-terminal-red text-2xs font-bold tracking-widest flex-shrink-0">● BREAKING</span>
           <span className="text-2xs text-terminal-text truncate">{latestBreaking.headline}</span>
-          <span className="text-2xs text-terminal-text-dim flex-shrink-0">{latestBreaking.time}</span>
+          <span className="text-2xs text-terminal-text-dim flex-shrink-0">{timeAgo(latestBreaking.pubDate)}</span>
         </div>
       )}
 
-      <div className="flex-1 grid grid-cols-[320px_1fr] overflow-hidden min-h-0">
-        {/* Left: feed */}
-        <div className="flex flex-col border-r border-terminal-border overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Left: main feed — 70% */}
+        <div className="flex flex-col overflow-hidden" style={{ flex: '7 1 0%' }}>
           <div className="panel-header flex items-center gap-2 flex-shrink-0">
             LIVE NEWS FEED
             {isFetching  && <span className="text-terminal-text-dim text-2xs font-normal ml-auto">LOADING...</span>}
-            {isLive && !isFetching && <span className="text-terminal-green text-2xs font-normal normal-case ml-auto">● LIVE</span>}
+            {isLive && !isFetching && <span className="text-terminal-green text-2xs font-normal normal-case ml-auto">● LIVE · auto-refresh 5m</span>}
             {isError     && <span className="text-terminal-red text-2xs font-normal ml-auto">⚠ ERROR</span>}
           </div>
 
@@ -125,160 +234,112 @@ export default function NewsModule() {
             <input
               className="cmd-input flex-1 text-2xs py-0"
               value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setSelected(null) }}
+              onChange={(e) => { setSearchTerm(e.target.value); setExpandedId(null) }}
               placeholder="Filter headlines... (CMD: NEWS {keyword})"
             />
             {searchTerm && (
-              <button onClick={() => { setSearchTerm(''); setSelected(null) }} className="text-terminal-text-dim/40 hover:text-terminal-text-dim text-xs">✕</button>
+              <button onClick={() => setSearchTerm('')} className="text-terminal-text-dim/40 hover:text-terminal-text-dim text-xs">✕</button>
             )}
           </div>
 
-          {/* Tag filters */}
+          {/* Category tabs with unread counts */}
           <div className="flex flex-wrap gap-1 p-1.5 border-b border-terminal-border flex-shrink-0">
-            {allTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => { setActiveTag(tag); setSelected(null) }}
-                className={`text-2xs px-2 py-0.5 transition-colors ${
-                  activeTag === tag
-                    ? 'bg-terminal-gold text-terminal-bg font-bold'
-                    : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-            {searchTerm && (
-              <span className="text-2xs px-2 py-0.5 border border-terminal-gold/40 text-terminal-gold">
-                FILTER: {searchTerm}
-              </span>
-            )}
+            {NEWS_CATEGORIES.map((cat) => {
+              const unread = unreadCountFor(cat)
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`text-2xs px-2 py-0.5 transition-colors flex items-center gap-1 ${
+                    activeCategory === cat
+                      ? 'bg-terminal-gold text-terminal-bg font-bold'
+                      : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
+                  }`}
+                >
+                  {cat}
+                  {unread > 0 && (
+                    <span className={`text-2xs px-1 rounded-full ${activeCategory === cat ? 'bg-terminal-bg/20' : 'bg-terminal-gold/20 text-terminal-gold'}`}>
+                      {unread}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           {/* Articles */}
           <div className="flex-1 overflow-auto">
             {!isFetching && rawFeed.length === 0 ? (
               <div className="p-4 text-2xs text-terminal-text-dim text-center">No articles available</div>
+            ) : byCategory.length === 0 ? (
+              <div className="p-4 text-2xs text-terminal-text-dim text-center">No articles in this category</div>
             ) : (
-              filtered.map((item) => {
-                const breaking = isBreakingNews(item)
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelected(item)}
-                    className={`border-b border-terminal-border/50 p-2 cursor-pointer transition-colors ${
-                      displaySelected?.id === item.id
-                        ? 'bg-terminal-accent border-l-2 border-l-terminal-gold'
-                        : breaking
-                          ? 'hover:bg-terminal-accent/20 border-l-2 border-l-terminal-red/50'
-                          : 'hover:bg-terminal-accent/20'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-2xs text-terminal-text-dim">{item.time}</span>
-                      <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{item.tag}</Badge>
-                      <span className="text-2xs text-terminal-text-dim">{item.source}</span>
-                      {breaking && (
-                        <span className="text-2xs text-terminal-red animate-pulse ml-auto">NEW</span>
-                      )}
-                    </div>
-                    <p className="text-2xs text-terminal-text leading-relaxed line-clamp-2">{item.headline}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      {item.tickers?.length > 0 && (
-                        <div className="flex gap-1 flex-wrap">
-                          {item.tickers.slice(0, 3).map((t) => (
-                            <span key={t} className="text-2xs text-terminal-blue-bright">${t}</span>
-                          ))}
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); askAI(item) }}
-                        className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-auto transition-colors px-1"
-                        title="Ask AI about this article"
-                      >
-                        &#9650; AI
-                      </button>
-                    </div>
-                  </div>
-                )
-              })
+              byCategory.map((item) => (
+                <ArticleCard
+                  key={item.id}
+                  item={item}
+                  isExpanded={expandedId === item.id}
+                  isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
+                  onToggle={handleToggle}
+                  onAskAI={askAI}
+                />
+              ))
             )}
           </div>
 
           <div className="border-t border-terminal-border p-2 flex-shrink-0">
             <div className="text-2xs text-terminal-text-dim">
-              {filtered.length} articles · AFR, Reuters, CNBC
+              {byCategory.length} articles · AFR, Reuters, CNBC, MarketWatch
             </div>
           </div>
         </div>
 
-        {/* Right: article detail */}
-        <div className="flex flex-col overflow-hidden">
-          {displaySelected ? (
-            <>
-              <div className="panel-header flex items-center gap-2">
-                <Badge variant={TAG_VARIANTS[displaySelected.tag] || 'default'}>{displaySelected.tag}</Badge>
-                <span className="text-terminal-text-dim">{displaySelected.source}</span>
-                <span className="text-terminal-text-dim">·</span>
-                <span className="text-terminal-text-dim">{displaySelected.time}</span>
-                {isBreakingNews(displaySelected) && (
-                  <span className="text-terminal-red text-2xs animate-pulse">● BREAKING</span>
-                )}
-                <button
-                  onClick={() => askAI(displaySelected)}
-                  className="ml-auto text-2xs text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 border border-terminal-gold transition-colors"
-                >
-                  &#9650; AI ANALYSIS
-                </button>
-              </div>
-              <div className="p-4 flex-1 overflow-auto">
-                <h2 className="text-sm font-bold text-terminal-text-bright leading-relaxed mb-3">
-                  {displaySelected.headline}
-                </h2>
+        {/* Right: trending + sentiment — 30% */}
+        <div className="flex flex-col overflow-hidden border-l border-terminal-border" style={{ flex: '3 1 0%' }}>
+          <div className="panel-header flex-shrink-0">MARKET PULSE</div>
 
-                {/* Summary (from RSS description) */}
-                {displaySelected.summary && (
-                  <p className="text-2xs text-terminal-text leading-relaxed mb-4 border-l-2 border-terminal-border pl-3">
-                    {displaySelected.summary}
-                  </p>
-                )}
-
-                {/* Read full article link */}
-                {displaySelected.link && (
-                  <a
-                    href={displaySelected.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors block mb-4"
-                  >
-                    READ FULL ARTICLE →
-                  </a>
-                )}
-
-                {/* Tickers */}
-                {displaySelected.tickers?.length > 0 && (
-                  <div className="border-t border-terminal-border pt-3">
-                    <div className="text-2xs text-terminal-gold mb-2 font-bold">DETECTED TICKERS</div>
-                    <div className="flex flex-wrap gap-2">
-                      {displaySelected.tickers.map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => askAI({ ...displaySelected, headline: `Analyse ${t} in the context of: ${displaySelected.headline}` })}
-                          className="text-xs text-terminal-text-bright border border-terminal-border px-3 py-1 hover:border-terminal-gold hover:text-terminal-gold transition-colors"
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-terminal-text-dim text-2xs">
-              SELECT AN ARTICLE
+          <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
+            <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">SENTIMENT SUMMARY</div>
+            <div className={`text-sm font-bold ${
+              sentiment.label === 'RISK ON' ? 'text-terminal-green' : sentiment.label === 'RISK OFF' ? 'text-terminal-red' : 'text-terminal-text-dim'
+            }`}>
+              {sentiment.label}
             </div>
-          )}
+            <div className="text-2xs text-terminal-text-dim mt-0.5">
+              {sentiment.bull} bullish · {sentiment.bear} bearish · {rawFeed.length - sentiment.bull - sentiment.bear} neutral
+            </div>
+          </div>
+
+          <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
+            <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">TRENDING TOPICS</div>
+            {trending.length === 0 ? (
+              <div className="text-2xs text-terminal-text-dim/50 italic">Not enough data yet</div>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {trending.map(([word, count]) => (
+                  <span key={word} className="text-2xs px-1.5 py-0.5 border border-terminal-border text-terminal-text-dim">
+                    {word} <span className="text-terminal-gold">{count}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="px-3 py-2 flex-shrink-0">
+            <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">MOST MENTIONED TICKERS</div>
+            {topTickers.length === 0 ? (
+              <div className="text-2xs text-terminal-text-dim/50 italic">Not enough data yet</div>
+            ) : (
+              <div className="space-y-1">
+                {topTickers.map(([ticker, count]) => (
+                  <div key={ticker} className="flex items-center justify-between text-2xs">
+                    <span className="text-terminal-blue-bright font-semibold">${ticker}</span>
+                    <span className="text-terminal-text-dim">{count} mentions</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

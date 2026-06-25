@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchFxRates, transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
@@ -6,7 +6,6 @@ import {
 import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
-import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 // ─── 5-Country Yield Curve Data — June 2026 ──────────────────────────────────
@@ -71,6 +70,29 @@ function getCurveStats(key) {
     : spread > 0   ? 'FLAT'
     : 'INVERTED'
   return { spread, shape }
+}
+
+// ─── FX Retry Countdown — shown when proxy + direct Frankfurter calls both fail ──
+
+function FxRetryCountdown({ onRetry, seconds = 15 }) {
+  const [secs, setSecs] = useState(seconds)
+  useEffect(() => {
+    if (secs <= 0) { onRetry(); return }
+    const t = setTimeout(() => setSecs((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [secs]) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="my-6 text-center">
+      <div className="text-2xs text-terminal-red font-bold tracking-widest">FX RATES UNAVAILABLE — RETRYING...</div>
+      <div className="text-2xs text-terminal-text-dim mt-1">Next attempt in {secs}s</div>
+      <button
+        onClick={onRetry}
+        className="mt-2 text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+      >
+        RETRY NOW
+      </button>
+    </div>
+  )
 }
 
 const directionIcon = (dir) => {
@@ -288,14 +310,19 @@ export default function FXModule() {
   const [selectedCurve, setSelectedCurve] = useState('AU')
   const [compareMode, setCompareMode]     = useState(false)
   const [compareCurve2, setCompareCurve2] = useState('US')
+  const [showYieldInfo, setShowYieldInfo] = useState(false)
+  const [fxAttemptKey, setFxAttemptKey]   = useState(0)
 
-  // Frankfurter — no key needed
+  // Frankfurter — no key needed. fetchFxRates already retries 3x + tries a
+  // direct (non-proxied) call internally, so no extra react-query retry layer.
   const { data: rawRates, isError, isFetching, refetch } = useQuery({
     queryKey: ['fxRates'],
     queryFn:  () => fetchFxRates('AUD'),
     staleTime: 5 * 60_000,
-    retry: 1,
+    retry: false,
   })
+
+  const handleFxRetry = () => { setFxAttemptKey((k) => k + 1); refetch() }
 
   // Metals: tries Frankfurter (ECB XAU) then ExchangeRate-API
   const { data: metalsRates } = useQuery({
@@ -364,7 +391,7 @@ export default function FXModule() {
           {isFetching ? (
             <div className="p-4 text-2xs text-terminal-text-dim animate-pulse text-center">LOADING FX RATES...</div>
           ) : !isLive ? (
-            <DataUnavailable label="FX RATES UNAVAILABLE" onRetry={refetch} className="my-6" />
+            <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
           ) : (
             <>
               <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50">
@@ -434,10 +461,22 @@ export default function FXModule() {
       <div className="flex flex-col border-r border-terminal-border overflow-hidden">
         <div className="panel-header flex items-center gap-2 flex-shrink-0">
           SOVEREIGN YIELD CURVES
+          <button
+            onClick={() => setShowYieldInfo((v) => !v)}
+            title="About this data"
+            className="w-3.5 h-3.5 rounded-full border border-terminal-text-dim/50 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold text-2xs leading-none flex items-center justify-center flex-shrink-0"
+          >
+            i
+          </button>
           <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">
             Jun 2026 · hardcoded
           </span>
         </div>
+        {showYieldInfo && (
+          <div className="px-2 py-1.5 text-2xs text-terminal-text-dim bg-terminal-accent/10 border-b border-terminal-border flex-shrink-0">
+            Yield curve data is updated quarterly. Last updated June 2026.
+          </div>
+        )}
 
         {/* Country toggle buttons */}
         <div className="flex items-center gap-1 px-2 py-1.5 border-b border-terminal-border flex-shrink-0 flex-wrap">
@@ -575,6 +614,14 @@ export default function FXModule() {
               </div>
             )
           })()}
+        </div>
+
+        {/* Data freshness footer */}
+        <div className="border-t border-terminal-border px-2 py-1 flex items-center justify-between flex-shrink-0">
+          <span className="text-2xs text-terminal-text-dim">
+            AS AT JUNE 2026 — Source: {YIELD_CURVES[selectedCurve].src.split('·')[0].trim()}
+          </span>
+          <span className="text-2xs text-terminal-gold/70 font-semibold">UPDATE DUE: SEPTEMBER 2026</span>
         </div>
       </div>
 
