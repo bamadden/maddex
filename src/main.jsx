@@ -4,6 +4,19 @@ import './index.css'
 import App from './App.jsx'
 import { fetchYahooQuote, toAUD } from './services/api'
 
+// Clear stale stock-price cache on every load — only `madden_idx_*` keys hold
+// quote data; everything else under `madden_*` (portfolio, currency, alerts,
+// command history, view prefs) is user data/settings and must be preserved.
+try {
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i)
+    if (key?.startsWith('madden_idx_')) localStorage.removeItem(key)
+  }
+  console.log('[MADDEN] ✓ Cleared stale stock-price cache from localStorage')
+} catch (e) {
+  console.warn('[MADDEN] Failed to clear localStorage cache:', e.message)
+}
+
 // API startup verification
 console.log('[MADDEN] ✓ YAHOO FINANCE: proxy ready (/api/yahoo → query1.finance.yahoo.com)')
 console.log('[MADDEN] ✓ STOOQ: indices-only proxy ready (/api/stooq)')

@@ -490,14 +490,14 @@ function IndexView({ selectedIndex, openModal }) {
     const indexKey = selectedIndex
     loadRef.current = indexKey
 
-    // Check localStorage cache (5 min TTL)
+    // Check localStorage cache (60s TTL — live stock prices, never serve stale)
     const today = new Date().toISOString().slice(0, 10)
     const cacheKey = `madden_idx_${selectedIndex}_${today}`
     try {
       const cached = localStorage.getItem(cacheKey)
       if (cached) {
         const { data, ts } = JSON.parse(cached)
-        if (Date.now() - ts < 5 * 60 * 1000) {
+        if (Date.now() - ts < 60_000) {
           setQuotes(data)
           setLoadCount(Object.keys(data).length)
           setIsLoading(false)

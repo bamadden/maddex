@@ -10,6 +10,7 @@ function yahooFinanceProxy() {
     'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'en-US,en;q=0.9',
     'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'no-cache',
   }
   return {
     name: 'yahoo-finance-proxy',
@@ -24,6 +25,7 @@ function yahooFinanceProxy() {
           res.writeHead(r.status, {
             'Content-Type': r.headers.get('content-type') || 'application/json',
             'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-cache',
           })
           res.end(body)
         } catch (e) {

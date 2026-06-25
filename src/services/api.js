@@ -7,6 +7,12 @@ const setCache = (k, v, ttlMs) => _cache.set(k, { v, exp: Date.now() + ttlMs })
 const getCache = (k) => { const e = _cache.get(k); return (e && Date.now() < e.exp) ? e.v : null }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))  // eslint-disable-line no-unused-vars
 
+// Cache-busting for Yahoo requests: the timestamped URL goes out on the wire so
+// no browser/CDN layer serves a stale response; the stable (timestamp-free) URL
+// is the key for our own short-lived in-memory cache below.
+const NO_CACHE_HEADERS = { Accept: 'application/json', 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+const bust = (url) => `${url}&_t=${Date.now()}`
+
 // ─── Stooq (via Vite proxy → /api/stooq → stooq.com) ─────────────────────────
 // Free financial data — no API key, no rate limits, CSV format.
 // Quote endpoint: /q/l/?s={sym}&f=sd2t2ohlcv&h&e=csv
@@ -29,122 +35,6 @@ function yfToStooq(sym) {
   if (s.endsWith('.AU') || s.endsWith('.US')) return sym.toLowerCase()
   if (sym.startsWith('^')) return sym.toLowerCase()
   return sym.toLowerCase() + '.us'
-}
-
-// Last-known fallback values (Jun 2026) — shown when stooq is unavailable
-const STOOQ_FALLBACK = {
-  // Global indices
-  '^axjo': { last: 8820,  open: 8800,  high: 8850,  low: 8780,  vol: 0, change:  20, pct: 0.23, name: 'ASX 200',      currency: 'AUD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^aord': { last: 8620,  open: 8600,  high: 8650,  low: 8580,  vol: 0, change:  20, pct: 0.23, name: 'All Ords',      currency: 'AUD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^spx':  { last: 5870,  open: 5850,  high: 5895,  low: 5840,  vol: 0, change:  20, pct: 0.34, name: 'S&P 500',      currency: 'USD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^ndx':  { last: 21400, open: 21300, high: 21500, low: 21250,  vol: 0, change: 100, pct: 0.47, name: 'NASDAQ-100',   currency: 'USD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^dji':  { last: 42900, open: 42800, high: 43100, low: 42700,  vol: 0, change: 100, pct: 0.23, name: 'Dow Jones',    currency: 'USD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^ukx':  { last: 8720,  open: 8700,  high: 8740,  low: 8690,  vol: 0, change:  20, pct: 0.23, name: 'FTSE 100',     currency: 'GBP', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^dax':  { last: 23500, open: 23400, high: 23600, low: 23300,  vol: 0, change: 100, pct: 0.43, name: 'DAX',          currency: 'EUR', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^nkx':  { last: 38200, open: 38100, high: 38400, low: 38000,  vol: 0, change: 100, pct: 0.26, name: 'Nikkei 225',  currency: 'JPY', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^hsi':  { last: 23100, open: 23000, high: 23200, low: 22900,  vol: 0, change: 100, pct: 0.43, name: 'Hang Seng',   currency: 'HKD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  '^nz50': { last: 12800, open: 12780, high: 12840, low: 12760,  vol: 0, change:  20, pct: 0.16, name: 'NZX 50',      currency: 'NZD', isOpen: false, fallback: true, timestamp: '2026-06-13' },
-  // ASX blue chips (Jun 2026 prices in AUD — stooq returns AUD for .au symbols, no conversion needed)
-  'bhp.au':  { last: 63.50,  open: 63.00, high: 64.20, low: 62.80, vol: 8500000,  change:  0.50, pct:  0.79, name: 'BHP Group',         currency: 'AUD', isOpen: false, fallback: true },
-  'cba.au':  { last: 170.00, open: 169.00, high: 171.50, low: 168.50, vol: 3200000, change:  1.00, pct:  0.59, name: 'CommBank',         currency: 'AUD', isOpen: false, fallback: true },
-  'csl.au':  { last: 270.00, open: 268.00, high: 272.00, low: 267.00, vol: 900000,  change:  2.00, pct:  0.75, name: 'CSL Ltd',          currency: 'AUD', isOpen: false, fallback: true },
-  'wow.au':  { last: 38.00,  open: 37.80, high: 38.40,  low: 37.60,  vol: 3000000,  change:  0.20, pct:  0.53, name: 'Woolworths',       currency: 'AUD', isOpen: false, fallback: true },
-  'anz.au':  { last: 33.00,  open: 32.80, high: 33.30,  low: 32.70,  vol: 6000000,  change:  0.20, pct:  0.61, name: 'ANZ Banking',      currency: 'AUD', isOpen: false, fallback: true },
-  'nab.au':  { last: 42.00,  open: 41.70, high: 42.30,  low: 41.50,  vol: 5500000,  change:  0.30, pct:  0.72, name: 'NAB',              currency: 'AUD', isOpen: false, fallback: true },
-  'wbc.au':  { last: 35.00,  open: 34.80, high: 35.30,  low: 34.70,  vol: 5000000,  change:  0.20, pct:  0.57, name: 'Westpac Banking',  currency: 'AUD', isOpen: false, fallback: true },
-  'mqg.au':  { last: 245.00, open: 243.00, high: 247.00, low: 242.00, vol: 1200000, change:  2.00, pct:  0.82, name: 'Macquarie Group',  currency: 'AUD', isOpen: false, fallback: true },
-  'rio.au':  { last: 125.00, open: 124.00, high: 126.00, low: 123.50, vol: 2100000,  change:  1.00, pct:  0.81, name: 'Rio Tinto',        currency: 'AUD', isOpen: false, fallback: true },
-  'tls.au':  { last: 4.50,   open: 4.47,  high: 4.53,   low: 4.45,   vol: 22000000, change:  0.03, pct:  0.67, name: 'Telstra',          currency: 'AUD', isOpen: false, fallback: true },
-  'fmg.au':  { last: 19.00,  open: 18.80, high: 19.20,  low: 18.70,  vol: 9500000,  change:  0.20, pct:  1.06, name: 'Fortescue',        currency: 'AUD', isOpen: false, fallback: true },
-  'wes.au':  { last: 82.00,  open: 81.50, high: 82.50,  low: 81.20,  vol: 2000000,  change:  0.50, pct:  0.61, name: 'Wesfarmers',       currency: 'AUD', isOpen: false, fallback: true },
-  'gmg.au':  { last: 38.00,  open: 37.70, high: 38.40,  low: 37.60,  vol: 3500000,  change:  0.30, pct:  0.80, name: 'Goodman Group',    currency: 'AUD', isOpen: false, fallback: true },
-  'rea.au':  { last: 262.00, open: 260.00, high: 264.00, low: 259.00, vol: 450000,   change:  2.00, pct:  0.77, name: 'REA Group',        currency: 'AUD', isOpen: false, fallback: true },
-  'min.au':  { last: 32.00,  open: 31.70, high: 32.40,  low: 31.50,  vol: 4000000,  change:  0.30, pct:  0.95, name: 'Mineral Resources', currency: 'AUD', isOpen: false, fallback: true },
-  'nem.au':  { last: 75.00,  open: 74.00, high: 76.00,  low: 73.50,  vol: 1800000,  change:  1.00, pct:  1.35, name: 'Newmont',          currency: 'AUD', isOpen: false, fallback: true },
-  'sto.au':  { last: 8.00,   open: 7.95,  high: 8.10,   low: 7.90,   vol: 8000000,  change:  0.05, pct:  0.63, name: 'Santos',           currency: 'AUD', isOpen: false, fallback: true },
-  'wds.au':  { last: 27.00,  open: 26.80, high: 27.30,  low: 26.70,  vol: 5000000,  change:  0.20, pct:  0.75, name: 'Woodside Energy',  currency: 'AUD', isOpen: false, fallback: true },
-  'agl.au':  { last: 13.00,  open: 12.90, high: 13.15,  low: 12.85,  vol: 6000000,  change:  0.10, pct:  0.78, name: 'AGL Energy',       currency: 'AUD', isOpen: false, fallback: true },
-  'all.au':  { last: 58.00,  open: 57.60, high: 58.50,  low: 57.40,  vol: 1500000,  change:  0.40, pct:  0.69, name: 'Aristocrat',       currency: 'AUD', isOpen: false, fallback: true },
-  // US large caps
-  'aapl.us': { last: 213.00, open: 212.00, high: 214.50, low: 211.50, vol: 45000000,  change:  1.00, pct:  0.47, name: 'Apple',           currency: 'USD', isOpen: false, fallback: true },
-  'nvda.us': { last: 137.00, open: 135.00, high: 138.50, low: 134.50, vol: 95000000,  change:  2.00, pct:  1.48, name: 'NVIDIA',          currency: 'USD', isOpen: false, fallback: true },
-  'msft.us': { last: 445.00, open: 443.00, high: 447.00, low: 442.00, vol: 18000000,  change:  2.00, pct:  0.45, name: 'Microsoft',       currency: 'USD', isOpen: false, fallback: true },
-  'tsla.us': { last: 340.00, open: 335.00, high: 345.00, low: 333.00, vol: 80000000,  change:  5.00, pct:  1.49, name: 'Tesla',           currency: 'USD', isOpen: false, fallback: true },
-  'amzn.us': { last: 220.00, open: 218.00, high: 222.00, low: 217.50, vol: 35000000,  change:  2.00, pct:  0.92, name: 'Amazon',          currency: 'USD', isOpen: false, fallback: true },
-  'meta.us': { last: 605.00, open: 600.00, high: 608.00, low: 598.00, vol: 12000000,  change:  5.00, pct:  0.83, name: 'Meta',            currency: 'USD', isOpen: false, fallback: true },
-  'goog.us': { last: 178.00, open: 176.50, high: 179.50, low: 176.00, vol: 22000000,  change:  1.50, pct:  0.85, name: 'Alphabet',        currency: 'USD', isOpen: false, fallback: true },
-  'googl.us':{ last: 178.00, open: 176.50, high: 179.50, low: 176.00, vol: 22000000,  change:  1.50, pct:  0.85, name: 'Alphabet',        currency: 'USD', isOpen: false, fallback: true },
-  'nflx.us': { last: 1120.00, open: 1110.00, high: 1130.00, low: 1105.00, vol: 3000000, change: 10.00, pct:  0.90, name: 'Netflix',       currency: 'USD', isOpen: false, fallback: true },
-  'amd.us':  { last: 148.00, open: 145.00, high: 150.00, low: 144.00, vol: 40000000,  change:  3.00, pct:  2.07, name: 'AMD',             currency: 'USD', isOpen: false, fallback: true },
-  'intc.us': { last: 22.50,  open: 22.20,  high: 22.80,  low: 22.00,  vol: 30000000,  change:  0.30, pct:  1.35, name: 'Intel',           currency: 'USD', isOpen: false, fallback: true },
-  'jpm.us':  { last: 248.00, open: 246.00, high: 250.00, low: 245.00, vol: 8000000,   change:  2.00, pct:  0.81, name: 'JPMorgan',        currency: 'USD', isOpen: false, fallback: true },
-  'bac.us':  { last: 44.50,  open: 44.00,  high: 45.00,  low: 43.80,  vol: 35000000,  change:  0.50, pct:  1.14, name: 'Bank of America', currency: 'USD', isOpen: false, fallback: true },
-  'gs.us':   { last: 572.00, open: 568.00, high: 575.00, low: 566.00, vol: 2000000,   change:  4.00, pct:  0.70, name: 'Goldman Sachs',   currency: 'USD', isOpen: false, fallback: true },
-  'ms.us':   { last: 132.00, open: 130.00, high: 133.00, low: 129.50, vol: 10000000,  change:  2.00, pct:  1.54, name: 'Morgan Stanley',  currency: 'USD', isOpen: false, fallback: true },
-  'v.us':    { last: 338.00, open: 335.00, high: 340.00, low: 334.00, vol: 5500000,   change:  3.00, pct:  0.90, name: 'Visa',            currency: 'USD', isOpen: false, fallback: true },
-  'ma.us':   { last: 535.00, open: 530.00, high: 538.00, low: 528.00, vol: 3000000,   change:  5.00, pct:  0.95, name: 'Mastercard',      currency: 'USD', isOpen: false, fallback: true },
-  'unh.us':  { last: 495.00, open: 492.00, high: 498.00, low: 490.00, vol: 3500000,   change:  3.00, pct:  0.61, name: 'UnitedHealth',    currency: 'USD', isOpen: false, fallback: true },
-  'jnj.us':  { last: 159.00, open: 158.00, high: 160.00, low: 157.50, vol: 8000000,   change:  1.00, pct:  0.63, name: 'Johnson & Johnson', currency: 'USD', isOpen: false, fallback: true },
-  'xom.us':  { last: 124.00, open: 122.50, high: 125.00, low: 122.00, vol: 15000000,  change:  1.50, pct:  1.23, name: 'ExxonMobil',      currency: 'USD', isOpen: false, fallback: true },
-  'cvx.us':  { last: 170.00, open: 168.00, high: 171.00, low: 167.50, vol: 9000000,   change:  2.00, pct:  1.20, name: 'Chevron',         currency: 'USD', isOpen: false, fallback: true },
-  // S&P 500 / Dow extra constituents
-  'brk-b.us':{ last: 480.00, open: 477.00, high: 482.00, low: 476.00, vol: 4000000,   change:  3.00, pct:  0.63, name: 'Berkshire Hathaway B', currency: 'USD', isOpen: false, fallback: true },
-  'pg.us':   { last: 170.00, open: 168.50, high: 171.00, low: 168.00, vol: 7000000,   change:  1.50, pct:  0.89, name: 'P&G',             currency: 'USD', isOpen: false, fallback: true },
-  'hd.us':   { last: 375.00, open: 372.00, high: 377.00, low: 371.00, vol: 3000000,   change:  3.00, pct:  0.81, name: 'Home Depot',      currency: 'USD', isOpen: false, fallback: true },
-  'avgo.us': { last: 245.00, open: 242.00, high: 247.00, low: 241.00, vol: 8000000,   change:  3.00, pct:  1.24, name: 'Broadcom',        currency: 'USD', isOpen: false, fallback: true },
-  'mrk.us':  { last: 130.00, open: 128.50, high: 131.00, low: 128.00, vol: 10000000,  change:  1.50, pct:  1.17, name: 'Merck',           currency: 'USD', isOpen: false, fallback: true },
-  'abbv.us': { last: 195.00, open: 193.00, high: 196.50, low: 192.50, vol: 7000000,   change:  2.00, pct:  1.04, name: 'AbbVie',          currency: 'USD', isOpen: false, fallback: true },
-  // NASDAQ 100 extra
-  'cost.us': { last: 975.00, open: 968.00, high: 980.00, low: 966.00, vol: 1500000,   change:  7.00, pct:  0.72, name: 'Costco',          currency: 'USD', isOpen: false, fallback: true },
-  'adbe.us': { last: 450.00, open: 445.00, high: 453.00, low: 444.00, vol: 3000000,   change:  5.00, pct:  1.12, name: 'Adobe',           currency: 'USD', isOpen: false, fallback: true },
-  'qcom.us': { last: 185.00, open: 182.00, high: 187.00, low: 181.00, vol: 6000000,   change:  3.00, pct:  1.65, name: 'Qualcomm',        currency: 'USD', isOpen: false, fallback: true },
-  'txn.us':  { last: 210.00, open: 207.00, high: 212.00, low: 206.50, vol: 5000000,   change:  3.00, pct:  1.45, name: 'Texas Instruments',currency: 'USD', isOpen: false, fallback: true },
-  'intu.us': { last: 700.00, open: 694.00, high: 705.00, low: 692.00, vol: 1200000,   change:  6.00, pct:  0.86, name: 'Intuit',          currency: 'USD', isOpen: false, fallback: true },
-  'amgn.us': { last: 318.00, open: 315.00, high: 320.00, low: 314.00, vol: 2500000,   change:  3.00, pct:  0.95, name: 'Amgen',           currency: 'USD', isOpen: false, fallback: true },
-  'amat.us': { last: 205.00, open: 202.00, high: 207.00, low: 201.00, vol: 4000000,   change:  3.00, pct:  1.49, name: 'Applied Materials',currency: 'USD', isOpen: false, fallback: true },
-  'mu.us':   { last: 135.00, open: 132.00, high: 137.00, low: 131.00, vol: 12000000,  change:  3.00, pct:  2.27, name: 'Micron',          currency: 'USD', isOpen: false, fallback: true },
-  // Dow 30 extra
-  'cat.us':  { last: 370.00, open: 366.00, high: 372.00, low: 365.00, vol: 2500000,   change:  4.00, pct:  1.09, name: 'Caterpillar',     currency: 'USD', isOpen: false, fallback: true },
-  'crm.us':  { last: 320.00, open: 316.00, high: 323.00, low: 315.00, vol: 4000000,   change:  4.00, pct:  1.27, name: 'Salesforce',      currency: 'USD', isOpen: false, fallback: true },
-  'mcd.us':  { last: 310.00, open: 307.00, high: 312.00, low: 306.00, vol: 3000000,   change:  3.00, pct:  0.98, name: 'McDonald\'s',     currency: 'USD', isOpen: false, fallback: true },
-  'axp.us':  { last: 295.00, open: 292.00, high: 297.00, low: 291.00, vol: 2000000,   change:  3.00, pct:  1.03, name: 'American Express',currency: 'USD', isOpen: false, fallback: true },
-  'ba.us':   { last: 210.00, open: 206.00, high: 213.00, low: 205.00, vol: 6000000,   change:  4.00, pct:  1.94, name: 'Boeing',          currency: 'USD', isOpen: false, fallback: true },
-  'hon.us':  { last: 215.00, open: 212.00, high: 217.00, low: 211.50, vol: 3000000,   change:  3.00, pct:  1.41, name: 'Honeywell',       currency: 'USD', isOpen: false, fallback: true },
-  'ibm.us':  { last: 225.00, open: 222.00, high: 227.00, low: 221.00, vol: 3500000,   change:  3.00, pct:  1.35, name: 'IBM',             currency: 'USD', isOpen: false, fallback: true },
-  'trv.us':  { last: 265.00, open: 262.00, high: 267.00, low: 261.00, vol: 1200000,   change:  3.00, pct:  1.15, name: 'Travelers',       currency: 'USD', isOpen: false, fallback: true },
-  'wmt.us':  { last: 95.00,  open: 94.00,  high: 96.00,  low: 93.50,  vol: 15000000,  change:  1.00, pct:  1.07, name: 'Walmart',         currency: 'USD', isOpen: false, fallback: true },
-  'mmm.us':  { last: 140.00, open: 138.00, high: 141.00, low: 137.50, vol: 3000000,   change:  2.00, pct:  1.45, name: '3M',              currency: 'USD', isOpen: false, fallback: true },
-  'dis.us':  { last: 102.00, open: 100.00, high: 103.00, low: 99.50,  vol: 12000000,  change:  2.00, pct:  2.00, name: 'Walt Disney',     currency: 'USD', isOpen: false, fallback: true },
-  'ko.us':   { last: 73.00,  open: 72.50,  high: 73.50,  low: 72.00,  vol: 15000000,  change:  0.50, pct:  0.69, name: 'Coca-Cola',       currency: 'USD', isOpen: false, fallback: true },
-  'vz.us':   { last: 40.00,  open: 39.50,  high: 40.30,  low: 39.30,  vol: 25000000,  change:  0.50, pct:  1.27, name: 'Verizon',         currency: 'USD', isOpen: false, fallback: true },
-  'nke.us':  { last: 92.00,  open: 90.50,  high: 93.00,  low: 90.00,  vol: 10000000,  change:  1.50, pct:  1.66, name: 'Nike',            currency: 'USD', isOpen: false, fallback: true },
-  'dow.us':  { last: 52.00,  open: 51.00,  high: 52.50,  low: 50.80,  vol: 8000000,   change:  1.00, pct:  1.96, name: 'Dow Inc',         currency: 'USD', isOpen: false, fallback: true },
-  'wba.us':  { last: 12.50,  open: 12.20,  high: 12.70,  low: 12.10,  vol: 10000000,  change:  0.30, pct:  2.46, name: 'Walgreens',       currency: 'USD', isOpen: false, fallback: true },
-  // FTSE 100 proxies (US-listed)
-  'shel.us': { last: 72.00,  open: 71.00,  high: 72.50,  low: 70.80,  vol: 5000000,   change:  1.00, pct:  1.41, name: 'Shell',           currency: 'USD', isOpen: false, fallback: true },
-  'azn.us':  { last: 85.00,  open: 84.00,  high: 85.80,  low: 83.50,  vol: 3000000,   change:  1.00, pct:  1.19, name: 'AstraZeneca',     currency: 'USD', isOpen: false, fallback: true },
-  'hsba.us': { last: 44.00,  open: 43.50,  high: 44.50,  low: 43.30,  vol: 2000000,   change:  0.50, pct:  1.15, name: 'HSBC',            currency: 'USD', isOpen: false, fallback: true },
-  'ulvr.us': { last: 55.00,  open: 54.50,  high: 55.50,  low: 54.20,  vol: 1000000,   change:  0.50, pct:  0.92, name: 'Unilever',        currency: 'USD', isOpen: false, fallback: true },
-  'bp.us':   { last: 35.00,  open: 34.50,  high: 35.30,  low: 34.30,  vol: 6000000,   change:  0.50, pct:  1.45, name: 'BP',              currency: 'USD', isOpen: false, fallback: true },
-  'gsk.us':  { last: 42.00,  open: 41.50,  high: 42.40,  low: 41.30,  vol: 3000000,   change:  0.50, pct:  1.20, name: 'GSK',             currency: 'USD', isOpen: false, fallback: true },
-  'bhp.us':  { last: 55.00,  open: 54.50,  high: 55.50,  low: 54.20,  vol: 2000000,   change:  0.50, pct:  0.92, name: 'BHP ADR',         currency: 'USD', isOpen: false, fallback: true },
-  'dge.us':  { last: 28.00,  open: 27.50,  high: 28.30,  low: 27.40,  vol: 1500000,   change:  0.50, pct:  1.82, name: 'Diageo',          currency: 'USD', isOpen: false, fallback: true },
-  'lloy.us': { last: 3.20,   open: 3.15,   high: 3.24,   low: 3.12,   vol: 5000000,   change:  0.05, pct:  1.59, name: 'Lloyds Banking',  currency: 'USD', isOpen: false, fallback: true },
-  'barc.us': { last: 16.00,  open: 15.70,  high: 16.20,  low: 15.60,  vol: 4000000,   change:  0.30, pct:  1.91, name: 'Barclays',        currency: 'USD', isOpen: false, fallback: true },
-  'vod.us':  { last: 10.00,  open: 9.80,   high: 10.10,  low: 9.75,   vol: 8000000,   change:  0.20, pct:  2.04, name: 'Vodafone',        currency: 'USD', isOpen: false, fallback: true },
-  'bats.us': { last: 40.00,  open: 39.50,  high: 40.30,  low: 39.40,  vol: 1500000,   change:  0.50, pct:  1.27, name: 'BAT',             currency: 'USD', isOpen: false, fallback: true },
-  'ng.us':   { last: 22.00,  open: 21.70,  high: 22.20,  low: 21.60,  vol: 1000000,   change:  0.30, pct:  1.38, name: 'National Grid',   currency: 'USD', isOpen: false, fallback: true },
-  'pru.us':  { last: 32.00,  open: 31.50,  high: 32.30,  low: 31.40,  vol: 1500000,   change:  0.50, pct:  1.59, name: 'Prudential',      currency: 'USD', isOpen: false, fallback: true },
-  // Nikkei 225 proxies (US-listed ADRs)
-  'tm.us':   { last: 185.00, open: 183.00, high: 186.50, low: 182.50, vol: 3000000,   change:  2.00, pct:  1.09, name: 'Toyota',          currency: 'USD', isOpen: false, fallback: true },
-  'sny.us':  { last: 12.50,  open: 12.30,  high: 12.60,  low: 12.20,  vol: 2000000,   change:  0.20, pct:  1.63, name: 'Sony Corp',       currency: 'USD', isOpen: false, fallback: true },
-  'hmc.us':  { last: 32.00,  open: 31.50,  high: 32.30,  low: 31.30,  vol: 2500000,   change:  0.50, pct:  1.59, name: 'Honda',           currency: 'USD', isOpen: false, fallback: true },
-  'sony.us': { last: 22.00,  open: 21.70,  high: 22.30,  low: 21.60,  vol: 1500000,   change:  0.30, pct:  1.38, name: 'Sony Group',      currency: 'USD', isOpen: false, fallback: true },
-  'ntt.us':  { last: 24.00,  open: 23.70,  high: 24.20,  low: 23.60,  vol: 1000000,   change:  0.30, pct:  1.27, name: 'NTT',             currency: 'USD', isOpen: false, fallback: true },
-  'mfg.us':  { last: 4.80,   open: 4.75,   high: 4.83,   low: 4.73,   vol: 5000000,   change:  0.05, pct:  1.05, name: 'Mizuho Financial',currency: 'USD', isOpen: false, fallback: true },
-  'mufg.us': { last: 12.00,  open: 11.80,  high: 12.10,  low: 11.75,  vol: 3000000,   change:  0.20, pct:  1.70, name: 'Mitsubishi UFJ', currency: 'USD', isOpen: false, fallback: true },
-  // ASX extra
-  'xro.au':  { last: 165.00, open: 163.00, high: 167.00, low: 162.00, vol: 1500000,   change:  2.00, pct:  1.24, name: 'Xero',            currency: 'AUD', isOpen: false, fallback: true },
 }
 
 // ─── Yahoo Finance — individual stock quotes and history ─────────────────────
@@ -172,6 +62,11 @@ export async function fetchBatch(symbols) {
     batch.forEach((sym, j) => { if (results[j]) out[sym] = results[j] })
     if (i + 5 < symbols.length) await new Promise((r) => setTimeout(r, 300))
   }
+  // Every symbol failed — throw so the query flips to isError and the UI
+  // shows DATA UNAVAILABLE + retry instead of silently rendering "No data".
+  if (symbols.length > 0 && Object.keys(out).length === 0) {
+    throw new Error('All quotes unavailable')
+  }
   return out
 }
 
@@ -180,7 +75,7 @@ export async function fetchYahooQuote(symbol) {
     const url = `${YAHOO_BASE}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`
     const cached = getCache(url)
     if (cached) return cached
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { Accept: 'application/json' } })
+    const res = await fetch(bust(url), { signal: AbortSignal.timeout(8000), headers: NO_CACHE_HEADERS })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     const result = data?.chart?.result?.[0]
@@ -223,21 +118,7 @@ export async function fetchYahooQuote(symbol) {
     return q
   } catch (e) {
     console.error(`[MADDEN API] fetchYahooQuote failed for ${symbol}:`, e.message)
-    // Fall back to last-known values so components always have something to display
-    const stooqSym = yfToStooq(symbol)
-    const fb = STOOQ_FALLBACK[stooqSym]
-    if (fb) {
-      console.warn(`[MADDEN API] ⚠ Using fallback for ${symbol}`)
-      const q = {
-        ...fb, symbol,
-        price:       fb.last,
-        dayChange:   fb.change ?? 0,
-        dayChangePct: fb.pct ?? 0,
-        prevClose:   fb.last - (fb.change ?? 0),
-        fallback:    true,
-      }
-      return q
-    }
+    // No hardcoded fallback — callers must treat null as DATA UNAVAILABLE and offer retry.
     return null
   }
 }
@@ -247,7 +128,7 @@ export async function fetchYahooHistory(symbol, range = '3mo') {
     const url = `${YAHOO_BASE}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`
     const cached = getCache(url)
     if (cached) return cached
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { Accept: 'application/json' } })
+    const res = await fetch(bust(url), { signal: AbortSignal.timeout(15000), headers: NO_CACHE_HEADERS })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     const result = data?.chart?.result?.[0]
@@ -298,6 +179,11 @@ export async function fetchYahooBatch(symbols) {
   const results = await Promise.all(symbols.map(fetchYahooQuote))
   const out = {}
   symbols.forEach((sym, i) => { if (results[i]) out[sym] = results[i] })
+  // Every symbol failed — throw so the query flips to isError and the UI
+  // shows DATA UNAVAILABLE + retry instead of silently rendering "No data".
+  if (symbols.length > 0 && Object.keys(out).length === 0) {
+    throw new Error('All quotes unavailable')
+  }
   return out
 }
 
@@ -363,27 +249,22 @@ async function fetchStooqQuote(stooqSym) {
   }
 }
 
-// fetchYFQuote: delegates to Yahoo for stocks, stooq for indices
+// fetchYFQuote: delegates to Yahoo for stocks, stooq for indices.
+// No hardcoded fallback — on total failure, throw so callers show DATA UNAVAILABLE.
 export const fetchYFQuote = async (symbol) => {
   const stooqSym = yfToStooq(symbol)
   if (stooqSym.startsWith('^')) {
-    try {
-      const data = await fetchStooqQuote(stooqSym)
-      return { ...data, symbol }
-    } catch (e) {
-      const fb = STOOQ_FALLBACK[stooqSym]
-      if (fb) return { ...fb, symbol }
-      throw e
-    }
+    const data = await fetchStooqQuote(stooqSym)
+    return { ...data, symbol }
   }
   const q = await fetchYahooQuote(symbol)
   if (q) return q
-  const fb = STOOQ_FALLBACK[stooqSym] ?? STOOQ_FALLBACK[symbol.toLowerCase()]
-  if (fb) { console.warn(`[MADDEN API] Using fallback for ${symbol}`); return { ...fb, symbol } }
   throw new Error(`No data for ${symbol}`)
 }
 
-// fetchYFBatch: INDICES ONLY via stooq — used by IndicesTable
+// fetchYFBatch: INDICES ONLY via stooq — used by IndicesTable.
+// Symbols that fail are simply omitted — no fake data — so consumers render
+// their own "unavailable" state for the missing key.
 export const fetchYFBatch = async (symbols) => {
   const results = await Promise.allSettled(symbols.map(s => fetchStooqQuote(yfToStooq(s))))
   const out = {}
@@ -392,9 +273,7 @@ export const fetchYFBatch = async (symbols) => {
     if (results[i].status === 'fulfilled') {
       out[sym] = { ...results[i].value, symbol: sym }
     } else {
-      const fb = STOOQ_FALLBACK[yfToStooq(sym)]
-      if (fb) { out[sym] = { ...fb, symbol: sym }; console.warn(`[MADDEN API] Stooq fallback ${sym}`) }
-      else console.warn(`[MADDEN API] Stooq fail ${sym}:`, results[i].reason?.message)
+      console.warn(`[MADDEN API] Stooq fail ${sym}:`, results[i].reason?.message)
     }
   }
   return out
