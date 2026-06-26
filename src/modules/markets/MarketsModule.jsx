@@ -45,7 +45,7 @@ export default function MarketsModule() {
 
         {/* Sector Strength Radar — supplementary, below the main tables */}
         <div className="flex-shrink-0">
-          <SectorStrengthRadar />
+          <SectorStrengthRadar selectedIndex={selectedIndex} />
         </div>
       </div>
     </div>

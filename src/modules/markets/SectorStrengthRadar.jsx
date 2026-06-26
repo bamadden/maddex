@@ -1,68 +1,33 @@
-import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, ResponsiveContainer, Tooltip, Legend,
 } from 'recharts'
 import { fetchBatch } from '../../services/api'
-import { fmt } from '../../utils/format'
-import { useAudRates } from '../../hooks/useAudRates'
-
-// ─── Sector definitions ───────────────────────────────────────────────────────
-
-const SECTOR_PROXIES = {
-  Materials:      { sym: 'BHP.AX', asxTicker: 'XMJ' },
-  Financials:     { sym: 'CBA.AX', asxTicker: 'XFJ' },
-  Healthcare:     { sym: 'CSL.AX', asxTicker: 'XHJ' },
-  'Con. Staples': { sym: 'WOW.AX', asxTicker: 'XSJ' },
-  Energy:         { sym: 'WDS.AX', asxTicker: 'XEJ' },
-  Industrials:    { sym: 'WES.AX', asxTicker: 'XIJ' },
-  'Real Estate':  { sym: 'GMG.AX', asxTicker: 'XPJ' },
-  Technology:     { sym: 'XRO.AX', asxTicker: 'XIT' },
-  Communication:  { sym: 'TLS.AX', asxTicker: 'XTJ' },
-  Utilities:      { sym: 'AGL.AX', asxTicker: 'XUJ' },
-  'Con. Disc.':   { sym: 'ALL.AX', asxTicker: 'XDJ' },
-}
-
-const PROXY_SYMS  = Object.values(SECTOR_PROXIES).map(v => v.sym)
-const SECTOR_KEYS = Object.keys(SECTOR_PROXIES)
+import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from './SectorHeatmap'
 
 // ─── Score calculation ────────────────────────────────────────────────────────
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
 
 function scoreStock(q) {
-  // q comes from fetchBatch → fetchYahooQuote (v8 chart API)
-  // Field names: dayChangePct, volume, week52High, week52Low, price, prevClose
   const dayChangePct = q?.dayChangePct ?? null
   const price        = q?.price        ?? null
   const prevClose    = q?.prevClose    ?? null
   const high52       = q?.week52High   ?? null
   const low52        = q?.week52Low    ?? null
 
-  // Day momentum: +/-5% → ±50 pts around neutral 50
-  const dayScore  = dayChangePct != null ? clamp(50 + dayChangePct * 10, 0, 100) : 50
-  // Volume: avgVol not available from v8 endpoint — neutral 50
-  const volScore  = 50
-  // 52W range position: where is current price within the annual range?
+  const dayScore   = dayChangePct != null ? clamp(50 + dayChangePct * 10, 0, 100) : 50
+  const volScore   = 50  // avgVol not available from v8 endpoint
   const rangeScore = price != null && high52 != null && low52 != null && high52 > low52
-    ? clamp(((price - low52) / (high52 - low52)) * 100, 0, 100)
-    : 50
+    ? clamp(((price - low52) / (high52 - low52)) * 100, 0, 100) : 50
 
   const current = Math.round(0.4 * dayScore + 0.3 * volScore + 0.3 * rangeScore)
 
-  // Previous close position in 52W range (neutral momentum/volume → score 35–65)
   const prevRangeScore = prevClose != null && high52 != null && low52 != null && high52 > low52
-    ? clamp(((prevClose - low52) / (high52 - low52)) * 100, 0, 100)
-    : 50
+    ? clamp(((prevClose - low52) / (high52 - low52)) * 100, 0, 100) : 50
   const prev = Math.round(0.4 * 50 + 0.3 * 50 + 0.3 * prevRangeScore)
-
-  console.log(
-    `[SECTOR RADAR] ${q?.symbol}: dayChg=${dayChangePct?.toFixed(2) ?? '?'}%` +
-    ` dayScore=${dayScore.toFixed(0)} rangeScore=${rangeScore.toFixed(0)}` +
-    ` CURRENT=${current} PREV=${prev}` +
-    ` [price=${price} 52W ${low52}–${high52}]`
-  )
 
   return { current, prev }
 }
@@ -96,7 +61,7 @@ function ClickableTick({ payload, x, y, textAnchor, onSectorClick }) {
   )
 }
 
-// ─── Tooltip ─────────────────────────────────────────────────────────────────
+// ─── Tooltip ──────────────────────────────────────────────────────────────────
 
 function RadarTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
@@ -122,7 +87,7 @@ function RadarTooltip({ active, payload }) {
         </div>
       )}
       {d.proxy && (
-        <div className="text-terminal-text-dim/40 mt-1">{d.proxy.replace('.AX', '')} proxy</div>
+        <div className="text-terminal-text-dim/40 mt-1">{d.proxy.replace(/\.(AX|L)$/i,'')} proxy</div>
       )}
       <div className="text-terminal-gold/50 mt-1 text-2xs">Click to view sector detail →</div>
     </div>
@@ -131,55 +96,72 @@ function RadarTooltip({ active, payload }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function SectorStrengthRadar() {
+export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
   const [refreshKey, setRefreshKey] = useState(0)
-  const { audUsd } = useAudRates()
+
+  const sectorConfig = INDEX_SECTORS[selectedIndex] ?? INDEX_SECTORS['^AXJO']
+
+  // Only include sectors with valid proxy stocks for this index
+  const validSectors = useMemo(
+    () => GICS_SECTORS.filter(s => sectorConfig[s]?.sym),
+    [sectorConfig]
+  )
+  const proxySectors = useMemo(
+    () => validSectors.map(s => ({ sector: s, sym: sectorConfig[s].sym })),
+    [validSectors, sectorConfig]
+  )
+  const proxySyms = useMemo(() => proxySectors.map(p => p.sym), [proxySectors])
 
   const { data: quotes, isLoading, isError, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['sectorRadarProxies', refreshKey],
-    queryFn:  () => fetchBatch(PROXY_SYMS),
+    queryKey: ['sectorRadarProxies', selectedIndex, refreshKey],
+    queryFn:  () => fetchBatch(proxySyms),
     staleTime: 5 * 60_000,
     retry: 2,
+    enabled: proxySyms.length > 0,
   })
 
   const chartData = useMemo(() => {
-    return SECTOR_KEYS.map((sector) => {
-      const { sym, asxTicker } = SECTOR_PROXIES[sector]
+    return proxySectors.map(({ sector, sym }) => {
       const q = quotes?.[sym] ?? null
       const { current, prev } = q ? scoreStock(q) : { current: null, prev: null }
       return {
-        sector,
+        sector: SECTOR_ABBR[sector] ?? sector,
+        fullSector: sector,
         score:     current ?? 50,
         prevScore: prev ?? 50,
         proxy:     sym,
-        asxTicker,
         dayPct:    q?.dayChangePct ?? null,
         price:     q?.price        ?? null,
         week52High: q?.week52High  ?? null,
         week52Low:  q?.week52Low   ?? null,
-        raw:        q,
       }
     })
-  }, [quotes])
+  }, [quotes, proxySectors])
 
-  const handleSectorClick = useCallback((sectorName) => {
-    const entry = SECTOR_PROXIES[sectorName]
+  const handleSectorClick = useCallback((abbr) => {
+    // abbr is the SECTOR_ABBR display value — map back to full GICS name
+    const entry = proxySectors.find(p => SECTOR_ABBR[p.sector] === abbr)
     if (!entry) return
     window.dispatchEvent(
-      new CustomEvent('madden:sector-select', { detail: { ticker: entry.asxTicker, sectorName } })
+      new CustomEvent('madden:sector-select', { detail: { sectorName: entry.sector } })
     )
-    // Scroll Markets module to the top so the user can see SectorHeatmap
     document.getElementById('markets-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+  }, [proxySectors])
 
   const handleChartClick = useCallback((data) => {
-    const sectorName = data?.activePayload?.[0]?.payload?.sector
-    if (sectorName) handleSectorClick(sectorName)
+    const abbr = data?.activePayload?.[0]?.payload?.sector
+    if (abbr) handleSectorClick(abbr)
   }, [handleSectorClick])
 
   const lastUpdate = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
     : null
+
+  const indexLabels = {
+    '^AXJO':'ASX 200','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
+    '^DJI':'DOW JONES','^FTSE':'FTSE 100',
+  }
+  const indexLabel = indexLabels[selectedIndex] ?? selectedIndex.replace('^','')
 
   const sorted = [...chartData].sort((a, b) => b.score - a.score)
 
@@ -187,13 +169,17 @@ export default function SectorStrengthRadar() {
     <div className="flex flex-col h-full bg-terminal-bg">
       {/* Header */}
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
-        <span className="text-terminal-gold font-bold tracking-widest text-xs">SECTOR STRENGTH RADAR</span>
-        <span className="text-terminal-text-dim font-normal text-2xs normal-case ml-1">— ASX composite scores</span>
+        <span className="text-terminal-gold font-bold tracking-widest text-xs">
+          SECTOR STRENGTH — {indexLabel}
+        </span>
+        <span className="text-terminal-text-dim font-normal text-2xs normal-case ml-1">
+          — composite scores · {validSectors.length} sectors
+        </span>
         {isLoading && <span className="text-terminal-text-dim text-2xs font-normal ml-auto animate-pulse">LOADING...</span>}
         {isError && !isLoading && <span className="text-terminal-red text-2xs font-normal ml-auto">⚠ ERROR</span>}
         {!isLoading && !isError && <span className="text-terminal-green text-2xs font-normal ml-auto normal-case">● LIVE</span>}
         <button
-          onClick={() => { setRefreshKey(k => k + 1) }}
+          onClick={() => setRefreshKey(k => k + 1)}
           className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors px-1"
           title="Refresh sector data"
         >
@@ -202,7 +188,7 @@ export default function SectorStrengthRadar() {
       </div>
 
       <div className="px-2 pb-1 text-2xs text-terminal-text-dim/50 flex-shrink-0">
-        Composite score: price momentum (40%) · 52W range position (30%) · volume conviction (30%) · Click sector to drill down
+        Price momentum (40%) · 52W range position (30%) · volume conviction (30%) · Click sector to drill down
       </div>
 
       {/* Radar chart */}
@@ -216,10 +202,7 @@ export default function SectorStrengthRadar() {
             onClick={handleChartClick}
             style={{ cursor: 'pointer' }}
           >
-            <PolarGrid
-              stroke="rgba(30,70,140,0.35)"
-              strokeDasharray=""
-            />
+            <PolarGrid stroke="rgba(30,70,140,0.35)" />
             <PolarAngleAxis
               dataKey="sector"
               tick={<ClickableTick onSectorClick={handleSectorClick} />}
@@ -231,7 +214,6 @@ export default function SectorStrengthRadar() {
               tickCount={5}
               stroke="rgba(30,70,140,0.2)"
             />
-            {/* Previous session (dim blue) */}
             <Radar
               name="Previous close"
               dataKey="prevScore"
@@ -241,7 +223,6 @@ export default function SectorStrengthRadar() {
               dot={false}
               isAnimationActive={false}
             />
-            {/* Current session (gold) */}
             <Radar
               name="Current session"
               dataKey="score"
@@ -265,7 +246,7 @@ export default function SectorStrengthRadar() {
       <div className="border-t border-terminal-border flex-shrink-0 px-3 py-2">
         <div className="text-2xs text-terminal-gold/70 font-bold tracking-widest mb-2">SECTOR SCORES</div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
-          {sorted.map(({ sector, score, dayPct }) => (
+          {sorted.map(({ sector, fullSector, score, dayPct }) => (
             <div
               key={sector}
               className="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-terminal-accent/10 rounded px-1 -mx-1"

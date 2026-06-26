@@ -1,39 +1,160 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYFHistory, transformYFHistory } from '../../services/api'
-import { ASX_SECTOR_HEATMAP } from '../../data/placeholders'
 import { fmt } from '../../utils/format'
-import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
-// ─── Sector proxy stocks (Stooq symbols) ─────────────────────────────────────
+// ─── GICS Sector Configuration ───────────────────────────────────────────────
+// Official 11 GICS sectors used by ASX, S&P, NASDAQ, and all major indices
 
-const SECTOR_PROXY = {
-  XFJ: 'CBA.AX', XMJ: 'BHP.AX', XHJ: 'CSL.AX', XSJ: 'WOW.AX',
-  XEJ: 'WDS.AX', XIJ: 'WES.AX', XPJ: 'GMG.AX', XIT: 'XRO.AX',
-  XTJ: 'TLS.AX', XUJ: 'AGL.AX', XDJ: 'ALL.AX',
-}
-const PROXY_LABEL = {
-  XFJ:'CBA', XMJ:'BHP', XHJ:'CSL', XSJ:'WOW', XEJ:'WDS',
-  XIJ:'WES', XPJ:'GMG', XIT:'XRO', XTJ:'TLS', XUJ:'AGL', XDJ:'ALL',
-}
-const PROXY_SYMS = Object.values(SECTOR_PROXY)
+export const GICS_SECTORS = [
+  'Information Technology',
+  'Financials',
+  'Health Care',
+  'Consumer Discretionary',
+  'Communication Services',
+  'Industrials',
+  'Consumer Staples',
+  'Energy',
+  'Materials',
+  'Real Estate',
+  'Utilities',
+]
 
-const SECTOR_STOCKS = {
-  XFJ: [['CBA.AX','Commonwealth Bank'],['ANZ.AX','ANZ'],['WBC.AX','Westpac'],['NAB.AX','NAB'],['MQG.AX','Macquarie'],['QBE.AX','QBE Insurance'],['IAG.AX','IAG'],['AMP.AX','AMP']],
-  XMJ: [['BHP.AX','BHP'],['RIO.AX','Rio Tinto'],['FMG.AX','Fortescue'],['S32.AX','South32'],['MIN.AX','Mineral Resources'],['ILU.AX','Iluka'],['WHC.AX','Whitehaven'],['SFR.AX','Sandfire']],
-  XHJ: [['CSL.AX','CSL'],['RHC.AX','Ramsay Health'],['SHL.AX','Sonic Healthcare'],['COH.AX','Cochlear'],['PME.AX','Pro Medicus'],['RMD.AX','ResMed'],['NHF.AX','nib Holdings'],['IDX.AX','Integral Diagnostics']],
-  XIJ: [['BXB.AX','Brambles'],['WOR.AX','Worley'],['TCL.AX','Transurban'],['ALQ.AX','ALS'],['DOW.AX','Downer EDI'],['QAN.AX','Qantas'],['CIM.AX','CIMIC'],['SGF.AX','SG Fleet']],
-  XSJ: [['WOW.AX','Woolworths'],['COL.AX','Coles'],['MTS.AX','Metcash'],['TWE.AX','Treasury Wine'],['GNC.AX','GrainCorp'],['ING.AX','Inghams'],['ALD.AX','Ampol'],['WHS.AX','Warehouse Group']],
-  XIT: [['WTC.AX','WiseTech Global'],['XRO.AX','Xero'],['CPU.AX','Computershare'],['TYR.AX','Tyro Payments'],['NXT.AX','NextDC'],['ALU.AX','Altium'],['SEK.AX','Seek'],['CAR.AX','CAR Group']],
-  XEJ: [['WDS.AX','Woodside Energy'],['STO.AX','Santos'],['BPT.AX','Beach Energy'],['KAR.AX','Karoon Energy'],['VEA.AX','Viva Energy'],['COE.AX','Cooper Energy'],['NHC.AX','New Hope Coal'],['WHC.AX','Whitehaven Coal']],
-  XDJ: [['ALL.AX','Aristocrat'],['WEB.AX','Webjet'],['ARB.AX','ARB Corp'],['PMV.AX','Premier Investments'],['LOV.AX','Lovisa'],['SUL.AX','Super Retail'],['TRS.AX','The Reject Shop'],['GUD.AX','GUD Holdings']],
-  XPJ: [['GMG.AX','Goodman Group'],['SCG.AX','Scentre Group'],['SCP.AX','SCA Property'],['VCX.AX','Vicinity Centres'],['DXS.AX','Dexus'],['MGR.AX','Mirvac'],['BWP.AX','BWP Trust'],['CLW.AX','Charter Hall']],
-  XUJ: [['AGL.AX','AGL Energy'],['ORG.AX','Origin Energy'],['APA.AX','APA Group'],['AST.AX','AusNet Services'],['MCY.AX','Mercury NZ'],['MEZ.AX','Meridian Energy']],
-  XTJ: [['TLS.AX','Telstra'],['REA.AX','REA Group'],['CAR.AX','CAR Group'],['SEK.AX','Seek'],['NXT.AX','NextDC'],['SXL.AX','Southern Cross Media']],
+export const SECTOR_ABBR = {
+  'Information Technology': 'IT',
+  'Financials':             'FINANCIALS',
+  'Health Care':            'HEALTH',
+  'Consumer Discretionary': 'CONS DISC',
+  'Communication Services': 'COMMS',
+  'Industrials':            'INDUSTRIALS',
+  'Consumer Staples':       'STAPLES',
+  'Energy':                 'ENERGY',
+  'Materials':              'MATERIALS',
+  'Real Estate':            'REAL EST',
+  'Utilities':              'UTILITIES',
+}
+
+// null = sector not applicable to this index (renders as greyed N/A tile)
+export const INDEX_SECTORS = {
+  '^AXJO': {
+    'Information Technology': { sym: 'XRO.AX' },
+    'Financials':             { sym: 'CBA.AX' },
+    'Health Care':            { sym: 'CSL.AX' },
+    'Consumer Discretionary': { sym: 'ALL.AX' },
+    'Communication Services': { sym: 'TLS.AX' },
+    'Industrials':            { sym: 'WES.AX' },
+    'Consumer Staples':       { sym: 'WOW.AX' },
+    'Energy':                 { sym: 'WDS.AX' },
+    'Materials':              { sym: 'BHP.AX' },
+    'Real Estate':            { sym: 'GMG.AX' },
+    'Utilities':              { sym: 'AGL.AX' },
+  },
+  '^GSPC': {
+    'Information Technology': { sym: 'AAPL' },
+    'Financials':             { sym: 'JPM' },
+    'Health Care':            { sym: 'JNJ' },
+    'Consumer Discretionary': { sym: 'AMZN' },
+    'Communication Services': { sym: 'GOOG' },
+    'Industrials':            { sym: 'CAT' },
+    'Consumer Staples':       { sym: 'PG' },
+    'Energy':                 { sym: 'XOM' },
+    'Materials':              { sym: 'LIN' },
+    'Real Estate':            { sym: 'PLD' },
+    'Utilities':              { sym: 'NEE' },
+  },
+  '^IXIC': {
+    'Information Technology': { sym: 'NVDA' },
+    'Financials':             { sym: 'PYPL' },
+    'Health Care':            { sym: 'AMGN' },
+    'Consumer Discretionary': { sym: 'TSLA' },
+    'Communication Services': { sym: 'META' },
+    'Industrials':            { sym: 'HON' },
+    'Consumer Staples':       { sym: 'COST' },
+    'Energy':                 null,
+    'Materials':              null,
+    'Real Estate':            null,
+    'Utilities':              null,
+  },
+  '^DJI': {
+    'Information Technology': { sym: 'MSFT' },
+    'Financials':             { sym: 'GS' },
+    'Health Care':            { sym: 'UNH' },
+    'Consumer Discretionary': { sym: 'MCD' },
+    'Communication Services': { sym: 'VZ' },
+    'Industrials':            { sym: 'BA' },
+    'Consumer Staples':       { sym: 'WMT' },
+    'Energy':                 { sym: 'CVX' },
+    'Materials':              { sym: 'DOW' },
+    'Real Estate':            null,
+    'Utilities':              null,
+  },
+  '^FTSE': {
+    'Information Technology': null,
+    'Financials':             { sym: 'HSBA.L' },
+    'Health Care':            { sym: 'AZN.L' },
+    'Consumer Discretionary': null,
+    'Communication Services': { sym: 'VOD.L' },
+    'Industrials':            { sym: 'BA.L' },
+    'Consumer Staples':       { sym: 'ULVR.L' },
+    'Energy':                 { sym: 'SHEL.L' },
+    'Materials':              { sym: 'RIO.L' },
+    'Real Estate':            null,
+    'Utilities':              { sym: 'NG.L' },
+  },
+}
+
+// ─── ASX Constituent Stocks (by GICS sector name) ────────────────────────────
+
+const ASX_SECTOR_STOCKS = {
+  'Information Technology': [
+    ['WTC.AX','WiseTech Global'],['XRO.AX','Xero'],['CPU.AX','Computershare'],
+    ['NXT.AX','NextDC'],['ALU.AX','Altium'],['SEK.AX','Seek'],['CAR.AX','CAR Group'],
+  ],
+  'Financials': [
+    ['CBA.AX','Commonwealth Bank'],['ANZ.AX','ANZ'],['WBC.AX','Westpac'],['NAB.AX','NAB'],
+    ['MQG.AX','Macquarie'],['QBE.AX','QBE Insurance'],['IAG.AX','IAG'],['AMP.AX','AMP'],
+  ],
+  'Health Care': [
+    ['CSL.AX','CSL'],['RHC.AX','Ramsay Health'],['SHL.AX','Sonic Healthcare'],
+    ['COH.AX','Cochlear'],['PME.AX','Pro Medicus'],['RMD.AX','ResMed'],['NHF.AX','nib Holdings'],
+  ],
+  'Consumer Discretionary': [
+    ['ALL.AX','Aristocrat'],['WEB.AX','Webjet'],['ARB.AX','ARB Corp'],
+    ['PMV.AX','Premier Investments'],['LOV.AX','Lovisa'],['SUL.AX','Super Retail'],
+    ['GUD.AX','GUD Holdings'],
+  ],
+  'Communication Services': [
+    ['TLS.AX','Telstra'],['REA.AX','REA Group'],['CAR.AX','CAR Group'],
+    ['SEK.AX','Seek'],['NXT.AX','NextDC'],['SXL.AX','Southern Cross Media'],
+  ],
+  'Industrials': [
+    ['BXB.AX','Brambles'],['WOR.AX','Worley'],['TCL.AX','Transurban'],
+    ['ALQ.AX','ALS'],['DOW.AX','Downer EDI'],['QAN.AX','Qantas'],
+  ],
+  'Consumer Staples': [
+    ['WOW.AX','Woolworths'],['COL.AX','Coles'],['MTS.AX','Metcash'],
+    ['TWE.AX','Treasury Wine'],['GNC.AX','GrainCorp'],['ING.AX','Inghams'],
+  ],
+  'Energy': [
+    ['WDS.AX','Woodside Energy'],['STO.AX','Santos'],['BPT.AX','Beach Energy'],
+    ['KAR.AX','Karoon Energy'],['VEA.AX','Viva Energy'],['NHC.AX','New Hope Coal'],
+  ],
+  'Materials': [
+    ['BHP.AX','BHP'],['RIO.AX','Rio Tinto'],['FMG.AX','Fortescue'],['S32.AX','South32'],
+    ['MIN.AX','Mineral Resources'],['ILU.AX','Iluka'],['SFR.AX','Sandfire'],
+  ],
+  'Real Estate': [
+    ['GMG.AX','Goodman Group'],['SCG.AX','Scentre Group'],['VCX.AX','Vicinity Centres'],
+    ['DXS.AX','Dexus'],['MGR.AX','Mirvac'],['BWP.AX','BWP Trust'],['CLW.AX','Charter Hall'],
+  ],
+  'Utilities': [
+    ['AGL.AX','AGL Energy'],['ORG.AX','Origin Energy'],['APA.AX','APA Group'],
+    ['AST.AX','AusNet Services'],['MEZ.AX','Meridian Energy'],
+  ],
 }
 
 // ─── Index constituents (Yahoo Finance symbols) ───────────────────────────────
@@ -155,8 +276,9 @@ const STOCK_NAMES = {
   'BLK':'BlackRock','SPGI':'S&P Global','ISRG':'Intuitive Surgical',
   'RTX':'RTX Corp','AXP':'Amex','SYK':'Stryker','LOW':'Lowes',
   'VRTX':'Vertex Pharma','NOW':'ServiceNow',
+  'PLD':'Prologis','NEE':'NextEra Energy',
   // NASDAQ 100
-  'CSCO':'Cisco','AMGN':'Amgen','AMAT':'Applied Materials','MU':'Micron',
+  'PYPL':'PayPal','CSCO':'Cisco','AMGN':'Amgen','AMAT':'Applied Materials','MU':'Micron',
   'LRCX':'Lam Research','PANW':'Palo Alto Networks','KLAC':'KLA Corp',
   'SNPS':'Synopsys','CDNS':'Cadence Design','MRVL':'Marvell Tech',
   'ABNB':'Airbnb','CRWD':'CrowdStrike','FTNT':'Fortinet','DXCM':'DexCom',
@@ -169,11 +291,14 @@ const STOCK_NAMES = {
   'BA':'Boeing','HON':'Honeywell','IBM':'IBM','TRV':'Travelers',
   'WMT':'Walmart','MMM':'3M','DIS':'Disney','KO':'Coca-Cola','VZ':'Verizon',
   'NKE':'Nike','DOW':'Dow Inc','WBA':'Walgreens','INTC':'Intel',
-  // FTSE proxies (US-listed)
+  // FTSE proxies (US-listed ADRs)
   'SHEL':'Shell','AZN':'AstraZeneca','HSBC':'HSBC','ULVR':'Unilever',
   'BP':'BP','RIO':'Rio Tinto ADR','GSK':'GSK','BBL':'BHP ADR',
   'DEO':'Diageo','LYG':'Lloyds','BCS':'Barclays','VOD':'Vodafone',
   'BTI':'BAT','NGG':'National Grid','PUK':'Prudential',
+  // FTSE London-listed (.L)
+  'HSBA.L':'HSBC Holdings','AZN.L':'AstraZeneca','VOD.L':'Vodafone','BA.L':'BAE Systems',
+  'ULVR.L':'Unilever','SHEL.L':'Shell','RIO.L':'Rio Tinto','NG.L':'National Grid',
   // Nikkei proxies (US-listed ADRs)
   'TM':'Toyota','SNY':'Sony Corp','HMC':'Honda','SONY':'Sony',
   'NTTYY':'NTT','MFG':'Mizuho Financial','MUFG':'Mitsubishi UFJ',
@@ -222,7 +347,28 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
-// ─── Toggle button ────────────────────────────────────────────────────────────
+// Calculate % change over N trading days back from history array
+function calcHistChange(hist, daysBack) {
+  const arr = Array.isArray(hist) ? hist.filter(d => d?.price != null && !isNaN(d.price)) : []
+  if (arr.length < 2) return null
+  const cur = arr[arr.length - 1].price
+  const ref = arr[Math.max(0, arr.length - 1 - daysBack)].price
+  if (!ref || ref === 0) return null
+  return (cur - ref) / ref * 100
+}
+
+// Calculate YTD change from history
+function calcYTDChange(hist) {
+  const arr = Array.isArray(hist) ? hist.filter(d => d?.price != null && !isNaN(d.price)) : []
+  if (arr.length < 2) return null
+  const yearStart = new Date(new Date().getFullYear(), 0, 1)
+  const cur = arr[arr.length - 1].price
+  const startEntry = arr.find(d => d.date && new Date(d.date) >= yearStart)
+  if (!startEntry?.price) return null
+  return (cur - startEntry.price) / startEntry.price * 100
+}
+
+// ─── Toggle components ────────────────────────────────────────────────────────
 
 function ViewToggle({ view, setView }) {
   return (
@@ -247,31 +393,55 @@ function ViewToggle({ view, setView }) {
   )
 }
 
+function MetricToggle({ metric, setMetric }) {
+  return (
+    <div className="flex gap-0 border border-terminal-gold/20">
+      {['5D','1M','YTD'].map(val => (
+        <button
+          key={val}
+          onClick={() => setMetric(val)}
+          className={`px-2 py-1 text-2xs font-bold transition-colors border-r border-terminal-gold/15 last:border-0 ${
+            metric === val
+              ? 'bg-terminal-gold/20 text-terminal-gold'
+              : 'text-terminal-text-dim hover:text-terminal-gold'
+          }`}
+        >
+          {val}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ─── Sectors View ─────────────────────────────────────────────────────────────
 
-function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex, openModal, externalSelected, onClearExternal }) {
+function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal }) {
   const [selected, setSelected] = useState(null)
 
   // Listen for sector-select events from SectorStrengthRadar
   useEffect(() => {
     const handler = (e) => {
-      const ticker = e.detail?.ticker
-      if (ticker) setSelected(ticker)
+      const name = e.detail?.sectorName
+      if (name) setSelected(name)
     }
     window.addEventListener('madden:sector-select', handler)
     return () => window.removeEventListener('madden:sector-select', handler)
   }, [])
 
-  const constituentSyms = selected ? (SECTOR_STOCKS[selected] ?? []).map(([s]) => s) : []
+  const isASX = selectedIndex === '^AXJO'
+  const constituentStocks = selected && isASX ? (ASX_SECTOR_STOCKS[selected] ?? []) : []
+  const constituentSyms = constituentStocks.map(([s]) => s)
+
   const { data: constQuotes, isFetching: constFetching } = useQuery({
-    queryKey: ['yahooBatch', 'sectorConst', selected],
+    queryKey: ['yahooBatch', 'sectorConst', selectedIndex, selected],
     queryFn:  () => fetchYahooBatch(constituentSyms),
     enabled:  constituentSyms.length > 0,
     staleTime: 60_000,
     retry: 1,
   })
 
-  const proxySym = selected ? SECTOR_PROXY[selected] : null
+  // Proxy stock 1-month chart for detail panel
+  const proxySym = selected ? (sectorConfig[selected]?.sym ?? null) : null
   const { data: rawHistory, isFetching: histFetching } = useQuery({
     queryKey: ['yfHistory', proxySym, '1mo'],
     queryFn:  () => fetchYFHistory(proxySym, { range: '1mo' }),
@@ -282,33 +452,41 @@ function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex,
 
   const chartData = useMemo(() => {
     const raw = rawHistory ? transformYFHistory(rawHistory) : []
-    const safe = raw.filter(d => d && d.price != null && !isNaN(d.price))
-    console.log(`[Chart] sector-${proxySym} — ${safe.length} data points`)
-    return safe
+    return raw.filter(d => d && d.price != null && !isNaN(d.price))
   }, [rawHistory, proxySym])
 
   const constArr = constQuotes ? Object.values(constQuotes) : []
   const upCount   = constArr.filter(q => q.pct > 0).length
   const downCount = constArr.filter(q => q.pct < 0).length
-  const selectedSector = selected ? ASX_SECTOR_HEATMAP.find(s => s.ticker === selected) : null
+
   const isLive = !!proxyQuotes && !isError
-  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' })
-  const indexLabel = INDEX_LABELS[selectedIndex] ?? 'ASX 200'
+  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+  const indexLabel = INDEX_LABELS[selectedIndex] ?? 'Index'
+
+  function getSecondaryChange(sym) {
+    const hist = histData?.[sym]
+    if (!hist?.length) return null
+    if (secondaryMetric === '5D')  return calcHistChange(hist, 5)
+    if (secondaryMetric === '1M')  return calcHistChange(hist, 21)
+    if (secondaryMetric === 'YTD') return calcYTDChange(hist)
+    return null
+  }
 
   const askAISector = () => {
-    if (!selectedSector) return
+    if (!selected || !proxySym) return
     const q = proxyQuotes?.[proxySym]
     const pctStr = q ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : 'N/A'
-    const proxy = PROXY_LABEL[selected] ?? selected
-    const prompt = `Analyse the ASX ${selectedSector.name} sector (${selected}) performance today. Proxy stock ${proxy}: ${pctStr}. Up: ${upCount} stocks, Down: ${downCount} stocks. Sector weight: ${selectedSector.mktCapWeight}% of ASX 200. Key drivers and outlook for AUD investors.`
+    const prompt = `Analyse the ${selected} sector for ${indexLabel} performance today. Proxy stock ${proxySym.replace('.AX','').replace('.L','')}: ${pctStr}. Key drivers, sector outlook, and implications for investors.`
     window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
   }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Status bar */}
+      {/* Breadcrumb / status bar */}
       <div className="flex items-center gap-2 px-2 py-1 border-b border-terminal-border flex-shrink-0 bg-terminal-header">
-        <span className="text-2xs text-terminal-text-dim">SECTORS — {indexLabel}</span>
+        <span className="text-2xs font-bold text-terminal-text-dim tracking-wider">
+          SHOWING {indexLabel.toUpperCase()} SECTORS
+        </span>
         {isFetching && <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>}
         {isLive && <span className="text-terminal-green text-2xs">● LIVE {updatedTime}</span>}
         {isError && !isFetching && (
@@ -325,76 +503,122 @@ function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex,
         {/* Heatmap grid */}
         <div className={`overflow-auto p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
           <div className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-3 xl:grid-cols-4'}`}>
-            {ASX_SECTOR_HEATMAP.map((sector) => {
-              const proxyKey   = SECTOR_PROXY[sector.ticker]
-              const q          = proxyQuotes?.[proxyKey]
-              const pct        = q?.pct ?? null
+            {GICS_SECTORS.map((sector) => {
+              const cfg = sectorConfig[sector]
+              const isSelected = selected === sector
+
+              // N/A tile for sectors not in this index
+              if (!cfg) {
+                return (
+                  <div
+                    key={sector}
+                    className="p-2 select-none flex flex-col gap-0.5"
+                    style={{
+                      backgroundColor: 'rgba(20,40,70,0.12)',
+                      border: '1px solid rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <div className="text-2xs font-bold text-terminal-text-dim/35 tracking-wider truncate">
+                      {SECTOR_ABBR[sector]}
+                    </div>
+                    <div className="text-sm font-bold text-terminal-text-dim/20">N/A</div>
+                    <div className="text-2xs text-terminal-text-dim/18" style={{ fontSize: '9px' }}>Not in index</div>
+                  </div>
+                )
+              }
+
+              const q = proxyQuotes?.[cfg.sym] ?? null
+              const pct = q?.pct ?? null
               const { bg, text } = pctToBg(pct)
-              const isSelected = selected === sector.ticker
               const arrow = pct == null ? '' : pct >= 0 ? '▲' : '▼'
+              const secChange = getSecondaryChange(cfg.sym)
+              const secColor = secChange == null
+                ? 'rgba(156,163,175,0.4)'
+                : secChange >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+              const proxyLabel = cfg.sym.replace(/\.(AX|L)$/i, '')
 
               return (
                 <div
-                  key={sector.ticker}
-                  className="p-2 cursor-pointer select-none transition-all duration-150"
+                  key={sector}
+                  className="p-2 cursor-pointer select-none transition-all duration-150 flex flex-col gap-0.5"
                   style={{
                     backgroundColor: bg,
                     border: isSelected ? '2px solid #c8a84b' : '1px solid rgba(255,255,255,0.06)',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.25)' }}
                   onMouseLeave={e => { e.currentTarget.style.filter = '' }}
-                  onClick={() => setSelected(isSelected ? null : sector.ticker)}
+                  onClick={() => setSelected(isSelected ? null : sector)}
                 >
-                  <div className="text-2xs font-bold text-terminal-text-bright truncate leading-tight">{sector.name}</div>
-                  <div className="text-sm font-bold mt-0.5 leading-tight" style={{ color: text }}>
-                    {pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : `${sector.mktCapWeight}%`}
+                  {/* LINE 1: abbreviated sector name */}
+                  <div className="text-xs font-bold text-terminal-text-bright tracking-wider truncate leading-tight">
+                    {SECTOR_ABBR[sector]}
                   </div>
-                  <div className="text-2xs mt-0.5" style={{ color: text, opacity: 0.8 }}>
+                  {/* LINE 2: day change — primary metric */}
+                  <div className="text-sm font-bold leading-tight" style={{ color: text }}>
                     {pct != null
-                      ? `${arrow} ${Math.abs(pct).toFixed(2)}% today`
-                      : <span className="text-terminal-text-dim/70">{sector.ticker} · {sector.mktCapWeight}% ASX</span>
+                      ? `${arrow} ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
+                      : <span className="text-terminal-text-dim/40 text-xs animate-pulse">—</span>
                     }
+                  </div>
+                  {/* LINE 3: secondary metric */}
+                  <div className="text-2xs leading-tight" style={{ color: secColor, opacity: 0.8 }}>
+                    {secChange != null
+                      ? `${secondaryMetric}: ${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}%`
+                      : `${secondaryMetric}: —`
+                    }
+                  </div>
+                  {/* LINE 4: proxy ticker */}
+                  <div className="leading-tight text-terminal-text-dim/35" style={{ fontSize: '9px' }}>
+                    via {proxyLabel}
                   </div>
                 </div>
               )
             })}
           </div>
           <div className="mt-2 text-2xs text-terminal-text-dim/50 text-center">
-            {isLive ? `Proxy stock prices · Yahoo Finance · ${updatedTime} AEST` : 'ASX 200 GICS sector weights · Click to drill down'}
+            {isLive
+              ? `GICS sector proxy prices · Yahoo Finance · ${updatedTime} AEST`
+              : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
           </div>
         </div>
 
         {/* Detail panel */}
-        {selected && selectedSector && (
+        {selected && sectorConfig[selected] && (
           <div className="w-[45%] border-l border-terminal-border flex flex-col overflow-hidden panel-fade">
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
-              <span className="text-terminal-gold truncate">{selectedSector.name.toUpperCase()}</span>
+              <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
               {constQuotes && !constFetching && <span className="text-terminal-green text-2xs font-normal">● LIVE</span>}
-              <button onClick={askAISector}
-                className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors">
+              <button
+                onClick={askAISector}
+                className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
+              >
                 AI ▶
               </button>
             </div>
 
             {/* Proxy summary */}
-            {proxyQuotes?.[proxySym] && (() => {
+            {proxySym && proxyQuotes?.[proxySym] && (() => {
               const q = proxyQuotes[proxySym]
               const c = q.pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
               return (
                 <div className="px-2 py-1.5 border-b border-terminal-border bg-terminal-accent/10 flex-shrink-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-terminal-gold">{PROXY_LABEL[selected]} proxy · {selectedSector.mktCapWeight}% ASX 200</span>
+                    <span className="text-xs font-bold text-terminal-gold">
+                      {proxySym.replace(/\.(AX|L)$/i,'')} · proxy
+                    </span>
                     <span className="text-xs font-bold text-terminal-text-bright">{fmt.price(q.last)}</span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
                     <span className="text-2xs font-bold" style={{ color: c }}>
                       {q.pct >= 0 ? '+' : ''}{q.pct.toFixed(2)}%
                     </span>
-                    {constQuotes && !constFetching && (
+                    {constQuotes && !constFetching && constituentStocks.length > 0 && (
                       <span className="text-2xs text-terminal-text-dim">
-                        <span style={{ color:'var(--color-gain)' }}>▲{upCount}</span>{' / '}
-                        <span style={{ color:'var(--color-loss)' }}>▼{downCount}</span>{' stocks'}
+                        <span style={{ color:'var(--color-gain)' }}>▲{upCount}</span>
+                        {' / '}
+                        <span style={{ color:'var(--color-loss)' }}>▼{downCount}</span>
+                        {' stocks'}
                       </span>
                     )}
                   </div>
@@ -433,44 +657,54 @@ function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex,
               })()}
             </div>
 
-            {/* Constituents */}
-            <div className="flex-1 overflow-auto">
-              <table className="terminal-table w-full">
-                <thead>
-                  <tr>
-                    <th className="px-2 text-left">STOCK</th>
-                    <th className="px-1 text-right">PRICE</th>
-                    <th className="px-1 text-right">CHG%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(SECTOR_STOCKS[selected] ?? []).map(([sym, name]) => {
-                    const q = constQuotes?.[sym]
-                    const c = q ? (q.pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)') : undefined
-                    return (
-                      <tr key={sym}
-                        className="cursor-pointer hover:bg-terminal-accent/20 transition-colors"
-                        onClick={() => openModal?.({ symbol: sym.replace('.AX','') + '.AX', name, price: q?.last ?? 0, pct: q?.pct ?? 0, type:'asx', extra:{} })}
-                      >
-                        <td className="px-2 py-0.5">
-                          <div className="text-xs font-bold text-terminal-text-bright">{sym.replace('.AX','')}</div>
-                          <div className="text-2xs text-terminal-text-dim truncate max-w-[110px]">{name}</div>
-                        </td>
-                        <td className="px-1 py-0.5 text-2xs text-right font-semibold">
-                          {q ? fmt.price(q.last) : <span className="text-terminal-text-dim/50">—</span>}
-                        </td>
-                        <td className="px-1 py-0.5 text-2xs text-right font-semibold" style={{ color: c ?? 'var(--color-neutral)' }}>
-                          {q ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : '—'}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {/* Constituents — ASX only */}
+            {isASX && constituentStocks.length > 0 ? (
+              <div className="flex-1 overflow-auto">
+                <table className="terminal-table w-full">
+                  <thead>
+                    <tr>
+                      <th className="px-2 text-left">STOCK</th>
+                      <th className="px-1 text-right">PRICE</th>
+                      <th className="px-1 text-right">CHG%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {constituentStocks.map(([sym, name]) => {
+                      const q = constQuotes?.[sym]
+                      const c = q ? (q.pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)') : undefined
+                      return (
+                        <tr
+                          key={sym}
+                          className="cursor-pointer hover:bg-terminal-accent/20 transition-colors"
+                          onClick={() => openModal?.({ symbol: sym, name, price: q?.last ?? 0, pct: q?.pct ?? 0, type:'asx', extra:{} })}
+                        >
+                          <td className="px-2 py-0.5">
+                            <div className="text-xs font-bold text-terminal-text-bright">{sym.replace('.AX','')}</div>
+                            <div className="text-2xs text-terminal-text-dim truncate max-w-[110px]">{name}</div>
+                          </td>
+                          <td className="px-1 py-0.5 text-2xs text-right font-semibold">
+                            {q ? fmt.price(q.last) : <span className="text-terminal-text-dim/50">—</span>}
+                          </td>
+                          <td className="px-1 py-0.5 text-2xs text-right font-semibold" style={{ color: c ?? 'var(--color-neutral)' }}>
+                            {q ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-4 text-center">
+                <span className="text-2xs text-terminal-text-dim/40 leading-relaxed">
+                  {isASX ? 'No constituent data' : 'Full constituent lists available for ASX 200 only.\nProxy stock chart shown above.'}
+                </span>
+              </div>
+            )}
+
             <div className="border-t border-terminal-border p-1.5 text-2xs text-terminal-text-dim/60 flex-shrink-0 flex items-center justify-between">
-              <span>{(SECTOR_STOCKS[selected] ?? []).length} holdings</span>
-              <span>30D {PROXY_LABEL[selected] ?? selected} · Yahoo</span>
+              <span>{constituentStocks.length > 0 ? `${constituentStocks.length} holdings` : 'Proxy view'}</span>
+              <span>30D {proxySym?.replace(/\.(AX|L)$/i,'') ?? ''} · Yahoo Finance</span>
             </div>
           </div>
         )}
@@ -483,24 +717,22 @@ function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex,
 
 function IndexView({ selectedIndex, openModal }) {
   const { usdToAud } = useAudRates()
-  const [quotes, setQuotes]     = useState({})
+  const [quotes, setQuotes]       = useState({})
   const [loadCount, setLoadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
-  const [sortCol, setSortCol]   = useState('rank')
-  const [sortDir, setSortDir]   = useState('asc')
-  const [search, setSearch]     = useState('')
+  const [sortCol, setSortCol]     = useState('rank')
+  const [sortDir, setSortDir]     = useState('asc')
+  const [search, setSearch]       = useState('')
   const loadRef = useRef(null)
 
   const constituents = INDEX_CONSTITUENTS[selectedIndex] ?? []
   const isASX = selectedIndex === '^AXJO'
 
-  // Fetch constituents in batches with localStorage cache
   useEffect(() => {
     if (!selectedIndex || !constituents.length) return
     const indexKey = selectedIndex
     loadRef.current = indexKey
 
-    // Check localStorage cache (60s TTL — live stock prices, never serve stale)
     const today = new Date().toISOString().slice(0, 10)
     const cacheKey = `madden_idx_${selectedIndex}_${today}`
     try {
@@ -551,7 +783,6 @@ function IndexView({ selectedIndex, openModal }) {
     return () => { loadRef.current = null }
   }, [selectedIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 30-day index chart
   const { data: idxHistory, isFetching: idxHistLoading } = useQuery({
     queryKey: ['yfHistory', selectedIndex, '1mo'],
     queryFn:  () => fetchYFHistory(selectedIndex, { range: '1mo' }),
@@ -560,30 +791,23 @@ function IndexView({ selectedIndex, openModal }) {
   })
   const idxChartData = useMemo(() => {
     const raw = idxHistory ? transformYFHistory(idxHistory) : []
-    const safe = raw.filter(d => d && d.price != null && !isNaN(d.price))
-    console.log(`[Chart] index-${selectedIndex} — ${safe.length} data points`)
-    return safe
+    return raw.filter(d => d && d.price != null && !isNaN(d.price))
   }, [idxHistory, selectedIndex])
 
-  // Sort + filter + compute AUD prices
   const rows = useMemo(() => {
     return constituents.map((sym, i) => {
       const q = quotes[sym]
       const isAud = sym.endsWith('.AX')
-      const rawPrice = q?.last ?? null
+      const rawPrice  = q?.last ?? null
       const audPrice  = rawPrice == null ? null : isAud ? rawPrice : usdToAud(rawPrice)
       const audChange = q?.change == null ? null : isAud ? q.change : usdToAud(q.change)
       const aud52High = q?.week52High == null ? null : isAud ? q.week52High : usdToAud(q.week52High)
       const aud52Low  = q?.week52Low  == null ? null : isAud ? q.week52Low  : usdToAud(q.week52Low)
       return {
-        rank: i + 1,
-        sym,
+        rank: i + 1, sym,
         ticker: displaySym(sym),
         name: STOCK_NAMES[sym] ?? displaySym(sym),
-        audPrice,
-        audChange,
-        aud52High,
-        aud52Low,
+        audPrice, audChange, aud52High, aud52Low,
         pct: q?.pct ?? null,
         weight: ASX_WEIGHTS[sym] ?? null,
         q,
@@ -596,22 +820,21 @@ function IndexView({ selectedIndex, openModal }) {
     const base = s
       ? rows.filter(r => r.ticker.toLowerCase().includes(s) || r.name.toLowerCase().includes(s))
       : rows
-
     return [...base].sort((a, b) => {
       let va, vb
-      if (sortCol === 'rank')   { va = a.rank;    vb = b.rank    }
-      else if (sortCol === 'ticker') { va = a.ticker; vb = b.ticker  }
-      else if (sortCol === 'name')   { va = a.name;   vb = b.name    }
-      else if (sortCol === 'price')  { va = a.audPrice ?? -Infinity; vb = b.audPrice ?? -Infinity }
-      else if (sortCol === 'pct')    { va = a.pct ?? -Infinity;     vb = b.pct ?? -Infinity      }
-      else if (sortCol === 'weight') { va = a.weight ?? -Infinity;  vb = b.weight ?? -Infinity   }
+      if (sortCol === 'rank')        { va = a.rank;               vb = b.rank               }
+      else if (sortCol === 'ticker') { va = a.ticker;             vb = b.ticker             }
+      else if (sortCol === 'name')   { va = a.name;               vb = b.name               }
+      else if (sortCol === 'price')  { va = a.audPrice  ?? -Infinity; vb = b.audPrice  ?? -Infinity }
+      else if (sortCol === 'pct')    { va = a.pct       ?? -Infinity; vb = b.pct       ?? -Infinity }
+      else if (sortCol === 'weight') { va = a.weight    ?? -Infinity; vb = b.weight    ?? -Infinity }
       else { va = a.rank; vb = b.rank }
       if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       return sortDir === 'asc' ? va - vb : vb - va
     })
   }, [rows, search, sortCol, sortDir])
 
-  const loaded = rows.filter(r => r.q != null)
+  const loaded  = rows.filter(r => r.q != null)
   const gainers = [...loaded].sort((a, b) => (b.pct ?? -99) - (a.pct ?? -99)).slice(0, 5)
   const losers  = [...loaded].sort((a, b) => (a.pct ?? 99)  - (b.pct ?? 99)).slice(0, 5)
 
@@ -646,7 +869,6 @@ function IndexView({ selectedIndex, openModal }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 px-2 py-1 border-b border-terminal-border flex-shrink-0 bg-terminal-header">
         <span className="text-2xs text-terminal-text-dim">INDEX — {indexLabel}</span>
         {isLoading && (
@@ -669,18 +891,17 @@ function IndexView({ selectedIndex, openModal }) {
       </div>
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Table */}
         <div className="flex-1 overflow-auto">
           <table className="w-full" style={{ borderCollapse:'collapse' }}>
             <thead className="sticky top-0 bg-terminal-header z-10">
               <tr className="text-2xs text-terminal-text-dim uppercase tracking-wider border-b border-terminal-border">
                 {[
-                  ['rank','#',  'w-8  text-center'],
-                  ['ticker','TICKER', 'px-2 text-left'],
-                  ['name','NAME', 'px-2 text-left hidden xl:table-cell'],
-                  ['price','PRICE AUD', 'px-2 text-right'],
-                  ['pct','CHG%', 'px-2 text-right'],
-                  ['weight','WEIGHT', 'px-2 text-right hidden lg:table-cell'],
+                  ['rank','#',         'w-8  text-center'],
+                  ['ticker','TICKER',  'px-2 text-left'],
+                  ['name','NAME',      'px-2 text-left hidden xl:table-cell'],
+                  ['price','PRICE AUD','px-2 text-right'],
+                  ['pct','CHG%',       'px-2 text-right'],
+                  ['weight','WEIGHT',  'px-2 text-right hidden lg:table-cell'],
                 ].map(([col, lbl, cls]) => (
                   <th key={col}
                     className={`py-1 cursor-pointer select-none hover:text-terminal-gold ${cls}`}
@@ -724,7 +945,6 @@ function IndexView({ selectedIndex, openModal }) {
 
         {/* Sidebar */}
         <div className="w-48 border-l border-terminal-border flex flex-col overflow-hidden flex-shrink-0">
-          {/* 30-day index chart */}
           <div className="border-b border-terminal-border flex-shrink-0 p-1">
             <div className="text-2xs text-terminal-text-dim mb-1">{indexLabel} 30D</div>
             <div style={{ height: 80 }}>
@@ -754,7 +974,6 @@ function IndexView({ selectedIndex, openModal }) {
             </div>
           </div>
 
-          {/* Gainers */}
           <div className="border-b border-terminal-border flex-shrink-0">
             <div className="px-2 py-1 text-2xs font-bold" style={{ color:'var(--color-gain)' }}>▲ TOP GAINERS</div>
             {gainers.map(r => (
@@ -770,7 +989,6 @@ function IndexView({ selectedIndex, openModal }) {
             )}
           </div>
 
-          {/* Losers */}
           <div className="flex-shrink-0">
             <div className="px-2 py-1 text-2xs font-bold" style={{ color:'var(--color-loss)' }}>▼ TOP LOSERS</div>
             {losers.map(r => (
@@ -797,34 +1015,72 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
   const [view, setView] = useState(() => {
     try { return localStorage.getItem('madden_mkt_view') ?? 'sectors' } catch { return 'sectors' }
   })
+  const [secondaryMetric, setSecondaryMetric] = useState('5D')
 
-  // When radar clicks a sector, switch to sectors view so detail panel can appear
+  // When radar clicks a sector, switch to sectors view so detail panel appears
   useEffect(() => {
     const handler = () => setView('sectors')
     window.addEventListener('madden:sector-select', handler)
     return () => window.removeEventListener('madden:sector-select', handler)
   }, [])
 
+  const sectorConfig = useMemo(
+    () => INDEX_SECTORS[selectedIndex] ?? INDEX_SECTORS['^AXJO'],
+    [selectedIndex]
+  )
+  const proxySyms = useMemo(
+    () => GICS_SECTORS.filter(s => sectorConfig[s]?.sym).map(s => sectorConfig[s].sym),
+    [sectorConfig]
+  )
+
   const { data: proxyQuotes, isFetching, isError, refetch } = useQuery({
-    queryKey: ['yahooBatch', 'sectorProxy'],
-    queryFn:  () => fetchYahooBatch(PROXY_SYMS),
+    queryKey: ['yahooBatch', 'sectorProxy', selectedIndex],
+    queryFn:  () => fetchYahooBatch(proxySyms),
     staleTime: 60_000,
     retry: 1,
+    enabled:  proxySyms.length > 0,
   })
+
+  // Fetch 1-year history for all proxy stocks (5D / 1M / YTD secondary metric)
+  const histResults = useQueries({
+    queries: proxySyms.map(sym => ({
+      queryKey: ['yfHistory', sym, '1y'],
+      queryFn:  () => fetchYFHistory(sym, { range: '1y' }),
+      staleTime: 15 * 60_000,
+      retry: 1,
+    })),
+  })
+
+  const histData = useMemo(() => {
+    const map = {}
+    proxySyms.forEach((sym, i) => {
+      const raw = histResults[i]?.data
+      map[sym] = raw ? transformYFHistory(raw) : []
+    })
+    return map
+  }, [histResults, proxySyms])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header with toggle */}
-      <div className="flex items-center gap-3 px-2 py-1.5 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-2 py-1.5 border-b border-terminal-border bg-terminal-header flex-shrink-0 flex-wrap gap-y-1">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">MARKETS</span>
         <ViewToggle view={view} setView={setView} />
+        {view === 'sectors' && (
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-2xs text-terminal-text-dim/60">2ND METRIC:</span>
+            <MetricToggle metric={secondaryMetric} setMetric={setSecondaryMetric} />
+          </div>
+        )}
       </div>
 
-      {/* View content */}
       <div className="flex-1 min-h-0 overflow-hidden panel-fade" key={view}>
         {view === 'sectors' ? (
           <SectorsView
+            sectorConfig={sectorConfig}
             proxyQuotes={proxyQuotes}
+            histData={histData}
+            secondaryMetric={secondaryMetric}
             isFetching={isFetching}
             isError={isError}
             refetch={refetch}
