@@ -238,30 +238,65 @@ const RISK_COLOR = {
   'HIGH':'text-orange-400', 'VERY HIGH':'text-terminal-red', 'CRITICAL':'text-terminal-red',
 }
 
-// ─── Exchanges ────────────────────────────────────────────────────────────────
+// ─── Exchanges — full global list with coordinates ────────────────────────────
 
 const EXCHANGES = [
-  { id:'ASX',    name:'ASX',             city:'Sydney',        tz:'Australia/Sydney',    open:[10,0],  close:[16,0],  countryId:36,  currency:'AUD', region:'APAC'     },
-  { id:'TSE',    name:'Tokyo SE',        city:'Tokyo',         tz:'Asia/Tokyo',           open:[9,0],   close:[15,30], countryId:392, currency:'JPY', region:'APAC'     },
-  { id:'HKEX',  name:'HKEX',            city:'Hong Kong',     tz:'Asia/Hong_Kong',       open:[9,30],  close:[16,0],  countryId:344, currency:'HKD', region:'APAC'     },
-  { id:'SSE',   name:'Shanghai SE',     city:'Shanghai',      tz:'Asia/Shanghai',        open:[9,30],  close:[15,0],  countryId:156, currency:'CNY', region:'APAC'     },
-  { id:'NSE',   name:'NSE India',       city:'Mumbai',        tz:'Asia/Kolkata',         open:[9,15],  close:[15,30], countryId:356, currency:'INR', region:'APAC'     },
-  { id:'SGX',   name:'SGX',             city:'Singapore',     tz:'Asia/Singapore',       open:[9,0],   close:[17,0],  countryId:702, currency:'SGD', region:'APAC'     },
-  { id:'KRX',   name:'Korea Exchange',  city:'Seoul',         tz:'Asia/Seoul',           open:[9,0],   close:[15,30], countryId:410, currency:'KRW', region:'APAC'     },
-  { id:'Bursa', name:'Bursa Malaysia',  city:'Kuala Lumpur',  tz:'Asia/Kuala_Lumpur',    open:[9,0],   close:[17,0],  countryId:458, currency:'MYR', region:'APAC'     },
-  { id:'IDX',   name:'Indonesia SE',   city:'Jakarta',        tz:'Asia/Jakarta',         open:[9,0],   close:[15,50], countryId:360, currency:'IDR', region:'APAC'     },
-  { id:'SET',   name:'Stock Exchange of Thailand',city:'Bangkok',tz:'Asia/Bangkok',     open:[10,0],  close:[16,30], countryId:764, currency:'THB', region:'APAC'     },
-  { id:'NZX',   name:'NZX',             city:'Wellington',    tz:'Pacific/Auckland',     open:[10,0],  close:[16,45], countryId:554, currency:'NZD', region:'APAC'     },
-  { id:'LSE',   name:'London SE',       city:'London',        tz:'Europe/London',        open:[8,0],   close:[16,30], countryId:826, currency:'GBP', region:'EUROPE'   },
-  { id:'XETRA', name:'Xetra',           city:'Frankfurt',     tz:'Europe/Berlin',        open:[9,0],   close:[17,30], countryId:276, currency:'EUR', region:'EUROPE'   },
-  { id:'EURONXT',name:'Euronext Paris', city:'Paris',         tz:'Europe/Paris',         open:[9,0],   close:[17,30], countryId:250, currency:'EUR', region:'EUROPE'   },
-  { id:'BORSA', name:'Borsa Istanbul',  city:'Istanbul',      tz:'Europe/Istanbul',      open:[10,0],  close:[18,0],  countryId:792, currency:'TRY', region:'EUROPE'   },
-  { id:'NYSE',  name:'NYSE',            city:'New York',      tz:'America/New_York',     open:[9,30],  close:[16,0],  countryId:840, currency:'USD', region:'AMERICAS' },
-  { id:'NASDAQ',name:'NASDAQ',          city:'New York',      tz:'America/New_York',     open:[9,30],  close:[16,0],  countryId:840, currency:'USD', region:'AMERICAS' },
-  { id:'TSX',   name:'TSX',             city:'Toronto',       tz:'America/Toronto',      open:[9,30],  close:[16,0],  countryId:124, currency:'CAD', region:'AMERICAS' },
-  { id:'B3',    name:'B3 Brazil',       city:'São Paulo',     tz:'America/Sao_Paulo',    open:[10,0],  close:[17,55], countryId:76,  currency:'BRL', region:'AMERICAS' },
-  { id:'JSE',   name:'JSE',             city:'Johannesburg',  tz:'Africa/Johannesburg',  open:[9,0],   close:[17,0],  countryId:710, currency:'ZAR', region:'AFRICA'   },
-  { id:'Tadawul',name:'Tadawul',        city:'Riyadh',        tz:'Asia/Riyadh',          open:[10,0],  close:[15,0],  countryId:682, currency:'SAR', region:'MIDDLE EAST'},
+  // ── Australia & Oceania ──
+  { id:'ASX',   abbr:'ASX',  name:'Australian Securities Exchange',   city:'Sydney',       country:'Australia',   lat:-33.8688, lon:151.2093, tz:'Australia/Sydney',               open:[10,0],  close:[16,0],  countryId:36,  currency:'AUD', region:'APAC',       index:'ASX 200',     listedCos:2200, mktCapB:1900, topStocks:['BHP.AX','CBA.AX','CSL.AX','WES.AX','NAB.AX'] },
+  { id:'NZX',   abbr:'NZX',  name:'New Zealand Exchange',             city:'Wellington',   country:'New Zealand', lat:-41.2865, lon:174.7762, tz:'Pacific/Auckland',               open:[10,0],  close:[16,45], countryId:554, currency:'NZD', region:'APAC',       index:'NZX 50',      listedCos:178,  mktCapB:140,  topStocks:['FPH.AX','FBU.NZ','MEL.NZ'] },
+  // ── Asia ──
+  { id:'TSE',   abbr:'TSE',  name:'Tokyo Stock Exchange',             city:'Tokyo',        country:'Japan',       lat:35.6762,  lon:139.6503, tz:'Asia/Tokyo',                     open:[9,0],   close:[15,30], countryId:392, currency:'JPY', region:'APAC',       index:'Nikkei 225',  listedCos:3800, mktCapB:6600, topStocks:['TM','SONY','7267.T','9984.T','6501.T'] },
+  { id:'SSE',   abbr:'SSE',  name:'Shanghai Stock Exchange',          city:'Shanghai',     country:'China',       lat:31.2304,  lon:121.4737, tz:'Asia/Shanghai',                  open:[9,30],  close:[15,0],  countryId:156, currency:'CNY', region:'APAC',       index:'SSE Composite',listedCos:2200, mktCapB:6300, topStocks:['601398.SS','600028.SS','601857.SS'] },
+  { id:'SZSE',  abbr:'SZ',   name:'Shenzhen Stock Exchange',          city:'Shenzhen',     country:'China',       lat:22.5431,  lon:114.0579, tz:'Asia/Shanghai',                  open:[9,30],  close:[15,0],  countryId:156, currency:'CNY', region:'APAC',       index:'SZSE Component',listedCos:2700, mktCapB:4800, topStocks:['000858.SZ','000001.SZ'] },
+  { id:'HKEX',  abbr:'HK',   name:'Hong Kong Exchange',               city:'Hong Kong',    country:'Hong Kong',   lat:22.3193,  lon:114.1694, tz:'Asia/Hong_Kong',                 open:[9,30],  close:[16,0],  countryId:344, currency:'HKD', region:'APAC',       index:'Hang Seng',   listedCos:2600, mktCapB:3300, topStocks:['0700.HK','0939.HK','9988.HK'] },
+  { id:'KRX',   abbr:'KRX',  name:'Korea Exchange',                   city:'Seoul',        country:'South Korea', lat:37.5665,  lon:126.9780, tz:'Asia/Seoul',                     open:[9,0],   close:[15,30], countryId:410, currency:'KRW', region:'APAC',       index:'KOSPI',       listedCos:2500, mktCapB:1900, topStocks:['005930.KS','000660.KS','035420.KS'] },
+  { id:'SGX',   abbr:'SGX',  name:'Singapore Exchange',               city:'Singapore',    country:'Singapore',   lat:1.3521,   lon:103.8198, tz:'Asia/Singapore',                 open:[9,0],   close:[17,0],  countryId:702, currency:'SGD', region:'APAC',       index:'STI',         listedCos:680,  mktCapB:650,  topStocks:['D05.SI','O39.SI','U11.SI'] },
+  { id:'BSE',   abbr:'BSE',  name:'Bombay Stock Exchange',            city:'Mumbai',       country:'India',       lat:19.0760,  lon:72.8777,  tz:'Asia/Kolkata',                   open:[9,15],  close:[15,30], countryId:356, currency:'INR', region:'APAC',       index:'SENSEX',      listedCos:5300, mktCapB:3800, topStocks:['RELIANCE.BO','TCS.BO','HDFCBANK.BO'] },
+  { id:'NSE',   abbr:'NSE',  name:'National Stock Exchange India',    city:'Mumbai',       country:'India',       lat:19.0560,  lon:72.8677,  tz:'Asia/Kolkata',                   open:[9,15],  close:[15,30], countryId:356, currency:'INR', region:'APAC',       index:'NIFTY 50',    listedCos:2000, mktCapB:3800, topStocks:['RELIANCE.NS','TCS.NS','INFY.NS'] },
+  { id:'IDX',   abbr:'IDX',  name:'Indonesia Stock Exchange',         city:'Jakarta',      country:'Indonesia',   lat:-6.2088,  lon:106.8456, tz:'Asia/Jakarta',                   open:[9,0],   close:[15,50], countryId:360, currency:'IDR', region:'APAC',       index:'JCI',         listedCos:900,  mktCapB:580,  topStocks:['BBCA.JK','BMRI.JK','TLKM.JK'] },
+  { id:'Bursa', abbr:'BM',   name:'Bursa Malaysia',                   city:'Kuala Lumpur', country:'Malaysia',    lat:3.1390,   lon:101.6869, tz:'Asia/Kuala_Lumpur',              open:[9,0],   close:[17,0],  countryId:458, currency:'MYR', region:'APAC',       index:'FBMKLCI',     listedCos:1000, mktCapB:400,  topStocks:['1155.KL','5183.KL','1023.KL'] },
+  { id:'SET',   abbr:'SET',  name:'Stock Exchange of Thailand',       city:'Bangkok',      country:'Thailand',    lat:13.7563,  lon:100.5018, tz:'Asia/Bangkok',                   open:[10,0],  close:[16,30], countryId:764, currency:'THB', region:'APAC',       index:'SET',         listedCos:700,  mktCapB:580,  topStocks:['PTT.BK','AOT.BK','KBANK.BK'] },
+  { id:'PSE',   abbr:'PSE',  name:'Philippine Stock Exchange',        city:'Manila',       country:'Philippines', lat:14.5995,  lon:120.9842, tz:'Asia/Manila',                    open:[9,30],  close:[15,30], countryId:608, currency:'PHP', region:'APAC',       index:'PSEi',        listedCos:280,  mktCapB:200,  topStocks:['SM.PS','BDO.PS','ALI.PS'] },
+  { id:'TWSE',  abbr:'TW',   name:'Taiwan Stock Exchange',            city:'Taipei',       country:'Taiwan',      lat:25.0330,  lon:121.5654, tz:'Asia/Taipei',                    open:[9,0],   close:[13,30], countryId:158, currency:'TWD', region:'APAC',       index:'TAIEX',       listedCos:950,  mktCapB:2400, topStocks:['2330.TW','2317.TW','2454.TW'] },
+  // ── Europe ──
+  { id:'LSE',   abbr:'LSE',  name:'London Stock Exchange',            city:'London',       country:'UK',          lat:51.5074,  lon:-0.1278,  tz:'Europe/London',                  open:[8,0],   close:[16,30], countryId:826, currency:'GBP', region:'EUROPE',     index:'FTSE 100',    listedCos:2000, mktCapB:3600, topStocks:['SHEL','AZN','HSBC','BP','ULVR'] },
+  { id:'EURONXT',abbr:'PAR', name:'Euronext Paris',                   city:'Paris',        country:'France',      lat:48.8566,  lon:2.3522,   tz:'Europe/Paris',                   open:[9,0],   close:[17,30], countryId:250, currency:'EUR', region:'EUROPE',     index:'CAC 40',      listedCos:1500, mktCapB:5600, topStocks:['MC.PA','OR.PA','TTE.PA'] },
+  { id:'XETRA', abbr:'FRA',  name:'Frankfurt Stock Exchange',         city:'Frankfurt',    country:'Germany',     lat:50.1109,  lon:8.6821,   tz:'Europe/Berlin',                  open:[9,0],   close:[17,30], countryId:276, currency:'EUR', region:'EUROPE',     index:'DAX 40',      listedCos:450,  mktCapB:2200, topStocks:['SAP.DE','SIE.DE','ALV.DE'] },
+  { id:'SIX',   abbr:'SIX',  name:'Swiss Exchange',                   city:'Zurich',       country:'Switzerland', lat:47.3769,  lon:8.5417,   tz:'Europe/Zurich',                  open:[9,0],   close:[17,30], countryId:756, currency:'CHF', region:'EUROPE',     index:'SMI',         listedCos:250,  mktCapB:1900, topStocks:['NESN.SW','ROG.SW','NOVN.SW'] },
+  { id:'AMS',   abbr:'AMS',  name:'Euronext Amsterdam',               city:'Amsterdam',    country:'Netherlands', lat:52.3676,  lon:4.9041,   tz:'Europe/Amsterdam',               open:[9,0],   close:[17,30], countryId:528, currency:'EUR', region:'EUROPE',     index:'AEX',         listedCos:140,  mktCapB:1200, topStocks:['ASML.AS','ADYEN.AS','HEIA.AS'] },
+  { id:'BME',   abbr:'MAD',  name:'Madrid Stock Exchange',            city:'Madrid',       country:'Spain',       lat:40.4168,  lon:-3.7038,  tz:'Europe/Madrid',                  open:[9,0],   close:[17,30], countryId:724, currency:'EUR', region:'EUROPE',     index:'IBEX 35',     listedCos:130,  mktCapB:780,  topStocks:['SAN.MC','BBVA.MC','ITX.MC'] },
+  { id:'MIL',   abbr:'MIL',  name:'Borsa Italiana',                   city:'Milan',        country:'Italy',       lat:45.4654,  lon:9.1859,   tz:'Europe/Rome',                    open:[9,0],   close:[17,30], countryId:380, currency:'EUR', region:'EUROPE',     index:'FTSE MIB',    listedCos:230,  mktCapB:830,  topStocks:['ENI.MI','ISP.MI','UCG.MI'] },
+  { id:'STK',   abbr:'STK',  name:'Nasdaq OMX Stockholm',             city:'Stockholm',    country:'Sweden',      lat:59.3293,  lon:18.0686,  tz:'Europe/Stockholm',               open:[9,0],   close:[17,30], countryId:752, currency:'SEK', region:'EUROPE',     index:'OMXS30',      listedCos:1000, mktCapB:900,  topStocks:['VOLV-B.ST','ERIC-B.ST','ATCO-A.ST'] },
+  { id:'OSL',   abbr:'OSL',  name:'Oslo Bors',                        city:'Oslo',         country:'Norway',      lat:59.9139,  lon:10.7522,  tz:'Europe/Oslo',                    open:[9,0],   close:[16,30], countryId:578, currency:'NOK', region:'EUROPE',     index:'OBX',         listedCos:250,  mktCapB:380,  topStocks:['EQNR.OL','DNB.OL','AKER.OL'] },
+  { id:'CPH',   abbr:'CPH',  name:'Nasdaq Copenhagen',                city:'Copenhagen',   country:'Denmark',     lat:55.6761,  lon:12.5683,  tz:'Europe/Copenhagen',              open:[9,0],   close:[17,0],  countryId:208, currency:'DKK', region:'EUROPE',     index:'OMXC25',      listedCos:180,  mktCapB:480,  topStocks:['NOVO-B.CO','DSV.CO','MAERSK-B.CO'] },
+  { id:'HEL',   abbr:'HEL',  name:'Nasdaq Helsinki',                  city:'Helsinki',     country:'Finland',     lat:60.1699,  lon:24.9384,  tz:'Europe/Helsinki',                open:[9,0],   close:[17,30], countryId:246, currency:'EUR', region:'EUROPE',     index:'OMXH25',      listedCos:180,  mktCapB:290,  topStocks:['NOKIA.HE','FORTUM.HE'] },
+  { id:'WSE',   abbr:'WSE',  name:'Warsaw Stock Exchange',            city:'Warsaw',       country:'Poland',      lat:52.2297,  lon:21.0122,  tz:'Europe/Warsaw',                  open:[9,0],   close:[17,0],  countryId:616, currency:'PLN', region:'EUROPE',     index:'WIG20',       listedCos:380,  mktCapB:220,  topStocks:['PKN.WA','PKO.WA','PZU.WA'] },
+  { id:'WBAG',  abbr:'VIE',  name:'Vienna Stock Exchange',            city:'Vienna',       country:'Austria',     lat:48.2082,  lon:16.3738,  tz:'Europe/Vienna',                  open:[9,0],   close:[17,30], countryId:40,  currency:'EUR', region:'EUROPE',     index:'ATX',         listedCos:90,   mktCapB:140,  topStocks:['OMV.VI','VIG.VI','VER.VI'] },
+  { id:'EBR',   abbr:'BRU',  name:'Euronext Brussels',                city:'Brussels',     country:'Belgium',     lat:50.8503,  lon:4.3517,   tz:'Europe/Brussels',                open:[9,0],   close:[17,30], countryId:56,  currency:'EUR', region:'EUROPE',     index:'BEL 20',      listedCos:140,  mktCapB:380,  topStocks:['UCB.BR','ACKB.BR','ABI.BR'] },
+  { id:'ELX',   abbr:'LIS',  name:'Euronext Lisbon',                  city:'Lisbon',       country:'Portugal',    lat:38.7223,  lon:-9.1393,  tz:'Europe/Lisbon',                  open:[8,0],   close:[16,30], countryId:620, currency:'EUR', region:'EUROPE',     index:'PSI 20',      listedCos:50,   mktCapB:90,   topStocks:['EDP.LS','GALP.LS','NOS.LS'] },
+  { id:'ATHEX', abbr:'ATH',  name:'Athens Stock Exchange',            city:'Athens',       country:'Greece',      lat:37.9838,  lon:23.7275,  tz:'Europe/Athens',                  open:[10,15], close:[16,0],  countryId:300, currency:'EUR', region:'EUROPE',     index:'ATHEX Composite', listedCos:150, mktCapB:90, topStocks:['OPAP.AT','ETE.AT','ALPHA.AT'] },
+  { id:'BIST',  abbr:'IST',  name:'Borsa Istanbul',                   city:'Istanbul',     country:'Turkey',      lat:41.0082,  lon:28.9784,  tz:'Europe/Istanbul',                open:[10,0],  close:[18,0],  countryId:792, currency:'TRY', region:'EUROPE',     index:'BIST 100',    listedCos:500,  mktCapB:480,  topStocks:['THYAO.IS','GARAN.IS','AKBNK.IS'] },
+  { id:'MOEX',  abbr:'MOX',  name:'Moscow Exchange',                  city:'Moscow',       country:'Russia',      lat:55.7558,  lon:37.6173,  tz:'Europe/Moscow',                  open:[10,0],  close:[18,50], countryId:643, currency:'RUB', region:'EUROPE',     index:'MOEX',        listedCos:230,  mktCapB:520,  topStocks:['GAZP.ME','SBER.ME','LKOH.ME'] },
+  // ── Middle East & Africa ──
+  { id:'Tadawul',abbr:'TAD', name:'Tadawul',                          city:'Riyadh',       country:'Saudi Arabia',lat:24.7136,  lon:46.6753,  tz:'Asia/Riyadh',                    open:[10,0],  close:[15,0],  countryId:682, currency:'SAR', region:'MIDDLE EAST',index:'TASI',        listedCos:280,  mktCapB:2800, topStocks:['2222.SR','1211.SR','1120.SR'] },
+  { id:'DFM',   abbr:'DFM',  name:'Dubai Financial Market',           city:'Dubai',        country:'UAE',         lat:25.2048,  lon:55.2708,  tz:'Asia/Dubai',                     open:[10,0],  close:[14,50], countryId:784, currency:'AED', region:'MIDDLE EAST',index:'DFM General', listedCos:100,  mktCapB:180,  topStocks:['EMAAR.DU','DU.DU','DIB.DU'] },
+  { id:'ADX',   abbr:'ADX',  name:'Abu Dhabi Securities Exchange',    city:'Abu Dhabi',    country:'UAE',         lat:24.4539,  lon:54.3773,  tz:'Asia/Dubai',                     open:[10,0],  close:[14,50], countryId:784, currency:'AED', region:'MIDDLE EAST',index:'FTSE ADX',    listedCos:70,   mktCapB:800,  topStocks:['ADNOCDIST.AD','IHC.AD','ALDAR.AD'] },
+  { id:'TASE',  abbr:'TLV',  name:'Tel Aviv Stock Exchange',          city:'Tel Aviv',     country:'Israel',      lat:32.0853,  lon:34.7818,  tz:'Asia/Jerusalem',                 open:[9,59],  close:[17,25], countryId:376, currency:'ILS', region:'MIDDLE EAST',index:'TA-125',      listedCos:500,  mktCapB:220,  topStocks:['NICE','CYBR','CHKP'] },
+  { id:'EGX',   abbr:'EGX',  name:'Egyptian Exchange',                city:'Cairo',        country:'Egypt',       lat:30.0444,  lon:31.2357,  tz:'Africa/Cairo',                   open:[10,0],  close:[14,30], countryId:818, currency:'EGP', region:'AFRICA',     index:'EGX 30',      listedCos:250,  mktCapB:30,   topStocks:['HRHO.CA','ETEL.CA','SWDY.CA'] },
+  { id:'JSE',   abbr:'JSE',  name:'JSE',                              city:'Johannesburg', country:'South Africa', lat:-26.2041, lon:28.0473,  tz:'Africa/Johannesburg',            open:[9,0],   close:[17,0],  countryId:710, currency:'ZAR', region:'AFRICA',     index:'JSE All Share',listedCos:400, mktCapB:1000, topStocks:['NPN.JO','BHP.JO','CFR.JO'] },
+  { id:'NGX',   abbr:'NGX',  name:'Nigerian Exchange',                city:'Lagos',        country:'Nigeria',     lat:6.5244,   lon:3.3792,   tz:'Africa/Lagos',                   open:[9,30],  close:[14,30], countryId:566, currency:'NGN', region:'AFRICA',     index:'NGX All-Share',listedCos:150, mktCapB:75,   topStocks:['AIRTELAFRI.NG','DANGCEM.NG'] },
+  { id:'CBSX',  abbr:'CSB',  name:'Casablanca Stock Exchange',        city:'Casablanca',   country:'Morocco',     lat:33.5731,  lon:-7.5898,  tz:'Africa/Casablanca',              open:[9,30],  close:[15,30], countryId:504, currency:'MAD', region:'AFRICA',     index:'MASI',        listedCos:80,   mktCapB:65,   topStocks:['IAM.CS','ATW.CS','BCP.CS'] },
+  { id:'NSEN',  abbr:'NBI',  name:'Nairobi Securities Exchange',      city:'Nairobi',      country:'Kenya',       lat:-1.2921,  lon:36.8219,  tz:'Africa/Nairobi',                 open:[9,30],  close:[15,0],  countryId:404, currency:'KES', region:'AFRICA',     index:'NSE 20',      listedCos:65,   mktCapB:20,   topStocks:['EABL.KE','SAFCOM.KE'] },
+  // ── Americas ──
+  { id:'NYSE',  abbr:'NYSE', name:'NYSE',                             city:'New York',     country:'USA',         lat:40.7128,  lon:-74.0060, tz:'America/New_York',               open:[9,30],  close:[16,0],  countryId:840, currency:'USD', region:'AMERICAS',   index:'S&P 500',     listedCos:2400, mktCapB:28000,topStocks:['JPM','JNJ','UNH','BRK-B','XOM'] },
+  { id:'NASDAQ',abbr:'NQ',   name:'NASDAQ',                           city:'New York',     country:'USA',         lat:40.7580,  lon:-73.9855, tz:'America/New_York',               open:[9,30],  close:[16,0],  countryId:840, currency:'USD', region:'AMERICAS',   index:'NASDAQ 100',  listedCos:3600, mktCapB:22000,topStocks:['AAPL','NVDA','MSFT','AMZN','META'] },
+  { id:'TSX',   abbr:'TSX',  name:'Toronto Stock Exchange',           city:'Toronto',      country:'Canada',      lat:43.6532,  lon:-79.3832, tz:'America/Toronto',                open:[9,30],  close:[16,0],  countryId:124, currency:'CAD', region:'AMERICAS',   index:'TSX Composite',listedCos:1500, mktCapB:3000, topStocks:['SHOP.TO','RY.TO','TD.TO'] },
+  { id:'BMV',   abbr:'MEX',  name:'Mexican Stock Exchange',           city:'Mexico City',  country:'Mexico',      lat:19.4326,  lon:-99.1332, tz:'America/Mexico_City',            open:[8,30],  close:[15,0],  countryId:484, currency:'MXN', region:'AMERICAS',   index:'IPC',         listedCos:140,  mktCapB:380,  topStocks:['AMXL.MX','WALMEX.MX','GFNORTEO.MX'] },
+  { id:'B3',    abbr:'B3',   name:'B3 Brazil',                        city:'São Paulo',    country:'Brazil',      lat:-23.5505, lon:-46.6333, tz:'America/Sao_Paulo',              open:[10,0],  close:[17,55], countryId:76,  currency:'BRL', region:'AMERICAS',   index:'Ibovespa',    listedCos:500,  mktCapB:850,  topStocks:['PETR4.SA','VALE3.SA','ITUB4.SA'] },
+  { id:'BCBA',  abbr:'BUE',  name:'Buenos Aires Stock Exchange',      city:'Buenos Aires', country:'Argentina',   lat:-34.6037, lon:-58.3816, tz:'America/Argentina/Buenos_Aires', open:[11,0],  close:[17,0],  countryId:32,  currency:'ARS', region:'AMERICAS',   index:'Merval',      listedCos:100,  mktCapB:45,   topStocks:['YPF','GGAL','VIST'] },
+  { id:'BVC',   abbr:'BOG',  name:'Colombian Stock Exchange',         city:'Bogotá',       country:'Colombia',    lat:4.7110,   lon:-74.0721, tz:'America/Bogota',                 open:[9,0],   close:[16,0],  countryId:170, currency:'COP', region:'AMERICAS',   index:'COLCAP',      listedCos:80,   mktCapB:90,   topStocks:['PFBCOLOM.CL','ECOPETROL.CL'] },
+  { id:'BVL',   abbr:'LIM',  name:'Lima Stock Exchange',              city:'Lima',         country:'Peru',        lat:-12.0464, lon:-77.0428, tz:'America/Lima',                   open:[9,0],   close:[16,0],  countryId:604, currency:'PEN', region:'AMERICAS',   index:'S&P BVL',     listedCos:270,  mktCapB:90,   topStocks:['ALICORC1.LM','BACKUSI1.LM'] },
+  { id:'STGO',  abbr:'SCL',  name:'Santiago Stock Exchange',          city:'Santiago',     country:'Chile',       lat:-33.4489, lon:-70.6693, tz:'America/Santiago',               open:[9,30],  close:[16,0],  countryId:152, currency:'CLP', region:'AMERICAS',   index:'IPSA',        listedCos:220,  mktCapB:230,  topStocks:['SQM-B.SN','FALABELLA.SN','COPEC.SN'] },
 ]
 
 const COUNTRY_TO_EXCHANGE = {}
@@ -678,16 +713,18 @@ function CompassRose({ rotation, onReset }) {
 
 // ─── 3D Globe ─────────────────────────────────────────────────────────────────
 
-function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, geoNewsItems, selectedArc, onArcClick }) {
+function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, geoNewsItems, selectedArc, onArcClick, onExchangeClick }) {
   const containerRef = useRef(null)
   const svgRef       = useRef(null)
 
-  const [topology, setTopology]     = useState(null)
-  const [svgSize, setSvgSize]       = useState({ width: 800, height: 420 })
-  const [hovered, setHovered]       = useState(null)
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
-  const [rotation, setRotation]     = useState([-134, 26, 0])
-  const [search, setSearch]         = useState('')
+  const [topology, setTopology]       = useState(null)
+  const [svgSize, setSvgSize]         = useState({ width: 800, height: 420 })
+  const [hovered, setHovered]         = useState(null)
+  const [hoveredExchange, setHoveredExchange] = useState(null)
+  const [hoveredExPos, setHoveredExPos] = useState({ x: 0, y: 0 })
+  const [tooltipPos, setTooltipPos]   = useState({ x: 0, y: 0 })
+  const [rotation, setRotation]       = useState([-134, 26, 0])
+  const [search, setSearch]           = useState('')
   const searchRef = useRef(null)
 
   // Refs to avoid stale closures in RAF / event handlers
@@ -1027,39 +1064,79 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           )
         })}
 
-        {/* Open market glows (exchanges as dots) */}
-        {activeLayers.markets && (() => {
-          const nowLocal = new Date()
-          return EXCHANGES.map(ex => {
-            const detail = COUNTRY_DETAIL[ex.countryId]
-            if (!detail?.tz) return null
-            const st = getStatus(ex)
-            if (st !== 'OPEN') return null
-            // Exchange city rough coordinates (use country centroid from COUNTRY_DETAIL)
-            const ISO_COORDS = {
-              36:[133,-25], 840:[-100,40], 826:[-2,54], 276:[10,51],
-              250:[2,46],   392:[138,37], 156:[105,35], 356:[79,22],
-              410:[128,37], 76:[-53,-15], 124:[-96,60], 702:[104,1],
-              344:[114,22], 458:[110,3],  360:[120,-5], 764:[102,15],
-              710:[25,-29], 682:[45,25],  784:[54,24],  792:[35,39],
-              554:[172,-42],
-            }
-            const coords = ISO_COORDS[ex.countryId]
-            if (!coords) return null
-            if (!isVisible(coords[0], coords[1], rotation)) return null
-            const pos = projection(coords)
-            if (!pos) return null
-            const [px, py] = pos
-            return (
-              <g key={ex.id} pointerEvents="none">
-                <circle cx={px} cy={py} r={5} fill="#00c853" opacity={0.2}>
-                  <animate attributeName="r" values="4;7;4" dur="3s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite"/>
+        {/* Exchange icons — gold=OPEN, blue=CLOSED, clickable */}
+        {activeLayers.markets && EXCHANGES.map(ex => {
+          if (!ex.lat || !ex.lon) return null
+          if (!isVisible(ex.lon, ex.lat, rotation)) return null
+          const pos = projection([ex.lon, ex.lat])
+          if (!pos) return null
+          const [px, py] = pos
+          const st = getStatus(ex)
+          const isOpen = st === 'OPEN'
+          const isPre  = st === 'PRE'
+          const label  = ex.abbr ?? ex.id
+          const r      = ex.id === 'ASX' ? 11 : 9
+          const isHov  = hoveredExchange === ex.id
+          return (
+            <g
+              key={`exc-${ex.id}`}
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => { e.stopPropagation(); onExchangeClick?.(ex.id) }}
+              onMouseEnter={(e) => { setHoveredExchange(ex.id); setHoveredExPos({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }) }}
+              onMouseMove={(e) => setHoveredExPos({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })}
+              onMouseLeave={() => setHoveredExchange(null)}
+            >
+              {/* Pulsing halo for open markets */}
+              {isOpen && (
+                <circle cx={px} cy={py} r={r + 3} fill="none" stroke="#c9a84c" strokeWidth={0.8} opacity={0.3}>
+                  <animate attributeName="r" values={`${r+1};${r+7};${r+1}`} dur="2.5s" repeatCount="indefinite"/>
+                  <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" repeatCount="indefinite"/>
                 </circle>
-                <circle cx={px} cy={py} r={2} fill="#00c853" opacity={0.8} />
-              </g>
-            )
-          })
+              )}
+              {/* Background circle */}
+              <circle
+                cx={px} cy={py} r={isHov ? r + 1 : r}
+                fill={isOpen ? (ex.id === 'ASX' ? '#1a2800' : '#0d1a05') : '#06111f'}
+                stroke={isOpen ? '#c9a84c' : isPre ? '#6b5d1f' : '#1e3a5a'}
+                strokeWidth={isOpen ? (ex.id === 'ASX' ? 1.5 : 1.2) : 0.8}
+                opacity={isHov ? 1 : isOpen ? 0.95 : 0.75}
+              />
+              {/* Exchange abbreviation text */}
+              <text
+                x={px} y={py}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={Math.min(6.5, label.length <= 2 ? 7 : label.length <= 3 ? 6 : 5)}
+                fontFamily="monospace"
+                fontWeight="bold"
+                fill={isOpen ? (ex.id === 'ASX' ? '#f0d070' : '#c9a84c') : '#2a5a7a'}
+                style={{ pointerEvents: 'none', userSelect: 'none' }}
+              >{label}</text>
+            </g>
+          )
+        })}
+
+        {/* Exchange hover tooltip */}
+        {hoveredExchange && (() => {
+          const ex = EXCHANGES.find(e => e.id === hoveredExchange)
+          if (!ex) return null
+          const st = getStatus(ex)
+          const lt = localTime(ex.tz)
+          const ttx = Math.min(hoveredExPos.x + 12, width - 160)
+          const tty = Math.max(hoveredExPos.y - 55, 4)
+          return (
+            <foreignObject x={ttx} y={tty} width={152} height={80}>
+              <div className="bg-terminal-panel border border-terminal-gold/50 px-2 py-1.5 text-2xs pointer-events-none shadow-lg">
+                <div className="font-bold text-terminal-gold">{ex.id}</div>
+                <div className="text-terminal-text-dim">{ex.city} · {ex.country}</div>
+                <div className={`font-semibold mt-0.5 ${st === 'OPEN' ? 'text-terminal-green' : st === 'PRE' ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>
+                  {st} · {lt}
+                </div>
+                {ex.index && <div className="text-terminal-text-dim/60">{ex.index}</div>}
+                <div className="text-terminal-text-dim/40 mt-0.5">Click to open detail</div>
+              </div>
+            </foreignObject>
+          )
         })()}
 
         {/* Hover tooltip */}
@@ -1961,6 +2038,101 @@ function LayerToggleBar({ layers, onToggle }) {
   )
 }
 
+// ─── Exchange Detail Panel ────────────────────────────────────────────────────
+
+function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
+  const ex = EXCHANGES.find(e => e.id === exchangeId)
+  if (!ex) return null
+
+  const st = getStatus(ex)
+  const lt = localTime(ex.tz)
+  const cd = countdown(ex)
+
+  // AEST offset for trading hours
+  const openHHMM  = `${String(ex.open[0]).padStart(2,'0')}:${String(ex.open[1]).padStart(2,'0')}`
+  const closeHHMM = `${String(ex.close[0]).padStart(2,'0')}:${String(ex.close[1]).padStart(2,'0')}`
+
+  const relatedNews = useMemo(() => {
+    if (!newsItems?.length) return []
+    const q = ex.name.toLowerCase().split(' ')[0]
+    const re = new RegExp(ex.city + '|' + ex.country + '|' + ex.id, 'i')
+    return newsItems.filter(n => re.test(n.headline + ' ' + (n.summary ?? ''))).slice(0, 4)
+  }, [newsItems, ex.id])
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden panel-fade">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${st === 'OPEN' ? 'bg-terminal-green animate-pulse' : st === 'PRE' ? 'bg-terminal-gold' : 'bg-terminal-border'}`} />
+          <div>
+            <div className="text-xs font-bold text-terminal-gold">{ex.id}</div>
+            <div className="text-2xs text-terminal-text-dim">{ex.city} · {ex.country}</div>
+          </div>
+        </div>
+        <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        {/* Status + AI */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-sm font-bold ${st === 'OPEN' ? 'text-terminal-green' : st === 'PRE' ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>{st}</span>
+            <button
+              onClick={() => onAskAI(`Analyse current conditions on the ${ex.name} (${ex.id}) and implications for Australian investors. Consider: current trading session, key listed stocks (${(ex.topStocks ?? []).slice(0,3).join(', ')}), currency (${ex.currency}), and main index (${ex.index}).`)}
+              className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+            >ASK AI</button>
+          </div>
+          {cd && <div className="text-2xs text-terminal-gold">{cd}</div>}
+          <div className="text-2xs text-terminal-text-dim mt-0.5">{lt} local · {ex.currency}</div>
+        </div>
+
+        {/* Exchange info */}
+        <div className="px-3 py-2 border-b border-terminal-border/50 space-y-1">
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Exchange Details</div>
+          {[
+            ['Full Name', ex.name],
+            ['Index', ex.index ?? '—'],
+            ['Trading Hours', `${openHHMM} – ${closeHHMM} local`],
+            ['Listed Companies', ex.listedCos ? ex.listedCos.toLocaleString() : '—'],
+            ['Market Cap', ex.mktCapB ? `~US$${ex.mktCapB >= 1000 ? (ex.mktCapB/1000).toFixed(1) + 'T' : ex.mktCapB + 'B'}` : '—'],
+            ['Currency', ex.currency],
+          ].map(([label, value]) => (
+            <div key={label} className="flex items-baseline justify-between text-2xs gap-2">
+              <span className="text-terminal-text-dim flex-shrink-0">{label}</span>
+              <span className="text-terminal-text-bright text-right">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Top stocks */}
+        {ex.topStocks?.length > 0 && (
+          <div className="px-3 py-2 border-b border-terminal-border/50">
+            <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Key Listed Stocks</div>
+            <div className="flex flex-wrap gap-1">
+              {ex.topStocks.map(s => (
+                <span key={s} className="text-2xs px-1.5 py-0.5 border border-terminal-gold/30 text-terminal-gold">{s}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related news */}
+        <div className="px-3 py-2">
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Related News</div>
+          {relatedNews.length === 0 ? (
+            <div className="text-2xs text-terminal-text-dim/50 italic">No recent news matching {ex.id}</div>
+          ) : relatedNews.map((item, i) => (
+            <div key={i} className="mb-2 pb-2 border-b border-terminal-border/30 last:border-0">
+              <div className="text-2xs text-terminal-text leading-snug">{item.headline}</div>
+              <div className="text-2xs text-terminal-text-dim/60 mt-0.5">{item.source}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
 export default function GlobalModule() {
@@ -1971,9 +2143,15 @@ export default function GlobalModule() {
   const [tick, setTick] = useState(0)
   const [activeTab, setActiveTab]     = useState('maritime')
   const [selectedCountry, setSelectedCountry] = useState(null)
+  const [selectedExchange, setSelectedExchange] = useState(null)
   const [selectedArc, setSelectedArc] = useState(null)
-  const [layers, setLayers] = useState({
-    markets: true, maritime: true, air: false, commodities: false, geopolitical: true,
+  const [layers, setLayers] = useState(() => {
+    const defaults = { markets: true, maritime: false, air: false, commodities: false, geopolitical: false }
+    try {
+      const saved = JSON.parse(localStorage.getItem('madden_globe_layers') ?? 'null')
+      if (saved && typeof saved === 'object') return { ...defaults, ...saved }
+    } catch {}
+    return defaults
   })
 
   const { rates } = useAudRates()
@@ -2039,13 +2217,24 @@ export default function GlobalModule() {
   }, [allNewsItems, nowMs])
 
   const toggleLayer = useCallback((id) => {
-    setLayers(prev => ({ ...prev, [id]: !prev[id] }))
+    setLayers(prev => {
+      const next = { ...prev, [id]: !prev[id] }
+      try { localStorage.setItem('madden_globe_layers', JSON.stringify(next)) } catch {}
+      return next
+    })
   }, [])
 
   const handleCountryClick = useCallback((id) => {
     setSelectedCountry(prev => prev === id ? null : id)
+    setSelectedExchange(null)
     if (id !== selectedCountry) setActiveTab('country')
   }, [selectedCountry])
+
+  const handleExchangeClick = useCallback((id) => {
+    setSelectedExchange(id)
+    setSelectedCountry(null)
+    setActiveTab('exchange')
+  }, [])
 
   const handleAskAI = useCallback((prompt) => {
     // Dispatch to AI panel via custom event
@@ -2058,6 +2247,7 @@ export default function GlobalModule() {
     { id:'commodities', label:'COMMS'      },
     { id:'geopolitical',label:'GEO RISK'   },
     { id:'sessions',    label:'SESSIONS'   },
+    { id:'exchange',    label:'EXCHANGE',  hidden: !selectedExchange && activeTab !== 'exchange' },
   ]
 
   return (
@@ -2097,6 +2287,7 @@ export default function GlobalModule() {
                 setSelectedArc(arc)
                 if (arc) setActiveTab('air')
               }}
+              onExchangeClick={handleExchangeClick}
             />
           </div>
         </div>
@@ -2105,7 +2296,7 @@ export default function GlobalModule() {
         <div className="flex flex-col overflow-hidden">
           {/* Tab bar */}
           <div className="flex border-b border-terminal-border flex-shrink-0">
-            {TABS.map(t => (
+            {TABS.filter(t => !t.hidden).map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
                 className={`flex-1 px-1 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-0 ${
                   activeTab === t.id
@@ -2119,7 +2310,14 @@ export default function GlobalModule() {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'country' && selectedCountry ? (
+            {activeTab === 'exchange' && selectedExchange ? (
+              <ExchangePanel
+                exchangeId={selectedExchange}
+                newsItems={allNewsItems}
+                onClose={() => { setSelectedExchange(null); setActiveTab('maritime') }}
+                onAskAI={handleAskAI}
+              />
+            ) : activeTab === 'country' && selectedCountry ? (
               <CountryPanel
                 id={selectedCountry}
                 newsItems={allNewsItems}
