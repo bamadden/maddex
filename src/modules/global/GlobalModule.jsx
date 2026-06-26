@@ -2251,7 +2251,7 @@ export default function GlobalModule() {
 
   const TABS = [
     { id:'maritime',    label:'MARITIME'    },
-    { id:'air',         label:'AIR ROUTES'  },
+    { id:'air',         label:'AIR'         },
     { id:'commodities', label:'COMMODITIES' },
     { id:'geopolitical',label:'GEO RISK'    },
     { id:'sessions',    label:'SESSIONS'    },
@@ -2274,10 +2274,10 @@ export default function GlobalModule() {
       <LayerToggleBar layers={layers} onToggle={toggleLayer} />
 
       {/* Main content: Map + Right Panel */}
-      <div className="flex-1 grid grid-cols-[1fr_300px] min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
 
         {/* World Map */}
-        <div className="border-r border-terminal-border overflow-hidden flex flex-col">
+        <div className="flex-1 min-w-0 border-r border-terminal-border overflow-hidden flex flex-col">
           <div className="panel-header flex items-center gap-2 flex-shrink-0 py-1">
             <span className="text-terminal-gold">GLOBAL INTELLIGENCE · 3D GLOBE</span>
             <span className="text-2xs text-terminal-text-dim font-normal normal-case">· drag to rotate · compass ↙ · click country</span>
@@ -2301,13 +2301,24 @@ export default function GlobalModule() {
         </div>
 
         {/* Right Panel */}
-        <div className="flex flex-col overflow-hidden">
-          {/* Tab bar */}
-          <div className="flex flex-wrap border-b border-terminal-border flex-shrink-0">
+        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '300px', minWidth: '300px' }}>
+          {/* Tab bar — single row, equal-width tabs, no wrapping */}
+          <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
             {TABS.filter(t => !t.hidden).map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                style={{ fontSize: '9px', letterSpacing: '0.06em', padding: '6px 8px' }}
-                className={`flex-1 font-bold uppercase tracking-widest transition-colors border-r border-terminal-border last:border-r-0 ${
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: '9px',
+                  letterSpacing: '0.04em',
+                  padding: '6px 4px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  textAlign: 'center',
+                  borderRight: '1px solid rgba(13,34,68,0.8)',
+                }}
+                className={`font-bold uppercase transition-colors ${
                   activeTab === t.id
                     ? 'text-terminal-gold border-b-2 border-b-terminal-gold'
                     : 'text-terminal-text-dim hover:text-terminal-text border-b-2 border-b-transparent'
