@@ -13,6 +13,11 @@
   --color-loss-bright:  #cc4444;
   --color-neutral:      #c9a84c;
   --color-neutral-bg:   rgba(201, 168, 76, 0.15);
+  /* AI panel renderer aliases */
+  --mt-text:  #b8cce4;
+  --mt-muted: #4a6580;
+  --mt-gold:  #c8a84b;
+  --font: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
 }
 
 * {

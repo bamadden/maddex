@@ -227,9 +227,9 @@ function AIAnalysisPanel({ asset }) {
     setLoading(true)
     setText('')
     const { symbol, name, price, pct, extra = {} } = asset
-    const rangeStr = extra.week52High != null
-      ? ` 52W range: ${fmt.aud(extra.week52Low)} – ${fmt.aud(extra.week52High)}.` : ''
-    const prompt = `You are MADDEN AI, an elite Australian financial analyst. Provide a concise professional analysis of ${name} (${symbol}). Current price: ${fmt.aud(price)}. Day change: ${pct != null ? pct.toFixed(2) : '—'}%.${rangeStr} Include: current price action assessment, key support/resistance levels, relevant macro factors from an Australian investor perspective, and short-term outlook. Keep to 150 words maximum.`
+    const rangeCtx = extra.week52High != null
+      ? ` | 52W: ${fmt.aud(extra.week52Low)} – ${fmt.aud(extra.week52High)}` : ''
+    const prompt = `${name} (${symbol}) | Current price: ${fmt.aud(price)} | Day change: ${pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}${rangeCtx}\n\nProvide a concise analysis covering price action, key support/resistance levels, macro factors from an Australian investor perspective, and short-term outlook. Use the exact price figures provided. Maximum 150 words.`
     try {
       await askClaude([{ role:'user', content: prompt }], (_, full) => setText(full))
     } catch (e) {
@@ -319,7 +319,7 @@ function AssetNewsPanel({ symbol, name }) {
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 export default function DetailModal() {
-  const { modalAsset, closeModal, addToWatchlist, watchlist, setChatOpen, addChatMessage } = useStore()
+  const { modalAsset, closeModal, addToWatchlist, watchlist } = useStore()
 
   const [timeframe, setTimeframe] = useState('1M')
   const [chartType, setChartType] = useState('area')
@@ -422,12 +422,16 @@ export default function DetailModal() {
   }[type] ?? 'text-terminal-text-dim border-terminal-border'
 
   const handleAskAI = () => {
-    setChatOpen(true)
-    addChatMessage({
-      role: 'user',
-      content: `Analyse ${symbol}: current price A$${fmt.price(price)}, ${pctSign}${pct?.toFixed(2)}% today. Provide concise professional analysis covering key drivers, technicals, risks, and outlook from an Australian investor perspective.`,
-    })
+    const priceContext = [
+      `${name} (${symbol})`,
+      `Current price: A$${fmt.price(price)}`,
+      pct != null ? `Day change: ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : null,
+      extra.week52High != null ? `52W High: A$${fmt.price(extra.week52High)}` : null,
+      extra.week52Low  != null ? `52W Low: A$${fmt.price(extra.week52Low)}`  : null,
+    ].filter(Boolean).join(' | ')
+    const prompt = `${priceContext}\n\nProvide professional analysis: price action, key levels, main drivers, and short-term outlook from an Australian investor perspective. Use the exact price figures provided above.`
     closeModal()
+    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
   }
 
   const handleAddWatchlist = () => { if (!isInWatchlist) addToWatchlist(symbol) }

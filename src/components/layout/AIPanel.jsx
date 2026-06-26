@@ -1,86 +1,130 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { askClaude } from '../../services/api'
 
+// ─── Quick prompts (base templates — live data injected at call time) ─────────
+
 const QUICK_PROMPTS = [
-  { label: 'ASX OUTLOOK',  prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?' },
-  { label: 'RBA NEXT MOVE', prompt: 'What is the most likely RBA decision at the next board meeting on 1 July 2026 and why?' },
-  { label: 'AUD OUTLOOK',  prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.' },
-  { label: 'IRON ORE',     prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.' },
-  { label: 'CRYPTO MARKET',prompt: 'Give a brief overview of current crypto market conditions with BTC and ETH outlook in AUD terms.' },
-  { label: 'GLOBAL RISK',  prompt: 'What are the top 3 geopolitical risks currently affecting Australian markets and the AUD?' },
+  {
+    label:  'ASX OUTLOOK',
+    prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?',
+    dataKeys: ['asx', 'aud'],
+  },
+  {
+    label:  'RBA NEXT MOVE',
+    prompt: 'What is the most likely RBA decision at the next board meeting on 1 July 2026 and why?',
+    dataKeys: ['asx', 'aud'],
+  },
+  {
+    label:  'AUD OUTLOOK',
+    prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.',
+    dataKeys: ['aud'],
+  },
+  {
+    label:  'IRON ORE',
+    prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.',
+    dataKeys: ['aud'],
+  },
+  {
+    label:  'CRYPTO MARKET',
+    prompt: 'Give a brief overview of current crypto market conditions with BTC and ETH outlook in AUD terms.',
+    dataKeys: ['btc', 'eth'],
+  },
+  {
+    label:  'GLOBAL RISK',
+    prompt: 'What are the top 3 geopolitical risks currently affecting Australian markets and the AUD?',
+    dataKeys: ['asx', 'aud'],
+  },
 ]
 
-// ─── Response formatter ───────────────────────────────────────────────────────
+// ─── Inline text formatter (replaces markdown with styled HTML) ───────────────
 
-function ColorizedText({ text }) {
-  const parts = text.split(/([+-]?\d+\.?\d*%)/g)
-  if (parts.length === 1) return <span>{text}</span>
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (/^[+-]?\d+\.?\d*%$/.test(part)) {
-          const isNeg = part.startsWith('-')
-          const cls   = isNeg ? 'text-terminal-red' : 'text-terminal-green'
-          return <span key={i} className={cls}>{part}</span>
-        }
-        return <span key={i}>{part}</span>
-      })}
-    </>
-  )
+function formatInline(text) {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '<span style="color:var(--mt-text);font-weight:700">$1</span>')
+    .replace(/\*([^*]+)\*/g,     '<span style="color:var(--mt-muted)">$1</span>')
+    .replace(/(\+[\d.]+%)/g,    '<span style="color:var(--color-gain)">$1</span>')
+    .replace(/(−[\d.]+%|-[\d.]+%)/g, '<span style="color:var(--color-loss)">$1</span>')
+    .replace(/A?\$[\d,]+(?:\.[\d]+)?/g, '<span style="color:var(--mt-gold)">$&</span>')
+    .replace(/US\$[\d,]+(?:\.[\d]+)?/g, '<span style="color:var(--mt-muted)">$&</span>')
+    .replace(/^#+\s*/g, '')
 }
 
-function FormattedResponse({ content }) {
-  if (!content) return null
+// ─── Formatted response renderer ──────────────────────────────────────────────
+
+function FormattedResponse({ text }) {
+  if (!text) return null
+  const lines = text.split('\n')
   return (
-    <div className="space-y-0.5">
-      {content.split('\n').map((line, i) => {
-        if (!line.trim()) return <div key={i} className="h-1" />
+    <div style={{ fontSize: '11px', lineHeight: '1.7', fontFamily: 'var(--font)' }}>
+      {lines.map((line, i) => {
+        const trimmed = line.trim()
 
-        // [ASSET] [PRICE] header
-        if (/^\[.+\]/.test(line)) {
-          return <div key={i} className="text-terminal-gold font-bold font-mono">{line}</div>
+        if (!trimmed || trimmed === '---' || trimmed === '***' || trimmed === '—')
+          return <div key={i} style={{ height: '5px' }} />
+
+        // Markdown headings → gold section header
+        if (/^#{1,3}\s/.test(line)) {
+          const content = line.replace(/^#+\s/, '')
+          return (
+            <div key={i} style={{
+              color: 'var(--mt-gold)', fontWeight: 700, fontSize: '11px',
+              letterSpacing: '0.12em', marginTop: i > 0 ? '14px' : '0',
+              marginBottom: '6px', borderBottom: '1px solid rgba(201,168,76,0.25)',
+              paddingBottom: '4px', textTransform: 'uppercase',
+            }}>{content}</div>
+          )
         }
 
-        // LABEL: value  (all-caps label before colon)
-        if (/^[A-Z][A-Z\s]{1,15}:/.test(line)) {
-          const colonIdx = line.indexOf(':')
-          const label    = line.slice(0, colonIdx)
-          const rest     = line.slice(colonIdx + 1)
+        // ALL-CAPS label: value  (ASSESSMENT: / LEVELS: / OUTLOOK: etc.)
+        if (
+          /^[A-Z][A-Z\s\/]+:/.test(trimmed) &&
+          trimmed.length < 80 &&
+          !trimmed.startsWith('A$') &&
+          !trimmed.startsWith('US$')
+        ) {
+          const colonIdx = trimmed.indexOf(':')
+          const label = trimmed.slice(0, colonIdx)
+          const rest  = trimmed.slice(colonIdx + 1).trim()
           return (
-            <div key={i}>
-              <span className="text-terminal-gold font-bold">{label}:</span>
-              <ColorizedText text={rest} />
+            <div key={i} style={{ marginTop: '10px', marginBottom: '3px', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
+              <span style={{ color: 'var(--mt-gold)', fontWeight: 700, fontSize: '10px', letterSpacing: '0.1em', flexShrink: 0 }}>
+                {label}:
+              </span>
+              {rest && (
+                <span style={{ color: 'var(--mt-text)' }}
+                  dangerouslySetInnerHTML={{ __html: formatInline(rest) }} />
+              )}
             </div>
           )
         }
 
-        // ▲ / ▼ lines
-        if (line.startsWith('▲')) return <div key={i} className="text-terminal-green">{line}</div>
-        if (line.startsWith('▼')) return <div key={i} className="text-terminal-red">{line}</div>
-
-        // Bullet points → ◆
-        if (/^[-•*]\s/.test(line)) {
+        // Bullet: ◆ - • *
+        if (/^[◆\-\*•]\s/.test(trimmed)) {
+          const content = trimmed.replace(/^[◆\-\*•]\s*/, '')
           return (
-            <div key={i} className="flex gap-1.5">
-              <span className="text-terminal-gold flex-shrink-0 mt-0.5">◆</span>
-              <ColorizedText text={line.slice(2)} />
+            <div key={i} style={{ display: 'flex', gap: '8px', padding: '2px 0 2px 8px', alignItems: 'flex-start' }}>
+              <span style={{ color: 'var(--mt-gold)', flexShrink: 0, marginTop: '1px' }}>◆</span>
+              <span style={{ color: 'var(--mt-text)' }}
+                dangerouslySetInnerHTML={{ __html: formatInline(content) }} />
             </div>
           )
         }
 
-        // Numbered points
-        if (/^\d+\.\s/.test(line)) {
-          const m    = line.match(/^(\d+\.\s)(.*)$/)
+        // Italic-only line (*text*)
+        if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
           return (
-            <div key={i} className="flex gap-1.5">
-              <span className="text-terminal-gold flex-shrink-0">{m[1]}</span>
-              <ColorizedText text={m[2]} />
-            </div>
+            <div key={i} style={{ color: 'var(--mt-muted)', fontSize: '10px', marginTop: '8px', fontStyle: 'italic' }}
+              dangerouslySetInnerHTML={{ __html: formatInline(trimmed.replace(/^\*|\*$/g, '')) }} />
           )
         }
 
-        return <div key={i}><ColorizedText text={line} /></div>
+        // Default paragraph line
+        return (
+          <div key={i} style={{ color: 'var(--mt-text)', marginBottom: '2px' }}
+            dangerouslySetInnerHTML={{ __html: formatInline(line) }} />
+        )
       })}
     </div>
   )
@@ -90,15 +134,24 @@ function FormattedResponse({ content }) {
 
 function NotesPanel({ notes, onDelete }) {
   if (notes.length === 0) {
-    return <div className="p-3 text-2xs text-terminal-text-dim/50 italic">No saved notes yet — click SAVE on any AI response</div>
+    return (
+      <div className="p-3 text-2xs text-terminal-text-dim/50 italic">
+        No saved notes yet — click SAVE on any AI response
+      </div>
+    )
   }
   return (
     <div className="overflow-auto max-h-48">
       {notes.map((note) => (
         <div key={note.id} className="border-b border-terminal-border/40 last:border-0 px-3 py-2">
           <div className="flex items-start justify-between gap-2">
-            <div className="text-2xs text-terminal-text leading-snug line-clamp-3">{note.content.slice(0, 180)}{note.content.length > 180 ? '…' : ''}</div>
-            <button onClick={() => onDelete(note.id)} className="text-terminal-text-dim/40 hover:text-terminal-red text-xs flex-shrink-0">✕</button>
+            <div className="text-2xs text-terminal-text leading-snug">
+              {note.content.slice(0, 180)}{note.content.length > 180 ? '…' : ''}
+            </div>
+            <button
+              onClick={() => onDelete(note.id)}
+              className="text-terminal-text-dim/40 hover:text-terminal-red text-xs flex-shrink-0"
+            >✕</button>
           </div>
           <div className="text-2xs text-terminal-text-dim/40 mt-0.5">
             {new Date(note.savedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -117,9 +170,11 @@ export default function AIPanel() {
     chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
   } = useStore()
 
-  const [input,      setInput]      = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [showNotes,  setShowNotes]  = useState(false)
+  const queryClient = useQueryClient()
+
+  const [input,        setInput]        = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [showNotes,    setShowNotes]    = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [notes, setNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('madden_ai_notes') ?? '[]') } catch { return [] }
@@ -148,6 +203,34 @@ export default function AIPanel() {
     return () => window.removeEventListener('madden:ask-ai', handler)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Live data injection for quick prompts ─────────────────────────────────
+
+  const buildQuickPrompt = useCallback((item) => {
+    const fxRates     = queryClient.getQueryData(['fxRates'])
+    const indicesData = queryClient.getQueryData(['yfBatch', 'indices'])
+    const cryptoData  = queryClient.getQueryData(['cryptoMarkets', 'aud'])
+
+    const audUsd   = fxRates?.USD
+    const asxPrice = indicesData?.['^AXJO']?.last
+    const btcData  = cryptoData?.data?.find(c => c.id === 'bitcoin')
+    const ethData  = cryptoData?.data?.find(c => c.id === 'ethereum')
+
+    const parts = []
+    if (item.dataKeys.includes('asx') && asxPrice)
+      parts.push(`ASX 200: ${asxPrice.toFixed(0)} pts`)
+    if (item.dataKeys.includes('aud') && audUsd)
+      parts.push(`AUD/USD: ${audUsd.toFixed(4)}`)
+    if (item.dataKeys.includes('btc') && btcData?.current_price)
+      parts.push(`BTC: A$${Math.round(btcData.current_price).toLocaleString('en-AU')}`)
+    if (item.dataKeys.includes('eth') && ethData?.current_price)
+      parts.push(`ETH: A$${Math.round(ethData.current_price).toLocaleString('en-AU')}`)
+
+    const context = parts.length ? `Live market data — ${parts.join(', ')}.\n\n` : ''
+    return context + item.prompt
+  }, [queryClient])
+
+  // ── Notes ─────────────────────────────────────────────────────────────────
+
   const saveNote = useCallback((content) => {
     const note = { id: Date.now(), content, savedAt: new Date().toISOString() }
     setNotes((prev) => {
@@ -164,6 +247,8 @@ export default function AIPanel() {
       return next
     })
   }, [])
+
+  // ── Send message ──────────────────────────────────────────────────────────
 
   const send = async (textOverride) => {
     const text = (textOverride ?? input).trim()
@@ -231,14 +316,20 @@ export default function AIPanel() {
           <span className="text-2xs text-terminal-text-dim">claude-sonnet-4-6</span>
           <button
             onClick={() => setShowNotes((v) => !v)}
-            className={`text-2xs px-1.5 py-0.5 border transition-colors ${showNotes ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'}`}
+            className={`text-2xs px-1.5 py-0.5 border transition-colors ${
+              showNotes
+                ? 'border-terminal-gold text-terminal-gold'
+                : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+            }`}
             title="Saved notes"
           >
             NOTES{notes.length > 0 ? ` (${notes.length})` : ''}
           </button>
           <button
             onClick={handleClear}
-            className={`text-2xs transition-colors ${confirmClear ? 'text-terminal-red' : 'text-terminal-text-dim hover:text-terminal-red'}`}
+            className={`text-2xs transition-colors ${
+              confirmClear ? 'text-terminal-red' : 'text-terminal-text-dim hover:text-terminal-red'
+            }`}
             title={confirmClear ? 'Click again to confirm' : 'Clear conversation'}
           >
             {confirmClear ? 'CONFIRM?' : 'CLR'}
@@ -246,9 +337,7 @@ export default function AIPanel() {
           <button
             onClick={() => setChatOpen(false)}
             className="text-terminal-text-dim hover:text-terminal-text text-xs ml-1"
-          >
-            ✕
-          </button>
+          >✕</button>
         </div>
       </div>
 
@@ -267,7 +356,7 @@ export default function AIPanel() {
         {QUICK_PROMPTS.map((q) => (
           <button
             key={q.label}
-            onClick={() => send(q.prompt)}
+            onClick={() => send(buildQuickPrompt(q))}
             disabled={loading}
             className="text-2xs px-2 py-0.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors disabled:opacity-40"
           >
@@ -286,34 +375,33 @@ export default function AIPanel() {
                 {msg.content}
               </div>
             ) : (
-              <div className="text-2xs text-terminal-text leading-relaxed group">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-terminal-gold">AI &gt;</span>
+              <div className="group">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-2xs text-terminal-gold">AI &gt;</span>
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => saveNote(msg.content)}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
                         title="Save to notes"
-                      >
-                        SAVE
-                      </button>
+                      >SAVE</button>
                       <button
                         onClick={() => copyMessage(msg.content)}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
-                        title="Copy"
-                      >
-                        COPY
-                      </button>
+                        title="Copy to clipboard"
+                      >COPY</button>
                     </div>
                   )}
                 </div>
-                <FormattedResponse content={msg.content} />
+
+                <FormattedResponse text={msg.content} />
+
                 {i === chatMessages.length - 1 && loading && (
                   <span className="inline-block w-2 h-3 bg-terminal-gold animate-pulse ml-0.5 mt-0.5" />
                 )}
+
                 {msg.stats && (
-                  <div className="flex items-center gap-2 mt-1.5 text-terminal-text-dim/40 text-2xs">
+                  <div className="flex items-center gap-2 mt-2 text-2xs" style={{ color: 'var(--mt-muted)', fontSize: '10px' }}>
                     <span>Generated in {msg.stats.elapsed}s</span>
                     <span>·</span>
                     <span>{msg.stats.outputTokens} tokens</span>
