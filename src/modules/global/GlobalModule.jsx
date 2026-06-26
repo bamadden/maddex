@@ -506,8 +506,28 @@ function getStatus(ex) {
     const mins  = local.getHours() * 60 + local.getMinutes()
     const open  = ex.open[0] * 60 + ex.open[1]
     const close = ex.close[0] * 60 + ex.close[1]
-    return mins >= open && mins < close ? 'OPEN' : mins < open ? 'PRE' : 'CLOSED'
+    if (mins >= open && mins < close) {
+      return (close - mins) <= 60 ? 'CLOSING_SOON' : 'OPEN'
+    }
+    if (mins < open && (open - mins) <= 60) return 'OPENING_SOON'
+    return 'CLOSED'
   } catch { return 'CLOSED' }
+}
+
+const isOpenNow  = st => st === 'OPEN' || st === 'CLOSING_SOON'
+const isSoonSt   = st => st === 'OPENING_SOON' || st === 'CLOSING_SOON'
+const STATUS_LABEL = { OPEN:'OPEN', CLOSING_SOON:'CLOSING SOON', OPENING_SOON:'OPENING SOON', CLOSED:'CLOSED' }
+const STATUS_CLS   = {
+  OPEN:         'text-terminal-green',
+  CLOSING_SOON: 'text-terminal-gold',
+  OPENING_SOON: 'text-terminal-gold',
+  CLOSED:       'text-terminal-text-dim',
+}
+const STATUS_DOT_CLS = {
+  OPEN:         'bg-terminal-green animate-pulse',
+  CLOSING_SOON: 'bg-terminal-gold',
+  OPENING_SOON: 'bg-terminal-gold',
+  CLOSED:       'bg-terminal-border',
 }
 
 function localTime(tz) {
@@ -534,12 +554,12 @@ function countdown(ex) {
 function getCountryColor(id, openCountryIds) {
   const n = parseInt(id)
   if (n === 36)                    return '#c8a84b'  // Australia → gold
-  if (CONFLICT_COUNTRIES.has(n))   return '#4a0808'  // conflict → visible dark red
-  if (STRESS_COUNTRIES.has(n))     return '#4a2500'  // stressed → visible dark amber
-  if (PARTNER_COUNTRIES.has(n))    return '#0f3820'  // AU partner → visible dark green
-  if (openCountryIds?.has(n))      return '#0e3060'  // market open → visible blue
-  if (COUNTRY_TO_EXCHANGE[n])      return '#0a1e3a'  // has exchange, closed → dim blue
-  return '#060f20'                                    // no exchange → near black
+  if (CONFLICT_COUNTRIES.has(n))   return '#4a0808'  // conflict → dark red
+  if (STRESS_COUNTRIES.has(n))     return '#4a2500'  // stressed → dark amber
+  if (PARTNER_COUNTRIES.has(n))    return '#0f3820'  // AU partner → dark green
+  if (openCountryIds?.has(n))      return '#0e3060'  // market open → blue
+  if (COUNTRY_TO_EXCHANGE[n])      return '#0b1d36'  // has exchange, closed → dim blue
+  return '#0a1628'                                    // default — clearly above ocean
 }
 
 function getHoverColor(id) {
@@ -943,8 +963,8 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
               key={feature.id}
               d={pathGen(feature)}
               fill={isHov || isSel ? getHoverColor(feature.id) : getCountryColor(feature.id, openCountryIds)}
-              stroke={isSel || isSrch ? '#c8a84b' : '#040d1a'}
-              strokeWidth={isSel || isSrch ? 1.5 : 0.4}
+              stroke={isSel || isSrch ? '#c8a84b' : 'rgba(26,58,107,0.55)'}
+              strokeWidth={isSel || isSrch ? 1.5 : 0.35}
               className="cursor-pointer"
               onMouseEnter={e => {
                 setHovered(feature.id)
@@ -956,9 +976,9 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           )
         })}
 
-        {/* Country borders */}
+        {/* Country borders — visible boundary lines */}
         {borders && (
-          <path d={pathGen(borders)} fill="none" stroke="#040d1a" strokeWidth={0.4} pointerEvents="none" />
+          <path d={pathGen(borders)} fill="none" stroke="rgba(26,58,107,0.75)" strokeWidth={0.5} pointerEvents="none" />
         )}
 
         {/* Globe sphere outline */}
@@ -1071,13 +1091,13 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           const pos = projection([ex.lon, ex.lat])
           if (!pos) return null
           const [px, py] = pos
-          const st     = getStatus(ex)
-          const isOpen = st === 'OPEN'
-          const isPre  = st === 'PRE'
-          const isHov  = hoveredExchange === ex.id
-          const dotR   = isHov ? 4 : 3
-          const dotColor   = isOpen ? '#c9a84c' : isPre ? '#7a6a2a' : '#1e4a6a'
-          const glowColor  = isOpen ? '#c9a84c' : isPre ? '#6b5d1f' : '#1a3a55'
+          const st    = getStatus(ex)
+          const isHov = hoveredExchange === ex.id
+          const dotR  = isHov ? 4 : 3
+          const ledColor = st === 'OPEN'         ? '#2d8a50'
+                         : isSoonSt(st)          ? '#c9a84c'
+                         :                         '#7a2020'
+          const ledOpacity = st === 'CLOSED' ? 0.5 : 0.9
           return (
             <g
               key={`exc-${ex.id}`}
@@ -1087,22 +1107,22 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
               onMouseMove={(e) => setHoveredExPos({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })}
               onMouseLeave={() => setHoveredExchange(null)}
             >
-              {/* Transparent 20×20px hit area — keeps clicking easy on mobile/iPad */}
+              {/* Transparent 20×20px hit area — reliable tap target on mobile/iPad */}
               <circle cx={px} cy={py} r={10} fill="transparent" stroke="none" />
-              {/* Pulsing ring for open markets */}
-              {isOpen && (
-                <circle cx={px} cy={py} r={4} fill="none" stroke="#c9a84c" strokeWidth={0.7} opacity={0.4}>
-                  <animate attributeName="r"       values="4;10;4"     dur="2.2s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" values="0.6;0;0.6"  dur="2.2s" repeatCount="indefinite"/>
+              {/* Pulsing glow — green OPEN markets only */}
+              {st === 'OPEN' && (
+                <circle cx={px} cy={py} r={3} fill="none" stroke="#2d8a50" strokeWidth={0.8} opacity={0.5}>
+                  <animate attributeName="r"       values="3;9;3"      dur="2s" repeatCount="indefinite"/>
+                  <animate attributeName="opacity" values="0.7;0;0.7"  dur="2s" repeatCount="indefinite"/>
                 </circle>
               )}
               {/* LED dot */}
               <circle
                 cx={px} cy={py} r={dotR}
-                fill={dotColor}
-                stroke={glowColor}
-                strokeWidth={isOpen ? 1 : 0.5}
-                opacity={isOpen ? 1 : isPre ? 0.7 : 0.55}
+                fill={ledColor}
+                stroke={ledColor}
+                strokeWidth={0.5}
+                opacity={ledOpacity}
               />
             </g>
           )
@@ -1121,8 +1141,8 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
               <div className="bg-terminal-panel border border-terminal-gold/50 px-2 py-1.5 text-2xs pointer-events-none shadow-lg">
                 <div className="font-bold text-terminal-gold">{ex.id}</div>
                 <div className="text-terminal-text-dim">{ex.city} · {ex.country}</div>
-                <div className={`font-semibold mt-0.5 ${st === 'OPEN' ? 'text-terminal-green' : st === 'PRE' ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>
-                  {st} · {lt}
+                <div className={`font-semibold mt-0.5 ${STATUS_CLS[st] ?? 'text-terminal-text-dim'}`}>
+                  {STATUS_LABEL[st] ?? st} · {lt}
                 </div>
                 {ex.index && <div className="text-terminal-text-dim/60">{ex.index}</div>}
                 <div className="text-terminal-text-dim/40 mt-0.5">Click to open detail</div>
@@ -1148,8 +1168,8 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
                   <span>{name}</span>
                 </div>
                 {exInfo && (
-                  <div className={`mt-0.5 font-semibold ${exInfo.status === 'OPEN' ? 'text-terminal-green' : 'text-terminal-text-dim'}`}>
-                    {exInfo.exchId} · {exInfo.status}
+                  <div className={`mt-0.5 font-semibold ${STATUS_CLS[exInfo.status] ?? 'text-terminal-text-dim'}`}>
+                    {exInfo.exchId} · {STATUS_LABEL[exInfo.status] ?? exInfo.status}
                   </div>
                 )}
                 {lt && <div className="text-terminal-text-dim mt-0.5">{lt} · {detail?.currency}</div>}
@@ -1899,7 +1919,7 @@ function MarketSessionsTab({ now }) {
     cd:        countdown(ex),
   })), [now])
 
-  const openCount = statuses.filter(s => s.status === 'OPEN').length
+  const openCount = statuses.filter(s => isOpenNow(s.status)).length
 
   // Determine active sessions
   const activeSessions = useMemo(() => SESSIONS.map(s => {
@@ -1920,7 +1940,7 @@ function MarketSessionsTab({ now }) {
   }
 
   const dominantSession = activeSessions.find(s => s.isOpen)?.name ?? 'OFF-HOURS'
-  const nextOpen = statuses.find(s => s.status === 'PRE')
+  const nextOpen = statuses.find(s => s.status === 'OPENING_SOON')
   const liquidity = openCount >= 3 ? 'HIGH' : openCount >= 1 ? 'MODERATE' : 'LOW'
 
   return (
@@ -1973,10 +1993,7 @@ function MarketSessionsTab({ now }) {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                    ex.status === 'OPEN' ? 'bg-terminal-green animate-pulse' :
-                    ex.status === 'PRE'  ? 'bg-terminal-gold' : 'bg-terminal-border'
-                  }`} />
+                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT_CLS[ex.status] ?? 'bg-terminal-border'}`} />
                   <div>
                     <div className={`text-xs font-bold leading-tight ${ex.id === 'ASX' ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
                       {ex.id}
@@ -1985,10 +2002,9 @@ function MarketSessionsTab({ now }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-2xs font-semibold ${
-                    ex.status === 'OPEN' ? 'text-terminal-green' :
-                    ex.status === 'PRE'  ? 'text-terminal-gold' : 'text-terminal-text-dim'
-                  }`}>{ex.status}</div>
+                  <div className={`text-2xs font-semibold ${STATUS_CLS[ex.status] ?? 'text-terminal-text-dim'}`}>
+                    {STATUS_LABEL[ex.status] ?? ex.status}
+                  </div>
                   <div className="text-2xs text-terminal-text-dim">{ex.localT} · {ex.currency}</div>
                   {ex.cd && <div className="text-2xs text-terminal-text-dim/60">{ex.cd}</div>}
                 </div>
@@ -2055,7 +2071,7 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
     <div className="flex flex-col h-full overflow-hidden panel-fade">
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${st === 'OPEN' ? 'bg-terminal-green animate-pulse' : st === 'PRE' ? 'bg-terminal-gold' : 'bg-terminal-border'}`} />
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT_CLS[st] ?? 'bg-terminal-border'}`} />
           <div>
             <div className="text-xs font-bold text-terminal-gold">{ex.id}</div>
             <div className="text-2xs text-terminal-text-dim">{ex.city} · {ex.country}</div>
@@ -2068,7 +2084,7 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
         {/* Status + AI */}
         <div className="px-3 py-2 border-b border-terminal-border/50">
           <div className="flex items-center justify-between mb-1">
-            <span className={`text-sm font-bold ${st === 'OPEN' ? 'text-terminal-green' : st === 'PRE' ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>{st}</span>
+            <span className={`text-sm font-bold ${STATUS_CLS[st] ?? 'text-terminal-text-dim'}`}>{STATUS_LABEL[st] ?? st}</span>
             <button
               onClick={() => onAskAI(`Analyse current conditions on the ${ex.name} (${ex.id}) and implications for Australian investors. Consider: current trading session, key listed stocks (${(ex.topStocks ?? []).slice(0,3).join(', ')}), currency (${ex.currency}), and main index (${ex.index}).`)}
               className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
@@ -2164,7 +2180,7 @@ export default function GlobalModule() {
   const openCountryIds = useMemo(() => {
     const ids = new Set()
     for (const ex of EXCHANGES) {
-      if (getStatus(ex) === 'OPEN' && ex.countryId) ids.add(ex.countryId)
+      if (isOpenNow(getStatus(ex)) && ex.countryId) ids.add(ex.countryId)
     }
     return ids
   }, [tick])
@@ -2234,12 +2250,12 @@ export default function GlobalModule() {
   }, [])
 
   const TABS = [
-    { id:'maritime',    label:'MARITIME'   },
-    { id:'air',         label:'ROUTES'     },
-    { id:'commodities', label:'COMMS'      },
-    { id:'geopolitical',label:'GEO RISK'   },
-    { id:'sessions',    label:'SESSIONS'   },
-    { id:'exchange',    label:'EXCHANGE',  hidden: !selectedExchange && activeTab !== 'exchange' },
+    { id:'maritime',    label:'MARITIME'    },
+    { id:'air',         label:'AIR ROUTES'  },
+    { id:'commodities', label:'COMMODITIES' },
+    { id:'geopolitical',label:'GEO RISK'    },
+    { id:'sessions',    label:'SESSIONS'    },
+    { id:'exchange',    label:'EXCHANGE',   hidden: !selectedExchange && activeTab !== 'exchange' },
   ]
 
   return (
@@ -2258,7 +2274,7 @@ export default function GlobalModule() {
       <LayerToggleBar layers={layers} onToggle={toggleLayer} />
 
       {/* Main content: Map + Right Panel */}
-      <div className="flex-1 grid grid-cols-[1fr_280px] min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-[1fr_300px] min-h-0 overflow-hidden">
 
         {/* World Map */}
         <div className="border-r border-terminal-border overflow-hidden flex flex-col">
@@ -2287,13 +2303,14 @@ export default function GlobalModule() {
         {/* Right Panel */}
         <div className="flex flex-col overflow-hidden">
           {/* Tab bar */}
-          <div className="flex border-b border-terminal-border flex-shrink-0">
+          <div className="flex flex-wrap border-b border-terminal-border flex-shrink-0">
             {TABS.filter(t => !t.hidden).map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`flex-1 px-1 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-0 ${
+                style={{ fontSize: '9px', letterSpacing: '0.06em', padding: '6px 8px' }}
+                className={`flex-1 font-bold uppercase tracking-widest transition-colors border-r border-terminal-border last:border-r-0 ${
                   activeTab === t.id
-                    ? 'bg-terminal-accent text-terminal-gold'
-                    : 'text-terminal-text-dim hover:text-terminal-text'
+                    ? 'text-terminal-gold border-b-2 border-b-terminal-gold'
+                    : 'text-terminal-text-dim hover:text-terminal-text border-b-2 border-b-transparent'
                 }`}>
                 {t.label}
               </button>

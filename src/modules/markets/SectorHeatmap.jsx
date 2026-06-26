@@ -574,6 +574,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                 </div>
               )
             })}
+            {/* filler to complete last grid row (11 sectors → 12 = clean 4-col or 3-col fill) */}
+            <div style={{ visibility: 'hidden' }} aria-hidden="true" />
           </div>
           <div className="mt-2 text-2xs text-terminal-text-dim/50 text-center">
             {isLive
