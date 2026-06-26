@@ -69,21 +69,24 @@ const KNOWN_SYMBOLS = [
 ]
 
 const CMD_SUGGESTIONS = [
-  { sym:'TOP',             label:'TOP',             type:'cmd', desc:'Top 10 movers today' },
-  { sym:'LOSERS',          label:'LOSERS',          type:'cmd', desc:'Top 10 losers today' },
-  { sym:'CRYPTO TOP',      label:'CRYPTO TOP',      type:'cmd', desc:'Top 10 crypto by market cap' },
-  { sym:'ASX TOP',         label:'ASX TOP',         type:'cmd', desc:'Top ASX movers today' },
-  { sym:'MARKETS',         label:'MARKETS',         type:'cmd', desc:'Navigate → Markets' },
-  { sym:'PORTFOLIO',       label:'PORTFOLIO',       type:'cmd', desc:'Navigate → Portfolio' },
-  { sym:'CRYPTO',          label:'CRYPTO',          type:'cmd', desc:'Navigate → Crypto' },
-  { sym:'FX',              label:'FX',              type:'cmd', desc:'Navigate → FX & Rates' },
-  { sym:'MACRO',           label:'MACRO',           type:'cmd', desc:'Navigate → Macro' },
-  { sym:'WATCHLIST',       label:'WATCHLIST',       type:'cmd', desc:'Navigate → Watchlist' },
-  { sym:'NEWS',            label:'NEWS {keyword}',  type:'cmd', desc:'Filter news by keyword' },
-  { sym:'GLOBAL',          label:'GLOBAL',          type:'cmd', desc:'Navigate → Global Intelligence' },
-  { sym:'COMPARE',         label:'COMPARE {s1} {s2}',type:'cmd', desc:'Compare two assets side by side' },
-  { sym:'ALERT',           label:'ALERT {sym} {$}', type:'cmd', desc:'Set a price alert' },
-  { sym:'HELP',            label:'HELP / ?',        type:'cmd', desc:'Show all commands' },
+  { sym:'TOP',             label:'TOP',               type:'cmd', desc:'Top 10 movers today' },
+  { sym:'GAINERS',         label:'GAINERS',           type:'cmd', desc:'Top 10 gainers today' },
+  { sym:'LOSERS',          label:'LOSERS',            type:'cmd', desc:'Top 10 losers today' },
+  { sym:'MOVERS',          label:'MOVERS',            type:'cmd', desc:'Top 10 movers today' },
+  { sym:'CRYPTO TOP',      label:'CRYPTO TOP',        type:'cmd', desc:'Top 10 crypto by market cap' },
+  { sym:'ASX TOP',         label:'ASX TOP',           type:'cmd', desc:'Top ASX movers today' },
+  { sym:'MARKETS',         label:'MARKETS / MKT',     type:'cmd', desc:'Navigate → Markets' },
+  { sym:'PORTFOLIO',       label:'PORTFOLIO',         type:'cmd', desc:'Navigate → Portfolio' },
+  { sym:'CRYPTO',          label:'CRYPTO / CRY',      type:'cmd', desc:'Navigate → Crypto' },
+  { sym:'FX',              label:'FX / RATES',        type:'cmd', desc:'Navigate → FX & Rates' },
+  { sym:'MACRO',           label:'MACRO / MAC',       type:'cmd', desc:'Navigate → Macro' },
+  { sym:'WATCHLIST',       label:'WATCHLIST / WL',    type:'cmd', desc:'Navigate → Watchlist' },
+  { sym:'NEWS',            label:'NEWS {keyword}',    type:'cmd', desc:'Filter news by keyword' },
+  { sym:'GLOBAL',          label:'GLOBAL / GLB',      type:'cmd', desc:'Navigate → Global Intelligence' },
+  { sym:'WL ADD',          label:'WL ADD {sym}',      type:'cmd', desc:'Quick add to watchlist' },
+  { sym:'COMPARE',         label:'COMPARE {s1} {s2}', type:'cmd', desc:'Compare two assets side by side' },
+  { sym:'ALERT',           label:'ALERT {sym} {$}',   type:'cmd', desc:'Set a price alert' },
+  { sym:'HELP',            label:'HELP / ?',          type:'cmd', desc:'Show all commands' },
 ]
 
 // Stocks to scan for TOP/LOSERS commands
@@ -93,10 +96,10 @@ const TOP_SCAN_ALL = [...TOP_SCAN_AU, ...TOP_SCAN_US]
 
 const NAV_MAP = {
   markets:   ['markets','mkt','indices','heat'],
-  portfolio: ['portfolio','port','holdings','pnl'],
-  crypto:    ['crypto','defi'],
+  portfolio: ['portfolio','holdings','pnl'],
+  crypto:    ['crypto','defi','cry','crypt'],
   fx:        ['fx','forex','rates','yield','bonds'],
-  macro:     ['macro','economic','calendar','gdp','cpi','rba'],
+  macro:     ['macro','economic','calendar','gdp','cpi','rba','mac'],
   watchlist: ['watchlist','wl','watch'],
   news:      ['news','feed','headlines'],
   global:    ['global','glb','globe'],
@@ -120,7 +123,7 @@ const HELP_SECTIONS = [
     { cmd:'AUD/USD', desc:'FX pairs' },
   ]},
   { title:'MARKET COMMANDS', items:[
-    { cmd:'TOP', desc:'Top 10 movers (all markets)' },
+    { cmd:'TOP / MOVERS / GAINERS', desc:'Top 10 movers (all markets)' },
     { cmd:'LOSERS', desc:'Top 10 losers (all markets)' },
     { cmd:'ASX TOP', desc:'Top ASX 200 movers' },
     { cmd:'CRYPTO TOP', desc:'Top 10 crypto by market cap' },
@@ -128,8 +131,9 @@ const HELP_SECTIONS = [
   { title:'TOOLS', items:[
     { cmd:'NEWS {keyword}', desc:'Filter news — e.g. NEWS RBA, NEWS CHINA' },
     { cmd:'COMPARE {s1} {s2}', desc:'Side-by-side asset comparison' },
-    { cmd:'ALERT {symbol} {price}', desc:'Set price alert — e.g. ALERT BHP 50' },
-    { cmd:'AI {question}', desc:'Ask MADDEN AI directly' },
+    { cmd:'ALERT {sym} {price}', desc:'Set price alert — e.g. ALERT BHP 50' },
+    { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
+    { cmd:'AI {question}', desc:'Ask MADDEX AI directly' },
     { cmd:'HELP / ?', desc:'Show this panel' },
   ]},
   { title:'KEYBOARD', items:[
@@ -677,7 +681,7 @@ export default function CommandBar() {
     }
 
     // ── TOP movers ──
-    if (cmd === 'top') {
+    if (cmd === 'top' || cmd === 'movers' || cmd === 'gainers') {
       await fetchMovers('TOP MOVERS TODAY', TOP_SCAN_ALL, 'desc')
       return
     }
@@ -692,6 +696,22 @@ export default function CommandBar() {
     if (cmd === 'crypto top') {
       setActiveModule('crypto')
       flash('→ CRYPTO MODULE', 'text-terminal-green', 1500)
+      return
+    }
+
+    // ── WL ADD {symbol} ──
+    if (parts[0].toLowerCase() === 'wl' && parts[1]?.toLowerCase() === 'add' && parts[2]) {
+      const sym = parts[2].toUpperCase()
+      addToWatchlist(sym)
+      flash(`WATCHLIST: ${sym} ADDED`, 'text-terminal-green', 2500)
+      setActiveModule('watchlist')
+      return
+    }
+
+    // ── PORT ADD {symbol} — placeholder (portfolio module doesn't support programmatic adds yet) ──
+    if (parts[0].toLowerCase() === 'port' && parts[1]?.toLowerCase() === 'add' && parts[2]) {
+      flash('PORT ADD: Open Portfolio module to add positions', 'text-terminal-text-dim', 3000)
+      setActiveModule('portfolio')
       return
     }
 

@@ -23,13 +23,14 @@ export function StoreProvider({ children }) {
   const [cmdHistory, setCmdHistory]     = useState([])
   const [chatOpen, setChatOpen]         = useState(false)
   const [currency, setCurrencyState]    = useState(getStoredCurrency)
-  const [chatMessages, setChatMessages] = useState([
+  const INITIAL_CHAT = [
     {
       role: 'assistant',
       content:
-        'MADDEN AI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
+        'MADDEX AI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
     },
-  ])
+  ]
+  const [chatMessages, setChatMessages] = useState(INITIAL_CHAT)
   const [watchlistFocus, setWatchlistFocus] = useState(null)
   const [modalAsset, setModalAsset]         = useState(null)
   const [newsFilter, setNewsFilterState]    = useState('')
@@ -78,6 +79,13 @@ export function StoreProvider({ children }) {
     setChatMessages((prev) => [...prev, msg])
   }, [])
 
+  const clearChatMessages = useCallback(() => {
+    setChatMessages([{
+      role: 'assistant',
+      content: 'MADDEX AI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
+    }])
+  }, [])
+
   const updateLastChatMessage = useCallback((updater) => {
     setChatMessages((prev) => {
       const msgs = [...prev]
@@ -118,7 +126,7 @@ export function StoreProvider({ children }) {
         cmdHistory, pushCmdHistory,
         chatOpen, setChatOpen,
         currency, setCurrency,
-        chatMessages, addChatMessage, updateLastChatMessage,
+        chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
         watchlistFocus, setWatchlistFocus,
         modalAsset, openModal, closeModal,
         newsFilter, setNewsFilter,

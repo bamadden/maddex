@@ -881,7 +881,38 @@ export const fetchGeoNews = async () => {
 
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
 
-export const askClaude = async (messages, onToken) => {
+export const MADDEX_SYSTEM_PROMPT = `You are MADDEX AI, an elite financial markets analyst specialising in Australian markets and global macro. You work inside the Maddex terminal — a professional Bloomberg-style financial intelligence platform.
+
+Your expertise:
+- ASX equities, sector analysis, Australian economic conditions
+- RBA monetary policy and AUD currency dynamics
+- Global macro factors affecting Australian markets
+- Commodity markets (iron ore, LNG, gold, coal) — critical for Australia
+- Crypto markets with AUD-denominated analysis
+- Geopolitical risk and supply chain impacts on Australian investors
+
+Response style:
+- Professional, precise, data-driven
+- Always quote prices in AUD unless specifically asked for USD
+- Structure responses with clear sections when analysis is complex
+- Lead with the most important insight — busy traders don't read preamble
+- Use specific numbers and percentages — never vague language
+- Keep responses under 200 words unless specifically asked for detailed analysis
+- Never use disclaimers like "this is not financial advice"
+
+Format responses like this for asset analysis:
+[ASSET] [PRICE] [CHANGE]
+ASSESSMENT: One sentence summary
+LEVELS: Key support/resistance
+DRIVERS: Key factors (use bullet points with - )
+OUTLOOK: Brief directional view
+RISK: Main downside risk
+
+For macro/general questions: structured paragraphs with clear section labels like SUMMARY:, OUTLOOK:, RISK:`
+
+export const askClaude = async (messages, onToken, options = {}) => {
+  const startTime  = Date.now()
+  const systemPrompt = options.systemPrompt ?? MADDEX_SYSTEM_PROMPT
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -894,7 +925,7 @@ export const askClaude = async (messages, onToken) => {
       model:      'claude-sonnet-4-6',
       max_tokens: 1024,
       stream:     true,
-      system: `You are MADDEN AI, an elite Australian financial markets analyst specialising in ASX equities, AUD currency pairs, RBA monetary policy, and Australian macroeconomic conditions. Cover global markets from an Australian investor perspective. Quote all prices and values in AUD. Be concise and data-driven. Use professional financial language. When analysing stocks, consider franking credits, commodity exposure, China trade links, and ASX sector dynamics. Never give personal financial advice. Format responses compactly for terminal display. Lead with the most important insight.`,
+      system:     systemPrompt,
       messages,
     }),
   })
@@ -902,9 +933,11 @@ export const askClaude = async (messages, onToken) => {
     const err = await response.text()
     throw new Error(`Claude API error: ${err}`)
   }
-  const reader   = response.body.getReader()
-  const decoder  = new TextDecoder()
-  let fullText   = ''
+  const reader     = response.body.getReader()
+  const decoder    = new TextDecoder()
+  let fullText     = ''
+  let inputTokens  = 0
+  let outputTokens = 0
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
@@ -915,6 +948,12 @@ export const askClaude = async (messages, onToken) => {
       if (json === '[DONE]') continue
       try {
         const evt = JSON.parse(json)
+        if (evt.type === 'message_start') {
+          inputTokens = evt.message?.usage?.input_tokens ?? 0
+        }
+        if (evt.type === 'message_delta' && evt.usage) {
+          outputTokens = evt.usage.output_tokens ?? 0
+        }
         if (evt.type === 'content_block_delta' && evt.delta?.text) {
           fullText += evt.delta.text
           onToken?.(evt.delta.text, fullText)
@@ -922,7 +961,8 @@ export const askClaude = async (messages, onToken) => {
       } catch {}
     }
   }
-  return fullText
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+  return { text: fullText, inputTokens, outputTokens, elapsed }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
