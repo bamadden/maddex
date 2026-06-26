@@ -187,6 +187,122 @@ export async function fetchYahooBatch(symbols) {
   return out
 }
 
+// ─── Yahoo Finance quoteSummary — full fundamental data ───────────────────────
+
+export async function fetchQuoteSummary(symbol) {
+  const modules = 'price,summaryDetail,defaultKeyStatistics,financialData,assetProfile'
+  const url = `${YAHOO_BASE}/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${modules}`
+  const cached = getCache(url)
+  if (cached) return cached
+
+  const res = await fetch(bust(url), { signal: AbortSignal.timeout(12000), headers: NO_CACHE_HEADERS })
+  if (!res.ok) throw new Error(`quoteSummary HTTP ${res.status}`)
+  const data = await res.json()
+  const result = data?.quoteSummary?.result?.[0]
+  if (!result) throw new Error('No quoteSummary result')
+
+  const p  = result.price ?? {}
+  const sd = result.summaryDetail ?? {}
+  const ks = result.defaultKeyStatistics ?? {}
+  const fd = result.financialData ?? {}
+  const ap = result.assetProfile ?? {}
+
+  const raw = (obj, key) => {
+    const v = obj?.[key]
+    if (v == null) return null
+    if (typeof v === 'object' && 'raw' in v) return v.raw
+    return (typeof v === 'number' || typeof v === 'string') ? v : null
+  }
+  const safe = (v) => (v != null && Number.isFinite(v) ? v : null)
+  const r = (obj, key) => safe(raw(obj, key))
+
+  const price     = r(p, 'regularMarketPrice')
+  const prevClose = r(p, 'regularMarketPreviousClose')
+
+  const qs = {
+    // Price
+    price,
+    prevClose,
+    change:      r(p, 'regularMarketChange'),
+    changePct:   price && prevClose ? ((price - prevClose) / prevClose) * 100 : null,
+    volume:      r(p, 'regularMarketVolume'),
+    dayHigh:     r(p, 'regularMarketDayHigh'),
+    dayLow:      r(p, 'regularMarketDayLow'),
+    open:        r(p, 'regularMarketOpen'),
+    marketCap:   r(p, 'marketCap'),
+    currency:    p.currency ?? null,
+    exchange:    p.exchangeName ?? null,
+    name:        p.shortName ?? p.longName ?? null,
+    quoteType:   p.quoteType ?? null,
+    // Summary Detail
+    trailingPE:   r(sd, 'trailingPE'),
+    forwardPE:    r(sd, 'forwardPE'),
+    divYield:     r(sd, 'dividendYield'),
+    payoutRatio:  r(sd, 'payoutRatio'),
+    beta:         r(sd, 'beta'),
+    week52High:   r(sd, 'fiftyTwoWeekHigh'),
+    week52Low:    r(sd, 'fiftyTwoWeekLow'),
+    ma50:         r(sd, 'fiftyDayAverage'),
+    ma200:        r(sd, 'twoHundredDayAverage'),
+    avgVolume:    r(sd, 'averageVolume'),
+    avgVolume10d: r(sd, 'averageVolume10days'),
+    ps:           r(sd, 'priceToSalesTrailing12Months'),
+    // Key Statistics
+    enterpriseValue:   r(ks, 'enterpriseValue'),
+    profitMargins:     r(ks, 'profitMargins'),
+    sharesOutstanding: r(ks, 'sharesOutstanding'),
+    sharesShort:       r(ks, 'sharesShort'),
+    shortRatio:        r(ks, 'shortRatio'),
+    shortPctFloat:     r(ks, 'shortPercentOfFloat'),
+    bookValue:         r(ks, 'bookValue'),
+    pb:                r(ks, 'priceToBook'),
+    netIncome:         r(ks, 'netIncomeToCommon'),
+    epsTrailing:       r(ks, 'trailingEps'),
+    epsForward:        r(ks, 'forwardEps'),
+    peg:               r(ks, 'pegRatio'),
+    evRevenue:         r(ks, 'enterpriseToRevenue'),
+    evEbitda:          r(ks, 'enterpriseToEbitda'),
+    week52Change:      r(ks, '52WeekChange'),
+    lastDividend:      r(ks, 'lastDividendValue'),
+    lastDividendDate:  raw(ks, 'lastDividendDate'),
+    // Financial Data
+    revenue:          r(fd, 'totalRevenue'),
+    revenuePerShare:  r(fd, 'revenuePerShare'),
+    roa:              r(fd, 'returnOnAssets'),
+    roe:              r(fd, 'returnOnEquity'),
+    grossProfit:      r(fd, 'grossProfits'),
+    freeCashflow:     r(fd, 'freeCashflow'),
+    operatingCF:      r(fd, 'operatingCashflow'),
+    earningsGrowth:   r(fd, 'earningsGrowth'),
+    revenueGrowth:    r(fd, 'revenueGrowth'),
+    grossMargins:     r(fd, 'grossMargins'),
+    ebitdaMargins:    r(fd, 'ebitdaMargins'),
+    operatingMargins: r(fd, 'operatingMargins'),
+    totalDebt:        r(fd, 'totalDebt'),
+    totalCash:        r(fd, 'totalCash'),
+    debtToEquity:     r(fd, 'debtToEquity'),
+    currentRatio:     r(fd, 'currentRatio'),
+    targetHigh:       r(fd, 'targetHighPrice'),
+    targetLow:        r(fd, 'targetLowPrice'),
+    targetMean:       r(fd, 'targetMeanPrice'),
+    recMean:          r(fd, 'recommendationMean'),
+    recKey:           fd.recommendationKey ?? null,
+    analystCount:     r(fd, 'numberOfAnalystOpinions'),
+    // Profile
+    sector:      ap.sector ?? null,
+    industry:    ap.industry ?? null,
+    description: ap.longBusinessSummary ?? null,
+    employees:   ap.fullTimeEmployees ?? null,
+    website:     ap.website ?? null,
+    city:        ap.city ?? null,
+    country:     ap.country ?? null,
+  }
+
+  console.log(`[MADDEN API] ✓ quoteSummary ${symbol}: PE=${qs.trailingPE?.toFixed(1)}, cap=${qs.marketCap ? (qs.marketCap/1e9).toFixed(0)+'B' : '—'}, sector=${qs.sector}`)
+  setCache(url, qs, 5 * 60_000)
+  return qs
+}
+
 // ─── Stooq — indices only ─────────────────────────────────────────────────────
 
 function parseStooqQuoteCsv(text, requestedSym) {

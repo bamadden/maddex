@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
-import { fetchCoinOHLC, fetchCoinHistory, fetchYFHistory, transformYFHistory, transformCoinOHLC, transformCoinHistory, toYFRange, fetchNews, askClaude } from '../../services/api'
+import {
+  fetchCoinOHLC, fetchCoinHistory, fetchYFHistory, transformYFHistory,
+  transformCoinOHLC, transformCoinHistory, toYFRange, fetchNews, askClaude,
+  fetchQuoteSummary,
+} from '../../services/api'
 import { DataUnavailable } from './DataUnavailable'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
@@ -13,6 +17,9 @@ import {
 
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
 const CHART_TYPES = ['area', 'line', 'candle']
+
+const REC_LABELS = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
+const REC_COLORS = ['#22c55e', '#86efac', '#fbbf24', '#f97316', '#ef4444']
 
 // ─── Candlestick Chart ────────────────────────────────────────────────────────
 
@@ -35,7 +42,7 @@ function CandleChart({ data }) {
     return <div ref={containerRef} className="w-full h-full flex items-center justify-center text-2xs text-terminal-text-dim">NO DATA</div>
   }
 
-  const height    = 240
+  const height    = 200
   const padLeft   = 52
   const padRight  = 12
   const padTop    = 12
@@ -128,59 +135,6 @@ const ChartTooltip = ({ active, payload, label }) => {
   )
 }
 
-// ─── Type-specific extra stats ────────────────────────────────────────────────
-
-function TypeStats({ asset }) {
-  const { type, extra = {} } = asset
-  const rows = []
-  if (type === 'asx') {
-    rows.push(
-      { label: 'DIV YIELD', value: extra.divYield != null ? `${extra.divYield}%` : '—' },
-      { label: 'FRANKING',  value: extra.franking  != null ? `${extra.franking}%` : '—' },
-      { label: 'SECTOR',    value: extra.sector    ?? '—' },
-      { label: 'INDEX',     value: extra.index     ?? 'ASX 200' },
-    )
-  } else if (type === 'crypto') {
-    rows.push(
-      { label: 'SUPPLY',    value: extra.supply     ?? '—' },
-      { label: 'DOMINANCE', value: extra.dominance  != null ? `${extra.dominance}%` : '—' },
-      { label: 'ATH (AUD)', value: extra.ath        ? fmt.aud(extra.ath)        : '—' },
-      { label: 'ATL (AUD)', value: extra.atl        ? fmt.aud(extra.atl)        : '—' },
-    )
-  } else if (type === 'fx') {
-    rows.push(
-      { label: 'IR DIFF',   value: extra.irDiff     ?? '—' },
-      { label: 'CARRY YLD', value: extra.carryYield ?? '—' },
-      { label: 'BIAS',      value: extra.bias       ?? '—' },
-    )
-  } else if (type === 'index') {
-    rows.push(
-      { label: 'P/E RATIO', value: extra.pe    != null ? extra.pe.toString() : '—' },
-      { label: 'DIV YIELD', value: extra.yield != null ? `${extra.yield}%`   : '—' },
-      { label: 'YTD',       value: extra.ytd   != null ? fmt.pct(extra.ytd)  : '—' },
-    )
-  } else {
-    rows.push(
-      { label: 'P/E RATIO', value: extra.pe     != null ? extra.pe.toString()    : '—' },
-      { label: 'MKT CAP',   value: extra.mktCap ?? '—' },
-      { label: 'SECTOR',    value: extra.sector ?? '—' },
-    )
-  }
-  return (
-    <div className="border-l border-terminal-border pl-3 space-y-1.5">
-      <div className="text-2xs text-terminal-gold font-bold uppercase tracking-widest mb-1">
-        {type === 'asx' ? 'ASX INFO' : type === 'crypto' ? 'CHAIN INFO' : type === 'fx' ? 'FX INFO' : 'INFO'}
-      </div>
-      {rows.map((r) => (
-        <div key={r.label}>
-          <div className="text-2xs text-terminal-text-dim">{r.label}</div>
-          <div className="text-xs font-semibold text-terminal-text-bright">{r.value}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ─── 52W Range bar ────────────────────────────────────────────────────────────
 
 function RangeBar({ price, low, high }) {
@@ -216,41 +170,154 @@ function MarketStatusBadge({ extra = {} }) {
   )
 }
 
-// ─── AI Analysis panel ────────────────────────────────────────────────────────
+// ─── Collapsible Section ──────────────────────────────────────────────────────
 
-function AIAnalysisPanel({ asset, displayPrice, display52High, display52Low }) {
-  const [text, setText] = useState(null)
+function Section({ title, children, defaultOpen = true, noCols = false }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border-l-2 border-terminal-gold/25 mt-1.5">
+      <button
+        className="w-full flex items-center justify-between px-3 py-1 hover:bg-terminal-accent/10 transition-colors text-left select-none"
+        onClick={() => setOpen(v => !v)}
+      >
+        <span className="text-2xs font-bold text-terminal-gold/70 tracking-widest">{title}</span>
+        <span className="text-terminal-text-dim/40 text-2xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className={`px-3 pb-2 pt-0.5 ${noCols ? '' : 'grid grid-cols-2 gap-x-6'}`}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Data row ─────────────────────────────────────────────────────────────────
+
+function DataRow({ label, value, cls = '' }) {
+  return (
+    <div className="flex justify-between items-baseline py-0.5 border-b border-terminal-border/20 last:border-0 min-w-0">
+      <span className="text-2xs text-terminal-text-dim/60 mr-2 flex-shrink-0">{label}</span>
+      <span className={`text-2xs font-semibold text-right truncate ${cls || 'text-terminal-text-bright'}`}>
+        {value ?? '—'}
+      </span>
+    </div>
+  )
+}
+
+// ─── Analyst consensus bar ───────────────────────────────────────────────────
+
+function AnalystBar({ recMean, analystCount }) {
+  if (!recMean) return <p className="text-2xs text-terminal-text-dim/50 py-1">No analyst coverage data</p>
+  const clamped = Math.max(1, Math.min(5, recMean))
+  const pct     = ((clamped - 1) / 4) * 100
+  const idx     = Math.min(4, Math.max(0, Math.round(clamped) - 1))
+  return (
+    <div className="w-full py-0.5">
+      <div className="flex h-2 rounded-sm overflow-hidden gap-px">
+        {REC_COLORS.map((c, i) => (
+          <div key={i} className="flex-1" style={{ backgroundColor: c, opacity: i === idx ? 1 : 0.18 }} />
+        ))}
+      </div>
+      <div className="relative h-2 mt-0.5">
+        <div className="absolute" style={{ left: `calc(${pct}% - 4px)`, top: -1 }}>
+          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: `6px solid ${REC_COLORS[idx]}` }} />
+        </div>
+      </div>
+      <div className="flex justify-between mt-0.5 px-0.5">
+        {REC_LABELS.map((l, i) => (
+          <span key={l} className="text-terminal-text-dim/40 text-center leading-tight" style={{ fontSize: '9px', width: '20%' }}>
+            {l.split(' ').map((w, wi) => <span key={wi} className="block">{w}</span>)}
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="text-xs font-bold" style={{ color: REC_COLORS[idx] }}>{REC_LABELS[idx]}</span>
+        <span className="text-2xs text-terminal-text-dim/60">{recMean.toFixed(2)} / 5 · {analystCount ?? '—'} analysts</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── AI Fundamentals panel ────────────────────────────────────────────────────
+
+function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low, qs }) {
+  const { usdToAud } = useAudRates()
+  const [text, setText]       = useState(null)
   const [loading, setLoading] = useState(false)
   const [triggered, setTriggered] = useState(false)
 
   const generate = useCallback(async () => {
     setLoading(true)
     setText('')
-    const { symbol, name, pct, extra = {} } = asset
+    const { symbol, name, pct } = asset
     const priceAud = displayPrice ?? asset.price
-    const high52   = display52High ?? extra.week52High
-    const low52    = display52Low  ?? extra.week52Low
-    const rangeCtx = high52 != null
-      ? ` | 52W: ${fmt.aud(low52, { clarify: true })} – ${fmt.aud(high52, { clarify: true })}` : ''
-    const prompt = `${name} (${symbol}) | Current price: ${fmt.aud(priceAud, { clarify: true })} | Day change: ${pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}${rangeCtx}\n\nProvide a concise analysis covering price action, key support/resistance levels, macro factors from an Australian investor perspective, and short-term outlook. Use the exact price figures provided. Maximum 150 words.`
+    const rangeCtx = display52High != null
+      ? ` | 52W: ${fmt.aud(display52Low, { clarify: true })} – ${fmt.aud(display52High, { clarify: true })}` : ''
+
+    const isAud = qs?.currency === 'AUD'
+    const conv  = (v) => (v == null ? null : isAud ? v : usdToAud(v))
+    const big   = (v) => {
+      const n = conv(v)
+      if (!n) return null
+      const a = Math.abs(n)
+      if (a >= 1e12) return `A$${(n/1e12).toFixed(2)}T`
+      if (a >= 1e9)  return `A$${(n/1e9).toFixed(1)}B`
+      if (a >= 1e6)  return `A$${(n/1e6).toFixed(0)}M`
+      return `A$${n.toFixed(0)}`
+    }
+
+    let fundamentalCtx = ''
+    if (qs) {
+      fundamentalCtx = [
+        qs.sector           ? `Sector: ${qs.sector}` : null,
+        qs.industry         ? `Industry: ${qs.industry}` : null,
+        qs.marketCap        ? `Mkt Cap: ${big(qs.marketCap)}` : null,
+        qs.trailingPE       ? `P/E: ${qs.trailingPE.toFixed(1)}x` : null,
+        qs.forwardPE        ? `Fwd P/E: ${qs.forwardPE.toFixed(1)}x` : null,
+        qs.revenue          ? `Revenue: ${big(qs.revenue)}` : null,
+        qs.grossMargins     ? `Gross Margin: ${(qs.grossMargins * 100).toFixed(1)}%` : null,
+        qs.operatingMargins ? `Op Margin: ${(qs.operatingMargins * 100).toFixed(1)}%` : null,
+        qs.roe              ? `ROE: ${(qs.roe * 100).toFixed(1)}%` : null,
+        qs.beta             ? `Beta: ${qs.beta.toFixed(2)}` : null,
+        qs.divYield         ? `Div Yield: ${(qs.divYield * 100).toFixed(2)}%` : null,
+        qs.recKey           ? `Consensus: ${qs.recKey}` : null,
+        qs.targetMean       ? `Target: ${big(qs.targetMean)}` : null,
+        qs.ma50             ? `50D MA: ${fmt.aud(conv(qs.ma50), { clarify: true })}` : null,
+        qs.ma200            ? `200D MA: ${fmt.aud(conv(qs.ma200), { clarify: true })}` : null,
+        qs.week52Change     ? `52W Chg: ${(qs.week52Change * 100).toFixed(1)}%` : null,
+      ].filter(Boolean).join(' | ')
+    }
+
+    const prompt = [
+      `${name ?? symbol} (${symbol})`,
+      `Price: ${fmt.aud(priceAud, { clarify: true })} | Day: ${pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}${rangeCtx}`,
+      fundamentalCtx || null,
+      '',
+      'Provide a comprehensive analysis (max 200 words):',
+      '1. ASSESSMENT — valuation and market position',
+      '2. TECHNICALS — key levels, momentum, trend strength',
+      '3. OUTLOOK — near-term catalysts or headwinds',
+      '4. RISK — main risks for AUD-based investors',
+    ].filter(v => v !== null).join('\n')
+
     try {
-      await askClaude([{ role:'user', content: prompt }], (_, full) => setText(full))
+      await askClaude([{ role: 'user', content: prompt }], (_, full) => setText(full))
     } catch (e) {
       setText(`[ERROR] ${e.message}`)
     } finally {
       setLoading(false)
     }
-  }, [asset])
+  }, [asset, displayPrice, display52High, display52Low, qs, usdToAud])
 
-  // Auto-trigger once per asset open
   useEffect(() => {
     if (!triggered) { setTriggered(true); generate() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="border-t border-terminal-border flex-shrink-0">
-      <div className="flex items-center justify-between px-4 py-1.5 border-b border-terminal-border bg-terminal-header">
-        <span className="text-2xs text-terminal-gold font-bold tracking-widest">▲ MADDEN AI ANALYSIS</span>
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-2xs text-terminal-text-dim/40 italic">AI-generated · not financial advice</span>
         <button
           onClick={generate}
           disabled={loading}
@@ -259,12 +326,9 @@ function AIAnalysisPanel({ asset, displayPrice, display52High, display52Low }) {
           {loading ? 'GENERATING...' : '↻ REFRESH'}
         </button>
       </div>
-      <div className="px-4 py-2 min-h-[60px] max-h-[100px] overflow-auto">
-        {text === null && !loading && (
-          <div className="text-2xs text-terminal-text-dim/50 italic">Generating analysis...</div>
-        )}
-        {loading && text === '' && (
-          <div className="text-2xs text-terminal-gold animate-pulse">ANALYSING {asset.symbol}...</div>
+      <div className="min-h-[60px]">
+        {loading && !text && (
+          <div className="text-2xs text-terminal-gold/70 animate-pulse">Analysing {asset.symbol}...</div>
         )}
         {text && (
           <p className="text-2xs text-terminal-text leading-relaxed">
@@ -276,7 +340,7 @@ function AIAnalysisPanel({ asset, displayPrice, display52High, display52Low }) {
   )
 }
 
-// ─── News panel ───────────────────────────────────────────────────────────────
+// ─── Asset news panel ─────────────────────────────────────────────────────────
 
 function AssetNewsPanel({ symbol, name }) {
   const { data: news } = useQuery({
@@ -286,35 +350,35 @@ function AssetNewsPanel({ symbol, name }) {
     retry: 1,
   })
 
-  const keywords = [symbol.replace(/\.AX$/,'').replace(/^\^/,''), ...(name ? name.split(' ').slice(0,2) : [])]
+  const keywords = [
+    symbol.replace(/\.AX$/, '').replace(/^\^/, ''),
+    ...(name ? name.split(' ').slice(0, 2) : []),
+  ]
   const matching = (news ?? []).filter((n) =>
     keywords.some((kw) => kw.length > 2 && n.headline.toLowerCase().includes(kw.toLowerCase()))
-  ).slice(0, 4)
+  ).slice(0, 5)
 
-  if (!matching.length) return null
+  if (!matching.length) {
+    return <p className="text-2xs text-terminal-text-dim/40 py-1">No related news found</p>
+  }
 
   return (
-    <div className="border-t border-terminal-border flex-shrink-0">
-      <div className="px-4 py-1 border-b border-terminal-border bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest">
-        RELATED NEWS
-      </div>
-      <div className="overflow-auto max-h-[120px]">
-        {matching.map((n) => (
-          <a
-            key={n.id}
-            href={n.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start gap-2 px-4 py-1.5 border-b border-terminal-border/30 last:border-0 hover:bg-terminal-accent/20 transition-colors group"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="text-2xs text-terminal-text group-hover:text-terminal-text-bright truncate">{n.headline}</div>
-              <div className="text-2xs text-terminal-text-dim/60">{n.source} · {n.time}</div>
-            </div>
-            <span className="text-terminal-text-dim/30 text-2xs flex-shrink-0 group-hover:text-terminal-gold">↗</span>
-          </a>
-        ))}
-      </div>
+    <div>
+      {matching.map((n) => (
+        <a
+          key={n.id}
+          href={n.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-start gap-2 py-1 border-b border-terminal-border/20 last:border-0 hover:bg-terminal-accent/10 transition-colors group -mx-3 px-3"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="text-2xs text-terminal-text group-hover:text-terminal-text-bright leading-tight">{n.headline}</div>
+            <div className="text-2xs text-terminal-text-dim/50">{n.source} · {n.time}</div>
+          </div>
+          <span className="text-terminal-text-dim/30 text-2xs flex-shrink-0 mt-0.5 group-hover:text-terminal-gold">↗</span>
+        </a>
+      ))}
     </div>
   )
 }
@@ -323,6 +387,7 @@ function AssetNewsPanel({ symbol, name }) {
 
 export default function DetailModal() {
   const { modalAsset, closeModal, addToWatchlist, watchlist } = useStore()
+  const queryClient = useQueryClient()
 
   const [timeframe, setTimeframe] = useState('1M')
   const [chartType, setChartType] = useState('area')
@@ -338,11 +403,15 @@ export default function DetailModal() {
     if (e.target === overlayRef.current) closeModal()
   }, [closeModal])
 
-  // ─ Crypto: market chart (line/area) + OHLC (candles)
   const coinId        = modalAsset?.coinId ?? COIN_IDS_MAP[modalAsset?.symbol?.toUpperCase()]
   const days          = timeframeToDays(timeframe)
   const isCryptoModal = !!modalAsset && modalAsset.type === 'crypto' && !!coinId
+  const isEquity      = !!modalAsset && (modalAsset.type === 'asx' || modalAsset.type === 'us')
+  const isStockOrIdx  = !!modalAsset && (isEquity || modalAsset.type === 'index')
+  const yfSym         = modalAsset ? toYahooSymbol(modalAsset.symbol, modalAsset.type) : null
+  const yfRange       = toYFRange(timeframe)
 
+  // Chart queries
   const { data: cryptoHistory, isFetching: cryptoHistLoading } = useQuery({
     queryKey:  ['modalCryptoHistory', coinId, timeframe],
     queryFn:   () => fetchCoinHistory(coinId, 'aud', days),
@@ -359,14 +428,18 @@ export default function DetailModal() {
     retry: 1,
   })
 
-  // ─ Stock/index history via Yahoo Finance
-  const isEquity = !!modalAsset && (modalAsset.type === 'asx' || modalAsset.type === 'us' || modalAsset.type === 'index')
-  const yfSym    = modalAsset ? toYahooSymbol(modalAsset.symbol, modalAsset.type) : null
-  const yfRange  = toYFRange(timeframe)
-
   const { data: stockHistory, isFetching: stockLoading } = useQuery({
     queryKey:  ['modalStockHistory', yfSym, timeframe],
     queryFn:   () => fetchYFHistory(yfSym, yfRange),
+    enabled:   isStockOrIdx && !!yfSym,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  // Fundamental data — equity only
+  const { data: qs, isLoading: qsLoading } = useQuery({
+    queryKey:  ['quoteSummary', yfSym],
+    queryFn:   () => fetchQuoteSummary(yfSym),
     enabled:   isEquity && !!yfSym,
     staleTime: 5 * 60_000,
     retry: 1,
@@ -375,61 +448,79 @@ export default function DetailModal() {
   if (!modalAsset) return null
 
   const { symbol, name, price, pct, change, type, extra = {} } = modalAsset
-  const priceCls    = colorClass(pct)
-  const pctSign     = pct > 0 ? '+' : ''
-  const isInWatchlist = watchlist.includes(symbol)
+  const priceCls  = colorClass(pct)
+  const pctSign   = pct > 0 ? '+' : ''
+  const isInWL    = watchlist.includes(symbol)
 
-  // All callers convert to AUD before calling openModal — no conversion here.
-  // extra.nativePrice + extra.currency carry the raw native values for the USD subtitle.
   const displayPrice  = price
   const displayChange = change
   const display52High = extra.week52High
   const display52Low  = extra.week52Low
   const showUsdSub    = extra.currency === 'USD' && extra.nativePrice != null
 
-  // Build chart data
+  // Fundamental data helpers (quoteSummary values are in native currency)
+  const qsCurrency = qs?.currency ?? (type === 'asx' ? 'AUD' : 'USD')
+  const isQsAud    = qsCurrency === 'AUD'
+  const toQsAud    = (v) => (v == null || !Number.isFinite(v)) ? null : (isQsAud ? v : usdToAud(v))
+
+  const fmtBig = (v) => {
+    if (v == null) return '—'
+    const a = Math.abs(v)
+    if (a >= 1e12) return `A$${(v / 1e12).toFixed(2)}T`
+    if (a >= 1e9)  return `A$${(v / 1e9).toFixed(1)}B`
+    if (a >= 1e6)  return `A$${(v / 1e6).toFixed(0)}M`
+    if (a >= 1e3)  return `A$${(v / 1e3).toFixed(1)}K`
+    return `A$${v.toFixed(2)}`
+  }
+  const fmtAmt    = (v) => { const a = toQsAud(v); return a == null ? '—' : fmtBig(a) }
+  const fmtX      = (v, dp = 1) => v == null ? '—' : `${v.toFixed(dp)}x`
+  const fmtPc     = (v) => v == null ? '—' : `${(v * 100).toFixed(2)}%`
+  const fmtPcSign = (v) => { if (v == null) return '—'; const n = v * 100; return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%` }
+  const fmtDt     = (ts) => {
+    if (!ts) return '—'
+    try {
+      const d = new Date(typeof ts === 'number' ? ts * 1000 : ts)
+      return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+    } catch { return '—' }
+  }
+
+  // Chart data
   let chartData   = []
   let isLiveChart = false
 
   if (type === 'crypto') {
-    if (chartType === 'candle' && cryptoOHLC && Array.isArray(cryptoOHLC)) {
-      chartData   = transformCoinOHLC(cryptoOHLC)
-      isLiveChart = true
+    if (chartType === 'candle' && Array.isArray(cryptoOHLC)) {
+      chartData = transformCoinOHLC(cryptoOHLC); isLiveChart = true
     } else if (chartType !== 'candle' && cryptoHistory?.prices) {
-      chartData   = transformCoinHistory(cryptoHistory)
-      isLiveChart = true
+      chartData = transformCoinHistory(cryptoHistory); isLiveChart = true
     }
-  } else if (isEquity && stockHistory) {
-    const raw = transformYFHistory(stockHistory)
-    const isAud = type === 'asx'
-    chartData = isAud
-      ? raw
-      : raw.map((d) => ({
-          ...d,
-          price: d.price != null ? usdToAud(d.price) : null,
-          close: d.close != null ? usdToAud(d.close) : null,
-          open:  d.open  != null ? usdToAud(d.open)  : null,
-          high:  d.high  != null ? usdToAud(d.high)  : null,
-          low:   d.low   != null ? usdToAud(d.low)   : null,
-        }))
-    isLiveChart = true
+  } else if (isStockOrIdx && stockHistory) {
+    const raw    = transformYFHistory(stockHistory)
+    const isAud  = type === 'asx' || type === 'index'
+    chartData    = isAud ? raw : raw.map((d) => ({
+      ...d,
+      price: d.price != null ? usdToAud(d.price) : null,
+      close: d.close != null ? usdToAud(d.close) : null,
+      open:  d.open  != null ? usdToAud(d.open)  : null,
+      high:  d.high  != null ? usdToAud(d.high)  : null,
+      low:   d.low   != null ? usdToAud(d.low)   : null,
+    }))
+    isLiveChart  = true
   }
 
-  const slicedData = chartData
-  const latest     = slicedData[slicedData.length - 1] ?? {}
-  const allHigh    = slicedData.length ? Math.max(...slicedData.map((d) => d.high ?? d.price)) : null
-  const allLow     = slicedData.length ? Math.min(...slicedData.map((d) => d.low  ?? d.price)) : null
+  const latest  = chartData[chartData.length - 1] ?? {}
+  const allHigh = chartData.length ? Math.max(...chartData.map((d) => d.high ?? d.price ?? 0)) : null
+  const allLow  = chartData.length ? Math.min(...chartData.map((d) => d.low  ?? d.price ?? Infinity)) : null
 
-  const isLoading   = cryptoHistLoading || cryptoOHLCLoading || stockLoading
-  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+  const isChartLoading = cryptoHistLoading || cryptoOHLCLoading || stockLoading
+  const updatedTime    = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
   const typeBadgeColor = {
-    asx:       'text-terminal-gold border-terminal-gold',
-    crypto:    'text-terminal-green border-terminal-green',
-    fx:        'text-terminal-blue-bright border-terminal-blue',
-    index:     'text-terminal-text border-terminal-border',
-    us:        'text-terminal-blue-bright border-terminal-blue',
-    commodity: 'text-terminal-gold border-terminal-gold/50',
+    asx:    'text-terminal-gold border-terminal-gold',
+    crypto: 'text-terminal-green border-terminal-green',
+    fx:     'text-terminal-blue-bright border-terminal-blue',
+    index:  'text-terminal-text border-terminal-border',
+    us:     'text-terminal-blue-bright border-terminal-blue',
   }[type] ?? 'text-terminal-text-dim border-terminal-border'
 
   const handleAskAI = () => {
@@ -440,19 +531,232 @@ export default function DetailModal() {
       display52High != null ? `52W High: A$${fmt.price(display52High)}` : null,
       display52Low  != null ? `52W Low: A$${fmt.price(display52Low)}`   : null,
     ].filter(Boolean).join(' | ')
-    const prompt = `${priceContext}\n\nProvide professional analysis: price action, key levels, main drivers, and short-term outlook from an Australian investor perspective. Use the exact price figures provided above.`
+    const prompt = `${priceContext}\n\nProvide professional analysis: price action, key levels, main drivers, and short-term outlook from an Australian investor perspective.`
     closeModal()
     window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
   }
 
-  const handleAddWatchlist = () => { if (!isInWatchlist) addToWatchlist(symbol) }
-
   const yFmt = (v) => {
-    if (v >= 100000) return `$${(v / 1000).toFixed(0)}K`
-    if (v >= 1000)   return `$${(v / 1000).toFixed(1)}K`
-    if (v >= 1)      return `$${v.toFixed(2)}`
+    if (v >= 10000) return `$${(v / 1000).toFixed(0)}K`
+    if (v >= 1000)  return `$${(v / 1000).toFixed(1)}K`
+    if (v >= 1)     return `$${v.toFixed(2)}`
     return `$${v.toFixed(4)}`
   }
+
+  // ─── Crypto raw data from cache ───────────────────────────────────────────────
+  const cryptoMarkets = isCryptoModal ? queryClient.getQueryData(['cryptoMarkets', 'aud']) : null
+  const coinRaw       = cryptoMarkets?.data?.find((c) => c.symbol === symbol?.toLowerCase())
+
+  // ─── Equity sections (10 collapsible) ────────────────────────────────────────
+  const equitySections = (
+    <>
+      <Section title="PRICE ACTION">
+        <DataRow label="Open"
+          value={latest.open  ? fmt.aud(latest.open)  : qs?.open     ? fmt.aud(toQsAud(qs.open))     : '—'} />
+        <DataRow label="Day High"
+          value={latest.high  ? fmt.aud(latest.high)  : qs?.dayHigh  ? fmt.aud(toQsAud(qs.dayHigh))  : '—'}
+          cls="text-terminal-green" />
+        <DataRow label="Day Low"
+          value={latest.low   ? fmt.aud(latest.low)   : qs?.dayLow   ? fmt.aud(toQsAud(qs.dayLow))   : '—'}
+          cls="text-terminal-red" />
+        <DataRow label="Prev Close"
+          value={qs?.prevClose ? fmt.aud(toQsAud(qs.prevClose)) : '—'} />
+        <DataRow label="Volume"
+          value={qs?.volume    ? fmt.large(qs.volume)    : '—'} />
+        <DataRow label="Avg Vol (30D)"
+          value={qs?.avgVolume ? fmt.large(qs.avgVolume) : '—'} />
+        <DataRow label="Period High"
+          value={allHigh ? fmt.aud(allHigh) : display52High ? fmt.aud(display52High) : '—'}
+          cls="text-terminal-green" />
+        <DataRow label="Period Low"
+          value={allLow && allLow !== Infinity ? fmt.aud(allLow) : display52Low ? fmt.aud(display52Low) : '—'}
+          cls="text-terminal-red" />
+      </Section>
+
+      <Section title="VALUATION">
+        <DataRow label="Market Cap"     value={fmtAmt(qs?.marketCap)} />
+        <DataRow label="Enterprise Val" value={fmtAmt(qs?.enterpriseValue)} />
+        <DataRow label="P/E (TTM)"      value={fmtX(qs?.trailingPE)} />
+        <DataRow label="P/E (Forward)"  value={fmtX(qs?.forwardPE)} />
+        <DataRow label="PEG Ratio"      value={fmtX(qs?.peg, 2)} />
+        <DataRow label="P/S (TTM)"      value={fmtX(qs?.ps, 2)} />
+        <DataRow label="P/B"            value={fmtX(qs?.pb, 2)} />
+        <DataRow label="EV/Revenue"     value={fmtX(qs?.evRevenue, 2)} />
+        <DataRow label="EV/EBITDA"      value={fmtX(qs?.evEbitda, 1)} />
+        <DataRow label="Book Value"     value={qs?.bookValue ? fmt.aud(toQsAud(qs.bookValue)) : '—'} />
+      </Section>
+
+      <Section title="FINANCIALS">
+        <DataRow label="Revenue"        value={fmtAmt(qs?.revenue)} />
+        <DataRow label="Rev Growth"     value={fmtPcSign(qs?.revenueGrowth)} cls={colorClass(qs?.revenueGrowth)} />
+        <DataRow label="Gross Profit"   value={fmtAmt(qs?.grossProfit)} />
+        <DataRow label="Gross Margin"   value={fmtPc(qs?.grossMargins)} />
+        <DataRow label="EBITDA Margin"  value={fmtPc(qs?.ebitdaMargins)} />
+        <DataRow label="Op Margin"      value={fmtPc(qs?.operatingMargins)} />
+        <DataRow label="Net Income"     value={fmtAmt(qs?.netIncome)} />
+        <DataRow label="Net Margin"     value={fmtPc(qs?.profitMargins)} />
+        <DataRow label="EPS (TTM)"      value={qs?.epsTrailing ? fmt.aud(toQsAud(qs.epsTrailing)) : '—'} />
+        <DataRow label="EPS (Fwd)"      value={qs?.epsForward  ? fmt.aud(toQsAud(qs.epsForward))  : '—'} />
+        <DataRow label="Free Cash Flow" value={fmtAmt(qs?.freeCashflow)} />
+        <DataRow label="Op Cash Flow"   value={fmtAmt(qs?.operatingCF)} />
+        <DataRow label="Total Debt"     value={fmtAmt(qs?.totalDebt)} />
+        <DataRow label="Total Cash"     value={fmtAmt(qs?.totalCash)} />
+        <DataRow label="Debt / Equity"  value={qs?.debtToEquity ? `${(qs.debtToEquity / 100).toFixed(2)}x` : '—'} />
+        <DataRow label="Current Ratio"  value={qs?.currentRatio ? qs.currentRatio.toFixed(2) : '—'} />
+      </Section>
+
+      <Section title="RETURNS & EFFICIENCY">
+        <DataRow label="Return on Equity" value={fmtPc(qs?.roe)}           cls={colorClass(qs?.roe)} />
+        <DataRow label="Return on Assets" value={fmtPc(qs?.roa)}           cls={colorClass(qs?.roa)} />
+        <DataRow label="Earnings Growth"  value={fmtPcSign(qs?.earningsGrowth)} cls={colorClass(qs?.earningsGrowth)} />
+        <DataRow label="Revenue / Share"  value={qs?.revenuePerShare ? fmt.aud(toQsAud(qs.revenuePerShare)) : '—'} />
+      </Section>
+
+      {(qs?.divYield > 0 || qs?.lastDividend > 0) && (
+        <Section title="DIVIDENDS">
+          <DataRow label="Div Yield"     value={fmtPc(qs?.divYield)} />
+          <DataRow label="Annual Div"    value={qs?.lastDividend ? fmt.aud(toQsAud(qs.lastDividend)) : '—'} />
+          <DataRow label="Payout Ratio"  value={fmtPc(qs?.payoutRatio)} />
+          <DataRow label="Last Div Date" value={fmtDt(qs?.lastDividendDate)} />
+        </Section>
+      )}
+
+      <Section title="TECHNICALS">
+        <DataRow label="50-Day MA"      value={qs?.ma50   ? fmt.aud(toQsAud(qs.ma50))  : '—'} />
+        <DataRow label="200-Day MA"     value={qs?.ma200  ? fmt.aud(toQsAud(qs.ma200)) : '—'} />
+        <DataRow label="52W Change"     value={fmtPcSign(qs?.week52Change)} cls={colorClass(qs?.week52Change)} />
+        <DataRow label="Beta"           value={qs?.beta   ? qs.beta.toFixed(2) : '—'} />
+        <DataRow label="Shares Short"   value={qs?.sharesShort ? fmt.large(qs.sharesShort) : '—'} />
+        <DataRow label="Short Ratio"    value={qs?.shortRatio  ? `${qs.shortRatio.toFixed(1)}d` : '—'} />
+        <DataRow label="Short % Float"  value={fmtPc(qs?.shortPctFloat)} />
+        <DataRow label="Avg Vol (10D)"  value={qs?.avgVolume10d ? fmt.large(qs.avgVolume10d) : '—'} />
+      </Section>
+
+      {qs?.recMean != null && (
+        <Section title="ANALYST CONSENSUS" noCols>
+          <AnalystBar recMean={qs.recMean} analystCount={qs.analystCount} />
+          <div className="grid grid-cols-2 gap-x-6 mt-2 pt-2 border-t border-terminal-border/20">
+            <DataRow label="Target High" value={fmtAmt(qs.targetHigh)} cls="text-terminal-green" />
+            <DataRow label="Target Low"  value={fmtAmt(qs.targetLow)}  cls="text-terminal-red" />
+            <DataRow label="Target Mean" value={fmtAmt(qs.targetMean)} />
+            {qs.targetMean && displayPrice > 0 && (
+              <DataRow
+                label="Upside"
+                value={`${(((toQsAud(qs.targetMean) ?? displayPrice) / displayPrice - 1) * 100).toFixed(1)}%`}
+                cls={colorClass((toQsAud(qs.targetMean) ?? displayPrice) / displayPrice - 1)}
+              />
+            )}
+          </div>
+        </Section>
+      )}
+
+      {(qs?.sector || qs?.description) && (
+        <Section title="COMPANY PROFILE" defaultOpen={false} noCols>
+          <div className="grid grid-cols-2 gap-x-6 mb-2">
+            <DataRow label="Sector"    value={qs.sector}    />
+            <DataRow label="Industry"  value={qs.industry}  />
+            <DataRow label="Employees" value={qs.employees ? qs.employees.toLocaleString('en-AU') : '—'} />
+            <DataRow label="HQ"        value={[qs.city, qs.country].filter(Boolean).join(', ') || '—'} />
+          </div>
+          {qs.website && (
+            <a
+              href={qs.website} target="_blank" rel="noopener noreferrer"
+              className="text-2xs text-terminal-gold/70 hover:text-terminal-gold block mb-2"
+            >
+              {qs.website.replace(/^https?:\/\//, '')} ↗
+            </a>
+          )}
+          {qs.description && (
+            <p className="text-2xs text-terminal-text-dim/70 leading-relaxed">
+              {qs.description.length > 450 ? qs.description.slice(0, 450) + '…' : qs.description}
+            </p>
+          )}
+        </Section>
+      )}
+
+      <Section title="RELATED NEWS" noCols>
+        <AssetNewsPanel symbol={symbol} name={name} />
+      </Section>
+
+      <Section title="AI ANALYSIS" noCols>
+        <AIFundamentalsPanel
+          key={symbol}
+          asset={modalAsset}
+          displayPrice={displayPrice}
+          display52High={display52High}
+          display52Low={display52Low}
+          qs={qs}
+        />
+      </Section>
+    </>
+  )
+
+  // ─── Crypto sections ──────────────────────────────────────────────────────────
+  const cryptoSections = (
+    <>
+      <Section title="MARKET DATA">
+        <DataRow label="Market Cap"    value={coinRaw?.market_cap    ? `A$${fmtBig(coinRaw.market_cap).replace('A$', '')}` : '—'} />
+        <DataRow label="24H Volume"    value={coinRaw?.total_volume  ? `A$${fmtBig(coinRaw.total_volume).replace('A$', '')}` : '—'} />
+        <DataRow label="All-Time High" value={coinRaw?.ath           ? fmt.aud(coinRaw.ath) : '—'} />
+        <DataRow label="% from ATH"    value={coinRaw?.ath_change_percentage != null ? `${coinRaw.ath_change_percentage.toFixed(1)}%` : '—'}
+          cls={colorClass(coinRaw?.ath_change_percentage)} />
+        <DataRow label="Circulating"   value={coinRaw?.circulating_supply ? fmt.large(coinRaw.circulating_supply) : '—'} />
+        <DataRow label="Max Supply"    value={coinRaw?.max_supply    ? fmt.large(coinRaw.max_supply) : '—'} />
+      </Section>
+
+      <Section title="PRICE PERFORMANCE">
+        <DataRow label="24H Change"  value={pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}
+          cls={colorClass(pct)} />
+        <DataRow label="7D Change"   value={coinRaw?.price_change_percentage_7d_in_currency != null
+          ? `${coinRaw.price_change_percentage_7d_in_currency > 0 ? '+' : ''}${coinRaw.price_change_percentage_7d_in_currency.toFixed(2)}%`
+          : '—'} cls={colorClass(coinRaw?.price_change_percentage_7d_in_currency)} />
+        <DataRow label="30D Change"  value={coinRaw?.price_change_percentage_30d_in_currency != null
+          ? `${coinRaw.price_change_percentage_30d_in_currency > 0 ? '+' : ''}${coinRaw.price_change_percentage_30d_in_currency.toFixed(2)}%`
+          : '—'} cls={colorClass(coinRaw?.price_change_percentage_30d_in_currency)} />
+        <DataRow label="Mkt Cap Rank" value={coinRaw?.market_cap_rank ? `#${coinRaw.market_cap_rank}` : '—'} />
+      </Section>
+
+      <Section title="RELATED NEWS" noCols>
+        <AssetNewsPanel symbol={symbol} name={name} />
+      </Section>
+
+      <Section title="AI ANALYSIS" noCols>
+        <AIFundamentalsPanel
+          key={symbol}
+          asset={modalAsset}
+          displayPrice={displayPrice}
+          display52High={display52High}
+          display52Low={display52Low}
+          qs={null}
+        />
+      </Section>
+    </>
+  )
+
+  // ─── FX / Index / other simplified sections ───────────────────────────────────
+  const otherSections = (
+    <>
+      <Section title="PRICE DATA">
+        <DataRow label="Current"      value={fmt.aud(displayPrice, { clarify: true })} />
+        <DataRow label="Day Change"   value={pct != null ? `${pctSign}${pct.toFixed(2)}%` : '—'} cls={priceCls} />
+        <DataRow label="Period High"  value={allHigh && allHigh > 0 ? fmt.aud(allHigh) : display52High ? fmt.aud(display52High) : '—'} cls="text-terminal-green" />
+        <DataRow label="Period Low"   value={allLow && allLow !== Infinity ? fmt.aud(allLow) : display52Low ? fmt.aud(display52Low) : '—'} cls="text-terminal-red" />
+      </Section>
+      <Section title="RELATED NEWS" noCols>
+        <AssetNewsPanel symbol={symbol} name={name} />
+      </Section>
+      <Section title="AI ANALYSIS" noCols>
+        <AIFundamentalsPanel
+          key={symbol}
+          asset={modalAsset}
+          displayPrice={displayPrice}
+          display52High={display52High}
+          display52Low={display52Low}
+          qs={null}
+        />
+      </Section>
+    </>
+  )
 
   return (
     <div
@@ -471,9 +775,16 @@ export default function DetailModal() {
             {type?.toUpperCase() ?? 'ASSET'}
           </span>
           <span className="text-base font-bold text-terminal-gold tracking-wider">{symbol}</span>
-          {name && <span className="text-sm text-terminal-text-dim">{name}</span>}
+          {name && <span className="text-sm text-terminal-text-dim truncate">{name}</span>}
+          {qs?.sector && (
+            <span className="text-2xs text-terminal-text-dim/50 border border-terminal-border/40 px-1.5 py-0.5 hidden xl:block flex-shrink-0">
+              {qs.sector}
+            </span>
+          )}
           <div className="ml-auto flex items-center gap-3">
-            {isLoading && <span className="text-2xs text-terminal-gold animate-pulse">LOADING...</span>}
+            {(isChartLoading || qsLoading) && (
+              <span className="text-2xs text-terminal-gold animate-pulse">LOADING...</span>
+            )}
             <button onClick={closeModal} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
           </div>
         </div>
@@ -496,7 +807,9 @@ export default function DetailModal() {
             </span>
           )}
           {pct != null && (
-            <span className={`text-lg font-bold ${priceCls}`}>{pct > 0 ? '▲' : pct < 0 ? '▼' : ''} {pctSign}{pct?.toFixed(2)}%</span>
+            <span className={`text-lg font-bold ${priceCls}`}>
+              {pct > 0 ? '▲' : pct < 0 ? '▼' : ''} {pctSign}{pct.toFixed(2)}%
+            </span>
           )}
           <div className="ml-auto flex items-center gap-3">
             <MarketStatusBadge extra={extra} />
@@ -509,7 +822,7 @@ export default function DetailModal() {
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Chart controls */}
         <div className="flex items-center gap-2 px-4 py-1.5 border-b border-terminal-border flex-shrink-0">
           <div className="flex gap-1">
             {TIMEFRAMES.map((tf) => (
@@ -521,9 +834,7 @@ export default function DetailModal() {
                     ? 'bg-terminal-gold text-terminal-bg font-bold'
                     : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
                 }`}
-              >
-                {tf}
-              </button>
+              >{tf}</button>
             ))}
           </div>
           <span className="text-terminal-border ml-2">|</span>
@@ -537,33 +848,28 @@ export default function DetailModal() {
                     ? 'bg-terminal-accent text-terminal-text-bright border border-terminal-gold'
                     : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
                 }`}
-              >
-                {ct.toUpperCase()}
-              </button>
+              >{ct.toUpperCase()}</button>
             ))}
           </div>
         </div>
 
         {/* Chart */}
-        <div className="flex-shrink-0 px-4 py-2 overflow-hidden" style={{ height: '220px', width: '100%' }}>
-          {isLoading ? (
+        <div className="flex-shrink-0 px-4 py-2 overflow-hidden" style={{ height: '180px' }}>
+          {isChartLoading ? (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
-          ) : slicedData.length === 0 ? (
+          ) : chartData.length === 0 ? (
             <DataUnavailable
               label={type === 'fx' || type === 'commodity' ? 'CHART UNAVAILABLE FOR THIS ASSET TYPE' : 'CHART DATA UNAVAILABLE'}
               className="h-full"
             />
-          ) : slicedData.length < 10 ? (
-            <DataUnavailable
-              label={`INSUFFICIENT DATA (${slicedData.length} point${slicedData.length !== 1 ? 's' : ''})`}
-              className="h-full"
-            />
+          ) : chartData.length < 10 ? (
+            <DataUnavailable label={`INSUFFICIENT DATA (${chartData.length} pts)`} className="h-full" />
           ) : chartType === 'candle' ? (
-            <CandleChart data={slicedData} />
+            <CandleChart data={chartData} />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'area' ? (
-                <AreaChart data={slicedData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                   <defs>
                     <linearGradient id="modalAreaGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.3} />
@@ -577,7 +883,7 @@ export default function DetailModal() {
                   <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
                 </AreaChart>
               ) : (
-                <LineChart data={slicedData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                   <CartesianGrid stroke="#0d2244" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
@@ -589,51 +895,27 @@ export default function DetailModal() {
           )}
         </div>
 
-        {/* Stats */}
-        <div className="border-t border-terminal-border flex-shrink-0">
-          <div className="grid grid-cols-[1fr_auto] gap-0">
-            <div className="p-3 grid grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-1.5">
-              {[
-                { label: 'OPEN',        value: latest.open  ? fmt.aud(latest.open)  : extra.open  ? fmt.aud(extra.open)  : '—' },
-                { label: 'HIGH',        value: latest.high  ? fmt.aud(latest.high)  : extra.high  ? fmt.aud(extra.high)  : '—', cls: 'text-terminal-green' },
-                { label: 'LOW',         value: latest.low   ? fmt.aud(latest.low)   : extra.low   ? fmt.aud(extra.low)   : '—', cls: 'text-terminal-red' },
-                { label: 'CLOSE',       value: latest.close ? fmt.aud(latest.close) : '—' },
-                { label: 'PERIOD HIGH', value: allHigh       ? fmt.aud(allHigh)       : display52High ? fmt.aud(display52High) : '—', cls: 'text-terminal-green' },
-                { label: 'PERIOD LOW',  value: allLow        ? fmt.aud(allLow)        : display52Low  ? fmt.aud(display52Low)  : '—', cls: 'text-terminal-red' },
-              ].map((s) => (
-                <div key={s.label}>
-                  <div className="text-2xs text-terminal-text-dim">{s.label}</div>
-                  <div className={`text-xs font-semibold ${s.cls || 'text-terminal-text-bright'}`}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="p-3 min-w-[160px] border-l border-terminal-border">
-              <TypeStats asset={modalAsset} />
-            </div>
-          </div>
+        {/* Scrollable data sections */}
+        <div key={symbol} className="flex-1 overflow-y-auto px-3 py-0.5 min-h-0">
+          {isEquity      && equitySections}
+          {type === 'crypto' && cryptoSections}
+          {!isEquity && type !== 'crypto' && otherSections}
+          <div className="h-2" />
         </div>
-
-        {/* Related news */}
-        <AssetNewsPanel symbol={symbol} name={name} />
-
-        {/* AI analysis */}
-        <AIAnalysisPanel key={symbol} asset={modalAsset} displayPrice={displayPrice} display52High={display52High} display52Low={display52Low} />
 
         {/* Actions */}
         <div className="flex items-center justify-between px-4 py-2 border-t border-terminal-border bg-terminal-bg flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleAddWatchlist}
-              disabled={isInWatchlist}
-              className={`text-2xs px-3 py-1.5 border transition-colors ${
-                isInWatchlist
-                  ? 'border-terminal-green text-terminal-green opacity-70 cursor-default'
-                  : 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg cursor-pointer'
-              }`}
-            >
-              {isInWatchlist ? '✓ WATCHING' : '+ ADD TO WATCHLIST'}
-            </button>
-          </div>
+          <button
+            onClick={() => !isInWL && addToWatchlist(symbol)}
+            disabled={isInWL}
+            className={`text-2xs px-3 py-1.5 border transition-colors ${
+              isInWL
+                ? 'border-terminal-green text-terminal-green opacity-70 cursor-default'
+                : 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg cursor-pointer'
+            }`}
+          >
+            {isInWL ? '✓ WATCHING' : '+ ADD TO WATCHLIST'}
+          </button>
           <div className="flex items-center gap-2">
             <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} AEST</span>
             {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
