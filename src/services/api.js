@@ -799,24 +799,32 @@ export const fetchRBARate = fetchRBACashRate
 const RSS2JSON_BASE = 'https://api.rss2json.com/v1/api.json'
 
 const RSS_FEEDS = [
-  { url: 'https://www.afr.com/rss',                                       source: 'AFR'         },
-  { url: 'https://feeds.reuters.com/reuters/businessNews',                source: 'Reuters'     },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',        source: 'CNBC'        },
-  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',          source: 'MarketWatch' },
-  // Bloomberg Markets has no public RSS feed — omitted rather than faked.
+  { url: 'https://feeds.reuters.com/reuters/businessNews',                    source: 'Reuters'     },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',            source: 'CNBC'        },
+  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',              source: 'MarketWatch' },
+  { url: 'https://www.afr.com/rss',                                           source: 'AFR'         },
+  { url: 'https://www.theguardian.com/business/rss',                          source: 'Guardian'    },
+  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                     source: 'BBC'         },
+  { url: 'https://feeds.reuters.com/reuters/markets',                          source: 'Reuters Mkts'},
+  { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',              source: 'CNBC World'  },
+  { url: 'https://www.investing.com/rss/news.rss',                            source: 'Investing'   },
+  { url: 'https://finance.yahoo.com/news/rssindex',                           source: 'Yahoo Fin'   },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                    source: 'RBA'         },
 ]
 
 // ─── News categories (tabs) — an article can match more than one ────────────
-export const NEWS_CATEGORIES = ['ALL', 'AU MARKETS', 'US MARKETS', 'CRYPTO', 'COMMODITIES', 'FX', 'MACRO', 'GEOPOLITICAL']
+export const NEWS_CATEGORIES = ['ALL', 'AU MARKETS', 'US MARKETS', 'CRYPTO', 'COMMODITIES', 'FX', 'MACRO', 'GEOPOLITICAL', 'TECH', 'EARNINGS']
 
 const NEWS_CATEGORY_RE = {
-  'AU MARKETS':   /\bASX\b|\bRBA\b|australia|australian|\bAUD\b/i,
-  'US MARKETS':   /\bFed\b|wall street|\bS&P\b|\bNASDAQ\b|\bNYSE\b/i,
-  CRYPTO:         /bitcoin|ethereum|crypto|blockchain|defi/i,
-  COMMODITIES:    /iron ore|\bgold\b|\boil\b|\bLNG\b|copper|wheat/i,
-  FX:             /\bAUD\b|currency|forex|central bank|exchange rate/i,
-  MACRO:          /inflation|\bGDP\b|unemployment|interest rate|recession/i,
-  GEOPOLITICAL:   /china|trade war|sanctions?|conflict|tariff/i,
+  'AU MARKETS':   /\bASX\b|\bRBA\b|australia|australian|\bAUD\b|commonwealth bank|bhp|csl|westpac|\bANZ\b|\bNAB\b|woolworths|macquarie|reserve bank|\bAPRA\b|\bASIC\b|asx200/i,
+  'US MARKETS':   /\bFed\b|federal reserve|\bS&P 500\b|\bNASDAQ\b|\bDow\b|wall street|\bNYSE\b|\bSEC\b|quarterly results|\bIPO\b/i,
+  CRYPTO:         /bitcoin|\bBTC\b|ethereum|\bETH\b|crypto|blockchain|defi|\bNFT\b|solana|binance|coinbase|stablecoin|web3/i,
+  COMMODITIES:    /iron ore|\bgold\b|\bsilver\b|\boil\b|\bLNG\b|natural gas|copper|wheat|\bcoal\b|commodity|\bOPEC\b|\bcrude\b|\bBrent\b|\bWTI\b/i,
+  FX:             /\bAUD\/USD\b|currency|forex|\bdollar\b|\beuro\b|\byen\b|\bpound\b|exchange rate|central bank|interest rate|monetary policy/i,
+  MACRO:          /inflation|\bCPI\b|\bGDP\b|unemployment|\bjobs\b|recession|fiscal|\bbudget\b|treasury|deficit|surplus|trade balance/i,
+  GEOPOLITICAL:   /china|trade war|sanctions?|tariff|conflict|\bwar\b|ukraine|russia|middle east|taiwan|north korea|elections?/i,
+  TECH:           /\bAI\b|artificial intelligence|technology|semiconductor|\bchip\b|apple|google|microsoft|meta|amazon|tesla|innovation/i,
+  EARNINGS:       /\bearnings\b|quarterly results|annual results|guidance|forecast|\bbeat\b|\bmiss\b|\bEPS\b|profit warning/i,
 }
 
 function classifyNewsCategories(title, description = '') {
@@ -827,8 +835,8 @@ function classifyNewsCategories(title, description = '') {
 }
 
 // ─── Sentiment (keyword-derived, not a model call) ───────────────────────────
-const BULLISH_RE = /surge|soar|rall(y|ies)|jump(s|ed)?|record high|upgrade|outperform|ris(e|es|ing)|climbs?|beats?|strong|gains?\b/i
-const BEARISH_RE = /plunge|crash|slump|tumbl|drop(s|ped)?|falls?|misses?|downgrade|underperform|declin|weak|recession|sell-?off/i
+const BULLISH_RE = /surge|soar|rall(y|ies)|jump(s|ed)?|record high|upgrade|outperform|ris(e|es|ing)|climbs?|beats?|strong|gains?\b|positive|growth|bullish/i
+const BEARISH_RE = /plunge|crash|slump|tumbl|drop(s|ped)?|falls?|misses?|downgrade|underperform|declin|weak|recession|sell-?off|warning|loss\b|cut(s|ting)?\b/i
 
 function inferSentiment(title, description = '') {
   const text = `${title} ${description}`
@@ -839,16 +847,24 @@ function inferSentiment(title, description = '') {
   return 'NEUTRAL'
 }
 
-// ─── Dedup by headline similarity ────────────────────────────────────────────
+// ─── Dedup by headline similarity (Jaccard word overlap > 80%) ───────────────
 const normalizeHeadline = (h) => h.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
 
+function headlineSimilarity(a, b) {
+  const wa = new Set(a.split(' ').filter(w => w.length > 3))
+  const wb = new Set(b.split(' ').filter(w => w.length > 3))
+  if (!wa.size || !wb.size) return 0
+  let shared = 0
+  for (const w of wa) if (wb.has(w)) shared++
+  return shared / Math.max(wa.size, wb.size)
+}
+
 function dedupeByHeadline(items) {
-  const seenPrefixes = []
+  const seen = []
   return items.filter((item) => {
     const norm = normalizeHeadline(item.headline)
-    const prefix = norm.slice(0, 40)
-    if (prefix.length > 15 && seenPrefixes.includes(prefix)) return false
-    seenPrefixes.push(prefix)
+    if (seen.some(h => headlineSimilarity(norm, h) > 0.8)) return false
+    seen.push(norm)
     return true
   })
 }
@@ -860,33 +876,47 @@ export const GEO_RSS_FEEDS = [
   { url: 'https://feeds.reuters.com/reuters/topNews',            source: 'Reuters Top'   },
 ]
 
-const NEWS_EXCLUDE_WORDS = new Set([
-  'THE', 'AND', 'FOR', 'FROM', 'WITH', 'THAT', 'THIS', 'ARE', 'WAS', 'HAS',
-  'HAVE', 'HAD', 'NOT', 'BUT', 'ITS', 'NEW', 'TOP', 'ALL', 'MORE', 'CAN',
-  'CEO', 'CFO', 'COO', 'IPO', 'GDP', 'CPI', 'FED', 'SEC', 'USA', 'USD',
-  'EUR', 'GBP', 'JPY', 'ETF', 'NFP', 'PMI', 'ISM', 'IMF', 'WHO', 'ESG',
-  'AI', 'YOY', 'QOQ', 'YTD', 'TTM', 'PE', 'EPS', 'ROE', 'US', 'EU', 'UK',
-  'UN', 'NATO', 'OPEC', 'GOP', 'DOJ', 'DOE', 'IRS', 'FTC', 'FCC', 'FDIC',
+// ─── Ticker whitelist — only flag known listed symbols ────────────────────────
+export const TICKER_WHITELIST = new Set([
+  // ASX
+  'BHP','CBA','CSL','WOW','ANZ','NAB','WBC','MQG','RIO','TLS','FMG','WES','GMG',
+  'ALL','MIN','WDS','XRO','REA','COL','TCL','QBE','SHL','IAG','MPL','ORG','APA',
+  'ASX','BXB','CPU','DXS','EVN','GPT','JHX','LLC','MGR','NCM','NST','ORI','PLS',
+  'RMD','SGP','SUN','TAH','TWE','AMC','AMP','ANN','APE','ARB','AUB','AWC','BAP',
+  'BEN','BOQ','BSL','CAR','CGF','CHC','COH','CTD','CWY','DMP','EBO','ELD','FLT',
+  'GUD','HVN','IFL','IGO','ILU','JBH','LOV','LYC','MFG','MND','MPB','MTS','NEM',
+  'SKI','STO','VCX','WHC','WPR',
+  // US
+  'AAPL','NVDA','MSFT','TSLA','AMZN','META','GOOG','GOOGL','JPM','V','MA','BAC',
+  'XOM','CVX','JNJ','WMT','PG','HD','AVGO','MRK','ABBV','NFLX','AMD','ADBE',
+  'CRM','COST','QCOM','TXN','INTU','CSCO','AMGN','CAT','GS','MS','BLK','SPGI',
+  'ISRG','RTX','AXP','SYK','LOW','VRTX','NOW','UBER','LYFT','SNAP','SHOP','SQ',
+  'PYPL','COIN','HOOD','RBLX','PLTR','RIVN','LCID','NIO','BABA','JD','PDD','BIDU',
+  'TMUS','VZ','T','DIS','CMCSA','CHTR','FOX','PARA',
+  // Crypto
+  'BTC','ETH','SOL','BNB','XRP','ADA','AVAX','DOT','LINK','MATIC','DOGE','SHIB',
+  'UNI','AAVE','CRO',
 ])
 
 const inferNewsTag = (title, categories = []) => {
   const text = `${title} ${categories.join(' ')}`.toLowerCase()
   if (/bitcoin|ethereum|crypto|blockchain|defi|solana|web3/i.test(text))                            return 'CRYPTO'
-  if (/rba|asx|asx200|australia|australian|aud|cpi|rba|macquarie|commbank|bhp|rio|csiro/i.test(text)) return 'AU'
+  if (/rba|asx|asx200|australia|australian|aud|macquarie|commbank|bhp|rio/i.test(text))             return 'AU'
   if (/fed|fomc|inflation|cpi|interest rate|yield|treasury|macro|recession|gdp|fiscal/i.test(text)) return 'MACRO'
   if (/oil|energy|crude|natural gas|opec|exxon|chevron|petroleum/i.test(text))                      return 'ENERGY'
   if (/forex|dollar|euro|yen|currency|fx|exchange rate/i.test(text))                                return 'FX'
   if (/merger|acquisition|buyout|deal|takeover/i.test(text))                                        return 'M&A'
   if (/earnings|revenue|profit|eps|guidance|quarterly|q[1-4] 20/i.test(text))                       return 'EARNINGS'
   if (/bond|yield|debt|treasur|rate hike|rate cut/i.test(text))                                     return 'RATES'
+  if (/ai\b|artificial intelligence|semiconductor|chip stocks|tech\b/i.test(text))                  return 'TECH'
   if (/china|europe|asia|japan|india|global|international|emerging market/i.test(text))             return 'INTL'
   return 'EQUITY'
 }
 
 const extractTickers = (title, description = '') => {
   const text    = `${title} ${description}`
-  const matches = text.match(/\b[A-Z]{2,5}\b/g) || []
-  return [...new Set(matches.filter((w) => !NEWS_EXCLUDE_WORDS.has(w)))].slice(0, 4)
+  const matches = text.match(/\b[A-Z]{2,5}\b/g) ?? []
+  return [...new Set(matches.filter((w) => TICKER_WHITELIST.has(w)))].slice(0, 4)
 }
 
 const stripHtml = (html) => {
@@ -930,8 +960,9 @@ export const fetchNews = async () => {
   }
   const deduped = dedupeByHeadline(items)
   deduped.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
-  console.log('[MADDEN API] RSS2JSON news:', deduped.length, 'articles (', items.length - deduped.length, 'duplicates removed)')
-  return deduped
+  const capped = deduped.slice(0, 100)
+  console.log('[MADDEN API] RSS2JSON news:', capped.length, 'articles (', items.length - deduped.length, 'duplicates removed from', items.length, 'total)')
+  return capped
 }
 
 // ─── OpenSky Network (via proxy → /api/opensky) ──────────────────────────────
