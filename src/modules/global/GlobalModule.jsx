@@ -2252,7 +2252,7 @@ export default function GlobalModule() {
   const TABS = [
     { id:'maritime',    label:'MARITIME'    },
     { id:'air',         label:'AIR'         },
-    { id:'commodities', label:'COMMODITIES' },
+    { id:'commodities', label:'COMMOD'      },
     { id:'geopolitical',label:'GEO RISK'    },
     { id:'sessions',    label:'SESSIONS'    },
     { id:'exchange',    label:'EXCHANGE',   hidden: !selectedExchange && activeTab !== 'exchange' },
@@ -2301,7 +2301,7 @@ export default function GlobalModule() {
         </div>
 
         {/* Right Panel */}
-        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '300px', minWidth: '300px' }}>
+        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '340px', minWidth: '340px' }}>
           {/* Tab bar — single row, equal-width tabs, no wrapping */}
           <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
             {TABS.filter(t => !t.hidden).map(t => (
