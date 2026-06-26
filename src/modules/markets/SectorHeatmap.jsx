@@ -481,7 +481,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col">
       {/* Breadcrumb / status bar */}
       <div className="flex items-center gap-2 px-2 py-1 border-b border-terminal-border flex-shrink-0 bg-terminal-header">
         <span className="text-2xs font-bold text-terminal-text-dim tracking-wider">
@@ -499,9 +499,9 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
         )}
       </div>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex">
         {/* Heatmap grid */}
-        <div className={`overflow-auto p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
+        <div className={`p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
           <div className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-3 xl:grid-cols-4'}`}>
             {GICS_SECTORS.map((sector) => {
               const cfg = sectorConfig[sector]
@@ -586,7 +586,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
         {/* Detail panel */}
         {selected && sectorConfig[selected] && (
-          <div className="w-[45%] border-l border-terminal-border flex flex-col overflow-hidden panel-fade">
+          <div className="w-[45%] border-l border-terminal-border flex flex-col panel-fade">
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
@@ -1063,7 +1063,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
   }, [histResults, proxySyms])
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-2 py-1.5 border-b border-terminal-border bg-terminal-header flex-shrink-0 flex-wrap gap-y-1">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">MARKETS</span>
@@ -1076,7 +1076,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden panel-fade" key={view}>
+      <div className="panel-fade" key={view}>
         {view === 'sectors' ? (
           <SectorsView
             sectorConfig={sectorConfig}

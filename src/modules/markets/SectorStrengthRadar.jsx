@@ -166,7 +166,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
   const sorted = [...chartData].sort((a, b) => b.score - a.score)
 
   return (
-    <div className="flex flex-col h-full bg-terminal-bg">
+    <div className="flex flex-col bg-terminal-bg">
       {/* Header */}
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
         <span className="text-terminal-gold font-bold tracking-widest text-xs">

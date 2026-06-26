@@ -35,8 +35,8 @@ export default function MarketsModule() {
           <TopMovers openModal={openModal} />
         </div>
 
-        {/* Sector Heatmap / Index constituent list — fixed height so radar never squashes it */}
-        <div className="flex-shrink-0 border-b border-terminal-border" style={{ height: '500px' }}>
+        {/* Sector Heatmap / Index constituent list */}
+        <div className="flex-shrink-0 border-b border-terminal-border">
           <SectorHeatmap
             selectedIndex={selectedIndex}
             openModal={openModal}
