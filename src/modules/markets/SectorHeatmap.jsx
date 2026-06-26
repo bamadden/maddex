@@ -249,8 +249,18 @@ function ViewToggle({ view, setView }) {
 
 // ─── Sectors View ─────────────────────────────────────────────────────────────
 
-function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex, openModal }) {
+function SectorsView({ proxyQuotes, isFetching, isError, refetch, selectedIndex, openModal, externalSelected, onClearExternal }) {
   const [selected, setSelected] = useState(null)
+
+  // Listen for sector-select events from SectorStrengthRadar
+  useEffect(() => {
+    const handler = (e) => {
+      const ticker = e.detail?.ticker
+      if (ticker) setSelected(ticker)
+    }
+    window.addEventListener('madden:sector-select', handler)
+    return () => window.removeEventListener('madden:sector-select', handler)
+  }, [])
 
   const constituentSyms = selected ? (SECTOR_STOCKS[selected] ?? []).map(([s]) => s) : []
   const { data: constQuotes, isFetching: constFetching } = useQuery({
@@ -787,6 +797,13 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
   const [view, setView] = useState(() => {
     try { return localStorage.getItem('madden_mkt_view') ?? 'sectors' } catch { return 'sectors' }
   })
+
+  // When radar clicks a sector, switch to sectors view so detail panel can appear
+  useEffect(() => {
+    const handler = () => setView('sectors')
+    window.addEventListener('madden:sector-select', handler)
+    return () => window.removeEventListener('madden:sector-select', handler)
+  }, [])
 
   const { data: proxyQuotes, isFetching, isError, refetch } = useQuery({
     queryKey: ['yahooBatch', 'sectorProxy'],

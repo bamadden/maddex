@@ -11,35 +11,42 @@ export default function MarketsModule() {
   const [selectedIndex, setSelectedIndex] = useState('^AXJO')
 
   return (
-    <div className="h-full grid grid-rows-[auto_auto_auto_1fr_auto] gap-0 overflow-hidden">
-      {/* Row 0: MaddenAI Market Sentiment Score */}
-      <MarketSentimentBanner />
+    <div
+      id="markets-scroll-container"
+      className="h-full overflow-y-auto"
+    >
+      <div className="flex flex-col min-h-full">
+        {/* Global sentiment score */}
+        <div className="flex-shrink-0">
+          <MarketSentimentBanner />
+        </div>
 
-      {/* Row 1: Indices — scrollable horizontal */}
-      <div className="border-b border-terminal-border flex-shrink-0">
-        <IndicesTable
-          openModal={openModal}
-          selectedIndex={selectedIndex}
-          onSelectIndex={setSelectedIndex}
-        />
-      </div>
+        {/* Indices — scrollable horizontal */}
+        <div className="flex-shrink-0 border-b border-terminal-border">
+          <IndicesTable
+            openModal={openModal}
+            selectedIndex={selectedIndex}
+            onSelectIndex={setSelectedIndex}
+          />
+        </div>
 
-      {/* Row 2: ASX Movers + US Movers */}
-      <div className="border-b border-terminal-border flex-shrink-0">
-        <TopMovers openModal={openModal} />
-      </div>
+        {/* ASX Movers + US Movers */}
+        <div className="flex-shrink-0 border-b border-terminal-border">
+          <TopMovers openModal={openModal} />
+        </div>
 
-      {/* Row 3: Sector Heatmap — fills remaining space */}
-      <div className="min-h-0 overflow-hidden border-b border-terminal-border">
-        <SectorHeatmap
-          selectedIndex={selectedIndex}
-          openModal={openModal}
-        />
-      </div>
+        {/* Sector Heatmap / Index constituent list — fixed height so radar never squashes it */}
+        <div className="flex-shrink-0 border-b border-terminal-border" style={{ height: '500px' }}>
+          <SectorHeatmap
+            selectedIndex={selectedIndex}
+            openModal={openModal}
+          />
+        </div>
 
-      {/* Row 4: Sector Strength Radar */}
-      <div className="min-h-0 overflow-hidden" style={{ height: '320px' }}>
-        <SectorStrengthRadar />
+        {/* Sector Strength Radar — supplementary, below the main tables */}
+        <div className="flex-shrink-0">
+          <SectorStrengthRadar />
+        </div>
       </div>
     </div>
   )
