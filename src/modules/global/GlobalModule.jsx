@@ -1071,12 +1071,13 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           const pos = projection([ex.lon, ex.lat])
           if (!pos) return null
           const [px, py] = pos
-          const st = getStatus(ex)
+          const st     = getStatus(ex)
           const isOpen = st === 'OPEN'
           const isPre  = st === 'PRE'
-          const label  = ex.abbr ?? ex.id
-          const r      = ex.id === 'ASX' ? 11 : 9
           const isHov  = hoveredExchange === ex.id
+          const dotR   = isHov ? 4 : 3
+          const dotColor   = isOpen ? '#c9a84c' : isPre ? '#7a6a2a' : '#1e4a6a'
+          const glowColor  = isOpen ? '#c9a84c' : isPre ? '#6b5d1f' : '#1a3a55'
           return (
             <g
               key={`exc-${ex.id}`}
@@ -1086,32 +1087,23 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
               onMouseMove={(e) => setHoveredExPos({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })}
               onMouseLeave={() => setHoveredExchange(null)}
             >
-              {/* Pulsing halo for open markets */}
+              {/* Transparent 20×20px hit area — keeps clicking easy on mobile/iPad */}
+              <circle cx={px} cy={py} r={10} fill="transparent" stroke="none" />
+              {/* Pulsing ring for open markets */}
               {isOpen && (
-                <circle cx={px} cy={py} r={r + 3} fill="none" stroke="#c9a84c" strokeWidth={0.8} opacity={0.3}>
-                  <animate attributeName="r" values={`${r+1};${r+7};${r+1}`} dur="2.5s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" repeatCount="indefinite"/>
+                <circle cx={px} cy={py} r={4} fill="none" stroke="#c9a84c" strokeWidth={0.7} opacity={0.4}>
+                  <animate attributeName="r"       values="4;10;4"     dur="2.2s" repeatCount="indefinite"/>
+                  <animate attributeName="opacity" values="0.6;0;0.6"  dur="2.2s" repeatCount="indefinite"/>
                 </circle>
               )}
-              {/* Background circle */}
+              {/* LED dot */}
               <circle
-                cx={px} cy={py} r={isHov ? r + 1 : r}
-                fill={isOpen ? (ex.id === 'ASX' ? '#1a2800' : '#0d1a05') : '#06111f'}
-                stroke={isOpen ? '#c9a84c' : isPre ? '#6b5d1f' : '#1e3a5a'}
-                strokeWidth={isOpen ? (ex.id === 'ASX' ? 1.5 : 1.2) : 0.8}
-                opacity={isHov ? 1 : isOpen ? 0.95 : 0.75}
+                cx={px} cy={py} r={dotR}
+                fill={dotColor}
+                stroke={glowColor}
+                strokeWidth={isOpen ? 1 : 0.5}
+                opacity={isOpen ? 1 : isPre ? 0.7 : 0.55}
               />
-              {/* Exchange abbreviation text */}
-              <text
-                x={px} y={py}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={Math.min(6.5, label.length <= 2 ? 7 : label.length <= 3 ? 6 : 5)}
-                fontFamily="monospace"
-                fontWeight="bold"
-                fill={isOpen ? (ex.id === 'ASX' ? '#f0d070' : '#c9a84c') : '#2a5a7a'}
-                style={{ pointerEvents: 'none', userSelect: 'none' }}
-              >{label}</text>
             </g>
           )
         })}
