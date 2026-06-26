@@ -34,7 +34,14 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
       pct:    q.dayChangePct,
       change: toAUD(q.dayChange, q.currency, audUsd),
       type:   isAsx ? 'asx' : 'us',
-      extra:  { week52High: q.week52High, week52Low: q.week52Low, isOpen: q.isOpen, exchange: q.exchange },
+      extra:  {
+        week52High:  toAUD(q.week52High, q.currency, audUsd),
+        week52Low:   toAUD(q.week52Low,  q.currency, audUsd),
+        isOpen:      q.isOpen,
+        exchange:    q.exchange,
+        nativePrice: isAsx ? null : q.price,
+        currency:    q.currency,
+      },
     })
   }
 

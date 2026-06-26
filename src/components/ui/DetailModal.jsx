@@ -379,12 +379,13 @@ export default function DetailModal() {
   const pctSign     = pct > 0 ? '+' : ''
   const isInWatchlist = watchlist.includes(symbol)
 
-  // US stocks come in USD from Yahoo Finance — convert to AUD for all headline displays
-  const isUsd        = type === 'us'
-  const displayPrice  = isUsd && price          != null ? usdToAud(price)           : price
-  const displayChange = isUsd && change         != null ? usdToAud(change)          : change
-  const display52High = isUsd && extra.week52High != null ? usdToAud(extra.week52High) : extra.week52High
-  const display52Low  = isUsd && extra.week52Low  != null ? usdToAud(extra.week52Low)  : extra.week52Low
+  // All callers convert to AUD before calling openModal — no conversion here.
+  // extra.nativePrice + extra.currency carry the raw native values for the USD subtitle.
+  const displayPrice  = price
+  const displayChange = change
+  const display52High = extra.week52High
+  const display52Low  = extra.week52Low
+  const showUsdSub    = extra.currency === 'USD' && extra.nativePrice != null
 
   // Build chart data
   let chartData   = []
@@ -483,9 +484,9 @@ export default function DetailModal() {
             <span className="text-2xl font-bold text-terminal-text-bright">
               {fmt.aud(displayPrice, { clarify: true })}
             </span>
-            {isUsd && price != null && (
+            {showUsdSub && (
               <span className="text-xs text-terminal-text-dim/50 mt-0.5">
-                US${fmt.price(price)}
+                US${fmt.price(extra.nativePrice)}
               </span>
             )}
           </div>

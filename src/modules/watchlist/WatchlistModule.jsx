@@ -67,16 +67,18 @@ export default function WatchlistModule() {
     if (!q) return { ...base, name: symbol, price: null, change: null, pct: null, week52High: null, week52Low: null, volume: null, marketCap: null, isOpen: false, isLive: false }
     return {
       ...base,
-      name:       q.name ?? symbol,
-      price:      conv(q.price),
-      change:     conv(q.dayChange),
-      pct:        q.dayChangePct,
-      week52High: q.week52High != null ? conv(q.week52High) : null,
-      week52Low:  q.week52Low  != null ? conv(q.week52Low)  : null,
-      volume:     q.volume ?? q.vol ?? null,
-      marketCap:  q.marketCap != null ? conv(q.marketCap) : null,
-      isOpen:     q.isOpen,
-      isLive:     true,
+      name:        q.name ?? symbol,
+      price:       conv(q.price),
+      change:      conv(q.dayChange),
+      pct:         q.dayChangePct,
+      week52High:  q.week52High != null ? conv(q.week52High) : null,
+      week52Low:   q.week52Low  != null ? conv(q.week52Low)  : null,
+      volume:      q.volume ?? q.vol ?? null,
+      marketCap:   q.marketCap != null ? conv(q.marketCap) : null,
+      isOpen:      q.isOpen,
+      isLive:      true,
+      nativePrice: isAsx ? null : q.price,
+      currency:    q.currency,
     }
   })
 
@@ -109,7 +111,14 @@ export default function WatchlistModule() {
       pct:    row.pct,
       change: row.change,
       type:   row.type,
-      extra:  { week52High: row.week52High, week52Low: row.week52Low, isOpen: row.isOpen, marketCap: row.marketCap },
+      extra:  {
+        week52High:  row.week52High,
+        week52Low:   row.week52Low,
+        isOpen:      row.isOpen,
+        marketCap:   row.marketCap,
+        nativePrice: row.nativePrice,
+        currency:    row.currency,
+      },
     })
   }
 

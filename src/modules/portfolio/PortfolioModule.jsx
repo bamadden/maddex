@@ -250,11 +250,13 @@ export default function PortfolioModule() {
     const yfSym    = h.yfSym ?? toYahooSymbol(h.symbol, h.type)
     const q        = isCrypto ? null : (batchQuotes?.[yfSym] ?? null)
 
-    let last = null, dayPct = 0, loadState = 'pending'
+    let last = null, dayPct = 0, loadState = 'pending', nativePrice = null, currency = isAsx ? 'AUD' : 'USD'
     if (q) {
-      last      = isAsx ? q.last : usdToAud(q.last)
-      dayPct    = q.pct ?? 0
-      loadState = 'live'
+      last        = isAsx ? q.last : usdToAud(q.last)
+      nativePrice = isAsx ? null : q.last
+      currency    = q.currency ?? currency
+      dayPct      = q.pct ?? 0
+      loadState   = 'live'
     } else if (!isCrypto && isError) {
       loadState = 'error'
     } else if (isCrypto) {
@@ -268,7 +270,7 @@ export default function PortfolioModule() {
     const pnlPct     = pnl != null && totalCost > 0 ? (pnl / totalCost) * 100 : null
     const assetClass = isAsx ? 'AU Equities' : isCrypto ? 'Crypto' : 'US Equities'
 
-    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, assetClass, loadState, isOpen: q?.isOpen }
+    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, assetClass, loadState, isOpen: q?.isOpen, nativePrice, currency }
   })
 
   const live      = computed.filter((h) => h.mktVal != null)
@@ -407,9 +409,11 @@ export default function PortfolioModule() {
                       className="hover:bg-terminal-accent/20 cursor-pointer"
                       onClick={() => h.last && openModal?.({
                         symbol: h.symbol, name: h.name || h.symbol,
-                        price: h.last * displayMul, pct: h.dayPct,
+                        price:  h.last * displayMul,
+                        pct:    h.dayPct,
                         change: (h.last * (h.dayPct / 100)) * displayMul,
-                        type: h.type,
+                        type:   h.type,
+                        extra:  { nativePrice: h.nativePrice, currency: h.currency },
                       })}
                     >
                       <td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright">{dispSym}</td>

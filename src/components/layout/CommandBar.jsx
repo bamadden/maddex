@@ -521,7 +521,7 @@ export default function CommandBar() {
   // ── Build modal asset from YF quote ──────────────────────────────────────────
   const buildModalAsset = (q, type, resolvedSym) => {
     const isUSD   = q.currency === 'USD'
-    const toAud   = (v) => v != null ? (isUSD ? v * audUsd : v) : null
+    const toAud   = (v) => v != null ? (isUSD ? v / audUsd : v) : null
     return {
       symbol:  resolvedSym,
       name:    q.name,

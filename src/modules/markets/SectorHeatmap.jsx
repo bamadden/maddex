@@ -561,8 +561,10 @@ function IndexView({ selectedIndex, openModal }) {
       const q = quotes[sym]
       const isAud = sym.endsWith('.AX')
       const rawPrice = q?.last ?? null
-      const audPrice = rawPrice == null ? null : isAud ? rawPrice : usdToAud(rawPrice)
+      const audPrice  = rawPrice == null ? null : isAud ? rawPrice : usdToAud(rawPrice)
       const audChange = q?.change == null ? null : isAud ? q.change : usdToAud(q.change)
+      const aud52High = q?.week52High == null ? null : isAud ? q.week52High : usdToAud(q.week52High)
+      const aud52Low  = q?.week52Low  == null ? null : isAud ? q.week52Low  : usdToAud(q.week52Low)
       return {
         rank: i + 1,
         sym,
@@ -570,6 +572,8 @@ function IndexView({ selectedIndex, openModal }) {
         name: STOCK_NAMES[sym] ?? displaySym(sym),
         audPrice,
         audChange,
+        aud52High,
+        aud52Low,
         pct: q?.pct ?? null,
         weight: ASX_WEIGHTS[sym] ?? null,
         q,
@@ -612,7 +616,20 @@ function IndexView({ selectedIndex, openModal }) {
   const handleRowClick = (r) => {
     if (!r.q) return
     const sym = isASX ? (r.ticker + '.AX') : r.ticker
-    openModal?.({ symbol: sym, name: r.name, price: r.audPrice ?? 0, pct: r.pct ?? 0, change: r.audChange, type: isASX ? 'asx' : 'us', extra: {} })
+    openModal?.({
+      symbol: sym,
+      name:   r.name,
+      price:  r.audPrice ?? 0,
+      pct:    r.pct ?? 0,
+      change: r.audChange,
+      type:   isASX ? 'asx' : 'us',
+      extra:  {
+        week52High:  r.aud52High,
+        week52Low:   r.aud52Low,
+        nativePrice: isASX ? null : r.q?.last,
+        currency:    r.q?.currency,
+      },
+    })
   }
 
   const indexLabel = INDEX_LABELS[selectedIndex] ?? selectedIndex
