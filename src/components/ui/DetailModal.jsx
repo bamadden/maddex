@@ -218,7 +218,7 @@ function MarketStatusBadge({ extra = {} }) {
 
 // ─── AI Analysis panel ────────────────────────────────────────────────────────
 
-function AIAnalysisPanel({ asset }) {
+function AIAnalysisPanel({ asset, displayPrice, display52High, display52Low }) {
   const [text, setText] = useState(null)
   const [loading, setLoading] = useState(false)
   const [triggered, setTriggered] = useState(false)
@@ -226,10 +226,13 @@ function AIAnalysisPanel({ asset }) {
   const generate = useCallback(async () => {
     setLoading(true)
     setText('')
-    const { symbol, name, price, pct, extra = {} } = asset
-    const rangeCtx = extra.week52High != null
-      ? ` | 52W: ${fmt.aud(extra.week52Low)} – ${fmt.aud(extra.week52High)}` : ''
-    const prompt = `${name} (${symbol}) | Current price: ${fmt.aud(price)} | Day change: ${pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}${rangeCtx}\n\nProvide a concise analysis covering price action, key support/resistance levels, macro factors from an Australian investor perspective, and short-term outlook. Use the exact price figures provided. Maximum 150 words.`
+    const { symbol, name, pct, extra = {} } = asset
+    const priceAud = displayPrice ?? asset.price
+    const high52   = display52High ?? extra.week52High
+    const low52    = display52Low  ?? extra.week52Low
+    const rangeCtx = high52 != null
+      ? ` | 52W: ${fmt.aud(low52, { clarify: true })} – ${fmt.aud(high52, { clarify: true })}` : ''
+    const prompt = `${name} (${symbol}) | Current price: ${fmt.aud(priceAud, { clarify: true })} | Day change: ${pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}${rangeCtx}\n\nProvide a concise analysis covering price action, key support/resistance levels, macro factors from an Australian investor perspective, and short-term outlook. Use the exact price figures provided. Maximum 150 words.`
     try {
       await askClaude([{ role:'user', content: prompt }], (_, full) => setText(full))
     } catch (e) {
@@ -376,6 +379,13 @@ export default function DetailModal() {
   const pctSign     = pct > 0 ? '+' : ''
   const isInWatchlist = watchlist.includes(symbol)
 
+  // US stocks come in USD from Yahoo Finance — convert to AUD for all headline displays
+  const isUsd        = type === 'us'
+  const displayPrice  = isUsd && price          != null ? usdToAud(price)           : price
+  const displayChange = isUsd && change         != null ? usdToAud(change)          : change
+  const display52High = isUsd && extra.week52High != null ? usdToAud(extra.week52High) : extra.week52High
+  const display52Low  = isUsd && extra.week52Low  != null ? usdToAud(extra.week52Low)  : extra.week52Low
+
   // Build chart data
   let chartData   = []
   let isLiveChart = false
@@ -424,10 +434,10 @@ export default function DetailModal() {
   const handleAskAI = () => {
     const priceContext = [
       `${name} (${symbol})`,
-      `Current price: A$${fmt.price(price)}`,
+      `Current price: A$${fmt.price(displayPrice)}`,
       pct != null ? `Day change: ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : null,
-      extra.week52High != null ? `52W High: A$${fmt.price(extra.week52High)}` : null,
-      extra.week52Low  != null ? `52W Low: A$${fmt.price(extra.week52Low)}`  : null,
+      display52High != null ? `52W High: A$${fmt.price(display52High)}` : null,
+      display52Low  != null ? `52W Low: A$${fmt.price(display52Low)}`   : null,
     ].filter(Boolean).join(' | ')
     const prompt = `${priceContext}\n\nProvide professional analysis: price action, key levels, main drivers, and short-term outlook from an Australian investor perspective. Use the exact price figures provided above.`
     closeModal()
@@ -469,19 +479,30 @@ export default function DetailModal() {
 
         {/* Price row */}
         <div className="flex items-center gap-4 px-4 py-2 border-b border-terminal-border flex-shrink-0 flex-wrap">
-          <span className="text-2xl font-bold text-terminal-text-bright">{fmt.aud(price)}</span>
-          {change != null && (
-            <span className={`text-sm font-semibold ${priceCls}`}>{change > 0 ? '+' : ''}{fmt.price(change)}</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-2xl font-bold text-terminal-text-bright">
+              {fmt.aud(displayPrice, { clarify: true })}
+            </span>
+            {isUsd && price != null && (
+              <span className="text-xs text-terminal-text-dim/50 mt-0.5">
+                US${fmt.price(price)}
+              </span>
+            )}
+          </div>
+          {displayChange != null && (
+            <span className={`text-sm font-semibold ${priceCls}`}>
+              {displayChange > 0 ? '+' : ''}{fmt.aud(displayChange, { clarify: true })}
+            </span>
           )}
           {pct != null && (
             <span className={`text-lg font-bold ${priceCls}`}>{pct > 0 ? '▲' : pct < 0 ? '▼' : ''} {pctSign}{pct?.toFixed(2)}%</span>
           )}
           <div className="ml-auto flex items-center gap-3">
             <MarketStatusBadge extra={extra} />
-            {extra.week52High != null && (
+            {display52High != null && (
               <div className="w-48">
                 <div className="text-2xs text-terminal-text-dim/50 mb-0.5">52W RANGE</div>
-                <RangeBar price={price} low={extra.week52Low} high={extra.week52High} />
+                <RangeBar price={displayPrice} low={display52Low} high={display52High} />
               </div>
             )}
           </div>
@@ -576,8 +597,8 @@ export default function DetailModal() {
                 { label: 'HIGH',        value: latest.high  ? fmt.aud(latest.high)  : extra.high  ? fmt.aud(extra.high)  : '—', cls: 'text-terminal-green' },
                 { label: 'LOW',         value: latest.low   ? fmt.aud(latest.low)   : extra.low   ? fmt.aud(extra.low)   : '—', cls: 'text-terminal-red' },
                 { label: 'CLOSE',       value: latest.close ? fmt.aud(latest.close) : '—' },
-                { label: 'PERIOD HIGH', value: allHigh      ? fmt.aud(allHigh)      : extra.week52High ? fmt.aud(extra.week52High) : '—', cls: 'text-terminal-green' },
-                { label: 'PERIOD LOW',  value: allLow       ? fmt.aud(allLow)       : extra.week52Low  ? fmt.aud(extra.week52Low)  : '—', cls: 'text-terminal-red' },
+                { label: 'PERIOD HIGH', value: allHigh       ? fmt.aud(allHigh)       : display52High ? fmt.aud(display52High) : '—', cls: 'text-terminal-green' },
+                { label: 'PERIOD LOW',  value: allLow        ? fmt.aud(allLow)        : display52Low  ? fmt.aud(display52Low)  : '—', cls: 'text-terminal-red' },
               ].map((s) => (
                 <div key={s.label}>
                   <div className="text-2xs text-terminal-text-dim">{s.label}</div>
@@ -595,7 +616,7 @@ export default function DetailModal() {
         <AssetNewsPanel symbol={symbol} name={name} />
 
         {/* AI analysis */}
-        <AIAnalysisPanel key={symbol} asset={modalAsset} />
+        <AIAnalysisPanel key={symbol} asset={modalAsset} displayPrice={displayPrice} display52High={display52High} display52Low={display52Low} />
 
         {/* Actions */}
         <div className="flex items-center justify-between px-4 py-2 border-t border-terminal-border bg-terminal-bg flex-shrink-0">
