@@ -502,7 +502,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
       <div className="flex">
         {/* Heatmap grid */}
         <div className={`p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
-          <div className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-3 xl:grid-cols-4'}`}>
+          <div className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-3 xl:grid-cols-4'}`} style={{ gridTemplateRows: 'auto', height: 'auto' }}>
             {GICS_SECTORS.map((sector) => {
               const cfg = sectorConfig[sector]
               const isSelected = selected === sector
@@ -575,9 +575,9 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               )
             })}
             {/* filler to complete last grid row (11 sectors → 12 = clean 4-col or 3-col fill) */}
-            <div style={{ visibility: 'hidden' }} aria-hidden="true" />
+            <div style={{ height: 0, visibility: 'hidden', padding: 0, margin: 0 }} aria-hidden="true" />
           </div>
-          <div className="mt-2 text-2xs text-terminal-text-dim/50 text-center">
+          <div className="text-2xs text-terminal-text-dim/50 text-center" style={{ marginTop: 8 }}>
             {isLive
               ? `GICS sector proxy prices · Yahoo Finance · ${updatedTime} AEST`
               : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
