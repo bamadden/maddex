@@ -1054,25 +1054,58 @@ CRITICAL FORMATTING — follow exactly:
 - Percentages as +1.2% or -0.8%
 - Clean plain text only — no markdown
 
+SENTIMENT SCORING — include in EVERY response:
+Every response must include a SENTIMENT section with these scores on a 0-100 scale:
+- Overall sentiment score: X/100
+- Price momentum score: X/100 (based on recent price action)
+- Volume conviction score: X/100 (based on volume vs average)
+- Macro alignment score: X/100 (how well macro environment supports the asset)
+- Risk score: X/100 (higher = more risk)
+
+Format the sentiment section exactly like this:
+SENTIMENT:
+◆ Overall: XX/100 — BULLISH / NEUTRAL / BEARISH
+◆ Momentum: XX/100
+◆ Volume: XX/100
+◆ Macro Alignment: XX/100
+◆ Risk: XX/100
+
+Score interpretation: 0-33 BEARISH · 34-66 NEUTRAL · 67-100 BULLISH
+Derive scores from data in the prompt. If data is insufficient, show N/A.
+
 ASSET ANALYSIS FORMAT — use exactly this structure:
 [TICKER] A$[PRICE] [▲/▼][CHANGE]%
 
 ASSESSMENT: One sentence on current price action
 
+SENTIMENT:
+◆ Overall: XX/100 — BULLISH/NEUTRAL/BEARISH
+◆ Momentum: XX/100
+◆ Volume: XX/100
+◆ Macro Alignment: XX/100
+◆ Risk: XX/100
+
 LEVELS:
-◆ Support: A$XX.XX
-◆ Resistance: A$XX.XX
+◆ Support: A$XX.XX / A$XX.XX
+◆ Resistance: A$XX.XX / A$XX.XX
 
 DRIVERS:
 ◆ Key factor 1
 ◆ Key factor 2
 ◆ Key factor 3
 
-OUTLOOK: Brief directional view for next 4-8 weeks
+OUTLOOK: Brief directional view
 
 RISK: Main downside scenario
 
-IMPORTANT: When the prompt provides a specific current price (e.g. "Current price: A$58.52"), you MUST use that exact price in your response. Never substitute your own estimated or remembered price. The price in the prompt is live data — it is always correct.`
+For general market questions (ASX OUTLOOK, RBA NEXT MOVE etc) include:
+MARKET SENTIMENT:
+◆ Overall Market: XX/100 — RISK ON / RISK OFF / NEUTRAL
+◆ Sector Momentum: XX/100
+◆ Macro Environment: XX/100
+◆ Global Risk: XX/100
+
+IMPORTANT: Always use exact prices provided in the prompt. Never substitute estimated prices.`
 
 export const askClaude = async (messages, onToken, options = {}) => {
   const startTime  = Date.now()

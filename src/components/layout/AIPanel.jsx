@@ -51,6 +51,51 @@ function formatInline(text) {
     .replace(/^#+\s*/g, '')
 }
 
+// ─── Sentiment score rendering ─────────────────────────────────────────────────
+
+function scoreColour(score) {
+  if (score >= 67) return 'var(--color-gain)'
+  if (score >= 34) return 'var(--mt-amber, #fbbf24)'
+  return 'var(--color-loss)'
+}
+
+function sentimentLabelColour(label) {
+  const u = label?.toUpperCase()
+  if (u === 'BULLISH' || u === 'RISK ON') return 'var(--color-gain)'
+  if (u === 'BEARISH' || u === 'RISK OFF') return 'var(--color-loss)'
+  return 'var(--mt-amber, #fbbf24)'
+}
+
+function ScoreBar({ score }) {
+  const colour = scoreColour(score)
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', gap:'6px' }}>
+      <span style={{ color: colour, fontWeight: 700 }}>{score}/100</span>
+      <span style={{
+        display:'inline-block', width:'60px', height:'3px',
+        background:'rgba(100,120,160,0.25)', borderRadius:'2px', flexShrink:0,
+      }}>
+        <span style={{
+          display:'block', width:`${score}%`, height:'100%',
+          background: colour, borderRadius:'2px',
+        }} />
+      </span>
+    </span>
+  )
+}
+
+// Detect sentiment bullet: "Label: XX/100 — BULLISH" or "Label: XX/100"
+function parseSentimentBullet(text) {
+  const m = text.match(/^([\w][\w\s]*):\s*(\d+)\/100(?:\s*[—\-]\s*([A-Z][A-Z\s]+))?/)
+  if (!m) return null
+  const score = parseInt(m[2], 10)
+  return { label: m[1].trim(), score, sentiment: m[3]?.trim() ?? null }
+}
+
+// Check if we're inside a SENTIMENT: section (simple heuristic: label is one of the known fields)
+const SENTIMENT_FIELDS = new Set(['Overall', 'Momentum', 'Volume', 'Macro Alignment', 'Risk',
+  'Overall Market', 'Sector Momentum', 'Macro Environment', 'Global Risk'])
+
 // ─── Formatted response renderer ──────────────────────────────────────────────
 
 function FormattedResponse({ text }) {
@@ -103,6 +148,26 @@ function FormattedResponse({ text }) {
         // Bullet: ◆ - • *
         if (/^[◆\-\*•]\s/.test(trimmed)) {
           const content = trimmed.replace(/^[◆\-\*•]\s*/, '')
+          const parsed  = parseSentimentBullet(content)
+
+          if (parsed && SENTIMENT_FIELDS.has(parsed.label)) {
+            return (
+              <div key={i} style={{ display:'flex', gap:'8px', padding:'2px 0 2px 8px', alignItems:'center' }}>
+                <span style={{ color:'var(--mt-gold)', flexShrink:0 }}>◆</span>
+                <span style={{ color:'var(--mt-muted)', minWidth:'120px', flexShrink:0 }}>{parsed.label}:</span>
+                {parsed.score != null
+                  ? <ScoreBar score={parsed.score} />
+                  : <span style={{ color:'var(--mt-muted)' }}>N/A</span>
+                }
+                {parsed.sentiment && (
+                  <span style={{ color: sentimentLabelColour(parsed.sentiment), fontWeight:700, fontSize:'10px', marginLeft:'4px' }}>
+                    {parsed.sentiment}
+                  </span>
+                )}
+              </div>
+            )
+          }
+
           return (
             <div key={i} style={{ display: 'flex', gap: '8px', padding: '2px 0 2px 8px', alignItems: 'flex-start' }}>
               <span style={{ color: 'var(--mt-gold)', flexShrink: 0, marginTop: '1px' }}>◆</span>

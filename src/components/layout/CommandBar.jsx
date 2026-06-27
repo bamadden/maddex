@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useDebounce } from '../../hooks/useDebounce'
 import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, askClaude } from '../../services/api'
 import { detectAssetType } from '../../utils/assetUtils'
 
@@ -384,6 +385,54 @@ function AlertBadge({ alerts }) {
   )
 }
 
+// ─── Suggestions dropdown (memoised to avoid re-renders on every keystroke) ──
+
+const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx, onMouseSelect, onExecute }) {
+  if (!suggestions.length) return null
+  return (
+    <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
+      {suggestions.map((s, i) => (
+        <div
+          key={s.sym}
+          className={`flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
+            i === suggestIdx
+              ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
+              : 'hover:bg-terminal-accent/20 border-l-2 border-transparent'
+          }`}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            onMouseSelect(s)
+            if (s.type === 'cmd') setTimeout(() => onExecute(s.label), 0)
+          }}
+        >
+          <span className={`font-bold font-mono w-28 flex-shrink-0 ${
+            s.type === 'cmd'    ? 'text-terminal-gold' :
+            s.type === 'asx'   ? 'text-terminal-text-bright' :
+            s.type === 'crypto'? 'text-terminal-green' :
+            s.type === 'index' ? 'text-terminal-blue-bright' :
+            s.type === 'fx'    ? 'text-[#4a9dd9]' :
+            'text-terminal-text'
+          }`}>{s.label}</span>
+          <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
+          <span className={`text-2xs px-1 border flex-shrink-0 ${
+            s.type === 'cmd'    ? 'border-terminal-gold/40 text-terminal-gold/60' :
+            s.type === 'asx'   ? 'border-terminal-text-bright/20 text-terminal-text-dim' :
+            s.type === 'crypto'? 'border-terminal-green/30 text-terminal-green/60' :
+            s.type === 'index' ? 'border-terminal-blue-bright/30 text-terminal-blue-bright/60' :
+            'border-terminal-border/40 text-terminal-text-dim'
+          }`}>{s.type?.toUpperCase()}</span>
+        </div>
+      ))}
+      <div className="px-3 py-1 border-t border-terminal-border/40 text-2xs text-terminal-text-dim/40 flex items-center gap-3">
+        <span>↑↓ navigate</span>
+        <span>TAB fill</span>
+        <span>ENTER execute</span>
+        <span className="ml-auto">ESC close</span>
+      </div>
+    </div>
+  )
+})
+
 // ─── Main CommandBar ──────────────────────────────────────────────────────────
 
 export default function CommandBar() {
@@ -398,14 +447,16 @@ export default function CommandBar() {
 
   const { audUsd } = useAudRates()
 
-  const [input,      setInput]      = useState('')
-  const [status,     setStatus]     = useState('READY')
-  const [histIdx,    setHistIdx]     = useState(-1)
-  const [suggestions,setSuggestions] = useState([])
-  const [suggestIdx, setSuggestIdx]  = useState(-1)
-  const [helpOpen,   setHelpOpen]    = useState(false)
-  const [movers,     setMovers]      = useState(null)
+  const [inputValue,  setInputValue]  = useState('')
+  const [status,      setStatus]      = useState('READY')
+  const [histIdx,     setHistIdx]     = useState(-1)
+  const [suggestions, setSuggestions] = useState([])
+  const [suggestIdx,  setSuggestIdx]  = useState(-1)
+  const [helpOpen,    setHelpOpen]    = useState(false)
+  const [movers,      setMovers]      = useState(null)
   const [compareAssets, setCompareAssets] = useState(null)
+
+  const debouncedValue = useDebounce(inputValue, 150)
 
   const inputRef = useRef(null)
 
@@ -438,16 +489,18 @@ export default function CommandBar() {
     return () => window.removeEventListener('keydown', handler)
   }, [setActiveModule])
 
-  // ── Autocomplete logic ───────────────────────────────────────────────────────
-  const handleInputChange = (e) => {
-    const val = e.target.value
-    setInput(val)
+  // ── Autocomplete — debounced so typing never blocks the UI ──────────────────
+  const handleChange = (e) => {
+    setInputValue(e.target.value)
     setHistIdx(-1)
-    setSuggestIdx(-1)
-    setSuggestions(val.trim() ? getSuggestions(val) : [])
   }
 
-  // ── Key handling ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    setSuggestIdx(-1)
+    setSuggestions(debouncedValue.trim() ? getSuggestions(debouncedValue) : [])
+  }, [debouncedValue])
+
+  // ── Key handling — only navigation keys, no processing on regular keystrokes ─
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowUp') {
       e.preventDefault()
@@ -457,7 +510,7 @@ export default function CommandBar() {
         const allHist = localHistory.length ? localHistory : cmdHistory
         const idx = Math.min(histIdx + 1, allHist.length - 1)
         setHistIdx(idx)
-        setInput(allHist[idx] ?? '')
+        setInputValue(allHist[idx] ?? '')
       }
       return
     }
@@ -469,30 +522,30 @@ export default function CommandBar() {
         const allHist = localHistory.length ? localHistory : cmdHistory
         const idx = Math.max(histIdx - 1, -1)
         setHistIdx(idx)
-        setInput(idx === -1 ? '' : allHist[idx])
+        setInputValue(idx === -1 ? '' : allHist[idx])
       }
       return
     }
     if (e.key === 'Tab') {
       e.preventDefault()
       const sel = suggestIdx >= 0 ? suggestions[suggestIdx] : suggestions[0]
-      if (sel) { setInput(sel.label); setSuggestions([]); setSuggestIdx(-1) }
+      if (sel) { setInputValue(sel.label); setSuggestions([]); setSuggestIdx(-1) }
       return
     }
     if (e.key === 'Escape') {
       setSuggestions([]); setSuggestIdx(-1); return
     }
     if (e.key === 'Enter') {
-      // If a suggestion is highlighted, fill it in first
       if (suggestIdx >= 0 && suggestions[suggestIdx]) {
         const sel = suggestions[suggestIdx]
-        setInput(sel.label)
+        setInputValue(sel.label)
         setSuggestions([])
         setSuggestIdx(-1)
-        // Only execute if it's a command, not a symbol (let user confirm price etc)
         if (sel.type !== 'cmd') return
       }
-      execute(suggestIdx >= 0 && suggestions[suggestIdx]?.type !== 'cmd' ? suggestions[suggestIdx]?.label ?? input : input)
+      execute(suggestIdx >= 0 && suggestions[suggestIdx]?.type !== 'cmd'
+        ? suggestions[suggestIdx]?.label ?? inputValue
+        : inputValue)
     }
   }
 
@@ -645,7 +698,7 @@ export default function CommandBar() {
 
     pushHistory(trimmed)
     setHistIdx(-1)
-    setInput('')
+    setInputValue('')
     setSuggestions([])
 
     // ── HELP ──
@@ -776,51 +829,12 @@ export default function CommandBar() {
       {compareAssets && <CompareModal assets={compareAssets} onClose={() => setCompareAssets(null)} />}
 
       <div className="relative flex-shrink-0">
-        {/* Autocomplete dropdown — appears above */}
-        {suggestions.length > 0 && (
-          <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
-            {suggestions.map((s, i) => (
-              <div
-                key={s.sym}
-                className={`flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
-                  i === suggestIdx
-                    ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
-                    : 'hover:bg-terminal-accent/20 border-l-2 border-transparent'
-                }`}
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  setInput(s.label)
-                  setSuggestions([])
-                  setSuggestIdx(-1)
-                  if (s.type === 'cmd') setTimeout(() => execute(s.label), 0)
-                }}
-              >
-                <span className={`font-bold font-mono w-28 flex-shrink-0 ${
-                  s.type === 'cmd'    ? 'text-terminal-gold' :
-                  s.type === 'asx'   ? 'text-terminal-text-bright' :
-                  s.type === 'crypto'? 'text-terminal-green' :
-                  s.type === 'index' ? 'text-terminal-blue-bright' :
-                  s.type === 'fx'    ? 'text-[#4a9dd9]' :
-                  'text-terminal-text'
-                }`}>{s.label}</span>
-                <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
-                <span className={`text-2xs px-1 border flex-shrink-0 ${
-                  s.type === 'cmd'    ? 'border-terminal-gold/40 text-terminal-gold/60' :
-                  s.type === 'asx'   ? 'border-terminal-text-bright/20 text-terminal-text-dim' :
-                  s.type === 'crypto'? 'border-terminal-green/30 text-terminal-green/60' :
-                  s.type === 'index' ? 'border-terminal-blue-bright/30 text-terminal-blue-bright/60' :
-                  'border-terminal-border/40 text-terminal-text-dim'
-                }`}>{s.type?.toUpperCase()}</span>
-              </div>
-            ))}
-            <div className="px-3 py-1 border-t border-terminal-border/40 text-2xs text-terminal-text-dim/40 flex items-center gap-3">
-              <span>↑↓ navigate</span>
-              <span>TAB fill</span>
-              <span>ENTER execute</span>
-              <span className="ml-auto">ESC close</span>
-            </div>
-          </div>
-        )}
+        <SuggestionsList
+          suggestions={suggestions}
+          suggestIdx={suggestIdx}
+          onMouseSelect={(s) => { setInputValue(s.label); setSuggestions([]); setSuggestIdx(-1) }}
+          onExecute={execute}
+        />
 
         {/* Command bar */}
         <div className="flex items-center bg-terminal-bg border-t border-terminal-border px-3 py-1.5 gap-3">
@@ -829,11 +843,12 @@ export default function CommandBar() {
           <input
             ref={inputRef}
             className="cmd-input flex-1 text-xs"
-            value={input}
-            onChange={handleInputChange}
+            value={inputValue}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
-            onFocus={() => { if (input.trim()) setSuggestions(getSuggestions(input)) }}
+            onFocus={() => { if (inputValue.trim()) setSuggestions(getSuggestions(inputValue)) }}
             placeholder="Ticker · Command · Question — type HELP or ? for all commands"
+            inputMode="text"
             autoComplete="off"
             spellCheck={false}
           />
