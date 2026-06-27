@@ -4,6 +4,8 @@ import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import { fetchGeoNews, fetchNews } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
+import COUNTRIES from '../../data/countryDatabase'
+import { initCountryDataRefresh } from '../../services/countryApiService'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -77,6 +79,8 @@ const COUNTRY_A2 = {
 const flagEmoji = (a2) => a2
   ? [...a2.toUpperCase()].map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join('')
   : '🌐'
+
+const COUNTRIES_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 
 // ─── Country Detail Data — June 2026 release values ──────────────────────────
 
@@ -1212,7 +1216,45 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
 
 // ─── Country Side Panel ───────────────────────────────────────────────────────
 
-function CountryPanel({ id, newsItems, audRates, onClose, onAskAI }) {
+// ─── Currency display helpers ─────────────────────────────────────────────────
+
+const FALLBACK_AUD_USD = 0.6488
+
+function fmtGdpTotal(usdMillions, audUsd, mode) {
+  if (usdMillions == null) return null
+  const v = mode === 'AUD' ? usdMillions / audUsd : usdMillions
+  const sym = mode === 'AUD' ? 'A$' : 'US$'
+  if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}T`
+  if (v >= 1_000)     return `${sym}${(v / 1_000).toFixed(1)}B`
+  return `${sym}${v.toFixed(0)}M`
+}
+
+function fmtPerCapita(usd, audUsd, mode) {
+  if (usd == null) return null
+  const v = mode === 'AUD' ? usd / audUsd : usd
+  const sym = mode === 'AUD' ? 'A$' : 'US$'
+  return `${sym}${Math.round(v).toLocaleString('en-AU')}`
+}
+
+function fmtAuTrade(audMillions, audUsd, mode) {
+  if (audMillions == null) return null
+  // auTradeValue stored in AUD millions — convert to USD if needed
+  const v = mode === 'USD' ? audMillions * audUsd : audMillions
+  const sym = mode === 'USD' ? 'US$' : 'A$'
+  if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}T`
+  if (v >= 1_000)     return `${sym}${(v / 1_000).toFixed(1)}B`
+  return `${sym}${v.toFixed(0)}M`
+}
+
+function FreshnessDot({ status }) {
+  if (status === 'fresh')     return <span title="Live data (≤7 days)" style={{ color: '#22c55e', fontSize: 9 }}>●</span>
+  if (status === 'stale')     return <span title="Stale data (>7 days)" style={{ color: '#fbbf24', fontSize: 9 }}>●</span>
+  return <span title="Hardcoded data" style={{ color: '#6b7280', fontSize: 9 }}>●</span>
+}
+
+// ─── Country Panel ────────────────────────────────────────────────────────────
+
+function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
   const n  = parseInt(id)
   const name = COUNTRY_NAMES[n] ?? 'Unknown Territory'
   const detail = COUNTRY_DETAIL[n]
@@ -1222,6 +1264,7 @@ function CountryPanel({ id, newsItems, audRates, onClose, onAskAI }) {
   const st = ex ? getStatus(ex) : null
   const lt = detail?.tz ? localTime(detail.tz) : null
   const riskRating = getRiskRating(n)
+  const dbEntry = COUNTRIES_BY_A2[COUNTRY_A2[n] ?? ''] ?? null
 
   const relatedNews = useMemo(() => {
     if (!newsItems || !name) return []
@@ -1251,7 +1294,18 @@ function CountryPanel({ id, newsItems, audRates, onClose, onAskAI }) {
             <div className="text-2xs text-terminal-text-dim">{detail?.currency ?? '—'} · {lt ?? '—'}</div>
           </div>
         </div>
-        <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
+        <div className="flex items-center gap-2">
+          {onCurrencyToggle && (
+            <button
+              onClick={onCurrencyToggle}
+              className="text-2xs border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
+              title="Toggle AUD/USD display"
+            >
+              {currencyMode === 'AUD' ? 'A$' : 'US$'}
+            </button>
+          )}
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -1334,28 +1388,94 @@ function CountryPanel({ id, newsItems, audRates, onClose, onAskAI }) {
           </div>
         )}
 
+        {/* GDP size (from countryDatabase) */}
+        {dbEntry && (dbEntry.gdpTotal != null || dbEntry.gdpPerCapita != null) && (
+          <div className="px-3 py-2 border-b border-terminal-border/50">
+            <div className="flex items-center gap-1 text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">
+              GDP Scale
+              <FreshnessDot status="hardcoded" />
+            </div>
+            <div className="space-y-1">
+              {dbEntry.gdpTotal != null && (
+                <div className="flex justify-between text-2xs">
+                  <span className="text-terminal-text-dim">GDP Total</span>
+                  <div className="text-right">
+                    <span className="font-bold text-terminal-text-bright">
+                      {fmtGdpTotal(dbEntry.gdpTotal, audUsd, currencyMode)}
+                    </span>
+                    <span className="text-terminal-text-dim/50 ml-1.5">
+                      ({fmtGdpTotal(dbEntry.gdpTotal, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})
+                    </span>
+                  </div>
+                </div>
+              )}
+              {dbEntry.gdpPerCapita != null && (
+                <div className="flex justify-between text-2xs">
+                  <span className="text-terminal-text-dim">GDP / Capita</span>
+                  <div className="text-right">
+                    <span className="font-bold text-terminal-text-bright">
+                      {fmtPerCapita(dbEntry.gdpPerCapita, audUsd, currencyMode)}
+                    </span>
+                    <span className="text-terminal-text-dim/50 ml-1.5">
+                      ({fmtPerCapita(dbEntry.gdpPerCapita, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})
+                    </span>
+                  </div>
+                </div>
+              )}
+              {dbEntry.unemployment != null && (
+                <div className="flex justify-between text-2xs">
+                  <span className="text-terminal-text-dim">Unemployment</span>
+                  <span className="font-bold text-terminal-text-bright">{dbEntry.unemployment}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Economy brief */}
-        {extra?.economy && (
+        {(extra?.economy || dbEntry?.description) && (
           <div className="px-3 py-2 border-b border-terminal-border/50">
             <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Economy</div>
-            <div className="text-2xs text-terminal-text leading-relaxed">{extra.economy}</div>
+            <div className="text-2xs text-terminal-text leading-relaxed">{extra?.economy ?? dbEntry?.description}</div>
           </div>
         )}
 
         {/* AU Trade Relationship */}
-        {extra?.auTrade && (
+        {(extra?.auTrade || dbEntry?.auRelationship || dbEntry?.auTradeValue != null) && (
           <div className="px-3 py-2 border-b border-terminal-border/50">
             <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">AU Trade Relationship</div>
-            <div className="text-2xs text-terminal-text leading-relaxed">{extra.auTrade}</div>
+            {extra?.auTrade
+              ? <div className="text-2xs text-terminal-text leading-relaxed">{extra.auTrade}</div>
+              : (
+                <>
+                  {dbEntry?.auRelationship && (
+                    <div className="text-2xs text-terminal-text leading-relaxed mb-1">{dbEntry.auRelationship}</div>
+                  )}
+                  {dbEntry?.auTradeValue != null && (
+                    <div className="flex justify-between text-2xs mt-1">
+                      <span className="text-terminal-text-dim">AU Bilateral Trade</span>
+                      <div className="text-right">
+                        <span className="font-bold text-terminal-text-bright">
+                          {fmtAuTrade(dbEntry.auTradeValue, audUsd, currencyMode)}
+                        </span>
+                        <span className="text-terminal-text-dim/50 ml-1.5">
+                          ({fmtAuTrade(dbEntry.auTradeValue, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            }
           </div>
         )}
 
         {/* Trading partners */}
-        {detail?.partners && (
+        {(detail?.partners || dbEntry?.topTradingPartners) && (
           <div className="px-3 py-2 border-b border-terminal-border/50">
             <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Top Trading Partners</div>
             <div className="flex flex-wrap gap-1">
-              {detail.partners.map(p => (
+              {(detail?.partners ?? dbEntry?.topTradingPartners ?? []).map(p => (
                 <span key={p} className="text-2xs px-1 py-0.5 border border-terminal-border text-terminal-text">{p}</span>
               ))}
             </div>
@@ -2163,6 +2283,26 @@ export default function GlobalModule() {
   })
 
   const { rates } = useAudRates()
+  const audUsd = rates?.USD ?? FALLBACK_AUD_USD
+
+  // Currency mode (AUD vs USD) — persisted to localStorage
+  const [currencyMode, setCurrencyMode] = useState(() => {
+    try { return localStorage.getItem('maddex_currency_pref') ?? 'AUD' } catch { return 'AUD' }
+  })
+  const handleCurrencyToggle = useCallback(() => {
+    setCurrencyMode(m => {
+      const next = m === 'AUD' ? 'USD' : 'AUD'
+      try { localStorage.setItem('maddex_currency_pref', next) } catch {}
+      return next
+    })
+  }, [])
+
+  // Startup: country data refresh + gap report
+  useEffect(() => {
+    console.log(`[MADDEX] Country database: ${COUNTRIES.length} entries loaded`)
+    const alpha2Set = new Set(COUNTRIES.map(c => c.alpha2))
+    initCountryDataRefresh(alpha2Set).catch(err => console.warn('[MADDEX] Country refresh error:', err))
+  }, [])
 
   // Time tick (30s)
   useEffect(() => {
@@ -2342,6 +2482,9 @@ export default function GlobalModule() {
                 id={selectedCountry}
                 newsItems={allNewsItems}
                 audRates={rates}
+                audUsd={audUsd}
+                currencyMode={currencyMode}
+                onCurrencyToggle={handleCurrencyToggle}
                 onClose={() => { setSelectedCountry(null); setActiveTab('maritime') }}
                 onAskAI={handleAskAI}
               />
