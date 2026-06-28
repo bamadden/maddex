@@ -5,6 +5,7 @@ export const COUNTRIES = [
   {
     name: 'United States',
     alpha2: 'US',
+    timezone: 'America/New_York',
     capital: 'Washington D.C.',
     population: 341_000_000,
     gdpTotal: 30_300_000,        // USD million
@@ -30,6 +31,7 @@ export const COUNTRIES = [
   {
     name: 'China',
     alpha2: 'CN',
+    timezone: 'Asia/Shanghai',
     capital: 'Beijing',
     population: 1_408_000_000,
     gdpTotal: 19_500_000,
@@ -55,6 +57,7 @@ export const COUNTRIES = [
   {
     name: 'Japan',
     alpha2: 'JP',
+    timezone: 'Asia/Tokyo',
     capital: 'Tokyo',
     population: 124_200_000,
     gdpTotal: 4_230_000,
@@ -80,6 +83,7 @@ export const COUNTRIES = [
   {
     name: 'Germany',
     alpha2: 'DE',
+    timezone: 'Europe/Berlin',
     capital: 'Berlin',
     population: 84_600_000,
     gdpTotal: 4_460_000,
@@ -105,6 +109,7 @@ export const COUNTRIES = [
   {
     name: 'United Kingdom',
     alpha2: 'GB',
+    timezone: 'Europe/London',
     capital: 'London',
     population: 67_600_000,
     gdpTotal: 3_340_000,
@@ -130,6 +135,7 @@ export const COUNTRIES = [
   {
     name: 'France',
     alpha2: 'FR',
+    timezone: 'Europe/Paris',
     capital: 'Paris',
     population: 68_300_000,
     gdpTotal: 3_130_000,
@@ -155,6 +161,7 @@ export const COUNTRIES = [
   {
     name: 'India',
     alpha2: 'IN',
+    timezone: 'Asia/Kolkata',
     capital: 'New Delhi',
     population: 1_441_000_000,
     gdpTotal: 4_270_000,
@@ -180,6 +187,7 @@ export const COUNTRIES = [
   {
     name: 'Italy',
     alpha2: 'IT',
+    timezone: 'Europe/Rome',
     capital: 'Rome',
     population: 58_900_000,
     gdpTotal: 2_300_000,
@@ -205,6 +213,7 @@ export const COUNTRIES = [
   {
     name: 'Canada',
     alpha2: 'CA',
+    timezone: 'America/Toronto',
     capital: 'Ottawa',
     population: 40_100_000,
     gdpTotal: 2_240_000,
@@ -230,6 +239,7 @@ export const COUNTRIES = [
   {
     name: 'South Korea',
     alpha2: 'KR',
+    timezone: 'Asia/Seoul',
     capital: 'Seoul',
     population: 51_700_000,
     gdpTotal: 1_760_000,
@@ -255,6 +265,7 @@ export const COUNTRIES = [
   {
     name: 'Australia',
     alpha2: 'AU',
+    timezone: 'Australia/Sydney',
     capital: 'Canberra',
     population: 26_800_000,
     gdpTotal: 1_780_000,
@@ -280,6 +291,7 @@ export const COUNTRIES = [
   {
     name: 'Brazil',
     alpha2: 'BR',
+    timezone: 'America/Sao_Paulo',
     capital: 'Brasília',
     population: 215_300_000,
     gdpTotal: 2_330_000,
@@ -305,6 +317,7 @@ export const COUNTRIES = [
   {
     name: 'Russia',
     alpha2: 'RU',
+    timezone: 'Europe/Moscow',
     capital: 'Moscow',
     population: 143_900_000,
     gdpTotal: 2_240_000,
@@ -330,6 +343,7 @@ export const COUNTRIES = [
   {
     name: 'Spain',
     alpha2: 'ES',
+    timezone: 'Europe/Madrid',
     capital: 'Madrid',
     population: 47_400_000,
     gdpTotal: 1_650_000,
@@ -355,6 +369,7 @@ export const COUNTRIES = [
   {
     name: 'Mexico',
     alpha2: 'MX',
+    timezone: 'America/Mexico_City',
     capital: 'Mexico City',
     population: 129_700_000,
     gdpTotal: 1_490_000,
@@ -380,6 +395,7 @@ export const COUNTRIES = [
   {
     name: 'Indonesia',
     alpha2: 'ID',
+    timezone: 'Asia/Jakarta',
     capital: 'Jakarta',
     population: 277_500_000,
     gdpTotal: 1_470_000,
@@ -405,6 +421,7 @@ export const COUNTRIES = [
   {
     name: 'Saudi Arabia',
     alpha2: 'SA',
+    timezone: 'Asia/Riyadh',
     capital: 'Riyadh',
     population: 37_500_000,
     gdpTotal: 1_070_000,
@@ -430,6 +447,7 @@ export const COUNTRIES = [
   {
     name: 'Turkey',
     alpha2: 'TR',
+    timezone: 'Europe/Istanbul',
     capital: 'Ankara',
     population: 85_300_000,
     gdpTotal: 1_360_000,
@@ -455,6 +473,7 @@ export const COUNTRIES = [
   {
     name: 'Switzerland',
     alpha2: 'CH',
+    timezone: 'Europe/Zurich',
     capital: 'Bern',
     population: 8_900_000,
     gdpTotal: 905_000,
@@ -480,6 +499,7 @@ export const COUNTRIES = [
   {
     name: 'Taiwan',
     alpha2: 'TW',
+    timezone: 'Asia/Taipei',
     capital: 'Taipei',
     population: 23_600_000,
     gdpTotal: 800_000,
@@ -505,6 +525,7 @@ export const COUNTRIES = [
   {
     name: 'Poland',
     alpha2: 'PL',
+    timezone: 'Europe/Warsaw',
     capital: 'Warsaw',
     population: 37_600_000,
     gdpTotal: 860_000,
@@ -530,6 +551,7 @@ export const COUNTRIES = [
   {
     name: 'Sweden',
     alpha2: 'SE',
+    timezone: 'Europe/Stockholm',
     capital: 'Stockholm',
     population: 10_600_000,
     gdpTotal: 605_000,
@@ -555,6 +577,7 @@ export const COUNTRIES = [
   {
     name: 'United Arab Emirates',
     alpha2: 'AE',
+    timezone: 'Asia/Dubai',
     capital: 'Abu Dhabi',
     population: 10_000_000,
     gdpTotal: 530_000,
@@ -580,6 +603,7 @@ export const COUNTRIES = [
   {
     name: 'Singapore',
     alpha2: 'SG',
+    timezone: 'Asia/Singapore',
     capital: 'Singapore',
     population: 5_800_000,
     gdpTotal: 500_000,
@@ -605,6 +629,7 @@ export const COUNTRIES = [
   {
     name: 'Malaysia',
     alpha2: 'MY',
+    timezone: 'Asia/Kuala_Lumpur',
     capital: 'Kuala Lumpur',
     population: 34_000_000,
     gdpTotal: 440_000,
@@ -630,6 +655,7 @@ export const COUNTRIES = [
   {
     name: 'New Zealand',
     alpha2: 'NZ',
+    timezone: 'Pacific/Auckland',
     capital: 'Wellington',
     population: 5_200_000,
     gdpTotal: 249_000,
@@ -655,6 +681,7 @@ export const COUNTRIES = [
   {
     name: 'Hong Kong',
     alpha2: 'HK',
+    timezone: 'Asia/Hong_Kong',
     capital: 'Hong Kong',
     population: 7_500_000,
     gdpTotal: 371_000,
@@ -683,6 +710,7 @@ export const COUNTRIES = [
   {
     name: 'Norway',
     alpha2: 'NO',
+    timezone: 'Europe/Oslo',
     capital: 'Oslo',
     population: 5_500_000,
     gdpTotal: 593_000,
@@ -708,6 +736,7 @@ export const COUNTRIES = [
   {
     name: 'Denmark',
     alpha2: 'DK',
+    timezone: 'Europe/Copenhagen',
     capital: 'Copenhagen',
     population: 5_960_000,
     gdpTotal: 415_000,
@@ -733,6 +762,7 @@ export const COUNTRIES = [
   {
     name: 'Finland',
     alpha2: 'FI',
+    timezone: 'Europe/Helsinki',
     capital: 'Helsinki',
     population: 5_600_000,
     gdpTotal: 305_000,
@@ -758,6 +788,7 @@ export const COUNTRIES = [
   {
     name: 'Austria',
     alpha2: 'AT',
+    timezone: 'Europe/Vienna',
     capital: 'Vienna',
     population: 9_100_000,
     gdpTotal: 520_000,
@@ -783,6 +814,7 @@ export const COUNTRIES = [
   {
     name: 'Belgium',
     alpha2: 'BE',
+    timezone: 'Europe/Brussels',
     capital: 'Brussels',
     population: 11_700_000,
     gdpTotal: 640_000,
@@ -808,6 +840,7 @@ export const COUNTRIES = [
   {
     name: 'Netherlands',
     alpha2: 'NL',
+    timezone: 'Europe/Amsterdam',
     capital: 'Amsterdam',
     population: 17_900_000,
     gdpTotal: 1_170_000,
@@ -833,6 +866,7 @@ export const COUNTRIES = [
   {
     name: 'Portugal',
     alpha2: 'PT',
+    timezone: 'Europe/Lisbon',
     capital: 'Lisbon',
     population: 10_300_000,
     gdpTotal: 285_000,
@@ -858,6 +892,7 @@ export const COUNTRIES = [
   {
     name: 'Greece',
     alpha2: 'GR',
+    timezone: 'Europe/Athens',
     capital: 'Athens',
     population: 10_400_000,
     gdpTotal: 240_000,
@@ -883,6 +918,7 @@ export const COUNTRIES = [
   {
     name: 'Czech Republic',
     alpha2: 'CZ',
+    timezone: 'Europe/Prague',
     capital: 'Prague',
     population: 10_900_000,
     gdpTotal: 350_000,
@@ -908,6 +944,7 @@ export const COUNTRIES = [
   {
     name: 'Hungary',
     alpha2: 'HU',
+    timezone: 'Europe/Budapest',
     capital: 'Budapest',
     population: 9_700_000,
     gdpTotal: 220_000,
@@ -933,6 +970,7 @@ export const COUNTRIES = [
   {
     name: 'Romania',
     alpha2: 'RO',
+    timezone: 'Europe/Bucharest',
     capital: 'Bucharest',
     population: 18_900_000,
     gdpTotal: 380_000,
@@ -958,6 +996,7 @@ export const COUNTRIES = [
   {
     name: 'Bulgaria',
     alpha2: 'BG',
+    timezone: 'Europe/Sofia',
     capital: 'Sofia',
     population: 6_200_000,
     gdpTotal: 110_000,
@@ -983,6 +1022,7 @@ export const COUNTRIES = [
   {
     name: 'Slovakia',
     alpha2: 'SK',
+    timezone: 'Europe/Bratislava',
     capital: 'Bratislava',
     population: 5_500_000,
     gdpTotal: 140_000,
@@ -1008,6 +1048,7 @@ export const COUNTRIES = [
   {
     name: 'Croatia',
     alpha2: 'HR',
+    timezone: 'Europe/Zagreb',
     capital: 'Zagreb',
     population: 3_900_000,
     gdpTotal: 85_000,
@@ -1033,6 +1074,7 @@ export const COUNTRIES = [
   {
     name: 'Slovenia',
     alpha2: 'SI',
+    timezone: 'Europe/Ljubljana',
     capital: 'Ljubljana',
     population: 2_100_000,
     gdpTotal: 70_000,
@@ -1058,6 +1100,7 @@ export const COUNTRIES = [
   {
     name: 'Serbia',
     alpha2: 'RS',
+    timezone: 'Europe/Belgrade',
     capital: 'Belgrade',
     population: 6_600_000,
     gdpTotal: 73_000,
@@ -1083,6 +1126,7 @@ export const COUNTRIES = [
   {
     name: 'Lithuania',
     alpha2: 'LT',
+    timezone: 'Europe/Vilnius',
     capital: 'Vilnius',
     population: 2_800_000,
     gdpTotal: 80_000,
@@ -1108,6 +1152,7 @@ export const COUNTRIES = [
   {
     name: 'Latvia',
     alpha2: 'LV',
+    timezone: 'Europe/Riga',
     capital: 'Riga',
     population: 1_800_000,
     gdpTotal: 45_000,
@@ -1133,6 +1178,7 @@ export const COUNTRIES = [
   {
     name: 'Estonia',
     alpha2: 'EE',
+    timezone: 'Europe/Tallinn',
     capital: 'Tallinn',
     population: 1_400_000,
     gdpTotal: 38_000,
@@ -1158,6 +1204,7 @@ export const COUNTRIES = [
   {
     name: 'Iceland',
     alpha2: 'IS',
+    timezone: 'Atlantic/Reykjavik',
     capital: 'Reykjavik',
     population: 380_000,
     gdpTotal: 33_000,
@@ -1183,6 +1230,7 @@ export const COUNTRIES = [
   {
     name: 'Luxembourg',
     alpha2: 'LU',
+    timezone: 'Europe/Luxembourg',
     capital: 'Luxembourg City',
     population: 680_000,
     gdpTotal: 87_000,
@@ -1208,6 +1256,7 @@ export const COUNTRIES = [
   {
     name: 'Malta',
     alpha2: 'MT',
+    timezone: 'Europe/Malta',
     capital: 'Valletta',
     population: 540_000,
     gdpTotal: 22_000,
@@ -1233,6 +1282,7 @@ export const COUNTRIES = [
   {
     name: 'Cyprus',
     alpha2: 'CY',
+    timezone: 'Asia/Nicosia',
     capital: 'Nicosia',
     population: 930_000,
     gdpTotal: 32_000,
@@ -1258,6 +1308,7 @@ export const COUNTRIES = [
   {
     name: 'Albania',
     alpha2: 'AL',
+    timezone: 'Europe/Tirane',
     capital: 'Tirana',
     population: 2_800_000,
     gdpTotal: 21_000,
@@ -1283,6 +1334,7 @@ export const COUNTRIES = [
   {
     name: 'North Macedonia',
     alpha2: 'MK',
+    timezone: 'Europe/Skopje',
     capital: 'Skopje',
     population: 2_100_000,
     gdpTotal: 15_000,
@@ -1308,6 +1360,7 @@ export const COUNTRIES = [
   {
     name: 'Bosnia and Herzegovina',
     alpha2: 'BA',
+    timezone: 'Europe/Sarajevo',
     capital: 'Sarajevo',
     population: 3_300_000,
     gdpTotal: 27_000,
@@ -1333,6 +1386,7 @@ export const COUNTRIES = [
   {
     name: 'Montenegro',
     alpha2: 'ME',
+    timezone: 'Europe/Podgorica',
     capital: 'Podgorica',
     population: 620_000,
     gdpTotal: 7_300,
@@ -1358,6 +1412,7 @@ export const COUNTRIES = [
   {
     name: 'Kosovo',
     alpha2: 'XK',
+    timezone: 'Europe/Belgrade',
     capital: 'Pristina',
     population: 1_800_000,
     gdpTotal: 10_500,
@@ -1383,6 +1438,7 @@ export const COUNTRIES = [
   {
     name: 'Moldova',
     alpha2: 'MD',
+    timezone: 'Europe/Chisinau',
     capital: 'Chișinău',
     population: 2_500_000,
     gdpTotal: 17_000,
@@ -1408,6 +1464,7 @@ export const COUNTRIES = [
   {
     name: 'Belarus',
     alpha2: 'BY',
+    timezone: 'Europe/Minsk',
     capital: 'Minsk',
     population: 9_400_000,
     gdpTotal: 65_000,
@@ -1433,6 +1490,7 @@ export const COUNTRIES = [
   {
     name: 'Ukraine',
     alpha2: 'UA',
+    timezone: 'Europe/Kiev',
     capital: 'Kyiv',
     population: 39_000_000,
     gdpTotal: 155_000,
@@ -1458,6 +1516,7 @@ export const COUNTRIES = [
   {
     name: 'Georgia',
     alpha2: 'GE',
+    timezone: 'Asia/Tbilisi',
     capital: 'Tbilisi',
     population: 3_700_000,
     gdpTotal: 29_000,
@@ -1483,6 +1542,7 @@ export const COUNTRIES = [
   {
     name: 'Armenia',
     alpha2: 'AM',
+    timezone: 'Asia/Yerevan',
     capital: 'Yerevan',
     population: 3_000_000,
     gdpTotal: 25_000,
@@ -1508,6 +1568,7 @@ export const COUNTRIES = [
   {
     name: 'Azerbaijan',
     alpha2: 'AZ',
+    timezone: 'Asia/Baku',
     capital: 'Baku',
     population: 10_400_000,
     gdpTotal: 75_000,
@@ -1536,6 +1597,7 @@ export const COUNTRIES = [
   {
     name: 'Kazakhstan',
     alpha2: 'KZ',
+    timezone: 'Asia/Almaty',
     capital: 'Astana',
     population: 19_700_000,
     gdpTotal: 265_000,
@@ -1561,6 +1623,7 @@ export const COUNTRIES = [
   {
     name: 'Uzbekistan',
     alpha2: 'UZ',
+    timezone: 'Asia/Tashkent',
     capital: 'Tashkent',
     population: 37_500_000,
     gdpTotal: 107_000,
@@ -1586,6 +1649,7 @@ export const COUNTRIES = [
   {
     name: 'Turkmenistan',
     alpha2: 'TM',
+    timezone: 'Asia/Ashgabat',
     capital: 'Ashgabat',
     population: 6_000_000,
     gdpTotal: 57_000,
@@ -1611,6 +1675,7 @@ export const COUNTRIES = [
   {
     name: 'Tajikistan',
     alpha2: 'TJ',
+    timezone: 'Asia/Dushanbe',
     capital: 'Dushanbe',
     population: 10_500_000,
     gdpTotal: 13_000,
@@ -1636,6 +1701,7 @@ export const COUNTRIES = [
   {
     name: 'Kyrgyzstan',
     alpha2: 'KG',
+    timezone: 'Asia/Bishkek',
     capital: 'Bishkek',
     population: 7_200_000,
     gdpTotal: 14_000,
@@ -1664,6 +1730,7 @@ export const COUNTRIES = [
   {
     name: 'Mongolia',
     alpha2: 'MN',
+    timezone: 'Asia/Ulaanbaatar',
     capital: 'Ulaanbaatar',
     population: 3_500_000,
     gdpTotal: 19_000,
@@ -1689,6 +1756,7 @@ export const COUNTRIES = [
   {
     name: 'Afghanistan',
     alpha2: 'AF',
+    timezone: 'Asia/Kabul',
     capital: 'Kabul',
     population: 42_000_000,
     gdpTotal: 15_000,
@@ -1714,6 +1782,7 @@ export const COUNTRIES = [
   {
     name: 'Pakistan',
     alpha2: 'PK',
+    timezone: 'Asia/Karachi',
     capital: 'Islamabad',
     population: 231_000_000,
     gdpTotal: 340_000,
@@ -1739,6 +1808,7 @@ export const COUNTRIES = [
   {
     name: 'Bangladesh',
     alpha2: 'BD',
+    timezone: 'Asia/Dhaka',
     capital: 'Dhaka',
     population: 170_000_000,
     gdpTotal: 460_000,
@@ -1764,6 +1834,7 @@ export const COUNTRIES = [
   {
     name: 'Sri Lanka',
     alpha2: 'LK',
+    timezone: 'Asia/Colombo',
     capital: 'Colombo',
     population: 22_200_000,
     gdpTotal: 87_000,
@@ -1789,6 +1860,7 @@ export const COUNTRIES = [
   {
     name: 'Nepal',
     alpha2: 'NP',
+    timezone: 'Asia/Kathmandu',
     capital: 'Kathmandu',
     population: 30_000_000,
     gdpTotal: 43_000,
@@ -1814,6 +1886,7 @@ export const COUNTRIES = [
   {
     name: 'Myanmar',
     alpha2: 'MM',
+    timezone: 'Asia/Yangon',
     capital: 'Naypyidaw',
     population: 54_500_000,
     gdpTotal: 65_000,
@@ -1839,6 +1912,7 @@ export const COUNTRIES = [
   {
     name: 'Cambodia',
     alpha2: 'KH',
+    timezone: 'Asia/Phnom_Penh',
     capital: 'Phnom Penh',
     population: 17_200_000,
     gdpTotal: 32_000,
@@ -1864,6 +1938,7 @@ export const COUNTRIES = [
   {
     name: 'Laos',
     alpha2: 'LA',
+    timezone: 'Asia/Vientiane',
     capital: 'Vientiane',
     population: 7_500_000,
     gdpTotal: 15_000,
@@ -1889,6 +1964,7 @@ export const COUNTRIES = [
   {
     name: 'Vietnam',
     alpha2: 'VN',
+    timezone: 'Asia/Ho_Chi_Minh',
     capital: 'Hanoi',
     population: 98_200_000,
     gdpTotal: 450_000,
@@ -1914,6 +1990,7 @@ export const COUNTRIES = [
   {
     name: 'Thailand',
     alpha2: 'TH',
+    timezone: 'Asia/Bangkok',
     capital: 'Bangkok',
     population: 71_500_000,
     gdpTotal: 575_000,
@@ -1939,6 +2016,7 @@ export const COUNTRIES = [
   {
     name: 'Philippines',
     alpha2: 'PH',
+    timezone: 'Asia/Manila',
     capital: 'Manila',
     population: 115_000_000,
     gdpTotal: 445_000,
@@ -1967,6 +2045,7 @@ export const COUNTRIES = [
   {
     name: 'Brunei Darussalam',
     alpha2: 'BN',
+    timezone: 'Asia/Brunei',
     capital: 'Bandar Seri Begawan',
     population: 460_000,
     gdpTotal: 14_000,
@@ -1992,6 +2071,7 @@ export const COUNTRIES = [
   {
     name: 'Timor-Leste',
     alpha2: 'TL',
+    timezone: 'Asia/Dili',
     capital: 'Dili',
     population: 1_300_000,
     gdpTotal: 2_400,
@@ -2017,6 +2097,7 @@ export const COUNTRIES = [
   {
     name: 'Papua New Guinea',
     alpha2: 'PG',
+    timezone: 'Pacific/Port_Moresby',
     capital: 'Port Moresby',
     population: 10_300_000,
     gdpTotal: 30_000,
@@ -2042,6 +2123,7 @@ export const COUNTRIES = [
   {
     name: 'Fiji',
     alpha2: 'FJ',
+    timezone: 'Pacific/Fiji',
     capital: 'Suva',
     population: 930_000,
     gdpTotal: 5_900,
@@ -2067,6 +2149,7 @@ export const COUNTRIES = [
   {
     name: 'Vanuatu',
     alpha2: 'VU',
+    timezone: 'Pacific/Efate',
     capital: 'Port Vila',
     population: 330_000,
     gdpTotal: 1_100,
@@ -2092,6 +2175,7 @@ export const COUNTRIES = [
   {
     name: 'Solomon Islands',
     alpha2: 'SB',
+    timezone: 'Pacific/Guadalcanal',
     capital: 'Honiara',
     population: 740_000,
     gdpTotal: 1_800,
@@ -2117,6 +2201,7 @@ export const COUNTRIES = [
   {
     name: 'Samoa',
     alpha2: 'WS',
+    timezone: 'Pacific/Apia',
     capital: 'Apia',
     population: 220_000,
     gdpTotal: 850,
@@ -2142,6 +2227,7 @@ export const COUNTRIES = [
   {
     name: 'Tonga',
     alpha2: 'TO',
+    timezone: 'Pacific/Tongatapu',
     capital: "Nuku'alofa",
     population: 100_000,
     gdpTotal: 550,
@@ -2167,6 +2253,7 @@ export const COUNTRIES = [
   {
     name: 'Kiribati',
     alpha2: 'KI',
+    timezone: 'Pacific/Tarawa',
     capital: 'South Tarawa',
     population: 119_000,
     gdpTotal: 280,
@@ -2192,6 +2279,7 @@ export const COUNTRIES = [
   {
     name: 'Federated States of Micronesia',
     alpha2: 'FM',
+    timezone: 'Pacific/Pohnpei',
     capital: 'Palikir',
     population: 115_000,
     gdpTotal: 430,
@@ -2217,6 +2305,7 @@ export const COUNTRIES = [
   {
     name: 'Palau',
     alpha2: 'PW',
+    timezone: 'Pacific/Palau',
     capital: 'Ngerulmud',
     population: 18_000,
     gdpTotal: 280,
@@ -2242,6 +2331,7 @@ export const COUNTRIES = [
   {
     name: 'Marshall Islands',
     alpha2: 'MH',
+    timezone: 'Pacific/Majuro',
     capital: 'Majuro',
     population: 42_000,
     gdpTotal: 260,
@@ -2267,6 +2357,7 @@ export const COUNTRIES = [
   {
     name: 'Nauru',
     alpha2: 'NR',
+    timezone: 'Pacific/Nauru',
     capital: 'Yaren (de facto)',
     population: 10_000,
     gdpTotal: 160,
@@ -2292,6 +2383,7 @@ export const COUNTRIES = [
   {
     name: 'Tuvalu',
     alpha2: 'TV',
+    timezone: 'Pacific/Funafuti',
     capital: 'Funafuti',
     population: 11_000,
     gdpTotal: 67,
@@ -2322,6 +2414,7 @@ export const COUNTRIES = [
   {
     name: 'Andorra',
     alpha2: 'AD', alpha3: 'AND',
+    timezone: 'Europe/Andorra',
     capital: 'Andorra la Vella',
     population: 79_000,
     area: 468,
@@ -2354,6 +2447,7 @@ export const COUNTRIES = [
   {
     name: 'Monaco',
     alpha2: 'MC', alpha3: 'MCO',
+    timezone: 'Europe/Monaco',
     capital: 'Monaco',
     population: 36_000,
     area: 2.1,
@@ -2386,6 +2480,7 @@ export const COUNTRIES = [
   {
     name: 'San Marino',
     alpha2: 'SM', alpha3: 'SMR',
+    timezone: 'Europe/San_Marino',
     capital: 'San Marino City',
     population: 34_000,
     area: 61.2,
@@ -2418,6 +2513,7 @@ export const COUNTRIES = [
   {
     name: 'Vatican City',
     alpha2: 'VA', alpha3: 'VAT',
+    timezone: 'Europe/Vatican',
     capital: 'Vatican City',
     population: 800,
     area: 0.44,
@@ -2450,6 +2546,7 @@ export const COUNTRIES = [
   {
     name: 'Liechtenstein',
     alpha2: 'LI', alpha3: 'LIE',
+    timezone: 'Europe/Vaduz',
     capital: 'Vaduz',
     population: 39_000,
     area: 160,
@@ -2485,6 +2582,7 @@ export const COUNTRIES = [
   {
     name: 'North Korea',
     alpha2: 'KP', alpha3: 'PRK',
+    timezone: 'Asia/Pyongyang',
     capital: 'Pyongyang',
     population: 25_500_000,
     area: 120_538,
@@ -2520,6 +2618,7 @@ export const COUNTRIES = [
   {
     name: 'Antigua and Barbuda',
     alpha2: 'AG', alpha3: 'ATG',
+    timezone: 'America/Antigua',
     capital: 'St. John\'s',
     population: 100_000,
     area: 441,
@@ -2552,6 +2651,7 @@ export const COUNTRIES = [
   {
     name: 'Dominica',
     alpha2: 'DM', alpha3: 'DMA',
+    timezone: 'America/Dominica',
     capital: 'Roseau',
     population: 72_000,
     area: 750,
@@ -2584,6 +2684,7 @@ export const COUNTRIES = [
   {
     name: 'Grenada',
     alpha2: 'GD', alpha3: 'GRD',
+    timezone: 'America/Grenada',
     capital: 'St. George\'s',
     population: 125_000,
     area: 344,
@@ -2616,6 +2717,7 @@ export const COUNTRIES = [
   {
     name: 'Saint Kitts and Nevis',
     alpha2: 'KN', alpha3: 'KNA',
+    timezone: 'America/St_Kitts',
     capital: 'Basseterre',
     population: 54_000,
     area: 261,
@@ -2648,6 +2750,7 @@ export const COUNTRIES = [
   {
     name: 'Saint Lucia',
     alpha2: 'LC', alpha3: 'LCA',
+    timezone: 'America/St_Lucia',
     capital: 'Castries',
     population: 185_000,
     area: 616,
@@ -2680,6 +2783,7 @@ export const COUNTRIES = [
   {
     name: 'Saint Vincent and the Grenadines',
     alpha2: 'VC', alpha3: 'VCT',
+    timezone: 'America/St_Vincent',
     capital: 'Kingstown',
     population: 112_000,
     area: 389,
@@ -2712,6 +2816,7 @@ export const COUNTRIES = [
   {
     name: 'Bahamas',
     alpha2: 'BS', alpha3: 'BHS',
+    timezone: 'America/Nassau',
     capital: 'Nassau',
     population: 395_000,
     area: 13_943,
@@ -2747,6 +2852,7 @@ export const COUNTRIES = [
   {
     name: 'Cook Islands',
     alpha2: 'CK', alpha3: 'COK',
+    timezone: 'Pacific/Rarotonga',
     capital: 'Avarua',
     population: 17_000,
     area: 236,
@@ -2779,6 +2885,7 @@ export const COUNTRIES = [
   {
     name: 'Niue',
     alpha2: 'NU', alpha3: 'NIU',
+    timezone: 'Pacific/Niue',
     capital: 'Alofi',
     population: 1_600,
     area: 261,
@@ -2811,6 +2918,7 @@ export const COUNTRIES = [
   {
     name: 'American Samoa',
     alpha2: 'AS', alpha3: 'ASM',
+    timezone: 'Pacific/Pago_Pago',
     capital: 'Pago Pago',
     population: 55_000,
     area: 199,
@@ -2843,6 +2951,7 @@ export const COUNTRIES = [
   {
     name: 'French Polynesia',
     alpha2: 'PF', alpha3: 'PYF',
+    timezone: 'Pacific/Tahiti',
     capital: 'Papeete',
     population: 285_000,
     area: 4_167,
@@ -2875,6 +2984,7 @@ export const COUNTRIES = [
   {
     name: 'New Caledonia',
     alpha2: 'NC', alpha3: 'NCL',
+    timezone: 'Pacific/Noumea',
     capital: 'Nouméa',
     population: 270_000,
     area: 18_575,
@@ -2910,6 +3020,7 @@ export const COUNTRIES = [
   {
     name: 'Bermuda',
     alpha2: 'BM', alpha3: 'BMU',
+    timezone: 'Atlantic/Bermuda',
     capital: 'Hamilton',
     population: 64_000,
     area: 54,
@@ -2942,6 +3053,7 @@ export const COUNTRIES = [
   {
     name: 'Cayman Islands',
     alpha2: 'KY', alpha3: 'CYM',
+    timezone: 'America/Cayman',
     capital: 'George Town',
     population: 70_000,
     area: 264,
@@ -2974,6 +3086,7 @@ export const COUNTRIES = [
   {
     name: 'Gibraltar',
     alpha2: 'GI', alpha3: 'GIB',
+    timezone: 'Europe/Gibraltar',
     capital: 'Gibraltar',
     population: 34_000,
     area: 6.8,
@@ -3006,6 +3119,7 @@ export const COUNTRIES = [
   {
     name: 'Falkland Islands',
     alpha2: 'FK', alpha3: 'FLK',
+    timezone: 'Atlantic/Stanley',
     capital: 'Stanley',
     population: 3_800,
     area: 12_173,
@@ -3038,6 +3152,7 @@ export const COUNTRIES = [
   {
     name: 'Macau',
     alpha2: 'MO', alpha3: 'MAC',
+    timezone: 'Asia/Macau',
     capital: 'Macau',
     population: 680_000,
     area: 32.9,
@@ -3070,6 +3185,7 @@ export const COUNTRIES = [
   {
     name: 'Puerto Rico',
     alpha2: 'PR', alpha3: 'PRI',
+    timezone: 'America/Puerto_Rico',
     capital: 'San Juan',
     population: 3_200_000,
     area: 9_104,
@@ -3105,6 +3221,7 @@ export const COUNTRIES = [
   {
     name: 'Equatorial Guinea',
     alpha2: 'GQ', alpha3: 'GNQ',
+    timezone: 'Africa/Malabo',
     capital: 'Malabo',
     population: 1_600_000,
     area: 28_051,
@@ -3137,6 +3254,7 @@ export const COUNTRIES = [
   {
     name: 'Gambia',
     alpha2: 'GM', alpha3: 'GMB',
+    timezone: 'Africa/Banjul',
     capital: 'Banjul',
     population: 2_500_000,
     area: 10_689,
@@ -3169,6 +3287,7 @@ export const COUNTRIES = [
   {
     name: 'Burundi',
     alpha2: 'BI', alpha3: 'BDI',
+    timezone: 'Africa/Bujumbura',
     capital: 'Gitega',
     population: 13_000_000,
     area: 27_834,
@@ -3206,6 +3325,7 @@ export const COUNTRIES = [
   {
     name: 'Kenya',
     alpha2: 'KE',
+    timezone: 'Africa/Nairobi',
     capital: 'Nairobi',
     population: 56_000_000,
     gdpTotal: 118_000,
@@ -3231,6 +3351,7 @@ export const COUNTRIES = [
   {
     name: 'Ethiopia',
     alpha2: 'ET',
+    timezone: 'Africa/Addis_Ababa',
     capital: 'Addis Ababa',
     population: 126_000_000,
     gdpTotal: 165_000,
@@ -3256,6 +3377,7 @@ export const COUNTRIES = [
   {
     name: 'Tanzania',
     alpha2: 'TZ',
+    timezone: 'Africa/Dar_es_Salaam',
     capital: 'Dodoma',
     population: 65_000_000,
     gdpTotal: 83_000,
@@ -3281,6 +3403,7 @@ export const COUNTRIES = [
   {
     name: 'Ghana',
     alpha2: 'GH',
+    timezone: 'Africa/Accra',
     capital: 'Accra',
     population: 34_000_000,
     gdpTotal: 78_000,
@@ -3306,6 +3429,7 @@ export const COUNTRIES = [
   {
     name: 'Angola',
     alpha2: 'AO',
+    timezone: 'Africa/Luanda',
     capital: 'Luanda',
     population: 35_000_000,
     gdpTotal: 112_000,
@@ -3331,6 +3455,7 @@ export const COUNTRIES = [
   {
     name: 'Mozambique',
     alpha2: 'MZ',
+    timezone: 'Africa/Maputo',
     capital: 'Maputo',
     population: 33_000_000,
     gdpTotal: 18_000,
@@ -3356,6 +3481,7 @@ export const COUNTRIES = [
   {
     name: 'Zambia',
     alpha2: 'ZM',
+    timezone: 'Africa/Lusaka',
     capital: 'Lusaka',
     population: 20_000_000,
     gdpTotal: 29_000,
@@ -3381,6 +3507,7 @@ export const COUNTRIES = [
   {
     name: 'Zimbabwe',
     alpha2: 'ZW',
+    timezone: 'Africa/Harare',
     capital: 'Harare',
     population: 16_000_000,
     gdpTotal: 24_000,
@@ -3406,6 +3533,7 @@ export const COUNTRIES = [
   {
     name: 'Uganda',
     alpha2: 'UG',
+    timezone: 'Africa/Kampala',
     capital: 'Kampala',
     population: 48_000_000,
     gdpTotal: 51_000,
@@ -3431,6 +3559,7 @@ export const COUNTRIES = [
   {
     name: 'Rwanda',
     alpha2: 'RW',
+    timezone: 'Africa/Kigali',
     capital: 'Kigali',
     population: 14_000_000,
     gdpTotal: 14_000,
@@ -3456,6 +3585,7 @@ export const COUNTRIES = [
   {
     name: 'Cameroon',
     alpha2: 'CM',
+    timezone: 'Africa/Douala',
     capital: 'Yaoundé',
     population: 28_000_000,
     gdpTotal: 47_000,
@@ -3481,6 +3611,7 @@ export const COUNTRIES = [
   {
     name: 'Côte d\'Ivoire',
     alpha2: 'CI',
+    timezone: 'Africa/Abidjan',
     capital: 'Yamoussoukro',
     population: 27_000_000,
     gdpTotal: 78_000,
@@ -3506,6 +3637,7 @@ export const COUNTRIES = [
   {
     name: 'Senegal',
     alpha2: 'SN',
+    timezone: 'Africa/Dakar',
     capital: 'Dakar',
     population: 18_000_000,
     gdpTotal: 32_000,
@@ -3531,6 +3663,7 @@ export const COUNTRIES = [
   {
     name: 'Mali',
     alpha2: 'ML',
+    timezone: 'Africa/Bamako',
     capital: 'Bamako',
     population: 23_000_000,
     gdpTotal: 20_000,
@@ -3556,6 +3689,7 @@ export const COUNTRIES = [
   {
     name: 'Burkina Faso',
     alpha2: 'BF',
+    timezone: 'Africa/Ouagadougou',
     capital: 'Ouagadougou',
     population: 23_000_000,
     gdpTotal: 20_000,
@@ -3581,6 +3715,7 @@ export const COUNTRIES = [
   {
     name: 'Niger',
     alpha2: 'NE',
+    timezone: 'Africa/Niamey',
     capital: 'Niamey',
     population: 26_000_000,
     gdpTotal: 16_000,
@@ -3606,6 +3741,7 @@ export const COUNTRIES = [
   {
     name: 'Chad',
     alpha2: 'TD',
+    timezone: 'Africa/Ndjamena',
     capital: "N'Djamena",
     population: 18_000_000,
     gdpTotal: 12_000,
@@ -3631,6 +3767,7 @@ export const COUNTRIES = [
   {
     name: 'Sudan',
     alpha2: 'SD',
+    timezone: 'Africa/Khartoum',
     capital: 'Khartoum',
     population: 46_000_000,
     gdpTotal: 35_000,
@@ -3656,6 +3793,7 @@ export const COUNTRIES = [
   {
     name: 'South Sudan',
     alpha2: 'SS',
+    timezone: 'Africa/Juba',
     capital: 'Juba',
     population: 12_000_000,
     gdpTotal: 5_500,
@@ -3681,6 +3819,7 @@ export const COUNTRIES = [
   {
     name: 'Central African Republic',
     alpha2: 'CF',
+    timezone: 'Africa/Bangui',
     capital: 'Bangui',
     population: 5_600_000,
     gdpTotal: 2_700,
@@ -3706,6 +3845,7 @@ export const COUNTRIES = [
   {
     name: 'DR Congo',
     alpha2: 'CD',
+    timezone: 'Africa/Kinshasa',
     capital: 'Kinshasa',
     population: 102_000_000,
     gdpTotal: 67_000,
@@ -3731,6 +3871,7 @@ export const COUNTRIES = [
   {
     name: 'Republic of Congo',
     alpha2: 'CG',
+    timezone: 'Africa/Brazzaville',
     capital: 'Brazzaville',
     population: 5_800_000,
     gdpTotal: 12_000,
@@ -3756,6 +3897,7 @@ export const COUNTRIES = [
   {
     name: 'Gabon',
     alpha2: 'GA',
+    timezone: 'Africa/Libreville',
     capital: 'Libreville',
     population: 2_400_000,
     gdpTotal: 20_000,
@@ -3781,6 +3923,7 @@ export const COUNTRIES = [
   {
     name: 'Benin',
     alpha2: 'BJ',
+    timezone: 'Africa/Porto-Novo',
     capital: 'Porto-Novo',
     population: 13_000_000,
     gdpTotal: 19_000,
@@ -3806,6 +3949,7 @@ export const COUNTRIES = [
   {
     name: 'Togo',
     alpha2: 'TG',
+    timezone: 'Africa/Lome',
     capital: 'Lomé',
     population: 8_700_000,
     gdpTotal: 9_500,
@@ -3831,6 +3975,7 @@ export const COUNTRIES = [
   {
     name: 'Sierra Leone',
     alpha2: 'SL',
+    timezone: 'Africa/Freetown',
     capital: 'Freetown',
     population: 8_400_000,
     gdpTotal: 5_000,
@@ -3856,6 +4001,7 @@ export const COUNTRIES = [
   {
     name: 'Liberia',
     alpha2: 'LR',
+    timezone: 'Africa/Monrovia',
     capital: 'Monrovia',
     population: 5_400_000,
     gdpTotal: 4_300,
@@ -3881,6 +4027,7 @@ export const COUNTRIES = [
   {
     name: 'Guinea',
     alpha2: 'GN',
+    timezone: 'Africa/Conakry',
     capital: 'Conakry',
     population: 13_500_000,
     gdpTotal: 21_000,
@@ -3906,6 +4053,7 @@ export const COUNTRIES = [
   {
     name: 'Guinea-Bissau',
     alpha2: 'GW',
+    timezone: 'Africa/Bissau',
     capital: 'Bissau',
     population: 2_100_000,
     gdpTotal: 2_100,
@@ -3931,6 +4079,7 @@ export const COUNTRIES = [
   {
     name: 'Mauritania',
     alpha2: 'MR',
+    timezone: 'Africa/Nouakchott',
     capital: 'Nouakchott',
     population: 4_700_000,
     gdpTotal: 10_000,
@@ -3956,6 +4105,7 @@ export const COUNTRIES = [
   {
     name: 'Eritrea',
     alpha2: 'ER',
+    timezone: 'Africa/Asmara',
     capital: 'Asmara',
     population: 3_500_000,
     gdpTotal: 2_700,
@@ -3981,6 +4131,7 @@ export const COUNTRIES = [
   {
     name: 'Djibouti',
     alpha2: 'DJ',
+    timezone: 'Africa/Djibouti',
     capital: 'Djibouti City',
     population: 1_100_000,
     gdpTotal: 4_400,
@@ -4006,6 +4157,7 @@ export const COUNTRIES = [
   {
     name: 'Somalia',
     alpha2: 'SO',
+    timezone: 'Africa/Mogadishu',
     capital: 'Mogadishu',
     population: 17_000_000,
     gdpTotal: 10_000,
@@ -4031,6 +4183,7 @@ export const COUNTRIES = [
   {
     name: 'Madagascar',
     alpha2: 'MG',
+    timezone: 'Indian/Antananarivo',
     capital: 'Antananarivo',
     population: 29_000_000,
     gdpTotal: 15_000,
@@ -4056,6 +4209,7 @@ export const COUNTRIES = [
   {
     name: 'Malawi',
     alpha2: 'MW',
+    timezone: 'Africa/Blantyre',
     capital: 'Lilongwe',
     population: 21_000_000,
     gdpTotal: 12_000,
@@ -4081,6 +4235,7 @@ export const COUNTRIES = [
   {
     name: 'Namibia',
     alpha2: 'NA',
+    timezone: 'Africa/Windhoek',
     capital: 'Windhoek',
     population: 2_700_000,
     gdpTotal: 13_000,
@@ -4106,6 +4261,7 @@ export const COUNTRIES = [
   {
     name: 'Botswana',
     alpha2: 'BW',
+    timezone: 'Africa/Gaborone',
     capital: 'Gaborone',
     population: 2_600_000,
     gdpTotal: 19_000,
@@ -4131,6 +4287,7 @@ export const COUNTRIES = [
   {
     name: 'Lesotho',
     alpha2: 'LS',
+    timezone: 'Africa/Maseru',
     capital: 'Maseru',
     population: 2_300_000,
     gdpTotal: 2_600,
@@ -4156,6 +4313,7 @@ export const COUNTRIES = [
   {
     name: 'Eswatini',
     alpha2: 'SZ',
+    timezone: 'Africa/Mbabane',
     capital: 'Mbabane',
     population: 1_200_000,
     gdpTotal: 4_400,
@@ -4181,6 +4339,7 @@ export const COUNTRIES = [
   {
     name: 'Mauritius',
     alpha2: 'MU',
+    timezone: 'Indian/Mauritius',
     capital: 'Port Louis',
     population: 1_300_000,
     gdpTotal: 14_000,
@@ -4206,6 +4365,7 @@ export const COUNTRIES = [
   {
     name: 'Seychelles',
     alpha2: 'SC',
+    timezone: 'Indian/Mahe',
     capital: 'Victoria',
     population: 98_000,
     gdpTotal: 2_100,
@@ -4231,6 +4391,7 @@ export const COUNTRIES = [
   {
     name: 'Comoros',
     alpha2: 'KM',
+    timezone: 'Indian/Comoro',
     capital: 'Moroni',
     population: 900_000,
     gdpTotal: 1_300,
@@ -4256,6 +4417,7 @@ export const COUNTRIES = [
   {
     name: 'Cape Verde',
     alpha2: 'CV',
+    timezone: 'Atlantic/Cape_Verde',
     capital: 'Praia',
     population: 600_000,
     gdpTotal: 2_400,
@@ -4281,6 +4443,7 @@ export const COUNTRIES = [
   {
     name: 'São Tomé and Príncipe',
     alpha2: 'ST',
+    timezone: 'Africa/Sao_Tome',
     capital: 'São Tomé',
     population: 230_000,
     gdpTotal: 550,
@@ -4309,6 +4472,7 @@ export const COUNTRIES = [
   {
     name: 'Iran',
     alpha2: 'IR',
+    timezone: 'Asia/Tehran',
     capital: 'Tehran',
     population: 87_000_000,
     gdpTotal: 430_000,
@@ -4334,6 +4498,7 @@ export const COUNTRIES = [
   {
     name: 'Iraq',
     alpha2: 'IQ',
+    timezone: 'Asia/Baghdad',
     capital: 'Baghdad',
     population: 43_000_000,
     gdpTotal: 265_000,
@@ -4359,6 +4524,7 @@ export const COUNTRIES = [
   {
     name: 'Jordan',
     alpha2: 'JO',
+    timezone: 'Asia/Amman',
     capital: 'Amman',
     population: 10_400_000,
     gdpTotal: 51_000,
@@ -4384,6 +4550,7 @@ export const COUNTRIES = [
   {
     name: 'Lebanon',
     alpha2: 'LB',
+    timezone: 'Asia/Beirut',
     capital: 'Beirut',
     population: 5_500_000,
     gdpTotal: 22_000,
@@ -4409,6 +4576,7 @@ export const COUNTRIES = [
   {
     name: 'Syria',
     alpha2: 'SY',
+    timezone: 'Asia/Damascus',
     capital: 'Damascus',
     population: 21_000_000,
     gdpTotal: 15_000,
@@ -4434,6 +4602,7 @@ export const COUNTRIES = [
   {
     name: 'Yemen',
     alpha2: 'YE',
+    timezone: 'Asia/Aden',
     capital: 'Sana\'a (Houthi) / Aden (recognised govt)',
     population: 35_000_000,
     gdpTotal: 18_000,
@@ -4459,6 +4628,7 @@ export const COUNTRIES = [
   {
     name: 'Oman',
     alpha2: 'OM',
+    timezone: 'Asia/Muscat',
     capital: 'Muscat',
     population: 4_900_000,
     gdpTotal: 110_000,
@@ -4484,6 +4654,7 @@ export const COUNTRIES = [
   {
     name: 'Kuwait',
     alpha2: 'KW',
+    timezone: 'Asia/Kuwait',
     capital: 'Kuwait City',
     population: 4_300_000,
     gdpTotal: 163_000,
@@ -4509,6 +4680,7 @@ export const COUNTRIES = [
   {
     name: 'Bahrain',
     alpha2: 'BH',
+    timezone: 'Asia/Bahrain',
     capital: 'Manama',
     population: 1_500_000,
     gdpTotal: 43_000,
@@ -4534,6 +4706,7 @@ export const COUNTRIES = [
   {
     name: 'Qatar',
     alpha2: 'QA',
+    timezone: 'Asia/Qatar',
     capital: 'Doha',
     population: 2_900_000,
     gdpTotal: 218_000,
@@ -4559,6 +4732,7 @@ export const COUNTRIES = [
   {
     name: 'State of Palestine',
     alpha2: 'PS',
+    timezone: 'Asia/Gaza',
     capital: 'Ramallah (admin) / East Jerusalem (claimed)',
     population: 5_500_000,
     gdpTotal: 14_000,
@@ -4587,6 +4761,7 @@ export const COUNTRIES = [
   {
     name: 'Cuba',
     alpha2: 'CU',
+    timezone: 'America/Havana',
     capital: 'Havana',
     population: 11_200_000,
     gdpTotal: 107_000,
@@ -4612,6 +4787,7 @@ export const COUNTRIES = [
   {
     name: 'Jamaica',
     alpha2: 'JM',
+    timezone: 'America/Jamaica',
     capital: 'Kingston',
     population: 2_800_000,
     gdpTotal: 18_000,
@@ -4637,6 +4813,7 @@ export const COUNTRIES = [
   {
     name: 'Haiti',
     alpha2: 'HT',
+    timezone: 'America/Port-au-Prince',
     capital: 'Port-au-Prince',
     population: 11_700_000,
     gdpTotal: 20_000,
@@ -4662,6 +4839,7 @@ export const COUNTRIES = [
   {
     name: 'Dominican Republic',
     alpha2: 'DO',
+    timezone: 'America/Santo_Domingo',
     capital: 'Santo Domingo',
     population: 11_300_000,
     gdpTotal: 120_000,
@@ -4687,6 +4865,7 @@ export const COUNTRIES = [
   {
     name: 'Barbados',
     alpha2: 'BB',
+    timezone: 'America/Barbados',
     capital: 'Bridgetown',
     population: 285_000,
     gdpTotal: 5_700,
@@ -4712,6 +4891,7 @@ export const COUNTRIES = [
   {
     name: 'Trinidad and Tobago',
     alpha2: 'TT',
+    timezone: 'America/Port_of_Spain',
     capital: 'Port of Spain',
     population: 1_400_000,
     gdpTotal: 25_000,
@@ -4737,6 +4917,7 @@ export const COUNTRIES = [
   {
     name: 'Belize',
     alpha2: 'BZ',
+    timezone: 'America/Belize',
     capital: 'Belmopan',
     population: 450_000,
     gdpTotal: 2_400,
@@ -4762,6 +4943,7 @@ export const COUNTRIES = [
   {
     name: 'Guatemala',
     alpha2: 'GT',
+    timezone: 'America/Guatemala',
     capital: 'Guatemala City',
     population: 17_900_000,
     gdpTotal: 95_000,
@@ -4787,6 +4969,7 @@ export const COUNTRIES = [
   {
     name: 'Honduras',
     alpha2: 'HN',
+    timezone: 'America/Tegucigalpa',
     capital: 'Tegucigalpa',
     population: 10_300_000,
     gdpTotal: 35_000,
@@ -4812,6 +4995,7 @@ export const COUNTRIES = [
   {
     name: 'El Salvador',
     alpha2: 'SV',
+    timezone: 'America/El_Salvador',
     capital: 'San Salvador',
     population: 6_500_000,
     gdpTotal: 34_000,
@@ -4837,6 +5021,7 @@ export const COUNTRIES = [
   {
     name: 'Nicaragua',
     alpha2: 'NI',
+    timezone: 'America/Managua',
     capital: 'Managua',
     population: 7_100_000,
     gdpTotal: 16_000,
@@ -4862,6 +5047,7 @@ export const COUNTRIES = [
   {
     name: 'Costa Rica',
     alpha2: 'CR',
+    timezone: 'America/Costa_Rica',
     capital: 'San José',
     population: 5_200_000,
     gdpTotal: 67_000,
@@ -4887,6 +5073,7 @@ export const COUNTRIES = [
   {
     name: 'Panama',
     alpha2: 'PA',
+    timezone: 'America/Panama',
     capital: 'Panama City',
     population: 4_400_000,
     gdpTotal: 68_000,
@@ -4915,6 +5102,7 @@ export const COUNTRIES = [
   {
     name: 'Colombia',
     alpha2: 'CO',
+    timezone: 'America/Bogota',
     capital: 'Bogotá',
     population: 52_000_000,
     gdpTotal: 365_000,
@@ -4940,6 +5128,7 @@ export const COUNTRIES = [
   {
     name: 'Chile',
     alpha2: 'CL',
+    timezone: 'America/Santiago',
     capital: 'Santiago',
     population: 19_500_000,
     gdpTotal: 335_000,
@@ -4965,6 +5154,7 @@ export const COUNTRIES = [
   {
     name: 'Peru',
     alpha2: 'PE',
+    timezone: 'America/Lima',
     capital: 'Lima',
     population: 33_700_000,
     gdpTotal: 245_000,
@@ -4990,6 +5180,7 @@ export const COUNTRIES = [
   {
     name: 'Venezuela',
     alpha2: 'VE',
+    timezone: 'America/Caracas',
     capital: 'Caracas',
     population: 28_300_000,
     gdpTotal: 98_000,
@@ -5015,6 +5206,7 @@ export const COUNTRIES = [
   {
     name: 'Ecuador',
     alpha2: 'EC',
+    timezone: 'America/Guayaquil',
     capital: 'Quito',
     population: 18_300_000,
     gdpTotal: 120_000,
@@ -5040,6 +5232,7 @@ export const COUNTRIES = [
   {
     name: 'Bolivia',
     alpha2: 'BO',
+    timezone: 'America/La_Paz',
     capital: 'Sucre (constitutional) / La Paz (seat of govt)',
     population: 12_100_000,
     gdpTotal: 44_000,
@@ -5065,6 +5258,7 @@ export const COUNTRIES = [
   {
     name: 'Paraguay',
     alpha2: 'PY',
+    timezone: 'America/Asuncion',
     capital: 'Asunción',
     population: 7_400_000,
     gdpTotal: 45_000,
@@ -5090,6 +5284,7 @@ export const COUNTRIES = [
   {
     name: 'Uruguay',
     alpha2: 'UY',
+    timezone: 'America/Montevideo',
     capital: 'Montevideo',
     population: 3_500_000,
     gdpTotal: 80_000,
@@ -5115,6 +5310,7 @@ export const COUNTRIES = [
   {
     name: 'Guyana',
     alpha2: 'GY',
+    timezone: 'America/Guyana',
     capital: 'Georgetown',
     population: 800_000,
     gdpTotal: 32_000,
@@ -5140,6 +5336,7 @@ export const COUNTRIES = [
   {
     name: 'Suriname',
     alpha2: 'SR',
+    timezone: 'America/Paramaribo',
     capital: 'Paramaribo',
     population: 600_000,
     gdpTotal: 4_200,
@@ -5161,6 +5358,111 @@ export const COUNTRIES = [
     sanctionsStatus: 'None',
     conflictStatus: 'None',
     description: 'Suriname stands on the threshold of an oil transformation potentially rivalling neighbouring Guyana\'s, with TotalEnergies\' Block 58 offshore discovery sharing the same Cretaceous geology as ExxonMobil\'s Stabroek Block. A Final Investment Decision could make Suriname one of the world\'s fastest-growing economies of the early 2030s.',
+  },
+
+  // ─── Special Territories ─────────────────────────────────────────────────────
+
+  {
+    name: 'Antarctica',
+    alpha2: 'AQ',
+    alpha3: 'ATA',
+    timezone: 'Antarctica/McMurdo',
+    capital: null,
+    population: 1_000,
+    area: 14_200_000,
+    gdpTotal: null,
+    gdpPerCapita: null,
+    gdpGrowth: null,
+    inflation: null,
+    unemployment: null,
+    interestRate: null,
+    interestRateBank: null,
+    currency: null,
+    flag: '🇦🇶',
+    languages: ['English', 'Russian', 'Spanish', 'Norwegian'],
+    region: 'Antarctic',
+    governmentType: 'International Territory — Antarctic Treaty System',
+    topExports: ['Scientific Research'],
+    topImports: ['Research Supplies', 'Equipment', 'Food'],
+    topTradingPartners: ['Australia', 'New Zealand', 'United States'],
+    auRelationship: 'Australia operates three permanent research stations (Casey, Davis, Mawson) and claims 42% of the continent as the Australian Antarctic Territory — one of the largest national claims on Earth.',
+    auTradeValue: null,
+    politicalStability: 'VERY HIGH',
+    economicOutlook: 'N/A',
+    sanctionsStatus: 'None',
+    conflictStatus: 'None',
+    creditRating: { moodys: 'NR', sp: 'NR', fitch: 'NR' },
+    dataAsAt: 'June 2026',
+    sources: ['Antarctic Treaty Secretariat', 'Australian Antarctic Division'],
+    description: 'Antarctica is governed by the Antarctic Treaty System (1959) and has no permanent civilian population. Australia claims 42% of the continent — the Australian Antarctic Territory — the largest national claim. The continent is of scientific, environmental and strategic importance, with growing interest from China and Russia in the region.',
+  },
+  {
+    name: 'Greenland',
+    alpha2: 'GL',
+    alpha3: 'GRL',
+    timezone: 'America/Godthab',
+    capital: 'Nuuk',
+    population: 56_000,
+    area: 2_166_086,
+    gdpTotal: 3_200,
+    gdpPerCapita: 57_000,
+    gdpGrowth: 1.2,
+    inflation: 2.1,
+    unemployment: 9.0,
+    interestRate: 3.60,
+    interestRateBank: 'Danmarks Nationalbank',
+    currency: { code: 'DKK', name: 'Danish Krone', symbol: 'kr' },
+    flag: '🇬🇱',
+    languages: ['Greenlandic (Kalaallisut)', 'Danish'],
+    region: 'Americas',
+    governmentType: 'Autonomous Territory of Denmark',
+    topExports: ['Fish', 'Shrimp', 'Minerals', 'Rare Earth Elements'],
+    topImports: ['Machinery', 'Transport Equipment', 'Food', 'Petroleum'],
+    topTradingPartners: ['Denmark', 'EU', 'United States'],
+    auRelationship: 'Minimal direct relationship. Australian mining companies monitor Greenland rare earth deposits (Kvanefjeld/Tanbreez). Greenland geopolitical importance growing due to US interest and Arctic shipping routes.',
+    auTradeValue: null,
+    politicalStability: 'HIGH',
+    economicOutlook: 'MODERATE',
+    sanctionsStatus: 'None',
+    conflictStatus: 'None',
+    creditRating: { moodys: 'NR', sp: 'NR', fitch: 'NR' },
+    dataAsAt: 'June 2026',
+    sources: ['Statistics Greenland', 'IMF'],
+    description: 'Greenland is an autonomous territory within the Kingdom of Denmark. Strategically significant for Arctic geopolitics, it has attracted intensifying interest from the United States and China for its rare earth resources and Arctic maritime position. US interest in acquiring Greenland has re-emerged as a foreign policy objective.',
+  },
+  {
+    name: 'Western Sahara',
+    alpha2: 'EH',
+    alpha3: 'ESH',
+    timezone: 'Africa/El_Aaiun',
+    capital: 'Laayoune (administered)',
+    population: 600_000,
+    area: 266_000,
+    gdpTotal: null,
+    gdpPerCapita: null,
+    gdpGrowth: null,
+    inflation: null,
+    unemployment: null,
+    interestRate: null,
+    interestRateBank: null,
+    currency: { code: 'MAD', name: 'Moroccan Dirham', symbol: 'MAD' },
+    flag: '🇪🇭',
+    languages: ['Arabic', 'Spanish'],
+    region: 'Africa',
+    governmentType: 'Disputed Territory — administered by Morocco; claimed by Sahrawi Arab Democratic Republic',
+    topExports: ['Phosphates', 'Fish'],
+    topImports: ['Fuel', 'Food', 'Construction Materials'],
+    topTradingPartners: ['Morocco', 'EU', 'United States'],
+    auRelationship: 'No meaningful bilateral relationship. Australia\'s position is consistent with UN Resolution 1514 supporting self-determination for non-self-governing territories.',
+    auTradeValue: null,
+    politicalStability: 'LOW',
+    economicOutlook: 'CRITICAL',
+    sanctionsStatus: 'None',
+    conflictStatus: 'MONITORED',
+    creditRating: { moodys: 'NR', sp: 'NR', fitch: 'NR' },
+    dataAsAt: 'June 2026',
+    sources: ['UN', 'CIA World Factbook'],
+    description: 'Western Sahara is a disputed non-self-governing territory. Morocco administers approximately 80% of the territory and considers it part of its Southern Provinces. The Sahrawi Arab Democratic Republic (SADR), backed by Algeria, claims the entire territory. Rich in phosphate reserves and Atlantic fisheries. Status remains unresolved under international law.',
   },
 ]
 

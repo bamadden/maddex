@@ -141,7 +141,7 @@ function KeyThemesPanel({ headlines }) {
       {!themes && !loading && (
         <div className="text-2xs text-terminal-text-dim/40 italic">Loading themes...</div>
       )}
-      <div className="text-2xs text-terminal-text-dim/30 mt-2 tracking-widest">POWERED BY MADDEX AI</div>
+      <div className="text-2xs text-terminal-text-dim/30 mt-2 tracking-widest">◆</div>
     </div>
   )
 }

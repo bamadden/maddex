@@ -1252,46 +1252,134 @@ function FreshnessDot({ status }) {
   return <span title="Hardcoded data" style={{ color: '#6b7280', fontSize: 9 }}>●</span>
 }
 
+function useLocalTime(tz) {
+  const fmt = useCallback(() => {
+    if (!tz) return null
+    try {
+      return new Date().toLocaleTimeString('en-AU', {
+        timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',
+      })
+    } catch { return null }
+  }, [tz])
+  const [time, setTime] = useState(fmt)
+  useEffect(() => {
+    setTime(fmt())
+    const id = setInterval(() => setTime(fmt()), 1000)
+    return () => clearInterval(id)
+  }, [fmt])
+  return time
+}
+
+function fmtPop(p) {
+  if (p == null) return null
+  if (p >= 1_000_000_000) return `${(p / 1e9).toFixed(2)}B`
+  if (p >= 1_000_000)     return `${(p / 1e6).toFixed(1)}M`
+  if (p >= 1_000)         return `${(p / 1e3).toFixed(0)}K`
+  return p.toLocaleString()
+}
+
 // ─── Country Panel ────────────────────────────────────────────────────────────
 
+// Helper: row with label + value, always rendered
+function PRow({ label, value, cls }) {
+  return (
+    <div className="flex justify-between text-2xs py-0.5">
+      <span className="text-terminal-text-dim flex-shrink-0">{label}</span>
+      <span className={`text-right ml-2 ${cls ?? 'text-terminal-text-bright'}`}>{value ?? '—'}</span>
+    </div>
+  )
+}
+
 function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
-  const n  = parseInt(id)
-  const name = COUNTRY_NAMES[n] ?? 'Unknown Territory'
+  const n      = parseInt(id)
+  const name   = COUNTRY_NAMES[n] ?? 'Unknown Territory'
   const detail = COUNTRY_DETAIL[n]
   const extra  = COUNTRY_EXTRA[n]
   const exchId = COUNTRY_TO_EXCHANGE[n]
-  const ex = exchId ? EXCHANGES.find(e => e.id === exchId) : null
-  const st = ex ? getStatus(ex) : null
-  const lt = detail?.tz ? localTime(detail.tz) : null
-  const riskRating = getRiskRating(n)
+  const ex     = exchId ? EXCHANGES.find(e => e.id === exchId) : null
   const dbEntry = COUNTRIES_BY_A2[COUNTRY_A2[n] ?? ''] ?? null
 
-  const relatedNews = useMemo(() => {
-    if (!newsItems || !name) return []
-    const lname = name.toLowerCase()
-    // Also match common aliases
-    const aliases = [lname]
-    if (n === 156) aliases.push('beijing', 'china', 'chinese')
-    if (n === 840) aliases.push('washington', 'american', 'trump', 'biden', 'white house')
-    if (n === 643) aliases.push('kremlin', 'moscow', 'russian', 'putin')
-    if (n === 826) aliases.push('london', 'british', 'uk', 'britain')
-    if (n === 276) aliases.push('berlin', 'german')
-    const re = new RegExp(aliases.join('|'), 'i')
-    return newsItems.filter(n => re.test(n.headline + ' ' + (n.summary ?? ''))).slice(0, 5)
-  }, [newsItems, name, n])
+  // Resolved fields — DB wins, fall back to legacy COUNTRY_DETAIL / COUNTRY_EXTRA
+  const tz          = dbEntry?.timezone ?? detail?.tz ?? null
+  const flag        = detail?.flag ?? dbEntry?.flag ?? flagEmoji(COUNTRY_A2[n])
+  const capital     = extra?.capital ?? dbEntry?.capital ?? null
+  const pop         = dbEntry?.population ?? null
+  const area        = dbEntry?.area ?? null
+  const region      = dbEntry?.region ?? null
+  const currCode    = detail?.currency ?? (typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.code : dbEntry?.currency) ?? null
+  const currName    = typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.name : null
+  const languages   = dbEntry?.languages ?? null
+  const govType     = dbEntry?.governmentType ?? null
+
+  // Economy
+  const gdpTotal    = dbEntry?.gdpTotal    ?? null
+  const gdpPerCap   = dbEntry?.gdpPerCapita ?? null
+  const gdpGrowth   = detail?.macro?.gdp   ?? dbEntry?.gdpGrowth   ?? null
+  const gdpLbl      = detail?.macro?.gdpLbl ?? null
+  const inflation   = detail?.macro?.cpi   ?? dbEntry?.inflation   ?? null
+  const inflLbl     = detail?.macro?.cpiLbl ?? null
+  const intRate     = detail?.macro?.rate  ?? dbEntry?.interestRate ?? null
+  const intRateLbl  = detail?.macro?.rateLbl ?? null
+  const intRateBank = dbEntry?.interestRateBank ?? null
+  const unemployment = dbEntry?.unemployment ?? null
+
+  // Trade
+  const topExports  = dbEntry?.topExports         ?? null
+  const topImports  = dbEntry?.topImports         ?? null
+  const partners    = detail?.partners ?? dbEntry?.topTradingPartners ?? null
+  const auTrade     = extra?.auTrade   ?? dbEntry?.auRelationship ?? null
+  const auTradeVal  = dbEntry?.auTradeValue        ?? null
+
+  // Exchange
+  const exName      = detail?.exchange ?? null
+  const exIndex     = detail?.index    ?? null
+
+  // Risk
+  const creditRating     = dbEntry?.creditRating     ?? null
+  const polStability     = dbEntry?.politicalStability ?? null
+  const econOutlook      = dbEntry?.economicOutlook    ?? null
+  const sanctionsStatus  = dbEntry?.sanctionsStatus    ?? null
+  const conflictStatus   = dbEntry?.conflictStatus     ?? null
+  const description      = extra?.economy ?? dbEntry?.description ?? null
+  const dataAsAt         = dbEntry?.dataAsAt ?? null
 
   const isConflict = CONFLICT_COUNTRIES.has(n)
   const isStress   = STRESS_COUNTRIES.has(n)
   const isPartner  = PARTNER_COUNTRIES.has(n)
+  const riskRating = getRiskRating(n)
+  const hasData    = !!(dbEntry || detail)
+
+  // Live local time — ticks every second
+  const lt = useLocalTime(tz)
+  const exCountdown = ex ? countdown(ex) : null
+
+  const relatedNews = useMemo(() => {
+    if (!newsItems || !name) return []
+    const aliases = [name.toLowerCase()]
+    if (n === 156) aliases.push('beijing', 'china', 'chinese')
+    if (n === 840) aliases.push('washington', 'american', 'trump', 'white house')
+    if (n === 643) aliases.push('kremlin', 'moscow', 'russian', 'putin')
+    if (n === 826) aliases.push('london', 'british', 'uk', 'britain')
+    if (n === 276) aliases.push('berlin', 'german')
+    const re = new RegExp(aliases.join('|'), 'i')
+    return newsItems.filter(item => re.test(item.headline + ' ' + (item.summary ?? ''))).slice(0, 5)
+  }, [newsItems, name, n])
+
+  const sec = (title) => (
+    <div className="text-2xs text-terminal-text-dim uppercase tracking-widest mb-1 pt-0.5">{title}</div>
+  )
 
   return (
     <div className="flex flex-col h-full overflow-hidden panel-fade">
+      {/* ── Header ── */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{detail?.flag ?? flagEmoji(COUNTRY_A2[n])}</span>
+          <span className="text-lg">{flag}</span>
           <div>
             <div className="text-xs font-bold text-terminal-gold">{name}</div>
-            <div className="text-2xs text-terminal-text-dim">{detail?.currency ?? '—'} · {lt ?? '—'}</div>
+            <div className="text-2xs text-terminal-text-dim">
+              {currCode ?? '—'} · {lt ?? (tz ? '...' : 'TZ unknown')}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1300,203 +1388,209 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
               onClick={onCurrencyToggle}
               className="text-2xs border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
               title="Toggle AUD/USD display"
-            >
-              {currencyMode === 'AUD' ? 'A$' : 'US$'}
-            </button>
+            >{currencyMode === 'AUD' ? 'A$' : 'US$'}</button>
           )}
           <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto">
-        {/* Status badges + ASK AI */}
+        {/* ── Status badges ── */}
         <div className="px-3 py-2 border-b border-terminal-border/50">
           <div className="flex flex-wrap gap-1.5 mb-1.5">
             {isConflict && <span className="text-2xs px-1.5 py-0.5 bg-terminal-red/20 text-terminal-red border border-terminal-red/30">⚠ CONFLICT ZONE</span>}
             {isStress && !isConflict && <span className="text-2xs px-1.5 py-0.5 bg-orange-900/20 text-orange-400 border border-orange-400/30">⚠ SANCTIONED</span>}
             {isPartner && <span className="text-2xs px-1.5 py-0.5 bg-terminal-green/10 text-terminal-green border border-terminal-green/30">★ AU TRADE PARTNER</span>}
-            <span className={`text-2xs px-1.5 py-0.5 border border-current/30 ${RISK_COLOR[riskRating] ?? 'text-terminal-text-dim'}`}>
-              RISK: {riskRating}
-            </span>
+            <span className={`text-2xs px-1.5 py-0.5 border border-current/30 ${RISK_COLOR[riskRating] ?? 'text-terminal-text-dim'}`}>RISK: {riskRating}</span>
           </div>
-          <div className="flex items-center justify-between">
-            {extra?.capital && (
-              <div className="text-2xs text-terminal-text-dim">
-                <span className="text-terminal-text">{extra.capital}</span>
-                {extra.pop && <span className="text-terminal-text-dim ml-2">· Pop. {extra.pop}</span>}
-              </div>
-            )}
-            <button
-              onClick={() => onAskAI(`Provide a professional analysis of ${name} for Australian investors. Include: economic outlook, key risks, trade relationship with Australia, ASX stocks with exposure, and AUD implications.`)}
-              className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors flex-shrink-0"
-            >ASK AI</button>
-          </div>
+          <button
+            onClick={() => onAskAI(`Provide a professional analysis of ${name} for Australian investors. Include: economic outlook, key risks, trade relationship with Australia, ASX stocks with exposure, and AUD implications.`)}
+            className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+          >ASK AI ◆</button>
         </div>
 
-        {/* Exchange */}
-        {ex && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
-            <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Exchange</div>
-            <div className="flex justify-between text-2xs">
-              <span className="text-terminal-text-bright font-semibold">{detail?.exchange ?? ex.id}</span>
-              <span className="text-terminal-text-dim">{detail?.index}</span>
+        {/* ── No-data fallback ── */}
+        {!hasData && (
+          <div className="px-3 py-4 border-b border-terminal-border/50">
+            <div className="text-2xs text-terminal-gold font-bold mb-1">DATA PENDING</div>
+            <div className="text-2xs text-terminal-text-dim leading-relaxed">
+              Detailed data for this territory is not yet in our database.
             </div>
-            <div className="flex justify-between text-2xs mt-0.5">
-              <span className="text-terminal-text-dim">Local time</span>
-              <span className="text-terminal-text-bright">{lt}</span>
-            </div>
-            {countdown(ex) && (
-              <div className="flex justify-between text-2xs mt-0.5">
-                <span className="text-terminal-text-dim">Session</span>
-                <span className="text-terminal-gold">{countdown(ex)}</span>
-              </div>
-            )}
+            <button
+              onClick={() => onAskAI(`Tell me about ${name} — its geography, economy, political system, and strategic significance for Australia.`)}
+              className="mt-2 text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+            >ASK MADDEX AI ◆</button>
           </div>
         )}
 
-        {/* Macro stats */}
-        {detail?.macro && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
-            <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Macro Statistics</div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-2xs">
-                <span className="text-terminal-text-dim">GDP Growth</span>
-                <div className="text-right">
-                  <span className={`font-bold ${detail.macro.gdp >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                    {detail.macro.gdp >= 0 ? '+' : ''}{detail.macro.gdp}%
-                  </span>
-                  <span className="text-terminal-text-dim/60 ml-1 text-2xs">{detail.macro.gdpLbl}</span>
-                </div>
-              </div>
-              <div className="flex justify-between text-2xs">
-                <span className="text-terminal-text-dim">Inflation (CPI)</span>
-                <div className="text-right">
-                  <span className={`font-bold ${detail.macro.cpi > 4 ? 'text-terminal-red' : detail.macro.cpi > 2.5 ? 'text-terminal-gold' : 'text-terminal-green'}`}>
-                    {detail.macro.cpi}%
-                  </span>
-                  <span className="text-terminal-text-dim/60 ml-1 text-2xs">{detail.macro.cpiLbl}</span>
-                </div>
-              </div>
-              <div className="flex justify-between text-2xs">
-                <span className="text-terminal-text-dim">Interest Rate</span>
-                <div className="text-right">
-                  <span className="text-terminal-blue-bright font-bold">{detail.macro.rate}%</span>
-                  <span className="text-terminal-text-dim/60 ml-1 text-2xs">{detail.macro.rateLbl}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ── Geography ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec('Geography')}
+          <PRow label="Capital"    value={capital} />
+          <PRow label="Population" value={fmtPop(pop)} />
+          <PRow label="Area"       value={area != null ? `${area.toLocaleString('en-AU')} km²` : null} />
+          <PRow label="Region"     value={region} />
+          <PRow label="Currency"   value={currCode ? `${currCode}${currName ? ` — ${currName}` : ''}` : null} />
+          <PRow label="Languages"  value={languages?.length ? languages.join(', ') : null} />
+          <PRow label="Government" value={govType} />
+        </div>
 
-        {/* GDP size (from countryDatabase) */}
-        {dbEntry && (dbEntry.gdpTotal != null || dbEntry.gdpPerCapita != null) && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
-            <div className="flex items-center gap-1 text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">
-              GDP Scale
-              <FreshnessDot status="hardcoded" />
-            </div>
-            <div className="space-y-1">
-              {dbEntry.gdpTotal != null && (
-                <div className="flex justify-between text-2xs">
-                  <span className="text-terminal-text-dim">GDP Total</span>
-                  <div className="text-right">
-                    <span className="font-bold text-terminal-text-bright">
-                      {fmtGdpTotal(dbEntry.gdpTotal, audUsd, currencyMode)}
-                    </span>
-                    <span className="text-terminal-text-dim/50 ml-1.5">
-                      ({fmtGdpTotal(dbEntry.gdpTotal, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})
-                    </span>
-                  </div>
-                </div>
-              )}
-              {dbEntry.gdpPerCapita != null && (
-                <div className="flex justify-between text-2xs">
-                  <span className="text-terminal-text-dim">GDP / Capita</span>
-                  <div className="text-right">
-                    <span className="font-bold text-terminal-text-bright">
-                      {fmtPerCapita(dbEntry.gdpPerCapita, audUsd, currencyMode)}
-                    </span>
-                    <span className="text-terminal-text-dim/50 ml-1.5">
-                      ({fmtPerCapita(dbEntry.gdpPerCapita, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})
-                    </span>
-                  </div>
-                </div>
-              )}
-              {dbEntry.unemployment != null && (
-                <div className="flex justify-between text-2xs">
-                  <span className="text-terminal-text-dim">Unemployment</span>
-                  <span className="font-bold text-terminal-text-bright">{dbEntry.unemployment}%</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* ── Local Time & Timezone ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec('Local Time')}
+          <PRow label="Time now" value={lt} cls={lt ? 'text-terminal-text-bright font-mono font-bold' : 'text-terminal-text-dim'} />
+          <PRow label="Timezone" value={tz} cls="text-terminal-text-dim" />
+          {ex && <PRow label="Exchange" value={exName ?? ex.id} />}
+          {ex && <PRow label="Index"    value={exIndex} cls="text-terminal-text-dim" />}
+          {ex && <PRow label="Session"  value={exCountdown} cls={exCountdown ? 'text-terminal-gold' : 'text-terminal-text-dim'} />}
+        </div>
 
-        {/* Economy brief */}
-        {(extra?.economy || dbEntry?.description) && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
-            <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Economy</div>
-            <div className="text-2xs text-terminal-text leading-relaxed">{extra?.economy ?? dbEntry?.description}</div>
-          </div>
-        )}
-
-        {/* AU Trade Relationship */}
-        {(extra?.auTrade || dbEntry?.auRelationship || dbEntry?.auTradeValue != null) && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
-            <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">AU Trade Relationship</div>
-            {extra?.auTrade
-              ? <div className="text-2xs text-terminal-text leading-relaxed">{extra.auTrade}</div>
-              : (
-                <>
-                  {dbEntry?.auRelationship && (
-                    <div className="text-2xs text-terminal-text leading-relaxed mb-1">{dbEntry.auRelationship}</div>
-                  )}
-                  {dbEntry?.auTradeValue != null && (
-                    <div className="flex justify-between text-2xs mt-1">
-                      <span className="text-terminal-text-dim">AU Bilateral Trade</span>
-                      <div className="text-right">
-                        <span className="font-bold text-terminal-text-bright">
-                          {fmtAuTrade(dbEntry.auTradeValue, audUsd, currencyMode)}
-                        </span>
-                        <span className="text-terminal-text-dim/50 ml-1.5">
-                          ({fmtAuTrade(dbEntry.auTradeValue, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )
+        {/* ── Macro Statistics ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec('Macro Statistics')}
+          {/* GDP Total — dual currency */}
+          <div className="flex justify-between text-2xs py-0.5">
+            <span className="text-terminal-text-dim">GDP Total</span>
+            {gdpTotal != null
+              ? <div className="text-right">
+                  <span className="font-bold text-terminal-text-bright">{fmtGdpTotal(gdpTotal, audUsd, currencyMode)}</span>
+                  <span className="text-terminal-text-dim/50 ml-1.5">({fmtGdpTotal(gdpTotal, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})</span>
+                </div>
+              : <span className="text-terminal-text-bright">—</span>
             }
           </div>
-        )}
-
-        {/* Trading partners */}
-        {(detail?.partners || dbEntry?.topTradingPartners) && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
-            <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Top Trading Partners</div>
-            <div className="flex flex-wrap gap-1">
-              {(detail?.partners ?? dbEntry?.topTradingPartners ?? []).map(p => (
-                <span key={p} className="text-2xs px-1 py-0.5 border border-terminal-border text-terminal-text">{p}</span>
-              ))}
+          {/* GDP Per Capita — dual currency */}
+          <div className="flex justify-between text-2xs py-0.5">
+            <span className="text-terminal-text-dim">GDP / Capita</span>
+            {gdpPerCap != null
+              ? <div className="text-right">
+                  <span className="font-bold text-terminal-text-bright">{fmtPerCapita(gdpPerCap, audUsd, currencyMode)}</span>
+                  <span className="text-terminal-text-dim/50 ml-1.5">({fmtPerCapita(gdpPerCap, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})</span>
+                </div>
+              : <span className="text-terminal-text-bright">—</span>
+            }
+          </div>
+          <div className="flex justify-between text-2xs py-0.5">
+            <span className="text-terminal-text-dim">GDP Growth</span>
+            <div className="text-right">
+              {gdpGrowth != null
+                ? <span className={`font-bold ${gdpGrowth >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>{gdpGrowth >= 0 ? '+' : ''}{gdpGrowth}%</span>
+                : <span className="text-terminal-text-bright">—</span>
+              }
+              {gdpLbl && <span className="text-terminal-text-dim/60 ml-1">{gdpLbl}</span>}
             </div>
+          </div>
+          <div className="flex justify-between text-2xs py-0.5">
+            <span className="text-terminal-text-dim">Inflation (CPI)</span>
+            <div className="text-right">
+              {inflation != null
+                ? <span className={`font-bold ${inflation > 4 ? 'text-terminal-red' : inflation > 2.5 ? 'text-terminal-gold' : 'text-terminal-green'}`}>{inflation}%</span>
+                : <span className="text-terminal-text-bright">—</span>
+              }
+              {inflLbl && <span className="text-terminal-text-dim/60 ml-1">{inflLbl}</span>}
+            </div>
+          </div>
+          <div className="flex justify-between text-2xs py-0.5">
+            <span className="text-terminal-text-dim">Interest Rate</span>
+            <div className="text-right">
+              {intRate != null
+                ? <span className="text-terminal-blue-bright font-bold">{intRate}%</span>
+                : <span className="text-terminal-text-bright">—</span>
+              }
+              {intRateLbl && <span className="text-terminal-text-dim/60 ml-1">{intRateLbl}</span>}
+              {intRateBank && !intRateLbl && <span className="text-terminal-text-dim/60 ml-1">{intRateBank}</span>}
+            </div>
+          </div>
+          <PRow label="Unemployment" value={unemployment != null ? `${unemployment}%` : null} />
+          <PRow label="Data as at"   value={dataAsAt} cls="text-terminal-text-dim" />
+        </div>
+
+        {/* ── Risk Assessment ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec('Risk Assessment')}
+          <PRow label="Political Stability" value={polStability} />
+          <PRow label="Economic Outlook"    value={econOutlook} />
+          <PRow
+            label="Sanctions"
+            value={sanctionsStatus ?? 'None'}
+            cls={sanctionsStatus && sanctionsStatus !== 'None' && sanctionsStatus !== 'none' ? 'text-terminal-red' : 'text-terminal-green'}
+          />
+          <PRow
+            label="Conflict Status"
+            value={conflictStatus ?? 'None'}
+            cls={isConflict ? 'text-terminal-red font-bold' : conflictStatus === 'MONITORED' ? 'text-terminal-gold' : 'text-terminal-green'}
+          />
+          {creditRating && (
+            <PRow
+              label="Credit Rating"
+              value={`${creditRating.moodys ?? 'NR'} / ${creditRating.sp ?? 'NR'} / ${creditRating.fitch ?? 'NR'}`}
+              cls="text-terminal-text-dim"
+            />
+          )}
+          {!creditRating && <PRow label="Credit Rating" value={null} />}
+        </div>
+
+        {/* ── Trade ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec('Trade')}
+          <PRow label="Top Exports" value={topExports?.length ? topExports.slice(0,3).join(', ') : null} />
+          <PRow label="Top Imports" value={topImports?.length ? topImports.slice(0,3).join(', ') : null} />
+          {/* Trading partners as chips */}
+          {partners?.length
+            ? <div className="flex justify-between text-2xs py-0.5">
+                <span className="text-terminal-text-dim flex-shrink-0">Top Partners</span>
+                <div className="flex flex-wrap gap-1 justify-end ml-2">
+                  {partners.slice(0,5).map(p => (
+                    <span key={p} className="text-2xs px-1 py-0 border border-terminal-border/60 text-terminal-text">{p}</span>
+                  ))}
+                </div>
+              </div>
+            : <PRow label="Top Partners" value={null} />
+          }
+        </div>
+
+        {/* ── AU Relationship ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec('AU Trade Relationship')}
+          {auTrade
+            ? <div className="text-2xs text-terminal-text leading-relaxed mb-1">{auTrade}</div>
+            : <div className="text-2xs text-terminal-text-dim italic">No significant bilateral relationship on record.</div>
+          }
+          {auTradeVal != null && (
+            <div className="flex justify-between text-2xs mt-1 pt-1 border-t border-terminal-border/30">
+              <span className="text-terminal-text-dim">AU Bilateral Trade</span>
+              <div className="text-right">
+                <span className="font-bold text-terminal-text-bright">{fmtAuTrade(auTradeVal, audUsd, currencyMode)}</span>
+                <span className="text-terminal-text-dim/50 ml-1.5">({fmtAuTrade(auTradeVal, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Overview ── */}
+        {description && (
+          <div className="px-3 py-2 border-b border-terminal-border/50">
+            {sec('Overview')}
+            <div className="text-2xs text-terminal-text leading-relaxed">{description}</div>
           </div>
         )}
 
-        {/* Recent news */}
+        {/* ── Recent News ── */}
         <div className="px-3 py-2">
-          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Recent News</div>
-          {relatedNews.length === 0 ? (
-            <div className="text-2xs text-terminal-text-dim/50 italic">No recent news matching {name}</div>
-          ) : relatedNews.map((item, i) => (
-            <div key={i} className="mb-2 pb-2 border-b border-terminal-border/30 last:border-0">
-              <div className="text-2xs text-terminal-text leading-snug">{item.headline}</div>
-              <div className="text-2xs text-terminal-text-dim/60 mt-0.5">{item.source} · {item.time}</div>
-              <button
-                onClick={() => onAskAI(`Analyse the market impact of: "${item.headline}"`)}
-                className="mt-0.5 text-2xs text-terminal-gold/60 hover:text-terminal-gold"
-              >ASK AI →</button>
-            </div>
-          ))}
+          {sec('Recent News')}
+          {relatedNews.length === 0
+            ? <div className="text-2xs text-terminal-text-dim/50 italic">No recent news matching {name}</div>
+            : relatedNews.map((item, i) => (
+              <div key={i} className="mb-2 pb-2 border-b border-terminal-border/30 last:border-0">
+                <div className="text-2xs text-terminal-text leading-snug">{item.headline}</div>
+                <div className="text-2xs text-terminal-text-dim/60 mt-0.5">{item.source} · {item.time}</div>
+                <button
+                  onClick={() => onAskAI(`Analyse the market impact of: "${item.headline}"`)}
+                  className="mt-0.5 text-2xs text-terminal-gold/60 hover:text-terminal-gold"
+                >ASK AI →</button>
+              </div>
+            ))
+          }
         </div>
       </div>
     </div>

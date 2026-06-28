@@ -465,13 +465,6 @@ export default function AIPanel() {
                   <span className="inline-block w-2 h-3 bg-terminal-gold animate-pulse ml-0.5 mt-0.5" />
                 )}
 
-                {msg.stats && (
-                  <div className="flex items-center gap-2 mt-2 text-2xs" style={{ color: 'var(--mt-muted)', fontSize: '10px' }}>
-                    <span>Generated in {msg.stats.elapsed}s</span>
-                    <span>·</span>
-                    <span>{msg.stats.outputTokens} tokens</span>
-                  </div>
-                )}
               </div>
             )}
           </div>
