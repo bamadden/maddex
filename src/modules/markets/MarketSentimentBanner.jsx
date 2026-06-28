@@ -219,33 +219,34 @@ export default function MarketSentimentBanner() {
   const fearGreed = rawFearGreed ? transformFearGreed(rawFearGreed) : null
 
   const haveAnyData = asxChanges || spxChange != null || cryptoChanges || fearGreed
-  if (!haveAnyData) return null
 
-  const sentiment = calculateMarketSentimentScore({
+  const sentiment = haveAnyData ? calculateMarketSentimentScore({
     fearGreed,
     asxChanges,
     spxChange,
     btcChange: btc?.price_change_percentage_24h ?? null,
     cryptoChanges,
-  })
+  }) : null
 
-  const shortSummary = generateShortSummary({
+  const shortSummary = sentiment ? generateShortSummary({
     marketSentimentScore: sentiment,
     asxChanges,
     fearGreed,
-  })
+  }) : ''
 
-  const color = scoreToColor(sentiment.score)
+  const color = sentiment ? scoreToColor(sentiment.score) : 'var(--color-neutral)'
 
-  // Store current score so next session can show trend
+  // Store current score so next session can show trend — only when we have data
   useEffect(() => {
-    if (sentiment.score != null && sentiment.label) {
+    if (sentiment?.score != null && sentiment?.label) {
       localStorage.setItem(PREV_SCORE_KEY, JSON.stringify({ score: sentiment.score, label: sentiment.label }))
     }
-  }, [sentiment.score, sentiment.label])
+  }, [sentiment?.score, sentiment?.label])
 
   const handleOpen = useCallback(() => setModalOpen(true), [])
   const handleClose = useCallback(() => setModalOpen(false), [])
+
+  if (!haveAnyData || !sentiment) return null
 
   return (
     <>
