@@ -378,20 +378,21 @@ export const fetchYFQuote = async (symbol) => {
   throw new Error(`No data for ${symbol}`)
 }
 
-// fetchYFBatch: INDICES ONLY via stooq — used by IndicesTable.
+// fetchYFBatch: INDICES via Yahoo Finance proxy — used by IndicesTable.
 // Symbols that fail are simply omitted — no fake data — so consumers render
 // their own "unavailable" state for the missing key.
 export const fetchYFBatch = async (symbols) => {
-  const results = await Promise.allSettled(symbols.map(s => fetchStooqQuote(yfToStooq(s))))
+  const results = await Promise.all(symbols.map(s => fetchYahooQuote(s)))
   const out = {}
   for (let i = 0; i < symbols.length; i++) {
     const sym = symbols[i]
-    if (results[i].status === 'fulfilled') {
-      out[sym] = { ...results[i].value, symbol: sym }
+    if (results[i]) {
+      out[sym] = results[i]
     } else {
-      console.warn(`[MADDEN API] Stooq fail ${sym}:`, results[i].reason?.message)
+      console.error(`[MADDEN API] Index fetch failed: ${sym}`)
     }
   }
+  if (Object.keys(out).length === 0) throw new Error('All index quotes unavailable')
   return out
 }
 

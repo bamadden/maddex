@@ -5,7 +5,7 @@ import * as topojson from 'topojson-client'
 import { fetchGeoNews, fetchNews } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
 import COUNTRIES from '../../data/countryDatabase'
-import { initCountryDataRefresh } from '../../services/countryApiService'
+import { initCountryDataRefresh, getCountryCache } from '../../services/countryApiService'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -50,11 +50,13 @@ const COUNTRY_NAMES = {
   807:'North Macedonia', 818:'Egypt', 826:'United Kingdom', 834:'Tanzania', 840:'United States',
   854:'Burkina Faso', 858:'Uruguay', 860:'Uzbekistan', 862:'Venezuela', 882:'Samoa',
   887:'Yemen', 894:'Zambia',
+  10:'Antarctica', 304:'Greenland', 732:'Western Sahara',
 }
 
 // alpha-2 codes for flag emoji computation
 const COUNTRY_A2 = {
   4:'AF',8:'AL',12:'DZ',20:'AD',24:'AO',28:'AG',31:'AZ',32:'AR',36:'AU',40:'AT',44:'BS',48:'BH',
+  10:'AQ',304:'GL',732:'EH',
   50:'BD',52:'BB',56:'BE',64:'BT',68:'BO',70:'BA',72:'BW',76:'BR',84:'BZ',90:'SB',96:'BN',
   100:'BG',104:'MM',108:'BI',112:'BY',116:'KH',120:'CM',124:'CA',132:'CV',140:'CF',144:'LK',
   148:'TD',152:'CL',156:'CN',158:'TW',170:'CO',174:'KM',178:'CG',180:'CD',188:'CR',191:'HR',
@@ -73,7 +75,7 @@ const COUNTRY_A2 = {
   834:'TZ',840:'US',854:'BF',858:'UY',860:'UZ',862:'VE',704:'VN',887:'YE',894:'ZM',
   275:'PS',296:'KI',417:'KG',499:'ME',520:'NR',548:'VU',583:'FM',584:'MH',585:'PW',
   624:'GW',626:'TL',659:'KN',662:'LC',670:'VC',674:'SM',678:'ST',688:'RS',690:'SC',
-  702:'SG',798:'TV',807:'MK',882:'WS',
+  702:'SG',798:'TV',807:'MK',882:'WS',776:'TO',
 }
 
 const flagEmoji = (a2) => a2
@@ -879,10 +881,18 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
 
   // Get country name for hover
   const getCountryName = useCallback((id) => {
-    const name = COUNTRY_NAMES[parseInt(id)]
-    if (!name) console.log(`[Globe] Unknown country ID: ${id} — add to COUNTRY_NAMES`)
-    return name ?? 'Unknown Territory'
-  }, [])
+    const n = parseInt(id)
+    const name = COUNTRY_NAMES[n]
+    if (!name) {
+      // Fallback: try feature properties name from world-atlas
+      const feature = countries.find(f => parseInt(f.id) === n)
+      const featName = feature?.properties?.name
+      if (featName) return featName
+      console.log(`[Globe] Unknown country ID: ${id} — add to COUNTRY_NAMES`)
+      return 'Unknown Territory'
+    }
+    return name
+  }, [countries])
 
   // Get exchange status for hover
   const getExchangeInfo = useCallback((id) => {
@@ -1297,19 +1307,24 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
   const extra  = COUNTRY_EXTRA[n]
   const exchId = COUNTRY_TO_EXCHANGE[n]
   const ex     = exchId ? EXCHANGES.find(e => e.id === exchId) : null
-  const dbEntry = COUNTRIES_BY_A2[COUNTRY_A2[n] ?? ''] ?? null
+  const a2     = COUNTRY_A2[n] ?? null
+  const dbEntry = COUNTRIES_BY_A2[a2 ?? ''] ?? null
 
-  // Resolved fields — DB wins, fall back to legacy COUNTRY_DETAIL / COUNTRY_EXTRA
+  // REST Countries cache — fallback for fields not in static DB
+  const restCache = useMemo(() => getCountryCache('rest'), [])
+  const restEntry = a2 ? (restCache?.[a2] ?? null) : null
+
+  // Resolved fields — DB wins, REST cache fallback, then legacy COUNTRY_DETAIL / COUNTRY_EXTRA
   const tz          = dbEntry?.timezone ?? detail?.tz ?? null
-  const flag        = detail?.flag ?? dbEntry?.flag ?? flagEmoji(COUNTRY_A2[n])
-  const capital     = extra?.capital ?? dbEntry?.capital ?? null
-  const pop         = dbEntry?.population ?? null
-  const area        = dbEntry?.area ?? null
-  const region      = dbEntry?.region ?? null
-  const currCode    = detail?.currency ?? (typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.code : dbEntry?.currency) ?? null
+  const flag        = detail?.flag ?? dbEntry?.flag ?? flagEmoji(a2)
+  const capital     = extra?.capital ?? dbEntry?.capital ?? restEntry?.capital ?? null
+  const pop         = dbEntry?.population ?? restEntry?.population ?? null
+  const area        = dbEntry?.area ?? restEntry?.area ?? null
+  const region      = dbEntry?.region ?? restEntry?.region ?? null
+  const currCode    = detail?.currency ?? (typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.code : dbEntry?.currency) ?? restEntry?.currency ?? null
   const currName    = typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.name : null
-  const languages   = dbEntry?.languages ?? null
-  const govType     = dbEntry?.governmentType ?? null
+  const languages   = dbEntry?.languages ?? restEntry?.languages ?? null
+  const govType     = dbEntry?.governmentType ?? restEntry?.governmentType ?? null
 
   // Economy
   const gdpTotal    = dbEntry?.gdpTotal    ?? null

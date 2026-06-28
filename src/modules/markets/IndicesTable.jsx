@@ -51,10 +51,14 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             key={symbol}
             className={`
               flex flex-col justify-between px-3 py-1.5 border-r border-terminal-border flex-shrink-0
-              cursor-pointer transition-colors hover:bg-terminal-accent/20
+              cursor-pointer hover:bg-terminal-accent/20
               ${primary ? 'min-w-[140px]' : 'min-w-[120px]'}
-              ${isSelected ? 'border-l-2 border-l-terminal-gold bg-terminal-gold/5' : primary ? 'border-l-2 border-l-terminal-gold' : ''}
+              ${isSelected ? 'bg-[rgba(201,168,76,0.06)]' : ''}
             `}
+            style={{
+              borderRight: isSelected ? '3px solid var(--mt-gold, #C9A84C)' : undefined,
+              transition: 'background 150ms, border-color 150ms',
+            }}
             onClick={() => {
               onSelectIndex?.(symbol)
               if (q) openModal?.({
@@ -68,10 +72,9 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             }}
           >
             <div className="flex items-center gap-1">
-              <span className={`text-2xs font-bold ${isSelected || primary ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>
+              <span className={`text-2xs font-bold ${isSelected ? 'text-terminal-gold' : primary ? 'text-terminal-gold/70' : 'text-terminal-text-dim'}`}>
                 {label}
               </span>
-              {isSelected && <span className="text-2xs text-terminal-gold">◀</span>}
             </div>
             <div className="text-2xs text-terminal-text-dim/60">{sublabel}</div>
 

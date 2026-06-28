@@ -201,6 +201,35 @@ export function explainScore(scoreObject) {
   return text
 }
 
+// ── SHORT BANNER SUMMARY — max ~60 chars ─────────────────────────────────────
+export function generateShortSummary({ marketSentimentScore, asxChanges, fearGreed }) {
+  const score = marketSentimentScore?.score ?? 50
+  const fgVal = fearGreed?.value ?? null
+  const fgLbl = fearGreed?.label ?? null
+  const asxAvg = asxChanges?.length
+    ? asxChanges.reduce((s, c) => s + (c ?? 0), 0) / asxChanges.length
+    : null
+
+  let parts = []
+  if (asxAvg !== null) {
+    if (Math.abs(asxAvg) < 0.3) parts.push('ASX flat')
+    else if (asxAvg > 0) parts.push(`ASX +${asxAvg.toFixed(1)}%`)
+    else parts.push(`ASX ${asxAvg.toFixed(1)}%`)
+  }
+  if (fgVal !== null && fgLbl) {
+    const fgShort = fgLbl.replace('Extreme ', 'Extreme ')
+    parts.push(`${fgShort} (${fgVal}/100)`)
+  }
+  if (parts.length === 0) {
+    if (score >= 65) parts.push('Broad bullish momentum')
+    else if (score >= 55) parts.push('Mildly positive conditions')
+    else if (score >= 45) parts.push('Mixed signals')
+    else if (score >= 35) parts.push('Mild caution across markets')
+    else parts.push('Broadly bearish conditions')
+  }
+  return parts.join(' — ')
+}
+
 // ── AI SNAPSHOT TEXT ──────────────────────────────────────────────────────────
 // Plain-English daily snapshot for a Home/Markets banner.
 export function generateSnapshotText({ marketSentimentScore, cryptoMomentumIndex, asxChanges, fearGreed }) {
