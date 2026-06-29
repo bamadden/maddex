@@ -799,40 +799,70 @@ export const fetchRBARate = fetchRBACashRate
 
 const RSS2JSON_BASE = 'https://api.rss2json.com/v1/api.json'
 
-const RSS_FEEDS = [
-  { url: 'https://feeds.reuters.com/reuters/businessNews',                    source: 'Reuters'     },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',            source: 'CNBC'        },
-  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',              source: 'MarketWatch' },
-  { url: 'https://www.afr.com/rss',                                           source: 'AFR'         },
-  { url: 'https://www.theguardian.com/business/rss',                          source: 'Guardian'    },
-  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                     source: 'BBC'         },
-  { url: 'https://feeds.reuters.com/reuters/markets',                          source: 'Reuters Mkts'},
-  { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',              source: 'CNBC World'  },
-  { url: 'https://www.investing.com/rss/news.rss',                            source: 'Investing'   },
-  { url: 'https://finance.yahoo.com/news/rssindex',                           source: 'Yahoo Fin'   },
-  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                    source: 'RBA'         },
+export const NEWS_SOURCES = [
+  // Australian
+  { url: 'https://www.afr.com/rss',                                                       name: 'AFR',               category: 'AU'          },
+  { url: 'https://www.smh.com.au/rss/business.xml',                                       name: 'SMH Business',      category: 'AU'          },
+  { url: 'https://www.theage.com.au/rss/business.xml',                                    name: 'The Age',           category: 'AU'          },
+  { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',                                name: 'ABC Business',      category: 'AU'          },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                                name: 'RBA Speeches',      category: 'AU'          },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml',                          name: 'RBA Releases',      category: 'AU'          },
+  // US Financial
+  { url: 'https://feeds.reuters.com/reuters/businessNews',                                 name: 'Reuters Business',  category: 'US'          },
+  { url: 'https://feeds.reuters.com/reuters/markets',                                      name: 'Reuters Markets',   category: 'US'          },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',                         name: 'CNBC Top News',     category: 'US'          },
+  { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',                          name: 'CNBC Markets',      category: 'US'          },
+  { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html',                          name: 'CNBC Economy',      category: 'US'          },
+  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',                           name: 'MarketWatch Top',   category: 'US'          },
+  { url: 'https://feeds.marketwatch.com/marketwatch/marketpulse',                          name: 'MarketWatch Pulse', category: 'US'          },
+  { url: 'https://finance.yahoo.com/news/rssindex',                                        name: 'Yahoo Finance',     category: 'US'          },
+  { url: 'https://www.investing.com/rss/news.rss',                                        name: 'Investing.com',     category: 'US'          },
+  { url: 'https://www.investing.com/rss/market_overview.rss',                             name: 'Investing Markets', category: 'US'          },
+  // Global
+  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                                 name: 'BBC Business',      category: 'GLOBAL'      },
+  { url: 'https://www.theguardian.com/business/rss',                                      name: 'Guardian Business', category: 'GLOBAL'      },
+  { url: 'https://www.theguardian.com/business/economics/rss',                            name: 'Guardian Economics',category: 'GLOBAL'      },
+  { url: 'https://feeds.skynews.com/feeds/rss/business.xml',                              name: 'Sky News Business', category: 'GLOBAL'      },
+  { url: 'https://www.economist.com/finance-and-economics/rss.xml',                       name: 'The Economist',     category: 'GLOBAL'      },
+  // Crypto
+  { url: 'https://cointelegraph.com/rss',                                                 name: 'CoinTelegraph',     category: 'CRYPTO'      },
+  { url: 'https://coindesk.com/arc/outboundfeeds/rss/',                                   name: 'CoinDesk',          category: 'CRYPTO'      },
+  { url: 'https://decrypt.co/feed',                                                        name: 'Decrypt',           category: 'CRYPTO'      },
+  { url: 'https://bitcoinmagazine.com/.rss/full/',                                         name: 'Bitcoin Magazine',  category: 'CRYPTO'      },
+  // Commodities & Energy
+  { url: 'https://oilprice.com/rss/main',                                                 name: 'OilPrice.com',      category: 'COMMODITIES' },
+  { url: 'https://www.mining.com/feed/',                                                   name: 'Mining.com',        category: 'COMMODITIES' },
+  { url: 'https://www.miningweekly.com/rss',                                              name: 'Mining Weekly',     category: 'COMMODITIES' },
+  // Asia Pacific
+  { url: 'https://asia.nikkei.com/rss/feed/nar',                                          name: 'Nikkei Asia',       category: 'ASIA'        },
+  { url: 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',          name: 'Economic Times',    category: 'ASIA'        },
 ]
 
 // ─── News categories (tabs) — an article can match more than one ────────────
-export const NEWS_CATEGORIES = ['ALL', 'AU MARKETS', 'US MARKETS', 'CRYPTO', 'COMMODITIES', 'FX', 'MACRO', 'GEOPOLITICAL', 'TECH', 'EARNINGS']
+export const NEWS_CATEGORIES = ['ALL', 'AU', 'US', 'CRYPTO', 'COMMODITIES', 'MACRO', 'FX', 'GEOPOLITICAL', 'TECH', 'EARNINGS', 'ASIA']
 
 const NEWS_CATEGORY_RE = {
-  'AU MARKETS':   /\bASX\b|\bRBA\b|australia|australian|\bAUD\b|commonwealth bank|bhp|csl|westpac|\bANZ\b|\bNAB\b|woolworths|macquarie|reserve bank|\bAPRA\b|\bASIC\b|asx200/i,
-  'US MARKETS':   /\bFed\b|federal reserve|\bS&P 500\b|\bNASDAQ\b|\bDow\b|wall street|\bNYSE\b|\bSEC\b|quarterly results|\bIPO\b/i,
-  CRYPTO:         /bitcoin|\bBTC\b|ethereum|\bETH\b|crypto|blockchain|defi|\bNFT\b|solana|binance|coinbase|stablecoin|web3/i,
-  COMMODITIES:    /iron ore|\bgold\b|\bsilver\b|\boil\b|\bLNG\b|natural gas|copper|wheat|\bcoal\b|commodity|\bOPEC\b|\bcrude\b|\bBrent\b|\bWTI\b/i,
-  FX:             /\bAUD\/USD\b|currency|forex|\bdollar\b|\beuro\b|\byen\b|\bpound\b|exchange rate|central bank|interest rate|monetary policy/i,
-  MACRO:          /inflation|\bCPI\b|\bGDP\b|unemployment|\bjobs\b|recession|fiscal|\bbudget\b|treasury|deficit|surplus|trade balance/i,
-  GEOPOLITICAL:   /china|trade war|sanctions?|tariff|conflict|\bwar\b|ukraine|russia|middle east|taiwan|north korea|elections?/i,
-  TECH:           /\bAI\b|artificial intelligence|technology|semiconductor|\bchip\b|apple|google|microsoft|meta|amazon|tesla|innovation/i,
-  EARNINGS:       /\bearnings\b|quarterly results|annual results|guidance|forecast|\bbeat\b|\bmiss\b|\bEPS\b|profit warning/i,
+  AU:           /\bASX\b|\bRBA\b|australia|australian|\bAUD\b|commonwealth bank|bhp|csl|westpac|\bANZ\b|\bNAB\b|woolworths|macquarie|reserve bank|\bAPRA\b|\bASIC\b|asx200/i,
+  US:           /\bFed\b|federal reserve|\bS&P 500\b|\bNASDAQ\b|\bDow\b|wall street|\bNYSE\b|\bSEC\b|quarterly results|\bIPO\b/i,
+  CRYPTO:       /bitcoin|\bBTC\b|ethereum|\bETH\b|crypto|blockchain|defi|\bNFT\b|solana|binance|coinbase|stablecoin|web3/i,
+  COMMODITIES:  /iron ore|\bgold\b|\bsilver\b|\boil\b|\bLNG\b|natural gas|copper|wheat|\bcoal\b|commodity|\bOPEC\b|\bcrude\b|\bBrent\b|\bWTI\b/i,
+  FX:           /\bAUD\/USD\b|currency|forex|\bdollar\b|\beuro\b|\byen\b|\bpound\b|exchange rate|central bank|interest rate|monetary policy/i,
+  MACRO:        /inflation|\bCPI\b|\bGDP\b|unemployment|\bjobs\b|recession|fiscal|\bbudget\b|treasury|deficit|surplus|trade balance/i,
+  GEOPOLITICAL: /china|trade war|sanctions?|tariff|conflict|\bwar\b|ukraine|russia|middle east|taiwan|north korea|elections?/i,
+  TECH:         /\bAI\b|artificial intelligence|technology|semiconductor|\bchip\b|apple|google|microsoft|meta|amazon|tesla|innovation/i,
+  EARNINGS:     /\bearnings\b|quarterly results|annual results|guidance|forecast|\bbeat\b|\bmiss\b|\bEPS\b|profit warning/i,
+  ASIA:         /\bjapan\b|nikkei|hong kong|\bchina\b|shanghai|hang seng|singapore|\bindia\b|sensex|nifty|korea|seoul|\bASEAN\b/i,
 }
 
-function classifyNewsCategories(title, description = '') {
+function classifyNewsCategories(title, description = '', sourceCategory = null) {
   const text = `${title} ${description}`
-  return Object.entries(NEWS_CATEGORY_RE)
+  const cats = Object.entries(NEWS_CATEGORY_RE)
     .filter(([, re]) => re.test(text))
     .map(([key]) => key)
+  if (sourceCategory && sourceCategory !== 'GLOBAL' && !cats.includes(sourceCategory)) {
+    cats.push(sourceCategory)
+  }
+  return cats
 }
 
 // ─── Sentiment (keyword-derived, not a model call) ───────────────────────────
@@ -926,44 +956,53 @@ const stripHtml = (html) => {
 }
 
 export const fetchNews = async () => {
+  const fetchedAt = Date.now()
+  const sourceHealth = {}
+  NEWS_SOURCES.forEach(s => { sourceHealth[s.name] = 'failed' })
+
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(({ url, source }) =>
-      // rss2json's free tier rejects the `count` param outright (requires a paid key) —
-      // omit it and rely on the feed's own default item count instead.
-      axios.get(RSS2JSON_BASE, { params: { rss_url: url } })
-        .then(({ data }) => ({ data, source }))
+    NEWS_SOURCES.map(({ url, name, category }) =>
+      axios.get(RSS2JSON_BASE, { params: { rss_url: url }, timeout: 8000 })
+        .then(({ data }) => ({ data, source: name, sourceCategory: category }))
     )
   )
+
   let id = 1
   const items = []
   for (const result of results) {
     if (result.status !== 'fulfilled') continue
-    const { data, source } = result.value
+    const { data, source, sourceCategory } = result.value
     if (data.status !== 'ok' || !Array.isArray(data.items)) continue
+    sourceHealth[source] = 'ok'
     for (const item of data.items) {
       const pubDate = item.pubDate ? new Date(item.pubDate) : new Date()
       const tag     = inferNewsTag(item.title, item.categories)
       items.push({
-        id:         id++,
-        time:       pubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        id:             id++,
+        time:           pubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
         pubDate,
+        fetchedAt,
         source,
+        sourceCategory,
         tag,
-        categories: classifyNewsCategories(item.title, item.description),
-        sentiment:  inferSentiment(item.title, item.description),
-        headline:   item.title?.trim() || '(No title)',
-        summary:    stripHtml(item.description || item.content),
-        link:       item.link,
-        tickers:    extractTickers(item.title, item.description),
-        priority:   ['AFR', 'ASX', 'RBA'].includes(source) || tag === 'AU' ? 0 : 1,
+        categories:     classifyNewsCategories(item.title, item.description, sourceCategory),
+        sentiment:      inferSentiment(item.title, item.description),
+        headline:       item.title?.trim() || '(No title)',
+        summary:        stripHtml(item.description || item.content),
+        link:           item.link,
+        tickers:        extractTickers(item.title, item.description),
+        priority:       ['AFR', 'RBA Speeches', 'RBA Releases'].includes(source) || tag === 'AU' ? 0 : 1,
       })
     }
   }
+
   const deduped = dedupeByHeadline(items)
   deduped.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
-  const capped = deduped.slice(0, 100)
-  console.log('[MADDEN API] RSS2JSON news:', capped.length, 'articles (', items.length - deduped.length, 'duplicates removed from', items.length, 'total)')
-  return capped
+  const articles = deduped.slice(0, 500)
+
+  const liveCount = Object.values(sourceHealth).filter(v => v === 'ok').length
+  console.log(`[MADDEN API] News: ${articles.length} articles from ${liveCount}/${NEWS_SOURCES.length} sources`)
+  return { articles, sourceHealth }
 }
 
 // ─── OpenSky Network (via proxy → /api/opensky) ──────────────────────────────

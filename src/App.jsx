@@ -1,6 +1,7 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { StoreProvider, useStore } from './store/useStore'
+import { fetchNews } from './services/api'
 import DiagPage from './DiagPage'
 import TopBar from './components/layout/TopBar'
 import NavBar from './components/layout/NavBar'
@@ -103,8 +104,38 @@ function LoadingScreen() {
 
 // ── Terminal ──────────────────────────────────────────────────────────────────
 
+const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
+
 function Terminal() {
-  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen } = useStore()
+  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, setNewsBadgeCount, clearNewsBadge } = useStore()
+
+  // Background news subscription — keeps the ['news'] query alive and enables nav badge
+  const { data: bgNewsData } = useQuery({
+    queryKey: ['news'],
+    queryFn: fetchNews,
+    staleTime: 3 * 60_000,
+    refetchInterval: 3 * 60_000,
+    select: (d) => d?.articles ?? [],
+  })
+
+  const lastSeenTsRef = useRef(parseInt(localStorage.getItem(NEWS_SEEN_TS_KEY) ?? '0'))
+
+  useEffect(() => {
+    if (!bgNewsData?.length) return
+    if (activeModule === 'news') {
+      clearNewsBadge()
+      const maxTs = Math.max(...bgNewsData.map(a => new Date(a.pubDate).getTime()))
+      const ts = isFinite(maxTs) ? maxTs : Date.now()
+      localStorage.setItem(NEWS_SEEN_TS_KEY, String(ts))
+      lastSeenTsRef.current = ts
+    } else {
+      const newCount = bgNewsData.filter(a => {
+        const t = new Date(a.pubDate).getTime()
+        return isFinite(t) && t > lastSeenTsRef.current
+      }).length
+      if (newCount > 0) setNewsBadgeCount(newCount)
+    }
+  }, [bgNewsData, activeModule, clearNewsBadge, setNewsBadgeCount])
   const [showShortcuts, setShowShortcuts] = useState(false)
   const ActiveModule = MODULE_MAP[activeModule] || MarketsModule
 

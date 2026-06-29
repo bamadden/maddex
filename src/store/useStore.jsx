@@ -34,6 +34,7 @@ export function StoreProvider({ children }) {
   const [watchlistFocus, setWatchlistFocus] = useState(null)
   const [modalAsset, setModalAsset]         = useState(null)
   const [newsFilter, setNewsFilterState]    = useState('')
+  const [newsBadgeCount, setNewsBadgeCountState] = useState(0)
   const [alerts, setAlerts]                 = useState(() => {
     try { return JSON.parse(localStorage.getItem('madden_alerts') ?? '[]') } catch { return [] }
   })
@@ -99,7 +100,9 @@ export function StoreProvider({ children }) {
   const openModal  = useCallback((asset) => setModalAsset(asset), [])
   const closeModal = useCallback(() => setModalAsset(null), [])
 
-  const setNewsFilter = useCallback((kw) => setNewsFilterState(kw), [])
+  const setNewsFilter   = useCallback((kw) => setNewsFilterState(kw), [])
+  const setNewsBadgeCount = useCallback((n) => setNewsBadgeCountState(n), [])
+  const clearNewsBadge    = useCallback(() => setNewsBadgeCountState(0), [])
 
   const addAlert = useCallback((sym, price) => {
     const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), createdAt: new Date().toISOString() }
@@ -130,6 +133,7 @@ export function StoreProvider({ children }) {
         watchlistFocus, setWatchlistFocus,
         modalAsset, openModal, closeModal,
         newsFilter, setNewsFilter,
+        newsBadgeCount, setNewsBadgeCount, clearNewsBadge,
         alerts, addAlert, removeAlert,
       }}
     >

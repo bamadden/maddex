@@ -354,7 +354,7 @@ function AssetNewsPanel({ symbol, name }) {
     symbol.replace(/\.AX$/, '').replace(/^\^/, ''),
     ...(name ? name.split(' ').slice(0, 2) : []),
   ]
-  const matching = (news ?? []).filter((n) =>
+  const matching = ((news?.articles) ?? []).filter((n) =>
     keywords.some((kw) => kw.length > 2 && n.headline.toLowerCase().includes(kw.toLowerCase()))
   ).slice(0, 5)
 

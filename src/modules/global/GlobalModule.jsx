@@ -1369,7 +1369,7 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
   const exCountdown = ex ? countdown(ex) : null
 
   const relatedNews = useMemo(() => {
-    if (!newsItems || !name) return []
+    if (!newsItems?.articles || !name) return []
     const aliases = [name.toLowerCase()]
     if (n === 156) aliases.push('beijing', 'china', 'chinese')
     if (n === 840) aliases.push('washington', 'american', 'trump', 'white house')
@@ -1377,7 +1377,7 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
     if (n === 826) aliases.push('london', 'british', 'uk', 'britain')
     if (n === 276) aliases.push('berlin', 'german')
     const re = new RegExp(aliases.join('|'), 'i')
-    return newsItems.filter(item => re.test(item.headline + ' ' + (item.summary ?? ''))).slice(0, 5)
+    return (newsItems?.articles ?? []).filter(item => re.test(item.headline + ' ' + (item.summary ?? ''))).slice(0, 5)
   }, [newsItems, name, n])
 
   const sec = (title) => (
@@ -2290,10 +2290,10 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
   const closeHHMM = `${String(ex.close[0]).padStart(2,'0')}:${String(ex.close[1]).padStart(2,'0')}`
 
   const relatedNews = useMemo(() => {
-    if (!newsItems?.length) return []
+    if (!newsItems?.articles?.length) return []
     const q = ex.name.toLowerCase().split(' ')[0]
     const re = new RegExp(ex.city + '|' + ex.country + '|' + ex.id, 'i')
-    return newsItems.filter(n => re.test(n.headline + ' ' + (n.summary ?? ''))).slice(0, 4)
+    return (newsItems?.articles ?? []).filter(n => re.test(n.headline + ' ' + (n.summary ?? ''))).slice(0, 4)
   }, [newsItems, ex.id])
 
   return (
@@ -2456,7 +2456,7 @@ export default function GlobalModule() {
 
   // Combine for geopolitical tab
   const allNewsItems = useMemo(() => {
-    const all = [...(geoNewsItems ?? []), ...(newsItems ?? [])]
+    const all = [...(geoNewsItems ?? []), ...(newsItems?.articles ?? [])]
     // Deduplicate by headline
     const seen = new Set()
     return all.filter(n => { if (seen.has(n.headline)) return false; seen.add(n.headline); return true })
