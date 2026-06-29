@@ -30,24 +30,42 @@ const daysSince = (iso) => {
   return Math.floor((Date.now() - d.getTime()) / 86400000)
 }
 
-const freshnessLevel = (iso) => {
+// Per-indicator freshness thresholds — release cadences vary by type
+// interest-rate: RBA meets every ~6 weeks (45d); cpi/gdp: quarterly (95d); unemployment: monthly (40d)
+const FRESH_THRESHOLDS = {
+  'interest-rate': { fresh: 45,  amber: 90  },
+  'cpi':           { fresh: 95,  amber: 130 },
+  'unemployment':  { fresh: 40,  amber: 60  },
+  'gdp':           { fresh: 95,  amber: 130 },
+  'default':       { fresh: 45,  amber: 90  },
+}
+
+const freshnessLevel = (iso, type = 'default') => {
   const days = daysSince(iso)
-  if (days <= 30) return 'green'
-  if (days <= 90) return 'amber'
+  const t = FRESH_THRESHOLDS[type] ?? FRESH_THRESHOLDS.default
+  if (days <= t.fresh) return 'green'
+  if (days <= t.amber) return 'amber'
   return 'red'
 }
 
-const FRESHNESS_COLOR = {
-  green: 'bg-terminal-green text-terminal-green border-terminal-green/40',
-  amber: 'bg-terminal-gold text-terminal-gold border-terminal-gold/40',
-  red:   'bg-terminal-red text-terminal-red border-terminal-red/40',
+const DOT_COLOR = { green: 'bg-terminal-green', amber: 'bg-terminal-gold', red: 'bg-terminal-red' }
+const DOT_LABEL = { green: 'Current', amber: 'Approaching next release', red: 'Overdue for update' }
+
+// Infer freshness type from indicator name
+function inferType(name = '') {
+  const n = name.toLowerCase()
+  if (n.includes('rate') || n.includes('cash') || n.includes('fed funds')) return 'interest-rate'
+  if (n.includes('cpi') || n.includes('inflation') || n.includes('pce')) return 'cpi'
+  if (n.includes('unemp') || n.includes('labour') || n.includes('nfp') || n.includes('employment')) return 'unemployment'
+  if (n.includes('gdp')) return 'gdp'
+  return 'default'
 }
 
-const FRESHNESS_LABEL = { green: 'FRESH (<1MO)', amber: 'AGEING (1-3MO)', red: 'STALE (>3MO)' }
-
-function FreshnessDot({ date }) {
-  const level = freshnessLevel(date)
-  return <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${FRESHNESS_COLOR[level].split(' ')[0]}`} title={FRESHNESS_LABEL[level]} />
+function FreshnessDot({ date, name }) {
+  const type  = inferType(name)
+  const level = freshnessLevel(date, type)
+  // Only render a dot — no large banners, no labels
+  return <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${DOT_COLOR[level]}`} title={DOT_LABEL[level]} />
 }
 
 function SourceLink({ src }) {
@@ -78,19 +96,6 @@ const NEXT_RELEASE = {
   'AU GDP Annual':       'September 2026',
 }
 
-// Overall "DATA FRESHNESS" badge — worst-case across the 4 headline indicators
-function OverallFreshnessBadge({ indicators }) {
-  const dates = indicators.map((n) => AU_MACRO.find((m) => m.name === n)?.date).filter(Boolean)
-  if (!dates.length) return null
-  const worst = dates.reduce((acc, d) => (daysSince(d) > daysSince(acc) ? d : acc), dates[0])
-  const level = freshnessLevel(worst)
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-2xs font-bold px-2 py-0.5 border ${FRESHNESS_COLOR[level]} bg-opacity-10`}>
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${FRESHNESS_COLOR[level].split(' ')[0]}`} />
-      DATA FRESHNESS: {FRESHNESS_LABEL[level]}
-    </span>
-  )
-}
 
 const importanceDots = (level) => {
   const filled = level === 'high' ? 3 : level === 'medium' ? 2 : 1
@@ -873,15 +878,6 @@ export default function MacroModule() {
         />
       )}
 
-      {/* Data freshness summary — worst-case across headline indicators */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-terminal-border flex-shrink-0">
-        <OverallFreshnessBadge indicators={['RBA Cash Rate', 'AU CPI YoY', 'AU Unemployment', 'AU GDP QoQ']} />
-        <span className="text-2xs text-terminal-text-dim">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-green mr-1" />GREEN &lt;1mo old ·
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mx-1" />AMBER 1-3mo ·
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-red mx-1" />RED &gt;3mo
-        </span>
-      </div>
 
       {/* ── Section 1: RBA Dashboard ── */}
       <RBADashboard askAI={askAI} />
@@ -906,7 +902,7 @@ export default function MacroModule() {
           {AU_MACRO.slice(0, 8).map((ind) => (
             <div key={ind.name} className="border-r border-terminal-border p-2 hover:bg-terminal-accent/20">
               <div className="flex items-center gap-1 mb-0.5">
-                <FreshnessDot date={ind.date} />
+                <FreshnessDot date={ind.date} name={ind.name} />
                 <div className="text-2xs text-terminal-text-dim leading-tight">{ind.name}</div>
               </div>
               <div className="text-sm font-bold text-terminal-text-bright">
@@ -1044,7 +1040,7 @@ export default function MacroModule() {
                   {indicators.map((ind) => (
                     <div key={ind.name} className="py-0.5 border-b border-terminal-border/20">
                       <div className="flex items-center gap-1">
-                        <FreshnessDot date={ind.date} />
+                        <FreshnessDot date={ind.date} name={ind.name} />
                         <span className="text-2xs text-terminal-text-dim">{ind.name}</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -1068,6 +1064,13 @@ export default function MacroModule() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Subtle data attribution footer */}
+      <div className="px-3 py-2 border-t border-terminal-border/30 mt-2">
+        <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>
+          Data current as at June 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
+        </span>
       </div>
 
     </div>

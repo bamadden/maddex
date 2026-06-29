@@ -52,8 +52,8 @@ export const AU_MACRO = [
   // AU CPI YoY: 2.4% Q1 2026 — ABS Cat. 6401.0, released 2026-04-29
   { name: 'AU CPI YoY',          value: '2.4%',  prev: '2.3%',  date: '2026-04-29', beat: null, src: 'abs.gov.au/6401.0' },
   { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
-  // AU Unemployment: 4.1% April 2026 — ABS Labour Force, released 2026-05-15
-  { name: 'AU Unemployment',     value: '4.1%',  prev: '4.0%',  date: '2026-05-15', beat: false, src: 'abs.gov.au/6202.0' },
+  // AU Unemployment: 4.1% May 2026 — ABS Labour Force, released 2026-06-19
+  { name: 'AU Unemployment',     value: '4.1%',  prev: '4.1%',  date: '2026-06-19', beat: null,  src: 'abs.gov.au/6202.0' },
   // AU GDP Q4 2025 — ABS National Accounts, released 2026-03-04
   { name: 'AU GDP QoQ',          value: '0.4%',  prev: '0.3%',  date: '2026-03-04', beat: true,  src: 'abs.gov.au/5206.0' },
   // AU GDP Annual 1.3% as at Q4 2025 — source: abs.gov.au
