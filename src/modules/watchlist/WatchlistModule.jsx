@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYahooQuote } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
-import { fmt, colorClass } from '../../utils/format'
+import { fmt, colorClass, formatMarketCap } from '../../utils/format'
 import { useStore } from '../../store/useStore'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
@@ -255,7 +255,7 @@ export default function WatchlistModule() {
                     {row.volume != null ? fmt.large(row.volume) : '—'}
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
-                    {row.marketCap != null ? fmt.large(row.marketCap) : '—'}
+                    {formatMarketCap(row.marketCap)}
                   </td>
                   <td className="px-2 py-1.5 text-right">
                     <button

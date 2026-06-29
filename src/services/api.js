@@ -602,6 +602,7 @@ export const transformCryptoMarkets = (items, currency = 'aud') =>
     pct24h:    c.price_change_percentage_24h ?? 0,
     pct7d:     c.price_change_percentage_7d_in_currency ?? 0,
     pct30d:    c.price_change_percentage_30d_in_currency ?? null,
+    marketCap: c.market_cap ?? null,
     mktCap:    formatLargeNum(c.market_cap ?? 0),
     vol24h:    formatLargeNum(c.total_volume ?? 0),
     currency:  currency.toUpperCase(),

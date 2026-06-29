@@ -574,7 +574,13 @@ export default function DetailModal() {
       </Section>
 
       <Section title="VALUATION">
-        <DataRow label="Market Cap"     value={fmtAmt(qs?.marketCap)} />
+        <DataRow label="Market Cap" value={
+          qs?.marketCap
+            ? isQsAud
+              ? fmtBig(qs.marketCap)
+              : `${fmtBig(toQsAud(qs.marketCap))} (${(() => { const v = qs.marketCap; const a = Math.abs(v); return a >= 1e12 ? `US$${(v/1e12).toFixed(2)}T` : a >= 1e9 ? `US$${(v/1e9).toFixed(1)}B` : a >= 1e6 ? `US$${(v/1e6).toFixed(0)}M` : `US$${v.toFixed(0)}` })()} )`
+            : '—'
+        } />
         <DataRow label="Enterprise Val" value={fmtAmt(qs?.enterpriseValue)} />
         <DataRow label="P/E (TTM)"      value={fmtX(qs?.trailingPE)} />
         <DataRow label="P/E (Forward)"  value={fmtX(qs?.forwardPE)} />

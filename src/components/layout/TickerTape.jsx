@@ -7,7 +7,7 @@ import {
   fetchMetalsRates, extractMetals,
 } from '../../services/api'
 import { useStore } from '../../store/useStore'
-import { fmt } from '../../utils/format'
+import { fmt, formatMarketCap } from '../../utils/format'
 
 const INDEX_SYMS  = ['^AXJO', '^GSPC', '^IXIC']
 const INDEX_LABELS = { '^AXJO':'ASX 200', '^GSPC':'S&P 500', '^IXIC':'NASDAQ' }
@@ -26,10 +26,12 @@ function Divider({ label }) {
   )
 }
 
-function TapeItem({ sym, price, pct, onClick }) {
-  const cls = pctCls(pct)
+function TapeItem({ sym, price, pct, marketCap, onClick }) {
+  const cls     = pctCls(pct)
+  const tooltip = [price, pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')
   return (
     <span
+      title={tooltip || undefined}
       className={`inline-flex items-center gap-1.5 mr-6 whitespace-nowrap ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
       onClick={onClick}
     >
@@ -89,9 +91,10 @@ export default function TickerTape() {
     const gainers = sorted.slice(0, 3)
     const losers  = [...sorted].reverse().slice(0, 3)
     const moverItems = [...gainers, ...losers].map(c => ({
-      sym:   c.symbol,
-      price: fmtAUD(c.price),
-      pct:   c.pct24h,
+      sym:       c.symbol,
+      price:     fmtAUD(c.price),
+      pct:       c.pct24h,
+      marketCap: c.marketCap ?? null,
       onClick: () => openModal?.({ symbol: c.symbol, name: c.name, price: c.price, pct: c.pct24h, type: 'crypto' }),
     }))
     if (moverItems.length) sectionBlocks.push({ label: '▲▼ MOVERS', items: moverItems })
@@ -106,8 +109,9 @@ export default function TickerTape() {
       if (!coin) return null
       return {
         sym,
-        price: fmtAUD(coin.price),
-        pct:   coin.pct24h,
+        price:     fmtAUD(coin.price),
+        pct:       coin.pct24h,
+        marketCap: coin.marketCap ?? null,
         onClick: () => openModal?.({ symbol: sym, name: coin.name, price: coin.price, pct: coin.pct24h, type: 'crypto' }),
       }
     }).filter(Boolean)
@@ -176,7 +180,7 @@ export default function TickerTape() {
           {doubled.map(el =>
             el.type === 'div'
               ? <Divider key={el.key} label={el.label} />
-              : <TapeItem key={el.key} sym={el.sym} price={el.price} pct={el.pct} onClick={el.onClick} />
+              : <TapeItem key={el.key} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
           )}
         </div>
       </div>

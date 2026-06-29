@@ -43,6 +43,15 @@ export const fmt = {
   },
 }
 
+export function formatMarketCap(value, currency = 'AUD') {
+  if (!value || isNaN(value)) return '—'
+  const sym = currency === 'AUD' ? 'A$' : 'US$'
+  if (value >= 1_000_000_000_000) return `${sym}${(value / 1_000_000_000_000).toFixed(2)}T`
+  if (value >= 1_000_000_000)     return `${sym}${(value / 1_000_000_000).toFixed(1)}B`
+  if (value >= 1_000_000)         return `${sym}${(value / 1_000_000).toFixed(0)}M`
+  return `${sym}${value.toLocaleString()}`
+}
+
 export const colorClass = (n) => {
   if (n > 0) return 'pos'
   if (n < 0) return 'neg'

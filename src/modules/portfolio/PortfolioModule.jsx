@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYFQuote } from '../../services/api'
+import { formatMarketCap } from '../../utils/format'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
@@ -270,7 +271,8 @@ export default function PortfolioModule() {
     const pnlPct     = pnl != null && totalCost > 0 ? (pnl / totalCost) * 100 : null
     const assetClass = isAsx ? 'AU Equities' : isCrypto ? 'Crypto' : 'US Equities'
 
-    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, assetClass, loadState, isOpen: q?.isOpen, nativePrice, currency }
+    const marketCap = q?.marketCap != null ? (isAsx ? q.marketCap : usdToAud(q.marketCap)) : null
+    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, assetClass, loadState, isOpen: q?.isOpen, nativePrice, currency, marketCap }
   })
 
   const live      = computed.filter((h) => h.mktVal != null)
@@ -396,6 +398,7 @@ export default function PortfolioModule() {
                   <th className="px-1 text-right">P&amp;L%</th>
                   <th className="px-1 text-right">DAY%</th>
                   <th className="px-1 text-right hidden xl:table-cell">WT%</th>
+                  <th className="px-1 text-right hidden 2xl:table-cell">MKT CAP</th>
                   <th className="px-1 text-center">✕</th>
                 </tr>
               </thead>
@@ -450,6 +453,9 @@ export default function PortfolioModule() {
                       </td>
                       <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell">
                         {h.mktVal && mktTotal ? ((h.mktVal / mktTotal) * 100).toFixed(1) + '%' : '—'}
+                      </td>
+                      <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden 2xl:table-cell">
+                        {formatMarketCap(h.marketCap)}
                       </td>
                       <td className="px-1 py-0.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => deleteHolding(h.id)}

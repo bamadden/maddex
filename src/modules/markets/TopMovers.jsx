@@ -1,12 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { toAUD, ASX_STOCKS, US_STOCKS, fetchBatch } from '../../services/api'
-import { fmt } from '../../utils/format'
+import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 
 function displaySym(yahoo) {
   return yahoo.replace(/\.AX$/, '')
+}
+
+function totalTrackedMktCap(quotes, audUsd) {
+  if (!quotes) return null
+  let total = 0
+  for (const q of Object.values(quotes)) {
+    if (!q?.marketCap) continue
+    total += q.currency === 'USD' ? q.marketCap * (audUsd ?? 1.55) : q.marketCap
+  }
+  return total > 0 ? total : null
 }
 
 function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
@@ -41,6 +51,7 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
         exchange:    q.exchange,
         nativePrice: isAsx ? null : q.price,
         currency:    q.currency,
+        marketCap:   q.marketCap != null ? toAUD(q.marketCap, q.currency, audUsd) : null,
       },
     })
   }
@@ -52,11 +63,13 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
           <th className="px-2 text-left">TICKER</th>
           <th className="px-1 text-right">A$ PRICE</th>
           <th className="px-1 text-right">CHG%</th>
+          <th className="px-1 text-right hidden lg:table-cell">MKT CAP</th>
         </tr>
       </thead>
       <tbody>
         {items.map((q) => {
-          const audPrice = toAUD(q.price, q.currency, audUsd)
+          const audPrice  = toAUD(q.price, q.currency, audUsd)
+          const audMktCap = q.marketCap != null ? toAUD(q.marketCap, q.currency, audUsd) : null
           return (
             <tr key={q.symbol}
               className="cursor-pointer hover:bg-terminal-accent/20 transition-colors"
@@ -68,11 +81,14 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
               <td className="px-1 py-0.5 text-2xs text-right font-semibold" style={{ color: pctColor }}>
                 {q.dayChangePct >= 0 ? '+' : ''}{q.dayChangePct.toFixed(2)}%
               </td>
+              <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell">
+                {formatMarketCap(audMktCap)}
+              </td>
             </tr>
           )
         })}
         {items.length === 0 && (
-          <tr><td colSpan={3} className="px-2 py-2 text-2xs text-terminal-text-dim">No data</td></tr>
+          <tr><td colSpan={4} className="px-2 py-2 text-2xs text-terminal-text-dim">No data</td></tr>
         )}
       </tbody>
     </table>
@@ -114,6 +130,9 @@ export default function TopMovers() {
     retry: 1,
   })
 
+  const asxTrackedCap = totalTrackedMktCap(asxQuotes, audUsd)
+  const usTrackedCap  = totalTrackedMktCap(usQuotes, audUsd)
+
   return (
     <div className="grid grid-cols-2 border-b border-terminal-border">
       <div className="border-r border-terminal-border">
@@ -122,7 +141,9 @@ export default function TopMovers() {
           {asxFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
           {asxQuotes && !asxFetching && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {asxError && !asxFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
-          <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime} · {ASX_STOCKS.length} stocks</span>
+          <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
+            {asxTrackedCap ? `${formatMarketCap(asxTrackedCap)} tracked · ` : ''}{updatedTime} · {ASX_STOCKS.length} stocks
+          </span>
         </div>
         <MoverTable quotes={asxQuotes} label="ASX" isLoading={asxFetching && !asxQuotes}
           isError={asxError} refetch={refetchASX} audUsd={audUsd} />
@@ -133,7 +154,9 @@ export default function TopMovers() {
           {usFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
           {usQuotes && !usFetching && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {usError && !usFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
-          <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime} · {US_STOCKS.length} stocks</span>
+          <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
+            {usTrackedCap ? `${formatMarketCap(usTrackedCap)} tracked · ` : ''}{updatedTime} · {US_STOCKS.length} stocks
+          </span>
         </div>
         <MoverTable quotes={usQuotes} label="US" isLoading={usFetching && !usQuotes}
           isError={usError} refetch={refetchUS} audUsd={audUsd} />
