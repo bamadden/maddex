@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchNews, NEWS_CATEGORIES, NEWS_SOURCES, TICKER_WHITELIST, askClaude } from '../../services/api'
+import { fetchNews, NEWS_CATEGORIES, NEWS_SOURCES, TICKER_WHITELIST, FINANCIAL_KEYWORDS, askClaude } from '../../services/api'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
@@ -93,21 +93,26 @@ function HighlightText({ text, term }) {
 
 // ─── Overall stats ────────────────────────────────────────────────────────────
 
-const STOPWORDS = new Set([
-  'the','and','for','with','from','that','this','will','have','after','says','over',
-  'into','more','than','their','about','what','when','where','which','while','been',
-  'being','were','they','them','your','also','could','would','should','still','amid',
-  'some','most','first','last','next','years','year','week','said','just','such','each',
-])
+// Trending: count which financial keywords appear most across current articles
+const TREND_DISPLAY = {
+  'interest rate': 'INTEREST RATES', 'rate cut': 'RATE CUT', 'rate hike': 'RATE HIKE',
+  'iron ore': 'IRON ORE', 'federal reserve': 'FED', 'central bank': 'CENTRAL BANK',
+  'reserve bank': 'RBA', 'trade war': 'TRADE WAR', 'real estate': 'PROPERTY',
+  'monetary policy': 'MONETARY POLICY', 'jobs data': 'JOBS',
+}
 
 function extractTrending(items) {
   const counts = {}
   for (const item of items) {
-    const words = item.headline.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
-      .filter(w => w.length > 3 && !STOPWORDS.has(w))
-    for (const w of words) counts[w] = (counts[w] ?? 0) + 1
+    const text = `${item.headline} ${item.summary ?? ''}`.toLowerCase()
+    for (const kw of FINANCIAL_KEYWORDS) {
+      if (text.includes(kw)) {
+        const display = TREND_DISPLAY[kw] ?? kw.toUpperCase()
+        counts[display] = (counts[display] ?? 0) + 1
+      }
+    }
   }
-  return Object.entries(counts).filter(([, c]) => c > 1).sort((a, b) => b[1] - a[1]).slice(0, 8)
+  return Object.entries(counts).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 12)
 }
 
 function overallSentiment(items) {
@@ -125,24 +130,37 @@ function overallSentiment(items) {
 
 const THEMES_CACHE_MS = 15 * 60_000
 
+const THEME_SENTIMENT_COLOR = {
+  BULLISH: '#2d8a50',
+  BEARISH: '#a83232',
+  NEUTRAL: '#c9a84c',
+}
+
 function KeyThemesPanel({ headlines }) {
-  const themesCache = useRef({ text: null, ts: 0 })
+  const themesCache = useRef({ themes: null, ts: 0 })
   const [themes, setThemes]   = useState(null)
   const [loading, setLoading] = useState(false)
 
   const fetchThemes = useCallback(async () => {
     const now = Date.now()
-    if (themesCache.current.text && now - themesCache.current.ts < THEMES_CACHE_MS) {
-      setThemes(themesCache.current.text); return
+    if (themesCache.current.themes && now - themesCache.current.ts < THEMES_CACHE_MS) {
+      setThemes(themesCache.current.themes); return
     }
     setLoading(true)
     try {
       let result = ''
-      await askClaude([{ role: 'user', content: `In exactly 3 bullet points using ◆ symbol, what are the dominant themes in today's financial news? Be specific. Under 60 words total.\n\nHeadlines:\n${headlines.slice(0,10).join('\n')}` }], (_, full) => { result = full })
-      themesCache.current = { text: result, ts: Date.now() }
-      setThemes(result)
+      await askClaude([{
+        role: 'user',
+        content: `Analyse these financial news headlines and return ONLY a JSON array of exactly 3 objects. Each object must have these exact keys: "theme" (max 10 words), "sentiment" (one of: BULLISH, BEARISH, NEUTRAL), "category" (one of: AU, US, CRYPTO, COMMODITIES, MACRO, FX, GEOPOLITICAL, TECH, EARNINGS, ASIA), "impact" (max 8 words describing market impact). Return raw JSON only — no markdown, no explanation.\n\nHeadlines:\n${headlines.slice(0, 15).join('\n')}`,
+      }], (_, full) => { result = full })
+      const jsonStr = result.replace(/```json\n?|\n?```/g, '').trim()
+      const parsed = JSON.parse(jsonStr)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        themesCache.current = { themes: parsed, ts: Date.now() }
+        setThemes(parsed)
+      }
     } catch {
-      setThemes('◆ Unable to generate themes at this time')
+      setThemes([{ theme: 'Unable to generate themes', sentiment: 'NEUTRAL', category: 'MACRO', impact: 'AI analysis unavailable' }])
     } finally {
       setLoading(false)
     }
@@ -154,17 +172,34 @@ function KeyThemesPanel({ headlines }) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-1.5">
+      <div className="flex items-center gap-2 mb-2">
         <div className="text-2xs text-terminal-gold font-bold tracking-widest">TODAY'S KEY THEMES</div>
         <span className="text-2xs text-terminal-text-dim/50 border border-terminal-border/30 px-1">AI</span>
-        <button onClick={fetchThemes} className="text-2xs text-terminal-text-dim/40 hover:text-terminal-gold ml-auto" title="Refresh">↺</button>
+        <button onClick={fetchThemes} className="text-2xs text-terminal-text-dim/40 hover:text-terminal-gold ml-auto" title="Refresh themes">↺</button>
       </div>
       {loading && <div className="text-2xs text-terminal-gold/60 animate-pulse">Analysing headlines...</div>}
       {themes && !loading && (
-        <div className="space-y-1">
-          {themes.split('\n').filter(l => l.trim()).map((line, i) => (
-            <p key={i} className="text-2xs text-terminal-text leading-relaxed">{line}</p>
-          ))}
+        <div className="space-y-2">
+          {themes.map((t, i) => {
+            const color = THEME_SENTIMENT_COLOR[t.sentiment] ?? '#c9a84c'
+            return (
+              <div
+                key={i}
+                className="border border-terminal-border/40 px-2 py-1.5"
+                style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+              >
+                <p className="text-2xs font-bold text-terminal-text-bright leading-snug mb-1">{t.theme}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span
+                    className="text-2xs px-1 font-bold leading-none py-0.5"
+                    style={{ color, background: `${color}22` }}
+                  >{t.sentiment}</span>
+                  <span className="text-2xs text-terminal-blue-bright/80 font-semibold">{t.category}</span>
+                  <span className="text-2xs text-terminal-text-dim/60 italic">{t.impact}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
       {!themes && !loading && <div className="text-2xs text-terminal-text-dim/40 italic">Loading themes...</div>}
@@ -268,44 +303,34 @@ function BreakingTicker({ items }) {
   )
 }
 
-// ─── Source health grid ───────────────────────────────────────────────────────
+// ─── Sentiment gauge — horizontal dial ───────────────────────────────────────
 
-function SourceHealthGrid({ sourceHealth }) {
-  const sources = NEWS_SOURCES.map(s => ({ name: s.name, ok: sourceHealth[s.name] === 'ok' }))
-  const live    = sources.filter(s => s.ok).length
+function SentimentGauge({ score, bull, bear, neutral }) {
+  const color     = score > 60 ? '#2d8a50' : score < 40 ? '#a83232' : '#c9a84c'
+  const labelText = score > 60 ? 'RISK ON' : score < 40 ? 'RISK OFF' : 'NEUTRAL'
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest">SOURCE HEALTH</div>
-        <span className="text-2xs text-terminal-text-dim">{live}/{sources.length} LIVE</span>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {sources.map(s => (
-          <div key={s.name} className="flex items-center gap-0.5" title={`${s.name}: ${s.ok ? 'Live' : 'Failed'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.ok ? 'bg-green-400' : 'bg-red-600/70'}`} />
-            <span style={{ fontSize: 9 }} className="text-terminal-text-dim/60">{s.name.split(' ')[0]}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Sentiment gauge ──────────────────────────────────────────────────────────
-
-function SentimentGauge({ score, label, bull, bear, neutral }) {
-  const color = score > 60 ? '#2d8a50' : score < 40 ? '#a83232' : '#c9a84c'
-  return (
-    <div>
-      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">SENTIMENT SUMMARY</div>
-      <div className="flex items-center gap-2 mb-1">
-        <div className="flex-1 h-1.5 rounded bg-terminal-border/40 overflow-hidden">
-          <div style={{ width: `${score}%`, height: '100%', background: color, transition: 'width 0.5s' }} />
+      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">MARKET SENTIMENT</div>
+      <div className="flex items-center gap-1.5 text-2xs mb-1.5">
+        <span className="text-terminal-red/70 flex-shrink-0" style={{ fontSize: 9 }}>RISK OFF</span>
+        <div className="flex-1 relative h-4 flex items-center">
+          <div className="w-full h-px bg-terminal-border/60" />
+          <div
+            className="absolute w-3 h-3 rounded-full transition-all duration-500"
+            style={{
+              left:        `calc(${Math.max(6, Math.min(94, score))}% - 6px)`,
+              background:  color,
+              boxShadow:   `0 0 8px ${color}88`,
+              border:      `2px solid ${color}`,
+            }}
+          />
         </div>
-        <span className="text-2xs font-bold" style={{ color }}>{score}</span>
+        <span className="text-terminal-green/70 flex-shrink-0" style={{ fontSize: 9 }}>RISK ON</span>
       </div>
-      <div className="text-sm font-bold mb-0.5" style={{ color }}>{label}</div>
-      <div className="text-2xs text-terminal-text-dim/60">{bull} bull · {bear} bear · {neutral} neutral</div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold" style={{ color }}>{labelText}</span>
+        <span className="text-2xs text-terminal-text-dim/50">{bull}▲ {bear}▼ {neutral}–</span>
+      </div>
     </div>
   )
 }
@@ -592,24 +617,28 @@ export default function NewsModule() {
             <SentimentGauge {...sentiment} />
           </div>
 
-          {/* Trending topics */}
+          {/* Trending topics — clickable tags that filter feed */}
           {trending.length > 0 && (
             <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
               <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">TRENDING TOPICS</div>
               <div className="flex flex-wrap gap-1">
-                {trending.map(([word, count]) => (
-                  <span key={word} className="text-2xs px-1.5 py-0.5 border border-terminal-border text-terminal-text-dim">
-                    {word} <span className="text-terminal-gold">{count}</span>
-                  </span>
-                ))}
+                {trending.map(([word, count]) => {
+                  const isActive = searchTerm.toLowerCase() === word.toLowerCase()
+                  return (
+                    <button
+                      key={word}
+                      onClick={() => setSearchTerm(isActive ? '' : word)}
+                      className={`text-2xs px-1.5 py-0.5 border transition-colors ${
+                        isActive
+                          ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10'
+                          : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-text'
+                      }`}
+                    >
+                      {word} <span className={isActive ? 'text-terminal-bg' : 'text-terminal-gold/70'}>{count}</span>
+                    </button>
+                  )
+                })}
               </div>
-            </div>
-          )}
-
-          {/* Source health */}
-          {Object.keys(sourceHealth).length > 0 && (
-            <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
-              <SourceHealthGrid sourceHealth={sourceHealth} />
             </div>
           )}
 

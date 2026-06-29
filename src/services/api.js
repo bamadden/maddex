@@ -801,43 +801,58 @@ export const fetchRBARate = fetchRBACashRate
 const RSS2JSON_BASE = 'https://api.rss2json.com/v1/api.json'
 
 export const NEWS_SOURCES = [
-  // Australian
-  { url: 'https://www.afr.com/rss',                                                       name: 'AFR',               category: 'AU'          },
-  { url: 'https://www.smh.com.au/rss/business.xml',                                       name: 'SMH Business',      category: 'AU'          },
-  { url: 'https://www.theage.com.au/rss/business.xml',                                    name: 'The Age',           category: 'AU'          },
-  { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',                                name: 'ABC Business',      category: 'AU'          },
-  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                                name: 'RBA Speeches',      category: 'AU'          },
-  { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml',                          name: 'RBA Releases',      category: 'AU'          },
+  // Australian — authoritative financial sources only
+  { url: 'https://www.afr.com/rss',                                          name: 'AFR',              category: 'AU'          },
+  { url: 'https://www.smh.com.au/rss/business.xml',                          name: 'SMH Business',     category: 'AU'          },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                   name: 'RBA Speeches',     category: 'AU'          },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml',             name: 'RBA Releases',     category: 'AU'          },
   // US Financial
-  { url: 'https://feeds.reuters.com/reuters/businessNews',                                 name: 'Reuters Business',  category: 'US'          },
-  { url: 'https://feeds.reuters.com/reuters/markets',                                      name: 'Reuters Markets',   category: 'US'          },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',                         name: 'CNBC Top News',     category: 'US'          },
-  { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',                          name: 'CNBC Markets',      category: 'US'          },
-  { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html',                          name: 'CNBC Economy',      category: 'US'          },
-  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',                           name: 'MarketWatch Top',   category: 'US'          },
-  { url: 'https://feeds.marketwatch.com/marketwatch/marketpulse',                          name: 'MarketWatch Pulse', category: 'US'          },
-  { url: 'https://finance.yahoo.com/news/rssindex',                                        name: 'Yahoo Finance',     category: 'US'          },
-  { url: 'https://www.investing.com/rss/news.rss',                                        name: 'Investing.com',     category: 'US'          },
-  { url: 'https://www.investing.com/rss/market_overview.rss',                             name: 'Investing Markets', category: 'US'          },
+  { url: 'https://feeds.reuters.com/reuters/businessNews',                    name: 'Reuters Business', category: 'US'          },
+  { url: 'https://feeds.reuters.com/reuters/markets',                         name: 'Reuters Markets',  category: 'US'          },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',            name: 'CNBC Top News',    category: 'US'          },
+  { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',             name: 'CNBC Markets',     category: 'US'          },
+  { url: 'https://feeds.marketwatch.com/marketwatch/topstories',              name: 'MarketWatch',      category: 'US'          },
+  { url: 'https://finance.yahoo.com/news/rssindex',                           name: 'Yahoo Finance',    category: 'US'          },
+  { url: 'https://www.investing.com/rss/news.rss',                           name: 'Investing.com',    category: 'US'          },
   // Global
-  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                                 name: 'BBC Business',      category: 'GLOBAL'      },
-  { url: 'https://www.theguardian.com/business/rss',                                      name: 'Guardian Business', category: 'GLOBAL'      },
-  { url: 'https://www.theguardian.com/business/economics/rss',                            name: 'Guardian Economics',category: 'GLOBAL'      },
-  { url: 'https://feeds.skynews.com/feeds/rss/business.xml',                              name: 'Sky News Business', category: 'GLOBAL'      },
-  { url: 'https://www.economist.com/finance-and-economics/rss.xml',                       name: 'The Economist',     category: 'GLOBAL'      },
+  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                    name: 'BBC Business',     category: 'GLOBAL'      },
+  { url: 'https://www.theguardian.com/business/economics/rss',               name: 'Guardian Econ',    category: 'GLOBAL'      },
+  { url: 'https://www.economist.com/finance-and-economics/rss.xml',          name: 'The Economist',    category: 'GLOBAL'      },
   // Crypto
-  { url: 'https://cointelegraph.com/rss',                                                 name: 'CoinTelegraph',     category: 'CRYPTO'      },
-  { url: 'https://coindesk.com/arc/outboundfeeds/rss/',                                   name: 'CoinDesk',          category: 'CRYPTO'      },
-  { url: 'https://decrypt.co/feed',                                                        name: 'Decrypt',           category: 'CRYPTO'      },
-  { url: 'https://bitcoinmagazine.com/.rss/full/',                                         name: 'Bitcoin Magazine',  category: 'CRYPTO'      },
+  { url: 'https://cointelegraph.com/rss',                                    name: 'CoinTelegraph',    category: 'CRYPTO'      },
+  { url: 'https://coindesk.com/arc/outboundfeeds/rss/',                      name: 'CoinDesk',         category: 'CRYPTO'      },
   // Commodities & Energy
-  { url: 'https://oilprice.com/rss/main',                                                 name: 'OilPrice.com',      category: 'COMMODITIES' },
-  { url: 'https://www.mining.com/feed/',                                                   name: 'Mining.com',        category: 'COMMODITIES' },
-  { url: 'https://www.miningweekly.com/rss',                                              name: 'Mining Weekly',     category: 'COMMODITIES' },
+  { url: 'https://oilprice.com/rss/main',                                    name: 'OilPrice.com',     category: 'COMMODITIES' },
+  { url: 'https://www.mining.com/feed/',                                      name: 'Mining.com',       category: 'COMMODITIES' },
   // Asia Pacific
-  { url: 'https://asia.nikkei.com/rss/feed/nar',                                          name: 'Nikkei Asia',       category: 'ASIA'        },
-  { url: 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',          name: 'Economic Times',    category: 'ASIA'        },
+  { url: 'https://asia.nikkei.com/rss/feed/nar',                             name: 'Nikkei Asia',      category: 'ASIA'        },
 ]
+
+// Financial relevance filter — articles must match at least one term to pass through
+export const FINANCIAL_KEYWORDS = [
+  'market', 'markets', 'stock', 'stocks', 'share', 'shares', 'equity', 'equities',
+  'fund', 'invest', 'investor', 'portfolio', 'trading', 'trader',
+  'asx', 'nasdaq', 'nyse', 's&p', 'dow', 'nikkei', 'ftse', 'hang seng',
+  'rba', 'federal reserve', 'fed', 'fomc', 'central bank', 'reserve bank',
+  'interest rate', 'rate cut', 'rate hike', 'monetary policy',
+  'inflation', 'cpi', 'gdp', 'unemployment', 'jobs data', 'payrolls',
+  'dollar', 'aud', 'usd', 'eur', 'jpy', 'currency', 'forex', 'exchange rate',
+  'bitcoin', 'crypto', 'ethereum', 'blockchain', 'defi', 'stablecoin',
+  'gold', 'silver', 'oil', 'crude', 'commodity', 'iron ore', 'lng', 'copper', 'opec',
+  'earnings', 'revenue', 'profit', 'dividend', 'eps', 'quarterly',
+  'ipo', 'merger', 'acquisition', 'takeover', 'deal',
+  'bond', 'yield', 'treasury', 'debt', 'deficit', 'surplus',
+  'tariff', 'trade war', 'sanctions', 'export', 'import',
+  'bank', 'banking', 'financial', 'economic', 'economy', 'recession', 'growth',
+  'bhp', 'cba', 'csl', 'westpac', 'anz', 'nab', 'macquarie', 'rio tinto',
+  'apple', 'nvidia', 'microsoft', 'tesla', 'amazon', 'meta', 'alphabet',
+  'energy', 'mining', 'resources', 'real estate', 'reit', 'property',
+]
+
+function isFinanciallyRelevant(title, description = '') {
+  const text = `${title} ${description}`.toLowerCase()
+  return FINANCIAL_KEYWORDS.some(kw => text.includes(kw))
+}
 
 // ─── News categories (tabs) — an article can match more than one ────────────
 export const NEWS_CATEGORIES = ['ALL', 'AU', 'US', 'CRYPTO', 'COMMODITIES', 'MACRO', 'FX', 'GEOPOLITICAL', 'TECH', 'EARNINGS', 'ASIA']
@@ -997,7 +1012,8 @@ export const fetchNews = async () => {
     }
   }
 
-  const deduped = dedupeByHeadline(items)
+  const financial = items.filter(item => isFinanciallyRelevant(item.headline, item.summary))
+  const deduped = dedupeByHeadline(financial)
   deduped.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
   const articles = deduped.slice(0, 500)
 
