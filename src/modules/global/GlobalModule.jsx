@@ -745,7 +745,7 @@ function CompassRose({ rotation, onReset }) {
 
 // ─── 3D Globe ─────────────────────────────────────────────────────────────────
 
-function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, geoNewsItems, selectedArc, onArcClick, onExchangeClick }) {
+function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, geoNewsItems, selectedArc, onArcClick, onExchangeClick, search, onSearchChange }) {
   const containerRef = useRef(null)
   const svgRef       = useRef(null)
 
@@ -756,8 +756,6 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
   const [hoveredExPos, setHoveredExPos] = useState({ x: 0, y: 0 })
   const [tooltipPos, setTooltipPos]   = useState({ x: 0, y: 0 })
   const [rotation, setRotation]       = useState([-134, 26, 0])
-  const [search, setSearch]           = useState('')
-  const searchRef = useRef(null)
 
   // Refs to avoid stale closures in RAF / event handlers
   const rotRef         = useRef([-134, 26, 0])
@@ -913,21 +911,6 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
 
   return (
     <div ref={containerRef} className="w-full h-full relative bg-terminal-bg" style={{ overflow: 'visible' }}>
-      {/* Search box */}
-      <div className="absolute top-2 left-2 z-30 flex items-center gap-1">
-        <input
-          ref={searchRef}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search country..."
-          className="bg-terminal-panel border border-terminal-border text-terminal-text text-2xs px-2 py-1 w-36 focus:border-terminal-gold focus:outline-none placeholder-terminal-text-dim"
-        />
-        {search && (
-          <button onClick={() => setSearch('')}
-            className="text-terminal-text-dim hover:text-terminal-gold text-2xs px-1">✕</button>
-        )}
-      </div>
-
       {!topology && (
         <div className="absolute inset-0 flex items-center justify-center text-2xs text-terminal-text-dim animate-pulse z-10">
           LOADING WORLD ATLAS...
@@ -1205,28 +1188,11 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
         })()}
       </svg>
 
-      {/* Globe hint */}
-      <div className="absolute top-2 right-2 text-2xs text-terminal-text-dim pointer-events-none opacity-50">
-        drag to rotate · click country
-      </div>
-
       {/* Compass rose */}
       <CompassRose rotation={rotation} onReset={() => {
         rotRef.current = [-134, 26, 0]
         setRotation([-134, 26, 0])
       }} />
-
-      {/* Legend — shifted right to clear compass */}
-      <div className="absolute bottom-1 left-20 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-2xs text-terminal-text-dim pointer-events-none">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#c8a84b'}}/>AU</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#0f3820'}}/>PARTNER</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#0e3060'}}/>MKT OPEN</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#4a0808'}}/>CONFLICT</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#4a2500'}}/>SANCTIONED</span>
-        {activeLayers.air && <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#c8a84b'}}/>AU ROUTE</span>}
-        {activeLayers.air && <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#3b82f6'}}/>INTL CORRIDOR</span>}
-        {activeLayers.air && <span className="flex items-center gap-1"><span className="w-2 h-2 inline-block" style={{background:'#14b8a6'}}/>CARGO ROUTE</span>}
-      </div>
     </div>
   )
 }
@@ -2332,40 +2298,36 @@ function GlobeInfoBar({ allNews, onNavigateNews }) {
     .filter(n => BREAK_KW.test((n.headline ?? '') + ' ' + (n.summary ?? '')))
     .slice(0, 3)
 
-  const S = {
-    section:  { flex:1, padding:'6px 10px', borderRight:'1px solid rgba(13,34,68,0.8)', overflow:'hidden' },
-    sectionL: { flex:1, padding:'6px 10px', overflow:'hidden' },
-    hdr:      { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:4 },
-    row:      { display:'flex', alignItems:'center', gap:6, fontSize:9, marginBottom:2 },
-    dim:      { color:'rgba(100,130,160,0.6)', fontSize:8 },
-  }
+  const hdr = { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:4 }
+  const row = { display:'flex', alignItems:'center', gap:4, fontSize:9, marginBottom:2 }
+  const dim = { color:'rgba(100,130,160,0.6)', fontSize:8 }
+  const sec = { flex:1, padding:'6px 8px', overflow:'hidden' }
 
   return (
-    <div style={{ height:100, display:'flex', background:'#071428', borderTop:'1px solid rgba(13,34,68,0.8)', flexShrink:0 }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#071428', overflow:'hidden' }}>
 
-      {/* Section 1: Active Trading Sessions */}
-      <div style={S.section}>
-        <div style={S.hdr}>TRADING SESSIONS</div>
+      {/* Section 1: Trading Sessions */}
+      <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)' }}>
+        <div style={hdr}>SESSIONS</div>
         {sessions.map(s => (
-          <div key={s.name} style={S.row}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background: s.isOpen ? '#22c55e' : 'rgba(100,130,160,0.25)', flexShrink:0 }} />
-            <span style={{ color: s.isOpen ? '#d4dce8' : 'rgba(100,130,160,0.5)', fontWeight: s.isOpen ? 600 : 400 }}>{s.name}</span>
-            {s.isOpen && <span style={{ color:'#22c55e', fontSize:8, marginLeft:'auto' }}>OPEN</span>}
-            {!s.isOpen && <span style={{ color:'rgba(100,130,160,0.4)', fontSize:8, marginLeft:'auto' }}>CLOSED</span>}
+          <div key={s.name} style={row}>
+            <span style={{ width:6, height:6, borderRadius:'50%', background: s.isOpen ? '#22c55e' : 'rgba(100,130,160,0.2)', flexShrink:0 }} />
+            <span style={{ color: s.isOpen ? '#d4dce8' : 'rgba(100,130,160,0.45)', fontSize:9, fontWeight: s.isOpen ? 600 : 400, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</span>
+            <span style={{ color: s.isOpen ? '#22c55e' : 'rgba(100,130,160,0.3)', fontSize:8 }}>{s.isOpen ? 'OPEN' : 'CLOSED'}</span>
           </div>
         ))}
       </div>
 
-      {/* Section 2: Live Market Snapshot */}
-      <div style={S.section}>
-        <div style={S.hdr}>MARKET SNAPSHOT</div>
+      {/* Section 2: Market Snapshot */}
+      <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)' }}>
+        <div style={hdr}>SNAPSHOT</div>
         {snapItems.map(({ label, price, pct }) => (
-          <div key={label} style={S.row}>
-            <span style={S.dim}>{label}</span>
-            <span style={{ color:'#d4dce8', fontWeight:600, marginLeft:'auto' }}>{price}</span>
+          <div key={label} style={row}>
+            <span style={dim}>{label}</span>
+            <span style={{ color:'#d4dce8', fontWeight:600, marginLeft:'auto', fontSize:9 }}>{price}</span>
             {pct != null && (
-              <span style={{ fontSize:8, fontWeight:600, color: pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', minWidth:38, textAlign:'right' }}>
-                {pct >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(2)}%
+              <span style={{ fontSize:8, fontWeight:600, color: pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+                {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%
               </span>
             )}
           </div>
@@ -2373,17 +2335,16 @@ function GlobeInfoBar({ allNews, onNavigateNews }) {
       </div>
 
       {/* Section 3: Breaking Alerts */}
-      <div style={S.sectionL}>
-        <div style={S.hdr}>BREAKING ALERTS</div>
+      <div style={sec}>
+        <div style={hdr}>ALERTS</div>
         {breakingItems.length === 0 && (
-          <div style={{ color:'rgba(100,130,160,0.4)', fontSize:9 }}>No high-impact alerts</div>
+          <div style={{ color:'rgba(100,130,160,0.35)', fontSize:9 }}>No high-impact alerts</div>
         )}
         {breakingItems.map((n, i) => (
-          <div key={i} style={{ ...S.row, cursor:'pointer', marginBottom:3 }}
+          <div key={i} style={{ ...row, cursor:'pointer', marginBottom:3 }}
             onClick={() => onNavigateNews?.()}>
             <span style={{ color:'#f59e0b', fontSize:9, flexShrink:0 }}>⚡</span>
             <span style={{ color:'#b8cce4', fontSize:9, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{n.headline}</span>
-            <span style={{ color:'rgba(100,130,160,0.5)', fontSize:8, flexShrink:0, marginLeft:4 }}>{timeAgo(n.pubDate)}</span>
           </div>
         ))}
       </div>
@@ -2499,6 +2460,7 @@ export default function GlobalModule() {
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [selectedExchange, setSelectedExchange] = useState(null)
   const [selectedArc, setSelectedArc] = useState(null)
+  const [search, setSearch] = useState('')
   const [layers, setLayers] = useState(() => {
     const defaults = { markets: true, maritime: false, air: false, commodities: false, geopolitical: false }
     try {
@@ -2636,21 +2598,64 @@ export default function GlobalModule() {
         </div>
       )}
 
-      {/* Main content: Map + Right Panel */}
-      <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
+      <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
 
-        {/* World Map column */}
-        <div className="flex-1 min-w-0 border-r border-terminal-border flex flex-col overflow-hidden">
-          <div className="panel-header flex items-center gap-2 flex-shrink-0 py-1">
-            <span className="text-terminal-gold">GLOBAL INTELLIGENCE · 3D GLOBE</span>
-            <span className="text-2xs text-terminal-text-dim font-normal normal-case">· drag to rotate · compass ↙ · click country</span>
-            <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{now}</span>
+        {/* ── Top controls bar: search + legend row 1, layer toggles row 2 ── */}
+        <div style={{ height:60, flexShrink:0, padding:'4px 8px', background:'#071428', borderBottom:'1px solid rgba(13,34,68,0.8)' }}>
+          {/* Row 1: Search + legend + clock */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, height:28 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search country..."
+                style={{ background:'#0d2244', border:'1px solid rgba(13,34,68,0.8)', color:'#b8cce4', fontSize:10, padding:'3px 8px', width:140, outline:'none', fontFamily:'IBM Plex Mono, monospace' }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={{ color:'rgba(100,130,160,0.5)', fontSize:10, cursor:'pointer', background:'none', border:'none', padding:'0 2px' }}>✕</button>
+              )}
+            </div>
+            <div style={{ display:'flex', gap:10, alignItems:'center', flex:1, flexWrap:'wrap' }}>
+              {[
+                { color:'#c8a84b',              label:'AU' },
+                { color:'#2d8a50',              label:'Open' },
+                { color:'#1a7fe8',              label:'Closed' },
+                { color:'#a83232',              label:'Conflict' },
+                { color:'rgba(201,168,76,0.5)', label:'Sanctions' },
+                ...(layers.air ? [
+                  { color:'#c8a84b',  label:'AU Route' },
+                  { color:'#3b82f6',  label:'Intl Corridor' },
+                  { color:'#14b8a6',  label:'Cargo' },
+                ] : []),
+              ].map(({ color, label }) => (
+                <span key={label} style={{ fontSize:9, color:'rgba(100,130,160,0.6)', whiteSpace:'nowrap' }}>
+                  <span style={{ color }}>●</span> {label}
+                </span>
+              ))}
+            </div>
+            <span style={{ fontSize:9, color:'rgba(100,130,160,0.4)', fontFamily:'IBM Plex Mono, monospace', flexShrink:0 }}>{now}</span>
           </div>
-          {/* Layer toggles — compact bar above globe */}
-          <LayerToggleBar layers={layers} onToggle={toggleLayer} />
-          {/* Globe — fills remaining space */}
-          <div style={{ flex: 1, minHeight: 0, overflow: 'visible', position: 'relative' }}>
+          {/* Row 2: Layer toggles */}
+          <div style={{ display:'flex', gap:4, alignItems:'center', height:24 }}>
+            <span style={{ fontSize:8, color:'rgba(100,130,160,0.5)', marginRight:4, flexShrink:0 }}>LAYERS:</span>
+            {LAYER_CONFIG.map(l => (
+              <button key={l.id} onClick={() => toggleLayer(l.id)}
+                className={layers[l.id] ? l.color : 'text-terminal-text-dim'}
+                style={{ fontSize:9, padding:'1px 7px', border:'1px solid', borderColor: layers[l.id] ? 'currentColor' : 'rgba(13,34,68,0.8)', cursor:'pointer', background: layers[l.id] ? 'rgba(200,168,75,0.06)' : 'transparent', whiteSpace:'nowrap', fontFamily:'IBM Plex Mono, monospace' }}>
+                {layers[l.id] ? '● ' : '○ '}{l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Main content row: Globe | Info stack | Right tab panel ── */}
+        <div style={{ flex:1, display:'flex', minHeight:0 }}>
+
+          {/* Globe */}
+          <div style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
             <WorldMap
+              search={search}
+              onSearchChange={setSearch}
               openCountryIds={openCountryIds}
               activeLayers={layers}
               onCountryClick={handleCountryClick}
@@ -2664,15 +2669,17 @@ export default function GlobalModule() {
               onExchangeClick={handleExchangeClick}
             />
           </div>
-          {/* Bottom info bar */}
-          <GlobeInfoBar
-            allNews={allNewsItems}
-            onNavigateNews={() => window.dispatchEvent(new CustomEvent('madden:navigate', { detail: { module: 'news' } }))}
-          />
-        </div>
 
-        {/* Right Panel */}
-        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '380px', minWidth: '380px' }}>
+          {/* Info stack — 180px, 3 equal sections */}
+          <div style={{ width:180, flexShrink:0, borderLeft:'1px solid rgba(13,34,68,0.8)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <GlobeInfoBar
+              allNews={allNewsItems}
+              onNavigateNews={() => window.dispatchEvent(new CustomEvent('madden:navigate', { detail: { module: 'news' } }))}
+            />
+          </div>
+
+          {/* Right tab panel — 440px */}
+          <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width:'440px', minWidth:'440px' }}>
           {/* Tab bar — single row, equal-width tabs, no wrapping */}
           <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
             {TABS.filter(t => !t.hidden).map(t => (
@@ -2735,7 +2742,8 @@ export default function GlobalModule() {
             ) : null}
           </div>
         </div>
-      </div>
+        </div>{/* end main content row */}
+      </div>{/* end outer flex-col */}
     </div>
   )
 }
