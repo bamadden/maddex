@@ -263,8 +263,6 @@ export default function TopBar() {
       {/* AEST clock */}
       <span className="text-terminal-gold font-semibold text-2xs flex-shrink-0">{timeStr} AEST</span>
 
-      <Divider />
-
       {user && (
         <>
           <Divider />

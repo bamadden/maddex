@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYFBatch, YF_INDICES } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -24,6 +25,28 @@ function pctColor(pct) {
 
 export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }) {
   const { usdToAud } = useAudRates()
+  const lastClickTime   = useRef(0)
+  const lastClickSymbol = useRef(null)
+
+  const handleClick = (symbol, q, isAud, label) => {
+    const now = Date.now()
+    const isDouble = (now - lastClickTime.current) < 400 && lastClickSymbol.current === symbol
+    lastClickTime.current   = now
+    lastClickSymbol.current = symbol
+
+    if (isDouble) {
+      if (q) openModal?.({
+        symbol: symbol.replace('^', ''),
+        name:   label,
+        price:  isAud ? q.last : usdToAud(q.last),
+        pct:    q.pct,
+        change: isAud ? q.change : usdToAud(q.change),
+        type:   'index',
+      })
+    } else {
+      onSelectIndex?.(symbol)
+    }
+  }
 
   const { data: quotes, isError, isFetching, refetch } = useQuery({
     queryKey:  ['yfBatch', 'indices'],
@@ -33,6 +56,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
   })
 
   return (
+    <>
     <div className="flex flex-nowrap overflow-x-auto bg-terminal-header">
       <div className="px-2 py-1.5 border-r border-terminal-border flex-shrink-0 flex items-center">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest whitespace-nowrap">GLOBAL INDICES</span>
@@ -57,17 +81,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               borderRight: isSelected ? '3px solid var(--mt-gold, #C9A84C)' : undefined,
               transition: 'background 150ms, border-color 150ms',
             }}
-            onClick={() => {
-              onSelectIndex?.(symbol)
-              if (q) openModal?.({
-                symbol: symbol.replace('^', ''),
-                name:   label,
-                price:  isAud ? q.last : usdToAud(q.last),
-                pct:    q.pct,
-                change: isAud ? q.change : usdToAud(q.change),
-                type:   'index',
-              })
-            }}
+            onClick={() => handleClick(symbol, q, isAud, label)}
           >
             <div className="flex items-center gap-1">
               <span className={`text-2xs font-bold ${isSelected ? 'text-terminal-gold' : primary ? 'text-terminal-gold/70' : 'text-terminal-text-dim'}`}>
@@ -114,5 +128,9 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
         </div>
       )}
     </div>
+    <div style={{ textAlign: 'right', padding: '2px 8px', fontSize: 9, color: 'rgba(100,130,160,0.5)', fontStyle: 'italic' }}>
+      Click to select &middot; Double-click for detail
+    </div>
+    </>
   )
 }
