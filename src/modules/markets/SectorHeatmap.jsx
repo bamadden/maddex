@@ -222,6 +222,9 @@ const ASX_SECTOR_STOCKS = {
   ],
 }
 
+// TODO: When Twelve Data paid tier is enabled, replace hardcoded lists with:
+// GET https://api.twelvedata.com/indices/constituents?symbol=SPX&apikey=KEY
+// This returns live, always-current index compositions updated automatically
 // ─── Index constituents (Yahoo Finance symbols) ───────────────────────────────
 
 const INDEX_CONSTITUENTS = {
@@ -244,6 +247,11 @@ const INDEX_CONSTITUENTS = {
     'INR.AX','IOO.AX','IPH.AX','IVC.AX','JBH.AX','JDO.AX','JHG.AX','KAR.AX','KGN.AX','KLS.AX',
     'LFG.AX','LGI.AX','LNK.AX','LOV.AX','LYC.AX','MAF.AX','MCR.AX','MEZ.AX','MFG.AX','MGH.AX',
     'MHJ.AX','MMA.AX','MND.AX','MNF.AX','MPB.AX','MSB.AX','MTS.AX','MVF.AX','MYX.AX','NAM.AX',
+    'ACF.AX','ADD.AX','ALK.AX','DUG.AX','GNG.AX','MRM.AX','MTO.AX','NCK.AX','NHF.AX','NUF.AX',
+    'NWH.AX','OFX.AX','ORA.AX','PAC.AX','PDL.AX','PGH.AX','PME.AX','PNI.AX','PPT.AX','PTM.AX',
+    'QAN.AX','RHC.AX','RWC.AX','S32.AX','SAR.AX','SDR.AX','SEK.AX','SGM.AX','SIG.AX','SOL.AX',
+    'SPK.AX','SSM.AX','SVW.AX','SWM.AX','TIE.AX','TNE.AX','TPG.AX','TYR.AX','WAF.AX','WAM.AX',
+    'WEB.AX','WOR.AX','YAL.AX',
   ],
   '^GSPC': [
     'AAPL','NVDA','MSFT','AMZN','META','GOOG','GOOGL','TSLA','BRK-B','JPM',
@@ -251,6 +259,12 @@ const INDEX_CONSTITUENTS = {
     'BAC','COST','CVX','NFLX','CRM','AMD','ADBE','TMO','ACN','WFC',
     'LIN','DHR','TXN','QCOM','MCD','ABT','PM','INTU','CAT','GS',
     'MS','BLK','SPGI','ISRG','RTX','AXP','SYK','LOW','VRTX','NOW',
+    'LLY','NVO','WMT','KO','PEP','GE','IBM','BKNG','PLD','TJX',
+    'GILD','ELV','MDT','SCHW','UPS','DE','ADI','MU','LRCX','C',
+    'ETN','ZTS','BSX','MMC','CB','SO','DUK','ITW','AON','SLB',
+    'CME','KLAC','USB','CL','HCA','TGT','FI','MCO','AMT','CCI',
+    'PSA','REGN','PANW','SNPS','CDNS','MRVL','CRWD','FTNT','DXCM','WDAY',
+    'TEAM','ORLY','MNST','IDXX','PCAR','ODFL','FAST','VRSK','ANSS',
   ],
   '^IXIC': [
     'AAPL','NVDA','MSFT','AMZN','META','GOOG','TSLA','AVGO','COST','NFLX',
@@ -269,31 +283,52 @@ const INDEX_CONSTITUENTS = {
     'BARC.L','VOD.L','BATS.L','NG.L','PRU.L','ABF.L','ANTO.L','AUTO.L','AV.L','BA.L',
     'BKG.L','BNZL.L','BRBY.L','CCH.L','CNA.L','CPG.L','CRDA.L','EMG.L','EZJ.L','SAGE.L',
     'LAND.L','RR.L','IMB.L','III.L','HLMA.L','REL.L','WPP.L','EXPN.L','SKG.L','LSEG.L',
+    'FERG.L','FLTR.L','GLEN.L','HIK.L','HL.L','IAG.L','IHG.L','ITV.L','JD.L','KGF.L',
+    'LGEN.L','MKS.L','MNDI.L','MNG.L','MRO.L','MTO.L','NWG.L','NXT.L','OCDO.L','PFC.L',
+    'PSON.L','PSN.L','PHNX.L','RKT.L','RMG.L','SBRY.L','SDR.L','SGE.L','SGRO.L','SMT.L',
+    'SN.L','SSE.L','STAN.L','SVT.L','TSCO.L','UU.L','VTY.L','WEIR.L','AAF.L','AAL.L',
+    'ADM.L','AGK.L','AHT.L','AIBG.L','AML.L','DCC.L','HMS.L','INF.L','MGG.L','PHX.L',
+    'RSA.L','SPX.L','STJ.L','TUI.L','WG.L','WHP.L','WMH.L','WTB.L',
   ],
   '^N225': [
     '7203.T','9984.T','6861.T','8306.T','6758.T','9432.T','7974.T','4519.T','8316.T','6367.T',
     '9433.T','4523.T','6501.T','7267.T','8411.T','9020.T','4502.T','6902.T','7751.T','8035.T',
     '4063.T','6954.T','7832.T','8001.T','8031.T','9022.T','5108.T','6645.T','4568.T','6971.T',
+    '1925.T','2503.T','3382.T','4543.T','5401.T','6098.T','6146.T','6273.T','6301.T','6326.T',
+    '6471.T','6503.T','6702.T','6723.T','6752.T','6762.T','6857.T','6869.T','6920.T','7011.T',
+    '7733.T','7741.T','7762.T',
   ],
   '^GDAXI': [
     'SAP.DE','SIE.DE','ALV.DE','MRK.DE','DTE.DE','BAYN.DE','BMW.DE','MUV2.DE','EOAN.DE','BAS.DE',
     'RWE.DE','HEN3.DE','VOW3.DE','DBK.DE','FRE.DE','MTX.DE','ADS.DE','BEI.DE','CON.DE','DHL.DE',
     'HEI.DE','IFX.DE','LIN.DE','MBG.DE','PUM.DE','QGEN.DE','SHL.DE','VNA.DE','ZAL.DE','DTG.DE',
+    'ENR.DE','EVK.DE','FNTN.DE','HFG.DE','MAN.DE','PAH3.DE','RHM.DE','SRT3.DE','SY1.DE','TKA.DE',
   ],
   '^HSI': [
     '0700.HK','0941.HK','1299.HK','0005.HK','0939.HK','2318.HK','1398.HK','3988.HK','0388.HK','2628.HK',
     '0883.HK','1109.HK','0016.HK','0011.HK','0688.HK','1038.HK','0002.HK','0003.HK','0012.HK','0017.HK',
     '0066.HK','0101.HK','0151.HK','0175.HK','0267.HK','9988.HK','9618.HK','9999.HK','1088.HK','0291.HK',
+    '0288.HK','0316.HK','0322.HK','0386.HK','0669.HK','0762.HK','0823.HK','0857.HK','0868.HK','0960.HK',
+    '0981.HK','1044.HK','1093.HK','1177.HK','1211.HK','1928.HK','2007.HK','2020.HK','2269.HK','2313.HK',
+    '2382.HK','2388.HK',
   ],
   '^NZ50': [
     'FPH.NZ','ATM.NZ','SKC.NZ','MEL.NZ','CEN.NZ','SPK.NZ','RYM.NZ','IFT.NZ','AIA.NZ','PCT.NZ',
     'PFI.NZ','GNE.NZ','VHP.NZ','ARG.NZ','EBO.NZ','KMD.NZ','MFT.NZ','OCA.NZ','SUM.NZ','WHS.NZ',
     'AIR.NZ','HGH.NZ','MHJ.NZ','NPX.NZ','NZR.NZ',
+    'ANZ.NZ','BIT.NZ','CVT.NZ','DGL.NZ','ERD.NZ','FBU.NZ','FSF.NZ','GTK.NZ','IKE.NZ','IPL.NZ',
+    'MCK.NZ','MWE.NZ','NZS.NZ','PEB.NZ','POT.NZ','RAK.NZ','SCL.NZ','SEK.NZ','SKL.NZ','STU.NZ',
+    'TLT.NZ',
   ],
   '^SSEC': [
     '601398.SS','601288.SS','600519.SS','601628.SS','601318.SS','600036.SS','601166.SS',
     '600276.SS','601601.SS','600900.SS','601088.SS','600028.SS','601669.SS','601328.SS',
     '600104.SS','601186.SS','600048.SS','601211.SS','601390.SS','688981.SS',
+    '600000.SS','600016.SS','600019.SS','600031.SS','600050.SS','600089.SS','600196.SS',
+    '600309.SS','600340.SS','600406.SS','600436.SS','600438.SS','600547.SS','600570.SS',
+    '600585.SS','600588.SS','600600.SS','600690.SS','600703.SS','600745.SS','600809.SS',
+    '600837.SS','600887.SS','600999.SS','601006.SS','601012.SS','601066.SS','601155.SS',
+    '601229.SS','601336.SS',
   ],
 }
 
@@ -464,12 +499,125 @@ const STOCK_NAMES = {
   '600048.SS':'Poly Developments','601211.SS':'Guotai Junan Securities',
   '601390.SS':'China Railway Group','688981.SS':'SMIC',
   '601728.SS':'China Telecom',
+  // ASX additional
+  'ACF.AX':'Acrow Formwork','ADD.AX':'Adslot Media','ALK.AX':'Alkane Resources',
+  'DUG.AX':'DUG Technology','GNG.AX':'GR Engineering Services','MRM.AX':'MMA Offshore',
+  'MTO.AX':'Motorcycle Holdings','NCK.AX':'Nick Scali','NHF.AX':'nib Holdings',
+  'NUF.AX':'Nufarm','NWH.AX':'NRW Holdings','OFX.AX':'OFX Group',
+  'ORA.AX':'Orora','PAC.AX':'Pacific Current Group','PDL.AX':'Pendal Group',
+  'PGH.AX':'Pact Group','PME.AX':'Pro Medicus','PNI.AX':'Pinnacle Investment',
+  'PPT.AX':'Perpetual','PTM.AX':'Platinum Asset Mgmt','QAN.AX':'Qantas Airways',
+  'RHC.AX':'Ramsay Health Care','RWC.AX':'Reliance Worldwide','S32.AX':'South32',
+  'SAR.AX':'Saracen Mineral','SDR.AX':'SiteMinder','SEK.AX':'Seek',
+  'SGM.AX':'Sims Limited','SIG.AX':'Sigma Healthcare','SOL.AX':'Washington H Soul',
+  'SPK.AX':'Spark Infrastructure','SSM.AX':'Service Stream','SVW.AX':'Seven Group',
+  'SWM.AX':'Seven West Media','TIE.AX':'Tietto Minerals','TNE.AX':'Technology One',
+  'TPG.AX':'TPG Telecom','TYR.AX':'Tyro Payments','WAF.AX':'West African Resources',
+  'WAM.AX':'WAM Capital','WEB.AX':'Webjet','WOR.AX':'Worley','YAL.AX':'Yancoal',
+  // S&P 500 additional
+  'LLY':'Eli Lilly','NVO':'Novo Nordisk','PEP':'PepsiCo','GE':'GE Aerospace',
+  'BKNG':'Booking Holdings','TJX':'TJX Companies','GILD':'Gilead Sciences',
+  'ELV':'Elevance Health','MDT':'Medtronic','SCHW':'Charles Schwab',
+  'UPS':'UPS','DE':'Deere & Company','ADI':'Analog Devices','C':'Citigroup',
+  'ETN':'Eaton Corp','ZTS':'Zoetis','BSX':'Boston Scientific',
+  'MMC':'Marsh & McLennan','CB':'Chubb','SO':'Southern Company','DUK':'Duke Energy',
+  'ITW':'Illinois Tool Works','AON':'Aon plc','SLB':'SLB','CME':'CME Group',
+  'USB':'US Bancorp','CL':'Colgate-Palmolive','HCA':'HCA Healthcare',
+  'TGT':'Target Corp','FI':'Fiserv','MCO':'Moodys Corp','AMT':'American Tower',
+  'CCI':'Crown Castle','PSA':'Public Storage','REGN':'Regeneron',
+  // DAX 40 additional
+  'ENR.DE':'Siemens Energy','EVK.DE':'Evonik Industries','FNTN.DE':'Freenet AG',
+  'HFG.DE':'HelloFresh','MAN.DE':'MAN SE','PAH3.DE':'Porsche Automobil Holding',
+  'RHM.DE':'Rheinmetall','SRT3.DE':'Sartorius AG','SY1.DE':'Symrise','TKA.DE':'Thyssenkrupp',
+  // Nikkei 225 additional
+  '1925.T':'Daiwa House Industry','2503.T':'Kirin Holdings','3382.T':'Seven & i Holdings',
+  '4543.T':'Terumo Corp','5401.T':'Nippon Steel','6098.T':'Recruit Holdings',
+  '6146.T':'Disco Corp','6273.T':'SMC Corp','6301.T':'Komatsu Ltd',
+  '6326.T':'Kubota Corp','6471.T':'NSK Ltd','6503.T':'Mitsubishi Electric',
+  '6702.T':'Fujitsu Ltd','6723.T':'Renesas Electronics','6752.T':'Panasonic Holdings',
+  '6762.T':'TDK Corp','6857.T':'Advantest Corp','6869.T':'Sysmex Corp',
+  '6920.T':'Lasertec Corp','7011.T':'Mitsubishi Heavy Ind','7733.T':'Olympus Corp',
+  '7741.T':'Hoya Corp','7762.T':'Citizen Watch',
+  // FTSE 100 additional
+  'FERG.L':'Ferguson plc','FLTR.L':'Flutter Entertainment','GLEN.L':'Glencore',
+  'HIK.L':'Hikma Pharmaceuticals','HL.L':'Hargreaves Lansdown','IAG.L':'IAG',
+  'IHG.L':'InterContinental Hotels','ITV.L':'ITV plc','JD.L':'JD Sports Fashion',
+  'KGF.L':'Kingfisher plc','LGEN.L':'Legal & General','MKS.L':'Marks & Spencer',
+  'MNDI.L':'Mondi plc','MNG.L':'M&G plc','MRO.L':'Melrose Industries',
+  'MTO.L':'Mitie Group','NWG.L':'NatWest Group','NXT.L':'Next plc',
+  'OCDO.L':'Ocado Group','PFC.L':'Petrofac','PSON.L':'Pearson plc',
+  'PSN.L':'Persimmon plc','PHNX.L':'Phoenix Group','RKT.L':'Reckitt Benckiser',
+  'RMG.L':'Royal Mail','SBRY.L':'Sainsburys','SDR.L':'Schroders plc',
+  'SGE.L':'Sage Group','SGRO.L':'SEGRO plc','SMT.L':'Scottish Mortgage',
+  'SN.L':'Smith & Nephew','SSE.L':'SSE plc','STAN.L':'Standard Chartered',
+  'SVT.L':'Severn Trent','TSCO.L':'Tesco plc','UU.L':'United Utilities',
+  'VTY.L':'Vistry Group','WEIR.L':'Weir Group','AAF.L':'Airtel Africa',
+  'AAL.L':'Anglo American','ADM.L':'Admiral Group','AGK.L':'Aggreko',
+  'AHT.L':'Ashtead Group','AIBG.L':'AIB Group','AML.L':'Aston Martin',
+  'DCC.L':'DCC plc','HMS.L':'Hammerson','INF.L':'Informa plc',
+  'MGG.L':'MGM Growth Properties','PHX.L':'Phoenix Spree Deutschland',
+  'RSA.L':'RSA Insurance','SPX.L':'Spirax-Sarco Engineering','STJ.L':'St James Place',
+  'TUI.L':'TUI AG','WG.L':'John Wood Group','WHP.L':'Wetherspoon',
+  'WMH.L':'William Hill','WTB.L':'Whitbread',
+  // Hang Seng additional
+  '0288.HK':'WH Group','0316.HK':'Orient Overseas Int','0322.HK':'Tingyi Holding',
+  '0386.HK':'Sinopec Corp','0669.HK':'Techtronic Industries','0762.HK':'China Unicom',
+  '0823.HK':'Link REIT','0857.HK':'PetroChina','0868.HK':'Xinyi Glass',
+  '0960.HK':'Longfor Group','0981.HK':'SMIC','1044.HK':'Hengan International',
+  '1093.HK':'CSPC Pharmaceutical','1177.HK':'Sino Biopharmaceutical','1211.HK':'BYD Company',
+  '1928.HK':'Sands China','2007.HK':'Country Garden','2020.HK':'ANTA Sports',
+  '2269.HK':'WuXi Biologics','2313.HK':'Shenzhou International','2382.HK':'Sunny Optical',
+  '2388.HK':'BOC Hong Kong',
+  // NZX 50 additional
+  'ANZ.NZ':'ANZ Bank NZ','BIT.NZ':'Bigtincan Holdings','CVT.NZ':'Comvita',
+  'DGL.NZ':'DGL Group','ERD.NZ':'Erris Resources','FBU.NZ':'Fletcher Building',
+  'FSF.NZ':'Fonterra Shareholders Fund','GTK.NZ':'Gentrack Group','IKE.NZ':'ikeGPS Group',
+  'IPL.NZ':'Investore Property','MCK.NZ':'Millennium & Copthorne Hotels',
+  'MWE.NZ':'Manawa Energy','NZS.NZ':'New Zealand Steel','PEB.NZ':'Pacific Edge',
+  'POT.NZ':'Port of Tauranga','RAK.NZ':'Rakon','SCL.NZ':'Scales Corporation',
+  'SEK.NZ':'Seeka','SKL.NZ':'Skellerup Holdings','STU.NZ':'Steel & Tube',
+  'TLT.NZ':'Tilt Renewables',
+  // Shanghai additional
+  '600000.SS':'Shanghai Pudong Development Bank','600016.SS':'China Minsheng Banking',
+  '600019.SS':'Baoshan Iron & Steel','600031.SS':'Sany Heavy Industry',
+  '600050.SS':'China United Network Comms','600089.SS':'TBEA Co',
+  '600196.SS':'Fosun Pharmaceutical','600309.SS':'Wanhua Chemical',
+  '600340.SS':'China Fortune Land Dev','600406.SS':'NARI Technology',
+  '600436.SS':'Zhangjiajie Tourism','600438.SS':'Tongwei Co',
+  '600547.SS':'Shandong Gold Mining','600570.SS':'Hundsun Technologies',
+  '600585.SS':'Anhui Conch Cement','600588.SS':'Yonyou Network Technology',
+  '600600.SS':'Tsingtao Brewery','600690.SS':'Haier Smart Home',
+  '600703.SS':'Sanan Optoelectronics','600745.SS':'Will Semiconductor',
+  '600809.SS':'Shanxi Fenjiu','600837.SS':'Haitong Securities',
+  '600887.SS':'Inner Mongolia Yili','600999.SS':'Zhaojin Mining',
+  '601006.SS':'Daqin Railway','601012.SS':'Longi Green Energy',
+  '601066.SS':'CITIC Securities','601155.SS':'Seazen Group',
+  '601229.SS':'Shanghai Rural Commercial Bank','601336.SS':'New China Life Insurance',
 }
 
 const INDEX_LABELS = {
   '^AXJO':'ASX 200','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
   '^DJI':'Dow Jones 30','^FTSE':'FTSE 100','^N225':'Nikkei 225',
   '^GDAXI':'DAX 40','^HSI':'Hang Seng','^NZ50':'NZX 50','^SSEC':'Shanghai Composite',
+}
+
+// Display denominator in loading indicator — reflects the index size, not just our symbol list
+const INDEX_EXPECTED_COUNT = {
+  '^AXJO':200,'^GSPC':100,'^IXIC':100,'^DJI':30,
+  '^FTSE':100,'^GDAXI':40,'^N225':50,'^HSI':50,'^NZ50':50,'^SSEC':50,
+}
+
+export const INDEX_METADATA = {
+  '^AXJO': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'ASX',             sourceUrl:'https://www.asx.com.au' },
+  '^GSPC': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'S&P Dow Jones',   sourceUrl:'https://www.spglobal.com' },
+  '^IXIC': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'Nasdaq',          sourceUrl:'https://www.nasdaq.com' },
+  '^DJI':  { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'S&P Dow Jones',   sourceUrl:'https://www.spglobal.com' },
+  '^FTSE': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'FTSE Russell',    sourceUrl:'https://www.ftserussell.com' },
+  '^GDAXI':{ lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'Deutsche Börse',  sourceUrl:'https://www.deutsche-boerse.com' },
+  '^N225': { lastUpdated:'2026-07-01', nextRebalance:'2027-01-01', source:'Nikkei',          sourceUrl:'https://indexes.nikkei.co.jp' },
+  '^HSI':  { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'Hang Seng Indexes',sourceUrl:'https://www.hsi.com.hk' },
+  '^NZ50': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'NZX',             sourceUrl:'https://www.nzx.com' },
+  '^SSEC': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'SSE',             sourceUrl:'https://www.sse.com.cn' },
 }
 
 // Approximate weights for ASX 200 top 20
@@ -1052,11 +1200,11 @@ function IndexView({ selectedIndex, openModal }) {
         <span className="text-2xs text-terminal-text-dim">INDEX — {indexLabel}</span>
         {isLoading && (
           <span className="text-2xs text-terminal-text-dim animate-pulse">
-            LOADING {loadCount}/{constituents.length} STOCKS...
+            LOADING {loadCount}/{INDEX_EXPECTED_COUNT[selectedIndex] ?? constituents.length} STOCKS...
           </span>
         )}
         {!isLoading && loaded.length > 0 && (
-          <span className="text-terminal-green text-2xs">● {loaded.length}/{constituents.length} LOADED</span>
+          <span className="text-terminal-green text-2xs">● {loaded.length}/{INDEX_EXPECTED_COUNT[selectedIndex] ?? constituents.length} LOADED</span>
         )}
         <div className="ml-auto flex items-center gap-2">
           <input
@@ -1120,6 +1268,27 @@ function IndexView({ selectedIndex, openModal }) {
               })}
             </tbody>
           </table>
+          {(() => {
+            const meta = INDEX_METADATA[selectedIndex]
+            if (!meta) return null
+            const today = new Date().toISOString().slice(0, 10)
+            const isPastRebalance = meta.nextRebalance < today
+            return (
+              <div style={{ padding: '6px 8px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--mt-muted)', textAlign: 'right' }}>
+                  Composition as at {meta.lastUpdated} · Next rebalance ~{meta.nextRebalance} ·{' '}
+                  <a href={meta.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--mt-gold)' }}>
+                    Source: {meta.source}
+                  </a>
+                </div>
+                {isPastRebalance && (
+                  <div style={{ color: '#f59e0b', fontSize: '9px', marginTop: '4px', textAlign: 'right' }}>
+                    ⚠ Composition may be outdated · Rebalance date has passed
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Sidebar */}

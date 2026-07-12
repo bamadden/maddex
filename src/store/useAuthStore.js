@@ -30,14 +30,22 @@ export const useAuthStore = create((set, get) => ({
   },
 
   loadProfile: async () => {
-    const { data } = await supabase.from('profiles').select('*').single()
-    if (data) set({ profile: data })
+    const userId = get().user?.id
+    if (!userId) return
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).limit(1)
+    if (error) console.error('loadProfile error:', error.message, error.details)
+    const profile = data?.[0]
+    if (profile) set({ profile })
   },
 
   loadSettings: async () => {
-    const { data } = await supabase.from('user_settings').select('*').single()
-    if (data) set({ settings: data })
-    return data
+    const userId = get().user?.id
+    if (!userId) return null
+    const { data, error } = await supabase.from('user_settings').select('*').eq('user_id', userId).limit(1)
+    if (error) console.error('loadSettings error:', error.message, error.details)
+    const settings = data?.[0]
+    if (settings) set({ settings })
+    return settings ?? null
   },
 
   signUp: async (email, password, firstName, lastName, country) => {
@@ -51,7 +59,7 @@ export const useAuthStore = create((set, get) => ({
     })
     // Upsert profile directly — don't rely solely on the DB trigger
     if (data?.user) {
-      await supabase.from('profiles').upsert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         email: data.user.email,
         first_name: firstName,
@@ -59,7 +67,8 @@ export const useAuthStore = create((set, get) => ({
         country,
         timezone,
         updated_at: new Date().toISOString(),
-      })
+      }, { onConflict: 'id' })
+      if (profileError) console.error('signUp profile upsert error:', profileError.message)
       await supabase.from('user_settings').upsert({
         user_id: data.user.id,
         timezone,
@@ -92,15 +101,16 @@ export const useAuthStore = create((set, get) => ({
     if (!userId) return { data: null, error: new Error('Not authenticated') }
     const payload = { ...updates, updated_at: new Date().toISOString() }
     let { data, error } = await supabase
-      .from('profiles').update(payload).eq('id', userId).select().single()
-    // Graceful fallback: if experience_level column doesn't exist yet, retry without it
+      .from('profiles').update(payload).eq('id', userId).select()
     if (error?.message?.includes('experience_level')) {
       const { experience_level: _dropped, ...rest } = payload
       ;({ data, error } = await supabase
-        .from('profiles').update(rest).eq('id', userId).select().single())
+        .from('profiles').update(rest).eq('id', userId).select())
     }
-    if (data) set({ profile: data })
-    return { data, error }
+    if (error) console.error('updateProfile error:', error.message, error.details, error.hint)
+    const profile = data?.[0]
+    if (profile) set({ profile })
+    return { data: profile ?? null, error }
   },
 
   updateSettings: async (updates) => {
@@ -111,9 +121,10 @@ export const useAuthStore = create((set, get) => ({
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
       .select()
-      .single()
-    if (data) set({ settings: data })
-    return { data, error }
+    if (error) console.error('updateSettings error:', error.message, error.details)
+    const settings = data?.[0]
+    if (settings) set({ settings })
+    return { data: settings ?? null, error }
   },
 
   updatePassword: async (newPassword) => {
