@@ -4,7 +4,7 @@ const NAV_ITEMS = [
   { id: 'markets',   label: 'MARKETS',   short: 'MKT'  },
   { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT' },
   { id: 'crypto',    label: 'CRYPTO',    short: 'CRY'  },
-  { id: 'fx',        label: 'FX / RATES',short: 'FX'   },
+  { id: 'fx',        label: 'RATES',     short: 'FX'   },
   { id: 'macro',     label: 'MACRO',     short: 'MAC'  },
   { id: 'watchlist', label: 'WATCHLIST', short: 'WL'   },
   { id: 'news',      label: 'NEWS',      short: 'NWS'  },

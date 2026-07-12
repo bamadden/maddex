@@ -5,9 +5,6 @@ import * as topojson from 'topojson-client'
 import {
   fetchGeoNews, fetchNews,
   fetchYFBatch, YF_INDICES,
-  fetchCryptoMarkets, transformCryptoMarkets,
-  fetchFxRates, transformFxRates,
-  fetchMetalsRates, extractMetals,
 } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
 import COUNTRIES from '../../data/countryDatabase'
@@ -2244,109 +2241,207 @@ function LayerToggleBar({ layers, onToggle }) {
   )
 }
 
-// ─── Globe Bottom Info Bar ────────────────────────────────────────────────────
+// ─── Globe Info Stack — 3 unique panels ──────────────────────────────────────
 
-const BREAK_KW = /RBA|Fed|rate|crash|surge|sanctions|war|record/i
-const INDEX_SNAP = ['^AXJO', '^GSPC', '^IXIC']
-const INDEX_SNAP_LABELS = { '^AXJO':'ASX 200', '^GSPC':'S&P 500', '^IXIC':'NASDAQ' }
+// Maps YF index symbols to EXCHANGES region labels for breadth calculation
+const YF_TO_REGION = {
+  '^AXJO':  'APAC',     '^NZ50':  'APAC',    '^N225':   'APAC',
+  '^HSI':   'APAC',     '^GSPC':  'AMERICAS','^IXIC':   'AMERICAS',
+  '^FTSE':  'EUROPE',   '^GDAXI': 'EUROPE',
+}
 
-function GlobeInfoBar({ allNews, onNavigateNews }) {
-  const fmtAUD  = (v) => v != null ? `A$${Number(v).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '—'
+// Key chokepoints to show (first 3 from CHOKEPOINTS array — Hormuz, Suez, Malacca)
+const KEY_CHOKE_NAMES = ['Strait of Hormuz', 'Suez Canal', 'Strait of Malacca']
+const CHOKE_STATUS_COLOR = { OPEN:'#22c55e', MONITORED:'#f59e0b', DISRUPTED:'#ff1744' }
+const CHOKE_STATUS_DOT   = { OPEN:'✓', MONITORED:'●', DISRUPTED:'⚠' }
 
+// AU commodity flow keywords
+const AU_FLOW_DEFS = [
+  { name:'IRON ORE', re:/iron ore|pilbara|steel demand|fortescue|FMG/i },
+  { name:'LNG',      re:/LNG|liquefied.*gas|woodside|pluto.*LNG|gorgon|santos.*gas/i },
+  { name:'COAL',     re:/met coal|coking coal|coal.*india|coal.*china|newcastle.*coal/i },
+]
+
+function GlobeInfoBar({ allNews, geoNewsItems, tick, onSelectTab }) {
+  // Shares cache with IndicesTable — no extra API call when that component is mounted
   const { data: indexQuotes } = useQuery({
     queryKey: ['yfBatch', 'indices'],
     queryFn:  () => fetchYFBatch(YF_INDICES.map(i => i.symbol)),
     staleTime: 60_000, retry: 1,
   })
-  const { data: rawMarkets } = useQuery({
-    queryKey: ['cryptoMarkets', 'aud'],
-    queryFn:  () => fetchCryptoMarkets('aud'),
-    staleTime: 60_000, retry: 1,
-  })
-  const { data: rawFx } = useQuery({
-    queryKey: ['fxRates'],
-    queryFn:  () => fetchFxRates('AUD'),
-    staleTime: 5 * 60_000, retry: 1,
-  })
-  const { data: metalsRates } = useQuery({
-    queryKey: ['metalsRates'],
-    queryFn:  fetchMetalsRates,
-    staleTime: 10 * 60_000, retry: 1,
-  })
 
-  const sessions = SESSIONS.map(s => {
-    const st = getStatus(s)
-    return { ...s, status: st, isOpen: isOpenNow(st) }
-  })
+  // ── Section 1: Market Breadth ──────────────────────────────────────────────
+  const breadth = useMemo(() => {
+    const regionStats = {}
+    // Count open/closed per region from exchange status
+    for (const ex of EXCHANGES) {
+      const r = ex.region
+      if (!regionStats[r]) regionStats[r] = { open:0, closed:0, up:0, down:0 }
+      if (isOpenNow(getStatus(ex))) regionStats[r].open++
+      else regionStats[r].closed++
+    }
+    // Add up/down from available YF quotes
+    if (indexQuotes) {
+      for (const [sym, region] of Object.entries(YF_TO_REGION)) {
+        const q = indexQuotes[sym]
+        if (!q?.pct || !regionStats[region]) continue
+        if (q.pct > 0) regionStats[region].up++
+        else if (q.pct < 0) regionStats[region].down++
+      }
+    }
+    const totalUp   = Object.values(regionStats).reduce((s, r) => s + r.up, 0)
+    const totalDown = Object.values(regionStats).reduce((s, r) => s + r.down, 0)
+    const tracked   = totalUp + totalDown
+    const pctUp     = tracked ? Math.round(totalUp / tracked * 100) : null
+    return { byRegion: regionStats, totalUp, totalDown, pctUp }
+  }, [indexQuotes, tick])
 
-  const asx200 = indexQuotes?.['^AXJO']
-  const markets = rawMarkets ? transformCryptoMarkets(rawMarkets.data, rawMarkets.currency) : null
-  const btc = markets?.find(c => c.symbol === 'BTC')
-  const fxPairs = rawFx ? transformFxRates(rawFx) : null
-  const audUsd = fxPairs?.find(p => p.pair === 'AUD/USD')
-  const metals = metalsRates ? extractMetals(metalsRates) : null
-  const gold = metals?.find(m => m.name.includes('GOLD'))
+  const breadthColor = breadth.pctUp == null ? '#6b7280'
+    : breadth.pctUp >= 60 ? 'var(--color-gain)'
+    : breadth.pctUp >= 40 ? '#f59e0b'
+    : 'var(--color-loss)'
 
-  const snapItems = [
-    { label:'ASX 200', price: asx200 ? Number(asx200.last).toLocaleString('en-AU',{maximumFractionDigits:0}) : '—', pct: asx200?.pct ?? null },
-    { label:'BTC/AUD', price: btc ? fmtAUD(btc.price) : '—', pct: btc?.pct24h ?? null },
-    { label:'AUD/USD', price: audUsd ? audUsd.mid?.toFixed(4) : '—', pct: null },
-    { label:'GOLD',    price: gold ? fmtAUD(parseFloat(gold.price)) : '—', pct: null },
-  ]
-
-  const breakingItems = (allNews ?? [])
-    .filter(n => BREAK_KW.test((n.headline ?? '') + ' ' + (n.summary ?? '')))
+  // ── Section 2: Risk Pulse ──────────────────────────────────────────────────
+  const riskItems = useMemo(() => (allNews ?? [])
+    .map(n => ({ ...n, sev: detectSeverity(`${n.headline} ${n.summary ?? ''}`) }))
+    .filter(n => n.sev === 'CRITICAL' || n.sev === 'HIGH')
+    .sort((a, b) => (a.sev === 'CRITICAL' ? 0 : 1) - (b.sev === 'CRITICAL' ? 0 : 1))
     .slice(0, 3)
+  , [allNews])
 
-  const hdr = { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:4 }
+  const critCount = riskItems.filter(n => n.sev === 'CRITICAL').length
+  const highCount = riskItems.filter(n => n.sev === 'HIGH').length
+  const riskLabel = critCount > 0 ? 'CRITICAL' : highCount >= 2 ? 'ELEVATED' : highCount === 1 ? 'MODERATE' : 'LOW'
+  const riskColor = critCount > 0 ? '#ff1744' : highCount >= 2 ? '#ff6d00' : highCount === 1 ? '#f59e0b' : '#22c55e'
+  const riskPct   = Math.min(95, critCount * 35 + highCount * 18 + 10)
+
+  // ── Section 3: Trade Flow Alerts ──────────────────────────────────────────
+  const chokeStatuses = useMemo(() =>
+    CHOKEPOINTS
+      .filter(cp => KEY_CHOKE_NAMES.includes(cp.name))
+      .map(cp => {
+        const re = new RegExp(cp.keywords.join('|'), 'i')
+        const related = (geoNewsItems ?? []).filter(n => re.test(`${n.headline} ${n.summary ?? ''}`))
+        return { ...cp, liveStatus: computeChokeStatus(cp, related) }
+      })
+  , [geoNewsItems])
+
+  const auFlows = useMemo(() =>
+    AU_FLOW_DEFS.map(f => {
+      const hits = (allNews ?? []).filter(n => f.re.test(`${n.headline} ${n.summary ?? ''}`))
+      const pos  = hits.some(n => /surge|ris|demand|strong|high|up|boom/i.test(n.headline))
+      const neg  = hits.some(n => /fall|drop|weaken|soften|decline|low|slump/i.test(n.headline))
+      const status = pos && !neg ? 'RISING' : neg && !pos ? 'SOFTENING' : hits.length ? 'MONITORED' : 'STABLE'
+      const color  = status === 'RISING' ? 'var(--color-gain)' : status === 'SOFTENING' ? 'var(--color-loss)' : status === 'MONITORED' ? '#f59e0b' : 'rgba(100,130,160,0.5)'
+      const context = hits[0]?.headline?.slice(0, 48) ?? null
+      return { name: f.name, status, color, context }
+    })
+  , [allNews])
+
+  // Shared style tokens
+  const hdr = { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:5 }
   const row = { display:'flex', alignItems:'center', gap:4, fontSize:9, marginBottom:2 }
-  const dim = { color:'rgba(100,130,160,0.6)', fontSize:8 }
-  const sec = { flex:1, padding:'6px 8px', overflow:'hidden' }
+  const dim = { color:'rgba(100,130,160,0.55)', fontSize:8 }
+  const sec = { flex:1, padding:'6px 8px', overflow:'hidden', minHeight:0 }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#071428', overflow:'hidden' }}>
 
-      {/* Section 1: Trading Sessions */}
+      {/* ── Section 1: GLOBAL MARKET BREADTH ── */}
       <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)' }}>
-        <div style={hdr}>SESSIONS</div>
-        {sessions.map(s => (
-          <div key={s.name} style={row}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background: s.isOpen ? '#22c55e' : 'rgba(100,130,160,0.2)', flexShrink:0 }} />
-            <span style={{ color: s.isOpen ? '#d4dce8' : 'rgba(100,130,160,0.45)', fontSize:9, fontWeight: s.isOpen ? 600 : 400, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</span>
-            <span style={{ color: s.isOpen ? '#22c55e' : 'rgba(100,130,160,0.3)', fontSize:8 }}>{s.isOpen ? 'OPEN' : 'CLOSED'}</span>
-          </div>
-        ))}
-      </div>
+        <div style={hdr}>BREADTH</div>
 
-      {/* Section 2: Market Snapshot */}
-      <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)' }}>
-        <div style={hdr}>SNAPSHOT</div>
-        {snapItems.map(({ label, price, pct }) => (
-          <div key={label} style={row}>
-            <span style={dim}>{label}</span>
-            <span style={{ color:'#d4dce8', fontWeight:600, marginLeft:'auto', fontSize:9 }}>{price}</span>
-            {pct != null && (
-              <span style={{ fontSize:8, fontWeight:600, color: pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
-                {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%
-              </span>
-            )}
+        {/* Overall bar */}
+        {breadth.pctUp != null ? (
+          <div style={{ marginBottom:6 }}>
+            <div style={{ display:'flex', height:5, borderRadius:2, overflow:'hidden', marginBottom:2 }}>
+              <div style={{ width:`${breadth.pctUp}%`, background:'var(--color-gain)', transition:'width 0.5s' }} />
+              <div style={{ flex:1, background:'var(--color-loss)' }} />
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:8 }}>
+              <span style={{ color:'var(--color-gain)' }}>▲ {breadth.totalUp} UP ({breadth.pctUp}%)</span>
+              <span style={{ color:'var(--color-loss)' }}>▼ {breadth.totalDown} DN</span>
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Section 3: Breaking Alerts */}
-      <div style={sec}>
-        <div style={hdr}>ALERTS</div>
-        {breakingItems.length === 0 && (
-          <div style={{ color:'rgba(100,130,160,0.35)', fontSize:9 }}>No high-impact alerts</div>
+        ) : (
+          <div style={{ ...dim, marginBottom:6 }}>Loading quotes...</div>
         )}
-        {breakingItems.map((n, i) => (
-          <div key={i} style={{ ...row, cursor:'pointer', marginBottom:3 }}
-            onClick={() => onNavigateNews?.()}>
-            <span style={{ color:'#f59e0b', fontSize:9, flexShrink:0 }}>⚡</span>
+
+        {/* Per-region rows */}
+        {[
+          { key:'APAC', label:'ASIA-PAC' },
+          { key:'EUROPE', label:'EUROPE' },
+          { key:'AMERICAS', label:'AMERICAS' },
+        ].map(({ key, label }) => {
+          const d = breadth.byRegion[key] ?? {}
+          return (
+            <div key={key} style={row}>
+              <span style={dim}>{label}</span>
+              <span style={{ color:'rgba(100,130,160,0.4)', fontSize:8, marginLeft:'auto' }}>{d.open ?? 0} open</span>
+              {(d.up  > 0) && <span style={{ color:'var(--color-gain)', fontSize:8 }}>▲{d.up}</span>}
+              {(d.down > 0) && <span style={{ color:'var(--color-loss)', fontSize:8 }}>▼{d.down}</span>}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Section 2: GLOBAL RISK PULSE ── */}
+      <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)', display:'flex', flexDirection:'column' }}>
+        <div style={hdr}>RISK PULSE</div>
+
+        {/* Risk bar */}
+        <div style={{ marginBottom:5 }}>
+          <div style={{ display:'flex', height:4, borderRadius:2, overflow:'hidden', background:'rgba(100,130,160,0.12)', marginBottom:2 }}>
+            <div style={{ width:`${riskPct}%`, background:riskColor, transition:'width 0.5s' }} />
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:8 }}>
+            <span style={{ color:riskColor, fontWeight:700 }}>GLOBAL {riskLabel}</span>
+            <span style={dim}>{critCount}CRIT · {highCount}HIGH</span>
+          </div>
+        </div>
+
+        {riskItems.length === 0 && <div style={{ ...dim, fontSize:9 }}>No elevated signals</div>}
+        {riskItems.map((n, i) => (
+          <div key={i} style={{ ...row, cursor:'pointer', marginBottom:3 }} onClick={() => onSelectTab?.('geopolitical')}>
+            <span style={{ fontSize:9, flexShrink:0 }}>{n.sev === 'CRITICAL' ? '🔴' : '🟡'}</span>
             <span style={{ color:'#b8cce4', fontSize:9, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{n.headline}</span>
           </div>
         ))}
+
+        {riskItems.length > 0 && (
+          <button onClick={() => onSelectTab?.('geopolitical')}
+            style={{ marginTop:'auto', alignSelf:'flex-end', fontSize:8, color:'#c8a84b', background:'none', border:'none', cursor:'pointer', padding:0 }}>
+            VIEW ALL →
+          </button>
+        )}
+      </div>
+
+      {/* ── Section 3: TRADE FLOW ALERTS ── */}
+      <div style={sec}>
+        <div style={hdr}>TRADE FLOWS</div>
+
+        {/* Chokepoints */}
+        {chokeStatuses.map(cp => {
+          const shortName = cp.name.replace('Strait of ', '').replace(' Canal', '').replace(' Strait', '')
+          const sc = CHOKE_STATUS_COLOR[cp.liveStatus] ?? '#6b7280'
+          return (
+            <div key={cp.name} style={{ ...row, cursor:'pointer', marginBottom:3 }} onClick={() => onSelectTab?.('maritime')}>
+              <span style={{ color:sc, fontSize:9, flexShrink:0 }}>{CHOKE_STATUS_DOT[cp.liveStatus] ?? '●'}</span>
+              <span style={{ color:'#d4dce8', fontSize:9, fontWeight:600, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</span>
+              <span style={{ color:sc, fontSize:8, flexShrink:0 }}>{cp.liveStatus}</span>
+            </div>
+          )
+        })}
+
+        {/* AU commodity flows */}
+        <div style={{ marginTop:4, paddingTop:4, borderTop:'1px solid rgba(13,34,68,0.4)' }}>
+          {auFlows.map(f => (
+            <div key={f.name} style={row}>
+              <span style={dim}>AU {f.name}</span>
+              <span style={{ color:f.color, fontSize:8, marginLeft:'auto', fontWeight:600 }}>{f.status}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
     </div>
@@ -2670,11 +2765,13 @@ export default function GlobalModule() {
             />
           </div>
 
-          {/* Info stack — 180px, 3 equal sections */}
+          {/* Info stack — 180px, 3 unique panels */}
           <div style={{ width:180, flexShrink:0, borderLeft:'1px solid rgba(13,34,68,0.8)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
             <GlobeInfoBar
               allNews={allNewsItems}
-              onNavigateNews={() => window.dispatchEvent(new CustomEvent('madden:navigate', { detail: { module: 'news' } }))}
+              geoNewsItems={geoNewsItems}
+              tick={tick}
+              onSelectTab={(tab) => { setActiveTab(tab) }}
             />
           </div>
 

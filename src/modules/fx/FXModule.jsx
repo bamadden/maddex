@@ -83,7 +83,7 @@ function FxRetryCountdown({ onRetry, seconds = 15 }) {
   }, [secs]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="my-6 text-center">
-      <div className="text-2xs text-terminal-red font-bold tracking-widest">FX RATES UNAVAILABLE — RETRYING...</div>
+      <div className="text-2xs text-terminal-red font-bold tracking-widest">RATES UNAVAILABLE — RETRYING...</div>
       <div className="text-2xs text-terminal-text-dim mt-1">Next attempt in {secs}s</div>
       <button
         onClick={onRetry}
@@ -381,7 +381,7 @@ export default function FXModule() {
       {/* FX Pairs + Converter */}
       <div className="flex flex-col border-r border-terminal-border overflow-hidden">
         <div className="panel-header flex items-center gap-2">
-          FX RATES
+          RATES
           {isFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
           {isLive     && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {isError    && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
@@ -389,7 +389,7 @@ export default function FXModule() {
         </div>
         <div className="flex-1 overflow-auto">
           {isFetching ? (
-            <div className="p-4 text-2xs text-terminal-text-dim animate-pulse text-center">LOADING FX RATES...</div>
+            <div className="p-4 text-2xs text-terminal-text-dim animate-pulse text-center">LOADING RATES...</div>
           ) : !isLive ? (
             <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
           ) : (
