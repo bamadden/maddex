@@ -27,7 +27,7 @@ export function StoreProvider({ children }) {
     {
       role: 'assistant',
       content:
-        'MADDEX AI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
+        'MADDENAI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
     },
   ]
   const [chatMessages, setChatMessages] = useState(INITIAL_CHAT)
@@ -83,7 +83,7 @@ export function StoreProvider({ children }) {
   const clearChatMessages = useCallback(() => {
     setChatMessages([{
       role: 'assistant',
-      content: 'MADDEX AI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
+      content: 'MADDENAI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
     }])
   }, [])
 

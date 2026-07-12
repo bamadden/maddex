@@ -1434,7 +1434,7 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
             <button
               onClick={() => onAskAI(`Tell me about ${name} — its geography, economy, political system, and strategic significance for Australia.`)}
               className="mt-2 text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-            >ASK MADDEX AI ◆</button>
+            >ASK MADDENAI ◆</button>
           </div>
         )}
 

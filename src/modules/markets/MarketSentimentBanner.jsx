@@ -293,7 +293,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
         {/* ── Header ── */}
         <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
           <span className="text-2xs border border-terminal-gold/40 px-1.5 py-0.5 font-bold tracking-widest text-terminal-gold">SENTIMENT</span>
-          <span className="text-sm font-bold text-terminal-gold tracking-wider">MADDEX AI MARKET SENTIMENT</span>
+          <span className="text-sm font-bold text-terminal-gold tracking-wider">MADDENAI MARKET SENTIMENT</span>
           <span className="text-terminal-text-dim/40">◆</span>
           <span className="text-sm font-bold" style={{ color: scoreToColor(sentiment.score) }}>
             {sentiment.score}/100 {sentiment.label.toUpperCase()}
@@ -472,7 +472,7 @@ export default function MarketSentimentBanner() {
         className="border-b border-terminal-border bg-terminal-header flex-shrink-0 flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-terminal-accent/10 transition-colors"
         onClick={handleOpen}
       >
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0 whitespace-nowrap">MADDEX AI</span>
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0 whitespace-nowrap">MADDENAI</span>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0">◆</span>
         <span className="text-2xs font-bold flex-shrink-0 whitespace-nowrap" style={{ color }}>
           {sentiment.score}/100

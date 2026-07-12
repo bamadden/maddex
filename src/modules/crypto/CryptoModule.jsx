@@ -106,32 +106,65 @@ function ChartTooltip({ active, payload, label, currency }) {
   )
 }
 
-// ── Crypto Momentum Index ──────────────────────────────────────────────────────
+// ── MaddenAI Crypto Momentum — hero panel ─────────────────────────────────────
 
-function CryptoMomentumBar({ momentum }) {
+function MaddenAIMomentum({ momentum }) {
   const [expanded, setExpanded] = useState(false)
-  if (!momentum) return null
+  if (!momentum) {
+    return (
+      <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
+        CALCULATING...
+      </div>
+    )
+  }
   const color = scoreToColor(momentum.score)
   const { bullish, neutral, bearish } = momentum.breakdown ?? { bullish: 33, neutral: 34, bearish: 33 }
 
   return (
-    <div className="border-b border-terminal-border flex-shrink-0">
-      <div className="flex items-center gap-3 px-2 py-1 cursor-pointer" onClick={() => setExpanded((v) => !v)}>
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0">CRYPTO MOMENTUM INDEX</span>
-        <span className="text-sm font-bold flex-shrink-0" style={{ color }}>{momentum.score}</span>
-        <span className="text-2xs font-semibold flex-shrink-0" style={{ color }}>{momentum.label.toUpperCase()}</span>
-        <div className="flex h-1.5 w-28 overflow-hidden flex-shrink-0">
-          <div style={{ width: `${bullish}%`, backgroundColor: 'var(--color-gain)' }} />
-          <div style={{ width: `${neutral}%`, backgroundColor: 'var(--color-neutral)' }} />
-          <div style={{ width: `${bearish}%`, backgroundColor: 'var(--color-loss)' }} />
-        </div>
-        <span className="text-2xs text-terminal-text-dim/50 ml-auto flex-shrink-0">{expanded ? '▲' : '▼'}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 14px', height: '100%', boxSizing: 'border-box', borderLeft: '2px solid rgba(200,168,75,0.3)', background: 'rgba(200,168,75,0.018)' }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: '#c8a84b', letterSpacing: '0.12em', marginBottom: 5 }}>
+        MADDENAI CRYPTO MOMENTUM
       </div>
-      {expanded && (
-        <div className="px-2 pb-1.5 text-2xs text-terminal-text-dim border-t border-terminal-border/50 pt-1">
-          {explainScore(momentum)}
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 48, fontWeight: 700, lineHeight: 1, color, fontFamily: 'IBM Plex Mono' }}>
+          {momentum.score}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontSize: 10, color: 'rgba(100,130,160,0.5)' }}>/ 100</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color }}>{momentum.label.toUpperCase()}</span>
         </div>
-      )}
+      </div>
+
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ display: 'flex', height: 10, width: '100%', overflow: 'hidden', borderRadius: 2 }}>
+          <div style={{ width: `${bullish}%`, background: 'var(--color-gain)', transition: 'width 0.5s' }} />
+          <div style={{ width: `${neutral}%`, background: 'var(--color-neutral)', transition: 'width 0.5s' }} />
+          <div style={{ width: `${bearish}%`, background: 'var(--color-loss)', transition: 'width 0.5s' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, marginTop: 3 }}>
+          <span style={{ color: 'var(--color-gain)' }}>{bullish}% BULL</span>
+          <span style={{ color: 'var(--color-neutral)' }}>{neutral}% NEUT</span>
+          <span style={{ color: 'var(--color-loss)' }}>{bearish}% BEAR</span>
+        </div>
+      </div>
+
+      <div style={{ cursor: 'pointer' }} onClick={() => setExpanded(v => !v)}>
+        <span style={{ fontSize: 8, color: 'rgba(100,130,160,0.4)', letterSpacing: '0.05em' }}>
+          {expanded ? '▲ HIDE DETAIL' : '▼ SHOW DETAIL'}
+        </span>
+        {expanded && (
+          <div style={{ fontSize: 9, color: 'rgba(150,170,190,0.7)', marginTop: 4, borderTop: '1px solid rgba(13,34,68,0.6)', paddingTop: 4 }}>
+            {explainScore(momentum)}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+        <span style={{ fontSize: 8, color: 'rgba(200,168,75,0.5)', letterSpacing: '0.1em' }}>
+          POWERED BY MADDENAI ◆
+        </span>
+      </div>
     </div>
   )
 }
@@ -262,80 +295,82 @@ export default function CryptoModule() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
 
-      {/* ── Row 1: Fear & Greed (40%) + Price chart (60%) ── */}
+      {/* ── Row 1: MaddenAI Momentum (55%) | Fear & Greed (45%) ── */}
       <div className="flex border-b border-terminal-border flex-shrink-0 divide-x divide-terminal-border"
-        style={{ height: 'clamp(160px, 22vh, 200px)' }}>
+        style={{ height: 'clamp(180px, 24vh, 215px)' }}>
 
-        {/* Fear & Greed */}
-        <div className="flex-shrink-0 overflow-hidden" style={{ width: '38%' }}>
+        {/* MaddenAI Momentum — hero */}
+        <div className="overflow-hidden flex-shrink-0" style={{ width: '55%' }}>
+          <MaddenAIMomentum momentum={momentum} />
+        </div>
+
+        {/* Fear & Greed — secondary */}
+        <div className="flex-1 overflow-hidden">
           {fearGreed
             ? <FearGreedGauge data={fearGreed} />
             : <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">F&amp;G LOADING...</div>
           }
         </div>
-
-        {/* Price chart */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          <div className="flex items-center gap-1 px-2 py-0.5 border-b border-terminal-border/50 flex-shrink-0 flex-wrap">
-            <span className="text-2xs text-terminal-text-dim font-bold">{selectedCoin}/{currency}</span>
-            <div className="flex gap-0.5 flex-wrap">
-              {TOP_COINS.map(coin => (
-                <button key={coin} onClick={() => setSelectedCoin(coin)}
-                  className={`px-1 py-0 text-[9px] transition-colors ${
-                    selectedCoin === coin
-                      ? 'bg-terminal-gold text-terminal-bg font-bold'
-                      : 'text-terminal-text-dim hover:text-terminal-text'
-                  }`}>
-                  {coin}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-0.5 ml-auto">
-              {TIMEFRAMES.map(tf => (
-                <button key={tf} onClick={() => setTimeframe(tf)}
-                  className={`px-1 py-0 text-[9px] transition-colors ${
-                    timeframe === tf
-                      ? 'border border-terminal-gold text-terminal-gold'
-                      : 'text-terminal-text-dim hover:text-terminal-gold'
-                  }`}>
-                  {tf}
-                </button>
-              ))}
-            </div>
-            {chartLoading && <span className="text-terminal-text-dim text-[9px] animate-pulse">...</span>}
-          </div>
-
-          <div className="flex-1 min-h-0 px-0.5 pb-0.5">
-            {historyError && !rawHistory ? (
-              <DataUnavailable label="CHART UNAVAILABLE" onRetry={refetchHistory} className="h-full" />
-            ) : chartData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 2, right: 4, left: 2, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="cryptoGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="#0d2244" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 7 }} tickFormatter={yAxisFmt} domain={['auto', 'auto']} width={46} />
-                  <Tooltip content={<ChartTooltip currency={currency} />} />
-                  <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5}
-                    fill="url(#cryptoGrad)" dot={false} isAnimationActive={false} connectNulls />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
-                LOADING CHART...
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* ── Row 1.5: Crypto Momentum Index ── */}
-      <CryptoMomentumBar momentum={momentum} />
+      {/* ── Row 2: Price chart ── */}
+      <div className="flex border-b border-terminal-border flex-shrink-0 flex-col overflow-hidden"
+        style={{ height: 'clamp(140px, 17vh, 165px)' }}>
+        <div className="flex items-center gap-1 px-2 py-0.5 border-b border-terminal-border/50 flex-shrink-0 flex-wrap">
+          <span className="text-2xs text-terminal-text-dim font-bold">{selectedCoin}/{currency}</span>
+          <div className="flex gap-0.5 flex-wrap">
+            {TOP_COINS.map(coin => (
+              <button key={coin} onClick={() => setSelectedCoin(coin)}
+                className={`px-1 py-0 text-[9px] transition-colors ${
+                  selectedCoin === coin
+                    ? 'bg-terminal-gold text-terminal-bg font-bold'
+                    : 'text-terminal-text-dim hover:text-terminal-text'
+                }`}>
+                {coin}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-0.5 ml-auto">
+            {TIMEFRAMES.map(tf => (
+              <button key={tf} onClick={() => setTimeframe(tf)}
+                className={`px-1 py-0 text-[9px] transition-colors ${
+                  timeframe === tf
+                    ? 'border border-terminal-gold text-terminal-gold'
+                    : 'text-terminal-text-dim hover:text-terminal-gold'
+                }`}>
+                {tf}
+              </button>
+            ))}
+          </div>
+          {chartLoading && <span className="text-terminal-text-dim text-[9px] animate-pulse">...</span>}
+        </div>
+        <div className="flex-1 min-h-0 px-0.5 pb-0.5">
+          {historyError && !rawHistory ? (
+            <DataUnavailable label="CHART UNAVAILABLE" onRetry={refetchHistory} className="h-full" />
+          ) : chartData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 2, right: 4, left: 2, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="cryptoGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 7 }} tickFormatter={yAxisFmt} domain={['auto', 'auto']} width={46} />
+                <Tooltip content={<ChartTooltip currency={currency} />} />
+                <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5}
+                  fill="url(#cryptoGrad)" dot={false} isAnimationActive={false} connectNulls />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
+              LOADING CHART...
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── Row 2: Trending ── */}
       <TrendingSection />

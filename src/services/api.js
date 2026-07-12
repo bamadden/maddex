@@ -1107,7 +1107,7 @@ export const fetchGeoNews = async () => {
 
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
 
-export const MADDEX_SYSTEM_PROMPT = `You are MADDEX AI, an elite financial markets analyst inside the Maddex terminal — a professional Bloomberg-style platform for Australian investors.
+export const MADDEX_SYSTEM_PROMPT = `You are MaddenAI, an elite financial markets analyst inside the Maddex terminal — a professional Bloomberg-style platform for Australian investors.
 
 EXPERTISE:
 - ASX equities, RBA monetary policy, AUD dynamics

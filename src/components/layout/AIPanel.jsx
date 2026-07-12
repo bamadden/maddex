@@ -375,7 +375,7 @@ export default function AIPanel() {
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-terminal-border bg-terminal-header flex-shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-2xs font-semibold text-terminal-gold tracking-widest">▲ MADDEX AI</span>
+          <span className="text-2xs font-semibold text-terminal-gold tracking-widest">▲ MADDENAI</span>
           {turnCount > 0 && (
             <span className="text-2xs text-terminal-text-dim/50">Turn {turnCount}</span>
           )}

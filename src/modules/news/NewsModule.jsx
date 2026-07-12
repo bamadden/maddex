@@ -319,8 +319,7 @@ function BreakingTicker({ items }) {
     <div className="overflow-hidden border-b border-terminal-border flex-shrink-0" style={{ height: 22 }}>
       <style>{`
         @keyframes nticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-        .nticker-track{animation:nticker 70s linear infinite;white-space:nowrap;display:inline-block;}
-        .nticker-track:hover{animation-play-state:paused;}
+        .nticker-track{animation:nticker 70s linear infinite;white-space:nowrap;display:inline-block;animation-play-state:running !important;}
       `}</style>
       <div className="nticker-track px-3" style={{ fontSize: 9, color: 'var(--mt-gold,#C9A84C)', lineHeight: '22px' }}>
         {content}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{content}

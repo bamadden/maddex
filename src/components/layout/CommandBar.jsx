@@ -134,7 +134,7 @@ const HELP_SECTIONS = [
     { cmd:'COMPARE {s1} {s2}', desc:'Side-by-side asset comparison' },
     { cmd:'ALERT {sym} {price}', desc:'Set price alert — e.g. ALERT BHP 50' },
     { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
-    { cmd:'AI {question}', desc:'Ask MADDEX AI directly' },
+    { cmd:'AI {question}', desc:'Ask MaddenAI directly' },
     { cmd:'HELP / ?', desc:'Show this panel' },
   ]},
   { title:'KEYBOARD', items:[
