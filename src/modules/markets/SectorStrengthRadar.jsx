@@ -159,7 +159,8 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
 
   const indexLabels = {
     '^AXJO':'ASX 200','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
-    '^DJI':'DOW JONES','^FTSE':'FTSE 100',
+    '^DJI':'DOW JONES','^FTSE':'FTSE 100','^GDAXI':'DAX 40',
+    '^N225':'NIKKEI 225','^HSI':'HANG SENG','^NZ50':'NZX 50','^SSEC':'SHANGHAI',
   }
   const indexLabel = indexLabels[selectedIndex] ?? selectedIndex.replace('^','')
 

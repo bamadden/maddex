@@ -88,12 +88,17 @@ export const useAuthStore = create((set, get) => ({
   },
 
   updateProfile: async (updates) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', get().user.id)
-      .select()
-      .single()
+    const userId = get().user?.id
+    if (!userId) return { data: null, error: new Error('Not authenticated') }
+    const payload = { ...updates, updated_at: new Date().toISOString() }
+    let { data, error } = await supabase
+      .from('profiles').update(payload).eq('id', userId).select().single()
+    // Graceful fallback: if experience_level column doesn't exist yet, retry without it
+    if (error?.message?.includes('experience_level')) {
+      const { experience_level: _dropped, ...rest } = payload
+      ;({ data, error } = await supabase
+        .from('profiles').update(rest).eq('id', userId).select().single())
+    }
     if (data) set({ profile: data })
     return { data, error }
   },

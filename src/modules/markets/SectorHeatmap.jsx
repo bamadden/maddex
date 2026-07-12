@@ -93,17 +93,82 @@ export const INDEX_SECTORS = {
     'Utilities':              null,
   },
   '^FTSE': {
-    'Information Technology': null,
+    'Information Technology': { sym: 'SAGE.L' },
     'Financials':             { sym: 'HSBA.L' },
     'Health Care':            { sym: 'AZN.L' },
-    'Consumer Discretionary': null,
+    'Consumer Discretionary': { sym: 'BRBY.L' },
     'Communication Services': { sym: 'VOD.L' },
     'Industrials':            { sym: 'BA.L' },
     'Consumer Staples':       { sym: 'ULVR.L' },
     'Energy':                 { sym: 'SHEL.L' },
     'Materials':              { sym: 'RIO.L' },
-    'Real Estate':            null,
+    'Real Estate':            { sym: 'LAND.L' },
     'Utilities':              { sym: 'NG.L' },
+  },
+  '^GDAXI': {
+    'Information Technology': { sym: 'SAP.DE' },
+    'Financials':             { sym: 'DBK.DE' },
+    'Health Care':            { sym: 'BAYN.DE' },
+    'Consumer Discretionary': { sym: 'BMW.DE' },
+    'Communication Services': { sym: 'DTE.DE' },
+    'Industrials':            { sym: 'SIE.DE' },
+    'Consumer Staples':       { sym: 'HEN3.DE' },
+    'Energy':                 { sym: 'RWE.DE' },
+    'Materials':              { sym: 'BAS.DE' },
+    'Real Estate':            { sym: 'VNA.DE' },
+    'Utilities':              { sym: 'EOAN.DE' },
+  },
+  '^N225': {
+    'Information Technology': { sym: '9984.T' },
+    'Financials':             { sym: '8306.T' },
+    'Health Care':            { sym: '4519.T' },
+    'Consumer Discretionary': { sym: '7203.T' },
+    'Communication Services': { sym: '9432.T' },
+    'Industrials':            { sym: '6501.T' },
+    'Consumer Staples':       { sym: '2502.T' },
+    'Energy':                 { sym: '5020.T' },
+    'Materials':              { sym: '4063.T' },
+    'Real Estate':            { sym: '8801.T' },
+    'Utilities':              { sym: '9020.T' },
+  },
+  '^HSI': {
+    'Information Technology': { sym: '0700.HK' },
+    'Financials':             { sym: '0005.HK' },
+    'Health Care':            { sym: '1299.HK' },
+    'Consumer Discretionary': { sym: '9988.HK' },
+    'Communication Services': { sym: '0941.HK' },
+    'Industrials':            { sym: '0066.HK' },
+    'Consumer Staples':       { sym: '0291.HK' },
+    'Energy':                 { sym: '0883.HK' },
+    'Materials':              { sym: '1088.HK' },
+    'Real Estate':            { sym: '0016.HK' },
+    'Utilities':              { sym: '0002.HK' },
+  },
+  '^NZ50': {
+    'Information Technology': { sym: 'IFT.NZ' },
+    'Financials':             { sym: 'SKC.NZ' },
+    'Health Care':            { sym: 'FPH.NZ' },
+    'Consumer Discretionary': { sym: 'KMD.NZ' },
+    'Communication Services': { sym: 'SPK.NZ' },
+    'Industrials':            { sym: 'AIR.NZ' },
+    'Consumer Staples':       { sym: 'ATM.NZ' },
+    'Energy':                 { sym: 'CEN.NZ' },
+    'Materials':              null,
+    'Real Estate':            { sym: 'PCT.NZ' },
+    'Utilities':              { sym: 'MEL.NZ' },
+  },
+  '^SSEC': {
+    'Information Technology': { sym: '688981.SS' },
+    'Financials':             { sym: '601398.SS' },
+    'Health Care':            { sym: '600276.SS' },
+    'Consumer Discretionary': { sym: '600104.SS' },
+    'Communication Services': { sym: '601728.SS' },
+    'Industrials':            { sym: '601669.SS' },
+    'Consumer Staples':       { sym: '600519.SS' },
+    'Energy':                 { sym: '600028.SS' },
+    'Materials':              { sym: '600900.SS' },
+    'Real Estate':            { sym: '600048.SS' },
+    'Utilities':              { sym: '600900.SS' },
   },
 }
 
@@ -199,8 +264,37 @@ const INDEX_CONSTITUENTS = {
     'AXP','BA','HON','JPM','IBM','TRV','JNJ','WMT','PG','CVX',
     'MRK','MMM','DIS','KO','CSCO','VZ','NKE','DOW','WBA','INTC',
   ],
-  '^FTSE': ['SHEL','AZN','HSBC','ULVR','BP','RIO','GSK','BBL','DEO','LYG','BCS','VOD','BTI','NGG','PUK'],
-  '^N225': ['TM','SNY','HMC','SONY','NTTYY','MFG','MUFG'],
+  '^FTSE': [
+    'SHEL.L','AZN.L','HSBA.L','ULVR.L','BP.L','RIO.L','GSK.L','BHP.L','DGE.L','LLOY.L',
+    'BARC.L','VOD.L','BATS.L','NG.L','PRU.L','ABF.L','ANTO.L','AUTO.L','AV.L','BA.L',
+    'BKG.L','BNZL.L','BRBY.L','CCH.L','CNA.L','CPG.L','CRDA.L','EMG.L','EZJ.L','SAGE.L',
+    'LAND.L','RR.L','IMB.L','III.L','HLMA.L','REL.L','WPP.L','EXPN.L','SKG.L','LSEG.L',
+  ],
+  '^N225': [
+    '7203.T','9984.T','6861.T','8306.T','6758.T','9432.T','7974.T','4519.T','8316.T','6367.T',
+    '9433.T','4523.T','6501.T','7267.T','8411.T','9020.T','4502.T','6902.T','7751.T','8035.T',
+    '4063.T','6954.T','7832.T','8001.T','8031.T','9022.T','5108.T','6645.T','4568.T','6971.T',
+  ],
+  '^GDAXI': [
+    'SAP.DE','SIE.DE','ALV.DE','MRK.DE','DTE.DE','BAYN.DE','BMW.DE','MUV2.DE','EOAN.DE','BAS.DE',
+    'RWE.DE','HEN3.DE','VOW3.DE','DBK.DE','FRE.DE','MTX.DE','ADS.DE','BEI.DE','CON.DE','DHL.DE',
+    'HEI.DE','IFX.DE','LIN.DE','MBG.DE','PUM.DE','QGEN.DE','SHL.DE','VNA.DE','ZAL.DE','DTG.DE',
+  ],
+  '^HSI': [
+    '0700.HK','0941.HK','1299.HK','0005.HK','0939.HK','2318.HK','1398.HK','3988.HK','0388.HK','2628.HK',
+    '0883.HK','1109.HK','0016.HK','0011.HK','0688.HK','1038.HK','0002.HK','0003.HK','0012.HK','0017.HK',
+    '0066.HK','0101.HK','0151.HK','0175.HK','0267.HK','9988.HK','9618.HK','9999.HK','1088.HK','0291.HK',
+  ],
+  '^NZ50': [
+    'FPH.NZ','ATM.NZ','SKC.NZ','MEL.NZ','CEN.NZ','SPK.NZ','RYM.NZ','IFT.NZ','AIA.NZ','PCT.NZ',
+    'PFI.NZ','GNE.NZ','VHP.NZ','ARG.NZ','EBO.NZ','KMD.NZ','MFT.NZ','OCA.NZ','SUM.NZ','WHS.NZ',
+    'AIR.NZ','HGH.NZ','MHJ.NZ','NPX.NZ','NZR.NZ',
+  ],
+  '^SSEC': [
+    '601398.SS','601288.SS','600519.SS','601628.SS','601318.SS','600036.SS','601166.SS',
+    '600276.SS','601601.SS','600900.SS','601088.SS','600028.SS','601669.SS','601328.SS',
+    '600104.SS','601186.SS','600048.SS','601211.SS','601390.SS','688981.SS',
+  ],
 }
 
 const STOCK_NAMES = {
@@ -296,17 +390,86 @@ const STOCK_NAMES = {
   'BP':'BP','RIO':'Rio Tinto ADR','GSK':'GSK','BBL':'BHP ADR',
   'DEO':'Diageo','LYG':'Lloyds','BCS':'Barclays','VOD':'Vodafone',
   'BTI':'BAT','NGG':'National Grid','PUK':'Prudential',
-  // FTSE London-listed (.L)
+  // FTSE 100 — London-listed (.L)
   'HSBA.L':'HSBC Holdings','AZN.L':'AstraZeneca','VOD.L':'Vodafone','BA.L':'BAE Systems',
-  'ULVR.L':'Unilever','SHEL.L':'Shell','RIO.L':'Rio Tinto','NG.L':'National Grid',
-  // Nikkei proxies (US-listed ADRs)
-  'TM':'Toyota','SNY':'Sony Corp','HMC':'Honda','SONY':'Sony',
-  'NTTYY':'NTT','MFG':'Mizuho Financial','MUFG':'Mitsubishi UFJ',
+  'ULVR.L':'Unilever','SHEL.L':'Shell plc','RIO.L':'Rio Tinto','NG.L':'National Grid',
+  'BHP.L':'BHP Group','DGE.L':'Diageo','LLOY.L':'Lloyds Banking','BARC.L':'Barclays',
+  'BATS.L':'British American Tobacco','PRU.L':'Prudential','BP.L':'BP plc',
+  'GSK.L':'GSK plc','ABF.L':'Associated British Foods','ANTO.L':'Antofagasta',
+  'AUTO.L':'Auto Trader Group','AV.L':'Aviva','BKG.L':'Berkeley Group',
+  'BNZL.L':'Bunzl','BRBY.L':'Burberry Group','CCH.L':'Coca-Cola HBC',
+  'CNA.L':'Centrica','CPG.L':'Compass Group','CRDA.L':'Croda International',
+  'EMG.L':'Man Group','EZJ.L':'EasyJet','SAGE.L':'Sage Group',
+  'LAND.L':'Land Securities','RR.L':'Rolls-Royce','IMB.L':'Imperial Brands',
+  'III.L':'3i Group','HLMA.L':'Halma','REL.L':'RELX','WPP.L':'WPP plc',
+  'EXPN.L':'Experian','SKG.L':'Smurfit Kappa','LSEG.L':'London Stock Exchange',
+  // DAX 40 — Frankfurt-listed (.DE)
+  'SAP.DE':'SAP SE','SIE.DE':'Siemens','ALV.DE':'Allianz','MRK.DE':'Merck KGaA',
+  'DTE.DE':'Deutsche Telekom','BAYN.DE':'Bayer AG','BMW.DE':'BMW AG',
+  'MUV2.DE':'Munich Re','EOAN.DE':'E.ON SE','BAS.DE':'BASF SE',
+  'RWE.DE':'RWE AG','HEN3.DE':'Henkel','VOW3.DE':'Volkswagen',
+  'DBK.DE':'Deutsche Bank','FRE.DE':'Fresenius SE','MTX.DE':'MTU Aero Engines',
+  'ADS.DE':'Adidas AG','BEI.DE':'Beiersdorf','CON.DE':'Continental AG',
+  'DHL.DE':'Deutsche Post DHL','HEI.DE':'Heidelberg Materials','IFX.DE':'Infineon',
+  'LIN.DE':'Linde plc','MBG.DE':'Mercedes-Benz','PUM.DE':'Puma SE',
+  'QGEN.DE':'Qiagen','SHL.DE':'Siemens Healthineers','VNA.DE':'Vonovia SE',
+  'ZAL.DE':'Zalando SE','DTG.DE':'Daimler Truck',
+  // Nikkei 225 — Tokyo-listed (.T)
+  '7203.T':'Toyota Motor','9984.T':'SoftBank Group','6861.T':'Keyence Corp',
+  '8306.T':'Mitsubishi UFJ','6758.T':'Sony Group','9432.T':'NTT',
+  '7974.T':'Nintendo','4519.T':'Chugai Pharmaceutical','8316.T':'Sumitomo Mitsui',
+  '6367.T':'Daikin Industries','9433.T':'KDDI Corp','4523.T':'Eisai Co',
+  '6501.T':'Hitachi Ltd','7267.T':'Honda Motor','8411.T':'Mizuho Financial',
+  '9020.T':'East Japan Railway','4502.T':'Takeda Pharmaceutical','6902.T':'Denso Corp',
+  '7751.T':'Canon Inc','8035.T':'Tokyo Electron','4063.T':'Shin-Etsu Chemical',
+  '6954.T':'Fanuc Corp','7832.T':'Bandai Namco','8001.T':'Itochu Corp',
+  '8031.T':'Mitsui & Co','9022.T':'Central Japan Railway','5108.T':'Bridgestone',
+  '6645.T':'OMRON Corp','4568.T':'Daiichi Sankyo','6971.T':'Kyocera Corp',
+  '2502.T':'Asahi Group','5020.T':'ENEOS Holdings','8801.T':'Mitsui Fudosan',
+  // Hang Seng — Hong Kong-listed (.HK)
+  '0700.HK':'Tencent Holdings','0941.HK':'China Mobile','1299.HK':'AIA Group',
+  '0005.HK':'HSBC Holdings','0939.HK':'CCB','2318.HK':'Ping An Insurance',
+  '1398.HK':'ICBC','3988.HK':'Bank of China','0388.HK':'HKEX',
+  '2628.HK':'China Life Insurance','0883.HK':'CNOOC Ltd','1109.HK':'China Resources Land',
+  '0016.HK':'Sun Hung Kai Properties','0011.HK':'Hang Seng Bank',
+  '0688.HK':'China Overseas Land','1038.HK':'CKI Holdings',
+  '0002.HK':'CLP Holdings','0003.HK':'HK & China Gas','0012.HK':'Henderson Land',
+  '0017.HK':'New World Development','0066.HK':'MTR Corporation',
+  '0101.HK':'Hang Lung Properties','0151.HK':'Want Want China',
+  '0175.HK':'Geely Automobile','0267.HK':'CITIC Ltd',
+  '9988.HK':'Alibaba Group','9618.HK':'JD.com','9999.HK':'NetEase',
+  '1088.HK':'China Shenhua Energy','0291.HK':'China Resources Beer',
+  // NZX 50 — New Zealand-listed (.NZ)
+  'FPH.NZ':'Fisher & Paykel Healthcare','ATM.NZ':'A2 Milk Co',
+  'SKC.NZ':'SkyCity Entertainment','MEL.NZ':'Meridian Energy NZ',
+  'CEN.NZ':'Contact Energy','SPK.NZ':'Spark NZ','RYM.NZ':'Ryman Healthcare',
+  'IFT.NZ':'Infratil','AIA.NZ':'Auckland International Airport',
+  'PCT.NZ':'Precinct Properties','PFI.NZ':'Property For Industry',
+  'GNE.NZ':'Genesis Energy NZ','VHP.NZ':'Vital Healthcare Property',
+  'ARG.NZ':'Argosy Property','EBO.NZ':'EBOS Group',
+  'KMD.NZ':'Kathmandu Holdings','MFT.NZ':'Mainfreight',
+  'OCA.NZ':'Oceania Healthcare','SUM.NZ':'Summerset Group',
+  'WHS.NZ':'The Warehouse Group','AIR.NZ':'Air New Zealand',
+  'HGH.NZ':'Heartland Group','MHJ.NZ':'Michael Hill International',
+  'NPX.NZ':'NZX Limited','NZR.NZ':'New Zealand Refining',
+  // Shanghai Composite — A-shares (.SS)
+  '601398.SS':'ICBC','601288.SS':'Agricultural Bank of China',
+  '600519.SS':'Kweichow Moutai','601628.SS':'China Life Insurance',
+  '601318.SS':'Ping An Insurance','600036.SS':'China Merchants Bank',
+  '601166.SS':'Industrial Bank','600276.SS':'Jiangsu Hengrui Medicine',
+  '601601.SS':'China Pacific Insurance','600900.SS':'Yangtze Power',
+  '601088.SS':'China Shenhua Energy','600028.SS':'Sinopec',
+  '601669.SS':'Power Construction Corp','601328.SS':'Bank of Communications',
+  '600104.SS':'SAIC Motor','601186.SS':'China Railway Construction',
+  '600048.SS':'Poly Developments','601211.SS':'Guotai Junan Securities',
+  '601390.SS':'China Railway Group','688981.SS':'SMIC',
+  '601728.SS':'China Telecom',
 }
 
 const INDEX_LABELS = {
   '^AXJO':'ASX 200','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
   '^DJI':'Dow Jones 30','^FTSE':'FTSE 100','^N225':'Nikkei 225',
+  '^GDAXI':'DAX 40','^HSI':'Hang Seng','^NZ50':'NZX 50','^SSEC':'Shanghai Composite',
 }
 
 // Approximate weights for ASX 200 top 20
@@ -329,7 +492,20 @@ function pctToBg(pct) {
 }
 
 function displaySym(yahoo) {
-  return yahoo.replace(/\.AX$/i, '').toUpperCase()
+  return yahoo.replace(/\.(AX|L|DE|T|HK|NZ|SS)$/i, '').toUpperCase()
+}
+
+// Convert a native-currency price to AUD.
+// rates from fetchFxRates('AUD') = { USD, GBP, EUR, JPY, HKD, NZD, CNY, ... }
+// Each value = units of that currency per 1 AUD (e.g. GBP: 0.51 means £0.51 = A$1)
+function nativeToAud(price, currency, rates) {
+  if (price == null || !rates) return null
+  if (!currency || currency === 'AUD') return price
+  // GBp (pence) = 1/100 GBP — Yahoo Finance reports many LSE stocks in pence
+  if (currency === 'GBp') return (price / 100) / (rates.GBP ?? 0.512)
+  const rate = rates[currency]
+  if (!rate) return null
+  return price / rate
 }
 
 function SortIcon({ col, current, dir }) {
@@ -607,7 +783,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                 <div className="px-2 py-1.5 border-b border-terminal-border bg-terminal-accent/10 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-terminal-gold">
-                      {proxySym.replace(/\.(AX|L)$/i,'')} · proxy
+                      {displaySym(proxySym)} · proxy
                     </span>
                     <span className="text-xs font-bold text-terminal-text-bright">{fmt.price(q.last)}</span>
                   </div>
@@ -681,7 +857,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                           onClick={() => openModal?.({ symbol: sym, name, price: q?.last ?? 0, pct: q?.pct ?? 0, type:'asx', extra:{} })}
                         >
                           <td className="px-2 py-0.5">
-                            <div className="text-xs font-bold text-terminal-text-bright">{sym.replace('.AX','')}</div>
+                            <div className="text-xs font-bold text-terminal-text-bright">{displaySym(sym)}</div>
                             <div className="text-2xs text-terminal-text-dim truncate max-w-[110px]">{name}</div>
                           </td>
                           <td className="px-1 py-0.5 text-2xs text-right font-semibold">
@@ -699,7 +875,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             ) : (
               <div className="flex-1 flex items-center justify-center p-4 text-center">
                 <span className="text-2xs text-terminal-text-dim/40 leading-relaxed">
-                  {isASX ? 'No constituent data' : 'Full constituent lists available for ASX 200 only.\nProxy stock chart shown above.'}
+                  No constituent data for this sector.
                 </span>
               </div>
             )}
@@ -718,7 +894,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 // ─── Index View ───────────────────────────────────────────────────────────────
 
 function IndexView({ selectedIndex, openModal }) {
-  const { usdToAud } = useAudRates()
+  const { usdToAud, rates } = useAudRates()
   const [quotes, setQuotes]       = useState({})
   const [loadCount, setLoadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -798,24 +974,25 @@ function IndexView({ selectedIndex, openModal }) {
 
   const rows = useMemo(() => {
     return constituents.map((sym, i) => {
-      const q = quotes[sym]
-      const isAud = sym.endsWith('.AX')
-      const rawPrice  = q?.last ?? null
-      const audPrice  = rawPrice == null ? null : isAud ? rawPrice : usdToAud(rawPrice)
-      const audChange = q?.change == null ? null : isAud ? q.change : usdToAud(q.change)
-      const aud52High = q?.week52High == null ? null : isAud ? q.week52High : usdToAud(q.week52High)
-      const aud52Low  = q?.week52Low  == null ? null : isAud ? q.week52Low  : usdToAud(q.week52Low)
+      const q        = quotes[sym]
+      const currency = q?.currency ?? (sym.endsWith('.AX') ? 'AUD' : 'USD')
+      const convert  = (v) => nativeToAud(v, currency, rates) ?? (rates ? null : usdToAud(v))
+      const audPrice  = convert(q?.last ?? null)
+      const audChange = convert(q?.change ?? null)
+      const aud52High = convert(q?.week52High ?? null)
+      const aud52Low  = convert(q?.week52Low  ?? null)
       return {
         rank: i + 1, sym,
-        ticker: displaySym(sym),
-        name: STOCK_NAMES[sym] ?? displaySym(sym),
+        ticker:    displaySym(sym),
+        name:      STOCK_NAMES[sym] ?? displaySym(sym),
+        currency,
         audPrice, audChange, aud52High, aud52Low,
-        pct: q?.pct ?? null,
+        pct:    q?.pct    ?? null,
         weight: ASX_WEIGHTS[sym] ?? null,
         q,
       }
     })
-  }, [constituents, quotes, usdToAud])
+  }, [constituents, quotes, rates, usdToAud])
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase()
