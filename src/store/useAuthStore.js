@@ -13,6 +13,24 @@ export const useAuthStore = create((set, get) => ({
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       set({ session, user: session.user })
+
+      // Verify profile row exists — create if missing (DB trigger may not have fired)
+      const { data: profileCheck, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, country, email')
+        .eq('id', session.user.id)
+      console.log('Profile check on init:', profileCheck, checkError)
+      if (!profileCheck || profileCheck.length === 0) {
+        console.log('No profile found — creating one for', session.user.id)
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: session.user.id,
+          email: session.user.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        if (insertError) console.error('Profile insert error:', insertError.message)
+      }
+
       await get().loadProfile()
       await get().loadSettings()
     }
@@ -31,11 +49,14 @@ export const useAuthStore = create((set, get) => ({
 
   loadProfile: async () => {
     const userId = get().user?.id
-    if (!userId) return
+    console.log('loadProfile called for user:', userId)
+    if (!userId) { console.log('loadProfile: no user id — skipping'); return }
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).limit(1)
+    console.log('loadProfile response:', data, error)
     if (error) console.error('loadProfile error:', error.message, error.details)
     const profile = data?.[0]
-    if (profile) set({ profile })
+    if (profile) { console.log('loadProfile: setting profile', profile); set({ profile }) }
+    else console.warn('loadProfile: no profile row found for user', userId)
   },
 
   loadSettings: async () => {
@@ -98,18 +119,26 @@ export const useAuthStore = create((set, get) => ({
 
   updateProfile: async (updates) => {
     const userId = get().user?.id
+    console.log('updateProfile called with:', updates)
+    console.log('updateProfile user id:', userId)
     if (!userId) return { data: null, error: new Error('Not authenticated') }
     const payload = { ...updates, updated_at: new Date().toISOString() }
     let { data, error } = await supabase
       .from('profiles').update(payload).eq('id', userId).select()
+    console.log('updateProfile response data:', data)
+    console.log('updateProfile response error:', error)
     if (error?.message?.includes('experience_level')) {
+      console.log('updateProfile: retrying without experience_level column')
       const { experience_level: _dropped, ...rest } = payload
       ;({ data, error } = await supabase
         .from('profiles').update(rest).eq('id', userId).select())
+      console.log('updateProfile retry data:', data, 'error:', error)
     }
     if (error) console.error('updateProfile error:', error.message, error.details, error.hint)
     const profile = data?.[0]
-    if (profile) set({ profile })
+    console.log('updateProfile updated profile:', profile)
+    if (profile) { set({ profile }); console.log('updateProfile: profile state updated') }
+    else console.warn('updateProfile: update returned empty data — check RLS policies and row existence')
     return { data: profile ?? null, error }
   },
 

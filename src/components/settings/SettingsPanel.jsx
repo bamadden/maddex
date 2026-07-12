@@ -151,7 +151,7 @@ function CountryDropdown({ value, onChange }) {
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 
 function ProfileSection() {
-  const { profile, updateProfile, user } = useAuthStore()
+  const { profile, updateProfile, loadProfile, user } = useAuthStore()
   const [form, setForm] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
@@ -161,6 +161,18 @@ function ProfileSection() {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(false)
   const [error, setError] = useState(null)
+
+  // Sync form when profile loads from Supabase (useState only runs once at mount)
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        country: profile.country || '',
+        experience_level: profile.experience_level || 'INTERMEDIATE',
+      })
+    }
+  }, [profile?.id]) // only re-sync when the profile ID changes (initial load), not on every field update
 
   const initials = getInitials(
     { ...profile, first_name: form.first_name, last_name: form.last_name },
@@ -177,7 +189,13 @@ function ProfileSection() {
       ...form,
       timezone: getTimezoneFromCountry(form.country),
     }
-    const { error } = await updateProfile(updates)
+    console.log('ProfileSection handleSave:', updates)
+    const { data, error } = await updateProfile(updates)
+    console.log('ProfileSection save result:', { data, error })
+    if (!error) {
+      // Reload from Supabase to confirm persistence
+      await loadProfile()
+    }
     setLoading(false)
     if (error) {
       setError(error.message)
@@ -496,21 +514,21 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes }) {
     setExporting(true)
     try {
       const [profile, watchlist, portfolio, alerts, notes, settings] = await Promise.all([
-        supabase.from('profiles').select('*').single(),
+        supabase.from('profiles').select('*').limit(1),
         supabase.from('watchlist').select('*'),
         supabase.from('portfolio_holdings').select('*'),
         supabase.from('price_alerts').select('*'),
         supabase.from('ai_notes').select('*'),
-        supabase.from('user_settings').select('*').single(),
+        supabase.from('user_settings').select('*').limit(1),
       ])
       const exportData = {
         exported_at: new Date().toISOString(),
-        profile: profile.data,
+        profile: profile.data?.[0] ?? null,
         watchlist: watchlist.data,
         portfolio: portfolio.data,
         price_alerts: alerts.data,
         ai_notes: notes.data,
-        settings: settings.data,
+        settings: settings.data?.[0] ?? null,
       }
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
