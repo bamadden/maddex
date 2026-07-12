@@ -2,7 +2,13 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
-import { fetchGeoNews, fetchNews } from '../../services/api'
+import {
+  fetchGeoNews, fetchNews,
+  fetchYFBatch, YF_INDICES,
+  fetchCryptoMarkets, transformCryptoMarkets,
+  fetchFxRates, transformFxRates,
+  fetchMetalsRates, extractMetals,
+} from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
 import COUNTRIES from '../../data/countryDatabase'
 import { initCountryDataRefresh, getCountryCache } from '../../services/countryApiService'
@@ -701,7 +707,7 @@ function CompassRose({ rotation, onReset }) {
   const latLabel = `${Math.abs(cLat).toFixed(0)}°${cLat >= 0 ? 'N' : 'S'}`
 
   return (
-    <div className="absolute bottom-10 left-2 z-20 flex flex-col items-center gap-1 pointer-events-auto">
+    <div style={{ position:'absolute', bottom:8, left:8, zIndex:10, display:'flex', flexDirection:'column', alignItems:'center', gap:4, pointerEvents:'auto' }}>
       <div className="bg-terminal-panel/85 border border-terminal-border/70 p-1.5 backdrop-blur-sm">
         <svg width="54" height="54" viewBox="-27 -27 54 54">
           {/* Background ring */}
@@ -778,7 +784,7 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
   }, [])
 
   const { width, height } = svgSize
-  const radius = Math.min(width, height) / 2 - 4
+  const radius = (Math.min(width, height) / 2) * 0.88
 
   // 3D orthographic projection (recomputes on rotation + size change)
   const projection = useMemo(() =>
@@ -906,7 +912,7 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-terminal-bg">
+    <div ref={containerRef} className="w-full h-full relative bg-terminal-bg" style={{ overflow: 'visible' }}>
       {/* Search box */}
       <div className="absolute top-2 left-2 z-30 flex items-center gap-1">
         <input
@@ -932,6 +938,7 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
         ref={svgRef}
         width={width}
         height={height}
+        style={{ overflow: 'visible' }}
         className="block cursor-grab active:cursor-grabbing select-none"
         onMouseLeave={() => setHovered(null)}
         onMouseDown={e => {
@@ -2258,19 +2265,129 @@ const LAYER_CONFIG = [
 
 function LayerToggleBar({ layers, onToggle }) {
   return (
-    <div className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border bg-terminal-header flex-shrink-0">
-      <span className="text-2xs text-terminal-text-dim mr-1">LAYERS:</span>
+    <div style={{ height:32, display:'flex', alignItems:'center', gap:4, padding:'0 8px', borderBottom:'1px solid rgba(13,34,68,0.8)', background:'#071428', flexShrink:0 }}>
+      <span style={{ fontSize:8, color:'rgba(100,130,160,0.5)', marginRight:4, whiteSpace:'nowrap' }}>LAYERS:</span>
       {LAYER_CONFIG.map(l => (
         <button key={l.id} onClick={() => onToggle(l.id)}
-          className={`text-2xs px-2 py-0.5 border transition-colors ${
-            layers[l.id]
-              ? `border-current ${l.color} bg-current/10`
-              : 'border-terminal-border text-terminal-text-dim hover:text-terminal-text'
-          }`}
-          style={layers[l.id] ? {} : {}}>
+          className={layers[l.id] ? l.color : 'text-terminal-text-dim'}
+          style={{ fontSize:9, padding:'2px 8px', border:'1px solid', borderColor: layers[l.id] ? 'currentColor' : 'rgba(13,34,68,0.8)', cursor:'pointer', background: layers[l.id] ? 'rgba(200,168,75,0.06)' : 'transparent', transition:'all 150ms', whiteSpace:'nowrap' }}>
           {layers[l.id] ? '● ' : '○ '}{l.label}
         </button>
       ))}
+    </div>
+  )
+}
+
+// ─── Globe Bottom Info Bar ────────────────────────────────────────────────────
+
+const BREAK_KW = /RBA|Fed|rate|crash|surge|sanctions|war|record/i
+const INDEX_SNAP = ['^AXJO', '^GSPC', '^IXIC']
+const INDEX_SNAP_LABELS = { '^AXJO':'ASX 200', '^GSPC':'S&P 500', '^IXIC':'NASDAQ' }
+
+function GlobeInfoBar({ allNews, onNavigateNews }) {
+  const fmtAUD  = (v) => v != null ? `A$${Number(v).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '—'
+
+  const { data: indexQuotes } = useQuery({
+    queryKey: ['yfBatch', 'indices'],
+    queryFn:  () => fetchYFBatch(YF_INDICES.map(i => i.symbol)),
+    staleTime: 60_000, retry: 1,
+  })
+  const { data: rawMarkets } = useQuery({
+    queryKey: ['cryptoMarkets', 'aud'],
+    queryFn:  () => fetchCryptoMarkets('aud'),
+    staleTime: 60_000, retry: 1,
+  })
+  const { data: rawFx } = useQuery({
+    queryKey: ['fxRates'],
+    queryFn:  () => fetchFxRates('AUD'),
+    staleTime: 5 * 60_000, retry: 1,
+  })
+  const { data: metalsRates } = useQuery({
+    queryKey: ['metalsRates'],
+    queryFn:  fetchMetalsRates,
+    staleTime: 10 * 60_000, retry: 1,
+  })
+
+  const sessions = SESSIONS.map(s => {
+    const st = getStatus(s)
+    return { ...s, status: st, isOpen: isOpenNow(st) }
+  })
+
+  const asx200 = indexQuotes?.['^AXJO']
+  const markets = rawMarkets ? transformCryptoMarkets(rawMarkets.data, rawMarkets.currency) : null
+  const btc = markets?.find(c => c.symbol === 'BTC')
+  const fxPairs = rawFx ? transformFxRates(rawFx) : null
+  const audUsd = fxPairs?.find(p => p.pair === 'AUD/USD')
+  const metals = metalsRates ? extractMetals(metalsRates) : null
+  const gold = metals?.find(m => m.name.includes('GOLD'))
+
+  const snapItems = [
+    { label:'ASX 200', price: asx200 ? Number(asx200.last).toLocaleString('en-AU',{maximumFractionDigits:0}) : '—', pct: asx200?.pct ?? null },
+    { label:'BTC/AUD', price: btc ? fmtAUD(btc.price) : '—', pct: btc?.pct24h ?? null },
+    { label:'AUD/USD', price: audUsd ? audUsd.mid?.toFixed(4) : '—', pct: null },
+    { label:'GOLD',    price: gold ? fmtAUD(parseFloat(gold.price)) : '—', pct: null },
+  ]
+
+  const breakingItems = (allNews ?? [])
+    .filter(n => BREAK_KW.test((n.headline ?? '') + ' ' + (n.summary ?? '')))
+    .slice(0, 3)
+
+  const S = {
+    section:  { flex:1, padding:'6px 10px', borderRight:'1px solid rgba(13,34,68,0.8)', overflow:'hidden' },
+    sectionL: { flex:1, padding:'6px 10px', overflow:'hidden' },
+    hdr:      { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:4 },
+    row:      { display:'flex', alignItems:'center', gap:6, fontSize:9, marginBottom:2 },
+    dim:      { color:'rgba(100,130,160,0.6)', fontSize:8 },
+  }
+
+  return (
+    <div style={{ height:100, display:'flex', background:'#071428', borderTop:'1px solid rgba(13,34,68,0.8)', flexShrink:0 }}>
+
+      {/* Section 1: Active Trading Sessions */}
+      <div style={S.section}>
+        <div style={S.hdr}>TRADING SESSIONS</div>
+        {sessions.map(s => (
+          <div key={s.name} style={S.row}>
+            <span style={{ width:6, height:6, borderRadius:'50%', background: s.isOpen ? '#22c55e' : 'rgba(100,130,160,0.25)', flexShrink:0 }} />
+            <span style={{ color: s.isOpen ? '#d4dce8' : 'rgba(100,130,160,0.5)', fontWeight: s.isOpen ? 600 : 400 }}>{s.name}</span>
+            {s.isOpen && <span style={{ color:'#22c55e', fontSize:8, marginLeft:'auto' }}>OPEN</span>}
+            {!s.isOpen && <span style={{ color:'rgba(100,130,160,0.4)', fontSize:8, marginLeft:'auto' }}>CLOSED</span>}
+          </div>
+        ))}
+      </div>
+
+      {/* Section 2: Live Market Snapshot */}
+      <div style={S.section}>
+        <div style={S.hdr}>MARKET SNAPSHOT</div>
+        {snapItems.map(({ label, price, pct }) => (
+          <div key={label} style={S.row}>
+            <span style={S.dim}>{label}</span>
+            <span style={{ color:'#d4dce8', fontWeight:600, marginLeft:'auto' }}>{price}</span>
+            {pct != null && (
+              <span style={{ fontSize:8, fontWeight:600, color: pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', minWidth:38, textAlign:'right' }}>
+                {pct >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(2)}%
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Section 3: Breaking Alerts */}
+      <div style={S.sectionL}>
+        <div style={S.hdr}>BREAKING ALERTS</div>
+        {breakingItems.length === 0 && (
+          <div style={{ color:'rgba(100,130,160,0.4)', fontSize:9 }}>No high-impact alerts</div>
+        )}
+        {breakingItems.map((n, i) => (
+          <div key={i} style={{ ...S.row, cursor:'pointer', marginBottom:3 }}
+            onClick={() => onNavigateNews?.()}>
+            <span style={{ color:'#f59e0b', fontSize:9, flexShrink:0 }}>⚡</span>
+            <span style={{ color:'#b8cce4', fontSize:9, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{n.headline}</span>
+            <span style={{ color:'rgba(100,130,160,0.5)', fontSize:8, flexShrink:0, marginLeft:4 }}>{timeAgo(n.pubDate)}</span>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
@@ -2519,20 +2636,20 @@ export default function GlobalModule() {
         </div>
       )}
 
-      {/* Layer toggles */}
-      <LayerToggleBar layers={layers} onToggle={toggleLayer} />
-
       {/* Main content: Map + Right Panel */}
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
 
-        {/* World Map */}
-        <div className="flex-1 min-w-0 border-r border-terminal-border overflow-hidden flex flex-col">
+        {/* World Map column */}
+        <div className="flex-1 min-w-0 border-r border-terminal-border flex flex-col overflow-hidden">
           <div className="panel-header flex items-center gap-2 flex-shrink-0 py-1">
             <span className="text-terminal-gold">GLOBAL INTELLIGENCE · 3D GLOBE</span>
             <span className="text-2xs text-terminal-text-dim font-normal normal-case">· drag to rotate · compass ↙ · click country</span>
             <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{now}</span>
           </div>
-          <div className="flex-1 overflow-hidden">
+          {/* Layer toggles — compact bar above globe */}
+          <LayerToggleBar layers={layers} onToggle={toggleLayer} />
+          {/* Globe — fills remaining space */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'visible', position: 'relative' }}>
             <WorldMap
               openCountryIds={openCountryIds}
               activeLayers={layers}
@@ -2547,10 +2664,15 @@ export default function GlobalModule() {
               onExchangeClick={handleExchangeClick}
             />
           </div>
+          {/* Bottom info bar */}
+          <GlobeInfoBar
+            allNews={allNewsItems}
+            onNavigateNews={() => window.dispatchEvent(new CustomEvent('madden:navigate', { detail: { module: 'news' } }))}
+          />
         </div>
 
         {/* Right Panel */}
-        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '340px', minWidth: '340px' }}>
+        <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width: '380px', minWidth: '380px' }}>
           {/* Tab bar — single row, equal-width tabs, no wrapping */}
           <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
             {TABS.filter(t => !t.hidden).map(t => (

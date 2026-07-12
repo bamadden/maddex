@@ -593,6 +593,13 @@ export const fetchFearGreed = async () => {
   return data
 }
 
+export const fetchCryptoGlobal = async () => {
+  await cgThrottle()
+  const { data } = await axios.get(`${COINGECKO_BASE}/global`)
+  console.log('[MADDEN API] CoinGecko /global: active_coins', data?.data?.active_cryptocurrencies)
+  return data?.data
+}
+
 export const transformCryptoMarkets = (items, currency = 'aud') =>
   items.map((c) => ({
     rank:      c.market_cap_rank,

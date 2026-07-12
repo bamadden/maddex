@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  fetchCryptoMarkets, fetchCoinHistory, fetchFearGreed, fetchTrendingCoins,
+  fetchCryptoMarkets, fetchCoinHistory, fetchFearGreed, fetchTrendingCoins, fetchCryptoGlobal,
   transformCryptoMarkets, transformCoinHistory, transformFearGreed,
   COIN_IDS,
 } from '../../services/api'
@@ -205,6 +205,136 @@ function TrendingSection() {
   )
 }
 
+// ── 4-Panel dashboard shared styles ───────────────────────────────────────────
+
+const P = {
+  wrap:  { flex:1, display:'flex', flexDirection:'column', padding:'8px 10px', overflow:'hidden', boxSizing:'border-box' },
+  title: { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:6, textTransform:'uppercase' },
+  empty: { flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'rgba(100,130,160,0.5)' },
+}
+
+function MaddenAIPanel({ momentum }) {
+  if (!momentum) return <div style={P.wrap}><div style={P.title}>MADDENAI MOMENTUM</div><div style={P.empty}>CALCULATING...</div></div>
+  const color = scoreToColor(momentum.score)
+  const { bullish = 33, neutral = 34, bearish = 33 } = momentum.breakdown ?? {}
+  return (
+    <div style={P.wrap}>
+      <div style={P.title}>MADDENAI MOMENTUM</div>
+      <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:5 }}>
+        <span style={{ fontSize:36, fontWeight:700, lineHeight:1, color, fontFamily:'IBM Plex Mono' }}>{momentum.score}</span>
+        <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+          <span style={{ fontSize:9, color:'rgba(100,130,160,0.5)' }}>/ 100</span>
+          <span style={{ fontSize:11, fontWeight:700, color }}>{momentum.label.toUpperCase()}</span>
+        </div>
+      </div>
+      <div style={{ height:6, display:'flex', borderRadius:2, overflow:'hidden' }}>
+        <div style={{ width:`${bullish}%`, background:'var(--color-gain)', transition:'width 0.5s' }} />
+        <div style={{ width:`${neutral}%`, background:'var(--color-neutral)', transition:'width 0.5s' }} />
+        <div style={{ width:`${bearish}%`, background:'var(--color-loss)', transition:'width 0.5s' }} />
+      </div>
+      <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, marginTop:2 }}>
+        <span style={{ color:'var(--color-gain)' }}>{bullish}% BULL</span>
+        <span style={{ color:'var(--color-neutral)' }}>{neutral}% NEUT</span>
+        <span style={{ color:'var(--color-loss)' }}>{bearish}% BEAR</span>
+      </div>
+    </div>
+  )
+}
+
+function FearGreedPanel({ data }) {
+  const getColor = (v) =>
+    v >= 75 ? 'var(--color-gain-bright)' : v >= 55 ? 'var(--color-neutral)' :
+    v >= 45 ? '#f0c040' : v >= 25 ? '#ff8c00' : 'var(--color-loss-bright)'
+  if (!data) return <div style={P.wrap}><div style={P.title}>FEAR &amp; GREED</div><div style={P.empty}>LOADING...</div></div>
+  const { value, label, prev, weekAgo } = data
+  const color = getColor(value)
+  return (
+    <div style={P.wrap}>
+      <div style={P.title}>FEAR &amp; GREED</div>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <svg viewBox="0 0 100 60" style={{ width:70, height:42, flexShrink:0 }}>
+          <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke="#0d2244" strokeWidth="9" />
+          <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke={color} strokeWidth="9"
+            strokeDasharray={`${(value / 100) * 131.9} 131.9`} strokeLinecap="butt" />
+          <text x="50" y="50" textAnchor="middle" fill={color} fontSize="20" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
+        </svg>
+        <div style={{ fontSize:9 }}>
+          <div style={{ fontSize:11, fontWeight:700, color, marginBottom:4 }}>{label.toUpperCase()}</div>
+          <div style={{ color:'rgba(100,130,160,0.5)', marginBottom:2 }}>PREV: <span style={{ color:getColor(prev) }}>{prev}</span></div>
+          <div style={{ color:'rgba(100,130,160,0.5)' }}>7D: <span style={{ color:getColor(weekAgo) }}>{weekAgo}</span></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MarketPulsePanel({ globalData, currency }) {
+  if (!globalData) return <div style={P.wrap}><div style={P.title}>MARKET PULSE</div><div style={P.empty}>LOADING...</div></div>
+  const ccy = currency === 'AUD' ? 'aud' : 'usd'
+  const sym = currency === 'AUD' ? 'A$' : 'US$'
+  const cap = globalData.total_market_cap?.[ccy]
+  const vol = globalData.total_volume?.[ccy]
+  const chg = globalData.market_cap_change_percentage_24h_usd
+  const coins = globalData.active_cryptocurrencies
+  const fmtB = (v) => {
+    if (!v) return '—'
+    if (v >= 1e12) return `${sym}${(v/1e12).toFixed(2)}T`
+    if (v >= 1e9)  return `${sym}${(v/1e9).toFixed(1)}B`
+    return `${sym}${v.toFixed(0)}`
+  }
+  const chgColor = chg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+  return (
+    <div style={P.wrap}>
+      <div style={P.title}>MARKET PULSE</div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px 10px', fontSize:9 }}>
+        {[
+          { label:'MKT CAP', value: fmtB(cap), color:'#d4dce8' },
+          { label:'24H CHG', value: chg != null ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '—', color: chgColor },
+          { label:'VOLUME', value: fmtB(vol), color:'#d4dce8' },
+          { label:'COINS', value: coins?.toLocaleString() ?? '—', color:'#d4dce8' },
+        ].map(({ label, value, color }) => (
+          <div key={label}>
+            <div style={{ color:'rgba(100,130,160,0.55)', fontSize:8 }}>{label}</div>
+            <div style={{ color, fontWeight:600 }}>{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DominancePanel({ globalData }) {
+  if (!globalData) return <div style={P.wrap}><div style={P.title}>DOMINANCE</div><div style={P.empty}>LOADING...</div></div>
+  const pct = globalData.market_cap_percentage ?? {}
+  const btc = pct.btc ?? 0
+  const eth = pct.eth ?? 0
+  const sol = pct.sol ?? 0
+  const others = Math.max(0, 100 - btc - eth - sol)
+  const bars = [
+    { label:'BTC', pct:btc,    color:'#f7931a' },
+    { label:'ETH', pct:eth,    color:'#627eea' },
+    { label:'SOL', pct:sol,    color:'#9945ff' },
+    { label:'OTHERS', pct:others, color:'rgba(100,130,160,0.35)' },
+  ]
+  return (
+    <div style={P.wrap}>
+      <div style={P.title}>DOMINANCE</div>
+      <div style={{ height:8, display:'flex', borderRadius:2, overflow:'hidden', marginBottom:7 }}>
+        {bars.map(b => <div key={b.label} style={{ width:`${b.pct}%`, background:b.color, transition:'width 0.5s' }} />)}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px 8px' }}>
+        {bars.map(b => (
+          <div key={b.label} style={{ display:'flex', alignItems:'center', gap:4, fontSize:9 }}>
+            <span style={{ width:6, height:6, borderRadius:1, background:b.color, flexShrink:0 }} />
+            <span style={{ color:'rgba(100,130,160,0.6)', fontSize:8 }}>{b.label}</span>
+            <span style={{ color:'#d4dce8', fontWeight:600, marginLeft:'auto' }}>{b.pct.toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Timeframe config ───────────────────────────────────────────────────────────
 
 const TIMEFRAMES = ['1D', '7D', '1M', '3M', '1Y']
@@ -245,6 +375,13 @@ export default function CryptoModule() {
   const { data: rawFearGreed } = useQuery({
     queryKey: ['fearGreed'],
     queryFn:  fetchFearGreed,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  const { data: globalData } = useQuery({
+    queryKey: ['cryptoGlobal'],
+    queryFn:  fetchCryptoGlobal,
     staleTime: 5 * 60_000,
     retry: 1,
   })
@@ -295,22 +432,13 @@ export default function CryptoModule() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
 
-      {/* ── Row 1: MaddenAI Momentum (55%) | Fear & Greed (45%) ── */}
+      {/* ── Row 1: 4-Panel Dashboard ── */}
       <div className="flex border-b border-terminal-border flex-shrink-0 divide-x divide-terminal-border"
-        style={{ height: 'clamp(180px, 24vh, 215px)' }}>
-
-        {/* MaddenAI Momentum — hero */}
-        <div className="overflow-hidden flex-shrink-0" style={{ width: '55%' }}>
-          <MaddenAIMomentum momentum={momentum} />
-        </div>
-
-        {/* Fear & Greed — secondary */}
-        <div className="flex-1 overflow-hidden">
-          {fearGreed
-            ? <FearGreedGauge data={fearGreed} />
-            : <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">F&amp;G LOADING...</div>
-          }
-        </div>
+        style={{ height: 120, flexShrink: 0 }}>
+        <MaddenAIPanel momentum={momentum} />
+        <FearGreedPanel data={fearGreed} />
+        <MarketPulsePanel globalData={globalData} currency={currency} />
+        <DominancePanel globalData={globalData} />
       </div>
 
       {/* ── Row 2: Price chart ── */}
