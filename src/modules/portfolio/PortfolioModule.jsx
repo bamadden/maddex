@@ -4,6 +4,8 @@ import { fetchYahooBatch, fetchYFQuote } from '../../services/api'
 import { formatMarketCap } from '../../utils/format'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/useAuthStore'
+import { supabase } from '../../lib/supabase'
 import { fmt, colorClass } from '../../utils/format'
 import { StatBox } from '../../components/ui/Panel'
 import { toYahooSymbol } from '../../utils/assetUtils'
@@ -202,6 +204,7 @@ function AddHoldingForm({ onAdd, onCancel }) {
 
 export default function PortfolioModule() {
   const { openModal, currency } = useStore()
+  const { user } = useAuthStore()
   const { usdToAud, audUsd }   = useAudRates()
   const displayMul = currency === 'USD' ? audUsd : 1
   const prefix     = currency === 'USD' ? 'US$' : 'A$'
@@ -217,21 +220,60 @@ export default function PortfolioModule() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
   })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [dbSynced, setDbSynced] = useState(false)
 
+  // Persist to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings))
   }, [holdings])
 
-  const addHolding = (h) => {
+  // Load from Supabase on mount when logged in
+  useEffect(() => {
+    if (!user || dbSynced) return
+    supabase.from('portfolio_holdings').select('*').order('added_at').then(({ data }) => {
+      if (data && data.length > 0) {
+        const mapped = data.map(r => ({
+          id: r.id,
+          symbol: r.symbol,
+          yfSym: toYahooSymbol(r.symbol, detectType(r.symbol)),
+          name: r.name || r.symbol,
+          shares: parseFloat(r.shares),
+          avgCost: parseFloat(r.avg_buy_price),
+          costCurrency: r.currency || 'AUD',
+          type: detectType(r.symbol),
+          addedAt: r.added_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+        }))
+        setHoldings(mapped)
+      }
+      setDbSynced(true)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  const addHolding = async (h) => {
     setHoldings((prev) => {
       const idx = prev.findIndex((p) => p.symbol === h.symbol && p.type === h.type)
       if (idx >= 0) { const u = [...prev]; u[idx] = h; return u }
       return [...prev, h]
     })
     setShowAddForm(false)
+    if (user) {
+      await supabase.from('portfolio_holdings').insert({
+        symbol: h.symbol,
+        name: h.name,
+        shares: h.shares,
+        avg_buy_price: h.avgCost,
+        currency: h.costCurrency,
+      })
+    }
   }
 
-  const deleteHolding = (id) => setHoldings((prev) => prev.filter((h) => h.id !== id))
+  const deleteHolding = async (id) => {
+    setHoldings((prev) => prev.filter((h) => h.id !== id))
+    if (user) {
+      await supabase.from('portfolio_holdings').delete().eq('id', id)
+    }
+  }
 
   // Batch fetch for equity holdings
   const equityHoldings = holdings.filter((h) => h.type !== 'crypto')

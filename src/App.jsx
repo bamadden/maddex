@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { StoreProvider, useStore } from './store/useStore'
+import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
 import DiagPage from './DiagPage'
 import TopBar from './components/layout/TopBar'
@@ -17,6 +18,8 @@ import MacroModule from './modules/macro/MacroModule'
 import WatchlistModule from './modules/watchlist/WatchlistModule'
 import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
+import AuthModal from './components/auth/AuthModal'
+import OnboardingFlow from './components/auth/OnboardingFlow'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,22 +85,21 @@ function ShortcutModal({ onClose }) {
 // ── Loading screen ─────────────────────────────────────────────────────────────
 
 function LoadingScreen() {
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setProgress(p => Math.min(p + Math.random() * 15, 95)), 120)
+    return () => clearInterval(t)
+  }, [])
   return (
-    <div className="fixed inset-0 z-[100] bg-terminal-bg flex flex-col items-center justify-center gap-6 loading-fade">
+    <div className="fixed inset-0 z-[100] bg-terminal-bg flex flex-col items-center justify-center gap-6 font-mono">
       <div className="flex flex-col items-center gap-3">
-        <div className="text-terminal-gold text-4xl font-bold tracking-[0.3em]">MADDEX</div>
+        <div className="text-terminal-gold text-4xl font-bold tracking-[0.3em]">▲ MADDEX</div>
         <div className="text-terminal-text-dim text-xs tracking-[0.5em]">FINANCIAL INTELLIGENCE</div>
       </div>
-      <div className="flex gap-1.5">
-        {[0, 1, 2, 3, 4].map(i => (
-          <span
-            key={i}
-            className="w-1.5 h-1.5 bg-terminal-gold rounded-full animate-pulse"
-            style={{ animationDelay: `${i * 120}ms`, animationDuration: '0.8s' }}
-          />
-        ))}
+      <div className="w-48 h-0.5 bg-terminal-border overflow-hidden">
+        <div className="h-full bg-terminal-gold transition-all duration-200" style={{ width: `${progress}%` }} />
       </div>
-      <div className="text-terminal-text-dim text-2xs tracking-widest">INITIALISING DATA FEEDS...</div>
+      <div className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">INITIALISING TERMINAL...</div>
     </div>
   )
 }
@@ -198,20 +200,33 @@ function Terminal() {
 
 // ── App root ──────────────────────────────────────────────────────────────────
 
-function AppWithLoading() {
-  const [loaded, setLoaded] = useState(false)
+function AuthGate() {
+  const { user, profile, loading, initialize, settings } = useAuthStore()
+  const { setCurrency, setActiveModule } = useStore()
+  const [appReady, setAppReady] = useState(false)
+  const [onboardingDone, setOnboardingDone] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setLoaded(true), 1400)
-    return () => clearTimeout(t)
-  }, [])
+    initialize().then(() => {
+      const t = setTimeout(() => setAppReady(true), 600)
+      return () => clearTimeout(t)
+    })
+  }, [initialize])
 
-  return (
-    <>
-      {!loaded && <LoadingScreen />}
-      <Terminal />
-    </>
-  )
+  // Apply persisted settings when they load
+  useEffect(() => {
+    if (settings) {
+      if (settings.currency) setCurrency(settings.currency)
+      if (settings.default_module) setActiveModule(settings.default_module)
+    }
+  }, [settings, setCurrency, setActiveModule])
+
+  if (loading || !appReady) return <LoadingScreen />
+  if (!user) return <AuthModal />
+  if (profile && !profile.onboarding_complete && !onboardingDone) {
+    return <OnboardingFlow onComplete={() => setOnboardingDone(true)} />
+  }
+  return <Terminal />
 }
 
 export default function App() {
@@ -219,7 +234,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
-        <AppWithLoading />
+        <AuthGate />
       </StoreProvider>
     </QueryClientProvider>
   )

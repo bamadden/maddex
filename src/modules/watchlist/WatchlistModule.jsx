@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYahooQuote } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass, formatMarketCap } from '../../utils/format'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/useAuthStore'
+import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 
@@ -39,14 +41,29 @@ function exportCSV(rows) {
 
 export default function WatchlistModule() {
   const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal } = useStore()
+  const { user } = useAuthStore()
   const { usdToAud } = useAudRates()
 
   const [searchInput, setSearchInput] = useState('')
   const [addError, setAddError]       = useState(null)
   const [validating, setValidating]   = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [synced, setSynced]           = useState(false)
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
+
+  // Load watchlist from Supabase on mount when logged in
+  useEffect(() => {
+    if (!user || synced) return
+    supabase.from('watchlist').select('*').order('position').then(({ data }) => {
+      if (data && data.length > 0) {
+        clearWatchlist()
+        data.forEach(row => addToWatchlist(row.symbol))
+      }
+      setSynced(true)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   const yahooSymbols = watchlist.map((s) => toYahoo(s).yfSym)
 
@@ -95,10 +112,20 @@ export default function WatchlistModule() {
       if (!q) { setAddError('TICKER NOT FOUND — check symbol and try again'); return }
       addToWatchlist(raw)
       setSearchInput('')
+      if (user) {
+        await supabase.from('watchlist').upsert({ symbol: raw, name: q.name ?? raw, position: watchlist.length }, { onConflict: 'user_id,symbol' })
+      }
     } catch {
       setAddError('TICKER NOT FOUND — check symbol and try again')
     } finally {
       setValidating(false)
+    }
+  }
+
+  const handleRemove = async (sym) => {
+    removeFromWatchlist(sym)
+    if (user) {
+      await supabase.from('watchlist').delete().eq('symbol', sym)
     }
   }
 
@@ -259,7 +286,7 @@ export default function WatchlistModule() {
                   </td>
                   <td className="px-2 py-1.5 text-right">
                     <button
-                      onClick={(e) => { e.stopPropagation(); removeFromWatchlist(row.symbol) }}
+                      onClick={(e) => { e.stopPropagation(); handleRemove(row.symbol) }}
                       className="text-terminal-text-dim hover:text-terminal-red text-xs px-1"
                       title="Remove from watchlist"
                     >

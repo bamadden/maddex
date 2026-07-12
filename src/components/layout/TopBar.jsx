@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fetchFxRates } from '../../services/api'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/useAuthStore'
+import SettingsPanel from '../settings/SettingsPanel'
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -96,12 +98,83 @@ function MarketDropdown({ now }) {
   )
 }
 
+// ─── User Menu ─────────────────────────────────────────────────────────────────
+
+function UserMenu() {
+  const { profile, user, signOut } = useAuthStore()
+  const { setActiveModule } = useStore()
+  const [open, setOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  const initials = [profile?.first_name?.[0], profile?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'
+  const displayName = profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : user?.email || ''
+
+  return (
+    <>
+      <div className="relative" ref={ref}>
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+        >
+          <div className="w-6 h-6 flex items-center justify-center bg-terminal-accent border border-terminal-gold/60 text-terminal-gold text-2xs font-bold">
+            {initials}
+          </div>
+          <span className="text-terminal-text-dim text-2xs hidden sm:block">
+            {profile?.first_name || user?.email?.split('@')[0] || ''}
+          </span>
+        </button>
+
+        {open && (
+          <div className="absolute right-0 top-full mt-1 w-52 bg-terminal-panel border border-terminal-gold/40 z-[60] shadow-2xl">
+            <div className="px-3 py-2.5 border-b border-terminal-border">
+              <div className="text-2xs font-bold text-terminal-text-bright">{displayName}</div>
+              <div className="text-2xs text-terminal-text-dim truncate">{user?.email}</div>
+            </div>
+            {[
+              ['⚙', 'Settings', () => { setShowSettings(true); setOpen(false) }],
+              ['👤', 'Edit Profile', () => { setShowSettings(true); setOpen(false) }],
+              ['📊', 'Portfolio', () => { setActiveModule('portfolio'); setOpen(false) }],
+              ['🔔', 'Price Alerts', () => { setActiveModule('watchlist'); setOpen(false) }],
+            ].map(([icon, label, onClick]) => (
+              <button key={label} onClick={onClick}
+                className="w-full flex items-center gap-2 px-3 py-2 text-2xs text-terminal-text hover:bg-terminal-accent/30 transition-colors text-left"
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+            <div className="border-t border-terminal-border">
+              <button
+                onClick={() => { signOut(); setOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-2xs text-terminal-red hover:bg-terminal-red/10 transition-colors text-left"
+              >
+                <span>↩</span>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+    </>
+  )
+}
+
 // ─── TopBar ────────────────────────────────────────────────────────────────────
 
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { audUsd } = useAudRates()
   const { currency, setCurrency } = useStore()
+  const { user } = useAuthStore()
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
@@ -208,6 +281,13 @@ export default function TopBar() {
           </button>
         ))}
       </div>
+
+      {user && (
+        <>
+          <Divider />
+          <UserMenu />
+        </>
+      )}
     </div>
   )
 }
