@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/useAuthStore'
 import { askClaude } from '../../services/api'
 
 // ─── Quick prompts (base templates — live data injected at call time) ─────────
@@ -234,6 +235,7 @@ export default function AIPanel() {
     chatOpen, setChatOpen,
     chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
   } = useStore()
+  const { profile } = useAuthStore()
 
   const queryClient = useQueryClient()
 
@@ -333,7 +335,8 @@ export default function AIPanel() {
     try {
       const result = await askClaude(
         [...history, userMsg],
-        (_, full) => updateLastChatMessage({ role: 'assistant', content: full })
+        (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
+        { experienceLevel: profile?.experience_level }
       )
       updateLastChatMessage((prev) => ({
         ...prev,

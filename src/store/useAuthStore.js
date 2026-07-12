@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { getTimezoneFromCountry } from '../lib/profileUtils'
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -40,11 +41,31 @@ export const useAuthStore = create((set, get) => ({
   },
 
   signUp: async (email, password, firstName, lastName, country) => {
+    const timezone = getTimezoneFromCountry(country)
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { first_name: firstName, last_name: lastName, country } },
+      options: {
+        data: { first_name: firstName, last_name: lastName, country },
+      },
     })
+    // Upsert profile directly — don't rely solely on the DB trigger
+    if (data?.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email: data.user.email,
+        first_name: firstName,
+        last_name: lastName,
+        country,
+        timezone,
+        updated_at: new Date().toISOString(),
+      })
+      await supabase.from('user_settings').upsert({
+        user_id: data.user.id,
+        timezone,
+        updated_at: new Date().toISOString(),
+      })
+    }
     return { data, error }
   },
 

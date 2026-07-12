@@ -2,17 +2,54 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
+import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZONES } from '../../lib/profileUtils'
 
 const SECTIONS = ['PROFILE', 'PREFERENCES', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
   'Australia/Adelaide', 'America/New_York', 'America/Chicago', 'America/Los_Angeles',
-  'Europe/London', 'Europe/Paris', 'Asia/Tokyo', 'Asia/Hong_Kong', 'Asia/Singapore',
-  'Asia/Dubai', 'UTC',
+  'America/Toronto', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Amsterdam',
+  'Asia/Tokyo', 'Asia/Hong_Kong', 'Asia/Singapore', 'Asia/Dubai', 'Asia/Kolkata',
+  'Asia/Shanghai', 'Pacific/Auckland', 'UTC',
 ]
 
 const MODULES = ['markets', 'crypto', 'fx', 'macro', 'watchlist', 'news', 'global']
+
+// All countries — Australia first
+const COUNTRIES = [
+  'Australia', 'United States', 'United Kingdom', 'Canada', 'New Zealand',
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda',
+  'Argentina', 'Armenia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh',
+  'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+  'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso',
+  'Burundi', 'Cabo Verde', 'Cambodia', 'Cameroon', 'Central African Republic', 'Chad',
+  'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba',
+  'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+  'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini',
+  'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany',
+  'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
+  'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq',
+  'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya',
+  'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia',
+  'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia',
+  'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico',
+  'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique',
+  'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'Nicaragua', 'Niger', 'Nigeria',
+  'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine',
+  'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia',
+  'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Saudi Arabia', 'Senegal',
+  'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia',
+  'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain',
+  'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan',
+  'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga',
+  'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda',
+  'Ukraine', 'United Arab Emirates', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Venezuela',
+  'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
+]
+
+// ─── Shared components ────────────────────────────────────────────────────────
 
 function Toggle({ value, onChange, disabled }) {
   return (
@@ -24,11 +61,7 @@ function Toggle({ value, onChange, disabled }) {
         value ? 'bg-terminal-gold' : 'bg-terminal-border'
       } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      <span
-        className={`absolute top-0.5 w-4 h-4 bg-terminal-bg transition-all ${
-          value ? 'left-5' : 'left-0.5'
-        }`}
-      />
+      <span className={`absolute top-0.5 w-4 h-4 bg-terminal-bg transition-all ${value ? 'left-5' : 'left-0.5'}`} />
     </button>
   )
 }
@@ -61,6 +94,60 @@ function SaveButton({ onClick, loading, saved }) {
   )
 }
 
+function Toast({ message }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-[400] bg-terminal-green/20 border border-terminal-green px-4 py-2 text-xs text-terminal-green font-mono font-bold shadow-xl animate-pulse">
+      ✓ {message}
+    </div>
+  )
+}
+
+function CountryDropdown({ value, onChange }) {
+  const [search, setSearch] = useState('')
+  const [open, setOpen] = useState(false)
+  const filtered = COUNTRIES.filter(c => c.toLowerCase().includes(search.toLowerCase()))
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full text-left bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono flex justify-between items-center"
+      >
+        <span className={value ? 'text-terminal-text-bright' : 'text-terminal-text-dim'}>{value || 'Select country...'}</span>
+        <span className="text-terminal-text-dim">▾</span>
+      </button>
+      {open && (
+        <div className="absolute z-50 w-full top-full mt-0.5 bg-terminal-panel border border-terminal-border shadow-2xl max-h-44 flex flex-col">
+          <div className="p-1 border-b border-terminal-border flex-shrink-0">
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
+            />
+          </div>
+          <div className="overflow-y-auto">
+            {filtered.map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => { onChange(c); setOpen(false); setSearch('') }}
+                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-terminal-accent/30 transition-colors ${
+                  c === value ? 'text-terminal-gold' : 'text-terminal-text-bright'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 
 function ProfileSection() {
@@ -69,43 +156,58 @@ function ProfileSection() {
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
     country: profile?.country || '',
-    phone: profile?.phone || '',
-    timezone: profile?.timezone || 'Australia/Sydney',
-    bio: profile?.bio || '',
+    experience_level: profile?.experience_level || 'INTERMEDIATE',
   })
   const [loading, setLoading] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState(false)
   const [error, setError] = useState(null)
 
-  const initials = [form.first_name[0], form.last_name[0]].filter(Boolean).join('').toUpperCase() || '?'
+  const initials = getInitials(
+    { ...profile, first_name: form.first_name, last_name: form.last_name },
+    user
+  )
+
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+    : null
 
   const handleSave = async () => {
     setLoading(true); setError(null)
-    const { error } = await updateProfile(form)
+    const updates = {
+      ...form,
+      timezone: getTimezoneFromCountry(form.country),
+    }
+    const { error } = await updateProfile(updates)
     setLoading(false)
-    if (error) setError(error.message)
-    else { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+    if (error) {
+      setError(error.message)
+    } else {
+      setToast(true)
+      setTimeout(() => setToast(false), 3000)
+    }
   }
 
   return (
     <div className="space-y-4">
       <SectionLabel>Profile</SectionLabel>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-14 h-14 flex items-center justify-center bg-terminal-accent border border-terminal-gold text-terminal-gold text-lg font-bold">
+      {/* Avatar + meta */}
+      <div className="flex items-center gap-4 mb-5">
+        <div className="w-16 h-16 flex items-center justify-center bg-terminal-accent border border-terminal-gold text-terminal-gold text-xl font-bold flex-shrink-0">
           {initials}
         </div>
-        <div>
-          <div className="text-xs text-terminal-text-bright font-bold">{form.first_name} {form.last_name}</div>
-          <div className="text-2xs text-terminal-text-dim">{user?.email}</div>
-          {profile?.updated_at && (
-            <div className="text-2xs text-terminal-text-dim/60 mt-0.5">
-              Updated {new Date(profile.updated_at).toLocaleDateString('en-AU')}
-            </div>
+        <div className="min-w-0">
+          <div className="text-xs text-terminal-text-bright font-bold truncate">
+            {form.first_name || form.last_name ? `${form.first_name} ${form.last_name}`.trim() : user?.email}
+          </div>
+          <div className="text-2xs text-terminal-text-dim truncate">{user?.email}</div>
+          {memberSince && (
+            <div className="text-2xs text-terminal-text-dim/60 mt-0.5">Member since {memberSince}</div>
           )}
         </div>
       </div>
 
+      {/* Name */}
       <div className="grid grid-cols-2 gap-3">
         {[['first_name', 'FIRST NAME'], ['last_name', 'LAST NAME']].map(([k, l]) => (
           <div key={k} className="space-y-1">
@@ -119,6 +221,7 @@ function ProfileSection() {
         ))}
       </div>
 
+      {/* Email (read-only) */}
       <div className="space-y-1">
         <div className="text-2xs text-terminal-text-dim">EMAIL</div>
         <input
@@ -129,42 +232,40 @@ function ProfileSection() {
         <div className="text-2xs text-terminal-text-dim/60">Changing email requires verification</div>
       </div>
 
-      {[['country', 'COUNTRY'], ['phone', 'PHONE (OPTIONAL)']].map(([k, l]) => (
-        <div key={k} className="space-y-1">
-          <div className="text-2xs text-terminal-text-dim">{l}</div>
-          <input
-            value={form[k]}
-            onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
-            className="w-full bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
-          />
-        </div>
-      ))}
-
+      {/* Country */}
       <div className="space-y-1">
-        <div className="text-2xs text-terminal-text-dim">TIMEZONE</div>
-        <select
-          value={form.timezone}
-          onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}
-          className="w-full bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
-        >
-          {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-        </select>
+        <div className="text-2xs text-terminal-text-dim">COUNTRY</div>
+        <CountryDropdown
+          value={form.country}
+          onChange={v => setForm(f => ({ ...f, country: v }))}
+        />
       </div>
 
-      <div className="space-y-1">
-        <div className="text-2xs text-terminal-text-dim">BIO (OPTIONAL)</div>
-        <textarea
-          value={form.bio}
-          onChange={e => setForm(f => ({ ...f, bio: e.target.value.slice(0, 200) }))}
-          rows={3}
-          placeholder="Tell us about yourself..."
-          className="w-full bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono resize-none"
-        />
-        <div className="text-2xs text-terminal-text-dim/60 text-right">{form.bio.length}/200</div>
+      {/* Experience Level */}
+      <div className="space-y-2">
+        <div className="text-2xs text-terminal-text-dim">INVESTMENT EXPERIENCE LEVEL</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {EXPERIENCE_LEVELS.map(({ value, label, desc }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, experience_level: value }))}
+              className={`px-3 py-2 text-left border transition-colors ${
+                form.experience_level === value
+                  ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
+                  : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-text'
+              }`}
+            >
+              <div className="text-2xs font-bold">{label}</div>
+              <div className="text-2xs opacity-70 mt-0.5 leading-tight">{desc}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <div className="text-2xs text-terminal-red">{error}</div>}
-      <SaveButton onClick={handleSave} loading={loading} saved={saved} />
+      <SaveButton onClick={handleSave} loading={loading} saved={false} />
+      {toast && <Toast message="Profile updated successfully" />}
     </div>
   )
 }
@@ -178,15 +279,16 @@ function PreferencesSection() {
   const [defaultModule, setDefaultModule] = useState(settings?.default_module || 'markets')
   const [refreshInterval, setRefreshInterval] = useState(settings?.auto_refresh_interval || 60)
   const [compactMode, setCompactMode] = useState(settings?.compact_mode || false)
+  const [timezone, setTimezone] = useState(settings?.timezone || 'Australia/Sydney')
   const [loading, setLoading] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState(false)
 
   const handleSave = async () => {
     setLoading(true)
-    await updateSettings({ currency, default_module: defaultModule, auto_refresh_interval: refreshInterval, compact_mode: compactMode })
+    await updateSettings({ currency, default_module: defaultModule, auto_refresh_interval: refreshInterval, compact_mode: compactMode, timezone })
     setStoreCurrency(currency)
     setLoading(false)
-    setSaved(true); setTimeout(() => setSaved(false), 2000)
+    setToast(true); setTimeout(() => setToast(false), 3000)
   }
 
   return (
@@ -236,6 +338,18 @@ function PreferencesSection() {
         </div>
       </div>
 
+      <div>
+        <div className="text-2xs text-terminal-text-dim mb-2">TIMEZONE</div>
+        <select
+          value={timezone}
+          onChange={e => setTimezone(e.target.value)}
+          className="w-full bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
+        >
+          {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+        </select>
+        <div className="text-2xs text-terminal-text-dim/60 mt-1">Auto-set from country on signup. Override here.</div>
+      </div>
+
       <FieldRow label="Compact Mode" note="Reduces padding for more data density">
         <Toggle value={compactMode} onChange={setCompactMode} />
       </FieldRow>
@@ -247,7 +361,8 @@ function PreferencesSection() {
         </div>
       </FieldRow>
 
-      <SaveButton onClick={handleSave} loading={loading} saved={saved} />
+      <SaveButton onClick={handleSave} loading={loading} saved={false} />
+      {toast && <Toast message="Preferences saved" />}
     </div>
   )
 }
@@ -297,12 +412,11 @@ function NotificationsSection() {
 
 function SecuritySection({ onDeleteRequest }) {
   const { updatePassword, signOut } = useAuthStore()
-  const [current, setCurrent] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirm, setConfirm] = useState('')
   const [pwError, setPwError] = useState(null)
   const [pwLoading, setPwLoading] = useState(false)
-  const [pwSaved, setPwSaved] = useState(false)
+  const [pwToast, setPwToast] = useState(false)
 
   const handleUpdatePassword = async () => {
     setPwError(null)
@@ -312,7 +426,7 @@ function SecuritySection({ onDeleteRequest }) {
     const { error } = await updatePassword(newPw)
     setPwLoading(false)
     if (error) setPwError(error.message)
-    else { setPwSaved(true); setCurrent(''); setNewPw(''); setConfirm(''); setTimeout(() => setPwSaved(false), 2000) }
+    else { setPwToast(true); setNewPw(''); setConfirm(''); setTimeout(() => setPwToast(false), 3000) }
   }
 
   return (
@@ -321,13 +435,6 @@ function SecuritySection({ onDeleteRequest }) {
 
       <div className="space-y-3">
         <div className="text-xs font-bold text-terminal-text-bright">CHANGE PASSWORD</div>
-        <div className="space-y-1">
-          <div className="text-2xs text-terminal-text-dim">CURRENT PASSWORD</div>
-          <input type="password" value={current} onChange={e => setCurrent(e.target.value)}
-            className="w-full bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs outline-none focus:border-terminal-gold font-mono text-terminal-text-bright"
-            placeholder="••••••••"
-          />
-        </div>
         <div className="space-y-1">
           <div className="text-2xs text-terminal-text-dim">NEW PASSWORD</div>
           <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
@@ -343,7 +450,8 @@ function SecuritySection({ onDeleteRequest }) {
           />
         </div>
         {pwError && <div className="text-2xs text-terminal-red">{pwError}</div>}
-        <SaveButton onClick={handleUpdatePassword} loading={pwLoading} saved={pwSaved} />
+        <SaveButton onClick={handleUpdatePassword} loading={pwLoading} saved={false} />
+        {pwToast && <Toast message="Password updated" />}
       </div>
 
       <div className="space-y-3">
@@ -455,7 +563,7 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes }) {
 // ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
 
 function SubscriptionSection() {
-  const { profile } = useAuthStore()
+  const { user } = useAuthStore()
   return (
     <div className="space-y-5">
       <SectionLabel>Subscription</SectionLabel>
@@ -487,7 +595,7 @@ function SubscriptionSection() {
         <div className="text-2xs text-terminal-text-dim">Get notified when Pro launches:</div>
         <div className="flex gap-2">
           <input
-            defaultValue={profile?.email || ''}
+            defaultValue={user?.email || ''}
             placeholder="your@email.com"
             className="flex-1 bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs outline-none focus:border-terminal-gold font-mono text-terminal-text-bright"
           />
@@ -568,7 +676,7 @@ export default function SettingsPanel({ onClose }) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const handleDeleteAccount = async (password) => {
+  const handleDeleteAccount = async () => {
     setConfirm(null)
     await deleteAccount()
   }
@@ -626,9 +734,7 @@ export default function SettingsPanel({ onClose }) {
           {active === 'PROFILE'       && <ProfileSection />}
           {active === 'PREFERENCES'   && <PreferencesSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
-          {active === 'SECURITY'      && (
-            <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />
-          )}
+          {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}
           {active === 'DATA'          && (
             <DataSection
               onClearWatchlist={() => setConfirm('clear-watchlist')}

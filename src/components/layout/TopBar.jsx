@@ -5,6 +5,7 @@ import { fetchFxRates } from '../../services/api'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import SettingsPanel from '../settings/SettingsPanel'
+import { getInitials } from '../../lib/profileUtils'
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ function UserMenu() {
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  const initials = [profile?.first_name?.[0], profile?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'
+  const initials = getInitials(profile, user)
   const displayName = profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : user?.email || ''
 
   return (
@@ -124,7 +125,7 @@ function UserMenu() {
           onClick={() => setOpen(v => !v)}
           className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
         >
-          <div className="w-6 h-6 flex items-center justify-center bg-terminal-accent border border-terminal-gold/60 text-terminal-gold text-2xs font-bold">
+          <div className="w-7 h-7 flex items-center justify-center bg-terminal-accent border border-terminal-gold/60 text-terminal-gold text-2xs font-bold flex-shrink-0">
             {initials}
           </div>
           <span className="text-terminal-text-dim text-2xs hidden sm:block">

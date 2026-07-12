@@ -1164,9 +1164,16 @@ MARKET SENTIMENT:
 
 IMPORTANT: Always use exact prices provided in the prompt. Never substitute estimated prices.`
 
+import { EXPERIENCE_CONTEXT } from '../lib/profileUtils'
+
+export function buildSystemPrompt(experienceLevel) {
+  const ctx = EXPERIENCE_CONTEXT[experienceLevel] || EXPERIENCE_CONTEXT.INTERMEDIATE
+  return `USER CONTEXT: ${ctx}\n\n${MADDEX_SYSTEM_PROMPT}`
+}
+
 export const askClaude = async (messages, onToken, options = {}) => {
   const startTime  = Date.now()
-  const systemPrompt = options.systemPrompt ?? MADDEX_SYSTEM_PROMPT
+  const systemPrompt = options.systemPrompt ?? (options.experienceLevel ? buildSystemPrompt(options.experienceLevel) : MADDEX_SYSTEM_PROMPT)
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
