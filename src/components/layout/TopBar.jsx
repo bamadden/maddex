@@ -174,7 +174,6 @@ function UserMenu() {
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { audUsd } = useAudRates()
-  const { currency, setCurrency } = useStore()
   const { user } = useAuthStore()
 
   useEffect(() => {
@@ -265,23 +264,6 @@ export default function TopBar() {
       <span className="text-terminal-gold font-semibold text-2xs flex-shrink-0">{timeStr} AEST</span>
 
       <Divider />
-
-      {/* Currency selector */}
-      <div className="flex items-center border border-terminal-border/60 flex-shrink-0">
-        {['AUD', 'USD'].map((c) => (
-          <button
-            key={c}
-            onClick={() => setCurrency(c)}
-            className={`px-2 py-0.5 text-2xs font-bold transition-colors ${
-              currency === c
-                ? 'bg-terminal-gold text-terminal-bg'
-                : 'text-terminal-text-dim hover:text-terminal-gold'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
 
       {user && (
         <>
