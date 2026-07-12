@@ -88,10 +88,10 @@ function SourceLink({ src }) {
 // calendar is well known; indicators without a confirmed next date are left
 // blank rather than guessed.
 const NEXT_RELEASE = {
-  'RBA Cash Rate':       '1 July 2026',
+  'RBA Cash Rate':       '5 August 2026',
   'AU CPI YoY':          '30 July 2026 (Q2 2026)',
   'AU CPI Trimmed Mean': '30 July 2026 (Q2 2026)',
-  'AU Unemployment':     '19 June 2026',
+  'AU Unemployment':     '17 July 2026',
   'AU GDP QoQ':          'September 2026',
   'AU GDP Annual':       'September 2026',
 }
@@ -337,9 +337,9 @@ function CalendarPanel({ events, title }) {
 
 // ─── Meeting Countdown ────────────────────────────────────────────────────────
 
-// Next RBA meeting: 1 July 2026 at 2:30pm AEST (04:30 UTC)
-const RBA_NEXT_MEETING = new Date('2026-07-01T04:30:00Z')
-const FOMC_NEXT_MEETING = new Date('2026-07-28T18:00:00Z')
+// Next RBA meeting: 5 August 2026 at 2:30pm AEST (04:30 UTC)
+const RBA_NEXT_MEETING = new Date('2026-08-05T04:30:00Z')
+const FOMC_NEXT_MEETING = new Date('2026-07-30T18:00:00Z')
 
 const MEETINGS = [
   { label: 'RBA',  name: 'Rate Decision', date: RBA_NEXT_MEETING,  color: 'text-terminal-gold',        note: '2:30pm AEST' },
@@ -387,7 +387,7 @@ function getCountdown(dateStr, timeStr) {
 
 // ─── Section 7: RBA Dashboard ─────────────────────────────────────────────────
 
-const RBA_NEXT = new Date('2026-07-01T04:30:00Z')
+const RBA_NEXT = new Date('2026-08-05T04:30:00Z')
 
 function RBADashboard({ askAI }) {
   const [showBoard, setShowBoard] = useState(false)
@@ -411,7 +411,7 @@ function RBADashboard({ askAI }) {
             IN {daysLeft}D {hrsLeft}H
           </span>
           <button
-            onClick={() => askAI('What is the RBA likely to do at the next meeting on 1 July 2026 and why? Current cash rate 4.35%. CPI at 2.4% YoY. Unemployment 4.1%. Market pricing 35% cut, 65% hold.')}
+            onClick={() => askAI('What is the RBA likely to do at the next meeting on 5 August 2026 and why? Current cash rate 4.35% (held at July 1 meeting). CPI Q2 2026 due July 30. Unemployment 4.1%. What is the market pricing?')}
             className="text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
           >
             AI ▶
@@ -422,7 +422,7 @@ function RBADashboard({ askAI }) {
       <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border">
         {/* Rate history chart */}
         <div className="p-2">
-          <div className="text-2xs text-terminal-text-dim mb-1">CASH RATE HISTORY (Jan 2022 – Jun 2026)</div>
+          <div className="text-2xs text-terminal-text-dim mb-1">CASH RATE HISTORY (Jan 2022 – Jul 2026)</div>
           <div style={{ height: 110 }}>
             <ResponsiveContainer width="100%" height={110}>
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
@@ -539,7 +539,7 @@ function LeadingIndicators() {
       title: 'AU CONSUMER SENTIMENT',
       subtitle: 'Westpac-Melbourne Inst.',
       current: '82.4',
-      note: 'Jun 2026 — PESSIMISTIC (below 100)',
+      note: 'Jul 2026 — PESSIMISTIC (below 100)',
       source: 'Westpac-MI',
       chart: (
         <ResponsiveContainer width="100%" height="100%">
@@ -1069,7 +1069,7 @@ export default function MacroModule() {
       {/* Subtle data attribution footer */}
       <div className="px-3 py-2 border-t border-terminal-border/30 mt-2">
         <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>
-          Data current as at June 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
+          Data current as at July 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
         </span>
       </div>
 

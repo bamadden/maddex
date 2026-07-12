@@ -14,7 +14,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 // ── Sparkline ──────────────────────────────────────────────────────────────────
 
 function Sparkline({ prices, pct }) {
-  if (!prices?.length) return <span className="w-16 inline-block" />
+  if (!prices?.length) return <span style={{ display: 'inline-block', width: 64 }} />
   const sampled = prices.filter((_, i) => i % 4 === 0)
   const min = Math.min(...sampled), max = Math.max(...sampled)
   const range = max - min || 1
@@ -24,13 +24,15 @@ function Sparkline({ prices, pct }) {
   ).join(' ')
   const color = (pct ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="inline-block opacity-80">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <span style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'middle', width: w, height: h }}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', opacity: 0.8 }}>
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    </span>
   )
 }
 
-// ── Sentiment ──────────────────────────────────────────────────────────────────
+// ── Sentiment helpers ──────────────────────────────────────────────────────────
 
 function calcSentiment(pct24h, pct7d) {
   let score = 50
@@ -39,19 +41,20 @@ function calcSentiment(pct24h, pct7d) {
   return Math.round(Math.min(100, Math.max(0, score)))
 }
 
-function SentimentBadge({ pct24h, pct7d }) {
-  const score = calcSentiment(pct24h, pct7d)
-  const { label, color } =
-    score >= 75 ? { label: 'EXT GREED', color: 'var(--color-gain-bright)' } :
-    score >= 60 ? { label: 'GREED',     color: 'var(--color-gain)' } :
-    score >= 45 ? { label: 'NEUTRAL',   color: 'var(--color-neutral)' } :
-    score >= 30 ? { label: 'FEAR',      color: '#ff8c00' } :
-                  { label: 'EXT FEAR',  color: 'var(--color-loss-bright)' }
-  return (
-    <span className="text-2xs font-bold px-1 py-0.5 border-l-2 leading-none" style={{ color, borderColor: color }}>
-      {score} · {label}
-    </span>
-  )
+function getSentimentColor(score) {
+  if (score >= 75) return 'var(--color-gain-bright)'
+  if (score >= 60) return 'var(--color-gain)'
+  if (score >= 45) return 'var(--color-neutral)'
+  if (score >= 30) return '#ff8c00'
+  return 'var(--color-loss-bright)'
+}
+
+function getSentimentLabel(score) {
+  if (score >= 75) return 'EXT GREED'
+  if (score >= 60) return 'GREED'
+  if (score >= 45) return 'NEUTRAL'
+  if (score >= 30) return 'FEAR'
+  return 'EXT FEAR'
 }
 
 // ── Fear & Greed Gauge ─────────────────────────────────────────────────────────
@@ -104,7 +107,6 @@ function ChartTooltip({ active, payload, label, currency }) {
 }
 
 // ── Crypto Momentum Index ──────────────────────────────────────────────────────
-// Multi-factor MaddenAI score: mcap-weighted 24h/7d momentum + breadth + F&G + volume.
 
 function CryptoMomentumBar({ momentum }) {
   const [expanded, setExpanded] = useState(false)
@@ -176,12 +178,12 @@ const TIMEFRAMES = ['1D', '7D', '1M', '3M', '1Y']
 const TF_DAYS    = { '1D': 1, '7D': 7, '1M': 30, '3M': 90, '1Y': 365 }
 const TOP_COINS  = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'LINK']
 
+// ── Shared cell styles ─────────────────────────────────────────────────────────
+
+const CELL = { padding: '5px 8px', fontSize: '10px', verticalAlign: 'middle', position: 'static' }
+const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#c8a84b', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#071428', verticalAlign: 'middle' }
+
 // ── Main Module ────────────────────────────────────────────────────────────────
-//
-//  LAYOUT:
-//  Row 1 │ Fear & Greed (40%) | Price chart (60%)  ← clamp(160px,22vh,200px)
-//  Row 2 │ Trending coins — horizontal scroll       ← ~52px
-//  Row 3 │ Top 20 Table — fills remainder, scrollable
 
 export default function CryptoModule() {
   const [selectedCoin, setSelectedCoin] = useState('BTC')
@@ -264,7 +266,6 @@ export default function CryptoModule() {
 
         {/* Price chart */}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          {/* Chart header with coin + timeframe selectors */}
           <div className="flex items-center gap-1 px-2 py-0.5 border-b border-terminal-border/50 flex-shrink-0 flex-wrap">
             <span className="text-2xs text-terminal-text-dim font-bold">{selectedCoin}/{currency}</span>
             <div className="flex gap-0.5 flex-wrap">
@@ -294,7 +295,6 @@ export default function CryptoModule() {
             {chartLoading && <span className="text-terminal-text-dim text-[9px] animate-pulse">...</span>}
           </div>
 
-          {/* Chart */}
           <div className="flex-1 min-h-0 px-0.5 pb-0.5">
             {historyError && !rawHistory ? (
               <DataUnavailable label="CHART UNAVAILABLE" onRetry={refetchHistory} className="h-full" />
@@ -332,7 +332,9 @@ export default function CryptoModule() {
 
       {/* ── Row 3: Top 20 Table ── */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="panel-header sticky top-0 bg-terminal-header flex items-center gap-2 flex-wrap">
+        {/* Title bar — sticky at top, z-index 20 so rows scroll behind it */}
+        <div className="panel-header flex items-center gap-2 flex-wrap"
+          style={{ position: 'sticky', top: 0, zIndex: 20, background: '#071428' }}>
           <span>TOP 20 BY MKT CAP ({currency})</span>
           {rawMarkets
             ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {updatedTime}</span>
@@ -344,53 +346,71 @@ export default function CryptoModule() {
         {marketsError ? (
           <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
         ) : markets ? (
-          <table className="terminal-table w-full">
-            <thead className="sticky top-7 bg-terminal-header">
-              <tr>
-                <th className="px-2 text-right w-7">#</th>
-                <th className="px-2 text-left">ASSET</th>
-                <th className="px-2 text-right">PRICE</th>
-                <th className="px-2 text-right">24H%</th>
-                <th className="px-2 text-right hidden sm:table-cell">7D%</th>
-                <th className="px-2 text-right hidden md:table-cell">SENTIMENT</th>
-                <th className="px-2 text-right hidden lg:table-cell">7D CHART</th>
-                <th className="px-2 text-right hidden md:table-cell">MKT CAP</th>
-                <th className="px-2 text-right">AI</th>
+          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+            {/* Column headers — sticky below title bar, z-index 10 */}
+            <thead style={{ position: 'sticky', top: 28, zIndex: 10 }}>
+              <tr style={{ background: '#071428', borderBottom: '1px solid #c8a84b' }}>
+                <th style={{ ...HEAD, textAlign: 'right', width: 28 }}>#</th>
+                <th style={{ ...HEAD, textAlign: 'left' }}>ASSET</th>
+                <th style={{ ...HEAD, textAlign: 'right' }}>PRICE</th>
+                <th style={{ ...HEAD, textAlign: 'right' }}>24H%</th>
+                <th style={{ ...HEAD, textAlign: 'right' }} className="hidden sm:table-cell">7D%</th>
+                <th style={{ ...HEAD, textAlign: 'left', width: 120, minWidth: 120 }} className="hidden md:table-cell">SENTIMENT</th>
+                <th style={{ ...HEAD, textAlign: 'right' }} className="hidden lg:table-cell">7D CHART</th>
+                <th style={{ ...HEAD, textAlign: 'right' }} className="hidden md:table-cell">MKT CAP</th>
+                <th style={{ ...HEAD, textAlign: 'right' }}>AI</th>
               </tr>
             </thead>
             <tbody>
-              {markets.map(coin => (
-                <tr key={coin.symbol} className="hover:bg-terminal-accent/30 cursor-pointer" onClick={() => handleOpenModal(coin)}>
-                  <td className="px-2 py-0.5 text-2xs text-terminal-text-dim text-right">{coin.rank}</td>
-                  <td className="px-2 py-0.5">
-                    <span className="text-2xs font-bold text-terminal-text-bright">{coin.symbol}</span>
-                    <span className="text-2xs text-terminal-text-dim ml-1 hidden xl:inline">{coin.name}</span>
-                  </td>
-                  <td className="px-2 py-0.5 text-2xs text-right font-semibold whitespace-nowrap">
-                    {currency === 'AUD' ? fmt.aud(coin.price) : `US$${coin.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-                  </td>
-                  <td className="px-2 py-0.5 text-2xs text-right font-semibold"
-                    style={{ color: coin.pct24h >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
-                    {fmt.pct(coin.pct24h)}
-                  </td>
-                  <td className="px-2 py-0.5 text-2xs text-right font-semibold hidden sm:table-cell"
-                    style={{ color: (coin.pct7d ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
-                    {fmt.pct(coin.pct7d)}
-                  </td>
-                  <td className="px-2 py-0.5 text-right hidden md:table-cell">
-                    <SentimentBadge pct24h={coin.pct24h} pct7d={coin.pct7d} />
-                  </td>
-                  <td className="px-2 py-0.5 text-right hidden lg:table-cell">
-                    <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
-                  </td>
-                  <td className="px-2 py-0.5 text-2xs text-right text-terminal-text-dim hidden md:table-cell">
-                    {currPrefix}{coin.mktCap}
-                  </td>
-                  <td className="px-2 py-0.5 text-right" onClick={e => { e.stopPropagation(); askAI(coin) }}>
-                    <span className="text-2xs text-terminal-gold hover:text-terminal-text-bright cursor-pointer border border-terminal-gold/30 px-1 py-0.5">AI</span>
-                  </td>
-                </tr>
-              ))}
+              {markets.map(coin => {
+                const sentScore = calcSentiment(coin.pct24h, coin.pct7d)
+                const sentColor = getSentimentColor(sentScore)
+                const sentLabel = getSentimentLabel(sentScore)
+                return (
+                  <tr key={coin.symbol}
+                    style={{ borderBottom: '1px solid rgba(13,34,68,0.4)', background: 'transparent', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,127,232,0.08)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                    onClick={() => handleOpenModal(coin)}>
+                    <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }}>{coin.rank}</td>
+                    <td style={{ ...CELL, textAlign: 'left' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-bright)' }}>{coin.symbol}</span>
+                      <span style={{ fontSize: 10, color: 'var(--color-text-dim)', marginLeft: 4 }} className="hidden xl:inline">{coin.name}</span>
+                    </td>
+                    <td style={{ ...CELL, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {currency === 'AUD' ? fmt.aud(coin.price) : `US$${coin.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                    </td>
+                    <td style={{ ...CELL, textAlign: 'right', fontWeight: 600, color: coin.pct24h >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+                      {fmt.pct(coin.pct24h)}
+                    </td>
+                    <td style={{ ...CELL, textAlign: 'right', fontWeight: 600, color: (coin.pct7d ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}
+                      className="hidden sm:table-cell">
+                      {fmt.pct(coin.pct7d)}
+                    </td>
+                    {/* Sentiment — fixed 120px, consistent | XX - LABEL format */}
+                    <td style={{ width: 120, minWidth: 120, maxWidth: 120, textAlign: 'left', whiteSpace: 'nowrap', padding: '5px 8px', fontSize: 10, verticalAlign: 'middle', position: 'static' }}
+                      className="hidden md:table-cell">
+                      <span style={{ color: '#0d2244', marginRight: 3 }}>|</span>
+                      <span style={{ display: 'inline-block', width: 22, textAlign: 'right', color: sentColor, fontWeight: 700 }}>{sentScore}</span>
+                      <span style={{ color: '#3a5070', margin: '0 3px' }}>-</span>
+                      <span style={{ color: sentColor, fontWeight: 600 }}>{sentLabel}</span>
+                    </td>
+                    <td style={{ ...CELL, textAlign: 'right' }} className="hidden lg:table-cell">
+                      <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
+                    </td>
+                    <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden md:table-cell">
+                      {currPrefix}{coin.mktCap}
+                    </td>
+                    <td style={{ ...CELL, textAlign: 'right' }} onClick={e => { e.stopPropagation(); askAI(coin) }}>
+                      <span style={{ fontSize: 9, color: '#c8a84b', cursor: 'pointer', border: '1px solid rgba(200,168,75,0.3)', padding: '2px 4px' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = '#c8a84b' }}>
+                        AI
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         ) : null}

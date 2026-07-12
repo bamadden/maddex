@@ -84,12 +84,12 @@ const flagEmoji = (a2) => a2
 
 const COUNTRIES_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 
-// ─── Country Detail Data — June 2026 release values ──────────────────────────
+// ─── Country Detail Data — July 2026 release values ──────────────────────────
 
 const COUNTRY_DETAIL = {
   // ── Core G20 + APAC ──
   36:  { currency:'AUD', tz:'Australia/Sydney',   exchange:'ASX',         index:'ASX 200',      flag:'🇦🇺',
-         macro:{ gdp:1.5, gdpLbl:'Q4 2025, ABS', cpi:3.6, cpiLbl:'Q1 2026, ABS', rate:4.35, rateLbl:'May 2026, RBA' },
+         macro:{ gdp:1.5, gdpLbl:'Q4 2025, ABS', cpi:3.6, cpiLbl:'Q1 2026, ABS', rate:4.35, rateLbl:'Jul 2026, RBA' },
          partners:['China','Japan','South Korea','India','United States','United Kingdom'] },
   840: { currency:'USD', tz:'America/New_York',   exchange:'NYSE',        index:'S&P 500',      flag:'🇺🇸',
          macro:{ gdp:2.8, gdpLbl:'Q1 2026, BEA', cpi:2.4, cpiLbl:'Apr 2026, BLS', rate:4.38, rateLbl:'May 2026, Fed' },
@@ -104,7 +104,7 @@ const COUNTRY_DETAIL = {
          macro:{ gdp:1.1, gdpLbl:'Q4 2025, ONS', cpi:2.6, cpiLbl:'Apr 2026, ONS', rate:4.50, rateLbl:'May 2026, BoE' },
          partners:['United States','Germany','France','Netherlands','China','Ireland'] },
   276: { currency:'EUR', tz:'Europe/Berlin',      exchange:'XETRA',       index:'DAX 40',       flag:'🇩🇪',
-         macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, Destatis', rate:2.50, rateLbl:'Jun 2026, ECB' },
+         macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, Destatis', rate:2.50, rateLbl:'Jul 2026, ECB' },
          partners:['United States','France','Netherlands','China','Poland','Italy'] },
   124: { currency:'CAD', tz:'America/Toronto',    exchange:'TSX',         index:'TSX Composite', flag:'🇨🇦',
          macro:{ gdp:1.5, gdpLbl:'Q4 2025, StatCan', cpi:2.3, cpiLbl:'Apr 2026, StatCan', rate:2.75, rateLbl:'Apr 2026, BoC' },
@@ -155,7 +155,7 @@ const COUNTRY_DETAIL = {
          partners:['China','United States','Germany','United Kingdom','Japan','India'] },
   // ── Europe ──
   250: { currency:'EUR', tz:'Europe/Paris',       exchange:'Euronext',    index:'CAC 40',       flag:'🇫🇷',
-         macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, INSEE', rate:2.50, rateLbl:'Jun 2026, ECB' },
+         macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, INSEE', rate:2.50, rateLbl:'Jul 2026, ECB' },
          partners:['Germany','United States','Italy','Belgium','Spain','Netherlands'] },
   792: { currency:'TRY', tz:'Europe/Istanbul',    exchange:'Borsa Istanbul',index:'BIST 100',   flag:'🇹🇷',
          macro:{ gdp:2.8, gdpLbl:'Q4 2025, Turkstat', cpi:38.1, cpiLbl:'Apr 2026, Turkstat', rate:42.50, rateLbl:'May 2026, TCMB' },

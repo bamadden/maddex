@@ -47,8 +47,8 @@ export const CENTRAL_BANK_RATES = [
 // Sources: abs.gov.au | rba.gov.au
 
 export const AU_MACRO = [
-  // RBA Cash Rate: 4.35% as at May 2026 RBA Board meeting — source: rba.gov.au
-  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.10%', date: '2026-05-20', beat: null, src: 'rba.gov.au' },
+  // RBA Cash Rate: 4.35% — held at 1 July 2026 Board meeting — source: rba.gov.au
+  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.35%', date: '2026-07-01', beat: null, src: 'rba.gov.au' },
   // AU CPI YoY: 2.4% Q1 2026 — ABS Cat. 6401.0, released 2026-04-29
   { name: 'AU CPI YoY',          value: '2.4%',  prev: '2.3%',  date: '2026-04-29', beat: null, src: 'abs.gov.au/6401.0' },
   { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
@@ -90,29 +90,29 @@ export const MACRO_INDICATORS = GLOBAL_MACRO
 // These are indicative upcoming events — not real-time data.
 
 export const AU_CALENDAR = [
-  { date: '17 JUN', time: '11:30', event: 'RBA Meeting Minutes',          region: 'AU', importance: 'high',   forecast: '—',     prev: '—'      },
-  { date: '18 JUN', time: '11:30', event: 'AU Building Permits MoM',     region: 'AU', importance: 'medium', forecast: '+1.5%', prev: '-2.2%'  },
-  { date: '19 JUN', time: '11:30', event: 'AU Employment Change',         region: 'AU', importance: 'high',   forecast: '+15K',  prev: '+38K'   },
-  { date: '19 JUN', time: '11:30', event: 'AU Unemployment Rate',         region: 'AU', importance: 'high',   forecast: '4.1%',  prev: '4.1%'   },
-  { date: '25 JUN', time: '11:30', event: 'AU CPI Monthly (May 2026)',    region: 'AU', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
-  { date: '01 JUL', time: '11:30', event: 'AU Building Approvals MoM',   region: 'AU', importance: 'medium', forecast: '+0.8%', prev: '-2.2%'  },
-  { date: '01 JUL', time: '11:30', event: 'AU Retail Sales MoM (May)',   region: 'AU', importance: 'medium', forecast: '+0.3%', prev: '+0.3%'  },
-  { date: '07 JUL', time: '14:30', event: 'RBA Rate Decision (Jul 2026)',  region: 'AU', importance: 'high',   forecast: '4.10%', prev: '4.10%'  },
-  { date: '08 JUL', time: '11:30', event: 'AU Trade Balance (May)',        region: 'AU', importance: 'medium', forecast: 'A$7.5B',prev: 'A$7.2B' },
-  { date: '10 JUL', time: '09:00', event: 'AU Consumer Sentiment (Jul)',   region: 'AU', importance: 'medium', forecast: '—',     prev: '—'      },
+  { date: '15 JUL', time: '11:30', event: 'RBA Meeting Minutes (Jul)',      region: 'AU', importance: 'high',   forecast: '—',     prev: '—'      },
+  { date: '17 JUL', time: '11:30', event: 'AU Employment Change (Jun)',      region: 'AU', importance: 'high',   forecast: '+20K',  prev: '+19K'   },
+  { date: '17 JUL', time: '11:30', event: 'AU Unemployment Rate (Jun)',      region: 'AU', importance: 'high',   forecast: '4.1%',  prev: '4.1%'   },
+  { date: '23 JUL', time: '11:30', event: 'AU CPI Monthly (Jun 2026)',       region: 'AU', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
+  { date: '30 JUL', time: '11:30', event: 'AU CPI Q2 2026 (ABS)',            region: 'AU', importance: 'high',   forecast: '2.5%',  prev: '2.4%'   },
+  { date: '30 JUL', time: '11:30', event: 'AU Retail Sales MoM (Jun)',       region: 'AU', importance: 'medium', forecast: '+0.4%', prev: '+0.3%'  },
+  { date: '05 AUG', time: '14:30', event: 'RBA Rate Decision (Aug 2026)',    region: 'AU', importance: 'high',   forecast: '4.35%', prev: '4.35%'  },
+  { date: '06 AUG', time: '11:30', event: 'AU Trade Balance (Jun)',           region: 'AU', importance: 'medium', forecast: 'A$7.4B',prev: 'A$7.2B' },
+  { date: '19 AUG', time: '11:30', event: 'AU Employment Change (Jul)',      region: 'AU', importance: 'high',   forecast: '+15K',  prev: '+20K'   },
+  { date: '26 AUG', time: '11:30', event: 'AU CPI Monthly (Jul 2026)',       region: 'AU', importance: 'high',   forecast: '2.4%',  prev: '2.3%'   },
 ]
 
 export const GLOBAL_CALENDAR = [
-  { date: '17 JUN', time: '01:15', event: 'US Industrial Production MoM', region: 'US', importance: 'medium', forecast: '+0.2%', prev: '+0.3%'  },
-  { date: '18 JUN', time: '04:00', event: 'FOMC Meeting Minutes',          region: 'US', importance: 'high',   forecast: '—',     prev: '—'      },
-  { date: '18 JUN', time: '22:30', event: 'US Housing Starts MoM',         region: 'US', importance: 'medium', forecast: '+1.0%', prev: '-1.5%'  },
-  { date: '26 JUN', time: '22:30', event: 'US Core PCE Price Index MoM',   region: 'US', importance: 'high',   forecast: '+0.2%', prev: '+0.2%'  },
-  { date: '26 JUN', time: '22:30', event: 'US Personal Spending MoM',      region: 'US', importance: 'medium', forecast: '+0.3%', prev: '+0.5%'  },
-  { date: '02 JUL', time: '22:30', event: 'US Nonfarm Payrolls (Jun)',      region: 'US', importance: 'high',   forecast: '+160K', prev: '+142K'  },
-  { date: '02 JUL', time: '22:30', event: 'US Unemployment Rate (Jun)',     region: 'US', importance: 'high',   forecast: '4.1%',  prev: '4.1%'   },
-  { date: '07 JUL', time: '01:00', event: 'US ISM Services PMI (Jun)',      region: 'US', importance: 'medium', forecast: '52.5',  prev: '51.6'   },
-  { date: '10 JUL', time: '22:30', event: 'US CPI YoY (Jun)',               region: 'US', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
-  { date: '17 JUL', time: '02:00', event: 'FOMC Rate Decision (Jul)',        region: 'US', importance: 'high',   forecast: '4.25–4.50%', prev: '4.25–4.50%' },
+  { date: '15 JUL', time: '22:30', event: 'US CPI YoY (Jun)',                region: 'US', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
+  { date: '15 JUL', time: '22:30', event: 'US Core CPI MoM (Jun)',           region: 'US', importance: 'high',   forecast: '+0.2%', prev: '+0.2%'  },
+  { date: '17 JUL', time: '22:30', event: 'US Retail Sales MoM (Jun)',       region: 'US', importance: 'medium', forecast: '+0.3%', prev: '+0.1%'  },
+  { date: '17 JUL', time: '22:30', event: 'US Initial Jobless Claims',       region: 'US', importance: 'medium', forecast: '215K',  prev: '218K'   },
+  { date: '24 JUL', time: '23:45', event: 'US S&P Global PMI (Jul)',          region: 'US', importance: 'medium', forecast: '52.0',  prev: '52.3'   },
+  { date: '29 JUL', time: '00:00', event: 'FOMC Meeting Begins (Jul-Aug)',   region: 'US', importance: 'high',   forecast: '—',     prev: '—'      },
+  { date: '30 JUL', time: '04:00', event: 'FOMC Rate Decision (Jul 2026)',   region: 'US', importance: 'high',   forecast: '4.25–4.50%', prev: '4.25–4.50%' },
+  { date: '07 AUG', time: '22:30', event: 'US Nonfarm Payrolls (Jul)',        region: 'US', importance: 'high',   forecast: '+155K', prev: '+142K'  },
+  { date: '07 AUG', time: '22:30', event: 'US Unemployment Rate (Jul)',       region: 'US', importance: 'high',   forecast: '4.1%',  prev: '4.1%'   },
+  { date: '13 AUG', time: '22:30', event: 'US CPI YoY (Jul)',                region: 'US', importance: 'high',   forecast: '2.3%',  prev: '2.3%'   },
 ]
 
 export const ECONOMIC_CALENDAR = GLOBAL_CALENDAR

@@ -30,11 +30,6 @@ export default function NavBar() {
         >
           <span className="hidden lg:inline">{item.label}</span>
           <span className="inline lg:hidden">{item.short}</span>
-          {item.id === 'news' && newsBadgeCount > 0 && (
-            <span className="ml-1 bg-terminal-gold text-terminal-bg rounded-full px-1 text-2xs leading-none font-bold" style={{ fontSize: 9 }}>
-              {newsBadgeCount > 99 ? '99+' : newsBadgeCount}
-            </span>
-          )}
           <span className="ml-1.5 text-terminal-text-dim opacity-50">F{i + 1}</span>
         </button>
       ))}

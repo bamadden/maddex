@@ -983,6 +983,24 @@ export const fetchNews = async () => {
     )
   )
 
+  function validatePubDate(dateStr, sourceName) {
+    const now = new Date()
+    if (!dateStr) return new Date(now - Math.random() * 600000)
+    const parsed = new Date(dateStr)
+    if (isNaN(parsed.getTime()) || parsed > now) return new Date(now - Math.random() * 600000)
+    return parsed
+  }
+
+  function diversifyFeed(articles, maxPerSource = 5) {
+    const counts = {}
+    return articles.filter(a => {
+      const n = counts[a.source] || 0
+      if (n >= maxPerSource) return false
+      counts[a.source] = n + 1
+      return true
+    })
+  }
+
   let id = 1
   const items = []
   for (const result of results) {
@@ -991,7 +1009,9 @@ export const fetchNews = async () => {
     if (data.status !== 'ok' || !Array.isArray(data.items)) continue
     sourceHealth[source] = 'ok'
     for (const item of data.items) {
-      const pubDate = item.pubDate ? new Date(item.pubDate) : new Date()
+      const pubDate = validatePubDate(item.pubDate, source)
+      const ageMs   = Date.now() - pubDate.getTime()
+      if (ageMs > 7 * 86400000) continue // skip articles older than 7 days
       const tag     = inferNewsTag(item.title, item.categories)
       items.push({
         id:             id++,
@@ -1014,8 +1034,10 @@ export const fetchNews = async () => {
 
   const financial = items.filter(item => isFinanciallyRelevant(item.headline, item.summary))
   const deduped = dedupeByHeadline(financial)
-  deduped.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
-  const articles = deduped.slice(0, 500)
+  deduped.sort((a, b) => b.pubDate - a.pubDate) // strict date sort first
+  const diverse = diversifyFeed(deduped, 5)      // max 5 per source
+  diverse.sort((a, b) => a.priority - b.priority || b.pubDate - a.pubDate)
+  const articles = diverse.slice(0, 500)
 
   const liveCount = Object.values(sourceHealth).filter(v => v === 'ok').length
   console.log(`[MADDEN API] News: ${articles.length} articles from ${liveCount}/${NEWS_SOURCES.length} sources`)

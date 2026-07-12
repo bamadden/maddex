@@ -19,6 +19,10 @@
     {
       "source": "/api/stooq/:path*",
       "destination": "https://stooq.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

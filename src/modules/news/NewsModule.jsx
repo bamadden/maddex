@@ -42,15 +42,41 @@ function saveCategory(cat) {
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
 
-function timeAgo(pubDate) {
+function getRelativeTime(pubDate) {
   if (!pubDate) return '—'
-  const mins = Math.floor((Date.now() - new Date(pubDate).getTime()) / 60000)
-  if (mins < 1)  return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+  const now = new Date()
+  const published = new Date(pubDate)
+  const diffMs   = now - published
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays  = Math.floor(diffMs / 86400000)
+  if (diffMins < 1)   return 'just now'
+  if (diffMins < 60)  return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'yesterday'
+  if (diffDays < 7)   return `${diffDays}d ago`
+  return published.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
+
+function fullDateTooltip(pubDate) {
+  if (!pubDate) return ''
+  return `Published: ${new Date(pubDate).toLocaleString('en-AU', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+  })}`
+}
+
+// tick increments every 60s so relative times stay fresh
+function useTimeTick() {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60000)
+    return () => clearInterval(id)
+  }, [])
+  return tick
+}
+
+function timeAgo(pubDate) { return getRelativeTime(pubDate) }
 
 function sinceMs(ts) {
   const s = Math.floor((Date.now() - ts) / 1000)
@@ -225,7 +251,7 @@ function ArticleCard({ item, isExpanded, isUnread, searchTerm, onToggle, onAskAI
         {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />}
         <span className="text-2xs font-bold text-terminal-gold">{item.source}</span>
         <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{item.tag}</Badge>
-        <span className="text-2xs text-terminal-text-dim/60">{timeAgo(item.pubDate)}</span>
+        <span className="text-2xs text-terminal-text-dim/60" title={fullDateTooltip(item.pubDate)}>{timeAgo(item.pubDate)}</span>
         {isBreaking && <span className="text-2xs text-[#a83232] font-bold animate-pulse ml-1">● BREAKING</span>}
         {isNew && !isBreaking && <span className="text-2xs text-terminal-gold font-bold ml-1">NEW</span>}
       </div>

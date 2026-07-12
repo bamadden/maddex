@@ -8,11 +8,11 @@ import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
-// ─── 5-Country Yield Curve Data — June 2026 ──────────────────────────────────
+// ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
 
 const YIELD_CURVES = {
   AU: {
-    label: 'AU GOV BONDS', color: '#c8a84b', src: 'AOFM / RBA · Jun 2026',
+    label: 'AU GOV BONDS', color: '#c8a84b', src: 'AOFM / RBA · Jul 2026',
     points: [
       { m:'3M', y:4.35 }, { m:'6M', y:4.30 }, { m:'1Y', y:4.20 },
       { m:'2Y', y:4.10 }, { m:'3Y', y:4.05 }, { m:'5Y', y:4.08 },
@@ -21,7 +21,7 @@ const YIELD_CURVES = {
     prev: { '3M':4.40,'6M':4.35,'1Y':4.25,'2Y':4.15,'3Y':4.10,'5Y':4.12,'10Y':4.38,'30Y':4.62 },
   },
   US: {
-    label: 'US TREASURIES', color: '#3b82f6', src: 'US Treasury · Jun 2026',
+    label: 'US TREASURIES', color: '#3b82f6', src: 'US Treasury · Jul 2026',
     points: [
       { m:'3M', y:4.32 }, { m:'6M', y:4.28 }, { m:'1Y', y:4.15 },
       { m:'2Y', y:4.05 }, { m:'5Y', y:4.12 }, { m:'10Y',y:4.38 },
@@ -30,7 +30,7 @@ const YIELD_CURVES = {
     prev: { '3M':4.35,'6M':4.30,'1Y':4.18,'2Y':4.08,'5Y':4.15,'10Y':4.42,'30Y':4.65 },
   },
   UK: {
-    label: 'UK GILTS', color: '#a855f7', src: 'UK DMO · Jun 2026',
+    label: 'UK GILTS', color: '#a855f7', src: 'UK DMO · Jul 2026',
     points: [
       { m:'3M', y:4.45 }, { m:'6M', y:4.38 }, { m:'1Y', y:4.20 },
       { m:'2Y', y:4.10 }, { m:'5Y', y:4.18 }, { m:'10Y',y:4.42 },
@@ -39,7 +39,7 @@ const YIELD_CURVES = {
     prev: { '3M':4.50,'6M':4.42,'1Y':4.25,'2Y':4.15,'5Y':4.22,'10Y':4.48,'30Y':4.90 },
   },
   JP: {
-    label: 'JP BONDS (JGBs)', color: '#14b8a6', src: 'MOF Japan · Jun 2026',
+    label: 'JP BONDS (JGBs)', color: '#14b8a6', src: 'MOF Japan · Jul 2026',
     points: [
       { m:'3M', y:0.35 }, { m:'6M', y:0.42 }, { m:'1Y', y:0.55 },
       { m:'2Y', y:0.72 }, { m:'5Y', y:1.05 }, { m:'10Y',y:1.42 },
@@ -48,7 +48,7 @@ const YIELD_CURVES = {
     prev: { '3M':0.30,'6M':0.38,'1Y':0.50,'2Y':0.68,'5Y':1.00,'10Y':1.38,'30Y':2.12 },
   },
   DE: {
-    label: 'DE BUNDS', color: '#22c55e', src: 'Bundesbank · Jun 2026',
+    label: 'DE BUNDS', color: '#22c55e', src: 'Bundesbank · Jul 2026',
     points: [
       { m:'3M', y:2.18 }, { m:'6M', y:2.12 }, { m:'1Y', y:2.05 },
       { m:'2Y', y:2.02 }, { m:'5Y', y:2.15 }, { m:'10Y',y:2.48 },
@@ -469,12 +469,12 @@ export default function FXModule() {
             i
           </button>
           <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">
-            Jun 2026 · hardcoded
+            Jul 2026 · hardcoded
           </span>
         </div>
         {showYieldInfo && (
           <div className="px-2 py-1.5 text-2xs text-terminal-text-dim bg-terminal-accent/10 border-b border-terminal-border flex-shrink-0">
-            Yield curve data is updated quarterly. Last updated June 2026.
+            Yield curve data is updated quarterly. Last updated July 2026.
           </div>
         )}
 
