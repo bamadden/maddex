@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchCryptoMarkets, fetchCoinHistory, fetchFearGreed, fetchTrendingCoins,
@@ -188,7 +188,17 @@ const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#c8a84b', letterSpac
 export default function CryptoModule() {
   const [selectedCoin, setSelectedCoin] = useState('BTC')
   const [timeframe, setTimeframe]       = useState('3M')
+  const [titleBarHeight, setTitleBarHeight] = useState(28)
+  const titleBarRef = useRef(null)
   const { openModal, currency } = useStore()
+
+  useEffect(() => {
+    if (titleBarRef.current) {
+      const h = titleBarRef.current.offsetHeight
+      console.log('Crypto title bar height:', h)
+      setTitleBarHeight(h)
+    }
+  }, [])
   const vsCurrency = currency.toLowerCase()
   const currPrefix = currency === 'AUD' ? 'A$' : 'US$'
 
@@ -331,10 +341,10 @@ export default function CryptoModule() {
       <TrendingSection />
 
       {/* ── Row 3: Top 20 Table ── */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        {/* Title bar — sticky at top, z-index 20 so rows scroll behind it */}
-        <div className="panel-header flex items-center gap-2 flex-wrap"
-          style={{ position: 'sticky', top: 0, zIndex: 20, background: '#071428' }}>
+      <div className="flex-1 min-h-0 overflow-auto" style={{ background: '#071428', position: 'relative' }}>
+        {/* Title bar — sticky at top with solid background, z-index 20 */}
+        <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
+          style={{ position: 'sticky', top: 0, zIndex: 20, background: '#071428', borderBottom: '1px solid #0d2244', margin: 0 }}>
           <span>TOP 20 BY MKT CAP ({currency})</span>
           {rawMarkets
             ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {updatedTime}</span>
@@ -342,20 +352,22 @@ export default function CryptoModule() {
           }
           {marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
         </div>
+        {/* Gap cover — fills any sub-pixel gap between title bar and column headers */}
+        <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#071428', margin: 0, padding: 0 }} />
 
         {marketsError ? (
           <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
         ) : markets ? (
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             {/* Column headers — sticky below title bar, z-index 10 */}
-            <thead style={{ position: 'sticky', top: 28, zIndex: 10 }}>
+            <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
               <tr style={{ background: '#071428', borderBottom: '1px solid #c8a84b' }}>
                 <th style={{ ...HEAD, textAlign: 'right', width: 28 }}>#</th>
                 <th style={{ ...HEAD, textAlign: 'left' }}>ASSET</th>
                 <th style={{ ...HEAD, textAlign: 'right' }}>PRICE</th>
                 <th style={{ ...HEAD, textAlign: 'right' }}>24H%</th>
                 <th style={{ ...HEAD, textAlign: 'right' }} className="hidden sm:table-cell">7D%</th>
-                <th style={{ ...HEAD, textAlign: 'left', width: 120, minWidth: 120 }} className="hidden md:table-cell">SENTIMENT</th>
+                <th style={{ ...HEAD, textAlign: 'left', width: 140, minWidth: 140 }} className="hidden md:table-cell">SENTIMENT</th>
                 <th style={{ ...HEAD, textAlign: 'right' }} className="hidden lg:table-cell">7D CHART</th>
                 <th style={{ ...HEAD, textAlign: 'right' }} className="hidden md:table-cell">MKT CAP</th>
                 <th style={{ ...HEAD, textAlign: 'right' }}>AI</th>
@@ -387,13 +399,21 @@ export default function CryptoModule() {
                       className="hidden sm:table-cell">
                       {fmt.pct(coin.pct7d)}
                     </td>
-                    {/* Sentiment — fixed 120px, consistent | XX - LABEL format */}
-                    <td style={{ width: 120, minWidth: 120, maxWidth: 120, textAlign: 'left', whiteSpace: 'nowrap', padding: '5px 8px', fontSize: 10, verticalAlign: 'middle', position: 'static' }}
+                    {/* Sentiment — fixed 140px, visual bar with aligned | separator */}
+                    <td style={{ width: 140, minWidth: 140, maxWidth: 140, padding: '5px 8px', textAlign: 'left', whiteSpace: 'nowrap', verticalAlign: 'middle', position: 'static' }}
                       className="hidden md:table-cell">
-                      <span style={{ color: '#0d2244', marginRight: 3 }}>|</span>
-                      <span style={{ display: 'inline-block', width: 22, textAlign: 'right', color: sentColor, fontWeight: 700 }}>{sentScore}</span>
-                      <span style={{ color: '#3a5070', margin: '0 3px' }}>-</span>
-                      <span style={{ color: sentColor, fontWeight: 600 }}>{sentLabel}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: '#1a3a6a', width: 8, flexShrink: 0, textAlign: 'center' }}>|</span>
+                        <div style={{ width: 40, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
+                          <div style={{ width: `${sentScore}%`, height: '100%', borderRadius: 2,
+                            background: sentScore >= 67 ? 'var(--color-gain)' : sentScore >= 34 ? '#c8a84b' : 'var(--color-loss)'
+                          }} />
+                        </div>
+                        <span style={{ width: 22, textAlign: 'right', flexShrink: 0, fontSize: 10,
+                          color: sentScore >= 67 ? 'var(--color-gain)' : sentScore >= 34 ? '#c8a84b' : 'var(--color-loss)'
+                        }}>{sentScore}</span>
+                        <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.8)', textTransform: 'uppercase' }}>{sentLabel}</span>
+                      </div>
                     </td>
                     <td style={{ ...CELL, textAlign: 'right' }} className="hidden lg:table-cell">
                       <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
