@@ -17,11 +17,10 @@ const fmtAUD  = (v) => `A$${Number(v).toLocaleString('en-AU', { minimumFractionD
 const pctCls  = (p) => (p > 0 ? 'text-terminal-green' : p < 0 ? 'text-terminal-red' : 'text-terminal-text-dim')
 const arrow   = (p) => (p > 0 ? '▲' : p < 0 ? '▼' : '—')
 
+// Inline style tokens for sub-element colouring (layout handled by CSS classes)
 const S = {
-  div:    { display: 'inline-flex', alignItems: 'center', gap: 4, margin: '0 16px', whiteSpace: 'nowrap', flexShrink: 0 },
-  pipe:   { color: '#c8a84b', opacity: 0.7, marginRight: 4 },
+  pipe:   { color: '#c8a84b', opacity: 0.7 },
   dlabel: { color: '#c8a84b', fontWeight: 700, letterSpacing: '0.08em', fontSize: 10 },
-  item:   { display: 'inline-flex', alignItems: 'center', gap: 5, marginRight: 22, whiteSpace: 'nowrap', flexShrink: 0, fontSize: 10 },
   sym:    { color: '#d4dce8', fontWeight: 600 },
   dash:   { color: '#2d4a6a' },
   price:  { color: '#a8b8cc' },
@@ -32,7 +31,7 @@ const S = {
 
 function Divider({ label }) {
   return (
-    <span style={S.div}>
+    <span className="ticker-divider">
       <span style={S.pipe}>│</span>
       <span style={S.dlabel}>{label}</span>
     </span>
@@ -43,7 +42,7 @@ function TapeItem({ sym, price, pct, marketCap, onClick }) {
   const tooltip = [price, pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')
   const pctStyle = pct == null ? null : pct > 0 ? S.gain : pct < 0 ? S.loss : S.flat
   return (
-    <span style={{ ...S.item, cursor: onClick ? 'pointer' : 'default' }} title={tooltip || undefined} onClick={onClick}>
+    <span className="ticker-item" title={tooltip || undefined} onClick={onClick}>
       <span style={S.sym}>{sym}</span>
       <span style={S.dash}>—</span>
       {price != null && <span style={S.price}>{price}</span>}
@@ -182,20 +181,18 @@ export default function TickerTape() {
   ])
 
   return (
-    <div className="bg-terminal-header border-b border-terminal-border py-0.5 overflow-hidden flex-shrink-0">
-      <div className="ticker-wrap">
-        <div className="ticker-content">
-          {content.map(el =>
-            el.type === 'div'
-              ? <Divider key={`a-${el.key}`} label={el.label} />
-              : <TapeItem key={`a-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
-          )}
-          {content.map(el =>
-            el.type === 'div'
-              ? <Divider key={`b-${el.key}`} label={el.label} />
-              : <TapeItem key={`b-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
-          )}
-        </div>
+    <div className="ticker-container">
+      <div className="ticker-content">
+        {content.map(el =>
+          el.type === 'div'
+            ? <Divider key={`a-${el.key}`} label={el.label} />
+            : <TapeItem key={`a-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
+        )}
+        {content.map(el =>
+          el.type === 'div'
+            ? <Divider key={`b-${el.key}`} label={el.label} />
+            : <TapeItem key={`b-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
+        )}
       </div>
     </div>
   )

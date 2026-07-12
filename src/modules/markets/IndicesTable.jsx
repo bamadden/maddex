@@ -57,76 +57,64 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
 
   return (
     <>
-    <div className="flex flex-nowrap overflow-x-auto bg-terminal-header">
+    <div style={{ display: 'flex', alignItems: 'stretch', width: '100%', background: 'var(--color-terminal-header, #071428)' }}>
       <div className="px-2 py-1.5 border-r border-terminal-border flex-shrink-0 flex items-center">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest whitespace-nowrap">GLOBAL INDICES</span>
       </div>
 
-      {YF_INDICES.map(({ symbol, label, sublabel, isAud, primary }) => {
-        const q       = quotes?.[symbol]
+      {YF_INDICES.map(({ symbol, label, sublabel, isAud, primary }, idx) => {
+        const q        = quotes?.[symbol]
         const dataDate = q?.timestamp ? fmtDataDate(q.timestamp) : null
         const isStale  = !!dataDate
         const isSelected = symbol === selectedIndex
+        const isLast   = idx === YF_INDICES.length - 1
 
         return (
           <div
             key={symbol}
-            className={`
-              flex flex-col justify-between px-3 py-1.5 border-r border-terminal-border flex-shrink-0
-              cursor-pointer hover:bg-terminal-accent/20
-              ${primary ? 'min-w-[140px]' : 'min-w-[120px]'}
-              ${isSelected ? 'bg-[rgba(201,168,76,0.06)]' : ''}
-            `}
+            className={`flex flex-col justify-between items-center py-1.5 cursor-pointer hover:bg-terminal-accent/20 ${isSelected ? 'bg-[rgba(201,168,76,0.06)]' : ''}`}
             style={{
-              borderRight: isSelected ? '3px solid var(--mt-gold, #C9A84C)' : undefined,
-              transition: 'background 150ms, border-color 150ms',
+              flex: 1,
+              textAlign: 'center',
+              padding: '6px 4px',
+              borderRight: isLast ? 'none' : isSelected ? '2px solid #c9a84c' : '1px solid rgba(30,60,120,0.35)',
+              transition: 'background 150ms',
+              minWidth: 0,
             }}
             onClick={() => handleClick(symbol, q, isAud, label)}
           >
-            <div className="flex items-center gap-1">
-              <span className={`text-2xs font-bold ${isSelected ? 'text-terminal-gold' : primary ? 'text-terminal-gold/70' : 'text-terminal-text-dim'}`}>
-                {label}
-              </span>
-            </div>
-            <div className="text-2xs text-terminal-text-dim/60">{sublabel}</div>
+            <span className={`text-2xs font-bold block ${isSelected ? 'text-terminal-gold' : primary ? 'text-terminal-gold/70' : 'text-terminal-text-dim'}`}>
+              {label}
+            </span>
+            <span className="text-2xs text-terminal-text-dim/50 block">{sublabel}</span>
 
             {isFetching && !q ? (
-              <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>
+              <span className="text-2xs text-terminal-text-dim animate-pulse block">···</span>
             ) : !q && isError ? (
               <button
-                className="text-2xs text-terminal-red hover:text-terminal-gold cursor-pointer text-left"
+                className="text-2xs text-terminal-red hover:text-terminal-gold cursor-pointer"
                 onClick={(e) => { e.stopPropagation(); refetch() }}
               >
-                ⚠ RETRY
+                ⚠
               </button>
             ) : q ? (
               <>
-                <span className={`font-semibold ${primary ? 'text-sm text-terminal-text-bright' : 'text-xs text-terminal-text-bright'}`}>
-                  {fmt.price(q.last, 0)} pts
+                <span className="text-xs font-semibold text-terminal-text-bright block">
+                  {fmt.price(q.last, 0)}
                 </span>
-                <span className="text-2xs font-semibold" style={{ color: pctColor(q.pct) ?? 'var(--color-neutral)' }}>
+                <span className="text-2xs font-semibold block" style={{ color: pctColor(q.pct) ?? 'var(--color-neutral)' }}>
                   {q.pct >= 0 ? '+' : ''}{q.pct.toFixed(2)}%
                 </span>
-                {isStale ? (
-                  <span className="text-2xs text-terminal-gold/70">LAST CLOSE {dataDate}</span>
-                ) : (
-                  <span className="text-2xs text-terminal-text-dim/50">
-                    {q.isOpen ? 'LIVE' : 'DELAYED'}
-                  </span>
-                )}
+                <span className="text-2xs block" style={{ color: isStale ? '#c9a84b' : 'rgba(100,130,160,0.4)', fontSize: 8 }}>
+                  {isStale ? dataDate : q.isOpen ? 'LIVE' : 'DELAYED'}
+                </span>
               </>
             ) : (
-              <span className="text-2xs text-terminal-text-dim">—</span>
+              <span className="text-2xs text-terminal-text-dim block">—</span>
             )}
           </div>
         )
       })}
-
-      {isFetching && (
-        <div className="flex items-center px-3 text-2xs flex-shrink-0">
-          <span className="text-terminal-text-dim/50 italic animate-pulse">LOADING...</span>
-        </div>
-      )}
     </div>
     <div style={{ textAlign: 'right', padding: '2px 8px', fontSize: 9, color: 'rgba(100,130,160,0.5)', fontStyle: 'italic' }}>
       Click to select &middot; Double-click for detail
