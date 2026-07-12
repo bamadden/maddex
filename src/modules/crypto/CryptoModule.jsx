@@ -367,7 +367,7 @@ export default function CryptoModule() {
                 <th style={{ ...HEAD, textAlign: 'right' }}>PRICE</th>
                 <th style={{ ...HEAD, textAlign: 'right' }}>24H%</th>
                 <th style={{ ...HEAD, textAlign: 'right' }} className="hidden sm:table-cell">7D%</th>
-                <th style={{ ...HEAD, textAlign: 'left', width: 140, minWidth: 140 }} className="hidden md:table-cell">SENTIMENT</th>
+                <th style={{ ...HEAD, textAlign: 'right', width: 140, minWidth: 140 }} className="hidden md:table-cell">SENTIMENT</th>
                 <th style={{ ...HEAD, textAlign: 'right' }} className="hidden lg:table-cell">7D CHART</th>
                 <th style={{ ...HEAD, textAlign: 'right' }} className="hidden md:table-cell">MKT CAP</th>
                 <th style={{ ...HEAD, textAlign: 'right' }}>AI</th>
