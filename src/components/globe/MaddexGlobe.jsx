@@ -25,33 +25,42 @@ const EXCHANGES = [
   { id: 'KRX',    label: 'KRX',       city: 'Seoul',     lat: 37.5665,  lon: 126.9780, tz: 'Asia/Seoul',        open: [9, 0],   close: [15, 30], countryId: 410, ySymbol: '^KS11',   marketCapB: 1900 },
 ]
 
-const MAX_MARKET_CAP = Math.max(...EXCHANGES.map(e => e.marketCapB))
-
-// FLOW mode: follow-the-sun capital-flow loop. Uses its own node set since it
-// includes financial centres (Frankfurt, Dubai) not among the 12 exchanges
-// plotted in MARKETS mode.
-const FLOW_NODES = {
-  NYC:       [-74.0060, 40.7128],
-  LONDON:    [-0.1278, 51.5074],
-  FRANKFURT: [8.6821, 50.1109],
-  DUBAI:     [55.2708, 25.2048],
-  SINGAPORE: [103.8198, 1.3521],
-  TOKYO:     [139.6503, 35.6762],
-  SYDNEY:    [151.2093, -33.8688],
-}
+// FLOW mode: follow-the-sun capital-flow loop — NYC → London → Frankfurt /
+// Dubai → Mumbai → Singapore → Hong Kong → Tokyo → Sydney → NYC.
+const FLOW_NODES = [
+  { id: 'NYC',       name: 'New York',  lon: -74.0060, lat: 40.7128 },
+  { id: 'LONDON',    name: 'London',    lon: -0.1278,  lat: 51.5074 },
+  { id: 'FRANKFURT', name: 'Frankfurt', lon: 8.6821,   lat: 50.1109 },
+  { id: 'DUBAI',     name: 'Dubai',     lon: 55.2708,  lat: 25.2048 },
+  { id: 'MUMBAI',    name: 'Mumbai',    lon: 72.8777,  lat: 19.0760 },
+  { id: 'SINGAPORE', name: 'Singapore', lon: 103.8198, lat: 1.3521 },
+  { id: 'HONGKONG',  name: 'Hong Kong', lon: 114.1694, lat: 22.3193 },
+  { id: 'TOKYO',     name: 'Tokyo',     lon: 139.6503, lat: 35.6762 },
+  { id: 'SYDNEY',    name: 'Sydney',    lon: 151.2093, lat: -33.8688 },
+]
+const FLOW_NODE_MAP = Object.fromEntries(FLOW_NODES.map(n => [n.id, n]))
 const FLOW_ROUTES = [
-  { id: 'nyc-london',       from: 'NYC',       to: 'LONDON',    volume: 1.0 },
-  { id: 'london-frankfurt', from: 'LONDON',    to: 'FRANKFURT', volume: 0.55 },
-  { id: 'frankfurt-dubai',  from: 'FRANKFURT', to: 'DUBAI',     volume: 0.45 },
-  { id: 'dubai-singapore',  from: 'DUBAI',     to: 'SINGAPORE', volume: 0.5 },
-  { id: 'singapore-tokyo',  from: 'SINGAPORE', to: 'TOKYO',     volume: 0.65 },
-  { id: 'tokyo-sydney',     from: 'TOKYO',     to: 'SYDNEY',    volume: 0.4 },
-  { id: 'sydney-nyc',       from: 'SYDNEY',    to: 'NYC',       volume: 0.6 },
+  { id: 'nyc-london',         from: 'NYC',       to: 'LONDON' },
+  { id: 'london-frankfurt',   from: 'LONDON',    to: 'FRANKFURT' },
+  { id: 'london-dubai',       from: 'LONDON',    to: 'DUBAI' },
+  { id: 'dubai-mumbai',       from: 'DUBAI',     to: 'MUMBAI' },
+  { id: 'mumbai-singapore',   from: 'MUMBAI',    to: 'SINGAPORE' },
+  { id: 'singapore-hongkong', from: 'SINGAPORE', to: 'HONGKONG' },
+  { id: 'hongkong-tokyo',     from: 'HONGKONG',  to: 'TOKYO' },
+  { id: 'tokyo-sydney',       from: 'TOKYO',     to: 'SYDNEY' },
+  { id: 'sydney-nyc',         from: 'SYDNEY',    to: 'NYC' },
 ]
 
 const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
 const DISPLAY_MODES = ['MARKETS', 'HEAT', 'FLOW', 'DARK']
+
+// Default starting orientation — Australia/Asia-Pacific centred, matches the
+// terminal's home market. Auto-rotate speed is degrees/frame at ~60fps.
+const DEFAULT_ROTATION = [-134, -26, 0]
+const AUTO_ROTATE_SPEED = 0.06
+
+const RAD = Math.PI / 180
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -85,6 +94,19 @@ function heatColor(pct) {
   return '#A83232'
 }
 
+// True when [lon, lat] sits on the hemisphere currently facing the viewer.
+// d3.geoPath already clips polygon/line geometry to the front hemisphere, but
+// point features (exchange dots, flow-hub dots) are projected directly via
+// `projection([lon, lat])`, which does NOT apply clipAngle — so point
+// visibility has to be tested manually with this spherical dot-product check.
+function isPointVisible(lon, lat, rotation) {
+  const phi0 = -rotation[1] * RAD
+  const lambda0 = -rotation[0] * RAD
+  const phi = lat * RAD
+  const lambda = lon * RAD
+  return (Math.sin(phi) * Math.sin(phi0) + Math.cos(phi) * Math.cos(phi0) * Math.cos(lambda - lambda0)) > 0
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,6 +121,7 @@ export default function MaddexGlobe() {
   const [displayMode, setDisplayMode] = useState(() => {
     try { return localStorage.getItem('maddex_globe_mode') ?? 'MARKETS' } catch { return 'MARKETS' }
   })
+  const [isPaused, setIsPaused] = useState(false)
 
   const [tooltip, setTooltip] = useState(null) // { x, y, text }
   const [pinnedCountry, setPinnedCountry] = useState(null)
@@ -115,9 +138,9 @@ export default function MaddexGlobe() {
 
   // ── Mutable, non-React-state animation values (kept out of React state so
   // the RAF loop can run at 60fps without triggering re-renders every frame) ──
-  const rotationRef = useRef([-134, -26, 0])
+  const rotationRef = useRef(DEFAULT_ROTATION.slice())
   const velocityRef = useRef([0, 0])
-  const zoomRef = useRef({ x: 0, y: 0, k: 1 })
+  const zoomKRef = useRef(1) // pure scale factor — globe centre never moves
   const draggingRef = useRef(false)
   const dragLastRef = useRef({ x: 0, y: 0, t: 0 })
   const lastInteractionRef = useRef(0)
@@ -129,10 +152,12 @@ export default function MaddexGlobe() {
   const pinnedExchangeRef = useRef(null)
   const displayModeRef = useRef(displayMode)
   const quotesRef = useRef(quotes)
+  const isPausedRef = useRef(isPaused)
   useEffect(() => { displayModeRef.current = displayMode }, [displayMode])
   useEffect(() => { quotesRef.current = quotes }, [quotes])
   useEffect(() => { pinnedCountryRef.current = pinnedCountry }, [pinnedCountry])
   useEffect(() => { pinnedExchangeRef.current = pinnedExchange }, [pinnedExchange])
+  useEffect(() => { isPausedRef.current = isPaused }, [isPaused])
 
   // Load world atlas once
   useEffect(() => {
@@ -178,14 +203,17 @@ export default function MaddexGlobe() {
   const { width, height } = size
   const radius = Math.max(10, Math.min(width, height) / 2 - 12) // small padding at min zoom
 
-  // ── d3-zoom: wheel + touch only, so mousedown stays dedicated to rotation ──
+  // ── d3-zoom: wheel + touch only, so mousedown stays dedicated to rotation.
+  // Only `transform.k` (the pure scale factor) is used — transform.x/y are
+  // discarded so the globe always scales toward its own centre and never
+  // drifts, regardless of where the cursor/pinch happens to be. ──
   useEffect(() => {
     if (!canvasRef.current) return
     const zoomBehavior = d3.zoom()
       .scaleExtent([1, 5])
       .filter((event) => event.type === 'wheel' || event.type.startsWith('touch'))
       .on('zoom', (event) => {
-        zoomRef.current = { x: event.transform.x, y: event.transform.y, k: event.transform.k }
+        zoomKRef.current = event.transform.k
         lastInteractionRef.current = performance.now()
       })
     d3.select(canvasRef.current).call(zoomBehavior)
@@ -205,40 +233,34 @@ export default function MaddexGlobe() {
     ctx.clearRect(0, 0, width, height)
 
     const mode = displayModeRef.current
-    const zoom = zoomRef.current
+    const zoomK = zoomKRef.current
     const rotation = rotationRef.current
+    const cx = width / 2
+    const cy = height / 2
+    const scaledRadius = radius * zoomK
 
     const projection = d3.geoOrthographic()
-      .scale(radius)
-      .translate([width / 2, height / 2])
+      .scale(scaledRadius)
+      .translate([cx, cy])
       .clipAngle(90)
       .rotate(rotation)
     const path = d3.geoPath(projection, ctx)
 
-    // Atmosphere glow — soft blue-white halo around the sphere edge
-    const atmR = radius * zoom.k + 14
-    const atmGrad = ctx.createRadialGradient(
-      width / 2 + zoom.x - width / 2 * (zoom.k - 1), height / 2 + zoom.y - height / 2 * (zoom.k - 1), radius * zoom.k * 0.94,
-      width / 2 + zoom.x - width / 2 * (zoom.k - 1), height / 2 + zoom.y - height / 2 * (zoom.k - 1), atmR
-    )
-    atmGrad.addColorStop(0, 'rgba(120,170,255,0)')
-    atmGrad.addColorStop(0.7, 'rgba(120,170,255,0.10)')
-    atmGrad.addColorStop(1, 'rgba(180,210,255,0.22)')
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(width / 2 + zoom.x - width / 2 * (zoom.k - 1), height / 2 + zoom.y - height / 2 * (zoom.k - 1), atmR, 0, Math.PI * 2)
-    ctx.fillStyle = atmGrad
-    ctx.fill()
-    ctx.restore()
-
-    ctx.save()
-    ctx.translate(zoom.x, zoom.y)
-    ctx.scale(zoom.k, zoom.k)
-
     const isDark = mode === 'DARK'
 
+    // Atmosphere glow — soft blue halo around the sphere edge
+    const atmR = scaledRadius + 14
+    const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
+    atmGrad.addColorStop(0, 'rgba(26,58,106,0)')
+    atmGrad.addColorStop(0.7, 'rgba(26,58,106,0.15)')
+    atmGrad.addColorStop(1, 'rgba(26,58,106,0.3)')
+    ctx.beginPath()
+    ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
+    ctx.fillStyle = atmGrad
+    ctx.fill()
+
     // Ocean sphere with subtle radial gradient for depth
-    const oceanGrad = ctx.createRadialGradient(width / 2, height / 2, radius * 0.1, width / 2, height / 2, radius)
+    const oceanGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.1, cx, cy, scaledRadius)
     if (isDark) {
       oceanGrad.addColorStop(0, '#020508')
       oceanGrad.addColorStop(1, '#020508')
@@ -251,12 +273,13 @@ export default function MaddexGlobe() {
     // Graticule
     if (!isDark) {
       ctx.beginPath(); path(graticule)
-      ctx.strokeStyle = 'rgba(26,70,140,0.15)'
-      ctx.lineWidth = 0.5 / zoom.k
+      ctx.strokeStyle = 'rgba(26,70,140,0.08)'
+      ctx.lineWidth = 0.5
       ctx.stroke()
     }
 
-    // Countries
+    // Countries — geoPath + clipAngle(90) clips polygon geometry to the
+    // visible hemisphere automatically; back-side countries render nothing.
     const hoveredId = hoveredCountryRef.current
     const pinnedId = pinnedCountryRef.current
     for (const feature of countries) {
@@ -271,85 +294,113 @@ export default function MaddexGlobe() {
 
       const isSel = feature.id === hoveredId || feature.id === pinnedId
       ctx.strokeStyle = isSel ? '#C9A84C' : (isDark ? 'rgba(201,168,76,0.15)' : 'rgba(26,70,140,0.4)')
-      ctx.lineWidth = (isSel ? 1.4 : 0.5) / zoom.k
+      ctx.lineWidth = isSel ? 1.4 : 0.5
       ctx.stroke()
     }
 
     // Sphere outline + rim light
     ctx.beginPath(); path({ type: 'Sphere' })
     ctx.strokeStyle = 'rgba(255,255,255,0.06)'
-    ctx.lineWidth = 1 / zoom.k
+    ctx.lineWidth = 1
     ctx.stroke()
 
-    // FLOW arcs
+    // FLOW arcs — gold → green gradient, animated travelling dashes, clipped
+    // to the front hemisphere by the same geoPath pipeline as countries.
     if (mode === 'FLOW') {
       for (const route of FLOW_ROUTES) {
-        const feature = { type: 'Feature', geometry: { type: 'LineString', coordinates: [FLOW_NODES[route.from], FLOW_NODES[route.to]] } }
+        const from = FLOW_NODE_MAP[route.from]
+        const to = FLOW_NODE_MAP[route.to]
+        const feature = { type: 'Feature', geometry: { type: 'LineString', coordinates: [[from.lon, from.lat], [to.lon, to.lat]] } }
+        const p0 = projection([from.lon, from.lat])
+        const p1 = projection([to.lon, to.lat])
         ctx.beginPath()
         path(feature)
-        ctx.strokeStyle = `rgba(201,168,76,${0.15 + route.volume * 0.35})`
-        ctx.lineWidth = (1 + route.volume * 2.2) / zoom.k
-        ctx.setLineDash([8 / zoom.k, 6 / zoom.k])
-        ctx.lineDashOffset = -((now / 35) % 14)
+        if (p0 && p1) {
+          const grad = ctx.createLinearGradient(p0[0], p0[1], p1[0], p1[1])
+          grad.addColorStop(0, 'rgba(201,168,76,0.6)')
+          grad.addColorStop(1, 'rgba(45,138,80,0.6)')
+          ctx.strokeStyle = grad
+        } else {
+          ctx.strokeStyle = 'rgba(201,168,76,0.6)'
+        }
+        ctx.lineWidth = 1.5
+        ctx.setLineDash([6, 5])
+        ctx.lineDashOffset = -((now / 40) % 11)
         ctx.stroke()
         ctx.setLineDash([])
       }
+
+      // City hub dots + always-on labels — hemisphere-clipped like everything else
+      for (const node of FLOW_NODES) {
+        if (!isPointVisible(node.lon, node.lat, rotation)) continue
+        const p = projection([node.lon, node.lat])
+        if (!p) continue
+        const [px, py] = p
+        ctx.beginPath()
+        ctx.arc(px, py, 3, 0, Math.PI * 2)
+        ctx.fillStyle = '#ffffff'
+        ctx.fill()
+        ctx.font = '8px "IBM Plex Mono", monospace'
+        ctx.fillStyle = '#ffffff'
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(node.name, px + 6, py)
+      }
     }
 
-    // Exchange markers
+    // Exchange markers — small clean indicators, hemisphere-clipped
     const nextScreenPos = {}
     for (const ex of EXCHANGES) {
+      if (!isPointVisible(ex.lon, ex.lat, rotation)) continue
       const p = projection([ex.lon, ex.lat])
       if (!p) continue
       const [px, py] = p
-      const screenX = zoom.x + zoom.k * px
-      const screenY = zoom.y + zoom.k * py
-      const sizeFrac = ex.marketCapB / MAX_MARKET_CAP
-      const baseR = 2 + sizeFrac * 3.5
-      nextScreenPos[ex.id] = { x: screenX, y: screenY, r: (baseR + 3) * zoom.k }
+      nextScreenPos[ex.id] = { x: px, y: py, r: 8 }
 
       const open = isExchangeOpen(ex)
       const isHov = hoveredExchangeRef.current === ex.id || pinnedExchangeRef.current === ex.id
 
       if (isDark) {
         ctx.beginPath()
-        ctx.arc(px, py, 2 / zoom.k, 0, Math.PI * 2)
+        ctx.arc(px, py, 2, 0, Math.PI * 2)
         ctx.fillStyle = '#ffffff'
         ctx.fill()
         continue
       }
 
-      let r = baseR
+      let r = 4
       if (open) {
-        const pulse = 1 + 0.28 * Math.sin(now / 420 + ex.lat)
-        r = baseR * pulse
-        ctx.beginPath()
-        ctx.arc(px, py, r * 1.9, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(201,168,76,0.12)'
-        ctx.fill()
+        const cycle = ((now + ex.lat * 137) % 2000) / 2000
+        r = 4 * (1 + 0.4 * Math.sin(Math.PI * cycle))
       }
+      if (isHov) r *= 1.3
+
       ctx.beginPath()
-      ctx.arc(px, py, isHov ? r * 1.3 : r, 0, Math.PI * 2)
-      ctx.fillStyle = open ? '#C9A84C' : 'rgba(201,168,76,0.45)'
+      ctx.arc(px, py, r, 0, Math.PI * 2)
+      ctx.fillStyle = open ? '#C9A84C' : '#3D5070'
       ctx.fill()
-      ctx.lineWidth = 1 / zoom.k
-      ctx.strokeStyle = '#060D1A'
+      ctx.lineWidth = 1
+      ctx.strokeStyle = 'rgba(6,13,26,0.6)'
       ctx.stroke()
 
-      // Labels above a zoom threshold, MARKETS mode only
-      if (mode === 'MARKETS' && zoom.k > 1.6) {
-        const q = quotesRef.current?.[ex.ySymbol]
-        const label = q?.price != null ? `${ex.label} ${q.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ex.label
-        ctx.font = `${9 / zoom.k}px "IBM Plex Mono", monospace`
+      // Labels only past a zoom threshold, MARKETS mode only, to avoid clutter
+      if (mode === 'MARKETS' && zoomK > 1.8) {
+        ctx.font = '8px "IBM Plex Mono", monospace'
         ctx.fillStyle = '#C9A84C'
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
-        ctx.fillText(label, px + (baseR + 4) / zoom.k, py)
+        ctx.fillText(ex.label, px + 7, py)
       }
     }
     exchangeScreenPosRef.current = nextScreenPos
 
-    ctx.restore()
+    // Vignette — subtle depth cue around the globe's edge, screen-space,
+    // independent of zoom/rotation, drawn last so it sits above everything.
+    const vignette = ctx.createRadialGradient(cx, cy, scaledRadius * 0.75, cx, cy, scaledRadius * 1.15)
+    vignette.addColorStop(0, 'rgba(0,0,0,0)')
+    vignette.addColorStop(1, 'rgba(0,0,0,0.1)')
+    ctx.fillStyle = vignette
+    ctx.fillRect(0, 0, width, height)
   }, [width, height, radius, countries, graticule, heatByCountry])
 
   // ── RAF loop: rotation (auto/inertia) + redraw ──────────────────────────
@@ -371,8 +422,8 @@ export default function MaddexGlobe() {
           0,
         ]
         velocityRef.current = [vLambda * 0.94, vPhi * 0.94]
-      } else if (idle && now - lastInteractionRef.current > 4000) {
-        rotationRef.current = [rotationRef.current[0] + 0.15, rotationRef.current[1], 0]
+      } else if (idle && !isPausedRef.current && now - lastInteractionRef.current > 4000) {
+        rotationRef.current = [rotationRef.current[0] + AUTO_ROTATE_SPEED, rotationRef.current[1], 0]
       }
 
       // Hit-testing against the latest mouse position, once per frame
@@ -385,9 +436,8 @@ export default function MaddexGlobe() {
     function hitTest() {
       const mode = displayModeRef.current
       const { x: mx, y: my } = mouseRef.current
-      const zoom = zoomRef.current
       const projection = d3.geoOrthographic()
-        .scale(radius).translate([width / 2, height / 2]).clipAngle(90).rotate(rotationRef.current)
+        .scale(radius * zoomKRef.current).translate([width / 2, height / 2]).clipAngle(90).rotate(rotationRef.current)
 
       // Exchange markers take priority
       let exId = null
@@ -399,9 +449,7 @@ export default function MaddexGlobe() {
 
       let countryId = null
       if (!exId) {
-        const ux = (mx - zoom.x) / zoom.k
-        const uy = (my - zoom.y) / zoom.k
-        const lonLat = projection.invert([ux, uy])
+        const lonLat = projection.invert([mx, my])
         if (lonLat && Math.abs(lonLat[0]) <= 180) {
           for (const feature of countries) {
             if (d3.geoContains(feature, lonLat)) { countryId = feature.id; break }
@@ -507,6 +555,29 @@ export default function MaddexGlobe() {
     try { localStorage.setItem('maddex_globe_mode', mode) } catch {}
   }
 
+  function togglePaused() {
+    setIsPaused(p => !p)
+  }
+
+  // Animate rotation back to the default orientation over ~800ms.
+  function resetView() {
+    const start = rotationRef.current.slice()
+    const end = DEFAULT_ROTATION
+    const interpolate = d3.interpolate(start, end)
+    const startTime = performance.now()
+    const duration = 800
+    velocityRef.current = [0, 0]
+    lastInteractionRef.current = startTime
+
+    function tick(now) {
+      const t = Math.min((now - startTime) / duration, 1)
+      rotationRef.current = interpolate(d3.easeCubicInOut(t))
+      lastInteractionRef.current = now
+      if (t < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }
+
   // ── Data cards ───────────────────────────────────────────────────────────
   const pinnedCountryFeature = pinnedCountry ? countries.find(f => f.id === pinnedCountry) : null
   const pinnedCountryName = pinnedCountryFeature?.properties?.name ?? null
@@ -586,72 +657,110 @@ export default function MaddexGlobe() {
         </div>
       )}
 
-      {/* Pinned data card — fixed bottom-left, never overlaps layer controls */}
-      {(pinnedCountryName || pinnedExchangeData) && (
-        <div className="absolute bottom-3 left-3 z-10 bg-terminal-panel border border-terminal-gold/40 px-3 py-2.5 min-w-[180px] max-w-[240px] shadow-xl">
-          {pinnedExchangeData ? (
-            <>
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-xs font-bold text-terminal-gold">{pinnedExchangeData.label}</span>
-                <span className={`text-[8px] font-mono px-1.5 py-0.5 ${isExchangeOpen(pinnedExchangeData) ? 'bg-terminal-green/20 text-terminal-green' : 'bg-terminal-border text-terminal-text-dim'}`}>
-                  {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
-                </span>
-              </div>
-              <div className="text-2xs text-terminal-text-dim mb-1">{pinnedExchangeData.city}</div>
-              {pinnedExchangeQuote?.price != null && (
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-sm text-terminal-text-bright">{pinnedExchangeQuote.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                  {pinnedExchangeQuote.dayChangePct != null && (
-                    <span className={`font-mono text-2xs ${pinnedExchangeQuote.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                      {pinnedExchangeQuote.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeQuote.dayChangePct).toFixed(2)}%
-                    </span>
-                  )}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => setPinnedExchange(null)}
-                className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
-              >
-                ✕ close
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="font-mono text-xs font-bold text-terminal-text-bright mb-1">{pinnedCountryName}</div>
-              {pinnedCountryExchange ? (
-                (() => {
-                  const q = quotes?.[pinnedCountryExchange.ySymbol]
-                  return (
-                    <div className="text-2xs text-terminal-text-dim">
-                      {pinnedCountryExchange.label}
-                      {q?.price != null && (
-                        <>
-                          {' '}· {q.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          {q.dayChangePct != null && (
-                            <span className={q.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}>
-                              {' '}{q.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(q.dayChangePct).toFixed(2)}%
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })()
+      {/* Bottom-left stack: pause/reset controls always at the true bottom;
+          the pinned data card (when present) stacks above via column-reverse
+          so the two never overlap. */}
+      <div className="absolute bottom-3 left-3 z-10 flex flex-col-reverse items-start gap-2">
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={togglePaused}
+            title={isPaused ? 'Resume rotation' : 'Pause rotation'}
+            className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              {isPaused ? (
+                <polygon points="2,1 9,5 2,9" fill="currentColor" />
               ) : (
-                <div className="text-2xs text-terminal-text-dim">No exchange data for this country</div>
+                <>
+                  <rect x="2" y="1" width="2.2" height="8" fill="currentColor" />
+                  <rect x="5.8" y="1" width="2.2" height="8" fill="currentColor" />
+                </>
               )}
-              <button
-                type="button"
-                onClick={() => setPinnedCountry(null)}
-                className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
-              >
-                ✕ close
-              </button>
-            </>
-          )}
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={resetView}
+            title="Reset view"
+            className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <circle cx="5" cy="5" r="3.2" fill="none" stroke="currentColor" strokeWidth="1" />
+              <line x1="5" y1="0" x2="5" y2="1.8" stroke="currentColor" strokeWidth="1" />
+              <line x1="5" y1="8.2" x2="5" y2="10" stroke="currentColor" strokeWidth="1" />
+              <line x1="0" y1="5" x2="1.8" y2="5" stroke="currentColor" strokeWidth="1" />
+              <line x1="8.2" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </button>
         </div>
-      )}
+
+        {(pinnedCountryName || pinnedExchangeData) && (
+          <div className="bg-terminal-panel border border-terminal-gold/40 px-3 py-2.5 min-w-[180px] max-w-[240px] shadow-xl">
+            {pinnedExchangeData ? (
+              <>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-mono text-xs font-bold text-terminal-gold">{pinnedExchangeData.label}</span>
+                  <span className={`text-[8px] font-mono px-1.5 py-0.5 ${isExchangeOpen(pinnedExchangeData) ? 'bg-terminal-green/20 text-terminal-green' : 'bg-terminal-border text-terminal-text-dim'}`}>
+                    {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
+                  </span>
+                </div>
+                <div className="text-2xs text-terminal-text-dim mb-1">{pinnedExchangeData.city}</div>
+                {pinnedExchangeQuote?.price != null && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-sm text-terminal-text-bright">{pinnedExchangeQuote.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    {pinnedExchangeQuote.dayChangePct != null && (
+                      <span className={`font-mono text-2xs ${pinnedExchangeQuote.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                        {pinnedExchangeQuote.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeQuote.dayChangePct).toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPinnedExchange(null)}
+                  className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
+                >
+                  ✕ close
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="font-mono text-xs font-bold text-terminal-text-bright mb-1">{pinnedCountryName}</div>
+                {pinnedCountryExchange ? (
+                  (() => {
+                    const q = quotes?.[pinnedCountryExchange.ySymbol]
+                    return (
+                      <div className="text-2xs text-terminal-text-dim">
+                        {pinnedCountryExchange.label}
+                        {q?.price != null && (
+                          <>
+                            {' '}· {q.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            {q.dayChangePct != null && (
+                              <span className={q.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}>
+                                {' '}{q.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(q.dayChangePct).toFixed(2)}%
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )
+                  })()
+                ) : (
+                  <div className="text-2xs text-terminal-text-dim">No exchange data for this country</div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPinnedCountry(null)}
+                  className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
+                >
+                  ✕ close
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
