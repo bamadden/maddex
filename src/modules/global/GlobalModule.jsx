@@ -740,9 +740,48 @@ function CompassRose({ rotation, onReset }) {
   )
 }
 
+const DISPLAY_MODES = [
+  { id: 'MARKETS', label: 'MARKETS' },
+  { id: 'HEAT',    label: 'HEAT' },
+  { id: 'FLOW',    label: 'FLOW' },
+  { id: 'DARK',    label: 'DARK' },
+]
+
+function DisplayModeToggle({ mode, onChange }) {
+  return (
+    <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, display: 'flex', gap: 2, pointerEvents: 'auto' }}
+      className="bg-terminal-panel/85 border border-terminal-border/70 p-1 backdrop-blur-sm"
+    >
+      {DISPLAY_MODES.map(m => {
+        const active = mode === m.id
+        return (
+          <button
+            key={m.id}
+            onClick={() => onChange(m.id)}
+            style={{
+              fontSize: 9,
+              padding: '3px 8px',
+              border: '1px solid',
+              borderColor: active ? '#c8a84b' : 'rgba(13,34,68,0.8)',
+              background: active ? '#c8a84b' : 'transparent',
+              color: active ? '#040d1a' : '#4a6580',
+              fontWeight: active ? 700 : 400,
+              fontFamily: 'IBM Plex Mono, monospace',
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+            }}
+          >
+            {m.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── 3D Globe ─────────────────────────────────────────────────────────────────
 
-function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, geoNewsItems, selectedArc, onArcClick, onExchangeClick, search, onSearchChange }) {
+function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, geoNewsItems, selectedArc, onArcClick, onExchangeClick, search, onSearchChange, displayMode, onDisplayModeChange }) {
   const containerRef = useRef(null)
   const svgRef       = useRef(null)
 
@@ -753,6 +792,7 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
   const [hoveredExPos, setHoveredExPos] = useState({ x: 0, y: 0 })
   const [tooltipPos, setTooltipPos]   = useState({ x: 0, y: 0 })
   const [rotation, setRotation]       = useState([-134, 26, 0])
+  const [zoomTransform, setZoomTransform] = useState({ x: 0, y: 0, k: 1 })
 
   // Refs to avoid stale closures in RAF / event handlers
   const rotRef         = useRef([-134, 26, 0])
@@ -799,6 +839,64 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
     ? topojson.mesh(topology, topology.objects.countries, (a, b) => a !== b)
     : null, [topology])
 
+  // HEAT mode: real GDP-growth data (countryDatabase.js) joined onto the
+  // topojson numeric country IDs via COUNTRY_NAMES, since countryDatabase is
+  // keyed by country name, not the ISO numeric ID the atlas uses.
+  const gdpGrowthById = useMemo(() => {
+    const nameToId = {}
+    for (const [id, name] of Object.entries(COUNTRY_NAMES)) nameToId[name] = parseInt(id)
+    const map = {}
+    for (const c of COUNTRIES) {
+      const id = nameToId[c.name]
+      if (id != null && typeof c.gdpGrowth === 'number') map[id] = c.gdpGrowth
+    }
+    return map
+  }, [])
+
+  // FLOW mode: follow-the-sun capital-flow loop between major financial
+  // centres, using the same exchange coordinates already plotted as markets.
+  const financialFlowRoutes = useMemo(() => {
+    const byId = Object.fromEntries(EXCHANGES.map(e => [e.id, e]))
+    const seq = ['NYSE', 'LSE', 'TSE', 'ASX']
+    const routes = []
+    for (let i = 0; i < seq.length; i++) {
+      const from = byId[seq[i]]
+      const to = byId[seq[(i + 1) % seq.length]]
+      if (!from || !to) continue
+      routes.push({ id: `${from.id}-${to.id}`, from: [from.lon, from.lat], to: [to.lon, to.lat] })
+    }
+    return routes
+  }, [])
+
+  const flowRoutePaths = useMemo(() => {
+    if (displayMode !== 'FLOW') return []
+    return financialFlowRoutes.map(route => {
+      const feature = { type: 'Feature', geometry: { type: 'LineString', coordinates: [route.from, route.to] } }
+      try {
+        const d = pathGen(feature)
+        return d ? { ...route, d } : null
+      } catch { return null }
+    }).filter(Boolean)
+  }, [financialFlowRoutes, pathGen, displayMode])
+
+  function getHeatColor(id) {
+    const n = parseInt(id)
+    const g = gdpGrowthById[n]
+    if (g == null) return '#0a1628'
+    const clamped = Math.max(-3, Math.min(6, g))
+    return clamped >= 0
+      ? d3.interpolateRgb('#122018', '#00c853')(clamped / 6)
+      : d3.interpolateRgb('#122018', '#ff1744')(-clamped / 3)
+  }
+
+  function getFillForMode(id) {
+    const n = parseInt(id)
+    if (displayMode === 'HEAT') return getHeatColor(id)
+    if (displayMode === 'DARK') return n === 36 ? 'rgba(200,168,75,0.12)' : 'rgba(10,20,40,0.25)'
+    if (displayMode === 'FLOW') return n === 36 ? '#c8a84b' : '#0a1628'
+    return getCountryColor(id, openCountryIds)
+  }
+
   // Globe is static by default — drag to rotate manually
 
   // Window-level drag handlers
@@ -819,6 +917,25 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
       window.removeEventListener('mouseup', onUp)
     }
   }, [])
+
+  // Zoom (wheel + trackpad pinch + touch pinch) — deliberately scoped to
+  // wheel/touch only via .filter() so mousedown keeps driving the existing
+  // custom rotate-drag above instead of d3-zoom's own pan behaviour.
+  // d3.zoom's default wheel handler already zooms toward the cursor position
+  // and treats ctrlKey+wheel (how browsers report trackpad pinch) with the
+  // right sensitivity, so no extra pointer math is needed here.
+  const zoomBehavior = useMemo(() => d3.zoom()
+    .scaleExtent([1, 8])
+    .filter((event) => event.type === 'wheel' || event.type.startsWith('touch'))
+    .on('zoom', (event) => {
+      setZoomTransform({ x: event.transform.x, y: event.transform.y, k: event.transform.k })
+    })
+  , [])
+
+  useEffect(() => {
+    if (!svgRef.current) return
+    d3.select(svgRef.current).call(zoomBehavior)
+  }, [zoomBehavior])
 
   // Commodity flow paths
   const flowPaths = useMemo(() => {
@@ -944,6 +1061,11 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           `}</style>
         </defs>
 
+        {/* Wheel/pinch zoom is applied here as a plain 2D transform on top of
+            the already-projected globe — d3.zoom computes x/y so whatever
+            point was under the cursor stays under it as k changes. */}
+        <g transform={`translate(${zoomTransform.x},${zoomTransform.y}) scale(${zoomTransform.k})`}>
+
         {/* Atmosphere halo */}
         <circle cx={width / 2} cy={height / 2} r={radius + 9}
           fill="url(#globe-atm)" pointerEvents="none" />
@@ -951,8 +1073,10 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
         {/* Ocean sphere — transparent so globe feels open; edge defined by atmosphere halo + outline */}
         <path d={pathGen({ type: 'Sphere' })} fill="rgba(6,15,35,0.45)" />
 
-        {/* Graticule */}
-        <path d={pathGen(graticule)} fill="none" stroke="#08172a" strokeWidth={0.5} pointerEvents="none" />
+        {/* Graticule — hidden in DARK mode for a minimal look */}
+        {displayMode !== 'DARK' && (
+          <path d={pathGen(graticule)} fill="none" stroke="#08172a" strokeWidth={0.5} pointerEvents="none" />
+        )}
 
         {/* Countries */}
         {countries.map(feature => {
@@ -963,7 +1087,7 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
             <path
               key={feature.id}
               d={pathGen(feature)}
-              fill={isHov || isSel ? getHoverColor(feature.id) : getCountryColor(feature.id, openCountryIds)}
+              fill={isHov || isSel ? getHoverColor(feature.id) : getFillForMode(feature.id)}
               stroke={isSel || isSrch ? '#c8a84b' : 'rgba(26,58,107,0.55)'}
               strokeWidth={isSel || isSrch ? 1.5 : 0.35}
               className="cursor-pointer"
@@ -1129,6 +1253,21 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
           )
         })}
 
+        {/* FLOW mode — animated follow-the-sun capital-flow arcs between major financial centres */}
+        {displayMode === 'FLOW' && flowRoutePaths.map(route => (
+          <g key={route.id} pointerEvents="none">
+            <path d={route.d} fill="none" stroke="#c8a84b" strokeWidth={3} opacity={0.1} />
+            <path d={route.d} fill="none" stroke="#c8a84b" strokeWidth={1.2} opacity={0.5} />
+            <path d={route.d} fill="none" stroke="#c8a84b" strokeWidth={1.8}
+              strokeDasharray="8 6" opacity={0.85} className="flow-line" style={{ strokeDashoffset: 14 }} />
+            <circle r={3} fill="#f0c040">
+              <animateMotion dur="3.5s" repeatCount="indefinite" path={route.d} />
+            </circle>
+          </g>
+        ))}
+
+        </g>
+
         {/* Exchange hover tooltip */}
         {hoveredExchange && (() => {
           const ex = EXCHANGES.find(e => e.id === hoveredExchange)
@@ -1190,6 +1329,9 @@ function WorldMap({ openCountryIds, activeLayers, onCountryClick, selectedId, ge
         rotRef.current = [-134, 26, 0]
         setRotation([-134, 26, 0])
       }} />
+
+      {/* Layer / display-mode toggle */}
+      <DisplayModeToggle mode={displayMode} onChange={onDisplayModeChange} />
     </div>
   )
 }
@@ -2565,6 +2707,17 @@ export default function GlobalModule() {
     return defaults
   })
 
+  // Globe display mode — mutually exclusive (unlike the additive `layers`
+  // toggles above), overlaid directly on the globe rather than in the
+  // control bar. Persisted the same way as layers.
+  const [displayMode, setDisplayMode] = useState(() => {
+    try { return localStorage.getItem('madden_globe_display_mode') ?? 'MARKETS' } catch { return 'MARKETS' }
+  })
+  const handleDisplayModeChange = useCallback((mode) => {
+    setDisplayMode(mode)
+    try { localStorage.setItem('madden_globe_display_mode', mode) } catch {}
+  }, [])
+
   const { rates } = useAudRates()
   const audUsd = rates?.USD ?? FALLBACK_AUD_USD
 
@@ -2762,6 +2915,8 @@ export default function GlobalModule() {
                 if (arc) setActiveTab('air')
               }}
               onExchangeClick={handleExchangeClick}
+              displayMode={displayMode}
+              onDisplayModeChange={handleDisplayModeChange}
             />
           </div>
 
