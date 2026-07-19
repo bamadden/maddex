@@ -290,20 +290,30 @@ function ProfileSection() {
 
 // ─── PREFERENCES ─────────────────────────────────────────────────────────────
 
+const DISPLAY_CURRENCIES = [
+  { code: 'AUD', flag: '🇦🇺' }, { code: 'USD', flag: '🇺🇸' },
+  { code: 'GBP', flag: '🇬🇧' }, { code: 'EUR', flag: '🇪🇺' },
+  { code: 'SGD', flag: '🇸🇬' }, { code: 'NZD', flag: '🇳🇿' },
+  { code: 'JPY', flag: '🇯🇵' }, { code: 'CAD', flag: '🇨🇦' },
+]
+
 function PreferencesSection() {
-  const { settings, updateSettings } = useAuthStore()
+  const { settings, updateSettings, profile, updateProfile } = useAuthStore()
   const { setCurrency: setStoreCurrency } = useStore()
   const [currency, setCurrency] = useState(settings?.currency || 'AUD')
   const [defaultModule, setDefaultModule] = useState(settings?.default_module || 'markets')
   const [refreshInterval, setRefreshInterval] = useState(settings?.auto_refresh_interval || 60)
   const [compactMode, setCompactMode] = useState(settings?.compact_mode || false)
   const [timezone, setTimezone] = useState(settings?.timezone || 'Australia/Sydney')
+  const [preferredCurrency, setPreferredCurrency] = useState(profile?.preferred_currency || 'AUD')
+  const [showSecondary, setShowSecondary] = useState(profile?.show_secondary_currency !== false)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(false)
 
   const handleSave = async () => {
     setLoading(true)
     await updateSettings({ currency, default_module: defaultModule, auto_refresh_interval: refreshInterval, compact_mode: compactMode, timezone })
+    await updateProfile({ preferred_currency: preferredCurrency, show_secondary_currency: showSecondary })
     setStoreCurrency(currency)
     setLoading(false)
     setToast(true); setTimeout(() => setToast(false), 3000)
@@ -327,6 +337,34 @@ function PreferencesSection() {
           ))}
         </div>
       </div>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-2xs text-terminal-text-dim mb-1">PREFERRED DISPLAY CURRENCY</div>
+        <div className="text-2xs text-terminal-text-dim/60 mb-2">
+          Used across Maddex products for dual-currency conversion (e.g. Research Notes).
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {DISPLAY_CURRENCIES.map(({ code, flag }) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setPreferredCurrency(code)}
+              className={`flex items-center gap-1.5 px-2 py-1.5 border text-left transition-colors ${
+                preferredCurrency === code
+                  ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
+                  : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
+              }`}
+            >
+              <span className="text-xs">{flag}</span>
+              <span className="text-2xs font-bold">{code}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <FieldRow label="Show secondary currency" note="e.g. AAPL shows US$333.74 with A$517.48 below it">
+        <Toggle value={showSecondary} onChange={setShowSecondary} />
+      </FieldRow>
 
       <div>
         <div className="text-2xs text-terminal-text-dim mb-2">DEFAULT MODULE</div>

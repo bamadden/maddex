@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { getTimezoneFromCountry } from '../lib/profileUtils'
+import { fetchFxRates } from '../services/api'
+
+// preferred_currency values the marketing site's profiles.preferred_currency
+// check constraint accepts — kept in sync manually since both apps read the
+// same Supabase project.
+export const CURRENCY_SYMBOLS = {
+  AUD: 'A$', USD: 'US$', GBP: '£', EUR: '€',
+  SGD: 'S$', NZD: 'NZ$', JPY: '¥', CAD: 'C$',
+}
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -8,6 +17,7 @@ export const useAuthStore = create((set, get) => ({
   session: null,
   settings: null,
   loading: true,
+  fxRates: {},
 
   initialize: async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -33,6 +43,7 @@ export const useAuthStore = create((set, get) => ({
 
       await get().loadProfile()
       await get().loadSettings()
+      await get().loadFxRates()
     }
     set({ loading: false })
 
@@ -41,8 +52,9 @@ export const useAuthStore = create((set, get) => ({
       if (session) {
         await get().loadProfile()
         await get().loadSettings()
+        await get().loadFxRates()
       } else {
-        set({ profile: null, settings: null })
+        set({ profile: null, settings: null, fxRates: {} })
       }
     })
   },
@@ -57,6 +69,20 @@ export const useAuthStore = create((set, get) => ({
     const profile = data?.[0]
     if (profile) { console.log('loadProfile: setting profile', profile); set({ profile }) }
     else console.warn('loadProfile: no profile row found for user', userId)
+  },
+
+  // Fetches live rates relative to the user's preferred_currency (defaults to
+  // AUD until that column exists / is set). fxRates[quote] = how many `quote`
+  // units per 1 unit of preferred_currency — same shape the marketing site
+  // uses, so DualCurrencyValue/convertAmount behave identically in both apps.
+  loadFxRates: async () => {
+    const preferred = get().profile?.preferred_currency || 'AUD'
+    try {
+      const rates = await fetchFxRates(preferred)
+      set({ fxRates: { ...rates, [preferred]: 1 } })
+    } catch (err) {
+      console.error('loadFxRates error:', err.message)
+    }
   },
 
   loadSettings: async () => {
@@ -139,7 +165,35 @@ export const useAuthStore = create((set, get) => ({
     console.log('updateProfile updated profile:', profile)
     if (profile) { set({ profile }); console.log('updateProfile: profile state updated') }
     else console.warn('updateProfile: update returned empty data — check RLS policies and row existence')
+    if (!error && updates.preferred_currency) {
+      await get().loadFxRates()
+    }
     return { data: profile ?? null, error }
+  },
+
+  // Converts `amount` (in fromCurrency) into the signed-in user's
+  // preferred_currency. Returns null when no conversion is needed/possible
+  // (same currency, no profile yet, or the rate hasn't loaded).
+  convertAmount: (amount, fromCurrency) => {
+    const profile = get().profile
+    if (!profile) return null
+    const preferred = profile.preferred_currency || 'AUD'
+    if (fromCurrency === preferred) return null
+
+    const rate = get().fxRates[fromCurrency]
+    if (!rate) return null
+
+    const converted = amount / rate
+    const symbol = CURRENCY_SYMBOLS[preferred] || preferred
+
+    return {
+      converted,
+      display: `${symbol}${converted.toLocaleString('en-AU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: fromCurrency === 'JPY' ? 0 : 2,
+      })}`,
+      symbol,
+    }
   },
 
   updateSettings: async (updates) => {

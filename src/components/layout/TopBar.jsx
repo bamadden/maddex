@@ -101,6 +101,11 @@ function MarketDropdown({ now }) {
 
 // ─── User Menu ─────────────────────────────────────────────────────────────────
 
+const CURRENCY_FLAGS = {
+  AUD: '🇦🇺', USD: '🇺🇸', GBP: '🇬🇧', EUR: '🇪🇺',
+  SGD: '🇸🇬', NZD: '🇳🇿', JPY: '🇯🇵', CAD: '🇨🇦',
+}
+
 function UserMenu() {
   const { profile, user, signOut } = useAuthStore()
   const { setActiveModule } = useStore()
@@ -117,6 +122,8 @@ function UserMenu() {
 
   const initials = getInitials(profile, user)
   const displayName = profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : user?.email || ''
+  // Flag only appears once profiles.preferred_currency exists (post-migration)
+  const currencyFlag = profile?.preferred_currency ? CURRENCY_FLAGS[profile.preferred_currency] : null
 
   return (
     <>
@@ -128,6 +135,7 @@ function UserMenu() {
           <div className="w-7 h-7 flex items-center justify-center bg-terminal-accent border border-terminal-gold/60 text-terminal-gold text-2xs font-bold flex-shrink-0">
             {initials}
           </div>
+          {currencyFlag && <span className="text-xs flex-shrink-0" title={profile.preferred_currency}>{currencyFlag}</span>}
           <span className="text-terminal-text-dim text-2xs hidden sm:block">
             {profile?.first_name || user?.email?.split('@')[0] || ''}
           </span>
