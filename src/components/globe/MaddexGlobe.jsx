@@ -25,42 +25,142 @@ const EXCHANGES = [
   { id: 'KRX',    label: 'KRX',       city: 'Seoul',     lat: 37.5665,  lon: 126.9780, tz: 'Asia/Seoul',        open: [9, 0],   close: [15, 30], countryId: 410, ySymbol: '^KS11',   marketCapB: 1900 },
 ]
 
-// FLOW mode: follow-the-sun capital-flow loop — NYC → London → Frankfurt /
-// Dubai → Mumbai → Singapore → Hong Kong → Tokyo → Sydney → NYC.
-const FLOW_NODES = [
-  { id: 'NYC',       name: 'New York',  lon: -74.0060, lat: 40.7128 },
-  { id: 'LONDON',    name: 'London',    lon: -0.1278,  lat: 51.5074 },
-  { id: 'FRANKFURT', name: 'Frankfurt', lon: 8.6821,   lat: 50.1109 },
-  { id: 'DUBAI',     name: 'Dubai',     lon: 55.2708,  lat: 25.2048 },
-  { id: 'MUMBAI',    name: 'Mumbai',    lon: 72.8777,  lat: 19.0760 },
-  { id: 'SINGAPORE', name: 'Singapore', lon: 103.8198, lat: 1.3521 },
-  { id: 'HONGKONG',  name: 'Hong Kong', lon: 114.1694, lat: 22.3193 },
-  { id: 'TOKYO',     name: 'Tokyo',     lon: 139.6503, lat: 35.6762 },
-  { id: 'SYDNEY',    name: 'Sydney',    lon: 151.2093, lat: -33.8688 },
-]
-const FLOW_NODE_MAP = Object.fromEntries(FLOW_NODES.map(n => [n.id, n]))
-const FLOW_ROUTES = [
-  { id: 'nyc-london',         from: 'NYC',       to: 'LONDON' },
-  { id: 'london-frankfurt',   from: 'LONDON',    to: 'FRANKFURT' },
-  { id: 'london-dubai',       from: 'LONDON',    to: 'DUBAI' },
-  { id: 'dubai-mumbai',       from: 'DUBAI',     to: 'MUMBAI' },
-  { id: 'mumbai-singapore',   from: 'MUMBAI',    to: 'SINGAPORE' },
-  { id: 'singapore-hongkong', from: 'SINGAPORE', to: 'HONGKONG' },
-  { id: 'hongkong-tokyo',     from: 'HONGKONG',  to: 'TOKYO' },
-  { id: 'tokyo-sydney',       from: 'TOKYO',     to: 'SYDNEY' },
-  { id: 'sydney-nyc',         from: 'SYDNEY',    to: 'NYC' },
-]
-
 const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
-const DISPLAY_MODES = ['MARKETS', 'HEAT', 'FLOW', 'DARK']
+const DISPLAY_MODES = ['EARTH', 'MARKETS', 'HEAT', 'CRYPTO', 'DARK']
 
 // Default starting orientation — Australia/Asia-Pacific centred, matches the
-// terminal's home market. Auto-rotate speed is degrees/frame at ~60fps.
+// terminal's home market. Auto-rotate speed is degrees added per frame.
 const DEFAULT_ROTATION = [-134, -26, 0]
 const AUTO_ROTATE_SPEED = 0.06
 
 const RAD = Math.PI / 180
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EARTH layer — continent lookup + natural-earth tones
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CONTINENT_COLORS = {
+  EUROPE: '#8fa876',
+  AFRICA: '#c4a265',
+  ASIA: '#a8896b',
+  NORTH_AMERICA: '#7a9e6e',
+  SOUTH_AMERICA: '#6b9e6e',
+  OCEANIA: '#c4956a',
+  ANTARCTICA: '#e8e8e8',
+}
+const EARTH_DEFAULT_COLOR = '#7d8f78'
+
+// ISO 3166-1 numeric id (matches world-atlas topojson feature.id) → continent
+const CONTINENT_BY_COUNTRY_ID = {
+  4: 'ASIA', 8: 'EUROPE', 12: 'AFRICA', 16: 'OCEANIA', 20: 'EUROPE', 24: 'AFRICA',
+  28: 'NORTH_AMERICA', 31: 'ASIA', 32: 'SOUTH_AMERICA', 36: 'OCEANIA', 40: 'EUROPE',
+  44: 'NORTH_AMERICA', 48: 'ASIA', 50: 'ASIA', 52: 'NORTH_AMERICA', 56: 'EUROPE', 64: 'ASIA',
+  68: 'SOUTH_AMERICA', 70: 'EUROPE', 72: 'AFRICA', 76: 'SOUTH_AMERICA', 84: 'NORTH_AMERICA',
+  86: 'ASIA', 90: 'OCEANIA', 96: 'ASIA', 100: 'EUROPE',
+  104: 'ASIA', 108: 'AFRICA', 112: 'EUROPE', 116: 'ASIA', 120: 'AFRICA', 124: 'NORTH_AMERICA',
+  132: 'AFRICA', 136: 'NORTH_AMERICA', 140: 'AFRICA', 144: 'ASIA',
+  148: 'AFRICA', 152: 'SOUTH_AMERICA', 156: 'ASIA', 158: 'ASIA', 170: 'SOUTH_AMERICA', 174: 'AFRICA',
+  175: 'AFRICA', 178: 'AFRICA', 180: 'AFRICA', 184: 'OCEANIA',
+  188: 'NORTH_AMERICA', 191: 'EUROPE', 192: 'NORTH_AMERICA', 196: 'EUROPE', 203: 'EUROPE', 204: 'AFRICA',
+  208: 'EUROPE', 212: 'NORTH_AMERICA', 214: 'NORTH_AMERICA', 218: 'SOUTH_AMERICA', 818: 'AFRICA',
+  222: 'NORTH_AMERICA', 226: 'AFRICA', 232: 'AFRICA', 233: 'EUROPE', 231: 'AFRICA',
+  238: 'SOUTH_AMERICA', 242: 'OCEANIA', 246: 'EUROPE', 250: 'EUROPE', 262: 'AFRICA', 266: 'AFRICA',
+  268: 'ASIA', 270: 'AFRICA', 275: 'ASIA', 276: 'EUROPE', 288: 'AFRICA', 292: 'EUROPE',
+  296: 'OCEANIA', 300: 'EUROPE', 308: 'NORTH_AMERICA', 316: 'OCEANIA', 320: 'NORTH_AMERICA', 324: 'AFRICA',
+  328: 'SOUTH_AMERICA', 332: 'NORTH_AMERICA', 336: 'EUROPE', 340: 'NORTH_AMERICA', 344: 'ASIA',
+  348: 'EUROPE', 352: 'EUROPE', 356: 'ASIA', 360: 'ASIA', 364: 'ASIA', 368: 'ASIA',
+  372: 'EUROPE', 376: 'ASIA', 380: 'EUROPE', 388: 'NORTH_AMERICA', 392: 'ASIA', 398: 'ASIA',
+  400: 'ASIA', 404: 'AFRICA', 408: 'ASIA', 410: 'ASIA', 414: 'ASIA',
+  417: 'ASIA', 418: 'ASIA', 422: 'ASIA', 426: 'AFRICA', 428: 'EUROPE', 430: 'AFRICA',
+  434: 'AFRICA', 438: 'EUROPE', 440: 'EUROPE', 442: 'EUROPE', 446: 'ASIA',
+  450: 'AFRICA', 454: 'AFRICA', 458: 'ASIA', 462: 'ASIA', 466: 'AFRICA', 470: 'EUROPE',
+  478: 'AFRICA', 480: 'AFRICA', 484: 'NORTH_AMERICA', 492: 'EUROPE', 496: 'ASIA', 498: 'EUROPE',
+  499: 'EUROPE', 504: 'AFRICA', 508: 'AFRICA', 512: 'ASIA', 516: 'AFRICA', 520: 'OCEANIA',
+  524: 'ASIA', 528: 'EUROPE', 540: 'OCEANIA', 548: 'OCEANIA', 554: 'OCEANIA',
+  558: 'NORTH_AMERICA', 562: 'AFRICA', 566: 'AFRICA', 578: 'EUROPE', 583: 'OCEANIA',
+  584: 'OCEANIA', 585: 'OCEANIA', 586: 'ASIA', 591: 'NORTH_AMERICA', 598: 'OCEANIA',
+  600: 'SOUTH_AMERICA', 604: 'SOUTH_AMERICA', 608: 'ASIA', 616: 'EUROPE', 620: 'EUROPE', 624: 'AFRICA',
+  626: 'ASIA', 630: 'NORTH_AMERICA', 634: 'ASIA', 638: 'AFRICA', 642: 'EUROPE', 643: 'EUROPE',
+  646: 'AFRICA', 659: 'NORTH_AMERICA', 662: 'NORTH_AMERICA',
+  670: 'NORTH_AMERICA', 674: 'EUROPE', 678: 'AFRICA',
+  682: 'ASIA', 686: 'AFRICA', 688: 'EUROPE', 690: 'AFRICA', 694: 'AFRICA',
+  702: 'ASIA', 703: 'EUROPE', 705: 'EUROPE', 706: 'AFRICA', 710: 'AFRICA',
+  716: 'AFRICA', 724: 'EUROPE', 728: 'AFRICA', 729: 'AFRICA', 740: 'SOUTH_AMERICA', 748: 'AFRICA',
+  752: 'EUROPE', 756: 'EUROPE', 760: 'ASIA', 762: 'ASIA', 764: 'ASIA', 768: 'AFRICA',
+  776: 'OCEANIA', 780: 'NORTH_AMERICA', 784: 'ASIA', 788: 'AFRICA',
+  792: 'ASIA', 795: 'ASIA', 798: 'OCEANIA', 800: 'AFRICA', 804: 'EUROPE',
+  807: 'EUROPE', 826: 'EUROPE', 834: 'AFRICA', 840: 'NORTH_AMERICA',
+  854: 'AFRICA', 858: 'SOUTH_AMERICA', 860: 'ASIA', 862: 'SOUTH_AMERICA', 882: 'OCEANIA',
+  887: 'ASIA', 894: 'AFRICA',
+  10: 'ANTARCTICA', 304: 'NORTH_AMERICA', 732: 'AFRICA',
+  704: 'ASIA', // Vietnam
+}
+
+function earthFillColor(numericId) {
+  const continent = CONTINENT_BY_COUNTRY_ID[numericId]
+  return (continent && CONTINENT_COLORS[continent]) || EARTH_DEFAULT_COLOR
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRYPTO layer — adoption tiers + top crypto hubs
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CRYPTO_TIER_COLORS = {
+  'very-high': '#2D8A50',
+  high: '#1a5c35',
+  medium: '#1A3A6A',
+  low: '#6B2323',
+  banned: '#A83232',
+}
+const CRYPTO_TIER_INFO = {
+  'very-high': { label: 'Very High Adoption', legal: 'Legal' },
+  high: { label: 'High Adoption', legal: 'Legal' },
+  medium: { label: 'Medium Adoption', legal: 'Legal' },
+  low: { label: 'Low Adoption', legal: 'Restricted' },
+  banned: { label: 'Minimal Adoption', legal: 'Banned' },
+}
+// Illustrative adoption tiers by ISO numeric id — same synthetic-data spirit
+// as the HEAT layer's index-based colouring.
+const CRYPTO_TIER_BY_COUNTRY_ID = {
+  222: 'very-high', 566: 'very-high', 704: 'very-high', 608: 'very-high', 804: 'very-high', 356: 'very-high',
+  840: 'high', 76: 'high', 792: 'high', 32: 'high', 764: 'high', 360: 'high',
+  36: 'medium', 826: 'medium', 276: 'medium', 124: 'medium', 250: 'medium', 702: 'medium', 392: 'medium', 410: 'medium',
+  156: 'low', 643: 'low', 12: 'low', 818: 'low', 504: 'low', 68: 'low', 218: 'low',
+  50: 'banned', 524: 'banned', 4: 'banned', 634: 'banned',
+}
+
+function cryptoFillColor(numericId) {
+  const tier = CRYPTO_TIER_BY_COUNTRY_ID[numericId]
+  return tier ? CRYPTO_TIER_COLORS[tier] : '#0B1628'
+}
+
+const CRYPTO_CITIES = [
+  { name: 'Miami',            lon: -80.1918, lat: 25.7617 },
+  { name: 'New York',         lon: -74.0060, lat: 40.7128 },
+  { name: 'London',           lon: -0.1278,  lat: 51.5074 },
+  { name: 'Singapore',        lon: 103.8198, lat: 1.3521 },
+  { name: 'Dubai',            lon: 55.2708,  lat: 25.2048 },
+  { name: 'Zug',              lon: 8.5150,   lat: 47.1662 },
+  { name: 'Lisbon',           lon: -9.1393,  lat: 38.7223 },
+  { name: 'Buenos Aires',     lon: -58.3816, lat: -34.6037 },
+  { name: 'Lagos',            lon: 3.3792,   lat: 6.5244 },
+  { name: 'Ho Chi Minh City', lon: 106.6297, lat: 10.8231 },
+]
+
+// Representative points for the very-high-adoption countries — origins for
+// the rising-particle overlay.
+const CRYPTO_PARTICLE_ORIGINS = [
+  { lon: -89.2182, lat: 13.6929 }, // San Salvador
+  { lon: 3.3792,   lat: 6.5244 },  // Lagos
+  { lon: 106.6297, lat: 10.8231 }, // Ho Chi Minh City
+  { lon: 120.9842, lat: 14.5995 }, // Manila
+  { lon: 30.5234,  lat: 50.4501 }, // Kyiv
+  { lon: 77.2090,  lat: 28.6139 }, // New Delhi
+]
+const PARTICLE_CYCLE = 4000 // ms for one full rise-and-reset
+const PARTICLES_PER_ORIGIN = 4
+const PARTICLE_RISE = 46 // px travelled upward over one cycle
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -96,8 +196,8 @@ function heatColor(pct) {
 
 // True when [lon, lat] sits on the hemisphere currently facing the viewer.
 // d3.geoPath already clips polygon/line geometry to the front hemisphere, but
-// point features (exchange dots, flow-hub dots) are projected directly via
-// `projection([lon, lat])`, which does NOT apply clipAngle — so point
+// point features (exchange dots, crypto hub markers) are projected directly
+// via `projection([lon, lat])`, which does NOT apply clipAngle — so point
 // visibility has to be tested manually with this spherical dot-product check.
 function isPointVisible(lon, lat, rotation) {
   const phi0 = -rotation[1] * RAD
@@ -119,9 +219,12 @@ export default function MaddexGlobe() {
   const [size, setSize] = useState({ width: 800, height: 500 })
   const [topology, setTopology] = useState(null)
   const [displayMode, setDisplayMode] = useState(() => {
-    try { return localStorage.getItem('maddex_globe_mode') ?? 'MARKETS' } catch { return 'MARKETS' }
+    try {
+      const saved = localStorage.getItem('maddex_globe_mode')
+      return DISPLAY_MODES.includes(saved) ? saved : 'EARTH'
+    } catch { return 'EARTH' }
   })
-  const [isPaused, setIsPaused] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(true)
 
   const [tooltip, setTooltip] = useState(null) // { x, y, text }
   const [pinnedCountry, setPinnedCountry] = useState(null)
@@ -139,11 +242,9 @@ export default function MaddexGlobe() {
   // ── Mutable, non-React-state animation values (kept out of React state so
   // the RAF loop can run at 60fps without triggering re-renders every frame) ──
   const rotationRef = useRef(DEFAULT_ROTATION.slice())
-  const velocityRef = useRef([0, 0])
   const zoomKRef = useRef(1) // pure scale factor — globe centre never moves
   const draggingRef = useRef(false)
-  const dragLastRef = useRef({ x: 0, y: 0, t: 0 })
-  const lastInteractionRef = useRef(0)
+  const dragLastRef = useRef({ x: 0, y: 0 })
   const mouseRef = useRef({ x: -9999, y: -9999 })
   const hoveredCountryRef = useRef(null)
   const hoveredExchangeRef = useRef(null)
@@ -152,12 +253,12 @@ export default function MaddexGlobe() {
   const pinnedExchangeRef = useRef(null)
   const displayModeRef = useRef(displayMode)
   const quotesRef = useRef(quotes)
-  const isPausedRef = useRef(isPaused)
+  const isPlayingRef = useRef(isPlaying)
   useEffect(() => { displayModeRef.current = displayMode }, [displayMode])
   useEffect(() => { quotesRef.current = quotes }, [quotes])
   useEffect(() => { pinnedCountryRef.current = pinnedCountry }, [pinnedCountry])
   useEffect(() => { pinnedExchangeRef.current = pinnedExchange }, [pinnedExchange])
-  useEffect(() => { isPausedRef.current = isPaused }, [isPaused])
+  useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
 
   // Load world atlas once
   useEffect(() => {
@@ -214,7 +315,6 @@ export default function MaddexGlobe() {
       .filter((event) => event.type === 'wheel' || event.type.startsWith('touch'))
       .on('zoom', (event) => {
         zoomKRef.current = event.transform.k
-        lastInteractionRef.current = performance.now()
       })
     d3.select(canvasRef.current).call(zoomBehavior)
   }, [])
@@ -247,13 +347,20 @@ export default function MaddexGlobe() {
     const path = d3.geoPath(projection, ctx)
 
     const isDark = mode === 'DARK'
+    const isEarth = mode === 'EARTH'
 
-    // Atmosphere glow — soft blue halo around the sphere edge
+    // Atmosphere glow — stronger blue halo for EARTH, soft blue elsewhere
     const atmR = scaledRadius + 14
     const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
-    atmGrad.addColorStop(0, 'rgba(26,58,106,0)')
-    atmGrad.addColorStop(0.7, 'rgba(26,58,106,0.15)')
-    atmGrad.addColorStop(1, 'rgba(26,58,106,0.3)')
+    if (isEarth) {
+      atmGrad.addColorStop(0, 'rgba(40,100,190,0)')
+      atmGrad.addColorStop(0.6, 'rgba(40,100,190,0.25)')
+      atmGrad.addColorStop(1, 'rgba(60,130,220,0.45)')
+    } else {
+      atmGrad.addColorStop(0, 'rgba(26,58,106,0)')
+      atmGrad.addColorStop(0.7, 'rgba(26,58,106,0.15)')
+      atmGrad.addColorStop(1, 'rgba(26,58,106,0.3)')
+    }
     ctx.beginPath()
     ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
     ctx.fillStyle = atmGrad
@@ -264,6 +371,9 @@ export default function MaddexGlobe() {
     if (isDark) {
       oceanGrad.addColorStop(0, '#020508')
       oceanGrad.addColorStop(1, '#020508')
+    } else if (isEarth) {
+      oceanGrad.addColorStop(0, '#1a3a6e')
+      oceanGrad.addColorStop(1, '#0a1628')
     } else {
       oceanGrad.addColorStop(0, '#060D1A')
       oceanGrad.addColorStop(1, '#0B1628')
@@ -273,7 +383,7 @@ export default function MaddexGlobe() {
     // Graticule
     if (!isDark) {
       ctx.beginPath(); path(graticule)
-      ctx.strokeStyle = 'rgba(26,70,140,0.08)'
+      ctx.strokeStyle = isEarth ? 'rgba(255,255,255,0.06)' : 'rgba(26,70,140,0.08)'
       ctx.lineWidth = 0.5
       ctx.stroke()
     }
@@ -285,15 +395,23 @@ export default function MaddexGlobe() {
     for (const feature of countries) {
       ctx.beginPath()
       path(feature)
+      const numericId = parseInt(feature.id)
       let fill
-      if (mode === 'HEAT') fill = heatColor(heatByCountry[parseInt(feature.id)])
+      if (isEarth) fill = earthFillColor(numericId)
+      else if (mode === 'HEAT') fill = heatColor(heatByCountry[numericId])
+      else if (mode === 'CRYPTO') fill = cryptoFillColor(numericId)
       else if (isDark) fill = '#060D1A'
       else fill = 'rgba(11,22,40,0.6)'
       ctx.fillStyle = fill
       ctx.fill()
 
       const isSel = feature.id === hoveredId || feature.id === pinnedId
-      ctx.strokeStyle = isSel ? '#C9A84C' : (isDark ? 'rgba(201,168,76,0.15)' : 'rgba(26,70,140,0.4)')
+      let borderColor
+      if (isSel) borderColor = '#C9A84C'
+      else if (isEarth) borderColor = 'rgba(255,255,255,0.25)'
+      else if (isDark) borderColor = 'rgba(201,168,76,0.15)'
+      else borderColor = 'rgba(26,70,140,0.4)'
+      ctx.strokeStyle = borderColor
       ctx.lineWidth = isSel ? 1.4 : 0.5
       ctx.stroke()
     }
@@ -304,51 +422,52 @@ export default function MaddexGlobe() {
     ctx.lineWidth = 1
     ctx.stroke()
 
-    // FLOW arcs — gold → green gradient, animated travelling dashes, clipped
-    // to the front hemisphere by the same geoPath pipeline as countries.
-    if (mode === 'FLOW') {
-      for (const route of FLOW_ROUTES) {
-        const from = FLOW_NODE_MAP[route.from]
-        const to = FLOW_NODE_MAP[route.to]
-        const feature = { type: 'Feature', geometry: { type: 'LineString', coordinates: [[from.lon, from.lat], [to.lon, to.lat]] } }
-        const p0 = projection([from.lon, from.lat])
-        const p1 = projection([to.lon, to.lat])
-        ctx.beginPath()
-        path(feature)
-        if (p0 && p1) {
-          const grad = ctx.createLinearGradient(p0[0], p0[1], p1[0], p1[1])
-          grad.addColorStop(0, 'rgba(201,168,76,0.6)')
-          grad.addColorStop(1, 'rgba(45,138,80,0.6)')
-          ctx.strokeStyle = grad
-        } else {
-          ctx.strokeStyle = 'rgba(201,168,76,0.6)'
+    // CRYPTO overlay — rising particles from high-adoption hubs + top crypto
+    // cities, all hemisphere-clipped like the exchange markers below.
+    if (mode === 'CRYPTO') {
+      for (const origin of CRYPTO_PARTICLE_ORIGINS) {
+        if (!isPointVisible(origin.lon, origin.lat, rotation)) continue
+        const p = projection([origin.lon, origin.lat])
+        if (!p) continue
+        const [ox, oy] = p
+        for (let i = 0; i < PARTICLES_PER_ORIGIN; i++) {
+          const phase = (i / PARTICLES_PER_ORIGIN) * PARTICLE_CYCLE
+          const t = ((now + phase) % PARTICLE_CYCLE) / PARTICLE_CYCLE
+          const py = oy - t * PARTICLE_RISE
+          const px = ox + Math.sin(t * Math.PI * 2 + i) * 3
+          ctx.beginPath()
+          ctx.arc(px, py, 3, 0, Math.PI * 2)
+          ctx.fillStyle = 'rgba(201,168,76,0.3)'
+          ctx.fill()
         }
-        ctx.lineWidth = 1.5
-        ctx.setLineDash([6, 5])
-        ctx.lineDashOffset = -((now / 40) % 11)
-        ctx.stroke()
-        ctx.setLineDash([])
       }
 
-      // City hub dots + always-on labels — hemisphere-clipped like everything else
-      for (const node of FLOW_NODES) {
-        if (!isPointVisible(node.lon, node.lat, rotation)) continue
-        const p = projection([node.lon, node.lat])
+      for (const city of CRYPTO_CITIES) {
+        if (!isPointVisible(city.lon, city.lat, rotation)) continue
+        const p = projection([city.lon, city.lat])
         if (!p) continue
         const [px, py] = p
         ctx.beginPath()
-        ctx.arc(px, py, 3, 0, Math.PI * 2)
-        ctx.fillStyle = '#ffffff'
+        ctx.moveTo(px, py - 4)
+        ctx.lineTo(px + 4, py)
+        ctx.lineTo(px, py + 4)
+        ctx.lineTo(px - 4, py)
+        ctx.closePath()
+        ctx.fillStyle = '#C9A84C'
         ctx.fill()
-        ctx.font = '8px "IBM Plex Mono", monospace'
-        ctx.fillStyle = '#ffffff'
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(6,13,26,0.6)'
+        ctx.stroke()
+        ctx.font = '9px "IBM Plex Mono", monospace'
+        ctx.fillStyle = '#C9A84C'
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
-        ctx.fillText(node.name, px + 6, py)
+        ctx.fillText(`₿ ${city.name}`, px + 7, py)
       }
     }
 
-    // Exchange markers — small clean indicators, hemisphere-clipped
+    // Exchange markers — small clean indicators, hemisphere-clipped, shown on
+    // every layer except DARK (DARK gets its own minimal white-dot style).
     const nextScreenPos = {}
     for (const ex of EXCHANGES) {
       if (!isPointVisible(ex.lon, ex.lat, rotation)) continue
@@ -403,33 +522,22 @@ export default function MaddexGlobe() {
     ctx.fillRect(0, 0, width, height)
   }, [width, height, radius, countries, graticule, heatByCountry])
 
-  // ── RAF loop: rotation (auto/inertia) + redraw ──────────────────────────
+  // ── RAF loop: rotation + redraw ──────────────────────────────────────────
   useEffect(() => {
-    let last = performance.now()
-
     function frame(now) {
-      const dt = Math.min(now - last, 48)
-      last = now
-
-      const idle = !draggingRef.current
-      const [vLambda, vPhi] = velocityRef.current
-      const hasVelocity = Math.abs(vLambda) > 0.0003 || Math.abs(vPhi) > 0.0003
-
-      if (idle && hasVelocity) {
+      if (isPlayingRef.current && !draggingRef.current) {
         rotationRef.current = [
-          rotationRef.current[0] + vLambda * dt,
-          Math.max(-85, Math.min(85, rotationRef.current[1] + vPhi * dt)),
+          rotationRef.current[0] + AUTO_ROTATE_SPEED,
+          rotationRef.current[1],
           0,
         ]
-        velocityRef.current = [vLambda * 0.94, vPhi * 0.94]
-      } else if (idle && !isPausedRef.current && now - lastInteractionRef.current > 4000) {
-        rotationRef.current = [rotationRef.current[0] + AUTO_ROTATE_SPEED, rotationRef.current[1], 0]
       }
 
       // Hit-testing against the latest mouse position, once per frame
       hitTest()
 
       drawFrame(now)
+
       rafRef.current = requestAnimationFrame(frame)
     }
 
@@ -474,6 +582,11 @@ export default function MaddexGlobe() {
         if (mode === 'HEAT' && heatByCountry[n] != null) {
           text += ` · ${heatByCountry[n] >= 0 ? '+' : ''}${heatByCountry[n].toFixed(2)}%`
         }
+        if (mode === 'CRYPTO') {
+          const tier = CRYPTO_TIER_BY_COUNTRY_ID[n]
+          const info = tier ? CRYPTO_TIER_INFO[tier] : null
+          text += info ? ` · ${info.label} · ${info.legal}` : ' · No data'
+        }
         setTooltip({ x: mx, y: my, text })
       } else {
         setTooltip(null)
@@ -484,12 +597,10 @@ export default function MaddexGlobe() {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [drawFrame, width, height, radius, countries, heatByCountry])
 
-  // ── Pointer handlers (rotation drag with inertia) ───────────────────────
+  // ── Pointer handlers (rotation drag) ────────────────────────────────────
   const handlePointerDown = useCallback((e) => {
     draggingRef.current = true
-    velocityRef.current = [0, 0]
-    dragLastRef.current = { x: e.clientX, y: e.clientY, t: performance.now() }
-    lastInteractionRef.current = performance.now()
+    dragLastRef.current = { x: e.clientX, y: e.clientY }
   }, [])
 
   function getLocalPos(e, container) {
@@ -503,9 +614,7 @@ export default function MaddexGlobe() {
     function onMove(e) {
       mouseRef.current = getLocalPos(e, containerRef.current)
       if (!draggingRef.current) return
-      const now = performance.now()
-      const { x, y, t } = dragLastRef.current
-      const dt = Math.max(now - t, 1)
+      const { x, y } = dragLastRef.current
       const dLambda = (e.clientX - x) * 0.3
       const dPhi = -(e.clientY - y) * 0.3
       rotationRef.current = [
@@ -513,13 +622,10 @@ export default function MaddexGlobe() {
         Math.max(-85, Math.min(85, rotationRef.current[1] + dPhi)),
         0,
       ]
-      velocityRef.current = [dLambda / dt, dPhi / dt]
-      dragLastRef.current = { x: e.clientX, y: e.clientY, t: now }
-      lastInteractionRef.current = now
+      dragLastRef.current = { x: e.clientX, y: e.clientY }
     }
     function onUp() {
       draggingRef.current = false
-      lastInteractionRef.current = performance.now()
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
@@ -546,34 +652,32 @@ export default function MaddexGlobe() {
     }
   }, [])
 
-  const handleWheelOrTouch = useCallback(() => {
-    lastInteractionRef.current = performance.now()
-  }, [])
-
   function selectMode(mode) {
     setDisplayMode(mode)
     try { localStorage.setItem('maddex_globe_mode', mode) } catch {}
   }
 
-  function togglePaused() {
-    setIsPaused(p => !p)
+  function togglePlaying() {
+    setIsPlaying(p => !p)
   }
 
-  // Animate rotation back to the default orientation over ~800ms.
+  // Animate rotation back to the default orientation over ~800ms. Auto-rotate
+  // is transiently suspended (via the ref only, not the React state) so the
+  // two don't fight over rotationRef during the tween.
   function resetView() {
     const start = rotationRef.current.slice()
     const end = DEFAULT_ROTATION
     const interpolate = d3.interpolate(start, end)
     const startTime = performance.now()
     const duration = 800
-    velocityRef.current = [0, 0]
-    lastInteractionRef.current = startTime
+    const wasPlaying = isPlayingRef.current
+    isPlayingRef.current = false
 
     function tick(now) {
       const t = Math.min((now - startTime) / duration, 1)
       rotationRef.current = interpolate(d3.easeCubicInOut(t))
-      lastInteractionRef.current = now
       if (t < 1) requestAnimationFrame(tick)
+      else isPlayingRef.current = wasPlaying
     }
     requestAnimationFrame(tick)
   }
@@ -597,7 +701,6 @@ export default function MaddexGlobe() {
         className="cursor-grab active:cursor-grabbing select-none"
         onMouseDown={handlePointerDown}
         onTouchStart={handlePointerDown}
-        onWheel={handleWheelOrTouch}
         onClick={handleClick}
         onMouseLeave={() => { mouseRef.current = { x: -9999, y: -9999 } }}
       />
@@ -647,6 +750,27 @@ export default function MaddexGlobe() {
         </div>
       )}
 
+      {/* CRYPTO legend — bottom-right */}
+      {displayMode === 'CRYPTO' && (
+        <div className="absolute bottom-3 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
+          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
+          <div className="flex items-center gap-1.5">
+            {[
+              ['#2D8A50', 'Very High'],
+              ['#1a5c35', 'High'],
+              ['#1A3A6A', 'Medium'],
+              ['#6B2323', 'Low'],
+              ['#A83232', 'Banned'],
+            ].map(([color, label]) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
+                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Single DOM tooltip, repositioned on hover */}
       {tooltip && (
         <div
@@ -664,18 +788,18 @@ export default function MaddexGlobe() {
         <div className="flex gap-1">
           <button
             type="button"
-            onClick={togglePaused}
-            title={isPaused ? 'Resume rotation' : 'Pause rotation'}
+            onClick={togglePlaying}
+            title={isPlaying ? 'Pause rotation' : 'Resume rotation'}
             className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 10 10">
-              {isPaused ? (
-                <polygon points="2,1 9,5 2,9" fill="currentColor" />
-              ) : (
+              {isPlaying ? (
                 <>
                   <rect x="2" y="1" width="2.2" height="8" fill="currentColor" />
                   <rect x="5.8" y="1" width="2.2" height="8" fill="currentColor" />
                 </>
+              ) : (
+                <polygon points="2,1 9,5 2,9" fill="currentColor" />
               )}
             </svg>
           </button>
