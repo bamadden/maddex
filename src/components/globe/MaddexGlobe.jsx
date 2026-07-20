@@ -29,9 +29,9 @@ const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
 const DISPLAY_MODES = ['EARTH', 'MARKETS', 'HEAT', 'CRYPTO', 'DARK']
 
-// Default starting orientation — Australia/Asia-Pacific centred, matches the
-// terminal's home market. Auto-rotate speed is degrees added per frame.
-const DEFAULT_ROTATION = [-134, -26, 0]
+// Default starting orientation — Australia centred (lon 134°E, lat 25°S),
+// matches the terminal's home market. Auto-rotate speed is degrees/frame.
+const DEFAULT_ROTATION = [-134, 25, 0]
 const AUTO_ROTATE_SPEED = 0.06
 
 const RAD = Math.PI / 180
@@ -163,6 +163,141 @@ const PARTICLES_PER_ORIGIN = 4
 const PARTICLE_RISE = 46 // px travelled upward over one cycle
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Country data panel — continent labels, flags, population, market/crypto data
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REGION_LABELS = {
+  EUROPE: 'Europe',
+  AFRICA: 'Africa',
+  ASIA: 'Asia',
+  NORTH_AMERICA: 'North America',
+  SOUTH_AMERICA: 'South America',
+  OCEANIA: 'Oceania',
+  ANTARCTICA: 'Antarctica',
+}
+
+// ISO 3166-1 numeric id → alpha-2, same id set as CONTINENT_BY_COUNTRY_ID, used
+// to derive flag emoji via Unicode regional indicator symbols.
+const ALPHA2_BY_COUNTRY_ID = {
+  4: 'AF', 8: 'AL', 12: 'DZ', 16: 'AS', 20: 'AD', 24: 'AO', 28: 'AG', 31: 'AZ', 32: 'AR', 36: 'AU', 40: 'AT',
+  44: 'BS', 48: 'BH', 50: 'BD', 52: 'BB', 56: 'BE', 64: 'BT', 68: 'BO', 70: 'BA', 72: 'BW', 76: 'BR', 84: 'BZ',
+  86: 'IO', 90: 'SB', 96: 'BN', 100: 'BG', 104: 'MM', 108: 'BI', 112: 'BY', 116: 'KH', 120: 'CM', 124: 'CA',
+  132: 'CV', 136: 'KY', 140: 'CF', 144: 'LK', 148: 'TD', 152: 'CL', 156: 'CN', 158: 'TW', 170: 'CO', 174: 'KM',
+  175: 'YT', 178: 'CG', 180: 'CD', 184: 'CK', 188: 'CR', 191: 'HR', 192: 'CU', 196: 'CY', 203: 'CZ', 204: 'BJ',
+  208: 'DK', 212: 'DM', 214: 'DO', 218: 'EC', 818: 'EG', 222: 'SV', 226: 'GQ', 232: 'ER', 233: 'EE', 231: 'ET',
+  238: 'FK', 242: 'FJ', 246: 'FI', 250: 'FR', 262: 'DJ', 266: 'GA', 268: 'GE', 270: 'GM', 275: 'PS', 276: 'DE',
+  288: 'GH', 292: 'GI', 296: 'KI', 300: 'GR', 308: 'GD', 316: 'GU', 320: 'GT', 324: 'GN', 328: 'GY', 332: 'HT',
+  336: 'VA', 340: 'HN', 344: 'HK', 348: 'HU', 352: 'IS', 356: 'IN', 360: 'ID', 364: 'IR', 368: 'IQ', 372: 'IE',
+  376: 'IL', 380: 'IT', 388: 'JM', 392: 'JP', 398: 'KZ', 400: 'JO', 404: 'KE', 408: 'KP', 410: 'KR', 414: 'KW',
+  417: 'KG', 418: 'LA', 422: 'LB', 426: 'LS', 428: 'LV', 430: 'LR', 434: 'LY', 438: 'LI', 440: 'LT', 442: 'LU',
+  446: 'MO', 450: 'MG', 454: 'MW', 458: 'MY', 462: 'MV', 466: 'ML', 470: 'MT', 478: 'MR', 480: 'MU', 484: 'MX',
+  492: 'MC', 496: 'MN', 498: 'MD', 499: 'ME', 504: 'MA', 508: 'MZ', 512: 'OM', 516: 'NA', 520: 'NR', 524: 'NP',
+  528: 'NL', 540: 'NC', 548: 'VU', 554: 'NZ', 558: 'NI', 562: 'NE', 566: 'NG', 578: 'NO', 583: 'FM', 584: 'MH',
+  585: 'PW', 586: 'PK', 591: 'PA', 598: 'PG', 600: 'PY', 604: 'PE', 608: 'PH', 616: 'PL', 620: 'PT', 624: 'GW',
+  626: 'TL', 630: 'PR', 634: 'QA', 638: 'RE', 642: 'RO', 643: 'RU', 646: 'RW', 659: 'KN', 662: 'LC',
+  670: 'VC', 674: 'SM', 678: 'ST', 682: 'SA', 686: 'SN', 688: 'RS', 690: 'SC', 694: 'SL', 702: 'SG', 703: 'SK',
+  705: 'SI', 706: 'SO', 710: 'ZA', 716: 'ZW', 724: 'ES', 728: 'SS', 729: 'SD', 740: 'SR', 748: 'SZ', 752: 'SE',
+  756: 'CH', 760: 'SY', 762: 'TJ', 764: 'TH', 768: 'TG', 776: 'TO', 780: 'TT', 784: 'AE', 788: 'TN', 792: 'TR',
+  795: 'TM', 798: 'TV', 800: 'UG', 804: 'UA', 807: 'MK', 826: 'GB', 834: 'TZ', 840: 'US', 854: 'BF', 858: 'UY',
+  860: 'UZ', 862: 'VE', 882: 'WS', 887: 'YE', 894: 'ZM', 10: 'AQ', 304: 'GL', 732: 'EH', 704: 'VN',
+}
+
+// Approximate population in millions — illustrative, same synthetic-data
+// spirit as the HEAT/CRYPTO tiers above.
+const POPULATION_BY_COUNTRY_ID = {
+  4: 41, 8: 2.8, 12: 46, 16: 0.045, 20: 0.08, 24: 36, 28: 0.1, 31: 10.4, 32: 46, 36: 26.5, 40: 9.1,
+  44: 0.4, 48: 1.5, 50: 173, 52: 0.28, 56: 11.7, 64: 0.79, 68: 12.2, 70: 3.2, 72: 2.5, 76: 216, 84: 0.4,
+  86: 0.003, 90: 0.74, 96: 0.45, 100: 6.4, 104: 54, 108: 13, 112: 9.1, 116: 17, 120: 28, 124: 40,
+  132: 0.6, 136: 0.07, 140: 5.6, 144: 22, 148: 18, 152: 19.6, 156: 1410, 158: 23.6, 170: 52, 174: 0.87,
+  175: 0.32, 178: 6, 180: 102, 184: 0.017, 188: 5.2, 191: 3.9, 192: 11, 196: 1.25, 203: 10.9, 204: 13.7,
+  208: 5.9, 212: 0.07, 214: 11.3, 218: 18.2, 818: 114, 222: 6.3, 226: 1.7, 232: 3.7, 233: 1.3, 231: 127,
+  238: 0.0035, 242: 0.93, 246: 5.6, 250: 68, 262: 1.1, 266: 2.4, 268: 3.7, 270: 2.6, 275: 5.4, 276: 84.4,
+  288: 34, 292: 0.034, 296: 0.13, 300: 10.4, 308: 0.13, 316: 0.17, 320: 18, 324: 14, 328: 0.8, 332: 11.6,
+  336: 0.0008, 340: 10.6, 344: 7.4, 348: 9.6, 352: 0.4, 356: 1430, 360: 280, 364: 90, 368: 45, 372: 5.2,
+  376: 9.8, 380: 58.9, 388: 2.8, 392: 124, 398: 20, 400: 11.3, 404: 55, 408: 26, 410: 51.7, 414: 4.3,
+  417: 7, 418: 7.6, 422: 5.5, 426: 2.3, 428: 1.85, 430: 5.4, 434: 7, 438: 0.04, 440: 2.8, 442: 0.66,
+  446: 0.7, 450: 30, 454: 20.8, 458: 34, 462: 0.52, 466: 23, 470: 0.54, 478: 4.9, 480: 1.26, 484: 128,
+  492: 0.039, 496: 3.4, 498: 2.5, 499: 0.62, 504: 37.8, 508: 33, 512: 4.6, 516: 2.6, 520: 0.011, 524: 30,
+  528: 17.9, 540: 0.27, 548: 0.33, 554: 5.2, 558: 6.9, 562: 26, 566: 223, 578: 5.5, 583: 0.11, 584: 0.042,
+  585: 0.018, 586: 241, 591: 4.5, 598: 10.3, 600: 6.9, 604: 34, 608: 117, 616: 37.6, 620: 10.3, 624: 2.1,
+  626: 1.3, 630: 3.2, 634: 2.7, 638: 0.87, 642: 19, 643: 144, 646: 14, 659: 0.047, 662: 0.18,
+  670: 0.1, 674: 0.034, 678: 0.23, 682: 36, 686: 18, 688: 6.6, 690: 0.1, 694: 8.6, 702: 5.9, 703: 5.4,
+  705: 2.1, 706: 18, 710: 60, 716: 16.7, 724: 47.6, 728: 11, 729: 48, 740: 0.63, 748: 1.2, 752: 10.5,
+  756: 8.9, 760: 23, 762: 10.1, 764: 71.7, 768: 9, 776: 0.1, 780: 1.5, 784: 9.9, 788: 12.3, 792: 85.8,
+  795: 6.5, 798: 0.011, 800: 48, 804: 36, 807: 1.8, 826: 68.3, 834: 67, 840: 335, 854: 23, 858: 3.4,
+  860: 36, 862: 28.3, 882: 0.22, 887: 34, 894: 20.6, 10: 0, 304: 0.057, 732: 0.6, 704: 98.9,
+}
+
+// Bridges numeric ISO id → the exact name keys used in COUNTRY_MARKET_DATA
+// below, since world-atlas's own feature.properties.name strings (e.g.
+// "United States of America") don't always match the simplified names used
+// for market data. Joining on numeric id keeps this robust regardless of the
+// topojson's exact naming.
+const MARKET_DATA_ID_TO_NAME = {
+  840: 'United States', 826: 'United Kingdom', 392: 'Japan', 276: 'Germany', 250: 'France',
+  156: 'China', 344: 'Hong Kong', 36: 'Australia', 124: 'Canada', 356: 'India',
+  410: 'South Korea', 76: 'Brazil', 710: 'South Africa', 702: 'Singapore', 756: 'Switzerland',
+  528: 'Netherlands', 724: 'Spain', 380: 'Italy', 752: 'Sweden', 566: 'Nigeria',
+  704: 'Vietnam', 608: 'Philippines', 804: 'Ukraine', 32: 'Argentina', 792: 'Turkey',
+  222: 'El Salvador', 643: 'Russia', 484: 'Mexico', 360: 'Indonesia', 764: 'Thailand',
+}
+
+const COUNTRY_MARKET_DATA = {
+  'United States':    { index: 'S&P 500',    change: +0.42, adoption: 'High' },
+  'United Kingdom':   { index: 'FTSE 100',   change: -0.18, adoption: 'High' },
+  'Japan':            { index: 'Nikkei 225', change: +0.67, adoption: 'Medium' },
+  'Germany':          { index: 'DAX',        change: +0.31, adoption: 'Medium' },
+  'France':           { index: 'CAC 40',     change: -0.09, adoption: 'Medium' },
+  'China':            { index: 'Shanghai',   change: -0.55, adoption: 'Low' },
+  'Hong Kong':        { index: 'Hang Seng',  change: +0.22, adoption: 'High' },
+  'Australia':        { index: 'ASX 200',    change: +0.15, adoption: 'Medium' },
+  'Canada':           { index: 'TSX',        change: +0.38, adoption: 'High' },
+  'India':            { index: 'SENSEX',     change: +0.91, adoption: 'Very High' },
+  'South Korea':      { index: 'KOSPI',      change: +0.44, adoption: 'Medium' },
+  'Brazil':           { index: 'Bovespa',    change: -0.72, adoption: 'High' },
+  'South Africa':     { index: 'JSE',        change: +0.11, adoption: 'High' },
+  'Singapore':        { index: 'STI',        change: +0.28, adoption: 'Medium' },
+  'Switzerland':      { index: 'SMI',        change: -0.14, adoption: 'Medium' },
+  'Netherlands':      { index: 'AEX',        change: +0.19, adoption: 'Medium' },
+  'Spain':            { index: 'IBEX 35',    change: -0.33, adoption: 'Medium' },
+  'Italy':            { index: 'FTSE MIB',   change: +0.08, adoption: 'Medium' },
+  'Sweden':           { index: 'OMX',        change: +0.52, adoption: 'Medium' },
+  'Nigeria':          { index: 'NGX',        change: +1.20, adoption: 'Very High' },
+  'Vietnam':          { index: 'VN-Index',   change: +0.88, adoption: 'Very High' },
+  'Philippines':      { index: 'PSEi',       change: +0.34, adoption: 'Very High' },
+  'Ukraine':          { index: 'PFTS',       change: -1.10, adoption: 'Very High' },
+  'Argentina':        { index: 'MERVAL',     change: +2.30, adoption: 'High' },
+  'Turkey':           { index: 'BIST 100',   change: +1.80, adoption: 'High' },
+  'El Salvador':      { index: 'N/A',        change: 0,     adoption: 'Very High' },
+  'Russia':           { index: 'MOEX',       change: -0.44, adoption: 'Low' },
+  'Mexico':           { index: 'BMV IPC',    change: +0.61, adoption: 'Medium' },
+  'Indonesia':        { index: 'IDX',        change: +0.75, adoption: 'High' },
+  'Thailand':         { index: 'SET',        change: +0.42, adoption: 'High' },
+}
+
+const CRYPTO_STATUS = {
+  'Very High': { legal: true,  label: 'Legal — High Adoption' },
+  'High':      { legal: true,  label: 'Legal — Growing Adoption' },
+  'Medium':    { legal: true,  label: 'Legal — Moderate Adoption' },
+  'Low':       { legal: false, label: 'Restricted' },
+  'Banned':    { legal: false, label: 'Banned' },
+}
+
+// Unicode regional indicator symbols — converts an ISO alpha-2 code to its flag emoji.
+function flagEmoji(alpha2) {
+  if (!alpha2) return '🏳️'
+  return String.fromCodePoint(...[...alpha2.toUpperCase()].map(c => 0x1F1E6 + (c.charCodeAt(0) - 65)))
+}
+
+function formatPopulation(m) {
+  if (m == null) return 'N/A'
+  if (m >= 1000) return `~${(m / 1000).toFixed(2)}B`
+  if (m < 0.01) return `~${Math.round(m * 1_000_000).toLocaleString()}`
+  if (m < 1) return `~${Math.round(m * 1000).toLocaleString()}K`
+  return `~${m.toFixed(m < 10 ? 1 : 0)}M`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -225,6 +360,8 @@ export default function MaddexGlobe() {
     } catch { return 'EARTH' }
   })
   const [isPlaying, setIsPlaying] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [compassGamma, setCompassGamma] = useState(0)
 
   const [tooltip, setTooltip] = useState(null) // { x, y, text }
   const [pinnedCountry, setPinnedCountry] = useState(null)
@@ -260,6 +397,20 @@ export default function MaddexGlobe() {
   useEffect(() => { pinnedExchangeRef.current = pinnedExchange }, [pinnedExchange])
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
 
+  // Compass rose — d3's orthographic rotation only rolls the view via gamma
+  // (rotation[2]); lambda/phi just pan around the sphere without turning the
+  // view, so true north stays screen-up whenever gamma is 0 (always, today,
+  // since nothing in this file sets a nonzero gamma). Polled at low frequency
+  // — a compass needle doesn't need 60fps — rather than mirroring rotation
+  // into React state every animation frame.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const gamma = rotationRef.current[2]
+      setCompassGamma(g => (Math.abs(g - gamma) > 0.05 ? gamma : g))
+    }, 200)
+    return () => clearInterval(id)
+  }, [])
+
   // Load world atlas once
   useEffect(() => {
     let cancelled = false
@@ -287,6 +438,12 @@ export default function MaddexGlobe() {
     }
     return map
   }, [quotes])
+
+  const searchMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return []
+    return countries.filter(f => f.properties?.name?.toLowerCase().includes(q)).slice(0, 6)
+  }, [searchQuery, countries])
 
   // Debounced ResizeObserver
   useEffect(() => {
@@ -661,15 +818,13 @@ export default function MaddexGlobe() {
     setIsPlaying(p => !p)
   }
 
-  // Animate rotation back to the default orientation over ~800ms. Auto-rotate
-  // is transiently suspended (via the ref only, not the React state) so the
-  // two don't fight over rotationRef during the tween.
-  function resetView() {
+  // Animates rotationRef toward `target` over `duration`ms. Auto-rotate is
+  // transiently suspended (via the ref only, not the React state) so the two
+  // don't fight over rotationRef during the tween.
+  function tweenRotation(target, duration = 800) {
     const start = rotationRef.current.slice()
-    const end = DEFAULT_ROTATION
-    const interpolate = d3.interpolate(start, end)
+    const interpolate = d3.interpolate(start, target)
     const startTime = performance.now()
-    const duration = 800
     const wasPlaying = isPlayingRef.current
     isPlayingRef.current = false
 
@@ -682,12 +837,45 @@ export default function MaddexGlobe() {
     requestAnimationFrame(tick)
   }
 
+  function resetView() {
+    tweenRotation(DEFAULT_ROTATION)
+  }
+
+  function rotateToCountry(feature) {
+    const [lon, lat] = d3.geoCentroid(feature)
+    tweenRotation([-lon, -lat, 0])
+  }
+
+  function selectSearchResult(feature) {
+    setPinnedCountry(feature.id)
+    setPinnedExchange(null)
+    rotateToCountry(feature)
+    setSearchQuery('')
+  }
+
+  function handleSearchKeyDown(e) {
+    if (e.key === 'Enter') {
+      if (searchMatches.length > 0) selectSearchResult(searchMatches[0])
+    } else if (e.key === 'Escape') {
+      setSearchQuery('')
+    }
+  }
+
   // ── Data cards ───────────────────────────────────────────────────────────
   const pinnedCountryFeature = pinnedCountry ? countries.find(f => f.id === pinnedCountry) : null
   const pinnedCountryName = pinnedCountryFeature?.properties?.name ?? null
-  const pinnedCountryExchange = pinnedCountry ? EXCHANGES.find(e => e.countryId === parseInt(pinnedCountry)) : null
   const pinnedExchangeData = pinnedExchange ? EXCHANGES.find(e => e.id === pinnedExchange) : null
   const pinnedExchangeQuote = pinnedExchangeData ? quotes?.[pinnedExchangeData.ySymbol] : null
+
+  const selectedCountryNumId = pinnedCountry != null ? parseInt(pinnedCountry) : null
+  const selectedCountryContinent = selectedCountryNumId != null ? CONTINENT_BY_COUNTRY_ID[selectedCountryNumId] : null
+  const selectedCountryRegion = selectedCountryContinent ? REGION_LABELS[selectedCountryContinent] : 'Unknown region'
+  const selectedCountryFlag = selectedCountryNumId != null ? flagEmoji(ALPHA2_BY_COUNTRY_ID[selectedCountryNumId]) : null
+  const selectedCountryPop = selectedCountryNumId != null ? POPULATION_BY_COUNTRY_ID[selectedCountryNumId] : null
+  const selectedCountryMarket = selectedCountryNumId != null
+    ? COUNTRY_MARKET_DATA[MARKET_DATA_ID_TO_NAME[selectedCountryNumId]]
+    : null
+  const selectedCountryCryptoStatus = selectedCountryMarket ? CRYPTO_STATUS[selectedCountryMarket.adoption] : null
 
   return (
     <div
@@ -727,6 +915,91 @@ export default function MaddexGlobe() {
             {m}
           </button>
         ))}
+      </div>
+
+      {/* Search — top-left, rotates the globe to the selected country */}
+      <div className="absolute top-3 left-3 z-10 w-40">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search country..."
+          className="w-full font-mono text-[10px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
+        />
+        {searchMatches.length > 0 && (
+          <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
+            {searchMatches.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => selectSearchResult(f)}
+                className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
+              >
+                {f.properties?.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Country data panel — top-right, below the layer toggle so it never
+          overlaps those buttons. Fades/slides in when a country is selected. */}
+      <div
+        className={`absolute top-12 right-3 z-10 w-60 max-h-[380px] overflow-y-auto bg-terminal-panel border border-terminal-gold/40 shadow-xl transition-all duration-200 ${
+          pinnedCountryName ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-3 pointer-events-none'
+        }`}
+      >
+        {pinnedCountryName && (
+          <>
+            <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base leading-none">{selectedCountryFlag}</span>
+                <span className="font-mono text-xs font-bold text-terminal-text-bright truncate">{pinnedCountryName}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPinnedCountry(null)}
+                className="text-terminal-text-dim hover:text-terminal-gold text-sm leading-none px-1 shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-3 py-2.5 space-y-2">
+              <div className="text-2xs text-terminal-text-dim font-mono tracking-wide">{selectedCountryRegion}</div>
+
+              {(displayMode === 'MARKETS' || displayMode === 'HEAT') && (
+                selectedCountryMarket ? (
+                  <div>
+                    <div className="text-2xs text-terminal-text-dim mb-0.5">{selectedCountryMarket.index}</div>
+                    <div className={`font-mono text-sm font-bold ${selectedCountryMarket.change >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                      {selectedCountryMarket.change >= 0 ? '▲' : '▼'} {Math.abs(selectedCountryMarket.change).toFixed(2)}%
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-2xs text-terminal-text-dim">No market data available</div>
+                )
+              )}
+
+              {displayMode === 'CRYPTO' && (
+                selectedCountryMarket ? (
+                  <div>
+                    <div className="text-2xs text-terminal-text-dim mb-0.5">Adoption: {selectedCountryMarket.adoption}</div>
+                    <div className={`font-mono text-xs font-bold ${selectedCountryCryptoStatus?.legal ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                      {selectedCountryCryptoStatus?.label}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-2xs text-terminal-text-dim">No crypto data available</div>
+                )
+              )}
+
+              {(displayMode === 'EARTH' || displayMode === 'DARK') && (
+                <div className="text-2xs text-terminal-text-dim">Population: {formatPopulation(selectedCountryPop)}</div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* HEAT legend — bottom-right */}
@@ -781,9 +1054,9 @@ export default function MaddexGlobe() {
         </div>
       )}
 
-      {/* Bottom-left stack: pause/reset controls always at the true bottom;
-          the pinned data card (when present) stacks above via column-reverse
-          so the two never overlap. */}
+      {/* Bottom-left stack: pause/reset controls always at the true bottom,
+          the compass rose above them, then the pinned exchange card (when
+          present) on top — column-reverse keeps all three from overlapping. */}
       <div className="absolute bottom-3 left-3 z-10 flex flex-col-reverse items-start gap-2">
         <div className="flex gap-1">
           <button
@@ -819,72 +1092,67 @@ export default function MaddexGlobe() {
           </button>
         </div>
 
-        {(pinnedCountryName || pinnedExchangeData) && (
+        <CompassRose gamma={compassGamma} />
+
+        {pinnedExchangeData && (
           <div className="bg-terminal-panel border border-terminal-gold/40 px-3 py-2.5 min-w-[180px] max-w-[240px] shadow-xl">
-            {pinnedExchangeData ? (
-              <>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs font-bold text-terminal-gold">{pinnedExchangeData.label}</span>
-                  <span className={`text-[8px] font-mono px-1.5 py-0.5 ${isExchangeOpen(pinnedExchangeData) ? 'bg-terminal-green/20 text-terminal-green' : 'bg-terminal-border text-terminal-text-dim'}`}>
-                    {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-mono text-xs font-bold text-terminal-gold">{pinnedExchangeData.label}</span>
+              <span className={`text-[8px] font-mono px-1.5 py-0.5 ${isExchangeOpen(pinnedExchangeData) ? 'bg-terminal-green/20 text-terminal-green' : 'bg-terminal-border text-terminal-text-dim'}`}>
+                {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
+              </span>
+            </div>
+            <div className="text-2xs text-terminal-text-dim mb-1">{pinnedExchangeData.city}</div>
+            {pinnedExchangeQuote?.price != null && (
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-sm text-terminal-text-bright">{pinnedExchangeQuote.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                {pinnedExchangeQuote.dayChangePct != null && (
+                  <span className={`font-mono text-2xs ${pinnedExchangeQuote.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                    {pinnedExchangeQuote.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeQuote.dayChangePct).toFixed(2)}%
                   </span>
-                </div>
-                <div className="text-2xs text-terminal-text-dim mb-1">{pinnedExchangeData.city}</div>
-                {pinnedExchangeQuote?.price != null && (
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-sm text-terminal-text-bright">{pinnedExchangeQuote.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                    {pinnedExchangeQuote.dayChangePct != null && (
-                      <span className={`font-mono text-2xs ${pinnedExchangeQuote.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                        {pinnedExchangeQuote.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeQuote.dayChangePct).toFixed(2)}%
-                      </span>
-                    )}
-                  </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setPinnedExchange(null)}
-                  className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
-                >
-                  ✕ close
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="font-mono text-xs font-bold text-terminal-text-bright mb-1">{pinnedCountryName}</div>
-                {pinnedCountryExchange ? (
-                  (() => {
-                    const q = quotes?.[pinnedCountryExchange.ySymbol]
-                    return (
-                      <div className="text-2xs text-terminal-text-dim">
-                        {pinnedCountryExchange.label}
-                        {q?.price != null && (
-                          <>
-                            {' '}· {q.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                            {q.dayChangePct != null && (
-                              <span className={q.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}>
-                                {' '}{q.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(q.dayChangePct).toFixed(2)}%
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )
-                  })()
-                ) : (
-                  <div className="text-2xs text-terminal-text-dim">No exchange data for this country</div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setPinnedCountry(null)}
-                  className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
-                >
-                  ✕ close
-                </button>
-              </>
+              </div>
             )}
+            <button
+              type="button"
+              onClick={() => setPinnedExchange(null)}
+              className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
+            >
+              ✕ close
+            </button>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compass rose — screen-fixed, rotates with the globe's roll (gamma). Since
+// nothing in this file ever sets a nonzero gamma, true north stays screen-up
+// at every lambda/phi (verified: d3's orthographic rotation only rolls the
+// view via gamma — lambda/phi just pan around the sphere) — so in practice N
+// always points straight up here, including at the Australia-centred default.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CompassRose({ gamma }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-full bg-[rgba(6,13,26,0.7)] border border-terminal-border"
+      style={{ width: 48, height: 48 }}
+    >
+      <svg width="40" height="40" viewBox="-20 -20 40 40">
+        <g transform={`rotate(${-gamma})`}>
+          <line x1="0" y1="-17" x2="0" y2="17" stroke="#637899" strokeWidth="0.75" />
+          <line x1="-17" y1="0" x2="17" y2="0" stroke="#637899" strokeWidth="0.75" />
+          <polygon points="0,-16 2.5,-6 0,-2 -2.5,-6" fill="#C9A84C" />
+          <polygon points="0,16 2.5,6 0,2 -2.5,6" fill="#637899" />
+          <text x="0" y="-9" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#C9A84C">N</text>
+          <text x="0" y="10" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#637899">S</text>
+          <text x="11" y="0.5" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#637899">E</text>
+          <text x="-11" y="0.5" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#637899">W</text>
+        </g>
+      </svg>
     </div>
   )
 }
