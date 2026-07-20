@@ -25,6 +25,29 @@ const EXCHANGES = [
   { id: 'KRX',    label: 'KRX',       city: 'Seoul',     lat: 37.5665,  lon: 126.9780, tz: 'Asia/Seoul',        open: [9, 0],   close: [15, 30], countryId: 410, ySymbol: '^KS11',   marketCapB: 1900 },
 ]
 
+const EXCHANGE_FULL_NAMES = {
+  NYSE: 'New York Stock Exchange',
+  NASDAQ: 'NASDAQ',
+  LSE: 'London Stock Exchange',
+  TSE: 'Tokyo Stock Exchange',
+  ASX: 'Australian Securities Exchange',
+  HSI: 'Hong Kong Stock Exchange',
+  SSE: 'Shanghai Stock Exchange',
+  SGX: 'Singapore Exchange',
+  ENX: 'Euronext',
+  TSX: 'Toronto Stock Exchange',
+  BSE: 'Bombay Stock Exchange',
+  KRX: 'Korea Exchange',
+}
+
+function localTimeWithTz(tz) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
+  }).formatToParts(new Date())
+  const get = (t) => parts.find(p => p.type === t)?.value ?? ''
+  return `${get('hour')}:${get('minute')} ${get('timeZoneName')}`
+}
+
 const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
 const DISPLAY_MODES = ['EARTH', 'MARKETS', 'HEAT', 'CRYPTO', 'DARK']
@@ -283,6 +306,25 @@ const CRYPTO_STATUS = {
   'Banned':    { legal: false, label: 'Banned' },
 }
 
+// Name-keyed flag lookup — used for the exchange card (its country name comes
+// from MARKET_DATA_ID_TO_NAME). The country panel uses the broader numeric-id
+// based flagEmoji()/ALPHA2_BY_COUNTRY_ID below instead, since it must cover
+// every country in the topojson, not just these ~38.
+const COUNTRY_FLAGS = {
+  'Australia': '🇦🇺', 'United States': '🇺🇸', 'United Kingdom': '🇬🇧',
+  'Japan': '🇯🇵', 'Germany': '🇩🇪', 'France': '🇫🇷', 'China': '🇨🇳',
+  'Hong Kong': '🇭🇰', 'Canada': '🇨🇦', 'India': '🇮🇳', 'Brazil': '🇧🇷',
+  'South Korea': '🇰🇷', 'Singapore': '🇸🇬', 'South Africa': '🇿🇦',
+  'Switzerland': '🇨🇭', 'Netherlands': '🇳🇱', 'Spain': '🇪🇸',
+  'Italy': '🇮🇹', 'Sweden': '🇸🇪', 'Nigeria': '🇳🇬', 'Vietnam': '🇻🇳',
+  'Philippines': '🇵🇭', 'Ukraine': '🇺🇦', 'Argentina': '🇦🇷',
+  'Turkey': '🇹🇷', 'El Salvador': '🇸🇻', 'Russia': '🇷🇺',
+  'Mexico': '🇲🇽', 'Indonesia': '🇮🇩', 'Thailand': '🇹🇭',
+  'New Zealand': '🇳🇿', 'Saudi Arabia': '🇸🇦', 'UAE': '🇦🇪',
+  'Israel': '🇮🇱', 'Poland': '🇵🇱', 'Denmark': '🇩🇰',
+  'Norway': '🇳🇴', 'Finland': '🇫🇮', 'Portugal': '🇵🇹',
+}
+
 // Unicode regional indicator symbols — converts an ISO alpha-2 code to its flag emoji.
 function flagEmoji(alpha2) {
   if (!alpha2) return '🏳️'
@@ -361,7 +403,7 @@ export default function MaddexGlobe() {
   })
   const [isPlaying, setIsPlaying] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [compassGamma, setCompassGamma] = useState(0)
+  const [compassAngle, setCompassAngle] = useState(0)
 
   const [tooltip, setTooltip] = useState(null) // { x, y, text }
   const [pinnedCountry, setPinnedCountry] = useState(null)
@@ -397,17 +439,18 @@ export default function MaddexGlobe() {
   useEffect(() => { pinnedExchangeRef.current = pinnedExchange }, [pinnedExchange])
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
 
-  // Compass rose — d3's orthographic rotation only rolls the view via gamma
-  // (rotation[2]); lambda/phi just pan around the sphere without turning the
-  // view, so true north stays screen-up whenever gamma is 0 (always, today,
-  // since nothing in this file sets a nonzero gamma). Polled at low frequency
-  // — a compass needle doesn't need 60fps — rather than mirroring rotation
-  // into React state every animation frame.
+  // Compass rose angle = -(rotation[0] - DEFAULT_ROTATION[0]) — i.e. negative
+  // lambda measured relative to the home/default orientation, so N points up
+  // exactly when the globe sits at its default Australia-centred rotation,
+  // and spins as the globe is dragged/rotated away from it. Polled at low
+  // frequency — a compass needle doesn't need 60fps — rather than mirroring
+  // rotation into React state every animation frame.
   useEffect(() => {
     const id = setInterval(() => {
-      const gamma = rotationRef.current[2]
-      setCompassGamma(g => (Math.abs(g - gamma) > 0.05 ? gamma : g))
-    }, 200)
+      const delta = rotationRef.current[0] - DEFAULT_ROTATION[0]
+      const a = ((-delta % 360) + 360) % 360
+      setCompassAngle(prev => (Math.abs(prev - a) > 0.05 ? a : prev))
+    }, 100)
     return () => clearInterval(id)
   }, [])
 
@@ -712,10 +755,14 @@ export default function MaddexGlobe() {
       }
       hoveredExchangeRef.current = exId
 
+      // Same hemisphere-visibility check used for rendering point markers —
+      // without it, `projection.invert()` near the sphere's silhouette edge
+      // can resolve to a back-hemisphere lon/lat that still happens to fall
+      // inside a (non-rendered) country polygon, bleeding its tooltip through.
       let countryId = null
       if (!exId) {
         const lonLat = projection.invert([mx, my])
-        if (lonLat && Math.abs(lonLat[0]) <= 180) {
+        if (lonLat && Math.abs(lonLat[0]) <= 180 && isPointVisible(lonLat[0], lonLat[1], rotationRef.current)) {
           for (const feature of countries) {
             if (d3.geoContains(feature, lonLat)) { countryId = feature.id; break }
           }
@@ -841,6 +888,15 @@ export default function MaddexGlobe() {
     tweenRotation(DEFAULT_ROTATION)
   }
 
+  // Compass cardinal-point clicks — snap the globe to face that direction.
+  function handleCompassSnap(dir) {
+    const [lambda, phi] = rotationRef.current
+    if (dir === 'N') tweenRotation([lambda, 0, 0])
+    else if (dir === 'S') tweenRotation([lambda, 180, 0])
+    else if (dir === 'E') tweenRotation([lambda - 90, phi, 0])
+    else if (dir === 'W') tweenRotation([lambda + 90, phi, 0])
+  }
+
   function rotateToCountry(feature) {
     const [lon, lat] = d3.geoCentroid(feature)
     tweenRotation([-lon, -lat, 0])
@@ -865,7 +921,6 @@ export default function MaddexGlobe() {
   const pinnedCountryFeature = pinnedCountry ? countries.find(f => f.id === pinnedCountry) : null
   const pinnedCountryName = pinnedCountryFeature?.properties?.name ?? null
   const pinnedExchangeData = pinnedExchange ? EXCHANGES.find(e => e.id === pinnedExchange) : null
-  const pinnedExchangeQuote = pinnedExchangeData ? quotes?.[pinnedExchangeData.ySymbol] : null
 
   const selectedCountryNumId = pinnedCountry != null ? parseInt(pinnedCountry) : null
   const selectedCountryContinent = selectedCountryNumId != null ? CONTINENT_BY_COUNTRY_ID[selectedCountryNumId] : null
@@ -877,281 +932,384 @@ export default function MaddexGlobe() {
     : null
   const selectedCountryCryptoStatus = selectedCountryMarket ? CRYPTO_STATUS[selectedCountryMarket.adoption] : null
 
+  const pinnedExchangeCountryName = pinnedExchangeData ? MARKET_DATA_ID_TO_NAME[pinnedExchangeData.countryId] : null
+  const pinnedExchangeFlag = pinnedExchangeCountryName ? (COUNTRY_FLAGS[pinnedExchangeCountryName] ?? '🏳️') : null
+  const pinnedExchangeMarket = pinnedExchangeCountryName ? COUNTRY_MARKET_DATA[pinnedExchangeCountryName] : null
+
+  const hasSelection = !!pinnedCountryName || !!pinnedExchangeData
+
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full relative bg-terminal-bg"
-      style={{ overflow: 'hidden' }}
-    >
-      <canvas
-        ref={canvasRef}
-        style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-        className="cursor-grab active:cursor-grabbing select-none"
-        onMouseDown={handlePointerDown}
-        onTouchStart={handlePointerDown}
-        onClick={handleClick}
-        onMouseLeave={() => { mouseRef.current = { x: -9999, y: -9999 } }}
-      />
-
-      {!topology && (
-        <div className="absolute inset-0 flex items-center justify-center text-2xs text-terminal-text-dim animate-pulse pointer-events-none">
-          LOADING WORLD ATLAS...
-        </div>
-      )}
-
-      {/* Layer toggle — top-right, above canvas */}
-      <div className="absolute top-3 right-3 z-10 flex gap-1 pointer-events-auto">
-        {DISPLAY_MODES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => selectMode(m)}
-            className={`font-mono text-[9px] tracking-widest px-2 py-1 transition-colors ${
-              displayMode === m
-                ? 'bg-terminal-gold text-terminal-bg'
-                : 'bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
-            }`}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-
-      {/* Search — top-left, rotates the globe to the selected country */}
-      <div className="absolute top-3 left-3 z-10 w-40">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Search country..."
-          className="w-full font-mono text-[10px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
-        />
-        {searchMatches.length > 0 && (
-          <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
-            {searchMatches.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => selectSearchResult(f)}
-                className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
-              >
-                {f.properties?.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Country data panel — top-right, below the layer toggle so it never
-          overlaps those buttons. Fades/slides in when a country is selected. */}
+    <div className="w-full h-full flex bg-terminal-bg">
       <div
-        className={`absolute top-12 right-3 z-10 w-60 max-h-[380px] overflow-y-auto bg-terminal-panel border border-terminal-gold/40 shadow-xl transition-all duration-200 ${
-          pinnedCountryName ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-3 pointer-events-none'
-        }`}
+        ref={containerRef}
+        className="flex-1 relative"
+        style={{ overflow: 'hidden', minWidth: 0 }}
       >
-        {pinnedCountryName && (
-          <>
-            <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-base leading-none">{selectedCountryFlag}</span>
-                <span className="font-mono text-xs font-bold text-terminal-text-bright truncate">{pinnedCountryName}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPinnedCountry(null)}
-                className="text-terminal-text-dim hover:text-terminal-gold text-sm leading-none px-1 shrink-0"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="px-3 py-2.5 space-y-2">
-              <div className="text-2xs text-terminal-text-dim font-mono tracking-wide">{selectedCountryRegion}</div>
+        <canvas
+          ref={canvasRef}
+          style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
+          className="cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handlePointerDown}
+          onTouchStart={handlePointerDown}
+          onClick={handleClick}
+          onMouseLeave={() => { mouseRef.current = { x: -9999, y: -9999 } }}
+        />
 
-              {(displayMode === 'MARKETS' || displayMode === 'HEAT') && (
-                selectedCountryMarket ? (
-                  <div>
-                    <div className="text-2xs text-terminal-text-dim mb-0.5">{selectedCountryMarket.index}</div>
-                    <div className={`font-mono text-sm font-bold ${selectedCountryMarket.change >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                      {selectedCountryMarket.change >= 0 ? '▲' : '▼'} {Math.abs(selectedCountryMarket.change).toFixed(2)}%
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-2xs text-terminal-text-dim">No market data available</div>
-                )
-              )}
-
-              {displayMode === 'CRYPTO' && (
-                selectedCountryMarket ? (
-                  <div>
-                    <div className="text-2xs text-terminal-text-dim mb-0.5">Adoption: {selectedCountryMarket.adoption}</div>
-                    <div className={`font-mono text-xs font-bold ${selectedCountryCryptoStatus?.legal ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                      {selectedCountryCryptoStatus?.label}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-2xs text-terminal-text-dim">No crypto data available</div>
-                )
-              )}
-
-              {(displayMode === 'EARTH' || displayMode === 'DARK') && (
-                <div className="text-2xs text-terminal-text-dim">Population: {formatPopulation(selectedCountryPop)}</div>
-              )}
-            </div>
-          </>
+        {!topology && (
+          <div className="absolute inset-0 flex items-center justify-center text-2xs text-terminal-text-dim animate-pulse pointer-events-none">
+            LOADING WORLD ATLAS...
+          </div>
         )}
-      </div>
 
-      {/* HEAT legend — bottom-right */}
-      {displayMode === 'HEAT' && (
-        <div className="absolute bottom-3 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
-          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">TODAY'S INDEX %</div>
-          <div className="flex items-center gap-1.5">
-            {[
-              ['#A83232', '<-1%'],
-              ['#6B2323', '-1 to -0.3%'],
-              ['#1A3A6A', 'flat'],
-              ['#2D8A50', '0-1%'],
-              ['#1a5c35', '>1%'],
-            ].map(([color, label]) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
-                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CRYPTO legend — bottom-right */}
-      {displayMode === 'CRYPTO' && (
-        <div className="absolute bottom-3 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
-          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
-          <div className="flex items-center gap-1.5">
-            {[
-              ['#2D8A50', 'Very High'],
-              ['#1a5c35', 'High'],
-              ['#1A3A6A', 'Medium'],
-              ['#6B2323', 'Low'],
-              ['#A83232', 'Banned'],
-            ].map(([color, label]) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
-                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Single DOM tooltip, repositioned on hover */}
-      {tooltip && (
-        <div
-          className="absolute z-20 pointer-events-none bg-terminal-panel border border-terminal-gold/50 px-2 py-1.5 text-2xs text-terminal-text-bright font-mono shadow-lg"
-          style={{ left: Math.min(tooltip.x + 12, width - 180), top: Math.max(tooltip.y - 30, 4) }}
-        >
-          {tooltip.text}
-        </div>
-      )}
-
-      {/* Bottom-left stack: pause/reset controls always at the true bottom,
-          the compass rose above them, then the pinned exchange card (when
-          present) on top — column-reverse keeps all three from overlapping. */}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-col-reverse items-start gap-2">
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={togglePlaying}
-            title={isPlaying ? 'Pause rotation' : 'Resume rotation'}
-            className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              {isPlaying ? (
-                <>
-                  <rect x="2" y="1" width="2.2" height="8" fill="currentColor" />
-                  <rect x="5.8" y="1" width="2.2" height="8" fill="currentColor" />
-                </>
-              ) : (
-                <polygon points="2,1 9,5 2,9" fill="currentColor" />
-              )}
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={resetView}
-            title="Reset view"
-            className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <circle cx="5" cy="5" r="3.2" fill="none" stroke="currentColor" strokeWidth="1" />
-              <line x1="5" y1="0" x2="5" y2="1.8" stroke="currentColor" strokeWidth="1" />
-              <line x1="5" y1="8.2" x2="5" y2="10" stroke="currentColor" strokeWidth="1" />
-              <line x1="0" y1="5" x2="1.8" y2="5" stroke="currentColor" strokeWidth="1" />
-              <line x1="8.2" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
-            </svg>
-          </button>
+        {/* Layer toggle — top-right, above canvas */}
+        <div className="absolute top-3 right-3 z-10 flex gap-1 pointer-events-auto">
+          {DISPLAY_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => selectMode(m)}
+              className={`font-mono text-[9px] tracking-widest px-2 py-1 transition-colors ${
+                displayMode === m
+                  ? 'bg-terminal-gold text-terminal-bg'
+                  : 'bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
         </div>
 
-        <CompassRose gamma={compassGamma} />
-
-        {pinnedExchangeData && (
-          <div className="bg-terminal-panel border border-terminal-gold/40 px-3 py-2.5 min-w-[180px] max-w-[240px] shadow-xl">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-mono text-xs font-bold text-terminal-gold">{pinnedExchangeData.label}</span>
-              <span className={`text-[8px] font-mono px-1.5 py-0.5 ${isExchangeOpen(pinnedExchangeData) ? 'bg-terminal-green/20 text-terminal-green' : 'bg-terminal-border text-terminal-text-dim'}`}>
-                {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
-              </span>
+        {/* Search — top-left, rotates the globe to the selected country */}
+        <div className="absolute top-3 left-3 z-10 w-40">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search country..."
+            className="w-full font-mono text-[10px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
+          />
+          {searchMatches.length > 0 && (
+            <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
+              {searchMatches.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => selectSearchResult(f)}
+                  className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
+                >
+                  {f.properties?.name}
+                </button>
+              ))}
             </div>
-            <div className="text-2xs text-terminal-text-dim mb-1">{pinnedExchangeData.city}</div>
-            {pinnedExchangeQuote?.price != null && (
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-sm text-terminal-text-bright">{pinnedExchangeQuote.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                {pinnedExchangeQuote.dayChangePct != null && (
-                  <span className={`font-mono text-2xs ${pinnedExchangeQuote.dayChangePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                    {pinnedExchangeQuote.dayChangePct >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeQuote.dayChangePct).toFixed(2)}%
-                  </span>
-                )}
-              </div>
-            )}
+          )}
+        </div>
+
+        {/* HEAT legend — bottom-right, stacked below the compass/controls stack */}
+        {displayMode === 'HEAT' && (
+          <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
+            <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">TODAY'S INDEX %</div>
+            <div className="flex items-center gap-1.5">
+              {[
+                ['#A83232', '<-1%'],
+                ['#6B2323', '-1 to -0.3%'],
+                ['#1A3A6A', 'flat'],
+                ['#2D8A50', '0-1%'],
+                ['#1a5c35', '>1%'],
+              ].map(([color, label]) => (
+                <div key={label} className="flex flex-col items-center gap-0.5">
+                  <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
+                  <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CRYPTO legend — bottom-right, stacked below the compass/controls stack */}
+        {displayMode === 'CRYPTO' && (
+          <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
+            <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
+            <div className="flex items-center gap-1.5">
+              {[
+                ['#2D8A50', 'Very High'],
+                ['#1a5c35', 'High'],
+                ['#1A3A6A', 'Medium'],
+                ['#6B2323', 'Low'],
+                ['#A83232', 'Banned'],
+              ].map(([color, label]) => (
+                <div key={label} className="flex flex-col items-center gap-0.5">
+                  <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
+                  <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Single DOM tooltip, repositioned on hover */}
+        {tooltip && (
+          <div
+            className="absolute z-20 pointer-events-none bg-terminal-panel border border-terminal-gold/50 px-2 py-1.5 text-2xs text-terminal-text-bright font-mono shadow-lg"
+            style={{ left: Math.min(tooltip.x + 12, width - 180), top: Math.max(tooltip.y - 30, 4) }}
+          >
+            {tooltip.text}
+          </div>
+        )}
+
+        {/* Bottom-right stack: pause/reset controls always at the true
+            bottom, the compass rose above them — column-reverse keeps the
+            two from overlapping. z-10 keeps both above the canvas. */}
+        <div className="absolute bottom-3 right-3 z-10 flex flex-col-reverse items-end gap-2">
+          <div className="flex gap-1">
             <button
               type="button"
-              onClick={() => setPinnedExchange(null)}
-              className="text-[9px] text-terminal-text-dim hover:text-terminal-text mt-1.5"
+              onClick={togglePlaying}
+              title={isPlaying ? 'Pause rotation' : 'Resume rotation'}
+              className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
             >
-              ✕ close
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                {isPlaying ? (
+                  <>
+                    <rect x="2" y="1" width="2.2" height="8" fill="currentColor" />
+                    <rect x="5.8" y="1" width="2.2" height="8" fill="currentColor" />
+                  </>
+                ) : (
+                  <polygon points="2,1 9,5 2,9" fill="currentColor" />
+                )}
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={resetView}
+              title="Reset view"
+              className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <circle cx="5" cy="5" r="3.2" fill="none" stroke="currentColor" strokeWidth="1" />
+                <line x1="5" y1="0" x2="5" y2="1.8" stroke="currentColor" strokeWidth="1" />
+                <line x1="5" y1="8.2" x2="5" y2="10" stroke="currentColor" strokeWidth="1" />
+                <line x1="0" y1="5" x2="1.8" y2="5" stroke="currentColor" strokeWidth="1" />
+                <line x1="8.2" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
+              </svg>
             </button>
           </div>
-        )}
+
+          <CompassRose angle={compassAngle} onSnap={handleCompassSnap} />
+        </div>
       </div>
+
+      <DataPanel
+        hasSelection={hasSelection}
+        pinnedCountryName={pinnedCountryName}
+        selectedCountryFlag={selectedCountryFlag}
+        selectedCountryRegion={selectedCountryRegion}
+        selectedCountryPop={selectedCountryPop}
+        selectedCountryMarket={selectedCountryMarket}
+        selectedCountryCryptoStatus={selectedCountryCryptoStatus}
+        onCloseCountry={() => setPinnedCountry(null)}
+        pinnedExchangeData={pinnedExchangeData}
+        pinnedExchangeFlag={pinnedExchangeFlag}
+        pinnedExchangeCountryName={pinnedExchangeCountryName}
+        pinnedExchangeMarket={pinnedExchangeMarket}
+        onCloseExchange={() => setPinnedExchange(null)}
+      />
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Compass rose — screen-fixed, rotates with the globe's roll (gamma). Since
-// nothing in this file ever sets a nonzero gamma, true north stays screen-up
-// at every lambda/phi (verified: d3's orthographic rotation only rolls the
-// view via gamma — lambda/phi just pan around the sphere) — so in practice N
-// always points straight up here, including at the Australia-centred default.
+// Right-side data panel — persistent ~260px sidebar, shows a placeholder when
+// nothing is selected, otherwise the selected country's or exchange's data.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CompassRose({ gamma }) {
+function DataPanel({
+  hasSelection,
+  pinnedCountryName, selectedCountryFlag, selectedCountryRegion, selectedCountryPop,
+  selectedCountryMarket, selectedCountryCryptoStatus, onCloseCountry,
+  pinnedExchangeData, pinnedExchangeFlag, pinnedExchangeCountryName, pinnedExchangeMarket, onCloseExchange,
+}) {
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-[rgba(6,13,26,0.7)] border border-terminal-border"
-      style={{ width: 48, height: 48 }}
+      className="shrink-0 font-mono border-l border-terminal-border overflow-y-auto"
+      style={{ width: 260, background: '#0B1628' }}
     >
-      <svg width="40" height="40" viewBox="-20 -20 40 40">
-        <g transform={`rotate(${-gamma})`}>
-          <line x1="0" y1="-17" x2="0" y2="17" stroke="#637899" strokeWidth="0.75" />
-          <line x1="-17" y1="0" x2="17" y2="0" stroke="#637899" strokeWidth="0.75" />
-          <polygon points="0,-16 2.5,-6 0,-2 -2.5,-6" fill="#C9A84C" />
-          <polygon points="0,16 2.5,6 0,2 -2.5,6" fill="#637899" />
-          <text x="0" y="-9" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#C9A84C">N</text>
-          <text x="0" y="10" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#637899">S</text>
-          <text x="11" y="0.5" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#637899">E</text>
-          <text x="-11" y="0.5" textAnchor="middle" dominantBaseline="middle" fontSize="7" fontFamily="IBM Plex Mono, monospace" fill="#637899">W</text>
-        </g>
+      <style>{`@keyframes maddexPanelSlideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+      {!hasSelection && (
+        <div className="h-full flex items-center justify-center px-6 text-center">
+          <span className="text-2xs text-terminal-text-dim tracking-widest">SELECT A COUNTRY OR EXCHANGE</span>
+        </div>
+      )}
+
+      {hasSelection && (
+        <div
+          key={pinnedExchangeData ? `ex-${pinnedExchangeData.id}` : `co-${pinnedCountryName}`}
+          style={{ animation: 'maddexPanelSlideIn 200ms ease-out' }}
+        >
+          {pinnedExchangeData ? (
+            <>
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-terminal-border">
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-terminal-gold truncate">
+                    {pinnedExchangeData.label} — {EXCHANGE_FULL_NAMES[pinnedExchangeData.id] ?? pinnedExchangeData.label}
+                  </div>
+                  <div className="text-2xs text-terminal-text-dim mt-0.5">
+                    {pinnedExchangeFlag} {pinnedExchangeData.city}{pinnedExchangeCountryName ? `, ${pinnedExchangeCountryName}` : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onCloseExchange}
+                  className="text-terminal-text-dim hover:text-terminal-gold text-sm leading-none px-1 shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="px-3 py-2.5 space-y-2 text-2xs">
+                <div className="flex items-center gap-1.5">
+                  <span>{isExchangeOpen(pinnedExchangeData) ? '🟢' : '🔴'}</span>
+                  <span className={isExchangeOpen(pinnedExchangeData) ? 'text-terminal-green' : 'text-terminal-red'}>
+                    {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
+                  </span>
+                </div>
+                {pinnedExchangeMarket && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-terminal-text-dim">Index: {pinnedExchangeMarket.index}</span>
+                    <span className={`font-bold ${pinnedExchangeMarket.change >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                      {pinnedExchangeMarket.change >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeMarket.change).toFixed(2)}%
+                    </span>
+                  </div>
+                )}
+                <div className="text-terminal-text-dim">Local time: {localTimeWithTz(pinnedExchangeData.tz)}</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-terminal-border">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base leading-none">{selectedCountryFlag}</span>
+                  <span className="text-xs font-bold text-terminal-text-bright truncate">{pinnedCountryName?.toUpperCase()}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onCloseCountry}
+                  className="text-terminal-text-dim hover:text-terminal-gold text-sm leading-none px-1 shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="px-3 py-2 text-2xs text-terminal-text-dim border-b border-terminal-border">
+                {selectedCountryRegion} · Population {formatPopulation(selectedCountryPop)}
+              </div>
+
+              <div className="px-3 py-2.5 border-b border-terminal-border">
+                <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1.5">MARKETS LAYER</div>
+                {selectedCountryMarket ? (
+                  <div className="flex items-center justify-between text-2xs">
+                    <span className="text-terminal-text">{selectedCountryMarket.index}</span>
+                    <span className={`font-bold ${selectedCountryMarket.change >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                      {selectedCountryMarket.change >= 0 ? '+' : ''}{selectedCountryMarket.change.toFixed(2)}% {selectedCountryMarket.change >= 0 ? '▲' : '▼'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-2xs text-terminal-text-dim">No market data available</div>
+                )}
+              </div>
+
+              <div className="px-3 py-2.5">
+                <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1.5">CRYPTO LAYER</div>
+                {selectedCountryMarket ? (
+                  <div className="text-2xs space-y-1">
+                    <div className="text-terminal-text-dim">Adoption: <span className="text-terminal-text">{selectedCountryMarket.adoption}</span></div>
+                    <div className={selectedCountryCryptoStatus?.legal ? 'text-terminal-green' : 'text-terminal-red'}>
+                      Status: {selectedCountryCryptoStatus?.label}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-2xs text-terminal-text-dim">No crypto data available</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compass rose — 56x56, N (gold, larger) + S/E/W (muted). Rotates via CSS
+// transform as `angle = -rotation[0]` changes, so dragging the globe visibly
+// spins the needle. Each cardinal point is independently clickable (snaps the
+// globe to face that direction using the same 800ms tween as the reset
+// button) and highlights on hover.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const COMPASS_DIRS = [
+  { id: 'N', x: 0, y: -18, big: true },
+  { id: 'S', x: 0, y: 18, big: false },
+  { id: 'E', x: 18, y: 0, big: false },
+  { id: 'W', x: -18, y: 0, big: false },
+]
+
+function CompassRose({ angle, onSnap }) {
+  const [hoverDir, setHoverDir] = useState(null)
+
+  return (
+    <div
+      className="flex items-center justify-center rounded-full"
+      style={{ width: 56, height: 56, background: 'rgba(6,13,26,0.85)', border: '1px solid rgba(201,168,76,0.2)', zIndex: 10 }}
+    >
+      <svg
+        width="48" height="48" viewBox="-24 -24 48 48"
+        style={{ transform: `rotate(${angle}deg)`, transition: 'transform 100ms linear' }}
+      >
+        <line x1="0" y1="-21" x2="0" y2="21" stroke="#637899" strokeWidth="0.5" opacity="0.5" />
+        <line x1="-21" y1="0" x2="21" y2="0" stroke="#637899" strokeWidth="0.5" opacity="0.5" />
+
+        {COMPASS_DIRS.map((d) => {
+          const color = d.big ? '#C9A84C' : '#637899'
+          const angleRad = Math.atan2(d.y, d.x)
+          const tipX = d.x + Math.cos(angleRad) * (d.big ? 5 : 3.5)
+          const tipY = d.y + Math.sin(angleRad) * (d.big ? 5 : 3.5)
+          const baseX = d.x - Math.cos(angleRad) * (d.big ? 4 : 3)
+          const baseY = d.y - Math.sin(angleRad) * (d.big ? 4 : 3)
+          const perpX = -Math.sin(angleRad) * (d.big ? 2.6 : 1.8)
+          const perpY = Math.cos(angleRad) * (d.big ? 2.6 : 1.8)
+          const labelX = d.x + Math.cos(angleRad) * (d.big ? 9 : 7)
+          const labelY = d.y + Math.sin(angleRad) * (d.big ? 9 : 7)
+
+          return (
+            <g
+              key={d.id}
+              onClick={() => onSnap(d.id)}
+              onMouseEnter={() => setHoverDir(d.id)}
+              onMouseLeave={() => setHoverDir(null)}
+              style={{ cursor: 'pointer' }}
+            >
+              <circle
+                cx={d.x} cy={d.y} r={d.big ? 8 : 6.5}
+                fill="#000"
+                fillOpacity={hoverDir === d.id ? 0.18 : 0}
+                style={{ transition: 'fill-opacity 100ms' }}
+              />
+              <polygon
+                points={`${tipX},${tipY} ${baseX + perpX},${baseY + perpY} ${baseX - perpX},${baseY - perpY}`}
+                fill={color}
+              />
+              <text
+                x={labelX} y={labelY}
+                textAnchor="middle" dominantBaseline="middle"
+                fontSize={d.big ? 9 : 7}
+                fontWeight={d.big ? 700 : 400}
+                fontFamily="IBM Plex Mono, monospace"
+                fill={color}
+              >
+                {d.id}
+              </text>
+            </g>
+          )
+        })}
       </svg>
     </div>
   )
