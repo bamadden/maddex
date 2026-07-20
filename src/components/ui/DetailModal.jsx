@@ -524,14 +524,18 @@ export default function DetailModal() {
   }[type] ?? 'text-terminal-text-dim border-terminal-border'
 
   const handleAskAI = () => {
-    const priceContext = [
-      `${name} (${symbol})`,
-      `Current price: A$${fmt.price(displayPrice)}`,
-      pct != null ? `Day change: ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : null,
-      display52High != null ? `52W High: A$${fmt.price(display52High)}` : null,
-      display52Low  != null ? `52W Low: A$${fmt.price(display52Low)}`   : null,
-    ].filter(Boolean).join(' | ')
-    const prompt = `${priceContext}\n\nProvide professional analysis: price action, key levels, main drivers, and short-term outlook from an Australian investor perspective.`
+    const exchangeLabel = { asx: 'ASX', us: 'US', crypto: 'Crypto', fx: 'FX', index: 'Index' }[type]
+    const dateStr = `${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`
+    const prompt = [
+      `Asset: ${name ?? symbol} (${symbol})`,
+      exchangeLabel ? `Exchange: ${exchangeLabel}` : null,
+      `Current Price: A$${fmt.price(displayPrice)} (AUD)`,
+      pct != null ? `Day Change: ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : null,
+      qs?.sector ? `Sector: ${qs.sector}` : null,
+      `Date: ${dateStr} AEST`,
+      '',
+      'Provide a concise professional analysis covering: current price action and key technical levels, the 2-3 most important drivers right now, and your near-term outlook. Be direct and specific.',
+    ].filter(v => v !== null).join('\n')
     closeModal()
     window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
   }
