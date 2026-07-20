@@ -25,29 +25,6 @@ const EXCHANGES = [
   { id: 'KRX',    label: 'KRX',       city: 'Seoul',     lat: 37.5665,  lon: 126.9780, tz: 'Asia/Seoul',        open: [9, 0],   close: [15, 30], countryId: 410, ySymbol: '^KS11',   marketCapB: 1900 },
 ]
 
-const EXCHANGE_FULL_NAMES = {
-  NYSE: 'New York Stock Exchange',
-  NASDAQ: 'NASDAQ',
-  LSE: 'London Stock Exchange',
-  TSE: 'Tokyo Stock Exchange',
-  ASX: 'Australian Securities Exchange',
-  HSI: 'Hong Kong Stock Exchange',
-  SSE: 'Shanghai Stock Exchange',
-  SGX: 'Singapore Exchange',
-  ENX: 'Euronext',
-  TSX: 'Toronto Stock Exchange',
-  BSE: 'Bombay Stock Exchange',
-  KRX: 'Korea Exchange',
-}
-
-function localTimeWithTz(tz) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
-  }).formatToParts(new Date())
-  const get = (t) => parts.find(p => p.type === t)?.value ?? ''
-  return `${get('hour')}:${get('minute')} ${get('timeZoneName')}`
-}
-
 const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
 const DISPLAY_MODES = ['EARTH', 'MARKETS', 'HEAT', 'CRYPTO', 'DARK']
@@ -186,160 +163,6 @@ const PARTICLES_PER_ORIGIN = 4
 const PARTICLE_RISE = 46 // px travelled upward over one cycle
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Country data panel — continent labels, flags, population, market/crypto data
-// ─────────────────────────────────────────────────────────────────────────────
-
-const REGION_LABELS = {
-  EUROPE: 'Europe',
-  AFRICA: 'Africa',
-  ASIA: 'Asia',
-  NORTH_AMERICA: 'North America',
-  SOUTH_AMERICA: 'South America',
-  OCEANIA: 'Oceania',
-  ANTARCTICA: 'Antarctica',
-}
-
-// ISO 3166-1 numeric id → alpha-2, same id set as CONTINENT_BY_COUNTRY_ID, used
-// to derive flag emoji via Unicode regional indicator symbols.
-const ALPHA2_BY_COUNTRY_ID = {
-  4: 'AF', 8: 'AL', 12: 'DZ', 16: 'AS', 20: 'AD', 24: 'AO', 28: 'AG', 31: 'AZ', 32: 'AR', 36: 'AU', 40: 'AT',
-  44: 'BS', 48: 'BH', 50: 'BD', 52: 'BB', 56: 'BE', 64: 'BT', 68: 'BO', 70: 'BA', 72: 'BW', 76: 'BR', 84: 'BZ',
-  86: 'IO', 90: 'SB', 96: 'BN', 100: 'BG', 104: 'MM', 108: 'BI', 112: 'BY', 116: 'KH', 120: 'CM', 124: 'CA',
-  132: 'CV', 136: 'KY', 140: 'CF', 144: 'LK', 148: 'TD', 152: 'CL', 156: 'CN', 158: 'TW', 170: 'CO', 174: 'KM',
-  175: 'YT', 178: 'CG', 180: 'CD', 184: 'CK', 188: 'CR', 191: 'HR', 192: 'CU', 196: 'CY', 203: 'CZ', 204: 'BJ',
-  208: 'DK', 212: 'DM', 214: 'DO', 218: 'EC', 818: 'EG', 222: 'SV', 226: 'GQ', 232: 'ER', 233: 'EE', 231: 'ET',
-  238: 'FK', 242: 'FJ', 246: 'FI', 250: 'FR', 262: 'DJ', 266: 'GA', 268: 'GE', 270: 'GM', 275: 'PS', 276: 'DE',
-  288: 'GH', 292: 'GI', 296: 'KI', 300: 'GR', 308: 'GD', 316: 'GU', 320: 'GT', 324: 'GN', 328: 'GY', 332: 'HT',
-  336: 'VA', 340: 'HN', 344: 'HK', 348: 'HU', 352: 'IS', 356: 'IN', 360: 'ID', 364: 'IR', 368: 'IQ', 372: 'IE',
-  376: 'IL', 380: 'IT', 388: 'JM', 392: 'JP', 398: 'KZ', 400: 'JO', 404: 'KE', 408: 'KP', 410: 'KR', 414: 'KW',
-  417: 'KG', 418: 'LA', 422: 'LB', 426: 'LS', 428: 'LV', 430: 'LR', 434: 'LY', 438: 'LI', 440: 'LT', 442: 'LU',
-  446: 'MO', 450: 'MG', 454: 'MW', 458: 'MY', 462: 'MV', 466: 'ML', 470: 'MT', 478: 'MR', 480: 'MU', 484: 'MX',
-  492: 'MC', 496: 'MN', 498: 'MD', 499: 'ME', 504: 'MA', 508: 'MZ', 512: 'OM', 516: 'NA', 520: 'NR', 524: 'NP',
-  528: 'NL', 540: 'NC', 548: 'VU', 554: 'NZ', 558: 'NI', 562: 'NE', 566: 'NG', 578: 'NO', 583: 'FM', 584: 'MH',
-  585: 'PW', 586: 'PK', 591: 'PA', 598: 'PG', 600: 'PY', 604: 'PE', 608: 'PH', 616: 'PL', 620: 'PT', 624: 'GW',
-  626: 'TL', 630: 'PR', 634: 'QA', 638: 'RE', 642: 'RO', 643: 'RU', 646: 'RW', 659: 'KN', 662: 'LC',
-  670: 'VC', 674: 'SM', 678: 'ST', 682: 'SA', 686: 'SN', 688: 'RS', 690: 'SC', 694: 'SL', 702: 'SG', 703: 'SK',
-  705: 'SI', 706: 'SO', 710: 'ZA', 716: 'ZW', 724: 'ES', 728: 'SS', 729: 'SD', 740: 'SR', 748: 'SZ', 752: 'SE',
-  756: 'CH', 760: 'SY', 762: 'TJ', 764: 'TH', 768: 'TG', 776: 'TO', 780: 'TT', 784: 'AE', 788: 'TN', 792: 'TR',
-  795: 'TM', 798: 'TV', 800: 'UG', 804: 'UA', 807: 'MK', 826: 'GB', 834: 'TZ', 840: 'US', 854: 'BF', 858: 'UY',
-  860: 'UZ', 862: 'VE', 882: 'WS', 887: 'YE', 894: 'ZM', 10: 'AQ', 304: 'GL', 732: 'EH', 704: 'VN',
-}
-
-// Approximate population in millions — illustrative, same synthetic-data
-// spirit as the HEAT/CRYPTO tiers above.
-const POPULATION_BY_COUNTRY_ID = {
-  4: 41, 8: 2.8, 12: 46, 16: 0.045, 20: 0.08, 24: 36, 28: 0.1, 31: 10.4, 32: 46, 36: 26.5, 40: 9.1,
-  44: 0.4, 48: 1.5, 50: 173, 52: 0.28, 56: 11.7, 64: 0.79, 68: 12.2, 70: 3.2, 72: 2.5, 76: 216, 84: 0.4,
-  86: 0.003, 90: 0.74, 96: 0.45, 100: 6.4, 104: 54, 108: 13, 112: 9.1, 116: 17, 120: 28, 124: 40,
-  132: 0.6, 136: 0.07, 140: 5.6, 144: 22, 148: 18, 152: 19.6, 156: 1410, 158: 23.6, 170: 52, 174: 0.87,
-  175: 0.32, 178: 6, 180: 102, 184: 0.017, 188: 5.2, 191: 3.9, 192: 11, 196: 1.25, 203: 10.9, 204: 13.7,
-  208: 5.9, 212: 0.07, 214: 11.3, 218: 18.2, 818: 114, 222: 6.3, 226: 1.7, 232: 3.7, 233: 1.3, 231: 127,
-  238: 0.0035, 242: 0.93, 246: 5.6, 250: 68, 262: 1.1, 266: 2.4, 268: 3.7, 270: 2.6, 275: 5.4, 276: 84.4,
-  288: 34, 292: 0.034, 296: 0.13, 300: 10.4, 308: 0.13, 316: 0.17, 320: 18, 324: 14, 328: 0.8, 332: 11.6,
-  336: 0.0008, 340: 10.6, 344: 7.4, 348: 9.6, 352: 0.4, 356: 1430, 360: 280, 364: 90, 368: 45, 372: 5.2,
-  376: 9.8, 380: 58.9, 388: 2.8, 392: 124, 398: 20, 400: 11.3, 404: 55, 408: 26, 410: 51.7, 414: 4.3,
-  417: 7, 418: 7.6, 422: 5.5, 426: 2.3, 428: 1.85, 430: 5.4, 434: 7, 438: 0.04, 440: 2.8, 442: 0.66,
-  446: 0.7, 450: 30, 454: 20.8, 458: 34, 462: 0.52, 466: 23, 470: 0.54, 478: 4.9, 480: 1.26, 484: 128,
-  492: 0.039, 496: 3.4, 498: 2.5, 499: 0.62, 504: 37.8, 508: 33, 512: 4.6, 516: 2.6, 520: 0.011, 524: 30,
-  528: 17.9, 540: 0.27, 548: 0.33, 554: 5.2, 558: 6.9, 562: 26, 566: 223, 578: 5.5, 583: 0.11, 584: 0.042,
-  585: 0.018, 586: 241, 591: 4.5, 598: 10.3, 600: 6.9, 604: 34, 608: 117, 616: 37.6, 620: 10.3, 624: 2.1,
-  626: 1.3, 630: 3.2, 634: 2.7, 638: 0.87, 642: 19, 643: 144, 646: 14, 659: 0.047, 662: 0.18,
-  670: 0.1, 674: 0.034, 678: 0.23, 682: 36, 686: 18, 688: 6.6, 690: 0.1, 694: 8.6, 702: 5.9, 703: 5.4,
-  705: 2.1, 706: 18, 710: 60, 716: 16.7, 724: 47.6, 728: 11, 729: 48, 740: 0.63, 748: 1.2, 752: 10.5,
-  756: 8.9, 760: 23, 762: 10.1, 764: 71.7, 768: 9, 776: 0.1, 780: 1.5, 784: 9.9, 788: 12.3, 792: 85.8,
-  795: 6.5, 798: 0.011, 800: 48, 804: 36, 807: 1.8, 826: 68.3, 834: 67, 840: 335, 854: 23, 858: 3.4,
-  860: 36, 862: 28.3, 882: 0.22, 887: 34, 894: 20.6, 10: 0, 304: 0.057, 732: 0.6, 704: 98.9,
-}
-
-// Bridges numeric ISO id → the exact name keys used in COUNTRY_MARKET_DATA
-// below, since world-atlas's own feature.properties.name strings (e.g.
-// "United States of America") don't always match the simplified names used
-// for market data. Joining on numeric id keeps this robust regardless of the
-// topojson's exact naming.
-const MARKET_DATA_ID_TO_NAME = {
-  840: 'United States', 826: 'United Kingdom', 392: 'Japan', 276: 'Germany', 250: 'France',
-  156: 'China', 344: 'Hong Kong', 36: 'Australia', 124: 'Canada', 356: 'India',
-  410: 'South Korea', 76: 'Brazil', 710: 'South Africa', 702: 'Singapore', 756: 'Switzerland',
-  528: 'Netherlands', 724: 'Spain', 380: 'Italy', 752: 'Sweden', 566: 'Nigeria',
-  704: 'Vietnam', 608: 'Philippines', 804: 'Ukraine', 32: 'Argentina', 792: 'Turkey',
-  222: 'El Salvador', 643: 'Russia', 484: 'Mexico', 360: 'Indonesia', 764: 'Thailand',
-}
-
-const COUNTRY_MARKET_DATA = {
-  'United States':    { index: 'S&P 500',    change: +0.42, adoption: 'High' },
-  'United Kingdom':   { index: 'FTSE 100',   change: -0.18, adoption: 'High' },
-  'Japan':            { index: 'Nikkei 225', change: +0.67, adoption: 'Medium' },
-  'Germany':          { index: 'DAX',        change: +0.31, adoption: 'Medium' },
-  'France':           { index: 'CAC 40',     change: -0.09, adoption: 'Medium' },
-  'China':            { index: 'Shanghai',   change: -0.55, adoption: 'Low' },
-  'Hong Kong':        { index: 'Hang Seng',  change: +0.22, adoption: 'High' },
-  'Australia':        { index: 'ASX 200',    change: +0.15, adoption: 'Medium' },
-  'Canada':           { index: 'TSX',        change: +0.38, adoption: 'High' },
-  'India':            { index: 'SENSEX',     change: +0.91, adoption: 'Very High' },
-  'South Korea':      { index: 'KOSPI',      change: +0.44, adoption: 'Medium' },
-  'Brazil':           { index: 'Bovespa',    change: -0.72, adoption: 'High' },
-  'South Africa':     { index: 'JSE',        change: +0.11, adoption: 'High' },
-  'Singapore':        { index: 'STI',        change: +0.28, adoption: 'Medium' },
-  'Switzerland':      { index: 'SMI',        change: -0.14, adoption: 'Medium' },
-  'Netherlands':      { index: 'AEX',        change: +0.19, adoption: 'Medium' },
-  'Spain':            { index: 'IBEX 35',    change: -0.33, adoption: 'Medium' },
-  'Italy':            { index: 'FTSE MIB',   change: +0.08, adoption: 'Medium' },
-  'Sweden':           { index: 'OMX',        change: +0.52, adoption: 'Medium' },
-  'Nigeria':          { index: 'NGX',        change: +1.20, adoption: 'Very High' },
-  'Vietnam':          { index: 'VN-Index',   change: +0.88, adoption: 'Very High' },
-  'Philippines':      { index: 'PSEi',       change: +0.34, adoption: 'Very High' },
-  'Ukraine':          { index: 'PFTS',       change: -1.10, adoption: 'Very High' },
-  'Argentina':        { index: 'MERVAL',     change: +2.30, adoption: 'High' },
-  'Turkey':           { index: 'BIST 100',   change: +1.80, adoption: 'High' },
-  'El Salvador':      { index: 'N/A',        change: 0,     adoption: 'Very High' },
-  'Russia':           { index: 'MOEX',       change: -0.44, adoption: 'Low' },
-  'Mexico':           { index: 'BMV IPC',    change: +0.61, adoption: 'Medium' },
-  'Indonesia':        { index: 'IDX',        change: +0.75, adoption: 'High' },
-  'Thailand':         { index: 'SET',        change: +0.42, adoption: 'High' },
-}
-
-const CRYPTO_STATUS = {
-  'Very High': { legal: true,  label: 'Legal — High Adoption' },
-  'High':      { legal: true,  label: 'Legal — Growing Adoption' },
-  'Medium':    { legal: true,  label: 'Legal — Moderate Adoption' },
-  'Low':       { legal: false, label: 'Restricted' },
-  'Banned':    { legal: false, label: 'Banned' },
-}
-
-// Name-keyed flag lookup — used for the exchange card (its country name comes
-// from MARKET_DATA_ID_TO_NAME). The country panel uses the broader numeric-id
-// based flagEmoji()/ALPHA2_BY_COUNTRY_ID below instead, since it must cover
-// every country in the topojson, not just these ~38.
-const COUNTRY_FLAGS = {
-  'Australia': '🇦🇺', 'United States': '🇺🇸', 'United Kingdom': '🇬🇧',
-  'Japan': '🇯🇵', 'Germany': '🇩🇪', 'France': '🇫🇷', 'China': '🇨🇳',
-  'Hong Kong': '🇭🇰', 'Canada': '🇨🇦', 'India': '🇮🇳', 'Brazil': '🇧🇷',
-  'South Korea': '🇰🇷', 'Singapore': '🇸🇬', 'South Africa': '🇿🇦',
-  'Switzerland': '🇨🇭', 'Netherlands': '🇳🇱', 'Spain': '🇪🇸',
-  'Italy': '🇮🇹', 'Sweden': '🇸🇪', 'Nigeria': '🇳🇬', 'Vietnam': '🇻🇳',
-  'Philippines': '🇵🇭', 'Ukraine': '🇺🇦', 'Argentina': '🇦🇷',
-  'Turkey': '🇹🇷', 'El Salvador': '🇸🇻', 'Russia': '🇷🇺',
-  'Mexico': '🇲🇽', 'Indonesia': '🇮🇩', 'Thailand': '🇹🇭',
-  'New Zealand': '🇳🇿', 'Saudi Arabia': '🇸🇦', 'UAE': '🇦🇪',
-  'Israel': '🇮🇱', 'Poland': '🇵🇱', 'Denmark': '🇩🇰',
-  'Norway': '🇳🇴', 'Finland': '🇫🇮', 'Portugal': '🇵🇹',
-}
-
-// Unicode regional indicator symbols — converts an ISO alpha-2 code to its flag emoji.
-function flagEmoji(alpha2) {
-  if (!alpha2) return '🏳️'
-  return String.fromCodePoint(...[...alpha2.toUpperCase()].map(c => 0x1F1E6 + (c.charCodeAt(0) - 65)))
-}
-
-function formatPopulation(m) {
-  if (m == null) return 'N/A'
-  if (m >= 1000) return `~${(m / 1000).toFixed(2)}B`
-  if (m < 0.01) return `~${Math.round(m * 1_000_000).toLocaleString()}`
-  if (m < 1) return `~${Math.round(m * 1000).toLocaleString()}K`
-  return `~${m.toFixed(m < 10 ? 1 : 0)}M`
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -388,7 +211,7 @@ function isPointVisible(lon, lat, rotation) {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function MaddexGlobe() {
+export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const containerRef = useRef(null)
   const canvasRef = useRef(null)
   const rafRef = useRef(null)
@@ -847,14 +670,17 @@ export default function MaddexGlobe() {
     if (hoveredExchangeRef.current) {
       setPinnedExchange(hoveredExchangeRef.current)
       setPinnedCountry(null)
+      onExchangeClick?.(hoveredExchangeRef.current)
     } else if (hoveredCountryRef.current) {
+      const numericId = parseInt(hoveredCountryRef.current, 10)
       setPinnedCountry(hoveredCountryRef.current)
       setPinnedExchange(null)
+      onCountryClick?.(numericId)
     } else {
       setPinnedCountry(null)
       setPinnedExchange(null)
     }
-  }, [])
+  }, [onCountryClick, onExchangeClick])
 
   function selectMode(mode) {
     setDisplayMode(mode)
@@ -917,322 +743,164 @@ export default function MaddexGlobe() {
     }
   }
 
-  // ── Data cards ───────────────────────────────────────────────────────────
-  const pinnedCountryFeature = pinnedCountry ? countries.find(f => f.id === pinnedCountry) : null
-  const pinnedCountryName = pinnedCountryFeature?.properties?.name ?? null
-  const pinnedExchangeData = pinnedExchange ? EXCHANGES.find(e => e.id === pinnedExchange) : null
-
-  const selectedCountryNumId = pinnedCountry != null ? parseInt(pinnedCountry) : null
-  const selectedCountryContinent = selectedCountryNumId != null ? CONTINENT_BY_COUNTRY_ID[selectedCountryNumId] : null
-  const selectedCountryRegion = selectedCountryContinent ? REGION_LABELS[selectedCountryContinent] : 'Unknown region'
-  const selectedCountryFlag = selectedCountryNumId != null ? flagEmoji(ALPHA2_BY_COUNTRY_ID[selectedCountryNumId]) : null
-  const selectedCountryPop = selectedCountryNumId != null ? POPULATION_BY_COUNTRY_ID[selectedCountryNumId] : null
-  const selectedCountryMarket = selectedCountryNumId != null
-    ? COUNTRY_MARKET_DATA[MARKET_DATA_ID_TO_NAME[selectedCountryNumId]]
-    : null
-  const selectedCountryCryptoStatus = selectedCountryMarket ? CRYPTO_STATUS[selectedCountryMarket.adoption] : null
-
-  const pinnedExchangeCountryName = pinnedExchangeData ? MARKET_DATA_ID_TO_NAME[pinnedExchangeData.countryId] : null
-  const pinnedExchangeFlag = pinnedExchangeCountryName ? (COUNTRY_FLAGS[pinnedExchangeCountryName] ?? '🏳️') : null
-  const pinnedExchangeMarket = pinnedExchangeCountryName ? COUNTRY_MARKET_DATA[pinnedExchangeCountryName] : null
-
-  const hasSelection = !!pinnedCountryName || !!pinnedExchangeData
-
-  return (
-    <div className="w-full h-full flex bg-terminal-bg">
-      <div
-        ref={containerRef}
-        className="flex-1 relative"
-        style={{ overflow: 'hidden', minWidth: 0 }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-          className="cursor-grab active:cursor-grabbing select-none"
-          onMouseDown={handlePointerDown}
-          onTouchStart={handlePointerDown}
-          onClick={handleClick}
-          onMouseLeave={() => { mouseRef.current = { x: -9999, y: -9999 } }}
-        />
-
-        {!topology && (
-          <div className="absolute inset-0 flex items-center justify-center text-2xs text-terminal-text-dim animate-pulse pointer-events-none">
-            LOADING WORLD ATLAS...
-          </div>
-        )}
-
-        {/* Layer toggle — top-right, above canvas */}
-        <div className="absolute top-3 right-3 z-10 flex gap-1 pointer-events-auto">
-          {DISPLAY_MODES.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => selectMode(m)}
-              className={`font-mono text-[9px] tracking-widest px-2 py-1 transition-colors ${
-                displayMode === m
-                  ? 'bg-terminal-gold text-terminal-bg'
-                  : 'bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-
-        {/* Search — top-left, rotates the globe to the selected country */}
-        <div className="absolute top-3 left-3 z-10 w-40">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search country..."
-            className="w-full font-mono text-[10px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
-          />
-          {searchMatches.length > 0 && (
-            <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
-              {searchMatches.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => selectSearchResult(f)}
-                  className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
-                >
-                  {f.properties?.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* HEAT legend — bottom-right, stacked below the compass/controls stack */}
-        {displayMode === 'HEAT' && (
-          <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
-            <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">TODAY'S INDEX %</div>
-            <div className="flex items-center gap-1.5">
-              {[
-                ['#A83232', '<-1%'],
-                ['#6B2323', '-1 to -0.3%'],
-                ['#1A3A6A', 'flat'],
-                ['#2D8A50', '0-1%'],
-                ['#1a5c35', '>1%'],
-              ].map(([color, label]) => (
-                <div key={label} className="flex flex-col items-center gap-0.5">
-                  <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
-                  <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* CRYPTO legend — bottom-right, stacked below the compass/controls stack */}
-        {displayMode === 'CRYPTO' && (
-          <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
-            <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
-            <div className="flex items-center gap-1.5">
-              {[
-                ['#2D8A50', 'Very High'],
-                ['#1a5c35', 'High'],
-                ['#1A3A6A', 'Medium'],
-                ['#6B2323', 'Low'],
-                ['#A83232', 'Banned'],
-              ].map(([color, label]) => (
-                <div key={label} className="flex flex-col items-center gap-0.5">
-                  <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
-                  <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Single DOM tooltip, repositioned on hover */}
-        {tooltip && (
-          <div
-            className="absolute z-20 pointer-events-none bg-terminal-panel border border-terminal-gold/50 px-2 py-1.5 text-2xs text-terminal-text-bright font-mono shadow-lg"
-            style={{ left: Math.min(tooltip.x + 12, width - 180), top: Math.max(tooltip.y - 30, 4) }}
-          >
-            {tooltip.text}
-          </div>
-        )}
-
-        {/* Bottom-right stack: pause/reset controls always at the true
-            bottom, the compass rose above them — column-reverse keeps the
-            two from overlapping. z-10 keeps both above the canvas. */}
-        <div className="absolute bottom-3 right-3 z-10 flex flex-col-reverse items-end gap-2">
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={togglePlaying}
-              title={isPlaying ? 'Pause rotation' : 'Resume rotation'}
-              className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                {isPlaying ? (
-                  <>
-                    <rect x="2" y="1" width="2.2" height="8" fill="currentColor" />
-                    <rect x="5.8" y="1" width="2.2" height="8" fill="currentColor" />
-                  </>
-                ) : (
-                  <polygon points="2,1 9,5 2,9" fill="currentColor" />
-                )}
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={resetView}
-              title="Reset view"
-              className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                <circle cx="5" cy="5" r="3.2" fill="none" stroke="currentColor" strokeWidth="1" />
-                <line x1="5" y1="0" x2="5" y2="1.8" stroke="currentColor" strokeWidth="1" />
-                <line x1="5" y1="8.2" x2="5" y2="10" stroke="currentColor" strokeWidth="1" />
-                <line x1="0" y1="5" x2="1.8" y2="5" stroke="currentColor" strokeWidth="1" />
-                <line x1="8.2" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            </button>
-          </div>
-
-          <CompassRose angle={compassAngle} onSnap={handleCompassSnap} />
-        </div>
-      </div>
-
-      <DataPanel
-        hasSelection={hasSelection}
-        pinnedCountryName={pinnedCountryName}
-        selectedCountryFlag={selectedCountryFlag}
-        selectedCountryRegion={selectedCountryRegion}
-        selectedCountryPop={selectedCountryPop}
-        selectedCountryMarket={selectedCountryMarket}
-        selectedCountryCryptoStatus={selectedCountryCryptoStatus}
-        onCloseCountry={() => setPinnedCountry(null)}
-        pinnedExchangeData={pinnedExchangeData}
-        pinnedExchangeFlag={pinnedExchangeFlag}
-        pinnedExchangeCountryName={pinnedExchangeCountryName}
-        pinnedExchangeMarket={pinnedExchangeMarket}
-        onCloseExchange={() => setPinnedExchange(null)}
-      />
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Right-side data panel — persistent ~260px sidebar, shows a placeholder when
-// nothing is selected, otherwise the selected country's or exchange's data.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function DataPanel({
-  hasSelection,
-  pinnedCountryName, selectedCountryFlag, selectedCountryRegion, selectedCountryPop,
-  selectedCountryMarket, selectedCountryCryptoStatus, onCloseCountry,
-  pinnedExchangeData, pinnedExchangeFlag, pinnedExchangeCountryName, pinnedExchangeMarket, onCloseExchange,
-}) {
   return (
     <div
-      className="shrink-0 font-mono border-l border-terminal-border overflow-y-auto"
-      style={{ width: 260, background: '#0B1628' }}
+      ref={containerRef}
+      className="w-full h-full relative bg-terminal-bg"
+      style={{ overflow: 'hidden' }}
     >
-      <style>{`@keyframes maddexPanelSlideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }`}</style>
-      {!hasSelection && (
-        <div className="h-full flex items-center justify-center px-6 text-center">
-          <span className="text-2xs text-terminal-text-dim tracking-widest">SELECT A COUNTRY OR EXCHANGE</span>
+      <canvas
+        ref={canvasRef}
+        style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
+        className="cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={handlePointerDown}
+        onTouchStart={handlePointerDown}
+        onClick={handleClick}
+        onMouseLeave={() => { mouseRef.current = { x: -9999, y: -9999 } }}
+      />
+
+      {!topology && (
+        <div className="absolute inset-0 flex items-center justify-center text-2xs text-terminal-text-dim animate-pulse pointer-events-none">
+          LOADING WORLD ATLAS...
         </div>
       )}
 
-      {hasSelection && (
+      {/* Layer toggle — top-right, above canvas */}
+      <div className="absolute top-3 right-3 z-10 flex gap-1 pointer-events-auto">
+        {DISPLAY_MODES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => selectMode(m)}
+            className={`font-mono text-[9px] tracking-widest px-2 py-1 transition-colors ${
+              displayMode === m
+                ? 'bg-terminal-gold text-terminal-bg'
+                : 'bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      {/* Search — top-left, rotates the globe to the selected country */}
+      <div className="absolute top-3 left-3 z-10 w-40">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search country..."
+          className="w-full font-mono text-[10px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
+        />
+        {searchMatches.length > 0 && (
+          <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
+            {searchMatches.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => selectSearchResult(f)}
+                className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
+              >
+                {f.properties?.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* HEAT legend — bottom-right, stacked below the compass/controls stack */}
+      {displayMode === 'HEAT' && (
+        <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
+          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">TODAY'S INDEX %</div>
+          <div className="flex items-center gap-1.5">
+            {[
+              ['#A83232', '<-1%'],
+              ['#6B2323', '-1 to -0.3%'],
+              ['#1A3A6A', 'flat'],
+              ['#2D8A50', '0-1%'],
+              ['#1a5c35', '>1%'],
+            ].map(([color, label]) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
+                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CRYPTO legend — bottom-right, stacked below the compass/controls stack */}
+      {displayMode === 'CRYPTO' && (
+        <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
+          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
+          <div className="flex items-center gap-1.5">
+            {[
+              ['#2D8A50', 'Very High'],
+              ['#1a5c35', 'High'],
+              ['#1A3A6A', 'Medium'],
+              ['#6B2323', 'Low'],
+              ['#A83232', 'Banned'],
+            ].map(([color, label]) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
+                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Single DOM tooltip, repositioned on hover */}
+      {tooltip && (
         <div
-          key={pinnedExchangeData ? `ex-${pinnedExchangeData.id}` : `co-${pinnedCountryName}`}
-          style={{ animation: 'maddexPanelSlideIn 200ms ease-out' }}
+          className="absolute z-20 pointer-events-none bg-terminal-panel border border-terminal-gold/50 px-2 py-1.5 text-2xs text-terminal-text-bright font-mono shadow-lg"
+          style={{ left: Math.min(tooltip.x + 12, width - 180), top: Math.max(tooltip.y - 30, 4) }}
         >
-          {pinnedExchangeData ? (
-            <>
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-terminal-border">
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-terminal-gold truncate">
-                    {pinnedExchangeData.label} — {EXCHANGE_FULL_NAMES[pinnedExchangeData.id] ?? pinnedExchangeData.label}
-                  </div>
-                  <div className="text-2xs text-terminal-text-dim mt-0.5">
-                    {pinnedExchangeFlag} {pinnedExchangeData.city}{pinnedExchangeCountryName ? `, ${pinnedExchangeCountryName}` : ''}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={onCloseExchange}
-                  className="text-terminal-text-dim hover:text-terminal-gold text-sm leading-none px-1 shrink-0"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="px-3 py-2.5 space-y-2 text-2xs">
-                <div className="flex items-center gap-1.5">
-                  <span>{isExchangeOpen(pinnedExchangeData) ? '🟢' : '🔴'}</span>
-                  <span className={isExchangeOpen(pinnedExchangeData) ? 'text-terminal-green' : 'text-terminal-red'}>
-                    {isExchangeOpen(pinnedExchangeData) ? 'OPEN' : 'CLOSED'}
-                  </span>
-                </div>
-                {pinnedExchangeMarket && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-terminal-text-dim">Index: {pinnedExchangeMarket.index}</span>
-                    <span className={`font-bold ${pinnedExchangeMarket.change >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                      {pinnedExchangeMarket.change >= 0 ? '▲' : '▼'} {Math.abs(pinnedExchangeMarket.change).toFixed(2)}%
-                    </span>
-                  </div>
-                )}
-                <div className="text-terminal-text-dim">Local time: {localTimeWithTz(pinnedExchangeData.tz)}</div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-terminal-border">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base leading-none">{selectedCountryFlag}</span>
-                  <span className="text-xs font-bold text-terminal-text-bright truncate">{pinnedCountryName?.toUpperCase()}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={onCloseCountry}
-                  className="text-terminal-text-dim hover:text-terminal-gold text-sm leading-none px-1 shrink-0"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="px-3 py-2 text-2xs text-terminal-text-dim border-b border-terminal-border">
-                {selectedCountryRegion} · Population {formatPopulation(selectedCountryPop)}
-              </div>
-
-              <div className="px-3 py-2.5 border-b border-terminal-border">
-                <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1.5">MARKETS LAYER</div>
-                {selectedCountryMarket ? (
-                  <div className="flex items-center justify-between text-2xs">
-                    <span className="text-terminal-text">{selectedCountryMarket.index}</span>
-                    <span className={`font-bold ${selectedCountryMarket.change >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                      {selectedCountryMarket.change >= 0 ? '+' : ''}{selectedCountryMarket.change.toFixed(2)}% {selectedCountryMarket.change >= 0 ? '▲' : '▼'}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-2xs text-terminal-text-dim">No market data available</div>
-                )}
-              </div>
-
-              <div className="px-3 py-2.5">
-                <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1.5">CRYPTO LAYER</div>
-                {selectedCountryMarket ? (
-                  <div className="text-2xs space-y-1">
-                    <div className="text-terminal-text-dim">Adoption: <span className="text-terminal-text">{selectedCountryMarket.adoption}</span></div>
-                    <div className={selectedCountryCryptoStatus?.legal ? 'text-terminal-green' : 'text-terminal-red'}>
-                      Status: {selectedCountryCryptoStatus?.label}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-2xs text-terminal-text-dim">No crypto data available</div>
-                )}
-              </div>
-            </>
-          )}
+          {tooltip.text}
         </div>
       )}
+
+      {/* Bottom-right stack: pause/reset controls always at the true
+          bottom, the compass rose above them — column-reverse keeps the
+          two from overlapping. z-10 keeps both above the canvas. */}
+      <div className="absolute bottom-3 right-3 z-10 flex flex-col-reverse items-end gap-2">
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={togglePlaying}
+            title={isPlaying ? 'Pause rotation' : 'Resume rotation'}
+            className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              {isPlaying ? (
+                <>
+                  <rect x="2" y="1" width="2.2" height="8" fill="currentColor" />
+                  <rect x="5.8" y="1" width="2.2" height="8" fill="currentColor" />
+                </>
+              ) : (
+                <polygon points="2,1 9,5 2,9" fill="currentColor" />
+              )}
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={resetView}
+            title="Reset view"
+            className="w-6 h-6 flex items-center justify-center bg-terminal-panel/85 border border-terminal-border/70 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold backdrop-blur-sm transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <circle cx="5" cy="5" r="3.2" fill="none" stroke="currentColor" strokeWidth="1" />
+              <line x1="5" y1="0" x2="5" y2="1.8" stroke="currentColor" strokeWidth="1" />
+              <line x1="5" y1="8.2" x2="5" y2="10" stroke="currentColor" strokeWidth="1" />
+              <line x1="0" y1="5" x2="1.8" y2="5" stroke="currentColor" strokeWidth="1" />
+              <line x1="8.2" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </button>
+        </div>
+
+        <CompassRose angle={compassAngle} onSnap={handleCompassSnap} />
+      </div>
     </div>
   )
 }

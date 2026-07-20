@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  fetchGeoNews, fetchNews,
-  fetchYFBatch, YF_INDICES,
-} from '../../services/api'
+import { fetchGeoNews, fetchNews } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useCountryData } from '../../hooks/useCountryData'
 import COUNTRIES from '../../data/countryDatabase'
-import { initCountryDataRefresh, getCountryCache } from '../../services/countryApiService'
+import { initCountryDataRefresh } from '../../services/countryApiService'
 import MaddexGlobe from '../../components/globe/MaddexGlobe'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
@@ -739,61 +737,62 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
   const exchId = COUNTRY_TO_EXCHANGE[n]
   const ex     = exchId ? EXCHANGES.find(e => e.id === exchId) : null
   const a2     = COUNTRY_A2[n] ?? null
+  // Raw static-DB row — only used for the two fields useCountryData doesn't
+  // expose (timezone, dataAsAt). Everything else below comes from the hook,
+  // which merges REST Countries > World Bank > IMF > this same static row.
   const dbEntry = COUNTRIES_BY_A2[a2 ?? ''] ?? null
+  const enriched = useCountryData(a2)
 
-  // REST Countries cache — fallback for fields not in static DB
-  const restCache = useMemo(() => getCountryCache('rest'), [])
-  const restEntry = a2 ? (restCache?.[a2] ?? null) : null
-
-  // Resolved fields — DB wins, REST cache fallback, then legacy COUNTRY_DETAIL / COUNTRY_EXTRA
+  // Resolved fields — enriched (live/merged) data wins, then legacy
+  // COUNTRY_DETAIL / COUNTRY_EXTRA (this module's own hand-curated overrides)
   const tz          = dbEntry?.timezone ?? detail?.tz ?? null
-  const flag        = detail?.flag ?? dbEntry?.flag ?? flagEmoji(a2)
-  const capital     = extra?.capital ?? dbEntry?.capital ?? restEntry?.capital ?? null
-  const pop         = dbEntry?.population ?? restEntry?.population ?? null
-  const area        = dbEntry?.area ?? restEntry?.area ?? null
-  const region      = dbEntry?.region ?? restEntry?.region ?? null
-  const currCode    = detail?.currency ?? (typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.code : dbEntry?.currency) ?? restEntry?.currency ?? null
-  const currName    = typeof dbEntry?.currency === 'object' ? dbEntry?.currency?.name : null
-  const languages   = dbEntry?.languages ?? restEntry?.languages ?? null
-  const govType     = dbEntry?.governmentType ?? restEntry?.governmentType ?? null
+  const flag        = detail?.flag ?? enriched?.flag ?? flagEmoji(a2)
+  const capital     = extra?.capital ?? enriched?.capital ?? null
+  const pop         = enriched?.population ?? null
+  const area        = enriched?.area ?? null
+  const region      = enriched?.region ?? null
+  const currCode    = detail?.currency ?? enriched?.currency?.code ?? null
+  const currName    = enriched?.currency?.name ?? null
+  const languages   = enriched?.languages ?? null
+  const govType     = enriched?.governmentType ?? null
 
   // Economy
-  const gdpTotal    = dbEntry?.gdpTotal    ?? null
-  const gdpPerCap   = dbEntry?.gdpPerCapita ?? null
-  const gdpGrowth   = detail?.macro?.gdp   ?? dbEntry?.gdpGrowth   ?? null
+  const gdpTotal    = enriched?.gdpTotal    ?? null
+  const gdpPerCap   = enriched?.gdpPerCapita ?? null
+  const gdpGrowth   = detail?.macro?.gdp   ?? enriched?.gdpGrowth   ?? null
   const gdpLbl      = detail?.macro?.gdpLbl ?? null
-  const inflation   = detail?.macro?.cpi   ?? dbEntry?.inflation   ?? null
+  const inflation   = detail?.macro?.cpi   ?? enriched?.inflation   ?? null
   const inflLbl     = detail?.macro?.cpiLbl ?? null
-  const intRate     = detail?.macro?.rate  ?? dbEntry?.interestRate ?? null
+  const intRate     = detail?.macro?.rate  ?? enriched?.interestRate ?? null
   const intRateLbl  = detail?.macro?.rateLbl ?? null
-  const intRateBank = dbEntry?.interestRateBank ?? null
-  const unemployment = dbEntry?.unemployment ?? null
+  const intRateBank = enriched?.interestRateBank ?? null
+  const unemployment = enriched?.unemployment ?? null
 
   // Trade
-  const topExports  = dbEntry?.topExports         ?? null
-  const topImports  = dbEntry?.topImports         ?? null
-  const partners    = detail?.partners ?? dbEntry?.topTradingPartners ?? null
-  const auTrade     = extra?.auTrade   ?? dbEntry?.auRelationship ?? null
-  const auTradeVal  = dbEntry?.auTradeValue        ?? null
+  const topExports  = enriched?.topExports         ?? null
+  const topImports  = enriched?.topImports         ?? null
+  const partners    = detail?.partners ?? enriched?.topTradingPartners ?? null
+  const auTrade     = extra?.auTrade   ?? enriched?.auRelationship ?? null
+  const auTradeVal  = enriched?.auTradeValue        ?? null
 
   // Exchange
   const exName      = detail?.exchange ?? null
   const exIndex     = detail?.index    ?? null
 
   // Risk
-  const creditRating     = dbEntry?.creditRating     ?? null
-  const polStability     = dbEntry?.politicalStability ?? null
-  const econOutlook      = dbEntry?.economicOutlook    ?? null
-  const sanctionsStatus  = dbEntry?.sanctionsStatus    ?? null
-  const conflictStatus   = dbEntry?.conflictStatus     ?? null
-  const description      = extra?.economy ?? dbEntry?.description ?? null
+  const creditRating     = enriched?.creditRating     ?? null
+  const polStability     = enriched?.politicalStability ?? null
+  const econOutlook      = enriched?.economicOutlook    ?? null
+  const sanctionsStatus  = enriched?.sanctionsStatus    ?? null
+  const conflictStatus   = enriched?.conflictStatus     ?? null
+  const description      = extra?.economy ?? enriched?.description ?? null
   const dataAsAt         = dbEntry?.dataAsAt ?? null
 
   const isConflict = CONFLICT_COUNTRIES.has(n)
   const isStress   = STRESS_COUNTRIES.has(n)
   const isPartner  = PARTNER_COUNTRIES.has(n)
   const riskRating = getRiskRating(n)
-  const hasData    = !!(dbEntry || detail)
+  const hasData    = !!(enriched || detail)
 
   // Live local time — ticks every second
   const lt = useLocalTime(tz)
@@ -1677,213 +1676,6 @@ function MarketSessionsTab({ now }) {
   )
 }
 
-// ─── Globe Info Stack — 3 unique panels ──────────────────────────────────────
-
-// Maps YF index symbols to EXCHANGES region labels for breadth calculation
-const YF_TO_REGION = {
-  '^AXJO':  'APAC',     '^NZ50':  'APAC',    '^N225':   'APAC',
-  '^HSI':   'APAC',     '^GSPC':  'AMERICAS','^IXIC':   'AMERICAS',
-  '^FTSE':  'EUROPE',   '^GDAXI': 'EUROPE',
-}
-
-// Key chokepoints to show (first 3 from CHOKEPOINTS array — Hormuz, Suez, Malacca)
-const KEY_CHOKE_NAMES = ['Strait of Hormuz', 'Suez Canal', 'Strait of Malacca']
-const CHOKE_STATUS_COLOR = { OPEN:'#22c55e', MONITORED:'#f59e0b', DISRUPTED:'#ff1744' }
-const CHOKE_STATUS_DOT   = { OPEN:'✓', MONITORED:'●', DISRUPTED:'⚠' }
-
-// AU commodity flow keywords
-const AU_FLOW_DEFS = [
-  { name:'IRON ORE', re:/iron ore|pilbara|steel demand|fortescue|FMG/i },
-  { name:'LNG',      re:/LNG|liquefied.*gas|woodside|pluto.*LNG|gorgon|santos.*gas/i },
-  { name:'COAL',     re:/met coal|coking coal|coal.*india|coal.*china|newcastle.*coal/i },
-]
-
-function GlobeInfoBar({ allNews, geoNewsItems, tick, onSelectTab }) {
-  // Shares cache with IndicesTable — no extra API call when that component is mounted
-  const { data: indexQuotes } = useQuery({
-    queryKey: ['yfBatch', 'indices'],
-    queryFn:  () => fetchYFBatch(YF_INDICES.map(i => i.symbol)),
-    staleTime: 60_000, retry: 1,
-  })
-
-  // ── Section 1: Market Breadth ──────────────────────────────────────────────
-  const breadth = useMemo(() => {
-    const regionStats = {}
-    // Count open/closed per region from exchange status
-    for (const ex of EXCHANGES) {
-      const r = ex.region
-      if (!regionStats[r]) regionStats[r] = { open:0, closed:0, up:0, down:0 }
-      if (isOpenNow(getStatus(ex))) regionStats[r].open++
-      else regionStats[r].closed++
-    }
-    // Add up/down from available YF quotes
-    if (indexQuotes) {
-      for (const [sym, region] of Object.entries(YF_TO_REGION)) {
-        const q = indexQuotes[sym]
-        if (!q?.pct || !regionStats[region]) continue
-        if (q.pct > 0) regionStats[region].up++
-        else if (q.pct < 0) regionStats[region].down++
-      }
-    }
-    const totalUp   = Object.values(regionStats).reduce((s, r) => s + r.up, 0)
-    const totalDown = Object.values(regionStats).reduce((s, r) => s + r.down, 0)
-    const tracked   = totalUp + totalDown
-    const pctUp     = tracked ? Math.round(totalUp / tracked * 100) : null
-    return { byRegion: regionStats, totalUp, totalDown, pctUp }
-  }, [indexQuotes, tick])
-
-  const breadthColor = breadth.pctUp == null ? '#6b7280'
-    : breadth.pctUp >= 60 ? 'var(--color-gain)'
-    : breadth.pctUp >= 40 ? '#f59e0b'
-    : 'var(--color-loss)'
-
-  // ── Section 2: Risk Pulse ──────────────────────────────────────────────────
-  const riskItems = useMemo(() => (allNews ?? [])
-    .map(n => ({ ...n, sev: detectSeverity(`${n.headline} ${n.summary ?? ''}`) }))
-    .filter(n => n.sev === 'CRITICAL' || n.sev === 'HIGH')
-    .sort((a, b) => (a.sev === 'CRITICAL' ? 0 : 1) - (b.sev === 'CRITICAL' ? 0 : 1))
-    .slice(0, 3)
-  , [allNews])
-
-  const critCount = riskItems.filter(n => n.sev === 'CRITICAL').length
-  const highCount = riskItems.filter(n => n.sev === 'HIGH').length
-  const riskLabel = critCount > 0 ? 'CRITICAL' : highCount >= 2 ? 'ELEVATED' : highCount === 1 ? 'MODERATE' : 'LOW'
-  const riskColor = critCount > 0 ? '#ff1744' : highCount >= 2 ? '#ff6d00' : highCount === 1 ? '#f59e0b' : '#22c55e'
-  const riskPct   = Math.min(95, critCount * 35 + highCount * 18 + 10)
-
-  // ── Section 3: Trade Flow Alerts ──────────────────────────────────────────
-  const chokeStatuses = useMemo(() =>
-    CHOKEPOINTS
-      .filter(cp => KEY_CHOKE_NAMES.includes(cp.name))
-      .map(cp => {
-        const re = new RegExp(cp.keywords.join('|'), 'i')
-        const related = (geoNewsItems ?? []).filter(n => re.test(`${n.headline} ${n.summary ?? ''}`))
-        return { ...cp, liveStatus: computeChokeStatus(cp, related) }
-      })
-  , [geoNewsItems])
-
-  const auFlows = useMemo(() =>
-    AU_FLOW_DEFS.map(f => {
-      const hits = (allNews ?? []).filter(n => f.re.test(`${n.headline} ${n.summary ?? ''}`))
-      const pos  = hits.some(n => /surge|ris|demand|strong|high|up|boom/i.test(n.headline))
-      const neg  = hits.some(n => /fall|drop|weaken|soften|decline|low|slump/i.test(n.headline))
-      const status = pos && !neg ? 'RISING' : neg && !pos ? 'SOFTENING' : hits.length ? 'MONITORED' : 'STABLE'
-      const color  = status === 'RISING' ? 'var(--color-gain)' : status === 'SOFTENING' ? 'var(--color-loss)' : status === 'MONITORED' ? '#f59e0b' : 'rgba(100,130,160,0.5)'
-      const context = hits[0]?.headline?.slice(0, 48) ?? null
-      return { name: f.name, status, color, context }
-    })
-  , [allNews])
-
-  // Shared style tokens
-  const hdr = { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:5 }
-  const row = { display:'flex', alignItems:'center', gap:4, fontSize:9, marginBottom:2 }
-  const dim = { color:'rgba(100,130,160,0.55)', fontSize:8 }
-  const sec = { flex:1, padding:'6px 8px', overflow:'hidden', minHeight:0 }
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#071428', overflow:'hidden' }}>
-
-      {/* ── Section 1: GLOBAL MARKET BREADTH ── */}
-      <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)' }}>
-        <div style={hdr}>BREADTH</div>
-
-        {/* Overall bar */}
-        {breadth.pctUp != null ? (
-          <div style={{ marginBottom:6 }}>
-            <div style={{ display:'flex', height:5, borderRadius:2, overflow:'hidden', marginBottom:2 }}>
-              <div style={{ width:`${breadth.pctUp}%`, background:'var(--color-gain)', transition:'width 0.5s' }} />
-              <div style={{ flex:1, background:'var(--color-loss)' }} />
-            </div>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:8 }}>
-              <span style={{ color:'var(--color-gain)' }}>▲ {breadth.totalUp} UP ({breadth.pctUp}%)</span>
-              <span style={{ color:'var(--color-loss)' }}>▼ {breadth.totalDown} DN</span>
-            </div>
-          </div>
-        ) : (
-          <div style={{ ...dim, marginBottom:6 }}>Loading quotes...</div>
-        )}
-
-        {/* Per-region rows */}
-        {[
-          { key:'APAC', label:'ASIA-PAC' },
-          { key:'EUROPE', label:'EUROPE' },
-          { key:'AMERICAS', label:'AMERICAS' },
-        ].map(({ key, label }) => {
-          const d = breadth.byRegion[key] ?? {}
-          return (
-            <div key={key} style={row}>
-              <span style={dim}>{label}</span>
-              <span style={{ color:'rgba(100,130,160,0.4)', fontSize:8, marginLeft:'auto' }}>{d.open ?? 0} open</span>
-              {(d.up  > 0) && <span style={{ color:'var(--color-gain)', fontSize:8 }}>▲{d.up}</span>}
-              {(d.down > 0) && <span style={{ color:'var(--color-loss)', fontSize:8 }}>▼{d.down}</span>}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* ── Section 2: GLOBAL RISK PULSE ── */}
-      <div style={{ ...sec, borderBottom:'1px solid rgba(13,34,68,0.8)', display:'flex', flexDirection:'column' }}>
-        <div style={hdr}>RISK PULSE</div>
-
-        {/* Risk bar */}
-        <div style={{ marginBottom:5 }}>
-          <div style={{ display:'flex', height:4, borderRadius:2, overflow:'hidden', background:'rgba(100,130,160,0.12)', marginBottom:2 }}>
-            <div style={{ width:`${riskPct}%`, background:riskColor, transition:'width 0.5s' }} />
-          </div>
-          <div style={{ display:'flex', justifyContent:'space-between', fontSize:8 }}>
-            <span style={{ color:riskColor, fontWeight:700 }}>GLOBAL {riskLabel}</span>
-            <span style={dim}>{critCount}CRIT · {highCount}HIGH</span>
-          </div>
-        </div>
-
-        {riskItems.length === 0 && <div style={{ ...dim, fontSize:9 }}>No elevated signals</div>}
-        {riskItems.map((n, i) => (
-          <div key={i} style={{ ...row, cursor:'pointer', marginBottom:3 }} onClick={() => onSelectTab?.('geopolitical')}>
-            <span style={{ fontSize:9, flexShrink:0 }}>{n.sev === 'CRITICAL' ? '🔴' : '🟡'}</span>
-            <span style={{ color:'#b8cce4', fontSize:9, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{n.headline}</span>
-          </div>
-        ))}
-
-        {riskItems.length > 0 && (
-          <button onClick={() => onSelectTab?.('geopolitical')}
-            style={{ marginTop:'auto', alignSelf:'flex-end', fontSize:8, color:'#c8a84b', background:'none', border:'none', cursor:'pointer', padding:0 }}>
-            VIEW ALL →
-          </button>
-        )}
-      </div>
-
-      {/* ── Section 3: TRADE FLOW ALERTS ── */}
-      <div style={sec}>
-        <div style={hdr}>TRADE FLOWS</div>
-
-        {/* Chokepoints */}
-        {chokeStatuses.map(cp => {
-          const shortName = cp.name.replace('Strait of ', '').replace(' Canal', '').replace(' Strait', '')
-          const sc = CHOKE_STATUS_COLOR[cp.liveStatus] ?? '#6b7280'
-          return (
-            <div key={cp.name} style={{ ...row, cursor:'pointer', marginBottom:3 }} onClick={() => onSelectTab?.('maritime')}>
-              <span style={{ color:sc, fontSize:9, flexShrink:0 }}>{CHOKE_STATUS_DOT[cp.liveStatus] ?? '●'}</span>
-              <span style={{ color:'#d4dce8', fontSize:9, fontWeight:600, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</span>
-              <span style={{ color:sc, fontSize:8, flexShrink:0 }}>{cp.liveStatus}</span>
-            </div>
-          )
-        })}
-
-        {/* AU commodity flows */}
-        <div style={{ marginTop:4, paddingTop:4, borderTop:'1px solid rgba(13,34,68,0.4)' }}>
-          {auFlows.map(f => (
-            <div key={f.name} style={row}>
-              <span style={dim}>AU {f.name}</span>
-              <span style={{ color:f.color, fontSize:8, marginLeft:'auto', fontWeight:600 }}>{f.status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-    </div>
-  )
-}
-
 // ─── Exchange Detail Panel ────────────────────────────────────────────────────
 
 function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
@@ -1986,7 +1778,6 @@ export default function GlobalModule() {
     () => new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST'
   )
   const [nowMs, setNowMs] = useState(0)
-  const [tick, setTick] = useState(0)
   const [activeTab, setActiveTab]     = useState('maritime')
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [selectedExchange, setSelectedExchange] = useState(null)
@@ -2019,7 +1810,6 @@ export default function GlobalModule() {
     const update = () => {
       setNow(new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST')
       setNowMs(Date.now())
-      setTick(t => t + 1)
     }
     update()
     const id = setInterval(update, 30_000)
@@ -2070,6 +1860,19 @@ export default function GlobalModule() {
     window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
   }, [])
 
+  // Globe country click — rewires the orphaned CountryPanel back to the globe.
+  const handleCountryClick = useCallback((numericId) => {
+    setSelectedCountry(numericId)
+  }, [])
+
+  // Globe exchange-marker click — resolve the exchange's country (via this
+  // module's own 51-entry EXCHANGES array) and show the same CountryPanel,
+  // which already surfaces the linked exchange's session countdown.
+  const handleExchangeClick = useCallback((exchangeId) => {
+    const ex = EXCHANGES.find(e => e.id === exchangeId)
+    if (ex?.countryId) setSelectedCountry(ex.countryId)
+  }, [])
+
   const TABS = [
     { id:'maritime',    label:'MARITIME'    },
     { id:'air',         label:'AIR'         },
@@ -2093,22 +1896,12 @@ export default function GlobalModule() {
 
       <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
 
-        {/* ── Main content row: Globe | Info stack | Right tab panel ── */}
+        {/* ── Main content row: Globe | Right tab panel ── */}
         <div style={{ flex:1, display:'flex', minHeight:0 }}>
 
           {/* Globe */}
           <div style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
-            <MaddexGlobe />
-          </div>
-
-          {/* Info stack — 180px, 3 unique panels */}
-          <div style={{ width:180, flexShrink:0, borderLeft:'1px solid rgba(13,34,68,0.8)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-            <GlobeInfoBar
-              allNews={allNewsItems}
-              geoNewsItems={geoNewsItems}
-              tick={tick}
-              onSelectTab={(tab) => { setActiveTab(tab) }}
-            />
+            <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} />
           </div>
 
           {/* Right tab panel — 440px */}
@@ -2139,16 +1932,10 @@ export default function GlobalModule() {
             ))}
           </div>
 
-          {/* Tab content */}
+          {/* Tab content — a selected country always takes over this area,
+              regardless of which tab is active, per the globe-click rewire. */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'exchange' && selectedExchange ? (
-              <ExchangePanel
-                exchangeId={selectedExchange}
-                newsItems={allNewsItems}
-                onClose={() => { setSelectedExchange(null); setActiveTab('maritime') }}
-                onAskAI={handleAskAI}
-              />
-            ) : activeTab === 'country' && selectedCountry ? (
+            {selectedCountry != null ? (
               <CountryPanel
                 id={selectedCountry}
                 newsItems={allNewsItems}
@@ -2156,7 +1943,14 @@ export default function GlobalModule() {
                 audUsd={audUsd}
                 currencyMode={currencyMode}
                 onCurrencyToggle={handleCurrencyToggle}
-                onClose={() => { setSelectedCountry(null); setActiveTab('maritime') }}
+                onClose={() => setSelectedCountry(null)}
+                onAskAI={handleAskAI}
+              />
+            ) : activeTab === 'exchange' && selectedExchange ? (
+              <ExchangePanel
+                exchangeId={selectedExchange}
+                newsItems={allNewsItems}
+                onClose={() => { setSelectedExchange(null); setActiveTab('maritime') }}
                 onAskAI={handleAskAI}
               />
             ) : activeTab === 'maritime' ? (
