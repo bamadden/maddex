@@ -5,28 +5,37 @@ import {
   fetchYFBatch, YF_INDICES,
   fetchFxRates, transformFxRates,
   fetchMetalsRates, extractMetals,
+  fetchBatch, ASX_STOCKS, US_STOCKS, toAUD,
 } from '../../services/api'
 import { useStore } from '../../store/useStore'
+import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
 
-const INDEX_SYMS  = ['^AXJO', '^GSPC', '^IXIC']
-const INDEX_LABELS = { '^AXJO':'ASX 200', '^GSPC':'S&P 500', '^IXIC':'NASDAQ' }
+// All 10 benchmark indices — same set/order as IndicesTable's benchmark bar —
+// shown at the start of the tape, ahead of individual stocks.
+const INDEX_SYMS = [
+  '^AXJO', '^AORD', '^GSPC', '^IXIC', '^DJI', '^FTSE', '^N225', '^HSI', '^GDAXI', '000001.SS',
+]
+const INDEX_LABELS = {
+  '^AXJO': 'ASX 200', '^AORD': 'All Ords', '^GSPC': 'S&P 500', '^IXIC': 'NASDAQ',
+  '^DJI': 'Dow Jones', '^FTSE': 'FTSE 100', '^N225': 'Nikkei 225', '^HSI': 'Hang Seng',
+  '^GDAXI': 'DAX', '000001.SS': 'Shanghai',
+}
 const CRYPTO_COINS = ['BTC','ETH','SOL','BNB','XRP']
 
 const fmtAUD  = (v) => `A$${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const pctCls  = (p) => (p > 0 ? 'text-terminal-green' : p < 0 ? 'text-terminal-red' : 'text-terminal-text-dim')
 const arrow   = (p) => (p > 0 ? '▲' : p < 0 ? '▼' : '—')
 
-// Inline style tokens for sub-element colouring (layout handled by CSS classes)
+// Inline style tokens for sub-element colouring not covered by Tailwind classes
 const S = {
   pipe:   { color: '#c8a84b', opacity: 0.7 },
   dlabel: { color: '#c8a84b', fontWeight: 700, letterSpacing: '0.08em', fontSize: 10 },
-  sym:    { color: '#d4dce8', fontWeight: 600 },
-  dash:   { color: '#2d4a6a' },
-  price:  { color: '#a8b8cc' },
-  gain:   { color: '#22c55e', fontWeight: 600 },
-  loss:   { color: '#ef4444', fontWeight: 600 },
-  flat:   { color: '#6b7280' },
+}
+
+function pctColor(p) {
+  if (p > 0) return 'var(--color-gain)'
+  if (p < 0) return 'var(--color-loss)'
+  return '#6b7280'
 }
 
 function Divider({ label }) {
@@ -40,16 +49,20 @@ function Divider({ label }) {
 
 function TapeItem({ sym, price, pct, marketCap, onClick }) {
   const tooltip = [price, pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')
-  const pctStyle = pct == null ? null : pct > 0 ? S.gain : pct < 0 ? S.loss : S.flat
   return (
     <span className="ticker-item" title={tooltip || undefined} onClick={onClick}>
-      <span style={S.sym}>{sym}</span>
-      <span style={S.dash}>—</span>
-      {price != null && <span style={S.price}>{price}</span>}
+      <span className="text-terminal-gold font-semibold">{sym}</span>
+      {price != null && <span className="text-terminal-text">{price}</span>}
       {pct != null && (
-        <span style={pctStyle}>
-          {arrow(pct)} {Math.abs(pct).toFixed(2)}%
+        <span className="font-semibold" style={{ color: pctColor(pct) }}>
+          {arrow(pct)}{pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
         </span>
+      )}
+      {marketCap != null && (
+        <>
+          <span style={S.pipe}>│</span>
+          <span className="text-terminal-text-dim">{formatMarketCap(marketCap)}</span>
+        </>
       )}
     </span>
   )
@@ -58,6 +71,7 @@ function TapeItem({ sym, price, pct, marketCap, onClick }) {
 export default function TickerTape() {
   const { openModal } = useStore()
   const qc = useQueryClient()
+  const { audUsd } = useAudRates()
 
   const { data: rawMarkets } = useQuery({
     queryKey:  ['cryptoMarkets', 'aud'],
@@ -84,6 +98,21 @@ export default function TickerTape() {
     queryKey:  ['metalsRates'],
     queryFn:   fetchMetalsRates,
     staleTime: 10 * 60_000,
+    retry: 1,
+  })
+
+  // Same queryKeys as TopMovers/MarketSentimentBanner — shares their cached
+  // fetch rather than firing a second batch of requests for the same data.
+  const { data: asxQuotes } = useQuery({
+    queryKey:  ['yahooMoversBatch', 'asx'],
+    queryFn:   () => fetchBatch(ASX_STOCKS),
+    staleTime: 60_000,
+    retry: 1,
+  })
+  const { data: usQuotes } = useQuery({
+    queryKey:  ['yahooMoversBatch', 'us'],
+    queryFn:   () => fetchBatch(US_STOCKS),
+    staleTime: 60_000,
     retry: 1,
   })
 
@@ -126,18 +155,47 @@ export default function TickerTape() {
     if (cryptoItems.length) sectionBlocks.push({ label: '◆ CRYPTO', items: cryptoItems })
   }
 
-  // 📊 INDICES — ASX200/S&P500/NASDAQ via Yahoo Finance v7 quote
+  // 📊 INDICES — all 10 benchmark indices, shown first so the tape leads with
+  // the broad market before individual stocks. Via Yahoo Finance v7 quote.
   if (indexQuotes) {
     const indexItems = INDEX_SYMS.map(sym => {
       const q = indexQuotes[sym]
       if (!q || isNaN(q.last)) return null
       return {
         sym:   INDEX_LABELS[sym],
-        price: `${Number(q.last).toLocaleString('en-AU', { maximumFractionDigits: 0 })} pts`,
+        price: Number(q.last).toLocaleString('en-AU', { maximumFractionDigits: 0 }),
         pct:   q.pct,
       }
     }).filter(Boolean)
     if (indexItems.length) sectionBlocks.push({ label: '📊 INDICES', items: indexItems })
+  }
+
+  // 📈 STOCKS — ASX + US, shares TopMovers'/MarketSentimentBanner's cached
+  // fetch (same queryKeys above) rather than issuing its own requests.
+  if (asxQuotes || usQuotes) {
+    const stockItems = [
+      ...(asxQuotes ? Object.values(asxQuotes) : []),
+      ...(usQuotes  ? Object.values(usQuotes)  : []),
+    ].map(q => {
+      const priceAud = toAUD(q.price, q.currency, audUsd)
+      const capAud   = q.marketCap != null ? toAUD(q.marketCap, q.currency, audUsd) : null
+      const ticker   = q.symbol.replace('.AX', '')
+      return {
+        sym:       ticker,
+        price:     fmtAUD(priceAud),
+        pct:       q.dayChangePct,
+        marketCap: capAud,
+        onClick: () => openModal?.({
+          symbol: q.symbol,
+          name:   ticker,
+          price:  priceAud,
+          pct:    q.dayChangePct,
+          change: toAUD(q.dayChange, q.currency, audUsd),
+          type:   q.symbol.endsWith('.AX') ? 'asx' : 'us',
+        }),
+      }
+    })
+    if (stockItems.length) sectionBlocks.push({ label: '📈 STOCKS', items: stockItems })
   }
 
   // 💱 FX — AUD/USD, AUD/EUR, AUD/JPY, AUD/GBP

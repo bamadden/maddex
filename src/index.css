@@ -115,7 +115,11 @@ body {
   height: 100%;
   white-space: nowrap;
   will-change: transform;
-  animation: ticker-flow 60s linear infinite;
+  /* Duration scaled up from the original 60s: the tape now carries ~3x as
+     many items (10 indices + ~40 stocks added), so the same duration would
+     have made it scroll noticeably faster. linear + translateX keeps this
+     smooth and constant-speed at any duration — never jumpy. */
+  animation: ticker-flow 170s linear infinite;
   animation-play-state: running !important;
 }
 /* Individual asset items — always fully visible, hover-interactive */
