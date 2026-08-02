@@ -200,9 +200,9 @@ export async function fetchYahooQuote(symbol) {
   }
 }
 
-export async function fetchYahooHistory(symbol, range = '3mo') {
+export async function fetchYahooHistory(symbol, range = '3mo', interval = '1d') {
   try {
-    const url = `${YAHOO_BASE}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`
+    const url = `${YAHOO_BASE}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`
     const cached = getCache(url)
     if (cached) return cached
     const res = await fetch(bust(url), { signal: AbortSignal.timeout(15000), headers: NO_CACHE_HEADERS })
@@ -540,10 +540,10 @@ async function fetchStooqHistory(symbol, { range = '3mo' } = {}) {
 }
 
 // fetchYFHistory: indices via stooq, stocks via Yahoo Finance
-export const fetchYFHistory = async (symbol, { range = '3mo' } = {}) => {
+export const fetchYFHistory = async (symbol, { range = '3mo', interval = '1d' } = {}) => {
   const stooqSym = yfToStooq(symbol)
   if (stooqSym.startsWith('^')) return fetchStooqHistory(symbol, { range })
-  return fetchYahooHistory(symbol, range)
+  return fetchYahooHistory(symbol, range, interval)
 }
 
 // transformYFHistory is now a passthrough — fetchYFHistory returns pre-parsed data

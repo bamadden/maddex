@@ -696,15 +696,37 @@ function calcHistChange(hist, daysBack) {
   return (cur - ref) / ref * 100
 }
 
-// Calculate YTD change from history
+// Calculate YTD change from history.
+// Bug: `d.date` is a display label like "5 Jan" with no year — new Date("5 Jan")
+// resolves to 2001, never >= yearStart, so startEntry was always undefined and
+// this always returned null. Use `d.rawDate` (ISO "YYYY-MM-DD") instead.
 function calcYTDChange(hist) {
   const arr = Array.isArray(hist) ? hist.filter(d => d?.price != null && !isNaN(d.price)) : []
   if (arr.length < 2) return null
   const yearStart = new Date(new Date().getFullYear(), 0, 1)
   const cur = arr[arr.length - 1].price
-  const startEntry = arr.find(d => d.date && new Date(d.date) >= yearStart)
+  const startEntry = arr.find(d => {
+    const key = d.rawDate ?? d.date
+    if (!key) return false
+    const dt = new Date(key)
+    return !isNaN(dt) && dt >= yearStart
+  })
   if (!startEntry?.price) return null
   return (cur - startEntry.price) / startEntry.price * 100
+}
+
+// Maps the period selector (5D/1M/3M/YTD/1Y) to Yahoo Finance range+interval
+// params for the sector detail chart. 5D uses an intraday interval since a
+// daily-interval fetch over only 5 days would be too sparse to chart.
+function periodToYFParams(period) {
+  switch (period) {
+    case '5D':  return { range: '5d',  interval: '15m' }
+    case '1M':  return { range: '1mo', interval: '1d'  }
+    case '3M':  return { range: '3mo', interval: '1d'  }
+    case 'YTD': return { range: 'ytd', interval: '1d'  }
+    case '1Y':  return { range: '1y',  interval: '1d'  }
+    default:    return { range: '1mo', interval: '1d'  }
+  }
 }
 
 // ─── Toggle components ────────────────────────────────────────────────────────
@@ -789,10 +811,11 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   // constituent stock, fetched in parallel. Promise.allSettled means a
   // handful of failed symbols don't take down the whole composite.
   const { data: compositeRaw, isFetching: compositeFetching } = useQuery({
-    queryKey: ['sectorComposite', selectedIndex, selected, constituentSyms.join(',')],
+    queryKey: ['sectorComposite', selectedIndex, selected, constituentSyms.join(','), secondaryMetric],
     queryFn: async () => {
+      const { range, interval } = periodToYFParams(secondaryMetric)
       const settled = await Promise.allSettled(
-        constituentSyms.map(sym => fetchYFHistory(sym, { range: '1mo' }))
+        constituentSyms.map(sym => fetchYFHistory(sym, { range, interval }))
       )
       return settled.map((r) => r.status === 'fulfilled' ? transformYFHistory(r.value) : [])
     },
@@ -840,8 +863,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   // Single-stock fallback: always fetched for non-composite indices, or once
   // the composite has been tried and come up short (< 2 usable stocks).
   const { data: rawHistory, isFetching: histFetching } = useQuery({
-    queryKey: ['yfHistory', proxySym, '1mo'],
-    queryFn:  () => fetchYFHistory(proxySym, { range: '1mo' }),
+    queryKey: ['yfHistory', proxySym, secondaryMetric],
+    queryFn:  () => fetchYFHistory(proxySym, periodToYFParams(secondaryMetric)),
     enabled:  !!proxySym && (!useComposite || compositeUnavailable),
     staleTime: 5 * 60_000,
     retry: 1,
@@ -1037,8 +1060,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             <div className="px-2 py-1 border-b border-terminal-border/50 flex-shrink-0">
               <span className="text-2xs font-bold text-terminal-text-dim tracking-wide">
                 {composite != null
-                  ? `30D ${selected.toUpperCase()} SECTOR TREND — ${composite.stockCount} STOCKS`
-                  : `30D ${proxySym ? displaySym(proxySym) : ''} PRICE`}
+                  ? `${secondaryMetric} ${selected.toUpperCase()} SECTOR TREND — ${composite.stockCount} STOCKS`
+                  : `${secondaryMetric} ${proxySym ? displaySym(proxySym) : ''} PRICE`}
               </span>
             </div>
 
@@ -1166,7 +1189,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
             <div className="border-t border-terminal-border p-1.5 text-2xs text-terminal-text-dim/60 flex-shrink-0 flex items-center justify-between">
               <span>{constituentStocks.length > 0 ? `${constituentStocks.length} holdings` : 'Proxy view'}</span>
-              <span>{composite != null ? 'Sector composite · Yahoo Finance' : `30D ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''} · Yahoo Finance`}</span>
+              <span>{composite != null ? `${secondaryMetric} sector composite · Yahoo Finance` : `${secondaryMetric} ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''} · Yahoo Finance`}</span>
             </div>
           </div>
         )}
