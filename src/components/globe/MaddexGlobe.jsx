@@ -27,7 +27,15 @@ const EXCHANGES = [
 
 const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
-const DISPLAY_MODES = ['EARTH', 'MARKETS', 'HEAT', 'CRYPTO', 'DARK']
+// Base layer (always on, mutually exclusive) + overlay layers (can stack, each
+// with its own on/off + opacity). Replaces the old single-select DISPLAY_MODES.
+const BASE_LAYERS = ['EARTH', 'DARK']
+const OVERLAY_KEYS = ['MARKETS', 'HEAT', 'CRYPTO']
+const DEFAULT_OVERLAYS = {
+  MARKETS: { active: true,  opacity: 100 },
+  HEAT:    { active: false, opacity: 70 },
+  CRYPTO:  { active: false, opacity: 70 },
+}
 
 // Default starting orientation — Australia centred (lon 134°E, lat 25°S),
 // matches the terminal's home market. Auto-rotate speed is degrees/frame.
@@ -130,11 +138,6 @@ const CRYPTO_TIER_BY_COUNTRY_ID = {
   50: 'banned', 524: 'banned', 4: 'banned', 634: 'banned',
 }
 
-function cryptoFillColor(numericId) {
-  const tier = CRYPTO_TIER_BY_COUNTRY_ID[numericId]
-  return tier ? CRYPTO_TIER_COLORS[tier] : '#0B1628'
-}
-
 const CRYPTO_CITIES = [
   { name: 'Miami',            lon: -80.1918, lat: 25.7617 },
   { name: 'New York',         lon: -74.0060, lat: 40.7128 },
@@ -218,11 +221,18 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
 
   const [size, setSize] = useState({ width: 800, height: 500 })
   const [topology, setTopology] = useState(null)
-  const [displayMode, setDisplayMode] = useState(() => {
+  const [baseLayer, setBaseLayer] = useState(() => {
     try {
-      const saved = localStorage.getItem('maddex_globe_mode')
-      return DISPLAY_MODES.includes(saved) ? saved : 'EARTH'
+      const saved = localStorage.getItem('maddex_globe_base')
+      return BASE_LAYERS.includes(saved) ? saved : 'EARTH'
     } catch { return 'EARTH' }
+  })
+  const [overlays, setOverlays] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('maddex_globe_overlays') ?? 'null')
+      if (saved && typeof saved === 'object') return { ...DEFAULT_OVERLAYS, ...saved }
+    } catch { /* ignore */ }
+    return DEFAULT_OVERLAYS
   })
   const [isPlaying, setIsPlaying] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -253,14 +263,37 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const exchangeScreenPosRef = useRef({}) // id -> { x, y, r }
   const pinnedCountryRef = useRef(null)
   const pinnedExchangeRef = useRef(null)
-  const displayModeRef = useRef(displayMode)
+  const baseLayerRef = useRef(baseLayer)
+  const overlaysRef = useRef(overlays)
   const quotesRef = useRef(quotes)
   const isPlayingRef = useRef(isPlaying)
-  useEffect(() => { displayModeRef.current = displayMode }, [displayMode])
+  const searchMatchIdsRef = useRef(new Set())
+  // Static star field — generated once on mount and never re-randomized so
+  // the background doesn't flicker frame to frame (Math.random must not run
+  // during render, so this is seeded in an effect rather than inline).
+  const starFieldRef = useRef([])
+  useEffect(() => {
+    starFieldRef.current = Array.from({ length: 150 }, () => ({
+      rx: Math.random(),
+      ry: Math.random(),
+      r: 0.5 + Math.random(),
+      o: 0.3 + Math.random() * 0.3,
+    }))
+  }, [])
+  useEffect(() => { baseLayerRef.current = baseLayer }, [baseLayer])
+  useEffect(() => { overlaysRef.current = overlays }, [overlays])
   useEffect(() => { quotesRef.current = quotes }, [quotes])
   useEffect(() => { pinnedCountryRef.current = pinnedCountry }, [pinnedCountry])
   useEffect(() => { pinnedExchangeRef.current = pinnedExchange }, [pinnedExchange])
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
+
+  // Persist layer choices
+  useEffect(() => {
+    try { localStorage.setItem('maddex_globe_base', baseLayer) } catch { /* ignore */ }
+  }, [baseLayer])
+  useEffect(() => {
+    try { localStorage.setItem('maddex_globe_overlays', JSON.stringify(overlays)) } catch { /* ignore */ }
+  }, [overlays])
 
   // Compass rose angle = -(rotation[0] - DEFAULT_ROTATION[0]) — i.e. negative
   // lambda measured relative to the home/default orientation, so N points up
@@ -290,7 +323,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const countries = useMemo(() => topology
     ? topojson.feature(topology, topology.objects.countries).features
     : [], [topology])
-  const graticule = useMemo(() => d3.geoGraticule().step([20, 20])(), [])
+  const graticule = useMemo(() => d3.geoGraticule().step([30, 30])(), [])
 
   // country id -> today's %change (from whichever exchange is in that country)
   const heatByCountry = useMemo(() => {
@@ -308,8 +341,14 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const searchMatches = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return []
-    return countries.filter(f => f.properties?.name?.toLowerCase().includes(q)).slice(0, 6)
+    return countries.filter(f => f.properties?.name?.toLowerCase().includes(q)).slice(0, 5)
   }, [searchQuery, countries])
+
+  // Live match highlighting on the globe as the user types — kept in a ref so
+  // drawFrame (which runs outside React's render cycle) can read it every frame.
+  useEffect(() => {
+    searchMatchIdsRef.current = new Set(searchMatches.map(f => f.id))
+  }, [searchMatches])
 
   // Debounced ResizeObserver
   useEffect(() => {
@@ -355,7 +394,11 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.clearRect(0, 0, width, height)
 
-    const mode = displayModeRef.current
+    const base = baseLayerRef.current
+    const ovl = overlaysRef.current
+    const marketsOn = ovl.MARKETS?.active ?? false
+    const heatOn    = ovl.HEAT?.active ?? false
+    const cryptoOn  = ovl.CRYPTO?.active ?? false
     const zoomK = zoomKRef.current
     const rotation = rotationRef.current
     const cx = width / 2
@@ -369,21 +412,29 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       .rotate(rotation)
     const path = d3.geoPath(projection, ctx)
 
-    const isDark = mode === 'DARK'
-    const isEarth = mode === 'EARTH'
+    const isDark = base === 'DARK'
+    const isEarth = base === 'EARTH'
 
-    // Atmosphere glow — stronger blue halo for EARTH, soft blue elsewhere
+    // Star field — static background dots outside the globe/atmosphere, drawn
+    // first so everything else sits on top. Positions are generated once
+    // (starFieldRef) and never re-randomized, so the field doesn't flicker.
     const atmR = scaledRadius + 14
-    const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
-    if (isEarth) {
-      atmGrad.addColorStop(0, 'rgba(40,100,190,0)')
-      atmGrad.addColorStop(0.6, 'rgba(40,100,190,0.25)')
-      atmGrad.addColorStop(1, 'rgba(60,130,220,0.45)')
-    } else {
-      atmGrad.addColorStop(0, 'rgba(26,58,106,0)')
-      atmGrad.addColorStop(0.7, 'rgba(26,58,106,0.15)')
-      atmGrad.addColorStop(1, 'rgba(26,58,106,0.3)')
+    for (const s of starFieldRef.current) {
+      const sx = s.rx * width
+      const sy = s.ry * height
+      const d = Math.hypot(sx - cx, sy - cy)
+      if (d < atmR + 4) continue // don't draw stars over the globe/glow
+      ctx.beginPath()
+      ctx.arc(sx, sy, s.r, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(255,255,255,${s.o})`
+      ctx.fill()
     }
+
+    // Atmosphere glow — radial gradient ring just outside the globe, blue at
+    // the inner edge fading to fully transparent at the outer edge.
+    const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
+    atmGrad.addColorStop(0, 'rgba(26,127,232,0.15)')
+    atmGrad.addColorStop(1, 'rgba(26,127,232,0)')
     ctx.beginPath()
     ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
     ctx.fillStyle = atmGrad
@@ -394,48 +445,64 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     if (isDark) {
       oceanGrad.addColorStop(0, '#020508')
       oceanGrad.addColorStop(1, '#020508')
-    } else if (isEarth) {
+    } else {
       oceanGrad.addColorStop(0, '#1a3a6e')
       oceanGrad.addColorStop(1, '#0a1628')
-    } else {
-      oceanGrad.addColorStop(0, '#060D1A')
-      oceanGrad.addColorStop(1, '#0B1628')
     }
     ctx.beginPath(); path({ type: 'Sphere' }); ctx.fillStyle = oceanGrad; ctx.fill()
 
-    // Graticule
-    if (!isDark) {
-      ctx.beginPath(); path(graticule)
-      ctx.strokeStyle = isEarth ? 'rgba(255,255,255,0.06)' : 'rgba(26,70,140,0.08)'
-      ctx.lineWidth = 0.5
-      ctx.stroke()
-    }
+    // Grid lines every 30° lat/long — geoPath clips to the visible hemisphere
+    // automatically, same as country polygons.
+    ctx.beginPath(); path(graticule)
+    ctx.strokeStyle = 'rgba(30,70,140,0.12)'
+    ctx.lineWidth = 0.5
+    ctx.stroke()
 
     // Countries — geoPath + clipAngle(90) clips polygon geometry to the
     // visible hemisphere automatically; back-side countries render nothing.
+    // Base fill (EARTH continents / DARK near-black) first, then HEAT/CRYPTO
+    // overlays blended on top at their own opacity where they have data —
+    // this is what lets HEAT/CRYPTO stack with the EARTH or DARK base and
+    // with each other, instead of being mutually-exclusive display modes.
     const hoveredId = hoveredCountryRef.current
     const pinnedId = pinnedCountryRef.current
+    const searchIds = searchMatchIdsRef.current
     for (const feature of countries) {
-      ctx.beginPath()
-      path(feature)
       const numericId = parseInt(feature.id)
-      let fill
-      if (isEarth) fill = earthFillColor(numericId)
-      else if (mode === 'HEAT') fill = heatColor(heatByCountry[numericId])
-      else if (mode === 'CRYPTO') fill = cryptoFillColor(numericId)
-      else if (isDark) fill = '#060D1A'
-      else fill = 'rgba(11,22,40,0.6)'
-      ctx.fillStyle = fill
+
+      ctx.beginPath(); path(feature)
+      ctx.fillStyle = isEarth ? earthFillColor(numericId) : '#060D1A'
       ctx.fill()
 
+      if (heatOn) {
+        const hc = heatColor(heatByCountry[numericId])
+        if (heatByCountry[numericId] != null) {
+          ctx.globalAlpha = (ovl.HEAT.opacity ?? 70) / 100
+          ctx.beginPath(); path(feature)
+          ctx.fillStyle = hc
+          ctx.fill()
+          ctx.globalAlpha = 1
+        }
+      }
+      if (cryptoOn) {
+        const tier = CRYPTO_TIER_BY_COUNTRY_ID[numericId]
+        if (tier) {
+          ctx.globalAlpha = (ovl.CRYPTO.opacity ?? 70) / 100
+          ctx.beginPath(); path(feature)
+          ctx.fillStyle = CRYPTO_TIER_COLORS[tier]
+          ctx.fill()
+          ctx.globalAlpha = 1
+        }
+      }
+
       const isSel = feature.id === hoveredId || feature.id === pinnedId
+      const isSearchMatch = searchIds.size > 0 && searchIds.has(feature.id)
       let borderColor
-      if (isSel) borderColor = '#C9A84C'
+      if (isSel || isSearchMatch) borderColor = '#F0D060' // bright gold — selection/search
       else if (isEarth) borderColor = 'rgba(255,255,255,0.25)'
-      else if (isDark) borderColor = 'rgba(201,168,76,0.15)'
-      else borderColor = 'rgba(26,70,140,0.4)'
+      else borderColor = 'rgba(255,255,255,0.15)'
       ctx.strokeStyle = borderColor
-      ctx.lineWidth = isSel ? 1.4 : 0.5
+      ctx.lineWidth = (isSel || isSearchMatch) ? 1.6 : 0.5
       ctx.stroke()
     }
 
@@ -445,9 +512,10 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     ctx.lineWidth = 1
     ctx.stroke()
 
-    // CRYPTO overlay — rising particles from high-adoption hubs + top crypto
-    // cities, all hemisphere-clipped like the exchange markers below.
-    if (mode === 'CRYPTO') {
+    // CRYPTO overlay extras — rising particles from high-adoption hubs + top
+    // crypto cities, all hemisphere-clipped like the exchange markers below.
+    if (cryptoOn) {
+      const cryptoAlpha = (ovl.CRYPTO.opacity ?? 70) / 100
       for (const origin of CRYPTO_PARTICLE_ORIGINS) {
         if (!isPointVisible(origin.lon, origin.lat, rotation)) continue
         const p = projection([origin.lon, origin.lat])
@@ -460,7 +528,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           const px = ox + Math.sin(t * Math.PI * 2 + i) * 3
           ctx.beginPath()
           ctx.arc(px, py, 3, 0, Math.PI * 2)
-          ctx.fillStyle = 'rgba(201,168,76,0.3)'
+          ctx.fillStyle = `rgba(201,168,76,${0.3 * cryptoAlpha})`
           ctx.fill()
         }
       }
@@ -470,6 +538,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         const p = projection([city.lon, city.lat])
         if (!p) continue
         const [px, py] = p
+        ctx.globalAlpha = cryptoAlpha
         ctx.beginPath()
         ctx.moveTo(px, py - 4)
         ctx.lineTo(px + 4, py)
@@ -486,52 +555,76 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
         ctx.fillText(`₿ ${city.name}`, px + 7, py)
+        ctx.globalAlpha = 1
       }
     }
 
-    // Exchange markers — small clean indicators, hemisphere-clipped, shown on
-    // every layer except DARK (DARK gets its own minimal white-dot style).
+    // Exchange markers — only drawn when the MARKETS overlay is active, so it
+    // behaves like a real toggleable layer rather than "every mode but DARK".
     const nextScreenPos = {}
-    for (const ex of EXCHANGES) {
-      if (!isPointVisible(ex.lon, ex.lat, rotation)) continue
-      const p = projection([ex.lon, ex.lat])
-      if (!p) continue
-      const [px, py] = p
-      nextScreenPos[ex.id] = { x: px, y: py, r: 8 }
+    if (marketsOn) {
+      const marketsAlpha = (ovl.MARKETS.opacity ?? 100) / 100
+      for (const ex of EXCHANGES) {
+        if (!isPointVisible(ex.lon, ex.lat, rotation)) continue
+        const p = projection([ex.lon, ex.lat])
+        if (!p) continue
+        const [px, py] = p
+        nextScreenPos[ex.id] = { x: px, y: py, r: 8 }
 
-      const open = isExchangeOpen(ex)
-      const isHov = hoveredExchangeRef.current === ex.id || pinnedExchangeRef.current === ex.id
+        const open = isExchangeOpen(ex)
+        const isHov = hoveredExchangeRef.current === ex.id || pinnedExchangeRef.current === ex.id
 
-      if (isDark) {
+        ctx.globalAlpha = marketsAlpha
+
+        // Pulse: three concentric rings expanding outward from the marker,
+        // staggered ~0.3s apart, one full cycle every 2s, fading gold→clear.
+        if (open) {
+          for (let ring = 0; ring < 3; ring++) {
+            const cycleMs = 2000
+            const t = (((now + ex.lat * 137 - ring * 300) % cycleMs) + cycleMs) % cycleMs / cycleMs
+            const ringR = 4 + t * 4 * 3 // expands to ~3x base radius
+            const ringAlpha = (1 - t) * 0.5
+            if (ringAlpha <= 0.01) continue
+            ctx.beginPath()
+            ctx.arc(px, py, ringR, 0, Math.PI * 2)
+            ctx.strokeStyle = `rgba(201,168,76,${ringAlpha * marketsAlpha})`
+            ctx.lineWidth = 1
+            ctx.stroke()
+          }
+        }
+
+        const r = isHov ? 5.2 : 4
         ctx.beginPath()
-        ctx.arc(px, py, 2, 0, Math.PI * 2)
-        ctx.fillStyle = '#ffffff'
+        ctx.arc(px, py, r, 0, Math.PI * 2)
+        ctx.fillStyle = open ? '#C9A84C' : '#3D5070'
         ctx.fill()
-        continue
-      }
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(6,13,26,0.6)'
+        ctx.stroke()
 
-      let r = 4
-      if (open) {
-        const cycle = ((now + ex.lat * 137) % 2000) / 2000
-        r = 4 * (1 + 0.4 * Math.sin(Math.PI * cycle))
-      }
-      if (isHov) r *= 1.3
-
-      ctx.beginPath()
-      ctx.arc(px, py, r, 0, Math.PI * 2)
-      ctx.fillStyle = open ? '#C9A84C' : '#3D5070'
-      ctx.fill()
-      ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(6,13,26,0.6)'
-      ctx.stroke()
-
-      // Labels only past a zoom threshold, MARKETS mode only, to avoid clutter
-      if (mode === 'MARKETS' && zoomK > 1.8) {
-        ctx.font = '8px "IBM Plex Mono", monospace'
-        ctx.fillStyle = '#C9A84C'
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(ex.label, px + 7, py)
+        // Labels past a zoom threshold — background pill so they stay
+        // readable over any country/overlay colour underneath.
+        if (zoomK > 1.8) {
+          ctx.font = '8px "IBM Plex Mono", monospace'
+          const textW = ctx.measureText(ex.label).width
+          const padX = 5, padY = 2, gap = 7
+          ctx.fillStyle = 'rgba(6,13,26,0.8)'
+          ctx.strokeStyle = 'rgba(201,168,76,0.3)'
+          ctx.lineWidth = 1
+          const pillX = px + gap - padX
+          const pillY = py - 8 / 2 - padY
+          const pillW = textW + padX * 2
+          const pillH = 8 + padY * 2
+          ctx.beginPath()
+          ctx.rect(pillX, pillY, pillW, pillH)
+          ctx.fill()
+          ctx.stroke()
+          ctx.fillStyle = '#C9A84C'
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(ex.label, px + gap, py)
+        }
+        ctx.globalAlpha = 1
       }
     }
     exchangeScreenPosRef.current = nextScreenPos
@@ -565,16 +658,19 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     }
 
     function hitTest() {
-      const mode = displayModeRef.current
+      const ovl = overlaysRef.current
       const { x: mx, y: my } = mouseRef.current
       const projection = d3.geoOrthographic()
         .scale(radius * zoomKRef.current).translate([width / 2, height / 2]).clipAngle(90).rotate(rotationRef.current)
 
-      // Exchange markers take priority
+      // Exchange markers take priority (only hit-testable when MARKETS is on
+      // — exchangeScreenPosRef is only populated while that overlay draws)
       let exId = null
-      for (const [id, pos] of Object.entries(exchangeScreenPosRef.current)) {
-        const dx = mx - pos.x, dy = my - pos.y
-        if (dx * dx + dy * dy <= pos.r * pos.r) { exId = id; break }
+      if (ovl.MARKETS?.active) {
+        for (const [id, pos] of Object.entries(exchangeScreenPosRef.current)) {
+          const dx = mx - pos.x, dy = my - pos.y
+          if (dx * dx + dy * dy <= pos.r * pos.r) { exId = id; break }
+        }
       }
       hoveredExchangeRef.current = exId
 
@@ -606,10 +702,10 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         let text = `Country #${n}`
         const feature = countries.find(f => f.id === countryId)
         if (feature?.properties?.name) text = feature.properties.name
-        if (mode === 'HEAT' && heatByCountry[n] != null) {
+        if (ovl.HEAT?.active && heatByCountry[n] != null) {
           text += ` · ${heatByCountry[n] >= 0 ? '+' : ''}${heatByCountry[n].toFixed(2)}%`
         }
-        if (mode === 'CRYPTO') {
+        if (ovl.CRYPTO?.active) {
           const tier = CRYPTO_TIER_BY_COUNTRY_ID[n]
           const info = tier ? CRYPTO_TIER_INFO[tier] : null
           text += info ? ` · ${info.label} · ${info.legal}` : ' · No data'
@@ -682,9 +778,22 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     }
   }, [onCountryClick, onExchangeClick])
 
-  function selectMode(mode) {
-    setDisplayMode(mode)
-    try { localStorage.setItem('maddex_globe_mode', mode) } catch {}
+  function selectBase(layer) {
+    setBaseLayer(layer)
+  }
+
+  function toggleOverlay(key) {
+    setOverlays(prev => ({
+      ...prev,
+      [key]: { ...prev[key], active: !prev[key].active },
+    }))
+  }
+
+  function setOverlayOpacity(key, value) {
+    setOverlays(prev => ({
+      ...prev,
+      [key]: { ...prev[key], opacity: value },
+    }))
   }
 
   function togglePlaying() {
@@ -765,22 +874,55 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         </div>
       )}
 
-      {/* Layer toggle — top-right, above canvas */}
-      <div className="absolute top-3 right-3 z-10 flex gap-1 pointer-events-auto">
-        {DISPLAY_MODES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => selectMode(m)}
-            className={`font-mono text-[9px] tracking-widest px-2 py-1 transition-colors ${
-              displayMode === m
-                ? 'bg-terminal-gold text-terminal-bg'
-                : 'bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
-            }`}
-          >
-            {m}
-          </button>
-        ))}
+      {/* Layer panel — bottom-left, base radio select + stackable overlay
+          checkboxes each with their own opacity slider */}
+      <div className="absolute bottom-3 left-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm w-36 pointer-events-auto">
+        <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1">BASE</div>
+        <div className="flex gap-1 mb-2">
+          {BASE_LAYERS.map((layer) => (
+            <button
+              key={layer}
+              type="button"
+              onClick={() => selectBase(layer)}
+              className={`flex-1 font-mono text-[8px] tracking-widest px-1.5 py-1 transition-colors ${
+                baseLayer === layer
+                  ? 'bg-terminal-gold text-terminal-bg'
+                  : 'bg-terminal-bg border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+              }`}
+            >
+              {layer}
+            </button>
+          ))}
+        </div>
+        <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1">OVERLAYS</div>
+        <div className="flex flex-col gap-1.5">
+          {OVERLAY_KEYS.map((key) => {
+            const ovl = overlays[key]
+            return (
+              <div key={key}>
+                <label className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ovl.active}
+                    onChange={() => toggleOverlay(key)}
+                    className="accent-terminal-gold"
+                  />
+                  <span className={ovl.active ? 'text-terminal-gold' : ''}>{key}</span>
+                </label>
+                {ovl.active && (
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={ovl.opacity}
+                    onChange={(e) => setOverlayOpacity(key, Number(e.target.value))}
+                    className="w-full h-1 mt-0.5 accent-terminal-gold"
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Search — top-left, rotates the globe to the selected country */}
@@ -810,7 +952,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       </div>
 
       {/* HEAT legend — bottom-right, stacked below the compass/controls stack */}
-      {displayMode === 'HEAT' && (
+      {overlays.HEAT?.active && (
         <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
           <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">TODAY'S INDEX %</div>
           <div className="flex items-center gap-1.5">
@@ -831,7 +973,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       )}
 
       {/* CRYPTO legend — bottom-right, stacked below the compass/controls stack */}
-      {displayMode === 'CRYPTO' && (
+      {overlays.CRYPTO?.active && (
         <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
           <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
           <div className="flex items-center gap-1.5">
