@@ -122,12 +122,14 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               onClick={() => handleClick(symbol, q, isAud, label)}
               className="flex-shrink-0 cursor-pointer hover:bg-terminal-accent/10 transition-colors border-r border-terminal-border"
               style={{
-                width: 140,
+                width: 152,
                 padding: '8px 12px',
                 borderLeft: isSelected ? '2px solid #c8a84b' : '2px solid transparent',
               }}
             >
-              <div className="text-[9px] tracking-wider text-terminal-text-dim uppercase truncate">
+              {/* Name is the only thing allowed to ellipsis — the level and
+                  change % must always render in full, per design spec. */}
+              <div className="text-[9px] tracking-wider text-terminal-text-dim uppercase overflow-hidden text-ellipsis whitespace-nowrap">
                 {label}
               </div>
 
@@ -142,11 +144,11 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                 </button>
               ) : q ? (
                 <div className="flex items-end justify-between gap-1.5 mt-0.5">
-                  <div className="min-w-0">
-                    <div className="text-[15px] font-semibold text-terminal-text leading-tight truncate">
+                  <div>
+                    <div className="text-[15px] font-semibold text-terminal-text leading-tight whitespace-nowrap">
                       {fmt.price(q.last, 1)}
                     </div>
-                    <div className="text-[10px] font-semibold leading-tight" style={{ color }}>
+                    <div className="text-[10px] font-semibold leading-tight whitespace-nowrap" style={{ color }}>
                       {q.pct >= 0 ? '▲' : '▼'} {q.pct >= 0 ? '+' : ''}{q.pct.toFixed(2)}%
                     </div>
                     {isStale && (

@@ -158,7 +158,7 @@ export const INDEX_SECTORS = {
     'Real Estate':            { sym: 'PCT.NZ' },
     'Utilities':              { sym: 'MEL.NZ' },
   },
-  '^SSEC': {
+  '000001.SS': {
     'Information Technology': { sym: '688981.SS' },
     'Financials':             { sym: '601398.SS' },
     'Health Care':            { sym: '600276.SS' },
@@ -172,6 +172,9 @@ export const INDEX_SECTORS = {
     'Utilities':              { sym: '600900.SS' },
   },
 }
+// All Ords has no separately curated sector-proxy list — it tracks the ASX
+// 200 closely enough (same market, much larger constituent set) to reuse it.
+INDEX_SECTORS['^AORD'] = INDEX_SECTORS['^AXJO']
 
 // ─── ASX Constituent Stocks (by GICS sector name) ────────────────────────────
 
@@ -321,7 +324,7 @@ const INDEX_CONSTITUENTS = {
     'MCK.NZ','MWE.NZ','NZS.NZ','PEB.NZ','POT.NZ','RAK.NZ','SCL.NZ','SEK.NZ','SKL.NZ','STU.NZ',
     'TLT.NZ',
   ],
-  '^SSEC': [
+  '000001.SS': [
     '601398.SS','601288.SS','600519.SS','601628.SS','601318.SS','600036.SS','601166.SS',
     '600276.SS','601601.SS','600900.SS','601088.SS','600028.SS','601669.SS','601328.SS',
     '600104.SS','601186.SS','600048.SS','601211.SS','601390.SS','688981.SS',
@@ -332,6 +335,7 @@ const INDEX_CONSTITUENTS = {
     '601229.SS','601336.SS',
   ],
 }
+INDEX_CONSTITUENTS['^AORD'] = INDEX_CONSTITUENTS['^AXJO']
 
 const STOCK_NAMES = {
   // ASX top 20
@@ -597,19 +601,20 @@ const STOCK_NAMES = {
 }
 
 const INDEX_LABELS = {
-  '^AXJO':'ASX 200','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
+  '^AXJO':'ASX 200','^AORD':'All Ords','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
   '^DJI':'Dow Jones 30','^FTSE':'FTSE 100','^N225':'Nikkei 225',
-  '^GDAXI':'DAX 40','^HSI':'Hang Seng','^NZ50':'NZX 50','^SSEC':'Shanghai Composite',
+  '^GDAXI':'DAX 40','^HSI':'Hang Seng','^NZ50':'NZX 50','000001.SS':'Shanghai',
 }
 
 // Display denominator in loading indicator — reflects the index size, not just our symbol list
 const INDEX_EXPECTED_COUNT = {
-  '^AXJO':200,'^GSPC':100,'^IXIC':100,'^DJI':30,
-  '^FTSE':100,'^GDAXI':40,'^N225':50,'^HSI':50,'^NZ50':50,'^SSEC':50,
+  '^AXJO':200,'^AORD':500,'^GSPC':100,'^IXIC':100,'^DJI':30,
+  '^FTSE':100,'^GDAXI':40,'^N225':50,'^HSI':50,'^NZ50':50,'000001.SS':50,
 }
 
 export const INDEX_METADATA = {
   '^AXJO': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'ASX',             sourceUrl:'https://www.asx.com.au' },
+  '^AORD': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'ASX',             sourceUrl:'https://www.asx.com.au' },
   '^GSPC': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'S&P Dow Jones',   sourceUrl:'https://www.spglobal.com' },
   '^IXIC': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'Nasdaq',          sourceUrl:'https://www.nasdaq.com' },
   '^DJI':  { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'S&P Dow Jones',   sourceUrl:'https://www.spglobal.com' },
@@ -618,7 +623,7 @@ export const INDEX_METADATA = {
   '^N225': { lastUpdated:'2026-07-01', nextRebalance:'2027-01-01', source:'Nikkei',          sourceUrl:'https://indexes.nikkei.co.jp' },
   '^HSI':  { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'Hang Seng Indexes',sourceUrl:'https://www.hsi.com.hk' },
   '^NZ50': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'NZX',             sourceUrl:'https://www.nzx.com' },
-  '^SSEC': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'SSE',             sourceUrl:'https://www.sse.com.cn' },
+  '000001.SS': { lastUpdated:'2026-07-01', nextRebalance:'2026-09-01', source:'SSE',         sourceUrl:'https://www.sse.com.cn' },
 }
 
 // Approximate weights for ASX 200 top 20
@@ -720,7 +725,7 @@ function calcYTDChange(hist) {
 // daily-interval fetch over only 5 days would be too sparse to chart.
 function periodToYFParams(period) {
   switch (period) {
-    case '5D':  return { range: '5d',  interval: '15m' }
+    case '7D':  return { range: '7d',  interval: '1d'  }
     case '1M':  return { range: '1mo', interval: '1d'  }
     case '3M':  return { range: '3mo', interval: '1d'  }
     case 'YTD': return { range: 'ytd', interval: '1d'  }
@@ -757,7 +762,7 @@ function ViewToggle({ view, setView }) {
 function MetricToggle({ metric, setMetric }) {
   return (
     <div className="flex gap-0 border border-terminal-gold/20">
-      {['5D','1M','YTD'].map(val => (
+      {['7D','1M','YTD'].map(val => (
         <button
           key={val}
           onClick={() => setMetric(val)}
@@ -789,7 +794,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
     return () => window.removeEventListener('madden:sector-select', handler)
   }, [])
 
-  const isASX = selectedIndex === '^AXJO'
+  const isASX = selectedIndex === '^AXJO' || selectedIndex === '^AORD'
   const constituentStocks = selected && isASX ? (ASX_SECTOR_STOCKS[selected] ?? []) : []
   const constituentSyms = constituentStocks.map(([s]) => s)
 
@@ -886,7 +891,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   function getSecondaryChange(sym) {
     const hist = histData?.[sym]
     if (!hist?.length) return null
-    if (secondaryMetric === '5D')  return calcHistChange(hist, 5)
+    if (secondaryMetric === '7D')  return calcHistChange(hist, 5)
     if (secondaryMetric === '1M')  return calcHistChange(hist, 21)
     if (secondaryMetric === 'YTD') return calcYTDChange(hist)
     return null
@@ -963,7 +968,6 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               const secColor = secChange == null
                 ? 'rgba(156,163,175,0.4)'
                 : secChange >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
-              const proxyLabel = cfg.sym.replace(/\.(AX|L)$/i, '')
 
               return (
                 <div
@@ -994,10 +998,6 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                       ? `${secondaryMetric}: ${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}%`
                       : `${secondaryMetric}: —`
                     }
-                  </div>
-                  {/* LINE 4: proxy ticker */}
-                  <div className="leading-tight text-terminal-text-dim/35" style={{ fontSize: '9px' }}>
-                    via {proxyLabel}
                   </div>
                 </div>
               )
@@ -1211,7 +1211,7 @@ function IndexView({ selectedIndex, openModal }) {
   const loadRef = useRef(null)
 
   const constituents = INDEX_CONSTITUENTS[selectedIndex] ?? []
-  const isASX = selectedIndex === '^AXJO'
+  const isASX = selectedIndex === '^AXJO' || selectedIndex === '^AORD'
 
   useEffect(() => {
     if (!selectedIndex || !constituents.length) return
@@ -1522,7 +1522,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
   const [view, setView] = useState(() => {
     try { return localStorage.getItem('madden_mkt_view') ?? 'sectors' } catch { return 'sectors' }
   })
-  const [secondaryMetric, setSecondaryMetric] = useState('5D')
+  const [secondaryMetric, setSecondaryMetric] = useState('7D')
 
   // When radar clicks a sector, switch to sectors view so detail panel appears
   useEffect(() => {
