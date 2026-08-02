@@ -672,6 +672,20 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
+// Sector-composite chart tooltip — shows the equal-weighted % change across
+// constituent stocks, not a single dollar price.
+function CompositeTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const v = payload[0].value
+  const color = v >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+  return (
+    <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
+      <div className="text-terminal-text-dim">{label}</div>
+      <div className="font-semibold" style={{ color }}>Sector: {v >= 0 ? '+' : ''}{v.toFixed(1)}%</div>
+    </div>
+  )
+}
+
 // Calculate % change over N trading days back from history array
 function calcHistChange(hist, daysBack) {
   const arr = Array.isArray(hist) ? hist.filter(d => d?.price != null && !isNaN(d.price)) : []
@@ -765,12 +779,70 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
     retry: 1,
   })
 
-  // Proxy stock 1-month chart for detail panel
+  // Proxy stock 1-month chart — used directly for non-ASX indices (which only
+  // have a single proxy per sector), and as a fallback for ASX sectors if the
+  // composite below can't be built from enough constituent stocks.
   const proxySym = selected ? (sectorConfig[selected]?.sym ?? null) : null
+  const useComposite = isASX && constituentSyms.length > 1
+
+  // Sector composite — equal-weighted average % change across every
+  // constituent stock, fetched in parallel. Promise.allSettled means a
+  // handful of failed symbols don't take down the whole composite.
+  const { data: compositeRaw, isFetching: compositeFetching } = useQuery({
+    queryKey: ['sectorComposite', selectedIndex, selected, constituentSyms.join(',')],
+    queryFn: async () => {
+      const settled = await Promise.allSettled(
+        constituentSyms.map(sym => fetchYFHistory(sym, { range: '1mo' }))
+      )
+      return settled.map((r) => r.status === 'fulfilled' ? transformYFHistory(r.value) : [])
+    },
+    enabled: useComposite,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  const composite = useMemo(() => {
+    if (!useComposite || !compositeRaw) return null
+    const perStock = compositeRaw
+      .map((data) => data.filter(d => d && d.price != null && !isNaN(d.price)))
+      .filter(arr => arr.length >= 2)
+    if (perStock.length < 2) return null
+
+    // Normalise each stock to % change from its own first data point in the period
+    const normalised = perStock.map(arr => {
+      const first = arr[0].price
+      return arr.map(d => ({ key: d.rawDate ?? d.date, label: d.date, pct: (d.price / first - 1) * 100 }))
+    })
+
+    // Average pct across stocks for each date, requiring at least 50% coverage
+    const byDate = new Map()
+    for (const series of normalised) {
+      for (const point of series) {
+        if (!byDate.has(point.key)) byDate.set(point.key, { label: point.label, vals: [] })
+        byDate.get(point.key).vals.push(point.pct)
+      }
+    }
+    const minCoverage = Math.ceil(perStock.length / 2)
+    const points = [...byDate.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .filter(([, { vals }]) => vals.length >= minCoverage)
+      .map(([, { label, vals }]) => ({
+        date: label,
+        pct: vals.reduce((s, v) => s + v, 0) / vals.length,
+      }))
+
+    return points.length >= 2 ? { points, stockCount: perStock.length } : null
+  }, [compositeRaw, useComposite])
+
+  const compositeAttempted   = useComposite && !compositeFetching && compositeRaw != null
+  const compositeUnavailable = compositeAttempted && composite == null
+
+  // Single-stock fallback: always fetched for non-composite indices, or once
+  // the composite has been tried and come up short (< 2 usable stocks).
   const { data: rawHistory, isFetching: histFetching } = useQuery({
     queryKey: ['yfHistory', proxySym, '1mo'],
     queryFn:  () => fetchYFHistory(proxySym, { range: '1mo' }),
-    enabled:  !!proxySym,
+    enabled:  !!proxySym && (!useComposite || compositeUnavailable),
     staleTime: 5 * 60_000,
     retry: 1,
   })
@@ -961,36 +1033,91 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               )
             })()}
 
+            {/* Chart title */}
+            <div className="px-2 py-1 border-b border-terminal-border/50 flex-shrink-0">
+              <span className="text-2xs font-bold text-terminal-text-dim tracking-wide">
+                {composite != null
+                  ? `30D ${selected.toUpperCase()} SECTOR TREND — ${composite.stockCount} STOCKS`
+                  : `30D ${proxySym ? displaySym(proxySym) : ''} PRICE`}
+              </span>
+            </div>
+
             {/* 30-day chart */}
             <div className="flex-shrink-0 border-b border-terminal-border" style={{ height: 100 }}>
-              {histFetching && (
-                <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
-              )}
-              {!histFetching && chartData.length < 2 && (
-                <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/50">No chart data</div>
-              )}
-              {chartData.length >= 2 && (() => {
-                const col = proxyQuotes?.[proxySym]?.pct >= 0 ? '#2d8a50' : '#a83232'
+              {useComposite && compositeFetching ? (
+                <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
+                  BUILDING SECTOR COMPOSITE...
+                </div>
+              ) : composite != null ? (() => {
+                const last = composite.points[composite.points.length - 1]?.pct ?? 0
+                const col = last >= 0 ? '#2d8a50' : '#a83232'
                 return (
                   <ResponsiveContainer width="100%" height={100}>
-                    <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
+                    <AreaChart data={composite.points} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                       <defs>
-                        <linearGradient id="sectorGrad" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="sectorCompositeGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%"  stopColor={col} stopOpacity={0.3} />
                           <stop offset="95%" stopColor={col} stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid stroke="#0d2244" vertical={false} />
                       <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
-                      <YAxis tick={{ fontSize: 7 }} domain={['auto','auto']} width={36} />
-                      <Tooltip content={<ChartTooltip />} />
-                      <Area type="monotone" dataKey="price" stroke={col} strokeWidth={1.5}
-                        fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />
+                      <YAxis tick={{ fontSize: 7 }} domain={['auto','auto']} width={36}
+                        tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
+                      <Tooltip content={<CompositeTooltip />} />
+                      <Area type="monotone" dataKey="pct" stroke={col} strokeWidth={1.5}
+                        fill="url(#sectorCompositeGrad)" dot={false} isAnimationActive={false} connectNulls />
                     </AreaChart>
                   </ResponsiveContainer>
                 )
-              })()}
+              })() : (
+                <>
+                  {histFetching && (
+                    <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
+                  )}
+                  {!histFetching && chartData.length < 2 && (
+                    <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/50">No chart data</div>
+                  )}
+                  {chartData.length >= 2 && (() => {
+                    const col = proxyQuotes?.[proxySym]?.pct >= 0 ? '#2d8a50' : '#a83232'
+                    return (
+                      <ResponsiveContainer width="100%" height={100}>
+                        <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
+                          <defs>
+                            <linearGradient id="sectorGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%"  stopColor={col} stopOpacity={0.3} />
+                              <stop offset="95%" stopColor={col} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid stroke="#0d2244" vertical={false} />
+                          <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 7 }} domain={['auto','auto']} width={36} />
+                          <Tooltip content={<ChartTooltip />} />
+                          <Area type="monotone" dataKey="price" stroke={col} strokeWidth={1.5}
+                            fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )
+                  })()}
+                </>
+              )}
             </div>
+
+            {/* Composite methodology note, or explicit fallback notice */}
+            {composite != null && (
+              <div className="px-2 py-1 border-b border-terminal-border/50 flex-shrink-0">
+                <span className="text-terminal-text-dim text-[8px]">
+                  Equal-weighted composite of {constituentSyms.map(displaySym).join(' · ')}
+                </span>
+              </div>
+            )}
+            {compositeUnavailable && (
+              <div className="px-2 py-1 border-b border-terminal-border/50 flex-shrink-0">
+                <span className="text-terminal-red/70 text-[8px]">
+                  Composite unavailable — showing {proxySym ? displaySym(proxySym) : 'proxy'} only
+                </span>
+              </div>
+            )}
 
             {/* Constituents — ASX only */}
             {isASX && constituentStocks.length > 0 ? (
@@ -1039,7 +1166,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
             <div className="border-t border-terminal-border p-1.5 text-2xs text-terminal-text-dim/60 flex-shrink-0 flex items-center justify-between">
               <span>{constituentStocks.length > 0 ? `${constituentStocks.length} holdings` : 'Proxy view'}</span>
-              <span>30D {proxySym?.replace(/\.(AX|L)$/i,'') ?? ''} · Yahoo Finance</span>
+              <span>{composite != null ? 'Sector composite · Yahoo Finance' : `30D ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''} · Yahoo Finance`}</span>
             </div>
           </div>
         )}
