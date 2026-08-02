@@ -7,6 +7,7 @@ import COUNTRIES from '../../data/countryDatabase'
 import { initCountryDataRefresh } from '../../services/countryApiService'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import MaddexGlobe from '../../components/globe/MaddexGlobe'
+import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -82,6 +83,15 @@ const COUNTRY_A2 = {
 const flagEmoji = (a2) => a2
   ? [...a2.toUpperCase()].map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join('')
   : '🌐'
+
+// Reverse lookup for partner names (stored as plain strings in COUNTRY_DETAIL)
+// so the enhanced trade-partners list can show a flag next to each one.
+const NAME_TO_ID = Object.fromEntries(Object.entries(COUNTRY_NAMES).map(([id, name]) => [name, parseInt(id)]))
+function flagForPartnerName(name) {
+  const id = NAME_TO_ID[name]
+  const a2 = id != null ? COUNTRY_A2[id] : null
+  return flagEmoji(a2)
+}
 
 const COUNTRIES_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 
@@ -243,6 +253,77 @@ const RISK_COLOR = {
   'VERY LOW':'text-terminal-green', 'LOW':'text-terminal-green',
   'MODERATE':'text-terminal-gold', 'MEDIUM':'text-terminal-gold',
   'HIGH':'text-orange-400', 'VERY HIGH':'text-terminal-red', 'CRITICAL':'text-terminal-red',
+}
+
+// ─── Trade Intelligence (CountryPanel) ────────────────────────────────────────
+// Reuses the same SHIPPING_ROUTES/FREIGHT_ROUTES the globe renders, so the
+// "routes through this region" list can never drift from what's on the map.
+
+const COUNTRY_ROUTE_MAP = {
+  36:  { shipping: ['asia-australia', 'indian-ocean'],              freight: ['sin-syd'] },            // Australia
+  840: { shipping: ['trans-pacific', 'trans-atlantic'],             freight: ['hkg-lax', 'nrt-lax'] },  // United States
+  156: { shipping: ['trans-pacific', 'asia-europe'],                freight: ['hkg-lax'] },             // China
+  344: { shipping: ['trans-pacific', 'asia-europe'],                freight: ['hkg-lax'] },             // Hong Kong
+  392: { shipping: ['trans-pacific'],                               freight: ['nrt-lax'] },             // Japan
+  826: { shipping: ['trans-atlantic', 'asia-europe', 'cape-good-hope'], freight: ['dxb-lhr'] },          // United Kingdom
+  276: { shipping: ['asia-europe', 'cape-good-hope'],               freight: ['fra-ord'] },              // Germany
+  250: { shipping: ['asia-europe', 'cape-good-hope'],               freight: [] },                       // France
+  702: { shipping: ['asia-europe', 'asia-australia', 'cape-good-hope'], freight: ['sin-syd'] },          // Singapore
+  458: { shipping: ['asia-europe', 'asia-australia'],               freight: [] },                       // Malaysia
+  360: { shipping: ['asia-australia'],                              freight: [] },                       // Indonesia
+  356: { shipping: ['indian-ocean'],                                freight: [] },                       // India
+  710: { shipping: ['cape-good-hope', 'indian-ocean'],              freight: [] },                       // South Africa
+  682: { shipping: ['red-sea-suez', 'asia-europe'],                 freight: ['dxb-lhr'] },              // Saudi Arabia
+  784: { shipping: ['red-sea-suez', 'asia-europe'],                 freight: ['dxb-lhr'] },              // UAE
+  818: { shipping: ['red-sea-suez', 'asia-europe'],                 freight: [] },                       // Egypt
+  704: { shipping: ['trans-pacific', 'asia-europe'],                freight: [] },                       // Vietnam
+  158: { shipping: ['trans-pacific'],                               freight: [] },                       // Taiwan
+  554: { shipping: ['asia-australia'],                              freight: [] },                       // New Zealand
+  410: { shipping: ['trans-pacific'],                               freight: [] },                       // South Korea
+  764: { shipping: ['asia-europe'],                                 freight: [] },                       // Thailand
+}
+
+const ROUTE_DISRUPTION_TEXT = {
+  'asia-europe':    'Red Sea disruption is forcing Asia-Europe container traffic via the Cape of Good Hope, adding roughly 10-14 days to transit and raising freight costs.',
+  'red-sea-suez':   'Houthi attacks in the Red Sea / Bab-el-Mandeb corridor have diverted the majority of Suez-bound traffic, cutting transit volumes sharply since late 2023.',
+  'cape-good-hope': 'Traffic on this alternative route has surged as vessels reroute away from the Red Sea, and port congestion is developing as a result.',
+}
+
+function findRoute(id, kind) {
+  return (kind === 'SHIPPING' ? SHIPPING_ROUTES : FREIGHT_ROUTES).find(r => r.id === id)
+}
+
+// Deterministic (not random-on-every-render) pseudo-stats for a country/
+// partner pair — illustrative, in the same spirit as the app's other
+// synthetic overlays (crypto adoption tiers, heat colouring), used only
+// because no per-partner bilateral trade dataset exists for ~190 countries.
+function seededHash(str) {
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0
+  return h
+}
+function partnerTradeStats(countryId, partnerName) {
+  const h = seededHash(`${countryId}:${partnerName}`)
+  const value = 2 + (h % 380) / 10 // A$2.0B - A$39.9B
+  const balanceSign = (h >> 8) % 2 === 0 ? 1 : -1
+  const balance = balanceSign * value * (0.1 + ((h >> 4) % 40) / 100)
+  const trend = ['growing', 'stable', 'declining'][(h >> 12) % 3]
+  return { value, balance, trend }
+}
+const TREND_ARROW = { growing: '▲', stable: '→', declining: '▼' }
+const TREND_COLOR = { growing: 'text-terminal-green', stable: 'text-terminal-text-dim', declining: 'text-terminal-red' }
+
+const RISK_BASE_SCORE = { 'VERY LOW': 10, LOW: 25, MODERATE: 40, MEDIUM: 45, HIGH: 65, 'VERY HIGH': 80, CRITICAL: 95 }
+function computeTradeRiskScore({ riskRating, hasDisruptedRoute, riskyPartnerCount }) {
+  let score = RISK_BASE_SCORE[riskRating] ?? 35
+  if (hasDisruptedRoute) score += 15
+  score += Math.min(10, riskyPartnerCount * 5)
+  return Math.max(0, Math.min(100, score))
+}
+function riskScoreColor(score) {
+  if (score >= 67) return { bar: 'bg-terminal-red', text: 'text-terminal-red' }
+  if (score >= 34) return { bar: 'bg-terminal-gold', text: 'text-terminal-gold' }
+  return { bar: 'bg-terminal-green', text: 'text-terminal-green' }
 }
 
 // ─── Exchanges — full global list with coordinates ────────────────────────────
@@ -795,6 +876,19 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
   const riskRating = getRiskRating(n)
   const hasData    = !!(enriched || detail)
 
+  // ── Trade Intelligence ──
+  const routeMap        = COUNTRY_ROUTE_MAP[n] ?? { shipping: [], freight: [] }
+  const shippingRoutes   = routeMap.shipping.map(id => findRoute(id, 'SHIPPING')).filter(Boolean)
+  const freightRoutes    = routeMap.freight.map(id => findRoute(id, 'FREIGHT')).filter(Boolean)
+  const disruptedRoutes  = shippingRoutes.filter(r => r.status === 'DISRUPTED' || r.status === 'CONGESTED')
+  const enhancedPartners = (partners ?? []).slice(0, 5).map(p => ({ name: p, flag: flagForPartnerName(p), ...partnerTradeStats(n, p) }))
+  const riskyPartnerCount = (partners ?? []).filter(p => {
+    const pid = NAME_TO_ID[p]
+    return pid != null && (CONFLICT_COUNTRIES.has(pid) || STRESS_COUNTRIES.has(pid))
+  }).length
+  const tradeRiskScore = computeTradeRiskScore({ riskRating, hasDisruptedRoute: disruptedRoutes.length > 0, riskyPartnerCount })
+  const riskScoreColors = riskScoreColor(tradeRiskScore)
+
   // Live local time — ticks every second
   const lt = useLocalTime(tz)
   const exCountdown = ex ? countdown(ex) : null
@@ -1021,6 +1115,77 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── Trade Intelligence ── */}
+        <div className="px-3 py-2 border-b border-terminal-border/50">
+          {sec(`Trade Intelligence — ${name}`)}
+
+          {/* (a) Trade routes through this region */}
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1 mt-1">Trade Routes Through This Region</div>
+          {(shippingRoutes.length + freightRoutes.length) === 0 ? (
+            <div className="text-2xs text-terminal-text-dim/60 italic mb-2">No major mapped shipping/air corridors for this territory.</div>
+          ) : (
+            <div className="mb-2">
+              {shippingRoutes.map(r => (
+                <div key={r.id} className="flex justify-between text-2xs py-0.5">
+                  <span className="text-terminal-text">🚢 {r.name}</span>
+                  <span className={r.status === 'ACTIVE' ? 'text-terminal-green' : r.status === 'DISRUPTED' ? 'text-terminal-red' : 'text-terminal-gold'}>{r.status}</span>
+                </div>
+              ))}
+              {freightRoutes.map(r => (
+                <div key={r.id} className="flex justify-between text-2xs py-0.5">
+                  <span className="text-terminal-text">✈ {r.name}</span>
+                  <span className="text-terminal-green">ACTIVE</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* (b) Enhanced key trade partners */}
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Key Trade Partners</div>
+          {enhancedPartners.length === 0 ? (
+            <div className="text-2xs text-terminal-text-dim/60 italic mb-2">No trade partner data on record.</div>
+          ) : (
+            <div className="mb-2">
+              {enhancedPartners.map(p => (
+                <div key={p.name} className="flex items-center justify-between text-2xs py-0.5">
+                  <span className="text-terminal-text">{p.flag} {p.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-terminal-text-dim">A${p.value.toFixed(1)}B</span>
+                    <span className={p.balance >= 0 ? 'text-terminal-green' : 'text-terminal-red'}>
+                      {p.balance >= 0 ? '+' : ''}{p.balance.toFixed(1)}B
+                    </span>
+                    <span className={TREND_COLOR[p.trend]} title={p.trend}>{TREND_ARROW[p.trend]}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="text-2xs text-terminal-text-dim/40 italic mt-0.5">Illustrative bilateral estimates — value / net balance / trend</div>
+            </div>
+          )}
+
+          {/* (c) Active disruptions affecting this country */}
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Active Disruptions</div>
+          {disruptedRoutes.length === 0 ? (
+            <div className="text-2xs text-terminal-green/80 mb-2">No active shipping disruptions materially affecting trade to/from {name} at this time.</div>
+          ) : (
+            <div className="mb-2">
+              {disruptedRoutes.map(r => (
+                <div key={r.id} className="text-2xs text-terminal-red/90 leading-relaxed mb-1">
+                  ⚠ {ROUTE_DISRUPTION_TEXT[r.id] ?? `${r.name} is currently ${r.status.toLowerCase()}.`}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* (d) Trade risk score */}
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Trade Risk Score</div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 bg-terminal-border/40 rounded-sm overflow-hidden">
+              <div className={`h-full ${riskScoreColors.bar}`} style={{ width: `${tradeRiskScore}%` }} />
+            </div>
+            <span className={`text-2xs font-bold ${riskScoreColors.text}`}>{tradeRiskScore}/100</span>
+          </div>
         </div>
 
         {/* ── Overview ── */}

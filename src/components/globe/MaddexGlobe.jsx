@@ -3,6 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 import { fetchYFBatch } from '../../services/api'
+import {
+  SHIPPING_ROUTES, FREIGHT_ROUTES, CHOKEPOINT_WARNINGS, TRADE_IMPACT_ZONES,
+  TRADE_TIER_FILL, TRADE_TIER_STROKE, pointAlongRoute,
+} from '../../data/globeRoutes'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static data
@@ -29,12 +33,23 @@ const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 
 // Base layer (always on, mutually exclusive) + overlay layers (can stack, each
 // with its own on/off + opacity). Replaces the old single-select DISPLAY_MODES.
+// Overlays are split into two panel sections: DATA (Markets/Heat/Crypto — get
+// an opacity slider) and ROUTE (Shipping/Freight/Trade Impact — on/off only).
 const BASE_LAYERS = ['EARTH', 'DARK']
-const OVERLAY_KEYS = ['MARKETS', 'HEAT', 'CRYPTO']
+const DATA_OVERLAY_KEYS = ['MARKETS', 'HEAT', 'CRYPTO']
+const ROUTE_OVERLAY_KEYS = ['SHIPPING', 'FREIGHT', 'TRADE_IMPACT']
+const ALL_OVERLAY_KEYS = [...DATA_OVERLAY_KEYS, ...ROUTE_OVERLAY_KEYS]
+const OVERLAY_LABELS = {
+  MARKETS: 'Markets', HEAT: 'Heat map', CRYPTO: 'Crypto',
+  SHIPPING: 'Shipping routes', FREIGHT: 'Air freight', TRADE_IMPACT: 'Trade impact zones',
+}
 const DEFAULT_OVERLAYS = {
-  MARKETS: { active: true,  opacity: 100 },
-  HEAT:    { active: false, opacity: 70 },
-  CRYPTO:  { active: false, opacity: 70 },
+  MARKETS:      { active: true,  opacity: 100 },
+  HEAT:         { active: false, opacity: 70 },
+  CRYPTO:       { active: false, opacity: 70 },
+  SHIPPING:     { active: true,  opacity: 100 },
+  FREIGHT:      { active: false, opacity: 100 },
+  TRADE_IMPACT: { active: false, opacity: 100 },
 }
 
 // Default starting orientation — Australia centred (lon 134°E, lat 25°S),
@@ -210,6 +225,29 @@ function isPointVisible(lon, lat, rotation) {
   return (Math.sin(phi) * Math.sin(phi0) + Math.cos(phi) * Math.cos(phi0) * Math.cos(lambda - lambda0)) > 0
 }
 
+// Samples a route (multi-waypoint great circle) into screen-space points for
+// hover hit-testing — null entries mark points currently on the far
+// hemisphere, so consecutive-pair checks below just skip those segments.
+function sampleRouteScreenPoints(points, projection, rotation, n = 24) {
+  const pts = []
+  for (let i = 0; i <= n; i++) {
+    const geo = pointAlongRoute(points, i / n)
+    if (!isPointVisible(geo[0], geo[1], rotation)) { pts.push(null); continue }
+    const p = projection(geo)
+    pts.push(p ? [p[0], p[1]] : null)
+  }
+  return pts
+}
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1
+  const lenSq = dx * dx + dy * dy
+  let t = lenSq > 0 ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0
+  t = Math.max(0, Math.min(1, t))
+  const cx = x1 + t * dx, cy = y1 + t * dy
+  return Math.hypot(px - cx, py - cy)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -241,6 +279,9 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const [tooltip, setTooltip] = useState(null) // { x, y, text }
   const [pinnedCountry, setPinnedCountry] = useState(null)
   const [pinnedExchange, setPinnedExchange] = useState(null)
+  const [pinnedRoute, setPinnedRoute] = useState(null)
+  const [legendCollapsed, setLegendCollapsed] = useState(false)
+  const [layerPanelCollapsed, setLayerPanelCollapsed] = useState(false)
 
   // Live index quotes — own queryKey (own symbol set) so it doesn't collide
   // with GlobalModule's separate ['yfBatch','indices'] query.
@@ -260,14 +301,17 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const mouseRef = useRef({ x: -9999, y: -9999 })
   const hoveredCountryRef = useRef(null)
   const hoveredExchangeRef = useRef(null)
+  const hoveredRouteRef = useRef(null) // { id, kind: 'SHIPPING'|'FREIGHT' }
   const exchangeScreenPosRef = useRef({}) // id -> { x, y, r }
   const pinnedCountryRef = useRef(null)
   const pinnedExchangeRef = useRef(null)
+  const pinnedRouteRef = useRef(null)
   const baseLayerRef = useRef(baseLayer)
   const overlaysRef = useRef(overlays)
   const quotesRef = useRef(quotes)
   const isPlayingRef = useRef(isPlaying)
   const searchMatchIdsRef = useRef(new Set())
+  const searchMatchRouteIdsRef = useRef(new Set())
   // Static star field — generated once on mount and never re-randomized so
   // the background doesn't flicker frame to frame (Math.random must not run
   // during render, so this is seeded in an effect rather than inline).
@@ -285,6 +329,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   useEffect(() => { quotesRef.current = quotes }, [quotes])
   useEffect(() => { pinnedCountryRef.current = pinnedCountry }, [pinnedCountry])
   useEffect(() => { pinnedExchangeRef.current = pinnedExchange }, [pinnedExchange])
+  useEffect(() => { pinnedRouteRef.current = pinnedRoute }, [pinnedRoute])
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
 
   // Persist layer choices
@@ -338,16 +383,27 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     return map
   }, [quotes])
 
+  // Unified search index — countries, exchanges, and both route layers, so
+  // one input can jump to any of them.
+  const searchIndex = useMemo(() => {
+    const items = countries.map(f => ({ type: 'country', id: f.id, label: f.properties?.name ?? '', feature: f }))
+    for (const ex of EXCHANGES) items.push({ type: 'exchange', id: ex.id, label: `${ex.label} — ${ex.city}`, ex })
+    for (const r of SHIPPING_ROUTES) items.push({ type: 'route', id: r.id, label: r.name, route: r, kind: 'SHIPPING' })
+    for (const r of FREIGHT_ROUTES) items.push({ type: 'route', id: r.id, label: r.name, route: r, kind: 'FREIGHT' })
+    return items
+  }, [countries])
+
   const searchMatches = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return []
-    return countries.filter(f => f.properties?.name?.toLowerCase().includes(q)).slice(0, 5)
-  }, [searchQuery, countries])
+    return searchIndex.filter(item => item.label.toLowerCase().includes(q)).slice(0, 5)
+  }, [searchQuery, searchIndex])
 
   // Live match highlighting on the globe as the user types — kept in a ref so
   // drawFrame (which runs outside React's render cycle) can read it every frame.
   useEffect(() => {
-    searchMatchIdsRef.current = new Set(searchMatches.map(f => f.id))
+    searchMatchIdsRef.current = new Set(searchMatches.filter(m => m.type === 'country').map(m => m.id))
+    searchMatchRouteIdsRef.current = new Set(searchMatches.filter(m => m.type === 'route').map(m => m.id))
   }, [searchMatches])
 
   // Debounced ResizeObserver
@@ -512,6 +568,106 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     ctx.lineWidth = 1
     ctx.stroke()
 
+    // TRADE IMPACT overlay — filled tension-zone polygons, drawn under the
+    // shipping/freight route lines (per spec) so routes stay visible on top.
+    if (ovl.TRADE_IMPACT?.active) {
+      for (const zone of TRADE_IMPACT_ZONES) {
+        const feature = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[...zone.coords, zone.coords[0]]] } }
+        ctx.beginPath(); path(feature)
+        ctx.fillStyle = TRADE_TIER_FILL[zone.tier]
+        ctx.fill()
+        ctx.strokeStyle = TRADE_TIER_STROKE[zone.tier]
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
+    }
+
+    // SHIPPING overlay — animated dashed great-circle lanes + moving dots +
+    // chokepoint warning markers. d3.geoPath resamples LineString geometry
+    // along the sphere automatically, so route.points just needs waypoints.
+    if (ovl.SHIPPING?.active) {
+      const shippingAlpha = (ovl.SHIPPING.opacity ?? 100) / 100
+      const hoveredRoute = hoveredRouteRef.current
+      const pinnedRouteVal = pinnedRouteRef.current
+      for (const route of SHIPPING_ROUTES) {
+        const feature = { type: 'Feature', geometry: { type: 'LineString', coordinates: route.points } }
+        const isHovered = hoveredRoute?.kind === 'SHIPPING' && hoveredRoute.id === route.id
+        const isPinned = pinnedRouteVal?.kind === 'SHIPPING' && pinnedRouteVal.id === route.id
+        const disrupted = route.status === 'DISRUPTED'
+
+        ctx.beginPath()
+        ctx.setLineDash([4, 4])
+        ctx.lineDashOffset = -(now / 40) % 8
+        path(feature)
+        ctx.strokeStyle = (isHovered || isPinned)
+          ? '#F0D060'
+          : disrupted ? `rgba(200,60,60,${0.7 * shippingAlpha})` : `rgba(26,127,232,${0.4 * shippingAlpha})`
+        ctx.lineWidth = (isHovered || isPinned) ? 2.2 : 1.5
+        ctx.stroke()
+        ctx.setLineDash([])
+
+        // 2-3 gold dots cycling continuously along the route
+        const cycle = 6000
+        for (let i = 0; i < 3; i++) {
+          const t = ((now + (i / 3) * cycle) % cycle) / cycle
+          const pt = pointAlongRoute(route.points, t)
+          if (!isPointVisible(pt[0], pt[1], rotation)) continue
+          const p = projection(pt)
+          if (!p) continue
+          ctx.beginPath()
+          ctx.arc(p[0], p[1], 3, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(201,168,76,${0.9 * shippingAlpha})`
+          ctx.fill()
+        }
+      }
+
+      for (const cp of CHOKEPOINT_WARNINGS) {
+        if (!isPointVisible(cp.lon, cp.lat, rotation)) continue
+        const p = projection([cp.lon, cp.lat])
+        if (!p) continue
+        ctx.font = '11px "IBM Plex Mono", monospace'
+        ctx.fillStyle = '#ff6d00'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('⚠', p[0], p[1])
+      }
+    }
+
+    // FREIGHT overlay — thin great-circle arcs + an animated plane glyph
+    // rotated to follow the heading of travel.
+    if (ovl.FREIGHT?.active) {
+      const freightAlpha = (ovl.FREIGHT.opacity ?? 100) / 100
+      for (const route of FREIGHT_ROUTES) {
+        const feature = { type: 'Feature', geometry: { type: 'LineString', coordinates: route.points } }
+        const isHovered = hoveredRouteRef.current?.kind === 'FREIGHT' && hoveredRouteRef.current.id === route.id
+        const isPinned = pinnedRouteRef.current?.kind === 'FREIGHT' && pinnedRouteRef.current.id === route.id
+
+        ctx.beginPath(); path(feature)
+        ctx.strokeStyle = (isHovered || isPinned) ? '#F0D060' : `rgba(201,168,76,${0.3 * freightAlpha})`
+        ctx.lineWidth = (isHovered || isPinned) ? 2 : 1
+        ctx.stroke()
+
+        const cycle = 8000
+        const t = (now % cycle) / cycle
+        const pt = pointAlongRoute(route.points, t)
+        if (!isPointVisible(pt[0], pt[1], rotation)) continue
+        const p = projection(pt)
+        if (!p) continue
+        const pt2 = pointAlongRoute(route.points, Math.min(1, t + 0.01))
+        const p2 = projection(pt2)
+        const angle = p2 ? Math.atan2(p2[1] - p[1], p2[0] - p[0]) : 0
+        ctx.save()
+        ctx.translate(p[0], p[1])
+        ctx.rotate(angle)
+        ctx.beginPath()
+        ctx.moveTo(5, 0); ctx.lineTo(-4, -3); ctx.lineTo(-2, 0); ctx.lineTo(-4, 3)
+        ctx.closePath()
+        ctx.fillStyle = `rgba(201,168,76,${0.9 * freightAlpha})`
+        ctx.fill()
+        ctx.restore()
+      }
+    }
+
     // CRYPTO overlay extras — rising particles from high-adoption hubs + top
     // crypto cities, all hemisphere-clipped like the exchange markers below.
     if (cryptoOn) {
@@ -674,12 +830,48 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       }
       hoveredExchangeRef.current = exId
 
+      // Route hover — only checked when a route overlay is on, and only when
+      // the mouse isn't already over an exchange marker.
+      let routeHit = null
+      if (!exId) {
+        const threshold = 6
+        if (ovl.SHIPPING?.active) {
+          for (const route of SHIPPING_ROUTES) {
+            const pts = sampleRouteScreenPoints(route.points, projection, rotationRef.current)
+            for (let i = 0; i < pts.length - 1; i++) {
+              const a = pts[i], b = pts[i + 1]
+              if (!a || !b) continue
+              if (distToSegment(mx, my, a[0], a[1], b[0], b[1]) <= threshold) {
+                routeHit = { id: route.id, kind: 'SHIPPING', route }
+                break
+              }
+            }
+            if (routeHit) break
+          }
+        }
+        if (!routeHit && ovl.FREIGHT?.active) {
+          for (const route of FREIGHT_ROUTES) {
+            const pts = sampleRouteScreenPoints(route.points, projection, rotationRef.current)
+            for (let i = 0; i < pts.length - 1; i++) {
+              const a = pts[i], b = pts[i + 1]
+              if (!a || !b) continue
+              if (distToSegment(mx, my, a[0], a[1], b[0], b[1]) <= threshold) {
+                routeHit = { id: route.id, kind: 'FREIGHT', route }
+                break
+              }
+            }
+            if (routeHit) break
+          }
+        }
+      }
+      hoveredRouteRef.current = routeHit ? { id: routeHit.id, kind: routeHit.kind } : null
+
       // Same hemisphere-visibility check used for rendering point markers —
       // without it, `projection.invert()` near the sphere's silhouette edge
       // can resolve to a back-hemisphere lon/lat that still happens to fall
       // inside a (non-rendered) country polygon, bleeding its tooltip through.
       let countryId = null
-      if (!exId) {
+      if (!exId && !routeHit) {
         const lonLat = projection.invert([mx, my])
         if (lonLat && Math.abs(lonLat[0]) <= 180 && isPointVisible(lonLat[0], lonLat[1], rotationRef.current)) {
           for (const feature of countries) {
@@ -697,6 +889,10 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         const chg = q?.dayChangePct
         const text = `${ex.label} · ${ex.city}${q?.price != null ? ` · ${q.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ''}${chg != null ? ` (${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%)` : ''} · ${isExchangeOpen(ex) ? 'OPEN' : 'CLOSED'}`
         setTooltip({ x: mx, y: my, text })
+      } else if (routeHit) {
+        const detail = routeHit.kind === 'SHIPPING' ? routeHit.route.teu : routeHit.route.tonnage
+        const status = routeHit.route.status ?? 'ACTIVE'
+        setTooltip({ x: mx, y: my, text: `${routeHit.route.name} · ${detail} · ${status}` })
       } else if (countryId) {
         const n = parseInt(countryId)
         let text = `Country #${n}`
@@ -711,6 +907,20 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           text += info ? ` · ${info.label} · ${info.legal}` : ' · No data'
         }
         setTooltip({ x: mx, y: my, text })
+      } else if (pinnedRouteRef.current) {
+        // Keeps a search-selected route's info panel showing (repositioned
+        // live as the globe rotates) until the user pins something else.
+        const pr = pinnedRouteRef.current
+        const routeList = pr.kind === 'SHIPPING' ? SHIPPING_ROUTES : FREIGHT_ROUTES
+        const route = routeList.find(r => r.id === pr.id)
+        const mid = route ? pointAlongRoute(route.points, 0.5) : null
+        const p = mid && isPointVisible(mid[0], mid[1], rotationRef.current) ? projection(mid) : null
+        if (route && p) {
+          const detail = pr.kind === 'SHIPPING' ? route.teu : route.tonnage
+          setTooltip({ x: p[0], y: p[1], text: `${route.name} · ${detail} · ${route.status ?? 'ACTIVE'}` })
+        } else {
+          setTooltip(null)
+        }
       } else {
         setTooltip(null)
       }
@@ -766,15 +976,18 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     if (hoveredExchangeRef.current) {
       setPinnedExchange(hoveredExchangeRef.current)
       setPinnedCountry(null)
+      setPinnedRoute(null)
       onExchangeClick?.(hoveredExchangeRef.current)
     } else if (hoveredCountryRef.current) {
       const numericId = parseInt(hoveredCountryRef.current, 10)
       setPinnedCountry(hoveredCountryRef.current)
       setPinnedExchange(null)
+      setPinnedRoute(null)
       onCountryClick?.(numericId)
     } else {
       setPinnedCountry(null)
       setPinnedExchange(null)
+      setPinnedRoute(null)
     }
   }, [onCountryClick, onExchangeClick])
 
@@ -837,10 +1050,28 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     tweenRotation([-lon, -lat, 0])
   }
 
-  function selectSearchResult(feature) {
-    setPinnedCountry(feature.id)
-    setPinnedExchange(null)
-    rotateToCountry(feature)
+  function selectSearchResult(item) {
+    if (item.type === 'country') {
+      setPinnedCountry(item.id)
+      setPinnedExchange(null)
+      setPinnedRoute(null)
+      rotateToCountry(item.feature)
+    } else if (item.type === 'exchange') {
+      setPinnedExchange(item.id)
+      setPinnedCountry(null)
+      setPinnedRoute(null)
+      tweenRotation([-item.ex.lon, -item.ex.lat, 0])
+      onExchangeClick?.(item.id)
+    } else if (item.type === 'route') {
+      setPinnedRoute({ id: item.id, kind: item.kind })
+      setPinnedCountry(null)
+      setPinnedExchange(null)
+      const midPoint = pointAlongRoute(item.route.points, 0.5)
+      tweenRotation([-midPoint[0], -midPoint[1], 0])
+      // The RAF hitTest loop shows/repositions the pinned-route tooltip every
+      // frame once pinnedRouteRef updates (see hitTest), so no manual
+      // one-shot tooltip placement is needed here.
+    }
     setSearchQuery('')
   }
 
@@ -874,58 +1105,100 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         </div>
       )}
 
-      {/* Layer panel — bottom-left, base radio select + stackable overlay
-          checkboxes each with their own opacity slider */}
-      <div className="absolute bottom-3 left-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm w-36 pointer-events-auto">
-        <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1">BASE</div>
-        <div className="flex gap-1 mb-2">
-          {BASE_LAYERS.map((layer) => (
+      {/* Layer panel — bottom-left. Base radio select, then two collapsible
+          sections: DATA OVERLAYS (opacity sliders) and ROUTE OVERLAYS
+          (on/off only, per spec). Panel itself can collapse to a small tab. */}
+      {layerPanelCollapsed ? (
+        <button
+          type="button"
+          onClick={() => setLayerPanelCollapsed(false)}
+          className="absolute bottom-3 left-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2 py-1 font-mono text-[8px] tracking-widest text-terminal-gold hover:border-terminal-gold pointer-events-auto"
+        >
+          LAYERS ▸
+        </button>
+      ) : (
+        <div className="absolute bottom-3 left-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm w-40 max-h-[70vh] overflow-y-auto pointer-events-auto">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-mono text-[8px] tracking-widest text-terminal-gold">LAYERS</span>
             <button
-              key={layer}
               type="button"
-              onClick={() => selectBase(layer)}
-              className={`flex-1 font-mono text-[8px] tracking-widest px-1.5 py-1 transition-colors ${
-                baseLayer === layer
-                  ? 'bg-terminal-gold text-terminal-bg'
-                  : 'bg-terminal-bg border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
-              }`}
-            >
-              {layer}
-            </button>
-          ))}
-        </div>
-        <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1">OVERLAYS</div>
-        <div className="flex flex-col gap-1.5">
-          {OVERLAY_KEYS.map((key) => {
-            const ovl = overlays[key]
-            return (
-              <div key={key}>
-                <label className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+              onClick={() => setLayerPanelCollapsed(true)}
+              className="text-terminal-text-dim hover:text-terminal-gold leading-none px-1"
+              title="Collapse"
+            >−</button>
+          </div>
+
+          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">BASE LAYERS</div>
+          <div className="flex gap-1 mb-2.5">
+            {BASE_LAYERS.map((layer) => (
+              <button
+                key={layer}
+                type="button"
+                onClick={() => selectBase(layer)}
+                className={`flex-1 font-mono text-[8px] tracking-widest px-1.5 py-1 transition-colors ${
+                  baseLayer === layer
+                    ? 'bg-terminal-gold text-terminal-bg'
+                    : 'bg-terminal-bg border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+                }`}
+              >
+                {layer}
+              </button>
+            ))}
+          </div>
+
+          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">DATA OVERLAYS</div>
+          <div className="flex flex-col gap-1.5 mb-2.5">
+            {DATA_OVERLAY_KEYS.map((key) => {
+              const ovl = overlays[key]
+              return (
+                <div key={key}>
+                  <label className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={ovl.active}
+                      onChange={() => toggleOverlay(key)}
+                      className="accent-terminal-gold"
+                    />
+                    <span className={ovl.active ? 'text-terminal-gold' : ''}>{OVERLAY_LABELS[key]}</span>
+                  </label>
+                  {ovl.active && (
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={ovl.opacity}
+                      onChange={(e) => setOverlayOpacity(key, Number(e.target.value))}
+                      className="w-full h-1 mt-0.5 accent-terminal-gold"
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">ROUTE OVERLAYS</div>
+          <div className="flex flex-col gap-1.5">
+            {ROUTE_OVERLAY_KEYS.map((key) => {
+              const ovl = overlays[key]
+              return (
+                <label key={key} className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
                   <input
                     type="checkbox"
                     checked={ovl.active}
                     onChange={() => toggleOverlay(key)}
                     className="accent-terminal-gold"
                   />
-                  <span className={ovl.active ? 'text-terminal-gold' : ''}>{key}</span>
+                  <span className={ovl.active ? 'text-terminal-gold' : ''}>{OVERLAY_LABELS[key]}</span>
                 </label>
-                {ovl.active && (
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={ovl.opacity}
-                    onChange={(e) => setOverlayOpacity(key, Number(e.target.value))}
-                    className="w-full h-1 mt-0.5 accent-terminal-gold"
-                  />
-                )}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Search — top-left, rotates the globe to the selected country */}
+      {/* Search — top-left. Matches countries, exchanges, and both route
+          layers; selecting a country/exchange rotates to it, a route
+          highlights gold and shows its tooltip. */}
       <div className="absolute top-3 left-3 z-10 w-40">
         <input
           type="text"
@@ -937,61 +1210,22 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         />
         {searchMatches.length > 0 && (
           <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
-            {searchMatches.map((f) => (
+            {searchMatches.map((item) => (
               <button
-                key={f.id}
+                key={`${item.type}:${item.id}`}
                 type="button"
-                onClick={() => selectSearchResult(f)}
+                onClick={() => selectSearchResult(item)}
                 className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
               >
-                {f.properties?.name}
+                <span className="text-terminal-text-dim/60 mr-1">
+                  {item.type === 'country' ? '🌍' : item.type === 'exchange' ? '🏛' : item.kind === 'SHIPPING' ? '🚢' : '✈'}
+                </span>
+                {item.label}
               </button>
             ))}
           </div>
         )}
       </div>
-
-      {/* HEAT legend — bottom-right, stacked below the compass/controls stack */}
-      {overlays.HEAT?.active && (
-        <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
-          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">TODAY'S INDEX %</div>
-          <div className="flex items-center gap-1.5">
-            {[
-              ['#A83232', '<-1%'],
-              ['#6B2323', '-1 to -0.3%'],
-              ['#1A3A6A', 'flat'],
-              ['#2D8A50', '0-1%'],
-              ['#1a5c35', '>1%'],
-            ].map(([color, label]) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
-                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CRYPTO legend — bottom-right, stacked below the compass/controls stack */}
-      {overlays.CRYPTO?.active && (
-        <div className="absolute bottom-16 right-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm">
-          <div className="text-[8px] font-mono text-terminal-text-dim tracking-widest mb-1.5">CRYPTO ADOPTION</div>
-          <div className="flex items-center gap-1.5">
-            {[
-              ['#2D8A50', 'Very High'],
-              ['#1a5c35', 'High'],
-              ['#1A3A6A', 'Medium'],
-              ['#6B2323', 'Low'],
-              ['#A83232', 'Banned'],
-            ].map(([color, label]) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <span style={{ width: 10, height: 10, background: color, display: 'inline-block' }} />
-                <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Single DOM tooltip, repositioned on hover */}
       {tooltip && (
@@ -1004,9 +1238,11 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       )}
 
       {/* Bottom-right stack: pause/reset controls always at the true
-          bottom, the compass rose above them — column-reverse keeps the
-          two from overlapping. z-10 keeps both above the canvas. */}
-      <div className="absolute bottom-3 right-3 z-10 flex flex-col-reverse items-end gap-2">
+          bottom, the compass rose above them, the legend above that —
+          column-reverse keeps all three from overlapping regardless of how
+          many legend entries are showing. z-20 keeps the whole stack above
+          every other globe element, including route/overlay graphics. */}
+      <div className="absolute bottom-3 right-3 z-20 flex flex-col-reverse items-end gap-2">
         <div className="flex gap-1">
           <button
             type="button"
@@ -1042,6 +1278,94 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         </div>
 
         <CompassRose angle={compassAngle} onSnap={handleCompassSnap} />
+
+        <GlobeLegend
+          overlays={overlays}
+          collapsed={legendCollapsed}
+          onToggleCollapse={() => setLegendCollapsed(c => !c)}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified legend — one panel covering whichever overlays are currently
+// active, instead of separate per-layer panels that could occupy the same
+// screen position and hide each other (the original bug: HEAT and CRYPTO
+// legends both anchored to the same spot, so having both on hid one).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LEGEND_SWATCHES = {
+  MARKETS: [
+    ['🟢', 'Open exchange'],
+    ['⚫', 'Closed exchange'],
+  ],
+  HEAT: [
+    ['#A83232', '< -1%'], ['#6B2323', '-1 to -0.3%'], ['#1A3A6A', 'Flat'], ['#2D8A50', '0 to 1%'], ['#1a5c35', '> 1%'],
+  ],
+  CRYPTO: [
+    ['#2D8A50', 'Very High'], ['#1a5c35', 'High'], ['#1A3A6A', 'Medium'], ['#6B2323', 'Low'], ['#A83232', 'Banned'],
+  ],
+  SHIPPING: [
+    ['🔵', 'Active route'], ['🔴', 'Disrupted'], ['⚠', 'Tension zone'],
+  ],
+  FREIGHT: [
+    ['🟡', 'Air cargo route'],
+  ],
+  TRADE_IMPACT: [
+    ['🔴', 'High tension'], ['🟠', 'Elevated'], ['🔵', 'Monitoring'],
+  ],
+}
+const LEGEND_TITLES = {
+  MARKETS: 'MARKETS', HEAT: "TODAY'S INDEX %", CRYPTO: 'CRYPTO ADOPTION',
+  SHIPPING: 'SHIPPING', FREIGHT: 'AIR FREIGHT', TRADE_IMPACT: 'TRADE IMPACT',
+}
+
+function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
+  const active = ALL_OVERLAY_KEYS.filter(k => overlays[k]?.active)
+  if (active.length === 0) return null
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        className="font-mono text-[8px] tracking-widest text-terminal-gold bg-[rgba(6,13,26,0.92)] border border-terminal-border rounded-sm px-2 py-1 hover:border-terminal-gold"
+      >
+        LEGEND ▸
+      </button>
+    )
+  }
+
+  return (
+    <div className="bg-[rgba(6,13,26,0.92)] border border-terminal-border rounded-sm p-3 min-w-[160px] font-mono">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[8px] tracking-widest text-terminal-gold">LEGEND</span>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="text-terminal-text-dim hover:text-terminal-gold leading-none px-1"
+          title="Collapse"
+        >−</button>
+      </div>
+      <div className="flex flex-col gap-2">
+        {active.map((key) => (
+          <div key={key}>
+            <div className="text-[7px] text-terminal-text-dim tracking-widest mb-1">{LEGEND_TITLES[key]}</div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {LEGEND_SWATCHES[key].map(([swatch, label]) => (
+                <div key={label} className="flex items-center gap-1">
+                  {swatch.startsWith('#')
+                    ? <span style={{ width: 8, height: 8, background: swatch, display: 'inline-block', flexShrink: 0 }} />
+                    : <span className="text-[9px] leading-none">{swatch}</span>
+                  }
+                  <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
