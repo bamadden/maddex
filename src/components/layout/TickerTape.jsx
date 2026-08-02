@@ -126,7 +126,7 @@ export default function TickerTape() {
     if (cryptoItems.length) sectionBlocks.push({ label: '◆ CRYPTO', items: cryptoItems })
   }
 
-  // 📊 INDICES — ASX200/S&P500/NASDAQ via Stooq
+  // 📊 INDICES — ASX200/S&P500/NASDAQ via Yahoo Finance v7 quote
   if (indexQuotes) {
     const indexItems = INDEX_SYMS.map(sym => {
       const q = indexQuotes[sym]

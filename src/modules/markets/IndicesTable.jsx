@@ -9,25 +9,8 @@ import { fmt } from '../../utils/format'
 // local order/subset here so this bar can differ from what those show without
 // forking the underlying quote data.
 const BENCHMARK_ORDER = [
-  '^AXJO', '^AORD', '^GSPC', '^IXIC', '^DJI', '^FTSE', '^N225', '^HSI', '^GDAXI', '^SSEC',
+  '^AXJO', '^AORD', '^GSPC', '^IXIC', '^DJI', '^FTSE', '^N225', '^HSI', '^GDAXI', '000001.SS',
 ]
-
-// One representative large-cap stock per index, used only to shape the
-// sparkline — a rough visual proxy for the index's recent trend, never used
-// for the level/change numbers (those come from the real index quote above).
-// All Ords tracks the ASX 200 closely enough to reuse its proxy.
-const SPARKLINE_PROXY = {
-  '^AXJO':  'XRO.AX',
-  '^AORD':  'XRO.AX',
-  '^GSPC':  'AAPL',
-  '^IXIC':  'NVDA',
-  '^DJI':   'MSFT',
-  '^FTSE':  'SAGE.L',
-  '^N225':  '9984.T',
-  '^HSI':   '0700.HK',
-  '^GDAXI': 'SAP.DE',
-  '^SSEC':  '688981.SS',
-}
 
 function pctColor(pct) {
   if (pct > 0) return 'var(--color-gain)'
@@ -35,7 +18,8 @@ function pctColor(pct) {
   return '#6b7f99'
 }
 
-// Format stooq timestamp (YYYY-MM-DD) to a compact display
+// Format a quote's data-date (YYYY-MM-DD) to a compact display — only shows
+// when the quote isn't from today (e.g. a stale cache), otherwise null.
 function fmtDataDate(ts) {
   if (!ts) return null
   const d = new Date(ts + 'T00:00:00')
@@ -105,18 +89,16 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
     retry: 1,
   })
 
-  // 7-day sparkline history — one proxy stock per index, fetched in parallel.
+  // 7-day sparkline history, straight from each index's own Yahoo symbol —
+  // Yahoo's chart endpoint handles ^-symbols the same as stock tickers, so no
+  // stock-proxy stand-in is needed now that Stooq is out of the index flow.
   const sparkResults = useQueries({
-    queries: indices.map(({ symbol }) => {
-      const proxySym = SPARKLINE_PROXY[symbol]
-      return {
-        queryKey:  ['sparkline', symbol, proxySym],
-        queryFn:   () => fetchYFHistory(proxySym, { range: '5d' }),
-        enabled:   !!proxySym,
-        staleTime: 5 * 60_000,
-        retry: 1,
-      }
-    }),
+    queries: indices.map(({ symbol }) => ({
+      queryKey:  ['sparkline', symbol],
+      queryFn:   () => fetchYFHistory(symbol, { range: '7d', interval: '1h' }),
+      staleTime: 5 * 60_000,
+      retry: 1,
+    })),
   })
 
   return (

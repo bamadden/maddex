@@ -19,7 +19,7 @@ try {
 
 // API startup verification
 console.log('[MADDEN] ✓ YAHOO FINANCE: proxy ready (/api/yahoo → query1.finance.yahoo.com)')
-console.log('[MADDEN] ✓ STOOQ: indices-only proxy ready (/api/stooq)')
+console.log('[MADDEN] ✓ STOOQ: proxy ready (/api/stooq) — not currently used for indices, see api.js')
 console.log('[MADDEN] ✓ COINGECKO: no key required — direct browser access')
 console.log('[MADDEN] ✓ FRANKFURTER: no key required — proxy ready (/api/frankfurter)')
 

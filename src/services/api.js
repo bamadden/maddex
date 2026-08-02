@@ -421,7 +421,11 @@ function parseStooqQuoteCsv(text, requestedSym) {
   }
 }
 
-async function fetchStooqQuote(stooqSym) {
+// Not called anywhere currently — Stooq's CSV quote endpoint started 404ing
+// (see fetchIndexQuotes above, which replaced it for indices). Kept, and
+// exported, in case Stooq is usable again or needed for a different symbol
+// type later.
+export async function fetchStooqQuote(stooqSym) {
   const url = `${STOOQ_BASE}/q/l/?s=${encodeURIComponent(stooqSym)}&f=sd2t2ohlcv&h&e=csv`
   const cached = getCache(url)
   if (cached) return cached
@@ -442,32 +446,74 @@ async function fetchStooqQuote(stooqSym) {
   }
 }
 
-// fetchYFQuote: delegates to Yahoo for stocks, stooq for indices.
+// ─── Index quotes — Yahoo v7 batch quote ──────────────────────────────────────
+// Stooq's CSV quote endpoint (used previously for index quotes/history) started
+// returning 404 on every request — confirmed directly against stooq.com, not
+// just our proxy. Index quotes and history now go through the same Yahoo v7/v8
+// endpoints as everything else. Cached for 2 minutes (shorter than the 5-minute
+// stock-fundamentals cache) since index levels move continuously during
+// trading hours.
+const INDEX_QUOTE_CACHE_MS = 2 * 60_000
+
+export async function fetchIndexQuotes(symbols) {
+  if (!symbols?.length) return {}
+  const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`
+  const cacheKey = `index:${url}`
+  const cached = getCache(cacheKey)
+  if (cached) return cached
+  const res = await fetch(bust(url), { signal: AbortSignal.timeout(10000), headers: NO_CACHE_HEADERS })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json()
+  const results = data?.quoteResponse?.result ?? []
+  const out = {}
+  for (const r of results) {
+    if (!r?.symbol || r.regularMarketPrice == null) continue
+    const price = r.regularMarketPrice
+    const change = r.regularMarketChange ?? null
+    const pct = r.regularMarketChangePercent ?? null
+    out[r.symbol] = {
+      symbol:      r.symbol,
+      last:        price,
+      price,
+      change,
+      pct,
+      dayChange:    change,
+      dayChangePct: pct,
+      currency:    r.currency ?? null,
+      exchange:    r.fullExchangeName ?? r.exchange ?? null,
+      name:        r.longName ?? r.shortName ?? r.symbol,
+      isOpen:      r.marketState === 'REGULAR',
+      timestamp:   new Date().toISOString().slice(0, 10),
+      fallback:    false,
+    }
+  }
+  console.log(`[MADDEN API] ✓ Yahoo v7 index quotes: ${Object.keys(out).length}/${symbols.length} symbols`)
+  setCache(cacheKey, out, INDEX_QUOTE_CACHE_MS)
+  return out
+}
+
+// fetchYFQuote: single index or stock quote — Yahoo for both now.
 // No hardcoded fallback — on total failure, throw so callers show DATA UNAVAILABLE.
 export const fetchYFQuote = async (symbol) => {
-  const stooqSym = yfToStooq(symbol)
-  if (stooqSym.startsWith('^')) {
-    const data = await fetchStooqQuote(stooqSym)
-    return { ...data, symbol }
+  if (symbol.startsWith('^') || /^\d+\.SS$/.test(symbol)) {
+    const out = await fetchIndexQuotes([symbol])
+    const data = out[symbol]
+    if (data) return data
+    throw new Error(`No data for ${symbol}`)
   }
   const q = await fetchYahooQuote(symbol)
   if (q) return q
   throw new Error(`No data for ${symbol}`)
 }
 
-// fetchYFBatch: INDICES via Yahoo Finance proxy — used by IndicesTable.
+// fetchYFBatch: INDICES via Yahoo v7 batch quote — used by IndicesTable,
+// TickerTape, MarketSentimentBanner, MaddexGlobe (all index-symbol-only callers).
 // Symbols that fail are simply omitted — no fake data — so consumers render
 // their own "unavailable" state for the missing key.
 export const fetchYFBatch = async (symbols) => {
-  const results = await Promise.all(symbols.map(s => fetchYahooQuote(s)))
-  const out = {}
-  for (let i = 0; i < symbols.length; i++) {
-    const sym = symbols[i]
-    if (results[i]) {
-      out[sym] = results[i]
-    } else {
-      console.error(`[MADDEN API] Index fetch failed: ${sym}`)
-    }
+  const out = await fetchIndexQuotes(symbols)
+  for (const sym of symbols) {
+    if (!out[sym]) console.error(`[MADDEN API] Index fetch failed: ${sym}`)
   }
   if (Object.keys(out).length === 0) throw new Error('All index quotes unavailable')
   return out
@@ -515,7 +561,8 @@ function rangeToStooqDates(range) {
   return { d1: fmt(d1), d2: fmt(d2) }
 }
 
-async function fetchStooqHistory(symbol, { range = '3mo' } = {}) {
+// Not called anywhere currently — see fetchStooqQuote above for why.
+export async function fetchStooqHistory(symbol, { range = '3mo' } = {}) {
   const stooqSym    = yfToStooq(symbol)
   const { d1, d2 } = rangeToStooqDates(range)
   const url = `${STOOQ_BASE}/q/d/l/?s=${encodeURIComponent(stooqSym)}&d1=${d1}&d2=${d2}&i=d`
@@ -540,9 +587,11 @@ async function fetchStooqHistory(symbol, { range = '3mo' } = {}) {
 }
 
 // fetchYFHistory: indices via stooq, stocks via Yahoo Finance
+// Yahoo Finance for both stocks and indices — Stooq is no longer used here
+// (its history CSV endpoint is 404ing the same as its quote endpoint). Yahoo's
+// chart endpoint handles index symbols (^AXJO, 000001.SS, etc.) the same way
+// it handles stock tickers, so no symbol translation is needed.
 export const fetchYFHistory = async (symbol, { range = '3mo', interval = '1d' } = {}) => {
-  const stooqSym = yfToStooq(symbol)
-  if (stooqSym.startsWith('^')) return fetchStooqHistory(symbol, { range })
   return fetchYahooHistory(symbol, range, interval)
 }
 
@@ -574,7 +623,7 @@ export const YF_INDICES = [
   { symbol: '^GDAXI', label: 'DAX',        sublabel: 'EUR · pts', isAud: false, primary: false },
   { symbol: '^N225',  label: 'Nikkei 225', sublabel: 'JPY · pts', isAud: false, primary: false },
   { symbol: '^HSI',   label: 'Hang Seng',  sublabel: 'HKD · pts', isAud: false, primary: false },
-  { symbol: '^SSEC',  label: 'Shanghai',   sublabel: 'CNY · pts', isAud: false, primary: false },
+  { symbol: '000001.SS', label: 'Shanghai', sublabel: 'CNY · pts', isAud: false, primary: false },
   { symbol: '^NZ50',  label: 'NZX 50',     sublabel: 'NZD · pts', isAud: false, primary: false },
 ]
 
