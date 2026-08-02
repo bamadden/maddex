@@ -455,41 +455,79 @@ export async function fetchStooqQuote(stooqSym) {
 // trading hours.
 const INDEX_QUOTE_CACHE_MS = 2 * 60_000
 
+// Last-known-good index quotes, persisted across page loads and outages —
+// Yahoo's index quote endpoint is rate-limited hard enough during heavy
+// testing/traffic that "just retry" can leave every card blank for minutes.
+// A localStorage-backed fallback means a real prior quote (marked stale via
+// its own timestamp) shows instead of a dead "RETRY" button.
+const INDEX_FALLBACK_KEY = 'maddex_index_quote_fallback'
+
+function readIndexFallback() {
+  try {
+    return JSON.parse(localStorage.getItem(INDEX_FALLBACK_KEY) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+function writeIndexFallback(out) {
+  try {
+    const existing = readIndexFallback()
+    localStorage.setItem(INDEX_FALLBACK_KEY, JSON.stringify({ ...existing, ...out }))
+  } catch {
+    // storage unavailable/full — fallback caching is best-effort, not required
+  }
+}
+
 export async function fetchIndexQuotes(symbols) {
   if (!symbols?.length) return {}
   const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`
   const cacheKey = `index:${url}`
   const cached = getCache(cacheKey)
   if (cached) return cached
-  const res = await fetch(bust(url), { signal: AbortSignal.timeout(10000), headers: NO_CACHE_HEADERS })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json()
-  const results = data?.quoteResponse?.result ?? []
-  const out = {}
-  for (const r of results) {
-    if (!r?.symbol || r.regularMarketPrice == null) continue
-    const price = r.regularMarketPrice
-    const change = r.regularMarketChange ?? null
-    const pct = r.regularMarketChangePercent ?? null
-    out[r.symbol] = {
-      symbol:      r.symbol,
-      last:        price,
-      price,
-      change,
-      pct,
-      dayChange:    change,
-      dayChangePct: pct,
-      currency:    r.currency ?? null,
-      exchange:    r.fullExchangeName ?? r.exchange ?? null,
-      name:        r.longName ?? r.shortName ?? r.symbol,
-      isOpen:      r.marketState === 'REGULAR',
-      timestamp:   new Date().toISOString().slice(0, 10),
-      fallback:    false,
+
+  try {
+    const res = await fetch(bust(url), { signal: AbortSignal.timeout(10000), headers: NO_CACHE_HEADERS })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    const results = data?.quoteResponse?.result ?? []
+    const out = {}
+    for (const r of results) {
+      if (!r?.symbol || r.regularMarketPrice == null) continue
+      const price = r.regularMarketPrice
+      const change = r.regularMarketChange ?? null
+      const pct = r.regularMarketChangePercent ?? null
+      out[r.symbol] = {
+        symbol:      r.symbol,
+        last:        price,
+        price,
+        change,
+        pct,
+        dayChange:    change,
+        dayChangePct: pct,
+        currency:    r.currency ?? null,
+        exchange:    r.fullExchangeName ?? r.exchange ?? null,
+        name:        r.longName ?? r.shortName ?? r.symbol,
+        isOpen:      r.marketState === 'REGULAR',
+        timestamp:   new Date().toISOString().slice(0, 10),
+        fallback:    false,
+      }
     }
+    if (Object.keys(out).length === 0) throw new Error('Empty quote response')
+    console.log(`[MADDEN API] ✓ Yahoo v7 index quotes: ${Object.keys(out).length}/${symbols.length} symbols`)
+    setCache(cacheKey, out, INDEX_QUOTE_CACHE_MS)
+    writeIndexFallback(out)
+    return out
+  } catch (e) {
+    const fallback = readIndexFallback()
+    const out = {}
+    for (const sym of symbols) {
+      if (fallback[sym]) out[sym] = { ...fallback[sym], fallback: true }
+    }
+    if (Object.keys(out).length === 0) throw e
+    console.warn(`[MADDEN API] Yahoo v7 index quotes failed (${e.message}) — using cached fallback for ${Object.keys(out).length}/${symbols.length} symbols`)
+    return out
   }
-  console.log(`[MADDEN API] ✓ Yahoo v7 index quotes: ${Object.keys(out).length}/${symbols.length} symbols`)
-  setCache(cacheKey, out, INDEX_QUOTE_CACHE_MS)
-  return out
 }
 
 // fetchYFQuote: single index or stock quote — Yahoo for both now.

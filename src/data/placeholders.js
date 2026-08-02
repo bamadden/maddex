@@ -110,7 +110,7 @@ export const AU_CALENDAR = [
   { date: '23 JUL', time: '11:30', event: 'AU CPI Monthly (Jun 2026)',       region: 'AU', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
   { date: '30 JUL', time: '11:30', event: 'AU CPI Q2 2026 (ABS)',            region: 'AU', importance: 'high',   forecast: '2.5%',  prev: '2.4%'   },
   { date: '30 JUL', time: '11:30', event: 'AU Retail Sales MoM (Jun)',       region: 'AU', importance: 'medium', forecast: '+0.4%', prev: '+0.3%'  },
-  { date: '05 AUG', time: '14:30', event: 'RBA Rate Decision (Aug 2026)',    region: 'AU', importance: 'high',   forecast: '4.35%', prev: '4.35%'  },
+  { date: '05 AUG', time: '14:30', event: 'RBA Rate Decision (Aug 2026)',    region: 'AU', importance: 'high',   forecast: '3.85%', prev: '3.85%'  },
   { date: '06 AUG', time: '11:30', event: 'AU Trade Balance (Jun)',           region: 'AU', importance: 'medium', forecast: 'A$7.4B',prev: 'A$7.2B' },
   { date: '19 AUG', time: '11:30', event: 'AU Employment Change (Jul)',      region: 'AU', importance: 'high',   forecast: '+15K',  prev: '+20K'   },
   { date: '26 AUG', time: '11:30', event: 'AU CPI Monthly (Jul 2026)',       region: 'AU', importance: 'high',   forecast: '2.4%',  prev: '2.3%'   },

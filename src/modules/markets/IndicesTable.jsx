@@ -103,7 +103,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
 
   return (
     <div className="bg-terminal-panel border-b border-terminal-border font-mono">
-      <div className="flex overflow-x-auto hide-scrollbar">
+      <div className="flex flex-nowrap overflow-x-auto gap-0 hide-scrollbar">
         {indices.map(({ symbol, label, isAud }, idx) => {
           const q          = quotes?.[symbol]
           const dataDate   = q?.timestamp ? fmtDataDate(q.timestamp) : null
@@ -120,7 +120,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             <div
               key={symbol}
               onClick={() => handleClick(symbol, q, isAud, label)}
-              className="flex-shrink-0 cursor-pointer hover:bg-terminal-accent/10 transition-colors border-r border-terminal-border"
+              className="flex-shrink-0 min-w-[140px] cursor-pointer hover:bg-terminal-accent/10 transition-colors border-r border-terminal-border"
               style={{
                 width: 152,
                 padding: '8px 12px',

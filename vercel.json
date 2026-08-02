@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/yahoo/:path*",
-      "destination": "https://query1.finance.yahoo.com/:path*"
-    },
-    {
       "source": "/api/frankfurter/:path*",
       "destination": "https://api.frankfurter.app/:path*"
     },
