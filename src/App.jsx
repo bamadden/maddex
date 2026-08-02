@@ -222,7 +222,12 @@ function AuthGate() {
   }, [settings, setCurrency, setActiveModule])
 
   if (loading || !appReady) return <LoadingScreen />
-  if (!user) return <AuthModal />
+  // TEMPORARY dev-only bypass — `npm run dev` skips the Supabase sign-in gate
+  // so the terminal can be exercised without a real account. import.meta.env.DEV
+  // is false in `vite build`, so production is unaffected. Remove once no
+  // longer needed for local testing.
+  const isDev = import.meta.env.DEV
+  if (!user && !isDev) return <AuthModal />
   if (profile && !profile.onboarding_complete && !onboardingDone) {
     return <OnboardingFlow onComplete={() => setOnboardingDone(true)} />
   }

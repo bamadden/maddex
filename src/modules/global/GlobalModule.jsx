@@ -5,6 +5,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useCountryData } from '../../hooks/useCountryData'
 import COUNTRIES from '../../data/countryDatabase'
 import { initCountryDataRefresh } from '../../services/countryApiService'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import MaddexGlobe from '../../components/globe/MaddexGlobe'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
@@ -849,7 +850,13 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
             <span className={`text-2xs px-1.5 py-0.5 border border-current/30 ${RISK_COLOR[riskRating] ?? 'text-terminal-text-dim'}`}>RISK: {riskRating}</span>
           </div>
           <button
-            onClick={() => onAskAI(`Provide a professional analysis of ${name} for Australian investors. Include: economic outlook, key risks, trade relationship with Australia, ASX stocks with exposure, and AUD implications.`)}
+            onClick={() => onAskAI({
+              name,
+              exchange:    exName,
+              sector:      region,
+              date:        todayAEST(),
+              instruction: `Provide a professional analysis of ${name} for Australian investors. Include: economic outlook, key risks, trade relationship with Australia, ASX stocks with exposure, and AUD implications.`,
+            })}
             className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
           >ASK AI ◆</button>
         </div>
@@ -862,7 +869,11 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
               Detailed data for this territory is not yet in our database.
             </div>
             <button
-              onClick={() => onAskAI(`Tell me about ${name} — its geography, economy, political system, and strategic significance for Australia.`)}
+              onClick={() => onAskAI({
+                name,
+                date:        todayAEST(),
+                instruction: `Tell me about ${name} — its geography, economy, political system, and strategic significance for Australia.`,
+              })}
               className="mt-2 text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >ASK MADDENAI ◆</button>
           </div>
@@ -1030,7 +1041,12 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
                 <div className="text-2xs text-terminal-text leading-snug">{item.headline}</div>
                 <div className="text-2xs text-terminal-text-dim/60 mt-0.5">{item.source} · {item.time}</div>
                 <button
-                  onClick={() => onAskAI(`Analyse the market impact of: "${item.headline}"`)}
+                  onClick={() => onAskAI({
+                    name:        item.headline,
+                    sector:      'News',
+                    date:        todayAEST(),
+                    instruction: 'Analyse the market impact of this headline for Australian investors and the ASX.',
+                  })}
                   className="mt-0.5 text-2xs text-terminal-gold/60 hover:text-terminal-gold"
                 >ASK AI →</button>
               </div>
@@ -1159,7 +1175,12 @@ function MaritimeTab({ newsItems }) {
                   <div className="text-2xs text-terminal-text-dim/50 italic">No matching news in current feed</div>
                 )}
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt: `Analyse the market impact of ${cp.name} (${cp.status}) on Australian investors. Cargo value: ${cp.cargoValue}. ${cp.note}. Key ASX stocks affected: ${cp.asxStocks?.join(', ')}. Include supply chain risks, AU commodity exposure, and freight cost outlook.` } }))}
+                  onClick={() => dispatchAskAI({
+                    name:        cp.name,
+                    sector:      cp.commodity,
+                    date:        todayAEST(),
+                    instruction: `Analyse the market impact of ${cp.name} (${cp.status}) on Australian investors. Cargo value: ${cp.cargoValue}. ${cp.note}. Key ASX stocks affected: ${cp.asxStocks?.join(', ')}. Include supply chain risks, AU commodity exposure, and freight cost outlook.`,
+                  })}
                   className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                 >ASK AI</button>
               </div>
@@ -1434,7 +1455,14 @@ function CommodityFlowsTab({ onAskAI }) {
                 </div>
                 <div className="text-2xs text-terminal-text-dim/60">{c.src}</div>
                 <button
-                  onClick={e => { e.stopPropagation(); onAskAI(`Analyse supply chain disruption risk and market impact for ${c.name} (${c.route}, ${c.vol})`) }}
+                  onClick={e => { e.stopPropagation(); onAskAI({
+                    name:        c.name,
+                    sector:      'Commodities',
+                    price:       `${c.unit.startsWith('EUR') ? '€' : 'US$'}${c.price.toFixed(2)}${c.unit.split('/')[1] ? ` /${c.unit.split('/')[1]}` : ''}`,
+                    change:      `${c.chg > 0 ? '+' : ''}${c.chg.toFixed(1)}%`,
+                    date:        todayAEST(),
+                    instruction: `Analyse supply chain disruption risk and market impact for ${c.name} (${c.route}, ${c.vol}).`,
+                  }) }}
                   className="mt-1 text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                 >ASK AI</button>
               </div>
@@ -1554,7 +1582,12 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
               <div className="text-2xs text-terminal-text-dim/70 mt-0.5 leading-snug line-clamp-2">{n.summary}</div>
             )}
             <button
-              onClick={e => { e.stopPropagation(); onAskAI(`Analyse the market impact of: "${n.headline}"`) }}
+              onClick={e => { e.stopPropagation(); onAskAI({
+                name:        n.headline,
+                sector:      n.region,
+                date:        todayAEST(),
+                instruction: 'Analyse the market impact of this headline for Australian investors and the ASX.',
+              }) }}
               className="mt-1 text-2xs text-terminal-gold/60 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"
             >ASK AI →</button>
           </div>
@@ -1716,7 +1749,12 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
           <div className="flex items-center justify-between mb-1">
             <span className={`text-sm font-bold ${STATUS_CLS[st] ?? 'text-terminal-text-dim'}`}>{STATUS_LABEL[st] ?? st}</span>
             <button
-              onClick={() => onAskAI(`Analyse current conditions on the ${ex.name} (${ex.id}) and implications for Australian investors. Consider: current trading session, key listed stocks (${(ex.topStocks ?? []).slice(0,3).join(', ')}), currency (${ex.currency}), and main index (${ex.index}).`)}
+              onClick={() => onAskAI({
+                name:        ex.name,
+                ticker:      ex.id,
+                date:        todayAEST(),
+                instruction: `Analyse current conditions on the ${ex.name} (${ex.id}) and implications for Australian investors. Consider: current trading session, key listed stocks (${(ex.topStocks ?? []).slice(0,3).join(', ')}), currency (${ex.currency}), and main index (${ex.index}).`,
+              })}
               className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >ASK AI</button>
           </div>
@@ -1855,9 +1893,8 @@ export default function GlobalModule() {
       .sort((a, b) => b.pubDate - a.pubDate)[0] ?? null
   }, [allNewsItems, nowMs])
 
-  const handleAskAI = useCallback((prompt) => {
-    // Dispatch to AI panel via custom event
-    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
+  const handleAskAI = useCallback((fields) => {
+    dispatchAskAI(fields)
   }, [])
 
   // Globe country click — rewires the orphaned CountryPanel back to the globe.

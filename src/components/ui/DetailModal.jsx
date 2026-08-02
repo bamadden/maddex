@@ -10,6 +10,7 @@ import { DataUnavailable } from './DataUnavailable'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
 import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetUtils'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -525,19 +526,16 @@ export default function DetailModal() {
 
   const handleAskAI = () => {
     const exchangeLabel = { asx: 'ASX', us: 'US', crypto: 'Crypto', fx: 'FX', index: 'Index' }[type]
-    const dateStr = `${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`
-    const prompt = [
-      `Asset: ${name ?? symbol} (${symbol})`,
-      exchangeLabel ? `Exchange: ${exchangeLabel}` : null,
-      `Current Price: A$${fmt.price(displayPrice)} (AUD)`,
-      pct != null ? `Day Change: ${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : null,
-      qs?.sector ? `Sector: ${qs.sector}` : null,
-      `Date: ${dateStr} AEST`,
-      '',
-      'Provide a concise professional analysis covering: current price action and key technical levels, the 2-3 most important drivers right now, and your near-term outlook. Be direct and specific.',
-    ].filter(v => v !== null).join('\n')
     closeModal()
-    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
+    dispatchAskAI({
+      name:     name ?? symbol,
+      ticker:   symbol,
+      exchange: exchangeLabel,
+      price:    `A$${fmt.price(displayPrice)} (AUD)`,
+      change:   pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : null,
+      sector:   qs?.sector,
+      date:     todayAEST(),
+    })
   }
 
   const yFmt = (v) => {

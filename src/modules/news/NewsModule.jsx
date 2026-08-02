@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews, NEWS_CATEGORIES, NEWS_SOURCES, TICKER_WHITELIST, FINANCIAL_KEYWORDS, askClaude } from '../../services/api'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
@@ -374,7 +375,7 @@ export default function NewsModule() {
   const [nowTs, setNowTs]             = useState(Date.now())
   const prevHeadlines                 = useRef(new Set())
 
-  const { addChatMessage, setChatOpen, newsFilter, setNewsFilter, clearNewsBadge } = useStore()
+  const { newsFilter, setNewsFilter, clearNewsBadge } = useStore()
 
   // Clear nav badge and tick clock
   useEffect(() => { clearNewsBadge() }, [clearNewsBadge])
@@ -462,13 +463,14 @@ export default function NewsModule() {
   const topHeadlines = useMemo(() => allArticles.slice(0, 10).map(n => n.headline), [allArticles])
 
   const askAI = useCallback((item) => {
-    setChatOpen(true)
-    const tickerLine = item.tickers?.length ? `\nRelated tickers: ${item.tickers.join(', ')}` : ''
-    addChatMessage({
-      role: 'user',
-      content: `Analyse this news from an Australian investor perspective: "${item.headline}"${tickerLine}\n\nWhat is the likely market impact for ASX and AUD?`,
+    dispatchAskAI({
+      name:        item.headline,
+      ticker:      item.tickers?.length ? item.tickers.join(', ') : null,
+      sector:      'News',
+      date:        todayAEST(),
+      instruction: 'Analyse this news from an Australian investor perspective. What is the likely market impact for ASX and AUD?',
     })
-  }, [setChatOpen, addChatMessage])
+  }, [])
 
   const handleToggle = useCallback((item) => {
     setExpandedId(prev => prev === item.id ? null : item.id)

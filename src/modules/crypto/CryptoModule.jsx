@@ -8,6 +8,7 @@ import {
 import { calculateCryptoMomentumIndex, scoreToColor, explainScore } from '../../services/maddenAiScoring'
 import { useStore } from '../../store/useStore'
 import { fmt } from '../../utils/format'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -425,8 +426,14 @@ export default function CryptoModule() {
   })
 
   const askAI = (coin) => {
-    const prompt = `Analyse ${coin.name} (${coin.symbol}): price ${currPrefix}${coin.price.toLocaleString('en-AU', { maximumFractionDigits: 2 })}, 24h ${coin.pct24h.toFixed(2)}%, 7d ${(coin.pct7d ?? 0).toFixed(2)}%, mkt cap ${currPrefix}${coin.mktCap}. Sentiment: ${calcSentiment(coin.pct24h, coin.pct7d)}/100. Provide brief outlook for AUD-based investors.`
-    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
+    dispatchAskAI({
+      name:   coin.name,
+      ticker: coin.symbol,
+      price:  `${currPrefix}${coin.price.toLocaleString('en-AU', { maximumFractionDigits: 2 })}`,
+      change: `${coin.pct24h >= 0 ? '+' : ''}${coin.pct24h.toFixed(2)}% (24h)`,
+      sector: 'Crypto',
+      date:   todayAEST(),
+    })
   }
 
   return (

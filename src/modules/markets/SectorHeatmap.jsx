@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYFHistory, transformYFHistory } from '../../services/api'
 import { fmt } from '../../utils/format'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useAudRates } from '../../hooks/useAudRates'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -799,9 +800,17 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   const askAISector = () => {
     if (!selected || !proxySym) return
     const q = proxyQuotes?.[proxySym]
-    const pctStr = q ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : 'N/A'
-    const prompt = `Analyse the ${selected} sector for ${indexLabel} performance today. Proxy stock ${proxySym.replace('.AX','').replace('.L','')}: ${pctStr}. Key drivers, sector outlook, and implications for investors.`
-    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
+    const ticker = proxySym.replace('.AX', '').replace('.L', '')
+    dispatchAskAI({
+      name:        `${selected} Sector`,
+      ticker,
+      exchange:    indexLabel,
+      price:       q?.price != null ? `${q.currency === 'AUD' ? 'A$' : q.currency ? `${q.currency} ` : ''}${fmt.price(q.price)}` : null,
+      change:      q?.pct != null ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : null,
+      sector:      selected,
+      date:        todayAEST(),
+      instruction: `Analyse the ${selected} sector for ${indexLabel} performance today, using proxy stock ${ticker}. Key drivers, sector outlook, and implications for investors.`,
+    })
   }
 
   return (

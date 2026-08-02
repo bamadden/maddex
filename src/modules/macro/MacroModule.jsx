@@ -7,6 +7,7 @@ import {
   IRON_ORE_HISTORY, CHINA_WATCH,
 } from '../../data/placeholders'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
@@ -411,7 +412,13 @@ function RBADashboard({ askAI }) {
             IN {daysLeft}D {hrsLeft}H
           </span>
           <button
-            onClick={() => askAI('What is the RBA likely to do at the next meeting on 5 August 2026 and why? Current cash rate 4.35% (held at July 1 meeting). CPI Q2 2026 due July 30. Unemployment 4.1%. What is the market pricing?')}
+            onClick={() => askAI({
+              name:        'RBA Cash Rate',
+              price:       '4.35% p.a.',
+              sector:      'Interest Rates',
+              date:        todayAEST(),
+              instruction: 'What is the RBA likely to do at the next meeting on 5 August 2026 and why? Current cash rate 4.35% (held at July 1 meeting). CPI Q2 2026 due July 30. Unemployment 4.1%. What is the market pricing?',
+            })}
             className="text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
           >
             AI ▶
@@ -680,7 +687,12 @@ function ChinaWatch({ askAI }) {
           China ≈ 32% of Australian exports
         </span>
         <button
-          onClick={() => askAI('Analyse current China economic conditions and their impact on Australian markets, commodities, and the AUD. Include iron ore demand outlook, property sector risks, and implications for ASX-listed miners and energy companies.')}
+          onClick={() => askAI({
+            name:        'China',
+            sector:      'Macro / Trade',
+            date:        todayAEST(),
+            instruction: 'Analyse current China economic conditions and their impact on Australian markets, commodities, and the AUD. Include iron ore demand outlook, property sector risks, and implications for ASX-listed miners and energy companies.',
+          })}
           className="ml-auto text-2xs border border-red-400/40 text-red-400/70 hover:border-red-400 hover:text-red-400 px-2 py-0.5 transition-colors"
         >
           AI ▶
@@ -842,8 +854,7 @@ export default function MacroModule() {
   const [globalExpanded, setGlobalExpanded] = useState(false)
   const [expandedChart, setExpandedChart]   = useState(null)
 
-  const askAI = (prompt) =>
-    window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt } }))
+  const askAI = (fields) => dispatchAskAI(fields)
 
   // RBA Cash Rate — hardcoded from official rba.gov.au May 2026 board decision.
   // The live RBA API (api.rba.gov.au) is unreliable; for a single data point that

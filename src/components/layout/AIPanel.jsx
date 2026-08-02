@@ -258,13 +258,15 @@ export default function AIPanel() {
     if (chatOpen) inputRef.current?.focus()
   }, [chatOpen])
 
-  // Global intelligence "ASK AI" button hook
+  // Global intelligence "ASK AI" button hook — dispatched by asset/headline/
+  // chokepoint click sites across the terminal. The prompt is sent to Claude
+  // but never shown as a user bubble; see `send(text, { silent, context })`.
   useEffect(() => {
     const handler = (e) => {
-      const prompt = e.detail?.prompt
+      const { prompt, context } = e.detail ?? {}
       if (!prompt) return
       setChatOpen(true)
-      setTimeout(() => send(prompt), 100)
+      setTimeout(() => send(prompt, { context, silent: true }), 100)
     }
     window.addEventListener('madden:ask-ai', handler)
     return () => window.removeEventListener('madden:ask-ai', handler)
@@ -317,15 +319,16 @@ export default function AIPanel() {
 
   // ── Send message ──────────────────────────────────────────────────────────
 
-  const send = async (textOverride) => {
+  const send = async (textOverride, opts = {}) => {
+    const { context, silent } = opts
     const text = (textOverride ?? input).trim()
     if (!text || loading) return
     setInput('')
     setLoading(true)
 
-    const userMsg = { role: 'user', content: text }
-    addChatMessage(userMsg)
-    addChatMessage({ role: 'assistant', content: '' })
+    const userTurn = { role: 'user', content: text }
+    if (!silent) addChatMessage(userTurn)
+    addChatMessage(silent ? { role: 'assistant', content: '', silent: true, context } : { role: 'assistant', content: '' })
 
     const history = chatMessages
       .filter((m) => m.role !== 'system')
@@ -334,7 +337,7 @@ export default function AIPanel() {
 
     try {
       const result = await askClaude(
-        [...history, userMsg],
+        [...history, userTurn],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
         { experienceLevel: profile?.experience_level }
       )
@@ -442,8 +445,35 @@ export default function AIPanel() {
                 <span className="text-terminal-gold text-2xs block mb-0.5">YOU &gt;</span>
                 {msg.content}
               </div>
+            ) : msg.silent && !msg.content ? (
+              <div className="flex items-center justify-center py-4">
+                <span className="font-mono text-[9px] tracking-[0.2em] text-terminal-text-dim animate-pulse">
+                  MADDENAI · ANALYSING {(msg.context?.ticker || msg.context?.name || 'ASSET').toUpperCase()}...
+                </span>
+              </div>
             ) : (
               <div className="group">
+                {msg.silent && msg.context && (
+                  <div
+                    className="-mx-3 mb-2 px-3 py-1.5"
+                    style={{ background: 'rgba(201,168,76,0.06)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}
+                  >
+                    <div className="font-mono text-[9px] tracking-wider text-terminal-text-dim flex items-center gap-1.5 flex-wrap">
+                      {msg.context.ticker && <span className="text-terminal-text-bright font-bold">{msg.context.ticker}</span>}
+                      {msg.context.price && <span>{msg.context.price}</span>}
+                      {msg.context.change && (
+                        <span className={/^[-−]/.test(msg.context.change) ? 'text-terminal-red' : 'text-terminal-green'}>
+                          {msg.context.change}
+                        </span>
+                      )}
+                    </div>
+                    {(msg.context.exchange || msg.context.sector || msg.context.date) && (
+                      <div className="font-mono text-[9px] tracking-wider text-terminal-text-dim mt-0.5">
+                        {[msg.context.exchange, msg.context.sector, msg.context.date].filter(Boolean).join('  ·  ')}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-2xs text-terminal-gold">AI &gt;</span>
                   {msg.content && (
