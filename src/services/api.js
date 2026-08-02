@@ -67,7 +67,84 @@ export async function fetchBatch(symbols) {
   if (symbols.length > 0 && Object.keys(out).length === 0) {
     throw new Error('All quotes unavailable')
   }
+  // Enrich with marketCap/fundamentals from the v7 batch quote endpoint — the
+  // chart endpoint above doesn't carry these fields at all. Best-effort: a
+  // failure here doesn't discard the price/change data already fetched.
+  const enrichment = await fetchYahooQuoteBatch(Object.keys(out))
+  for (const sym of Object.keys(out)) {
+    const extra = enrichment[sym]
+    if (!extra) continue
+    out[sym] = {
+      ...out[sym],
+      marketCap:         extra.marketCap ?? out[sym].marketCap,
+      trailingPE:        extra.trailingPE,
+      forwardPE:         extra.forwardPE,
+      epsTrailing:       extra.epsTrailing,
+      epsForward:        extra.epsForward,
+      bookValue:         extra.bookValue,
+      pb:                extra.pb,
+      divYield:          extra.divYield,
+      beta:              extra.beta,
+      sharesOutstanding: extra.sharesOutstanding,
+      ma50:              extra.ma50,
+      ma200:             extra.ma200,
+      avgVolume:         extra.avgVolume,
+    }
+  }
   return out
+}
+
+// ─── Yahoo Finance v7 quote — batched fundamentals ────────────────────────────
+// One request for the whole symbol list returns marketCap, PE, EPS, and other
+// summary fields the v8 chart endpoint above doesn't carry. Used to enrich
+// fetchBatch() and as a DetailModal fallback alongside quoteSummary.
+export async function fetchYahooQuoteBatch(symbols) {
+  if (!symbols?.length) return {}
+  const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`
+  const cached = getCache(url)
+  if (cached) return cached
+  try {
+    const res = await fetch(bust(url), { signal: AbortSignal.timeout(10000), headers: NO_CACHE_HEADERS })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    const results = data?.quoteResponse?.result ?? []
+    const out = {}
+    for (const r of results) {
+      if (!r?.symbol) continue
+      out[r.symbol] = {
+        symbol:            r.symbol,
+        price:             r.regularMarketPrice ?? null,
+        prevClose:         r.regularMarketPreviousClose ?? null,
+        change:            r.regularMarketChange ?? null,
+        changePct:         r.regularMarketChangePercent ?? null,
+        volume:            r.regularMarketVolume ?? null,
+        avgVolume:         r.averageDailyVolume3Month ?? r.averageDailyVolume10Day ?? null,
+        marketCap:         r.marketCap ?? null,
+        currency:          r.currency ?? null,
+        exchange:          r.fullExchangeName ?? r.exchange ?? null,
+        week52High:        r.fiftyTwoWeekHigh ?? null,
+        week52Low:         r.fiftyTwoWeekLow ?? null,
+        trailingPE:        r.trailingPE ?? null,
+        forwardPE:         r.forwardPE ?? null,
+        epsTrailing:       r.epsTrailingTwelveMonths ?? null,
+        epsForward:        r.epsForward ?? null,
+        bookValue:         r.bookValue ?? null,
+        pb:                r.priceToBook ?? null,
+        divYield:          r.dividendYield ?? r.trailingAnnualDividendYield ?? null,
+        beta:              r.beta ?? null,
+        sharesOutstanding: r.sharesOutstanding ?? null,
+        ma50:              r.fiftyDayAverage ?? null,
+        ma200:             r.twoHundredDayAverage ?? null,
+        name:              r.longName ?? r.shortName ?? r.symbol,
+      }
+    }
+    console.log(`[MADDEN API] ✓ Yahoo v7 quote batch: ${Object.keys(out).length}/${symbols.length} symbols`)
+    setCache(url, out, 5 * 60_000)
+    return out
+  } catch (e) {
+    console.error('[MADDEN API] fetchYahooQuoteBatch failed:', e.message)
+    return {}
+  }
 }
 
 export async function fetchYahooQuote(symbol) {

@@ -4,7 +4,7 @@ import { useStore } from '../../store/useStore'
 import {
   fetchCoinOHLC, fetchCoinHistory, fetchYFHistory, transformYFHistory,
   transformCoinOHLC, transformCoinHistory, toYFRange, fetchNews, askClaude,
-  fetchQuoteSummary,
+  fetchQuoteSummary, fetchYahooQuoteBatch,
 } from '../../services/api'
 import { DataUnavailable } from './DataUnavailable'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -446,6 +446,19 @@ export default function DetailModal() {
     retry: 1,
   })
 
+  // Batched v7 quote data — fallback for the fields above when quoteSummary
+  // (a separate Yahoo endpoint) is rate-limited or slow to load, so one
+  // endpoint being down doesn't leave every fundamental field blank.
+  const { data: qvBatch } = useQuery({
+    queryKey:  ['yahooQuoteBatch', yfSym],
+    queryFn:   () => fetchYahooQuoteBatch([yfSym]),
+    enabled:   isEquity && !!yfSym,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+  const qv = qvBatch?.[yfSym]
+  const pick = (key) => qs?.[key] ?? qv?.[key]
+
   if (!modalAsset) return null
 
   const { symbol, name, price, pct, change, type, extra = {} } = modalAsset
@@ -455,8 +468,8 @@ export default function DetailModal() {
 
   const displayPrice  = price
   const displayChange = change
-  const display52High = extra.week52High
-  const display52Low  = extra.week52Low
+  const display52High = extra.week52High ?? qv?.week52High
+  const display52Low  = extra.week52Low  ?? qv?.week52Low
   const showUsdSub    = extra.currency === 'USD' && extra.nativePrice != null
 
   // Fundamental data helpers (quoteSummary values are in native currency)
@@ -562,11 +575,11 @@ export default function DetailModal() {
           value={latest.low   ? fmt.aud(latest.low)   : qs?.dayLow   ? fmt.aud(toQsAud(qs.dayLow))   : '—'}
           cls="text-terminal-red" />
         <DataRow label="Prev Close"
-          value={qs?.prevClose ? fmt.aud(toQsAud(qs.prevClose)) : '—'} />
+          value={pick('prevClose') ? fmt.aud(toQsAud(pick('prevClose'))) : '—'} />
         <DataRow label="Volume"
-          value={qs?.volume    ? fmt.large(qs.volume)    : '—'} />
+          value={pick('volume')    ? fmt.large(pick('volume'))    : '—'} />
         <DataRow label="Avg Vol (30D)"
-          value={qs?.avgVolume ? fmt.large(qs.avgVolume) : '—'} />
+          value={pick('avgVolume') ? fmt.large(pick('avgVolume')) : '—'} />
         <DataRow label="Period High"
           value={allHigh ? fmt.aud(allHigh) : display52High ? fmt.aud(display52High) : '—'}
           cls="text-terminal-green" />
@@ -576,22 +589,24 @@ export default function DetailModal() {
       </Section>
 
       <Section title="VALUATION">
-        <DataRow label="Market Cap" value={
-          qs?.marketCap
-            ? isQsAud
-              ? fmtBig(qs.marketCap)
-              : `${fmtBig(toQsAud(qs.marketCap))} (${(() => { const v = qs.marketCap; const a = Math.abs(v); return a >= 1e12 ? `US$${(v/1e12).toFixed(2)}T` : a >= 1e9 ? `US$${(v/1e9).toFixed(1)}B` : a >= 1e6 ? `US$${(v/1e6).toFixed(0)}M` : `US$${v.toFixed(0)}` })()} )`
-            : '—'
-        } />
+        <DataRow label="Market Cap" value={(() => {
+          const mc = pick('marketCap')
+          if (!mc) return '—'
+          if (isQsAud) return fmtBig(mc)
+          const a = Math.abs(mc)
+          const usd = a >= 1e12 ? `US$${(mc/1e12).toFixed(2)}T` : a >= 1e9 ? `US$${(mc/1e9).toFixed(1)}B` : a >= 1e6 ? `US$${(mc/1e6).toFixed(0)}M` : `US$${mc.toFixed(0)}`
+          return `${fmtBig(toQsAud(mc))} (${usd})`
+        })()} />
         <DataRow label="Enterprise Val" value={fmtAmt(qs?.enterpriseValue)} />
-        <DataRow label="P/E (TTM)"      value={fmtX(qs?.trailingPE)} />
-        <DataRow label="P/E (Forward)"  value={fmtX(qs?.forwardPE)} />
+        <DataRow label="P/E (TTM)"      value={fmtX(pick('trailingPE'))} />
+        <DataRow label="P/E (Forward)"  value={fmtX(pick('forwardPE'))} />
         <DataRow label="PEG Ratio"      value={fmtX(qs?.peg, 2)} />
         <DataRow label="P/S (TTM)"      value={fmtX(qs?.ps, 2)} />
-        <DataRow label="P/B"            value={fmtX(qs?.pb, 2)} />
+        <DataRow label="P/B"            value={fmtX(pick('pb'), 2)} />
         <DataRow label="EV/Revenue"     value={fmtX(qs?.evRevenue, 2)} />
         <DataRow label="EV/EBITDA"      value={fmtX(qs?.evEbitda, 1)} />
-        <DataRow label="Book Value"     value={qs?.bookValue ? fmt.aud(toQsAud(qs.bookValue)) : '—'} />
+        <DataRow label="Book Value"     value={pick('bookValue') ? fmt.aud(toQsAud(pick('bookValue'))) : '—'} />
+        <DataRow label="Shares Outstanding" value={pick('sharesOutstanding') ? fmt.large(pick('sharesOutstanding')) : '—'} />
       </Section>
 
       <Section title="FINANCIALS">
@@ -603,8 +618,8 @@ export default function DetailModal() {
         <DataRow label="Op Margin"      value={fmtPc(qs?.operatingMargins)} />
         <DataRow label="Net Income"     value={fmtAmt(qs?.netIncome)} />
         <DataRow label="Net Margin"     value={fmtPc(qs?.profitMargins)} />
-        <DataRow label="EPS (TTM)"      value={qs?.epsTrailing ? fmt.aud(toQsAud(qs.epsTrailing)) : '—'} />
-        <DataRow label="EPS (Fwd)"      value={qs?.epsForward  ? fmt.aud(toQsAud(qs.epsForward))  : '—'} />
+        <DataRow label="EPS (TTM)"      value={pick('epsTrailing') ? fmt.aud(toQsAud(pick('epsTrailing'))) : '—'} />
+        <DataRow label="EPS (Fwd)"      value={pick('epsForward')  ? fmt.aud(toQsAud(pick('epsForward')))  : '—'} />
         <DataRow label="Free Cash Flow" value={fmtAmt(qs?.freeCashflow)} />
         <DataRow label="Op Cash Flow"   value={fmtAmt(qs?.operatingCF)} />
         <DataRow label="Total Debt"     value={fmtAmt(qs?.totalDebt)} />
@@ -620,9 +635,9 @@ export default function DetailModal() {
         <DataRow label="Revenue / Share"  value={qs?.revenuePerShare ? fmt.aud(toQsAud(qs.revenuePerShare)) : '—'} />
       </Section>
 
-      {(qs?.divYield > 0 || qs?.lastDividend > 0) && (
+      {(qs?.divYield > 0 || qs?.lastDividend > 0 || qv?.divYield > 0) && (
         <Section title="DIVIDENDS">
-          <DataRow label="Div Yield"     value={fmtPc(qs?.divYield)} />
+          <DataRow label="Div Yield"     value={fmtPc(pick('divYield'))} />
           <DataRow label="Annual Div"    value={qs?.lastDividend ? fmt.aud(toQsAud(qs.lastDividend)) : '—'} />
           <DataRow label="Payout Ratio"  value={fmtPc(qs?.payoutRatio)} />
           <DataRow label="Last Div Date" value={fmtDt(qs?.lastDividendDate)} />
@@ -630,10 +645,10 @@ export default function DetailModal() {
       )}
 
       <Section title="TECHNICALS">
-        <DataRow label="50-Day MA"      value={qs?.ma50   ? fmt.aud(toQsAud(qs.ma50))  : '—'} />
-        <DataRow label="200-Day MA"     value={qs?.ma200  ? fmt.aud(toQsAud(qs.ma200)) : '—'} />
+        <DataRow label="50-Day MA"      value={pick('ma50')   ? fmt.aud(toQsAud(pick('ma50')))  : '—'} />
+        <DataRow label="200-Day MA"     value={pick('ma200')  ? fmt.aud(toQsAud(pick('ma200'))) : '—'} />
         <DataRow label="52W Change"     value={fmtPcSign(qs?.week52Change)} cls={colorClass(qs?.week52Change)} />
-        <DataRow label="Beta"           value={qs?.beta   ? qs.beta.toFixed(2) : '—'} />
+        <DataRow label="Beta"           value={pick('beta')   ? pick('beta').toFixed(2) : '—'} />
         <DataRow label="Shares Short"   value={qs?.sharesShort ? fmt.large(qs.sharesShort) : '—'} />
         <DataRow label="Short Ratio"    value={qs?.shortRatio  ? `${qs.shortRatio.toFixed(1)}d` : '—'} />
         <DataRow label="Short % Float"  value={fmtPc(qs?.shortPctFloat)} />
