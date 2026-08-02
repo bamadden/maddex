@@ -658,7 +658,7 @@ const CHOKE_DOT   = { OPEN:'bg-terminal-green', MONITORED:'bg-terminal-gold anim
 
 // ─── Currency display helpers ─────────────────────────────────────────────────
 
-const FALLBACK_AUD_USD = 0.6488
+const FALLBACK_AUD_USD = 0.6520
 
 function fmtGdpTotal(usdMillions, audUsd, mode) {
   if (usdMillions == null) return null

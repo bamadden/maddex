@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { fetchFxRates } from '../services/api'
 
-const FALLBACK_AUD_USD = 0.6488
+const FALLBACK_AUD_USD = 0.6520
 
 export function useAudRates() {
   const { data: rates } = useQuery({

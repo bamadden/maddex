@@ -12,22 +12,22 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const YIELD_CURVES = {
   AU: {
-    label: 'AU GOV BONDS', color: '#c8a84b', src: 'AOFM / RBA · Jul 2026',
+    label: 'AU GOV BONDS', color: '#c8a84b', src: 'AOFM / RBA · Aug 2026',
     points: [
-      { m:'3M', y:4.35 }, { m:'6M', y:4.30 }, { m:'1Y', y:4.20 },
-      { m:'2Y', y:4.10 }, { m:'3Y', y:4.05 }, { m:'5Y', y:4.08 },
-      { m:'10Y',y:4.35 }, { m:'30Y',y:4.60 },
+      { m:'3M', y:3.88 }, { m:'6M', y:3.80 }, { m:'1Y', y:3.72 },
+      { m:'2Y', y:3.65 }, { m:'3Y', y:3.75 }, { m:'5Y', y:3.90 },
+      { m:'10Y',y:4.20 }, { m:'30Y',y:4.55 },
     ],
-    prev: { '3M':4.40,'6M':4.35,'1Y':4.25,'2Y':4.15,'3Y':4.10,'5Y':4.12,'10Y':4.38,'30Y':4.62 },
+    prev: { '3M':4.10,'6M':4.05,'1Y':3.98,'2Y':3.90,'3Y':3.95,'5Y':4.08,'10Y':4.25,'30Y':4.40 },
   },
   US: {
-    label: 'US TREASURIES', color: '#3b82f6', src: 'US Treasury · Jul 2026',
+    label: 'US TREASURIES', color: '#3b82f6', src: 'US Treasury · Aug 2026',
     points: [
-      { m:'3M', y:4.32 }, { m:'6M', y:4.28 }, { m:'1Y', y:4.15 },
-      { m:'2Y', y:4.05 }, { m:'5Y', y:4.12 }, { m:'10Y',y:4.38 },
-      { m:'30Y',y:4.62 },
+      { m:'3M', y:4.30 }, { m:'6M', y:4.22 }, { m:'1Y', y:4.15 },
+      { m:'2Y', y:4.10 }, { m:'5Y', y:4.25 }, { m:'10Y',y:4.45 },
+      { m:'30Y',y:4.85 },
     ],
-    prev: { '3M':4.35,'6M':4.30,'1Y':4.18,'2Y':4.08,'5Y':4.15,'10Y':4.42,'30Y':4.65 },
+    prev: { '3M':4.32,'6M':4.28,'1Y':4.15,'2Y':4.05,'5Y':4.12,'10Y':4.38,'30Y':4.62 },
   },
   UK: {
     label: 'UK GILTS', color: '#a855f7', src: 'UK DMO · Jul 2026',

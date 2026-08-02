@@ -1,11 +1,13 @@
 import { useState, useRef, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
-  AU_MACRO, GLOBAL_MACRO, AU_CALENDAR, GLOBAL_CALENDAR,
+  AU_MACRO,
   AU_CPI_HISTORY, AU_UNEMP_HISTORY, AU_GDP_HISTORY,
   RBA_RATE_HISTORY, RBA_BOARD_MEMBERS, RBA_RECENT_STATEMENTS,
   AU_CONSUMER_SENTIMENT, AU_BUSINESS_CONFIDENCE, AU_TRADE_BALANCE,
-  IRON_ORE_HISTORY, CHINA_WATCH,
+  IRON_ORE_HISTORY, CHINA_WATCH, AU_BONDS, US_BONDS,
 } from '../../data/placeholders'
+import { fetchFxHistory } from '../../services/api'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
@@ -97,26 +99,6 @@ const NEXT_RELEASE = {
   'AU GDP Annual':       'September 2026',
 }
 
-
-const importanceDots = (level) => {
-  const filled = level === 'high' ? 3 : level === 'medium' ? 2 : 1
-  return (
-    <span className="flex gap-0.5 flex-shrink-0">
-      {[1, 2, 3].map((i) => (
-        <span
-          key={i}
-          className={`inline-block w-1.5 h-1.5 rounded-full ${
-            i <= filled
-              ? level === 'high'   ? 'bg-terminal-red'
-                : level === 'medium' ? 'bg-terminal-gold'
-                : 'bg-terminal-text-dim'
-              : 'bg-terminal-border'
-          }`}
-        />
-      ))}
-    </span>
-  )
-}
 
 const ChartTooltip = ({ active, payload, label, unit, color }) => {
   if (!active || !payload?.length) return null
@@ -275,67 +257,6 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
 }
 
 // Highlight calendar events dated today (handles 'DD MMM' format like '14 JUN')
-const todayShort = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-  .toUpperCase().replace(/\./g, '').replace(/\s+/, ' ')  // e.g. '14 JUN'
-
-function CalendarPanel({ events, title }) {
-  return (
-    <div className="flex flex-col">
-      <div className="panel-header">
-        {title}
-        <span className="ml-2 text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">INDICATIVE</span>
-      </div>
-      <div>
-        {events.map((evt, i) => {
-          const isRBA    = evt.event.includes('RBA') || evt.event.includes('AU ')
-          const isToday  = evt.date === 'TODAY' || evt.date === todayShort
-          return (
-            <div
-              key={i}
-              className={`border-b border-terminal-border/50 p-2 hover:bg-terminal-accent/20 ${
-                isToday
-                  ? isRBA
-                    ? 'border-l-2 border-l-terminal-gold'
-                    : 'border-l-2 border-l-terminal-blue'
-                  : ''
-              }`}
-            >
-              <div className="flex items-center justify-between mb-0.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-2xs font-bold ${isToday ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>
-                    {evt.date === 'TODAY' ? 'TODAY' : evt.date}
-                  </span>
-                  <span className="text-2xs text-terminal-text-dim">{evt.time} AEST</span>
-                  <span className={`text-2xs px-1 font-bold ${
-                    evt.region === 'AU' ? 'bg-terminal-gold/20 text-terminal-gold'
-                    : evt.region === 'CN' ? 'bg-red-900/30 text-red-400'
-                    : 'bg-terminal-border/50 text-terminal-text-dim'
-                  }`}>
-                    {evt.region}
-                  </span>
-                </div>
-                {importanceDots(evt.importance)}
-              </div>
-              <div className="text-2xs font-semibold text-terminal-text-bright">{evt.event}</div>
-              <div className="flex items-center gap-3 mt-0.5 text-2xs text-terminal-text-dim">
-                <span>FCST: <span className="text-terminal-text">{evt.forecast}</span></span>
-                <span>PREV: <span className="text-terminal-text">{evt.prev}</span></span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div className="border-t border-terminal-border p-1.5 flex-shrink-0">
-        <div className="flex items-center gap-3 text-2xs text-terminal-text-dim">
-          <span className="flex items-center gap-1">{importanceDots('high')} <span>HIGH</span></span>
-          <span className="flex items-center gap-1">{importanceDots('medium')} <span>MEDIUM</span></span>
-          <span className="flex items-center gap-1">{importanceDots('low')} <span>LOW</span></span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Meeting Countdown ────────────────────────────────────────────────────────
 
 // Next RBA meeting: 5 August 2026 at 2:30pm AEST (04:30 UTC)
@@ -403,21 +324,21 @@ function RBADashboard({ askAI }) {
       <div className="panel-header flex items-center gap-3 flex-wrap">
         <span className="text-terminal-gold">RBA DASHBOARD</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">Cash Rate Target</span>
-        <span className="text-2xl font-bold text-terminal-gold">4.35%</span>
+        <span className="text-2xl font-bold text-terminal-gold">3.85%</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">p.a.</span>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-2xs text-terminal-text-dim">NEXT MEETING:</span>
-          <span className="text-2xs font-bold text-terminal-text-bright">1 JUL 2026</span>
+          <span className="text-2xs font-bold text-terminal-text-bright">5 AUG 2026</span>
           <span className="text-2xs border border-terminal-gold/40 text-terminal-gold px-1.5 py-0.5">
             IN {daysLeft}D {hrsLeft}H
           </span>
           <button
             onClick={() => askAI({
               name:        'RBA Cash Rate',
-              price:       '4.35% p.a.',
+              price:       '3.85% p.a.',
               sector:      'Interest Rates',
               date:        todayAEST(),
-              instruction: 'What is the RBA likely to do at the next meeting on 5 August 2026 and why? Current cash rate 4.35% (held at July 1 meeting). CPI Q2 2026 due July 30. Unemployment 4.1%. What is the market pricing?',
+              instruction: 'What is the RBA likely to do at the next meeting on 5 August 2026 and why? Current cash rate 3.85% (cut from 4.10% in May 2026, after a first cut from 4.35% in Feb 2026). CPI Q2 2026 came in at 2.5%. Unemployment 4.1%. What is the market pricing?',
             })}
             className="text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
           >
@@ -429,7 +350,7 @@ function RBADashboard({ askAI }) {
       <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border">
         {/* Rate history chart */}
         <div className="p-2">
-          <div className="text-2xs text-terminal-text-dim mb-1">CASH RATE HISTORY (Jan 2022 – Jul 2026)</div>
+          <div className="text-2xs text-terminal-text-dim mb-1">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
           <div style={{ height: 110 }}>
             <ResponsiveContainer width="100%" height={110}>
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
@@ -468,9 +389,9 @@ function RBADashboard({ askAI }) {
           <div className="text-2xs text-terminal-gold font-bold mb-2">NEXT MEETING PRICING</div>
           <div className="space-y-2">
             {[
-              { label: 'HOLD 4.35%', pct: 65, color: 'var(--color-neutral)' },
-              { label: 'CUT 4.10%',  pct: 35, color: 'var(--color-loss)' },
-              { label: 'HIKE 4.60%', pct: 0,  color: 'var(--color-gain)' },
+              { label: 'HOLD 3.85%', pct: 72, color: 'var(--color-neutral)' },
+              { label: 'CUT 3.60%',  pct: 28, color: 'var(--color-loss)' },
+              { label: 'HIKE 4.10%', pct: 0,  color: 'var(--color-gain)' },
             ].map(({ label, pct, color }) => (
               <div key={label}>
                 <div className="flex justify-between mb-0.5">
@@ -749,17 +670,101 @@ function ChinaWatch({ askAI }) {
 
 // ─── Section 5: Enhanced Events Calendar ─────────────────────────────────────
 
+// ─── Auto-generated economic calendar ─────────────────────────────────────────
+// Static forward schedule of known/recurring events (RBA meets ~every 6 weeks,
+// FOMC ~every 6 weeks, CPI/employment monthly, etc.) — generateEconomicCalendar()
+// filters this down to whatever falls in the next 30 days from "now", so the
+// visible list stays current without needing manual date bumps every session.
+
+const COUNTRY_FLAG = { AU: '🇦🇺', US: '🇺🇸', GLOBAL: '🌐' }
+
+const KNOWN_EVENTS = [
+  { date: '05 AUG', time: '14:30', event: 'RBA Interest Rate Decision', region: 'AU', importance: 'high',
+    forecast: 'Hold 3.85%', prev: 'Cut to 3.85%',
+    description: 'Hold expected after the May cut — watch the statement for easing-cycle signals.' },
+  { date: '06 AUG', time: '15:30', event: 'RBA Governor Press Conference', region: 'AU', importance: 'medium',
+    forecast: '—', prev: '—',
+    description: 'Follow-up briefing — markets watch tone for hints on the next move.' },
+  { date: '07 AUG', time: '—', event: 'US Senate Recess Begins (CLARITY Act)', region: 'US', importance: 'medium',
+    forecast: '—', prev: '—',
+    description: 'Crypto market-structure bill vote deadline — binary outcome for digital assets before recess.' },
+  { date: '12 AUG', time: '22:30', event: 'US CPI', region: 'US', importance: 'high',
+    forecast: '2.3%', prev: '2.3%',
+    description: 'Key input for the Fed\'s next move — a hot print would push back rate-cut timing.' },
+  { date: '13 AUG', time: '11:30', event: 'AU Unemployment Rate', region: 'AU', importance: 'medium',
+    forecast: '4.1%', prev: '4.1%',
+    description: 'Labour market strength is the main swing factor for further RBA easing.' },
+  { date: '14 AUG', time: '11:00', event: 'AU Consumer Confidence', region: 'AU', importance: 'low',
+    forecast: '—', prev: '82.4',
+    description: 'Westpac-Melbourne Institute survey — a read on household sentiment post rate cuts.' },
+  { date: '19 AUG', time: '22:00', event: 'FOMC Minutes', region: 'US', importance: 'medium',
+    forecast: '—', prev: '—',
+    description: 'Detail behind the Jul 29-30 hold — look for the internal debate on the pace of cuts.' },
+  { date: '22 AUG', time: '09:00', event: 'AU/Global PMI Flash Estimates', region: 'GLOBAL', importance: 'medium',
+    forecast: '—', prev: '—',
+    description: 'Earliest read on August activity across manufacturing and services.' },
+  { date: '26 AUG', time: '—', event: 'Jackson Hole Economic Symposium Begins', region: 'US', importance: 'medium',
+    forecast: '—', prev: '—',
+    description: 'Annual Fed policy retreat — sets the tone into September\'s FOMC decision.' },
+  { date: '27 AUG', time: '00:00', event: 'Fed Chair Powell Speaks at Jackson Hole', region: 'US', importance: 'high',
+    forecast: '—', prev: '—',
+    description: 'The single most-watched speech of the month for rate-path signalling.' },
+  { date: '28 AUG', time: '11:30', event: 'AU Retail Sales', region: 'AU', importance: 'medium',
+    forecast: '—', prev: '+0.3%',
+    description: 'Consumer spending pulse — feeds directly into the RBA\'s growth outlook.' },
+  { date: '02 SEP', time: '11:30', event: 'AU GDP Q2 2026', region: 'AU', importance: 'high',
+    forecast: '—', prev: '0.4%',
+    description: 'Confirms whether the economy is growing fast enough to justify a pause in cuts.' },
+  { date: '16 SEP', time: '14:30', event: 'RBA Interest Rate Decision', region: 'AU', importance: 'high',
+    forecast: '—', prev: 'Hold 3.85%',
+    description: 'Next scheduled decision after the Aug 5 meeting.' },
+  { date: '17 SEP', time: '04:00', event: 'FOMC Rate Decision', region: 'US', importance: 'high',
+    forecast: '—', prev: '4.25–4.50%',
+    description: 'September Fed decision — markets will have priced in Jackson Hole signals by then.' },
+]
+
+// Last 7 days' actual results — genuinely historical, so this stays a fixed
+// list rather than a generated one (there's nothing to "predict" about the past).
+const PREVIOUS_EVENTS = [
+  { date: '30 JUL', event: 'FOMC Rate Decision (Jul 2026)',  region: 'US', importance: 'high',   actual: '4.25–4.50% (held)', forecast: '4.25–4.50%' },
+  { date: '30 JUL', event: 'AU CPI Q2 2026',                 region: 'AU', importance: 'high',   actual: '2.5%',              forecast: '2.5%'       },
+  { date: '30 JUL', event: 'AU Retail Sales MoM (Jun)',      region: 'AU', importance: 'medium', actual: '+0.3%',             forecast: '+0.4%'      },
+  { date: '29 JUL', event: 'FOMC Meeting Begins (Jul-Aug)',  region: 'US', importance: 'high',   actual: '—',                 forecast: '—'          },
+  { date: '24 JUL', event: 'US S&P Global PMI (Jul)',        region: 'US', importance: 'medium', actual: '52.1',              forecast: '52.0'       },
+  { date: '23 JUL', event: 'AU CPI Monthly (Jun 2026)',      region: 'AU', importance: 'high',   actual: '2.3%',              forecast: '2.3%'       },
+  { date: '17 JUL', event: 'AU Unemployment Rate (Jun)',     region: 'AU', importance: 'high',   actual: '4.1%',              forecast: '4.1%'       },
+]
+
+// Relative label ("Today" / "Tomorrow" / "Tue 5 Aug") from a 'DD MMM' date string.
+function relativeDateLabel(dateStr, timeStr) {
+  const d = parseEventDate(dateStr, timeStr === '—' ? '00:00' : timeStr)
+  if (!d) return dateStr
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const diffDays = Math.round((target - today) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Tomorrow'
+  if (diffDays === -1) return 'Yesterday'
+  const weekday = target.toLocaleDateString('en-AU', { weekday: 'short' })
+  const dayMonth = target.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return `${weekday} ${dayMonth}`
+}
+
+// Filters KNOWN_EVENTS down to the next 30 days from now, nearest first.
+function generateEconomicCalendar() {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const in30Days = new Date(today.getTime() + 30 * 86400000)
+  return KNOWN_EVENTS
+    .map((e, i) => ({ ...e, id: i, dateObj: parseEventDate(e.date, e.time === '—' ? '00:00' : e.time) }))
+    .filter(e => e.dateObj && e.dateObj >= today && e.dateObj <= in30Days)
+    .sort((a, b) => a.dateObj - b.dateObj)
+}
+
 function EnhancedEvents() {
   const [expanded, setExpanded] = useState(null)
-  const allEvents = useMemo(() => {
-    return [...AU_CALENDAR, ...GLOBAL_CALENDAR]
-      .map((e, i) => ({ ...e, id: i }))
-      .sort((a, b) => {
-        const da = parseEventDate(a.date, a.time)
-        const db = parseEventDate(b.date, b.time)
-        return (da || 0) - (db || 0)
-      })
-  }, [])
+  const allEvents = useMemo(() => generateEconomicCalendar(), [])
 
   const impactCls = (imp) =>
     imp === 'high'   ? 'text-terminal-red border-l-2 border-l-terminal-red' :
@@ -788,7 +793,7 @@ function EnhancedEvents() {
       </div>
       <div className="overflow-auto" style={{ maxHeight: 260 }}>
         {allEvents.map((evt) => {
-          const countdown = getCountdown(evt.date, evt.time)
+          const countdown = getCountdown(evt.date, evt.time === '—' ? '00:00' : evt.time)
           const isPast    = !countdown && evt.date !== 'TODAY'
           const isOpen    = expanded === evt.id
           return (
@@ -799,10 +804,11 @@ function EnhancedEvents() {
             >
               <div className="flex items-center gap-2 px-3 py-1.5">
                 <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${impactDot(evt.importance)}`} />
-                <div className="flex items-center gap-1.5 flex-shrink-0 w-20">
-                  <span className="text-2xs font-bold text-terminal-text-bright">{evt.date}</span>
+                <div className="flex items-center gap-1.5 flex-shrink-0 w-24">
+                  <span className="text-2xs font-bold text-terminal-text-bright">{relativeDateLabel(evt.date, evt.time)}</span>
                 </div>
-                <span className="text-2xs text-terminal-text-dim w-12 flex-shrink-0">{evt.time}</span>
+                <span className="text-2xs text-terminal-text-dim w-12 flex-shrink-0">{evt.time === '—' ? '' : evt.time}</span>
+                <span className="flex-shrink-0" title={evt.region}>{COUNTRY_FLAG[evt.region] ?? '🌐'}</span>
                 <span className={`text-2xs px-1 font-bold flex-shrink-0 ${regionCls(evt.region)}`}>{evt.region}</span>
                 <span className="text-2xs font-semibold text-terminal-text-bright flex-1 truncate">{evt.event}</span>
                 <div className="flex items-center gap-3 flex-shrink-0 text-2xs text-terminal-text-dim">
@@ -820,13 +826,13 @@ function EnhancedEvents() {
                 <div className="px-8 py-2 bg-terminal-accent/5 border-t border-terminal-border/20">
                   <div className="grid grid-cols-2 gap-4 text-2xs">
                     <div>
-                      <div className="text-terminal-gold font-bold mb-1">WHAT THIS MEASURES</div>
+                      <div className="text-terminal-gold font-bold mb-1">WHAT TO WATCH</div>
                       <div className="text-terminal-text-dim leading-relaxed">
-                        {evt.region === 'AU' && evt.event.includes('RBA')
+                        {evt.description ?? (evt.region === 'AU' && evt.event.includes('RBA')
                           ? 'Reserve Bank of Australia monetary policy decision. Sets the target cash rate which flows through to all lending and deposit rates in Australia.'
                           : evt.region === 'AU'
                           ? `Official Australian economic data release from the ABS or RBA. Key input for RBA policy decisions and market pricing.`
-                          : `International economic data release. Relevant for global risk sentiment and Australian trade/currency exposure.`}
+                          : `International economic data release. Relevant for global risk sentiment and Australian trade/currency exposure.`)}
                       </div>
                     </div>
                     <div>
@@ -848,6 +854,233 @@ function EnhancedEvents() {
   )
 }
 
+// ─── Previous 7 days — actual results vs forecast ─────────────────────────────
+
+function PreviousEventsPanel() {
+  const impactDot = (imp) =>
+    imp === 'high'   ? 'bg-terminal-red' :
+    imp === 'medium' ? 'bg-terminal-gold' : 'bg-terminal-border'
+  const regionCls = (r) =>
+    r === 'AU' ? 'text-terminal-gold bg-terminal-gold/10' :
+    r === 'US' ? 'text-terminal-blue-bright bg-blue-900/20' : 'text-terminal-text-dim bg-terminal-border/20'
+
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="panel-header flex items-center gap-2">
+        <span>PREVIOUS</span>
+        <span className="text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">Last 7 days · Actual vs forecast</span>
+      </div>
+      <div>
+        {PREVIOUS_EVENTS.map((evt, i) => {
+          const beat = evt.actual !== '—' && evt.actual !== evt.forecast
+          return (
+            <div key={i} className="border-b border-terminal-border/30 flex items-center gap-2 px-3 py-1.5">
+              <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${impactDot(evt.importance)}`} />
+              <span className="text-2xs font-bold text-terminal-text-dim w-14 flex-shrink-0">{evt.date}</span>
+              <span className="flex-shrink-0" title={evt.region}>{COUNTRY_FLAG[evt.region] ?? '🌐'}</span>
+              <span className={`text-2xs px-1 font-bold flex-shrink-0 ${regionCls(evt.region)}`}>{evt.region}</span>
+              <span className="text-2xs font-semibold text-terminal-text-bright flex-1 truncate">{evt.event}</span>
+              <div className="flex items-center gap-3 flex-shrink-0 text-2xs text-terminal-text-dim">
+                <span>FCST: <span className="text-terminal-text">{evt.forecast}</span></span>
+                <span>ACTUAL: <span className={beat ? 'text-terminal-gold font-semibold' : 'text-terminal-text'}>{evt.actual}</span></span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Global Context — macro/geopolitical intelligence panel ──────────────────
+
+// -90 = full RISK-OFF, 0 = TRANSITIONING, +90 = full RISK-ON. Set by hand from
+// the qualitative regime call below — there's no single live "regime score"
+// feed wired up, so this is a periodically-updated editorial judgment, not a
+// computed value.
+const MACRO_REGIME = {
+  label: 'RISK-OFF', angle: -35, color: 'var(--color-loss)',
+  reason: 'Elevated bond yields and geopolitical tension (US-Iran supply risk, China property stress) are keeping risk appetite subdued, even as the Fed and RBA both lean toward easing.',
+}
+
+function MacroRegimeGauge() {
+  return (
+    <div className="border border-terminal-border p-3 bg-terminal-panel/40 flex items-center gap-4 flex-wrap">
+      <div style={{ position: 'relative', width: 120, height: 64, flexShrink: 0 }}>
+        <svg viewBox="0 0 120 64" style={{ width: 120, height: 64, display: 'block' }}>
+          <path d="M 8 60 A 52 52 0 0 1 60 8"   fill="none" stroke="var(--color-loss)" strokeWidth="9" opacity="0.55" />
+          <path d="M 60 8 A 52 52 0 0 1 112 60" fill="none" stroke="var(--color-gain)" strokeWidth="9" opacity="0.55" />
+        </svg>
+        <div style={{
+          position: 'absolute', left: 59, bottom: 4, width: 2, height: 46,
+          background: '#c8a84b', transformOrigin: 'bottom center',
+          transform: `rotate(${MACRO_REGIME.angle}deg)`, borderRadius: 2,
+        }} />
+        <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#c8a84b' }} />
+      </div>
+      <div className="flex-1 min-w-[180px]">
+        <div className="text-2xs text-terminal-text-dim tracking-widest mb-0.5">MACRO REGIME</div>
+        <div className="text-lg font-bold mb-1" style={{ color: MACRO_REGIME.color }}>{MACRO_REGIME.label}</div>
+        <div className="text-2xs text-terminal-text-dim leading-relaxed">{MACRO_REGIME.reason}</div>
+      </div>
+    </div>
+  )
+}
+
+const MACRO_THEMES = [
+  { title: 'FED POLICY PIVOT', icon: '🏦',
+    summary: 'FOMC meeting Jul 29-30 held rates at 4.25-4.50%. Markets pricing 2 cuts by year-end.',
+    impact: 'BULLISH', note: 'AUD, equities' },
+  { title: 'CHINA SLOWDOWN', icon: '🇨🇳',
+    summary: 'PMI below 50 for 3rd consecutive month. Property sector stress continues.',
+    impact: 'BEARISH', note: 'Materials, ASX' },
+  { title: 'US-IRAN TENSIONS', icon: '⚠️',
+    summary: 'Oil near multi-year highs on supply risk.',
+    impact: 'MIXED', note: 'Bearish risk assets, bullish energy' },
+  { title: 'AI CAPEX SUPERCYCLE', icon: '🤖',
+    summary: 'US tech capex at record highs.',
+    impact: 'BULLISH', note: 'Tech, neutral ASX' },
+  { title: 'CLARITY ACT (CRYPTO)', icon: '₿',
+    summary: 'Senate vote before Aug 7 recess critical. Polymarket odds ~40%.',
+    impact: 'BINARY', note: 'Crypto assets' },
+  { title: 'RBA EASING CYCLE', icon: '💰',
+    summary: 'RBA cut to 3.85% in May 2026. Next meeting Aug 5 — hold expected.',
+    impact: 'BULLISH', note: 'AUD equities, property' },
+]
+
+const THEME_IMPACT_COLOR = {
+  BULLISH: 'var(--color-gain)', BEARISH: 'var(--color-loss)',
+  MIXED: '#c8a84b', BINARY: '#a855f7',
+}
+
+function MacroThemeCard({ theme }) {
+  const color = THEME_IMPACT_COLOR[theme.impact] ?? 'var(--color-text-dim)'
+  return (
+    <div className="border border-terminal-border p-2.5 bg-terminal-panel/40">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-sm">{theme.icon}</span>
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest">{theme.title}</span>
+      </div>
+      <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5">{theme.summary}</div>
+      <div className="text-2xs font-bold" style={{ color }}>
+        {theme.impact} <span className="text-terminal-text-dim font-normal">— {theme.note}</span>
+      </div>
+    </div>
+  )
+}
+
+// AU vs US yield curve — simple SVG line comparison, 2Y/5Y/10Y/30Y
+function YieldCurveVisual() {
+  const maturities = ['2Y', '5Y', '10Y', '30Y']
+  const auPoints = maturities.map(m => AU_BONDS.find(b => b.maturity === m)?.yield ?? 0)
+  const usPoints = maturities.map(m => US_BONDS.find(b => b.maturity === m)?.yield ?? 0)
+  const allVals  = [...auPoints, ...usPoints]
+  const minY = Math.min(...allVals) - 0.3
+  const maxY = Math.max(...allVals) + 0.3
+  const w = 320, h = 130, padL = 30, padR = 12, padT = 14, padB = 20
+  const chartW = w - padL - padR, chartH = h - padT - padB
+  const xAt = (i) => padL + (i / (maturities.length - 1)) * chartW
+  const yAt = (v) => padT + chartH - ((v - minY) / (maxY - minY)) * chartH
+  const pathFor = (vals) => vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ')
+
+  return (
+    <div className="border border-terminal-border p-2.5 bg-terminal-panel/40">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-2xs text-terminal-gold tracking-widest font-bold">AU vs US YIELD CURVE</span>
+        <div className="flex items-center gap-3 text-2xs text-terminal-text-dim">
+          <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#c8a84b', display: 'inline-block' }} /> AU</span>
+          <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#3b82f6', display: 'inline-block' }} /> US</span>
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto' }}>
+        {maturities.map((m, i) => (
+          <line key={m} x1={xAt(i)} y1={padT} x2={xAt(i)} y2={padT + chartH} stroke="#0d2244" strokeWidth="1" />
+        ))}
+        <path d={pathFor(auPoints)} fill="none" stroke="#c8a84b" strokeWidth="1.8" />
+        <path d={pathFor(usPoints)} fill="none" stroke="#3b82f6" strokeWidth="1.8" />
+        {/* Label the higher curve above its point and the lower one below, per
+            maturity — a fixed "AU above / US below" placement collides
+            whenever one curve sits consistently above the other (as AU/US do
+            here), stacking both labels in the same spot. */}
+        {maturities.map((m, i) => {
+          const auAbove = auPoints[i] >= usPoints[i]
+          return (
+            <g key={`pts-${m}`}>
+              <circle cx={xAt(i)} cy={yAt(auPoints[i])} r="2.5" fill="#c8a84b" />
+              <text x={xAt(i)} y={yAt(auPoints[i]) + (auAbove ? -6 : 12)} textAnchor="middle" fontSize="8" fill="#c8a84b" fontFamily="IBM Plex Mono">{auPoints[i].toFixed(2)}</text>
+              <circle cx={xAt(i)} cy={yAt(usPoints[i])} r="2.5" fill="#3b82f6" />
+              <text x={xAt(i)} y={yAt(usPoints[i]) + (auAbove ? 12 : -6)} textAnchor="middle" fontSize="8" fill="#3b82f6" fontFamily="IBM Plex Mono">{usPoints[i].toFixed(2)}</text>
+            </g>
+          )
+        })}
+        {maturities.map((m, i) => (
+          <text key={`lbl-${m}`} x={xAt(i)} y={h - 4} textAnchor="middle" fontSize="8" fill="#6b7f99" fontFamily="IBM Plex Mono">{m}</text>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+// Currency heatmap — AUD vs 6 major pairs, rate + real 1D change from a single
+// 3-day Frankfurter time-series call (multi-currency `to` param, one request).
+const HEATMAP_PAIRS = [
+  { label: 'AUD/USD', ccy: 'USD' },
+  { label: 'AUD/JPY', ccy: 'JPY' },
+  { label: 'AUD/EUR', ccy: 'EUR' },
+  { label: 'AUD/GBP', ccy: 'GBP' },
+  { label: 'AUD/CNY', ccy: 'CNY' },
+  { label: 'AUD/NZD', ccy: 'NZD' },
+]
+
+function CurrencyHeatmap() {
+  const { data, isError } = useQuery({
+    queryKey:  ['fxHistory', 'AUD', 'heatmap6'],
+    queryFn:   () => fetchFxHistory('AUD', HEATMAP_PAIRS.map(p => p.ccy).join(','), 3),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  const rows = useMemo(() => {
+    const dates = data?.rates ? Object.keys(data.rates).sort() : []
+    if (dates.length < 1) return null
+    const latest = data.rates[dates[dates.length - 1]]
+    const prior  = dates.length > 1 ? data.rates[dates[0]] : null
+    return HEATMAP_PAIRS.map(({ label, ccy }) => {
+      const rate = latest?.[ccy]
+      const prevRate = prior?.[ccy]
+      const pct = rate != null && prevRate != null ? ((rate - prevRate) / prevRate) * 100 : null
+      const dec = ccy === 'JPY' ? 2 : 4
+      return { label, rate: rate != null ? rate.toFixed(dec) : '—', pct }
+    })
+  }, [data])
+
+  const display = rows ?? HEATMAP_PAIRS.map(p => ({ label: p.label, rate: '—', pct: null }))
+
+  return (
+    <div className="border border-terminal-border p-2.5 bg-terminal-panel/40">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-2xs text-terminal-gold tracking-widest font-bold">CURRENCY HEATMAP</span>
+        {isError && <span className="text-2xs text-terminal-red">⚠ UNAVAILABLE</span>}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {display.map((r) => (
+          <div
+            key={r.label}
+            className="border border-terminal-border/50 p-1.5 text-center"
+            style={{ background: r.pct == null ? 'transparent' : r.pct >= 0 ? 'rgba(45,138,80,0.08)' : 'rgba(168,50,50,0.08)' }}
+          >
+            <div className="text-2xs text-terminal-text-dim">{r.label}</div>
+            <div className="text-xs font-bold text-terminal-text-bright">{r.rate}</div>
+            <div className="text-2xs font-semibold" style={{ color: r.pct == null ? 'var(--color-text-dim)' : r.pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+              {r.pct != null ? `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(2)}%` : '—'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
 export default function MacroModule() {
@@ -856,11 +1089,11 @@ export default function MacroModule() {
 
   const askAI = (fields) => dispatchAskAI(fields)
 
-  // RBA Cash Rate — hardcoded from official rba.gov.au May 2026 board decision.
+  // RBA Cash Rate — hardcoded from official rba.gov.au 19 May 2026 board decision.
   // The live RBA API (api.rba.gov.au) is unreliable; for a single data point that
   // changes at most 8 times per year, hardcoding the confirmed rate is more reliable.
-  const rbaRate    = 4.35
-  const rbaRateStr = '4.35%'
+  const rbaRate    = 3.85
+  const rbaRateStr = '3.85%'
 
   // AU indicator stats from ABS (updated in placeholders to latest known release)
   const latestCPI   = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 1]?.value ?? 2.4
@@ -869,13 +1102,6 @@ export default function MacroModule() {
   const prevUnemp   = AU_UNEMP_HISTORY[AU_UNEMP_HISTORY.length - 2]?.value ?? 4.0
   const latestGDP   = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 1]?.value ?? 0.6
   const prevGDP     = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 2]?.value ?? 0.3
-
-  const globalByRegion = {
-    US: GLOBAL_MACRO.filter((m) => m.region === 'US'),
-    CN: GLOBAL_MACRO.filter((m) => m.region === 'CN'),
-    EU: GLOBAL_MACRO.filter((m) => m.region === 'EU'),
-    UK: GLOBAL_MACRO.filter((m) => m.region === 'UK'),
-  }
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden">
@@ -1018,11 +1244,8 @@ export default function MacroModule() {
       {/* ── Section 6: Market Moving Events / Calendar ── */}
       <div style={{ marginTop: 24 }}>
         <EnhancedEvents />
-        <div style={{ marginTop: 16 }}>
-          <CalendarPanel events={AU_CALENDAR} title="AU ECONOMIC CALENDAR" />
-        </div>
         <div style={{ marginTop: 8 }}>
-          <CalendarPanel events={GLOBAL_CALENDAR} title="GLOBAL CALENDAR (AEST)" />
+          <PreviousEventsPanel />
         </div>
       </div>
 
@@ -1039,39 +1262,23 @@ export default function MacroModule() {
         </button>
 
         {globalExpanded && (
-          <div className="border-t border-terminal-border">
-            <div className="grid grid-cols-2 xl:grid-cols-4 divide-x divide-terminal-border border-b border-terminal-border">
-              {Object.entries(globalByRegion).map(([region, indicators]) => (
-                <div key={region} className="p-2">
-                  <div className={`text-2xs font-bold mb-2 pb-1 border-b border-terminal-border/50 ${
-                    region === 'CN' ? 'text-red-400' : region === 'US' ? 'text-terminal-blue-bright' : 'text-terminal-text-bright'
-                  }`}>
-                    {region === 'CN' ? 'CN CHINA' : region === 'US' ? 'US' : region === 'EU' ? 'EU EUROZONE' : 'UK'}
-                  </div>
-                  {indicators.map((ind) => (
-                    <div key={ind.name} className="py-0.5 border-b border-terminal-border/20">
-                      <div className="flex items-center gap-1">
-                        <FreshnessDot date={ind.date} name={ind.name} />
-                        <span className="text-2xs text-terminal-text-dim">{ind.name}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-terminal-text-bright">{ind.value}</span>
-                        {ind.beat !== null && (
-                          <span className={`text-2xs ${ind.beat ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                            {ind.beat ? '▲ BEAT' : '▼ MISS'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-2xs text-terminal-text-dim">
-                        PREV: {ind.prev} · as at {monthYear(ind.date)} · <SourceLink src={ind.src} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+          <div className="border-t border-terminal-border p-3 space-y-3">
+            <MacroRegimeGauge />
+
+            <div>
+              <div className="text-2xs text-terminal-gold tracking-widest font-bold mb-2">KEY MACRO THEMES</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {MACRO_THEMES.map((t) => <MacroThemeCard key={t.title} theme={t} />)}
+              </div>
             </div>
-            <div className="px-3 py-1 text-2xs text-terminal-text-dim/60">
-              GLOBAL DATA: OFFICIAL STATISTICAL AGENCY RELEASES · DATES SHOWN ARE RELEASE DATES
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <YieldCurveVisual />
+              <CurrencyHeatmap />
+            </div>
+
+            <div className="px-0.5 text-2xs text-terminal-text-dim/60">
+              Regime call and theme summaries are editorial, updated periodically — not a live computed feed. Yield curve: AOFM/RBA · US Treasury, as at 2 Aug 2026. Currency heatmap: Frankfurter.app (ECB reference rates).
             </div>
           </div>
         )}
@@ -1080,7 +1287,7 @@ export default function MacroModule() {
       {/* Subtle data attribution footer */}
       <div className="px-3 py-2 border-t border-terminal-border/30 mt-2">
         <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>
-          Data current as at July 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
+          Data current as at 2 August 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
         </span>
       </div>
 

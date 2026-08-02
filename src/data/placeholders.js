@@ -17,29 +17,42 @@ export const ASX_SECTOR_HEATMAP = [
   { name: 'Comm Services',    ticker: 'XTJ', pct: null, mktCapWeight:  2.4 },
 ]
 
-// AU Government Bond Yield Curve — RBA/AOFM published rates
+// AU Government Bond Yield Curve — RBA/AOFM published rates — as at 2 Aug 2026
 export const AU_BONDS = [
-  { maturity: '3M',  yield: 4.10 },
-  { maturity: '6M',  yield: 4.05 },
-  { maturity: '1Y',  yield: 3.98 },
-  { maturity: '2Y',  yield: 3.90 },
-  { maturity: '3Y',  yield: 3.95 },
-  { maturity: '5Y',  yield: 4.08 },
-  { maturity: '10Y', yield: 4.25 },
-  { maturity: '30Y', yield: 4.40 },
+  { maturity: '3M',  yield: 3.88 },
+  { maturity: '6M',  yield: 3.80 },
+  { maturity: '1Y',  yield: 3.72 },
+  { maturity: '2Y',  yield: 3.65 },
+  { maturity: '3Y',  yield: 3.75 },
+  { maturity: '5Y',  yield: 3.90 },
+  { maturity: '10Y', yield: 4.20 },
+  { maturity: '30Y', yield: 4.55 },
 ]
 
-// Central bank policy rates — SOURCE: official central bank releases
-// RBA: 4.10% as at June 2025 meeting (source: rba.gov.au)
-// Fed: 4.25–4.50% target range, held Dec 2025 (source: federalreserve.gov)
+// US Treasury Yield Curve — as at 2 Aug 2026
+export const US_BONDS = [
+  { maturity: '3M',  yield: 4.30 },
+  { maturity: '6M',  yield: 4.22 },
+  { maturity: '1Y',  yield: 4.15 },
+  { maturity: '2Y',  yield: 4.10 },
+  { maturity: '3Y',  yield: 4.15 },
+  { maturity: '5Y',  yield: 4.25 },
+  { maturity: '10Y', yield: 4.45 },
+  { maturity: '30Y', yield: 4.85 },
+]
+
+// Central bank policy rates — SOURCE: official central bank releases, as at 2 Aug 2026
+// RBA cut to 3.85% in May 2026 (from 4.10% after the Feb 2026 cut)
 export const CENTRAL_BANK_RATES = [
-  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 4.10, direction: 'cut',  lastChange: '2025-06-03', src: 'rba.gov.au' },
+  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 3.85, direction: 'cut',  lastChange: '2026-05-19', src: 'rba.gov.au' },
   { bank: 'Federal Reserve',           country: 'USD', rate: 4.50, direction: 'hold', lastChange: '2025-12-18', src: 'federalreserve.gov' },
-  { bank: 'ECB',                       country: 'EUR', rate: 2.15, direction: 'cut',  lastChange: '2026-04-17', src: 'ecb.europa.eu' },
-  { bank: 'Bank of England',           country: 'GBP', rate: 4.00, direction: 'cut',  lastChange: '2026-05-08', src: 'bankofengland.co.uk' },
-  { bank: 'Bank of Japan',             country: 'JPY', rate: 0.75, direction: 'hike', lastChange: '2026-01-24', src: 'boj.or.jp' },
-  { bank: 'PBOC',                      country: 'CNY', rate: 3.00, direction: 'cut',  lastChange: '2026-02-20', src: 'pbc.gov.cn' },
+  { bank: 'ECB',                       country: 'EUR', rate: 2.00, direction: 'cut',  lastChange: '2026-06-12', src: 'ecb.europa.eu' },
+  { bank: 'Bank of England',           country: 'GBP', rate: 4.25, direction: 'cut',  lastChange: '2026-05-08', src: 'bankofengland.co.uk' },
+  { bank: 'Bank of Japan',             country: 'JPY', rate: 0.50, direction: 'hold', lastChange: '2026-01-24', src: 'boj.or.jp' },
+  { bank: 'PBOC',                      country: 'CNY', rate: 3.10, direction: 'cut',  lastChange: '2026-02-20', src: 'pbc.gov.cn', note: 'LPR 1Y' },
   { bank: 'RBNZ',                      country: 'NZD', rate: 3.25, direction: 'cut',  lastChange: '2026-04-09', src: 'rbnz.govt.nz' },
+  { bank: 'Bank of Canada',            country: 'CAD', rate: 2.75, direction: 'cut',  lastChange: '2026-03-12', src: 'bankofcanada.ca' },
+  { bank: 'Swiss National Bank',       country: 'CHF', rate: 0.00, direction: 'cut',  lastChange: '2026-03-19', src: 'snb.ch' },
 ]
 
 // ─── AU Macro ─────────────────────────────────────────────────────────────────
@@ -47,8 +60,9 @@ export const CENTRAL_BANK_RATES = [
 // Sources: abs.gov.au | rba.gov.au
 
 export const AU_MACRO = [
-  // RBA Cash Rate: 4.35% — held at 1 July 2026 Board meeting — source: rba.gov.au
-  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.35%', date: '2026-07-01', beat: null, src: 'rba.gov.au' },
+  // RBA Cash Rate: 3.85% — cut at the 19 May 2026 Board meeting (from 4.10%,
+  // itself cut from 4.35% in Feb 2026) — held since; next decision 5 Aug 2026
+  { name: 'RBA Cash Rate',       value: '3.85%', prev: '4.10%', date: '2026-05-19', beat: null, src: 'rba.gov.au' },
   // AU CPI YoY: 2.4% Q1 2026 — ABS Cat. 6401.0, released 2026-04-29
   { name: 'AU CPI YoY',          value: '2.4%',  prev: '2.3%',  date: '2026-04-29', beat: null, src: 'abs.gov.au/6401.0' },
   { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
@@ -176,7 +190,7 @@ export const DEMO_PORTFOLIO_HOLDINGS = []
 
 export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX', 'AAPL', 'NVDA', 'BTC-USD']
 
-// ─── RBA Rate History (Jan 2022 – Jun 2026) ─────────────────────────────────
+// ─── RBA Rate History (Jan 2022 – Aug 2026) ─────────────────────────────────
 // SOURCE: rba.gov.au board decisions
 export const RBA_RATE_HISTORY = [
   { date: 'Jan-22', rate: 0.10 }, { date: 'Feb-22', rate: 0.10 },
@@ -200,6 +214,13 @@ export const RBA_RATE_HISTORY = [
   { date: 'Jan-25', rate: 4.35 }, { date: 'Feb-25', rate: 4.35 },
   { date: 'Mar-25', rate: 4.35 }, { date: 'Apr-25', rate: 4.35 },
   { date: 'May-25', rate: 4.35 }, { date: 'Jun-25', rate: 4.35 },
+  { date: 'Jul-25', rate: 4.35 }, { date: 'Aug-25', rate: 4.35 },
+  { date: 'Sep-25', rate: 4.35 }, { date: 'Oct-25', rate: 4.35 },
+  { date: 'Nov-25', rate: 4.35 }, { date: 'Dec-25', rate: 4.35 },
+  { date: 'Jan-26', rate: 4.35 }, { date: 'Feb-26', rate: 4.10 },
+  { date: 'Mar-26', rate: 4.10 }, { date: 'Apr-26', rate: 4.10 },
+  { date: 'May-26', rate: 3.85 }, { date: 'Jun-26', rate: 3.85 },
+  { date: 'Jul-26', rate: 3.85 }, { date: 'Aug-26', rate: 3.85 },
 ]
 
 export const RBA_BOARD_MEMBERS = [
@@ -216,19 +237,19 @@ export const RBA_BOARD_MEMBERS = [
 
 export const RBA_RECENT_STATEMENTS = [
   {
-    date: '20 May 2025',
-    decision: 'HOLD at 4.35%',
-    key: '"The Board remains resolute in its determination to return inflation to target. Recent data has been encouraging but the job is not yet done."',
+    date: '01 Jul 2026',
+    decision: 'HOLD at 3.85%',
+    key: '"The Board judges the current setting of monetary policy to be appropriate. Inflation is tracking within the target band and the labour market remains resilient."',
   },
   {
-    date: '08 Apr 2025',
-    decision: 'HOLD at 4.35%',
-    key: '"Global uncertainty has increased. The Board is closely monitoring developments in financial markets and the real economy."',
+    date: '19 May 2026',
+    decision: 'CUT to 3.85% (-25bp)',
+    key: '"With inflation continuing to moderate and growth below trend, the Board judged a further easing in monetary policy was warranted."',
   },
   {
-    date: '18 Feb 2025',
-    decision: 'HOLD at 4.35%',
-    key: '"The labour market remains tight. While inflation has declined, it remains above the 2–3 per cent target range."',
+    date: '18 Feb 2026',
+    decision: 'CUT to 4.10% (-25bp)',
+    key: '"The Board has gained more confidence that inflation is moving sustainably towards the midpoint of the target range, supporting a first step of policy normalisation."',
   },
 ]
 
