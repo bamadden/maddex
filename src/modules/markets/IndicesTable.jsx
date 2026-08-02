@@ -1,10 +1,39 @@
-import { useState, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { fetchYFBatch, YF_INDICES } from '../../services/api'
+import { useRef, useMemo } from 'react'
+import { useQuery, useQueries } from '@tanstack/react-query'
+import { fetchYFBatch, fetchYFHistory, transformYFHistory, YF_INDICES } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
 
-const ALL_SYMBOLS = YF_INDICES.map((i) => i.symbol)
+// The benchmark indices shown in this bar, in display order. Sourced from the
+// shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
+// local order/subset here so this bar can differ from what those show without
+// forking the underlying quote data.
+const BENCHMARK_ORDER = [
+  '^AXJO', '^AORD', '^GSPC', '^IXIC', '^DJI', '^FTSE', '^N225', '^HSI', '^GDAXI', '^SSEC',
+]
+
+// One representative large-cap stock per index, used only to shape the
+// sparkline — a rough visual proxy for the index's recent trend, never used
+// for the level/change numbers (those come from the real index quote above).
+// All Ords tracks the ASX 200 closely enough to reuse its proxy.
+const SPARKLINE_PROXY = {
+  '^AXJO':  'XRO.AX',
+  '^AORD':  'XRO.AX',
+  '^GSPC':  'AAPL',
+  '^IXIC':  'NVDA',
+  '^DJI':   'MSFT',
+  '^FTSE':  'SAGE.L',
+  '^N225':  '9984.T',
+  '^HSI':   '0700.HK',
+  '^GDAXI': 'SAP.DE',
+  '^SSEC':  '688981.SS',
+}
+
+function pctColor(pct) {
+  if (pct > 0) return 'var(--color-gain)'
+  if (pct < 0) return 'var(--color-loss)'
+  return '#6b7f99'
+}
 
 // Format stooq timestamp (YYYY-MM-DD) to a compact display
 function fmtDataDate(ts) {
@@ -17,16 +46,37 @@ function fmtDataDate(ts) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
-function pctColor(pct) {
-  if (pct > 0) return 'var(--color-gain)'
-  if (pct < 0) return 'var(--color-loss)'
-  return undefined
+// Plain SVG polyline sparkline — 40x20, no charting library needed.
+function Sparkline({ points, color }) {
+  const w = 40, h = 20, pad = 2
+  if (!points || points.length < 2) {
+    return <svg width={w} height={h} aria-hidden="true" />
+  }
+  const prices = points.map(p => p.price)
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const range = max - min || 1
+  const path = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * (w - pad * 2) + pad
+    const y = h - pad - ((p.price - min) / range) * (h - pad * 2)
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <path d={path} fill="none" stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }) {
   const { usdToAud } = useAudRates()
   const lastClickTime   = useRef(0)
   const lastClickSymbol = useRef(null)
+
+  const indices = useMemo(
+    () => BENCHMARK_ORDER.map(sym => YF_INDICES.find(i => i.symbol === sym)).filter(Boolean),
+    []
+  )
 
   const handleClick = (symbol, q, isAud, label) => {
     const now = Date.now()
@@ -50,75 +100,86 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
 
   const { data: quotes, isError, isFetching, refetch } = useQuery({
     queryKey:  ['yfBatch', 'indices'],
-    queryFn:   () => fetchYFBatch(ALL_SYMBOLS),
+    queryFn:   () => fetchYFBatch(indices.map(i => i.symbol)),
     staleTime: 60_000,
     retry: 1,
   })
 
+  // 7-day sparkline history — one proxy stock per index, fetched in parallel.
+  const sparkResults = useQueries({
+    queries: indices.map(({ symbol }) => {
+      const proxySym = SPARKLINE_PROXY[symbol]
+      return {
+        queryKey:  ['sparkline', symbol, proxySym],
+        queryFn:   () => fetchYFHistory(proxySym, { range: '5d' }),
+        enabled:   !!proxySym,
+        staleTime: 5 * 60_000,
+        retry: 1,
+      }
+    }),
+  })
+
   return (
-    <>
-    <div style={{ display: 'flex', alignItems: 'stretch', width: '100%', background: 'var(--color-terminal-header, #071428)' }}>
-      <div className="px-2 py-1.5 border-r border-terminal-border flex-shrink-0 flex items-center">
-        <span className="text-2xs text-terminal-gold font-bold tracking-widest whitespace-nowrap">GLOBAL INDICES</span>
+    <div className="bg-terminal-panel border-b border-terminal-border font-mono">
+      <div className="flex overflow-x-auto hide-scrollbar">
+        {indices.map(({ symbol, label, isAud }, idx) => {
+          const q          = quotes?.[symbol]
+          const dataDate   = q?.timestamp ? fmtDataDate(q.timestamp) : null
+          const isStale    = !!dataDate
+          const isSelected = symbol === selectedIndex
+          const color      = pctColor(q?.pct)
+
+          const sparkRaw    = sparkResults[idx]?.data
+          const sparkPoints = sparkRaw
+            ? transformYFHistory(sparkRaw).filter(d => d && d.price != null && !isNaN(d.price))
+            : []
+
+          return (
+            <div
+              key={symbol}
+              onClick={() => handleClick(symbol, q, isAud, label)}
+              className="flex-shrink-0 cursor-pointer hover:bg-terminal-accent/10 transition-colors border-r border-terminal-border"
+              style={{
+                width: 140,
+                padding: '8px 12px',
+                borderLeft: isSelected ? '2px solid #c8a84b' : '2px solid transparent',
+              }}
+            >
+              <div className="text-[9px] tracking-wider text-terminal-text-dim uppercase truncate">
+                {label}
+              </div>
+
+              {isFetching && !q ? (
+                <div className="text-[15px] font-semibold text-terminal-text-dim animate-pulse mt-1">···</div>
+              ) : !q && isError ? (
+                <button
+                  className="text-2xs text-terminal-red hover:text-terminal-gold cursor-pointer mt-1"
+                  onClick={(e) => { e.stopPropagation(); refetch() }}
+                >
+                  ⚠ RETRY
+                </button>
+              ) : q ? (
+                <div className="flex items-end justify-between gap-1.5 mt-0.5">
+                  <div className="min-w-0">
+                    <div className="text-[15px] font-semibold text-terminal-text leading-tight truncate">
+                      {fmt.price(q.last, 1)}
+                    </div>
+                    <div className="text-[10px] font-semibold leading-tight" style={{ color }}>
+                      {q.pct >= 0 ? '▲' : '▼'} {q.pct >= 0 ? '+' : ''}{q.pct.toFixed(2)}%
+                    </div>
+                    {isStale && (
+                      <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
+                    )}
+                  </div>
+                  <Sparkline points={sparkPoints} color={color} />
+                </div>
+              ) : (
+                <div className="text-[15px] font-semibold text-terminal-text-dim/40 mt-1">—</div>
+              )}
+            </div>
+          )
+        })}
       </div>
-
-      {YF_INDICES.map(({ symbol, label, sublabel, isAud, primary }, idx) => {
-        const q        = quotes?.[symbol]
-        const dataDate = q?.timestamp ? fmtDataDate(q.timestamp) : null
-        const isStale  = !!dataDate
-        const isSelected = symbol === selectedIndex
-        const isLast   = idx === YF_INDICES.length - 1
-
-        return (
-          <div
-            key={symbol}
-            className={`flex flex-col justify-between items-center py-1.5 cursor-pointer hover:bg-terminal-accent/20 ${isSelected ? 'bg-[rgba(201,168,76,0.06)]' : ''}`}
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              padding: '6px 4px',
-              borderRight: isLast ? 'none' : isSelected ? '2px solid #c9a84c' : '1px solid rgba(30,60,120,0.35)',
-              transition: 'background 150ms',
-              minWidth: 0,
-            }}
-            onClick={() => handleClick(symbol, q, isAud, label)}
-          >
-            <span className={`text-2xs font-bold block ${isSelected ? 'text-terminal-gold' : primary ? 'text-terminal-gold/70' : 'text-terminal-text-dim'}`}>
-              {label}
-            </span>
-            <span className="text-2xs text-terminal-text-dim/50 block">{sublabel}</span>
-
-            {isFetching && !q ? (
-              <span className="text-2xs text-terminal-text-dim animate-pulse block">···</span>
-            ) : !q && isError ? (
-              <button
-                className="text-2xs text-terminal-red hover:text-terminal-gold cursor-pointer"
-                onClick={(e) => { e.stopPropagation(); refetch() }}
-              >
-                ⚠
-              </button>
-            ) : q ? (
-              <>
-                <span className="text-xs font-semibold text-terminal-text-bright block">
-                  {fmt.price(q.last, 0)}
-                </span>
-                <span className="text-2xs font-semibold block" style={{ color: pctColor(q.pct) ?? 'var(--color-neutral)' }}>
-                  {q.pct >= 0 ? '+' : ''}{q.pct.toFixed(2)}%
-                </span>
-                <span className="text-2xs block" style={{ color: isStale ? '#c9a84b' : 'rgba(100,130,160,0.4)', fontSize: 8 }}>
-                  {isStale ? dataDate : q.isOpen ? 'LIVE' : 'DELAYED'}
-                </span>
-              </>
-            ) : (
-              <span className="text-2xs text-terminal-text-dim block">—</span>
-            )}
-          </div>
-        )
-      })}
     </div>
-    <div style={{ textAlign: 'right', padding: '2px 8px', fontSize: 9, color: 'rgba(100,130,160,0.5)', fontStyle: 'italic' }}>
-      Click to select &middot; Double-click for detail
-    </div>
-    </>
   )
 }

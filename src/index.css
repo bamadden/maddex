@@ -55,6 +55,16 @@ body {
   background: #c8a84b;
 }
 
+/* Scrollable strips (e.g. the index benchmark bar) that shouldn't show a
+   visible scrollbar even though they scroll on overflow. */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Table styles */
 .terminal-table {
   border-collapse: collapse;

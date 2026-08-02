@@ -566,6 +566,7 @@ export const toYFRange = (timeframe) => {
 // Index configuration — consumers use YF-style symbol keys; stooq translation is internal
 export const YF_INDICES = [
   { symbol: '^AXJO',  label: 'ASX 200',    sublabel: 'ASX · AUD', isAud: true,  primary: true  },
+  { symbol: '^AORD',  label: 'All Ords',   sublabel: 'ASX · AUD', isAud: true,  primary: false },
   { symbol: '^GSPC',  label: 'S&P 500',    sublabel: 'USD · pts', isAud: false, primary: false },
   { symbol: '^IXIC',  label: 'NASDAQ',     sublabel: 'USD · pts', isAud: false, primary: false },
   { symbol: '^DJI',   label: 'Dow Jones',  sublabel: 'USD · pts', isAud: false, primary: false },
@@ -573,6 +574,7 @@ export const YF_INDICES = [
   { symbol: '^GDAXI', label: 'DAX',        sublabel: 'EUR · pts', isAud: false, primary: false },
   { symbol: '^N225',  label: 'Nikkei 225', sublabel: 'JPY · pts', isAud: false, primary: false },
   { symbol: '^HSI',   label: 'Hang Seng',  sublabel: 'HKD · pts', isAud: false, primary: false },
+  { symbol: '^SSEC',  label: 'Shanghai',   sublabel: 'CNY · pts', isAud: false, primary: false },
   { symbol: '^NZ50',  label: 'NZX 50',     sublabel: 'NZD · pts', isAud: false, primary: false },
 ]
 
