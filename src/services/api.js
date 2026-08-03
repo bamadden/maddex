@@ -831,9 +831,21 @@ export const transformCoinOHLC = (data) => {
 }
 
 export const fetchFearGreed = async () => {
-  const { data } = await axios.get('https://api.alternative.me/fng/?limit=30')
-  console.log('[MADDEN API] Alternative.me fear/greed:', data?.data?.[0]?.value)
-  return data
+  try {
+    const { data } = await axios.get('https://api.alternative.me/fng/?limit=30', { timeout: 8000 })
+    console.log('[MADDEN API] Alternative.me fear/greed:', data?.data?.[0]?.value)
+    return data
+  } catch (e) {
+    console.warn('[MADDEN API] Alternative.me fear/greed failed, using mock value 42 (Fear):', e.message)
+    const now = Math.floor(Date.now() / 1000)
+    return {
+      data: Array.from({ length: 30 }, (_, i) => ({
+        value: '42',
+        value_classification: 'Fear',
+        timestamp: String(now - i * 86400),
+      })),
+    }
+  }
 }
 
 export const fetchCryptoGlobal = async () => {
@@ -854,10 +866,18 @@ export const transformCryptoMarkets = (items, currency = 'aud') =>
     pct30d:    c.price_change_percentage_30d_in_currency ?? null,
     marketCap: c.market_cap ?? null,
     mktCap:    formatLargeNum(c.market_cap ?? 0),
+    volume:    c.total_volume ?? null,
     vol24h:    formatLargeNum(c.total_volume ?? 0),
     currency:  currency.toUpperCase(),
     ath:       c.ath ?? null,
     athPct:    c.ath_change_percentage ?? null,
+    atl:       c.atl ?? null,
+    atlPct:    c.atl_change_percentage ?? null,
+    fdv:       c.fully_diluted_valuation ?? null,
+    circulatingSupply: c.circulating_supply ?? null,
+    maxSupply:         c.max_supply ?? null,
+    high24h:   c.high_24h ?? null,
+    low24h:    c.low_24h ?? null,
     sparkline: c.sparkline_in_7d?.price ?? null,
     image:     c.image ?? null,
   }))

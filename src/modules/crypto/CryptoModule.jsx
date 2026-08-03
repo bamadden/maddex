@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import {
   fetchCoinHistory, fetchFearGreed, fetchTrendingCoins, fetchCryptoGlobal,
   transformCryptoMarkets, transformCoinHistory, transformFearGreed,
@@ -8,12 +8,38 @@ import {
 import { fetchCryptoMarketsUnified } from '../../services/dataService'
 import { calculateCryptoMomentumIndex, scoreToColor, explainScore } from '../../services/maddenAiScoring'
 import { useStore } from '../../store/useStore'
+import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import PriceChange from '../../components/ui/PriceChange'
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+// ── Coin colour circle (deterministic hash, not a real logo — Bloomberg-
+// terminal-style abstract avatar rather than brand marks) ──────────────────
+const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#c8a84b']
+function hashStr(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+function coinColor(symbol) {
+  return CIRCLE_PALETTE[hashStr(symbol) % CIRCLE_PALETTE.length]
+}
+function CoinCircle({ symbol, size = 22 }) {
+  const color = coinColor(symbol)
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold flex-shrink-0"
+      style={{ width: size, height: size, background: `${color}26`, border: `1px solid ${color}66`, color, fontSize: size * 0.42 }}
+    >
+      {symbol?.[0] ?? '?'}
+    </span>
+  )
+}
+
 
 // ── Sparkline ──────────────────────────────────────────────────────────────────
 
@@ -43,14 +69,6 @@ function calcSentiment(pct24h, pct7d) {
   score += Math.min(22, Math.max(-22, (pct24h ?? 0) * 2.5))
   score += Math.min(14, Math.max(-14, (pct7d  ?? 0) * 1.0))
   return Math.round(Math.min(100, Math.max(0, score)))
-}
-
-function getSentimentColor(score) {
-  if (score >= 75) return 'var(--color-gain-bright)'
-  if (score >= 60) return 'var(--color-gain)'
-  if (score >= 45) return 'var(--color-neutral)'
-  if (score >= 30) return '#ff8c00'
-  return 'var(--color-loss-bright)'
 }
 
 function getSentimentLabel(score) {
@@ -272,8 +290,8 @@ function FearGreedPanel({ data }) {
   )
 }
 
-function MarketPulsePanel({ globalData, currency }) {
-  if (!globalData) return <div style={P.wrap}><div style={P.title}>MARKET PULSE</div><div style={P.empty}>LOADING...</div></div>
+function MarketPulsePanel({ globalData, currency, capSparkline }) {
+  if (!globalData) return <div style={P.wrap}><div style={P.title}>TOTAL MARKET CAP</div><div style={P.empty}>LOADING...</div></div>
   const ccy = currency === 'AUD' ? 'aud' : 'usd'
   const sym = currency === 'AUD' ? 'A$' : 'US$'
   const cap = globalData.total_market_cap?.[ccy]
@@ -289,11 +307,18 @@ function MarketPulsePanel({ globalData, currency }) {
   const chgColor = chg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
   return (
     <div style={P.wrap}>
-      <div style={P.title}>MARKET PULSE</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={P.title}>TOTAL MARKET CAP</div>
+        {capSparkline?.length > 1 && <Sparkline prices={capSparkline} pct={chg} />}
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: '#e8ecf0', fontFamily: 'IBM Plex Mono', marginBottom: 2 }}>
+        {fmtB(cap)}
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: chgColor, marginBottom: 6 }}>
+        {chg != null ? `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}% (24h)` : '—'}
+      </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px 10px', fontSize:9 }}>
         {[
-          { label:'MKT CAP', value: fmtB(cap), color:'#d4dce8' },
-          { label:'24H CHG', value: chg != null ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '—', color: chgColor },
           { label:'VOLUME', value: fmtB(vol), color:'#d4dce8' },
           { label:'COINS', value: coins?.toLocaleString() ?? '—', color:'#d4dce8' },
         ].map(({ label, value, color }) => (
@@ -307,8 +332,56 @@ function MarketPulsePanel({ globalData, currency }) {
   )
 }
 
+// Yesterday's BTC dominance isn't in CoinGecko's /global snapshot — persisted
+// locally (same pattern as MarketSentimentBanner's score history) so a
+// "vs yesterday" delta can be shown without an extra API call.
+const BTC_DOM_KEY = 'maddex_btc_dominance_history'
+function readBtcDomHistory() {
+  try { return JSON.parse(localStorage.getItem(BTC_DOM_KEY) ?? '[]') } catch { return [] }
+}
+function writeBtcDomHistory(pct) {
+  try {
+    const hist = readBtcDomHistory()
+    const today = new Date().toISOString().slice(0, 10)
+    if (hist[hist.length - 1]?.date === today) return
+    hist.push({ date: today, pct })
+    if (hist.length > 90) hist.splice(0, hist.length - 90)
+    localStorage.setItem(BTC_DOM_KEY, JSON.stringify(hist))
+  } catch { /* ignore */ }
+}
+function btcDomYesterday() {
+  const hist = readBtcDomHistory()
+  return hist.length ? hist[hist.length - 1].pct : null
+}
+
+function DominanceArc({ pct, color, size = 56 }) {
+  const r = size / 2 - 5
+  const c = 2 * Math.PI * r
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#0d2244" strokeWidth="6" />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="6"
+        strokeDasharray={`${(pct / 100) * c} ${c}`}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fill={color} fontSize={size * 0.22} fontFamily="IBM Plex Mono" fontWeight="700">
+        {pct.toFixed(0)}%
+      </text>
+    </svg>
+  )
+}
+
 function DominancePanel({ globalData }) {
-  if (!globalData) return <div style={P.wrap}><div style={P.title}>DOMINANCE</div><div style={P.empty}>LOADING...</div></div>
+  const btcYesterday = btcDomYesterday()
+
+  useEffect(() => {
+    const btc = globalData?.market_cap_percentage?.btc
+    if (btc != null) writeBtcDomHistory(btc)
+  }, [globalData])
+
+  if (!globalData) return <div style={P.wrap}><div style={P.title}>BTC DOMINANCE</div><div style={P.empty}>LOADING...</div></div>
   const pct = globalData.market_cap_percentage ?? {}
   const btc = pct.btc ?? 0
   const eth = pct.eth ?? 0
@@ -320,13 +393,25 @@ function DominancePanel({ globalData }) {
     { label:'SOL', pct:sol,    color:'#9945ff' },
     { label:'OTHERS', pct:others, color:'rgba(100,130,160,0.35)' },
   ]
+  const delta = btcYesterday != null ? btc - btcYesterday : null
   return (
     <div style={P.wrap}>
-      <div style={P.title}>DOMINANCE</div>
-      <div style={{ height:8, display:'flex', borderRadius:2, overflow:'hidden', marginBottom:7 }}>
+      <div style={P.title}>BTC DOMINANCE</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <DominanceArc pct={btc} color="#f7931a" />
+        <div>
+          <div style={{ fontSize: 9, color: 'rgba(100,130,160,0.6)' }}>of total mkt cap</div>
+          {delta != null && (
+            <div style={{ fontSize: 10, fontWeight: 600, color: delta >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+              {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(2)}pp vs yday
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{ height:6, display:'flex', borderRadius:2, overflow:'hidden', marginBottom:5 }}>
         {bars.map(b => <div key={b.label} style={{ width:`${b.pct}%`, background:b.color, transition:'width 0.5s' }} />)}
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px 8px' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 8px' }}>
         {bars.map(b => (
           <div key={b.label} style={{ display:'flex', alignItems:'center', gap:4, fontSize:9 }}>
             <span style={{ width:6, height:6, borderRadius:1, background:b.color, flexShrink:0 }} />
@@ -355,9 +440,11 @@ const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#c8a84b', letterSpac
 export default function CryptoModule() {
   const [selectedCoin, setSelectedCoin] = useState('BTC')
   const [timeframe, setTimeframe]       = useState('3M')
+  const [perfTimeframe, setPerfTimeframe] = useState('1M')
   const [titleBarHeight, setTitleBarHeight] = useState(28)
   const titleBarRef = useRef(null)
   const { openModal, currency } = useStore()
+  const { usdToAud, audToUsd } = useAudRates()
 
   useEffect(() => {
     if (titleBarRef.current) {
@@ -416,6 +503,67 @@ export default function CryptoModule() {
     return calculateCryptoMomentumIndex({ coins, fearGreed })
   }, [rawMarkets, fearGreed])
 
+  // Approximate total-market-cap 7d trend from constituent coins' own 7d
+  // sparklines (already fetched with the markets batch) — avoids a separate
+  // /global market-cap-chart call just for a tiny trend line.
+  const capSparkline = useMemo(() => {
+    if (!rawMarkets?.length) return []
+    const withSpark = rawMarkets.filter(c => c.sparkline_in_7d?.price?.length && c.market_cap && c.current_price)
+    if (!withSpark.length) return []
+    const len = Math.min(...withSpark.map(c => c.sparkline_in_7d.price.length))
+    const totals = new Array(len).fill(0)
+    for (const c of withSpark) {
+      const weight = c.market_cap / c.current_price
+      const prices = c.sparkline_in_7d.price
+      const offset = prices.length - len
+      for (let i = 0; i < len; i++) totals[i] += prices[offset + i] * weight
+    }
+    return totals
+  }, [rawMarkets])
+
+  // Top 5 coins by rank, normalised to 100 at the start of the selected
+  // period, for the performance-comparison chart below the table.
+  const PERF_DAYS = { '7D': 7, '1M': 30, '3M': 90 }
+  const perfDays = PERF_DAYS[perfTimeframe] ?? 30
+  // markets is rebuilt fresh from rawMarkets every render (transformCryptoMarkets
+  // returns new objects each time), so memoizing this slice wouldn't actually
+  // skip work — a plain derived value avoids the pointless memo.
+  const perfCoins = (markets ?? []).slice(0, 5)
+
+  const perfHistoryResults = useQueries({
+    queries: perfCoins.map((c) => ({
+      queryKey: ['coinHistoryPerf', c.symbol, vsCurrency, perfDays],
+      queryFn:  () => fetchCoinHistory(COIN_IDS[c.symbol] ?? c.symbol.toLowerCase(), vsCurrency, perfDays),
+      staleTime: 5 * 60_000,
+      retry: 1,
+      enabled: perfCoins.length > 0,
+    })),
+  })
+
+  const perfChartData = useMemo(() => {
+    if (!perfCoins.length) return { rows: [], finalPct: {} }
+    const series = perfCoins.map((c, i) => {
+      const raw = perfHistoryResults[i]?.data
+      if (!raw?.prices?.length) return null
+      return { symbol: c.symbol, prices: raw.prices }
+    })
+    if (series.some(s => !s)) return { rows: [], finalPct: {} }
+
+    const len = Math.min(...series.map(s => s.prices.length))
+    const bases = series.map(s => s.prices[s.prices.length - len][1])
+    const rows = []
+    for (let i = 0; i < len; i++) {
+      const row = { date: new Date(series[0].prices[series[0].prices.length - len + i][0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+      series.forEach((s, si) => {
+        row[s.symbol] = (s.prices[s.prices.length - len + i][1] / bases[si]) * 100
+      })
+      rows.push(row)
+    }
+    const finalPct = {}
+    series.forEach((s) => { finalPct[s.symbol] = rows[rows.length - 1]?.[s.symbol] - 100 })
+    return { rows, finalPct }
+  }, [perfCoins, perfHistoryResults])
+
   const yAxisFmt = (v) => {
     if (v >= 1_000_000) return `${currPrefix}${(v / 1_000_000).toFixed(1)}M`
     if (v >= 1_000)     return `${currPrefix}${(v / 1_000).toFixed(0)}K`
@@ -424,10 +572,20 @@ export default function CryptoModule() {
 
   const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
-  const handleOpenModal = (coin) => openModal?.({
-    symbol: coin.symbol, name: coin.name, price: coin.price,
-    pct: coin.pct24h, change: null, type: 'crypto', coinId: COIN_IDS[coin.symbol],
-  })
+  // modalAsset.price is always AUD (DetailModal's primary display expects
+  // AUD universally, same convention equities use); nativePrice/currency
+  // carry the USD figure for the dual-display sub-line regardless of which
+  // unit the table itself is currently showing.
+  const handleOpenModal = (coin) => {
+    const isAudTable = currency === 'AUD'
+    const audPrice = isAudTable ? coin.price : usdToAud(coin.price)
+    const usdPrice = isAudTable ? audToUsd(coin.price) : coin.price
+    openModal?.({
+      symbol: coin.symbol, name: coin.name, price: audPrice,
+      pct: coin.pct24h, change: null, type: 'crypto', coinId: COIN_IDS[coin.symbol],
+      extra: { currency: 'USD', nativePrice: usdPrice },
+    })
+  }
 
   const askAI = (coin) => {
     dispatchAskAI({
@@ -455,7 +613,7 @@ export default function CryptoModule() {
         style={{ height: 120, flexShrink: 0 }}>
         <MaddenAIPanel momentum={momentum} />
         <FearGreedPanel data={fearGreed} />
-        <MarketPulsePanel globalData={globalData} currency={currency} />
+        <MarketPulsePanel globalData={globalData} currency={currency} capSparkline={capSparkline} />
         <DominancePanel globalData={globalData} />
       </div>
 
@@ -540,84 +698,217 @@ export default function CryptoModule() {
         {marketsError ? (
           <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
         ) : markets ? (
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-            {/* Column headers — sticky below title bar, z-index 10 */}
-            <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
-              <tr style={{ background: '#071428', borderBottom: '1px solid #c8a84b' }}>
-                <th style={{ ...HEAD, textAlign: 'right', width: 28 }}>#</th>
-                <th style={{ ...HEAD, textAlign: 'left' }}>ASSET</th>
-                <th style={{ ...HEAD, textAlign: 'right' }}>PRICE</th>
-                <th style={{ ...HEAD, textAlign: 'right' }}>24H%</th>
-                <th style={{ ...HEAD, textAlign: 'right' }} className="hidden sm:table-cell">7D%</th>
-                <th style={{ ...HEAD, textAlign: 'right', width: 140, minWidth: 140 }} className="hidden md:table-cell">SENTIMENT</th>
-                <th style={{ ...HEAD, textAlign: 'right' }} className="hidden lg:table-cell">7D CHART</th>
-                <th style={{ ...HEAD, textAlign: 'right' }} className="hidden md:table-cell">MKT CAP</th>
-                <th style={{ ...HEAD, textAlign: 'right' }}>AI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {markets.map(coin => {
-                const sentScore = calcSentiment(coin.pct24h, coin.pct7d)
-                const sentColor = getSentimentColor(sentScore)
-                const sentLabel = getSentimentLabel(sentScore)
-                return (
-                  <tr key={coin.symbol}
-                    style={{ borderBottom: '1px solid rgba(13,34,68,0.4)', background: 'transparent', cursor: 'pointer' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,127,232,0.08)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                    onClick={() => handleOpenModal(coin)}>
-                    <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }}>{coin.rank}</td>
-                    <td style={{ ...CELL, textAlign: 'left' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-bright)' }}>{coin.symbol}</span>
-                      <span style={{ fontSize: 10, color: 'var(--color-text-dim)', marginLeft: 4 }} className="hidden xl:inline">{coin.name}</span>
-                    </td>
-                    <td style={{ ...CELL, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      {currency === 'AUD' ? fmt.aud(coin.price) : `US$${coin.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-                    </td>
-                    <td style={{ ...CELL, textAlign: 'right', fontWeight: 600, color: coin.pct24h >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
-                      {fmt.pct(coin.pct24h)}
-                    </td>
-                    <td style={{ ...CELL, textAlign: 'right', fontWeight: 600, color: (coin.pct7d ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}
-                      className="hidden sm:table-cell">
-                      {fmt.pct(coin.pct7d)}
-                    </td>
-                    {/* Sentiment — fixed 140px, visual bar with aligned | separator */}
-                    <td style={{ width: 140, minWidth: 140, maxWidth: 140, padding: '5px 8px', textAlign: 'left', whiteSpace: 'nowrap', verticalAlign: 'middle', position: 'static' }}
-                      className="hidden md:table-cell">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ color: '#1a3a6a', width: 8, flexShrink: 0, textAlign: 'center' }}>|</span>
-                        <div style={{ width: 40, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
-                          <div style={{ width: `${sentScore}%`, height: '100%', borderRadius: 2,
-                            background: sentScore >= 67 ? 'var(--color-gain)' : sentScore >= 34 ? '#c8a84b' : 'var(--color-loss)'
-                          }} />
-                        </div>
-                        <span style={{ width: 22, textAlign: 'right', flexShrink: 0, fontSize: 10,
-                          color: sentScore >= 67 ? 'var(--color-gain)' : sentScore >= 34 ? '#c8a84b' : 'var(--color-loss)'
-                        }}>{sentScore}</span>
-                        <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.8)', textTransform: 'uppercase' }}>{sentLabel}</span>
-                      </div>
-                    </td>
-                    <td style={{ ...CELL, textAlign: 'right' }} className="hidden lg:table-cell">
-                      <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
-                    </td>
-                    <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden md:table-cell">
-                      {currPrefix}{coin.mktCap}
-                    </td>
-                    <td style={{ ...CELL, textAlign: 'right' }} onClick={e => { e.stopPropagation(); askAI(coin) }}>
-                      <span style={{ fontSize: 9, color: '#c8a84b', cursor: 'pointer', border: '1px solid rgba(200,168,75,0.3)', padding: '2px 4px' }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#c8a84b' }}>
-                        AI
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <SortableCoinTable
+            markets={markets}
+            currPrefix={currPrefix}
+            usdToAud={usdToAud}
+            titleBarHeight={titleBarHeight}
+            onRowClick={handleOpenModal}
+            onAskAI={askAI}
+          />
         ) : <ModuleLoader name="CRYPTO" />}
       </div>
 
+      {/* ── Row 4: 30-day performance comparison ── */}
+      <PerformanceChart
+        coins={perfCoins}
+        data={perfChartData}
+        timeframe={perfTimeframe}
+        onTimeframeChange={setPerfTimeframe}
+        isLoading={perfHistoryResults.some(r => r.isFetching)}
+      />
+
+    </div>
+  )
+}
+
+// ── Sortable coin table ────────────────────────────────────────────────────
+const COIN_COLUMNS = [
+  { key: 'rank',       label: '#',         align: 'right', width: 28 },
+  { key: 'symbol',     label: 'COIN',      align: 'left' },
+  { key: 'price',      label: 'PRICE',     align: 'right' },
+  { key: 'pct24h',     label: '24H%',      align: 'right' },
+  { key: 'pct7d',      label: '7D%',       align: 'right', cell: 'sm' },
+  { key: 'marketCap',  label: 'MKT CAP',   align: 'right', cell: 'md' },
+  { key: 'volume',     label: 'VOLUME 24H', align: 'right', cell: 'lg' },
+  { key: 'supply',     label: 'SUPPLY',    align: 'right', cell: 'lg', width: 100 },
+  { key: 'sentiment',  label: 'SENTIMENT', align: 'right', cell: 'xl', width: 130 },
+  { key: 'sparkline',  label: '7D CHART',  align: 'right', cell: 'xl' },
+  { key: 'ai',         label: 'AI',        align: 'right' },
+]
+
+function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, onRowClick, onAskAI }) {
+  const [sortKey, setSortKey] = useState(null)
+  const [sortDir, setSortDir] = useState('desc')
+
+  const toggleSort = (key) => {
+    if (!['rank', 'symbol', 'price', 'pct24h', 'pct7d', 'marketCap', 'volume'].includes(key)) return
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sorted = sortKey ? [...markets].sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey]
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : markets
+
+  return (
+    <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+      <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
+        <tr style={{ background: '#071428', borderBottom: '1px solid #c8a84b' }}>
+          {COIN_COLUMNS.map(col => (
+            <th
+              key={col.key}
+              onClick={() => toggleSort(col.key)}
+              style={{ ...HEAD, textAlign: col.align, width: col.width, minWidth: col.width, cursor: 'pointer' }}
+              className={col.cell === 'sm' ? 'hidden sm:table-cell' : col.cell === 'md' ? 'hidden md:table-cell' : col.cell === 'lg' ? 'hidden lg:table-cell' : col.cell === 'xl' ? 'hidden xl:table-cell' : ''}
+            >
+              {col.label}
+              {sortKey === col.key && <span style={{ color: '#c8a84b', marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map(coin => {
+          const sentScore = calcSentiment(coin.pct24h, coin.pct7d)
+          const sentLabel = getSentimentLabel(sentScore)
+          const audPrice = usdToAud(coin.price)
+          const supplyPct = coin.maxSupply ? Math.min(100, (coin.circulatingSupply / coin.maxSupply) * 100) : null
+          return (
+            <tr key={coin.symbol}
+              style={{ borderBottom: '1px solid rgba(13,34,68,0.4)', background: 'transparent', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,127,232,0.08)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              onClick={() => onRowClick(coin)}>
+              <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }}>{coin.rank}</td>
+              <td style={{ ...CELL, textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CoinCircle symbol={coin.symbol} />
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-bright)' }}>{coin.symbol}</div>
+                    <div style={{ fontSize: 9, color: 'var(--color-text-dim)' }} className="hidden xl:block">{coin.name}</div>
+                  </div>
+                </div>
+              </td>
+              <td style={{ ...CELL, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <div style={{ fontWeight: 700, fontFamily: 'IBM Plex Mono' }}>
+                  US${coin.price.toLocaleString('en-US', { maximumFractionDigits: coin.price < 1 ? 4 : 2 })}
+                </div>
+                <div style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>
+                  {fmt.aud(audPrice)}
+                </div>
+              </td>
+              <td style={{ ...CELL, textAlign: 'right' }}>
+                <PriceChange pct={coin.pct24h} className="justify-end" />
+              </td>
+              <td style={{ ...CELL, textAlign: 'right' }} className="hidden sm:table-cell">
+                <PriceChange pct={coin.pct7d} className="justify-end" />
+              </td>
+              <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden md:table-cell">
+                {currPrefix}{coin.mktCap}
+              </td>
+              <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden lg:table-cell">
+                {currPrefix}{coin.vol24h}
+              </td>
+              {/* Supply bar — circulating/max, gold fill */}
+              <td style={{ ...CELL, textAlign: 'right' }} className="hidden lg:table-cell">
+                {supplyPct != null ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                    <div style={{ width: 44, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
+                      <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: '#c8a84b' }} />
+                    </div>
+                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
+                  </div>
+                ) : <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>∞</span>}
+              </td>
+              {/* Sentiment — fixed width, visual bar with aligned | separator */}
+              <td style={{ width: 130, minWidth: 130, maxWidth: 130, padding: '5px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}
+                className="hidden xl:table-cell">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ color: '#1a3a6a', width: 8, flexShrink: 0, textAlign: 'center' }}>|</span>
+                  <div style={{ width: 40, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
+                    <div style={{ width: `${sentScore}%`, height: '100%', borderRadius: 2,
+                      background: sentScore >= 67 ? 'var(--color-gain)' : sentScore >= 34 ? '#c8a84b' : 'var(--color-loss)'
+                    }} />
+                  </div>
+                  <span style={{ width: 22, textAlign: 'right', flexShrink: 0, fontSize: 10,
+                    color: sentScore >= 67 ? 'var(--color-gain)' : sentScore >= 34 ? '#c8a84b' : 'var(--color-loss)'
+                  }}>{sentScore}</span>
+                  <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.8)', textTransform: 'uppercase' }}>{sentLabel}</span>
+                </div>
+              </td>
+              <td style={{ ...CELL, textAlign: 'right' }} className="hidden xl:table-cell">
+                <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
+              </td>
+              <td style={{ ...CELL, textAlign: 'right' }} onClick={e => { e.stopPropagation(); onAskAI(coin) }}>
+                <span style={{ fontSize: 9, color: '#c8a84b', cursor: 'pointer', border: '1px solid rgba(200,168,75,0.3)', padding: '2px 4px' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#c8a84b' }}>
+                  AI
+                </span>
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+// ── 30-day performance comparison chart ───────────────────────────────────
+const PERF_TIMEFRAMES = ['7D', '1M', '3M']
+const PERF_LINE_COLORS = ['#c8a84b', '#627eea', '#00d4ff', '#f7931a', '#9945ff']
+
+function PerformanceChart({ coins, data, timeframe, onTimeframeChange, isLoading }) {
+  return (
+    <div className="flex-shrink-0 border-t border-terminal-border flex flex-col overflow-hidden" style={{ height: 180 }}>
+      <div className="flex items-center gap-2 px-2 py-1 border-b border-terminal-border/50 flex-shrink-0 flex-wrap">
+        <span className="text-2xs text-terminal-text-dim font-bold">TOP 5 PERFORMANCE — NORMALISED TO 100</span>
+        <div className="flex gap-0.5 ml-auto">
+          {PERF_TIMEFRAMES.map(tf => (
+            <button key={tf} onClick={() => onTimeframeChange(tf)}
+              className={`px-1.5 py-0 text-[9px] rounded-full transition-colors ${
+                timeframe === tf ? 'bg-terminal-gold text-terminal-bg font-bold' : 'text-terminal-text-dim hover:text-terminal-gold border border-terminal-border'
+              }`}>
+              {tf}
+            </button>
+          ))}
+        </div>
+        {isLoading && <span className="text-terminal-text-dim text-[9px] animate-pulse">...</span>}
+        <div className="flex gap-2 flex-wrap w-full">
+          {coins.map((c, i) => (
+            <span key={c.symbol} className="text-[9px] flex items-center gap-1" style={{ color: PERF_LINE_COLORS[i % PERF_LINE_COLORS.length] }}>
+              <span style={{ width: 6, height: 6, borderRadius: 1, background: PERF_LINE_COLORS[i % PERF_LINE_COLORS.length], display: 'inline-block' }} />
+              {c.symbol} {data.finalPct?.[c.symbol] != null ? `${data.finalPct[c.symbol] >= 0 ? '+' : ''}${data.finalPct[c.symbol].toFixed(1)}%` : ''}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 px-1 pb-1">
+        {data.rows?.length > 1 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.rows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke="#0d2244" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 7 }} domain={['auto', 'auto']} width={36} tickFormatter={(v) => v.toFixed(0)} />
+              <Tooltip contentStyle={{ background: '#0a0e1a', border: '1px solid #c8a84b', fontSize: 9 }} />
+              {coins.map((c, i) => (
+                <Line key={c.symbol} type="monotone" dataKey={c.symbol} stroke={PERF_LINE_COLORS[i % PERF_LINE_COLORS.length]}
+                  strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
+            LOADING PERFORMANCE DATA...
+          </div>
+        )}
+      </div>
     </div>
   )
 }

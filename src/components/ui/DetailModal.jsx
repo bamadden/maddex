@@ -19,6 +19,47 @@ import {
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
 const CHART_TYPES = ['area', 'line', 'candle']
 
+// ─── Crypto coin colour circle + descriptions ─────────────────────────────────
+// Same deterministic-hash approach as CryptoModule.jsx's CoinCircle — kept as
+// a small local copy rather than a cross-import from modules/ into
+// components/ui/, which would invert this app's dependency direction.
+const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#c8a84b']
+function hashStr(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+function coinColor(symbol) {
+  return CIRCLE_PALETTE[hashStr(symbol ?? '') % CIRCLE_PALETTE.length]
+}
+function CoinCircle({ symbol, size = 40 }) {
+  const color = coinColor(symbol)
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold flex-shrink-0"
+      style={{ width: size, height: size, background: `${color}26`, border: `1.5px solid ${color}66`, color, fontSize: size * 0.4 }}
+    >
+      {symbol?.[0] ?? '?'}
+    </span>
+  )
+}
+
+const COIN_DESCRIPTIONS = {
+  BTC:  'The original cryptocurrency and global store of value. Fixed supply of 21M coins, secured by proof-of-work mining.',
+  ETH:  'Programmable blockchain powering decentralised applications and smart contracts. Transitioned to proof-of-stake in 2022.',
+  XRP:  'Payment protocol and digital asset designed for instant cross-border settlements. Operated by Ripple Labs, 300+ institutional partners globally.',
+  SOL:  'High-performance blockchain processing 65,000+ transactions per second at fractions of a cent. Leading DeFi and NFT ecosystem.',
+  BNB:  'Native token of the Binance ecosystem and BNB Chain. Used for trading fee discounts, gas fees, and DeFi applications.',
+  ADA:  'Peer-reviewed, research-driven blockchain built for sustainability and scalability. Focus on emerging markets and financial inclusion.',
+  DOGE: 'Originally a meme cryptocurrency, now a widely accepted payment token with one of the largest retail communities in crypto.',
+  AVAX: 'Fast, low-cost smart contract platform with sub-second finality. Supports custom blockchains and is strong in DeFi and gaming.',
+  TON:  "The Open Network — blockchain developed from Telegram's original design. Fast growing ecosystem tied to Telegram's 900M+ user base.",
+  LINK: 'Decentralised oracle network connecting smart contracts to real-world data. Infrastructure layer for DeFi protocols.',
+}
+function coinDescription(symbol, name) {
+  return COIN_DESCRIPTIONS[symbol] ?? `${name ?? symbol} is a digital asset traded on major cryptocurrency exchanges. Track its price, market cap, and trading volume alongside the rest of the top 20 by market cap.`
+}
+
 const REC_LABELS = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
 const REC_COLORS = ['#22c55e', '#86efac', '#fbbf24', '#f97316', '#ef4444']
 
@@ -715,16 +756,29 @@ export default function DetailModal() {
   )
 
   // ─── Crypto sections ──────────────────────────────────────────────────────────
+  const volToMcap = coinRaw?.total_volume && coinRaw?.market_cap ? (coinRaw.total_volume / coinRaw.market_cap) * 100 : null
+
   const cryptoSections = (
     <>
+      <Section title="ABOUT" noCols>
+        <p className="text-2xs text-terminal-text-dim/80 leading-relaxed">
+          {coinDescription(symbol, name)}
+        </p>
+      </Section>
+
       <Section title="MARKET DATA">
-        <DataRow label="Market Cap"    value={coinRaw?.market_cap    ? `A$${fmtBig(coinRaw.market_cap).replace('A$', '')}` : '—'} />
-        <DataRow label="24H Volume"    value={coinRaw?.total_volume  ? `A$${fmtBig(coinRaw.total_volume).replace('A$', '')}` : '—'} />
-        <DataRow label="All-Time High" value={coinRaw?.ath           ? fmt.aud(coinRaw.ath) : '—'} />
-        <DataRow label="% from ATH"    value={coinRaw?.ath_change_percentage != null ? `${coinRaw.ath_change_percentage.toFixed(1)}%` : '—'}
+        <DataRow label="Market Cap"       value={coinRaw?.market_cap    ? `A$${fmtBig(coinRaw.market_cap).replace('A$', '')}` : '—'} />
+        <DataRow label="Fully Diluted"     value={coinRaw?.fully_diluted_valuation ? `A$${fmtBig(coinRaw.fully_diluted_valuation).replace('A$', '')}` : '—'} />
+        <DataRow label="24H Volume"       value={coinRaw?.total_volume  ? `A$${fmtBig(coinRaw.total_volume).replace('A$', '')}` : '—'} />
+        <DataRow label="Vol / Mkt Cap"     value={volToMcap != null ? `${volToMcap.toFixed(2)}%` : '—'} />
+        <DataRow label="Circulating Supply" value={coinRaw?.circulating_supply ? fmt.large(coinRaw.circulating_supply) : '—'} />
+        <DataRow label="Max Supply"        value={coinRaw?.max_supply    ? fmt.large(coinRaw.max_supply) : '—'} />
+        <DataRow label="All-Time High"     value={coinRaw?.ath           ? fmt.aud(coinRaw.ath) : '—'} />
+        <DataRow label="% from ATH"        value={coinRaw?.ath_change_percentage != null ? `${coinRaw.ath_change_percentage.toFixed(1)}%` : '—'}
           cls={colorClass(coinRaw?.ath_change_percentage)} />
-        <DataRow label="Circulating"   value={coinRaw?.circulating_supply ? fmt.large(coinRaw.circulating_supply) : '—'} />
-        <DataRow label="Max Supply"    value={coinRaw?.max_supply    ? fmt.large(coinRaw.max_supply) : '—'} />
+        <DataRow label="All-Time Low"      value={coinRaw?.atl           ? fmt.aud(coinRaw.atl) : '—'} />
+        <DataRow label="% from ATL"        value={coinRaw?.atl_change_percentage != null ? `+${coinRaw.atl_change_percentage.toFixed(1)}%` : '—'}
+          cls="text-terminal-green" />
       </Section>
 
       <Section title="PRICE PERFORMANCE">
@@ -737,6 +791,25 @@ export default function DetailModal() {
           ? `${coinRaw.price_change_percentage_30d_in_currency > 0 ? '+' : ''}${coinRaw.price_change_percentage_30d_in_currency.toFixed(2)}%`
           : '—'} cls={colorClass(coinRaw?.price_change_percentage_30d_in_currency)} />
         <DataRow label="Mkt Cap Rank" value={coinRaw?.market_cap_rank ? `#${coinRaw.market_cap_rank}` : '—'} />
+      </Section>
+
+      <Section title="LINKS" noCols>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ['CoinGecko', coinId ? `https://www.coingecko.com/en/coins/${coinId}` : null],
+            ['Whitepaper', null],
+            ['Website', null],
+          ].map(([label, href]) => (
+            href
+              ? <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                  className="text-2xs border border-terminal-border px-2 py-1 text-terminal-gold/70 hover:text-terminal-gold hover:border-terminal-gold/50 transition-colors">
+                  {label} ↗
+                </a>
+              : <span key={label} className="text-2xs border border-terminal-border/40 px-2 py-1 text-terminal-text-dim/40 cursor-default">
+                  {label}
+                </span>
+          ))}
+        </div>
       </Section>
 
       <Section title="RELATED NEWS" noCols>
@@ -794,6 +867,7 @@ export default function DetailModal() {
       >
         {/* Header */}
         <div className="flex items-start gap-2 px-4 py-3 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+          {type === 'crypto' && <CoinCircle symbol={symbol} />}
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold text-terminal-text-bright leading-tight truncate">
               {name ?? symbol}
@@ -802,9 +876,22 @@ export default function DetailModal() {
               <span className="text-2xs border border-terminal-gold/50 text-terminal-gold px-1.5 py-0.5 font-bold tracking-widest">
                 {symbol}
               </span>
-              <span className={`text-2xs border px-1.5 py-0.5 font-bold tracking-widest uppercase ${typeBadgeColor}`}>
-                {extra.exchange ?? type?.toUpperCase() ?? 'ASSET'}
-              </span>
+              {type === 'crypto' ? (
+                <>
+                  <span className={`text-2xs border px-1.5 py-0.5 font-bold tracking-widest uppercase ${typeBadgeColor}`}>
+                    Cryptocurrency
+                  </span>
+                  {coinRaw?.market_cap_rank && (
+                    <span className="text-2xs border border-terminal-border text-terminal-text-dim px-1.5 py-0.5">
+                      Rank #{coinRaw.market_cap_rank}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className={`text-2xs border px-1.5 py-0.5 font-bold tracking-widest uppercase ${typeBadgeColor}`}>
+                  {extra.exchange ?? type?.toUpperCase() ?? 'ASSET'}
+                </span>
+              )}
               {qs?.sector && (
                 <span className="text-2xs border border-terminal-border text-terminal-text-dim px-1.5 py-0.5">
                   {qs.sector}
@@ -845,7 +932,14 @@ export default function DetailModal() {
             </div>
           </div>
           <div className="ml-auto flex flex-col items-end gap-2">
-            <MarketStatusBadge extra={extra} />
+            {type === 'crypto' ? (
+              <div className="flex items-center gap-1.5 border border-terminal-green text-terminal-green px-2 py-0.5 text-2xs">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-green animate-pulse" />
+                <span className="font-bold">24/7</span>
+              </div>
+            ) : (
+              <MarketStatusBadge extra={extra} />
+            )}
             {display52High != null && (
               <div className="w-48">
                 <div className="text-2xs text-terminal-text-dim/50 mb-0.5">52W RANGE</div>
