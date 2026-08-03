@@ -1,10 +1,10 @@
 import { useRef, useMemo } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { fetchYFHistory, transformYFHistory, YF_INDICES } from '../../services/api'
+import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
-import { StaleBadge } from '../../components/ui/ModuleStates'
+import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -110,7 +110,11 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
 
   return (
     <div className="bg-terminal-panel border-b border-terminal-border font-mono relative">
-      {isDelayed && (
+      {USING_MOCK_DATA ? (
+        <div className="absolute top-1 right-2 z-10">
+          <DemoBadge />
+        </div>
+      ) : isDelayed && (
         <div className="absolute top-1 right-2 z-10">
           <StaleBadge cachedAt={quotesResult?.cachedAt} />
         </div>

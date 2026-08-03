@@ -4,8 +4,9 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, ResponsiveContainer, Tooltip, Legend,
 } from 'recharts'
-import { fetchBatch } from '../../services/api'
+import { fetchBatch, USING_MOCK_DATA } from '../../services/api'
 import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from './SectorHeatmap'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 
 // ─── Score calculation ────────────────────────────────────────────────────────
 
@@ -178,7 +179,9 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
         </span>
         {isLoading && <span className="text-terminal-text-dim text-2xs font-normal ml-auto animate-pulse">LOADING...</span>}
         {isError && !isLoading && <span className="text-terminal-red text-2xs font-normal ml-auto">⚠ ERROR</span>}
-        {!isLoading && !isError && <span className="text-terminal-green text-2xs font-normal ml-auto normal-case">● LIVE</span>}
+        {!isLoading && !isError && (USING_MOCK_DATA
+          ? <span className="ml-auto"><DemoBadge /></span>
+          : <span className="text-terminal-green text-2xs font-normal ml-auto normal-case">● LIVE</span>)}
         <button
           onClick={() => setRefreshKey(k => k + 1)}
           className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors px-1"

@@ -43,6 +43,21 @@ export function StaleBadge({ cachedAt, className = '' }) {
   )
 }
 
+// Shown instead of the "● LIVE" indicator whenever USING_MOCK_DATA (api.js)
+// is true — i.e. no working equities key is configured. Calling data "LIVE"
+// while it's actually mockData.js would be a lie; this replaces that claim
+// rather than just decorating alongside it.
+export function DemoBadge({ className = '' }) {
+  return (
+    <span
+      title="No live equities API key configured — showing realistic demo data until one is added"
+      className={`inline-flex items-center gap-1 rounded-full bg-terminal-gold/15 border border-terminal-gold/40 px-2 py-0.5 text-2xs text-terminal-gold whitespace-nowrap normal-case ${className}`}
+    >
+      ● DEMO <span className="text-terminal-gold/70">Live data connects on API setup</span>
+    </span>
+  )
+}
+
 export function ModuleError({ module = 'MODULE', lastUpdated, onRetry, className = '' }) {
   const lastSeen = timeAgoShort(lastUpdated)
   return (

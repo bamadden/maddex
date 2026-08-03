@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { fetchYahooBatch, fetchYFHistory, transformYFHistory } from '../../services/api'
+import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA } from '../../services/api'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useAudRates } from '../../hooks/useAudRates'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
@@ -921,7 +922,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           SHOWING {indexLabel.toUpperCase()} SECTORS
         </span>
         {isFetching && <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>}
-        {isLive && <span className="text-terminal-green text-2xs">● LIVE {updatedTime}</span>}
+        {isLive && (USING_MOCK_DATA ? <DemoBadge /> : <span className="text-terminal-green text-2xs">● LIVE {updatedTime}</span>)}
         {isError && !isFetching && (
           <button onClick={refetch} className="text-2xs text-terminal-red hover:text-terminal-gold">⚠ RETRY</button>
         )}
@@ -1007,7 +1008,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           </div>
           <div className="text-2xs text-terminal-text-dim/50 text-center" style={{ marginTop: 8 }}>
             {isLive
-              ? `GICS sector proxy prices · Yahoo Finance · ${updatedTime} AEST`
+              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO DATA' : `Live · ${updatedTime} AEST`}`
               : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
           </div>
         </div>
@@ -1018,7 +1019,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
-              {constQuotes && !constFetching && <span className="text-terminal-green text-2xs font-normal">● LIVE</span>}
+              {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <span className="text-terminal-green text-2xs font-normal">● LIVE</span>)}
               <button
                 onClick={askAISector}
                 className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
@@ -1189,7 +1190,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
             <div className="border-t border-terminal-border p-1.5 text-2xs text-terminal-text-dim/60 flex-shrink-0 flex items-center justify-between">
               <span>{constituentStocks.length > 0 ? `${constituentStocks.length} holdings` : 'Proxy view'}</span>
-              <span>{composite != null ? `${secondaryMetric} sector composite · Yahoo Finance` : `${secondaryMetric} ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''} · Yahoo Finance`}</span>
+              <span>{composite != null ? `${secondaryMetric} sector composite` : `${secondaryMetric} ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''}`}{USING_MOCK_DATA ? ' · DEMO' : ''}</span>
             </div>
           </div>
         )}

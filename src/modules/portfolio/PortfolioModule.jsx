@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYFQuote } from '../../services/api'
+import { fetchYFQuote, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { formatMarketCap } from '../../utils/format'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { fmt, colorClass } from '../../utils/format'
 import { StatBox } from '../../components/ui/Panel'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
@@ -351,7 +352,7 @@ export default function PortfolioModule() {
           : <>
               <div className="text-terminal-gold text-base font-bold tracking-[0.2em]">▲ PORTFOLIO TRACKER</div>
               <div className="text-terminal-text-dim text-sm text-center max-w-sm leading-relaxed">
-                Track your investments with live pricing from Stooq.
+                Track your investments with live equity and crypto pricing.
                 Holdings are stored locally — nothing leaves your device.
               </div>
               <button onClick={() => setShowAddForm(true)}
@@ -430,7 +431,9 @@ export default function PortfolioModule() {
                     ⚠ PRICE ERROR
                     <button onClick={refetch} className="underline ml-1 hover:text-terminal-gold">RETRY</button>
                   </span>
-                : <span className="text-2xs text-terminal-text-dim font-normal ml-auto">Stooq · {updatedAt} AEST</span>
+                : USING_MOCK_DATA
+                  ? <span className="ml-auto"><DemoBadge /></span>
+                  : <span className="text-2xs text-terminal-text-dim font-normal ml-auto">{updatedAt} AEST</span>
             }
           </div>
           <div className="overflow-auto flex-1">

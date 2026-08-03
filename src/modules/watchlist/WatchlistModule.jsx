@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooQuote } from '../../services/api'
+import { fetchYahooQuote, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass, formatMarketCap } from '../../utils/format'
@@ -8,7 +8,7 @@ import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
-import { ModuleLoader, ModuleError, StaleBadge } from '../../components/ui/ModuleStates'
+import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -177,9 +177,11 @@ export default function WatchlistModule() {
         WATCHLIST
         {isFetching
           ? <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">FETCHING...</span>
-          : isDelayed
-            ? <StaleBadge cachedAt={batchResult?.cachedAt} />
-            : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          : USING_MOCK_DATA
+            ? <DemoBadge />
+            : isDelayed
+              ? <StaleBadge cachedAt={batchResult?.cachedAt} />
+              : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
         <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{watchlist.length} tickers · drag ⠿ to reorder</span>
       </div>
 

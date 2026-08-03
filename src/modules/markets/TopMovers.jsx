@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { toAUD, ASX_STOCKS, US_STOCKS } from '../../services/api'
+import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
-import { StaleBadge } from '../../components/ui/ModuleStates'
+import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 
@@ -145,8 +145,9 @@ export default function TopMovers() {
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-gold">ASX LEADERS</span>
           {asxFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {asxQuotes && !asxFetching && asxDelayed && <StaleBadge cachedAt={asxResult?.cachedAt} />}
-          {asxQuotes && !asxFetching && !asxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {asxQuotes && !asxFetching && USING_MOCK_DATA && <DemoBadge />}
+          {asxQuotes && !asxFetching && !USING_MOCK_DATA && asxDelayed && <StaleBadge cachedAt={asxResult?.cachedAt} />}
+          {asxQuotes && !asxFetching && !USING_MOCK_DATA && !asxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {asxError && !asxFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
             {asxTrackedCap ? `${formatMarketCap(asxTrackedCap)} tracked · ` : ''}{updatedTime} · {ASX_STOCKS.length} stocks
@@ -159,8 +160,9 @@ export default function TopMovers() {
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-blue-bright">US LEADERS</span>
           {usFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {usQuotes && !usFetching && usDelayed && <StaleBadge cachedAt={usResult?.cachedAt} />}
-          {usQuotes && !usFetching && !usDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {usQuotes && !usFetching && USING_MOCK_DATA && <DemoBadge />}
+          {usQuotes && !usFetching && !USING_MOCK_DATA && usDelayed && <StaleBadge cachedAt={usResult?.cachedAt} />}
+          {usQuotes && !usFetching && !USING_MOCK_DATA && !usDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {usError && !usFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
             {usTrackedCap ? `${formatMarketCap(usTrackedCap)} tracked · ` : ''}{updatedTime} · {US_STOCKS.length} stocks

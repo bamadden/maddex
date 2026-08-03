@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getMockFMPRow, getMockFMPHistory } from './mockData'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
 
@@ -26,6 +27,22 @@ const STOOQ_BASE = '/api/stooq'
 const FMP_BASE = 'https://financialmodelingprep.com/api/v3'
 const FMP_KEY  = import.meta.env.VITE_FMP_API_KEY || 'demo'
 
+// No working equities key configured yet — Yahoo (IP rate-limited), FMP, and
+// Twelve Data were all tried this session; FMP/TD both gate ASX symbols and
+// batch quotes behind a paid plan even with a real key. Until a Polygon.io
+// key (or another vendor that actually covers ASX) lands, every quote/
+// history call below is served from src/services/mockData.js instead of
+// hitting the network — clearly flagged to the user via the DEMO badge
+// (USING_MOCK_DATA, read by ModuleStates.jsx's <DemoBadge/>). The instant a
+// real key is added to any of these env vars, this flips to live data with
+// no other code changes needed.
+const HAS_LIVE_DATA_KEY = !!(
+  import.meta.env.VITE_POLYGON_KEY ||
+  import.meta.env.VITE_TD_API_KEY ||
+  import.meta.env.VITE_FMP_API_KEY
+)
+export const USING_MOCK_DATA = !HAS_LIVE_DATA_KEY
+
 // Range→days mapping for the historical endpoint (FMP takes a day count, not
 // a Yahoo-style range string like '3mo').
 const RANGE_TO_DAYS = {
@@ -33,6 +50,11 @@ const RANGE_TO_DAYS = {
 }
 
 async function fetchFMPQuote(symbol) {
+  if (!HAS_LIVE_DATA_KEY) {
+    const mock = getMockFMPRow(symbol)
+    if (mock) return mock
+    throw new Error(`No mock data for ${symbol}`)
+  }
   const r = await fetch(
     `${FMP_BASE}/quote/${encodeURIComponent(symbol)}?apikey=${FMP_KEY}`,
     { signal: AbortSignal.timeout(8000) }
@@ -68,6 +90,9 @@ async function fetchFMPQuote(symbol) {
 
 async function fetchFMPBatch(symbols) {
   if (!symbols?.length) return []
+  if (!HAS_LIVE_DATA_KEY) {
+    return symbols.map(getMockFMPRow).filter(Boolean)
+  }
   const joined = symbols.map(s => encodeURIComponent(s)).join(',')
   const r = await fetch(
     `${FMP_BASE}/quote/${joined}?apikey=${FMP_KEY}`,
@@ -101,6 +126,9 @@ async function fetchFMPBatch(symbols) {
 }
 
 async function fetchFMPHistory(symbol, days = 93) {
+  if (!HAS_LIVE_DATA_KEY) {
+    return getMockFMPHistory(symbol, days)
+  }
   const r = await fetch(
     `${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}?timeseries=${days}&apikey=${FMP_KEY}`,
     { signal: AbortSignal.timeout(10000) }
