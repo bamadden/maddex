@@ -7,19 +7,116 @@ const setCache = (k, v, ttlMs) => _cache.set(k, { v, exp: Date.now() + ttlMs })
 const getCache = (k) => { const e = _cache.get(k); return (e && Date.now() < e.exp) ? e.v : null }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// Cache-busting for Yahoo requests: the timestamped URL goes out on the wire so
-// no browser/CDN layer serves a stale response; the stable (timestamp-free) URL
-// is the key for our own short-lived in-memory cache below.
-const NO_CACHE_HEADERS = { Accept: 'application/json', 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
-const bust = (url) => `${url}&_t=${Date.now()}`
-
 // ─── Stooq (via Vite proxy → /api/stooq → stooq.com) ─────────────────────────
 // Free financial data — no API key, no rate limits, CSV format.
 // Quote endpoint: /q/l/?s={sym}&f=sd2t2ohlcv&h&e=csv
 // History endpoint: /q/d/l/?s={sym}&d1={YYYYMMDD}&d2={YYYYMMDD}&i=d
 
 const STOOQ_BASE = '/api/stooq'
-const YAHOO_BASE = '/api/yahoo'
+
+// ─── Financial Modeling Prep — equities + indices (replaces Yahoo Finance) ───
+// CORS-enabled, called directly from the browser — no proxy needed.
+// The 'demo' fallback key is a placeholder only: FMP retired demo-key access
+// (confirmed directly — every /quote/ call returns "Invalid API KEY" even for
+// AAPL), so live data requires a real free key in VITE_FMP_API_KEY (sign up
+// at financialmodelingprep.com, no card required, 250 req/day). Every
+// function below degrades to the app's existing stale-cache/DATA UNAVAILABLE
+// handling when the key is invalid — nothing crashes, it just shows no data
+// until a real key is set.
+const FMP_BASE = 'https://financialmodelingprep.com/api/v3'
+const FMP_KEY  = import.meta.env.VITE_FMP_API_KEY || 'demo'
+
+// Range→days mapping for the historical endpoint (FMP takes a day count, not
+// a Yahoo-style range string like '3mo').
+const RANGE_TO_DAYS = {
+  '1d': 2, '5d': 8, '7d': 10, '1mo': 33, '3mo': 93, '6mo': 186, '1y': 370, '5y': 1830,
+}
+
+async function fetchFMPQuote(symbol) {
+  const r = await fetch(
+    `${FMP_BASE}/quote/${encodeURIComponent(symbol)}?apikey=${FMP_KEY}`,
+    { signal: AbortSignal.timeout(8000) }
+  )
+  if (!r.ok) throw new Error(`FMP ${r.status}`)
+  const data = await r.json()
+  if (!data?.[0]) throw new Error('No FMP data')
+  const q = data[0]
+  return {
+    symbol: q.symbol,
+    shortName: q.name,
+    regularMarketPrice: q.price,
+    regularMarketChange: q.change,
+    regularMarketChangePercent: q.changesPercentage,
+    regularMarketPreviousClose: q.previousClose,
+    regularMarketOpen: q.open,
+    regularMarketDayHigh: q.dayHigh,
+    regularMarketDayLow: q.dayLow,
+    regularMarketVolume: q.volume,
+    averageVolume: q.avgVolume,
+    marketCap: q.marketCap,
+    trailingPE: q.pe,
+    epsTrailingTwelveMonths: q.eps,
+    fiftyTwoWeekHigh: q.yearHigh,
+    fiftyTwoWeekLow: q.yearLow,
+    sharesOutstanding: q.sharesOutstanding,
+    exchange: q.exchange,
+    priceAvg50: q.priceAvg50,
+    priceAvg200: q.priceAvg200,
+    currency: symbol.endsWith('.AX') ? 'AUD' : 'USD',
+  }
+}
+
+async function fetchFMPBatch(symbols) {
+  if (!symbols?.length) return []
+  const joined = symbols.map(s => encodeURIComponent(s)).join(',')
+  const r = await fetch(
+    `${FMP_BASE}/quote/${joined}?apikey=${FMP_KEY}`,
+    { signal: AbortSignal.timeout(10000) }
+  )
+  if (!r.ok) throw new Error(`FMP batch ${r.status}`)
+  const data = await r.json()
+  return (data ?? []).map(q => ({
+    symbol: q.symbol,
+    shortName: q.name,
+    regularMarketPrice: q.price,
+    regularMarketChange: q.change,
+    regularMarketChangePercent: q.changesPercentage,
+    regularMarketPreviousClose: q.previousClose,
+    regularMarketOpen: q.open,
+    regularMarketDayHigh: q.dayHigh,
+    regularMarketDayLow: q.dayLow,
+    regularMarketVolume: q.volume,
+    averageVolume: q.avgVolume,
+    marketCap: q.marketCap,
+    trailingPE: q.pe,
+    epsTrailingTwelveMonths: q.eps,
+    fiftyTwoWeekHigh: q.yearHigh,
+    fiftyTwoWeekLow: q.yearLow,
+    sharesOutstanding: q.sharesOutstanding,
+    exchange: q.exchange,
+    priceAvg50: q.priceAvg50,
+    priceAvg200: q.priceAvg200,
+    currency: q.symbol.endsWith('.AX') ? 'AUD' : 'USD',
+  }))
+}
+
+async function fetchFMPHistory(symbol, days = 93) {
+  const r = await fetch(
+    `${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}?timeseries=${days}&apikey=${FMP_KEY}`,
+    { signal: AbortSignal.timeout(10000) }
+  )
+  if (!r.ok) throw new Error(`FMP history ${r.status}`)
+  const data = await r.json()
+  const hist = data.historical || []
+  return hist.slice().reverse().map(d => ({
+    date: d.date,
+    open: d.open,
+    high: d.high,
+    low: d.low,
+    close: d.close,
+    volume: d.volume,
+  }))
+}
 
 // Map Yahoo Finance symbol keys → Stooq symbol format
 const YF_TO_STOOQ = {
@@ -37,9 +134,10 @@ function yfToStooq(sym) {
   return sym.toLowerCase() + '.us'
 }
 
-// ─── Yahoo Finance — individual stock quotes and history ─────────────────────
+// ─── Individual stock quotes and history (FMP-backed) ─────────────────────────
 // Single source of truth for all equity data (non-index).
-// Pass symbols in Yahoo Finance format: BHP.AX (ASX), AAPL (US).
+// Pass symbols in Yahoo-style format: BHP.AX (ASX), AAPL (US) — FMP accepts
+// the same symbol format, so no translation layer was needed.
 // Prices returned in native currency: AUD for .AX, USD for US stocks.
 // Apply toAUD() at display time — never during fetch.
 
@@ -54,147 +152,108 @@ export const US_STOCKS = [
   'JPM','BAC','GS','MS','V','MA','UNH','JNJ','XOM','CVX',
 ]
 
+// fetchBatch: one FMP batch call gets price + fundamentals together (unlike
+// Yahoo, which needed a v8 chart call per symbol plus a separate v7 batch
+// enrichment call) — much simpler than the old two-phase implementation.
+// Output shape is unchanged from the Yahoo-backed version so every existing
+// caller (TopMovers, dataService.fetchEquityQuotes, etc.) needs no changes.
 export async function fetchBatch(symbols) {
-  const out = {}
-  for (let i = 0; i < symbols.length; i += 5) {
-    const batch = symbols.slice(i, i + 5)
-    const results = await Promise.all(batch.map(fetchYahooQuote))
-    batch.forEach((sym, j) => { if (results[j]) out[sym] = results[j] })
-    if (i + 5 < symbols.length) await new Promise((r) => setTimeout(r, 300))
+  if (!symbols?.length) return {}
+  let rows
+  try {
+    rows = await fetchFMPBatch(symbols)
+  } catch (e) {
+    console.error('[MADDEN API] fetchBatch (FMP) failed:', e.message)
+    throw new Error('All quotes unavailable', { cause: e })
   }
-  // Every symbol failed — throw so the query flips to isError and the UI
-  // shows DATA UNAVAILABLE + retry instead of silently rendering "No data".
+  const out = {}
+  for (const q of rows) {
+    if (q.regularMarketPrice == null) continue
+    out[q.symbol] = fmpQuoteToLegacyShape(q)
+  }
   if (symbols.length > 0 && Object.keys(out).length === 0) {
     throw new Error('All quotes unavailable')
   }
-  // Enrich with marketCap/fundamentals from the v7 batch quote endpoint — the
-  // chart endpoint above doesn't carry these fields at all. Best-effort: a
-  // failure here doesn't discard the price/change data already fetched.
-  const enrichment = await fetchYahooQuoteBatch(Object.keys(out))
-  for (const sym of Object.keys(out)) {
-    const extra = enrichment[sym]
-    if (!extra) continue
-    out[sym] = {
-      ...out[sym],
-      marketCap:         extra.marketCap ?? out[sym].marketCap,
-      trailingPE:        extra.trailingPE,
-      forwardPE:         extra.forwardPE,
-      epsTrailing:       extra.epsTrailing,
-      epsForward:        extra.epsForward,
-      bookValue:         extra.bookValue,
-      pb:                extra.pb,
-      divYield:          extra.divYield,
-      beta:              extra.beta,
-      sharesOutstanding: extra.sharesOutstanding,
-      ma50:              extra.ma50,
-      ma200:             extra.ma200,
-      avgVolume:         extra.avgVolume,
-    }
-  }
+  console.log(`[MADDEN API] ✓ FMP batch: ${Object.keys(out).length}/${symbols.length} symbols`)
   return out
 }
 
-// ─── Yahoo Finance v7 quote — batched fundamentals ────────────────────────────
-// One request for the whole symbol list returns marketCap, PE, EPS, and other
-// summary fields the v8 chart endpoint above doesn't carry. Used to enrich
-// fetchBatch() and as a DetailModal fallback alongside quoteSummary.
+// Reshapes an fetchFMPQuote/fetchFMPBatch row into the exact object shape
+// fetchYahooQuote used to return, so every field existing components read
+// (price, last, pct, change, dayChangePct, marketCap, trailingPE, etc.)
+// keeps working unchanged.
+function fmpQuoteToLegacyShape(q) {
+  const price = q.regularMarketPrice
+  const prevClose = q.regularMarketPreviousClose
+  const dayChange = q.regularMarketChange ?? (prevClose != null ? price - prevClose : null)
+  const dayChangePct = q.regularMarketChangePercent ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : null)
+  return {
+    symbol: q.symbol,
+    price,
+    prevClose,
+    open: q.regularMarketOpen,
+    high: q.regularMarketDayHigh,
+    low: q.regularMarketDayLow,
+    volume: q.regularMarketVolume,
+    avgVolume: q.averageVolume,
+    currency: q.currency,
+    exchange: q.exchange,
+    week52High: q.fiftyTwoWeekHigh,
+    week52Low: q.fiftyTwoWeekLow,
+    dayChange,
+    dayChangePct,
+    marketCap: q.marketCap,
+    trailingPE: q.trailingPE,
+    epsTrailing: q.epsTrailingTwelveMonths,
+    sharesOutstanding: q.sharesOutstanding,
+    ma50: q.priceAvg50,
+    ma200: q.priceAvg200,
+    name: q.shortName ?? q.symbol,
+    lastUpdated: new Date().toISOString(),
+    isOpen: null, // FMP's basic quote doesn't carry market-open state
+    // Backward-compat aliases used by existing components
+    last: price,
+    pct: dayChangePct,
+    change: dayChange,
+    vol: q.regularMarketVolume,
+    timestamp: new Date().toISOString().slice(0, 10),
+    fallback: false,
+  }
+}
+
+// ─── FMP quote — batched fundamentals ─────────────────────────────────────────
+// Kept as its own export (used as a DetailModal enrichment fallback, same
+// role fetchYahooQuoteBatch used to play) — one FMP call, keyed by symbol.
 export async function fetchYahooQuoteBatch(symbols) {
   if (!symbols?.length) return {}
-  const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`
-  const cached = getCache(url)
+  const cacheKey = `fmp-quote-batch:${symbols.slice().sort().join(',')}`
+  const cached = getCache(cacheKey)
   if (cached) return cached
   try {
-    const res = await fetch(bust(url), { signal: AbortSignal.timeout(10000), headers: NO_CACHE_HEADERS })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    const results = data?.quoteResponse?.result ?? []
+    const rows = await fetchFMPBatch(symbols)
     const out = {}
-    for (const r of results) {
-      if (!r?.symbol) continue
-      out[r.symbol] = {
-        symbol:            r.symbol,
-        price:             r.regularMarketPrice ?? null,
-        prevClose:         r.regularMarketPreviousClose ?? null,
-        change:            r.regularMarketChange ?? null,
-        changePct:         r.regularMarketChangePercent ?? null,
-        volume:            r.regularMarketVolume ?? null,
-        avgVolume:         r.averageDailyVolume3Month ?? r.averageDailyVolume10Day ?? null,
-        marketCap:         r.marketCap ?? null,
-        currency:          r.currency ?? null,
-        exchange:          r.fullExchangeName ?? r.exchange ?? null,
-        week52High:        r.fiftyTwoWeekHigh ?? null,
-        week52Low:         r.fiftyTwoWeekLow ?? null,
-        trailingPE:        r.trailingPE ?? null,
-        forwardPE:         r.forwardPE ?? null,
-        epsTrailing:       r.epsTrailingTwelveMonths ?? null,
-        epsForward:        r.epsForward ?? null,
-        bookValue:         r.bookValue ?? null,
-        pb:                r.priceToBook ?? null,
-        divYield:          r.dividendYield ?? r.trailingAnnualDividendYield ?? null,
-        beta:              r.beta ?? null,
-        sharesOutstanding: r.sharesOutstanding ?? null,
-        ma50:              r.fiftyDayAverage ?? null,
-        ma200:             r.twoHundredDayAverage ?? null,
-        name:              r.longName ?? r.shortName ?? r.symbol,
-      }
-    }
-    console.log(`[MADDEN API] ✓ Yahoo v7 quote batch: ${Object.keys(out).length}/${symbols.length} symbols`)
-    setCache(url, out, 5 * 60_000)
+    for (const q of rows) out[q.symbol] = fmpQuoteToLegacyShape(q)
+    console.log(`[MADDEN API] ✓ FMP quote batch (enrichment): ${Object.keys(out).length}/${symbols.length} symbols`)
+    setCache(cacheKey, out, 5 * 60_000)
     return out
   } catch (e) {
-    console.error('[MADDEN API] fetchYahooQuoteBatch failed:', e.message)
+    console.error('[MADDEN API] fetchYahooQuoteBatch (FMP) failed:', e.message)
     return {}
   }
 }
 
 export async function fetchYahooQuote(symbol) {
   try {
-    const url = `${YAHOO_BASE}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`
-    const cached = getCache(url)
+    const cacheKey = `fmp-quote:${symbol}`
+    const cached = getCache(cacheKey)
     if (cached) return cached
-    const res = await fetch(bust(url), { signal: AbortSignal.timeout(8000), headers: NO_CACHE_HEADERS })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    const result = data?.chart?.result?.[0]
-    if (!result) throw new Error('No result')
-    const meta = result.meta
-    const price = meta.regularMarketPrice
-    const prevClose = meta.previousClose ?? meta.chartPreviousClose
-    if (!price || !prevClose) throw new Error('No price data')
-    const dayChange    = price - prevClose
-    const dayChangePct = ((price - prevClose) / prevClose) * 100
-    const currency     = meta.currency ?? 'AUD'
-    console.log(`[MADDEN API] ✓ Yahoo ${symbol}: ${price} ${currency} (${dayChangePct >= 0 ? '+' : ''}${dayChangePct.toFixed(2)}%)`)
-    const q = {
-      symbol,
-      price,
-      prevClose,
-      open:        meta.regularMarketOpen,
-      high:        meta.regularMarketDayHigh,
-      low:         meta.regularMarketDayLow,
-      volume:      meta.regularMarketVolume,
-      currency,
-      exchange:    meta.exchangeName,
-      week52High:  meta.fiftyTwoWeekHigh,
-      week52Low:   meta.fiftyTwoWeekLow,
-      dayChange,
-      dayChangePct,
-      marketCap:   meta.marketCap,
-      name:        meta.longName ?? meta.shortName ?? symbol,
-      lastUpdated: new Date().toISOString(),
-      isOpen:      meta.marketState === 'REGULAR',
-      // Backward-compat aliases used by existing components
-      last:        price,
-      pct:         dayChangePct,
-      change:      dayChange,
-      vol:         meta.regularMarketVolume,
-      timestamp:   new Date().toISOString().slice(0, 10),
-      fallback:    false,
-    }
-    setCache(url, q, 60_000)
+    const q = fmpQuoteToLegacyShape(await fetchFMPQuote(symbol))
+    if (q.price == null || q.prevClose == null) throw new Error('No price data')
+    console.log(`[MADDEN API] ✓ FMP ${symbol}: ${q.price} ${q.currency} (${q.dayChangePct >= 0 ? '+' : ''}${q.dayChangePct?.toFixed(2)}%)`)
+    setCache(cacheKey, q, 60_000)
     return q
   } catch (e) {
-    console.error(`[MADDEN API] fetchYahooQuote failed for ${symbol}:`, e.message)
+    console.error(`[MADDEN API] fetchYahooQuote (FMP) failed for ${symbol}:`, e.message)
     // No hardcoded fallback — callers must treat null as DATA UNAVAILABLE and offer retry.
     return null
   }
@@ -202,43 +261,31 @@ export async function fetchYahooQuote(symbol) {
 
 export async function fetchYahooHistory(symbol, range = '3mo', interval = '1d') {
   try {
-    const url = `${YAHOO_BASE}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`
-    const cached = getCache(url)
+    const cacheKey = `fmp-history:${symbol}:${range}:${interval}`
+    const cached = getCache(cacheKey)
     if (cached) return cached
-    const res = await fetch(bust(url), { signal: AbortSignal.timeout(15000), headers: NO_CACHE_HEADERS })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    const result = data?.chart?.result?.[0]
-    if (!result) throw new Error('No result')
-    const timestamps = result.timestamp ?? []
-    const closes  = result.indicators?.quote?.[0]?.close  ?? []
-    const opens   = result.indicators?.quote?.[0]?.open   ?? []
-    const highs   = result.indicators?.quote?.[0]?.high   ?? []
-    const lows    = result.indicators?.quote?.[0]?.low    ?? []
-    const volumes = result.indicators?.quote?.[0]?.volume ?? []
-    const currency = result.meta.currency ?? 'AUD'
-    const chartData = timestamps.map((ts, i) => {
-      const close = closes[i]
-      if (close == null || isNaN(close) || close <= 0) return null
-      const date = new Date(ts * 1000).toISOString().slice(0, 10)
-      const label = new Date(date + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
+    const days = RANGE_TO_DAYS[range] ?? 93
+    const rows = await fetchFMPHistory(symbol, days)
+    const chartData = rows.map((d) => {
+      if (d.close == null || isNaN(d.close) || d.close <= 0) return null
+      const label = new Date(d.date + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
       return {
-        date:   label,
-        rawDate: date,
-        close:  parseFloat(close.toFixed(4)),
-        price:  parseFloat(close.toFixed(4)),  // backward compat
-        open:   opens[i]   != null ? parseFloat((opens[i] ?? close).toFixed(4))  : close,
-        high:   highs[i]   != null ? parseFloat((highs[i] ?? close).toFixed(4))  : close,
-        low:    lows[i]    != null ? parseFloat((lows[i]  ?? close).toFixed(4))  : close,
-        volume: volumes[i] ?? 0,
-        currency,
+        date: label,
+        rawDate: d.date,
+        close: parseFloat(d.close.toFixed(4)),
+        price: parseFloat(d.close.toFixed(4)), // backward compat
+        open: d.open != null ? parseFloat(d.open.toFixed(4)) : d.close,
+        high: d.high != null ? parseFloat(d.high.toFixed(4)) : d.close,
+        low: d.low != null ? parseFloat(d.low.toFixed(4)) : d.close,
+        volume: d.volume ?? 0,
+        currency: symbol.endsWith('.AX') ? 'AUD' : 'USD',
       }
     }).filter(Boolean).sort((a, b) => a.rawDate.localeCompare(b.rawDate))
-    console.log(`[MADDEN API] ✓ Yahoo history ${symbol} ${range}: ${chartData.length} pts, ${chartData[0]?.date} → ${chartData[chartData.length - 1]?.date}`)
-    setCache(url, chartData, 5 * 60_000)
+    console.log(`[MADDEN API] ✓ FMP history ${symbol} ${range}: ${chartData.length} pts, ${chartData[0]?.date} → ${chartData[chartData.length - 1]?.date}`)
+    setCache(cacheKey, chartData, 5 * 60_000)
     return chartData
   } catch (e) {
-    console.error(`[MADDEN API] fetchYahooHistory failed for ${symbol}:`, e.message)
+    console.error(`[MADDEN API] fetchYahooHistory (FMP) failed for ${symbol}:`, e.message)
     return []
   }
 }
@@ -264,119 +311,103 @@ export async function fetchYahooBatch(symbols) {
   return out
 }
 
-// ─── Yahoo Finance quoteSummary — full fundamental data ───────────────────────
-
+// ─── FMP quote — full fundamental data (was Yahoo quoteSummary) ───────────────
+// FMP's basic /quote/ endpoint doesn't carry the deeper fields Yahoo's
+// quoteSummary did (sector, industry, description, employees, ROE/ROA, debt
+// ratios, analyst targets, etc.) — those come back null and DetailModal's
+// existing pick() helper already renders '—' for any null field, so nothing
+// breaks, it's just a less rich detail view until those fields are sourced
+// from a separate endpoint.
 export async function fetchQuoteSummary(symbol) {
-  const modules = 'price,summaryDetail,defaultKeyStatistics,financialData,assetProfile'
-  const url = `${YAHOO_BASE}/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${modules}`
-  const cached = getCache(url)
+  const cacheKey = `fmp-summary:${symbol}`
+  const cached = getCache(cacheKey)
   if (cached) return cached
 
-  const res = await fetch(bust(url), { signal: AbortSignal.timeout(12000), headers: NO_CACHE_HEADERS })
-  if (!res.ok) throw new Error(`quoteSummary HTTP ${res.status}`)
-  const data = await res.json()
-  const result = data?.quoteSummary?.result?.[0]
-  if (!result) throw new Error('No quoteSummary result')
-
-  const p  = result.price ?? {}
-  const sd = result.summaryDetail ?? {}
-  const ks = result.defaultKeyStatistics ?? {}
-  const fd = result.financialData ?? {}
-  const ap = result.assetProfile ?? {}
-
-  const raw = (obj, key) => {
-    const v = obj?.[key]
-    if (v == null) return null
-    if (typeof v === 'object' && 'raw' in v) return v.raw
-    return (typeof v === 'number' || typeof v === 'string') ? v : null
-  }
-  const safe = (v) => (v != null && Number.isFinite(v) ? v : null)
-  const r = (obj, key) => safe(raw(obj, key))
-
-  const price     = r(p, 'regularMarketPrice')
-  const prevClose = r(p, 'regularMarketPreviousClose')
+  const q = await fetchFMPQuote(symbol)
+  const price = q.regularMarketPrice
+  const prevClose = q.regularMarketPreviousClose
 
   const qs = {
     // Price
     price,
     prevClose,
-    change:      r(p, 'regularMarketChange'),
-    changePct:   price && prevClose ? ((price - prevClose) / prevClose) * 100 : null,
-    volume:      r(p, 'regularMarketVolume'),
-    dayHigh:     r(p, 'regularMarketDayHigh'),
-    dayLow:      r(p, 'regularMarketDayLow'),
-    open:        r(p, 'regularMarketOpen'),
-    marketCap:   r(p, 'marketCap'),
-    currency:    p.currency ?? null,
-    exchange:    p.exchangeName ?? null,
-    name:        p.shortName ?? p.longName ?? null,
-    quoteType:   p.quoteType ?? null,
+    change:      q.regularMarketChange,
+    changePct:   q.regularMarketChangePercent ?? (price && prevClose ? ((price - prevClose) / prevClose) * 100 : null),
+    volume:      q.regularMarketVolume,
+    dayHigh:     q.regularMarketDayHigh,
+    dayLow:      q.regularMarketDayLow,
+    open:        q.regularMarketOpen,
+    marketCap:   q.marketCap,
+    currency:    q.currency ?? null,
+    exchange:    q.exchange ?? null,
+    name:        q.shortName ?? null,
+    quoteType:   null,
     // Summary Detail
-    trailingPE:   r(sd, 'trailingPE'),
-    forwardPE:    r(sd, 'forwardPE'),
-    divYield:     r(sd, 'dividendYield'),
-    payoutRatio:  r(sd, 'payoutRatio'),
-    beta:         r(sd, 'beta'),
-    week52High:   r(sd, 'fiftyTwoWeekHigh'),
-    week52Low:    r(sd, 'fiftyTwoWeekLow'),
-    ma50:         r(sd, 'fiftyDayAverage'),
-    ma200:        r(sd, 'twoHundredDayAverage'),
-    avgVolume:    r(sd, 'averageVolume'),
-    avgVolume10d: r(sd, 'averageVolume10days'),
-    ps:           r(sd, 'priceToSalesTrailing12Months'),
+    trailingPE:   q.trailingPE,
+    forwardPE:    null,
+    divYield:     null,
+    payoutRatio:  null,
+    beta:         null,
+    week52High:   q.fiftyTwoWeekHigh,
+    week52Low:    q.fiftyTwoWeekLow,
+    ma50:         q.priceAvg50,
+    ma200:        q.priceAvg200,
+    avgVolume:    q.averageVolume,
+    avgVolume10d: null,
+    ps:           null,
     // Key Statistics
-    enterpriseValue:   r(ks, 'enterpriseValue'),
-    profitMargins:     r(ks, 'profitMargins'),
-    sharesOutstanding: r(ks, 'sharesOutstanding'),
-    sharesShort:       r(ks, 'sharesShort'),
-    shortRatio:        r(ks, 'shortRatio'),
-    shortPctFloat:     r(ks, 'shortPercentOfFloat'),
-    bookValue:         r(ks, 'bookValue'),
-    pb:                r(ks, 'priceToBook'),
-    netIncome:         r(ks, 'netIncomeToCommon'),
-    epsTrailing:       r(ks, 'trailingEps'),
-    epsForward:        r(ks, 'forwardEps'),
-    peg:               r(ks, 'pegRatio'),
-    evRevenue:         r(ks, 'enterpriseToRevenue'),
-    evEbitda:          r(ks, 'enterpriseToEbitda'),
-    week52Change:      r(ks, '52WeekChange'),
-    lastDividend:      r(ks, 'lastDividendValue'),
-    lastDividendDate:  raw(ks, 'lastDividendDate'),
+    enterpriseValue:   null,
+    profitMargins:     null,
+    sharesOutstanding: q.sharesOutstanding,
+    sharesShort:       null,
+    shortRatio:        null,
+    shortPctFloat:     null,
+    bookValue:         null,
+    pb:                null,
+    netIncome:         null,
+    epsTrailing:       q.epsTrailingTwelveMonths,
+    epsForward:        null,
+    peg:               null,
+    evRevenue:         null,
+    evEbitda:          null,
+    week52Change:      null,
+    lastDividend:      null,
+    lastDividendDate:  null,
     // Financial Data
-    revenue:          r(fd, 'totalRevenue'),
-    revenuePerShare:  r(fd, 'revenuePerShare'),
-    roa:              r(fd, 'returnOnAssets'),
-    roe:              r(fd, 'returnOnEquity'),
-    grossProfit:      r(fd, 'grossProfits'),
-    freeCashflow:     r(fd, 'freeCashflow'),
-    operatingCF:      r(fd, 'operatingCashflow'),
-    earningsGrowth:   r(fd, 'earningsGrowth'),
-    revenueGrowth:    r(fd, 'revenueGrowth'),
-    grossMargins:     r(fd, 'grossMargins'),
-    ebitdaMargins:    r(fd, 'ebitdaMargins'),
-    operatingMargins: r(fd, 'operatingMargins'),
-    totalDebt:        r(fd, 'totalDebt'),
-    totalCash:        r(fd, 'totalCash'),
-    debtToEquity:     r(fd, 'debtToEquity'),
-    currentRatio:     r(fd, 'currentRatio'),
-    targetHigh:       r(fd, 'targetHighPrice'),
-    targetLow:        r(fd, 'targetLowPrice'),
-    targetMean:       r(fd, 'targetMeanPrice'),
-    recMean:          r(fd, 'recommendationMean'),
-    recKey:           fd.recommendationKey ?? null,
-    analystCount:     r(fd, 'numberOfAnalystOpinions'),
-    // Profile
-    sector:      ap.sector ?? null,
-    industry:    ap.industry ?? null,
-    description: ap.longBusinessSummary ?? null,
-    employees:   ap.fullTimeEmployees ?? null,
-    website:     ap.website ?? null,
-    city:        ap.city ?? null,
-    country:     ap.country ?? null,
+    revenue:          null,
+    revenuePerShare:  null,
+    roa:              null,
+    roe:              null,
+    grossProfit:      null,
+    freeCashflow:     null,
+    operatingCF:      null,
+    earningsGrowth:   null,
+    revenueGrowth:    null,
+    grossMargins:     null,
+    ebitdaMargins:    null,
+    operatingMargins: null,
+    totalDebt:        null,
+    totalCash:        null,
+    debtToEquity:     null,
+    currentRatio:     null,
+    targetHigh:       null,
+    targetLow:        null,
+    targetMean:       null,
+    recMean:          null,
+    recKey:           null,
+    analystCount:     null,
+    // Profile — not available from FMP's basic /quote/ endpoint
+    sector:      null,
+    industry:    null,
+    description: null,
+    employees:   null,
+    website:     null,
+    city:        null,
+    country:     null,
   }
 
-  console.log(`[MADDEN API] ✓ quoteSummary ${symbol}: PE=${qs.trailingPE?.toFixed(1)}, cap=${qs.marketCap ? (qs.marketCap/1e9).toFixed(0)+'B' : '—'}, sector=${qs.sector}`)
-  setCache(url, qs, 5 * 60_000)
+  console.log(`[MADDEN API] ✓ FMP summary ${symbol}: PE=${qs.trailingPE?.toFixed?.(1)}, cap=${qs.marketCap ? (qs.marketCap/1e9).toFixed(0)+'B' : '—'}`)
+  setCache(cacheKey, qs, 5 * 60_000)
   return qs
 }
 
@@ -446,20 +477,18 @@ export async function fetchStooqQuote(stooqSym) {
   }
 }
 
-// ─── Index quotes — Yahoo v7 batch quote ──────────────────────────────────────
-// Stooq's CSV quote endpoint (used previously for index quotes/history) started
-// returning 404 on every request — confirmed directly against stooq.com, not
-// just our proxy. Index quotes and history now go through the same Yahoo v7/v8
-// endpoints as everything else. Cached for 2 minutes (shorter than the 5-minute
-// stock-fundamentals cache) since index levels move continuously during
-// trading hours.
+// ─── Index quotes — FMP batch quote ───────────────────────────────────────────
+// Index quotes now go through the same FMP /quote/ batch endpoint as stocks —
+// FMP accepts index symbols in Yahoo's own ^SYM / NNNNNN.SS format (^AXJO,
+// ^GSPC, 000001.SS, etc.), so YF_INDICES needs no symbol translation. Cached
+// for 2 minutes (shorter than the 5-minute stock-fundamentals cache) since
+// index levels move continuously during trading hours.
 const INDEX_QUOTE_CACHE_MS = 2 * 60_000
 
-// Last-known-good index quotes, persisted across page loads and outages —
-// Yahoo's index quote endpoint is rate-limited hard enough during heavy
-// testing/traffic that "just retry" can leave every card blank for minutes.
-// A localStorage-backed fallback means a real prior quote (marked stale via
-// its own timestamp) shows instead of a dead "RETRY" button.
+// Last-known-good index quotes, persisted across page loads and outages — a
+// localStorage-backed fallback means a real prior quote (marked stale via its
+// own timestamp) shows instead of a dead "RETRY" button when FMP is down or
+// rate-limited.
 const INDEX_FALLBACK_KEY = 'maddex_index_quote_fallback'
 
 function readIndexFallback() {
@@ -481,40 +510,36 @@ function writeIndexFallback(out) {
 
 export async function fetchIndexQuotes(symbols) {
   if (!symbols?.length) return {}
-  const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`
-  const cacheKey = `index:${url}`
+  const cacheKey = `index:fmp:${symbols.slice().sort().join(',')}`
   const cached = getCache(cacheKey)
   if (cached) return cached
 
   try {
-    const res = await fetch(bust(url), { signal: AbortSignal.timeout(10000), headers: NO_CACHE_HEADERS })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    const results = data?.quoteResponse?.result ?? []
+    const rows = await fetchFMPBatch(symbols)
     const out = {}
-    for (const r of results) {
-      if (!r?.symbol || r.regularMarketPrice == null) continue
-      const price = r.regularMarketPrice
-      const change = r.regularMarketChange ?? null
-      const pct = r.regularMarketChangePercent ?? null
-      out[r.symbol] = {
-        symbol:      r.symbol,
+    for (const q of rows) {
+      if (!q?.symbol || q.regularMarketPrice == null) continue
+      const price = q.regularMarketPrice
+      const change = q.regularMarketChange ?? null
+      const pct = q.regularMarketChangePercent ?? null
+      out[q.symbol] = {
+        symbol:      q.symbol,
         last:        price,
         price,
         change,
         pct,
         dayChange:    change,
         dayChangePct: pct,
-        currency:    r.currency ?? null,
-        exchange:    r.fullExchangeName ?? r.exchange ?? null,
-        name:        r.longName ?? r.shortName ?? r.symbol,
-        isOpen:      r.marketState === 'REGULAR',
+        currency:    q.currency ?? null,
+        exchange:    q.exchange ?? null,
+        name:        q.shortName ?? q.symbol,
+        isOpen:      null, // FMP's basic quote doesn't carry market-open state
         timestamp:   new Date().toISOString().slice(0, 10),
         fallback:    false,
       }
     }
     if (Object.keys(out).length === 0) throw new Error('Empty quote response')
-    console.log(`[MADDEN API] ✓ Yahoo v7 index quotes: ${Object.keys(out).length}/${symbols.length} symbols`)
+    console.log(`[MADDEN API] ✓ FMP index quotes: ${Object.keys(out).length}/${symbols.length} symbols`)
     setCache(cacheKey, out, INDEX_QUOTE_CACHE_MS)
     writeIndexFallback(out)
     return out
@@ -525,12 +550,12 @@ export async function fetchIndexQuotes(symbols) {
       if (fallback[sym]) out[sym] = { ...fallback[sym], fallback: true }
     }
     if (Object.keys(out).length === 0) throw e
-    console.warn(`[MADDEN API] Yahoo v7 index quotes failed (${e.message}) — using cached fallback for ${Object.keys(out).length}/${symbols.length} symbols`)
+    console.warn(`[MADDEN API] FMP index quotes failed (${e.message}) — using cached fallback for ${Object.keys(out).length}/${symbols.length} symbols`)
     return out
   }
 }
 
-// fetchYFQuote: single index or stock quote — Yahoo for both now.
+// fetchYFQuote: single index or stock quote — FMP for both.
 // No hardcoded fallback — on total failure, throw so callers show DATA UNAVAILABLE.
 export const fetchYFQuote = async (symbol) => {
   if (symbol.startsWith('^') || /^\d+\.SS$/.test(symbol)) {
@@ -544,7 +569,7 @@ export const fetchYFQuote = async (symbol) => {
   throw new Error(`No data for ${symbol}`)
 }
 
-// fetchYFBatch: INDICES via Yahoo v7 batch quote — used by IndicesTable,
+// fetchYFBatch: INDICES via FMP batch quote — used by IndicesTable,
 // TickerTape, MarketSentimentBanner, MaddexGlobe (all index-symbol-only callers).
 // Symbols that fail are simply omitted — no fake data — so consumers render
 // their own "unavailable" state for the missing key.
@@ -624,10 +649,8 @@ export async function fetchStooqHistory(symbol, { range = '3mo' } = {}) {
   }
 }
 
-// fetchYFHistory: indices via stooq, stocks via Yahoo Finance
-// Yahoo Finance for both stocks and indices — Stooq is no longer used here
-// (its history CSV endpoint is 404ing the same as its quote endpoint). Yahoo's
-// chart endpoint handles index symbols (^AXJO, 000001.SS, etc.) the same way
+// fetchYFHistory: indices and stocks both via FMP's historical-price-full
+// endpoint, which handles index symbols (^AXJO, 000001.SS, etc.) the same way
 // it handles stock tickers, so no symbol translation is needed.
 export const fetchYFHistory = async (symbol, { range = '3mo', interval = '1d' } = {}) => {
   return fetchYahooHistory(symbol, range, interval)

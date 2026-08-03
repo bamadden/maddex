@@ -80,9 +80,8 @@ async function withFallback({ cacheKey, primary, fallback, timeoutMs = DEFAULT_T
   }
 }
 
-// ─── Equities (ASX + US) — Yahoo primary via /api/yahoo proxy ────────────────
-// No fallback provider is wired in (no Alpha Vantage/FMP key is configured
-// in this project's .env — see .env.example), so a primary failure falls
+// ─── Equities (ASX + US) — Financial Modeling Prep, direct from browser ──────
+// No secondary fallback provider is wired in, so a primary failure falls
 // straight through to the stale-cache safety net.
 export async function fetchEquityQuotes(symbols) {
   if (!symbols?.length) return { data: {}, stale: false, source: 'primary' }
@@ -93,7 +92,7 @@ export async function fetchEquityQuotes(symbols) {
   })
 }
 
-// ─── Indices — Yahoo primary via /api/yahoo proxy ────────────────────────────
+// ─── Indices — Financial Modeling Prep, direct from browser ──────────────────
 // fetchYFBatch already has its own internal localStorage fallback (see
 // fetchIndexQuotes in api.js) — it can silently resolve with per-quote
 // `fallback: true` markers even when the live request 429s, which means it

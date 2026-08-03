@@ -18,7 +18,7 @@ try {
 }
 
 // API startup verification
-console.log('[MADDEN] ✓ YAHOO FINANCE: proxy ready (/api/yahoo → query1.finance.yahoo.com)')
+console.log('[MADDEN] ✓ FMP: direct browser access (CORS-enabled) — equities + indices')
 console.log('[MADDEN] ✓ STOOQ: proxy ready (/api/stooq) — not currently used for indices, see api.js')
 console.log('[MADDEN] ✓ COINGECKO: no key required — direct browser access')
 console.log('[MADDEN] ✓ FRANKFURTER: no key required — proxy ready (/api/frankfurter)')
@@ -55,6 +55,7 @@ setTimeout(async () => {
 const KEYED_APIS = {
   'EXCHANGERATE-API': import.meta.env.VITE_EXCHANGERATE_API_KEY,
   'ANTHROPIC':        import.meta.env.VITE_ANTHROPIC_API_KEY,
+  'FMP':              import.meta.env.VITE_FMP_API_KEY,
 }
 for (const [name, key] of Object.entries(KEYED_APIS)) {
   if (key) console.log(`[MADDEN] ✓ ${name}: configured (${key.slice(0, 8)}...)`)
