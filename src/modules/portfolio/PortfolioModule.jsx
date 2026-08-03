@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 import { fmt, colorClass } from '../../utils/format'
 import { StatBox } from '../../components/ui/Panel'
 import { DemoBadge } from '../../components/ui/ModuleStates'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
@@ -344,7 +345,9 @@ export default function PortfolioModule() {
 
   if (holdings.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-5 px-8 bg-terminal-bg">
+      <div className="h-full flex flex-col overflow-hidden">
+        <ModuleHeader title="PORTFOLIO" subtitle="Track your holdings across ASX, US equities, and crypto" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 bg-terminal-bg">
         {showAddForm
           ? <div className="w-full max-w-sm">
               <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} />
@@ -371,6 +374,7 @@ export default function PortfolioModule() {
               <div className="text-2xs text-terminal-text-dim/40">Supports ASX (BHP.AX), US equities, and major crypto</div>
             </>
         }
+        </div>
       </div>
     )
   }
@@ -378,7 +382,13 @@ export default function PortfolioModule() {
   // ─── MAIN VIEW ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full grid grid-rows-[auto_auto_1fr] overflow-hidden">
+    <div className="h-full grid grid-rows-[auto_auto_auto_1fr] overflow-hidden">
+      <ModuleHeader
+        title="PORTFOLIO"
+        subtitle={`${holdings.length} positions · ${equityHoldings.length} equities tracked`}
+        isFetching={isFetching}
+        onRefresh={yfSymbols.length > 0 ? refetch : undefined}
+      />
 
       {/* Stats bar */}
       <div className="grid grid-cols-4 xl:grid-cols-8 border-b border-terminal-border flex-shrink-0">

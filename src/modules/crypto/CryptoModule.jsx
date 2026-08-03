@@ -12,6 +12,7 @@ import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ── Sparkline ──────────────────────────────────────────────────────────────────
@@ -368,7 +369,7 @@ export default function CryptoModule() {
   const vsCurrency = currency.toLowerCase()
   const currPrefix = currency === 'AUD' ? 'A$' : 'US$'
 
-  const { data: rawMarketsResult, isError: marketsError, refetch: refetchMarkets } = useQuery({
+  const { data: rawMarketsResult, isError: marketsError, isFetching: marketsFetching, refetch: refetchMarkets } = useQuery({
     queryKey: ['cryptoMarkets', vsCurrency],
     queryFn:  () => fetchCryptoMarketsUnified(vsCurrency),
     staleTime: 60_000,
@@ -441,6 +442,13 @@ export default function CryptoModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      <ModuleHeader
+        title="CRYPTO"
+        subtitle="Bitcoin · Ethereum · Top 20 by Market Cap"
+        isFetching={marketsFetching}
+        lastUpdated={rawMarketsResult?.cachedAt}
+        onRefresh={refetchMarkets}
+      />
 
       {/* ── Row 1: 4-Panel Dashboard ── */}
       <div className="flex border-b border-terminal-border flex-shrink-0 divide-x divide-terminal-border"

@@ -5,6 +5,7 @@ import SectorStrengthRadar from './SectorStrengthRadar'
 import TopMovers from './TopMovers'
 import MarketSentimentBanner from './MarketSentimentBanner'
 import { useStore } from '../../store/useStore'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 
 export default function MarketsModule() {
   const { openModal } = useStore()
@@ -16,6 +17,8 @@ export default function MarketsModule() {
       className="h-full overflow-y-auto"
     >
       <div className="flex flex-col min-h-full">
+        <ModuleHeader title="MARKETS" subtitle="ASX 200 · S&P 500 · Global Equities" />
+
         {/* Global sentiment score */}
         <div className="flex-shrink-0">
           <MarketSentimentBanner />

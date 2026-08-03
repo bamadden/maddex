@@ -5,6 +5,7 @@ import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
 import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -678,6 +679,7 @@ export default function NewsModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      <ModuleHeader title="NEWS" subtitle="AFR · Reuters · CNBC · 30+ sources" />
       <div className="flex-1 flex overflow-hidden min-h-0">
 
         {/* ── Left: main feed (70%) ─────────────────────────────────────── */}

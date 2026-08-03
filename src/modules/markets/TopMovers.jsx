@@ -4,6 +4,7 @@ import { fetchEquityQuotes } from '../../services/dataService'
 import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 
@@ -58,7 +59,7 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
     })
   }
 
-  const renderTable = (items, pctColor) => (
+  const renderTable = (items) => (
     <table className="terminal-table w-full">
       <thead>
         <tr>
@@ -80,8 +81,8 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
               <td className="px-1 py-0.5 text-2xs text-right">
                 {audPrice != null ? fmt.price(audPrice) : '—'}
               </td>
-              <td className="px-1 py-0.5 text-2xs text-right font-semibold" style={{ color: pctColor }}>
-                {q.dayChangePct >= 0 ? '+' : ''}{q.dayChangePct.toFixed(2)}%
+              <td className="px-1 py-0.5 text-right">
+                <PriceChange pct={q.dayChangePct} className="justify-end" />
               </td>
               <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell">
                 {formatMarketCap(audMktCap)}
@@ -102,13 +103,13 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
         <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-gain)' }}>
           ▲ GAINERS
         </div>
-        <div className="overflow-x-auto">{renderTable(gainers, 'var(--color-gain)')}</div>
+        <div className="overflow-x-auto">{renderTable(gainers)}</div>
       </div>
       <div>
         <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-loss)' }}>
           ▼ LOSERS
         </div>
-        <div className="overflow-x-auto">{renderTable(losers, 'var(--color-loss)')}</div>
+        <div className="overflow-x-auto">{renderTable(losers)}</div>
       </div>
     </div>
   )

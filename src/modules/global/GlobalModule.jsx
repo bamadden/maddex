@@ -9,6 +9,7 @@ import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import MaddexGlobe from '../../components/globe/MaddexGlobe'
 import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
 import { ModuleLoader } from '../../components/ui/ModuleStates'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -2083,6 +2084,7 @@ export default function GlobalModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      <ModuleHeader title="GLOBAL" subtitle="Trade Flows · Market Breadth · Country Risk" />
 
       {/* Critical-event alert banner */}
       {criticalAlert && (

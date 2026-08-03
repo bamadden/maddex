@@ -9,6 +9,7 @@ import {
 } from '../../data/placeholders'
 import { fetchFxHistory } from '../../services/api'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -1105,6 +1106,7 @@ export default function MacroModule() {
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden">
+      <ModuleHeader title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" />
 
       {/* Expanded chart modal — fixed overlay, unaffected by scroll */}
       {expandedChart && (

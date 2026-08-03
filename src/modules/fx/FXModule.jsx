@@ -8,6 +8,7 @@ import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
 import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 // ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
@@ -383,7 +384,15 @@ export default function FXModule() {
 
   return (
     <>
-    <div className="h-full grid grid-cols-[280px_1fr_260px] overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
+    <ModuleHeader
+      title="RATES"
+      subtitle="FX Pairs · Yield Curves · Metals"
+      isFetching={isFetching}
+      lastUpdated={fxResult?.cachedAt}
+      onRefresh={refetch}
+    />
+    <div className="flex-1 grid grid-cols-[280px_1fr_260px] overflow-hidden">
 
       {/* FX Pairs + Converter */}
       <div className="flex flex-col border-r border-terminal-border overflow-hidden">
@@ -687,6 +696,7 @@ export default function FXModule() {
           )}
         </div>
       </div>
+    </div>
     </div>
     {historyPair && <FxHistoryModal pair={historyPair} onClose={() => setHistoryPair(null)} />}
     </>

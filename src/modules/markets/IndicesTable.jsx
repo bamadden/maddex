@@ -5,6 +5,7 @@ import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import PriceChange from '../../components/ui/PriceChange'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -164,9 +165,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                     <div className="text-[15px] font-semibold text-terminal-text leading-tight whitespace-nowrap">
                       {fmt.price(q.last, 1)}
                     </div>
-                    <div className="text-[10px] font-semibold leading-tight whitespace-nowrap" style={{ color }}>
-                      {q.pct >= 0 ? '▲' : '▼'} {q.pct >= 0 ? '+' : ''}{q.pct.toFixed(2)}%
-                    </div>
+                    <PriceChange pct={q.pct} size="text-[10px]" />
                     {isStale && (
                       <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
                     )}

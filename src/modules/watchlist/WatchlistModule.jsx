@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
-import { fmt, colorClass, formatMarketCap } from '../../utils/format'
+import { fmt, formatMarketCap } from '../../utils/format'
+import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import ModuleHeader from '../../components/ui/ModuleHeader'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -173,17 +175,20 @@ export default function WatchlistModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="panel-header flex items-center gap-2 flex-shrink-0">
-        WATCHLIST
-        {isFetching
-          ? <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">FETCHING...</span>
-          : USING_MOCK_DATA
+      <ModuleHeader
+        title="WATCHLIST"
+        subtitle={`${watchlist.length} tickers · drag ⠿ to reorder`}
+        isFetching={isFetching}
+        lastUpdated={dataUpdatedAt}
+        onRefresh={refetch}
+        right={
+          !isFetching && (USING_MOCK_DATA
             ? <DemoBadge />
             : isDelayed
               ? <StaleBadge cachedAt={batchResult?.cachedAt} />
-              : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
-        <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{watchlist.length} tickers · drag ⠿ to reorder</span>
-      </div>
+              : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>)
+        }
+      />
 
       {/* Search / add bar */}
       <div className="flex items-center border-b border-terminal-border flex-shrink-0">
@@ -280,11 +285,11 @@ export default function WatchlistModule() {
                   <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">
                     {row.price != null ? fmt.aud(row.price) : '—'}
                   </td>
-                  <td className={`px-2 py-1.5 text-2xs text-right ${colorClass(row.change)}`}>
-                    {row.change != null ? fmt.change(row.change) : '—'}
+                  <td className="px-2 py-1.5 text-right">
+                    <PriceChange value={row.change} className="justify-end" />
                   </td>
-                  <td className={`px-2 py-1.5 text-2xs text-right font-semibold ${colorClass(row.pct)}`}>
-                    {row.pct != null ? fmt.pct(row.pct) : '—'}
+                  <td className="px-2 py-1.5 text-right">
+                    <PriceChange pct={row.pct} className="justify-end" />
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-green">
                     {row.week52High != null ? fmt.aud(row.week52High) : '—'}

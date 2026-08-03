@@ -19,14 +19,6 @@ const EXCHANGES = [
   { id:'SGX',   label:'SGX',   tz:'Asia/Singapore',      open:[9,0],   close:[17,0],  country:'SG' },
 ]
 
-const CLOCKS = [
-  { id:'SYD', label:'SYD', tz:'Australia/Sydney',  exId:'ASX'   },
-  { id:'NYC', label:'NYC', tz:'America/New_York',  exId:'NYSE'  },
-  { id:'LON', label:'LON', tz:'Europe/London',     exId:'LSE'   },
-  { id:'TKY', label:'TKY', tz:'Asia/Tokyo',        exId:'TSE'   },
-  { id:'HKG', label:'HKG', tz:'Asia/Hong_Kong',    exId:'HKEX'  },
-]
-
 function isExchangeOpen(ex, now) {
   const local = new Date(now.toLocaleString('en-US', { timeZone: ex.tz }))
   const d = local.getDay()
@@ -208,27 +200,32 @@ export default function TopBar() {
 
   const timeStr = time.toLocaleTimeString('en-US', { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' })
   const dateStr = time.toLocaleDateString('en-AU', {
-    weekday:'short', day:'numeric', month:'short', year:'numeric',
+    weekday:'short', day:'2-digit', month:'short', year:'numeric',
   }).toUpperCase().replace(/,/g, '')
-
-  const tz = (zone) =>
-    time.toLocaleTimeString('en-US', { hour12:false, timeZone:zone, hour:'2-digit', minute:'2-digit' })
+  const clockStr = `${dateStr}  ${timeStr} AEST`
 
   const Divider = () => <span className="text-terminal-gold/40 text-sm mx-2 flex-shrink-0">│</span>
+
+  // Compact open/closed row for the four major markets — the fuller
+  // EXCHANGES/CLOCKS lists stay available in MarketDropdown for anyone who
+  // wants per-exchange local time; this row is the at-a-glance version.
+  const MAJOR_MARKETS = ['ASX', 'NYSE', 'LSE', 'TSE']
 
   return (
     <div className="flex items-center bg-terminal-header border-b border-terminal-gold/20 px-3 flex-shrink-0" style={{ height:36 }}>
 
       {/* LEFT — branding */}
-      <span className="text-terminal-gold font-bold text-sm tracking-[0.2em] uppercase flex-shrink-0">
-        ▲ MADDEX
-      </span>
-      <Divider />
-      <span className="hidden sm:inline text-[#4a6580] text-2xs tracking-wider flex-shrink-0">FINANCIAL INTELLIGENCE</span>
+      <div className="flex items-baseline gap-1.5 flex-shrink-0">
+        <span className="text-terminal-gold font-bold text-sm tracking-[0.2em] uppercase">
+          ▲ MADDEX
+        </span>
+        <span className="hidden sm:inline text-terminal-text-dim text-[9px] tracking-wider">FINANCIAL INTELLIGENCE TERMINAL</span>
+      </div>
 
       <Divider />
 
-      {/* CENTRE — AUD/USD + market status */}
+      {/* AUD/USD + market dropdown — kept next to branding so the centre
+          slot below is free for the clock */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <span className="text-terminal-text-dim text-2xs">AUD/USD</span>
         <span className="text-terminal-gold font-bold text-2xs">{audUsd.toFixed(4)}</span>
@@ -243,34 +240,29 @@ export default function TopBar() {
 
       <div className="hidden md:block"><MarketDropdown now={time} /></div>
 
-      {/* Spacer to push right side to end */}
       <div className="flex-1" />
 
-      {/* RIGHT — exchange clocks (secondary info, hidden on narrow screens
-          so the essentials above never get squeezed or clipped) */}
-      <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
-        {CLOCKS.map(c => {
-          const ex = EXCHANGES.find(e => e.id === c.exId)
+      {/* CENTRE — combined date/time clock */}
+      <span className="hidden md:inline font-mono text-[10px] text-terminal-text-dim tracking-wider flex-shrink-0 whitespace-nowrap">
+        {clockStr}
+      </span>
+
+      <div className="flex-1" />
+
+      {/* RIGHT — major-market open/closed row */}
+      <div className="hidden lg:flex items-center gap-2.5 flex-shrink-0">
+        {MAJOR_MARKETS.map((id, i) => {
+          const ex = EXCHANGES.find(e => e.id === id)
           const isOpen = ex ? isExchangeOpen(ex, time) : false
           return (
-            <div key={c.id} className="flex items-center gap-1">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green' : 'bg-terminal-text-dim/25'}`} />
-              <span className="text-terminal-blue-bright text-2xs font-semibold">{c.label}</span>
-              <span className="text-terminal-text-dim text-2xs">{tz(c.tz)}</span>
-            </div>
+            <span key={id} className="flex items-center gap-1">
+              {i > 0 && <span className="text-terminal-border mr-1.5">|</span>}
+              <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-text-dim/25'}`} />
+              <span className={`text-2xs font-semibold ${isOpen ? 'text-terminal-green' : 'text-terminal-text-dim/60'}`}>{id}</span>
+            </span>
           )
         })}
       </div>
-
-      <Divider />
-
-      {/* Date */}
-      <span className="text-terminal-text-dim text-2xs flex-shrink-0">{dateStr}</span>
-
-      <Divider />
-
-      {/* AEST clock */}
-      <span className="text-terminal-gold font-semibold text-2xs flex-shrink-0">{timeStr} AEST</span>
 
       {user && (
         <>
