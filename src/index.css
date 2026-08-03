@@ -204,10 +204,28 @@ body {
 }
 .modal-overlay { animation: fadeIn 150ms ease-out; }
 .modal-panel   { animation: slideUp 150ms ease-out; }
+
+/* Detail panel — slides in from the right edge instead of the centred
+   fade+slideUp used by other modals. */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.panel-slide-in { animation: slideInRight 220ms cubic-bezier(0.16, 1, 0.3, 1); }
 .module-fade   { animation: fadeIn 120ms ease-out; }
 
 /* Panel/detail fade-in */
 .panel-fade { animation: fadeIn 150ms ease-out; }
+
+/* Staggered row entrance — used by TopMovers; pair with an inline
+   animation-delay per row index for the staggered effect. */
+@keyframes rowFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.row-fade-up {
+  animation: rowFadeUp 220ms ease-out backwards;
+}
 
 /* Gold hover border utility */
 .gold-hover {

@@ -637,13 +637,24 @@ const ASX_WEIGHTS = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function pctToBg(pct) {
-  if (pct == null) return { bg: 'rgba(26,58,107,0.20)', text: 'var(--color-neutral)' }
-  if (pct >=  2)   return { bg: 'rgba(46,160,90,0.45)',  text: 'var(--color-gain)' }
-  if (pct >=  0.5) return { bg: 'rgba(46,160,90,0.25)',  text: 'var(--color-gain)' }
-  if (pct >= -0.5) return { bg: 'rgba(201,168,76,0.20)', text: 'var(--color-neutral)' }
-  if (pct >= -2)   return { bg: 'rgba(180,60,60,0.25)',  text: 'var(--color-loss)' }
-  return               { bg: 'rgba(180,60,60,0.45)',  text: 'var(--color-loss)' }
+// Smooth continuous gradient: deep red → neutral navy → deep green, clamped
+// to ±3%. Used for the heatmap tiles.
+const HEAT_RED     = [168, 50, 50]   // #A83232
+const HEAT_NEUTRAL = [26, 47, 74]    // #1A2F4A
+const HEAT_GREEN    = [45, 138, 80]  // #2D8A50
+function lerp(a, b, t) { return a + (b - a) * t }
+function rgbToCss([r, g, b], alpha = 1) { return `rgba(${r},${g},${b},${alpha})` }
+function pctToHeatGradient(pct) {
+  if (pct == null) return rgbToCss(HEAT_NEUTRAL, 0.55)
+  const clamped = Math.max(-3, Math.min(3, pct))
+  const t = Math.abs(clamped) / 3 // 0 (neutral) .. 1 (full colour)
+  const stop = clamped >= 0 ? HEAT_GREEN : HEAT_RED
+  const rgb = [
+    lerp(HEAT_NEUTRAL[0], stop[0], t),
+    lerp(HEAT_NEUTRAL[1], stop[1], t),
+    lerp(HEAT_NEUTRAL[2], stop[2], t),
+  ].map(Math.round)
+  return rgbToCss(rgb, 0.85)
 }
 
 function displaySym(yahoo) {
@@ -784,6 +795,7 @@ function MetricToggle({ metric, setMetric }) {
 
 function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal }) {
   const [selected, setSelected] = useState(null)
+  const [hovered, setHovered] = useState(null)
 
   // Listen for sector-select events from SectorStrengthRadar
   useEffect(() => {
@@ -806,6 +818,32 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
     staleTime: 60_000,
     retry: 1,
   })
+
+  // Every constituent across every sector, fetched once so each tile can show
+  // its own ▲up/▼down breadth without a per-tile query. ASX-only — non-ASX
+  // indices only have a single proxy stock per sector (no constituent list).
+  const allConstituentSyms = useMemo(
+    () => isASX ? [...new Set(Object.values(ASX_SECTOR_STOCKS).flat().map(([s]) => s))] : [],
+    [isASX]
+  )
+  const { data: allConstQuotes } = useQuery({
+    queryKey: ['yahooBatch', 'sectorConstAll', selectedIndex],
+    queryFn:  () => fetchYahooBatch(allConstituentSyms),
+    enabled:  allConstituentSyms.length > 0,
+    staleTime: 60_000,
+    retry: 1,
+  })
+  function breadthFor(sectorName) {
+    if (!allConstQuotes) return null
+    const syms = (ASX_SECTOR_STOCKS[sectorName] ?? []).map(([s]) => s)
+    if (!syms.length) return null
+    const quotes = syms.map(s => allConstQuotes[s]).filter(Boolean)
+    if (!quotes.length) return null
+    return {
+      up:   quotes.filter(q => q.pct > 0).length,
+      down: quotes.filter(q => q.pct < 0).length,
+    }
+  }
 
   // Proxy stock 1-month chart — used directly for non-ASX indices (which only
   // have a single proxy per sector), and as a fallback for ASX sectors if the
@@ -936,10 +974,33 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
       <div className="flex">
         {/* Heatmap grid */}
         <div className={`p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
-          <div className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-3 xl:grid-cols-4'}`} style={{ gridTemplateRows: 'auto', height: 'auto' }}>
-            {GICS_SECTORS.map((sector) => {
+          <div
+            className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-4' : 'grid-cols-3 xl:grid-cols-6'}`}
+            style={{ gridAutoFlow: 'dense' }}
+          >
+            {(() => {
+              // Tile size proportional to sector market cap (proxy stock's
+              // own marketCap stands in for sector-level cap, same "GICS
+              // proxy" approximation the rest of this view already uses).
+              // grid-auto-flow:dense packs smaller tiles into any gaps a
+              // spanned tile leaves, so this reads as a loose treemap
+              // without needing a real treemap layout engine.
+              const caps = GICS_SECTORS
+                .map(s => proxyQuotes?.[sectorConfig[s]?.sym]?.marketCap)
+                .filter(c => c != null)
+              const maxCap = caps.length ? Math.max(...caps) : null
+              const sizeTierFor = (cap) => {
+                if (cap == null || !maxCap) return { col: 'col-span-1', row: 'row-span-1' }
+                const ratio = cap / maxCap
+                if (ratio >= 0.65) return { col: 'col-span-2', row: 'row-span-2' }
+                if (ratio >= 0.3)  return { col: 'col-span-2', row: 'row-span-1' }
+                return { col: 'col-span-1', row: 'row-span-1' }
+              }
+
+              return GICS_SECTORS.map((sector) => {
               const cfg = sectorConfig[sector]
               const isSelected = selected === sector
+              const isHovered  = hovered === sector
 
               // N/A tile for sectors not in this index
               if (!cfg) {
@@ -963,23 +1024,29 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
               const q = proxyQuotes?.[cfg.sym] ?? null
               const pct = q?.pct ?? null
-              const { bg, text } = pctToBg(pct)
+              const bg = pctToHeatGradient(pct)
+              const text = pct == null ? 'var(--color-neutral)' : pct >= 0 ? 'var(--color-gain-bright)' : 'var(--color-loss-bright)'
               const arrow = pct == null ? '' : pct >= 0 ? '▲' : '▼'
               const secChange = getSecondaryChange(cfg.sym)
               const secColor = secChange == null
                 ? 'rgba(156,163,175,0.4)'
                 : secChange >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+              const breadth = breadthFor(sector)
+              const { col, row } = sizeTierFor(q?.marketCap)
+              const chipStocks = (ASX_SECTOR_STOCKS[sector] ?? []).slice(0, 5)
 
               return (
                 <div
                   key={sector}
-                  className="p-2 cursor-pointer select-none transition-all duration-150 flex flex-col gap-0.5"
+                  className={`relative p-2 cursor-pointer select-none transition-all duration-150 flex flex-col gap-0.5 ${col} ${row}`}
                   style={{
                     backgroundColor: bg,
                     border: isSelected ? '2px solid #c8a84b' : '1px solid rgba(255,255,255,0.06)',
+                    filter: isHovered ? 'brightness(1.25)' : '',
+                    boxShadow: isSelected ? '0 0 12px rgba(200,168,75,0.25)' : 'none',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.25)' }}
-                  onMouseLeave={e => { e.currentTarget.style.filter = '' }}
+                  onMouseEnter={() => setHovered(sector)}
+                  onMouseLeave={() => setHovered(null)}
                   onClick={() => setSelected(isSelected ? null : sector)}
                 >
                   {/* LINE 1: abbreviated sector name */}
@@ -987,22 +1054,41 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                     {SECTOR_ABBR[sector]}
                   </div>
                   {/* LINE 2: day change — primary metric */}
-                  <div className="text-sm font-bold leading-tight" style={{ color: text }}>
+                  <div className={row === 'row-span-2' ? 'text-xl font-bold leading-tight' : 'text-sm font-bold leading-tight'} style={{ color: text }}>
                     {pct != null
                       ? `${arrow} ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
                       : <span className="text-terminal-text-dim/40 text-xs animate-pulse">—</span>
                     }
                   </div>
-                  {/* LINE 3: secondary metric */}
-                  <div className="text-2xs leading-tight" style={{ color: secColor, opacity: 0.8 }}>
-                    {secChange != null
-                      ? `${secondaryMetric}: ${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}%`
-                      : `${secondaryMetric}: —`
-                    }
-                  </div>
+                  {/* LINE 3: breadth (▲up ▼down) when available, else secondary metric */}
+                  {breadth ? (
+                    <div className="text-2xs leading-tight flex items-center gap-1.5">
+                      <span style={{ color: 'var(--color-gain)' }}>▲{breadth.up}</span>
+                      <span style={{ color: 'var(--color-loss)' }}>▼{breadth.down}</span>
+                    </div>
+                  ) : (
+                    <div className="text-2xs leading-tight" style={{ color: secColor, opacity: 0.8 }}>
+                      {secChange != null
+                        ? `${secondaryMetric}: ${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}%`
+                        : `${secondaryMetric}: —`
+                      }
+                    </div>
+                  )}
+                  {/* Hover: constituent chips (ASX only — the only index with a
+                      multi-stock constituent list per sector) */}
+                  {isHovered && chipStocks.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {chipStocks.map(([sym]) => (
+                        <span key={sym} className="text-[9px] px-1 py-0 bg-black/30 border border-white/10 text-terminal-text-dim rounded-sm">
+                          {sym.replace('.AX', '')}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
-            })}
+            })
+            })()}
             {/* filler to complete last grid row (11 sectors → 12 = clean 4-col or 3-col fill) */}
             <div style={{ height: 0, visibility: 'hidden', padding: 0, margin: 0 }} aria-hidden="true" />
           </div>

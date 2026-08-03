@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -22,6 +23,105 @@ function totalTrackedMktCap(quotes, audUsd) {
   return total > 0 ? total : null
 }
 
+const COLUMNS = [
+  { key: 'symbol',     label: 'TICKER',   align: 'left',  cell: 'always' },
+  { key: 'name',       label: 'NAME',     align: 'left',  cell: 'lg' },
+  { key: 'price',      label: 'A$ PRICE', align: 'right', cell: 'always' },
+  { key: 'dayChangePct', label: 'CHG%',   align: 'right', cell: 'always' },
+  { key: 'marketCap',  label: 'MKT CAP',  align: 'right', cell: 'lg' },
+  { key: 'trailingPE', label: 'P/E',      align: 'right', cell: 'xl' },
+  { key: 'vol',        label: 'VOLUME',   align: 'right', cell: 'xl' },
+]
+
+function SortableTable({ items, audUsd, onRowClick }) {
+  const [sortKey, setSortKey] = useState(null)
+  const [sortDir, setSortDir] = useState('desc')
+
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortKey(key)
+      setSortDir('desc')
+    }
+  }
+
+  const rows = items.map(q => ({
+    q,
+    audPrice:  toAUD(q.price, q.currency, audUsd),
+    audMktCap: q.marketCap != null ? toAUD(q.marketCap, q.currency, audUsd) : null,
+  }))
+
+  const sortValue = (row, key) => {
+    if (key === 'symbol') return displaySym(row.q.symbol)
+    if (key === 'name') return row.q.name ?? ''
+    if (key === 'price') return row.audPrice
+    if (key === 'marketCap') return row.audMktCap
+    if (key === 'trailingPE') return row.q.trailingPE
+    if (key === 'vol') return row.q.vol
+    return row.q.dayChangePct
+  }
+
+  const sorted = sortKey ? [...rows].sort((a, b) => {
+    const av = sortValue(a, sortKey), bv = sortValue(b, sortKey)
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : rows
+
+  return (
+    <table className="terminal-table w-full">
+      <thead>
+        <tr>
+          {COLUMNS.map(col => (
+            <th
+              key={col.key}
+              onClick={() => toggleSort(col.key)}
+              className={`px-1.5 cursor-pointer hover:text-terminal-gold transition-colors select-none whitespace-nowrap ${
+                col.align === 'left' ? 'text-left' : 'text-right'
+              } ${col.cell === 'lg' ? 'hidden lg:table-cell' : col.cell === 'xl' ? 'hidden xl:table-cell' : ''}`}
+            >
+              {col.label}
+              {sortKey === col.key && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map(({ q, audPrice, audMktCap }, i) => (
+          <tr key={q.symbol}
+            className="cursor-pointer hover:bg-terminal-accent/20 transition-colors row-fade-up"
+            style={{ animationDelay: `${i * 35}ms` }}
+            onClick={() => onRowClick(q)}>
+            <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold">{displaySym(q.symbol)}</td>
+            <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
+            <td className="px-1.5 py-0.5 text-2xs text-right">
+              {audPrice != null ? fmt.price(audPrice) : '—'}
+            </td>
+            <td className="px-1.5 py-0.5 text-right">
+              <PriceChange pct={q.dayChangePct} className="justify-end" />
+            </td>
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell">
+              {formatMarketCap(audMktCap)}
+            </td>
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell">
+              {q.trailingPE != null ? q.trailingPE.toFixed(1) : '—'}
+            </td>
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell">
+              {q.vol != null ? fmt.large(q.vol) : '—'}
+            </td>
+          </tr>
+        ))}
+        {sorted.length === 0 && (
+          <tr><td colSpan={COLUMNS.length} className="px-2 py-2 text-2xs text-terminal-text-dim">No data</td></tr>
+        )}
+      </tbody>
+    </table>
+  )
+}
+
 function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
   const { openModal } = useStore()
 
@@ -42,7 +142,7 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
     const isAsx = q.symbol.endsWith('.AX')
     openModal({
       symbol: q.symbol,
-      name:   displaySym(q.symbol),
+      name:   q.name ?? displaySym(q.symbol),
       price:  toAUD(q.price, q.currency, audUsd),
       pct:    q.dayChangePct,
       change: toAUD(q.dayChange, q.currency, audUsd),
@@ -59,57 +159,19 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
     })
   }
 
-  const renderTable = (items) => (
-    <table className="terminal-table w-full">
-      <thead>
-        <tr>
-          <th className="px-2 text-left">TICKER</th>
-          <th className="px-1 text-right">A$ PRICE</th>
-          <th className="px-1 text-right">CHG%</th>
-          <th className="px-1 text-right hidden lg:table-cell">MKT CAP</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((q) => {
-          const audPrice  = toAUD(q.price, q.currency, audUsd)
-          const audMktCap = q.marketCap != null ? toAUD(q.marketCap, q.currency, audUsd) : null
-          return (
-            <tr key={q.symbol}
-              className="cursor-pointer hover:bg-terminal-accent/20 transition-colors"
-              onClick={() => handleClick(q)}>
-              <td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright">{displaySym(q.symbol)}</td>
-              <td className="px-1 py-0.5 text-2xs text-right">
-                {audPrice != null ? fmt.price(audPrice) : '—'}
-              </td>
-              <td className="px-1 py-0.5 text-right">
-                <PriceChange pct={q.dayChangePct} className="justify-end" />
-              </td>
-              <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell">
-                {formatMarketCap(audMktCap)}
-              </td>
-            </tr>
-          )
-        })}
-        {items.length === 0 && (
-          <tr><td colSpan={4} className="px-2 py-2 text-2xs text-terminal-text-dim">No data</td></tr>
-        )}
-      </tbody>
-    </table>
-  )
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-terminal-border">
       <div>
-        <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-gain)' }}>
+        <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-gain)', backgroundColor: 'var(--color-gain-bg)' }}>
           ▲ GAINERS
         </div>
-        <div className="overflow-x-auto">{renderTable(gainers)}</div>
+        <div className="overflow-x-auto"><SortableTable items={gainers} audUsd={audUsd} onRowClick={handleClick} /></div>
       </div>
       <div>
-        <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-loss)' }}>
+        <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-loss)', backgroundColor: 'var(--color-loss-bg)' }}>
           ▼ LOSERS
         </div>
-        <div className="overflow-x-auto">{renderTable(losers)}</div>
+        <div className="overflow-x-auto"><SortableTable items={losers} audUsd={audUsd} onRowClick={handleClick} /></div>
       </div>
     </div>
   )

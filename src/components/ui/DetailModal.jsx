@@ -784,27 +784,35 @@ export default function DetailModal() {
   return (
     <div
       ref={overlayRef}
-      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="modal-overlay fixed inset-0 z-50 flex items-stretch justify-end bg-black/70 backdrop-blur-sm"
       onClick={handleOverlayClick}
     >
       <div
-        className="modal-panel bg-terminal-panel border border-terminal-border flex flex-col overflow-hidden"
-        style={{ width: '90vw', maxWidth: 1100, height: '88vh', maxHeight: 820 }}
+        className="panel-slide-in bg-terminal-panel border-l border-terminal-border flex flex-col overflow-hidden h-full"
+        style={{ width: '100%', maxWidth: 720 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
-          <span className={`text-2xs border px-1.5 py-0.5 font-bold tracking-widest uppercase ${typeBadgeColor}`}>
-            {type?.toUpperCase() ?? 'ASSET'}
-          </span>
-          <span className="text-base font-bold text-terminal-gold tracking-wider">{symbol}</span>
-          {name && <span className="text-sm text-terminal-text-dim truncate">{name}</span>}
-          {qs?.sector && (
-            <span className="text-2xs text-terminal-text-dim/50 border border-terminal-border/40 px-1.5 py-0.5 hidden xl:block flex-shrink-0">
-              {qs.sector}
-            </span>
-          )}
-          <div className="ml-auto flex items-center gap-3">
+        <div className="flex items-start gap-2 px-4 py-3 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+          <div className="flex-1 min-w-0">
+            <div className="text-lg font-bold text-terminal-text-bright leading-tight truncate">
+              {name ?? symbol}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <span className="text-2xs border border-terminal-gold/50 text-terminal-gold px-1.5 py-0.5 font-bold tracking-widest">
+                {symbol}
+              </span>
+              <span className={`text-2xs border px-1.5 py-0.5 font-bold tracking-widest uppercase ${typeBadgeColor}`}>
+                {extra.exchange ?? type?.toUpperCase() ?? 'ASSET'}
+              </span>
+              {qs?.sector && (
+                <span className="text-2xs border border-terminal-border text-terminal-text-dim px-1.5 py-0.5">
+                  {qs.sector}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
             {(isChartLoading || qsLoading) && (
               <span className="text-2xs text-terminal-gold animate-pulse">LOADING...</span>
             )}
@@ -813,28 +821,30 @@ export default function DetailModal() {
         </div>
 
         {/* Price row */}
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-terminal-border flex-shrink-0 flex-wrap">
+        <div className="flex items-start gap-4 px-4 py-3 border-b border-terminal-border flex-shrink-0 flex-wrap">
           <div className="flex flex-col leading-tight">
-            <span className="text-2xl font-bold text-terminal-text-bright">
+            <span className="text-4xl font-bold text-terminal-text-bright tracking-tight">
               {fmt.aud(displayPrice, { clarify: true })}
             </span>
             {showUsdSub && (
-              <span className="text-xs text-terminal-text-dim/50 mt-0.5">
-                US${fmt.price(extra.nativePrice)}
+              <span className="text-xs text-terminal-text-dim/60 mt-1">
+                US${fmt.price(extra.nativePrice)} native
               </span>
             )}
+            <div className="flex items-center gap-2 mt-1.5">
+              {displayChange != null && (
+                <span className={`text-sm font-semibold ${priceCls}`}>
+                  {displayChange > 0 ? '+' : ''}{fmt.aud(displayChange, { clarify: true })}
+                </span>
+              )}
+              {pct != null && (
+                <span className={`text-base font-bold ${priceCls}`}>
+                  {pct > 0 ? '▲' : pct < 0 ? '▼' : ''} {pctSign}{pct.toFixed(2)}%
+                </span>
+              )}
+            </div>
           </div>
-          {displayChange != null && (
-            <span className={`text-sm font-semibold ${priceCls}`}>
-              {displayChange > 0 ? '+' : ''}{fmt.aud(displayChange, { clarify: true })}
-            </span>
-          )}
-          {pct != null && (
-            <span className={`text-lg font-bold ${priceCls}`}>
-              {pct > 0 ? '▲' : pct < 0 ? '▼' : ''} {pctSign}{pct.toFixed(2)}%
-            </span>
-          )}
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex flex-col items-end gap-2">
             <MarketStatusBadge extra={extra} />
             {display52High != null && (
               <div className="w-48">
@@ -846,13 +856,13 @@ export default function DetailModal() {
         </div>
 
         {/* Chart controls */}
-        <div className="flex items-center gap-2 px-4 py-1.5 border-b border-terminal-border flex-shrink-0">
+        <div className="flex items-center gap-2 px-4 py-1.5 border-b border-terminal-border flex-shrink-0 flex-wrap">
           <div className="flex gap-1">
             {TIMEFRAMES.map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-2 py-0.5 text-2xs transition-colors ${
+                className={`px-2.5 py-0.5 rounded-full text-2xs transition-colors ${
                   timeframe === tf
                     ? 'bg-terminal-gold text-terminal-bg font-bold'
                     : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
@@ -866,7 +876,7 @@ export default function DetailModal() {
               <button
                 key={ct}
                 onClick={() => setChartType(ct)}
-                className={`px-2 py-0.5 text-2xs transition-colors ${
+                className={`px-2.5 py-0.5 rounded-full text-2xs transition-colors ${
                   chartType === ct
                     ? 'bg-terminal-accent text-terminal-text-bright border border-terminal-gold'
                     : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
@@ -927,27 +937,29 @@ export default function DetailModal() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-terminal-border bg-terminal-bg flex-shrink-0">
+        <div className="flex flex-col gap-2 px-4 py-2.5 border-t border-terminal-border bg-terminal-bg flex-shrink-0">
           <button
-            onClick={() => !isInWL && addToWatchlist(symbol)}
-            disabled={isInWL}
-            className={`text-2xs px-3 py-1.5 border transition-colors ${
-              isInWL
-                ? 'border-terminal-green text-terminal-green opacity-70 cursor-default'
-                : 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg cursor-pointer'
-            }`}
+            onClick={handleAskAI}
+            className="w-full text-xs font-bold tracking-widest px-3 py-2 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors cursor-pointer"
           >
-            {isInWL ? '✓ WATCHING' : '+ ADD TO WATCHLIST'}
+            ANALYSE WITH MADDENAI ▶
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} AEST</span>
-            {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
+          <div className="flex items-center justify-between">
             <button
-              onClick={handleAskAI}
-              className="text-2xs px-3 py-1.5 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
+              onClick={() => !isInWL && addToWatchlist(symbol)}
+              disabled={isInWL}
+              className={`text-2xs px-3 py-1.5 border transition-colors ${
+                isInWL
+                  ? 'border-terminal-green text-terminal-green opacity-70 cursor-default'
+                  : 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg cursor-pointer'
+              }`}
             >
-              ▲ ASK AI
+              {isInWL ? '✓ WATCHING' : '+ ADD TO WATCHLIST'}
             </button>
+            <div className="flex items-center gap-2">
+              <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} AEST</span>
+              {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
+            </div>
           </div>
         </div>
       </div>

@@ -15,10 +15,49 @@ const BENCHMARK_ORDER = [
   '^AXJO', '^AORD', '^GSPC', '^IXIC', '^DJI', '^FTSE', '^N225', '^HSI', '^GDAXI', '000001.SS',
 ]
 
-function pctColor(pct) {
-  if (pct > 0) return 'var(--color-gain)'
+// Sparkline colour is gold-for-up/red-for-down (distinct from the price
+// text's green/red) — a deliberate choice for this bar specifically, to make
+// the trend line pop against the card gradient without competing visually
+// with the green PriceChange text right next to it.
+function sparkColor(pct) {
+  if (pct > 0) return '#c8a84b'
   if (pct < 0) return 'var(--color-loss)'
   return '#6b7f99'
+}
+
+// Subtle per-card tint — same direction as the price colour, much lower
+// opacity than the heatmap tiles since this is a compact ticker strip.
+function cardGradient(pct) {
+  if (pct > 0) return 'linear-gradient(160deg, rgba(45,138,80,0.10), rgba(7,20,40,0) 70%)'
+  if (pct < 0) return 'linear-gradient(160deg, rgba(168,50,50,0.10), rgba(7,20,40,0) 70%)'
+  return 'none'
+}
+
+// Local, time-based open/closed check per index's home exchange — the FMP
+// quote's own isOpen field is always null (not available on the free/basic
+// endpoint), so this is computed client-side rather than left blank.
+const INDEX_EXCHANGE_HOURS = {
+  '^AXJO':     { tz: 'Australia/Sydney',   open: [10, 0],  close: [16, 0]  },
+  '^AORD':     { tz: 'Australia/Sydney',   open: [10, 0],  close: [16, 0]  },
+  '^GSPC':     { tz: 'America/New_York',   open: [9, 30],  close: [16, 0]  },
+  '^IXIC':     { tz: 'America/New_York',   open: [9, 30],  close: [16, 0]  },
+  '^DJI':      { tz: 'America/New_York',   open: [9, 30],  close: [16, 0]  },
+  '^FTSE':     { tz: 'Europe/London',      open: [8, 0],   close: [16, 30] },
+  '^N225':     { tz: 'Asia/Tokyo',         open: [9, 0],   close: [15, 30] },
+  '^HSI':      { tz: 'Asia/Hong_Kong',     open: [9, 30],  close: [16, 0]  },
+  '^GDAXI':    { tz: 'Europe/Berlin',      open: [9, 0],   close: [17, 30] },
+  '000001.SS': { tz: 'Asia/Shanghai',      open: [9, 30],  close: [15, 0]  },
+  '^NZ50':     { tz: 'Pacific/Auckland',   open: [10, 0],  close: [16, 45] },
+}
+function isIndexMarketOpen(symbol) {
+  const cfg = INDEX_EXCHANGE_HOURS[symbol]
+  if (!cfg) return null
+  const now = new Date()
+  const local = new Date(now.toLocaleString('en-US', { timeZone: cfg.tz }))
+  const d = local.getDay()
+  if (d === 0 || d === 6) return false
+  const mins = local.getHours() * 60 + local.getMinutes()
+  return mins >= cfg.open[0] * 60 + cfg.open[1] && mins < cfg.close[0] * 60 + cfg.close[1]
 }
 
 // Format a quote's data-date (YYYY-MM-DD) to a compact display — only shows
@@ -33,9 +72,9 @@ function fmtDataDate(ts) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
-// Plain SVG polyline sparkline — 40x20, no charting library needed.
+// Plain SVG polyline sparkline — no charting library needed.
 function Sparkline({ points, color }) {
-  const w = 40, h = 20, pad = 2
+  const w = 46, h = 24, pad = 2
   if (!points || points.length < 2) {
     return <svg width={w} height={h} aria-hidden="true" />
   }
@@ -50,7 +89,7 @@ function Sparkline({ points, color }) {
   }).join(' ')
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <path d={path} fill="none" stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }
@@ -120,13 +159,13 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
           <StaleBadge cachedAt={quotesResult?.cachedAt} />
         </div>
       )}
-      <div className="flex flex-nowrap overflow-x-auto gap-0 hide-scrollbar">
+      <div className="flex flex-nowrap overflow-x-auto gap-0 hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
         {indices.map(({ symbol, label, isAud }, idx) => {
           const q          = quotes?.[symbol]
           const dataDate   = q?.timestamp ? fmtDataDate(q.timestamp) : null
           const isStale    = !!dataDate
           const isSelected = symbol === selectedIndex
-          const color      = pctColor(q?.pct)
+          const isOpen     = isIndexMarketOpen(symbol)
 
           const sparkRaw    = sparkResults[idx]?.data
           const sparkPoints = sparkRaw
@@ -137,17 +176,25 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             <div
               key={symbol}
               onClick={() => handleClick(symbol, q, isAud, label)}
-              className="flex-shrink-0 min-w-[140px] cursor-pointer hover:bg-terminal-accent/10 transition-colors border-r border-terminal-border"
+              className={`flex-shrink-0 min-w-[140px] cursor-pointer hover:bg-terminal-accent/10 transition-all border-r border-terminal-border ${isSelected ? '-translate-y-px' : ''}`}
               style={{
                 width: 152,
-                padding: '8px 12px',
-                borderLeft: isSelected ? '2px solid #c8a84b' : '2px solid transparent',
+                padding: '9px 12px 8px',
+                background: cardGradient(q?.pct),
+                borderTop: isSelected ? '2px solid #c8a84b' : '2px solid transparent',
+                boxShadow: isSelected ? '0 4px 10px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,168,75,0.15)' : 'none',
               }}
             >
               {/* Name is the only thing allowed to ellipsis — the level and
                   change % must always render in full, per design spec. */}
-              <div className="text-[9px] tracking-wider text-terminal-text-dim uppercase overflow-hidden text-ellipsis whitespace-nowrap">
-                {label}
+              <div className="flex items-center gap-1 text-[9px] tracking-wider text-terminal-text-dim uppercase overflow-hidden text-ellipsis whitespace-nowrap">
+                {isOpen != null && (
+                  <span
+                    className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-text-dim/30'}`}
+                    title={isOpen ? 'Market open' : 'Market closed'}
+                  />
+                )}
+                <span className="truncate">{label}</span>
               </div>
 
               {isFetching && !q ? (
@@ -170,7 +217,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                       <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
                     )}
                   </div>
-                  <Sparkline points={sparkPoints} color={color} />
+                  <Sparkline points={sparkPoints} color={sparkColor(q?.pct)} />
                 </div>
               ) : (
                 <div className="text-[15px] font-semibold text-terminal-text-dim/40 mt-1">—</div>

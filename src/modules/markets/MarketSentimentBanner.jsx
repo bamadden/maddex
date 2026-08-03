@@ -136,6 +136,53 @@ function ScoreGradientBar({ score }) {
   )
 }
 
+// ─── Breadth gauge (banner) ───────────────────────────────────────────────────
+// Advance/decline breadth across tracked ASX stocks — a colour-coded bar
+// split proportionally between advancers and decliners, plus the raw
+// percentages and ratio. Distinct from ScoreGradientBar above, which shows
+// where the *overall* sentiment score sits on the bear→bull spectrum, not
+// how many individual stocks are actually up vs down today.
+function BreadthGauge({ changes }) {
+  if (!changes?.length) return null
+  const total     = changes.length
+  const advancers = changes.filter((c) => (c ?? 0) > 0).length
+  const decliners = changes.filter((c) => (c ?? 0) < 0).length
+  const pctUp     = (advancers / total) * 100
+  const pctDown   = (decliners / total) * 100
+  const ratio     = decliners > 0 ? (advancers / decliners).toFixed(2) : advancers > 0 ? '∞' : '—'
+
+  return (
+    <div className="flex items-center gap-1.5 flex-shrink-0" title={`Advance/decline ratio ${ratio} · ${advancers} up, ${decliners} down of ${total} tracked`}>
+      <span className="text-2xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-gain)' }}>▲{pctUp.toFixed(0)}%</span>
+      <div className="flex overflow-hidden rounded-sm" style={{ width: 44, height: 6 }}>
+        <div style={{ width: `${pctUp}%`, backgroundColor: 'var(--color-gain)' }} />
+        <div style={{ width: `${100 - pctUp - pctDown}%`, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+        <div style={{ width: `${pctDown}%`, backgroundColor: 'var(--color-loss)' }} />
+      </div>
+      <span className="text-2xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-loss)' }}>▼{pctDown.toFixed(0)}%</span>
+      <span className="text-2xs text-terminal-text-dim whitespace-nowrap hidden sm:inline">A/D {ratio}</span>
+    </div>
+  )
+}
+
+// Colour-coded pill badge for the BULLISH/NEUTRAL/BEARISH label — a filled
+// background reads more like a status badge than plain coloured text.
+function SentimentBadge({ label, score }) {
+  const [fg, bg, border] = score >= 55
+    ? ['var(--color-gain-bright)', 'rgba(45,138,80,0.16)', 'rgba(45,138,80,0.4)']
+    : score >= 45
+    ? ['var(--color-neutral)', 'rgba(201,168,76,0.16)', 'rgba(201,168,76,0.4)']
+    : ['var(--color-loss-bright)', 'rgba(168,50,50,0.16)', 'rgba(168,50,50,0.4)']
+  return (
+    <span
+      className="text-2xs font-bold tracking-wider whitespace-nowrap px-1.5 py-0.5 rounded-sm flex-shrink-0"
+      style={{ color: fg, backgroundColor: bg, border: `1px solid ${border}` }}
+    >
+      {label.toUpperCase()}
+    </span>
+  )
+}
+
 // ─── Radar background zones ───────────────────────────────────────────────────
 function RadarZones({ cx, cy, outerRadius }) {
   if (!cx || !cy || !outerRadius) return null
@@ -481,9 +528,11 @@ export default function MarketSentimentBanner() {
           {sentiment.score}/100
         </span>
         <ScoreGradientBar score={sentiment.score} />
-        <span className="text-2xs font-bold flex-shrink-0 whitespace-nowrap" style={{ color }}>
-          {sentiment.label.toUpperCase()}
-        </span>
+        <SentimentBadge label={sentiment.label} score={sentiment.score} />
+        <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0 hidden md:inline">·</span>
+        <div className="hidden md:block">
+          <BreadthGauge changes={asxChanges} />
+        </div>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0">·</span>
         <span className="text-2xs text-terminal-text-dim truncate min-w-0 flex-1">{shortSummary}</span>
         <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hover:text-terminal-gold">[▼ DETAILS]</span>
