@@ -239,3 +239,15 @@ body {
   );
   pointer-events: none;
 }
+
+/* News: highlight pulse for stories that arrived since the last refresh —
+   pulses while active, then background-color transition below fades it out
+   the instant the 30s window closes and the class is removed. */
+@keyframes newsPulse {
+  0%, 100% { background-color: rgba(201, 168, 76, 0.04); }
+  50%      { background-color: rgba(201, 168, 76, 0.16); }
+}
+.news-pulse {
+  animation: newsPulse 2s ease-in-out infinite;
+  transition: background-color 1.5s ease-out;
+}

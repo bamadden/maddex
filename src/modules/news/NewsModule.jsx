@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchNews, NEWS_CATEGORIES, NEWS_SOURCES, TICKER_WHITELIST, FINANCIAL_KEYWORDS, askClaude } from '../../services/api'
+import { fetchNews, NEWS_SOURCES, TICKER_WHITELIST, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
@@ -11,7 +11,8 @@ import { DataUnavailable } from '../../components/ui/DataUnavailable'
 const READ_KEY     = 'madden_news_read_v1'
 const CAT_KEY      = 'madden_news_category_v1'
 const MAX_ARTICLES = 500
-const REFRESH_MS   = 3 * 60_000
+const REFRESH_MS   = 5 * 60_000
+const PULSE_MS      = 30_000
 
 const BREAKING_RE = /rate (cut|hike)|crash|collapse|record (high|low)|emergency|crisis|\bwar\b|sanction|default|bankruptcy|merger|acquisition|\bIPO\b|surge/i
 
@@ -98,6 +99,60 @@ function isBreakingArticle(item) {
   if (!item?.pubDate) return false
   const ageMs = Date.now() - new Date(item.pubDate).getTime()
   return ageMs <= 30 * 60_000 && BREAKING_RE.test(item.headline)
+}
+
+// ─── Category filter tabs (display subset — distinct from the full
+// NEWS_CATEGORIES taxonomy used for classification in api.js) ────────────────
+
+const DISPLAY_CATEGORIES = [
+  { key: 'ALL',          label: 'ALL',          test: () => true },
+  { key: 'ASX',          label: 'ASX',          test: (n) => n.categories?.includes('AU') },
+  { key: 'CRYPTO',       label: 'CRYPTO',       test: (n) => n.categories?.includes('CRYPTO') },
+  { key: 'MACRO',        label: 'MACRO',        test: (n) => n.categories?.includes('MACRO') },
+  { key: 'COMMODITIES',  label: 'COMMODITIES',  test: (n) => n.categories?.includes('COMMODITIES') },
+  { key: 'RATES',        label: 'RATES',        test: (n) => n.tag === 'RATES' || n.categories?.includes('FX') },
+  { key: 'GEOPOLITICAL', label: 'GEOPOLITICAL', test: (n) => n.categories?.includes('GEOPOLITICAL') },
+  { key: 'TECH',         label: 'TECH',         test: (n) => n.categories?.includes('TECH') },
+]
+
+// ─── MaddenAI relevance scoring — simple keyword match, not a model call ─────
+
+function buildBoundaryRegex(words) {
+  const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  return new RegExp(`\\b(${escaped.join('|')})\\b`, 'i')
+}
+const RELEVANCE_HIGH_RE = buildBoundaryRegex([
+  'ASX', 'RBA', 'AUD', 'Australia', 'Australian', 'S&P 500', 'Fed', 'interest rate', 'inflation', 'GDP',
+])
+const RELEVANCE_MEDIUM_RE = buildBoundaryRegex([
+  'China', 'US', 'UK', 'EUR', 'oil', 'gold', 'trade', 'tariff', 'crypto',
+])
+
+function relevanceScore(item) {
+  const text = `${item.headline} ${item.summary ?? ''}`
+  if (RELEVANCE_HIGH_RE.test(text))   return 80 + Math.min(20, (text.match(new RegExp(RELEVANCE_HIGH_RE, 'gi')) ?? []).length * 4)
+  if (RELEVANCE_MEDIUM_RE.test(text)) return 50 + Math.min(29, (text.match(new RegExp(RELEVANCE_MEDIUM_RE, 'gi')) ?? []).length * 6)
+  return 15 + Math.min(34, text.length % 35) // varies a little within LOW band instead of a flat number
+}
+function relevanceTier(score) {
+  if (score >= 80) return 'HIGH'
+  if (score >= 50) return 'MEDIUM'
+  return 'LOW'
+}
+const RELEVANCE_DOT = { HIGH: '🟢', MEDIUM: '🟡', LOW: '⚫' }
+
+// ─── Ticker badges — only for symbols in the app's tracked stock lists,
+// clicking one opens that stock's DetailModal ────────────────────────────────
+
+const ASX_BASE_SYMBOLS = new Set(ASX_STOCKS.map(s => s.replace('.AX', '')))
+const US_SYMBOL_SET    = new Set(US_STOCKS)
+
+function knownTickerBadges(tickers) {
+  return (tickers ?? []).map(t => {
+    if (ASX_BASE_SYMBOLS.has(t)) return { symbol: `${t}.AX`, label: `${t}.AX`, type: 'asx' }
+    if (US_SYMBOL_SET.has(t))    return { symbol: t, label: t, type: 'us' }
+    return null
+  }).filter(Boolean).slice(0, 2)
 }
 
 // ─── Search highlighting ──────────────────────────────────────────────────────
@@ -236,77 +291,158 @@ function KeyThemesPanel({ headlines }) {
 
 // ─── Article card ─────────────────────────────────────────────────────────────
 
-function ArticleCard({ item, isExpanded, isUnread, searchTerm, onToggle, onAskAI }) {
+function primaryDisplayCategory(item) {
+  const match = DISPLAY_CATEGORIES.find(c => c.key !== 'ALL' && c.test(item))
+  return match?.label ?? item.tag
+}
+
+function RelevanceDot({ item }) {
+  const tier = relevanceTier(relevanceScore(item))
+  return (
+    <span title={`MaddenAI relevance: ${tier}`} className="text-2xs leading-none flex-shrink-0">
+      {RELEVANCE_DOT[tier]}
+    </span>
+  )
+}
+
+function TickerBadgeRow({ tickers, onOpenTicker }) {
+  const badges = knownTickerBadges(tickers)
+  if (badges.length === 0) return null
+  return (
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {badges.map(b => (
+        <button
+          key={b.symbol}
+          onClick={e => { e.stopPropagation(); onOpenTicker(b) }}
+          className="text-2xs px-1 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >
+          {b.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── TOP STORY — full-width card ─────────────────────────────────────────────
+
+function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI, onOpenTicker }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
+  const score      = relevanceScore(item)
+  const tier       = relevanceTier(score)
 
   return (
     <div
-      className={`border-b border-terminal-border/50 px-3 py-2 cursor-pointer transition-colors hover:bg-terminal-accent/15 ${
+      className={`news-top-story ${isPulsing ? 'news-pulse' : ''} border-b border-terminal-border px-4 py-3 cursor-pointer hover:bg-terminal-accent/10 transition-colors ${
         isBreaking ? 'border-l-2 border-l-[rgba(168,50,50,0.7)]' : isNew ? 'border-l-2 border-l-terminal-gold/60' : ''
       }`}
       onClick={() => onToggle(item)}
     >
-      {/* Row 1: source / tag / time / badge */}
-      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
         {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />}
-        <span className="text-2xs font-bold text-terminal-gold">{item.source}</span>
-        <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{item.tag}</Badge>
+        <span className="text-2xs text-terminal-gold font-bold tracking-widest">TOP STORY</span>
+        <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{primaryDisplayCategory(item)}</Badge>
+        <span className="text-2xs font-bold text-terminal-text-dim">{item.source}</span>
         <span className="text-2xs text-terminal-text-dim/60" title={fullDateTooltip(item.pubDate)}>{timeAgo(item.pubDate)}</span>
         {isBreaking && <span className="text-2xs text-[#a83232] font-bold animate-pulse ml-1">● BREAKING</span>}
         {isNew && !isBreaking && <span className="text-2xs text-terminal-gold font-bold ml-1">NEW</span>}
       </div>
 
-      {/* Row 2: headline */}
-      <p className="text-xs font-bold text-terminal-text-bright leading-snug line-clamp-2">
+      <p className="text-base font-bold text-terminal-text-bright leading-snug mb-1.5">
         <HighlightText text={item.headline} term={searchTerm} />
       </p>
 
-      {/* Row 3: summary when collapsed */}
-      {!isExpanded && item.summary && (
-        <p className="text-2xs text-terminal-text-dim leading-relaxed mt-0.5 line-clamp-2">{item.summary}</p>
+      {item.summary && (
+        <p className="text-xs text-terminal-text-dim leading-relaxed mb-2 line-clamp-3">{item.summary}</p>
       )}
 
-      {/* Row 4: sentiment / tickers / ask AI */}
-      <div className="flex items-center justify-between mt-1 flex-wrap gap-1">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <RelevanceDot item={item} />
+          <span className="text-2xs text-terminal-text-dim">
+            MaddenAI relevance <span className="text-terminal-text-bright font-bold">{score}/100</span> ({tier})
+          </span>
           {item.sentiment && (
-            <span className="text-2xs px-1 border" style={{
-              color: SENTIMENT_STYLE[item.sentiment]?.color,
-              borderColor: SENTIMENT_STYLE[item.sentiment]?.border,
-            }}>
+            <span className="text-2xs px-1 border" style={{ color: SENTIMENT_STYLE[item.sentiment]?.color, borderColor: SENTIMENT_STYLE[item.sentiment]?.border }}>
               {item.sentiment}
             </span>
           )}
-          {item.tickers?.slice(0, 3).map(t => (
-            <span key={t} className="text-2xs text-terminal-blue-bright">${t}</span>
-          ))}
+          <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
         </div>
         <button
           onClick={e => { e.stopPropagation(); onAskAI(item) }}
-          className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors px-1 border border-terminal-border/30 hover:border-terminal-gold/50"
+          className="text-2xs text-terminal-gold border border-terminal-gold/40 hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-1.5 py-0.5"
         >
           ▲ ASK AI
         </button>
       </div>
 
-      {/* Expanded: full summary + read link */}
-      {isExpanded && (
-        <div className="mt-2 pt-2 border-t border-terminal-border/30">
-          {item.summary && <p className="text-2xs text-terminal-text leading-relaxed mb-2">{item.summary}</p>}
-          {item.link && (
-            <a
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
-            >
-              READ FULL ARTICLE →
-            </a>
-          )}
-        </div>
+      {item.link && (
+        <a
+          href={item.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
+          className="inline-block mt-2 text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
+        >
+          READ FULL ARTICLE →
+        </a>
       )}
+    </div>
+  )
+}
+
+// ─── SECONDARY STORIES — 3-column grid ───────────────────────────────────────
+
+function SecondaryStoryCard({ item, isUnread, isPulsing, onToggle, onAskAI, onOpenTicker }) {
+  const isNew      = isNewArticle(item)
+  const isBreaking = isBreakingArticle(item)
+
+  return (
+    <div
+      className={`news-secondary-story ${isPulsing ? 'news-pulse' : ''} border border-terminal-border/50 p-2 cursor-pointer hover:bg-terminal-accent/10 transition-colors flex flex-col ${
+        isBreaking ? 'border-l-2 border-l-[rgba(168,50,50,0.7)]' : isNew ? 'border-l-2 border-l-terminal-gold/60' : ''
+      }`}
+      onClick={() => onToggle(item)}
+    >
+      <div className="flex items-center gap-1 mb-1 flex-wrap">
+        {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />}
+        <RelevanceDot item={item} />
+        <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{primaryDisplayCategory(item)}</Badge>
+        <span className="text-2xs text-terminal-text-dim/60 ml-auto" title={fullDateTooltip(item.pubDate)}>{timeAgo(item.pubDate)}</span>
+      </div>
+      <p className="text-2xs font-bold text-terminal-text-bright leading-snug line-clamp-3 mb-1">{item.headline}</p>
+      {item.summary && <p className="text-2xs text-terminal-text-dim/80 leading-snug line-clamp-1 mb-1.5">{item.summary}</p>}
+      <div className="flex items-center justify-between mt-auto gap-1">
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-2xs text-terminal-text-dim truncate">{item.source}</span>
+          <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); onAskAI(item) }}
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors flex-shrink-0"
+        >
+          ▲ AI
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── BELOW THE FOLD — compact list row ───────────────────────────────────────
+
+function CompactStoryRow({ item, isUnread, isPulsing, onToggle, onOpenTicker }) {
+  return (
+    <div
+      className={`news-compact-row ${isPulsing ? 'news-pulse' : ''} flex items-center gap-2 px-3 py-1 border-b border-terminal-border/30 cursor-pointer hover:bg-terminal-accent/10 transition-colors`}
+      onClick={() => onToggle(item)}
+    >
+      {isUnread && <span className="w-1 h-1 rounded-full bg-terminal-gold flex-shrink-0" />}
+      <RelevanceDot item={item} />
+      <p className="text-2xs text-terminal-text flex-1 truncate">{item.headline}</p>
+      <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
+      <span className="text-2xs text-terminal-text-dim flex-shrink-0">{item.source}</span>
+      <span className="text-2xs text-terminal-text-dim/60 flex-shrink-0" title={fullDateTooltip(item.pubDate)}>{timeAgo(item.pubDate)}</span>
     </div>
   )
 }
@@ -364,18 +500,23 @@ function SentimentGauge({ score, bull, bear, neutral }) {
 // ─── Main module ──────────────────────────────────────────────────────────────
 
 export default function NewsModule() {
-  const [activeCategory, setActiveCategory] = useState(loadCategory)
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const saved = loadCategory()
+    return DISPLAY_CATEGORIES.some(c => c.key === saved) ? saved : 'ALL'
+  })
   const [searchTerm, setSearchTerm]   = useState('')
-  const [expandedId, setExpandedId]   = useState(null)
   const [readIds, setReadIds]         = useState(loadReadSet)
   const [allArticles, setAllArticles] = useState([])
-  const [newIds, setNewIds]           = useState(new Set())
+  // headline -> arrivedAt ms, drives the 30s pulse fade. Keyed by headline
+  // (not item.id) because fetchNews() restarts its id counter from 1 on
+  // every call, so ids aren't stable across refetches — headline is.
+  const [newIds, setNewIds]           = useState(new Map())
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
   const [isFlashing, setIsFlashing]   = useState(false)
   const [nowTs, setNowTs]             = useState(Date.now())
   const prevHeadlines                 = useRef(new Set())
 
-  const { newsFilter, setNewsFilter, clearNewsBadge } = useStore()
+  const { newsFilter, setNewsFilter, clearNewsBadge, openModal } = useStore()
 
   // Clear nav badge and tick clock
   useEffect(() => { clearNewsBadge() }, [clearNewsBadge])
@@ -405,11 +546,25 @@ export default function NewsModule() {
     setAllArticles(prev => {
       const prevKeys = new Set(prev.map(a => a.headline))
       const brandNew = incoming.filter(a => !prevKeys.has(a.headline))
-      const freshIds = new Set(brandNew.filter(a => !prevHeadlines.current.has(a.headline)).map(a => a.id))
-      if (freshIds.size > 0) setNewIds(freshIds)
+      const freshOnes = brandNew.filter(a => !prevHeadlines.current.has(a.headline))
+      // Skip tagging as "new" on the very first load (nothing to compare
+      // against yet) — otherwise every article on first render would pulse.
+      if (freshOnes.length > 0 && prevHeadlines.current.size > 0) {
+        const arrivedAt = Date.now()
+        setNewIds(m => {
+          const next = new Map(m)
+          for (const a of freshOnes) next.set(a.headline, arrivedAt)
+          return next
+        })
+      }
 
+      // `incoming` always wins for any headline it contains (freshest copy —
+      // matters since re-classification/tag fields can shift between polls);
+      // anything from `prev` NOT in this batch is kept too, so a refetch that
+      // happens to return the same headlines as last time (common with
+      // slower-moving RSS sources) doesn't wipe the feed to empty.
       const merged = [
-        ...brandNew,
+        ...incoming,
         ...prev.filter(a => !incoming.some(b => b.headline === a.headline)),
       ].sort((a, b) => b.pubDate - a.pubDate).slice(0, MAX_ARTICLES)
 
@@ -435,13 +590,15 @@ export default function NewsModule() {
   }, [allArticles, searchTerm])
 
   const byCategory = useMemo(() => {
-    if (activeCategory === 'ALL') return searchFiltered
-    return searchFiltered.filter(n => n.categories?.includes(activeCategory))
+    const def = DISPLAY_CATEGORIES.find(c => c.key === activeCategory)
+    if (!def || def.key === 'ALL') return searchFiltered
+    return searchFiltered.filter(def.test)
   }, [searchFiltered, activeCategory])
 
   const catCount = useCallback(cat => {
-    if (cat === 'ALL') return searchFiltered.length
-    return searchFiltered.filter(n => n.categories?.includes(cat)).length
+    const def = DISPLAY_CATEGORIES.find(c => c.key === cat)
+    if (!def || def.key === 'ALL') return searchFiltered.length
+    return searchFiltered.filter(def.test).length
   }, [searchFiltered])
 
   const breakingItems = useMemo(() =>
@@ -472,16 +629,23 @@ export default function NewsModule() {
     })
   }, [])
 
+  // Clicking a card marks it read and opens the source article — there's no
+  // inline expand any more now the feed is split into top/secondary/compact
+  // tiers, so "click the headline" and "open the story" are the same action.
   const handleToggle = useCallback((item) => {
-    setExpandedId(prev => prev === item.id ? null : item.id)
     if (!readIds.has(item.id)) {
       const next = new Set(readIds); next.add(item.id); next.add(item.headline)
       setReadIds(next); saveReadSet(next)
     }
+    if (item.link) window.open(item.link, '_blank', 'noopener,noreferrer')
   }, [readIds])
 
+  const handleOpenTicker = useCallback((badge) => {
+    openModal({ symbol: badge.symbol, name: badge.symbol, type: badge.type })
+  }, [openModal])
+
   const handleCategoryChange = useCallback((cat) => {
-    setActiveCategory(cat); saveCategory(cat); setExpandedId(null)
+    setActiveCategory(cat); saveCategory(cat)
   }, [])
 
   if (isError && allArticles.length === 0) {
@@ -549,7 +713,7 @@ export default function NewsModule() {
             <div className="flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 flex-shrink-0">
               <span className="text-2xs text-terminal-gold font-bold">↑ {newIds.size} NEW ARTICLES</span>
               <button
-                onClick={() => setNewIds(new Set())}
+                onClick={() => setNewIds(new Map())}
                 className="text-2xs text-terminal-text-dim/50 hover:text-terminal-text-dim ml-auto"
               >
                 dismiss
@@ -563,7 +727,7 @@ export default function NewsModule() {
             <input
               className="cmd-input flex-1 text-2xs py-0"
               value={searchTerm}
-              onChange={e => { setSearchTerm(e.target.value); setExpandedId(null) }}
+              onChange={e => setSearchTerm(e.target.value)}
               placeholder="Filter headlines... (CMD: NEWS {keyword})"
             />
             {searchTerm && (
@@ -574,32 +738,29 @@ export default function NewsModule() {
             )}
           </div>
 
-          {/* Category tabs */}
-          <div className="flex flex-nowrap overflow-x-auto gap-1 p-1 border-b border-terminal-border flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
-            {NEWS_CATEGORIES.map(cat => {
-              const count = catCount(cat)
+          {/* Category tabs — gold underline on the active tab */}
+          <div className="flex flex-nowrap overflow-x-auto gap-3 px-2 border-b border-terminal-border flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
+            {DISPLAY_CATEGORIES.map(({ key, label }) => {
+              const count = catCount(key)
+              const isActive = activeCategory === key
               return (
                 <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className={`text-2xs px-2 py-0.5 flex-shrink-0 transition-colors flex items-center gap-1 ${
-                    activeCategory === cat
-                      ? 'bg-terminal-gold text-terminal-bg font-bold'
-                      : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
+                  key={key}
+                  onClick={() => handleCategoryChange(key)}
+                  className={`text-2xs px-0.5 py-1.5 flex-shrink-0 transition-colors flex items-center gap-1 border-b-2 ${
+                    isActive
+                      ? 'border-terminal-gold text-terminal-gold font-bold'
+                      : 'border-transparent text-terminal-text-dim hover:text-terminal-text'
                   }`}
                 >
-                  {cat}
-                  {count > 0 && (
-                    <span className={`text-2xs px-0.5 ${activeCategory === cat ? 'opacity-70' : 'text-terminal-gold/70'}`}>
-                      {count}
-                    </span>
-                  )}
+                  {label}
+                  {count > 0 && <span className={isActive ? 'text-terminal-gold/70' : 'text-terminal-text-dim/50'}>{count}</span>}
                 </button>
               )
             })}
           </div>
 
-          {/* Articles */}
+          {/* Articles — tiered TOP STORY / SECONDARY grid / BELOW THE FOLD */}
           <div className="flex-1 overflow-auto">
             {isFetching && allArticles.length === 0 ? (
               <div className="p-4 text-2xs text-terminal-text-dim text-center animate-pulse">
@@ -610,24 +771,56 @@ export default function NewsModule() {
                 {searchTerm ? `No articles matching "${searchTerm}"` : 'No articles in this category'}
               </div>
             ) : (
-              byCategory.map(item => (
-                <ArticleCard
-                  key={item.id}
-                  item={item}
-                  isExpanded={expandedId === item.id}
-                  isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
+              <>
+                <TopStoryCard
+                  item={byCategory[0]}
+                  isUnread={!readIds.has(byCategory[0].id) && !readIds.has(byCategory[0].headline)}
                   searchTerm={searchTerm}
+                  isPulsing={newIds.has(byCategory[0].headline) && (nowTs - newIds.get(byCategory[0].headline) < PULSE_MS)}
                   onToggle={handleToggle}
                   onAskAI={askAI}
+                  onOpenTicker={handleOpenTicker}
                 />
-              ))
+
+                {byCategory.length > 1 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2 border-b border-terminal-border">
+                    {byCategory.slice(1, 7).map(item => (
+                      <SecondaryStoryCard
+                        key={item.id}
+                        item={item}
+                        isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
+                        isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
+                        onToggle={handleToggle}
+                        onAskAI={askAI}
+                        onOpenTicker={handleOpenTicker}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {byCategory.length > 7 && (
+                  <div>
+                    <div className="text-2xs text-terminal-text-dim/50 tracking-widest px-3 py-1 border-b border-terminal-border/30">MORE HEADLINES</div>
+                    {byCategory.slice(7).map(item => (
+                      <CompactStoryRow
+                        key={item.id}
+                        item={item}
+                        isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
+                        isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
+                        onToggle={handleToggle}
+                        onOpenTicker={handleOpenTicker}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           {/* Footer */}
           <div className="border-t border-terminal-border px-3 py-1 flex-shrink-0">
             <span className="text-2xs text-terminal-text-dim/40">
-              {byCategory.length} articles · auto-refresh 3min · {NEWS_SOURCES.length} sources
+              {byCategory.length} articles · auto-refresh 5min · {NEWS_SOURCES.length} sources
             </span>
           </div>
         </div>
