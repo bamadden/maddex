@@ -17,7 +17,7 @@
       "destination": "https://stooq.com/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
