@@ -8,6 +8,7 @@ import { initCountryDataRefresh } from '../../services/countryApiService'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import MaddexGlobe from '../../components/globe/MaddexGlobe'
 import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
+import { ModuleLoader } from '../../components/ui/ModuleStates'
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -1672,11 +1673,7 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
 
   const filters = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'COMMODITIES', 'FX', 'SUPPLY CHAIN']
 
-  if (isLoading) return (
-    <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
-      LOADING RISK FEED...
-    </div>
-  )
+  if (isLoading) return <ModuleLoader name="GEO RISK" />
 
   const critCount = geoItems.filter(n => n.severity === 'CRITICAL').length
   const highCount = geoItems.filter(n => n.severity === 'HIGH').length

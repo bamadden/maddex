@@ -95,18 +95,18 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
   )
 
   return (
-    <div className="grid grid-cols-2 divide-x divide-terminal-border">
+    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-terminal-border">
       <div>
         <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-gain)' }}>
           ▲ GAINERS
         </div>
-        {renderTable(gainers, 'var(--color-gain)')}
+        <div className="overflow-x-auto">{renderTable(gainers, 'var(--color-gain)')}</div>
       </div>
       <div>
         <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-loss)' }}>
           ▼ LOSERS
         </div>
-        {renderTable(losers, 'var(--color-loss)')}
+        <div className="overflow-x-auto">{renderTable(losers, 'var(--color-loss)')}</div>
       </div>
     </div>
   )

@@ -5,7 +5,7 @@ import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
 import DiagPage from './DiagPage'
 import TopBar from './components/layout/TopBar'
-import NavBar from './components/layout/NavBar'
+import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
 import CommandBar from './components/layout/CommandBar'
 import AIPanel from './components/layout/AIPanel'
@@ -44,6 +44,17 @@ const MODULE_MAP = {
   global:    GlobalModule,
 }
 
+const MODULE_TITLES = {
+  markets:   'Markets',
+  portfolio: 'Portfolio',
+  crypto:    'Crypto',
+  fx:        'Rates',
+  macro:     'Macro',
+  watchlist: 'Watchlist',
+  news:      'News',
+  global:    'Global',
+}
+
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────
 
 const SHORTCUTS = [
@@ -52,9 +63,13 @@ const SHORTCUTS = [
   { key: '?',   desc: 'Show keyboard shortcuts' },
   { key: 'M',   desc: 'Navigate → Markets' },
   { key: 'C',   desc: 'Navigate → Crypto' },
-  { key: 'F',   desc: 'Navigate → FX' },
-  { key: 'N',   desc: 'Navigate → News' },
   { key: 'G',   desc: 'Navigate → Global Intelligence' },
+  { key: 'W',   desc: 'Navigate → Watchlist' },
+  { key: 'P',   desc: 'Navigate → Portfolio' },
+  { key: 'N',   desc: 'Navigate → News' },
+  { key: 'F',   desc: 'Navigate → Rates' },
+  { key: 'X',   desc: 'Navigate → Macro' },
+  { key: 'F1–F8', desc: 'Navigate → module by position' },
 ]
 
 function ShortcutModal({ onClose }) {
@@ -141,6 +156,12 @@ function Terminal() {
   const [showShortcuts, setShowShortcuts] = useState(false)
   const ActiveModule = MODULE_MAP[activeModule] || MarketsModule
 
+  // Dynamic tab title — "Markets — Maddex" etc, falls back to the base title
+  useEffect(() => {
+    const label = MODULE_TITLES[activeModule]
+    document.title = label ? `${label} — Maddex` : 'Maddex — Financial Intelligence'
+  }, [activeModule])
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -192,6 +213,7 @@ function Terminal() {
         <AIPanel />
       </div>
       <CommandBar />
+      <MobileNavBar />
       <DetailModal />
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
     </div>

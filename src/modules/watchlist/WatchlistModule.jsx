@@ -7,7 +7,7 @@ import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
-import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -67,7 +67,7 @@ export default function WatchlistModule() {
 
   const yahooSymbols = watchlist.map((s) => toYahoo(s).yfSym)
 
-  const { data: batchQuotes, isFetching, isError, refetch } = useQuery({
+  const { data: batchQuotes, isFetching, isError, refetch, dataUpdatedAt } = useQuery({
     queryKey:  ['watchlistBatch', ...yahooSymbols],
     queryFn:   () => fetchYahooBatch(yahooSymbols),
     enabled:   yahooSymbols.length > 0,
@@ -222,9 +222,16 @@ export default function WatchlistModule() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {watchlist.length === 0 ? (
-          <div className="p-6 text-2xs text-terminal-text-dim text-center">Watchlist is empty.<br />Add a ticker above to get started.</div>
+          <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
+            <span className="text-terminal-gold text-xl">☆</span>
+            <div className="text-terminal-text-dim text-2xs max-w-xs leading-relaxed">
+              No assets tracked yet — search above to add your first asset
+            </div>
+          </div>
         ) : isError && !batchQuotes ? (
-          <DataUnavailable label="WATCHLIST PRICES UNAVAILABLE" onRetry={refetch} className="my-6" />
+          <ModuleError module="Watchlist prices" lastUpdated={dataUpdatedAt} onRetry={refetch} />
+        ) : isFetching && !batchQuotes ? (
+          <ModuleLoader name="WATCHLIST" />
         ) : (
           <table className="terminal-table w-full">
             <thead className="sticky top-0 bg-terminal-header z-10">

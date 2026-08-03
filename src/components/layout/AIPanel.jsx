@@ -374,7 +374,7 @@ export default function AIPanel() {
   if (!chatOpen) return null
 
   return (
-    <div className="w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0">
+    <div className="fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-terminal-border bg-terminal-header flex-shrink-0">
         <div className="flex items-center gap-2">

@@ -4,7 +4,7 @@ import { fetchNews, NEWS_SOURCES, TICKER_WHITELIST, FINANCIAL_KEYWORDS, ASX_STOC
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
-import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -655,9 +655,18 @@ export default function NewsModule() {
           LIVE NEWS FEED
           <span className="text-terminal-red text-2xs font-normal ml-auto">⚠ ERROR</span>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <DataUnavailable label="NEWS FEED UNAVAILABLE" onRetry={refetch} />
+        <div className="flex-1">
+          <ModuleError module="News feed" lastUpdated={lastUpdatedAt} onRetry={refetch} />
         </div>
+      </div>
+    )
+  }
+
+  if (isFetching && allArticles.length === 0) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="panel-header flex-shrink-0">LIVE NEWS FEED</div>
+        <div className="flex-1"><ModuleLoader name="NEWS" /></div>
       </div>
     )
   }
@@ -762,11 +771,7 @@ export default function NewsModule() {
 
           {/* Articles — tiered TOP STORY / SECONDARY grid / BELOW THE FOLD */}
           <div className="flex-1 overflow-auto">
-            {isFetching && allArticles.length === 0 ? (
-              <div className="p-4 text-2xs text-terminal-text-dim text-center animate-pulse">
-                Loading from {NEWS_SOURCES.length} sources...
-              </div>
-            ) : byCategory.length === 0 ? (
+            {byCategory.length === 0 ? (
               <div className="p-4 text-2xs text-terminal-text-dim text-center">
                 {searchTerm ? `No articles matching "${searchTerm}"` : 'No articles in this category'}
               </div>

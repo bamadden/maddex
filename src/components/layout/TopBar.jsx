@@ -224,7 +224,7 @@ export default function TopBar() {
         ▲ MADDEX
       </span>
       <Divider />
-      <span className="text-[#4a6580] text-2xs tracking-wider flex-shrink-0">FINANCIAL INTELLIGENCE</span>
+      <span className="hidden sm:inline text-[#4a6580] text-2xs tracking-wider flex-shrink-0">FINANCIAL INTELLIGENCE</span>
 
       <Divider />
 
@@ -241,13 +241,14 @@ export default function TopBar() {
 
       <Divider />
 
-      <MarketDropdown now={time} />
+      <div className="hidden md:block"><MarketDropdown now={time} /></div>
 
       {/* Spacer to push right side to end */}
       <div className="flex-1" />
 
-      {/* RIGHT — exchange clocks */}
-      <div className="flex items-center gap-3 flex-shrink-0">
+      {/* RIGHT — exchange clocks (secondary info, hidden on narrow screens
+          so the essentials above never get squeezed or clipped) */}
+      <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
         {CLOCKS.map(c => {
           const ex = EXCHANGES.find(e => e.id === c.exId)
           const isOpen = ex ? isExchangeOpen(ex, time) : false

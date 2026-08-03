@@ -10,6 +10,7 @@ import { useStore } from '../../store/useStore'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { ModuleLoader } from '../../components/ui/ModuleStates'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ── Sparkline ──────────────────────────────────────────────────────────────────
@@ -603,7 +604,7 @@ export default function CryptoModule() {
               })}
             </tbody>
           </table>
-        ) : null}
+        ) : <ModuleLoader name="CRYPTO" />}
       </div>
 
     </div>

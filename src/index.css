@@ -240,6 +240,23 @@ body {
   pointer-events: none;
 }
 
+/* Mobile: the terminal's dense text-2xs (~10.4px) rows are workable on a
+   desktop monitor but too small to read reliably on a phone — nudge the two
+   smallest type scales up slightly below the md breakpoint. */
+@media (max-width: 767px) {
+  .text-2xs { font-size: 0.75rem; line-height: 1.1rem; }
+  .text-xs  { font-size: 0.8125rem; line-height: 1.2rem; }
+}
+
+/* ModuleLoader: scanning line that sweeps the width of its track */
+@keyframes moduleLoaderScan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.module-loader-scan {
+  animation: moduleLoaderScan 1.4s ease-in-out infinite;
+}
+
 /* News: highlight pulse for stories that arrived since the last refresh —
    pulses while active, then background-color transition below fades it out
    the instant the 30s window closes and the class is removed. */

@@ -6,6 +6,7 @@ import {
 import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
+import { ModuleLoader } from '../../components/ui/ModuleStates'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 // ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
@@ -388,8 +389,8 @@ export default function FXModule() {
           {isLive     && <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime}</span>}
         </div>
         <div className="flex-1 overflow-auto">
-          {isFetching ? (
-            <div className="p-4 text-2xs text-terminal-text-dim animate-pulse text-center">LOADING RATES...</div>
+          {isFetching && !rawRates ? (
+            <ModuleLoader name="RATES" />
           ) : !isLive ? (
             <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
           ) : (
