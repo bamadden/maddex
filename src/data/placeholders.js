@@ -41,10 +41,11 @@ export const US_BONDS = [
   { maturity: '30Y', yield: 4.85 },
 ]
 
-// Central bank policy rates — SOURCE: official central bank releases, as at 2 Aug 2026
-// RBA cut to 3.85% in May 2026 (from 4.10% after the Feb 2026 cut)
+// Central bank policy rates — SOURCE: official central bank releases, as at 3 Aug 2026
+// RBA hiked to 4.35% on 6 May 2026 — third 2026 hike (Feb/Mar/May, +0.25 each),
+// reversing the 2025 easing cycle in response to the Iran/Middle East energy shock.
 export const CENTRAL_BANK_RATES = [
-  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 3.85, direction: 'cut',  lastChange: '2026-05-19', src: 'rba.gov.au' },
+  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 4.35, direction: 'hike', lastChange: '2026-05-06', src: 'rba.gov.au' },
   { bank: 'Federal Reserve',           country: 'USD', rate: 4.50, direction: 'hold', lastChange: '2025-12-18', src: 'federalreserve.gov' },
   { bank: 'ECB',                       country: 'EUR', rate: 2.00, direction: 'cut',  lastChange: '2026-06-12', src: 'ecb.europa.eu' },
   { bank: 'Bank of England',           country: 'GBP', rate: 4.25, direction: 'cut',  lastChange: '2026-05-08', src: 'bankofengland.co.uk' },
@@ -60,11 +61,13 @@ export const CENTRAL_BANK_RATES = [
 // Sources: abs.gov.au | rba.gov.au
 
 export const AU_MACRO = [
-  // RBA Cash Rate: 3.85% — cut at the 19 May 2026 Board meeting (from 4.10%,
-  // itself cut from 4.35% in Feb 2026) — held since; next decision 5 Aug 2026
-  { name: 'RBA Cash Rate',       value: '3.85%', prev: '4.10%', date: '2026-05-19', beat: null, src: 'rba.gov.au' },
-  // AU CPI YoY: 2.4% Q1 2026 — ABS Cat. 6401.0, released 2026-04-29
-  { name: 'AU CPI YoY',          value: '2.4%',  prev: '2.3%',  date: '2026-04-29', beat: null, src: 'abs.gov.au/6401.0' },
+  // RBA Cash Rate: 4.35% — hiked at the 6 May 2026 Board meeting (from 4.10%,
+  // itself hiked from 3.85% in Mar 2026, itself hiked from 3.60% in Feb 2026)
+  // — third consecutive 2026 hike, held since at the 17 Jun meeting;
+  // next decision 11 Aug 2026, hold expected by all 4 major banks.
+  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.10%', date: '2026-05-06', beat: null, src: 'rba.gov.au' },
+  // AU CPI YoY: 3.8% Q2 2026 — ABS Cat. 6401.0, released 2026-07-30 (up from 2.4%)
+  { name: 'AU CPI YoY',          value: '3.8%',  prev: '2.4%',  date: '2026-07-30', beat: false, src: 'abs.gov.au/6401.0' },
   { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
   // AU Unemployment: 4.1% May 2026 — ABS Labour Force, released 2026-06-19
   { name: 'AU Unemployment',     value: '4.1%',  prev: '4.1%',  date: '2026-06-19', beat: null,  src: 'abs.gov.au/6202.0' },
@@ -191,36 +194,38 @@ export const DEMO_PORTFOLIO_HOLDINGS = []
 export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX', 'AAPL', 'NVDA', 'BTC-USD']
 
 // ─── RBA Rate History (Jan 2022 – Aug 2026) ─────────────────────────────────
-// SOURCE: rba.gov.au board decisions
+// SOURCE: rba.gov.au board decisions. One entry per decision date (not one
+// per month) — dates are exact board-meeting dates, values only change when
+// the Board actually moved; render as a step chart (rates don't interpolate
+// between decisions).
+//
+// 2025 saw an easing cycle (Feb/May/Aug, -0.25 each, 4.35% → 3.60%). 2026
+// reversed that with three hikes (Feb/Mar/May, +0.25 each, 3.60% → 4.35%) in
+// response to the global energy shock from the Iran-Middle East conflict.
+// The Jun 2026 meeting held at 4.35%; the Aug 11 2026 meeting is expected to
+// hold too, following a softer CPI print of 3.8%.
 export const RBA_RATE_HISTORY = [
-  { date: 'Jan-22', rate: 0.10 }, { date: 'Feb-22', rate: 0.10 },
-  { date: 'Mar-22', rate: 0.10 }, { date: 'Apr-22', rate: 0.10 },
-  { date: 'May-22', rate: 0.35 }, { date: 'Jun-22', rate: 0.85 },
-  { date: 'Jul-22', rate: 1.35 }, { date: 'Aug-22', rate: 1.85 },
-  { date: 'Sep-22', rate: 2.35 }, { date: 'Oct-22', rate: 2.60 },
-  { date: 'Nov-22', rate: 2.85 }, { date: 'Dec-22', rate: 3.10 },
-  { date: 'Jan-23', rate: 3.35 }, { date: 'Feb-23', rate: 3.35 },
-  { date: 'Mar-23', rate: 3.60 }, { date: 'Apr-23', rate: 3.60 },
-  { date: 'May-23', rate: 3.85 }, { date: 'Jun-23', rate: 4.10 },
-  { date: 'Jul-23', rate: 4.10 }, { date: 'Aug-23', rate: 4.10 },
-  { date: 'Sep-23', rate: 4.10 }, { date: 'Oct-23', rate: 4.35 },
-  { date: 'Nov-23', rate: 4.35 }, { date: 'Dec-23', rate: 4.35 },
-  { date: 'Jan-24', rate: 4.35 }, { date: 'Feb-24', rate: 4.35 },
-  { date: 'Mar-24', rate: 4.35 }, { date: 'Apr-24', rate: 4.35 },
-  { date: 'May-24', rate: 4.35 }, { date: 'Jun-24', rate: 4.35 },
-  { date: 'Jul-24', rate: 4.35 }, { date: 'Aug-24', rate: 4.35 },
-  { date: 'Sep-24', rate: 4.35 }, { date: 'Oct-24', rate: 4.35 },
-  { date: 'Nov-24', rate: 4.35 }, { date: 'Dec-24', rate: 4.35 },
-  { date: 'Jan-25', rate: 4.35 }, { date: 'Feb-25', rate: 4.35 },
-  { date: 'Mar-25', rate: 4.35 }, { date: 'Apr-25', rate: 4.35 },
-  { date: 'May-25', rate: 4.35 }, { date: 'Jun-25', rate: 4.35 },
-  { date: 'Jul-25', rate: 4.35 }, { date: 'Aug-25', rate: 4.35 },
-  { date: 'Sep-25', rate: 4.35 }, { date: 'Oct-25', rate: 4.35 },
-  { date: 'Nov-25', rate: 4.35 }, { date: 'Dec-25', rate: 4.35 },
-  { date: 'Jan-26', rate: 4.35 }, { date: 'Feb-26', rate: 4.10 },
-  { date: 'Mar-26', rate: 4.10 }, { date: 'Apr-26', rate: 4.10 },
-  { date: 'May-26', rate: 3.85 }, { date: 'Jun-26', rate: 3.85 },
-  { date: 'Jul-26', rate: 3.85 }, { date: 'Aug-26', rate: 3.85 },
+  { date: '2022-05-04', rate: 0.35 },
+  { date: '2022-06-08', rate: 0.85 },
+  { date: '2022-07-06', rate: 1.35 },
+  { date: '2022-08-03', rate: 1.85 },
+  { date: '2022-09-07', rate: 2.35 },
+  { date: '2022-10-05', rate: 2.60 },
+  { date: '2022-11-02', rate: 2.85 },
+  { date: '2022-12-07', rate: 3.10 },
+  { date: '2023-02-08', rate: 3.35 },
+  { date: '2023-03-08', rate: 3.60 },
+  { date: '2023-05-03', rate: 3.85 },
+  { date: '2023-06-07', rate: 4.10 },
+  { date: '2023-11-08', rate: 4.35 },
+  { date: '2025-02-19', rate: 4.10 },
+  { date: '2025-05-21', rate: 3.85 },
+  { date: '2025-08-13', rate: 3.60 },
+  { date: '2026-02-04', rate: 3.85 },
+  { date: '2026-03-18', rate: 4.10 },
+  { date: '2026-05-06', rate: 4.35 },
+  { date: '2026-06-17', rate: 4.35 },
+  { date: '2026-08-03', rate: 4.35 },
 ]
 
 export const RBA_BOARD_MEMBERS = [
@@ -237,19 +242,24 @@ export const RBA_BOARD_MEMBERS = [
 
 export const RBA_RECENT_STATEMENTS = [
   {
-    date: '01 Jul 2026',
-    decision: 'HOLD at 3.85%',
-    key: '"The Board judges the current setting of monetary policy to be appropriate. Inflation is tracking within the target band and the labour market remains resilient."',
+    date: '17 Jun 2026',
+    decision: 'HOLD at 4.35%',
+    key: '"The Board judges the current setting of monetary policy to be appropriate. The Board will continue to monitor the impact of the global energy shock on the inflation outlook."',
   },
   {
-    date: '19 May 2026',
-    decision: 'CUT to 3.85% (-25bp)',
-    key: '"With inflation continuing to moderate and growth below trend, the Board judged a further easing in monetary policy was warranted."',
+    date: '06 May 2026',
+    decision: 'HIKE to 4.35% (+25bp)',
+    key: '"The Board judged that a further increase in the cash rate target was warranted given the upside risk to inflation from the global energy shock stemming from the Iran-Middle East conflict."',
   },
   {
-    date: '18 Feb 2026',
-    decision: 'CUT to 4.10% (-25bp)',
-    key: '"The Board has gained more confidence that inflation is moving sustainably towards the midpoint of the target range, supporting a first step of policy normalisation."',
+    date: '18 Mar 2026',
+    decision: 'HIKE to 4.10% (+25bp)',
+    key: '"With energy prices continuing to feed through to the inflation outlook, the Board judged it appropriate to continue withdrawing policy accommodation."',
+  },
+  {
+    date: '04 Feb 2026',
+    decision: 'HIKE to 3.85% (+25bp)',
+    key: '"The Board judged that the balance of risks to inflation had shifted, warranting a reversal of some of the easing delivered through 2025."',
   },
 ]
 

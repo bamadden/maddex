@@ -92,10 +92,10 @@ function SourceLink({ src }) {
 // calendar is well known; indicators without a confirmed next date are left
 // blank rather than guessed.
 const NEXT_RELEASE = {
-  'RBA Cash Rate':       '5 August 2026',
-  'AU CPI YoY':          '30 July 2026 (Q2 2026)',
-  'AU CPI Trimmed Mean': '30 July 2026 (Q2 2026)',
-  'AU Unemployment':     '17 July 2026',
+  'RBA Cash Rate':       '11 August 2026',
+  'AU CPI YoY':          'Late October 2026 (Q3 2026)',
+  'AU CPI Trimmed Mean': 'Late October 2026 (Q3 2026)',
+  'AU Unemployment':     '14 August 2026',
   'AU GDP QoQ':          'September 2026',
   'AU GDP Annual':       'September 2026',
 }
@@ -260,8 +260,8 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
 // Highlight calendar events dated today (handles 'DD MMM' format like '14 JUN')
 // ─── Meeting Countdown ────────────────────────────────────────────────────────
 
-// Next RBA meeting: 5 August 2026 at 2:30pm AEST (04:30 UTC)
-const RBA_NEXT_MEETING = new Date('2026-08-05T04:30:00Z')
+// Next RBA meeting: 11 August 2026 at 2:30pm AEST (04:30 UTC)
+const RBA_NEXT_MEETING = new Date('2026-08-11T04:30:00Z')
 const FOMC_NEXT_MEETING = new Date('2026-07-30T18:00:00Z')
 
 const MEETINGS = [
@@ -310,7 +310,7 @@ function getCountdown(dateStr, timeStr) {
 
 // ─── Section 7: RBA Dashboard ─────────────────────────────────────────────────
 
-const RBA_NEXT = new Date('2026-08-05T04:30:00Z')
+const RBA_NEXT = new Date('2026-08-11T04:30:00Z')
 
 function RBADashboard({ askAI }) {
   const [showBoard, setShowBoard] = useState(false)
@@ -325,21 +325,21 @@ function RBADashboard({ askAI }) {
       <div className="panel-header flex items-center gap-3 flex-wrap">
         <span className="text-terminal-gold">RBA DASHBOARD</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">Cash Rate Target</span>
-        <span className="text-2xl font-bold text-terminal-gold">3.85%</span>
+        <span className="text-2xl font-bold text-terminal-gold">4.35%</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">p.a.</span>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-2xs text-terminal-text-dim">NEXT MEETING:</span>
-          <span className="text-2xs font-bold text-terminal-text-bright">5 AUG 2026</span>
+          <span className="text-2xs font-bold text-terminal-text-bright">11 AUG 2026</span>
           <span className="text-2xs border border-terminal-gold/40 text-terminal-gold px-1.5 py-0.5">
             IN {daysLeft}D {hrsLeft}H
           </span>
           <button
             onClick={() => askAI({
               name:        'RBA Cash Rate',
-              price:       '3.85% p.a.',
+              price:       '4.35% p.a.',
               sector:      'Interest Rates',
               date:        todayAEST(),
-              instruction: 'What is the RBA likely to do at the next meeting on 5 August 2026 and why? Current cash rate 3.85% (cut from 4.10% in May 2026, after a first cut from 4.35% in Feb 2026). CPI Q2 2026 came in at 2.5%. Unemployment 4.1%. What is the market pricing?',
+              instruction: 'What is the RBA likely to do at the next meeting on 11 August 2026 and why? Current cash rate 4.35% (hiked from 4.10% in May 2026, the third consecutive 2026 hike after Feb and Mar, in response to the global energy shock from the Iran-Middle East conflict — reversing the 2025 easing cycle). The Board held at 4.35% at the 17 Jun 2026 meeting. CPI Q2 2026 came in at 3.8%. What is the market pricing for a hold?',
             })}
             className="text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
           >
@@ -362,12 +362,13 @@ function RBADashboard({ askAI }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#0d2244" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={5} />
+                <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={2}
+                  tickFormatter={(d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
                 <YAxis tick={{ fontSize: 7 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={32} />
                 <Tooltip content={({ active, payload, label }) =>
                   active && payload?.length
                     ? <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
-                        <div className="text-terminal-text-dim">{label}</div>
+                        <div className="text-terminal-text-dim">{new Date(label + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                         <div className="text-terminal-gold font-semibold">{payload[0].value}%</div>
                       </div>
                     : null
@@ -378,9 +379,9 @@ function RBADashboard({ askAI }) {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex gap-4 mt-1 text-2xs text-terminal-text-dim">
-            <span>May-22: Hike cycle begins 0.10% → 0.35%</span>
-            <span>Oct-23: Peak 4.35%</span>
+          <div className="flex gap-4 mt-1 text-2xs text-terminal-text-dim flex-wrap">
+            <span>Aug-25: Trough 3.60% (2025 easing cycle ends)</span>
+            <span>May-26: Rehiked to 4.35% (matches 2023 peak)</span>
             <span className="text-terminal-blue-bright">— neutral ~2.5%</span>
           </div>
         </div>
@@ -390,9 +391,9 @@ function RBADashboard({ askAI }) {
           <div className="text-2xs text-terminal-gold font-bold mb-2">NEXT MEETING PRICING</div>
           <div className="space-y-2">
             {[
-              { label: 'HOLD 3.85%', pct: 72, color: 'var(--color-neutral)' },
-              { label: 'CUT 3.60%',  pct: 28, color: 'var(--color-loss)' },
-              { label: 'HIKE 4.10%', pct: 0,  color: 'var(--color-gain)' },
+              { label: 'HOLD 4.35%', pct: 88, color: 'var(--color-neutral)' },
+              { label: 'CUT 4.10%',  pct: 4,  color: 'var(--color-loss)' },
+              { label: 'HIKE 4.60%', pct: 8,  color: 'var(--color-gain)' },
             ].map(({ label, pct, color }) => (
               <div key={label}>
                 <div className="flex justify-between mb-0.5">
@@ -680,55 +681,43 @@ function ChinaWatch({ askAI }) {
 const COUNTRY_FLAG = { AU: '🇦🇺', US: '🇺🇸', GLOBAL: '🌐' }
 
 const KNOWN_EVENTS = [
-  { date: '05 AUG', time: '14:30', event: 'RBA Interest Rate Decision', region: 'AU', importance: 'high',
-    forecast: 'Hold 3.85%', prev: 'Cut to 3.85%',
-    description: 'Hold expected after the May cut — watch the statement for easing-cycle signals.' },
-  { date: '06 AUG', time: '15:30', event: 'RBA Governor Press Conference', region: 'AU', importance: 'medium',
+  { date: '11 AUG', time: '14:30', event: 'RBA Interest Rate Decision', region: 'AU', importance: 'high',
+    forecast: 'Hold 4.35%', prev: 'Hike to 4.35%',
+    description: 'Hold expected by all 4 major banks, following a softer CPI print of 3.8% — watch the statement for signals on whether the tightening cycle is done.' },
+  { date: '12 AUG', time: '22:30', event: 'US CPI (Jul 2026)', region: 'US', importance: 'high',
     forecast: '—', prev: '—',
-    description: 'Follow-up briefing — markets watch tone for hints on the next move.' },
-  { date: '07 AUG', time: '—', event: 'US Senate Recess Begins (CLARITY Act)', region: 'US', importance: 'medium',
-    forecast: '—', prev: '—',
-    description: 'Crypto market-structure bill vote deadline — binary outcome for digital assets before recess.' },
-  { date: '12 AUG', time: '22:30', event: 'US CPI', region: 'US', importance: 'high',
-    forecast: '2.3%', prev: '2.3%',
     description: 'Key input for the Fed\'s next move — a hot print would push back rate-cut timing.' },
-  { date: '13 AUG', time: '11:30', event: 'AU Unemployment Rate', region: 'AU', importance: 'medium',
-    forecast: '4.1%', prev: '4.1%',
-    description: 'Labour market strength is the main swing factor for further RBA easing.' },
-  { date: '14 AUG', time: '11:00', event: 'AU Consumer Confidence', region: 'AU', importance: 'low',
-    forecast: '—', prev: '82.4',
-    description: 'Westpac-Melbourne Institute survey — a read on household sentiment post rate cuts.' },
+  { date: '13 AUG', time: '11:30', event: 'AU Wage Price Index (Q2 2026)', region: 'AU', importance: 'high',
+    forecast: '—', prev: '—',
+    description: 'Wage growth feeds directly into the RBA\'s services-inflation outlook.' },
+  { date: '14 AUG', time: '11:30', event: 'AU Unemployment Rate (Jul)', region: 'AU', importance: 'high',
+    forecast: '—', prev: '4.1%',
+    description: 'Labour market strength is the main swing factor for whether the RBA can hold through the energy-shock inflation spike.' },
   { date: '19 AUG', time: '22:00', event: 'FOMC Minutes', region: 'US', importance: 'medium',
     forecast: '—', prev: '—',
-    description: 'Detail behind the Jul 29-30 hold — look for the internal debate on the pace of cuts.' },
-  { date: '22 AUG', time: '09:00', event: 'AU/Global PMI Flash Estimates', region: 'GLOBAL', importance: 'medium',
+    description: 'Detail behind the Fed\'s most recent decision — look for the internal debate on the pace of any further moves.' },
+  { date: '27 AUG', time: '11:30', event: 'AU Monthly CPI Indicator (Jul)', region: 'AU', importance: 'high',
+    forecast: '—', prev: '3.8%',
+    description: 'First read on whether the June-quarter inflation jump to 3.8% is easing or persisting into Q3.' },
+  { date: '28 AUG', time: '11:30', event: 'AU Retail Sales (Jul)', region: 'AU', importance: 'medium',
     forecast: '—', prev: '—',
-    description: 'Earliest read on August activity across manufacturing and services.' },
-  { date: '26 AUG', time: '—', event: 'Jackson Hole Economic Symposium Begins', region: 'US', importance: 'medium',
-    forecast: '—', prev: '—',
-    description: 'Annual Fed policy retreat — sets the tone into September\'s FOMC decision.' },
-  { date: '27 AUG', time: '00:00', event: 'Fed Chair Powell Speaks at Jackson Hole', region: 'US', importance: 'high',
-    forecast: '—', prev: '—',
-    description: 'The single most-watched speech of the month for rate-path signalling.' },
-  { date: '28 AUG', time: '11:30', event: 'AU Retail Sales', region: 'AU', importance: 'medium',
-    forecast: '—', prev: '+0.3%',
-    description: 'Consumer spending pulse — feeds directly into the RBA\'s growth outlook.' },
-  { date: '02 SEP', time: '11:30', event: 'AU GDP Q2 2026', region: 'AU', importance: 'high',
+    description: 'Consumer spending pulse — feeds directly into the RBA\'s growth outlook amid the tightening cycle.' },
+  { date: '02 SEP', time: '11:30', event: 'AU GDP (Q2 2026)', region: 'AU', importance: 'high',
     forecast: '—', prev: '0.4%',
-    description: 'Confirms whether the economy is growing fast enough to justify a pause in cuts.' },
+    description: 'Confirms whether the economy is growing fast enough to absorb three 2026 rate hikes.' },
   { date: '16 SEP', time: '14:30', event: 'RBA Interest Rate Decision', region: 'AU', importance: 'high',
-    forecast: '—', prev: 'Hold 3.85%',
-    description: 'Next scheduled decision after the Aug 5 meeting.' },
+    forecast: '—', prev: 'Hold 4.35%',
+    description: 'Next scheduled decision after the Aug 11 meeting.' },
   { date: '17 SEP', time: '04:00', event: 'FOMC Rate Decision', region: 'US', importance: 'high',
-    forecast: '—', prev: '4.25–4.50%',
-    description: 'September Fed decision — markets will have priced in Jackson Hole signals by then.' },
+    forecast: '—', prev: '—',
+    description: 'September Fed decision.' },
 ]
 
 // Last 7 days' actual results — genuinely historical, so this stays a fixed
 // list rather than a generated one (there's nothing to "predict" about the past).
 const PREVIOUS_EVENTS = [
   { date: '30 JUL', event: 'FOMC Rate Decision (Jul 2026)',  region: 'US', importance: 'high',   actual: '4.25–4.50% (held)', forecast: '4.25–4.50%' },
-  { date: '30 JUL', event: 'AU CPI Q2 2026',                 region: 'AU', importance: 'high',   actual: '2.5%',              forecast: '2.5%'       },
+  { date: '30 JUL', event: 'AU CPI Q2 2026',                 region: 'AU', importance: 'high',   actual: '3.8%',              forecast: '2.5%'       },
   { date: '30 JUL', event: 'AU Retail Sales MoM (Jun)',      region: 'AU', importance: 'medium', actual: '+0.3%',             forecast: '+0.4%'      },
   { date: '29 JUL', event: 'FOMC Meeting Begins (Jul-Aug)',  region: 'US', importance: 'high',   actual: '—',                 forecast: '—'          },
   { date: '24 JUL', event: 'US S&P Global PMI (Jul)',        region: 'US', importance: 'medium', actual: '52.1',              forecast: '52.0'       },
@@ -944,9 +933,9 @@ const MACRO_THEMES = [
   { title: 'CLARITY ACT (CRYPTO)', icon: '₿',
     summary: 'Senate vote before Aug 7 recess critical. Polymarket odds ~40%.',
     impact: 'BINARY', note: 'Crypto assets' },
-  { title: 'RBA EASING CYCLE', icon: '💰',
-    summary: 'RBA cut to 3.85% in May 2026. Next meeting Aug 5 — hold expected.',
-    impact: 'BULLISH', note: 'AUD equities, property' },
+  { title: 'RBA TIGHTENING CYCLE', icon: '💰',
+    summary: 'RBA hiked to 4.35% in May 2026 (3rd 2026 hike). Next meeting Aug 11 — hold expected.',
+    impact: 'BEARISH', note: 'AUD equities, property' },
 ]
 
 const THEME_IMPACT_COLOR = {
@@ -1093,8 +1082,8 @@ export default function MacroModule() {
   // RBA Cash Rate — hardcoded from official rba.gov.au 19 May 2026 board decision.
   // The live RBA API (api.rba.gov.au) is unreliable; for a single data point that
   // changes at most 8 times per year, hardcoding the confirmed rate is more reliable.
-  const rbaRate    = 3.85
-  const rbaRateStr = '3.85%'
+  const rbaRate    = 4.35
+  const rbaRateStr = '4.35%'
 
   // AU indicator stats from ABS (updated in placeholders to latest known release)
   const latestCPI   = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 1]?.value ?? 2.4

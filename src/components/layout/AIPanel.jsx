@@ -14,7 +14,7 @@ const QUICK_PROMPTS = [
   },
   {
     label:  'RBA NEXT MOVE',
-    prompt: 'What is the most likely RBA decision at the next board meeting on 5 August 2026 and why?',
+    prompt: 'What is the most likely RBA decision at the next board meeting on 11 August 2026 and why? Current cash rate is 4.35% after three 2026 hikes.',
     dataKeys: ['asx', 'aud'],
   },
   {
