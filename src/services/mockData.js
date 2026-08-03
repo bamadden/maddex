@@ -71,25 +71,45 @@ export const MOCK_ASX_STOCKS = {
   'WTC.AX': { name: 'WiseTech Global',       price: 118.00, changePct:  3.00, marketCap: 38_000_000_000,  pe: 78.2, eps: 1.51,  divYield: 0.3, volume: 480_000,    week52High: 142.00, week52Low: 68.40,  sector: 'IT' },
   'XRO.AX': { name: 'Xero Limited',          price: 172.50, changePct: -1.20, marketCap: 28_000_000_000,  pe: 88.9, eps: 1.94,  divYield: 0.0, volume: 310_000,    week52High: 205.00, week52Low: 128.00, sector: 'IT' },
   'REA.AX': { name: 'REA Group',             price: 228.00, changePct:  1.45, marketCap: 24_000_000_000,  pe: 47.6, eps: 4.79,  divYield: 1.1, volume: 190_000,    week52High: 262.00, week52Low: 172.00, sector: 'Comms' },
+  // The rest of api.js's own ASX_STOCKS list (TopMovers/MarketSentimentBanner)
+  // — missing these caused "All quotes unavailable" for any consumer whose
+  // symbol set landed entirely outside the original 20-symbol mock list.
+  'MIN.AX': { name: 'Mineral Resources',     price: 45.30,  changePct: -2.10, marketCap: 8_600_000_000,   pe: 21.4, eps: 2.12,  divYield: 1.8, volume: 1_600_000,  week52High: 62.80,  week52Low: 28.90,  sector: 'Materials' },
+  'NEM.AX': { name: 'Newmont Corporation',   price: 78.40,  changePct:  1.55, marketCap: 92_000_000_000,  pe: 18.6, eps: 4.21,  divYield: 2.4, volume: 2_900_000,  week52High: 88.20,  week52Low: 58.30,  sector: 'Materials' },
+  'STO.AX': { name: 'Santos Limited',        price: 7.80,   changePct:  0.65, marketCap: 24_000_000_000,  pe: 11.2, eps: 0.70,  divYield: 5.9, volume: 8_400_000,  week52High: 8.60,   week52Low: 6.20,   sector: 'Energy' },
+  'WDS.AX': { name: 'Woodside Energy',       price: 26.50,  changePct: -1.80, marketCap: 52_000_000_000,  pe: 12.1, eps: 2.19,  divYield: 7.8, volume: 5_100_000,  week52High: 32.40,  week52Low: 21.60,  sector: 'Energy' },
+  'AGL.AX': { name: 'AGL Energy',            price: 11.20,  changePct:  0.95, marketCap: 12_000_000_000,  pe: 16.3, eps: 0.69,  divYield: 4.1, volume: 3_800_000,  week52High: 13.10,  week52Low: 8.90,   sector: 'Utilities' },
 }
 
-// ─── US Top 10 ─────────────────────────────────────────────────────────────
-// price/change/volume/52w for AAPL/NVDA/MSFT/GOOGL/AMZN/META/TSLA/JPM/V are
+// ─── US stocks ──────────────────────────────────────────────────────────────
+// price/change/volume/52w for AAPL/NVDA/MSFT/GOOG/AMZN/META/TSLA/JPM/V are
 // live figures fetched from FMP's single-quote endpoint this session
 // (2026-08-03) — genuinely accurate at the time, will drift over time same
-// as any snapshot would. BRK.B has no free single-quote access on any
-// vendor tried (symbol resolution issue) — approximated.
+// as any snapshot would. Ticker is GOOG (not GOOGL) and there's no BRK.B —
+// matches api.js's own US_STOCKS list exactly (TopMovers/MarketSentimentBanner
+// use that list directly; a mismatch here previously caused GOOG lookups and
+// several other real US_STOCKS tickers to fall through as missing).
 export const MOCK_US_STOCKS = {
-  AAPL:  { name: 'Apple Inc.',            price: 308.91, changePct: -7.35,  marketCap: 4_537_071_141_960, pe: 26.9, eps: 11.48, divYield: 0.5, volume: 132_489_137, week52High: 344.57, week52Low: 201.68, sector: 'IT' },
-  NVDA:  { name: 'NVIDIA Corporation',    price: 200.75, changePct:  2.93,  marketCap: 4_900_000_000_000, pe: 42.1, eps: 4.77,  divYield: 0.0, volume: 139_961_152, week52High: 236.54, week52Low: 164.07, sector: 'IT' },
-  MSFT:  { name: 'Microsoft Corporation', price: 464.72, changePct:  3.02,  marketCap: 3_450_000_000_000, pe: 34.6, eps: 13.43, divYield: 0.7, volume: 60_845_971,  week52High: 553.72, week52Low: 349.20, sector: 'IT' },
-  GOOGL: { name: 'Alphabet Inc.',         price: 356.13, changePct:  6.73,  marketCap: 4_310_000_000_000, pe: 24.2, eps: 14.72, divYield: 0.4, volume: 46_498_023,  week52High: 408.61, week52Low: 190.12, sector: 'Comms' },
-  AMZN:  { name: 'Amazon.com, Inc.',      price: 271.58, changePct: 15.32,  marketCap: 2_850_000_000_000, pe: 38.7, eps: 7.02,  divYield: 0.0, volume: 129_054_771, week52High: 278.56, week52Low: 196.00, sector: 'Cons Disc' },
-  META:  { name: 'Meta Platforms, Inc.',  price: 556.71, changePct:  3.28,  marketCap: 1_400_000_000_000, pe: 22.5, eps: 24.74, divYield: 0.3, volume: 24_261_457,  week52High: 796.25, week52Low: 520.26, sector: 'Comms' },
-  TSLA:  { name: 'Tesla, Inc.',           price: 311.21, changePct:  0.76,  marketCap: 1_000_000_000_000, pe: 168.2, eps: 1.85, divYield: 0.0, volume: 36_630_560,  week52High: 498.83, week52Low: 297.38, sector: 'Cons Disc' },
-  'BRK.B': { name: 'Berkshire Hathaway',  price: 485.00, changePct:  0.40,  marketCap: 1_050_000_000_000, pe: 11.8, eps: 41.10, divYield: 0.0, volume: 3_200_000,   week52High: 512.00, week52Low: 402.00, sector: 'Financials' },
-  JPM:   { name: 'JPMorgan Chase & Co.',  price: 351.79, changePct:  0.27,  marketCap: 980_000_000_000,   pe: 14.4, eps: 24.43, divYield: 1.9, volume: 6_583_546,   week52High: 359.30, week52Low: 279.10, sector: 'Financials' },
-  V:     { name: 'Visa Inc.',             price: 366.13, changePct: -0.04,  marketCap: 700_000_000_000,   pe: 30.1, eps: 12.16, divYield: 0.7, volume: 4_869_821,   week52High: 373.97, week52Low: 293.89, sector: 'Financials' },
+  AAPL:  { name: 'Apple Inc.',            price: 308.91, changePct: -7.35,  marketCap: 4_537_071_141_960, pe: 26.9,  eps: 11.48, divYield: 0.5, volume: 132_489_137, week52High: 344.57, week52Low: 201.68, sector: 'IT' },
+  NVDA:  { name: 'NVIDIA Corporation',    price: 200.75, changePct:  2.93,  marketCap: 4_900_000_000_000, pe: 42.1,  eps: 4.77,  divYield: 0.0, volume: 139_961_152, week52High: 236.54, week52Low: 164.07, sector: 'IT' },
+  MSFT:  { name: 'Microsoft Corporation', price: 464.72, changePct:  3.02,  marketCap: 3_450_000_000_000, pe: 34.6,  eps: 13.43, divYield: 0.7, volume: 60_845_971,  week52High: 553.72, week52Low: 349.20, sector: 'IT' },
+  TSLA:  { name: 'Tesla, Inc.',           price: 311.21, changePct:  0.76,  marketCap: 1_000_000_000_000, pe: 168.2, eps: 1.85,  divYield: 0.0, volume: 36_630_560,  week52High: 498.83, week52Low: 297.38, sector: 'Cons Disc' },
+  AMZN:  { name: 'Amazon.com, Inc.',      price: 271.58, changePct: 15.32,  marketCap: 2_850_000_000_000, pe: 38.7,  eps: 7.02,  divYield: 0.0, volume: 129_054_771, week52High: 278.56, week52Low: 196.00, sector: 'Cons Disc' },
+  META:  { name: 'Meta Platforms, Inc.',  price: 556.71, changePct:  3.28,  marketCap: 1_400_000_000_000, pe: 22.5,  eps: 24.74, divYield: 0.3, volume: 24_261_457,  week52High: 796.25, week52Low: 520.26, sector: 'Comms' },
+  GOOG:  { name: 'Alphabet Inc.',         price: 356.13, changePct:  6.73,  marketCap: 4_310_000_000_000, pe: 24.2,  eps: 14.72, divYield: 0.4, volume: 46_498_023,  week52High: 408.61, week52Low: 190.12, sector: 'Comms' },
+  NFLX:  { name: 'Netflix, Inc.',         price: 1180.00, changePct: 1.85,  marketCap: 505_000_000_000,   pe: 41.3,  eps: 28.57, divYield: 0.0, volume: 3_100_000,   week52High: 1340.00, week52Low: 820.00, sector: 'Comms' },
+  AMD:   { name: 'Advanced Micro Devices', price: 178.40, changePct: -1.60, marketCap: 288_000_000_000,   pe: 48.6,  eps: 3.67,  divYield: 0.0, volume: 52_300_000,  week52High: 220.00, week52Low: 118.00, sector: 'IT' },
+  INTC:  { name: 'Intel Corporation',     price: 32.20,  changePct: -0.90,  marketCap: 138_000_000_000,   pe: 36.2,  eps: 0.89,  divYield: 1.2, volume: 61_400_000,  week52High: 42.50,  week52Low: 18.30,  sector: 'IT' },
+  JPM:   { name: 'JPMorgan Chase & Co.',  price: 351.79, changePct:  0.27,  marketCap: 980_000_000_000,   pe: 14.4,  eps: 24.43, divYield: 1.9, volume: 6_583_546,   week52High: 359.30, week52Low: 279.10, sector: 'Financials' },
+  BAC:   { name: 'Bank of America',       price: 51.60,  changePct:  0.45,  marketCap: 392_000_000_000,   pe: 13.8,  eps: 3.74,  divYield: 2.3, volume: 38_900_000,  week52High: 55.20,  week52Low: 36.70,  sector: 'Financials' },
+  GS:    { name: 'Goldman Sachs Group',   price: 745.00, changePct:  0.15,  marketCap: 232_000_000_000,   pe: 15.9,  eps: 46.86, divYield: 1.8, volume: 1_900_000,   week52High: 780.00, week52Low: 520.00, sector: 'Financials' },
+  MS:    { name: 'Morgan Stanley',        price: 158.30, changePct: -0.35,  marketCap: 245_000_000_000,   pe: 16.7,  eps: 9.48,  divYield: 2.6, volume: 6_100_000,   week52High: 168.00, week52Low: 108.00, sector: 'Financials' },
+  V:     { name: 'Visa Inc.',             price: 366.13, changePct: -0.04,  marketCap: 700_000_000_000,   pe: 30.1,  eps: 12.16, divYield: 0.7, volume: 4_869_821,   week52High: 373.97, week52Low: 293.89, sector: 'Financials' },
+  MA:    { name: 'Mastercard Inc.',       price: 578.00, changePct:  0.20,  marketCap: 520_000_000_000,   pe: 34.5,  eps: 16.75, divYield: 0.5, volume: 2_300_000,   week52High: 605.00, week52Low: 445.00, sector: 'Financials' },
+  UNH:   { name: 'UnitedHealth Group',    price: 342.00, changePct: -0.60,  marketCap: 312_000_000_000,   pe: 15.1,  eps: 22.65, divYield: 2.9, volume: 5_800_000,   week52High: 630.00, week52Low: 240.00, sector: 'Health' },
+  JNJ:   { name: 'Johnson & Johnson',     price: 168.20, changePct:  0.30,  marketCap: 405_000_000_000,   pe: 18.4,  eps: 9.14,  divYield: 3.0, volume: 6_700_000,   week52High: 175.00, week52Low: 140.00, sector: 'Health' },
+  XOM:   { name: 'Exxon Mobil Corp',      price: 119.50, changePct:  0.55,  marketCap: 505_000_000_000,   pe: 14.2,  eps: 8.41,  divYield: 3.4, volume: 15_200_000,  week52High: 128.00, week52Low: 98.00,  sector: 'Energy' },
+  CVX:   { name: 'Chevron Corporation',   price: 168.40, changePct:  0.40,  marketCap: 315_000_000_000,   pe: 16.5,  eps: 10.21, divYield: 3.6, volume: 8_100_000,   week52High: 178.00, week52Low: 138.00, sector: 'Energy' },
 }
 
 // ─── Indices ────────────────────────────────────────────────────────────────
@@ -139,15 +159,59 @@ export const MOCK_CRYPTO = [
   { id: 'filecoin',     symbol: 'fil',   name: 'Filecoin',     current_price: 4.9,    price_change_percentage_24h: 1.9,  market_cap: 2_800_000_000 },
 ]
 
-function lookupBase(symbol) {
-  return MOCK_ASX_STOCKS[symbol] || MOCK_US_STOCKS[symbol] || MOCK_INDICES[symbol] || null
+// Deterministic, hash-seeded plausible value in [min, max] — same symbol
+// always maps to the same base value within a page load.
+function hashToRange(symbol, min, max) {
+  const h = Math.abs(hashStr(symbol)) % 100000
+  return min + (h / 100000) * (max - min)
 }
 
-const NYSE_SYMBOLS = new Set(['JPM', 'V', 'BRK.B'])
+// Safety net for any symbol not in the hand-authored datasets above — e.g. a
+// ticker a user types into Watchlist/Portfolio that isn't in api.js's own
+// ASX_STOCKS/US_STOCKS lists. Without this, an unrecognised symbol returned
+// null, and if a whole batch request was made up of only such symbols the
+// entire request came back empty and surfaced as "DATA UNAVAILABLE" —
+// exactly what happened with WDS.AX/AGL.AX before those were added above.
+// Every symbol-shaped input now gets *some* plausible quote; there is no
+// path left that returns null for a real-looking symbol.
+function generateSyntheticBase(symbol) {
+  const isAsx = /\.AX$/i.test(symbol)
+  const price = isAsx ? hashToRange(symbol, 2, 120) : hashToRange(symbol, 8, 450)
+  return {
+    name: symbol.replace(/\.AX$/i, ''),
+    price,
+    changePct: hashToRange(symbol + ':chg', -3, 3),
+    marketCap: Math.round(hashToRange(symbol + ':cap', 1, 80) * 1_000_000_000),
+    pe: round2(hashToRange(symbol + ':pe', 8, 35)),
+    eps: round2(price / hashToRange(symbol + ':epsdiv', 10, 30)),
+    divYield: round2(hashToRange(symbol + ':div', 0, 4)),
+    volume: Math.round(hashToRange(symbol + ':vol', 200_000, 8_000_000)),
+    week52High: round2(price * 1.22),
+    week52Low: round2(price * 0.78),
+    sector: null,
+    currency: isAsx ? 'AUD' : 'USD',
+  }
+}
+
+// Crypto pairs (BTC-USD, ETH-USD, ...) aren't equities — they belong to the
+// (separately live, never-mocked) CoinGecko path. Without this check they'd
+// fall through to generateSyntheticBase and show a fabricated stock-shaped
+// price for an asset that already has a real one available elsewhere in the
+// app; better to keep returning null so callers show their existing "no
+// data" placeholder instead of a plausible-looking but meaningless number.
+const CRYPTO_PAIR_RE = /-USD$/i
+
+function lookupBase(symbol) {
+  if (CRYPTO_PAIR_RE.test(symbol)) return null
+  return MOCK_ASX_STOCKS[symbol] || MOCK_US_STOCKS[symbol] || MOCK_INDICES[symbol] || generateSyntheticBase(symbol)
+}
+
+const NYSE_SYMBOLS = new Set(['JPM', 'BAC', 'GS', 'MS', 'V', 'MA', 'UNH', 'JNJ', 'XOM', 'CVX'])
 function exchangeFor(symbol) {
   if (MOCK_ASX_STOCKS[symbol]) return 'ASX'
   if (MOCK_INDICES[symbol]) return null
-  return NYSE_SYMBOLS.has(symbol) ? 'NYSE' : 'NASDAQ'
+  if (MOCK_US_STOCKS[symbol]) return NYSE_SYMBOLS.has(symbol) ? 'NYSE' : 'NASDAQ'
+  return /\.AX$/i.test(symbol) ? 'ASX' : 'NASDAQ'
 }
 
 // Returns the same shape fetchFMPQuote/fetchFMPBatch return (pre-legacy-shape
