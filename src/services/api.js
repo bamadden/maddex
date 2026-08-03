@@ -55,36 +55,48 @@ async function fetchFMPQuote(symbol) {
     if (mock) return mock
     throw new Error(`No mock data for ${symbol}`)
   }
-  const r = await fetch(
-    `${FMP_BASE}/quote/${encodeURIComponent(symbol)}?apikey=${FMP_KEY}`,
-    { signal: AbortSignal.timeout(8000) }
-  )
-  if (!r.ok) throw new Error(`FMP ${r.status}`)
-  const data = await r.json()
-  if (!data?.[0]) throw new Error('No FMP data')
-  const q = data[0]
-  return {
-    symbol: q.symbol,
-    shortName: q.name,
-    regularMarketPrice: q.price,
-    regularMarketChange: q.change,
-    regularMarketChangePercent: q.changesPercentage,
-    regularMarketPreviousClose: q.previousClose,
-    regularMarketOpen: q.open,
-    regularMarketDayHigh: q.dayHigh,
-    regularMarketDayLow: q.dayLow,
-    regularMarketVolume: q.volume,
-    averageVolume: q.avgVolume,
-    marketCap: q.marketCap,
-    trailingPE: q.pe,
-    epsTrailingTwelveMonths: q.eps,
-    fiftyTwoWeekHigh: q.yearHigh,
-    fiftyTwoWeekLow: q.yearLow,
-    sharesOutstanding: q.sharesOutstanding,
-    exchange: q.exchange,
-    priceAvg50: q.priceAvg50,
-    priceAvg200: q.priceAvg200,
-    currency: symbol.endsWith('.AX') ? 'AUD' : 'USD',
+  // A key being *configured* doesn't mean it *works* — FMP/TD both gate ASX
+  // symbols and batch quotes behind a paid plan even with a real key, so a
+  // "live" environment (e.g. Vercel with a key set) can still fail every
+  // request. Fall back to mock instead of surfacing that as DATA
+  // UNAVAILABLE — the DEMO badge won't show in this specific path (it only
+  // tracks key-presence, not live-connectivity), but the app stays usable.
+  try {
+    const r = await fetch(
+      `${FMP_BASE}/quote/${encodeURIComponent(symbol)}?apikey=${FMP_KEY}`,
+      { signal: AbortSignal.timeout(8000) }
+    )
+    if (!r.ok) throw new Error(`FMP ${r.status}`)
+    const data = await r.json()
+    if (!data?.[0]) throw new Error('No FMP data')
+    const q = data[0]
+    return {
+      symbol: q.symbol,
+      shortName: q.name,
+      regularMarketPrice: q.price,
+      regularMarketChange: q.change,
+      regularMarketChangePercent: q.changesPercentage,
+      regularMarketPreviousClose: q.previousClose,
+      regularMarketOpen: q.open,
+      regularMarketDayHigh: q.dayHigh,
+      regularMarketDayLow: q.dayLow,
+      regularMarketVolume: q.volume,
+      averageVolume: q.avgVolume,
+      marketCap: q.marketCap,
+      trailingPE: q.pe,
+      epsTrailingTwelveMonths: q.eps,
+      fiftyTwoWeekHigh: q.yearHigh,
+      fiftyTwoWeekLow: q.yearLow,
+      sharesOutstanding: q.sharesOutstanding,
+      exchange: q.exchange,
+      priceAvg50: q.priceAvg50,
+      priceAvg200: q.priceAvg200,
+      currency: symbol.endsWith('.AX') ? 'AUD' : 'USD',
+    }
+  } catch (e) {
+    const mock = getMockFMPRow(symbol)
+    if (mock) return mock
+    throw e
   }
 }
 
@@ -93,57 +105,71 @@ async function fetchFMPBatch(symbols) {
   if (!HAS_LIVE_DATA_KEY) {
     return symbols.map(getMockFMPRow).filter(Boolean)
   }
-  const joined = symbols.map(s => encodeURIComponent(s)).join(',')
-  const r = await fetch(
-    `${FMP_BASE}/quote/${joined}?apikey=${FMP_KEY}`,
-    { signal: AbortSignal.timeout(10000) }
-  )
-  if (!r.ok) throw new Error(`FMP batch ${r.status}`)
-  const data = await r.json()
-  return (data ?? []).map(q => ({
-    symbol: q.symbol,
-    shortName: q.name,
-    regularMarketPrice: q.price,
-    regularMarketChange: q.change,
-    regularMarketChangePercent: q.changesPercentage,
-    regularMarketPreviousClose: q.previousClose,
-    regularMarketOpen: q.open,
-    regularMarketDayHigh: q.dayHigh,
-    regularMarketDayLow: q.dayLow,
-    regularMarketVolume: q.volume,
-    averageVolume: q.avgVolume,
-    marketCap: q.marketCap,
-    trailingPE: q.pe,
-    epsTrailingTwelveMonths: q.eps,
-    fiftyTwoWeekHigh: q.yearHigh,
-    fiftyTwoWeekLow: q.yearLow,
-    sharesOutstanding: q.sharesOutstanding,
-    exchange: q.exchange,
-    priceAvg50: q.priceAvg50,
-    priceAvg200: q.priceAvg200,
-    currency: q.symbol.endsWith('.AX') ? 'AUD' : 'USD',
-  }))
+  try {
+    const joined = symbols.map(s => encodeURIComponent(s)).join(',')
+    const r = await fetch(
+      `${FMP_BASE}/quote/${joined}?apikey=${FMP_KEY}`,
+      { signal: AbortSignal.timeout(10000) }
+    )
+    if (!r.ok) throw new Error(`FMP batch ${r.status}`)
+    const data = await r.json()
+    if (!data?.length) throw new Error('Empty FMP batch response')
+    return data.map(q => ({
+      symbol: q.symbol,
+      shortName: q.name,
+      regularMarketPrice: q.price,
+      regularMarketChange: q.change,
+      regularMarketChangePercent: q.changesPercentage,
+      regularMarketPreviousClose: q.previousClose,
+      regularMarketOpen: q.open,
+      regularMarketDayHigh: q.dayHigh,
+      regularMarketDayLow: q.dayLow,
+      regularMarketVolume: q.volume,
+      averageVolume: q.avgVolume,
+      marketCap: q.marketCap,
+      trailingPE: q.pe,
+      epsTrailingTwelveMonths: q.eps,
+      fiftyTwoWeekHigh: q.yearHigh,
+      fiftyTwoWeekLow: q.yearLow,
+      sharesOutstanding: q.sharesOutstanding,
+      exchange: q.exchange,
+      priceAvg50: q.priceAvg50,
+      priceAvg200: q.priceAvg200,
+      currency: q.symbol.endsWith('.AX') ? 'AUD' : 'USD',
+    }))
+  } catch (e) {
+    const mockRows = symbols.map(getMockFMPRow).filter(Boolean)
+    if (mockRows.length) return mockRows
+    throw e
+  }
 }
 
 async function fetchFMPHistory(symbol, days = 93) {
   if (!HAS_LIVE_DATA_KEY) {
     return getMockFMPHistory(symbol, days)
   }
-  const r = await fetch(
-    `${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}?timeseries=${days}&apikey=${FMP_KEY}`,
-    { signal: AbortSignal.timeout(10000) }
-  )
-  if (!r.ok) throw new Error(`FMP history ${r.status}`)
-  const data = await r.json()
-  const hist = data.historical || []
-  return hist.slice().reverse().map(d => ({
-    date: d.date,
-    open: d.open,
-    high: d.high,
-    low: d.low,
-    close: d.close,
-    volume: d.volume,
-  }))
+  try {
+    const r = await fetch(
+      `${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}?timeseries=${days}&apikey=${FMP_KEY}`,
+      { signal: AbortSignal.timeout(10000) }
+    )
+    if (!r.ok) throw new Error(`FMP history ${r.status}`)
+    const data = await r.json()
+    const hist = data.historical || []
+    if (!hist.length) throw new Error('Empty FMP history response')
+    return hist.slice().reverse().map(d => ({
+      date: d.date,
+      open: d.open,
+      high: d.high,
+      low: d.low,
+      close: d.close,
+      volume: d.volume,
+    }))
+  } catch (e) {
+    const mockHist = getMockFMPHistory(symbol, days)
+    if (mockHist.length) return mockHist
+    throw e
+  }
 }
 
 // Map Yahoo Finance symbol keys → Stooq symbol format
