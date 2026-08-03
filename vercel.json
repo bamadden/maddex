@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/yahoo/:path*",
+      "destination": "/api/yahoo-proxy?path=:path*"
+    },
+    {
       "source": "/api/frankfurter/:path*",
       "destination": "https://api.frankfurter.dev/v1/:path*"
     },
