@@ -42,7 +42,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/frankfurter': {
-        target: 'https://api.frankfurter.app',
+        // api.frankfurter.app 301-redirects to api.frankfurter.dev/v1 — point
+        // at the new host directly to skip that hop.
+        target: 'https://api.frankfurter.dev/v1',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/frankfurter/, ''),
       },

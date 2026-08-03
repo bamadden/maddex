@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooBatch, fetchYFQuote } from '../../services/api'
+import { fetchYFQuote } from '../../services/api'
+import { fetchEquityQuotes } from '../../services/dataService'
 import { formatMarketCap } from '../../utils/format'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
@@ -279,13 +280,15 @@ export default function PortfolioModule() {
   const equityHoldings = holdings.filter((h) => h.type !== 'crypto')
   const yfSymbols = [...new Set(equityHoldings.map((h) => h.yfSym ?? toYahooSymbol(h.symbol, h.type)))]
 
-  const { data: batchQuotes, isFetching, isError, refetch } = useQuery({
+  const { data: portfolioResult, isFetching, isError, refetch } = useQuery({
     queryKey:  ['yfPortfolio', ...yfSymbols],
-    queryFn:   () => fetchYahooBatch(yfSymbols),
+    queryFn:   () => fetchEquityQuotes(yfSymbols),
     staleTime: 60_000,
     retry: 1,
     enabled:   yfSymbols.length > 0,
   })
+  const batchQuotes = portfolioResult?.data
+  const isDelayed    = portfolioResult?.stale === true
 
   const computed = holdings.map((h) => {
     const isCrypto = h.type === 'crypto'
@@ -392,7 +395,11 @@ export default function PortfolioModule() {
           color={dayPnl >= 0 ? 'text-terminal-green' : 'text-terminal-red'}
         />
         <StatBox label="POSITIONS"   value={holdings.length} color="text-terminal-text-bright" />
-        <StatBox label="LIVE PRICES" value={`${live.length}/${equityHoldings.length}`} color={isFetching ? 'text-terminal-gold' : 'text-terminal-text-dim'} />
+        <StatBox
+          label="LIVE PRICES"
+          value={isDelayed ? `${live.length}/${equityHoldings.length} ⏱` : `${live.length}/${equityHoldings.length}`}
+          color={isFetching ? 'text-terminal-gold' : isDelayed ? 'text-terminal-gold/80' : 'text-terminal-text-dim'}
+        />
         <StatBox label="DISPLAY CCY" value={currency}  color="text-terminal-gold" />
         <StatBox label="UPDATED"     value={updatedAt} color="text-terminal-text-dim" />
       </div>

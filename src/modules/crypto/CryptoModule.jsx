@@ -1,16 +1,17 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  fetchCryptoMarkets, fetchCoinHistory, fetchFearGreed, fetchTrendingCoins, fetchCryptoGlobal,
+  fetchCoinHistory, fetchFearGreed, fetchTrendingCoins, fetchCryptoGlobal,
   transformCryptoMarkets, transformCoinHistory, transformFearGreed,
   COIN_IDS,
 } from '../../services/api'
+import { fetchCryptoMarketsUnified } from '../../services/dataService'
 import { calculateCryptoMomentumIndex, scoreToColor, explainScore } from '../../services/maddenAiScoring'
 import { useStore } from '../../store/useStore'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
-import { ModuleLoader } from '../../components/ui/ModuleStates'
+import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ── Sparkline ──────────────────────────────────────────────────────────────────
@@ -369,10 +370,11 @@ export default function CryptoModule() {
 
   const { data: rawMarketsResult, isError: marketsError, refetch: refetchMarkets } = useQuery({
     queryKey: ['cryptoMarkets', vsCurrency],
-    queryFn:  () => fetchCryptoMarkets(vsCurrency),
+    queryFn:  () => fetchCryptoMarketsUnified(vsCurrency),
     staleTime: 60_000,
     retry: 1,
   })
+  const marketsDelayed = rawMarketsResult?.stale === true
 
   const { data: rawFearGreed } = useQuery({
     queryKey: ['fearGreed'],
@@ -517,11 +519,12 @@ export default function CryptoModule() {
         <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
           style={{ position: 'sticky', top: 0, zIndex: 20, background: '#071428', borderBottom: '1px solid #0d2244', margin: 0 }}>
           <span>TOP 20 BY MKT CAP ({currency})</span>
-          {rawMarkets
+          {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} />}
+          {rawMarkets && !marketsDelayed
             ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {updatedTime}</span>
-            : !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
+            : !rawMarkets && !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
           }
-          {marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
+          {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
         </div>
         {/* Gap cover — fills any sub-pixel gap between title bar and column headers */}
         <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#071428', margin: 0, padding: 0 }} />

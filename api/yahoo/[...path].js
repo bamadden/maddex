@@ -25,7 +25,17 @@ export default async function handler(req, res) {
     res.status(r.status)
     res.setHeader('Content-Type', r.headers.get('content-type') || 'application/json')
     res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Cache-Control', 'no-cache')
+    if (r.ok) {
+      // Edge-cache successful responses so concurrent users share one Yahoo
+      // hit instead of each triggering their own — meaningfully cuts 429s in
+      // production. Note: the client appends its own `_t=<timestamp>` cache
+      // buster (for its separate in-memory cache), which makes each request
+      // URL unique and defeats this at the edge; it still helps for any
+      // caller that doesn't send `_t`, and costs nothing to leave on.
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+    } else {
+      res.setHeader('Cache-Control', 'no-store')
+    }
     res.send(body)
   } catch (e) {
     res.status(502).json({ error: e.message })

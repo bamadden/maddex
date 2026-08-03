@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooBatch, fetchYahooQuote } from '../../services/api'
+import { fetchYahooQuote } from '../../services/api'
+import { fetchEquityQuotes } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass, formatMarketCap } from '../../utils/format'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
-import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
+import { ModuleLoader, ModuleError, StaleBadge } from '../../components/ui/ModuleStates'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -67,13 +68,15 @@ export default function WatchlistModule() {
 
   const yahooSymbols = watchlist.map((s) => toYahoo(s).yfSym)
 
-  const { data: batchQuotes, isFetching, isError, refetch, dataUpdatedAt } = useQuery({
+  const { data: batchResult, isFetching, isError, refetch, dataUpdatedAt } = useQuery({
     queryKey:  ['watchlistBatch', ...yahooSymbols],
-    queryFn:   () => fetchYahooBatch(yahooSymbols),
+    queryFn:   () => fetchEquityQuotes(yahooSymbols),
     enabled:   yahooSymbols.length > 0,
     staleTime: 60_000,
     retry: 1,
   })
+  const batchQuotes = batchResult?.data
+  const isDelayed   = batchResult?.stale === true
 
   const rows = watchlist.map((symbol) => {
     const { type, yfSym } = toYahoo(symbol)
@@ -174,7 +177,9 @@ export default function WatchlistModule() {
         WATCHLIST
         {isFetching
           ? <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">FETCHING...</span>
-          : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          : isDelayed
+            ? <StaleBadge cachedAt={batchResult?.cachedAt} />
+            : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
         <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{watchlist.length} tickers · drag ⠿ to reorder</span>
       </div>
 

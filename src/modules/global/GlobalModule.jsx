@@ -101,7 +101,7 @@ const COUNTRIES_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 const COUNTRY_DETAIL = {
   // ── Core G20 + APAC ──
   36:  { currency:'AUD', tz:'Australia/Sydney',   exchange:'ASX',         index:'ASX 200',      flag:'🇦🇺',
-         macro:{ gdp:1.5, gdpLbl:'Q4 2025, ABS', cpi:3.6, cpiLbl:'Q1 2026, ABS', rate:4.35, rateLbl:'Jul 2026, RBA' },
+         macro:{ gdp:1.5, gdpLbl:'Q4 2025, ABS', cpi:3.6, cpiLbl:'Q1 2026, ABS', rate:3.85, rateLbl:'May 2026, RBA' },
          partners:['China','Japan','South Korea','India','United States','United Kingdom'] },
   840: { currency:'USD', tz:'America/New_York',   exchange:'NYSE',        index:'S&P 500',      flag:'🇺🇸',
          macro:{ gdp:2.8, gdpLbl:'Q1 2026, BEA', cpi:2.4, cpiLbl:'Apr 2026, BLS', rate:4.38, rateLbl:'May 2026, Fed' },

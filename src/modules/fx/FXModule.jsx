@@ -1,12 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  fetchFxRates, transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
+  transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
 } from '../../services/api'
+import { fetchFxRatesUnified } from '../../services/dataService'
 import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
-import { ModuleLoader } from '../../components/ui/ModuleStates'
+import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 // ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
@@ -315,13 +316,18 @@ export default function FXModule() {
   const [fxAttemptKey, setFxAttemptKey]   = useState(0)
 
   // Frankfurter — no key needed. fetchFxRates already retries 3x + tries a
-  // direct (non-proxied) call internally, so no extra react-query retry layer.
-  const { data: rawRates, isError, isFetching, refetch } = useQuery({
+  // direct (non-proxied) call internally; fetchFxRatesUnified adds a final
+  // stale-cache safety net on top for total failure. Shared queryKey with
+  // TickerTape (fetch) and AIPanel (passive read) — all three now expect the
+  // same { data, stale, source } envelope.
+  const { data: fxResult, isError, isFetching, refetch } = useQuery({
     queryKey: ['fxRates'],
-    queryFn:  () => fetchFxRates('AUD'),
+    queryFn:  () => fetchFxRatesUnified('AUD'),
     staleTime: 5 * 60_000,
     retry: false,
   })
+  const rawRates  = fxResult?.data
+  const fxDelayed = fxResult?.stale === true
 
   const handleFxRetry = () => { setFxAttemptKey((k) => k + 1); refetch() }
 
@@ -384,7 +390,8 @@ export default function FXModule() {
         <div className="panel-header flex items-center gap-2">
           RATES
           {isFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {isLive     && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {isLive && fxDelayed && <StaleBadge cachedAt={fxResult?.cachedAt} />}
+          {isLive && !fxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {isError    && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           {isLive     && <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime}</span>}
         </div>

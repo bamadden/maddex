@@ -806,8 +806,12 @@ export const transformFearGreed = ({ data }) => ({
 // ─── Frankfurter FX (via proxy → /api/frankfurter, direct fallback) ──────────
 // Frankfurter has CORS enabled, so a direct browser call works if the proxy
 // (Vite dev middleware / Vercel rewrite) is down or misconfigured.
+// api.frankfurter.app now 301-redirects to api.frankfurter.dev/v1 — calling
+// the new host directly skips that extra hop (the proxy targets below still
+// point at .app, which still works via the redirect, so this only matters
+// for the direct-fallback path).
 
-const FRANKFURTER_DIRECT   = 'https://api.frankfurter.app'
+const FRANKFURTER_DIRECT   = 'https://api.frankfurter.dev/v1'
 const FRANKFURTER_ATTEMPTS = 3
 const FRANKFURTER_RETRY_MS = 2000
 

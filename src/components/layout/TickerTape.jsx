@@ -1,12 +1,13 @@
 import { useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  fetchCryptoMarkets, transformCryptoMarkets,
-  fetchYFBatch, YF_INDICES,
-  fetchFxRates, transformFxRates,
+  transformCryptoMarkets,
+  YF_INDICES,
+  transformFxRates,
   fetchMetalsRates, extractMetals,
-  fetchBatch, ASX_STOCKS, US_STOCKS, toAUD,
+  ASX_STOCKS, US_STOCKS, toAUD,
 } from '../../services/api'
+import { fetchEquityQuotes, fetchIndexQuotesUnified, fetchFxRatesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
@@ -75,24 +76,26 @@ export default function TickerTape() {
 
   const { data: rawMarkets } = useQuery({
     queryKey:  ['cryptoMarkets', 'aud'],
-    queryFn:   () => fetchCryptoMarkets('aud'),
+    queryFn:   () => fetchCryptoMarketsUnified('aud'),
     staleTime: 60_000,
     retry: 1,
   })
 
-  const { data: indexQuotes, error: indexError } = useQuery({
+  const { data: indexResult, error: indexError } = useQuery({
     queryKey:  ['yfBatch', 'indices'],
-    queryFn:   () => fetchYFBatch(YF_INDICES.map(i => i.symbol)),
+    queryFn:   () => fetchIndexQuotesUnified(YF_INDICES.map(i => i.symbol)),
     staleTime: 60_000,
     retry: 1,
   })
+  const indexQuotes = indexResult?.data
 
-  const { data: rawFx } = useQuery({
+  const { data: fxResult } = useQuery({
     queryKey:  ['fxRates'],
-    queryFn:   () => fetchFxRates('AUD'),
+    queryFn:   () => fetchFxRatesUnified('AUD'),
     staleTime: 5 * 60_000,
     retry: 1,
   })
+  const rawFx = fxResult?.data
 
   const { data: metalsRates } = useQuery({
     queryKey:  ['metalsRates'],
@@ -103,18 +106,20 @@ export default function TickerTape() {
 
   // Same queryKeys as TopMovers/MarketSentimentBanner — shares their cached
   // fetch rather than firing a second batch of requests for the same data.
-  const { data: asxQuotes } = useQuery({
+  const { data: asxResult } = useQuery({
     queryKey:  ['yahooMoversBatch', 'asx'],
-    queryFn:   () => fetchBatch(ASX_STOCKS),
+    queryFn:   () => fetchEquityQuotes(ASX_STOCKS),
     staleTime: 60_000,
     retry: 1,
   })
-  const { data: usQuotes } = useQuery({
+  const { data: usResult } = useQuery({
     queryKey:  ['yahooMoversBatch', 'us'],
-    queryFn:   () => fetchBatch(US_STOCKS),
+    queryFn:   () => fetchEquityQuotes(US_STOCKS),
     staleTime: 60_000,
     retry: 1,
   })
+  const asxQuotes = asxResult?.data
+  const usQuotes  = usResult?.data
 
   // ── Build section items ─────────────────────────────────────────────────────
 
@@ -122,8 +127,8 @@ export default function TickerTape() {
 
   // ▲▼ MOVERS — top 3 gainers + top 3 losers from CoinGecko
   if (rawMarkets) {
-    const { data: coinList, currency: coinCcy } = rawMarkets
-    const markets = transformCryptoMarkets(coinList, coinCcy)
+    const coinList = rawMarkets.data
+    const markets = transformCryptoMarkets(coinList, 'aud')
     const sorted = markets.filter(c => c.pct24h != null).sort((a, b) => b.pct24h - a.pct24h)
     const gainers = sorted.slice(0, 3)
     const losers  = [...sorted].reverse().slice(0, 3)
@@ -139,8 +144,8 @@ export default function TickerTape() {
 
   // ◆ CRYPTO — BTC/ETH/SOL/BNB/XRP AUD prices
   if (rawMarkets) {
-    const { data: coinList, currency: coinCcy } = rawMarkets
-    const markets = transformCryptoMarkets(coinList, coinCcy)
+    const coinList = rawMarkets.data
+    const markets = transformCryptoMarkets(coinList, 'aud')
     const cryptoItems = CRYPTO_COINS.map(sym => {
       const coin = markets.find(c => c.symbol === sym)
       if (!coin) return null

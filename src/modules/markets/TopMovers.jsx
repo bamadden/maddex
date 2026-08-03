@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { toAUD, ASX_STOCKS, US_STOCKS, fetchBatch } from '../../services/api'
+import { toAUD, ASX_STOCKS, US_STOCKS } from '../../services/api'
+import { fetchEquityQuotes } from '../../services/dataService'
 import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { StaleBadge } from '../../components/ui/ModuleStates'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 
@@ -116,19 +118,23 @@ export default function TopMovers() {
   const { audUsd } = useAudRates()
   const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
-  const { data: asxQuotes, isError: asxError, isFetching: asxFetching, refetch: refetchASX } = useQuery({
+  const { data: asxResult, isError: asxError, isFetching: asxFetching, refetch: refetchASX } = useQuery({
     queryKey:  ['yahooMoversBatch', 'asx'],
-    queryFn:   () => fetchBatch(ASX_STOCKS),
+    queryFn:   () => fetchEquityQuotes(ASX_STOCKS),
     staleTime: 60_000,
     retry: 1,
   })
+  const asxQuotes  = asxResult?.data
+  const asxDelayed = asxResult?.stale === true
 
-  const { data: usQuotes, isError: usError, isFetching: usFetching, refetch: refetchUS } = useQuery({
+  const { data: usResult, isError: usError, isFetching: usFetching, refetch: refetchUS } = useQuery({
     queryKey:  ['yahooMoversBatch', 'us'],
-    queryFn:   () => fetchBatch(US_STOCKS),
+    queryFn:   () => fetchEquityQuotes(US_STOCKS),
     staleTime: 60_000,
     retry: 1,
   })
+  const usQuotes  = usResult?.data
+  const usDelayed = usResult?.stale === true
 
   const asxTrackedCap = totalTrackedMktCap(asxQuotes, audUsd)
   const usTrackedCap  = totalTrackedMktCap(usQuotes, audUsd)
@@ -139,7 +145,8 @@ export default function TopMovers() {
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-gold">ASX LEADERS</span>
           {asxFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {asxQuotes && !asxFetching && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {asxQuotes && !asxFetching && asxDelayed && <StaleBadge cachedAt={asxResult?.cachedAt} />}
+          {asxQuotes && !asxFetching && !asxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {asxError && !asxFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
             {asxTrackedCap ? `${formatMarketCap(asxTrackedCap)} tracked · ` : ''}{updatedTime} · {ASX_STOCKS.length} stocks
@@ -152,7 +159,8 @@ export default function TopMovers() {
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-blue-bright">US LEADERS</span>
           {usFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {usQuotes && !usFetching && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {usQuotes && !usFetching && usDelayed && <StaleBadge cachedAt={usResult?.cachedAt} />}
+          {usQuotes && !usFetching && !usDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
           {usError && !usFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
             {usTrackedCap ? `${formatMarketCap(usTrackedCap)} tracked · ` : ''}{updatedTime} · {US_STOCKS.length} stocks

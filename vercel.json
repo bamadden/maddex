@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/frankfurter/:path*",
-      "destination": "https://api.frankfurter.app/:path*"
+      "destination": "https://api.frankfurter.dev/v1/:path*"
     },
     {
       "source": "/api/opensky/:path*",

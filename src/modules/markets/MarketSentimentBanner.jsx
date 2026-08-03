@@ -5,9 +5,10 @@ import {
   Customized, LineChart, Line, XAxis, YAxis, ReferenceLine,
 } from 'recharts'
 import {
-  fetchYFBatch, YF_INDICES, fetchCryptoMarkets, fetchFearGreed, transformFearGreed,
-  ASX_STOCKS, fetchBatch,
+  YF_INDICES, fetchFearGreed, transformFearGreed,
+  ASX_STOCKS,
 } from '../../services/api'
+import { fetchEquityQuotes, fetchIndexQuotesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
 import { useStore } from '../../store/useStore'
 import {
   calculateMarketSentimentScore, generateShortSummary, scoreToColor,
@@ -415,19 +416,21 @@ export default function MarketSentimentBanner() {
   const { currency } = useStore()
   const vsCurrency = currency.toLowerCase()
 
-  const { data: asxQuotes } = useQuery({
+  const { data: asxResult } = useQuery({
     queryKey: ['yahooMoversBatch', 'asx'],
-    queryFn:  () => fetchBatch(ASX_STOCKS),
+    queryFn:  () => fetchEquityQuotes(ASX_STOCKS),
     staleTime: 60_000, retry: 1,
   })
-  const { data: indexQuotes } = useQuery({
+  const { data: indexResult } = useQuery({
     queryKey: ['yfBatch', 'indices'],
-    queryFn:  () => fetchYFBatch(ALL_INDEX_SYMBOLS),
+    queryFn:  () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS),
     staleTime: 60_000, retry: 1,
   })
+  const asxQuotes   = asxResult?.data
+  const indexQuotes = indexResult?.data
   const { data: rawCrypto } = useQuery({
     queryKey: ['cryptoMarkets', vsCurrency],
-    queryFn:  () => fetchCryptoMarkets(vsCurrency),
+    queryFn:  () => fetchCryptoMarketsUnified(vsCurrency),
     staleTime: 60_000, retry: 1,
   })
   const { data: rawFearGreed } = useQuery({

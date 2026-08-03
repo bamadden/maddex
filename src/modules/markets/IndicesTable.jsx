@@ -1,8 +1,10 @@
 import { useRef, useMemo } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { fetchYFBatch, fetchYFHistory, transformYFHistory, YF_INDICES } from '../../services/api'
+import { fetchYFHistory, transformYFHistory, YF_INDICES } from '../../services/api'
+import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
+import { StaleBadge } from '../../components/ui/ModuleStates'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -82,12 +84,17 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
     }
   }
 
-  const { data: quotes, isError, isFetching, refetch } = useQuery({
+  // Shared queryKey with TickerTape/MarketSentimentBanner (same cached fetch)
+  // and read passively by AIPanel via queryClient.getQueryData — all three
+  // fetchers must return the same dataService-wrapped shape.
+  const { data: quotesResult, isError, isFetching, refetch } = useQuery({
     queryKey:  ['yfBatch', 'indices'],
-    queryFn:   () => fetchYFBatch(indices.map(i => i.symbol)),
+    queryFn:   () => fetchIndexQuotesUnified(indices.map(i => i.symbol)),
     staleTime: 60_000,
     retry: 1,
   })
+  const quotes     = quotesResult?.data
+  const isDelayed  = quotesResult?.stale === true
 
   // 7-day sparkline history, straight from each index's own Yahoo symbol —
   // Yahoo's chart endpoint handles ^-symbols the same as stock tickers, so no
@@ -102,7 +109,12 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
   })
 
   return (
-    <div className="bg-terminal-panel border-b border-terminal-border font-mono">
+    <div className="bg-terminal-panel border-b border-terminal-border font-mono relative">
+      {isDelayed && (
+        <div className="absolute top-1 right-2 z-10">
+          <StaleBadge cachedAt={quotesResult?.cachedAt} />
+        </div>
+      )}
       <div className="flex flex-nowrap overflow-x-auto gap-0 hide-scrollbar">
         {indices.map(({ symbol, label, isAud }, idx) => {
           const q          = quotes?.[symbol]

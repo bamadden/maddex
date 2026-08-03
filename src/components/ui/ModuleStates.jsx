@@ -27,6 +27,22 @@ export function ModuleLoader({ name, className = '' }) {
   )
 }
 
+// Small inline indicator for data served from dataService.js's stale-cache
+// fallback — used instead of a blank panel or a bare RETRY button whenever
+// *some* data (even if old) is available. `cachedAt` is the ms-epoch
+// timestamp dataService captured that copy at.
+export function StaleBadge({ cachedAt, className = '' }) {
+  const age = timeAgoShort(cachedAt)
+  return (
+    <span
+      title={age ? `Showing cached data from ${age}` : 'Showing cached data'}
+      className={`inline-flex items-center gap-1 text-2xs text-terminal-gold/80 border border-terminal-gold/30 px-1 py-0 ${className}`}
+    >
+      ● DELAYED{age ? ` · ${age}` : ''}
+    </span>
+  )
+}
+
 export function ModuleError({ module = 'MODULE', lastUpdated, onRetry, className = '' }) {
   const lastSeen = timeAgoShort(lastUpdated)
   return (

@@ -275,9 +275,14 @@ export default function AIPanel() {
   // ── Live data injection for quick prompts ─────────────────────────────────
 
   const buildQuickPrompt = useCallback((item) => {
-    const fxRates     = queryClient.getQueryData(['fxRates'])
-    const indicesData = queryClient.getQueryData(['yfBatch', 'indices'])
-    const cryptoData  = queryClient.getQueryData(['cryptoMarkets', 'aud'])
+    // fxRates and indicesData are cached in dataService's { data, stale,
+    // source } envelope (fetchFxRatesUnified / fetchIndexQuotesUnified) —
+    // unwrap .data. Crypto keeps its existing { data: [...], currency }
+    // shape either way (fetchCryptoMarkets and fetchCryptoMarketsUnified
+    // both nest the coin array under .data), so no change needed there.
+    const fxRates      = queryClient.getQueryData(['fxRates'])?.data
+    const indicesData  = queryClient.getQueryData(['yfBatch', 'indices'])?.data
+    const cryptoData   = queryClient.getQueryData(['cryptoMarkets', 'aud'])
 
     const audUsd   = fxRates?.USD
     const asxPrice = indicesData?.['^AXJO']?.last
