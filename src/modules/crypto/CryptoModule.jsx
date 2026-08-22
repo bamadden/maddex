@@ -6,7 +6,7 @@ import {
   COIN_IDS,
 } from '../../services/api'
 import { fetchCryptoMarketsUnified } from '../../services/dataService'
-import { calculateCryptoMomentumIndex, scoreToColor, explainScore } from '../../services/maddenAiScoring'
+import { calculateCryptoMomentumIndex, scoreToColor } from '../../services/maddenAiScoring'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
@@ -79,39 +79,6 @@ function getSentimentLabel(score) {
   return 'EXT FEAR'
 }
 
-// ── Fear & Greed Gauge ─────────────────────────────────────────────────────────
-
-function FearGreedGauge({ data }) {
-  const getColor = (v) =>
-    v >= 75 ? 'var(--color-gain-bright)' :
-    v >= 55 ? 'var(--color-neutral)' :
-    v >= 45 ? '#f0c040' :
-    v >= 25 ? '#ff8c00' :
-              'var(--color-loss-bright)'
-  const { value, label, prev, weekAgo, monthAgo } = data
-  const color = getColor(value)
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-1 py-1.5">
-      <div className="text-2xs text-terminal-gold tracking-widest font-bold mb-1">FEAR &amp; GREED</div>
-      <svg viewBox="0 0 120 70" style={{ width: '100%', maxWidth: 100, height: 'auto', display: 'block' }}>
-        <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="#0d2244" strokeWidth="10" />
-        <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke={color} strokeWidth="10"
-          strokeDasharray={`${(value / 100) * 157} 157`} strokeLinecap="butt" />
-        <text x="60" y="60" textAnchor="middle" fill={color} fontSize="22" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
-      </svg>
-      <div className="text-2xs font-bold mt-0.5" style={{ color }}>{label.toUpperCase()}</div>
-      <div className="grid grid-cols-3 gap-x-2 gap-y-0 mt-1 text-2xs w-full text-center">
-        {[['PREV', prev], ['WEEK', weekAgo], ['MO', monthAgo]].map(([l, v]) => (
-          <div key={l}>
-            <div className="text-terminal-text-dim/60 text-[9px]">{l}</div>
-            <div className="text-[10px]" style={{ color: getColor(v) }}>{v}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Chart tooltip ──────────────────────────────────────────────────────────────
 
 function ChartTooltip({ active, payload, label, currency }) {
@@ -124,69 +91,6 @@ function ChartTooltip({ active, payload, label, currency }) {
     <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
       <div className="text-terminal-text-dim">{label}</div>
       <div className="text-terminal-gold font-semibold">{formatted}</div>
-    </div>
-  )
-}
-
-// ── MaddenAI Crypto Momentum — hero panel ─────────────────────────────────────
-
-function MaddenAIMomentum({ momentum }) {
-  const [expanded, setExpanded] = useState(false)
-  if (!momentum) {
-    return (
-      <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
-        CALCULATING...
-      </div>
-    )
-  }
-  const color = scoreToColor(momentum.score)
-  const { bullish, neutral, bearish } = momentum.breakdown ?? { bullish: 33, neutral: 34, bearish: 33 }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 14px', height: '100%', boxSizing: 'border-box', borderLeft: '2px solid rgba(200,168,75,0.3)', background: 'rgba(200,168,75,0.018)' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color: '#c8a84b', letterSpacing: '0.12em', marginBottom: 5 }}>
-        MADDENAI CRYPTO MOMENTUM
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 48, fontWeight: 700, lineHeight: 1, color, fontFamily: 'IBM Plex Mono' }}>
-          {momentum.score}
-        </span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontSize: 10, color: 'rgba(100,130,160,0.5)' }}>/ 100</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color }}>{momentum.label.toUpperCase()}</span>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 4 }}>
-        <div style={{ display: 'flex', height: 10, width: '100%', overflow: 'hidden', borderRadius: 2 }}>
-          <div style={{ width: `${bullish}%`, background: 'var(--color-gain)', transition: 'width 0.5s' }} />
-          <div style={{ width: `${neutral}%`, background: 'var(--color-neutral)', transition: 'width 0.5s' }} />
-          <div style={{ width: `${bearish}%`, background: 'var(--color-loss)', transition: 'width 0.5s' }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, marginTop: 3 }}>
-          <span style={{ color: 'var(--color-gain)' }}>{bullish}% BULL</span>
-          <span style={{ color: 'var(--color-neutral)' }}>{neutral}% NEUT</span>
-          <span style={{ color: 'var(--color-loss)' }}>{bearish}% BEAR</span>
-        </div>
-      </div>
-
-      <div style={{ cursor: 'pointer' }} onClick={() => setExpanded(v => !v)}>
-        <span style={{ fontSize: 8, color: 'rgba(100,130,160,0.4)', letterSpacing: '0.05em' }}>
-          {expanded ? '▲ HIDE DETAIL' : '▼ SHOW DETAIL'}
-        </span>
-        {expanded && (
-          <div style={{ fontSize: 9, color: 'rgba(150,170,190,0.7)', marginTop: 4, borderTop: '1px solid rgba(13,34,68,0.6)', paddingTop: 4 }}>
-            {explainScore(momentum)}
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginTop: 'auto', paddingTop: 6 }}>
-        <span style={{ fontSize: 8, color: 'rgba(200,168,75,0.5)', letterSpacing: '0.1em' }}>
-          POWERED BY MADDENAI ◆
-        </span>
-      </div>
     </div>
   )
 }
@@ -273,15 +177,18 @@ function FearGreedPanel({ data }) {
   return (
     <div style={P.wrap}>
       <div style={P.title}>FEAR &amp; GREED</div>
-      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <svg viewBox="0 0 100 60" style={{ width:70, height:42, flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <svg viewBox="0 0 100 66" style={{ width:96, height:64, flexShrink:0 }}>
           <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke="#0d2244" strokeWidth="9" />
           <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke={color} strokeWidth="9"
             strokeDasharray={`${(value / 100) * 131.9} 131.9`} strokeLinecap="butt" />
-          <text x="50" y="50" textAnchor="middle" fill={color} fontSize="20" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
+          <text x="50" y="48" textAnchor="middle" fill={color} fontSize="26" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
+          <text x="10" y="64" textAnchor="start" fill="var(--color-loss)" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">FEAR</text>
+          <text x="50" y="64" textAnchor="middle" fill="#c8a84b" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">NEUTRAL</text>
+          <text x="90" y="64" textAnchor="end" fill="var(--color-gain)" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">GREED</text>
         </svg>
         <div style={{ fontSize:9 }}>
-          <div style={{ fontSize:11, fontWeight:700, color, marginBottom:4 }}>{label.toUpperCase()}</div>
+          <div style={{ fontSize:12, fontWeight:700, color, marginBottom:4 }}>{label.toUpperCase()}</div>
           <div style={{ color:'rgba(100,130,160,0.5)', marginBottom:2 }}>PREV: <span style={{ color:getColor(prev) }}>{prev}</span></div>
           <div style={{ color:'rgba(100,130,160,0.5)' }}>7D: <span style={{ color:getColor(weekAgo) }}>{weekAgo}</span></div>
         </div>

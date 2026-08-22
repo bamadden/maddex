@@ -215,9 +215,11 @@ body {
 /* Heatmap cells */
 .heatmap-cell {
   @apply flex items-center justify-center text-center cursor-default transition-all duration-200;
+  border: 1px solid transparent;
 }
 .heatmap-cell:hover {
-  filter: brightness(1.3);
+  filter: brightness(1.2);
+  border-color: rgba(201,168,76,0.5);
 }
 
 /* Modal and module animations */

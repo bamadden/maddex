@@ -25,14 +25,6 @@ function sparkColor(pct) {
   return '#6b7f99'
 }
 
-// Subtle per-card tint — same direction as the price colour, much lower
-// opacity than the heatmap tiles since this is a compact ticker strip.
-function cardGradient(pct) {
-  if (pct > 0) return 'linear-gradient(160deg, rgba(45,138,80,0.10), rgba(7,20,40,0) 70%)'
-  if (pct < 0) return 'linear-gradient(160deg, rgba(168,50,50,0.10), rgba(7,20,40,0) 70%)'
-  return 'none'
-}
-
 // Local, time-based open/closed check per index's home exchange — the FMP
 // quote's own isOpen field is always null (not available on the free/basic
 // endpoint), so this is computed client-side rather than left blank.
@@ -74,7 +66,7 @@ function fmtDataDate(ts) {
 
 // Plain SVG polyline sparkline — no charting library needed.
 function Sparkline({ points, color }) {
-  const w = 46, h = 24, pad = 2
+  const w = 40, h = 20, pad = 2
   if (!points || points.length < 2) {
     return <svg width={w} height={h} aria-hidden="true" />
   }
@@ -89,7 +81,7 @@ function Sparkline({ points, color }) {
   }).join(' ')
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }
@@ -176,21 +168,21 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             <div
               key={symbol}
               onClick={() => handleClick(symbol, q, isAud, label)}
-              className={`flex-shrink-0 min-w-[140px] cursor-pointer hover:bg-terminal-accent/10 transition-all border-r border-terminal-border ${isSelected ? '-translate-y-px' : ''}`}
+              className={`flex-shrink-0 cursor-pointer transition-all border-r border-terminal-border ${
+                isSelected ? 'bg-terminal-surface2' : 'bg-terminal-surface hover:bg-terminal-surface2'
+              }`}
               style={{
-                width: 152,
+                width: 140,
                 padding: '9px 12px 8px',
-                background: cardGradient(q?.pct),
-                borderTop: isSelected ? '2px solid #c8a84b' : '2px solid transparent',
-                boxShadow: isSelected ? '0 4px 10px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,168,75,0.15)' : 'none',
+                borderTop: isSelected ? '2px solid #C9A84C' : '2px solid transparent',
               }}
             >
               {/* Name is the only thing allowed to ellipsis — the level and
                   change % must always render in full, per design spec. */}
-              <div className="flex items-center gap-1 text-[9px] tracking-wider text-terminal-text-dim uppercase overflow-hidden text-ellipsis whitespace-nowrap">
+              <div className="flex items-center gap-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase overflow-hidden text-ellipsis whitespace-nowrap">
                 {isOpen != null && (
                   <span
-                    className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-text-dim/30'}`}
+                    className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-muted/30'}`}
                     title={isOpen ? 'Market open' : 'Market closed'}
                   />
                 )}
@@ -198,7 +190,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               </div>
 
               {isFetching && !q ? (
-                <div className="text-[15px] font-semibold text-terminal-text-dim animate-pulse mt-1">···</div>
+                <div className="text-[14px] font-mono font-semibold text-terminal-muted animate-pulse mt-1">···</div>
               ) : !q && isError ? (
                 <button
                   className="text-2xs text-terminal-red hover:text-terminal-gold cursor-pointer mt-1"
@@ -209,7 +201,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               ) : q ? (
                 <div className="flex items-end justify-between gap-1.5 mt-0.5">
                   <div>
-                    <div className="text-[15px] font-semibold text-terminal-text leading-tight whitespace-nowrap">
+                    <div className="text-[14px] font-mono font-semibold text-white leading-tight whitespace-nowrap">
                       {fmt.price(q.last, 1)}
                     </div>
                     <PriceChange pct={q.pct} size="text-[10px]" />
@@ -220,7 +212,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                   <Sparkline points={sparkPoints} color={sparkColor(q?.pct)} />
                 </div>
               ) : (
-                <div className="text-[15px] font-semibold text-terminal-text-dim/40 mt-1">—</div>
+                <div className="text-[14px] font-mono font-semibold text-terminal-muted/40 mt-1">—</div>
               )}
             </div>
           )

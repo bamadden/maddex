@@ -40,6 +40,13 @@ export default defineConfig(({ mode }) => {
             proxy.on('proxyReq', (proxyReq) => {
               proxyReq.setHeader('x-api-key', env.ANTHROPIC_API_KEY || '')
               proxyReq.setHeader('anthropic-version', '2023-06-01')
+              // Vite's dev proxy forwards the browser's original Origin
+              // header through to Anthropic (changeOrigin only rewrites
+              // Host) — Anthropic sees that and demands this flag even
+              // though the request is actually server-proxied. Safe to set
+              // here: it's not a secret, and this path never ships (prod
+              // uses api/claude.js, a fresh fetch() with no Origin at all).
+              proxyReq.setHeader('anthropic-dangerous-direct-browser-access', 'true')
             })
           },
         },

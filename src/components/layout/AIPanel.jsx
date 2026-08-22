@@ -435,7 +435,9 @@ export default function AIPanel() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-2xs text-terminal-text-dim">claude-sonnet-4-6</span>
+          <span className="text-2xs font-mono text-terminal-muted bg-terminal-surface2 border border-terminal-border rounded-full px-2 py-0.5">
+            CLAUDE SONNET
+          </span>
           <button
             onClick={() => setShowNotes((v) => !v)}
             className={`text-2xs px-1.5 py-0.5 border transition-colors ${
@@ -479,14 +481,14 @@ export default function AIPanel() {
         </div>
       )}
 
-      {/* Quick prompts */}
-      <div className="flex flex-wrap gap-1 p-2 border-b border-terminal-border flex-shrink-0">
+      {/* Quick prompts — pill buttons, horizontal scroll rather than wrap */}
+      <div className="flex items-center gap-1.5 p-2 border-b border-terminal-border flex-shrink-0 overflow-x-auto hide-scrollbar">
         {QUICK_PROMPTS.map((q) => (
           <button
             key={q.label}
             onClick={() => send(buildQuickPrompt(q))}
             disabled={loading}
-            className="text-2xs px-2 py-0.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors disabled:opacity-40"
+            className="text-2xs font-mono px-2.5 py-1 rounded-full border border-terminal-border text-terminal-muted hover:border-terminal-border-gold hover:text-terminal-gold transition-colors disabled:opacity-40 whitespace-nowrap flex-shrink-0"
           >
             {q.label}
           </button>
@@ -498,7 +500,7 @@ export default function AIPanel() {
         {chatMessages.map((msg, i) => (
           <div key={i} className={msg.role === 'user' ? 'text-right' : ''}>
             {msg.role === 'user' ? (
-              <div className="inline-block bg-terminal-accent px-2 py-1 text-2xs text-terminal-text-bright text-left max-w-[90%]">
+              <div className="inline-block bg-terminal-surface2 border-l-2 border-terminal-gold px-2 py-1 text-2xs text-terminal-text-bright text-left max-w-[90%]">
                 <span className="text-terminal-gold text-2xs block mb-0.5">YOU &gt;</span>
                 {msg.content}
               </div>
@@ -532,7 +534,10 @@ export default function AIPanel() {
                   </div>
                 )}
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-2xs text-terminal-gold">AI &gt;</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[9px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
+                    <span className="text-2xs text-terminal-gold">MADDENAI</span>
+                  </span>
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -553,7 +558,14 @@ export default function AIPanel() {
 
                 <FormattedResponse text={msg.content} />
 
-                {i === chatMessages.length - 1 && loading && (
+                {i === chatMessages.length - 1 && loading && !msg.content && (
+                  <div className="flex items-center gap-1 py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" style={{ animationDelay: '200ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" style={{ animationDelay: '400ms' }} />
+                  </div>
+                )}
+                {i === chatMessages.length - 1 && loading && msg.content && (
                   <span className="inline-block w-2 h-3 bg-terminal-gold animate-pulse ml-0.5 mt-0.5" />
                 )}
 

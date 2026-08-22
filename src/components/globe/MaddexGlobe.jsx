@@ -489,7 +489,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     // Atmosphere glow — radial gradient ring just outside the globe, blue at
     // the inner edge fading to fully transparent at the outer edge.
     const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
-    atmGrad.addColorStop(0, 'rgba(26,127,232,0.15)')
+    atmGrad.addColorStop(0, 'rgba(26,127,232,0.28)')
     atmGrad.addColorStop(1, 'rgba(26,127,232,0)')
     ctx.beginPath()
     ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
@@ -555,8 +555,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       const isSearchMatch = searchIds.size > 0 && searchIds.has(feature.id)
       let borderColor
       if (isSel || isSearchMatch) borderColor = '#F0D060' // bright gold — selection/search
-      else if (isEarth) borderColor = 'rgba(255,255,255,0.25)'
-      else borderColor = 'rgba(255,255,255,0.15)'
+      else borderColor = 'rgba(255,255,255,0.2)'
       ctx.strokeStyle = borderColor
       ctx.lineWidth = (isSel || isSearchMatch) ? 1.6 : 0.5
       ctx.stroke()
@@ -1117,7 +1116,10 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           LAYERS ▸
         </button>
       ) : (
-        <div className="absolute bottom-3 left-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2.5 py-2 backdrop-blur-sm w-40 max-h-[70vh] overflow-y-auto pointer-events-auto">
+        <div
+          className="absolute bottom-3 left-3 z-10 border border-terminal-border-gold px-2.5 py-2 backdrop-blur-md w-40 max-h-[70vh] overflow-y-auto pointer-events-auto"
+          style={{ background: 'rgba(6,13,26,0.8)' }}
+        >
           <div className="flex items-center justify-between mb-1.5">
             <span className="font-mono text-[8px] tracking-widest text-terminal-gold">LAYERS</span>
             <button
