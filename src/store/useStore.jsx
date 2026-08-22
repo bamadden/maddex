@@ -38,6 +38,9 @@ export function StoreProvider({ children }) {
   const [alerts, setAlerts]                 = useState(() => {
     try { return JSON.parse(localStorage.getItem('madden_alerts') ?? '[]') } catch { return [] }
   })
+  const [notifications, setNotifications]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem('madden_notifications') ?? '[]') } catch { return [] }
+  })
 
   const setCurrency = useCallback((c) => {
     try { localStorage.setItem('madden_currency', c) } catch {}
@@ -121,6 +124,36 @@ export function StoreProvider({ children }) {
     })
   }, [])
 
+  // type: 'PRICE_ALERT' | 'MARKET_OPEN' | 'NEWS' | 'SYSTEM'
+  const addNotification = useCallback((type, message) => {
+    const notification = { id: Date.now() + Math.random(), type, message, read: false, createdAt: new Date().toISOString() }
+    setNotifications((prev) => {
+      const next = [notification, ...prev].slice(0, 20)
+      try { localStorage.setItem('madden_notifications', JSON.stringify(next)) } catch {
+        // Persistence is best-effort — the in-memory list still updates
+      }
+      return next
+    })
+    return notification
+  }, [])
+
+  const markNotificationRead = useCallback((id) => {
+    setNotifications((prev) => {
+      const next = prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      try { localStorage.setItem('madden_notifications', JSON.stringify(next)) } catch {
+        // Persistence is best-effort — the in-memory list still updates
+      }
+      return next
+    })
+  }, [])
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([])
+    try { localStorage.setItem('madden_notifications', '[]') } catch {
+      // Persistence is best-effort — the in-memory list still updates
+    }
+  }, [])
+
   return (
     <StoreContext.Provider
       value={{
@@ -135,6 +168,7 @@ export function StoreProvider({ children }) {
         newsFilter, setNewsFilter,
         newsBadgeCount, setNewsBadgeCount, clearNewsBadge,
         alerts, addAlert, removeAlert,
+        notifications, addNotification, markNotificationRead, clearAllNotifications,
       }}
     >
       {children}

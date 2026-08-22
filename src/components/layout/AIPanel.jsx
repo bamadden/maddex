@@ -263,6 +263,7 @@ export default function AIPanel() {
   const {
     chatOpen, setChatOpen,
     chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
+    addNotification,
   } = useStore()
   const { profile } = useAuthStore()
   const { canAccess, isApex, tier } = useSubscription()
@@ -394,6 +395,7 @@ export default function AIPanel() {
         ...prev,
         stats: { elapsed: result.elapsed, outputTokens: result.outputTokens },
       }))
+      addNotification('SYSTEM', 'MaddenAI analysis ready')
     } catch (err) {
       updateLastChatMessage({
         role: 'assistant',

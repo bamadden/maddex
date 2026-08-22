@@ -5,6 +5,7 @@ import { fetchFxRates } from '../../services/api'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import SettingsPanel from '../settings/SettingsPanel'
+import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
@@ -183,6 +184,8 @@ function UserMenu() {
 
 // ─── TopBar ────────────────────────────────────────────────────────────────────
 
+const Divider = () => <span className="text-terminal-gold/40 text-sm mx-2 flex-shrink-0">│</span>
+
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { audUsd } = useAudRates()
@@ -215,8 +218,6 @@ export default function TopBar() {
     weekday:'short', day:'2-digit', month:'short', year:'numeric',
   }).toUpperCase().replace(/,/g, '')
   const clockStr = `${dateStr}  ${timeStr} AEST`
-
-  const Divider = () => <span className="text-terminal-gold/40 text-sm mx-2 flex-shrink-0">│</span>
 
   // Compact open/closed row for the four major markets — the fuller
   // EXCHANGES/CLOCKS lists stay available in MarketDropdown for anyone who
@@ -278,6 +279,8 @@ export default function TopBar() {
 
       {user && (
         <>
+          <Divider />
+          <NotificationCenter />
           <Divider />
           <UserMenu />
         </>
