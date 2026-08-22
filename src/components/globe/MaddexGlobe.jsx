@@ -317,7 +317,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   // during render, so this is seeded in an effect rather than inline).
   const starFieldRef = useRef([])
   useEffect(() => {
-    starFieldRef.current = Array.from({ length: 150 }, () => ({
+    starFieldRef.current = Array.from({ length: 280 }, () => ({
       rx: Math.random(),
       ry: Math.random(),
       r: 0.5 + Math.random(),
@@ -474,7 +474,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     // Star field — static background dots outside the globe/atmosphere, drawn
     // first so everything else sits on top. Positions are generated once
     // (starFieldRef) and never re-randomized, so the field doesn't flicker.
-    const atmR = scaledRadius + 14
+    const atmR = scaledRadius + 20
     for (const s of starFieldRef.current) {
       const sx = s.rx * width
       const sy = s.ry * height
@@ -489,7 +489,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     // Atmosphere glow — radial gradient ring just outside the globe, blue at
     // the inner edge fading to fully transparent at the outer edge.
     const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
-    atmGrad.addColorStop(0, 'rgba(26,127,232,0.28)')
+    atmGrad.addColorStop(0, 'rgba(45,150,255,0.38)')
     atmGrad.addColorStop(1, 'rgba(26,127,232,0)')
     ctx.beginPath()
     ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
@@ -737,13 +737,13 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           for (let ring = 0; ring < 3; ring++) {
             const cycleMs = 2000
             const t = (((now + ex.lat * 137 - ring * 300) % cycleMs) + cycleMs) % cycleMs / cycleMs
-            const ringR = 4 + t * 4 * 3 // expands to ~3x base radius
-            const ringAlpha = (1 - t) * 0.5
+            const ringR = 4 + t * 4 * 4 // expands to ~4x base radius
+            const ringAlpha = (1 - t) * 0.65
             if (ringAlpha <= 0.01) continue
             ctx.beginPath()
             ctx.arc(px, py, ringR, 0, Math.PI * 2)
             ctx.strokeStyle = `rgba(201,168,76,${ringAlpha * marketsAlpha})`
-            ctx.lineWidth = 1
+            ctx.lineWidth = 1.4
             ctx.stroke()
           }
         }
@@ -1197,6 +1197,35 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           </div>
         </div>
       )}
+
+      {/* Floating pill layer toggles — top-centre. Quick multi-select access to
+          the layers most people reach for; the LAYERS panel (bottom-left)
+          still covers opacity sliders and the rarer route overlays. EARTH is
+          the base layer (click re-selects it; DARK stays panel-only), the
+          rest are independently stackable overlays. */}
+      <div className="absolute top-14 md:top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 pointer-events-auto flex-wrap justify-center max-w-[90%]">
+        {[
+          { key: 'EARTH', active: baseLayer === 'EARTH', onClick: () => selectBase('EARTH') },
+          { key: 'MARKETS', active: overlays.MARKETS.active, onClick: () => toggleOverlay('MARKETS') },
+          { key: 'HEAT', active: overlays.HEAT.active, onClick: () => toggleOverlay('HEAT') },
+          { key: 'CRYPTO', active: overlays.CRYPTO.active, onClick: () => toggleOverlay('CRYPTO') },
+          { key: 'SHIPPING', active: overlays.SHIPPING.active, onClick: () => toggleOverlay('SHIPPING') },
+        ].map((pill) => (
+          <button
+            key={pill.key}
+            type="button"
+            onClick={pill.onClick}
+            className={`font-mono text-[9px] tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-md transition-colors ${
+              pill.active
+                ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
+                : 'text-terminal-text-dim border-terminal-border-gold hover:text-terminal-gold hover:border-terminal-gold'
+            }`}
+            style={{ background: pill.active ? undefined : 'rgba(6,13,26,0.7)' }}
+          >
+            {pill.key}
+          </button>
+        ))}
+      </div>
 
       {/* Search — top-left. Matches countries, exchanges, and both route
           layers; selecting a country/exchange rotates to it, a route

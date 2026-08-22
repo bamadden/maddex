@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews } from '../../services/api'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useStore } from '../../store/useStore'
 import { useCountryData } from '../../hooks/useCountryData'
 import COUNTRIES from '../../data/countryDatabase'
 import { initCountryDataRefresh } from '../../services/countryApiService'
@@ -1875,6 +1876,7 @@ function MarketSessionsTab({ now }) {
 // ─── Exchange Detail Panel ────────────────────────────────────────────────────
 
 function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
+  const { setActiveModule } = useStore()
   const ex = EXCHANGES.find(e => e.id === exchangeId)
   if (!ex) return null
 
@@ -1923,6 +1925,10 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
           </div>
           {cd && <div className="text-2xs text-terminal-gold">{cd}</div>}
           <div className="text-2xs text-terminal-text-dim mt-0.5">{lt} local · {ex.currency}</div>
+          <button
+            onClick={() => setActiveModule('markets')}
+            className="mt-2 w-full text-2xs font-bold tracking-wide bg-terminal-gold text-terminal-bg py-1.5 hover:bg-terminal-gold-bright transition-colors"
+          >VIEW IN MARKETS →</button>
         </div>
 
         {/* Exchange info */}
@@ -1972,6 +1978,215 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
   )
 }
 
+// ─── LEFT: Live Intelligence Feed ──────────────────────────────────────────
+
+const FEED_EXCHANGE_IDS = ['ASX', 'TSE', 'HKEX', 'LSE', 'NYSE', 'NASDAQ']
+
+// Mock — no live commodities feed wired up yet; matches the DEMO-badge
+// convention used across Markets/Rates until a real source is connected.
+const COMMODITY_PULSE = [
+  { name: 'GOLD',       unit: '/oz',  price: 4821,  chg: 0.34 },
+  { name: 'WTI CRUDE',  unit: '/bbl', price: 71.85, chg: -0.62 },
+  { name: 'IRON ORE',   unit: '/t',   price: 98.40, chg: 1.05 },
+  { name: 'COPPER',     unit: '/lb',  price: 4.31,  chg: 0.28 },
+  { name: 'WHEAT',      unit: '/bu',  price: 561,   chg: -0.44 },
+]
+
+const FX_CROSS_PAIRS = [
+  { key: 'USD', label: 'AUD/USD', dp: 4 },
+  { key: 'EUR', label: 'AUD/EUR', dp: 4 },
+  { key: 'GBP', label: 'AUD/GBP', dp: 4 },
+  { key: 'JPY', label: 'AUD/JPY', dp: 2 },
+  { key: 'CNY', label: 'AUD/CNY', dp: 3 },
+]
+
+// Reuses COUNTRY_KEYWORDS (already driving GeoRiskTab's region tagging) so
+// the gauge tracks the same live news feed instead of inventing a second,
+// disconnected notion of "region".
+const GEO_RISK_REGIONS = ['China', 'Middle East', 'Russia', 'United States']
+
+// Weights the region's N most severe matching headlines only (not every
+// match) — with an unbounded sum, a region name that happens to appear in a
+// lot of unrelated headlines would run the gauge to 100 on volume alone
+// rather than genuine severity.
+const SEVERITY_WEIGHT = { CRITICAL: 22, HIGH: 12, MEDIUM: 5, LOW: 1 }
+function regionRiskScore(newsItems, region) {
+  const re = COUNTRY_KEYWORDS[region]
+  if (!re || !newsItems?.length) return 12
+  const weights = newsItems
+    .filter(n => re.test(`${n.headline} ${n.summary ?? ''}`))
+    .map(n => SEVERITY_WEIGHT[detectSeverity(`${n.headline} ${n.summary ?? ''}`)])
+    .sort((a, b) => b - a)
+    .slice(0, 5)
+  return Math.min(100, 12 + weights.reduce((a, b) => a + b, 0))
+}
+function riskGaugeColor(score) {
+  if (score >= 70) return 'bg-terminal-red'
+  if (score >= 40) return 'bg-terminal-gold'
+  return 'bg-terminal-green'
+}
+
+function FeedHeader({ children, badge }) {
+  return (
+    <div className="panel-header flex items-center justify-between flex-shrink-0">
+      <span>{children}</span>
+      {badge && <span className="text-[8px] text-terminal-gold/70 font-normal normal-case tracking-normal">{badge}</span>}
+    </div>
+  )
+}
+
+function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
+  const alerts = useMemo(() => {
+    if (!newsItems?.length) return []
+    return newsItems
+      .map(n => ({ ...n, severity: detectSeverity(`${n.headline} ${n.summary ?? ''}`) }))
+      .filter(n => n.severity === 'CRITICAL' || n.severity === 'HIGH')
+      .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
+      .slice(0, 4)
+  }, [newsItems])
+
+  const feedExchanges = useMemo(
+    () => FEED_EXCHANGE_IDS.map(id => EXCHANGES.find(e => e.id === id)).filter(Boolean),
+    []
+  )
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden hide-scrollbar">
+      <div className="flex-shrink-0 border-b border-terminal-border">
+        <FeedHeader>MARKET STATUS</FeedHeader>
+        <div className="px-2 py-1">
+          {feedExchanges.map(ex => {
+            const st = getStatus(ex)
+            const cd = countdown(ex)
+            return (
+              <button
+                key={ex.id}
+                onClick={() => onSelectExchange(ex.id)}
+                className="w-full flex items-center justify-between py-1 px-1 -mx-1 rounded-[2px] hover:bg-terminal-accent/10 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT_CLS[st]}`} />
+                  <span className="text-2xs text-terminal-text-bright font-semibold">{ex.abbr}</span>
+                </span>
+                <span className="text-right">
+                  <div className={`text-2xs font-semibold ${STATUS_CLS[st]}`}>{STATUS_LABEL[st]}</div>
+                  {cd && <div className="text-[9px] text-terminal-text-dim">{cd}</div>}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 border-b border-terminal-border">
+        <FeedHeader>ACTIVE ALERTS</FeedHeader>
+        <div className="px-2 py-1.5 flex flex-col gap-1.5">
+          {alerts.length === 0 && (
+            <div className="text-2xs text-terminal-text-dim/60 py-1">No active disruptions</div>
+          )}
+          {alerts.map((a, i) => (
+            <div
+              key={a.id ?? i}
+              onClick={() => a.link && window.open(a.link, '_blank', 'noopener')}
+              className={`px-2 py-1.5 border-l-2 text-2xs leading-snug cursor-pointer text-terminal-text-bright ${
+                a.severity === 'CRITICAL' ? 'border-l-terminal-red bg-terminal-red/10' : 'border-l-orange-500 bg-orange-500/10'
+              }`}
+            >
+              {a.headline}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 border-b border-terminal-border">
+        <FeedHeader badge="● DEMO">COMMODITY PULSE</FeedHeader>
+        <div className="px-2 py-1">
+          {COMMODITY_PULSE.map(c => (
+            <div key={c.name} className="flex items-center justify-between py-1">
+              <span className="text-2xs text-terminal-text-dim">{c.name}</span>
+              <span className="flex items-center gap-2">
+                <span className="text-2xs text-terminal-text-bright tabular-nums">{c.price.toLocaleString()}{c.unit}</span>
+                <span className={`text-2xs tabular-nums w-12 text-right ${c.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {c.chg >= 0 ? '▲' : '▼'}{Math.abs(c.chg).toFixed(2)}%
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 border-b border-terminal-border">
+        <FeedHeader>CURRENCY CROSS</FeedHeader>
+        <div className="px-2 py-1">
+          {FX_CROSS_PAIRS.map(p => {
+            const v = audRates?.[p.key]
+            return (
+              <div key={p.key} className="flex items-center justify-between py-1">
+                <span className="text-2xs text-terminal-text-dim">{p.label}</span>
+                <span className="text-2xs text-terminal-text-bright tabular-nums">{v != null ? v.toFixed(p.dp) : '—'}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex-shrink-0">
+        <FeedHeader>GEO RISK INDEX</FeedHeader>
+        <div className="px-2 py-1.5 flex flex-col gap-2">
+          {GEO_RISK_REGIONS.map(region => {
+            const score = regionRiskScore(newsItems, region)
+            return (
+              <div key={region}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-2xs text-terminal-text-dim uppercase">{region}</span>
+                  <span className="text-2xs text-terminal-text-bright tabular-nums">{score}</span>
+                </div>
+                <div className="w-full h-1 bg-terminal-surface2 rounded-full overflow-hidden">
+                  <div className={`h-full ${riskGaugeColor(score)}`} style={{ width: `${score}%` }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── RIGHT empty-state: world stats summary ────────────────────────────────
+
+function StatBlock({ label, value, accent }) {
+  return (
+    <div className="border border-terminal-border px-2.5 py-2">
+      <div className={`text-lg font-bold tabular-nums ${accent ?? 'text-terminal-text-bright'}`}>{value}</div>
+      <div className="text-[9px] text-terminal-text-dim tracking-wide uppercase mt-0.5">{label}</div>
+    </div>
+  )
+}
+
+function WorldStatsSummary({ newsItems }) {
+  const openCount = useMemo(() => EXCHANGES.filter(ex => isOpenNow(getStatus(ex))).length, [])
+  const avgRisk = useMemo(() => {
+    const scores = GEO_RISK_REGIONS.map(r => regionRiskScore(newsItems, r))
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+  }, [newsItems])
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto p-3 gap-3">
+      <div className="text-2xs text-terminal-text-dim leading-relaxed">
+        Select a country or exchange on the globe for a detailed view — or browse trade flows,
+        geopolitical risk and market sessions via the tabs above.
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <StatBlock label="Exchanges Tracked" value={EXCHANGES.length} />
+        <StatBlock label="Open Now" value={openCount} accent="text-terminal-green" />
+        <StatBlock label="Countries" value={COUNTRIES.length} />
+        <StatBlock label="Avg Geo Risk" value={avgRisk} accent={avgRisk >= 40 ? 'text-terminal-gold' : 'text-terminal-green'} />
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
 export default function GlobalModule() {
@@ -1979,10 +2194,13 @@ export default function GlobalModule() {
     () => new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST'
   )
   const [nowMs, setNowMs] = useState(0)
-  const [activeTab, setActiveTab]     = useState('maritime')
+  const [activeTab, setActiveTab]     = useState('summary')
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [selectedExchange, setSelectedExchange] = useState(null)
   const [selectedArc, setSelectedArc] = useState(null)
+  // Mobile only (<768px) — the feed/globe/detail columns stack instead of
+  // sitting side by side, so a small screen needs an explicit switcher.
+  const [mobilePanel, setMobilePanel] = useState('globe')
 
   const { rates } = useAudRates()
   const audUsd = rates?.USD ?? FALLBACK_AUD_USD
@@ -2063,6 +2281,7 @@ export default function GlobalModule() {
   // Globe country click — rewires the orphaned CountryPanel back to the globe.
   const handleCountryClick = useCallback((numericId) => {
     setSelectedCountry(numericId)
+    setMobilePanel('detail')
   }, [])
 
   // Globe exchange-marker click — resolve the exchange's country (via this
@@ -2071,9 +2290,18 @@ export default function GlobalModule() {
   const handleExchangeClick = useCallback((exchangeId) => {
     const ex = EXCHANGES.find(e => e.id === exchangeId)
     if (ex?.countryId) setSelectedCountry(ex.countryId)
+    setMobilePanel('detail')
+  }, [])
+
+  const handleSelectExchange = useCallback((exchangeId) => {
+    setSelectedCountry(null)
+    setSelectedExchange(exchangeId)
+    setActiveTab('exchange')
+    setMobilePanel('detail')
   }, [])
 
   const TABS = [
+    { id:'summary',     label:'SUMMARY'     },
     { id:'maritime',    label:'MARITIME'    },
     { id:'air',         label:'AIR'         },
     { id:'commodities', label:'COMMOD'      },
@@ -2095,18 +2323,40 @@ export default function GlobalModule() {
         </div>
       )}
 
+      {/* Mobile-only panel switcher (<768px) — the three columns stack full-width
+          instead of sitting side by side, so a small screen needs to pick one. */}
+      <div className="flex md:hidden border-b border-terminal-border flex-shrink-0">
+        {[
+          { id:'feed',   label:'FEED'   },
+          { id:'globe',  label:'GLOBE'  },
+          { id:'detail', label:'DETAIL' },
+        ].map(p => (
+          <button key={p.id} onClick={() => setMobilePanel(p.id)}
+            className={`flex-1 font-mono text-2xs font-bold tracking-widest py-2 uppercase transition-colors border-b-2 ${
+              mobilePanel === p.id ? 'text-terminal-gold border-b-terminal-gold' : 'text-terminal-text-dim border-b-transparent'
+            }`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
 
-        {/* ── Main content row: Globe | Right tab panel ── */}
+        {/* ── Main content row: Feed | Globe | Right tab panel ── */}
         <div style={{ flex:1, display:'flex', minHeight:0 }}>
 
+          {/* Left — live intelligence feed, 260px */}
+          <div className={`${mobilePanel === 'feed' ? 'flex' : 'hidden'} md:flex w-full md:w-[260px] md:min-w-[260px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border`}>
+            <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} />
+          </div>
+
           {/* Globe */}
-          <div style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
+          <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} md:block`} style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
             <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} />
           </div>
 
-          {/* Right tab panel — 440px */}
-          <div className="flex flex-col overflow-hidden flex-shrink-0" style={{ width:'440px', minWidth:'440px' }}>
+          {/* Right tab panel — 300px */}
+          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:w-[300px] md:min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
           {/* Tab bar — single row, equal-width tabs, no wrapping */}
           <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
             {TABS.filter(t => !t.hidden).map(t => (
@@ -2151,9 +2401,11 @@ export default function GlobalModule() {
               <ExchangePanel
                 exchangeId={selectedExchange}
                 newsItems={allNewsItems}
-                onClose={() => { setSelectedExchange(null); setActiveTab('maritime') }}
+                onClose={() => { setSelectedExchange(null); setActiveTab('summary') }}
                 onAskAI={handleAskAI}
               />
+            ) : activeTab === 'summary' ? (
+              <WorldStatsSummary newsItems={allNewsItems} />
             ) : activeTab === 'maritime' ? (
               <MaritimeTab newsItems={allNewsItems} />
             ) : activeTab === 'air' ? (
