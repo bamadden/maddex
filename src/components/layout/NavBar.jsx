@@ -1,9 +1,22 @@
+import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper,
-  Settings as SettingsIcon, LogOut,
+  Settings as SettingsIcon, LogOut, Pin, PinOff,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
+
+const PIN_KEY = 'maddex_sidebar_pinned'
+
+function usePinnedSidebar() {
+  const [pinned, setPinned] = useState(() => {
+    try { return localStorage.getItem(PIN_KEY) === 'true' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(PIN_KEY, String(pinned)) } catch { /* ignore */ }
+  }, [pinned])
+  return [pinned, setPinned]
+}
 
 // fkey is fixed to CommandBar.jsx's hardcoded F1–F8 handlers (independent of
 // display order below) — do not derive it from array position, or the hint
@@ -22,17 +35,36 @@ const NAV_ITEMS = [
 ]
 
 const APP_VERSION = 'v0.1.0-beta'
-const LABEL_CLS = 'text-2xs font-semibold tracking-widest uppercase whitespace-nowrap opacity-0 group-hover/nav:opacity-100 transition-opacity duration-150'
+const LABEL_BASE = 'text-2xs font-semibold tracking-widest uppercase whitespace-nowrap transition-opacity duration-150'
 
 // Desktop left sidebar — 56px icon-only by default, expands to 200px with
-// labels on hover. Hidden below the md breakpoint in favour of
-// MobileNavBar, a bottom tab bar that's a better fit for touch navigation.
+// labels on hover, or pins open at 200px via the toggle at the top. Hidden
+// below the md breakpoint in favour of MobileNavBar, a bottom tab bar that's
+// a better fit for touch navigation.
 export default function NavBar() {
   const { activeModule, setActiveModule, chatOpen, setChatOpen } = useStore()
   const { signOut } = useAuthStore()
+  const [pinned, setPinned] = usePinnedSidebar()
+  const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
 
   return (
-    <div className="group/nav hidden md:flex flex-col bg-terminal-bg border-r border-terminal-border flex-shrink-0 overflow-hidden transition-all duration-150 w-14 hover:w-[200px] z-30">
+    <div
+      className={`group/nav hidden md:flex flex-col bg-terminal-bg border-r border-terminal-border flex-shrink-0 overflow-hidden transition-all duration-150 z-30 ${
+        pinned ? 'w-[200px]' : 'w-14 hover:w-[200px]'
+      }`}
+    >
+      <button
+        onClick={() => setPinned((p) => !p)}
+        title={pinned ? 'Unpin sidebar' : 'Pin sidebar'}
+        className={`flex items-center gap-3 w-full px-4 py-2.5 border-b border-terminal-border flex-shrink-0 transition-colors duration-100 ${
+          pinned ? 'text-terminal-gold' : 'text-terminal-muted/50 hover:text-terminal-muted'
+        }`}
+      >
+        {pinned
+          ? <Pin size={14} strokeWidth={1.75} className="flex-shrink-0" fill="currentColor" />
+          : <PinOff size={14} strokeWidth={1.75} className="flex-shrink-0" />}
+        <span className={labelCls}>{pinned ? 'PINNED' : 'PIN SIDEBAR'}</span>
+      </button>
       <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar py-2">
         {NAV_ITEMS.map((item) => {
           const isActive = activeModule === item.id
@@ -49,8 +81,8 @@ export default function NavBar() {
                 }`}
               >
                 <item.Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />
-                <span className={LABEL_CLS}>{item.label}</span>
-                <span className={`ml-auto text-terminal-muted/60 ${LABEL_CLS}`}>{item.fkey}</span>
+                <span className={labelCls}>{item.label}</span>
+                <span className={`ml-auto text-terminal-muted/60 ${labelCls}`}>{item.fkey}</span>
               </button>
             </div>
           )
@@ -66,7 +98,7 @@ export default function NavBar() {
         }`}
       >
         <span className="text-[18px] leading-none flex-shrink-0 w-[18px] text-center">▲</span>
-        <span className={LABEL_CLS}>AI ANALYST</span>
+        <span className={labelCls}>AI ANALYST</span>
       </button>
 
       {/* Bottom: settings + sign out */}
@@ -77,7 +109,7 @@ export default function NavBar() {
           className="flex items-center gap-3 w-full px-4 py-2.5 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
         >
           <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0" />
-          <span className={LABEL_CLS}>SETTINGS</span>
+          <span className={labelCls}>SETTINGS</span>
         </button>
         <button
           onClick={signOut}
@@ -85,11 +117,11 @@ export default function NavBar() {
           className="flex items-center gap-3 w-full px-4 py-2.5 text-terminal-muted hover:text-terminal-red hover:bg-terminal-surface2 transition-colors"
         >
           <LogOut size={18} strokeWidth={1.75} className="flex-shrink-0" />
-          <span className={LABEL_CLS}>SIGN OUT</span>
+          <span className={labelCls}>SIGN OUT</span>
         </button>
       </div>
       <div className="px-4 py-1.5 border-t border-terminal-border flex-shrink-0">
-        <span className={`text-terminal-muted/40 ${LABEL_CLS}`}>{APP_VERSION}</span>
+        <span className={`text-terminal-muted/40 ${labelCls}`}>{APP_VERSION}</span>
       </div>
     </div>
   )
