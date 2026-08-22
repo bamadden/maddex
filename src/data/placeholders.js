@@ -44,16 +44,19 @@ export const US_BONDS = [
 // Central bank policy rates — SOURCE: official central bank releases, as at 3 Aug 2026
 // RBA hiked to 4.35% on 6 May 2026 — third 2026 hike (Feb/Mar/May, +0.25 each),
 // reversing the 2025 easing cycle in response to the Iran/Middle East energy shock.
+// `expectation` is the market-implied stance into the *next* meeting (not
+// the last decision's direction, which is `direction`) — HIKE/HOLD/CUT.
 export const CENTRAL_BANK_RATES = [
-  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 4.35, direction: 'hike', lastChange: '2026-05-06', src: 'rba.gov.au' },
-  { bank: 'Federal Reserve',           country: 'USD', rate: 4.50, direction: 'hold', lastChange: '2025-12-18', src: 'federalreserve.gov' },
-  { bank: 'ECB',                       country: 'EUR', rate: 2.00, direction: 'cut',  lastChange: '2026-06-12', src: 'ecb.europa.eu' },
-  { bank: 'Bank of England',           country: 'GBP', rate: 4.25, direction: 'cut',  lastChange: '2026-05-08', src: 'bankofengland.co.uk' },
-  { bank: 'Bank of Japan',             country: 'JPY', rate: 0.50, direction: 'hold', lastChange: '2026-01-24', src: 'boj.or.jp' },
-  { bank: 'PBOC',                      country: 'CNY', rate: 3.10, direction: 'cut',  lastChange: '2026-02-20', src: 'pbc.gov.cn', note: 'LPR 1Y' },
-  { bank: 'RBNZ',                      country: 'NZD', rate: 3.25, direction: 'cut',  lastChange: '2026-04-09', src: 'rbnz.govt.nz' },
-  { bank: 'Bank of Canada',            country: 'CAD', rate: 2.75, direction: 'cut',  lastChange: '2026-03-12', src: 'bankofcanada.ca' },
-  { bank: 'Swiss National Bank',       country: 'CHF', rate: 0.00, direction: 'cut',  lastChange: '2026-03-19', src: 'snb.ch' },
+  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 4.35, direction: 'hike', lastChange: '2026-05-06', src: 'rba.gov.au',          expectation: 'hold' },
+  { bank: 'Federal Reserve',           country: 'USD', rate: 4.50, direction: 'hold', lastChange: '2025-12-18', src: 'federalreserve.gov',   expectation: 'cut'  },
+  { bank: 'ECB',                       country: 'EUR', rate: 2.00, direction: 'cut',  lastChange: '2026-06-12', src: 'ecb.europa.eu',        expectation: 'hold' },
+  { bank: 'Bank of England',           country: 'GBP', rate: 4.25, direction: 'cut',  lastChange: '2026-05-08', src: 'bankofengland.co.uk',  expectation: 'hold' },
+  { bank: 'Bank of Japan',             country: 'JPY', rate: 0.50, direction: 'hold', lastChange: '2026-01-24', src: 'boj.or.jp',            expectation: 'hike' },
+  { bank: 'PBOC',                      country: 'CNY', rate: 3.10, direction: 'cut',  lastChange: '2026-02-20', src: 'pbc.gov.cn', note: 'LPR 1Y', expectation: 'hold' },
+  { bank: 'RBNZ',                      country: 'NZD', rate: 3.25, direction: 'cut',  lastChange: '2026-04-09', src: 'rbnz.govt.nz',         expectation: 'hold' },
+  { bank: 'Bank of Canada',            country: 'CAD', rate: 2.75, direction: 'cut',  lastChange: '2026-03-12', src: 'bankofcanada.ca',      expectation: 'hold' },
+  { bank: 'Swiss National Bank',       country: 'CHF', rate: 0.00, direction: 'cut',  lastChange: '2026-03-19', src: 'snb.ch',               expectation: 'hold' },
+  { bank: 'Riksbank',                  country: 'SEK', rate: 2.00, direction: 'hold', lastChange: '2026-06-25', src: 'riksbank.se',          expectation: 'hold' },
 ]
 
 // ─── AU Macro ─────────────────────────────────────────────────────────────────

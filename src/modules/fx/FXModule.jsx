@@ -4,9 +4,11 @@ import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
-import { CENTRAL_BANK_RATES } from '../../data/placeholders'
+import { CENTRAL_BANK_RATES, RBA_RATE_HISTORY } from '../../data/placeholders'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
+  BOJ_MEETINGS_2026, PBOC_MEETINGS_2026, RBNZ_MEETINGS_2026, BOC_MEETINGS_2026,
+  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026,
   getNextMeeting, getDaysUntil,
 } from '../../services/centralBankSchedule'
 import { useStore } from '../../store/useStore'
@@ -112,6 +114,24 @@ const BANK_SCHEDULE = {
   'Federal Reserve':           FOMC_MEETINGS_2026,
   'ECB':                       ECB_MEETINGS_2026,
   'Bank of England':           BOE_MEETINGS_2026,
+  'Bank of Japan':             BOJ_MEETINGS_2026,
+  'PBOC':                      PBOC_MEETINGS_2026,
+  'RBNZ':                      RBNZ_MEETINGS_2026,
+  'Bank of Canada':            BOC_MEETINGS_2026,
+  'Swiss National Bank':       SNB_MEETINGS_2026,
+  'Riksbank':                  RIKSBANK_MEETINGS_2026,
+}
+
+const COUNTRY_NAME_BY_CCY = {
+  AUD: 'Australia', USD: 'United States', EUR: 'Eurozone', GBP: 'United Kingdom',
+  JPY: 'Japan', CNY: 'China', NZD: 'New Zealand', CAD: 'Canada', CHF: 'Switzerland', SEK: 'Sweden',
+}
+
+function RateBadge({ dir }) {
+  const cls = dir === 'hike' ? 'border-terminal-red/40 text-terminal-red'
+    : dir === 'cut' ? 'border-terminal-green/40 text-terminal-green'
+    : 'border-terminal-gold/40 text-terminal-gold'
+  return <span className={`px-1.5 py-0.5 border text-2xs font-bold uppercase ${cls}`}>{dir ?? 'hold'}</span>
 }
 
 function nextMeetingLabel(bankName) {
@@ -122,12 +142,6 @@ function nextMeetingLabel(bankName) {
   const days = getDaysUntil(next)
   const label = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   return `Next meeting: ${label} (${days}d)`
-}
-
-const directionIcon = (dir) => {
-  if (dir === 'hike') return <span className="text-terminal-red">↑ HIKE</span>
-  if (dir === 'cut')  return <span className="text-terminal-green">↓ CUT</span>
-  return <span className="text-terminal-text-dim">— HOLD</span>
 }
 
 const rateDecimals = (pair) => (pair.includes('JPY') || pair.includes('CNY') ? 2 : 4)
@@ -333,6 +347,193 @@ function YieldTooltip({ active, payload, label, compareKey }) {
   )
 }
 
+// ─── Global central bank rates comparison table ────────────────────────────
+
+function GlobalRatesTable() {
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="panel-header flex items-center gap-2">
+        GLOBAL CENTRAL BANK RATES
+        <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">10 banks · official + typical-cadence next meetings</span>
+      </div>
+      <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 240 }}>
+        <table className="terminal-table w-full">
+          <thead>
+            <tr>
+              <th className="px-2 text-left">COUNTRY</th>
+              <th className="px-2 text-left">BANK</th>
+              <th className="px-1 text-right">RATE</th>
+              <th className="px-1 text-left">LAST CHANGE</th>
+              <th className="px-1 text-left">NEXT MEETING</th>
+              <th className="px-1 text-center">EXPECTATION</th>
+              <th className="px-1 text-center">TREND</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CENTRAL_BANK_RATES.map((cb) => (
+              <tr key={cb.bank} className={cb.country === 'AUD' ? 'border-l-2 border-l-terminal-gold' : ''}>
+                <td className={`px-2 py-1 text-xs font-bold ${cb.country === 'AUD' ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
+                  {COUNTRY_NAME_BY_CCY[cb.country] ?? cb.country}
+                </td>
+                <td className="px-2 py-1 text-2xs text-terminal-text-dim">{cb.bank}{cb.note ? ` (${cb.note})` : ''}</td>
+                <td className="px-1 py-1 text-2xs text-right font-bold text-terminal-text-bright">{cb.rate.toFixed(2)}%</td>
+                <td className="px-1 py-1 text-2xs text-terminal-text-dim">{cb.lastChange}</td>
+                <td className="px-1 py-1 text-2xs text-terminal-gold/80">{nextMeetingLabel(cb.bank) ?? '—'}</td>
+                <td className="px-1 py-1 text-center"><RateBadge dir={cb.expectation} /></td>
+                <td className="px-1 py-1 text-center"><RateBadge dir={cb.direction} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ─── RBA section: real-rate comparison bar + last-10-decisions table ───────
+
+function RbaRateComparisonBar() {
+  // Reuses the same figures already surfaced elsewhere (CPI YoY 3.8%, RBA
+  // cash rate 4.35%, AU 10Y 4.20%) rather than re-deriving them, so the bar
+  // stays consistent with the CPI and yield-curve panels if those change.
+  const rows = [
+    { label: 'RBA CASH RATE', value: 4.35, color: '#c8a84b' },
+    { label: 'AU CPI YoY',    value: 3.8,  color: '#3b82f6' },
+    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? 4.20, color: '#22c55e' },
+  ]
+  const max = Math.max(...rows.map(r => r.value)) * 1.15
+  const realRate = (4.35 - 3.8).toFixed(2)
+  return (
+    <div className="p-2 border-b border-terminal-border">
+      <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">REAL RATES CHECK</div>
+      <div className="flex flex-col gap-1.5">
+        {rows.map(r => (
+          <div key={r.label}>
+            <div className="flex items-center justify-between text-2xs mb-0.5">
+              <span className="text-terminal-text-dim">{r.label}</span>
+              <span className="font-bold text-terminal-text-bright">{r.value.toFixed(2)}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-terminal-surface2 rounded-full overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 text-2xs text-terminal-text-dim">
+        Real cash rate (RBA − CPI): <span className={realRate >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>
+          {realRate >= 0 ? '+' : ''}{realRate}%
+        </span> — {realRate >= 0 ? 'positive, policy is restrictive' : 'negative, policy is still accommodative'}
+      </div>
+    </div>
+  )
+}
+
+function RbaDecisionHistory() {
+  const last10 = useMemo(() => {
+    const rows = RBA_RATE_HISTORY.slice(-10)
+    return rows.map((r, i) => {
+      const prev = i > 0 ? rows[i - 1].rate : rows[0].rate
+      const decision = r.rate > prev ? 'hike' : r.rate < prev ? 'cut' : 'hold'
+      return { ...r, decision }
+    }).reverse()
+  }, [])
+  return (
+    <div className="p-2">
+      <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">LAST 10 RBA DECISIONS</div>
+      <table className="terminal-table w-full">
+        <thead>
+          <tr>
+            <th className="px-1 text-left">DATE</th>
+            <th className="px-1 text-right">RATE</th>
+            <th className="px-1 text-center">DECISION</th>
+          </tr>
+        </thead>
+        <tbody>
+          {last10.map(r => (
+            <tr key={r.date}>
+              <td className="px-1 py-0.5 text-2xs text-terminal-text-dim">{r.date}</td>
+              <td className="px-1 py-0.5 text-2xs text-right font-semibold text-terminal-text-bright">{r.rate.toFixed(2)}%</td>
+              <td className="px-1 py-0.5 text-center"><RateBadge dir={r.decision} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── FX section: currency strength index + AUD TWI ─────────────────────────
+
+const STRENGTH_MAJORS = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'NZD']
+const AUD_TWI = 65.5 // RBA trade-weighted index, hardcoded snapshot — Aug 2026
+
+function CurrencyStrengthIndex() {
+  const results = useQuery({
+    queryKey: ['fxStrength30d', STRENGTH_MAJORS],
+    queryFn: async () => {
+      const settled = await Promise.allSettled(
+        STRENGTH_MAJORS.map((ccy) => fetchFxHistory('AUD', ccy, 30))
+      )
+      return STRENGTH_MAJORS.map((ccy, i) => {
+        const r = settled[i]
+        if (r.status !== 'fulfilled' || !r.value?.rates) return { ccy, pct: null }
+        const entries = Object.entries(r.value.rates)
+          .map(([date, rates]) => ({ date, rate: rates[ccy] }))
+          .filter(e => e.rate != null)
+          .sort((a, b) => a.date.localeCompare(b.date))
+        if (entries.length < 2) return { ccy, pct: null }
+        const first = entries[0].rate, last = entries[entries.length - 1].rate
+        // AUD strengthening vs ccy means 1 AUD buys MORE of ccy over the period.
+        return { ccy, pct: ((last - first) / first) * 100 }
+      })
+    },
+    staleTime: 30 * 60_000,
+    retry: 1,
+  })
+  const rows = results.data ?? []
+  const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.pct ?? 0)))
+
+  return (
+    <div className="border-t border-terminal-border p-2 flex-shrink-0">
+      <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">
+        AUD STRENGTH VS MAJORS (30D)
+        {results.isFetching && <span className="text-terminal-text-dim font-normal normal-case ml-1 animate-pulse">...</span>}
+      </div>
+      <div className="flex flex-col gap-1">
+        {rows.length === 0 && !results.isFetching && (
+          <div className="text-2xs text-terminal-text-dim/60">Unavailable</div>
+        )}
+        {rows.map(({ ccy, pct }) => (
+          <div key={ccy} className="flex items-center gap-1.5">
+            <span className="text-2xs text-terminal-text-dim w-8 flex-shrink-0">{ccy}</span>
+            <div className="flex-1 h-2.5 relative bg-terminal-surface2 rounded-sm overflow-hidden">
+              <div className="absolute top-0 bottom-0 left-1/2 w-px bg-terminal-border-gold" />
+              {pct != null && (
+                <div
+                  className={`absolute top-0 bottom-0 ${pct >= 0 ? 'bg-terminal-green' : 'bg-terminal-red'}`}
+                  style={{
+                    width: `${(Math.abs(pct) / maxAbs / 2) * 100}%`,
+                    left: pct >= 0 ? '50%' : `${50 - (Math.abs(pct) / maxAbs / 2) * 100}%`,
+                  }}
+                />
+              )}
+            </div>
+            <span className={`text-2xs w-14 text-right flex-shrink-0 font-semibold ${
+              pct == null ? 'text-terminal-text-dim' : pct >= 0 ? 'text-terminal-green' : 'text-terminal-red'
+            }`}>
+              {pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 pt-2 border-t border-terminal-border/50 flex items-center justify-between">
+        <span className="text-2xs text-terminal-text-dim">AUD TRADE-WEIGHTED INDEX (TWI)</span>
+        <span className="text-xs font-bold text-terminal-gold">{AUD_TWI}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function FXModule() {
   const { openModal } = useStore()
   const { canAccess, tier } = useSubscription()
@@ -400,6 +601,10 @@ export default function FXModule() {
         const pt = YIELD_CURVES[k].points.find(p => p.m === tenor)
         row[k] = pt?.y ?? null
       })
+      // Ghost line — the primary curve's snapshot from ~3 months ago, so the
+      // shift in shape/level is visible at a glance rather than only in the
+      // tooltip's per-tenor delta.
+      row[`${selectedCurve}_prev`] = YIELD_CURVES[selectedCurve].prev[tenor] ?? null
       return row
     })
   }, [selectedCurve, compareCurve2, compareMode, allTenors])
@@ -430,6 +635,7 @@ export default function FXModule() {
       lastUpdated={fxResult?.cachedAt}
       onRefresh={refetch}
     />
+    <GlobalRatesTable />
     <div className="flex-1 grid grid-cols-[280px_1fr_260px] overflow-hidden">
 
       {/* FX Pairs + Converter */}
@@ -510,6 +716,7 @@ export default function FXModule() {
           )}
         </div>
         <CurrencyConverter rates={rawRates} />
+        <CurrencyStrengthIndex />
       </div>
 
       {/* Bond Yield Curve — interactive 5-country selector */}
@@ -524,7 +731,7 @@ export default function FXModule() {
             i
           </button>
           <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">
-            Jul 2026 · hardcoded
+            Jul 2026 · hardcoded · ┄ ghost = 3mo ago
           </span>
         </div>
         {showYieldInfo && (
@@ -600,6 +807,19 @@ export default function FXModule() {
                 connectNulls
                 animationDuration={300}
                 isAnimationActive={true}
+              />
+              {/* Ghost line — primary curve, ~3 months ago */}
+              <Line
+                key={`ghost-${selectedCurve}`}
+                type="monotone"
+                dataKey={`${selectedCurve}_prev`}
+                stroke={YIELD_CURVES[selectedCurve].color}
+                strokeWidth={1}
+                strokeOpacity={0.35}
+                strokeDasharray="2 3"
+                dot={false}
+                connectNulls
+                isAnimationActive={false}
               />
               {/* Compare curve */}
               {compareMode && compareCurve2 && compareCurve2 !== selectedCurve && (
@@ -680,35 +900,17 @@ export default function FXModule() {
         </div>
       </div>
 
-      {/* Central Bank Rates + Metals */}
+      {/* RBA focus + Metals — the full multi-country comparison now lives in
+          GlobalRatesTable above, so this column goes deep on AU instead of
+          repeating that same per-bank list. */}
       <div className="flex flex-col overflow-hidden">
         <div className="panel-header flex items-center gap-2">
-          CENTRAL BANK POLICY RATES
-          <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">OFFICIAL RELEASES</span>
+          RBA FOCUS
+          <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">rba.gov.au</span>
         </div>
         <div className="flex-1 overflow-auto">
-          {CENTRAL_BANK_RATES.map((cb) => (
-            <div key={cb.bank}
-              className={`border-b border-terminal-border/50 p-2 hover:bg-terminal-accent/20 ${cb.country === 'AUD' ? 'border-l-2 border-l-terminal-gold' : ''}`}>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className={`text-2xs font-bold ${cb.country === 'AUD' ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
-                  {cb.country}
-                </span>
-                <span className="text-xs font-bold text-terminal-gold">{cb.rate.toFixed(2)}%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-2xs text-terminal-text-dim">{cb.bank}</span>
-                <span className="text-2xs">{directionIcon(cb.direction)}</span>
-              </div>
-              <div className="text-2xs text-terminal-text-dim mt-0.5">Last change: {cb.lastChange}</div>
-              {nextMeetingLabel(cb.bank) && (
-                <div className="text-2xs text-terminal-gold/70 mt-0.5">{nextMeetingLabel(cb.bank)}</div>
-              )}
-            </div>
-          ))}
-          <div className="px-2 py-1 text-2xs text-terminal-text-dim/60 border-t border-terminal-border">
-            Rates as at official central bank releases (source per institution)
-          </div>
+          <RbaRateComparisonBar />
+          <RbaDecisionHistory />
         </div>
         <div className="border-t border-terminal-border p-2 flex-shrink-0">
           <div className="panel-header -mx-2 -mt-2 mb-2">
