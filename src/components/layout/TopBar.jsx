@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/useAuthStore'
 import SettingsPanel from '../settings/SettingsPanel'
 import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
+import { USING_MOCK_DATA } from '../../services/api'
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -135,9 +136,9 @@ function UserMenu() {
       <div className="relative" ref={ref}>
         <button
           onClick={() => setOpen(v => !v)}
-          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+          className="group flex items-center gap-1.5 hover:opacity-80 transition-opacity"
         >
-          <div className="w-7 h-7 flex items-center justify-center bg-terminal-accent border border-terminal-gold/60 text-terminal-gold text-2xs font-bold flex-shrink-0">
+          <div className="w-7 h-7 rounded-full flex items-center justify-center bg-terminal-surface2 border border-terminal-border-gold text-terminal-gold text-2xs font-bold font-mono flex-shrink-0 transition-colors group-hover:border-terminal-gold">
             {initials}
           </div>
           {currencyFlag && <span className="text-xs flex-shrink-0" title={profile.preferred_currency}>{currencyFlag}</span>}
@@ -184,7 +185,21 @@ function UserMenu() {
 
 // ─── TopBar ────────────────────────────────────────────────────────────────────
 
-const Divider = () => <span className="text-terminal-gold/40 text-sm mx-2 flex-shrink-0">│</span>
+const Divider = () => <span className="w-px h-4 bg-terminal-border-gold mx-2 flex-shrink-0" />
+
+// Compact "DEMO" pill for the top bar — the fuller DemoBadge (ModuleStates.jsx)
+// carries an explanatory sentence that's the right call inside a module
+// header, but too long for this 44px strip.
+function TopBarDemoBadge() {
+  return (
+    <span
+      title="No live equities API key configured — showing realistic demo data until one is added"
+      className="pulse-gold inline-flex items-center rounded-full bg-terminal-gold/15 border border-terminal-border-gold px-2 py-0.5 text-2xs font-mono text-terminal-gold whitespace-nowrap flex-shrink-0"
+    >
+      ● DEMO
+    </span>
+  )
+}
 
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
@@ -225,66 +240,72 @@ export default function TopBar() {
   const MAJOR_MARKETS = ['ASX', 'NYSE', 'LSE', 'TSE']
 
   return (
-    <div className="flex items-center bg-terminal-header border-b border-terminal-gold/20 px-3 flex-shrink-0" style={{ height:36 }}>
-
-      {/* LEFT — branding */}
-      <div className="flex items-baseline gap-1.5 flex-shrink-0">
-        <span className="text-terminal-gold font-bold text-sm tracking-[0.2em] uppercase">
+    <div
+      className="grid grid-cols-[1fr_auto_1fr] items-center bg-terminal-header border-b border-terminal-border-gold px-3 flex-shrink-0"
+      style={{ height: 44 }}
+    >
+      {/* LEFT — branding + AUD/USD + exchange dropdown */}
+      <div className="flex items-center min-w-0 overflow-hidden">
+        <span className="font-mono font-semibold text-[13px] tracking-[0.15em] text-terminal-gold flex-shrink-0">
           ▲ MADDEX
         </span>
-        <span className="hidden sm:inline text-terminal-text-dim text-[9px] tracking-wider">FINANCIAL INTELLIGENCE TERMINAL</span>
+
+        <Divider />
+
+        <span className="hidden sm:inline text-terminal-muted text-[8px] tracking-[0.3em] uppercase flex-shrink-0">
+          FINANCIAL INTELLIGENCE
+        </span>
+
+        <Divider />
+
+        <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
+          <span className="text-terminal-muted text-2xs font-mono">AUD/USD</span>
+          <span className="text-terminal-gold font-bold text-2xs font-mono">{audUsd.toFixed(4)}</span>
+          {audUsdChg != null && (
+            <span className={`text-2xs font-semibold font-mono ${audUsdChg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {audUsdChg >= 0 ? '▲' : '▼'} {Math.abs(audUsdChg).toFixed(2)}%
+            </span>
+          )}
+        </div>
+
+        <div className="hidden md:block flex-shrink-0"><MarketDropdown now={time} /></div>
       </div>
 
-      <Divider />
+      {/* CENTRE — grid's two equal 1fr side columns keep this truly centred
+          regardless of how much content sits in the left/right clusters */}
+      <div className="flex items-center gap-4 justify-self-center flex-shrink-0 whitespace-nowrap">
+        <span className="hidden md:inline font-mono text-[10px] text-terminal-muted tracking-wider">
+          {clockStr}
+        </span>
+        <div className="hidden md:flex items-center gap-3">
+          {MAJOR_MARKETS.map((id) => {
+            const ex = EXCHANGES.find(e => e.id === id)
+            const isOpen = ex ? isExchangeOpen(ex, time) : false
+            return (
+              <span key={id} className="flex items-center gap-1">
+                <span
+                  className={`inline-block rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-muted/30'}`}
+                  style={{ width: 8, height: 8 }}
+                />
+                <span className={`text-2xs font-semibold font-mono ${isOpen ? 'text-terminal-green' : 'text-terminal-muted'}`}>{id}</span>
+              </span>
+            )
+          })}
+        </div>
+      </div>
 
-      {/* AUD/USD + market dropdown — kept next to branding so the centre
-          slot below is free for the clock */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-terminal-text-dim text-2xs">AUD/USD</span>
-        <span className="text-terminal-gold font-bold text-2xs">{audUsd.toFixed(4)}</span>
-        {audUsdChg != null && (
-          <span className={`text-2xs font-semibold ${audUsdChg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-            {audUsdChg >= 0 ? '▲' : '▼'} {Math.abs(audUsdChg).toFixed(2)}%
-          </span>
+      {/* RIGHT — demo badge, notifications, avatar */}
+      <div className="flex items-center justify-self-end flex-shrink-0">
+        {USING_MOCK_DATA && <TopBarDemoBadge />}
+        {user && (
+          <>
+            <Divider />
+            <NotificationCenter />
+            <Divider />
+            <UserMenu />
+          </>
         )}
       </div>
-
-      <Divider />
-
-      <div className="hidden md:block"><MarketDropdown now={time} /></div>
-
-      <div className="flex-1" />
-
-      {/* CENTRE — combined date/time clock */}
-      <span className="hidden md:inline font-mono text-[10px] text-terminal-text-dim tracking-wider flex-shrink-0 whitespace-nowrap">
-        {clockStr}
-      </span>
-
-      <div className="flex-1" />
-
-      {/* RIGHT — major-market open/closed row */}
-      <div className="hidden lg:flex items-center gap-2.5 flex-shrink-0">
-        {MAJOR_MARKETS.map((id, i) => {
-          const ex = EXCHANGES.find(e => e.id === id)
-          const isOpen = ex ? isExchangeOpen(ex, time) : false
-          return (
-            <span key={id} className="flex items-center gap-1">
-              {i > 0 && <span className="text-terminal-border mr-1.5">|</span>}
-              <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-text-dim/25'}`} />
-              <span className={`text-2xs font-semibold ${isOpen ? 'text-terminal-green' : 'text-terminal-text-dim/60'}`}>{id}</span>
-            </span>
-          )
-        })}
-      </div>
-
-      {user && (
-        <>
-          <Divider />
-          <NotificationCenter />
-          <Divider />
-          <UserMenu />
-        </>
-      )}
     </div>
   )
 }

@@ -207,8 +207,8 @@ function Terminal() {
       <div className="fixed inset-0 scanlines pointer-events-none z-50" />
       <TopBar />
       <TickerTape />
-      <NavBar />
       <div className="flex flex-1 min-h-0 overflow-hidden">
+        <NavBar />
         <div key={activeModule} className="flex-1 min-w-0 overflow-hidden module-fade">
           <ActiveModule />
         </div>
