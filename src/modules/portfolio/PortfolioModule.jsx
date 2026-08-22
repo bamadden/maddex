@@ -365,8 +365,9 @@ export default function PortfolioModule() {
               <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
             </div>
           : <>
-              <div className="text-terminal-gold text-base font-bold tracking-[0.2em]">▲ PORTFOLIO TRACKER</div>
-              <div className="text-terminal-text-dim text-sm text-center max-w-sm leading-relaxed">
+              <span className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold text-xl flex items-center justify-center">▲</span>
+              <div className="text-terminal-text-bright text-base font-semibold">Nothing here yet</div>
+              <div className="text-terminal-text-dim text-sm text-center max-w-sm leading-relaxed -mt-2">
                 Track your investments with live equity and crypto pricing.
                 Holdings are stored locally — nothing leaves your device.
               </div>

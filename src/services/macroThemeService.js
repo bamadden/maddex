@@ -16,25 +16,26 @@ function todayKey() {
 
 // Used on first load, while the AI call is in flight, and as the permanent
 // fallback if the call or the JSON parse fails — never leave the module blank.
+// As at 22 August 2026.
 export const FALLBACK_THEMES = [
   { title: 'RBA ON HOLD', category: 'RBA',
-    summary: 'RBA held at 4.35% on 12 August, citing softer June-quarter CPI of 3.8%. Markets now pricing the first cut not until Q1 2027. September meeting expected to hold.',
-    impact: 'NEUTRAL', impactNote: 'Neutral for equities, mildly bearish AUD' },
-  { title: 'FED POLICY UNCERTAINTY', category: 'FED',
-    summary: 'FOMC minutes (19 Aug) showed divided views on the rate path. The Sep 17 decision is live — markets pricing 65% hold, 35% cut. US CPI (Sep 11) is the key input.',
-    impact: 'MIXED', impactNote: 'A cut would be bullish for risk assets' },
-  { title: 'CHINA SLOWDOWN DEEPENING', category: 'CHINA',
-    summary: 'August PMI data shows manufacturing below 50 for a 5th consecutive month. Property sector stress continues, weighing on demand for Australian exports.',
-    impact: 'BEARISH', impactNote: 'Bearish for ASX Materials and Energy' },
-  { title: 'AI CAPEX SUPERCYCLE CONTINUES', category: 'GLOBAL',
+    summary: 'RBA held at 4.35% on 12 August, citing softer June-quarter CPI of 3.8%. Next meeting 16 September — the softer print supports an extended hold rather than a near-term move either way.',
+    impact: 'NEUTRAL', impactNote: 'Neutral for equities' },
+  { title: 'JACKSON HOLE WRAP', category: 'FED',
+    summary: 'Powell spoke 22 August and signalled gradual policy normalisation. Markets are now pricing a 35% chance of a cut at the 17 September FOMC decision, up from earlier in the month.',
+    impact: 'MIXED', impactNote: 'Mildly bullish for risk assets' },
+  { title: 'CHINA SLOWDOWN', category: 'CHINA',
+    summary: 'Manufacturing PMI has held below 50 for a 5th consecutive month. Beijing has announced stimulus measures, but they remain modest relative to the scale of the slowdown.',
+    impact: 'BEARISH', impactNote: 'Bearish Materials, Energy, and the ASX' },
+  { title: 'AI CAPEX SUPERCYCLE', category: 'GLOBAL',
     summary: 'NVIDIA earnings beat consensus by 18%. US tech capex is at record highs, with AI infrastructure buildout accelerating through 2026-2027.',
-    impact: 'BULLISH', impactNote: 'Bullish Tech, broadly neutral for the ASX' },
-  { title: 'IRAN-MIDDLE EAST TENSIONS EASING', category: 'GEOPOLITICAL',
-    summary: 'Ceasefire negotiations are progressing. Oil is down 8% from its July peak — if sustained, this removes a key inflation pressure that drove the RBA\'s 2026 hikes.',
+    impact: 'BULLISH', impactNote: 'Bullish Tech, neutral for the ASX' },
+  { title: 'IRAN CEASEFIRE PROGRESS', category: 'GEOPOLITICAL',
+    summary: 'Oil is down 8% from its July peak as ceasefire talks advance in the Middle East. If sustained, this removes a key inflation pressure that had been driving RBA hawkishness.',
     impact: 'BULLISH', impactNote: 'Bullish risk assets, bearish Energy' },
-  { title: 'AUD STRENGTHENING', category: 'COMMODITIES',
-    summary: 'AUD/USD is trading near a 6-month high. Iron ore prices are stabilising, and China stimulus hopes are supporting commodity currencies.',
-    impact: 'MIXED', impactNote: 'Negative for USD-denominated returns' },
+  { title: 'AUD AT RESISTANCE', category: 'COMMODITIES',
+    summary: 'AUD/USD is trading near 0.6520, close to a 6-month high. China stimulus hopes are supporting commodity-linked FX alongside stabilising iron ore prices.',
+    impact: 'MIXED', impactNote: 'Good for imports, negative for AUD earners' },
 ]
 
 function buildPrompt() {

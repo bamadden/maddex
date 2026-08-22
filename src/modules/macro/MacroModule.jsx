@@ -492,9 +492,8 @@ function RBADashboard({ askAI }) {
           <div className="text-2xs text-terminal-gold font-bold mb-2">NEXT MEETING PRICING</div>
           <div className="space-y-2">
             {[
-              { label: 'HOLD 4.35%', pct: 84, color: 'var(--color-neutral)' },
-              { label: 'CUT 4.10%',  pct: 12, color: 'var(--color-loss)' },
-              { label: 'HIKE 4.60%', pct: 4,  color: 'var(--color-gain)' },
+              { label: 'HOLD 4.35%', pct: 82, color: 'var(--color-neutral)' },
+              { label: 'CUT 4.10%',  pct: 18, color: 'var(--color-loss)' },
             ].map(({ label, pct, color }) => (
               <div key={label}>
                 <div className="flex justify-between mb-0.5">
@@ -508,6 +507,16 @@ function RBADashboard({ askAI }) {
             ))}
           </div>
           <div className="mt-2 text-2xs text-terminal-text-dim/60">ASX 30-day interbank</div>
+          <div className="mt-1 text-2xs text-terminal-text-dim/60">Big 4: all HOLD for Sep</div>
+          <div className="mt-3 pt-2 border-t border-terminal-border/40">
+            <div className="text-2xs text-terminal-blue-bright font-bold mb-1">FOMC · 4.25–4.50%</div>
+            <div className="flex justify-between text-2xs">
+              <span style={{ color: 'var(--color-neutral)' }}>HOLD 65%</span>
+              <span style={{ color: 'var(--color-loss)' }}>CUT 35%</span>
+            </div>
+            <div className="text-2xs text-terminal-text-dim/60 mt-1">Next: 17 Sep 2026</div>
+            <div className="text-2xs text-terminal-text-dim/60">Jackson Hole (22–24 Aug): Powell dovish</div>
+          </div>
         </div>
 
         {/* Recent statements */}
@@ -1010,18 +1019,18 @@ function PreviousEventsPanel() {
 // feed wired up, so this is a periodically-updated editorial judgment, not a
 // computed value.
 const MACRO_REGIME = {
-  label: 'RISK-OFF', angle: -35, color: 'var(--color-loss)',
-  reason: 'Elevated bond yields and geopolitical tension (US-Iran supply risk, China property stress) are keeping risk appetite subdued, even as the Fed and RBA both lean toward easing.',
+  label: 'RESTRICTIVE', angle: -20, color: '#c8a84b',
+  reason: 'Both the RBA (4.35%) and Fed (4.50%) are holding policy rates above neutral. Growth is slowing globally, but easing inflation is opening a path toward cuts into 2027 rather than forcing one now.',
 }
 
 // Hand-set editorial judgment, same convention as MACRO_REGIME itself — no
 // single live "3 indicator" feed exists, so these are periodically updated
 // from the same published data (ABS/RBA/Fed releases) driving the rest of
-// this module rather than a computed score.
+// this module rather than a computed score. As at 22 August 2026.
 const MACRO_INDICATORS = [
-  { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'China property stress and the US-Iran energy shock are weighing on global trade volumes.' },
-  { label: 'INFLATION',     status: 'STICKY',      arrow: '▬', color: '#c8a84b',            context: 'AU CPI at 3.8% YoY remains above the RBA\'s 2–3% target band.' },
-  { label: 'POLICY',        status: 'EASING BIAS', arrow: '▼', color: 'var(--color-gain)',  context: 'Fed and RBA both signalling a pause-then-cut path into late 2026.' },
+  { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'PMI readings below 50 in both China and Europe are weighing on global trade volumes.' },
+  { label: 'INFLATION',     status: 'EASING',      arrow: '▼', color: 'var(--color-gain)', context: 'AU CPI at 3.8% and moderating US CPI both support an extended RBA/Fed hold into September.' },
+  { label: 'POLICY',        status: 'RESTRICTIVE', arrow: '▬', color: '#c8a84b',           context: 'RBA at 4.35% and Fed at 4.50% — both above neutral, with cuts not yet confirmed for September.' },
 ]
 
 // Same -90..+90 scale as MACRO_REGIME.angle — a hand-set monthly snapshot,
@@ -1032,7 +1041,7 @@ const MACRO_REGIME_HISTORY = [
   { date: 'May', label: 'TRANSITIONING', score: 10  },
   { date: 'Jun', label: 'TRANSITIONING', score: -5  },
   { date: 'Jul', label: 'RISK-OFF',      score: -30 },
-  { date: 'Aug', label: 'RISK-OFF',      score: -35 },
+  { date: 'Aug', label: 'RESTRICTIVE',   score: -20 },
 ]
 const regimeColor = (score) => score > 15 ? 'var(--color-gain)' : score < -15 ? 'var(--color-loss)' : '#c8a84b'
 

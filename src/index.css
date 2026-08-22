@@ -241,7 +241,7 @@ body {
   to   { opacity: 1; transform: translateX(0); }
 }
 .panel-slide-in { animation: slideInRight 220ms cubic-bezier(0.16, 1, 0.3, 1); }
-.module-fade   { animation: fadeIn 120ms ease-out; }
+.module-fade   { animation: fadeIn 150ms ease-out; }
 
 /* Panel/detail fade-in */
 .panel-fade { animation: fadeIn 150ms ease-out; }
@@ -295,15 +295,6 @@ body {
   .text-xs  { font-size: 0.8125rem; line-height: 1.2rem; }
 }
 
-/* ModuleLoader: scanning line that sweeps the width of its track */
-@keyframes moduleLoaderScan {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(300%); }
-}
-.module-loader-scan {
-  animation: moduleLoaderScan 1.4s ease-in-out infinite;
-}
-
 /* News: highlight pulse for stories that arrived since the last refresh —
    pulses while active, then background-color transition below fades it out
    the instant the 30s window closes and the class is removed. */
@@ -351,4 +342,26 @@ body {
   );
   pointer-events: none;
   z-index: 9999;
+}
+
+/* Keyboard focus ring — :focus-visible only, so mouse/touch clicks don't
+   show a ring, but Tab-navigation always does. Applied globally rather than
+   per-component so new interactive elements get it for free. */
+:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.5);
+  outline-offset: 2px;
+}
+
+/* Shimmer loading skeleton — for widget-level placeholders while data is
+   fetching, as an alternative to a spinner where the eventual content's
+   shape is already known (a row, a stat block, a chart area). */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #0B1628 25%, #152540 50%, #0B1628 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px;
 }

@@ -168,10 +168,16 @@ function SectorPerformanceList({ markets }) {
 
 // ── 4-Panel dashboard shared styles ───────────────────────────────────────────
 
+// flexShrink:0 (not flex:1) is deliberate — these sections now stack
+// vertically in a scrollable column (post crypto-module 3-column redesign),
+// not side by side in a fixed-height row like they originally did. flex:1
+// on a scrollable flex-col's children makes them fight over height and
+// squish/clip (the "cramped and cutoff" bug); each section should just take
+// its natural content height and let the column scroll.
 const P = {
-  wrap:  { flex:1, display:'flex', flexDirection:'column', padding:'8px 10px', overflow:'hidden', boxSizing:'border-box' },
+  wrap:  { flexShrink:0, display:'flex', flexDirection:'column', padding:'12px 10px', marginBottom:16, boxSizing:'border-box' },
   title: { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:6, textTransform:'uppercase' },
-  empty: { flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'rgba(100,130,160,0.5)' },
+  empty: { display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'rgba(100,130,160,0.5)', minHeight:60 },
 }
 
 function MaddenAIPanel({ momentum }) {
@@ -210,7 +216,7 @@ function FearGreedPanel({ data }) {
   const { value, label, prev, weekAgo } = data
   const color = getColor(value)
   return (
-    <div style={P.wrap}>
+    <div style={{ ...P.wrap, minHeight: 110 }}>
       <div style={P.title}>FEAR &amp; GREED</div>
       <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
         <svg viewBox="0 0 100 66" style={{ width:120, height:80, flexShrink:0 }}>
@@ -682,8 +688,11 @@ export default function CryptoModule() {
       </div>
 
       <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* ── LEFT: market overview sidebar, 240px ── */}
-        <div className={`${mobilePanel === 'overview' ? 'flex' : 'hidden'} md:flex w-full md:w-[240px] md:min-w-[240px] flex-shrink-0 border-r border-terminal-border overflow-y-auto hide-scrollbar flex-col divide-y divide-terminal-border`}>
+        {/* ── LEFT: market overview sidebar, 280px, scrolls independently of the coin table ── */}
+        <div
+          className={`${mobilePanel === 'overview' ? 'flex' : 'hidden'} md:flex w-full md:w-[280px] md:min-w-[280px] flex-shrink-0 border-r border-terminal-border overflow-y-auto flex-col divide-y divide-terminal-border`}
+          style={{ maxHeight: '100%', paddingRight: 4 }}
+        >
           <MaddenAIPanel momentum={momentum} />
           <MarketPulsePanel globalData={globalData} currency={currency} capSparkline={capSparkline} />
           <FearGreedPanel data={fearGreed} />

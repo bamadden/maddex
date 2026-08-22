@@ -15,14 +15,25 @@ function timeAgoShort(ts) {
   return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
+// Generic row-shaped shimmer skeleton — stands in for whatever's about to
+// load (most of this app's "whole module empty" cases are eventually a
+// table or a list), rather than a spinner with no relationship to the
+// content's actual shape.
 export function ModuleLoader({ name, className = '' }) {
   return (
-    <div className={`h-full flex flex-col items-center justify-center gap-3 ${className}`}>
-      {name && <div className="text-terminal-gold text-sm font-bold tracking-[0.25em]">{name}</div>}
-      <div className="relative w-40 h-0.5 bg-terminal-border/50 overflow-hidden">
-        <div className="absolute inset-y-0 w-1/3 bg-terminal-gold module-loader-scan" />
+    <div className={`h-full flex flex-col p-4 gap-3 ${className}`}>
+      {name && (
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-terminal-gold text-2xs font-bold tracking-[0.25em]">{name}</span>
+          <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">FETCHING LIVE DATA...</span>
+        </div>
+      )}
+      <div className="skeleton h-6 w-1/3" />
+      <div className="flex flex-col gap-2 flex-1">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="skeleton h-9 w-full" style={{ animationDelay: `${i * 80}ms` }} />
+        ))}
       </div>
-      <div className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">FETCHING LIVE DATA...</div>
     </div>
   )
 }

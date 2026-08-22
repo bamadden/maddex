@@ -2356,7 +2356,7 @@ export default function GlobalModule() {
           </div>
 
           {/* Right tab panel — 300px */}
-          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:w-[300px] md:min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
+          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:w-[320px] md:min-w-[320px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
           {/* Tab bar — single row, equal-width tabs, no wrapping */}
           <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
             {TABS.filter(t => !t.hidden).map(t => (

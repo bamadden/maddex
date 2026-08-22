@@ -151,7 +151,10 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
           <StaleBadge cachedAt={quotesResult?.cachedAt} />
         </div>
       )}
-      <div className="flex flex-nowrap overflow-x-auto gap-0 hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div
+        className="grid grid-flow-col auto-cols-[120px] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-5 lg:grid-cols-10 gap-0 overflow-x-auto sm:overflow-visible hide-scrollbar"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {indices.map(({ symbol, label, isAud }, idx) => {
           const q          = quotes?.[symbol]
           const dataDate   = q?.timestamp ? fmtDataDate(q.timestamp) : null
@@ -168,11 +171,10 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             <div
               key={symbol}
               onClick={() => handleClick(symbol, q, isAud, label)}
-              className={`flex-shrink-0 cursor-pointer transition-all border-r border-terminal-border ${
+              className={`min-w-0 cursor-pointer transition-all border-r border-b sm:border-b-0 border-terminal-border ${
                 isSelected ? 'bg-terminal-surface2' : 'bg-terminal-surface hover:bg-terminal-surface2'
               }`}
               style={{
-                width: 140,
                 padding: '9px 12px 8px',
                 borderTop: isSelected ? '2px solid #C9A84C' : '2px solid transparent',
               }}
@@ -201,7 +203,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               ) : q ? (
                 <div className="flex items-end justify-between gap-1.5 mt-0.5">
                   <div>
-                    <div className="text-[14px] font-mono font-semibold text-white leading-tight whitespace-nowrap">
+                    <div className="text-[13px] font-mono font-semibold text-white leading-tight whitespace-nowrap">
                       {fmt.price(q.last, 1)}
                     </div>
                     <PriceChange pct={q.pct} size="text-[10px]" />

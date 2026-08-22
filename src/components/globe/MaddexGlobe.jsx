@@ -222,7 +222,10 @@ function isPointVisible(lon, lat, rotation) {
   const lambda0 = -rotation[0] * RAD
   const phi = lat * RAD
   const lambda = lon * RAD
-  return (Math.sin(phi) * Math.sin(phi0) + Math.cos(phi) * Math.cos(phi0) * Math.cos(lambda - lambda0)) > 0
+  // Small buffer (0.1 rather than 0) past the exact silhouette edge — right
+  // at dot-product ≈ 0, tiny rotation/rounding changes flip a point in and
+  // out of visibility every frame, which read as label flicker at the rim.
+  return (Math.sin(phi) * Math.sin(phi0) + Math.cos(phi) * Math.cos(phi0) * Math.cos(lambda - lambda0)) > 0.1
 }
 
 // Samples a route (multi-waypoint great circle) into screen-space points for
@@ -280,7 +283,11 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const [pinnedCountry, setPinnedCountry] = useState(null)
   const [pinnedExchange, setPinnedExchange] = useState(null)
   const [pinnedRoute, setPinnedRoute] = useState(null)
-  const [legendCollapsed, setLegendCollapsed] = useState(false)
+  // Default collapsed — persisted as "is it open", inverted from the
+  // component's own "is it collapsed" naming, per the storage key spec.
+  const [legendCollapsed, setLegendCollapsed] = useState(() => {
+    try { return localStorage.getItem('maddex_globe_legend_open') !== 'true' } catch { return true }
+  })
   const [layerPanelCollapsed, setLayerPanelCollapsed] = useState(false)
 
   // Live index quotes — own queryKey (own symbol set) so it doesn't collide
@@ -1313,7 +1320,11 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         <GlobeLegend
           overlays={overlays}
           collapsed={legendCollapsed}
-          onToggleCollapse={() => setLegendCollapsed(c => !c)}
+          onToggleCollapse={() => setLegendCollapsed(c => {
+            const next = !c
+            try { localStorage.setItem('maddex_globe_legend_open', String(!next)) } catch { /* ignore */ }
+            return next
+          })}
         />
       </div>
     </div>

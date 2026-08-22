@@ -214,31 +214,24 @@ export const RBA_BOARD_MEMBERS = [
   { name: 'Renée Roberts',      role: 'External Member',            since: '2023', votes: 'Data dependent' },
 ]
 
+// Trimmed to the last 3 (most recent first) — deliberately, so this column
+// naturally matches the height of the chart + next-meeting-pricing column
+// next to it instead of running much longer.
 export const RBA_RECENT_STATEMENTS = [
   {
     date: '12 Aug 2026',
     decision: 'HOLD at 4.35%',
-    key: '"The Board judged that holding steady was appropriate, with the softer June-quarter CPI print of 3.8% supporting a pause while the Board assesses the ongoing impact of the global energy shock."',
+    key: '"Board held rates unchanged citing softer June CPI of 3.8%. Noted global uncertainty from Middle East tensions. Next meeting 16 September."',
   },
   {
     date: '17 Jun 2026',
     decision: 'HOLD at 4.35%',
-    key: '"The Board judges the current setting of monetary policy to be appropriate. The Board will continue to monitor the impact of the global energy shock on the inflation outlook."',
+    key: '"Board held following three consecutive hikes. Monitoring inflation trajectory and labour market conditions before any further adjustments."',
   },
   {
     date: '06 May 2026',
-    decision: 'HIKE to 4.35% (+25bp)',
-    key: '"The Board judged that a further increase in the cash rate target was warranted given the upside risk to inflation from the global energy shock stemming from the Iran-Middle East conflict."',
-  },
-  {
-    date: '18 Mar 2026',
-    decision: 'HIKE to 4.10% (+25bp)',
-    key: '"With energy prices continuing to feed through to the inflation outlook, the Board judged it appropriate to continue withdrawing policy accommodation."',
-  },
-  {
-    date: '04 Feb 2026',
-    decision: 'HIKE to 3.85% (+25bp)',
-    key: '"The Board judged that the balance of risks to inflation had shifted, warranting a reversal of some of the easing delivered through 2025."',
+    decision: 'HIKE +25bp to 4.35%',
+    key: '"Board raised rates citing persistent inflation pressures from energy shock. Third consecutive increase in 2026 tightening cycle."',
   },
 ]
 

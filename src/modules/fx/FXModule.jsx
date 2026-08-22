@@ -635,92 +635,9 @@ export default function FXModule() {
       lastUpdated={fxResult?.cachedAt}
       onRefresh={refetch}
     />
-    <GlobalRatesTable />
-    <div className="flex-1 grid grid-cols-[280px_1fr_260px] overflow-hidden">
-
-      {/* FX Pairs + Converter */}
-      <div className="flex flex-col border-r border-terminal-border overflow-hidden">
-        <div className="panel-header flex items-center gap-2">
-          RATES
-          {isFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {isLive && fxDelayed && <StaleBadge cachedAt={fxResult?.cachedAt} />}
-          {isLive && !fxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
-          {isError    && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
-          {isLive     && <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime}</span>}
-        </div>
-        <div className="flex-1 overflow-auto">
-          {isFetching && !rawRates ? (
-            <ModuleLoader name="RATES" />
-          ) : !isLive ? (
-            <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
-          ) : (
-            <>
-              <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50">
-                AUD PAIRS · MID RATE · LIVE · {updatedTime} AEST
-              </div>
-              <table className="terminal-table w-full">
-                <thead>
-                  <tr>
-                    <th className="px-2 text-left">PAIR</th>
-                    <th className="px-1 text-right">RATE</th>
-                    <th className="px-1 text-right">30D</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {audPairs.map((p) => {
-                    const dec      = rateDecimals(p.pair)
-                    const isAudUsd = p.pair === 'AUD/USD'
-                    return (
-                      <tr
-                        key={p.pair}
-                        className={`hover:bg-terminal-accent/30 cursor-pointer ${isAudUsd ? 'bg-terminal-accent/10' : ''}`}
-                        onClick={() => setHistoryPair(p.pair)}
-                      >
-                        <td className={`px-2 py-0.5 text-xs font-bold ${isAudUsd ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
-                          {p.pair}
-                          {isAudUsd && <span className="text-2xs text-terminal-green ml-1">●</span>}
-                        </td>
-                        <td className="px-1 py-0.5 text-2xs text-right font-semibold">{p.mid?.toFixed(dec)}</td>
-                        <td className="px-1 py-0.5 text-2xs text-right text-terminal-gold hover:underline">CHART</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50 border-t border-terminal-border mt-1">
-                CROSS RATES
-              </div>
-              <table className="terminal-table w-full">
-                <tbody>
-                  {crossRates.map((p) => (
-                    <tr key={p.pair} className="hover:bg-terminal-accent/30 cursor-pointer"
-                      onClick={() => setHistoryPair(p.pair)}
-                      title="Click for 30d history"
-                    ><td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright">{p.pair}</td>
-                      <td className="px-1 py-0.5 text-2xs text-right">{p.mid?.toFixed(rateDecimals(p.pair))}</td>
-                      <td className="px-1 py-0.5 text-2xs text-right text-terminal-gold">CHART</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {audUsd && (
-                <div className="border-t border-terminal-border mt-2 p-2">
-                  <div className="text-2xs text-terminal-gold font-bold mb-1">AUD/USD · LIVE</div>
-                  <div className="text-2xl font-bold text-terminal-text-bright">{audUsd.toFixed(4)}</div>
-                  <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD</div>
-                  <div className="text-2xs text-terminal-text-dim">1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
-                  <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} AEST · Frankfurter</div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-        <CurrencyConverter rates={rawRates} />
-        <CurrencyStrengthIndex />
-      </div>
-
-      {/* Bond Yield Curve — interactive 5-country selector */}
-      <div className="flex flex-col border-r border-terminal-border overflow-hidden">
+      {/* Bond Yield Curve — interactive 5-country selector, now the hero visual at the top */}
+      <div className="flex flex-col border-b border-terminal-border overflow-hidden flex-shrink-0"
+        style={{ height: 340 }}>
         <div className="panel-header flex items-center gap-2 flex-shrink-0">
           SOVEREIGN YIELD CURVES
           <button
@@ -899,16 +816,103 @@ export default function FXModule() {
           <span className="text-2xs text-terminal-gold/70 font-semibold">UPDATE DUE: SEPTEMBER 2026</span>
         </div>
       </div>
+    <GlobalRatesTable />
+    <div className="flex-1 grid grid-cols-[1fr_300px] overflow-hidden">
+
+      {/* FX Pairs + Converter — the whole column scrolls as one unit (rather
+          than nesting a nother flex:1 auto-height section inside it) now that
+          the chart-first layout above leaves less guaranteed vertical room;
+          a nested flex:1 region here would just squash back down to ~0px. */}
+      <div className="flex flex-col border-r border-terminal-border overflow-y-auto">
+        <div className="panel-header flex items-center gap-2 flex-shrink-0">
+          RATES
+          {isFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
+          {isLive && fxDelayed && <StaleBadge cachedAt={fxResult?.cachedAt} />}
+          {isLive && !fxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {isError    && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
+          {isLive     && <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime}</span>}
+        </div>
+        <div className="flex-shrink-0">
+          {isFetching && !rawRates ? (
+            <ModuleLoader name="RATES" />
+          ) : !isLive ? (
+            <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
+          ) : (
+            <>
+              <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50">
+                AUD PAIRS · MID RATE · LIVE · {updatedTime} AEST
+              </div>
+              <table className="terminal-table w-full">
+                <thead>
+                  <tr>
+                    <th className="px-2 text-left">PAIR</th>
+                    <th className="px-1 text-right">RATE</th>
+                    <th className="px-1 text-right">30D</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {audPairs.map((p) => {
+                    const dec      = rateDecimals(p.pair)
+                    const isAudUsd = p.pair === 'AUD/USD'
+                    return (
+                      <tr
+                        key={p.pair}
+                        className={`hover:bg-terminal-accent/30 cursor-pointer ${isAudUsd ? 'bg-terminal-accent/10' : ''}`}
+                        onClick={() => setHistoryPair(p.pair)}
+                      >
+                        <td className={`px-2 py-0.5 text-xs font-bold ${isAudUsd ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
+                          {p.pair}
+                          {isAudUsd && <span className="text-2xs text-terminal-green ml-1">●</span>}
+                        </td>
+                        <td className="px-1 py-0.5 text-2xs text-right font-semibold">{p.mid?.toFixed(dec)}</td>
+                        <td className="px-1 py-0.5 text-2xs text-right text-terminal-gold hover:underline">CHART</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50 border-t border-terminal-border mt-1">
+                CROSS RATES
+              </div>
+              <table className="terminal-table w-full">
+                <tbody>
+                  {crossRates.map((p) => (
+                    <tr key={p.pair} className="hover:bg-terminal-accent/30 cursor-pointer"
+                      onClick={() => setHistoryPair(p.pair)}
+                      title="Click for 30d history"
+                    ><td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright">{p.pair}</td>
+                      <td className="px-1 py-0.5 text-2xs text-right">{p.mid?.toFixed(rateDecimals(p.pair))}</td>
+                      <td className="px-1 py-0.5 text-2xs text-right text-terminal-gold">CHART</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {audUsd && (
+                <div className="border-t border-terminal-border mt-2 p-2">
+                  <div className="text-2xs text-terminal-gold font-bold mb-1">AUD/USD · LIVE</div>
+                  <div className="text-2xl font-bold text-terminal-text-bright">{audUsd.toFixed(4)}</div>
+                  <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD</div>
+                  <div className="text-2xs text-terminal-text-dim">1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
+                  <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} AEST · Frankfurter</div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        <CurrencyConverter rates={rawRates} />
+        <CurrencyStrengthIndex />
+      </div>
+
 
       {/* RBA focus + Metals — the full multi-country comparison now lives in
           GlobalRatesTable above, so this column goes deep on AU instead of
           repeating that same per-bank list. */}
-      <div className="flex flex-col overflow-hidden">
-        <div className="panel-header flex items-center gap-2">
+      <div className="flex flex-col overflow-y-auto">
+        <div className="panel-header flex items-center gap-2 flex-shrink-0">
           RBA FOCUS
           <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">rba.gov.au</span>
         </div>
-        <div className="flex-1 overflow-auto">
+        <div className="flex-shrink-0">
           <RbaRateComparisonBar />
           <RbaDecisionHistory />
         </div>

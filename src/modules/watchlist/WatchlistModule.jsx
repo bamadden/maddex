@@ -94,6 +94,7 @@ export default function WatchlistModule() {
   const { usdToAud } = useAudRates()
 
   const [searchInput, setSearchInput] = useState('')
+  const searchInputRef = useRef(null)
   const [addError, setAddError]       = useState(null)
   const [validating, setValidating]   = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -258,6 +259,7 @@ export default function WatchlistModule() {
         <form onSubmit={handleAdd} className="flex flex-1 items-center">
           <span className="px-2 text-2xs text-terminal-gold flex-shrink-0">+</span>
           <input
+            ref={searchInputRef}
             className="cmd-input flex-1 py-1.5 text-2xs"
             value={searchInput}
             onChange={(e) => { setSearchInput(e.target.value.toUpperCase()); setAddError(null) }}
@@ -298,10 +300,17 @@ export default function WatchlistModule() {
       <div className="flex-1 overflow-auto">
         {watchlist.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
-            <span className="text-terminal-gold text-xl">☆</span>
+            <span className="w-10 h-10 rounded-full border border-terminal-gold/40 text-terminal-gold text-lg flex items-center justify-center">☆</span>
+            <div className="text-terminal-text-bright text-sm font-semibold mt-1">Nothing here yet</div>
             <div className="text-terminal-text-dim text-2xs max-w-xs leading-relaxed">
-              No assets tracked yet — search above to add your first asset
+              Track stocks and crypto by ticker to see live prices, daily change, and 52-week range in one place.
             </div>
+            <button
+              onClick={() => searchInputRef.current?.focus()}
+              className="mt-2 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+            >
+              + ADD YOUR FIRST TICKER
+            </button>
           </div>
         ) : isError && !batchQuotes ? (
           <ModuleError module="Watchlist prices" lastUpdated={dataUpdatedAt} onRetry={refetch} />

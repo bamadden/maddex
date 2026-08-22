@@ -1041,7 +1041,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               return (
                 <div
                   key={sector}
-                  className={`relative p-2 cursor-pointer select-none transition-all duration-150 flex flex-col gap-0.5 ${col} ${row}`}
+                  className={`relative p-2 cursor-pointer select-none transition-all duration-150 flex flex-col ${col} ${row}`}
                   style={{
                     backgroundColor: bg,
                     border: isSelected ? '2px solid #c8a84b' : '1px solid rgba(255,255,255,0.06)',
@@ -1052,31 +1052,38 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => setSelected(isSelected ? null : sector)}
                 >
-                  {/* LINE 1: abbreviated sector name */}
-                  <div className="text-xs font-bold text-terminal-text-bright tracking-wider truncate leading-tight">
+                  {/* Top-left: abbreviated sector name */}
+                  <div className="text-[8px] font-mono text-terminal-text-dim tracking-wider truncate leading-tight flex-shrink-0">
                     {SECTOR_ABBR[sector]}
                   </div>
-                  {/* LINE 2: day change — primary metric */}
-                  <div className={row === 'row-span-2' ? 'text-xl font-bold leading-tight' : 'text-sm font-bold leading-tight'} style={{ color: text }}>
-                    {pct != null
-                      ? `${arrow} ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
-                      : <span className="text-terminal-text-dim/40 text-xs animate-pulse">—</span>
-                    }
-                  </div>
-                  {/* LINE 3: breadth (▲up ▼down) when available, else secondary metric */}
-                  {breadth ? (
-                    <div className="text-2xs leading-tight flex items-center gap-1.5">
-                      <span style={{ color: 'var(--color-gain)' }}>▲{breadth.up}</span>
-                      <span style={{ color: 'var(--color-loss)' }}>▼{breadth.down}</span>
-                    </div>
-                  ) : (
-                    <div className="text-2xs leading-tight" style={{ color: secColor, opacity: 0.8 }}>
-                      {secChange != null
-                        ? `${secondaryMetric}: ${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}%`
-                        : `${secondaryMetric}: —`
+
+                  {/* Dead centre: day change — primary metric */}
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                    <div className={row === 'row-span-2' ? 'text-xl font-bold leading-tight' : 'text-sm font-bold leading-tight'} style={{ color: text }}>
+                      {pct != null
+                        ? `${arrow} ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
+                        : <span className="text-terminal-text-dim/40 text-xs animate-pulse">—</span>
                       }
                     </div>
-                  )}
+                  </div>
+
+                  {/* Bottom row: secondary metric (left) + breadth (bottom-right) */}
+                  <div className="flex items-end justify-between flex-shrink-0 gap-1">
+                    <span className="text-[8px] font-mono leading-tight" style={{ color: secColor, opacity: 0.85 }}>
+                      {secChange != null
+                        ? `${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}% ${secondaryMetric}`
+                        : `— ${secondaryMetric}`
+                      }
+                    </span>
+                    {breadth && (
+                      <span className="text-[8px] font-mono leading-tight flex-shrink-0">
+                        <span style={{ color: 'var(--color-gain)' }}>▲{breadth.up}</span>
+                        {' '}
+                        <span style={{ color: 'var(--color-loss)' }}>▼{breadth.down}</span>
+                      </span>
+                    )}
+                  </div>
+
                   {/* Hover: constituent chips (ASX only — the only index with a
                       multi-stock constituent list per sector) */}
                   {isHovered && chipStocks.length > 0 && (
