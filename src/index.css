@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap');
+/* Fonts are loaded via <link> tags in index.html (preconnect + IBM Plex
+   Mono + Inter in one request) rather than @import here — @import blocks
+   the CSS parse until the font stylesheet round-trips, link tags don't. */
 
 @tailwind base;
 @tailwind components;
@@ -34,25 +36,33 @@ html, body, #root {
 
 body {
   font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
-  background-color: #040d1a;
-  color: #b8cce4;
+  background-color: #060D1A;
+  color: #B8C8D8;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
-/* Scrollbar styling */
+/* Premium scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #040d1a;
+  background: #060D1A;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1a3a6b;
-  border-radius: 0;
+  background: rgba(201,168,76,0.3);
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #c8a84b;
+  background: rgba(201,168,76,0.6);
+}
+
+/* Selection colour */
+::selection {
+  background: rgba(201,168,76,0.2);
+  color: #E8EDF5;
 }
 
 /* Scrollable strips (e.g. the index benchmark bar) that shouldn't show a
@@ -285,4 +295,41 @@ body {
 .news-pulse {
   animation: newsPulse 2s ease-in-out infinite;
   transition: background-color 1.5s ease-out;
+}
+
+/* ─── Elite visual pass — Group A design system additions ──────────────────── */
+
+/* Gold glow utility — use sparingly, on featured/hero elements only */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(201,168,76,0.15),
+              0 0 40px rgba(201,168,76,0.05);
+}
+
+/* Data cell base — tabular figures for price/number-dense table cells */
+.data-cell {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Pulse animation for live indicators (dots, badges) */
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+.pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+
+/* Subtle full-viewport scanline overlay — distinct from the coarser
+   .scanlines pattern already applied at the app root; opt-in per element. */
+.scanline::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
 }
