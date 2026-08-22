@@ -22,6 +22,7 @@ console.log('[MADDEN] ✓ FMP: direct browser access (CORS-enabled) — equities
 console.log('[MADDEN] ✓ STOOQ: proxy ready (/api/stooq) — not currently used for indices, see api.js')
 console.log('[MADDEN] ✓ COINGECKO: no key required — direct browser access')
 console.log('[MADDEN] ✓ FRANKFURTER: no key required — proxy ready (/api/frankfurter)')
+console.log('[MADDEN] ✓ ANTHROPIC: server-side only — proxied via /api/claude, key never in this bundle')
 
 // Startup price verification — runs 2s after load to let the dev server settle
 setTimeout(async () => {
@@ -52,9 +53,10 @@ setTimeout(async () => {
   }
 }, 2000)
 
+// ANTHROPIC deliberately excluded — its key is server-side only (see
+// api/claude.js) and is never read as a VITE_-prefixed client var.
 const KEYED_APIS = {
   'EXCHANGERATE-API': import.meta.env.VITE_EXCHANGERATE_API_KEY,
-  'ANTHROPIC':        import.meta.env.VITE_ANTHROPIC_API_KEY,
   'FMP':              import.meta.env.VITE_FMP_API_KEY,
 }
 for (const [name, key] of Object.entries(KEYED_APIS)) {

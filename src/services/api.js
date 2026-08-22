@@ -1378,8 +1378,10 @@ export const fetchGeoNews = async () => {
 
 
 // ─── Anthropic Claude (streaming) ────────────────────────────────────────────
-
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
+// Calls go through /api/claude (a Vercel serverless function in prod, a
+// Vite dev-server proxy locally — see vite.config.js) rather than straight
+// to api.anthropic.com. This keeps the Anthropic key server-side only; it
+// is never bundled into client code.
 
 export const MADDEX_SYSTEM_PROMPT = `You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal, built by Madden Group Holdings. You provide sharp, professional market analysis and commentary.
 
@@ -1434,13 +1436,10 @@ export function buildSystemPrompt(experienceLevel) {
 export const askClaude = async (messages, onToken, options = {}) => {
   const startTime  = Date.now()
   const systemPrompt = options.systemPrompt ?? (options.experienceLevel ? buildSystemPrompt(options.experienceLevel) : MADDEX_SYSTEM_PROMPT)
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/claude', {
     method: 'POST',
     headers: {
-      'x-api-key':                                 ANTHROPIC_KEY,
-      'anthropic-version':                         '2023-06-01',
-      'content-type':                              'application/json',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       model:      'claude-sonnet-4-6',

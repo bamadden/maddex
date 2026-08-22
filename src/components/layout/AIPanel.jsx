@@ -361,7 +361,7 @@ export default function AIPanel() {
     } catch (err) {
       updateLastChatMessage({
         role: 'assistant',
-        content: `[ERROR] ${err.message}\n\nEnsure VITE_ANTHROPIC_API_KEY is set in .env`,
+        content: `[ERROR] ${err.message}\n\nEnsure ANTHROPIC_API_KEY is set (server-side, in .env for dev or the Vercel dashboard for prod)`,
       })
     } finally {
       setLoading(false)

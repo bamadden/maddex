@@ -18,4 +18,13 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Node.js context: Vite's own config file and Vercel serverless
+    // functions under api/ — neither runs in the browser, so `process` etc.
+    // are real globals here, not the browser-only set above.
+    files: ['vite.config.js', 'api/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])
