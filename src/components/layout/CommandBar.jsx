@@ -69,6 +69,8 @@ const KNOWN_SYMBOLS = [
   { sym:'EUR/USD', label:'EUR/USD', type:'fx',  desc:'Euro vs US Dollar' },
 ]
 
+// Module nav now has its own MODULES category (below) — these are the
+// remaining power-user commands that aren't just "go to a module".
 const CMD_SUGGESTIONS = [
   { sym:'TOP',             label:'TOP',               type:'cmd', desc:'Top 10 movers today' },
   { sym:'GAINERS',         label:'GAINERS',           type:'cmd', desc:'Top 10 gainers today' },
@@ -76,18 +78,23 @@ const CMD_SUGGESTIONS = [
   { sym:'MOVERS',          label:'MOVERS',            type:'cmd', desc:'Top 10 movers today' },
   { sym:'CRYPTO TOP',      label:'CRYPTO TOP',        type:'cmd', desc:'Top 10 crypto by market cap' },
   { sym:'ASX TOP',         label:'ASX TOP',           type:'cmd', desc:'Top ASX movers today' },
-  { sym:'MARKETS',         label:'MARKETS / MKT',     type:'cmd', desc:'Navigate → Markets' },
-  { sym:'PORTFOLIO',       label:'PORTFOLIO',         type:'cmd', desc:'Navigate → Portfolio' },
-  { sym:'CRYPTO',          label:'CRYPTO / CRY',      type:'cmd', desc:'Navigate → Crypto' },
-  { sym:'FX',              label:'RATES',              type:'cmd', desc:'Navigate → Rates' },
-  { sym:'MACRO',           label:'MACRO / MAC',       type:'cmd', desc:'Navigate → Macro' },
-  { sym:'WATCHLIST',       label:'WATCHLIST / WL',    type:'cmd', desc:'Navigate → Watchlist' },
   { sym:'NEWS',            label:'NEWS {keyword}',    type:'cmd', desc:'Filter news by keyword' },
-  { sym:'GLOBAL',          label:'GLOBAL / GLB',      type:'cmd', desc:'Navigate → Global Intelligence' },
   { sym:'WL ADD',          label:'WL ADD {sym}',      type:'cmd', desc:'Quick add to watchlist' },
   { sym:'COMPARE',         label:'COMPARE {s1} {s2}', type:'cmd', desc:'Compare two assets side by side' },
   { sym:'ALERT',           label:'ALERT {sym} {$}',   type:'cmd', desc:'Set a price alert' },
   { sym:'HELP',            label:'HELP / ?',          type:'cmd', desc:'Show all commands' },
+]
+
+// MODULES search category
+const MODULE_LIST = [
+  { key:'markets',   label:'MARKETS',   desc:'ASX 200, S&P 500, global equities' },
+  { key:'portfolio', label:'PORTFOLIO', desc:'Your holdings, P&L, allocation' },
+  { key:'crypto',    label:'CRYPTO',    desc:'Top coins, market cap, fear & greed' },
+  { key:'fx',        label:'RATES',     desc:'FX pairs, yield curves, metals' },
+  { key:'macro',     label:'MACRO',     desc:'RBA, AU/US indicators, economic calendar' },
+  { key:'watchlist', label:'WATCHLIST', desc:'Your tracked tickers' },
+  { key:'news',      label:'NEWS',      desc:'Market-moving headlines' },
+  { key:'global',    label:'GLOBAL',    desc:'Global risk & intelligence' },
 ]
 
 // Stocks to scan for TOP/LOSERS commands
@@ -158,17 +165,43 @@ const writeHistory = (hist) => {
 }
 
 // ─── Autocomplete filter ───────────────────────────────────────────────────────
+// Categorised results: STOCKS, CRYPTO, FX, MODULES, COMMANDS, then ACTIONS —
+// the last always present once there's a query, since "ask AI about this" /
+// "add this to watchlist" / "add this to portfolio" apply to any input.
+
+function buildActionSuggestions(rawInput) {
+  const q = rawInput.trim()
+  if (!q) return []
+  const ticker = q.toUpperCase().split(/\s+/)[0]
+  return [
+    { sym:`ai:${q}`,   label:`Ask MaddenAI about "${q}"`,   type:'action', category:'ACTIONS', desc:'Route this query to MaddenAI',       action:'ai',        payload:q },
+    { sym:`wl:${ticker}`,   label:`Add ${ticker} to watchlist`,  type:'action', category:'ACTIONS', desc:'Quick add to your watchlist',        action:'watchlist', payload:ticker },
+    { sym:`port:${ticker}`, label:`Add ${ticker} to portfolio`,  type:'action', category:'ACTIONS', desc:'Opens Portfolio to add a position',  action:'portfolio', payload:ticker },
+  ]
+}
 
 function getSuggestions(input) {
   if (!input.trim()) return []
   const q = input.trim().toUpperCase()
-  const symbolHits = KNOWN_SYMBOLS.filter(
-    (s) => s.label.startsWith(q) || s.sym.startsWith(q)
-  )
-  const cmdHits = CMD_SUGGESTIONS.filter(
-    (c) => c.sym.startsWith(q)
-  )
-  return [...symbolHits, ...cmdHits].slice(0, 6)
+
+  const stocks = KNOWN_SYMBOLS
+    .filter((s) => (s.type === 'asx' || s.type === 'us' || s.type === 'index') && (s.label.startsWith(q) || s.sym.startsWith(q)))
+    .map((s) => ({ ...s, category:'STOCKS' }))
+  const crypto = KNOWN_SYMBOLS
+    .filter((s) => s.type === 'crypto' && s.label.startsWith(q))
+    .map((s) => ({ ...s, category:'CRYPTO' }))
+  const fx = KNOWN_SYMBOLS
+    .filter((s) => s.type === 'fx' && s.label.startsWith(q))
+    .map((s) => ({ ...s, category:'FX' }))
+  const modules = MODULE_LIST
+    .filter((m) => m.label.startsWith(q))
+    .map((m) => ({ sym:m.key, label:m.label, desc:m.desc, type:'module', category:'MODULES' }))
+  const commands = CMD_SUGGESTIONS
+    .filter((c) => c.sym.startsWith(q))
+    .map((c) => ({ ...c, category:'COMMANDS' }))
+
+  const matched = [...stocks, ...crypto, ...fx, ...modules, ...commands].slice(0, 7)
+  return [...matched, ...buildActionSuggestions(input)]
 }
 
 // ─── Help Overlay ──────────────────────────────────────────────────────────────
@@ -386,49 +419,106 @@ function AlertBadge({ alerts }) {
 }
 
 // ─── Suggestions dropdown (memoised to avoid re-renders on every keystroke) ──
+// Grouped by category (STOCKS/CRYPTO/FX/MODULES/COMMANDS/ACTIONS) in the
+// order categories first appear. `quotes` maps symbol -> { price, pct } for
+// live STOCKS/CRYPTO rows — absent entries just show no price yet.
 
-const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx, onMouseSelect, onExecute }) {
+// Must match the concatenation order in getSuggestions() — keyboard nav
+// (suggestIdx) indexes the flat `suggestions` array, and the sequential
+// row index assigned during grouped rendering below only lines up with
+// that flat index because both orders agree.
+const CATEGORY_ORDER = ['STOCKS', 'CRYPTO', 'FX', 'MODULES', 'COMMANDS', 'ACTIONS']
+
+function groupByCategory(items) {
+  const groups = {}
+  for (const item of items) (groups[item.category] ??= []).push(item)
+  return CATEGORY_ORDER.filter((c) => groups[c]?.length).map((c) => ({ category: c, items: groups[c] }))
+}
+
+const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx, onSelect, quotes }) {
   if (!suggestions.length) return null
+  const grouped = groupByCategory(suggestions)
+  return (
+    <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70] max-h-96 overflow-auto">
+      {grouped.map(({ category, items }) => (
+        <div key={category}>
+          <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest sticky top-0">
+            {category}
+          </div>
+          {items.map((s) => {
+            // Grouped rendering preserves the flat array's order (see the
+            // CATEGORY_ORDER comment above), so indexOf recovers the same
+            // index handleKeyDown uses — without a mutable render-time counter.
+            const i = suggestions.indexOf(s)
+            const q = quotes?.[s.sym] ?? quotes?.[s.label]
+            return (
+              <div
+                key={s.sym}
+                className={`flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
+                  i === suggestIdx
+                    ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
+                    : 'hover:bg-terminal-accent/20 border-l-2 border-transparent'
+                }`}
+                onMouseDown={(e) => { e.preventDefault(); onSelect(s) }}
+              >
+                <span className={`font-bold font-mono w-28 flex-shrink-0 truncate ${
+                  s.type === 'cmd'    ? 'text-terminal-gold' :
+                  s.type === 'action' ? 'text-terminal-blue-bright' :
+                  s.type === 'module' ? 'text-terminal-gold' :
+                  s.type === 'asx'    ? 'text-terminal-text-bright' :
+                  s.type === 'crypto' ? 'text-terminal-green' :
+                  s.type === 'index'  ? 'text-terminal-blue-bright' :
+                  s.type === 'fx'     ? 'text-[#4a9dd9]' :
+                  'text-terminal-text'
+                }`}>{s.label}</span>
+                <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
+                {q && (
+                  <span className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-terminal-text-bright font-semibold">
+                      {q.price != null ? `A$${q.price.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                    </span>
+                    <span className={`font-bold ${q.pct > 0 ? 'text-terminal-green' : q.pct < 0 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
+                      {q.pct != null ? `${q.pct > 0 ? '+' : ''}${q.pct.toFixed(2)}%` : ''}
+                    </span>
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ))}
+      <div className="px-3 py-1 border-t border-terminal-border/40 text-2xs text-terminal-text-dim/40 flex items-center gap-3 sticky bottom-0 bg-terminal-panel">
+        <span>↑↓ navigate</span>
+        <span>ENTER select</span>
+        <span className="ml-auto">ESC close</span>
+      </div>
+    </div>
+  )
+})
+
+// ─── Recent searches — shown under an empty, focused command bar ─────────────
+
+const RecentSearchesList = memo(function RecentSearchesList({ recents, activeIdx, onSelect }) {
+  if (!recents.length) return null
   return (
     <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
-      {suggestions.map((s, i) => (
+      <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest">
+        RECENT SEARCHES
+      </div>
+      {recents.map((r, i) => (
         <div
-          key={s.sym}
-          className={`flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
-            i === suggestIdx
+          key={r}
+          className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
+            i === activeIdx
               ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
               : 'hover:bg-terminal-accent/20 border-l-2 border-transparent'
           }`}
-          onMouseDown={(e) => {
-            e.preventDefault()
-            onMouseSelect(s)
-            if (s.type === 'cmd') setTimeout(() => onExecute(s.label), 0)
-          }}
+          onMouseDown={(e) => { e.preventDefault(); onSelect(r) }}
         >
-          <span className={`font-bold font-mono w-28 flex-shrink-0 ${
-            s.type === 'cmd'    ? 'text-terminal-gold' :
-            s.type === 'asx'   ? 'text-terminal-text-bright' :
-            s.type === 'crypto'? 'text-terminal-green' :
-            s.type === 'index' ? 'text-terminal-blue-bright' :
-            s.type === 'fx'    ? 'text-[#4a9dd9]' :
-            'text-terminal-text'
-          }`}>{s.label}</span>
-          <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
-          <span className={`text-2xs px-1 border flex-shrink-0 ${
-            s.type === 'cmd'    ? 'border-terminal-gold/40 text-terminal-gold/60' :
-            s.type === 'asx'   ? 'border-terminal-text-bright/20 text-terminal-text-dim' :
-            s.type === 'crypto'? 'border-terminal-green/30 text-terminal-green/60' :
-            s.type === 'index' ? 'border-terminal-blue-bright/30 text-terminal-blue-bright/60' :
-            'border-terminal-border/40 text-terminal-text-dim'
-          }`}>{s.type?.toUpperCase()}</span>
+          <span className="text-terminal-text-dim/60">↺</span>
+          <span className="text-terminal-text-bright font-mono">{r}</span>
         </div>
       ))}
-      <div className="px-3 py-1 border-t border-terminal-border/40 text-2xs text-terminal-text-dim/40 flex items-center gap-3">
-        <span>↑↓ navigate</span>
-        <span>TAB fill</span>
-        <span>ENTER execute</span>
-        <span className="ml-auto">ESC close</span>
-      </div>
     </div>
   )
 })
@@ -455,13 +545,17 @@ export default function CommandBar() {
   const [helpOpen,    setHelpOpen]    = useState(false)
   const [movers,      setMovers]      = useState(null)
   const [compareAssets, setCompareAssets] = useState(null)
+  const [showRecent,  setShowRecent]  = useState(false)
+  const [suggestionQuotes, setSuggestionQuotes] = useState({})
 
   const debouncedValue = useDebounce(inputValue, 150)
 
-  const inputRef = useRef(null)
+  const inputRef   = useRef(null)
+  const wrapperRef = useRef(null)
 
   // ── History stored in localStorage ──────────────────────────────────────────
   const [localHistory, setLocalHistory] = useState(readHistory)
+  const recentSearches = localHistory.slice(0, 5)
 
   const pushHistory = useCallback((cmd) => {
     setLocalHistory((prev) => {
@@ -471,6 +565,54 @@ export default function CommandBar() {
     })
     pushCmdHistory(cmd)
   }, [pushCmdHistory])
+
+  // ── Close recent-searches on outside click (same pattern as AlertBadge) ─────
+  useEffect(() => {
+    if (!showRecent) return
+    const h = (e) => { if (!wrapperRef.current?.contains(e.target)) setShowRecent(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [showRecent])
+
+  // ── Live price/change% for STOCKS + CRYPTO suggestion rows ──────────────────
+  // Only fires once there are actual matches to price, and only after 2+
+  // characters — keeps this from firing a full CoinGecko/batch fetch on
+  // every single keystroke.
+  useEffect(() => {
+    const stockSyms  = suggestions.filter((s) => s.category === 'STOCKS').map((s) => s.sym).slice(0, 4)
+    const cryptoSyms = suggestions.filter((s) => s.category === 'CRYPTO').map((s) => s.label).slice(0, 4)
+    if (debouncedValue.trim().length < 2 || (!stockSyms.length && !cryptoSyms.length)) {
+      setSuggestionQuotes({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const next = {}
+      if (stockSyms.length) {
+        try {
+          const q = await fetchYahooBatch(stockSyms)
+          for (const [sym, v] of Object.entries(q)) {
+            next[sym] = { price: v.currency === 'USD' ? v.last * audUsd : v.last, pct: v.pct }
+          }
+        } catch {
+          // Live price is a nice-to-have in the dropdown — fall back to no price
+        }
+      }
+      if (cryptoSyms.length) {
+        try {
+          const raw = await fetchCryptoMarkets('aud')
+          const coins = transformCryptoMarkets(raw.data, raw.currency)
+          for (const c of coins) {
+            if (cryptoSyms.includes(c.symbol)) next[c.symbol] = { price: c.price, pct: c.pct24h }
+          }
+        } catch {
+          // Live price is a nice-to-have in the dropdown — fall back to no price
+        }
+      }
+      if (!cancelled) setSuggestionQuotes(next)
+    })()
+    return () => { cancelled = true }
+  }, [suggestions, debouncedValue, audUsd])
 
   // ── Global keyboard focus ────────────────────────────────────────────────────
   useEffect(() => {
@@ -493,6 +635,7 @@ export default function CommandBar() {
   const handleChange = (e) => {
     setInputValue(e.target.value)
     setHistIdx(-1)
+    setShowRecent(false)
   }
 
   useEffect(() => {
@@ -500,11 +643,16 @@ export default function CommandBar() {
     setSuggestions(debouncedValue.trim() ? getSuggestions(debouncedValue) : [])
   }, [debouncedValue])
 
+  // Recent-search entries treated as a navigable list, same shape as a
+  // suggestion item, so keyboard nav can be shared between both dropdowns.
+  const recentItems = recentSearches.map((r) => ({ sym: r, label: r, type: 'recent' }))
+  const activeList  = suggestions.length ? suggestions : (showRecent ? recentItems : [])
+
   // ── Key handling — only navigation keys, no processing on regular keystrokes ─
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowUp') {
       e.preventDefault()
-      if (suggestions.length > 0) {
+      if (activeList.length > 0) {
         setSuggestIdx((i) => Math.max(i - 1, -1))
       } else {
         const allHist = localHistory.length ? localHistory : cmdHistory
@@ -516,8 +664,8 @@ export default function CommandBar() {
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      if (suggestions.length > 0) {
-        setSuggestIdx((i) => Math.min(i + 1, suggestions.length - 1))
+      if (activeList.length > 0) {
+        setSuggestIdx((i) => Math.min(i + 1, activeList.length - 1))
       } else {
         const allHist = localHistory.length ? localHistory : cmdHistory
         const idx = Math.max(histIdx - 1, -1)
@@ -526,26 +674,21 @@ export default function CommandBar() {
       }
       return
     }
-    if (e.key === 'Tab') {
+    if (e.key === 'Tab' && suggestions.length > 0) {
       e.preventDefault()
       const sel = suggestIdx >= 0 ? suggestions[suggestIdx] : suggestions[0]
       if (sel) { setInputValue(sel.label); setSuggestions([]); setSuggestIdx(-1) }
       return
     }
     if (e.key === 'Escape') {
-      setSuggestions([]); setSuggestIdx(-1); return
+      setSuggestions([]); setSuggestIdx(-1); setShowRecent(false); return
     }
     if (e.key === 'Enter') {
-      if (suggestIdx >= 0 && suggestions[suggestIdx]) {
-        const sel = suggestions[suggestIdx]
-        setInputValue(sel.label)
-        setSuggestions([])
-        setSuggestIdx(-1)
-        if (sel.type !== 'cmd') return
+      if (suggestIdx >= 0 && activeList[suggestIdx]) {
+        selectSuggestion(activeList[suggestIdx])
+        return
       }
-      execute(suggestIdx >= 0 && suggestions[suggestIdx]?.type !== 'cmd'
-        ? suggestions[suggestIdx]?.label ?? inputValue
-        : inputValue)
+      execute(inputValue)
     }
   }
 
@@ -810,6 +953,46 @@ export default function CommandBar() {
     await routeToAI(trimmed)
   }, [addAlert, audUsd, pushHistory, setActiveModule, setNewsFilter, openModal, setChatOpen, addChatMessage, updateLastChatMessage])
 
+  // ── Unified suggestion/recent-search selection — click and Enter both land ──
+  // here, so "select" always means the same thing regardless of input method.
+  const selectSuggestion = (item) => {
+    setSuggestions([]); setSuggestIdx(-1); setShowRecent(false)
+    switch (item.type) {
+      case 'module':
+        setInputValue('')
+        setActiveModule(item.sym)
+        flash(`→ ${item.sym.toUpperCase()}`, 'text-terminal-green', 1500)
+        return
+      case 'action':
+        setInputValue('')
+        if (item.action === 'ai') { routeToAI(item.payload); return }
+        if (item.action === 'watchlist') {
+          addToWatchlist(item.payload)
+          flash(`WATCHLIST: ${item.payload} ADDED`, 'text-terminal-green', 2500)
+          setActiveModule('watchlist')
+          return
+        }
+        if (item.action === 'portfolio') {
+          flash('Open Portfolio to add this position', 'text-terminal-text-dim', 3000)
+          setActiveModule('portfolio')
+          return
+        }
+        return
+      case 'cmd':
+        setInputValue('')
+        execute(item.label)
+        return
+      case 'recent':
+        setInputValue('')
+        execute(item.label)
+        return
+      default: // asx/us/index/crypto/fx — a matched ticker
+        setInputValue('')
+        lookupTicker(item.sym)
+        return
+    }
+  }
+
   const statusText = typeof status === 'object' ? status.text : status
   const statusCls  = typeof status === 'object' ? status.cls  : 'text-terminal-text-dim'
 
@@ -828,13 +1011,20 @@ export default function CommandBar() {
       />}
       {compareAssets && <CompareModal assets={compareAssets} onClose={() => setCompareAssets(null)} />}
 
-      <div className="relative flex-shrink-0">
+      <div className="relative flex-shrink-0" ref={wrapperRef}>
         <SuggestionsList
           suggestions={suggestions}
           suggestIdx={suggestIdx}
-          onMouseSelect={(s) => { setInputValue(s.label); setSuggestions([]); setSuggestIdx(-1) }}
-          onExecute={execute}
+          onSelect={selectSuggestion}
+          quotes={suggestionQuotes}
         />
+        {!suggestions.length && showRecent && (
+          <RecentSearchesList
+            recents={recentSearches}
+            activeIdx={suggestIdx}
+            onSelect={(r) => selectSuggestion({ sym: r, label: r, type: 'recent' })}
+          />
+        )}
 
         {/* Command bar */}
         <div className="flex items-center bg-terminal-bg border-t border-terminal-border px-3 py-1.5 gap-3">
@@ -846,7 +1036,10 @@ export default function CommandBar() {
             value={inputValue}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            onFocus={() => { if (inputValue.trim()) setSuggestions(getSuggestions(inputValue)) }}
+            onFocus={() => {
+              if (inputValue.trim()) setSuggestions(getSuggestions(inputValue))
+              else if (recentSearches.length) setShowRecent(true)
+            }}
             placeholder="Ticker · Command · Question — type HELP or ? for all commands"
             inputMode="text"
             autoComplete="off"
