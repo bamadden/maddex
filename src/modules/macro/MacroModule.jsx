@@ -1,5 +1,6 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useStore } from '../../store/useStore'
 import {
   AU_MACRO,
   AU_CPI_HISTORY, AU_UNEMP_HISTORY, AU_GDP_HISTORY,
@@ -20,7 +21,7 @@ import { getEconomicCalendar, upcomingEvents, getPreviousEvents } from '../../se
 import { getMacroThemes, FALLBACK_THEMES } from '../../services/macroThemeService'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Cell,
 } from 'recharts'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
@@ -127,10 +128,15 @@ const ChartTooltip = ({ active, payload, label, unit, color }) => {
 
 const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
   <div
-    className={`w-full h-full ${onClick ? 'cursor-pointer' : ''}`}
+    className={`relative w-full h-full ${onClick ? 'cursor-pointer' : ''}`}
     onClick={onClick}
     title={onClick ? 'Click to expand' : undefined}
   >
+    {onClick && (
+      <span className="absolute top-0 right-0 z-10 text-terminal-text-dim/50 hover:text-terminal-gold text-2xs leading-none px-1">
+        ⤢
+      </span>
+    )}
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
         <CartesianGrid stroke="#0d2244" vertical={false} />
@@ -190,19 +196,73 @@ const CHART_CONFIGS = {
   },
 }
 
+// Serialises the modal's rendered <svg> to a PNG and triggers a download —
+// recharts has no built-in export, but its output is a plain SVG so this
+// works without a charting-specific export library.
+function downloadChartPng(containerEl, filename) {
+  const svg = containerEl?.querySelector('svg')
+  if (!svg) return
+  const svgStr = new XMLSerializer().serializeToString(svg)
+  const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+  const url = URL.createObjectURL(svgBlob)
+  const img = new Image()
+  img.onload = () => {
+    const scale = 2 // 2x for a crisper export than the on-screen size
+    const canvas = document.createElement('canvas')
+    canvas.width = svg.clientWidth * scale
+    canvas.height = svg.clientHeight * scale
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#0B1628'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.scale(scale, scale)
+    ctx.drawImage(img, 0, 0)
+    URL.revokeObjectURL(url)
+    canvas.toBlob((blob) => {
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(link.href)
+    }, 'image/png')
+  }
+  img.src = url
+}
+
 function ExpandedChartModal({ chartKey, data, onClose }) {
   const overlayRef = useRef(null)
+  const chartWrapRef = useRef(null)
   const cfg = CHART_CONFIGS[chartKey]
+
+  // Drag-to-zoom: track the date labels under the pointer during a drag,
+  // then slice the data array to that range on release. Double-click resets.
+  const [refLeft, setRefLeft] = useState(null)
+  const [refRight, setRefRight] = useState(null)
+  const [zoomRange, setZoomRange] = useState(null) // [startIdx, endIdx] or null
+
   if (!cfg) return null
 
-  const latest = data[data.length - 1]
-  const prev   = data[data.length - 2]
+  const viewData = zoomRange ? data.slice(zoomRange[0], zoomRange[1] + 1) : data
+  const latest = viewData[viewData.length - 1]
+  const prev   = viewData[viewData.length - 2]
   const trend  = latest?.value > prev?.value ? 'UP' : latest?.value < prev?.value ? 'DOWN' : 'FLAT'
   const trendCls = trend === 'UP'
     ? (chartKey === 'unemp' ? 'text-terminal-red' : 'text-terminal-green')
     : trend === 'DOWN'
       ? (chartKey === 'unemp' ? 'text-terminal-green' : 'text-terminal-red')
       : 'text-terminal-text-dim'
+
+  const handleMouseDown = (e) => { if (e?.activeLabel != null) setRefLeft(e.activeLabel) }
+  const handleMouseMove = (e) => { if (refLeft != null && e?.activeLabel != null) setRefRight(e.activeLabel) }
+  const handleMouseUp = () => {
+    if (refLeft != null && refRight != null && refLeft !== refRight) {
+      const i1 = data.findIndex(d => d.date === refLeft)
+      const i2 = data.findIndex(d => d.date === refRight)
+      if (i1 !== -1 && i2 !== -1) setZoomRange([Math.min(i1, i2), Math.max(i1, i2)])
+    }
+    setRefLeft(null)
+    setRefRight(null)
+  }
+  const resetZoom = () => { setZoomRange(null); setRefLeft(null); setRefRight(null) }
 
   return (
     <div
@@ -222,20 +282,39 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
             {latest?.value}{cfg.unit} {trend === 'UP' ? '▲' : trend === 'DOWN' ? '▼' : '—'}
           </span>
           <span className="text-2xs text-terminal-text-dim ml-2">PREV: {prev?.value}{cfg.unit}</span>
-          <button onClick={onClose} className="ml-auto text-terminal-text-dim hover:text-terminal-text text-lg">✕</button>
+          {zoomRange && (
+            <button onClick={resetZoom} className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">
+              RESET ZOOM
+            </button>
+          )}
+          <button
+            onClick={() => downloadChartPng(chartWrapRef.current, `${chartKey}-chart.png`)}
+            className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold/40 px-2 py-0.5 transition-colors"
+          >
+            ⤓ PNG
+          </button>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-lg">✕</button>
         </div>
 
-        {/* Chart */}
-        <div className="flex-1 p-4">
+        {/* Chart — drag to zoom, double-click to reset */}
+        <div className="flex-1 p-4" ref={chartWrapRef} onDoubleClick={resetZoom}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+            <LineChart
+              data={viewData}
+              margin={{ top: 12, right: 20, left: 0, bottom: 8 }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              style={{ cursor: refLeft != null ? 'col-resize' : 'crosshair' }}
+            >
               <CartesianGrid stroke="#0d2244" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#4a6580' }} interval={1} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#4a6580' }} interval={1} allowDataOverflow />
               <YAxis
                 tick={{ fontSize: 10, fill: '#4a6580' }}
                 tickFormatter={(v) => `${v}${cfg.unit}`}
                 domain={['auto', 'auto']}
                 width={50}
+                allowDataOverflow
               />
               <Tooltip content={<ChartTooltip unit={cfg.unit} color={cfg.color} />} />
               {cfg.refLine != null && (
@@ -255,6 +334,9 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
                 activeDot={{ r: 5, fill: cfg.color, stroke: '#fff', strokeWidth: 1.5 }}
                 isAnimationActive={false}
               />
+              {refLeft != null && refRight != null && (
+                <ReferenceArea x1={refLeft} x2={refRight} strokeOpacity={0.3} fill="#c8a84b" fillOpacity={0.15} />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -262,9 +344,9 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
         {/* Footer stats */}
         <div className="border-t border-terminal-border px-4 py-2 flex items-center gap-6 text-2xs flex-shrink-0">
           <span className="text-terminal-text-dim">LATEST: <span style={{ color: cfg.color }}>{latest?.value}{cfg.unit} ({latest?.date})</span></span>
-          <span className="text-terminal-text-dim">PERIOD HIGH: <span className="text-terminal-green">{Math.max(...data.map(d => d.value)).toFixed(1)}{cfg.unit}</span></span>
-          <span className="text-terminal-text-dim">PERIOD LOW: <span className="text-terminal-red">{Math.min(...data.map(d => d.value)).toFixed(1)}{cfg.unit}</span></span>
-          <span className="text-terminal-text-dim ml-auto">SOURCE: ABS · Click outside to close</span>
+          <span className="text-terminal-text-dim">{zoomRange ? 'RANGE' : 'PERIOD'} HIGH: <span className="text-terminal-green">{Math.max(...viewData.map(d => d.value)).toFixed(1)}{cfg.unit}</span></span>
+          <span className="text-terminal-text-dim">{zoomRange ? 'RANGE' : 'PERIOD'} LOW: <span className="text-terminal-red">{Math.min(...viewData.map(d => d.value)).toFixed(1)}{cfg.unit}</span></span>
+          <span className="text-terminal-text-dim ml-auto">SOURCE: ABS · Drag to zoom · Double-click to reset</span>
         </div>
       </div>
     </div>
@@ -718,8 +800,21 @@ function formatShortDate(isoDate) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
+const REMINDER_KEY = 'maddex_calendar_reminders'
+const REMINDER_NOTIFIED_KEY = 'maddex_calendar_reminders_notified'
+
+function readReminders() {
+  try { return JSON.parse(localStorage.getItem(REMINDER_KEY) ?? '[]') } catch { return [] }
+}
+function reminderKey(evt) { return `${evt.date}|${evt.event}` }
+
+const CALENDAR_FILTERS = ['ALL', 'AU', 'US', 'ASIA', 'HIGH IMPACT']
+
 function EnhancedEvents() {
   const [expanded, setExpanded] = useState(null)
+  const [filter, setFilter] = useState('ALL')
+  const [reminders, setReminders] = useState(readReminders)
+  const { addNotification } = useStore()
   const { data: calResult, isLoading } = useQuery({
     queryKey:  ['econCalendar'],
     queryFn:   getEconomicCalendar,
@@ -727,6 +822,38 @@ function EnhancedEvents() {
   })
   const allEvents = useMemo(() => upcomingEvents(calResult?.events ?? [], 30), [calResult])
   const isFallback = calResult?.source === 'fallback'
+
+  const events = useMemo(() => {
+    if (filter === 'ALL') return allEvents
+    if (filter === 'HIGH IMPACT') return allEvents.filter(e => e.importance === 'high')
+    if (filter === 'ASIA') return allEvents.filter(e => e.region === 'CN' || e.region === 'JP')
+    return allEvents.filter(e => e.region === filter)
+  }, [allEvents, filter])
+
+  // Reminders set for today fire a real notification into the app's
+  // notification centre (same addNotification the rest of the app uses),
+  // once per event per day — dedup key persisted separately from the
+  // reminder list itself so toggling a reminder off/on doesn't re-notify.
+  useEffect(() => {
+    if (!allEvents.length || !reminders.length) return
+    const todayIso = new Date().toLocaleDateString('en-CA')
+    let notified = []
+    try { notified = JSON.parse(localStorage.getItem(REMINDER_NOTIFIED_KEY) ?? '[]') } catch { /* ignore */ }
+    const dueToday = allEvents.filter(e => e.date === todayIso && reminders.includes(reminderKey(e)))
+    const fresh = dueToday.filter(e => !notified.includes(reminderKey(e)))
+    if (!fresh.length) return
+    fresh.forEach(e => addNotification('CALENDAR', `Reminder: ${e.event} is today${e.time !== '—' ? ` at ${e.time} AEST` : ''}`))
+    try { localStorage.setItem(REMINDER_NOTIFIED_KEY, JSON.stringify([...notified, ...fresh.map(reminderKey)])) } catch { /* ignore */ }
+  }, [allEvents, reminders, addNotification])
+
+  const toggleReminder = (evt) => {
+    setReminders((prev) => {
+      const key = reminderKey(evt)
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      try { localStorage.setItem(REMINDER_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
 
   const impactCls = (imp) =>
     imp === 'high'   ? 'text-terminal-red border-l-2 border-l-terminal-red' :
@@ -755,8 +882,23 @@ function EnhancedEvents() {
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-terminal-border inline-block" /> LOW</span>
         </div>
       </div>
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-terminal-border/40">
+        {CALENDAR_FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${
+              filter === f
+                ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
+                : 'text-terminal-text-dim border-terminal-border hover:border-terminal-gold hover:text-terminal-gold'
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
       <div className="overflow-auto" style={{ maxHeight: 260 }}>
-        {allEvents.map((evt, i) => {
+        {events.map((evt, i) => {
           const countdown = getCountdown(evt.date, evt.time)
           const isOpen    = expanded === i
           return (
@@ -809,6 +951,16 @@ function EnhancedEvents() {
                       </div>
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleReminder(evt) }}
+                    className={`mt-2 text-2xs px-2 py-1 border font-bold tracking-wide transition-colors ${
+                      reminders.includes(reminderKey(evt))
+                        ? 'bg-terminal-gold text-terminal-bg border-terminal-gold'
+                        : 'text-terminal-gold border-terminal-gold/40 hover:bg-terminal-gold hover:text-terminal-bg'
+                    }`}
+                  >
+                    {reminders.includes(reminderKey(evt)) ? '✓ REMINDER SET' : 'SET REMINDER'}
+                  </button>
                 </div>
               )}
             </div>
@@ -862,26 +1014,84 @@ const MACRO_REGIME = {
   reason: 'Elevated bond yields and geopolitical tension (US-Iran supply risk, China property stress) are keeping risk appetite subdued, even as the Fed and RBA both lean toward easing.',
 }
 
+// Hand-set editorial judgment, same convention as MACRO_REGIME itself — no
+// single live "3 indicator" feed exists, so these are periodically updated
+// from the same published data (ABS/RBA/Fed releases) driving the rest of
+// this module rather than a computed score.
+const MACRO_INDICATORS = [
+  { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'China property stress and the US-Iran energy shock are weighing on global trade volumes.' },
+  { label: 'INFLATION',     status: 'STICKY',      arrow: '▬', color: '#c8a84b',            context: 'AU CPI at 3.8% YoY remains above the RBA\'s 2–3% target band.' },
+  { label: 'POLICY',        status: 'EASING BIAS', arrow: '▼', color: 'var(--color-gain)',  context: 'Fed and RBA both signalling a pause-then-cut path into late 2026.' },
+]
+
+// Same -90..+90 scale as MACRO_REGIME.angle — a hand-set monthly snapshot,
+// not a computed time series, for the same reason noted above.
+const MACRO_REGIME_HISTORY = [
+  { date: 'Mar', label: 'RISK-ON',       score: 45  },
+  { date: 'Apr', label: 'RISK-ON',       score: 35  },
+  { date: 'May', label: 'TRANSITIONING', score: 10  },
+  { date: 'Jun', label: 'TRANSITIONING', score: -5  },
+  { date: 'Jul', label: 'RISK-OFF',      score: -30 },
+  { date: 'Aug', label: 'RISK-OFF',      score: -35 },
+]
+const regimeColor = (score) => score > 15 ? 'var(--color-gain)' : score < -15 ? 'var(--color-loss)' : '#c8a84b'
+
+function RegimeHistoryTimeline() {
+  return (
+    <div className="mt-2 pt-2 border-t border-terminal-border/40">
+      <div className="text-2xs text-terminal-text-dim tracking-widest mb-1.5">REGIME HISTORY (6MO)</div>
+      <div className="flex items-end gap-1" style={{ height: 36 }}>
+        {MACRO_REGIME_HISTORY.map((r) => (
+          <div key={r.date} className="flex-1 flex flex-col items-center gap-0.5" title={`${r.date}: ${r.label}`}>
+            <div
+              className="w-full rounded-sm"
+              style={{ height: Math.max(4, ((r.score + 90) / 180) * 28), background: regimeColor(r.score) }}
+            />
+            <span className="text-[8px] text-terminal-text-dim">{r.date}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function MacroRegimeGauge() {
   return (
-    <div className="border border-terminal-border p-3 bg-terminal-panel/40 flex items-center gap-4 flex-wrap">
-      <div style={{ position: 'relative', width: 120, height: 64, flexShrink: 0 }}>
-        <svg viewBox="0 0 120 64" style={{ width: 120, height: 64, display: 'block' }}>
-          <path d="M 8 60 A 52 52 0 0 1 60 8"   fill="none" stroke="var(--color-loss)" strokeWidth="9" opacity="0.55" />
-          <path d="M 60 8 A 52 52 0 0 1 112 60" fill="none" stroke="var(--color-gain)" strokeWidth="9" opacity="0.55" />
-        </svg>
-        <div style={{
-          position: 'absolute', left: 59, bottom: 4, width: 2, height: 46,
-          background: '#c8a84b', transformOrigin: 'bottom center',
-          transform: `rotate(${MACRO_REGIME.angle}deg)`, borderRadius: 2,
-        }} />
-        <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#c8a84b' }} />
+    <div className="border border-terminal-border p-3 bg-terminal-panel/40">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div style={{ position: 'relative', width: 120, height: 64, flexShrink: 0 }}>
+          <svg viewBox="0 0 120 64" style={{ width: 120, height: 64, display: 'block' }}>
+            <path d="M 8 60 A 52 52 0 0 1 60 8"   fill="none" stroke="var(--color-loss)" strokeWidth="9" opacity="0.55" />
+            <path d="M 60 8 A 52 52 0 0 1 112 60" fill="none" stroke="var(--color-gain)" strokeWidth="9" opacity="0.55" />
+          </svg>
+          <div style={{
+            position: 'absolute', left: 59, bottom: 4, width: 2, height: 46,
+            background: '#c8a84b', transformOrigin: 'bottom center',
+            transform: `rotate(${MACRO_REGIME.angle}deg)`, borderRadius: 2,
+          }} />
+          <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#c8a84b' }} />
+        </div>
+        <div className="flex-1 min-w-[180px]">
+          <div className="text-2xs text-terminal-text-dim tracking-widest mb-0.5">MACRO REGIME</div>
+          <div className="text-lg font-bold mb-1" style={{ color: MACRO_REGIME.color }}>{MACRO_REGIME.label}</div>
+          <div className="text-2xs text-terminal-text-dim leading-relaxed">{MACRO_REGIME.reason}</div>
+        </div>
       </div>
-      <div className="flex-1 min-w-[180px]">
-        <div className="text-2xs text-terminal-text-dim tracking-widest mb-0.5">MACRO REGIME</div>
-        <div className="text-lg font-bold mb-1" style={{ color: MACRO_REGIME.color }}>{MACRO_REGIME.label}</div>
-        <div className="text-2xs text-terminal-text-dim leading-relaxed">{MACRO_REGIME.reason}</div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+        {MACRO_INDICATORS.map((ind) => (
+          <div key={ind.label} className="border border-terminal-border/60 px-2 py-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-2xs text-terminal-text-dim tracking-wide">{ind.label}</span>
+              <span className="text-2xs font-bold" style={{ color: ind.color }}>{ind.arrow}</span>
+            </div>
+            <div className="text-xs font-bold mb-0.5" style={{ color: ind.color }}>{ind.status}</div>
+            <div className="text-2xs text-terminal-text-dim leading-snug">{ind.context}</div>
+          </div>
+        ))}
       </div>
+
+      <RegimeHistoryTimeline />
     </div>
   )
 }
@@ -900,16 +1110,45 @@ const CATEGORY_ICON = {
 }
 
 function MacroThemeCard({ theme }) {
+  const [expanded, setExpanded] = useState(false)
   const color = THEME_IMPACT_COLOR[theme.impact] ?? 'var(--color-text-dim)'
+  const analysis = theme.analysis ?? theme.impactNote ?? theme.note
+
   return (
-    <div className="border border-terminal-border p-2.5 bg-terminal-panel/40">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-sm">{CATEGORY_ICON[theme.category] ?? '📌'}</span>
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest">{theme.title}</span>
-      </div>
-      <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5">{theme.summary}</div>
-      <div className="text-2xs font-bold" style={{ color }}>
-        {theme.impact} <span className="text-terminal-text-dim font-normal">— {theme.impactNote ?? theme.note}</span>
+    <div className="border border-terminal-border bg-terminal-panel/40" style={{ borderLeft: `3px solid ${color}` }}>
+      <div className="p-2.5">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-sm">{CATEGORY_ICON[theme.category] ?? '📌'}</span>
+          <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-1">{theme.title}</span>
+          <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full border" style={{ color, borderColor: color }}>
+            {theme.impact}
+          </span>
+        </div>
+        <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5">{theme.summary}</div>
+
+        {expanded && analysis && (
+          <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5 pt-1.5 border-t border-terminal-border/40">
+            {analysis}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mt-1.5">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
+          >
+            {expanded ? '▲ LESS' : '▼ FULL ANALYSIS'}
+          </button>
+          <button
+            onClick={() => dispatchAskAI({
+              name: theme.title, sector: theme.category, date: todayAEST(),
+              instruction: `Give a deeper analysis of this macro theme for Australian investors: "${theme.title}" — ${theme.summary} Current stance: ${theme.impact}.`,
+            })}
+            className="ml-auto text-2xs text-terminal-gold/70 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"
+          >
+            ASK MADDENAI →
+          </button>
+        </div>
       </div>
     </div>
   )
