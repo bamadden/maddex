@@ -449,12 +449,17 @@ function RBADashboard({ askAI }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border">
-        {/* Rate history chart */}
-        <div className="p-2">
-          <div className="text-2xs text-terminal-text-dim mb-1">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
-          <div style={{ height: 110 }}>
-            <ResponsiveContainer width="100%" height={110}>
+      {/* Fixed row height so every column has something concrete to fill —
+          "h-full" is meaningless without an ancestor that actually has a
+          resolved height, and grid's default row-stretch only matches
+          whichever column ends up tallest, not a specific target. */}
+      <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border" style={{ height: 420 }}>
+        {/* Rate history chart — fills 100% of the cell: fixed header, chart
+            takes all remaining space via flex-1/min-h-0, fixed footer. */}
+        <div className="p-2 flex flex-col h-full">
+          <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
                 <defs>
                   <linearGradient id="rbaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -480,35 +485,38 @@ function RBADashboard({ askAI }) {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex gap-4 mt-1 text-2xs text-terminal-text-dim flex-wrap">
+          <div className="flex gap-4 mt-1 text-2xs text-terminal-text-dim flex-wrap flex-shrink-0">
             <span>Aug-25: Trough 3.60% (2025 easing cycle ends)</span>
             <span>May-26: Rehiked to 4.35% (matches 2023 peak)</span>
             <span className="text-terminal-blue-bright">— neutral ~2.5%</span>
           </div>
         </div>
 
-        {/* Market pricing */}
-        <div className="p-3 w-44 flex-shrink-0">
-          <div className="text-2xs text-terminal-gold font-bold mb-2">NEXT MEETING PRICING</div>
-          <div className="space-y-2">
-            {[
-              { label: 'HOLD 4.35%', pct: 82, color: 'var(--color-neutral)' },
-              { label: 'CUT 4.10%',  pct: 18, color: 'var(--color-loss)' },
-            ].map(({ label, pct, color }) => (
-              <div key={label}>
-                <div className="flex justify-between mb-0.5">
-                  <span className="text-2xs" style={{ color }}>{label}</span>
-                  <span className="text-2xs font-bold" style={{ color }}>{pct}%</span>
+        {/* Market pricing — same h-full + justify-between treatment so it
+            doesn't look short next to the other two once they're filled. */}
+        <div className="p-3 w-44 flex-shrink-0 flex flex-col h-full justify-between">
+          <div>
+            <div className="text-2xs text-terminal-gold font-bold mb-2">NEXT MEETING PRICING</div>
+            <div className="space-y-2">
+              {[
+                { label: 'HOLD 4.35%', pct: 82, color: 'var(--color-neutral)' },
+                { label: 'CUT 4.10%',  pct: 18, color: 'var(--color-loss)' },
+              ].map(({ label, pct, color }) => (
+                <div key={label}>
+                  <div className="flex justify-between mb-0.5">
+                    <span className="text-2xs" style={{ color }}>{label}</span>
+                    <span className="text-2xs font-bold" style={{ color }}>{pct}%</span>
+                  </div>
+                  <div className="h-1 bg-terminal-border/30">
+                    <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.7 }} />
+                  </div>
                 </div>
-                <div className="h-1 bg-terminal-border/30">
-                  <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.7 }} />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="mt-2 text-2xs text-terminal-text-dim/60">ASX 30-day interbank</div>
+            <div className="mt-1 text-2xs text-terminal-text-dim/60">Big 4: all HOLD for Sep</div>
           </div>
-          <div className="mt-2 text-2xs text-terminal-text-dim/60">ASX 30-day interbank</div>
-          <div className="mt-1 text-2xs text-terminal-text-dim/60">Big 4: all HOLD for Sep</div>
-          <div className="mt-3 pt-2 border-t border-terminal-border/40">
+          <div className="pt-2 border-t border-terminal-border/40">
             <div className="text-2xs text-terminal-blue-bright font-bold mb-1">FOMC · 4.25–4.50%</div>
             <div className="flex justify-between text-2xs">
               <span style={{ color: 'var(--color-neutral)' }}>HOLD 65%</span>
@@ -519,9 +527,10 @@ function RBADashboard({ askAI }) {
           </div>
         </div>
 
-        {/* Recent statements */}
-        <div className="p-3 w-72 flex-shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-1.5">
+        {/* Recent statements — fills 100% of the cell: fixed header, then
+            exactly 3 statements spread evenly across the remaining height. */}
+        <div className="p-3 w-72 flex-shrink-0 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <div className="text-2xs text-terminal-gold font-bold">RECENT STATEMENTS</div>
             <button
               onClick={() => setShowBoard(v => !v)}
@@ -543,14 +552,15 @@ function RBADashboard({ askAI }) {
               ))}
             </div>
           ) : (
-            <div className="space-y-1.5 overflow-auto flex-1">
+            <div className="flex flex-col justify-between flex-1 min-h-0">
               {RBA_RECENT_STATEMENTS.map((s, i) => (
-                <div key={i} className="border-l-2 border-terminal-gold/40 pl-2">
-                  <div className="flex items-center gap-2 mb-0.5">
+                <div key={i} className="flex-1 flex flex-col justify-center border-b border-terminal-border last:border-b-0 py-4 min-h-0">
+                  <div className="flex items-center gap-2 mb-1 flex-shrink-0">
                     <span className="text-2xs text-terminal-text-dim">{s.date}</span>
                     <span className="text-2xs font-bold text-terminal-gold">{s.decision}</span>
                   </div>
-                  <div className="text-2xs text-terminal-text-dim italic leading-tight line-clamp-2">{s.key}</div>
+                  <div className="text-xs text-terminal-text-dim italic leading-relaxed">{s.key}</div>
+                  <div className="text-2xs text-terminal-text-dim/50 mt-1 flex-shrink-0">— RBA Board</div>
                 </div>
               ))}
             </div>

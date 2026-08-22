@@ -221,17 +221,17 @@ export const RBA_RECENT_STATEMENTS = [
   {
     date: '12 Aug 2026',
     decision: 'HOLD at 4.35%',
-    key: '"Board held rates unchanged citing softer June CPI of 3.8%. Noted global uncertainty from Middle East tensions. Next meeting 16 September."',
+    key: '"Held, citing softer June CPI of 3.8% and Middle East uncertainty."',
   },
   {
     date: '17 Jun 2026',
     decision: 'HOLD at 4.35%',
-    key: '"Board held following three consecutive hikes. Monitoring inflation trajectory and labour market conditions before any further adjustments."',
+    key: '"Held after three straight hikes — monitoring inflation and labour market conditions."',
   },
   {
     date: '06 May 2026',
     decision: 'HIKE +25bp to 4.35%',
-    key: '"Board raised rates citing persistent inflation pressures from energy shock. Third consecutive increase in 2026 tightening cycle."',
+    key: '"Raised rates on persistent inflation from the energy shock — third straight 2026 hike."',
   },
 ]
 
