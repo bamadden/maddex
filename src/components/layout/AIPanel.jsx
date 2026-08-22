@@ -35,6 +35,7 @@ const nextRbaLabel = nextRbaMeeting
 const lastRbaLabel = new Date(`${LAST_DECISIONS.RBA.date}T00:00:00`)
   .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
 
+// Exactly 6, rendered 2 rows of 3 — row order matters (matches the grid flow).
 const QUICK_PROMPTS = [
   {
     label:  'ASX OUTLOOK',
@@ -42,24 +43,24 @@ const QUICK_PROMPTS = [
     dataKeys: ['asx', 'aud'],
   },
   {
+    label:  'BHP ANALYSIS',
+    prompt: 'Give a brief analysis of BHP.AX — current conditions, iron ore price exposure, and outlook for Australian investors.',
+    dataKeys: ['aud'],
+  },
+  {
+    label:  'AUD-USD',
+    prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.',
+    dataKeys: ['aud'],
+  },
+  {
     label:  'RBA NEXT MOVE',
     prompt: `What is the most likely RBA decision at the next board meeting on ${nextRbaLabel} and why? Current cash rate is 4.35% after the RBA ${LAST_DECISIONS.RBA.decision.toLowerCase()} at its ${lastRbaLabel} meeting (${LAST_DECISIONS.RBA.note}).`,
     dataKeys: ['asx', 'aud'],
   },
   {
-    label:  'AUD OUTLOOK',
-    prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.',
-    dataKeys: ['aud'],
-  },
-  {
     label:  'IRON ORE',
     prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.',
     dataKeys: ['aud'],
-  },
-  {
-    label:  'CRYPTO MARKET',
-    prompt: 'Give a brief overview of current crypto market conditions with BTC and ETH outlook in AUD terms.',
-    dataKeys: ['btc', 'eth'],
   },
   {
     label:  'GLOBAL RISK',
@@ -132,7 +133,7 @@ function FormattedResponse({ text }) {
   if (!text) return null
   const lines = text.split('\n')
   return (
-    <div style={{ fontSize: '11px', lineHeight: '1.7', fontFamily: 'var(--font)' }}>
+    <div className="font-sans" style={{ fontSize: '13px', lineHeight: '1.7' }}>
       {lines.map((line, i) => {
         const trimmed = line.trim()
 
@@ -262,6 +263,7 @@ function NotesPanel({ notes, onDelete }) {
 export default function AIPanel() {
   const {
     chatOpen, setChatOpen,
+    aiMode, setAiMode,
     chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
     addNotification,
   } = useStore()
@@ -277,6 +279,10 @@ export default function AIPanel() {
   const [notes, setNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('madden_ai_notes') ?? '[]') } catch { return [] }
   })
+  const isFullscreen = aiMode === 'fullscreen'
+  const toggleMode = useCallback(() => {
+    setAiMode(isFullscreen ? 'sidebar' : 'fullscreen')
+  }, [isFullscreen, setAiMode])
 
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
@@ -288,6 +294,10 @@ export default function AIPanel() {
   useEffect(() => {
     if (chatOpen) inputRef.current?.focus()
   }, [chatOpen])
+
+  // ESC-to-exit-fullscreen is handled by App.jsx's global handler (it needs
+  // to run before the "close the whole panel" Escape case, so it lives with
+  // the rest of that priority chain rather than duplicated here).
 
   // Global intelligence "ASK AI" button hook — dispatched by asset/headline/
   // chokepoint click sites across the terminal. The prompt is sent to Claude
@@ -422,46 +432,57 @@ export default function AIPanel() {
 
   const turnCount = chatMessages.filter((m) => m.role === 'user').length
 
+  // Monogram + disclaimer each appear once per session, not per message.
+  const firstAssistantIdx = chatMessages.findIndex((m) => m.role === 'assistant' && !m.silent)
+  const hasAnyReply = chatMessages.some((m) => m.role === 'assistant' && !m.silent && m.content)
+
   if (!chatOpen) return null
 
   return (
-    <div className="fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0">
+    <div
+      className={
+        isFullscreen
+          ? 'fixed inset-0 z-40 flex flex-col bg-terminal-panel'
+          : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
+      }
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-terminal-border bg-terminal-header flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-2xs font-semibold text-terminal-gold tracking-widest">▲ MADDENAI</span>
+      <div className="flex items-center justify-between px-3 py-1.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(201,168,76,0.35)', background: 'var(--mt-header, #0A1F3D)' }}>
+        <div className="flex items-center gap-2" title="Model: Claude Sonnet">
+          <span className="text-2xs font-semibold text-terminal-gold tracking-widest font-mono">MADDENAI</span>
           {turnCount > 0 && (
             <span className="text-2xs text-terminal-text-dim/50">Turn {turnCount}</span>
           )}
+          {confirmClear ? (
+            <button onClick={handleClear} className="text-2xs text-terminal-red ml-1">CONFIRM CLEAR?</button>
+          ) : chatMessages.length > 0 && (
+            <button onClick={handleClear} className="text-2xs text-terminal-text-dim/40 hover:text-terminal-red ml-1" title="Clear conversation">CLR</button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-2xs font-mono text-terminal-muted bg-terminal-surface2 border border-terminal-border rounded-full px-2 py-0.5">
-            CLAUDE SONNET
-          </span>
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setShowNotes((v) => !v)}
-            className={`text-2xs px-1.5 py-0.5 border transition-colors ${
-              showNotes
-                ? 'border-terminal-gold text-terminal-gold'
-                : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+            className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+              showNotes ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
             }`}
-            title="Saved notes"
+            title={`Saved notes${notes.length > 0 ? ` (${notes.length})` : ''}`}
           >
-            NOTES{notes.length > 0 ? ` (${notes.length})` : ''}
+            🗒
           </button>
           <button
-            onClick={handleClear}
-            className={`text-2xs transition-colors ${
-              confirmClear ? 'text-terminal-red' : 'text-terminal-text-dim hover:text-terminal-red'
-            }`}
-            title={confirmClear ? 'Click again to confirm' : 'Clear conversation'}
+            onClick={toggleMode}
+            className="w-6 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
+            title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
           >
-            {confirmClear ? 'CONFIRM?' : 'CLR'}
+            {isFullscreen ? '⤡' : '⤢'}
           </button>
           <button
             onClick={() => setChatOpen(false)}
-            className="text-terminal-text-dim hover:text-terminal-text text-xs ml-1"
-          >✕</button>
+            className="w-6 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-text transition-colors"
+            title="Close"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
@@ -481,14 +502,14 @@ export default function AIPanel() {
         </div>
       )}
 
-      {/* Quick prompts — pill buttons, horizontal scroll rather than wrap */}
-      <div className="flex items-center gap-1.5 p-2 border-b border-terminal-border flex-shrink-0 overflow-x-auto hide-scrollbar">
+      {/* Quick prompts — fixed 2 rows of 3 */}
+      <div className={`grid grid-cols-3 gap-1.5 p-2 border-b border-terminal-border flex-shrink-0 ${isFullscreen ? 'max-w-[800px] mx-auto w-full' : ''}`}>
         {QUICK_PROMPTS.map((q) => (
           <button
             key={q.label}
             onClick={() => send(buildQuickPrompt(q))}
             disabled={loading}
-            className="text-2xs font-mono px-2.5 py-1 rounded-full border border-terminal-border text-terminal-muted hover:border-terminal-border-gold hover:text-terminal-gold transition-colors disabled:opacity-40 whitespace-nowrap flex-shrink-0"
+            className="text-2xs font-mono px-2 py-1.5 rounded-full border border-terminal-border text-terminal-muted hover:bg-terminal-gold hover:border-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40 whitespace-nowrap"
           >
             {q.label}
           </button>
@@ -496,12 +517,22 @@ export default function AIPanel() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className={isFullscreen ? 'max-w-[800px] mx-auto p-4 space-y-3' : 'p-3 space-y-3'}>
+        {chatMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 py-16">
+            <span className="w-10 h-10 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-base font-bold font-mono flex items-center justify-center">M</span>
+            <span className="text-2xs text-terminal-text-dim tracking-[0.2em] font-mono">READY</span>
+          </div>
+        )}
         {chatMessages.map((msg, i) => (
           <div key={i} className={msg.role === 'user' ? 'text-right' : ''}>
             {msg.role === 'user' ? (
-              <div className="inline-block bg-terminal-surface2 border-l-2 border-terminal-gold px-2 py-1 text-2xs text-terminal-text-bright text-left max-w-[90%]">
-                <span className="text-terminal-gold text-2xs block mb-0.5">YOU &gt;</span>
+              <div
+                className="inline-block bg-terminal-surface2 border-l-2 border-terminal-gold px-2.5 py-1.5 text-terminal-text-bright text-left max-w-[90%] font-sans"
+                style={{ fontSize: 13, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }}
+              >
+                <span className="text-terminal-gold text-2xs font-mono block mb-0.5">YOU &gt;</span>
                 {msg.content}
               </div>
             ) : msg.silent && !msg.content ? (
@@ -535,8 +566,10 @@ export default function AIPanel() {
                 )}
                 <div className="flex items-center justify-between mb-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[9px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
-                    <span className="text-2xs text-terminal-gold">MADDENAI</span>
+                    {i === firstAssistantIdx && (
+                      <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[9px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
+                    )}
+                    <span className="text-2xs text-terminal-gold font-mono">MADDENAI</span>
                   </span>
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -573,11 +606,17 @@ export default function AIPanel() {
             )}
           </div>
         ))}
+        {hasAnyReply && (
+          <div className="text-2xs text-terminal-text-dim/40 text-center pt-1 font-sans">
+            MaddenAI can make mistakes. Not financial advice.
+          </div>
+        )}
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input */}
-      <div className="border-t border-terminal-border p-2 flex gap-2 flex-shrink-0">
+      <div className={`border-t border-terminal-border p-2 flex gap-2 flex-shrink-0 ${isFullscreen ? 'max-w-[800px] mx-auto w-full' : ''}`}>
         <input
           ref={inputRef}
           className="cmd-input flex-1 text-2xs"

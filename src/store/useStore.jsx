@@ -22,15 +22,21 @@ export function StoreProvider({ children }) {
   const [watchlist, setWatchlist]       = useState(getStoredWatchlist)
   const [cmdHistory, setCmdHistory]     = useState([])
   const [chatOpen, setChatOpen]         = useState(false)
+  // Sidebar (docked, ~320px) vs fullscreen (replaces the whole module
+  // viewport) — lifted up here rather than kept local to AIPanel so the
+  // global Escape handler below can tell "exit fullscreen" apart from
+  // "close the chat entirely".
+  const [aiMode, setAiModeState] = useState(() => {
+    try { return localStorage.getItem('maddex_ai_mode') === 'fullscreen' ? 'fullscreen' : 'sidebar' } catch { return 'sidebar' }
+  })
+  const setAiMode = useCallback((mode) => {
+    setAiModeState(mode)
+    try { localStorage.setItem('maddex_ai_mode', mode) } catch { /* ignore */ }
+  }, [])
   const [currency, setCurrencyState]    = useState(getStoredCurrency)
-  const INITIAL_CHAT = [
-    {
-      role: 'assistant',
-      content:
-        'MADDENAI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
-    },
-  ]
-  const [chatMessages, setChatMessages] = useState(INITIAL_CHAT)
+  // Empty by default — AIPanel renders a minimal "READY" empty state plus
+  // the quick-prompt chips instead of a seeded welcome message.
+  const [chatMessages, setChatMessages] = useState([])
   const [watchlistFocus, setWatchlistFocus] = useState(null)
   const [modalAsset, setModalAsset]         = useState(null)
   const [newsFilter, setNewsFilterState]    = useState('')
@@ -84,10 +90,7 @@ export function StoreProvider({ children }) {
   }, [])
 
   const clearChatMessages = useCallback(() => {
-    setChatMessages([{
-      role: 'assistant',
-      content: 'MADDENAI // Australian Financial Intelligence. Ask about ASX stocks, AUD pairs, RBA policy, macro, or any global market.\nExamples: "BHP analysis" / "RBA next move" / "AUD/USD outlook" / "iron ore outlook"',
-    }])
+    setChatMessages([])
   }, [])
 
   const updateLastChatMessage = useCallback((updater) => {
@@ -161,6 +164,7 @@ export function StoreProvider({ children }) {
         watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist,
         cmdHistory, pushCmdHistory,
         chatOpen, setChatOpen,
+        aiMode, setAiMode,
         currency, setCurrency,
         chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
         watchlistFocus, setWatchlistFocus,

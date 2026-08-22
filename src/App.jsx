@@ -126,7 +126,7 @@ function LoadingScreen() {
 const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
 
 function Terminal() {
-  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, setNewsBadgeCount, clearNewsBadge } = useStore()
+  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge } = useStore()
 
   // Background news subscription — keeps the ['news'] query alive and enables nav badge
   const { data: bgNewsData } = useQuery({
@@ -173,7 +173,12 @@ function Terminal() {
       if (e.key === 'Escape') {
         if (showShortcuts) { setShowShortcuts(false); return }
         if (modalAsset) { closeModal(); return }
-        if (chatOpen) setChatOpen(false)
+        if (chatOpen) {
+          // Fullscreen AI mode gets its own Escape stop — drop back to
+          // sidebar first, only close the panel entirely on a second Escape.
+          if (aiMode === 'fullscreen') setAiMode('sidebar')
+          else setChatOpen(false)
+        }
         return
       }
 
@@ -200,7 +205,7 @@ function Terminal() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [modalAsset, closeModal, chatOpen, setChatOpen, showShortcuts, setActiveModule])
+  }, [modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, showShortcuts, setActiveModule])
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-mono bg-terminal-bg">
