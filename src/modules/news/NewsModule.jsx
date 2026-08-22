@@ -156,6 +156,26 @@ function knownTickerBadges(tickers) {
   }).filter(Boolean).slice(0, 2)
 }
 
+// ─── Source circle — colour derived from the source name, deterministic ─────
+
+const SOURCE_PALETTE = ['#c8a84b', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
+function sourceHash(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+function SourceCircle({ source, size = 16 }) {
+  const color = SOURCE_PALETTE[sourceHash(source ?? '?') % SOURCE_PALETTE.length]
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold flex-shrink-0"
+      style={{ width: size, height: size, background: `${color}26`, border: `1px solid ${color}66`, color, fontSize: size * 0.5 }}
+    >
+      {source?.[0]?.toUpperCase() ?? '?'}
+    </span>
+  )
+}
+
 // ─── Search highlighting ──────────────────────────────────────────────────────
 
 function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
@@ -324,6 +344,10 @@ function TickerBadgeRow({ tickers, onOpenTicker }) {
   )
 }
 
+// Shared card base — bg-terminal-surface, visible border, gold border on
+// hover, sharp 2px corners, no shadows/gradients (per the news redesign spec).
+const CARD_BASE = 'bg-terminal-surface border border-terminal-border hover:border-terminal-border-gold rounded-[2px] transition-colors'
+
 // ─── TOP STORY — full-width card ─────────────────────────────────────────────
 
 function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI, onOpenTicker }) {
@@ -334,7 +358,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
 
   return (
     <div
-      className={`news-top-story ${isPulsing ? 'news-pulse' : ''} border-b border-terminal-border px-4 py-3 cursor-pointer hover:bg-terminal-accent/10 transition-colors ${
+      className={`news-top-story ${isPulsing ? 'news-pulse' : ''} ${CARD_BASE} m-2 px-4 py-3 cursor-pointer ${
         isBreaking ? 'border-l-2 border-l-[rgba(168,50,50,0.7)]' : isNew ? 'border-l-2 border-l-terminal-gold/60' : ''
       }`}
       onClick={() => onToggle(item)}
@@ -343,6 +367,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
         {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />}
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">TOP STORY</span>
         <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{primaryDisplayCategory(item)}</Badge>
+        <SourceCircle source={item.source} size={14} />
         <span className="text-2xs font-bold text-terminal-text-dim">{item.source}</span>
         <span className="text-2xs text-terminal-text-dim/60" title={fullDateTooltip(item.pubDate)}>{timeAgo(item.pubDate)}</span>
         {isBreaking && <span className="text-2xs text-[#a83232] font-bold animate-pulse ml-1">● BREAKING</span>}
@@ -374,7 +399,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
           onClick={e => { e.stopPropagation(); onAskAI(item) }}
           className="text-2xs text-terminal-gold border border-terminal-gold/40 hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-1.5 py-0.5"
         >
-          ▲ ASK AI
+          ▲ ASK MADDENAI
         </button>
       </div>
 
@@ -386,7 +411,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
           onClick={e => e.stopPropagation()}
           className="inline-block mt-2 text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
         >
-          READ FULL ARTICLE →
+          READ FULL STORY →
         </a>
       )}
     </div>
@@ -401,7 +426,7 @@ function SecondaryStoryCard({ item, isUnread, isPulsing, onToggle, onAskAI, onOp
 
   return (
     <div
-      className={`news-secondary-story ${isPulsing ? 'news-pulse' : ''} border border-terminal-border/50 p-2 cursor-pointer hover:bg-terminal-accent/10 transition-colors flex flex-col ${
+      className={`news-secondary-story ${isPulsing ? 'news-pulse' : ''} ${CARD_BASE} p-2 cursor-pointer flex flex-col ${
         isBreaking ? 'border-l-2 border-l-[rgba(168,50,50,0.7)]' : isNew ? 'border-l-2 border-l-terminal-gold/60' : ''
       }`}
       onClick={() => onToggle(item)}
@@ -412,10 +437,11 @@ function SecondaryStoryCard({ item, isUnread, isPulsing, onToggle, onAskAI, onOp
         <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{primaryDisplayCategory(item)}</Badge>
         <span className="text-2xs text-terminal-text-dim/60 ml-auto" title={fullDateTooltip(item.pubDate)}>{timeAgo(item.pubDate)}</span>
       </div>
-      <p className="text-2xs font-bold text-terminal-text-bright leading-snug line-clamp-3 mb-1">{item.headline}</p>
+      <p className="text-2xs font-bold text-terminal-text-bright leading-snug line-clamp-2 mb-1">{item.headline}</p>
       {item.summary && <p className="text-2xs text-terminal-text-dim/80 leading-snug line-clamp-1 mb-1.5">{item.summary}</p>}
       <div className="flex items-center justify-between mt-auto gap-1">
         <div className="flex items-center gap-1 min-w-0">
+          <SourceCircle source={item.source} size={13} />
           <span className="text-2xs text-terminal-text-dim truncate">{item.source}</span>
           <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
         </div>
@@ -461,6 +487,66 @@ function BreakingTicker({ items }) {
       `}</style>
       <div className="nticker-track px-3" style={{ fontSize: 9, color: 'var(--mt-gold,#C9A84C)', lineHeight: '22px' }}>
         {content}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{content}
+      </div>
+    </div>
+  )
+}
+
+// ─── Market Movers — news-driven moves. No live "which stock moved because
+// of which headline" feed exists, so this is mock, DEMO-labelled data (same
+// convention as the rest of the app) rather than pretending it's live. ─────
+
+const MOCK_MARKET_MOVERS = [
+  { ticker: 'FMG.AX', pct: -4.2, driver: 'Iron ore slides on weak China steel demand' },
+  { ticker: 'CBA.AX', pct: 2.1,  driver: 'Rallies on RBA hold, banks lead financials higher' },
+  { ticker: 'NVDA',   pct: 6.8,  driver: 'AI capex guidance beats consensus' },
+  { ticker: 'WDS.AX', pct: -2.9, driver: 'Energy names soft as oil retreats from July peak' },
+  { ticker: 'XRO.AX', pct: 3.4,  driver: 'Tech rally on rate-cut expectations' },
+]
+
+function MarketMovers() {
+  return (
+    <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-2xs text-terminal-gold font-bold tracking-widest">MARKET MOVERS</span>
+        <span className="text-2xs text-terminal-gold/60 font-normal normal-case">● DEMO</span>
+      </div>
+      <div className="space-y-1.5">
+        {MOCK_MARKET_MOVERS.map((m) => (
+          <div key={m.ticker} className="flex items-center gap-2 text-2xs">
+            <span className="text-terminal-blue-bright font-bold w-14 flex-shrink-0">{m.ticker}</span>
+            <span className={`font-bold w-14 flex-shrink-0 ${m.pct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {m.pct >= 0 ? '▲' : '▼'}{Math.abs(m.pct).toFixed(1)}%
+            </span>
+            <span className="text-terminal-text-dim leading-snug truncate">{m.driver}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Global Headlines — 5 compact international items (non-AU-tagged) ──────
+
+function GlobalHeadlines({ items }) {
+  if (!items.length) return null
+  return (
+    <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
+      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">GLOBAL HEADLINES</div>
+      <div className="space-y-1.5">
+        {items.map((item) => (
+          <a
+            key={item.id ?? item.headline}
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-1.5 text-2xs hover:text-terminal-gold transition-colors group"
+          >
+            <SourceCircle source={item.source} size={12} />
+            <span className="text-terminal-text leading-snug line-clamp-1 flex-1 group-hover:text-terminal-gold">{item.headline}</span>
+            <span className="text-terminal-text-dim/60 flex-shrink-0">{timeAgo(item.pubDate)}</span>
+          </a>
+        ))}
       </div>
     </div>
   )
@@ -607,6 +693,10 @@ export default function NewsModule() {
   , [allArticles, nowTs])
 
   const trending   = useMemo(() => extractTrending(allArticles), [allArticles])
+  const globalHeadlines = useMemo(
+    () => allArticles.filter(a => !a.categories?.includes('AU')).slice(0, 5),
+    [allArticles]
+  )
   const topTickers = useMemo(() => {
     const counts = {}
     for (const item of allArticles) {
@@ -683,7 +773,7 @@ export default function NewsModule() {
       <div className="flex-1 flex overflow-hidden min-h-0">
 
         {/* ── Left: main feed (70%) ─────────────────────────────────────── */}
-        <div className="flex flex-col overflow-hidden" style={{ flex: '7 1 0%' }}>
+        <div className="flex flex-col overflow-hidden" style={{ flex: '6 1 0%' }}>
 
           {/* Header */}
           <div className="panel-header flex items-center gap-2 flex-shrink-0">
@@ -719,17 +809,17 @@ export default function NewsModule() {
             </div>
           </div>
 
-          {/* New articles banner */}
+          {/* New stories banner — click refreshes (new articles are already
+              merged in live, so this both re-polls for anything newer and
+              clears the counter) */}
           {newIds.size > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 flex-shrink-0">
-              <span className="text-2xs text-terminal-gold font-bold">↑ {newIds.size} NEW ARTICLES</span>
-              <button
-                onClick={() => setNewIds(new Map())}
-                className="text-2xs text-terminal-text-dim/50 hover:text-terminal-text-dim ml-auto"
-              >
-                dismiss
-              </button>
-            </div>
+            <button
+              onClick={() => { setNewIds(new Map()); refetch() }}
+              className="flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 flex-shrink-0 text-left hover:bg-terminal-gold/15 transition-colors"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />
+              <span className="text-2xs text-terminal-gold font-bold">{newIds.size} new stories — click to refresh</span>
+            </button>
           )}
 
           {/* Search */}
@@ -749,8 +839,8 @@ export default function NewsModule() {
             )}
           </div>
 
-          {/* Category tabs — gold underline on the active tab */}
-          <div className="flex flex-nowrap overflow-x-auto gap-3 px-2 border-b border-terminal-border flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
+          {/* Category pills — rounded-full, gold fill when active */}
+          <div className="flex flex-nowrap overflow-x-auto gap-1.5 px-2 py-1.5 border-b border-terminal-border flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
             {DISPLAY_CATEGORIES.map(({ key, label }) => {
               const count = catCount(key)
               const isActive = activeCategory === key
@@ -758,14 +848,18 @@ export default function NewsModule() {
                 <button
                   key={key}
                   onClick={() => handleCategoryChange(key)}
-                  className={`text-2xs px-0.5 py-1.5 flex-shrink-0 transition-colors flex items-center gap-1 border-b-2 ${
+                  className={`text-2xs px-2.5 py-1 rounded-full flex-shrink-0 transition-colors flex items-center gap-1.5 border font-bold ${
                     isActive
-                      ? 'border-terminal-gold text-terminal-gold font-bold'
-                      : 'border-transparent text-terminal-text-dim hover:text-terminal-text'
+                      ? 'bg-terminal-gold border-terminal-gold text-terminal-bg'
+                      : 'border-terminal-gold/30 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
                   }`}
                 >
                   {label}
-                  {count > 0 && <span className={isActive ? 'text-terminal-gold/70' : 'text-terminal-text-dim/50'}>{count}</span>}
+                  {count > 0 && (
+                    <span className={`px-1 rounded-full ${isActive ? 'bg-terminal-bg/20 text-terminal-bg' : 'bg-terminal-border text-terminal-text-dim'}`}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -790,7 +884,7 @@ export default function NewsModule() {
                 />
 
                 {byCategory.length > 1 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2 border-b border-terminal-border">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 border-b border-terminal-border">
                     {byCategory.slice(1, 7).map(item => (
                       <SecondaryStoryCard
                         key={item.id}
@@ -832,8 +926,8 @@ export default function NewsModule() {
           </div>
         </div>
 
-        {/* ── Right: market pulse (30%) ─────────────────────────────────── */}
-        <div className="flex flex-col overflow-hidden border-l border-terminal-border" style={{ flex: '3 1 0%' }}>
+        {/* ── Right: market pulse (40%) ─────────────────────────────────── */}
+        <div className="flex flex-col overflow-y-auto border-l border-terminal-border" style={{ flex: '4 1 0%' }}>
           <div className="panel-header flex-shrink-0">MARKET PULSE</div>
 
           {/* Scrolling breaking/NEW ticker */}
@@ -843,6 +937,8 @@ export default function NewsModule() {
           <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
             <SentimentGauge {...sentiment} />
           </div>
+
+          <MarketMovers />
 
           {/* Trending topics — clickable tags that filter feed */}
           {trending.length > 0 && (
@@ -869,8 +965,10 @@ export default function NewsModule() {
             </div>
           )}
 
+          <GlobalHeadlines items={globalHeadlines} />
+
           {/* Most mentioned + AI themes */}
-          <div className="px-3 py-2 flex-1 overflow-y-auto">
+          <div className="px-3 py-2 flex-1">
             {topTickers.length >= 3 && (
               <>
                 <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">MOST MENTIONED</div>
