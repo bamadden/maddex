@@ -3,8 +3,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { askClaude } from '../../services/api'
+import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
 
 // ─── Quick prompts (base templates — live data injected at call time) ─────────
+
+const nextRbaMeeting = getNextMeeting(RBA_MEETINGS_2026)
+const nextRbaLabel = nextRbaMeeting
+  ? nextRbaMeeting.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  : 'the next scheduled meeting'
+const lastRbaLabel = new Date(`${LAST_DECISIONS.RBA.date}T00:00:00`)
+  .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
 
 const QUICK_PROMPTS = [
   {
@@ -14,7 +22,7 @@ const QUICK_PROMPTS = [
   },
   {
     label:  'RBA NEXT MOVE',
-    prompt: 'What is the most likely RBA decision at the next board meeting on 11 August 2026 and why? Current cash rate is 4.35% after three 2026 hikes.',
+    prompt: `What is the most likely RBA decision at the next board meeting on ${nextRbaLabel} and why? Current cash rate is 4.35% after the RBA ${LAST_DECISIONS.RBA.decision.toLowerCase()} at its ${lastRbaLabel} meeting (${LAST_DECISIONS.RBA.note}).`,
     dataKeys: ['asx', 'aud'],
   },
   {

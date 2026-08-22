@@ -63,9 +63,9 @@ export const CENTRAL_BANK_RATES = [
 export const AU_MACRO = [
   // RBA Cash Rate: 4.35% — hiked at the 6 May 2026 Board meeting (from 4.10%,
   // itself hiked from 3.85% in Mar 2026, itself hiked from 3.60% in Feb 2026)
-  // — third consecutive 2026 hike, held since at the 17 Jun meeting;
-  // next decision 11 Aug 2026, hold expected by all 4 major banks.
-  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.10%', date: '2026-05-06', beat: null, src: 'rba.gov.au' },
+  // — third consecutive 2026 hike, held since at the 17 Jun meeting and
+  // again at 12 Aug 2026 (softer CPI of 3.8% cited); next decision 16 Sep 2026.
+  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.10%', date: '2026-08-12', beat: null, src: 'rba.gov.au' },
   // AU CPI YoY: 3.8% Q2 2026 — ABS Cat. 6401.0, released 2026-07-30 (up from 2.4%)
   { name: 'AU CPI YoY',          value: '3.8%',  prev: '2.4%',  date: '2026-07-30', beat: false, src: 'abs.gov.au/6401.0' },
   { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
@@ -102,39 +102,10 @@ export const GLOBAL_MACRO = [
 
 export const MACRO_INDICATORS = GLOBAL_MACRO
 
-// ─── Economic Calendars ───────────────────────────────────────────────────────
-// Dates: DD MMM format (e.g. '17 JUN'). Times shown in AEST.
-// These are indicative upcoming events — not real-time data.
-
-export const AU_CALENDAR = [
-  { date: '15 JUL', time: '11:30', event: 'RBA Meeting Minutes (Jul)',      region: 'AU', importance: 'high',   forecast: '—',     prev: '—'      },
-  { date: '17 JUL', time: '11:30', event: 'AU Employment Change (Jun)',      region: 'AU', importance: 'high',   forecast: '+20K',  prev: '+19K'   },
-  { date: '17 JUL', time: '11:30', event: 'AU Unemployment Rate (Jun)',      region: 'AU', importance: 'high',   forecast: '4.1%',  prev: '4.1%'   },
-  { date: '23 JUL', time: '11:30', event: 'AU CPI Monthly (Jun 2026)',       region: 'AU', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
-  { date: '30 JUL', time: '11:30', event: 'AU CPI Q2 2026 (ABS)',            region: 'AU', importance: 'high',   forecast: '2.5%',  prev: '2.4%'   },
-  { date: '30 JUL', time: '11:30', event: 'AU Retail Sales MoM (Jun)',       region: 'AU', importance: 'medium', forecast: '+0.4%', prev: '+0.3%'  },
-  { date: '05 AUG', time: '14:30', event: 'RBA Rate Decision (Aug 2026)',    region: 'AU', importance: 'high',   forecast: '3.85%', prev: '3.85%'  },
-  { date: '06 AUG', time: '11:30', event: 'AU Trade Balance (Jun)',           region: 'AU', importance: 'medium', forecast: 'A$7.4B',prev: 'A$7.2B' },
-  { date: '19 AUG', time: '11:30', event: 'AU Employment Change (Jul)',      region: 'AU', importance: 'high',   forecast: '+15K',  prev: '+20K'   },
-  { date: '26 AUG', time: '11:30', event: 'AU CPI Monthly (Jul 2026)',       region: 'AU', importance: 'high',   forecast: '2.4%',  prev: '2.3%'   },
-]
-
-export const GLOBAL_CALENDAR = [
-  { date: '15 JUL', time: '22:30', event: 'US CPI YoY (Jun)',                region: 'US', importance: 'high',   forecast: '2.3%',  prev: '2.4%'   },
-  { date: '15 JUL', time: '22:30', event: 'US Core CPI MoM (Jun)',           region: 'US', importance: 'high',   forecast: '+0.2%', prev: '+0.2%'  },
-  { date: '17 JUL', time: '22:30', event: 'US Retail Sales MoM (Jun)',       region: 'US', importance: 'medium', forecast: '+0.3%', prev: '+0.1%'  },
-  { date: '17 JUL', time: '22:30', event: 'US Initial Jobless Claims',       region: 'US', importance: 'medium', forecast: '215K',  prev: '218K'   },
-  { date: '24 JUL', time: '23:45', event: 'US S&P Global PMI (Jul)',          region: 'US', importance: 'medium', forecast: '52.0',  prev: '52.3'   },
-  { date: '29 JUL', time: '00:00', event: 'FOMC Meeting Begins (Jul-Aug)',   region: 'US', importance: 'high',   forecast: '—',     prev: '—'      },
-  { date: '30 JUL', time: '04:00', event: 'FOMC Rate Decision (Jul 2026)',   region: 'US', importance: 'high',   forecast: '4.25–4.50%', prev: '4.25–4.50%' },
-  { date: '07 AUG', time: '22:30', event: 'US Nonfarm Payrolls (Jul)',        region: 'US', importance: 'high',   forecast: '+155K', prev: '+142K'  },
-  { date: '07 AUG', time: '22:30', event: 'US Unemployment Rate (Jul)',       region: 'US', importance: 'high',   forecast: '4.1%',  prev: '4.1%'   },
-  { date: '13 AUG', time: '22:30', event: 'US CPI YoY (Jul)',                region: 'US', importance: 'high',   forecast: '2.3%',  prev: '2.3%'   },
-]
-
-export const ECONOMIC_CALENDAR = GLOBAL_CALENDAR
-
 // ─── AU Historical Data (ABS official releases) ───────────────────────────────
+// Note: the economic calendar previously hardcoded here has moved to
+// src/services/calendarService.js, which auto-drops past events instead of
+// needing this file hand-edited every session.
 
 // AU CPI History — ABS Quarterly CPI / Monthly Indicator (YoY %) — SOURCE: abs.gov.au/6401.0
 export const AU_CPI_HISTORY = [
@@ -202,8 +173,8 @@ export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX'
 // 2025 saw an easing cycle (Feb/May/Aug, -0.25 each, 4.35% → 3.60%). 2026
 // reversed that with three hikes (Feb/Mar/May, +0.25 each, 3.60% → 4.35%) in
 // response to the global energy shock from the Iran-Middle East conflict.
-// The Jun 2026 meeting held at 4.35%; the Aug 11 2026 meeting is expected to
-// hold too, following a softer CPI print of 3.8%.
+// The Jun 2026 meeting held at 4.35%, and the Board held again at the Aug 12
+// 2026 meeting following a softer CPI print of 3.8%. Next decision 16 Sep 2026.
 export const RBA_RATE_HISTORY = [
   { date: '2022-05-04', rate: 0.35 },
   { date: '2022-06-08', rate: 0.85 },
@@ -225,7 +196,7 @@ export const RBA_RATE_HISTORY = [
   { date: '2026-03-18', rate: 4.10 },
   { date: '2026-05-06', rate: 4.35 },
   { date: '2026-06-17', rate: 4.35 },
-  { date: '2026-08-03', rate: 4.35 },
+  { date: '2026-08-12', rate: 4.35 },
 ]
 
 export const RBA_BOARD_MEMBERS = [
@@ -241,6 +212,11 @@ export const RBA_BOARD_MEMBERS = [
 ]
 
 export const RBA_RECENT_STATEMENTS = [
+  {
+    date: '12 Aug 2026',
+    decision: 'HOLD at 4.35%',
+    key: '"The Board judged that holding steady was appropriate, with the softer June-quarter CPI print of 3.8% supporting a pause while the Board assesses the ongoing impact of the global energy shock."',
+  },
   {
     date: '17 Jun 2026',
     decision: 'HOLD at 4.35%',

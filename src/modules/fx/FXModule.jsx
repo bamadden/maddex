@@ -5,6 +5,10 @@ import {
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { CENTRAL_BANK_RATES } from '../../data/placeholders'
+import {
+  RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
+  getNextMeeting, getDaysUntil,
+} from '../../services/centralBankSchedule'
 import { useStore } from '../../store/useStore'
 import { fmt, colorClass } from '../../utils/format'
 import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
@@ -96,6 +100,26 @@ function FxRetryCountdown({ onRetry, seconds = 15 }) {
       </button>
     </div>
   )
+}
+
+// Maps CENTRAL_BANK_RATES' bank names to their published 2026 meeting
+// schedule — only the 4 banks we have a schedule for get a "next meeting"
+// line; the rest just show their last-change date as before.
+const BANK_SCHEDULE = {
+  'Reserve Bank of Australia': RBA_MEETINGS_2026,
+  'Federal Reserve':           FOMC_MEETINGS_2026,
+  'ECB':                       ECB_MEETINGS_2026,
+  'Bank of England':           BOE_MEETINGS_2026,
+}
+
+function nextMeetingLabel(bankName) {
+  const dates = BANK_SCHEDULE[bankName]
+  if (!dates) return null
+  const next = getNextMeeting(dates)
+  if (!next) return null
+  const days = getDaysUntil(next)
+  const label = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return `Next meeting: ${label} (${days}d)`
 }
 
 const directionIcon = (dir) => {
@@ -663,6 +687,9 @@ export default function FXModule() {
                 <span className="text-2xs">{directionIcon(cb.direction)}</span>
               </div>
               <div className="text-2xs text-terminal-text-dim mt-0.5">Last change: {cb.lastChange}</div>
+              {nextMeetingLabel(cb.bank) && (
+                <div className="text-2xs text-terminal-gold/70 mt-0.5">{nextMeetingLabel(cb.bank)}</div>
+              )}
             </div>
           ))}
           <div className="px-2 py-1 text-2xs text-terminal-text-dim/60 border-t border-terminal-border">
