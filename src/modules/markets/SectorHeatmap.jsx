@@ -1155,7 +1155,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               <span className="text-2xs font-bold text-terminal-text-dim tracking-wide">
                 {composite != null
                   ? `${secondaryMetric} ${selected.toUpperCase()} SECTOR TREND — ${composite.stockCount} STOCKS`
-                  : `${secondaryMetric} ${proxySym ? displaySym(proxySym) : ''} PRICE`}
+                  : `${secondaryMetric} PROXY: ${proxySym ? displaySym(proxySym) : '—'}`}
               </span>
             </div>
 
@@ -1283,7 +1283,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
             <div className="border-t border-terminal-border p-1.5 text-2xs text-terminal-text-dim/60 flex-shrink-0 flex items-center justify-between">
               <span>{constituentStocks.length > 0 ? `${constituentStocks.length} holdings` : 'Proxy view'}</span>
-              <span>{composite != null ? `${secondaryMetric} sector composite` : `${secondaryMetric} ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''}`}{USING_MOCK_DATA ? ' · DEMO' : ''}</span>
+              <span>{composite != null ? `${secondaryMetric} sector composite` : `${secondaryMetric} proxy: ${proxySym?.replace(/\.(AX|L)$/i,'') ?? '—'}`}{USING_MOCK_DATA ? ' · DEMO' : ''}</span>
             </div>
             </>
             )}

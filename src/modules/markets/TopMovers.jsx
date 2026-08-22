@@ -23,14 +23,17 @@ function totalTrackedMktCap(quotes, audUsd) {
   return total > 0 ? total : null
 }
 
+// Fixed widths so header cells line up exactly with the data below them —
+// only NAME is flexible, everything else is a known-width number/ticker.
 const COLUMNS = [
-  { key: 'symbol',     label: 'TICKER',   align: 'left',  cell: 'always' },
+  { key: 'rank',       label: '#',        align: 'right', cell: 'always', width: 24, sortable: false },
+  { key: 'symbol',     label: 'TICKER',   align: 'left',  cell: 'always', width: 60 },
   { key: 'name',       label: 'NAME',     align: 'left',  cell: 'lg' },
-  { key: 'price',      label: 'A$ PRICE', align: 'right', cell: 'always' },
-  { key: 'dayChangePct', label: 'CHG%',   align: 'right', cell: 'always' },
-  { key: 'marketCap',  label: 'MKT CAP',  align: 'right', cell: 'lg' },
-  { key: 'trailingPE', label: 'P/E',      align: 'right', cell: 'xl' },
-  { key: 'vol',        label: 'VOLUME',   align: 'right', cell: 'xl' },
+  { key: 'price',      label: 'A$ PRICE', align: 'right', cell: 'always', width: 80 },
+  { key: 'dayChangePct', label: 'CHG%',   align: 'right', cell: 'always', width: 70 },
+  { key: 'marketCap',  label: 'MKT CAP',  align: 'right', cell: 'lg', width: 80 },
+  { key: 'trailingPE', label: 'P/E',      align: 'right', cell: 'xl', width: 50 },
+  { key: 'vol',        label: 'VOLUME',   align: 'right', cell: 'xl', width: 70 },
 ]
 
 function SortableTable({ items, audUsd, onRowClick }) {
@@ -78,8 +81,9 @@ function SortableTable({ items, audUsd, onRowClick }) {
           {COLUMNS.map(col => (
             <th
               key={col.key}
-              onClick={() => toggleSort(col.key)}
-              className={`px-1.5 cursor-pointer hover:text-terminal-gold transition-colors select-none whitespace-nowrap ${
+              onClick={() => col.sortable !== false && toggleSort(col.key)}
+              style={col.width ? { width: col.width, minWidth: col.width } : undefined}
+              className={`px-1.5 transition-colors select-none whitespace-nowrap ${col.sortable === false ? '' : 'cursor-pointer hover:text-terminal-gold'} ${
                 col.align === 'left' ? 'text-left' : 'text-right'
               } ${col.cell === 'lg' ? 'hidden lg:table-cell' : col.cell === 'xl' ? 'hidden xl:table-cell' : ''}`}
             >
@@ -95,21 +99,22 @@ function SortableTable({ items, audUsd, onRowClick }) {
             className="cursor-pointer hover:bg-terminal-accent/20 transition-colors row-fade-up"
             style={{ animationDelay: `${i * 35}ms` }}
             onClick={() => onRowClick(q)}>
-            <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold">{displaySym(q.symbol)}</td>
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim" style={{ width: 24, minWidth: 24 }}>{i + 1}</td>
+            <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold" style={{ width: 60, minWidth: 60 }}>{displaySym(q.symbol)}</td>
             <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
-            <td className="px-1.5 py-0.5 text-2xs text-right">
+            <td className="px-1.5 py-0.5 text-2xs text-right" style={{ width: 80, minWidth: 80 }}>
               {audPrice != null ? fmt.price(audPrice) : '—'}
             </td>
-            <td className="px-1.5 py-0.5 text-right">
+            <td className="px-1.5 py-0.5 text-right" style={{ width: 70, minWidth: 70 }}>
               <PriceChange pct={q.dayChangePct} className="justify-end" />
             </td>
-            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell">
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell" style={{ width: 80, minWidth: 80 }}>
               {formatMarketCap(audMktCap)}
             </td>
-            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell">
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell" style={{ width: 50, minWidth: 50 }}>
               {q.trailingPE != null ? q.trailingPE.toFixed(1) : '—'}
             </td>
-            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell">
+            <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell" style={{ width: 70, minWidth: 70 }}>
               {q.vol != null ? fmt.large(q.vol) : '—'}
             </td>
           </tr>
