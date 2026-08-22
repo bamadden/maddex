@@ -75,33 +75,50 @@ body {
   display: none;
 }
 
-/* Table styles */
+/* Table styles — header row: surface2 bg, 8px tracked-out muted label.
+   Data rows: 11px mono, tabular figures, subtle row border, no alternating
+   stripe (flat stripes read as "basic web table", not instrument panel). */
 .terminal-table {
   border-collapse: collapse;
   width: 100%;
 }
 .terminal-table th {
-  @apply text-2xs text-terminal-text-dim uppercase tracking-widest border-b border-terminal-border pb-1;
+  @apply text-[8px] tracking-[0.2em] text-terminal-muted uppercase bg-terminal-surface2 border-b border-terminal-border py-2 px-3 font-mono font-normal text-left;
 }
 .terminal-table td {
-  @apply text-xs py-0.5 border-b border-terminal-border/30;
+  @apply text-[11px] font-mono text-terminal-text py-2 px-3 border-b border-terminal-border tabular-nums;
 }
 .terminal-table tr:hover td {
-  @apply bg-terminal-accent/20;
+  @apply bg-terminal-surface2 cursor-pointer;
+}
+/* Selected row — gold left border, matches the card "selected" state */
+.terminal-table tr.row-selected td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--mt-gold, #C9A84C);
 }
 
-/* Panel styles */
+/* Panel/card styles — square-ish corners (2px, not rounded-lg/xl), no
+   shadows or gradients. Hover/selected states are opt-in modifier classes
+   so non-interactive panels stay flat. */
 .panel {
-  @apply bg-terminal-panel border border-terminal-border;
+  @apply bg-terminal-surface border border-terminal-border rounded-[2px];
 }
 .panel-header {
   @apply text-2xs font-semibold uppercase tracking-widest text-terminal-gold px-2 py-1 border-b border-terminal-border bg-terminal-header;
+}
+.card-hover {
+  @apply transition-all duration-150 cursor-pointer;
+}
+.card-hover:hover {
+  @apply border-terminal-border-gold bg-terminal-surface2;
+}
+.card-selected {
+  @apply border-terminal-gold border-l-2 bg-terminal-surface2;
 }
 
 /* Positive/negative color utilities — use CSS vars for muted premium palette */
 .pos  { color: var(--color-gain); }
 .neg  { color: var(--color-loss); }
-.flat { @apply text-terminal-text-dim; }
+.flat { @apply text-terminal-muted; }
 
 /* Ticker animation — stable CSS-only scroll, never resets on data refresh */
 @keyframes ticker-flow {

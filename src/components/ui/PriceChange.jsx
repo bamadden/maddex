@@ -8,7 +8,7 @@ export default function PriceChange({ pct, value, showArrow = true, className = 
   const n = pct ?? value ?? null
   const isUp = n != null && n > 0
   const isDown = n != null && n < 0
-  const color = isUp ? 'text-terminal-green' : isDown ? 'text-terminal-red' : 'text-terminal-text-dim'
+  const color = isUp ? 'text-terminal-green' : isDown ? 'text-terminal-red' : 'text-terminal-muted'
   const arrow = isUp ? '▲' : isDown ? '▼' : '▶'
 
   const parts = []

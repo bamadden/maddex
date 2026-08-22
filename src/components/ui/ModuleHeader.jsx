@@ -1,46 +1,63 @@
-function timeAgoShort(ts) {
+import { useState, useRef } from 'react'
+import { RefreshCw } from 'lucide-react'
+
+function timeShort(ts) {
   if (!ts) return null
-  const s = Math.floor((Date.now() - ts) / 1000)
-  if (s < 5) return 'just now'
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  return `${h}h ago`
+  return new Date(ts).toLocaleTimeString('en-AU', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 // Page-level header for each top-level module (Markets, Crypto, Rates, ...).
 // Distinct from the smaller `.panel-header` class used on sub-panels within
 // a module — this is the one identity banner per module, always in the same
 // place with the same shape, so switching modules feels consistent.
-export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, right = null }) {
+//
+// `live` is optional and opt-in: pass true for "● LIVE", false for "● DEMO"
+// (both pulsing), or omit it entirely — existing callers that build their
+// own live/demo indicator via `right` keep working unchanged.
+export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null }) {
+  const [spinning, setSpinning] = useState(false)
+  const spinTimer = useRef(null)
+
+  const handleRefresh = () => {
+    setSpinning(true)
+    clearTimeout(spinTimer.current)
+    spinTimer.current = setTimeout(() => setSpinning(false), 600)
+    onRefresh?.()
+  }
+
   return (
-    <div className="flex-shrink-0 border-b border-terminal-border relative">
-      <div className="flex items-center gap-3 px-3 py-2">
+    <div className="flex-shrink-0 bg-terminal-surface border-b border-terminal-border relative">
+      <div className="flex items-center gap-3 px-3 py-2.5">
         <div className="min-w-0">
-          <div className="text-terminal-gold font-mono font-bold text-sm tracking-wider uppercase truncate">
+          <div className="font-sans font-bold text-[18px] text-white truncate leading-tight">
             {title}
           </div>
           {subtitle && (
-            <div className="text-terminal-text-dim text-2xs truncate">{subtitle}</div>
+            <div className="font-mono text-[9px] text-terminal-muted tracking-wider truncate mt-0.5">{subtitle}</div>
           )}
         </div>
         <div className="flex-1" />
+        {live != null && (
+          <span className={`flex items-center gap-1.5 text-[8px] font-mono tracking-wider flex-shrink-0 ${live ? 'text-terminal-green' : 'text-terminal-gold'}`}>
+            <span className={`inline-block w-1.5 h-1.5 rounded-full pulse-gold ${live ? 'bg-terminal-green' : 'bg-terminal-gold'}`} />
+            {live ? 'LIVE' : 'DEMO'}
+          </span>
+        )}
         {right}
         {(lastUpdated || onRefresh) && (
           <div className="flex items-center gap-2 flex-shrink-0">
             {isFetching ? (
-              <span className="text-terminal-text-dim text-2xs animate-pulse">REFRESHING...</span>
+              <span className="text-terminal-muted text-2xs font-mono animate-pulse">REFRESHING...</span>
             ) : lastUpdated ? (
-              <span className="text-terminal-text-dim text-2xs">Updated {timeAgoShort(lastUpdated)}</span>
+              <span className="text-terminal-muted text-2xs font-mono">{timeShort(lastUpdated)}</span>
             ) : null}
             {onRefresh && (
               <button
-                onClick={onRefresh}
+                onClick={handleRefresh}
                 title="Refresh"
-                className="text-terminal-text-dim hover:text-terminal-gold transition-colors text-2xs px-1.5 py-0.5 border border-terminal-border hover:border-terminal-gold/50"
+                className="flex items-center justify-center text-terminal-muted hover:text-terminal-gold transition-colors p-1 border border-terminal-border hover:border-terminal-border-gold"
               >
-                ⟳
+                <RefreshCw size={12} strokeWidth={2} className={spinning ? 'animate-spin' : ''} />
               </button>
             )}
           </div>
