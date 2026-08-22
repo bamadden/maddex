@@ -197,6 +197,12 @@ export default function AuthModal({ deletedMessage }) {
           <div className="text-terminal-text-dim text-2xs tracking-[0.4em] mt-1">FINANCIAL INTELLIGENCE</div>
         </div>
 
+        {/* Trial messaging */}
+        <div className="px-6 py-2 bg-terminal-gold/10 border-b border-terminal-gold/30 text-center">
+          <span className="text-2xs text-terminal-gold font-bold tracking-widest">7-DAY FREE TRIAL</span>
+          <span className="text-2xs text-terminal-text-dim"> · Full Apex access</span>
+        </div>
+
         {/* Tab switcher */}
         <div className="flex border-b border-terminal-border">
           {['signin', 'signup'].map((t) => (
@@ -254,7 +260,7 @@ export default function AuthModal({ deletedMessage }) {
                   disabled={loading}
                   className="w-full py-2.5 text-xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors disabled:opacity-50"
                 >
-                  {loading ? '...' : 'SIGN IN'}
+                  {loading ? 'AUTHENTICATING...' : 'SIGN IN'}
                 </button>
                 <div className="flex items-center gap-3 text-terminal-text-dim text-2xs">
                   <div className="flex-1 h-px bg-terminal-border" />
@@ -350,7 +356,7 @@ export default function AuthModal({ deletedMessage }) {
                 disabled={loading}
                 className="w-full py-2.5 text-xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors disabled:opacity-50"
               >
-                {loading ? '...' : 'CREATE ACCOUNT'}
+                {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
               </button>
               <div className="text-2xs text-terminal-text-dim text-center">
                 By creating an account you agree to our Terms of Service

@@ -33,11 +33,9 @@ function cleanSymbol(sym, type) {
   return s
 }
 
-const ASSET_COLORS = {
-  'AU Equities': '#c8a84b',
-  'US Equities': '#1e5fa8',
-  'Crypto':      '#9b59b6',
-}
+// Rotating palette for the per-stock donut — cycles once holdings outnumber
+// the palette, which is fine since colors only need to be locally distinct.
+const STOCK_PALETTE = ['#c8a84b', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 const PieTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
@@ -261,13 +259,19 @@ export default function PortfolioModule() {
     })
     setShowAddForm(false)
     if (user) {
-      await supabase.from('portfolio_holdings').insert({
+      const { data, error } = await supabase.from('portfolio_holdings').insert({
         symbol: h.symbol,
         name: h.name,
         shares: h.shares,
         avg_buy_price: h.avgCost,
         currency: h.costCurrency,
-      })
+      }).select().single()
+      // Swap the client-generated id for Supabase's real row id — without
+      // this, deleting a holding added this session targets an id that
+      // doesn't exist in the DB and silently does nothing.
+      if (!error && data?.id) {
+        setHoldings((prev) => prev.map((p) => (p.id === h.id ? { ...p, id: data.id } : p)))
+      }
     }
   }
 
@@ -316,10 +320,8 @@ export default function PortfolioModule() {
     const totalCost  = avgCostAud * h.shares
     const pnl        = mktVal != null ? mktVal - totalCost : null
     const pnlPct     = pnl != null && totalCost > 0 ? (pnl / totalCost) * 100 : null
-    const assetClass = isAsx ? 'AU Equities' : isCrypto ? 'Crypto' : 'US Equities'
-
     const marketCap = q?.marketCap != null ? (isAsx ? q.marketCap : usdToAud(q.marketCap)) : null
-    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, assetClass, loadState, isOpen: q?.isOpen, nativePrice, currency, marketCap }
+    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, loadState, isOpen: q?.isOpen, nativePrice, currency, marketCap }
   })
 
   const live      = computed.filter((h) => h.mktVal != null)
@@ -330,11 +332,14 @@ export default function PortfolioModule() {
   const pnlPct    = liveCost > 0 ? (totalPnl / liveCost) * 100 : 0
   const dayPnl    = live.reduce((s, h) => s + h.mktVal * (h.dayPct / 100), 0)
 
-  const allocMap = {}
-  for (const h of live) allocMap[h.assetClass] = (allocMap[h.assetClass] ?? 0) + h.mktVal
-  const allocData = Object.entries(allocMap).map(([name, value]) => ({
-    name, value, pct: mktTotal ? ((value / mktTotal) * 100).toFixed(1) : '0.0',
-  }))
+  // Allocation by individual stock (not asset class) — largest position first.
+  const allocData = live
+    .map((h) => ({
+      name:  h.type === 'asx' ? h.symbol + '.AX' : h.symbol,
+      value: h.mktVal,
+      pct:   mktTotal ? ((h.mktVal / mktTotal) * 100).toFixed(1) : '0.0',
+    }))
+    .sort((a, b) => b.value - a.value)
 
   const pnlData  = live.filter((h) => h.pnl != null).map((h) => ({
     symbol: h.symbol, pnl: parseFloat((h.pnl * displayMul).toFixed(0)),
@@ -543,8 +548,8 @@ export default function PortfolioModule() {
                   <PieChart>
                     <Pie data={allocData} cx="50%" cy="50%" innerRadius={30} outerRadius={58}
                       dataKey="value" isAnimationActive={false}>
-                      {allocData.map((d) => (
-                        <Cell key={d.name} fill={ASSET_COLORS[d.name] ?? '#4a90d9'} stroke="#040d1a" strokeWidth={1} />
+                      {allocData.map((d, i) => (
+                        <Cell key={d.name} fill={STOCK_PALETTE[i % STOCK_PALETTE.length]} stroke="#040d1a" strokeWidth={1} />
                       ))}
                     </Pie>
                     <Tooltip content={<PieTooltip />} />
@@ -552,10 +557,10 @@ export default function PortfolioModule() {
                 </ResponsiveContainer>
               </div>
               <div className="overflow-auto px-2 pb-1">
-                {allocData.map((d) => (
+                {allocData.map((d, i) => (
                   <div key={d.name} className="flex items-center justify-between py-0.5">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: ASSET_COLORS[d.name] ?? '#4a90d9' }} />
+                      <div className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: STOCK_PALETTE[i % STOCK_PALETTE.length] }} />
                       <span className="text-2xs">{d.name}</span>
                     </div>
                     <span className="text-2xs text-terminal-text-dim">{d.pct}%</span>

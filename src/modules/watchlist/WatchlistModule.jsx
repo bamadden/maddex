@@ -16,6 +16,49 @@ function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
 }
 
+// Compact 52-week range bar — shows low/high plus a dot marking where the
+// current price sits between them, instead of two bare numeric columns.
+function Week52Bar({ price, low, high }) {
+  if (price == null || low == null || high == null || high <= low) {
+    return <span className="text-terminal-text-dim">—</span>
+  }
+  const pct = Math.min(100, Math.max(0, ((price - low) / (high - low)) * 100))
+  return (
+    <div className="flex items-center gap-1.5 min-w-[120px]">
+      <span className="text-2xs text-terminal-red flex-shrink-0">{fmt.aud(low)}</span>
+      <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[40px]">
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
+          style={{ left: `calc(${pct}% - 3px)` }}
+          title={`${pct.toFixed(0)}% of 52W range`}
+        />
+      </div>
+      <span className="text-2xs text-terminal-green flex-shrink-0">{fmt.aud(high)}</span>
+    </div>
+  )
+}
+
+const SORT_VALUE = {
+  name:      (r) => r.name ?? r.displaySymbol,
+  price:     (r) => r.price,
+  pct:       (r) => r.pct,
+  marketCap: (r) => r.marketCap,
+}
+const SORT_LABEL = { name: 'NAME', price: 'PRICE (A$)', pct: 'CHG%', marketCap: 'MKT CAP' }
+
+function sortRows(rows, sortKey, sortDir) {
+  if (!sortKey) return rows
+  const getVal = SORT_VALUE[sortKey]
+  return [...rows].sort((a, b) => {
+    const av = getVal(a), bv = getVal(b)
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv
+    return sortDir === 'asc' ? cmp : -cmp
+  })
+}
+
 function toYahoo(raw) {
   const type = detectAssetType(raw)
   return { type, yfSym: toYahooSymbol(raw, type) }
@@ -52,8 +95,19 @@ export default function WatchlistModule() {
   const [validating, setValidating]   = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [synced, setSynced]           = useState(false)
+  const [sortKey, setSortKey]         = useState(null)
+  const [sortDir, setSortDir]         = useState('asc')
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
+
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   // Load watchlist from Supabase on mount when logged in
   useEffect(() => {
@@ -103,6 +157,8 @@ export default function WatchlistModule() {
       currency:    q.currency,
     }
   })
+
+  const sortedRows = sortRows(rows, sortKey, sortDir)
 
   const handleAdd = async (e) => {
     e.preventDefault()
@@ -177,7 +233,7 @@ export default function WatchlistModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="WATCHLIST"
-        subtitle={`${watchlist.length} tickers · drag ⠿ to reorder`}
+        subtitle={sortKey ? `${watchlist.length} tickers · sorted by ${SORT_LABEL[sortKey]}` : `${watchlist.length} tickers · drag ⠿ to reorder`}
         isFetching={isFetching}
         lastUpdated={dataUpdatedAt}
         onRefresh={refetch}
@@ -209,7 +265,7 @@ export default function WatchlistModule() {
           </button>
         </form>
         <button
-          onClick={() => exportCSV(rows)}
+          onClick={() => exportCSV(sortedRows)}
           className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0"
         >
           EXPORT CSV
@@ -250,29 +306,51 @@ export default function WatchlistModule() {
               <tr>
                 <th className="px-2 w-6"></th>
                 <th className="px-2 text-left">TICKER</th>
-                <th className="px-2 text-left">NAME</th>
-                <th className="px-2 text-right">PRICE (A$)</th>
+                <th
+                  onClick={() => toggleSort('name')}
+                  className="px-2 text-left cursor-pointer hover:text-terminal-gold transition-colors select-none"
+                >
+                  NAME{sortKey === 'name' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                </th>
+                <th
+                  onClick={() => toggleSort('price')}
+                  className="px-2 text-right cursor-pointer hover:text-terminal-gold transition-colors select-none"
+                >
+                  PRICE (A$){sortKey === 'price' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                </th>
                 <th className="px-2 text-right">CHG</th>
-                <th className="px-2 text-right">CHG%</th>
-                <th className="px-2 text-right">52W HIGH</th>
-                <th className="px-2 text-right">52W LOW</th>
+                <th
+                  onClick={() => toggleSort('pct')}
+                  className="px-2 text-right cursor-pointer hover:text-terminal-gold transition-colors select-none"
+                >
+                  CHG%{sortKey === 'pct' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                </th>
+                <th className="px-2 text-right">52W RANGE</th>
                 <th className="px-2 text-right">VOLUME</th>
-                <th className="px-2 text-right">MKT CAP</th>
+                <th
+                  onClick={() => toggleSort('marketCap')}
+                  className="px-2 text-right cursor-pointer hover:text-terminal-gold transition-colors select-none"
+                >
+                  MKT CAP{sortKey === 'marketCap' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                </th>
                 <th className="px-2 w-6"></th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
+              {sortedRows.map((row, i) => (
                 <tr
                   key={row.symbol}
-                  draggable
+                  draggable={!sortKey}
                   onDragStart={() => onDragStart(i)}
                   onDragOver={onDragOver}
                   onDrop={() => onDrop(i)}
                   className="cursor-pointer hover:bg-terminal-accent/20 transition-colors border-b border-terminal-border/40"
                   onClick={() => handleRowClick(row)}
                 >
-                  <td className="px-2 py-1.5 text-terminal-text-dim/40 cursor-grab select-none" title="Drag to reorder">⠿</td>
+                  <td
+                    className={`px-2 py-1.5 select-none ${sortKey ? 'text-terminal-text-dim/15' : 'text-terminal-text-dim/40 cursor-grab'}`}
+                    title={sortKey ? 'Clear sort to reorder' : 'Drag to reorder'}
+                  >⠿</td>
                   <td className="px-2 py-1.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
                     {row.displaySymbol}
                     {row.isLive
@@ -291,11 +369,8 @@ export default function WatchlistModule() {
                   <td className="px-2 py-1.5 text-right">
                     <PriceChange pct={row.pct} className="justify-end" />
                   </td>
-                  <td className="px-2 py-1.5 text-2xs text-right text-terminal-green">
-                    {row.week52High != null ? fmt.aud(row.week52High) : '—'}
-                  </td>
-                  <td className="px-2 py-1.5 text-2xs text-right text-terminal-red">
-                    {row.week52Low != null ? fmt.aud(row.week52Low) : '—'}
+                  <td className="px-2 py-1.5 text-right">
+                    <Week52Bar price={row.price} low={row.week52Low} high={row.week52High} />
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
                     {row.volume != null ? fmt.large(row.volume) : '—'}
