@@ -4,6 +4,8 @@ import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA } 
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -796,6 +798,7 @@ function MetricToggle({ metric, setMetric }) {
 function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal }) {
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
+  const { canAccess, tier } = useSubscription()
 
   // Listen for sector-select events from SectorStrengthRadar
   useEffect(() => {
@@ -1101,7 +1104,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
         {/* Detail panel */}
         {selected && sectorConfig[selected] && (
-          <div className="w-[45%] border-l border-terminal-border flex flex-col panel-fade">
+          <div className="w-[45%] border-l border-terminal-border flex flex-col panel-fade relative">
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
@@ -1114,6 +1117,10 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               </button>
             </div>
 
+            {!canAccess('prime') ? (
+              <UpgradePrompt feature="Sector Detail View" requiredTier="prime" currentTier={tier} />
+            ) : (
+            <>
             {/* Proxy summary */}
             {proxySym && proxyQuotes?.[proxySym] && (() => {
               const q = proxyQuotes[proxySym]
@@ -1278,6 +1285,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               <span>{constituentStocks.length > 0 ? `${constituentStocks.length} holdings` : 'Proxy view'}</span>
               <span>{composite != null ? `${secondaryMetric} sector composite` : `${secondaryMetric} ${proxySym?.replace(/\.(AX|L)$/i,'') ?? ''}`}{USING_MOCK_DATA ? ' · DEMO' : ''}</span>
             </div>
+            </>
+            )}
           </div>
         )}
       </div>

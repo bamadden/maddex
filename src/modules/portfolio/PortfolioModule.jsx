@@ -6,6 +6,7 @@ import { formatMarketCap } from '../../utils/format'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { fmt, colorClass } from '../../utils/format'
 import { StatBox } from '../../components/ui/Panel'
@@ -49,7 +50,7 @@ const PieTooltip = ({ active, payload }) => {
 
 // ─── Add Holding Form ─────────────────────────────────────────────────────────
 
-function AddHoldingForm({ onAdd, onCancel }) {
+function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
   const [sym,     setSym]     = useState('')
   const [shares,  setShares]  = useState('')
   const [avgCost, setAvgCost] = useState('')
@@ -95,6 +96,9 @@ function AddHoldingForm({ onAdd, onCancel }) {
 
   const handleAdd = () => {
     if (vstatus !== 'ready' || !vdata) return
+    if (atLimit) {
+      setVerr(`PORTFOLIO LIMIT REACHED (${limit}) — upgrade to Prime for unlimited`); setVstatus('error'); return
+    }
     const sharesN = parseFloat(shares)
     const costN   = parseFloat(avgCost)
     if (!sharesN || sharesN <= 0 || !costN || costN <= 0) {
@@ -203,9 +207,12 @@ function AddHoldingForm({ onAdd, onCancel }) {
 
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
+const PORTFOLIO_LIMIT = 10 // Core tier — Prime+ is unlimited
+
 export default function PortfolioModule() {
   const { openModal, currency } = useStore()
   const { user } = useAuthStore()
+  const { canAccess } = useSubscription()
   const { usdToAud, audUsd }   = useAudRates()
   const displayMul = currency === 'USD' ? audUsd : 1
   const prefix     = currency === 'USD' ? 'US$' : 'A$'
@@ -355,7 +362,7 @@ export default function PortfolioModule() {
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 bg-terminal-bg">
         {showAddForm
           ? <div className="w-full max-w-sm">
-              <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} />
+              <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
             </div>
           : <>
               <div className="text-terminal-gold text-base font-bold tracking-[0.2em]">▲ PORTFOLIO TRACKER</div>
@@ -423,7 +430,7 @@ export default function PortfolioModule() {
       {/* Add form inline */}
       {showAddForm && (
         <div className="border-b border-terminal-border px-3 py-2 bg-terminal-panel flex-shrink-0">
-          <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} />
+          <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
         </div>
       )}
 

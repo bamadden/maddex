@@ -103,6 +103,7 @@ function UserMenu() {
   const { setActiveModule } = useStore()
   const [open, setOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsSection, setSettingsSection] = useState(undefined)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -111,6 +112,17 @@ function UserMenu() {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [open])
+
+  // UpgradePrompt buttons and other "manage your plan" CTAs dispatch this
+  // instead of needing a prop-drilled way to open Settings from anywhere.
+  useEffect(() => {
+    const handler = (e) => {
+      setSettingsSection(e.detail?.section)
+      setShowSettings(true)
+    }
+    window.addEventListener('madden:open-settings', handler)
+    return () => window.removeEventListener('madden:open-settings', handler)
+  }, [])
 
   const initials = getInitials(profile, user)
   const displayName = profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : user?.email || ''
@@ -164,7 +176,7 @@ function UserMenu() {
           </div>
         )}
       </div>
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />}
     </>
   )
 }

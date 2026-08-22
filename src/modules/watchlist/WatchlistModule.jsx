@@ -7,6 +7,7 @@ import { fmt, formatMarketCap } from '../../utils/format'
 import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
@@ -88,6 +89,8 @@ function exportCSV(rows) {
 export default function WatchlistModule() {
   const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal } = useStore()
   const { user } = useAuthStore()
+  const { canAccess } = useSubscription()
+  const WATCHLIST_LIMIT = 20 // Core tier — Prime+ is unlimited
   const { usdToAud } = useAudRates()
 
   const [searchInput, setSearchInput] = useState('')
@@ -165,6 +168,10 @@ export default function WatchlistModule() {
     const raw = searchInput.trim().toUpperCase()
     if (!raw) return
     if (watchlist.includes(raw)) { setAddError('ALREADY IN WATCHLIST'); return }
+    if (!canAccess('prime') && watchlist.length >= WATCHLIST_LIMIT) {
+      setAddError(`WATCHLIST LIMIT REACHED (${WATCHLIST_LIMIT}) — upgrade to Prime for unlimited`)
+      return
+    }
     setAddError(null)
     setValidating(true)
     try {

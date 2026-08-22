@@ -4,6 +4,27 @@ import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { askClaude } from '../../services/api'
 import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradePrompt from '../../components/ui/UpgradePrompt'
+
+// ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
+// Tracked client-side in localStorage under a month-stamped key, so it
+// resets automatically on the 1st with no cron/server job needed.
+const AI_QUOTA_LIMIT = 50
+
+function aiQuotaKey() {
+  const d = new Date()
+  return `madden_ai_msgcount_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function getAiMessageCount() {
+  try { return parseInt(localStorage.getItem(aiQuotaKey()) || '0', 10) } catch { return 0 }
+}
+function incrementAiMessageCount() {
+  try {
+    const next = getAiMessageCount() + 1
+    localStorage.setItem(aiQuotaKey(), String(next))
+  } catch {}
+}
 
 // ─── Quick prompts (base templates — live data injected at call time) ─────────
 
@@ -244,6 +265,7 @@ export default function AIPanel() {
     chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
   } = useStore()
   const { profile } = useAuthStore()
+  const { canAccess, isApex, tier } = useSubscription()
 
   const queryClient = useQueryClient()
 
@@ -336,8 +358,22 @@ export default function AIPanel() {
     const { context, silent } = opts
     const text = (textOverride ?? input).trim()
     if (!text || loading) return
+
+    if (!canAccess('prime') && getAiMessageCount() >= AI_QUOTA_LIMIT) {
+      if (!silent) {
+        addChatMessage({ role: 'user', content: text })
+        addChatMessage({
+          role: 'assistant',
+          content: `[LIMIT REACHED] You've used all ${AI_QUOTA_LIMIT} MaddenAI messages included in Core this month.\n\nUpgrade to Prime for unlimited MaddenAI access.`,
+        })
+        setInput('')
+      }
+      return
+    }
+
     setInput('')
     setLoading(true)
+    incrementAiMessageCount()
 
     const userTurn = { role: 'user', content: text }
     if (!silent) addChatMessage(userTurn)
@@ -425,13 +461,19 @@ export default function AIPanel() {
         </div>
       </div>
 
-      {/* Notes panel */}
+      {/* Notes panel — Research Notes is an Apex feature */}
       {showNotes && (
-        <div className="border-b border-terminal-border flex-shrink-0">
+        <div className="border-b border-terminal-border flex-shrink-0 relative">
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
             SAVED NOTES
           </div>
-          <NotesPanel notes={notes} onDelete={deleteNote} />
+          {isApex ? (
+            <NotesPanel notes={notes} onDelete={deleteNote} />
+          ) : (
+            <div className="relative" style={{ height: 200 }}>
+              <UpgradePrompt feature="Research Notes" requiredTier="apex" currentTier={tier} />
+            </div>
+          )}
         </div>
       )}
 
@@ -492,10 +534,12 @@ export default function AIPanel() {
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => saveNote(msg.content)}
+                        onClick={() => isApex
+                          ? saveNote(msg.content)
+                          : window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'SUBSCRIPTION' } }))}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
-                        title="Save to notes"
-                      >SAVE</button>
+                        title={isApex ? 'Save to notes' : 'Research Notes requires Apex — upgrade to save'}
+                      >SAVE{!isApex ? ' 🔒' : ''}</button>
                       <button
                         onClick={() => copyMessage(msg.content)}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"

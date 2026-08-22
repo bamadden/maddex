@@ -20,6 +20,8 @@ import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
 import AuthModal from './components/auth/AuthModal'
 import OnboardingFlow from './components/auth/OnboardingFlow'
+import TrialExpiredModal from './components/auth/TrialExpiredModal'
+import { useSubscription } from './hooks/useSubscription'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -225,6 +227,7 @@ function Terminal() {
 function AuthGate() {
   const { user, profile, loading, initialize, settings } = useAuthStore()
   const { setCurrency, setActiveModule } = useStore()
+  const { isTrial, isTrialExpired } = useSubscription()
   const [appReady, setAppReady] = useState(false)
   const [onboardingDone, setOnboardingDone] = useState(false)
 
@@ -253,6 +256,7 @@ function AuthGate() {
   if (profile && !profile.onboarding_complete && !onboardingDone) {
     return <OnboardingFlow onComplete={() => setOnboardingDone(true)} />
   }
+  if (user && isTrial && isTrialExpired) return <TrialExpiredModal />
   return <Terminal />
 }
 

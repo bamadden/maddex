@@ -10,6 +10,8 @@ import {
 import { fetchFxHistory } from '../../services/api'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, LAST_DECISIONS, getNextMeeting,
@@ -1071,6 +1073,16 @@ function CurrencyHeatmap() {
 export default function MacroModule() {
   const [globalExpanded, setGlobalExpanded] = useState(false)
   const [expandedChart, setExpandedChart]   = useState(null)
+  const { canAccess, tier } = useSubscription()
+
+  if (!canAccess('prime')) {
+    return (
+      <div className="h-full overflow-hidden relative">
+        <ModuleHeader title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" />
+        <UpgradePrompt feature="Macro Module" requiredTier="prime" currentTier={tier} />
+      </div>
+    )
+  }
 
   const askAI = (fields) => dispatchAskAI(fields)
 

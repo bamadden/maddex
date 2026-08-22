@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZONES } from '../../lib/profileUtils'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION']
+const SECTIONS = ['PROFILE', 'PREFERENCES', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -618,48 +620,77 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes }) {
 
 // ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
 
+const TIER_BADGE_LABEL = { trial: 'TRIAL', core: 'CORE', prime: 'PRIME', apex: 'APEX' }
+const PLANS = [
+  { tier: 'core',  label: 'CORE',  price: 'A$29/mo',  features: ['Markets, Crypto, News, Global modules', 'Watchlist — up to 20 items', 'Portfolio — up to 10 holdings', 'MaddenAI — 50 messages/month'] },
+  { tier: 'prime', label: 'PRIME', price: 'A$79/mo',  features: ['Everything in Core', 'Rates/FX + Macro modules', 'Unlimited MaddenAI messages', 'Unlimited watchlist & portfolio', 'Sector heatmap detail view'] },
+  { tier: 'apex',  label: 'APEX',  price: 'A$149/mo', features: ['Everything in Prime', 'Research Notes', 'API access'] },
+]
+
 function SubscriptionSection() {
-  const { user } = useAuthStore()
+  const { tier, isTrial, isTrialExpired, canAccess } = useSubscription()
   return (
     <div className="space-y-5">
       <SectionLabel>Subscription</SectionLabel>
 
       <div className="flex items-center gap-3">
         <div className="text-xs text-terminal-text-bright font-bold">Current Plan:</div>
-        <span className="px-2 py-0.5 text-2xs font-bold bg-terminal-gold text-terminal-bg">FREE</span>
+        <span className="px-2 py-0.5 text-2xs font-bold bg-terminal-gold text-terminal-bg">{TIER_BADGE_LABEL[tier] ?? tier.toUpperCase()}</span>
+        {isTrial && (
+          <span className={`text-2xs ${isTrialExpired ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
+            {isTrialExpired ? 'Trial expired' : 'Trial active — full Apex access'}
+          </span>
+        )}
       </div>
 
-      <div className="border border-terminal-border p-4 space-y-3">
-        <div className="text-xs font-bold text-terminal-text-bright">MADDEX PRO</div>
-        <div className="text-2xs text-terminal-text-dim">Coming Soon</div>
-        {[
-          'Real-time market data',
-          'Unlimited price alerts',
-          'Advanced AI analysis',
-          'Priority data refresh',
-          'Multi-portfolio tracking',
-        ].map(f => (
-          <div key={f} className="flex items-center gap-2 text-2xs text-terminal-text-dim/60">
-            <span className="text-terminal-text-dim/40">○</span>
-            {f}
-            <span className="ml-auto text-2xs bg-terminal-border px-1.5 py-0.5">COMING SOON</span>
+      <div className="grid grid-cols-3 gap-2">
+        {PLANS.map((p) => (
+          <div key={p.tier} className={`border p-3 space-y-2 ${tier === p.tier ? 'border-terminal-gold' : 'border-terminal-border'}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-terminal-text-bright">{p.label}</span>
+              {tier === p.tier && !isTrial && <span className="text-2xs text-terminal-gold">CURRENT</span>}
+            </div>
+            <div className="text-sm font-bold text-terminal-gold">{p.price}</div>
+            <ul className="space-y-1">
+              {p.features.map((f) => (
+                <li key={f} className="text-2xs text-terminal-text-dim leading-tight">· {f}</li>
+              ))}
+            </ul>
+            {!canAccess(p.tier) && (
+              <button
+                // TODO: wire up Stripe checkout session for this plan once
+                // payments are live — for now this is a visual placeholder.
+                onClick={() => alert('Payments are launching soon — contact support to upgrade early.')}
+                className="w-full py-1.5 text-2xs font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+              >
+                UPGRADE
+              </button>
+            )}
           </div>
         ))}
       </div>
+    </div>
+  )
+}
 
-      <div className="border border-terminal-border p-4 space-y-2">
-        <div className="text-2xs text-terminal-text-dim">Get notified when Pro launches:</div>
-        <div className="flex gap-2">
-          <input
-            defaultValue={user?.email || ''}
-            placeholder="your@email.com"
-            className="flex-1 bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs outline-none focus:border-terminal-gold font-mono text-terminal-text-bright"
-          />
-          <button className="px-3 py-1.5 text-xs font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors whitespace-nowrap">
-            NOTIFY ME
-          </button>
+// ─── API Access (Apex only) ────────────────────────────────────────────────────
+
+function ApiAccessSection() {
+  const { isApex, tier } = useSubscription()
+  return (
+    <div className="space-y-5 relative" style={{ minHeight: 220 }}>
+      <SectionLabel>API Access</SectionLabel>
+      {isApex ? (
+        <div className="border border-terminal-border p-4 space-y-2">
+          <div className="text-xs font-bold text-terminal-text-bright">API keys</div>
+          <div className="text-2xs text-terminal-text-dim leading-relaxed">
+            Programmatic access to Maddex market data is coming soon for Apex subscribers.
+            Check back here once it launches.
+          </div>
         </div>
-      </div>
+      ) : (
+        <UpgradePrompt feature="API Access" requiredTier="apex" currentTier={tier} />
+      )}
     </div>
   )
 }
@@ -720,8 +751,8 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requ
 
 // ─── Main Settings Panel ──────────────────────────────────────────────────────
 
-export default function SettingsPanel({ onClose }) {
-  const [active, setActive] = useState('PROFILE')
+export default function SettingsPanel({ onClose, initialSection }) {
+  const [active, setActive] = useState(initialSection && SECTIONS.includes(initialSection) ? initialSection : 'PROFILE')
   const { deleteAccount } = useAuthStore()
   const { clearWatchlist } = useStore()
   const [confirm, setConfirm] = useState(null)
@@ -799,6 +830,7 @@ export default function SettingsPanel({ onClose }) {
             />
           )}
           {active === 'SUBSCRIPTION'  && <SubscriptionSection />}
+          {active === 'API ACCESS'    && <ApiAccessSection />}
         </div>
       </div>
 

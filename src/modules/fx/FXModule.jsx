@@ -10,6 +10,8 @@ import {
   getNextMeeting, getDaysUntil,
 } from '../../services/centralBankSchedule'
 import { useStore } from '../../store/useStore'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { fmt, colorClass } from '../../utils/format'
 import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -333,6 +335,7 @@ function YieldTooltip({ active, payload, label, compareKey }) {
 
 export default function FXModule() {
   const { openModal } = useStore()
+  const { canAccess, tier } = useSubscription()
   const [historyPair, setHistoryPair] = useState(null)
   const [selectedCurve, setSelectedCurve] = useState('AU')
   const [compareMode, setCompareMode]     = useState(false)
@@ -350,6 +353,7 @@ export default function FXModule() {
     queryFn:  () => fetchFxRatesUnified('AUD'),
     staleTime: 5 * 60_000,
     retry: false,
+    enabled: canAccess('prime'),
   })
   const rawRates  = fxResult?.data
   const fxDelayed = fxResult?.stale === true
@@ -362,6 +366,7 @@ export default function FXModule() {
     queryFn:  fetchMetalsRates,
     staleTime: 10 * 60_000,
     retry: 1,
+    enabled: canAccess('prime'),
   })
 
   const pairs      = rawRates ? transformFxRates(rawRates) : []
@@ -405,6 +410,15 @@ export default function FXModule() {
 
   const activeCurve1Stats = getCurveStats(selectedCurve)
   const activeCurve2Stats = compareMode ? getCurveStats(compareCurve2) : null
+
+  if (!canAccess('prime')) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden relative">
+        <ModuleHeader title="RATES" subtitle="FX Pairs · Yield Curves · Metals" />
+        <UpgradePrompt feature="Rates & FX Module" requiredTier="prime" currentTier={tier} />
+      </div>
+    )
+  }
 
   return (
     <>
