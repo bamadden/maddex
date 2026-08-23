@@ -284,7 +284,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
 
   return (
     <div className="bg-terminal-panel border-b border-terminal-border font-mono relative">
-      <div className="absolute top-1 right-2 z-10 flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2 px-2 pt-1 pb-0.5">
         {USING_MOCK_DATA ? <DemoBadge /> : isDelayed && <StaleBadge cachedAt={quotesResult?.cachedAt} />}
         <button
           onClick={() => setCompareOpen(true)}
