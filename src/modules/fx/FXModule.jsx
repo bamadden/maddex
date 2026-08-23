@@ -12,10 +12,10 @@ import {
   getNextMeeting, getDaysUntil,
 } from '../../services/centralBankSchedule'
 import { useStore } from '../../store/useStore'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
-import { fmt, colorClass } from '../../utils/format'
-import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
+import { ModuleLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
@@ -69,7 +69,6 @@ const YIELD_CURVES = {
   },
 }
 
-const CURVE_KEYS = Object.keys(YIELD_CURVES)
 
 function getCurveStats(key) {
   const curve = YIELD_CURVES[key]
@@ -122,9 +121,9 @@ const BANK_SCHEDULE = {
   'Riksbank':                  RIKSBANK_MEETINGS_2026,
 }
 
-const COUNTRY_NAME_BY_CCY = {
-  AUD: 'Australia', USD: 'United States', EUR: 'Eurozone', GBP: 'United Kingdom',
-  JPY: 'Japan', CNY: 'China', NZD: 'New Zealand', CAD: 'Canada', CHF: 'Switzerland', SEK: 'Sweden',
+const FLAG_BY_CCY = {
+  AUD: '🇦🇺', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵',
+  CNY: '🇨🇳', NZD: '🇳🇿', CAD: '🇨🇦', CHF: '🇨🇭', SEK: '🇸🇪', SGD: '🇸🇬',
 }
 
 function RateBadge({ dir }) {
@@ -320,7 +319,7 @@ function FxHistoryModal({ pair, onClose }) {
 
 // ─── Yield Curve Tooltip ──────────────────────────────────────────────────────
 
-function YieldTooltip({ active, payload, label, compareKey }) {
+function YieldTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-terminal-panel border border-terminal-border px-2 py-1.5 text-2xs space-y-0.5">
@@ -347,44 +346,53 @@ function YieldTooltip({ active, payload, label, compareKey }) {
   )
 }
 
-// ─── Global central bank rates comparison table ────────────────────────────
+// ─── Global central bank rates — compact card grid, 2 rows of 5 ────────────
+// No charts here by design — this section is a fast data scan, the RBA
+// step-chart below carries the visual weight.
 
-function GlobalRatesTable() {
+function shortMonth(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso + 'T00:00:00')
+  return isNaN(d) ? '—' : d.toLocaleDateString('en-AU', { month: 'short' })
+}
+
+function GlobalRatesCardGrid() {
   return (
     <div className="border-b border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
-        GLOBAL CENTRAL BANK RATES
+        <span className="text-terminal-gold">GLOBAL POLICY RATES</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">10 banks · official + typical-cadence next meetings</span>
       </div>
-      <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 240 }}>
-        <table className="terminal-table w-full">
-          <thead>
-            <tr>
-              <th className="px-2 text-left">COUNTRY</th>
-              <th className="px-2 text-left">BANK</th>
-              <th className="px-1 text-right">RATE</th>
-              <th className="px-1 text-left">LAST CHANGE</th>
-              <th className="px-1 text-left">NEXT MEETING</th>
-              <th className="px-1 text-center">EXPECTATION</th>
-              <th className="px-1 text-center">TREND</th>
-            </tr>
-          </thead>
-          <tbody>
-            {CENTRAL_BANK_RATES.map((cb) => (
-              <tr key={cb.bank} className={cb.country === 'AUD' ? 'border-l-2 border-l-terminal-gold' : ''}>
-                <td className={`px-2 py-1 text-xs font-bold ${cb.country === 'AUD' ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
-                  {COUNTRY_NAME_BY_CCY[cb.country] ?? cb.country}
-                </td>
-                <td className="px-2 py-1 text-2xs text-terminal-text-dim">{cb.bank}{cb.note ? ` (${cb.note})` : ''}</td>
-                <td className="px-1 py-1 text-2xs text-right font-bold text-terminal-text-bright">{cb.rate.toFixed(2)}%</td>
-                <td className="px-1 py-1 text-2xs text-terminal-text-dim">{cb.lastChange}</td>
-                <td className="px-1 py-1 text-2xs text-terminal-gold/80">{nextMeetingLabel(cb.bank) ?? '—'}</td>
-                <td className="px-1 py-1 text-center"><RateBadge dir={cb.expectation} /></td>
-                <td className="px-1 py-1 text-center"><RateBadge dir={cb.direction} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        {CENTRAL_BANK_RATES.map((cb) => (
+          <div
+            key={cb.bank}
+            className={`border-r border-b border-terminal-border p-2 ${cb.country === 'AUD' ? 'bg-terminal-gold/5' : ''}`}
+            style={{ minWidth: 180 }}
+          >
+            <div className="flex items-center gap-1 text-[8px] font-mono text-terminal-text-dim uppercase tracking-wide truncate">
+              <span>{FLAG_BY_CCY[cb.country] ?? '🏳'}</span>
+              <span className="truncate">{cb.bank}</span>
+            </div>
+            <div className="text-[20px] font-mono font-bold text-terminal-text-bright leading-tight mt-0.5">
+              {cb.rate.toFixed(2)}%
+            </div>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <span className="text-2xs px-1 border text-2xs font-bold uppercase"
+                style={{
+                  borderColor: cb.direction === 'hike' ? 'rgba(168,50,50,0.4)' : cb.direction === 'cut' ? 'rgba(45,138,80,0.4)' : 'rgba(201,168,76,0.4)',
+                  color: cb.direction === 'hike' ? '#a83232' : cb.direction === 'cut' ? '#2d8a50' : '#c8a84b',
+                }}
+              >{cb.direction ?? 'hold'} · {shortMonth(cb.lastChange)}</span>
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <RateBadge dir={cb.expectation} />
+            </div>
+            <div className="text-[8px] text-terminal-text-dim/60 mt-1 truncate">
+              {nextMeetingLabel(cb.bank) ?? '—'}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -458,6 +466,256 @@ function RbaDecisionHistory() {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// ─── Compact RBA dashboard — 2-line header + step chart + period pills,
+// left column of the SECTION 2 comparison. ─────────────────────────────────
+
+const RBA_PERIODS = [['2Y', 2], ['5Y', 5], ['10Y', 10], ['ALL', Infinity]]
+
+function RbaStepTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const prevRate = payload[0]?.payload?.__prev
+  const rate = payload[0].value
+  const decision = prevRate == null ? null : rate > prevRate ? 'HIKE' : rate < prevRate ? 'CUT' : 'HOLD'
+  return (
+    <div className="bg-terminal-panel border border-terminal-border px-2 py-1.5 text-2xs">
+      <div className="text-terminal-text-dim">{new Date(label + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+      <div className="text-terminal-gold font-semibold">{rate.toFixed(2)}%{decision ? ` · ${decision}` : ''}</div>
+    </div>
+  )
+}
+
+function CompactRbaDashboard({ askAI }) {
+  const [period, setPeriod] = useState('5Y')
+  const nextRbaDate = useMemo(() => getNextMeeting(RBA_MEETINGS_2026), [])
+  const nextRbaDays = nextRbaDate ? getDaysUntil(nextRbaDate) : null
+  const nextRbaLabel = nextRbaDate ? nextRbaDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'
+
+  const chartData = useMemo(() => {
+    const years = RBA_PERIODS.find(([k]) => k === period)?.[1] ?? Infinity
+    // Cutoff is relative to the data's own latest point, not the wall clock —
+    // this is a fixed historical series, so "5Y" means 5 years of history,
+    // not 5 years before whenever the page happens to render.
+    const latest = new Date(RBA_RATE_HISTORY[RBA_RATE_HISTORY.length - 1].date + 'T00:00:00')
+    const cutoff = years === Infinity ? null : new Date(latest.getTime() - years * 365 * 86400000)
+    const rows = cutoff ? RBA_RATE_HISTORY.filter(r => new Date(r.date + 'T00:00:00') >= cutoff) : RBA_RATE_HISTORY
+    return rows.map((r, i) => ({ ...r, __prev: i > 0 ? rows[i - 1].rate : null }))
+  }, [period])
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="panel-header flex items-center gap-2 flex-shrink-0 flex-wrap">
+        <span className="text-terminal-gold">RBA CASH RATE</span>
+        <span className="text-base font-mono font-bold text-terminal-text-bright">4.35%</span>
+        <span className="text-2xs px-1.5 py-0.5 border border-terminal-border text-terminal-text-bright font-bold">HOLD</span>
+        <span className="text-2xs text-terminal-text-dim">Next: {nextRbaLabel} · {nextRbaDays}d</span>
+        <button
+          onClick={() => askAI({
+            name: 'RBA Cash Rate', price: '4.35% p.a.', sector: 'Interest Rates', date: todayAEST(),
+            instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate 4.35%.`,
+          })}
+          className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
+        >AI ▶</button>
+      </div>
+
+      <div className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border flex-shrink-0">
+        {RBA_PERIODS.map(([k]) => (
+          <button
+            key={k}
+            onClick={() => setPeriod(k)}
+            className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${
+              period === k ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+            }`}
+          >{k}</button>
+        ))}
+      </div>
+
+      <div className="flex-shrink-0 px-2 py-2" style={{ height: 220 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+            <defs>
+              <linearGradient id="rbaCompactGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#c8a84b" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd"
+              tickFormatter={d => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
+            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={30} />
+            <Tooltip content={<RbaStepTooltip />} />
+            <Area type="stepAfter" dataKey="rate" stroke="#c8a84b" strokeWidth={1.5} fill="url(#rbaCompactGrad)" dot={false} isAnimationActive={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <RbaRateComparisonBar />
+        <RbaDecisionHistory />
+      </div>
+    </div>
+  )
+}
+
+// ─── Market pricing panel — RBA/FOMC probability gauges + Big 4 forecasts ──
+
+function ProbabilityGauge({ label, hold, cut }) {
+  return (
+    <div className="mb-2">
+      <div className="text-2xs text-terminal-text-dim mb-1">{label}</div>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <div className="flex-1 h-2 bg-terminal-surface2 rounded-full overflow-hidden">
+          <div className="h-full bg-terminal-gold/70 rounded-full" style={{ width: `${hold}%` }} />
+        </div>
+        <span className="text-2xs font-bold text-terminal-gold w-20 text-right">{hold}% HOLD</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="flex-1 h-2 bg-terminal-surface2 rounded-full overflow-hidden">
+          <div className="h-full bg-terminal-red/70 rounded-full" style={{ width: `${cut}%` }} />
+        </div>
+        <span className="text-2xs font-bold text-terminal-red w-20 text-right">{cut}% CUT</span>
+      </div>
+    </div>
+  )
+}
+
+const BIG4_FORECASTS = [
+  { bank: 'CBA', call: 'HOLD' }, { bank: 'NAB', call: 'HOLD' },
+  { bank: 'WBC', call: 'HOLD' }, { bank: 'ANZ', call: 'HOLD' },
+]
+
+function MarketPricingPanel() {
+  return (
+    <div className="p-2 border-t border-terminal-border flex-shrink-0">
+      <div className="text-2xs text-terminal-gold font-bold mb-2 tracking-widest">MARKET IMPLIES</div>
+      <ProbabilityGauge label="RBA — next meeting" hold={82} cut={18} />
+      <ProbabilityGauge label="FOMC — next meeting" hold={65} cut={35} />
+      <div className="mt-2 pt-2 border-t border-terminal-border/50">
+        <div className="text-2xs text-terminal-text-dim mb-1">BIG 4 BANK FORECASTS</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {BIG4_FORECASTS.map(b => (
+            <span key={b.bank} className="text-2xs">
+              <span className="text-terminal-text-bright font-bold">{b.bank}</span>
+              <span className="text-terminal-text-dim">: </span>
+              <span className="text-terminal-gold font-semibold">{b.call}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Yield curve — AU vs US shown together by default (dual-country panel
+// for SECTION 2's right column; the full 5-country selector interaction
+// stays available via the props passed in from the module). ────────────────
+
+function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
+  const { shape } = primaryStats
+  return (
+    <div className="flex flex-col flex-shrink-0 border-b border-terminal-border">
+      <div className="panel-header flex items-center gap-2 flex-shrink-0">
+        <span className="text-terminal-gold">YIELD CURVE</span>
+        <span className="font-bold" style={{ color: YIELD_CURVES.AU.color }}>AU</span>
+        <span className="text-terminal-text-dim">vs</span>
+        <span className="font-bold" style={{ color: YIELD_CURVES.US.color }}>US</span>
+        <span className={`ml-auto text-2xs px-1.5 py-0.5 border font-bold ${
+          shape === 'INVERTED' ? 'border-terminal-red/40 text-terminal-red' :
+          shape === 'FLAT'     ? 'border-terminal-gold/40 text-terminal-gold' :
+                                  'border-terminal-green/40 text-terminal-green'
+        }`}>{shape === '—' ? 'NORMAL CURVE' : `${shape} CURVE`}</span>
+      </div>
+      <div style={{ height: 160 }} className="px-2 py-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <XAxis dataKey="tenor" tick={{ fontSize: 8 }} />
+            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
+            <Tooltip content={<YieldTooltip />} />
+            <Line type="monotone" dataKey="AU" stroke={YIELD_CURVES.AU.color} strokeWidth={2} dot={{ fill: YIELD_CURVES.AU.color, r: 2.5 }} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="US" stroke={YIELD_CURVES.US.color} strokeWidth={2} strokeDasharray="5 3" dot={{ fill: YIELD_CURVES.US.color, r: 2.5 }} connectNulls isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <MarketPricingPanel />
+    </div>
+  )
+}
+
+// ─── Bond spreads — compact interpretation table ────────────────────────────
+
+function bp(v) { return `${v >= 0 ? '+' : ''}${Math.round(v * 100)}bp` }
+
+function BondSpreadsTable() {
+  const au10 = YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y
+  const us10 = YIELD_CURVES.US.points.find(p => p.m === '10Y')?.y
+  const au2  = YIELD_CURVES.AU.points.find(p => p.m === '2Y')?.y
+  const uk10 = YIELD_CURVES.UK.points.find(p => p.m === '10Y')?.y
+  const jp10 = YIELD_CURVES.JP.points.find(p => p.m === '10Y')?.y
+  const de10 = YIELD_CURVES.DE.points.find(p => p.m === '10Y')?.y
+
+  const rows = [
+    { name: 'AU vs US 10Y',  value: au10 - us10, note: Math.abs(au10 - us10) < 0.1 ? 'Near parity' : au10 > us10 ? 'AU pays more' : 'US pays more' },
+    { name: 'AU 2Y vs 10Y',  value: au10 - au2,  note: au10 - au2 > 0.15 ? 'Steepening' : au10 - au2 > 0 ? 'Mildly steep' : 'Flat/inverted' },
+    { name: 'AU vs UK 10Y',  value: au10 - uk10, note: au10 > uk10 ? 'AU pays more' : 'UK pays more' },
+    { name: 'AU vs JP 10Y',  value: au10 - jp10, note: 'AU carry premium vs Japan' },
+    { name: 'AU vs DE 10Y',  value: au10 - de10, note: au10 > de10 ? 'AU pays more' : 'DE pays more' },
+  ]
+
+  return (
+    <div className="border-t border-terminal-border flex-shrink-0">
+      <div className="panel-header">BOND SPREADS</div>
+      <table className="terminal-table w-full">
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.name}>
+              <td className="px-2 py-1 text-2xs text-terminal-text-dim">{r.name}</td>
+              <td className={`px-1 py-1 text-2xs text-right font-bold ${r.value >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>{bp(r.value)}</td>
+              <td className="px-2 py-1 text-2xs text-terminal-text-dim/70">{r.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── FX rates grid — compact 2-col x 5-row, flag + pair + rate + 1D change ──
+
+function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
+  const top10 = pairs.slice(0, 10)
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="panel-header flex items-center gap-2">
+        <span className="text-terminal-gold">FX RATES</span>
+        <span className="text-2xs text-terminal-text-dim font-normal normal-case">AUD BASE</span>
+        {isFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse ml-auto">LOADING...</span>}
+      </div>
+      <div className="grid grid-cols-2">
+        {top10.map(p => {
+          const dec = rateDecimals(p.pair)
+          const base = p.pair.split('/')[0]
+          const flag = FLAG_BY_CCY[base] ?? '🏳'
+          const pct = p.pct ?? 0
+          return (
+            <button
+              key={p.pair}
+              onClick={() => onSelectPair(p.pair)}
+              className="flex items-center gap-2 px-2 py-1.5 border-r border-b border-terminal-border hover:bg-terminal-accent/20 transition-colors text-left"
+            >
+              <span className="text-sm flex-shrink-0">{flag}</span>
+              <span className="text-2xs font-bold text-terminal-text-bright flex-shrink-0 w-16">{p.pair}</span>
+              <span className="text-2xs text-terminal-text-bright ml-auto">{p.mid?.toFixed(dec)}</span>
+              <span className={`text-2xs w-14 text-right flex-shrink-0 ${pct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(2)}%
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -538,11 +796,9 @@ export default function FXModule() {
   const { openModal } = useStore()
   const { canAccess, tier } = useSubscription()
   const [historyPair, setHistoryPair] = useState(null)
-  const [selectedCurve, setSelectedCurve] = useState('AU')
-  const [compareMode, setCompareMode]     = useState(false)
-  const [compareCurve2, setCompareCurve2] = useState('US')
-  const [showYieldInfo, setShowYieldInfo] = useState(false)
   const [fxAttemptKey, setFxAttemptKey]   = useState(0)
+
+  const askAI = (fields) => dispatchAskAI(fields)
 
   // Frankfurter — no key needed. fetchFxRates already retries 3x + tries a
   // direct (non-proxied) call internally; fetchFxRatesUnified adds a final
@@ -571,50 +827,32 @@ export default function FXModule() {
   })
 
   const pairs      = rawRates ? transformFxRates(rawRates) : []
-  const audPairs   = pairs.slice(0, 8)
-  const crossRates = pairs.slice(8)
   const isLive     = !!rawRates && !isError
   const audUsd     = rawRates?.USD ?? null
   const metals     = metalsRates ? extractMetals(metalsRates) : []
 
   const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
-  const dateStr     = new Date().toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()
 
-  // Build chart data — all tenors across selected curve(s)
+  // Yield curve chart data — AU vs US, the pairing SECTION 2 always shows
   const allTenors = useMemo(() => {
-    const keys = compareMode
-      ? [selectedCurve, compareCurve2].filter(Boolean)
-      : [selectedCurve]
     const tenorSet = new Set()
-    keys.forEach(k => YIELD_CURVES[k].points.forEach(p => tenorSet.add(p.m)))
+    YIELD_CURVES.AU.points.forEach(p => tenorSet.add(p.m))
+    YIELD_CURVES.US.points.forEach(p => tenorSet.add(p.m))
     const ORDER = ['3M','6M','1Y','2Y','3Y','5Y','10Y','30Y']
     return ORDER.filter(t => tenorSet.has(t))
-  }, [selectedCurve, compareCurve2, compareMode])
+  }, [])
 
-  const chartData = useMemo(() => {
-    const keys = compareMode
-      ? [selectedCurve, compareCurve2].filter(Boolean)
-      : [selectedCurve]
-    return allTenors.map(tenor => {
-      const row = { tenor }
-      keys.forEach(k => {
-        const pt = YIELD_CURVES[k].points.find(p => p.m === tenor)
-        row[k] = pt?.y ?? null
-      })
-      // Ghost line — the primary curve's snapshot from ~3 months ago, so the
-      // shift in shape/level is visible at a glance rather than only in the
-      // tooltip's per-tenor delta.
-      row[`${selectedCurve}_prev`] = YIELD_CURVES[selectedCurve].prev[tenor] ?? null
-      return row
-    })
-  }, [selectedCurve, compareCurve2, compareMode, allTenors])
+  const chartData = useMemo(() => allTenors.map(tenor => ({
+    tenor,
+    AU: YIELD_CURVES.AU.points.find(p => p.m === tenor)?.y ?? null,
+    US: YIELD_CURVES.US.points.find(p => p.m === tenor)?.y ?? null,
+  })), [allTenors])
 
-  const allYieldValues = chartData.flatMap(r => Object.values(r).filter(v => typeof v === 'number'))
+  const allYieldValues = chartData.flatMap(r => [r.AU, r.US]).filter(v => typeof v === 'number')
   const yMin = allYieldValues.length ? Math.floor((Math.min(...allYieldValues) - 0.2) * 10) / 10 : 0
   const yMax = allYieldValues.length ? Math.ceil( (Math.max(...allYieldValues) + 0.2) * 10) / 10 : 6
 
-  const activeCurve1Stats = getCurveStats(selectedCurve)
-  const activeCurve2Stats = compareMode ? getCurveStats(compareCurve2) : null
+  const auCurveStats = getCurveStats('AU')
 
   if (!canAccess('prime')) {
     return (
@@ -627,7 +865,7 @@ export default function FXModule() {
 
   return (
     <>
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-y-auto overflow-x-hidden">
     <ModuleHeader
       title="RATES"
       subtitle="FX Pairs · Yield Curves · Metals"
@@ -635,287 +873,42 @@ export default function FXModule() {
       lastUpdated={fxResult?.cachedAt}
       onRefresh={refetch}
     />
-      {/* Bond Yield Curve — interactive 5-country selector, now the hero visual at the top */}
-      <div className="flex flex-col border-b border-terminal-border overflow-hidden flex-shrink-0"
-        style={{ height: 340 }}>
-        <div className="panel-header flex items-center gap-2 flex-shrink-0">
-          SOVEREIGN YIELD CURVES
-          <button
-            onClick={() => setShowYieldInfo((v) => !v)}
-            title="About this data"
-            className="w-3.5 h-3.5 rounded-full border border-terminal-text-dim/50 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold text-2xs leading-none flex items-center justify-center flex-shrink-0"
-          >
-            i
-          </button>
-          <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">
-            Jul 2026 · hardcoded · ┄ ghost = 3mo ago
-          </span>
-        </div>
-        {showYieldInfo && (
-          <div className="px-2 py-1.5 text-2xs text-terminal-text-dim bg-terminal-accent/10 border-b border-terminal-border flex-shrink-0">
-            Yield curve data is updated quarterly. Last updated July 2026.
+
+    {/* SECTION 1 — global policy rates, compact card grid */}
+    <GlobalRatesCardGrid />
+
+    {/* SECTION 2 — RBA (left 55%) vs yield curve + market pricing (right 45%) */}
+    <div className="flex border-b border-terminal-border flex-shrink-0" style={{ minHeight: 480 }}>
+      <div className="border-r border-terminal-border" style={{ width: '55%' }}>
+        <CompactRbaDashboard askAI={askAI} />
+      </div>
+      <div style={{ width: '45%' }}>
+        <YieldCurveDualPanel chartData={chartData} yMin={yMin} yMax={yMax} primaryStats={auCurveStats} />
+      </div>
+    </div>
+
+    {/* SECTION 3 — FX rates grid + converter + strength index */}
+    <div className="flex flex-shrink-0">
+      <div className="flex flex-col border-r border-terminal-border" style={{ width: '60%' }}>
+        {isFetching && !rawRates ? (
+          <ModuleLoader name="RATES" />
+        ) : !isLive ? (
+          <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
+        ) : (
+          <FxRatesGrid pairs={pairs} isFetching={isFetching} onSelectPair={setHistoryPair} />
+        )}
+        {audUsd && (
+          <div className="border-b border-terminal-border p-2 flex-shrink-0">
+            <div className="text-2xs text-terminal-gold font-bold mb-1">AUD/USD · LIVE</div>
+            <div className="text-2xl font-bold text-terminal-text-bright">{audUsd.toFixed(4)}</div>
+            <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD · 1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
+            <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} AEST · Frankfurter{fxDelayed ? ' · STALE' : ''}</div>
           </div>
         )}
-
-        {/* Country toggle buttons */}
-        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-terminal-border flex-shrink-0 flex-wrap">
-          {CURVE_KEYS.map(k => {
-            const curve = YIELD_CURVES[k]
-            const isP   = selectedCurve === k
-            const isC   = compareMode && compareCurve2 === k
-            return (
-              <button
-                key={k}
-                onClick={() => {
-                  if (compareMode && k !== selectedCurve) {
-                    setCompareCurve2(k)
-                  } else {
-                    setSelectedCurve(k)
-                    if (compareMode && k === compareCurve2) {
-                      setCompareCurve2(CURVE_KEYS.find(x => x !== k) ?? 'US')
-                    }
-                  }
-                }}
-                className={`text-2xs px-2 py-0.5 border font-bold transition-colors ${
-                  isP || isC
-                    ? 'border-current'
-                    : 'border-terminal-border text-terminal-text-dim hover:text-terminal-text'
-                }`}
-                style={(isP || isC) ? { color: curve.color, borderColor: curve.color, background: curve.color + '18' } : {}}
-              >
-                {k}{isC ? ' ②' : ''}
-              </button>
-            )
-          })}
-          <button
-            onClick={() => setCompareMode(m => !m)}
-            className={`text-2xs px-2 py-0.5 border ml-1 transition-colors ${
-              compareMode
-                ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10'
-                : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold'
-            }`}
-          >
-            {compareMode ? '● COMPARE' : '○ COMPARE'}
-          </button>
-        </div>
-
-        {/* Chart */}
-        <div className="flex-1 p-2 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
-              <CartesianGrid stroke="#0d2244" vertical={false} />
-              <XAxis dataKey="tenor" tick={{ fontSize: 9 }} />
-              <YAxis
-                tick={{ fontSize: 9 }}
-                tickFormatter={v => `${v.toFixed(2)}%`}
-                domain={[yMin, yMax]}
-                width={46}
-              />
-              <Tooltip content={<YieldTooltip compareKey={compareCurve2} />} />
-              {/* Primary curve */}
-              <Line
-                key={`line-${selectedCurve}`}
-                type="monotone"
-                dataKey={selectedCurve}
-                stroke={YIELD_CURVES[selectedCurve].color}
-                strokeWidth={2.5}
-                dot={{ fill: YIELD_CURVES[selectedCurve].color, r: 3 }}
-                activeDot={{ r: 5 }}
-                connectNulls
-                animationDuration={300}
-                isAnimationActive={true}
-              />
-              {/* Ghost line — primary curve, ~3 months ago */}
-              <Line
-                key={`ghost-${selectedCurve}`}
-                type="monotone"
-                dataKey={`${selectedCurve}_prev`}
-                stroke={YIELD_CURVES[selectedCurve].color}
-                strokeWidth={1}
-                strokeOpacity={0.35}
-                strokeDasharray="2 3"
-                dot={false}
-                connectNulls
-                isAnimationActive={false}
-              />
-              {/* Compare curve */}
-              {compareMode && compareCurve2 && compareCurve2 !== selectedCurve && (
-                <Line
-                  key={`line-${compareCurve2}`}
-                  type="monotone"
-                  dataKey={compareCurve2}
-                  stroke={YIELD_CURVES[compareCurve2].color}
-                  strokeWidth={2}
-                  strokeDasharray="5 3"
-                  dot={{ fill: YIELD_CURVES[compareCurve2].color, r: 2.5 }}
-                  activeDot={{ r: 4 }}
-                  connectNulls
-                  animationDuration={300}
-                  isAnimationActive={true}
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Summary stats */}
-        <div className="border-t border-terminal-border px-2 py-1.5 flex-shrink-0 space-y-1">
-          {/* Primary */}
-          {(() => {
-            const { spread, shape } = activeCurve1Stats
-            const curve = YIELD_CURVES[selectedCurve]
-            const spreadFmt = spread != null
-              ? `${spread >= 0 ? '+' : ''}${spread.toFixed(2)}%`
-              : '—'
-            return (
-              <div className="flex items-center gap-3 text-2xs">
-                <span className="font-bold" style={{ color: curve.color }}>{selectedCurve}</span>
-                <span className="text-terminal-text-dim">2Y-10Y</span>
-                <span className={`font-semibold ${spread != null && spread >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {spreadFmt}
-                </span>
-                <span className={`px-1 border text-2xs ${
-                  shape === 'INVERTED' ? 'border-terminal-red/40 text-terminal-red' :
-                  shape === 'FLAT'     ? 'border-terminal-gold/40 text-terminal-gold' :
-                                         'border-terminal-green/40 text-terminal-green'
-                }`}>{shape}</span>
-                <span className="text-terminal-text-dim/60 ml-auto">{curve.src}</span>
-              </div>
-            )
-          })()}
-          {/* Compare */}
-          {compareMode && activeCurve2Stats && compareCurve2 !== selectedCurve && (() => {
-            const { spread, shape } = activeCurve2Stats
-            const curve = YIELD_CURVES[compareCurve2]
-            const spreadFmt = spread != null
-              ? `${spread >= 0 ? '+' : ''}${spread.toFixed(2)}%`
-              : '—'
-            return (
-              <div className="flex items-center gap-3 text-2xs">
-                <span className="font-bold" style={{ color: curve.color }}>{compareCurve2}</span>
-                <span className="text-terminal-text-dim">2Y-10Y</span>
-                <span className={`font-semibold ${spread != null && spread >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {spreadFmt}
-                </span>
-                <span className={`px-1 border text-2xs ${
-                  shape === 'INVERTED' ? 'border-terminal-red/40 text-terminal-red' :
-                  shape === 'FLAT'     ? 'border-terminal-gold/40 text-terminal-gold' :
-                                         'border-terminal-green/40 text-terminal-green'
-                }`}>{shape}</span>
-                <span className="text-terminal-text-dim/60 ml-auto">{curve.src}</span>
-              </div>
-            )
-          })()}
-        </div>
-
-        {/* Data freshness footer */}
-        <div className="border-t border-terminal-border px-2 py-1 flex items-center justify-between flex-shrink-0">
-          <span className="text-2xs text-terminal-text-dim">
-            AS AT JUNE 2026 — Source: {YIELD_CURVES[selectedCurve].src.split('·')[0].trim()}
-          </span>
-          <span className="text-2xs text-terminal-gold/70 font-semibold">UPDATE DUE: SEPTEMBER 2026</span>
-        </div>
-      </div>
-    <GlobalRatesTable />
-    <div className="flex-1 grid grid-cols-[1fr_300px] overflow-hidden">
-
-      {/* FX Pairs + Converter — the whole column scrolls as one unit (rather
-          than nesting a nother flex:1 auto-height section inside it) now that
-          the chart-first layout above leaves less guaranteed vertical room;
-          a nested flex:1 region here would just squash back down to ~0px. */}
-      <div className="flex flex-col border-r border-terminal-border overflow-y-auto">
-        <div className="panel-header flex items-center gap-2 flex-shrink-0">
-          RATES
-          {isFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
-          {isLive && fxDelayed && <StaleBadge cachedAt={fxResult?.cachedAt} />}
-          {isLive && !fxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
-          {isError    && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
-          {isLive     && <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">{updatedTime}</span>}
-        </div>
-        <div className="flex-shrink-0">
-          {isFetching && !rawRates ? (
-            <ModuleLoader name="RATES" />
-          ) : !isLive ? (
-            <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
-          ) : (
-            <>
-              <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50">
-                AUD PAIRS · MID RATE · LIVE · {updatedTime} AEST
-              </div>
-              <table className="terminal-table w-full">
-                <thead>
-                  <tr>
-                    <th className="px-2 text-left">PAIR</th>
-                    <th className="px-1 text-right">RATE</th>
-                    <th className="px-1 text-right">30D</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {audPairs.map((p) => {
-                    const dec      = rateDecimals(p.pair)
-                    const isAudUsd = p.pair === 'AUD/USD'
-                    return (
-                      <tr
-                        key={p.pair}
-                        className={`hover:bg-terminal-accent/30 cursor-pointer ${isAudUsd ? 'bg-terminal-accent/10' : ''}`}
-                        onClick={() => setHistoryPair(p.pair)}
-                      >
-                        <td className={`px-2 py-0.5 text-xs font-bold ${isAudUsd ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
-                          {p.pair}
-                          {isAudUsd && <span className="text-2xs text-terminal-green ml-1">●</span>}
-                        </td>
-                        <td className="px-1 py-0.5 text-2xs text-right font-semibold">{p.mid?.toFixed(dec)}</td>
-                        <td className="px-1 py-0.5 text-2xs text-right text-terminal-gold hover:underline">CHART</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              <div className="px-2 py-1 text-2xs text-terminal-text-dim border-b border-terminal-border/50 border-t border-terminal-border mt-1">
-                CROSS RATES
-              </div>
-              <table className="terminal-table w-full">
-                <tbody>
-                  {crossRates.map((p) => (
-                    <tr key={p.pair} className="hover:bg-terminal-accent/30 cursor-pointer"
-                      onClick={() => setHistoryPair(p.pair)}
-                      title="Click for 30d history"
-                    ><td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright">{p.pair}</td>
-                      <td className="px-1 py-0.5 text-2xs text-right">{p.mid?.toFixed(rateDecimals(p.pair))}</td>
-                      <td className="px-1 py-0.5 text-2xs text-right text-terminal-gold">CHART</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {audUsd && (
-                <div className="border-t border-terminal-border mt-2 p-2">
-                  <div className="text-2xs text-terminal-gold font-bold mb-1">AUD/USD · LIVE</div>
-                  <div className="text-2xl font-bold text-terminal-text-bright">{audUsd.toFixed(4)}</div>
-                  <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD</div>
-                  <div className="text-2xs text-terminal-text-dim">1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
-                  <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} AEST · Frankfurter</div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
         <CurrencyConverter rates={rawRates} />
-        <CurrencyStrengthIndex />
       </div>
-
-
-      {/* RBA focus + Metals — the full multi-country comparison now lives in
-          GlobalRatesTable above, so this column goes deep on AU instead of
-          repeating that same per-bank list. */}
-      <div className="flex flex-col overflow-y-auto">
-        <div className="panel-header flex items-center gap-2 flex-shrink-0">
-          RBA FOCUS
-          <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">rba.gov.au</span>
-        </div>
-        <div className="flex-shrink-0">
-          <RbaRateComparisonBar />
-          <RbaDecisionHistory />
-        </div>
+      <div className="flex flex-col" style={{ width: '40%' }}>
+        <CurrencyStrengthIndex />
         <div className="border-t border-terminal-border p-2 flex-shrink-0">
           <div className="panel-header -mx-2 -mt-2 mb-2">
             PRECIOUS METALS (AUD)
@@ -944,6 +937,9 @@ export default function FXModule() {
         </div>
       </div>
     </div>
+
+    {/* SECTION 4 — bond spreads */}
+    <BondSpreadsTable />
     </div>
     {historyPair && <FxHistoryModal pair={historyPair} onClose={() => setHistoryPair(null)} />}
     </>
