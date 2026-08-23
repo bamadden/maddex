@@ -151,11 +151,11 @@ function SectorPerformanceList({ markets }) {
       {!sectors.length ? <div style={P.empty}>LOADING...</div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {sectors.map(s => (
-            <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.7)' }}>
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {s.name} <span style={{ color: 'rgba(100,130,160,0.4)' }}>({s.count})</span>
               </span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: s.avg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: s.avg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', flexShrink: 0 }}>
                 {s.avg >= 0 ? '▲' : '▼'}{Math.abs(s.avg).toFixed(2)}%
               </span>
             </div>
@@ -219,7 +219,7 @@ function FearGreedPanel({ data }) {
     <div style={{ ...P.wrap, minHeight: 110 }}>
       <div style={P.title}>FEAR &amp; GREED</div>
       <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-        <svg viewBox="0 0 100 66" style={{ width:120, height:80, flexShrink:0 }}>
+        <svg viewBox="0 0 100 66" style={{ width: '100%', maxWidth: 120, height: 'auto', flexShrink: 0 }}>
           <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke="#0d2244" strokeWidth="9" />
           <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke={color} strokeWidth="9"
             strokeDasharray={`${(value / 100) * 131.9} 131.9`} strokeLinecap="butt" />
@@ -520,6 +520,57 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, 
 const TIMEFRAMES = ['1D', '7D', '1M', '3M', '1Y']
 const TF_DAYS    = { '1D': 1, '7D': 7, '1M': 30, '3M': 90, '1Y': 365 }
 
+// ── Resizable panel — drag the edge handle to resize, persisted to
+// localStorage. Width only applies at md+ (via a CSS custom property fed
+// into a Tailwind arbitrary-value class); below md the panel is full-width
+// and stacked per the existing mobile panel-switcher, same as before this
+// was made resizable. ────────────────────────────────────────────────────
+
+function ResizablePanel({ children, defaultWidth, minWidth, maxWidth, storageKey, side, mobileVisible, className = '' }) {
+  const [width, setWidth] = useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem(storageKey), 10)
+      return Number.isFinite(saved) ? Math.min(maxWidth, Math.max(minWidth, saved)) : defaultWidth
+    } catch { return defaultWidth }
+  })
+  const latestWidth = useRef(width)
+
+  const onMouseDown = (e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = width
+
+    const onMouseMove = (ev) => {
+      const delta = side === 'right' ? ev.clientX - startX : startX - ev.clientX
+      const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + delta))
+      latestWidth.current = newWidth
+      setWidth(newWidth)
+    }
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      try { localStorage.setItem(storageKey, String(latestWidth.current)) } catch { /* best-effort */ }
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
+  return (
+    <div
+      className={`${mobileVisible ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[var(--panel-w)] md:min-w-[var(--panel-w)] flex-shrink-0 relative ${className}`}
+      style={{ '--panel-w': `${width}px` }}
+    >
+      {children}
+      <div
+        onMouseDown={onMouseDown}
+        title="Drag to resize"
+        className="hidden md:block absolute top-0 bottom-0 z-20 hover:bg-terminal-gold/40 transition-colors"
+        style={{ [side]: 0, width: 6, cursor: 'col-resize' }}
+      />
+    </div>
+  )
+}
+
 // ── Shared cell styles ─────────────────────────────────────────────────────────
 
 const CELL = { padding: '5px 8px', fontSize: '10px', verticalAlign: 'middle', position: 'static' }
@@ -688,10 +739,13 @@ export default function CryptoModule() {
       </div>
 
       <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* ── LEFT: market overview sidebar, 280px, scrolls independently of the coin table ── */}
-        <div
-          className={`${mobilePanel === 'overview' ? 'flex' : 'hidden'} md:flex w-full md:w-[280px] md:min-w-[280px] flex-shrink-0 border-r border-terminal-border overflow-y-auto flex-col divide-y divide-terminal-border`}
-          style={{ maxHeight: '100%', paddingRight: 4 }}
+        {/* ── LEFT: market overview sidebar, resizable (drag right edge),
+            scrolls independently of the coin table ── */}
+        <ResizablePanel
+          defaultWidth={280} minWidth={200} maxWidth={360}
+          storageKey="maddex_crypto_left_width" side="right"
+          mobileVisible={mobilePanel === 'overview'}
+          className="border-r border-terminal-border overflow-y-auto overflow-x-hidden flex-col divide-y divide-terminal-border"
         >
           <MaddenAIPanel momentum={momentum} />
           <MarketPulsePanel globalData={globalData} currency={currency} capSparkline={capSparkline} />
@@ -699,7 +753,7 @@ export default function CryptoModule() {
           <DominancePanel globalData={globalData} />
           <TopVolumeList markets={markets} currPrefix={currPrefix} selectedCoin={selectedCoin} onSelect={(s) => { setSelectedCoin(s); setMobilePanel('detail') }} />
           <SectorPerformanceList markets={markets} />
-        </div>
+        </ResizablePanel>
 
         {/* ── CENTRE: elite coin table ── */}
         <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: '#071428', position: 'relative' }}>
@@ -730,9 +784,14 @@ export default function CryptoModule() {
           ) : <ModuleLoader name="CRYPTO" />}
         </div>
 
-        {/* ── RIGHT: coin detail slide-in, 280px ── */}
+        {/* ── RIGHT: coin detail slide-in, resizable (drag left edge) ── */}
         {selectedCoinObj && (
-          <div className={`${mobilePanel === 'detail' ? 'block' : 'hidden'} md:block w-full md:w-[280px] md:min-w-[280px] flex-shrink-0 border-l border-terminal-border overflow-hidden`}>
+          <ResizablePanel
+            defaultWidth={300} minWidth={240} maxWidth={420}
+            storageKey="maddex_crypto_right_width" side="left"
+            mobileVisible={mobilePanel === 'detail'}
+            className="border-l border-terminal-border overflow-hidden"
+          >
             <CoinDetailPanel
               coin={selectedCoinObj}
               currPrefix={currPrefix}
@@ -748,7 +807,7 @@ export default function CryptoModule() {
               onExpand={handleOpenModal}
               onClose={() => { setSelectedCoin(null); setMobilePanel('table') }}
             />
-          </div>
+          </ResizablePanel>
         )}
       </div>
     </div>
@@ -757,20 +816,78 @@ export default function CryptoModule() {
 
 // ── Sortable coin table ────────────────────────────────────────────────────
 const COIN_COLUMNS = [
-  { key: 'rank',       label: '#',         align: 'right', width: 28 },
-  { key: 'symbol',     label: 'COIN',      align: 'left' },
-  { key: 'price',      label: 'PRICE (USD/AUD)', align: 'right' },
-  { key: 'pct24h',     label: '24H%',      align: 'right' },
-  { key: 'pct7d',      label: '7D%',       align: 'right', cell: 'sm' },
-  { key: 'marketCap',  label: 'MKT CAP',   align: 'right', cell: 'md' },
-  { key: 'volume',     label: 'VOLUME 24H', align: 'right', cell: 'lg' },
-  { key: 'supply',     label: 'SUPPLY',    align: 'right', cell: 'lg', width: 100 },
-  { key: 'sparkline',  label: '7D CHART',  align: 'right', cell: 'xl' },
+  { key: 'rank',       label: '#',         align: 'right', width: 28,  hideable: false },
+  { key: 'symbol',     label: 'COIN',      align: 'left',              hideable: false },
+  { key: 'price',      label: 'PRICE (USD/AUD)', align: 'right',       hideable: false },
+  { key: 'pct24h',     label: '24H%',      align: 'right',             hideable: true },
+  { key: 'pct7d',      label: '7D%',       align: 'right', cell: 'sm', hideable: true },
+  { key: 'marketCap',  label: 'MKT CAP',   align: 'right', cell: 'md', hideable: true },
+  { key: 'volume',     label: 'VOLUME 24H', align: 'right', cell: 'lg', hideable: true },
+  { key: 'supply',     label: 'SUPPLY',    align: 'right', cell: 'lg', width: 100, hideable: true },
+  { key: 'sparkline',  label: '7D CHART',  align: 'right', cell: 'xl', width: 80,  hideable: true },
 ]
+
+const VISIBLE_COLS_KEY = 'maddex_crypto_visible_cols'
+function loadVisibleCols() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VISIBLE_COLS_KEY) ?? 'null')
+    if (Array.isArray(saved)) return new Set(saved)
+  } catch { /* fall through to default */ }
+  return new Set(COIN_COLUMNS.map(c => c.key))
+}
+function saveVisibleCols(set) {
+  try { localStorage.setItem(VISIBLE_COLS_KEY, JSON.stringify([...set])) } catch { /* best-effort */ }
+}
+
+// Gear-icon dropdown checklist — shows/hides table columns, persisted.
+function ColumnSelector({ visibleCols, onToggle }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [open])
+  return (
+    <div ref={ref} className="relative ml-auto flex-shrink-0">
+      <button
+        onClick={() => setOpen(v => !v)}
+        title="Show/hide columns"
+        className="text-terminal-text-dim hover:text-terminal-gold text-2xs px-1.5 py-0.5 border border-terminal-border hover:border-terminal-gold/40 transition-colors"
+      >⚙</button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-30 bg-terminal-panel border border-terminal-border-gold py-1 shadow-lg" style={{ minWidth: 160 }}>
+          {COIN_COLUMNS.filter(c => c.hideable).map(c => (
+            <label key={c.key} className="flex items-center gap-2 px-2.5 py-1 text-2xs text-terminal-text hover:bg-terminal-surface2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={visibleCols.has(c.key)}
+                onChange={() => onToggle(c.key)}
+                className="accent-terminal-gold"
+              />
+              {c.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, selectedCoin, onRowClick }) {
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
+  const [visibleCols, setVisibleCols] = useState(loadVisibleCols)
+
+  const toggleColumn = (key) => {
+    setVisibleCols(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      saveVisibleCols(next)
+      return next
+    })
+  }
 
   const toggleSort = (key) => {
     if (!['rank', 'symbol', 'price', 'pct24h', 'pct7d', 'marketCap', 'volume'].includes(key)) return
@@ -787,11 +904,14 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
     return sortDir === 'asc' ? cmp : -cmp
   }) : markets
 
+  const cols = COIN_COLUMNS.filter(c => !c.hideable || visibleCols.has(c.key))
+  const show = (key) => !COIN_COLUMNS.find(c => c.key === key)?.hideable || visibleCols.has(key)
+
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
         <tr style={{ background: '#071428', borderBottom: '1px solid #c8a84b' }}>
-          {COIN_COLUMNS.map(col => (
+          {cols.map(col => (
             <th
               key={col.key}
               onClick={() => toggleSort(col.key)}
@@ -802,6 +922,9 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
               {sortKey === col.key && <span style={{ color: '#c8a84b', marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
             </th>
           ))}
+          <th style={{ ...HEAD, textAlign: 'right', width: 28, cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
+            <ColumnSelector visibleCols={visibleCols} onToggle={toggleColumn} />
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -836,32 +959,45 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
                   {fmt.aud(audPrice)}
                 </div>
               </td>
-              <td style={{ ...CELL, textAlign: 'right' }}>
-                <PriceChange pct={coin.pct24h} className="justify-end" />
-              </td>
-              <td style={{ ...CELL, textAlign: 'right' }} className="hidden sm:table-cell">
-                <PriceChange pct={coin.pct7d} className="justify-end" />
-              </td>
-              <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden md:table-cell">
-                {currPrefix}{coin.mktCap}
-              </td>
-              <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden lg:table-cell">
-                {currPrefix}{coin.vol24h}
-              </td>
+              {show('pct24h') && (
+                <td style={{ ...CELL, textAlign: 'right' }}>
+                  <PriceChange pct={coin.pct24h} className="justify-end" />
+                </td>
+              )}
+              {show('pct7d') && (
+                <td style={{ ...CELL, textAlign: 'right' }} className="hidden sm:table-cell">
+                  <PriceChange pct={coin.pct7d} className="justify-end" />
+                </td>
+              )}
+              {show('marketCap') && (
+                <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden md:table-cell">
+                  {currPrefix}{coin.mktCap}
+                </td>
+              )}
+              {show('volume') && (
+                <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden lg:table-cell">
+                  {currPrefix}{coin.vol24h}
+                </td>
+              )}
               {/* Supply bar — circulating/max, gold fill */}
-              <td style={{ ...CELL, textAlign: 'right' }} className="hidden lg:table-cell">
-                {supplyPct != null ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                    <div style={{ width: 44, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
-                      <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: '#c8a84b' }} />
+              {show('supply') && (
+                <td style={{ ...CELL, textAlign: 'right' }} className="hidden lg:table-cell">
+                  {supplyPct != null ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      <div style={{ width: 44, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
+                        <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: '#c8a84b' }} />
+                      </div>
+                      <span style={{ fontSize: 9, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
                     </div>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
-                  </div>
-                ) : <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>∞</span>}
-              </td>
-              <td style={{ ...CELL, textAlign: 'right' }} className="hidden xl:table-cell">
-                <Sparkline prices={coin.sparkline} pct={coin.pct7d} />
-              </td>
+                  ) : <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>∞</span>}
+                </td>
+              )}
+              {show('sparkline') && (
+                <td style={{ ...CELL, textAlign: 'right' }} className="hidden xl:table-cell">
+                  <Sparkline prices={coin.sparkline} pct={coin.pct7d} w={80} />
+                </td>
+              )}
+              <td style={{ ...CELL, width: 28 }} />
             </tr>
           )
         })}
