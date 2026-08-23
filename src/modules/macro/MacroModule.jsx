@@ -21,7 +21,7 @@ import { getEconomicCalendar, upcomingEvents, getPreviousEvents } from '../../se
 import { getMacroThemes, FALLBACK_THEMES } from '../../services/macroThemeService'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, Brush,
 } from 'recharts'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
@@ -239,6 +239,12 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
   const [refRight, setRefRight] = useState(null)
   const [zoomRange, setZoomRange] = useState(null) // [startIdx, endIdx] or null
 
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   if (!cfg) return null
 
   const viewData = zoomRange ? data.slice(zoomRange[0], zoomRange[1] + 1) : data
@@ -272,7 +278,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
     >
       <div
         className="bg-terminal-panel border border-terminal-border flex flex-col overflow-hidden"
-        style={{ width: '80vw', maxWidth: 900, height: '70vh', maxHeight: 600 }}
+        style={{ width: '90vw', height: '80vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -288,15 +294,15 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
             </button>
           )}
           <button
-            onClick={() => downloadChartPng(chartWrapRef.current, `${chartKey}-chart.png`)}
+            onClick={() => downloadChartPng(chartWrapRef.current, `maddex_${chartKey}_${todayAEST().replace(/\s+/g, '-')}.png`)}
             className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold/40 px-2 py-0.5 transition-colors"
           >
-            ⤓ PNG
+            ⬇ PNG
           </button>
-          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-lg">✕</button>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-lg" title="Close (Esc)">✕</button>
         </div>
 
-        {/* Chart — drag to zoom, double-click to reset */}
+        {/* Chart — drag to zoom, double-click to reset, Brush for scrub/pan */}
         <div className="flex-1 p-4" ref={chartWrapRef} onDoubleClick={resetZoom}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -337,6 +343,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               {refLeft != null && refRight != null && (
                 <ReferenceArea x1={refLeft} x2={refRight} strokeOpacity={0.3} fill="#c8a84b" fillOpacity={0.15} />
               )}
+              <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -415,47 +422,44 @@ function RBADashboard({ askAI }) {
 
   const diffMs   = RBA_NEXT_MEETING ? RBA_NEXT_MEETING - Date.now() : 0
   const daysLeft = Math.max(0, Math.floor(diffMs / 86400000))
-  const hrsLeft  = Math.max(0, Math.floor((diffMs % 86400000) / 3600000))
   const nextMeetingBadge = nextRbaDateStr
     ? new Date(`${nextRbaDateStr}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()
     : '—'
 
   return (
     <div className="border-b border-terminal-border flex-shrink-0">
-      {/* Header */}
-      <div className="panel-header flex items-center gap-3 flex-wrap">
+      {/* Header — rate, decision, and next-meeting countdown collapsed into
+          one inline line of pills, replacing the old multi-label header. */}
+      <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">RBA DASHBOARD</span>
-        <span className="text-2xs text-terminal-text-dim font-normal normal-case">Cash Rate Target</span>
-        <span className="text-2xl font-bold text-terminal-gold">4.35%</span>
-        <span className="text-2xs text-terminal-text-dim font-normal normal-case">p.a.</span>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-2xs text-terminal-text-dim">NEXT MEETING:</span>
-          <span className="text-2xs font-bold text-terminal-text-bright">{nextMeetingBadge}</span>
-          <span className="text-2xs border border-terminal-gold/40 text-terminal-gold px-1.5 py-0.5">
-            IN {daysLeft}D {hrsLeft}H
-          </span>
-          <button
-            onClick={() => askAI({
-              name:        'RBA Cash Rate',
-              price:       '4.35% p.a.',
-              sector:      'Interest Rates',
-              date:        todayAEST(),
-              instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate 4.35% (hiked from 4.10% in May 2026, the third consecutive 2026 hike after Feb and Mar, in response to the global energy shock from the Iran-Middle East conflict — reversing the 2025 easing cycle). The Board held at 4.35% at the 17 Jun 2026 meeting, and held again at 4.35% at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). What is the market pricing for a hold?`,
-            })}
-            className="text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
-          >
-            AI ▶
-          </button>
-        </div>
+        <span className="text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 py-0.5">4.35%</span>
+        <span className="text-2xs font-bold text-terminal-text-bright border border-terminal-border px-1.5 py-0.5">HOLD</span>
+        <span className="text-2xs text-terminal-text-dim border border-terminal-border px-1.5 py-0.5">
+          Next: {nextMeetingBadge} · {daysLeft}d
+        </span>
+        <button
+          onClick={() => setShowBoard(v => !v)}
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
+        >
+          {showBoard ? 'HIDE BOARD' : 'SHOW BOARD'}
+        </button>
+        <button
+          onClick={() => askAI({
+            name:        'RBA Cash Rate',
+            price:       '4.35% p.a.',
+            sector:      'Interest Rates',
+            date:        todayAEST(),
+            instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate 4.35% (hiked from 4.10% in May 2026, the third consecutive 2026 hike after Feb and Mar, in response to the global energy shock from the Iran-Middle East conflict — reversing the 2025 easing cycle). The Board held at 4.35% at the 17 Jun 2026 meeting, and held again at 4.35% at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). What is the market pricing for a hold?`,
+          })}
+          className="ml-auto mr-16 text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
+        >
+          AI ▶
+        </button>
       </div>
 
-      {/* Fixed row height so every column has something concrete to fill —
-          "h-full" is meaningless without an ancestor that actually has a
-          resolved height, and grid's default row-stretch only matches
-          whichever column ends up tallest, not a specific target. */}
-      <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border" style={{ height: 420 }}>
-        {/* Rate history chart — fills 100% of the cell: fixed header, chart
-            takes all remaining space via flex-1/min-h-0, fixed footer. */}
+      {/* Compact 200px row — chart-first, statements condensed to 2 lines
+          each with no elaboration, so the whole section reads at a glance. */}
+      <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border" style={{ height: 200 }}>
         <div className="p-2 flex flex-col h-full">
           <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
           <div className="flex-1 min-h-0">
@@ -485,60 +489,40 @@ function RBADashboard({ askAI }) {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex gap-4 mt-1 text-2xs text-terminal-text-dim flex-wrap flex-shrink-0">
-            <span>Aug-25: Trough 3.60% (2025 easing cycle ends)</span>
-            <span>May-26: Rehiked to 4.35% (matches 2023 peak)</span>
-            <span className="text-terminal-blue-bright">— neutral ~2.5%</span>
-          </div>
         </div>
 
-        {/* Market pricing — same h-full + justify-between treatment so it
-            doesn't look short next to the other two once they're filled. */}
-        <div className="p-3 w-44 flex-shrink-0 flex flex-col h-full justify-between">
+        {/* Market pricing — compact, no section subheads spelled out */}
+        <div className="p-2 w-40 flex-shrink-0 flex flex-col h-full justify-between text-2xs">
           <div>
-            <div className="text-2xs text-terminal-gold font-bold mb-2">NEXT MEETING PRICING</div>
-            <div className="space-y-2">
-              {[
-                { label: 'HOLD 4.35%', pct: 82, color: 'var(--color-neutral)' },
-                { label: 'CUT 4.10%',  pct: 18, color: 'var(--color-loss)' },
-              ].map(({ label, pct, color }) => (
-                <div key={label}>
-                  <div className="flex justify-between mb-0.5">
-                    <span className="text-2xs" style={{ color }}>{label}</span>
-                    <span className="text-2xs font-bold" style={{ color }}>{pct}%</span>
-                  </div>
-                  <div className="h-1 bg-terminal-border/30">
-                    <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.7 }} />
-                  </div>
+            <div className="text-terminal-gold font-bold mb-1">NEXT MEETING</div>
+            {[
+              { label: 'HOLD 4.35%', pct: 82, color: 'var(--color-neutral)' },
+              { label: 'CUT 4.10%',  pct: 18, color: 'var(--color-loss)' },
+            ].map(({ label, pct, color }) => (
+              <div key={label} className="mb-1">
+                <div className="flex justify-between">
+                  <span style={{ color }}>{label}</span>
+                  <span className="font-bold" style={{ color }}>{pct}%</span>
                 </div>
-              ))}
-            </div>
-            <div className="mt-2 text-2xs text-terminal-text-dim/60">ASX 30-day interbank</div>
-            <div className="mt-1 text-2xs text-terminal-text-dim/60">Big 4: all HOLD for Sep</div>
+                <div className="h-1 bg-terminal-border/30">
+                  <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.7 }} />
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="pt-2 border-t border-terminal-border/40">
-            <div className="text-2xs text-terminal-blue-bright font-bold mb-1">FOMC · 4.25–4.50%</div>
-            <div className="flex justify-between text-2xs">
+          <div className="pt-1 border-t border-terminal-border/40">
+            <div className="text-terminal-blue-bright font-bold">FOMC · 4.25–4.50%</div>
+            <div className="flex justify-between">
               <span style={{ color: 'var(--color-neutral)' }}>HOLD 65%</span>
               <span style={{ color: 'var(--color-loss)' }}>CUT 35%</span>
             </div>
-            <div className="text-2xs text-terminal-text-dim/60 mt-1">Next: 17 Sep 2026</div>
-            <div className="text-2xs text-terminal-text-dim/60">Jackson Hole (22–24 Aug): Powell dovish</div>
+            <div className="text-terminal-text-dim/60">Next: 17 Sep 2026</div>
           </div>
         </div>
 
-        {/* Recent statements — fills 100% of the cell: fixed header, then
-            exactly 3 statements spread evenly across the remaining height. */}
-        <div className="p-3 w-72 flex-shrink-0 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <div className="text-2xs text-terminal-gold font-bold">RECENT STATEMENTS</div>
-            <button
-              onClick={() => setShowBoard(v => !v)}
-              className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
-            >
-              {showBoard ? 'HIDE BOARD' : 'SHOW BOARD'}
-            </button>
-          </div>
+        {/* Recent statements — compact 2-line rows, no elaboration */}
+        <div className="p-2 w-72 flex-shrink-0 flex flex-col h-full overflow-hidden">
+          <div className="text-2xs text-terminal-gold font-bold mb-1 flex-shrink-0">RECENT STATEMENTS</div>
           {showBoard ? (
             <div className="overflow-auto flex-1">
               {RBA_BOARD_MEMBERS.map(m => (
@@ -552,15 +536,14 @@ function RBADashboard({ askAI }) {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col justify-between flex-1 min-h-0">
+            <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-hidden">
               {RBA_RECENT_STATEMENTS.map((s, i) => (
-                <div key={i} className="flex-1 flex flex-col justify-center border-b border-terminal-border last:border-b-0 py-4 min-h-0">
-                  <div className="flex items-center gap-2 mb-1 flex-shrink-0">
+                <div key={i} className="border-b border-terminal-border/40 last:border-b-0 pb-1">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-2xs text-terminal-text-dim">{s.date}</span>
                     <span className="text-2xs font-bold text-terminal-gold">{s.decision}</span>
                   </div>
-                  <div className="text-xs text-terminal-text-dim italic leading-relaxed">{s.key}</div>
-                  <div className="text-2xs text-terminal-text-dim/50 mt-1 flex-shrink-0">— RBA Board</div>
+                  <div className="text-2xs text-terminal-text-dim leading-snug truncate">{s.key}</div>
                 </div>
               ))}
             </div>
@@ -583,7 +566,53 @@ const SentimentTooltip = ({ active, payload, label }) => {
   )
 }
 
+// Generic fullscreen modal for any chart element (not just the LineChart
+// CHART_CONFIGS shape) — reuses whatever ResponsiveContainer-wrapped chart
+// JSX is passed in, just rendered at 90vw×80vh instead of the card's 110px.
+function GenericExpandModal({ title, source, chart, onClose }) {
+  const overlayRef  = useRef(null)
+  const chartWrapRef = useRef(null)
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
+    >
+      <div
+        className="bg-terminal-panel border border-terminal-border flex flex-col overflow-hidden"
+        style={{ width: '90vw', height: '80vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+          <span className="text-sm font-bold text-terminal-gold tracking-wider">{title}</span>
+          <button
+            onClick={() => downloadChartPng(chartWrapRef.current, `maddex_${title.toLowerCase().replace(/\s+/g, '-')}_${todayAEST().replace(/\s+/g, '-')}.png`)}
+            className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold/40 px-2 py-0.5 transition-colors ml-auto"
+          >⬇ PNG</button>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-lg" title="Close (Esc)">✕</button>
+        </div>
+        <div className="flex-1 p-4" ref={chartWrapRef}>
+          {chart}
+        </div>
+        <div className="border-t border-terminal-border px-4 py-2 text-2xs text-terminal-text-dim flex-shrink-0">
+          SOURCE: {source}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function LeadingIndicators() {
+  const [expandedCard, setExpandedCard] = useState(null)
+  const cardRefs = useRef({})
+
   const cards = [
     {
       title: 'AU CONSUMER SENTIMENT',
@@ -602,6 +631,7 @@ function LeadingIndicators() {
               label={{ value: 'NEUTRAL', fill: '#c8a84b', fontSize: 7, position: 'right' }} />
             <Line type="monotone" dataKey="value" stroke="#f87171" strokeWidth={1.5}
               dot={false} isAnimationActive={false} />
+            <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </LineChart>
         </ResponsiveContainer>
       ),
@@ -625,6 +655,7 @@ function LeadingIndicators() {
                 <Cell key={i} fill={d.value >= 0 ? 'rgba(46,160,90,0.6)' : 'rgba(180,60,60,0.6)'} />
               ))}
             </Bar>
+            <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </BarChart>
         </ResponsiveContainer>
       ),
@@ -651,6 +682,7 @@ function LeadingIndicators() {
             <ReferenceLine y={0} stroke="#c8a84b" strokeDasharray="2 2" />
             <Area type="monotone" dataKey="value" stroke="#2ea05a" strokeWidth={1.5}
               fill="url(#tradeGrad)" dot={false} isAnimationActive={false} />
+            <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </AreaChart>
         </ResponsiveContainer>
       ),
@@ -672,6 +704,7 @@ function LeadingIndicators() {
               label={{ value: '$90 support', fill: '#f87171', fontSize: 7, position: 'right' }} />
             <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={1.5}
               dot={{ r: 2.5, fill: '#3b82f6' }} isAnimationActive={false} />
+            <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </LineChart>
         </ResponsiveContainer>
       ),
@@ -693,14 +726,28 @@ function LeadingIndicators() {
             className="flex flex-col"
             style={{ background: '#071428', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, padding: 12 }}
           >
-            <div className="flex-shrink-0 mb-1">
-              <div className="text-2xs font-bold text-terminal-text-bright">{c.title}</div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-sm font-bold text-terminal-gold">{c.current}</span>
-                <span className="text-2xs text-terminal-text-dim">{c.note}</span>
+            <div className="flex-shrink-0 mb-1 flex items-start justify-between gap-1">
+              <div>
+                <div className="text-2xs font-bold text-terminal-text-bright">{c.title}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-sm font-bold text-terminal-gold">{c.current}</span>
+                  <span className="text-2xs text-terminal-text-dim">{c.note}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => downloadChartPng(cardRefs.current[c.title], `maddex_${c.title.toLowerCase().replace(/\s+/g, '-')}_${todayAEST().replace(/\s+/g, '-')}.png`)}
+                  className="text-terminal-text-dim/50 hover:text-terminal-gold text-2xs leading-none"
+                  title="Download PNG"
+                >⬇</button>
+                <button
+                  onClick={() => setExpandedCard(c.title)}
+                  className="text-terminal-text-dim/50 hover:text-terminal-gold text-2xs leading-none"
+                  title="Expand"
+                >⤢</button>
               </div>
             </div>
-            <div style={{ height: 110 }}>
+            <div style={{ height: 122 }} ref={(el) => { cardRefs.current[c.title] = el }}>
               {c.chart}
             </div>
             <div className="mt-1 text-2xs text-terminal-text-dim/60 border-t border-terminal-border pt-1">
@@ -709,6 +756,19 @@ function LeadingIndicators() {
           </div>
         ))}
       </div>
+
+      {expandedCard && (() => {
+        const c = cards.find(x => x.title === expandedCard)
+        if (!c) return null
+        return (
+          <GenericExpandModal
+            title={c.title}
+            source={c.source}
+            chart={c.chart}
+            onClose={() => setExpandedCard(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
@@ -1128,13 +1188,26 @@ const CATEGORY_ICON = {
   RBA: '💰', FED: '🏦', CHINA: '🇨🇳', GLOBAL: '🌐', COMMODITIES: '⛏️', GEOPOLITICAL: '⚠️',
 }
 
+// Only categories with a genuinely relevant dataset on hand get a chart
+// snippet when expanded — FED/CHINA/GLOBAL/GEOPOLITICAL have no matching
+// series in placeholders.js, so those themes expand text-only rather than
+// showing a chart that isn't actually about the theme.
+const THEME_CHART_MAP = {
+  RBA:         { data: RBA_RATE_HISTORY, dataKey: 'rate', unit: '%', color: '#c8a84b' },
+  COMMODITIES: { data: IRON_ORE_HISTORY, dataKey: 'value', unit: '', color: '#3b82f6' },
+}
+
 function MacroThemeCard({ theme }) {
   const [expanded, setExpanded] = useState(false)
   const color = THEME_IMPACT_COLOR[theme.impact] ?? 'var(--color-text-dim)'
   const analysis = theme.analysis ?? theme.impactNote ?? theme.note
+  const chartCfg = THEME_CHART_MAP[theme.category]
 
   return (
-    <div className="border border-terminal-border bg-terminal-panel/40" style={{ borderLeft: `3px solid ${color}` }}>
+    <div
+      className={`border border-terminal-border bg-terminal-panel/40 transition-all ${expanded ? 'md:col-span-2' : ''}`}
+      style={{ borderLeft: `3px solid ${color}` }}
+    >
       <div className="p-2.5">
         <div className="flex items-center gap-2 mb-1.5">
           <span className="text-sm">{CATEGORY_ICON[theme.category] ?? '📌'}</span>
@@ -1145,9 +1218,18 @@ function MacroThemeCard({ theme }) {
         </div>
         <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5">{theme.summary}</div>
 
-        {expanded && analysis && (
-          <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5 pt-1.5 border-t border-terminal-border/40">
-            {analysis}
+        {expanded && (
+          <div className="pt-1.5 border-t border-terminal-border/40 mb-1.5">
+            {analysis && (
+              <div className="text-2xs text-terminal-text-dim leading-relaxed mb-2 whitespace-pre-line">
+                {analysis}
+              </div>
+            )}
+            {chartCfg && (
+              <div style={{ height: 90 }} className="mb-1">
+                <MiniChart data={chartCfg.data} dataKey={chartCfg.dataKey} color={chartCfg.color} unit={chartCfg.unit} />
+              </div>
+            )}
           </div>
         )}
 
@@ -1328,9 +1410,47 @@ function CurrencyHeatmap() {
 
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
+// Full-module-viewport takeover for a single section, opened via that
+// section's "⤢ EXPAND" pill — replaces the whole scroll area with just that
+// section plus a back button, rather than a bounded modal.
+function SectionExpandOverlay({ title, onClose, children }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className="fixed inset-0 z-40 bg-terminal-bg flex flex-col">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="text-2xs text-terminal-gold hover:text-terminal-gold-bright border border-terminal-gold/40 px-2 py-1 transition-colors"
+        >← BACK</button>
+        <span className="text-sm font-bold text-terminal-gold tracking-wider">{title}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Small corner "expand" pill, overlaid on a section without needing to
+// modify that section component's own internal header.
+function ExpandPill({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute top-1.5 right-2 z-10 text-2xs text-terminal-text-dim/50 hover:text-terminal-gold leading-none px-1"
+      title="Expand section"
+    >⤢ EXPAND</button>
+  )
+}
+
 export default function MacroModule() {
   const [globalExpanded, setGlobalExpanded] = useState(false)
   const [expandedChart, setExpandedChart]   = useState(null)
+  const [expandedSection, setExpandedSection] = useState(null)
   const { canAccess, tier } = useSubscription()
 
   if (!canAccess('prime')) {
@@ -1371,9 +1491,34 @@ export default function MacroModule() {
         />
       )}
 
+      {/* Full-viewport section takeover */}
+      {expandedSection === 'rba' && (
+        <SectionExpandOverlay title="RBA DASHBOARD" onClose={() => setExpandedSection(null)}>
+          <RBADashboard askAI={askAI} />
+        </SectionExpandOverlay>
+      )}
+      {expandedSection === 'leading' && (
+        <SectionExpandOverlay title="LEADING INDICATORS" onClose={() => setExpandedSection(null)}>
+          <LeadingIndicators />
+        </SectionExpandOverlay>
+      )}
+      {expandedSection === 'china' && (
+        <SectionExpandOverlay title="CHINA WATCH" onClose={() => setExpandedSection(null)}>
+          <ChinaWatch askAI={askAI} />
+        </SectionExpandOverlay>
+      )}
+      {expandedSection === 'themes' && (
+        <SectionExpandOverlay title="KEY MACRO THEMES" onClose={() => setExpandedSection(null)}>
+          <div className="p-3"><MacroThemesSection /></div>
+        </SectionExpandOverlay>
+      )}
+
 
       {/* ── Section 1: RBA Dashboard ── */}
-      <RBADashboard askAI={askAI} />
+      <div className="relative">
+        <ExpandPill onClick={() => setExpandedSection('rba')} />
+        <RBADashboard askAI={askAI} />
+      </div>
 
       {/* ── Section 2: AU Macro Indicators ── */}
       <div style={{ marginTop: 24 }}>
@@ -1488,12 +1633,14 @@ export default function MacroModule() {
       </div>
 
       {/* ── Section 4: Leading Indicators ── */}
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 24 }} className="relative">
+        <ExpandPill onClick={() => setExpandedSection('leading')} />
         <LeadingIndicators />
       </div>
 
       {/* ── Section 5: China Watch ── */}
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 24 }} className="relative">
+        <ExpandPill onClick={() => setExpandedSection('china')} />
         <ChinaWatch askAI={askAI} />
       </div>
 
@@ -1521,7 +1668,10 @@ export default function MacroModule() {
           <div className="border-t border-terminal-border p-3 space-y-3">
             <MacroRegimeGauge />
 
-            <MacroThemesSection />
+            <div className="relative">
+              <ExpandPill onClick={() => setExpandedSection('themes')} />
+              <MacroThemesSection />
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <YieldCurveVisual />
