@@ -44,15 +44,17 @@ async function fetchRestCountries() {
   if (cached) return cached
 
   const res = await fetch(
-    'https://restcountries.com/v3.1/all?fields=name,cca2,cca3,ccn3,capital,population,area,currencies,languages,region,subregion,flags',
+    'https://restcountries.com/v3.1/all?fields=name,cca2,cca3,ccn3,capital,population,area,currencies,languages,region,subregion,flags,borders,timezones',
     { signal: AbortSignal.timeout(15_000) },
   )
   if (!res.ok) throw new Error(`REST Countries HTTP ${res.status}`)
   const raw = await res.json()
 
   const map = {}
+  const a3ToName = {}
   for (const c of raw) {
     if (!c.cca2) continue
+    if (c.cca3) a3ToName[c.cca3] = c.name?.common
     const currencyEntries = Object.entries(c.currencies ?? {})
     map[c.cca2] = {
       alpha2:    c.cca2,
@@ -69,10 +71,13 @@ async function fetchRestCountries() {
       region:    c.region ?? null,
       subregion: c.subregion ?? null,
       flag:      c.flags?.emoji ?? null,
+      borders:   c.borders ?? [],
+      timezones: c.timezones ?? [],
     }
   }
 
   setCountryCache('rest', map, TTL_24H)
+  setCountryCache('restA3Names', a3ToName, TTL_24H)
   console.log(`[CountryAPI] REST Countries: cached ${Object.keys(map).length} countries`)
   return map
 }

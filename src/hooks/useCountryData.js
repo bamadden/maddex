@@ -7,6 +7,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // Module-level lookup — built once
 const DB_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 
+function a3NameMap() { return getCountryCache('restA3Names') ?? {} }
+
 function freshnessStatus(cacheKey) {
   const age = getCacheAge(cacheKey)
   if (age == null) return 'hardcoded'
@@ -55,6 +57,8 @@ export function useCountryData(alpha2) {
       // Currency (normalised to object)
       currency,
       languages: base?.languages ?? restData?.languages,
+      timezones: restData?.timezones ?? null,
+      neighbours: (restData?.borders ?? []).map(a3 => a3NameMap()[a3] ?? a3),
 
       // Economy — priority: IMF > WB > hardcoded DB
       gdpTotal:     wbData?.gdpTotal     ?? base?.gdpTotal,

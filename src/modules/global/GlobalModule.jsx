@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchGeoNews, fetchNews } from '../../services/api'
+import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData } from '../../services/api'
+import { fetchSignificantEarthquakes, fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useCountryData } from '../../hooks/useCountryData'
@@ -815,6 +816,7 @@ function PRow({ label, value, cls }) {
 }
 
 function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
+  const { openModal } = useStore()
   const n      = parseInt(id)
   const name   = COUNTRY_NAMES[n] ?? 'Unknown Territory'
   const detail = COUNTRY_DETAIL[n]
@@ -958,6 +960,23 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           >ASK AI ◆</button>
         </div>
 
+        {/* ── Quick Stats — 4-box at-a-glance row ── */}
+        {hasData && (
+          <div className="grid grid-cols-4 border-b border-terminal-border/50 text-center">
+            {[
+              ['Population',   fmtPop(pop)],
+              ['GDP',          fmtGdpTotal(gdpTotal, audUsd, currencyMode)],
+              ['Unemployment', unemployment != null ? `${unemployment}%` : null],
+              ['Inflation',    inflation != null ? `${inflation}%` : null],
+            ].map(([label, value]) => (
+              <div key={label} className="py-1.5 px-1 border-r border-terminal-border/50 last:border-r-0">
+                <div className="text-xs font-bold text-terminal-text-bright">{value ?? '—'}</div>
+                <div className="text-2xs text-terminal-text-dim/70">{label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ── No-data fallback ── */}
         {!hasData && (
           <div className="px-3 py-4 border-b border-terminal-border/50">
@@ -986,6 +1005,7 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           <PRow label="Currency"   value={currCode ? `${currCode}${currName ? ` — ${currName}` : ''}` : null} />
           <PRow label="Languages"  value={languages?.length ? languages.join(', ') : null} />
           <PRow label="Government" value={govType} />
+          <PRow label="Neighbours" value={enriched?.neighbours?.length ? enriched.neighbours.join(', ') : null} />
         </div>
 
         {/* ── Local Time & Timezone ── */}
@@ -997,6 +1017,23 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           {ex && <PRow label="Index"    value={exIndex} cls="text-terminal-text-dim" />}
           {ex && <PRow label="Session"  value={exCountdown} cls={exCountdown ? 'text-terminal-gold' : 'text-terminal-text-dim'} />}
         </div>
+
+        {/* ── Market Connection — Maddex-tracked stocks listed on this
+            country's exchange, click opens the stock's detail modal ── */}
+        {ex?.topStocks?.length > 0 && (
+          <div className="px-3 py-2 border-b border-terminal-border/50">
+            {sec('Market Connection')}
+            <div className="flex flex-wrap gap-1.5">
+              {ex.topStocks.slice(0, 6).map(symbol => (
+                <button
+                  key={symbol}
+                  onClick={() => openModal({ symbol, name: symbol, type: symbol.endsWith('.AX') ? 'asx' : 'us' })}
+                  className="text-2xs px-1.5 py-0.5 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                >{symbol}</button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Macro Statistics ── */}
         <div className="px-3 py-2 border-b border-terminal-border/50">
@@ -1406,7 +1443,30 @@ const AU_FREIGHT_COMMODITIES = [
   { name:'Automotive',      dir:'IN',  note:'Parts, luxury vehicles from EU/Japan' },
 ]
 
-function AirTradeRoutesTab({ selectedArc, onArcClick }) {
+function LiveAirTraffic({ flightData }) {
+  if (!flightData?.total) return null
+  return (
+    <div className="p-2 border-b border-terminal-border">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-terminal-green flex-shrink-0" />
+        <span className="text-terminal-text-dim uppercase tracking-wider">Live Air Traffic (OpenSky)</span>
+      </div>
+      <div className="flex items-center gap-3 mb-1.5">
+        <div><span className="text-terminal-gold font-bold">{flightData.airborne.toLocaleString()}</span> <span className="text-terminal-text-dim">airborne now</span></div>
+        <div><span className="text-terminal-text-bright font-bold">{flightData.total.toLocaleString()}</span> <span className="text-terminal-text-dim">tracked</span></div>
+      </div>
+      <div className="text-terminal-text-dim/70 mb-1">Top 5 busiest regions</div>
+      {flightData.byCountry.slice(0, 5).map(c => (
+        <div key={c.country} className="flex items-center justify-between py-0.5 border-b border-terminal-border/20 last:border-0">
+          <span className="text-terminal-text truncate mr-2">{c.country}</span>
+          <span className="text-terminal-gold font-semibold flex-shrink-0">{c.count}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
@@ -1462,6 +1522,8 @@ function AirTradeRoutesTab({ selectedArc, onArcClick }) {
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#3b82f6'}}/>Intl Corridor</span>
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#14b8a6'}}/>Cargo Heavy</span>
         </div>
+
+        <LiveAirTraffic flightData={flightData} />
 
         {/* Top cargo routes globally */}
         <div className="p-2 border-b border-terminal-border">
@@ -1875,6 +1937,27 @@ function MarketSessionsTab({ now }) {
 
 // ─── Exchange Detail Panel ────────────────────────────────────────────────────
 
+// Open-Meteo current conditions for a financial centre's lat/lon — no key
+// required, fetched once per exchange selection and cached for 30min.
+function WeatherWidget({ lat, lon, city }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['weather', lat, lon],
+    queryFn:  () => fetchCurrentWeather(lat, lon),
+    staleTime: 30 * 60_000,
+    retry: 1,
+    enabled: lat != null && lon != null,
+  })
+  if (isLoading) return <div className="text-2xs text-terminal-text-dim/50">Loading weather…</div>
+  if (!data) return null
+  return (
+    <div className="flex items-center gap-2 text-2xs">
+      <span className="text-terminal-text-bright font-bold">{Math.round(data.temperature)}°C</span>
+      <span className="text-terminal-text-dim">{weatherCodeLabel(data.weathercode)}</span>
+      <span className="text-terminal-text-dim/50 ml-auto">{city}</span>
+    </div>
+  )
+}
+
 function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
   const { setActiveModule } = useStore()
   const ex = EXCHANGES.find(e => e.id === exchangeId)
@@ -1925,6 +2008,9 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
           </div>
           {cd && <div className="text-2xs text-terminal-gold">{cd}</div>}
           <div className="text-2xs text-terminal-text-dim mt-0.5">{lt} local · {ex.currency}</div>
+          <div className="mt-1.5 pt-1.5 border-t border-terminal-border/40">
+            <WeatherWidget lat={ex.lat} lon={ex.lon} city={ex.city} />
+          </div>
           <button
             onClick={() => setActiveModule('markets')}
             className="mt-2 w-full text-2xs font-bold tracking-wide bg-terminal-gold text-terminal-bg py-1.5 hover:bg-terminal-gold-bright transition-colors"
@@ -2255,6 +2341,25 @@ export default function GlobalModule() {
     retry: 1,
   })
 
+  // Live aircraft (OpenSky) — airborne count by origin country, for the AIR tab
+  const { data: flightRaw } = useQuery({
+    queryKey: ['opensky'],
+    queryFn:  fetchFlightData,
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
+    retry: 1,
+  })
+  const flightData = useMemo(() => transformFlightData(flightRaw), [flightRaw])
+
+  // USGS significant earthquakes (M4.0+, last 7 days) — SEISMIC globe layer
+  const { data: earthquakes } = useQuery({
+    queryKey: ['usgsQuakes'],
+    queryFn:  fetchSignificantEarthquakes,
+    staleTime: 10 * 60_000,
+    refetchInterval: 10 * 60_000,
+    retry: 1,
+  })
+
   // Combine for geopolitical tab
   const allNewsItems = useMemo(() => {
     const all = [...(geoNewsItems ?? []), ...(newsItems?.articles ?? [])]
@@ -2352,24 +2457,23 @@ export default function GlobalModule() {
 
           {/* Globe */}
           <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} md:block`} style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
-            <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} />
+            <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
           </div>
 
-          {/* Right tab panel — 300px */}
-          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:w-[320px] md:min-w-[320px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
-          {/* Tab bar — single row, equal-width tabs, no wrapping */}
-          <div className="flex flex-shrink-0 border-b border-terminal-border overflow-hidden">
+          {/* Right tab panel — 320-360px */}
+          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:min-w-[320px] md:max-w-[360px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
+          {/* Tab bar — scrollable row, each tab sized to its label so nothing
+              ellipsis-truncates into invisibility; scrolls horizontally on
+              overflow rather than squeezing every tab down further. */}
+          <div className="flex flex-shrink-0 border-b border-terminal-border overflow-x-auto flex-nowrap hide-scrollbar">
             {TABS.filter(t => !t.hidden).map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
                 style={{
-                  flex: 1,
-                  minWidth: 0,
-                  fontSize: '9px',
+                  flexShrink: 0,
+                  fontSize: '10px',
                   letterSpacing: '0.04em',
-                  padding: '6px 4px',
+                  padding: '6px 10px',
                   whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
                   textAlign: 'center',
                   borderRight: '1px solid rgba(13,34,68,0.8)',
                 }}
@@ -2412,6 +2516,7 @@ export default function GlobalModule() {
               <AirTradeRoutesTab
                 selectedArc={selectedArc}
                 onArcClick={setSelectedArc}
+                flightData={flightData}
               />
             ) : activeTab === 'commodities' ? (
               <CommodityFlowsTab onAskAI={handleAskAI} />

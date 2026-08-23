@@ -38,10 +38,14 @@ const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 const BASE_LAYERS = ['EARTH', 'DARK']
 const DATA_OVERLAY_KEYS = ['MARKETS', 'HEAT', 'CRYPTO']
 const ROUTE_OVERLAY_KEYS = ['SHIPPING', 'FREIGHT', 'TRADE_IMPACT']
-const ALL_OVERLAY_KEYS = [...DATA_OVERLAY_KEYS, ...ROUTE_OVERLAY_KEYS]
+// New on/off-only layers — seismic events, population-density fill, the
+// day/night terminator, and a purely decorative satellite orbit ring.
+const VISUAL_OVERLAY_KEYS = ['SEISMIC', 'POPULATION', 'DAYNIGHT', 'SATELLITE']
+const ALL_OVERLAY_KEYS = [...DATA_OVERLAY_KEYS, ...ROUTE_OVERLAY_KEYS, ...VISUAL_OVERLAY_KEYS]
 const OVERLAY_LABELS = {
   MARKETS: 'Markets', HEAT: 'Heat map', CRYPTO: 'Crypto',
   SHIPPING: 'Shipping routes', FREIGHT: 'Air freight', TRADE_IMPACT: 'Trade impact zones',
+  SEISMIC: 'Seismic (M4.0+)', POPULATION: 'Population density', DAYNIGHT: 'Day / night', SATELLITE: 'Satellite orbit',
 }
 const DEFAULT_OVERLAYS = {
   MARKETS:      { active: true,  opacity: 100 },
@@ -50,6 +54,48 @@ const DEFAULT_OVERLAYS = {
   SHIPPING:     { active: true,  opacity: 100 },
   FREIGHT:      { active: false, opacity: 100 },
   TRADE_IMPACT: { active: false, opacity: 100 },
+  SEISMIC:      { active: false, opacity: 100 },
+  POPULATION:   { active: false, opacity: 100 },
+  DAYNIGHT:     { active: false, opacity: 100 },
+  SATELLITE:    { active: false, opacity: 100 },
+}
+
+// Top ~50 most populous countries (2024-25 UN estimates, millions) — keyed
+// by ISO-3166-1 numeric id (matches world-atlas topojson feature.id, same
+// key space as CONTINENT_BY_COUNTRY_ID above). Used by the POPULATION
+// density visual layer; countries not listed fall back to grey.
+const POPULATION_MILLIONS_BY_COUNTRY_ID = {
+  356: 1441, 156: 1425, 840: 340, 360: 282, 586: 241, 566: 224, 76: 217, 50: 173,
+  643: 144, 484: 130, 392: 124, 231: 128, 608: 117, 818: 113, 180: 102, 704: 100,
+  364: 89, 792: 85, 276: 84, 764: 72, 826: 68, 250: 68, 834: 67, 710: 60,
+  380: 59, 404: 55, 104: 54, 170: 52, 410: 52, 729: 48, 800: 48, 724: 48,
+  12: 46, 32: 46, 368: 45, 4: 42, 887: 34, 124: 39, 616: 37, 504: 37,
+  24: 36, 804: 36, 860: 35, 458: 34, 604: 34, 682: 36, 508: 33, 862: 29,
+  384: 29, 36: 26,
+}
+
+// Solar declination + subsolar longitude for `date`, used to compute the
+// day/night terminator. Standard low-precision solar-position approximation
+// (accurate to within ~1°) — good enough for a visual globe layer, not
+// navigation. Returns [lon, lat] of the point on Earth directly under the sun.
+function subsolarPoint(date) {
+  const RADd = Math.PI / 180
+  const J2000 = Date.UTC(2000, 0, 1, 12, 0, 0)
+  const n = (date.getTime() - J2000) / 86400000
+  const L = (280.460 + 0.9856474 * n) % 360
+  const g = ((357.528 + 0.9856003 * n) % 360) * RADd
+  const lambda = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * RADd
+  const epsilon = (23.439 - 0.0000004 * n) * RADd
+  const decl = Math.asin(Math.sin(epsilon) * Math.sin(lambda)) / RADd
+  const utcHours = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600
+  const lon = -(utcHours - 12) * 15
+  return [lon, decl]
+}
+
+function isDaylit(lon, lat, subLon, subLat) {
+  const phi0 = subLat * RAD, lambda0 = subLon * RAD
+  const phi = lat * RAD, lambda = lon * RAD
+  return (Math.sin(phi) * Math.sin(phi0) + Math.cos(phi) * Math.cos(phi0) * Math.cos(lambda - lambda0)) > 0
 }
 
 // Default starting orientation — Australia centred (lon 134°E, lat 25°S),
@@ -255,7 +301,7 @@ function distToSegment(px, py, x1, y1, x2, y2) {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
+export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquakes } = {}) {
   const containerRef = useRef(null)
   const canvasRef = useRef(null)
   const rafRef = useRef(null)
@@ -310,6 +356,10 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
   const hoveredExchangeRef = useRef(null)
   const hoveredRouteRef = useRef(null) // { id, kind: 'SHIPPING'|'FREIGHT' }
   const exchangeScreenPosRef = useRef({}) // id -> { x, y, r }
+  const quakeScreenPosRef = useRef({}) // id -> { x, y, r }
+  const hoveredQuakeRef = useRef(null)
+  const earthquakesRef = useRef(earthquakes)
+  useEffect(() => { earthquakesRef.current = earthquakes }, [earthquakes])
   const pinnedCountryRef = useRef(null)
   const pinnedExchangeRef = useRef(null)
   const pinnedRouteRef = useRef(null)
@@ -376,6 +426,14 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     ? topojson.feature(topology, topology.objects.countries).features
     : [], [topology])
   const graticule = useMemo(() => d3.geoGraticule().step([30, 30])(), [])
+  // Precomputed once per topology load — geoCentroid is too costly to call
+  // per-feature every RAF frame (used by the DAYNIGHT terminator layer).
+  const countryCentroids = useMemo(() => {
+    const map = {}
+    for (const f of countries) map[f.id] = d3.geoCentroid(f)
+    return map
+  }, [countries])
+  const maxPopulation = useMemo(() => Math.max(...Object.values(POPULATION_MILLIONS_BY_COUNTRY_ID)), [])
 
   // country id -> today's %change (from whichever exchange is in that country)
   const heatByCountry = useMemo(() => {
@@ -459,9 +517,14 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
 
     const base = baseLayerRef.current
     const ovl = overlaysRef.current
-    const marketsOn = ovl.MARKETS?.active ?? false
-    const heatOn    = ovl.HEAT?.active ?? false
-    const cryptoOn  = ovl.CRYPTO?.active ?? false
+    const marketsOn    = ovl.MARKETS?.active ?? false
+    const heatOn       = ovl.HEAT?.active ?? false
+    const cryptoOn     = ovl.CRYPTO?.active ?? false
+    const populationOn = ovl.POPULATION?.active ?? false
+    const daynightOn   = ovl.DAYNIGHT?.active ?? false
+    const seismicOn    = ovl.SEISMIC?.active ?? false
+    const satelliteOn  = ovl.SATELLITE?.active ?? false
+    const [subLon, subLat] = daynightOn ? subsolarPoint(new Date()) : [0, 0]
     const zoomK = zoomKRef.current
     const rotation = rotationRef.current
     const cx = width / 2
@@ -553,6 +616,26 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           ctx.globalAlpha = (ovl.CRYPTO.opacity ?? 70) / 100
           ctx.beginPath(); path(feature)
           ctx.fillStyle = CRYPTO_TIER_COLORS[tier]
+          ctx.fill()
+          ctx.globalAlpha = 1
+        }
+      }
+      if (populationOn) {
+        const popM = POPULATION_MILLIONS_BY_COUNTRY_ID[numericId]
+        ctx.beginPath(); path(feature)
+        ctx.fillStyle = popM != null ? d3.interpolateBlues(0.25 + 0.65 * (popM / maxPopulation)) : '#3a3a3a'
+        ctx.fill()
+      }
+      // Day/night terminator — dims the night-side fill to ~40% brightness
+      // via a translucent black overlay rather than parsing/multiplying the
+      // underlying colour, which stays correct regardless of what other
+      // overlays already tinted this country.
+      if (daynightOn) {
+        const centroid = countryCentroids[feature.id]
+        if (centroid && !isDaylit(centroid[0], centroid[1], subLon, subLat)) {
+          ctx.globalAlpha = 0.6
+          ctx.beginPath(); path(feature)
+          ctx.fillStyle = '#000000'
           ctx.fill()
           ctx.globalAlpha = 1
         }
@@ -791,6 +874,57 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     }
     exchangeScreenPosRef.current = nextScreenPos
 
+    // Seismic markers — USGS significant earthquakes (M4.0+, last 7 days),
+    // red circles sized by magnitude, only on the visible hemisphere.
+    const nextQuakePos = {}
+    if (seismicOn && earthquakesRef.current?.length) {
+      for (const q of earthquakesRef.current) {
+        if (!isPointVisible(q.lon, q.lat, rotation)) continue
+        const p = projection([q.lon, q.lat])
+        if (!p) continue
+        const [px, py] = p
+        const r = 2 + Math.max(0, q.mag) * 1.3
+        nextQuakePos[q.id] = { x: px, y: py, r: r + 2 }
+        ctx.beginPath()
+        ctx.arc(px, py, r, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(220,40,40,0.45)'
+        ctx.fill()
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(255,90,90,0.9)'
+        ctx.stroke()
+      }
+    }
+    quakeScreenPosRef.current = nextQuakePos
+
+    // Satellite orbit — purely decorative animated ring. Drawn as a screen-
+    // space ellipse around the globe (vertical squash fakes a ~45° orbital
+    // inclination) with a dot advancing along it based on the RAF timestamp.
+    if (satelliteOn) {
+      const orbitR = scaledRadius * 1.18
+      const inclination = 0.7 // vertical squash factor ≈ cos(45°)
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.scale(1, inclination)
+      ctx.beginPath()
+      ctx.setLineDash([3, 5])
+      ctx.arc(0, 0, orbitR, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(201,168,76,0.35)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+      ctx.setLineDash([])
+      const orbitAngle = (now / 4000) % (Math.PI * 2)
+      const sx = Math.cos(orbitAngle) * orbitR
+      const sy = Math.sin(orbitAngle) * orbitR
+      ctx.beginPath()
+      ctx.arc(sx, sy, 2.5, 0, Math.PI * 2)
+      ctx.fillStyle = '#F0D060'
+      ctx.shadowColor = 'rgba(240,208,96,0.8)'
+      ctx.shadowBlur = 6
+      ctx.fill()
+      ctx.shadowBlur = 0
+      ctx.restore()
+    }
+
     // Vignette — subtle depth cue around the globe's edge, screen-space,
     // independent of zoom/rotation, drawn last so it sits above everything.
     const vignette = ctx.createRadialGradient(cx, cy, scaledRadius * 0.75, cx, cy, scaledRadius * 1.15)
@@ -798,7 +932,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
     vignette.addColorStop(1, 'rgba(0,0,0,0.1)')
     ctx.fillStyle = vignette
     ctx.fillRect(0, 0, width, height)
-  }, [width, height, radius, countries, graticule, heatByCountry])
+  }, [width, height, radius, countries, graticule, heatByCountry, countryCentroids, maxPopulation])
 
   // ── RAF loop: rotation + redraw ──────────────────────────────────────────
   useEffect(() => {
@@ -836,10 +970,21 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       }
       hoveredExchangeRef.current = exId
 
+      // Seismic markers — checked next, only when SEISMIC is on and the
+      // mouse isn't already over an exchange marker.
+      let quakeId = null
+      if (!exId && ovl.SEISMIC?.active) {
+        for (const [id, pos] of Object.entries(quakeScreenPosRef.current)) {
+          const dx = mx - pos.x, dy = my - pos.y
+          if (dx * dx + dy * dy <= pos.r * pos.r) { quakeId = id; break }
+        }
+      }
+      hoveredQuakeRef.current = quakeId
+
       // Route hover — only checked when a route overlay is on, and only when
       // the mouse isn't already over an exchange marker.
       let routeHit = null
-      if (!exId) {
+      if (!exId && !quakeId) {
         const threshold = 6
         if (ovl.SHIPPING?.active) {
           for (const route of SHIPPING_ROUTES) {
@@ -877,7 +1022,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
       // can resolve to a back-hemisphere lon/lat that still happens to fall
       // inside a (non-rendered) country polygon, bleeding its tooltip through.
       let countryId = null
-      if (!exId && !routeHit) {
+      if (!exId && !quakeId && !routeHit) {
         const lonLat = projection.invert([mx, my])
         if (lonLat && Math.abs(lonLat[0]) <= 180 && isPointVisible(lonLat[0], lonLat[1], rotationRef.current)) {
           for (const feature of countries) {
@@ -895,6 +1040,11 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
         const chg = q?.dayChangePct
         const text = `${ex.label} · ${ex.city}${q?.price != null ? ` · ${q.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ''}${chg != null ? ` (${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%)` : ''} · ${isExchangeOpen(ex) ? 'OPEN' : 'CLOSED'}`
         setTooltip({ x: mx, y: my, text })
+      } else if (quakeId) {
+        const q = earthquakesRef.current?.find(e => String(e.id) === quakeId)
+        if (q) {
+          setTooltip({ x: mx, y: my, text: `M${q.mag.toFixed(1)} · ${q.depthKm.toFixed(0)}km depth · ${q.place}` })
+        }
       } else if (routeHit) {
         const detail = routeHit.kind === 'SHIPPING' ? routeHit.route.teu : routeHit.route.tonnage
         const status = routeHit.route.status ?? 'ACTIVE'
@@ -1186,8 +1336,26 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick } = {}) {
           </div>
 
           <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">ROUTE OVERLAYS</div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 mb-2.5">
             {ROUTE_OVERLAY_KEYS.map((key) => {
+              const ovl = overlays[key]
+              return (
+                <label key={key} className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ovl.active}
+                    onChange={() => toggleOverlay(key)}
+                    className="accent-terminal-gold"
+                  />
+                  <span className={ovl.active ? 'text-terminal-gold' : ''}>{OVERLAY_LABELS[key]}</span>
+                </label>
+              )
+            })}
+          </div>
+
+          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">VISUAL OVERLAYS</div>
+          <div className="flex flex-col gap-1.5">
+            {VISUAL_OVERLAY_KEYS.map((key) => {
               const ovl = overlays[key]
               return (
                 <label key={key} className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
