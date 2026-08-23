@@ -65,7 +65,7 @@ export default function NavBar() {
           : <PinOff size={14} strokeWidth={1.75} className="flex-shrink-0" />}
         <span className={labelCls}>{pinned ? 'PINNED' : 'PIN SIDEBAR'}</span>
       </button>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar py-2">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar py-2">
         {NAV_ITEMS.map((item) => {
           const isActive = activeModule === item.id
           return (

@@ -75,6 +75,26 @@ body {
   display: none;
 }
 
+/* Thin, subtle scrollbar for containers that must still show *some* cue
+   when content overflows and scrolls (e.g. the nav sidebar's item list) —
+   unlike .hide-scrollbar, silently hiding this affordance would leave a
+   scrolled-off item (like NEWS below PORTFOLIO on a short viewport) with
+   no indication it still exists. */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 168, 75, 0.25) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(200, 168, 75, 0.25);
+  border-radius: 2px;
+}
+
 /* Table styles — header row: surface2 bg, 8px tracked-out muted label.
    Data rows: 11px mono, tabular figures, subtle row border, no alternating
    stripe (flat stripes read as "basic web table", not instrument panel). */
