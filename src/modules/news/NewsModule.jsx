@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS } from '../../services/api'
+import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockData'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
@@ -186,6 +187,215 @@ function extractTrending(items) {
   return Object.entries(counts).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 12)
 }
 
+// ─── Sentiment aggregation — reuses the per-article `.sentiment` field
+// already populated by inferSentiment() in api.js at fetch time ──────────────
+
+function overallSentiment(items) {
+  let bull = 0, bear = 0, neutral = 0
+  for (const item of items) {
+    if (item.sentiment === 'BULLISH') bull++
+    else if (item.sentiment === 'BEARISH') bear++
+    else neutral++
+  }
+  const total = bull + bear + neutral || 1
+  return {
+    bullPct: Math.round((bull / total) * 100),
+    bearPct: Math.round((bear / total) * 100),
+    neutralPct: Math.round((neutral / total) * 100),
+    total,
+    label: bull >= bear && bull >= neutral ? 'BULLISH' : bear >= bull && bear >= neutral ? 'BEARISH' : 'NEUTRAL',
+  }
+}
+
+// ─── Mock sparkline data — deterministic per-symbol synthetic 5D history,
+// seeded so it's stable within a page load. mockData.js only carries current
+// snapshot fields (price/changePct), not history arrays, so the trend line
+// is generated here: it walks from an implied start price to the current
+// price (consistent with changePct) with small seeded noise along the way. ──
+
+function strSeed(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h) || 1
+}
+function seededRandom(seed) {
+  let s = seed % 2147483647
+  if (s <= 0) s += 2147483646
+  return () => (s = (s * 16807) % 2147483647) / 2147483647
+}
+function generateSparkline(seedKey, currentPrice, changePct, points = 8) {
+  const rand = seededRandom(strSeed(seedKey))
+  const startPrice = currentPrice / (1 + changePct / 100)
+  const vals = []
+  for (let i = 0; i < points; i++) {
+    const t = i / (points - 1)
+    const trend = startPrice + (currentPrice - startPrice) * t
+    const noise = (rand() - 0.5) * Math.abs(currentPrice) * 0.015
+    vals.push(trend + noise)
+  }
+  vals[points - 1] = currentPrice
+  return vals
+}
+
+function MiniSparkline({ values, up, width = 80, height = 36 }) {
+  if (!values || values.length < 2) return null
+  const min = Math.min(...values), max = Math.max(...values)
+  const range = max - min || 1
+  const step = width / (values.length - 1)
+  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ')
+  const color = up ? '#c8a84b' : '#a83232'
+  return (
+    <svg width={width} height={height} style={{ flexShrink: 0, display: 'block' }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+// ─── Story → tracked-asset resolver — detects whether a headline mentions a
+// symbol the app tracks (BHP/CBA/BTC/XRP/ASX 200 etc.) so the top story and
+// market-impact row can show real (mock) price context, not just a badge. ──
+
+const STORY_ASSET_CANDIDATES = [
+  { keys: ['BHP'],                        source: 'asx',   symbol: 'BHP.AX', label: 'BHP' },
+  { keys: ['CBA'],                        source: 'asx',   symbol: 'CBA.AX', label: 'CBA' },
+  { keys: ['CSL'],                        source: 'asx',   symbol: 'CSL.AX', label: 'CSL' },
+  { keys: ['RIO'],                        source: 'asx',   symbol: 'RIO.AX', label: 'RIO' },
+  { keys: ['FMG', 'FORTESCUE'],           source: 'asx',   symbol: 'FMG.AX', label: 'FMG' },
+  { keys: ['NEM', 'NEWCREST'],            source: 'asx',   symbol: 'NEM.AX', label: 'NEM' },
+  { keys: ['STO', 'SANTOS'],              source: 'asx',   symbol: 'STO.AX', label: 'STO' },
+  { keys: ['WDS', 'WOODSIDE'],            source: 'asx',   symbol: 'WDS.AX', label: 'WDS' },
+  { keys: ['BTC', 'BITCOIN'],             source: 'crypto', id: 'bitcoin',  label: 'BTC' },
+  { keys: ['ETH', 'ETHEREUM'],            source: 'crypto', id: 'ethereum', label: 'ETH' },
+  { keys: ['XRP', 'RIPPLE'],              source: 'crypto', id: 'ripple',   label: 'XRP' },
+  { keys: ['SOL', 'SOLANA'],              source: 'crypto', id: 'solana',   label: 'SOL' },
+  { keys: ['ASX 200', 'ASX200', '^AXJO'], source: 'index',  symbol: '^AXJO', label: 'ASX 200' },
+]
+
+function resolveStoryAsset(item) {
+  if (!item) return null
+  const tickers = item.tickers ?? []
+  const text = `${item.headline} ${item.summary ?? ''}`.toUpperCase()
+  for (const cand of STORY_ASSET_CANDIDATES) {
+    const hit = cand.keys.some(k => tickers.includes(k) || text.includes(k))
+    if (!hit) continue
+    let entry, price, changePct
+    if (cand.source === 'asx') {
+      entry = MOCK_ASX_STOCKS[cand.symbol]
+      if (!entry) continue
+      price = entry.price; changePct = entry.changePct
+    } else if (cand.source === 'index') {
+      entry = MOCK_INDICES[cand.symbol]
+      if (!entry) continue
+      price = entry.price; changePct = entry.changePct
+    } else {
+      entry = MOCK_CRYPTO.find(c => c.id === cand.id)
+      if (!entry) continue
+      price = entry.current_price; changePct = entry.price_change_percentage_24h
+    }
+    return {
+      label: cand.label,
+      price, changePct,
+      up: changePct >= 0,
+      values: generateSparkline(cand.label, price, changePct),
+    }
+  }
+  return null
+}
+
+// Fixed representative set for the MARKET IMPACT row — mock data per spec
+// ("use mock data from mockData.js"), a mix of ASX/index/crypto so the row
+// reads as a market snapshot rather than a single-asset callout.
+function marketImpactAssets() {
+  const picks = [
+    { label: 'BHP',     entry: MOCK_ASX_STOCKS['BHP.AX'] },
+    { label: 'CBA',     entry: MOCK_ASX_STOCKS['CBA.AX'] },
+    { label: 'ASX 200', entry: MOCK_INDICES['^AXJO'] },
+    { label: 'BTC',     entry: MOCK_CRYPTO.find(c => c.id === 'bitcoin') },
+    { label: 'XRP',     entry: MOCK_CRYPTO.find(c => c.id === 'ripple') },
+  ]
+  return picks.map(p => {
+    const changePct = p.entry.changePct ?? p.entry.price_change_percentage_24h ?? 0
+    return { label: p.label, changePct }
+  })
+}
+
+// ─── SENTIMENT VISUALISER — full-width bar above the 3-column layout ────────
+
+function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
+  const s = useMemo(() => overallSentiment(items), [items])
+  const topTags = trending.slice(0, 5)
+
+  return (
+    <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase">NEWS SENTIMENT TODAY</span>
+        <span
+          className="text-2xs font-bold"
+          style={{ color: s.label === 'BULLISH' ? '#3aaa63' : s.label === 'BEARISH' ? '#cc4444' : '#c9a84c' }}
+        >
+          {s.label === 'BULLISH' ? s.bullPct : s.label === 'BEARISH' ? s.bearPct : s.neutralPct}% {s.label}
+        </span>
+        <span className="text-2xs text-terminal-text-dim/40 ml-auto">{s.total} articles analysed</span>
+      </div>
+
+      <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+        {s.bullPct > 0 && <div style={{ width: `${s.bullPct}%`, background: '#3aaa63' }} title={`Bullish ${s.bullPct}%`} />}
+        {s.neutralPct > 0 && <div style={{ width: `${s.neutralPct}%`, background: '#c9a84c' }} title={`Neutral ${s.neutralPct}%`} />}
+        {s.bearPct > 0 && <div style={{ width: `${s.bearPct}%`, background: '#cc4444' }} title={`Bearish ${s.bearPct}%`} />}
+      </div>
+
+      {topTags.length > 0 && (
+        <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {topTags.map(([word]) => {
+            const isActive = searchTerm.toLowerCase() === word.toLowerCase()
+            return (
+              <button
+                key={word}
+                onClick={() => onTagClick(isActive ? '' : word)}
+                className={`text-[9px] font-mono px-2 py-0.5 rounded-full border flex-shrink-0 transition-colors ${
+                  isActive
+                    ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/15'
+                    : 'border-terminal-gold/30 text-terminal-gold/80 hover:border-terminal-gold hover:bg-terminal-gold/10'
+                }`}
+              >
+                #{word.replace(/\s+/g, '')}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── MARKET IMPACT — ticker | %change | mini bar, below the top story ───────
+
+function MarketImpactRow() {
+  const assets = useMemo(() => marketImpactAssets(), [])
+  const maxAbs = Math.max(...assets.map(a => Math.abs(a.changePct)), 0.1)
+
+  return (
+    <div className="px-3 py-2 border-t border-terminal-border flex-shrink-0">
+      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">MARKET IMPACT</div>
+      <div className="flex flex-col gap-1">
+        {assets.map(a => {
+          const up = a.changePct >= 0
+          const widthPct = (Math.abs(a.changePct) / maxAbs) * 100
+          return (
+            <div key={a.label} className="flex items-center gap-2 text-[10px] font-mono">
+              <span className="text-terminal-text-bright w-14 flex-shrink-0">{a.label}</span>
+              <span className={`w-12 flex-shrink-0 text-right ${up ? 'pos' : 'neg'}`}>{up ? '+' : ''}{a.changePct.toFixed(2)}%</span>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ width: `${widthPct}%`, height: '100%', background: up ? '#3aaa63' : '#a83232' }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Article card ─────────────────────────────────────────────────────────────
 
 function primaryDisplayCategory(item) {
@@ -211,11 +421,13 @@ function TickerBadgeRow({ tickers, onOpenTicker }) {
   )
 }
 
-// ─── TOP STORY — full-width card ─────────────────────────────────────────────
+// ─── TOP STORY — full-width card, with a mini sparkline (top-right) when the
+// headline mentions a tracked asset ──────────────────────────────────────────
 
 function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI, onOpenTicker }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
+  const asset       = useMemo(() => resolveStoryAsset(item), [item])
 
   return (
     <div
@@ -223,11 +435,19 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
       style={{ borderLeft: `3px solid ${isBreaking ? '#a83232' : '#c8a84b'}` }}
       onClick={() => onToggle(item)}
     >
-      <p className="font-semibold text-terminal-text-bright leading-snug mb-1" style={{ fontSize: 15 }}>
-        {isUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mr-1.5" />}
-        {isBreaking && <span className="text-[#a83232] font-bold mr-1.5">● BREAKING</span>}
-        <HighlightText text={item.headline} term={searchTerm} />
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold text-terminal-text-bright leading-snug mb-1" style={{ fontSize: 15 }}>
+          {isUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mr-1.5" />}
+          {isBreaking && <span className="text-[#a83232] font-bold mr-1.5">● BREAKING</span>}
+          <HighlightText text={item.headline} term={searchTerm} />
+        </p>
+        {asset && (
+          <div className="flex-shrink-0 text-right">
+            <MiniSparkline values={asset.values} up={asset.up} />
+            <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-1.5 text-[10px] font-mono text-terminal-text-dim mb-1.5">
         <SourceCircle source={item.source} size={12} />
@@ -268,57 +488,149 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
   )
 }
 
-// ─── STORY ROW — plain list row, no card background, thin bottom border only.
-// Replaces both the old 3-col grid cards and the below-the-fold compact rows
-// with a single treatment — the brief wants "a proper news feed, not a card
-// grid" for everything below the top story. ───────────────────────────────
+// ─── STORY ROW — plain list row (48px), click expands an inline accordion
+// with the 2-line summary + Read/Ask actions; only one row open at a time. ──
 
-function StoryRow({ item, isUnread, isPulsing, onToggle, onOpenTicker }) {
+function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
+  const asset       = useMemo(() => (isExpanded ? resolveStoryAsset(item) : null), [item, isExpanded])
+  const relevanceColor = isBreaking ? '#a83232' : item.sentiment === 'BULLISH' ? '#3aaa63' : item.sentiment === 'BEARISH' ? '#a83232' : '#4a6580'
 
   return (
-    <div
-      className={`news-row ${isPulsing ? 'news-pulse' : ''} flex items-start gap-2.5 px-3 py-2 border-b border-terminal-border cursor-pointer hover:bg-terminal-surface2 transition-colors`}
-      style={{ maxHeight: 64 }}
-      onClick={() => onToggle(item)}
-    >
-      <SourceCircle source={item.source} size={12} />
-      <div className="flex-1 min-w-0">
-        <p className="text-[12px] text-terminal-text-bright leading-snug line-clamp-2">
-          {isUnread && <span className="inline-block w-1 h-1 rounded-full bg-terminal-gold mr-1.5 align-middle" />}
-          {isBreaking && <span className="text-[#a83232] font-bold mr-1">●</span>}
-          {item.headline}
-          {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[9px]">NEW</span>}
-        </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[9px] font-mono text-terminal-text-dim">{item.source} · {timeAgo(item.pubDate)}</span>
-          <span
-            className="px-1 rounded-full leading-none py-0.5"
-            style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8a94a6'}22`, color: TAG_COLOR[item.tag] ?? '#8a94a6' }}
-          >
-            {primaryDisplayCategory(item)}
-          </span>
-          <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
+    <div className="border-b border-terminal-border">
+      <div
+        className={`news-row ${isPulsing ? 'news-pulse' : ''} flex items-start gap-2.5 px-3 py-2 cursor-pointer hover:bg-terminal-surface2 transition-colors`}
+        style={{ minHeight: 48 }}
+        onClick={() => onExpand(item)}
+      >
+        <SourceCircle source={item.source} size={12} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] text-terminal-text-bright leading-snug line-clamp-1">
+            {isUnread && <span className="inline-block w-1 h-1 rounded-full bg-terminal-gold mr-1.5 align-middle" />}
+            {isBreaking && <span className="text-[#a83232] font-bold mr-1">●</span>}
+            {item.headline}
+            {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[9px]">NEW</span>}
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[9px] font-mono text-terminal-text-dim">{item.source} · {timeAgo(item.pubDate)}</span>
+            <span
+              className="px-1 rounded-full leading-none py-0.5"
+              style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8a94a6'}22`, color: TAG_COLOR[item.tag] ?? '#8a94a6' }}
+            >
+              {primaryDisplayCategory(item)}
+            </span>
+            <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
+          </div>
         </div>
+        <span
+          className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1"
+          style={{ background: relevanceColor }}
+        />
+      </div>
+
+      {isExpanded && (
+        <div className="px-3 pb-3 pl-8 panel-fade">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs text-terminal-text-dim leading-snug flex-1">
+              {item.summary || 'No summary available for this story.'}
+            </p>
+            {asset && (
+              <div className="flex-shrink-0 text-right">
+                <MiniSparkline values={asset.values} up={asset.up} />
+                <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-2">
+            {item.link && (
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
+              >
+                Read →
+              </a>
+            )}
+            <button
+              onClick={e => { e.stopPropagation(); onAskAI(item) }}
+              className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
+            >
+              Ask MaddenAI ▶
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── RIGHT SIDEBAR — trending movers, topic word-cloud, breaking feed ───────
+
+function TrendingNow() {
+  const assets = useMemo(() => marketImpactAssets(), [])
+  return (
+    <div className="px-3 py-2 border-b border-terminal-border">
+      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">TRENDING NOW</div>
+      <div className="flex flex-col gap-1.5">
+        {assets.slice(0, 5).map(a => {
+          const up = a.changePct >= 0
+          return (
+            <div key={a.label} className="flex items-center justify-between text-[10px] font-mono">
+              <span className="text-terminal-text-bright">{a.label}</span>
+              <span className={up ? 'pos' : 'neg'}>{up ? '+' : ''}{a.changePct.toFixed(2)}%</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-// ─── Breaking ticker (horizontal marquee) ────────────────────────────────────
+function TopTopicsCloud({ trending, searchTerm, onTagClick }) {
+  if (trending.length === 0) return null
+  const maxCount = Math.max(...trending.map(([, c]) => c))
+  const minCount = Math.min(...trending.map(([, c]) => c))
+  const range = maxCount - minCount || 1
+  const sizeFor = (c) => 9 + Math.round(((c - minCount) / range) * 7) // 9px .. 16px
 
-function BreakingTicker({ items }) {
-  if (!items.length) return null
-  const content = items.map(i => `● ${i.headline}`).join('   ·   ')
   return (
-    <div className="overflow-hidden border-b border-terminal-border flex-shrink-0" style={{ height: 22 }}>
-      <style>{`
-        @keyframes nticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-        .nticker-track{animation:nticker 70s linear infinite;white-space:nowrap;display:inline-block;animation-play-state:running !important;}
-      `}</style>
-      <div className="nticker-track px-3" style={{ fontSize: 9, color: 'var(--mt-gold,#C9A84C)', lineHeight: '22px' }}>
-        {content}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{content}
+    <div className="px-3 py-2 border-b border-terminal-border">
+      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">TOP TOPICS</div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {trending.slice(0, 12).map(([word, count]) => {
+          const isActive = searchTerm.toLowerCase() === word.toLowerCase()
+          return (
+            <button
+              key={word}
+              onClick={() => onTagClick(isActive ? '' : word)}
+              className={`font-mono leading-none transition-colors ${isActive ? 'text-terminal-gold font-bold' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              style={{ fontSize: sizeFor(count) }}
+            >
+              {word}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function BreakingFeed({ items }) {
+  const top3 = items.slice(0, 3)
+  if (top3.length === 0) return null
+  return (
+    <div className="px-3 py-2">
+      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">BREAKING</div>
+      <div className="flex flex-col gap-1.5">
+        {top3.map(item => (
+          <div key={item.id} className="text-[10px] leading-snug text-terminal-text-dim">
+            <span className="text-[#a83232] font-bold mr-1">●</span>
+            {item.headline}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -341,6 +653,7 @@ export default function NewsModule() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
   const [isFlashing, setIsFlashing]   = useState(false)
   const [nowTs, setNowTs]             = useState(Date.now())
+  const [expandedId, setExpandedId]   = useState(null)
   const prevHeadlines                 = useRef(new Set())
   const listTopRef                    = useRef(null)
 
@@ -433,7 +746,7 @@ export default function NewsModule() {
     allArticles.filter(a => isBreakingArticle(a) || isNewArticle(a)).slice(0, 10)
   , [allArticles, nowTs])
 
-  const trending   = useMemo(() => extractTrending(allArticles), [allArticles])
+  const trending = useMemo(() => extractTrending(allArticles), [allArticles])
 
   const askAI = useCallback((item) => {
     dispatchAskAI({
@@ -445,15 +758,26 @@ export default function NewsModule() {
     })
   }, [])
 
-  // Clicking a card marks it read and opens the source article — there's no
-  // inline expand any more now the feed is split into top/secondary/compact
-  // tiers, so "click the headline" and "open the story" are the same action.
+  // Clicking the top story marks it read and opens the source article
+  // directly (it's the hero item, no accordion). Story-row clicks instead
+  // toggle the inline accordion via handleExpand below.
   const handleToggle = useCallback((item) => {
     if (!readIds.has(item.id)) {
       const next = new Set(readIds); next.add(item.id); next.add(item.headline)
       setReadIds(next); saveReadSet(next)
     }
     if (item.link) window.open(item.link, '_blank', 'noopener,noreferrer')
+  }, [readIds])
+
+  // Story rows: click expands an inline accordion (only one open at a time)
+  // and marks read, but does NOT navigate away — "Read full story" inside
+  // the accordion is the explicit action for that.
+  const handleExpand = useCallback((item) => {
+    if (!readIds.has(item.id)) {
+      const next = new Set(readIds); next.add(item.id); next.add(item.headline)
+      setReadIds(next); saveReadSet(next)
+    }
+    setExpandedId(prev => (prev === item.id ? null : item.id))
   }, [readIds])
 
   const handleOpenTicker = useCallback((badge) => {
@@ -491,6 +815,9 @@ export default function NewsModule() {
   const nextRefreshSecs    = lastUpdatedAt
     ? Math.max(0, Math.round((REFRESH_MS - (nowTs - lastUpdatedAt)) / 1000))
     : null
+
+  const topStory   = byCategory[0]
+  const listRest    = byCategory.slice(1)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -530,24 +857,8 @@ export default function NewsModule() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border flex-shrink-0">
-        <span className="text-terminal-text-dim text-2xs">⌕</span>
-        <input
-          className="cmd-input flex-1 text-2xs py-0"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Filter headlines... (CMD: NEWS {keyword})"
-        />
-        {searchTerm && (
-          <>
-            <span className="text-2xs text-terminal-text-dim/50">{byCategory.length} results</span>
-            <button onClick={() => setSearchTerm('')} className="text-terminal-text-dim/40 hover:text-terminal-text-dim text-xs ml-1">✕</button>
-          </>
-        )}
-      </div>
-
-      {/* Category pills — compact, gold fill when active */}
+      {/* Category pills — moved to the very top of the interactive area,
+          above search, per the redesign */}
       <div className="flex flex-nowrap items-center overflow-x-auto gap-1.5 px-2 py-1.5 border-b border-terminal-border flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
         {DISPLAY_CATEGORIES.map(({ key, label }) => {
           const count = catCount(key)
@@ -568,76 +879,82 @@ export default function NewsModule() {
             </button>
           )
         })}
+
+        <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+          <span className="text-terminal-text-dim text-2xs">⌕</span>
+          <input
+            className="cmd-input text-2xs py-0"
+            style={{ width: 160 }}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Filter headlines..."
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="text-terminal-text-dim/40 hover:text-terminal-text-dim text-xs">✕</button>
+          )}
+        </div>
       </div>
 
-      {/* Trending topics — a single compact strip, not its own dedicated
-          block, so it doesn't reintroduce the density the redesign removed */}
-      {trending.length > 0 && (
-        <div className="flex items-center gap-1.5 px-2 py-1 border-b border-terminal-border/50 flex-shrink-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          <span className="text-[9px] font-mono text-terminal-text-dim/50 flex-shrink-0">TRENDING</span>
-          {trending.slice(0, 8).map(([word, count]) => {
-            const isActive = searchTerm.toLowerCase() === word.toLowerCase()
-            return (
-              <button
-                key={word}
-                onClick={() => setSearchTerm(isActive ? '' : word)}
-                className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full border flex-shrink-0 transition-colors ${
-                  isActive
-                    ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10'
-                    : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-text'
-                }`}
-              >
-                {word} {count}
-              </button>
-            )
-          })}
-        </div>
+      {/* Sentiment visualiser — full width, top of the news area */}
+      <SentimentVisualiser items={allArticles} trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} />
+
+      {/* New stories banner — click scrolls back to the top of the centre list */}
+      {newIds.size > 0 && (
+        <button
+          onClick={() => { setNewIds(new Map()); listTopRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 text-left hover:bg-terminal-gold/15 transition-colors flex-shrink-0"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />
+          <span className="text-2xs text-terminal-gold font-bold">● {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'}</span>
+        </button>
       )}
 
-      <BreakingTicker items={breakingItems} />
-
-      {/* Articles — full-width top story, then a plain list of rows */}
-      <div className="flex-1 overflow-auto" ref={listTopRef}>
-        {/* New stories banner — click scrolls back to the top of the list */}
-        {newIds.size > 0 && (
-          <button
-            onClick={() => { setNewIds(new Map()); listTopRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) }}
-            className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 text-left hover:bg-terminal-gold/15 transition-colors"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />
-            <span className="text-2xs text-terminal-gold font-bold">● {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'}</span>
-          </button>
-        )}
-
-        {byCategory.length === 0 ? (
-          <div className="p-4 text-2xs text-terminal-text-dim text-center">
-            {searchTerm ? `No articles matching "${searchTerm}"` : 'No articles in this category'}
-          </div>
-        ) : (
-          <>
+      {/* 3-column layout: LEFT top story/sentiment context/market impact,
+          CENTRE story list with accordion, RIGHT trending/topics/breaking */}
+      {byCategory.length === 0 ? (
+        <div className="p-4 text-2xs text-terminal-text-dim text-center flex-1">
+          {searchTerm ? `No articles matching "${searchTerm}"` : 'No articles in this category'}
+        </div>
+      ) : (
+        <div className="flex-1 flex overflow-hidden">
+          {/* LEFT 35% */}
+          <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '35%', scrollbarWidth: 'none' }}>
             <TopStoryCard
-              item={byCategory[0]}
-              isUnread={!readIds.has(byCategory[0].id) && !readIds.has(byCategory[0].headline)}
+              item={topStory}
+              isUnread={!readIds.has(topStory.id) && !readIds.has(topStory.headline)}
               searchTerm={searchTerm}
-              isPulsing={newIds.has(byCategory[0].headline) && (nowTs - newIds.get(byCategory[0].headline) < PULSE_MS)}
+              isPulsing={newIds.has(topStory.headline) && (nowTs - newIds.get(topStory.headline) < PULSE_MS)}
               onToggle={handleToggle}
               onAskAI={askAI}
               onOpenTicker={handleOpenTicker}
             />
+            <MarketImpactRow />
+          </div>
 
-            {byCategory.slice(1).map(item => (
+          {/* CENTRE 40% */}
+          <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '40%' }} ref={listTopRef}>
+            {listRest.map(item => (
               <StoryRow
                 key={item.id}
                 item={item}
                 isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
                 isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
-                onToggle={handleToggle}
+                isExpanded={expandedId === item.id}
+                onExpand={handleExpand}
                 onOpenTicker={handleOpenTicker}
+                onAskAI={askAI}
               />
             ))}
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* RIGHT 25% */}
+          <div className="flex flex-col overflow-y-auto" style={{ width: '25%', scrollbarWidth: 'none' }}>
+            <TrendingNow />
+            <TopTopicsCloud trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} />
+            <BreakingFeed items={breakingItems} />
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="border-t border-terminal-border px-3 py-1 flex-shrink-0">
