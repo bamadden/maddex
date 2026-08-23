@@ -86,6 +86,18 @@ function isBreakingArticle(item) {
   return ageMs <= 30 * 60_000 && BREAKING_RE.test(item.headline)
 }
 
+// Heuristic market-impact tier for the featured-story badge — breaking
+// headlines or macro/rates-tagged stories read as HIGH impact, stories
+// naming a tracked ticker as MEDIUM (they move a specific stock), everything
+// else LOW. Not a model, just a legible signal for the reader's eye.
+function storyImpactTier(item) {
+  if (isBreakingArticle(item)) return 'HIGH'
+  if (item.tag === 'MACRO' || item.tag === 'RATES' || item.categories?.includes('MACRO')) return 'HIGH'
+  if ((item.tickers ?? []).length > 0) return 'MEDIUM'
+  return 'LOW'
+}
+const IMPACT_COLOR = { HIGH: '#a83232', MEDIUM: '#c8a84b', LOW: '#4a6580' }
+
 // ─── Category filter tabs (display subset — distinct from the full
 // NEWS_CATEGORIES taxonomy used for classification in api.js) ────────────────
 
@@ -315,33 +327,42 @@ function marketImpactAssets() {
   ]
   return picks.map(p => {
     const changePct = p.entry.changePct ?? p.entry.price_change_percentage_24h ?? 0
-    return { label: p.label, changePct }
+    const price = p.entry.price ?? p.entry.current_price ?? 0
+    return { label: p.label, changePct, price }
   })
+}
+
+// Best-matching current headline for a given asset label, used by the
+// sidebar so each mover shows *why* it's moving, not just the number.
+function headlineForAsset(items, label) {
+  const needle = label.replace(' 200', '').toUpperCase()
+  const hit = items.find(i => (i.tickers ?? []).includes(needle) || i.headline.toUpperCase().includes(needle))
+  return hit?.headline ?? null
 }
 
 // ─── SENTIMENT VISUALISER — full-width bar above the 3-column layout ────────
 
 function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
   const s = useMemo(() => overallSentiment(items), [items])
-  const topTags = trending.slice(0, 5)
+  const topTags = trending.slice(0, 6)
 
   return (
-    <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0">
+    <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(201,168,76,0.03)' }}>
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase">NEWS SENTIMENT TODAY</span>
-        <span
-          className="text-2xs font-bold"
-          style={{ color: s.label === 'BULLISH' ? '#3aaa63' : s.label === 'BEARISH' ? '#cc4444' : '#c9a84c' }}
-        >
-          {s.label === 'BULLISH' ? s.bullPct : s.label === 'BEARISH' ? s.bearPct : s.neutralPct}% {s.label}
-        </span>
+        <span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase">MARKET SENTIMENT:</span>
+        <span className="text-2xs font-bold" style={{ color: '#3aaa63' }}>{s.bullPct}% BULLISH</span>
+        <span className="text-2xs text-terminal-text-dim/50">·</span>
+        <span className="text-2xs font-bold" style={{ color: '#c9a84c' }}>{s.neutralPct}% NEUTRAL</span>
+        <span className="text-2xs text-terminal-text-dim/50">·</span>
+        <span className="text-2xs font-bold" style={{ color: '#cc4444' }}>{s.bearPct}% BEARISH</span>
         <span className="text-2xs text-terminal-text-dim/40 ml-auto">{s.total} articles analysed</span>
       </div>
 
-      <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
-        {s.bullPct > 0 && <div style={{ width: `${s.bullPct}%`, background: '#3aaa63' }} title={`Bullish ${s.bullPct}%`} />}
-        {s.neutralPct > 0 && <div style={{ width: `${s.neutralPct}%`, background: '#c9a84c' }} title={`Neutral ${s.neutralPct}%`} />}
-        {s.bearPct > 0 && <div style={{ width: `${s.bearPct}%`, background: '#cc4444' }} title={`Bearish ${s.bearPct}%`} />}
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div
+          style={{ width: `${s.bullPct}%`, height: '100%', background: '#c9a84c', transition: 'width 300ms ease' }}
+          title={`Bullish ${s.bullPct}%`}
+        />
       </div>
 
       {topTags.length > 0 && (
@@ -428,6 +449,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   const asset       = useMemo(() => resolveStoryAsset(item), [item])
+  const impact      = storyImpactTier(item)
 
   return (
     <div
@@ -436,14 +458,14 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
       onClick={() => onToggle(item)}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-terminal-text-bright leading-snug mb-1" style={{ fontSize: 15 }}>
+        <p className="font-semibold text-terminal-text-bright leading-snug mb-1 line-clamp-3" style={{ fontSize: 16 }}>
           {isUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mr-1.5" />}
           {isBreaking && <span className="text-[#a83232] font-bold mr-1.5">● BREAKING</span>}
           <HighlightText text={item.headline} term={searchTerm} />
         </p>
         {asset && (
           <div className="flex-shrink-0 text-right">
-            <MiniSparkline values={asset.values} up={asset.up} />
+            <MiniSparkline values={asset.values} up={asset.up} width={60} height={30} />
             <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
           </div>
         )}
@@ -457,12 +479,18 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
       </div>
 
       {item.summary && (
-        <p className="text-xs text-terminal-text-dim leading-snug mb-2 truncate">{item.summary}</p>
+        <p className="text-xs text-terminal-text-dim leading-snug mb-2 line-clamp-2">{item.summary}</p>
       )}
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
           <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{primaryDisplayCategory(item)}</Badge>
+          <span
+            className="text-2xs font-bold px-1.5 py-0.5 rounded-full border"
+            style={{ color: IMPACT_COLOR[impact], borderColor: `${IMPACT_COLOR[impact]}66` }}
+          >
+            {impact === 'HIGH' ? 'HIGH IMPACT' : impact}
+          </span>
           <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
         </div>
         {item.link && (
@@ -473,7 +501,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
             onClick={e => e.stopPropagation()}
             className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors ml-auto"
           >
-            Read →
+            READ FULL STORY →
           </a>
         )}
       </div>
@@ -567,20 +595,48 @@ function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicke
   )
 }
 
+// ─── SPONSORED DATA row — visual break inserted every 4th feed row, showing
+// the mini sparkline for one of the app's tracked market-impact assets. ────
+
+function SponsoredDataRow({ asset }) {
+  const values = useMemo(() => generateSparkline(asset.label, asset.price, asset.changePct), [asset])
+  const up = asset.changePct >= 0
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-2 border-b border-terminal-border bg-terminal-gold/5">
+      <span className="text-[8px] font-mono tracking-widest text-terminal-gold/50 flex-shrink-0">DATA</span>
+      <MiniSparkline values={values} up={up} width={44} height={20} />
+      <span className="text-[11px] font-bold text-terminal-text-bright flex-shrink-0">{asset.label}</span>
+      <span className={`text-[10px] font-mono ml-auto flex-shrink-0 ${up ? 'pos' : 'neg'}`}>
+        {up ? '+' : ''}{asset.changePct.toFixed(2)}% 24H
+      </span>
+    </div>
+  )
+}
+
 // ─── RIGHT SIDEBAR — trending movers, topic word-cloud, breaking feed ───────
 
-function TrendingNow() {
+function MovingOnNews({ items }) {
   const assets = useMemo(() => marketImpactAssets(), [])
+  const maxAbs = Math.max(...assets.map(a => Math.abs(a.changePct)), 0.1)
   return (
     <div className="px-3 py-2 border-b border-terminal-border">
-      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">TRENDING NOW</div>
-      <div className="flex flex-col gap-1.5">
+      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">MOVING ON NEWS</div>
+      <div className="flex flex-col gap-2">
         {assets.slice(0, 5).map(a => {
           const up = a.changePct >= 0
+          const headline = headlineForAsset(items, a.label)
           return (
-            <div key={a.label} className="flex items-center justify-between text-[10px] font-mono">
-              <span className="text-terminal-text-bright">{a.label}</span>
-              <span className={up ? 'pos' : 'neg'}>{up ? '+' : ''}{a.changePct.toFixed(2)}%</span>
+            <div key={a.label}>
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="text-terminal-gold font-bold">{a.label}</span>
+                <span className={up ? 'pos' : 'neg'}>{up ? '+' : ''}{a.changePct.toFixed(2)}%</span>
+              </div>
+              <div className="h-1 rounded-full overflow-hidden mt-0.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ width: `${(Math.abs(a.changePct) / maxAbs) * 100}%`, height: '100%', background: up ? '#3aaa63' : '#a83232' }} />
+              </div>
+              {headline && (
+                <div className="text-[9px] text-terminal-text-dim/70 leading-snug truncate mt-0.5">{headline}</div>
+              )}
             </div>
           )
         })}
@@ -654,6 +710,11 @@ export default function NewsModule() {
   const [isFlashing, setIsFlashing]   = useState(false)
   const [nowTs, setNowTs]             = useState(Date.now())
   const [expandedId, setExpandedId]   = useState(null)
+  // Timestamp of the most recent new-story arrival — the banner reads this
+  // against the existing 1s `nowTs` ticker to auto-dismiss 10s later.
+  // Set alongside setNewIds inside the merge effect below (not its own
+  // dedicated effect), so it isn't a bare derived-state effect.
+  const [lastArrivalAt, setLastArrivalAt] = useState(null)
   const prevHeadlines                 = useRef(new Set())
   const listTopRef                    = useRef(null)
 
@@ -692,6 +753,7 @@ export default function NewsModule() {
       // against yet) — otherwise every article on first render would pulse.
       if (freshOnes.length > 0 && prevHeadlines.current.size > 0) {
         const arrivedAt = Date.now()
+        setLastArrivalAt(arrivedAt)
         setNewIds(m => {
           const next = new Map(m)
           for (const a of freshOnes) next.set(a.headline, arrivedAt)
@@ -747,6 +809,7 @@ export default function NewsModule() {
   , [allArticles, nowTs])
 
   const trending = useMemo(() => extractTrending(allArticles), [allArticles])
+  const sponsoredAssets = useMemo(() => marketImpactAssets(), [])
 
   const askAI = useCallback((item) => {
     dispatchAskAI({
@@ -818,6 +881,7 @@ export default function NewsModule() {
 
   const topStory   = byCategory[0]
   const listRest    = byCategory.slice(1)
+  const bannerVisible = lastArrivalAt != null && (nowTs - lastArrivalAt < 10_000)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -875,7 +939,7 @@ export default function NewsModule() {
               style={{ fontSize: 9, height: 24, padding: '0 12px' }}
             >
               {label}
-              {count > 0 && <span className="opacity-70">{count}</span>}
+              {count > 0 && <span className="opacity-70">({count})</span>}
             </button>
           )
         })}
@@ -898,14 +962,15 @@ export default function NewsModule() {
       {/* Sentiment visualiser — full width, top of the news area */}
       <SentimentVisualiser items={allArticles} trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} />
 
-      {/* New stories banner — click scrolls back to the top of the centre list */}
-      {newIds.size > 0 && (
+      {/* New stories banner — slides down, click scrolls to top of the feed,
+          auto-dismisses 10s after the most recent arrival either way */}
+      {newIds.size > 0 && bannerVisible && (
         <button
-          onClick={() => { setNewIds(new Map()); listTopRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) }}
-          className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 text-left hover:bg-terminal-gold/15 transition-colors flex-shrink-0"
+          onClick={() => { setLastArrivalAt(null); setNewIds(new Map()); listTopRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 text-left hover:bg-terminal-gold/15 transition-colors flex-shrink-0 panel-fade"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />
-          <span className="text-2xs text-terminal-gold font-bold">● {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'}</span>
+          <span className="text-2xs text-terminal-gold font-bold">● {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'} — tap to refresh</span>
         </button>
       )}
 
@@ -931,25 +996,30 @@ export default function NewsModule() {
             <MarketImpactRow />
           </div>
 
-          {/* CENTRE 40% */}
+          {/* CENTRE 40% — a "SPONSORED DATA" sparkline row breaks up the feed
+              every 4th story, cycling through the tracked market-impact assets */}
           <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '40%' }} ref={listTopRef}>
-            {listRest.map(item => (
-              <StoryRow
-                key={item.id}
-                item={item}
-                isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
-                isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
-                isExpanded={expandedId === item.id}
-                onExpand={handleExpand}
-                onOpenTicker={handleOpenTicker}
-                onAskAI={askAI}
-              />
+            {listRest.map((item, i) => (
+              <div key={item.id}>
+                <StoryRow
+                  item={item}
+                  isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
+                  isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
+                  isExpanded={expandedId === item.id}
+                  onExpand={handleExpand}
+                  onOpenTicker={handleOpenTicker}
+                  onAskAI={askAI}
+                />
+                {(i + 1) % 4 === 0 && (
+                  <SponsoredDataRow asset={sponsoredAssets[(Math.floor(i / 4)) % sponsoredAssets.length]} />
+                )}
+              </div>
             ))}
           </div>
 
           {/* RIGHT 25% */}
           <div className="flex flex-col overflow-y-auto" style={{ width: '25%', scrollbarWidth: 'none' }}>
-            <TrendingNow />
+            <MovingOnNews items={allArticles} />
             <TopTopicsCloud trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} />
             <BreakingFeed items={breakingItems} />
           </div>
