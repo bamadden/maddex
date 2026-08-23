@@ -2462,18 +2462,20 @@ export default function GlobalModule() {
 
           {/* Right tab panel — 320-360px */}
           <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:min-w-[320px] md:max-w-[360px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
-          {/* Tab bar — scrollable row, each tab sized to its label so nothing
-              ellipsis-truncates into invisibility; scrolls horizontally on
-              overflow rather than squeezing every tab down further. */}
-          <div className="flex flex-shrink-0 border-b border-terminal-border overflow-x-auto flex-nowrap hide-scrollbar">
+          {/* Tab bar — equal-width columns spanning the full panel so every
+              tab stays visible with no horizontal scroll needed. */}
+          <div className="flex flex-shrink-0 border-b border-terminal-border">
             {TABS.filter(t => !t.hidden).map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
                 style={{
-                  flexShrink: 0,
-                  fontSize: '10px',
-                  letterSpacing: '0.04em',
-                  padding: '6px 10px',
+                  flex: '1 1 0%',
+                  minWidth: 0,
+                  fontSize: '9px',
+                  letterSpacing: '0.02em',
+                  padding: '6px 2px',
                   whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                   textAlign: 'center',
                   borderRight: '1px solid rgba(13,34,68,0.8)',
                 }}
