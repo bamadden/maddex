@@ -616,7 +616,7 @@ function MarketPricingPanel() {
 function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
   const { shape } = primaryStats
   return (
-    <div className="flex flex-col flex-shrink-0 border-b border-terminal-border">
+    <div className="flex flex-col h-full border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
         <span className="text-terminal-gold">YIELD CURVE</span>
         <span className="font-bold" style={{ color: YIELD_CURVES.AU.color }}>AU</span>
@@ -640,7 +640,9 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <MarketPricingPanel />
+      <div className="flex-1 min-h-0 flex flex-col justify-center overflow-y-auto">
+        <MarketPricingPanel />
+      </div>
     </div>
   )
 }
@@ -878,11 +880,11 @@ export default function FXModule() {
     <GlobalRatesCardGrid />
 
     {/* SECTION 2 — RBA (left 55%) vs yield curve + market pricing (right 45%) */}
-    <div className="flex border-b border-terminal-border flex-shrink-0" style={{ minHeight: 480 }}>
-      <div className="border-r border-terminal-border" style={{ width: '55%' }}>
+    <div className="flex border-b border-terminal-border flex-shrink-0" style={{ height: 480 }}>
+      <div className="h-full border-r border-terminal-border" style={{ width: '55%' }}>
         <CompactRbaDashboard askAI={askAI} />
       </div>
-      <div style={{ width: '45%' }}>
+      <div className="h-full" style={{ width: '45%' }}>
         <YieldCurveDualPanel chartData={chartData} yMin={yMin} yMax={yMax} primaryStats={auCurveStats} />
       </div>
     </div>

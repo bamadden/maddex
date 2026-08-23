@@ -561,7 +561,7 @@ function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicke
         <div className="px-3 pb-3 pl-8 panel-fade">
           <div className="flex items-start justify-between gap-3">
             <p className="text-xs text-terminal-text-dim leading-snug flex-1">
-              {item.summary || 'No summary available for this story.'}
+              {item.summary || <span className="italic text-terminal-text-dim/60">Full story available at {item.source}.</span>}
             </p>
             {asset && (
               <div className="flex-shrink-0 text-right">
