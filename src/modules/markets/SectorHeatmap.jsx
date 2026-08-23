@@ -4,11 +4,12 @@ import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA } 
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
 } from 'recharts'
 
 // ─── GICS Sector Configuration ───────────────────────────────────────────────
@@ -939,21 +940,44 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
     return null
   }
 
-  const askAISector = () => {
-    if (!selected || !proxySym) return
-    const q = proxyQuotes?.[proxySym]
-    const ticker = proxySym.replace('.AX', '').replace('.L', '')
+  const askAISector = (sectorOverride) => {
+    const sec = sectorOverride ?? selected
+    const sym = sectorOverride ? (sectorConfig[sectorOverride]?.sym ?? null) : proxySym
+    if (!sec || !sym) return
+    const q = proxyQuotes?.[sym]
+    const ticker = sym.replace('.AX', '').replace('.L', '')
     dispatchAskAI({
-      name:        `${selected} Sector`,
+      name:        `${sec} Sector`,
       ticker,
       exchange:    indexLabel,
       price:       q?.price != null ? `${q.currency === 'AUD' ? 'A$' : q.currency ? `${q.currency} ` : ''}${fmt.price(q.price)}` : null,
       change:      q?.pct != null ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : null,
-      sector:      selected,
+      sector:      sec,
       date:        todayAEST(),
-      instruction: `Analyse the ${selected} sector for ${indexLabel} performance today, using proxy stock ${ticker}. Key drivers, sector outlook, and implications for investors.`,
+      instruction: `Analyse the ${sec} sector for ${indexLabel} performance today, using proxy stock ${ticker}. Key drivers, sector outlook, and implications for investors.`,
     })
   }
+
+  const { addAlert } = useStore()
+  const [contextMenu, setContextMenu] = useState(null) // { x, y, sector }
+  const handleSectorContextMenu = (e, sector) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, sector })
+  }
+  const closeContextMenu = () => setContextMenu(null)
+  useEffect(() => {
+    if (!contextMenu) return
+    const close = () => setContextMenu(null)
+    window.addEventListener('click', close)
+    window.addEventListener('scroll', close, true)
+    const onEsc = (e) => { if (e.key === 'Escape') setContextMenu(null) }
+    window.addEventListener('keydown', onEsc)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('keydown', onEsc)
+    }
+  }, [contextMenu])
 
   return (
     <div className="flex flex-col">
@@ -1051,6 +1075,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   onMouseEnter={() => setHovered(sector)}
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => setSelected(isSelected ? null : sector)}
+                  onContextMenu={(e) => handleSectorContextMenu(e, sector)}
                 >
                   {/* Top-left: abbreviated sector name */}
                   <div className="text-[8px] font-mono text-terminal-text-dim tracking-wider truncate leading-tight flex-shrink-0">
@@ -1107,6 +1132,77 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO DATA' : `Live · ${updatedTime} AEST`}`
               : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
           </div>
+
+          {/* Sector rotation — today's move vs the period trend (secondaryMetric),
+              sorted by day momentum. Sectors where the day bar runs well ahead of
+              the period bar are accelerating; the reverse are cooling off. */}
+          <div className="border-t border-terminal-border mt-2 pt-2">
+            <div className="text-2xs text-terminal-text-dim uppercase tracking-wider mb-1.5">
+              Sector Rotation · Day vs {secondaryMetric}
+            </div>
+            {(() => {
+              const rows = GICS_SECTORS
+                .map(sector => {
+                  const cfg = sectorConfig[sector]
+                  if (!cfg) return null
+                  const day = proxyQuotes?.[cfg.sym]?.pct
+                  const period = getSecondaryChange(cfg.sym)
+                  if (day == null) return null
+                  return { sector, day, period }
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.day - a.day)
+              const maxAbs = Math.max(...rows.map(r => Math.abs(r.day)), ...rows.map(r => Math.abs(r.period ?? 0)), 0.1)
+              return (
+                <div className="flex flex-col gap-1">
+                  {rows.map(r => (
+                    <div key={r.sector} className="flex items-center gap-2 text-[10px] font-mono">
+                      <span className="text-terminal-text-dim w-24 flex-shrink-0 truncate">{SECTOR_ABBR[r.sector]}</span>
+                      <div className="flex-1 flex items-center gap-1">
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <div style={{ width: `${(Math.abs(r.day) / maxAbs) * 100}%`, height: '100%', background: r.day >= 0 ? '#3aaa63' : '#a83232' }} />
+                        </div>
+                        <span className={`w-14 text-right ${r.day >= 0 ? 'pos' : 'neg'}`}>{r.day >= 0 ? '+' : ''}{r.day.toFixed(2)}%</span>
+                      </div>
+                      <span className="text-terminal-text-dim/50 w-16 text-right">
+                        {r.period != null ? `${r.period >= 0 ? '+' : ''}${r.period.toFixed(1)}% ${secondaryMetric}` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Right-click context menu */}
+          {contextMenu && (
+            <div
+              className="fixed z-50 bg-terminal-panel border border-terminal-border-gold shadow-lg py-1"
+              style={{ left: contextMenu.x, top: contextMenu.y, minWidth: 200 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => { setSelected(contextMenu.sector); closeContextMenu() }}
+                className="w-full text-left px-3 py-1.5 text-2xs text-terminal-text hover:bg-terminal-surface2 hover:text-terminal-gold transition-colors"
+              >View all stocks in {contextMenu.sector}</button>
+              <button
+                onClick={() => { askAISector(contextMenu.sector); closeContextMenu() }}
+                className="w-full text-left px-3 py-1.5 text-2xs text-terminal-text hover:bg-terminal-surface2 hover:text-terminal-gold transition-colors"
+              >Ask MaddenAI about {contextMenu.sector}</button>
+              <button
+                onClick={() => {
+                  const sym = sectorConfig[contextMenu.sector]?.sym
+                  const q = sym ? proxyQuotes?.[sym] : null
+                  const target = window.prompt(`Alert on ${sym ?? contextMenu.sector} (sector proxy) when price reaches:`, q?.price != null ? q.price.toFixed(2) : '')
+                  if (target && !isNaN(parseFloat(target)) && sym) {
+                    addAlert(sym, target, q?.price != null && parseFloat(target) < q.price ? 'below' : 'above')
+                  }
+                  closeContextMenu()
+                }}
+                className="w-full text-left px-3 py-1.5 text-2xs text-terminal-text hover:bg-terminal-surface2 hover:text-terminal-gold transition-colors"
+              >Set sector alert</button>
+            </div>
+          )}
         </div>
 
         {/* Detail panel */}
@@ -1167,7 +1263,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             </div>
 
             {/* 30-day chart */}
-            <div className="flex-shrink-0 border-b border-terminal-border" style={{ height: 100 }}>
+            <div className="flex-shrink-0 border-b border-terminal-border" style={{ height: 118 }}>
               {useComposite && compositeFetching ? (
                 <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">
                   BUILDING SECTOR COMPOSITE...
@@ -1176,7 +1272,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                 const last = composite.points[composite.points.length - 1]?.pct ?? 0
                 const col = last >= 0 ? '#2d8a50' : '#a83232'
                 return (
-                  <ResponsiveContainer width="100%" height={100}>
+                  <ResponsiveContainer width="100%" height={118}>
                     <AreaChart data={composite.points} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                       <defs>
                         <linearGradient id="sectorCompositeGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1191,6 +1287,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                       <Tooltip content={<CompositeTooltip />} />
                       <Area type="monotone" dataKey="pct" stroke={col} strokeWidth={1.5}
                         fill="url(#sectorCompositeGrad)" dot={false} isAnimationActive={false} connectNulls />
+                      <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )
@@ -1205,7 +1302,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   {chartData.length >= 2 && (() => {
                     const col = proxyQuotes?.[proxySym]?.pct >= 0 ? '#2d8a50' : '#a83232'
                     return (
-                      <ResponsiveContainer width="100%" height={100}>
+                      <ResponsiveContainer width="100%" height={118}>
                         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                           <defs>
                             <linearGradient id="sectorGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1219,6 +1316,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                           <Tooltip content={<ChartTooltip />} />
                           <Area type="monotone" dataKey="price" stroke={col} strokeWidth={1.5}
                             fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />
+                          <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                         </AreaChart>
                       </ResponsiveContainer>
                     )
@@ -1371,9 +1469,10 @@ function IndexView({ selectedIndex, openModal }) {
     return () => { loadRef.current = null }
   }, [selectedIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [idxPeriod, setIdxPeriod] = useState('1mo')
   const { data: idxHistory, isFetching: idxHistLoading } = useQuery({
-    queryKey: ['yfHistory', selectedIndex, '1mo'],
-    queryFn:  () => fetchYFHistory(selectedIndex, { range: '1mo' }),
+    queryKey: ['yfHistory', selectedIndex, idxPeriod],
+    queryFn:  () => fetchYFHistory(selectedIndex, { range: idxPeriod }),
     staleTime: 5 * 60_000,
     retry: 1,
   })
@@ -1556,13 +1655,26 @@ function IndexView({ selectedIndex, openModal }) {
         {/* Sidebar */}
         <div className="w-48 border-l border-terminal-border flex flex-col overflow-hidden flex-shrink-0">
           <div className="border-b border-terminal-border flex-shrink-0 p-1">
-            <div className="text-2xs text-terminal-text-dim mb-1">{indexLabel} 30D</div>
-            <div style={{ height: 80 }}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-2xs text-terminal-text-dim">{indexLabel}</div>
+              <div className="flex gap-0.5">
+                {[['5d','5D'],['1mo','1M'],['3mo','3M']].map(([val, lbl]) => (
+                  <button
+                    key={val}
+                    onClick={() => setIdxPeriod(val)}
+                    className={`px-1 text-[8px] rounded transition-colors ${
+                      idxPeriod === val ? 'bg-terminal-gold text-terminal-bg font-bold' : 'text-terminal-text-dim hover:text-terminal-gold'
+                    }`}
+                  >{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ height: 90 }}>
               {idxHistLoading && (
                 <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/50 animate-pulse">LOADING...</div>
               )}
               {!idxHistLoading && idxChartData.length >= 2 && (
-                <ResponsiveContainer width="100%" height={80}>
+                <ResponsiveContainer width="100%" height={90}>
                   <AreaChart data={idxChartData} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
                     <defs>
                       <linearGradient id="idxGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1575,6 +1687,7 @@ function IndexView({ selectedIndex, openModal }) {
                     <Tooltip content={<ChartTooltip />} />
                     <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.2}
                       fill="url(#idxGrad)" dot={false} isAnimationActive={false} connectNulls />
+                    <Brush dataKey="date" height={14} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}

@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
@@ -6,6 +6,9 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import PriceChange from '../../components/ui/PriceChange'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -86,10 +89,149 @@ function Sparkline({ points, color }) {
   )
 }
 
+// Expanded hover-popup sparkline — same polyline approach as the compact
+// tile Sparkline, just scaled up with a light grid so it reads as a real
+// mini chart rather than a squint-to-see trend line.
+function SparklineLarge({ points, color, label }) {
+  const w = 200, h = 100, pad = 8
+  if (!points || points.length < 2) {
+    return <div className="flex items-center justify-center text-2xs text-terminal-text-dim/50" style={{ width: w, height: h }}>No data</div>
+  }
+  const prices = points.map(p => p.price)
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const range = max - min || 1
+  const path = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * (w - pad * 2) + pad
+    const y = h - pad - ((p.price - min) / range) * (h - pad * 2)
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  return (
+    <div>
+      <div className="text-2xs text-terminal-text-dim mb-1">{label} · 7D</div>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        <line x1={pad} y1={h/2} x2={w-pad} y2={h/2} stroke="#0d2244" strokeWidth="1" />
+        <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div className="flex justify-between text-2xs text-terminal-text-dim/60">
+        <span>{fmt.price(min, 1)}</span>
+        <span>{fmt.price(max, 1)}</span>
+      </div>
+    </div>
+  )
+}
+
+const COMPARE_PERIODS = [['1mo','1M'],['3mo','3M'],['ytd','YTD'],['1y','1Y']]
+const COMPARE_COLORS = ['#c8a84b', '#4a90d9', '#22c55e', '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#8a94a6', '#0ea5e9']
+
+function CompareIndicesModal({ indices, onClose }) {
+  const [period, setPeriod] = useState('3mo')
+  const [active, setActive] = useState(() => new Set(indices.slice(0, 5).map(i => i.symbol)))
+
+  const results = useQueries({
+    queries: indices.map(({ symbol }) => ({
+      queryKey:  ['compareIdxHistory', symbol, period],
+      queryFn:   () => fetchYFHistory(symbol, { range: period }),
+      staleTime: 5 * 60_000,
+      retry: 1,
+    })),
+  })
+
+  const chartData = useMemo(() => {
+    const series = indices.map(({ symbol }, i) => {
+      const raw = results[i]?.data ? transformYFHistory(results[i].data) : []
+      return { symbol, points: raw.filter(d => d?.price != null) }
+    })
+    const maxLen = Math.max(0, ...series.map(s => s.points.length))
+    if (maxLen < 2) return []
+    return Array.from({ length: maxLen }, (_, i) => {
+      const row = { date: series.find(s => s.points[i])?.points[i]?.date ?? '' }
+      for (const s of series) {
+        const base = s.points[0]?.price
+        const p = s.points[i]?.price
+        row[s.symbol] = base && p != null ? (p / base) * 100 : null
+      }
+      return row
+    })
+  }, [results, indices])
+
+  const toggle = (symbol) => setActive(prev => {
+    const next = new Set(prev)
+    next.has(symbol) ? next.delete(symbol) : next.add(symbol)
+    return next
+  })
+
+  return (
+    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="modal-panel bg-terminal-panel border border-terminal-border-gold flex flex-col overflow-hidden"
+        style={{ width: '90vw', maxWidth: 900, height: '75vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-terminal-border bg-terminal-header flex-shrink-0">
+          <span className="text-sm font-bold text-terminal-gold">COMPARE INDICES</span>
+          <span className="text-2xs text-terminal-text-dim">Normalised to 100 at period start</span>
+          <div className="ml-auto flex gap-1">
+            {COMPARE_PERIODS.map(([val, lbl]) => (
+              <button
+                key={val}
+                onClick={() => setPeriod(val)}
+                className={`px-2.5 py-0.5 rounded-full text-2xs transition-colors ${
+                  period === val ? 'bg-terminal-gold text-terminal-bg font-bold' : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
+                }`}
+              >{lbl}</button>
+            ))}
+          </div>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none ml-2">✕</button>
+        </div>
+
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-terminal-border flex-shrink-0 flex-wrap">
+          {indices.map(({ symbol, label }, i) => (
+            <button
+              key={symbol}
+              onClick={() => toggle(symbol)}
+              className="text-2xs px-2 py-0.5 rounded-full border transition-colors"
+              style={{
+                borderColor: active.has(symbol) ? COMPARE_COLORS[i % COMPARE_COLORS.length] : 'rgba(255,255,255,0.1)',
+                color: active.has(symbol) ? COMPARE_COLORS[i % COMPARE_COLORS.length] : 'var(--mt-muted)',
+                background: active.has(symbol) ? `${COMPARE_COLORS[i % COMPARE_COLORS.length]}1a` : 'transparent',
+              }}
+            >{label}</button>
+          ))}
+        </div>
+
+        <div className="flex-1 p-3 min-h-0">
+          {chartData.length < 2 ? (
+            <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING...</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} width={45} tickFormatter={(v) => v.toFixed(0)} />
+                <Tooltip
+                  contentStyle={{ background: '#0B1628', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '10px' }}
+                  formatter={(v, name) => [v?.toFixed(1), indices.find(i => i.symbol === name)?.label ?? name]}
+                />
+                <Legend wrapperStyle={{ fontSize: 9 }} formatter={(name) => indices.find(i => i.symbol === name)?.label ?? name} />
+                {indices.map(({ symbol }, i) => active.has(symbol) && (
+                  <Line key={symbol} type="monotone" dataKey={symbol} stroke={COMPARE_COLORS[i % COMPARE_COLORS.length]} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }) {
   const { usdToAud } = useAudRates()
   const lastClickTime   = useRef(0)
   const lastClickSymbol = useRef(null)
+  const [hoveredIdx, setHoveredIdx] = useState(null)
+  const [compareOpen, setCompareOpen] = useState(false)
 
   const indices = useMemo(
     () => BENCHMARK_ORDER.map(sym => YF_INDICES.find(i => i.symbol === sym)).filter(Boolean),
@@ -142,15 +284,14 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
 
   return (
     <div className="bg-terminal-panel border-b border-terminal-border font-mono relative">
-      {USING_MOCK_DATA ? (
-        <div className="absolute top-1 right-2 z-10">
-          <DemoBadge />
-        </div>
-      ) : isDelayed && (
-        <div className="absolute top-1 right-2 z-10">
-          <StaleBadge cachedAt={quotesResult?.cachedAt} />
-        </div>
-      )}
+      <div className="absolute top-1 right-2 z-10 flex items-center gap-2">
+        {USING_MOCK_DATA ? <DemoBadge /> : isDelayed && <StaleBadge cachedAt={quotesResult?.cachedAt} />}
+        <button
+          onClick={() => setCompareOpen(true)}
+          className="text-2xs px-2 py-0.5 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >COMPARE INDICES</button>
+      </div>
+      {compareOpen && <CompareIndicesModal indices={indices} onClose={() => setCompareOpen(false)} />}
       <div
         className="grid grid-flow-col auto-cols-[120px] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-5 lg:grid-cols-10 gap-0 overflow-x-auto sm:overflow-visible hide-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
@@ -171,7 +312,9 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
             <div
               key={symbol}
               onClick={() => handleClick(symbol, q, isAud, label)}
-              className={`min-w-0 cursor-pointer transition-all border-r border-b sm:border-b-0 border-terminal-border ${
+              onMouseEnter={() => setHoveredIdx(symbol)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              className={`relative min-w-0 cursor-pointer transition-all border-r border-b sm:border-b-0 border-terminal-border ${
                 isSelected ? 'bg-terminal-surface2' : 'bg-terminal-surface hover:bg-terminal-surface2'
               }`}
               style={{
@@ -179,6 +322,14 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                 borderTop: isSelected ? '2px solid #C9A84C' : '2px solid transparent',
               }}
             >
+              {hoveredIdx === symbol && sparkPoints.length >= 2 && (
+                <div
+                  className="absolute z-20 top-full left-0 mt-1 p-2 bg-terminal-panel border border-terminal-border-gold shadow-lg"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <SparklineLarge points={sparkPoints} color={sparkColor(q?.pct)} label={label} />
+                </div>
+              )}
               {/* Name is the only thing allowed to ellipsis — the level and
                   change % must always render in full, per design spec. */}
               <div className="flex items-center gap-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase overflow-hidden text-ellipsis whitespace-nowrap">

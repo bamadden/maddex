@@ -59,8 +59,10 @@ export default function NotificationCenter() {
   }, [notifications])
 
   // ── PRICE ALERT — poll watchlist-style quotes for any active alert ─────────
-  // No direction is captured when an alert is set (ALERT {sym} {price}), so
-  // "reached your target" is treated as price rising to meet or pass it.
+  // Alerts created via the CommandBar's ALERT {sym} {price} text command have
+  // no `direction` field (defaults to 'above' in addAlert) — "reached your
+  // target" for those is treated as price rising to meet or pass it. Alerts
+  // created via the DetailModal's bell-icon form can also target 'below'.
   useEffect(() => {
     if (!alerts.length) return
     const check = async () => {
@@ -70,7 +72,10 @@ export default function NotificationCenter() {
         for (const alert of alerts) {
           const yfSym = toYahooSymbol(alert.sym, detectAssetType(alert.sym))
           const q = data?.[yfSym]
-          if (q?.last != null && q.last >= alert.price) {
+          const hit = alert.direction === 'below'
+            ? q?.last != null && q.last <= alert.price
+            : q?.last != null && q.last >= alert.price
+          if (hit) {
             addNotification('PRICE_ALERT', `${alert.sym} reached your target of A$${alert.price.toFixed(2)}`)
             removeAlert(alert.id)
           }

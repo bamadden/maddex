@@ -110,8 +110,8 @@ export function StoreProvider({ children }) {
   const setNewsBadgeCount = useCallback((n) => setNewsBadgeCountState(n), [])
   const clearNewsBadge    = useCallback(() => setNewsBadgeCountState(0), [])
 
-  const addAlert = useCallback((sym, price) => {
-    const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), createdAt: new Date().toISOString() }
+  const addAlert = useCallback((sym, price, direction = 'above') => {
+    const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), direction, createdAt: new Date().toISOString() }
     setAlerts((prev) => {
       const next = [...prev, alert]
       try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch {}

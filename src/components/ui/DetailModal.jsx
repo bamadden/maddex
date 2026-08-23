@@ -13,11 +13,23 @@ import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetU
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   AreaChart, Area, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend,
 } from 'recharts'
 
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
 const CHART_TYPES = ['area', 'line', 'candle']
+
+// Next scheduled earnings date — hardcoded for the app's top 20 most-viewed
+// ASX/US stocks (indicative reporting-season dates, not a live feed).
+const NEXT_EARNINGS = {
+  'BHP.AX': '17 Feb 2026', 'CBA.AX': '11 Feb 2026', 'CSL.AX': '11 Feb 2026',
+  'WBC.AX': '05 May 2026', 'NAB.AX': '07 May 2026', 'ANZ.AX': '14 May 2026',
+  'WES.AX': '26 Feb 2026', 'MQG.AX': '02 Nov 2026', 'WOW.AX': '26 Feb 2026',
+  'RIO.AX': '18 Feb 2026', 'FMG.AX': '30 Jan 2026', 'TLS.AX': '13 Feb 2026',
+  AAPL: '29 Jan 2026', NVDA: '25 Feb 2026', MSFT: '27 Jan 2026',
+  TSLA: '21 Jan 2026', AMZN: '05 Feb 2026', META: '28 Jan 2026',
+  GOOG: '03 Feb 2026', NFLX: '20 Jan 2026',
+}
 
 // ─── Crypto coin colour circle + descriptions ─────────────────────────────────
 // Same deterministic-hash approach as CryptoModule.jsx's CoinCircle — kept as
@@ -428,17 +440,36 @@ function AssetNewsPanel({ symbol, name }) {
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 export default function DetailModal() {
-  const { modalAsset, closeModal, addToWatchlist, watchlist } = useStore()
+  const { modalAsset, closeModal, addToWatchlist, watchlist, addAlert, setActiveModule } = useStore()
   const queryClient = useQueryClient()
 
   const [timeframe, setTimeframe] = useState('1M')
   const [chartType, setChartType] = useState('area')
   const { audUsd, usdToAud } = useAudRates()
 
+  const [alertOpen, setAlertOpen]     = useState(false)
+  const [alertPrice, setAlertPrice]   = useState('')
+  const [alertDir, setAlertDir]       = useState('above')
+  const [alertSaved, setAlertSaved]   = useState(false)
+
+  const [compareOpen, setCompareOpen]     = useState(false)
+  const [compareInput, setCompareInput]   = useState('')
+  const [compareSymbol, setCompareSymbol] = useState(null)
+
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const [noteSaved, setNoteSaved] = useState(false)
+
   const overlayRef = useRef(null)
 
   useEffect(() => {
-    if (modalAsset) { setTimeframe('1M'); setChartType('area') }
+    if (modalAsset) {
+      setTimeframe('1M'); setChartType('area')
+      setAlertOpen(false); setAlertPrice(''); setAlertSaved(false)
+      setCompareOpen(false); setCompareInput(''); setCompareSymbol(null)
+      setNoteOpen(false); setNoteSaved(false)
+      try { setNoteText(JSON.parse(localStorage.getItem('madden_research_notes') ?? '{}')[modalAsset.symbol] ?? '') } catch { setNoteText('') }
+    }
   }, [modalAsset?.symbol])
 
   const handleOverlayClick = useCallback((e) => {
@@ -474,6 +505,18 @@ export default function DetailModal() {
     queryKey:  ['modalStockHistory', yfSym, timeframe],
     queryFn:   () => fetchYFHistory(yfSym, yfRange),
     enabled:   isStockOrIdx && !!yfSym,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  // COMPARE mode — second series, normalised to 100 at period start, overlaid
+  // on the same chart. Only supports Yahoo-style symbols (stocks/indices) —
+  // covers the overwhelming majority of comparisons users actually want.
+  const compareYfSym = compareSymbol ? toYahooSymbol(compareSymbol, undefined) : null
+  const { data: compareHistory, isFetching: compareLoading } = useQuery({
+    queryKey:  ['modalCompareHistory', compareYfSym, timeframe],
+    queryFn:   () => fetchYFHistory(compareYfSym, yfRange),
+    enabled:   compareOpen && !!compareYfSym,
     staleTime: 5 * 60_000,
     retry: 1,
   })
@@ -567,6 +610,24 @@ export default function DetailModal() {
   const allHigh = chartData.length ? Math.max(...chartData.map((d) => d.high ?? d.price ?? 0)) : null
   const allLow  = chartData.length ? Math.min(...chartData.map((d) => d.low  ?? d.price ?? Infinity)) : null
 
+  // COMPARE mode — both series normalised to 100 at the period start and
+  // zipped by index (both fetched for the same timeframe/range so lengths
+  // are close enough for an index-based overlay, not a date-exact join).
+  let compareData = []
+  if (compareOpen && compareSymbol && chartData.length > 1) {
+    const compareRaw = compareHistory ? transformYFHistory(compareHistory) : []
+    const baseA = chartData[0]?.price
+    const baseB = compareRaw[0]?.price
+    if (baseA && baseB && compareRaw.length > 1) {
+      const n = Math.min(chartData.length, compareRaw.length)
+      compareData = Array.from({ length: n }, (_, i) => ({
+        date: chartData[i].date,
+        a: chartData[i].price != null ? (chartData[i].price / baseA) * 100 : null,
+        b: compareRaw[i].price != null ? (compareRaw[i].price / baseB) * 100 : null,
+      }))
+    }
+  }
+
   const isChartLoading = cryptoHistLoading || cryptoOHLCLoading || stockLoading
   const updatedTime    = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
@@ -627,6 +688,9 @@ export default function DetailModal() {
         <DataRow label="Period Low"
           value={allLow && allLow !== Infinity ? fmt.aud(allLow) : display52Low ? fmt.aud(display52Low) : '—'}
           cls="text-terminal-red" />
+        {NEXT_EARNINGS[symbol] && (
+          <DataRow label="Next Earnings" value={NEXT_EARNINGS[symbol]} cls="text-terminal-gold" />
+        )}
       </Section>
 
       <Section title="VALUATION">
@@ -903,9 +967,49 @@ export default function DetailModal() {
             {(isChartLoading || qsLoading) && (
               <span className="text-2xs text-terminal-gold animate-pulse">LOADING...</span>
             )}
+            <button
+              onClick={() => setAlertOpen(o => !o)}
+              title="Set price alert"
+              className={`text-lg leading-none transition-colors ${alertOpen ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+            >🔔</button>
             <button onClick={closeModal} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
           </div>
         </div>
+
+        {/* Price-alert inline form */}
+        {alertOpen && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-terminal-border bg-terminal-surface2 flex-shrink-0 flex-wrap">
+            <span className="text-2xs text-terminal-text-dim">Alert when price is</span>
+            <div className="flex gap-1">
+              {['above', 'below'].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setAlertDir(d)}
+                  className={`px-2 py-0.5 text-2xs rounded-full border transition-colors ${
+                    alertDir === d ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+                  }`}
+                >{d.toUpperCase()}</button>
+              ))}
+            </div>
+            <input
+              type="number"
+              value={alertPrice}
+              onChange={e => { setAlertPrice(e.target.value); setAlertSaved(false) }}
+              placeholder={fmt.price(displayPrice)}
+              className="cmd-input text-2xs border border-terminal-border px-2 py-0.5"
+              style={{ width: 90 }}
+            />
+            <button
+              onClick={() => {
+                if (!alertPrice || isNaN(parseFloat(alertPrice))) return
+                addAlert(symbol, alertPrice, alertDir)
+                setAlertSaved(true)
+              }}
+              className="text-2xs font-bold px-2.5 py-0.5 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+            >SET ALERT</button>
+            {alertSaved && <span className="text-2xs text-terminal-green">✓ Alert saved</span>}
+          </div>
+        )}
 
         {/* Price row */}
         <div className="flex items-start gap-4 px-4 py-3 border-b border-terminal-border flex-shrink-0 flex-wrap">
@@ -978,10 +1082,38 @@ export default function DetailModal() {
               >{ct.toUpperCase()}</button>
             ))}
           </div>
+          {isStockOrIdx && (
+            <>
+              <span className="text-terminal-border ml-2">|</span>
+              <button
+                onClick={() => setCompareOpen(o => !o)}
+                className={`px-2.5 py-0.5 rounded-full text-2xs font-bold transition-colors ${
+                  compareOpen ? 'bg-terminal-blue-bright text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
+                }`}
+              >COMPARE</button>
+              {compareOpen && (
+                <div className="flex items-center gap-1">
+                  <input
+                    value={compareInput}
+                    onChange={e => setCompareInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && compareInput.trim()) setCompareSymbol(compareInput.trim().toUpperCase()) }}
+                    placeholder="e.g. CBA.AX"
+                    className="cmd-input text-2xs border border-terminal-border px-2 py-0.5"
+                    style={{ width: 90 }}
+                  />
+                  <button
+                    onClick={() => compareInput.trim() && setCompareSymbol(compareInput.trim().toUpperCase())}
+                    className="text-2xs px-2 py-0.5 border border-terminal-blue text-terminal-blue-bright hover:bg-terminal-blue-bright hover:text-terminal-bg transition-colors"
+                  >ADD</button>
+                  {compareLoading && <span className="text-2xs text-terminal-text-dim animate-pulse">...</span>}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Chart */}
-        <div className="flex-shrink-0 px-4 py-2 overflow-hidden" style={{ height: '180px' }}>
+        <div className="flex-shrink-0 px-4 py-2 overflow-hidden" style={{ height: '200px' }}>
           {isChartLoading ? (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
           ) : chartData.length === 0 ? (
@@ -991,6 +1123,22 @@ export default function DetailModal() {
             />
           ) : chartData.length < 10 ? (
             <DataUnavailable label={`INSUFFICIENT DATA (${chartData.length} pts)`} className="h-full" />
+          ) : compareOpen && compareData.length > 1 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={compareData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} width={40} tickFormatter={(v) => v.toFixed(0)} />
+                <Tooltip
+                  contentStyle={{ background: '#0B1628', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '10px' }}
+                  formatter={(v, name) => [`${v.toFixed(1)}`, name === 'a' ? symbol : compareSymbol]}
+                />
+                <Legend wrapperStyle={{ fontSize: 9 }} formatter={(name) => name === 'a' ? symbol : compareSymbol} />
+                <Line type="monotone" dataKey="a" stroke="#c8a84b" strokeWidth={1.5} dot={false} isAnimationActive={false} name="a" />
+                <Line type="monotone" dataKey="b" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} name="b" />
+                <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
+              </LineChart>
+            </ResponsiveContainer>
           ) : chartType === 'candle' ? (
             <CandleChart data={chartData} />
           ) : (
@@ -1008,6 +1156,7 @@ export default function DetailModal() {
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
                   <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
+                  <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
                 </AreaChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
@@ -1016,6 +1165,7 @@ export default function DetailModal() {
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
                   <Line type="monotone" dataKey="price" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                  <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
                 </LineChart>
               )}
             </ResponsiveContainer>
@@ -1038,18 +1188,60 @@ export default function DetailModal() {
           >
             ANALYSE WITH MADDENAI ▶
           </button>
-          <div className="flex items-center justify-between">
+          {/* Quick actions */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => !isInWL && addToWatchlist(symbol)}
               disabled={isInWL}
-              className={`text-2xs px-3 py-1.5 border transition-colors ${
+              className={`flex-1 text-2xs px-2 py-1.5 border transition-colors ${
                 isInWL
                   ? 'border-terminal-green text-terminal-green opacity-70 cursor-default'
                   : 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg cursor-pointer'
               }`}
             >
-              {isInWL ? '✓ WATCHING' : '+ ADD TO WATCHLIST'}
+              {isInWL ? '✓ WATCHING' : '+ WATCHLIST'}
             </button>
+            <button
+              onClick={() => { setActiveModule('portfolio'); closeModal() }}
+              className="flex-1 text-2xs px-2 py-1.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors"
+            >+ PORTFOLIO</button>
+            <button
+              onClick={() => setNoteOpen(o => !o)}
+              className={`flex-1 text-2xs px-2 py-1.5 border transition-colors ${
+                noteOpen ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+              }`}
+            >RESEARCH NOTE</button>
+          </div>
+
+          {noteOpen && (
+            <div className="flex flex-col gap-1">
+              <textarea
+                value={noteText}
+                onChange={e => { setNoteText(e.target.value); setNoteSaved(false) }}
+                placeholder={`Notes on ${symbol}...`}
+                className="cmd-input text-2xs border border-terminal-border px-2 py-1.5 resize-none"
+                rows={3}
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    try {
+                      const all = JSON.parse(localStorage.getItem('madden_research_notes') ?? '{}')
+                      all[symbol] = noteText
+                      localStorage.setItem('madden_research_notes', JSON.stringify(all))
+                      setNoteSaved(true)
+                    } catch {
+                      // Persistence is best-effort — note stays in the textarea either way
+                    }
+                  }}
+                  className="text-2xs font-bold px-2.5 py-0.5 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+                >SAVE NOTE</button>
+                {noteSaved && <span className="text-2xs text-terminal-green">✓ Saved</span>}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end">
             <div className="flex items-center gap-2">
               <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} AEST</span>
               {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
