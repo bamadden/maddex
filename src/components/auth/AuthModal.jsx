@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 
@@ -33,6 +34,21 @@ const COUNTRIES = [
   'Ukraine', 'United Arab Emirates', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Venezuela',
   'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
 ]
+
+// Supabase's own error text varies by project config ("Invalid login
+// credentials", etc.) — map every sign-in failure to one consistent,
+// user-facing message rather than leaking backend wording.
+function friendlySignInError() {
+  return 'Invalid email or password'
+}
+
+function friendlySignUpError(message) {
+  const m = (message || '').toLowerCase()
+  if (m.includes('already registered') || m.includes('already in use') || m.includes('already exists')) {
+    return 'Email already in use'
+  }
+  return message || 'Something went wrong — please try again'
+}
 
 function passwordStrength(pw) {
   let score = 0
@@ -90,7 +106,7 @@ function CountrySelect({ value, onChange }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search..."
-              className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
+              className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono placeholder:font-sans"
             />
           </div>
           <div className="overflow-y-auto">
@@ -119,18 +135,44 @@ function Input({ label, error, ...props }) {
       {label && <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">{label}</div>}
       <input
         {...props}
-        className="w-full bg-terminal-bg border border-terminal-border px-3 py-2 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono placeholder-terminal-text-dim/50 disabled:opacity-40"
+        className="w-full bg-terminal-bg border border-terminal-border px-3 py-2 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono placeholder:font-sans placeholder-terminal-text-dim/50 disabled:opacity-40"
       />
       {error && <div className="text-2xs text-terminal-red">{error}</div>}
     </div>
   )
 }
 
+// Shared "gold, full-width, spinner-while-loading" submit button.
+function SubmitButton({ loading, loadingLabel, children }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      className="w-full py-2.5 text-xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+    >
+      {loading && <Loader2 size={13} className="animate-spin" />}
+      {loading ? loadingLabel : children}
+    </button>
+  )
+}
+
+const LEGAL_LINK_CLS = 'text-terminal-gold hover:text-terminal-gold-bright underline'
+
+function LegalLinks() {
+  return (
+    <div className="text-2xs text-terminal-text-dim text-center leading-relaxed">
+      By creating an account you agree to our{' '}
+      <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Terms of Service</a>
+      {' '}and{' '}
+      <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Privacy Policy</a>
+    </div>
+  )
+}
+
 export default function AuthModal({ deletedMessage }) {
-  const [tab, setTab] = useState('signin')
+  const [tab, setTab] = useState('signin') // signin | signup | forgot
   const [loading, setLoading] = useState(false)
   const [globalError, setGlobalError] = useState(deletedMessage || null)
-  const [forgotSent, setForgotSent] = useState(false)
 
   // Sign in state
   const [siEmail, setSiEmail] = useState('')
@@ -147,7 +189,19 @@ export default function AuthModal({ deletedMessage }) {
   const [suErrors, setSuErrors] = useState({})
   const [signedUp, setSignedUp] = useState(false)
 
-  const { signIn, signUp, signInWithGoogle } = useAuthStore()
+  // Forgot-password state — its own email field, independent of sign-in's,
+  // per its own dedicated view rather than being bolted onto the sign-in form.
+  const [fpEmail, setFpEmail] = useState('')
+  const [fpError, setFpError] = useState(null)
+  const [fpSent, setFpSent] = useState(false)
+
+  const { signIn, signUp } = useAuthStore()
+
+  const switchTab = (t) => {
+    setTab(t)
+    setGlobalError(null)
+    setSiErrors({}); setSuErrors({}); setFpError(null)
+  }
 
   const handleSignIn = async (e) => {
     e.preventDefault()
@@ -158,7 +212,7 @@ export default function AuthModal({ deletedMessage }) {
     setSiErrors({}); setGlobalError(null); setLoading(true)
     const { error } = await signIn(siEmail, siPassword)
     setLoading(false)
-    if (error) setGlobalError(error.message)
+    if (error) setGlobalError(friendlySignInError(error.message))
   }
 
   const handleSignUp = async (e) => {
@@ -169,21 +223,23 @@ export default function AuthModal({ deletedMessage }) {
     if (!suCountry) errs.country = 'Country is required'
     if (!suEmail) errs.email = 'Email is required'
     if (!suPassword || suPassword.length < 8) errs.password = 'Password must be at least 8 characters'
-    if (suPassword !== suConfirm) errs.confirm = 'Passwords do not match'
+    if (suPassword !== suConfirm) errs.confirm = "Passwords don't match"
     if (Object.keys(errs).length) { setSuErrors(errs); return }
     setSuErrors({}); setGlobalError(null); setLoading(true)
     const { error } = await signUp(suEmail, suPassword, suFirst, suLast, suCountry)
     setLoading(false)
-    if (error) setGlobalError(error.message)
+    if (error) setGlobalError(friendlySignUpError(error.message))
     else setSignedUp(true)
   }
 
-  const handleForgotPassword = async () => {
-    if (!siEmail) { setSiErrors({ email: 'Enter your email above first' }); return }
-    setLoading(true)
-    await supabase.auth.resetPasswordForEmail(siEmail, { redirectTo: window.location.origin })
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    if (!fpEmail) { setFpError('Email is required'); return }
+    setFpError(null); setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(fpEmail, { redirectTo: window.location.origin })
     setLoading(false)
-    setForgotSent(true)
+    if (error) setFpError(error.message)
+    else setFpSent(true)
   }
 
   return (
@@ -203,165 +259,197 @@ export default function AuthModal({ deletedMessage }) {
           <span className="text-2xs text-terminal-text-dim"> · Full Apex access</span>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex border-b border-terminal-border">
-          {['signin', 'signup'].map((t) => (
+        {/* Tab switcher — hidden on the forgot-password view, replaced with a back link */}
+        {tab === 'forgot' ? (
+          <div className="border-b border-terminal-border px-6 py-2.5">
             <button
-              key={t}
-              onClick={() => { setTab(t); setGlobalError(null) }}
-              className={`flex-1 py-2.5 text-2xs font-bold tracking-widest transition-colors ${
-                tab === t
-                  ? 'text-terminal-gold border-b-2 border-terminal-gold -mb-px'
-                  : 'text-terminal-text-dim hover:text-terminal-text'
-              }`}
-            >
-              {t === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
-            </button>
-          ))}
-        </div>
+              onClick={() => switchTab('signin')}
+              className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
+            >← Back to sign in</button>
+          </div>
+        ) : (
+          <div className="flex border-b border-terminal-border">
+            {['signin', 'signup'].map((t) => (
+              <button
+                key={t}
+                onClick={() => switchTab(t)}
+                className={`flex-1 py-2.5 text-2xs font-bold tracking-widest transition-colors ${
+                  tab === t
+                    ? 'text-terminal-gold border-b-2 border-terminal-gold -mb-px'
+                    : 'text-terminal-text-dim hover:text-terminal-text'
+                }`}
+              >
+                {t === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="p-6 space-y-4">
-          {globalError && (
+          {globalError && tab !== 'forgot' && (
             <div className="bg-terminal-red/10 border border-terminal-red/30 px-3 py-2 text-2xs text-terminal-red">
               {globalError}
             </div>
           )}
 
-          {tab === 'signin' ? (
-            signedUp ? null : (
-              <form onSubmit={handleSignIn} className="space-y-3">
-                {forgotSent && (
-                  <div className="bg-terminal-green/10 border border-terminal-green/30 px-3 py-2 text-2xs text-terminal-green">
-                    Password reset email sent — check your inbox.
-                  </div>
-                )}
+          {tab === 'forgot' && (
+            fpSent ? (
+              <div className="text-center space-y-3 py-4">
+                <div className="text-terminal-green text-2xl">✓</div>
+                <div className="text-xs text-terminal-text-bright font-bold">Check your email for a reset link</div>
+                <button
+                  onClick={() => switchTab('signin')}
+                  className="text-terminal-gold text-2xs underline"
+                >Go to Sign In</button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-3">
+                <div className="text-2xs text-terminal-text-dim">
+                  Enter the email you signed up with and we'll send you a link to reset your password.
+                </div>
                 <Input
                   label="Email"
                   type="email"
                   placeholder="you@example.com"
-                  value={siEmail}
-                  onChange={e => setSiEmail(e.target.value)}
+                  value={fpEmail}
+                  onChange={e => setFpEmail(e.target.value)}
                   disabled={loading}
-                  error={siErrors.email}
+                  error={fpError}
                   autoComplete="email"
+                  autoFocus
                 />
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={siPassword}
-                  onChange={e => setSiPassword(e.target.value)}
-                  disabled={loading}
-                  error={siErrors.password}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 text-xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'AUTHENTICATING...' : 'SIGN IN'}
-                </button>
-                <div className="flex items-center gap-3 text-terminal-text-dim text-2xs">
-                  <div className="flex-1 h-px bg-terminal-border" />
-                  <span>or</span>
-                  <div className="flex-1 h-px bg-terminal-border" />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  disabled={loading}
-                  className="w-full text-center text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
-                >
-                  Forgot password?
-                </button>
+                <SubmitButton loading={loading} loadingLabel="SENDING...">SEND RESET EMAIL</SubmitButton>
               </form>
             )
-          ) : signedUp ? (
-            <div className="text-center space-y-3 py-4">
-              <div className="text-terminal-green text-2xl">✓</div>
-              <div className="text-xs text-terminal-text-bright font-bold">Account created!</div>
-              <div className="text-2xs text-terminal-text-dim">
-                Check your email to confirm your account, then sign in.
-              </div>
-              <button
-                onClick={() => { setTab('signin'); setSignedUp(false) }}
-                className="text-terminal-gold text-2xs underline"
-              >
-                Go to Sign In
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSignUp} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="First Name"
-                  placeholder="Ben"
-                  value={suFirst}
-                  onChange={e => setSuFirst(e.target.value)}
-                  disabled={loading}
-                  error={suErrors.firstName}
-                  autoComplete="given-name"
-                />
-                <Input
-                  label="Last Name"
-                  placeholder="Madden"
-                  value={suLast}
-                  onChange={e => setSuLast(e.target.value)}
-                  disabled={loading}
-                  error={suErrors.lastName}
-                  autoComplete="family-name"
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Country</div>
-                <CountrySelect value={suCountry} onChange={setSuCountry} />
-                {suErrors.country && <div className="text-2xs text-terminal-red">{suErrors.country}</div>}
-              </div>
+          )}
+
+          {tab === 'signin' && (
+            <form onSubmit={handleSignIn} className="space-y-3">
               <Input
                 label="Email"
                 type="email"
                 placeholder="you@example.com"
-                value={suEmail}
-                onChange={e => setSuEmail(e.target.value)}
+                value={siEmail}
+                onChange={e => setSiEmail(e.target.value)}
                 disabled={loading}
-                error={suErrors.email}
+                error={siErrors.email}
                 autoComplete="email"
               />
-              <div className="space-y-1">
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="Min 8 characters"
-                  value={suPassword}
-                  onChange={e => setSuPassword(e.target.value)}
-                  disabled={loading}
-                  error={suErrors.password}
-                  autoComplete="new-password"
-                />
-                <PasswordStrength password={suPassword} />
-              </div>
               <Input
-                label="Confirm Password"
+                label="Password"
                 type="password"
                 placeholder="••••••••"
-                value={suConfirm}
-                onChange={e => setSuConfirm(e.target.value)}
+                value={siPassword}
+                onChange={e => setSiPassword(e.target.value)}
                 disabled={loading}
-                error={suErrors.confirm}
-                autoComplete="new-password"
+                error={siErrors.password}
+                autoComplete="current-password"
               />
+              <SubmitButton loading={loading} loadingLabel="SIGNING IN...">SIGN IN</SubmitButton>
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 text-xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors disabled:opacity-50"
+                type="button"
+                onClick={() => switchTab('forgot')}
+                className="w-full text-center text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
               >
-                {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+                Forgot password?
               </button>
-              <div className="text-2xs text-terminal-text-dim text-center">
-                By creating an account you agree to our Terms of Service
+              <div className="flex items-center gap-3 text-terminal-text-dim text-2xs">
+                <div className="flex-1 h-px bg-terminal-border" />
+                <span>or</span>
+                <div className="flex-1 h-px bg-terminal-border" />
               </div>
+              <button
+                type="button"
+                onClick={() => switchTab('signup')}
+                className="w-full text-center text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
+              >
+                Don't have an account? <span className="text-terminal-gold">Start free trial →</span>
+              </button>
             </form>
+          )}
+
+          {tab === 'signup' && (
+            signedUp ? (
+              <div className="text-center space-y-3 py-4">
+                <div className="text-terminal-green text-2xl">✓</div>
+                <div className="text-xs text-terminal-text-bright font-bold">Account created!</div>
+                <div className="text-2xs text-terminal-text-dim">
+                  Check your email to confirm your account, then sign in.
+                </div>
+                <button
+                  onClick={() => { switchTab('signin'); setSignedUp(false) }}
+                  className="text-terminal-gold text-2xs underline"
+                >
+                  Go to Sign In
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSignUp} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="First Name"
+                    placeholder="Ben"
+                    value={suFirst}
+                    onChange={e => setSuFirst(e.target.value)}
+                    disabled={loading}
+                    error={suErrors.firstName}
+                    autoComplete="given-name"
+                  />
+                  <Input
+                    label="Last Name"
+                    placeholder="Madden"
+                    value={suLast}
+                    onChange={e => setSuLast(e.target.value)}
+                    disabled={loading}
+                    error={suErrors.lastName}
+                    autoComplete="family-name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Country</div>
+                  <CountrySelect value={suCountry} onChange={setSuCountry} />
+                  {suErrors.country && <div className="text-2xs text-terminal-red">{suErrors.country}</div>}
+                </div>
+                <Input
+                  label="Email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={suEmail}
+                  onChange={e => setSuEmail(e.target.value)}
+                  disabled={loading}
+                  error={suErrors.email}
+                  autoComplete="email"
+                />
+                <div className="space-y-1">
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="Min 8 characters"
+                    value={suPassword}
+                    onChange={e => setSuPassword(e.target.value)}
+                    disabled={loading}
+                    error={suErrors.password}
+                    autoComplete="new-password"
+                  />
+                  <PasswordStrength password={suPassword} />
+                </div>
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={suConfirm}
+                  onChange={e => setSuConfirm(e.target.value)}
+                  disabled={loading}
+                  error={suErrors.confirm}
+                  autoComplete="new-password"
+                />
+                <LegalLinks />
+                <SubmitButton loading={loading} loadingLabel="CREATING ACCOUNT...">CREATE ACCOUNT</SubmitButton>
+                <div className="text-2xs text-terminal-green text-center font-semibold">
+                  7-day free trial — full Apex access
+                </div>
+              </form>
+            )
           )}
         </div>
       </div>
