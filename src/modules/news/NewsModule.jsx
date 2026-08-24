@@ -7,6 +7,8 @@ import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
 import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { SentimentBar } from '../../components/ui/SentimentIndicator'
+import { useSentiment } from '../../hooks/useSentiment'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -796,6 +798,7 @@ export default function NewsModule() {
   const listTopRef                    = useRef(null)
 
   const { newsFilter, setNewsFilter, clearNewsBadge, openModal } = useStore()
+  const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
 
   // Clear nav badge and tick clock
   useEffect(() => { clearNewsBadge() }, [clearNewsBadge])
@@ -965,6 +968,10 @@ export default function NewsModule() {
       <ModuleHeader title="NEWS" subtitle="AFR · Reuters · CNBC · 30+ sources" moduleId="news" />
 
       <MorningBriefing />
+
+      <div className="px-2 pt-2 flex-shrink-0">
+        <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
+      </div>
 
       {/* Header */}
       <div className="panel-header flex items-center gap-2 flex-shrink-0">

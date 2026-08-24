@@ -4,6 +4,8 @@ import { ModuleLoader } from '../../components/ui/ModuleStates'
 import { generateMorningBrief } from '../../services/morningBriefService'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
+import { SentimentBar } from '../../components/ui/SentimentIndicator'
+import { useSentiment } from '../../hooks/useSentiment'
 
 // Score bands per spec — angular width is proportional to each band's share
 // of the 0-100 range, not evenly split, so the gauge's colour transitions
@@ -61,6 +63,7 @@ const IMPACT_COLOR = { HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', 
 
 export default function MorningBriefModule() {
   const { watchlist } = useStore()
+  const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
   const [brief, setBrief] = useState(null)
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [error, setError] = useState(null)
@@ -132,6 +135,11 @@ export default function MorningBriefModule() {
                 )}
               </div>
             </div>
+
+            {/* News sentiment index — a distinct, headline-derived score from
+                sentimentService, separate from the brief's own maddenAIScore
+                above (that one weighs watchlist/portfolio context too). */}
+            <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
 
             {/* Middle — sections, 2-col */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

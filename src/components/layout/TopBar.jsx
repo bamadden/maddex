@@ -9,6 +9,8 @@ import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
+import { useSentiment } from '../../hooks/useSentiment'
+import { SentimentCompact } from '../ui/SentimentIndicator'
 
 const LAYOUT_ICONS = { standard: '⊞', focus: '▣', split: '◫', research: '◨' }
 
@@ -288,6 +290,7 @@ export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { audUsd } = useAudRates()
   const { user } = useAuthStore()
+  const { sentiment, status: sentimentStatus } = useSentiment()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsSection, setSettingsSection] = useState(undefined)
 
@@ -392,6 +395,12 @@ export default function TopBar() {
             )
           })}
         </div>
+        {(sentimentStatus === 'ready' || sentimentStatus === 'loading') && (
+          <>
+            <Divider />
+            <SentimentCompact sentiment={sentiment} status={sentimentStatus} />
+          </>
+        )}
       </div>
 
       {/* RIGHT — demo badge, notifications, avatar */}
