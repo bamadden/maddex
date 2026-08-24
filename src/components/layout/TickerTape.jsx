@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, memo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   transformCryptoMarkets,
@@ -39,16 +39,20 @@ function pctColor(p) {
   return '#6b7280'
 }
 
-function Divider({ label }) {
+// Both memoised — the tape is rebuilt (and duplicated for the seamless
+// -50% loop) on every quote refresh, so without this every one of the
+// ~40-80 rendered items/dividers would re-render each tick even when its
+// own props are unchanged.
+const Divider = memo(function Divider({ label }) {
   return (
     <span className="ticker-divider">
       <span style={S.pipe}>│</span>
       <span style={S.dlabel}>{label}</span>
     </span>
   )
-}
+})
 
-function TapeItem({ sym, price, pct, marketCap, onClick }) {
+const TapeItem = memo(function TapeItem({ sym, price, pct, marketCap, onClick }) {
   const tooltip = [price, pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')
   return (
     <span className="ticker-item" title={tooltip || undefined} onClick={onClick}>
@@ -67,7 +71,7 @@ function TapeItem({ sym, price, pct, marketCap, onClick }) {
       )}
     </span>
   )
-}
+})
 
 export default function TickerTape() {
   const { openModal } = useStore()

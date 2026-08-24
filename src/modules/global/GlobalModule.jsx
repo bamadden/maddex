@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData } from '../../services/api'
 import { fetchSignificantEarthquakes, fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
@@ -8,10 +8,13 @@ import { useCountryData } from '../../hooks/useCountryData'
 import COUNTRIES from '../../data/countryDatabase'
 import { initCountryDataRefresh } from '../../services/countryApiService'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
-import MaddexGlobe from '../../components/globe/MaddexGlobe'
 import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
-import { ModuleLoader } from '../../components/ui/ModuleStates'
+import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+
+// Code-split — d3 + topojson-client pull in a large bundle only needed once
+// the user actually opens the Global module.
+const MaddexGlobe = lazy(() => import('../../components/globe/MaddexGlobe'))
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -2519,7 +2522,9 @@ export default function GlobalModule() {
 
           {/* Globe */}
           <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} md:block`} style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
-            <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
+            <Suspense fallback={<Viz3DLoader />}>
+              <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
+            </Suspense>
           </div>
 
           {/* Right tab panel — 320-360px */}

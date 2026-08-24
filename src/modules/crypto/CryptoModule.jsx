@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchCoinHistory, fetchFearGreed, fetchCryptoGlobal,
@@ -12,11 +12,14 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
-import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
+import { ModuleLoader, StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import CryptoLandscape3D from '../../components/visualisations/CryptoLandscape3D'
+
+// Code-split — three.js/@react-three pull in a large bundle only needed
+// once the user actually switches to the 3D view.
+const CryptoLandscape3D = lazy(() => import('../../components/visualisations/CryptoLandscape3D'))
 
 // ── Coin colour circle (deterministic hash, not a real logo — Bloomberg-
 // terminal-style abstract avatar rather than brand marks) ──────────────────
@@ -790,7 +793,9 @@ export default function CryptoModule() {
               // before that first measurement, leaving the canvas stuck at
               // the browser's intrinsic 300x150 default.
               <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
-                <CryptoLandscape3D coins={markets.slice(0, 20)} />
+                <Suspense fallback={<Viz3DLoader />}>
+                  <CryptoLandscape3D coins={markets.slice(0, 20)} />
+                </Suspense>
               </div>
             ) : (
             <SortableCoinTable

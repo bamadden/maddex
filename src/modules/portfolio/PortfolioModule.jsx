@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYFQuote, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -10,12 +10,15 @@ import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { fmt, colorClass } from '../../utils/format'
 import { StatBox } from '../../components/ui/Panel'
-import { DemoBadge } from '../../components/ui/ModuleStates'
+import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
-import Portfolio3D from '../../components/visualisations/Portfolio3D'
+
+// Code-split — three.js/@react-three pull in a large bundle only needed
+// once the user actually switches to the 3D view.
+const Portfolio3D = lazy(() => import('../../components/visualisations/Portfolio3D'))
 
 const STORAGE_KEY = 'madden_portfolio_v2'
 
@@ -592,16 +595,18 @@ export default function PortfolioModule() {
           {allocData.length > 0 ? (
             allocView3D ? (
               <div style={{ height: 260 }} className="flex-shrink-0 border-b border-terminal-border">
-                <Portfolio3D
-                  holdings={live}
-                  onSelect={(h) => h.last && openModal?.({
-                    symbol: h.symbol, name: h.name || h.symbol,
-                    price:  h.last * displayMul,
-                    pct:    h.dayPct,
-                    change: (h.last * (h.dayPct / 100)) * displayMul,
-                    type:   h.type,
-                  })}
-                />
+                <Suspense fallback={<Viz3DLoader />}>
+                  <Portfolio3D
+                    holdings={live}
+                    onSelect={(h) => h.last && openModal?.({
+                      symbol: h.symbol, name: h.name || h.symbol,
+                      price:  h.last * displayMul,
+                      pct:    h.dayPct,
+                      change: (h.last * (h.dayPct / 100)) * displayMul,
+                      type:   h.type,
+                    })}
+                  />
+                </Suspense>
               </div>
             ) : (
             <>

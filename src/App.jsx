@@ -20,6 +20,7 @@ import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
 import ScreenerModule from './modules/screener/ScreenerModule'
 import { FloatingWindow } from './components/ui/FloatingWindow'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 import AuthModal from './components/auth/AuthModal'
 import OnboardingFlow from './components/auth/OnboardingFlow'
 import TrialExpiredModal from './components/auth/TrialExpiredModal'
@@ -330,7 +331,9 @@ function Terminal() {
         {layout === 'split' ? (
           <div className="flex flex-1 min-w-0 overflow-hidden">
             <div key={activeModule} className="flex-1 min-w-0 w-1/2 overflow-hidden border-r border-terminal-border module-fade">
-              <ActiveModule />
+              <ErrorBoundary label={MODULE_TITLES[activeModule]}>
+                <ActiveModule />
+              </ErrorBoundary>
             </div>
             <div className="flex-1 min-w-0 w-1/2 overflow-hidden flex flex-col">
               <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-terminal-border bg-terminal-surface">
@@ -346,13 +349,17 @@ function Terminal() {
                 </select>
               </div>
               <div key={splitModuleId} className="flex-1 min-h-0 overflow-hidden module-fade">
-                <SplitModule />
+                <ErrorBoundary label={MODULE_TITLES[splitModuleId]}>
+                  <SplitModule />
+                </ErrorBoundary>
               </div>
             </div>
           </div>
         ) : (
           <div key={activeModule} className="flex-1 min-w-0 overflow-hidden module-fade">
-            <ActiveModule />
+            <ErrorBoundary label={MODULE_TITLES[activeModule]}>
+              <ActiveModule />
+            </ErrorBoundary>
           </div>
         )}
         {layout !== 'focus' && layout !== 'split' && <AIPanel wide={layout === 'research'} />}
@@ -372,7 +379,9 @@ function Terminal() {
             onFocus={() => bringToFront(w.id)}
             onClose={() => closeFloating(w.id)}
           >
-            <FloatingContent />
+            <ErrorBoundary label={w.title}>
+              <FloatingContent />
+            </ErrorBoundary>
           </FloatingWindow>
         )
       })}

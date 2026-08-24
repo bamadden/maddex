@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fetchFxRates } from '../../services/api'
 import { useStore } from '../../store/useStore'
@@ -244,14 +244,55 @@ function LayoutSwitcher() {
   )
 }
 
-function TopBarDemoBadge() {
+// Data freshness indicator — shows how long since the last refresh and a
+// countdown to the next automatic one; click triggers an immediate refresh
+// of every live query. lastRefreshRef (not state) tracks the timestamp so
+// the 1s tick only ever forces a re-render, matching the same
+// interval-driven pattern the clock above already uses (lint-clean: no
+// setState called synchronously from an effect body).
+function DataFreshnessBadge() {
+  const queryClient = useQueryClient()
+  const REFRESH_INTERVAL = 60
+  const [lastRefresh, setLastRefresh] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
+
+  // Auto-refresh once the countdown lapses — the invalidate + reset both
+  // happen inside the interval callback (deferred, not synchronous with the
+  // effect body itself), same pattern as the plain clock tick above it.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNow(Date.now())
+      setLastRefresh((prev) => {
+        const elapsed = Math.floor((Date.now() - prev) / 1000)
+        if (elapsed < REFRESH_INTERVAL) return prev
+        queryClient.invalidateQueries()
+        return Date.now()
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [queryClient])
+
+  const elapsed = Math.floor((now - lastRefresh) / 1000)
+  const remaining = Math.max(0, REFRESH_INTERVAL - elapsed)
+  const timeAgo = elapsed < 5 ? 'just now' : `${elapsed}s ago`
+
+  const handleClick = () => {
+    queryClient.invalidateQueries()
+    setLastRefresh(Date.now())
+  }
+
   return (
-    <span
-      title="No live equities API key configured — showing realistic demo data until one is added"
-      className="pulse-gold inline-flex items-center rounded-full bg-terminal-gold/15 border border-terminal-border-gold px-2 py-0.5 text-2xs font-mono text-terminal-gold whitespace-nowrap flex-shrink-0"
+    <button
+      onClick={handleClick}
+      title="Click to refresh all live data"
+      className="pulse-gold inline-flex items-center gap-1 rounded-full bg-terminal-gold/15 border border-terminal-border-gold px-2 py-0.5 text-2xs font-mono text-terminal-gold whitespace-nowrap flex-shrink-0 hover:bg-terminal-gold/25 transition-colors cursor-pointer"
     >
-      ● DEMO
-    </span>
+      <span>● DEMO</span>
+      <span className="text-terminal-gold/50">·</span>
+      <span>{timeAgo}</span>
+      <span className="text-terminal-gold/50">·</span>
+      <span>Refresh in {remaining}s</span>
+    </button>
   )
 }
 
@@ -352,7 +393,7 @@ export default function TopBar() {
       <div className="flex items-center justify-self-end flex-shrink-0">
         <LayoutSwitcher />
         <Divider />
-        {USING_MOCK_DATA && <TopBarDemoBadge />}
+        {USING_MOCK_DATA && <DataFreshnessBadge />}
         {user && (
           <>
             <Divider />

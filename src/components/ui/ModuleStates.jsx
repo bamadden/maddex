@@ -38,6 +38,19 @@ export function ModuleLoader({ name, className = '' }) {
   )
 }
 
+// Fallback for React.lazy()-loaded 3D visualisations (three.js/@react-three
+// bundles are large enough to be worth code-splitting out of the main
+// bundle) — fills the same absolute-positioned canvas area the real
+// component will occupy once its chunk arrives.
+export function Viz3DLoader() {
+  return (
+    <div className="h-full w-full flex flex-col items-center justify-center gap-3">
+      <div className="skeleton w-2/3 h-2/3 rounded" />
+      <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">LOADING 3D VIEW...</span>
+    </div>
+  )
+}
+
 // Small inline indicator for data served from dataService.js's stale-cache
 // fallback — used instead of a blank panel or a bare RETRY button whenever
 // *some* data (even if old) is available. `cachedAt` is the ms-epoch

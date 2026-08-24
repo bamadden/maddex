@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA } from '../../services/api'
 import { fmt } from '../../utils/format'
@@ -7,12 +7,15 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
-import { DemoBadge } from '../../components/ui/ModuleStates'
+import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
 } from 'recharts'
-import SectorLandscape3D from '../../components/visualisations/SectorLandscape3D'
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
+
+// Code-split — three.js/@react-three pull in a large bundle only needed
+// once the user actually switches to the 3D view.
+const SectorLandscape3D = lazy(() => import('../../components/visualisations/SectorLandscape3D'))
 
 // ─── GICS Sector Configuration ───────────────────────────────────────────────
 // Official 11 GICS sectors used by ASX, S&P, NASDAQ, and all major indices
@@ -1015,16 +1018,18 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
       {view3D ? (
         <div style={{ height: 460 }} className="flex-shrink-0">
-          <SectorLandscape3D
-            sectors={GICS_SECTORS
-              .filter((s) => sectorConfig[s]?.sym)
-              .map((s) => ({
-                name: s,
-                abbr: SECTOR_ABBR[s],
-                pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? 0,
-                marketCap: proxyQuotes?.[sectorConfig[s].sym]?.marketCap ?? null,
-              }))}
-          />
+          <Suspense fallback={<Viz3DLoader />}>
+            <SectorLandscape3D
+              sectors={GICS_SECTORS
+                .filter((s) => sectorConfig[s]?.sym)
+                .map((s) => ({
+                  name: s,
+                  abbr: SECTOR_ABBR[s],
+                  pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? 0,
+                  marketCap: proxyQuotes?.[sectorConfig[s].sym]?.marketCap ?? null,
+                }))}
+            />
+          </Suspense>
         </div>
       ) : (
       <div className="flex">
