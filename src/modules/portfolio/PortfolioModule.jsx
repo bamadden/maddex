@@ -17,6 +17,7 @@ import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import StressTest from './StressTest'
+import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -408,6 +409,7 @@ export default function PortfolioModule() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
   })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showBuilder, setShowBuilder] = useState(false)
   const [allocView3D, setAllocView3D] = useState(false)
   const [dbSynced, setDbSynced] = useState(false)
   const [activeTab, setActiveTab] = useState('holdings')
@@ -462,6 +464,16 @@ export default function PortfolioModule() {
         setHoldings((prev) => prev.map((p) => (p.id === h.id ? { ...p, id: data.id } : p)))
       }
     }
+  }
+
+  // Sequential — addHolding is itself async (Supabase insert when logged
+  // in) and reads/writes `holdings` via functional setState, so importing
+  // one at a time avoids racing several inserts against the same state.
+  const importFromBuilder = async (shapedHoldings) => {
+    for (const h of shapedHoldings) {
+      await addHolding(h)
+    }
+    setShowBuilder(false)
   }
 
   const deleteHolding = async (id) => {
@@ -564,7 +576,17 @@ export default function PortfolioModule() {
   if (holdings.length === 0) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
-        <ModuleHeader title="PORTFOLIO" subtitle="Track your holdings across ASX, US equities, and crypto" />
+        <ModuleHeader
+          title="PORTFOLIO"
+          subtitle="Track your holdings across ASX, US equities, and crypto"
+          right={(
+            <button
+              onClick={() => setShowBuilder(true)}
+              className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
+            >BUILD WITH AI ▶</button>
+          )}
+        />
+        {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 bg-terminal-bg">
         {showAddForm
           ? <div className="w-full max-w-sm">
@@ -608,13 +630,22 @@ export default function PortfolioModule() {
         moduleId="portfolio"
         isFetching={isFetching}
         onRefresh={yfSymbols.length > 0 ? refetch : undefined}
-        right={live.length > 0 && (
-          <button
-            onClick={runAiAnalysis}
-            className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
-          >AI ANALYSIS ▶</button>
+        right={(
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowBuilder(true)}
+              className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
+            >BUILD WITH AI ▶</button>
+            {live.length > 0 && (
+              <button
+                onClick={runAiAnalysis}
+                className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
+              >AI ANALYSIS ▶</button>
+            )}
+          </div>
         )}
       />
+      {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
 
       {/* Stats bar */}
       <div className="grid grid-cols-4 xl:grid-cols-9 border-b border-terminal-border flex-shrink-0">
