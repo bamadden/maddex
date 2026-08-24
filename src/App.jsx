@@ -22,6 +22,7 @@ import GlobalModule from './modules/global/GlobalModule'
 import ScreenerModule from './modules/screener/ScreenerModule'
 import MorningBriefModule from './modules/brief/MorningBriefModule'
 import MarketReplayModule from './modules/replay/MarketReplayModule'
+import MarketScannerModule from './modules/scanner/MarketScannerModule'
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import CorrelationExplorer from './modules/markets/CorrelationExplorer'
 import ErrorBoundary from './components/ui/ErrorBoundary'
@@ -56,6 +57,7 @@ const MODULE_MAP = {
   screener:  ScreenerModule,
   brief:     MorningBriefModule,
   replay:    MarketReplayModule,
+  scanner:   MarketScannerModule,
 }
 
 const MODULE_TITLES = {
@@ -70,6 +72,7 @@ const MODULE_TITLES = {
   screener:  'Screener',
   brief:     'Morning Brief',
   replay:    'Market Replay',
+  scanner:   'Market Scanner',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────
