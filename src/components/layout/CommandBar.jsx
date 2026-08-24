@@ -3,7 +3,7 @@ import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
 import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, askClaude } from '../../services/api'
-import { detectAssetType } from '../../utils/assetUtils'
+import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 
 // ─── Autocomplete symbol catalogue ────────────────────────────────────────────
 
@@ -949,8 +949,8 @@ export default function CommandBar() {
       flash(`LOADING COMPARISON...`, 'text-terminal-gold', 0)
       try {
         const [q1, q2] = await Promise.all([
-          fetchYFQuote(s1raw.endsWith('.AX') || s1raw.startsWith('^') ? s1raw : s1raw),
-          fetchYFQuote(s2raw.endsWith('.AX') || s2raw.startsWith('^') ? s2raw : s2raw),
+          fetchYFQuote(toYahooSymbol(s1raw, detectAssetType(s1raw))),
+          fetchYFQuote(toYahooSymbol(s2raw, detectAssetType(s2raw))),
         ])
         const a1 = buildModalAsset(q1, detectAssetType(s1raw), s1raw.toUpperCase())
         const a2 = buildModalAsset(q2, detectAssetType(s2raw), s2raw.toUpperCase())

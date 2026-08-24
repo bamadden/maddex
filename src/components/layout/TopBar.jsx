@@ -107,8 +107,6 @@ function UserMenu() {
   const { profile, user, signOut } = useAuthStore()
   const { setActiveModule } = useStore()
   const [open, setOpen] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [settingsSection, setSettingsSection] = useState(undefined)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -118,16 +116,7 @@ function UserMenu() {
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  // UpgradePrompt buttons and other "manage your plan" CTAs dispatch this
-  // instead of needing a prop-drilled way to open Settings from anywhere.
-  useEffect(() => {
-    const handler = (e) => {
-      setSettingsSection(e.detail?.section)
-      setShowSettings(true)
-    }
-    window.addEventListener('madden:open-settings', handler)
-    return () => window.removeEventListener('madden:open-settings', handler)
-  }, [])
+  const openSettings = () => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))
 
   const initials = getInitials(profile, user)
   const displayName = profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : user?.email || ''
@@ -157,8 +146,8 @@ function UserMenu() {
               <div className="text-2xs text-terminal-text-dim truncate">{user?.email}</div>
             </div>
             {[
-              ['⚙', 'Settings', () => { setShowSettings(true); setOpen(false) }],
-              ['👤', 'Edit Profile', () => { setShowSettings(true); setOpen(false) }],
+              ['⚙', 'Settings', () => { openSettings(); setOpen(false) }],
+              ['👤', 'Edit Profile', () => { openSettings(); setOpen(false) }],
               ['📊', 'Portfolio', () => { setActiveModule('portfolio'); setOpen(false) }],
               ['🔔', 'Price Alerts', () => { setActiveModule('watchlist'); setOpen(false) }],
             ].map(([icon, label, onClick]) => (
@@ -181,7 +170,6 @@ function UserMenu() {
           </div>
         )}
       </div>
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />}
     </>
   )
 }
@@ -300,10 +288,27 @@ export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { audUsd } = useAudRates()
   const { user } = useAuthStore()
+  const [showSettings, setShowSettings] = useState(false)
+  const [settingsSection, setSettingsSection] = useState(undefined)
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(id)
+  }, [])
+
+  // Lives here (not inside UserMenu) so Settings — including the theme and
+  // layout-mode switchers, which have nothing to do with account state —
+  // stays reachable even when `user` is null and UserMenu doesn't render.
+  // NavBar's sidebar gear, UpgradePrompt CTAs, and UserMenu's own "Settings"
+  // item all just dispatch this same event rather than needing a
+  // prop-drilled way to reach this state.
+  useEffect(() => {
+    const handler = (e) => {
+      setSettingsSection(e.detail?.section)
+      setShowSettings(true)
+    }
+    window.addEventListener('madden:open-settings', handler)
+    return () => window.removeEventListener('madden:open-settings', handler)
   }, [])
 
   // Yesterday's rate for % change
@@ -403,6 +408,8 @@ export default function TopBar() {
           </>
         )}
       </div>
+
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />}
     </div>
   )
 }

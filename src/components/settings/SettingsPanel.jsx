@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import { useTheme, THEMES } from '../../hooks/useTheme'
+import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZONES } from '../../lib/profileUtils'
 
@@ -304,6 +305,7 @@ function PreferencesSection() {
   const { settings, updateSettings, profile, updateProfile } = useAuthStore()
   const { setCurrency: setStoreCurrency } = useStore()
   const { theme, setTheme } = useTheme()
+  const { layout, setLayout } = useLayoutMode()
   const [currency, setCurrency] = useState(settings?.currency || 'AUD')
   const [defaultModule, setDefaultModule] = useState(settings?.default_module || 'markets')
   const [refreshInterval, setRefreshInterval] = useState(settings?.auto_refresh_interval || 60)
@@ -433,6 +435,27 @@ function PreferencesSection() {
                 style={{ background: t.swatch }}
               />
               <span className="text-2xs font-bold">{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-2xs text-terminal-text-dim mb-2">LAYOUT MODE</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {LAYOUT_MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => setLayout(m.key)}
+              className={`px-3 py-2 text-left border transition-colors ${
+                layout === m.key
+                  ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
+                  : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-text'
+              }`}
+            >
+              <div className="text-2xs font-bold">{m.label}</div>
+              <div className="text-2xs opacity-70 mt-0.5 leading-tight">{m.desc}</div>
             </button>
           ))}
         </div>

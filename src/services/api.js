@@ -857,8 +857,11 @@ export const fetchCryptoGlobal = async () => {
 }
 
 export const transformCryptoMarkets = (items, currency = 'aud') =>
-  items.map((c) => ({
-    rank:      c.market_cap_rank,
+  items.map((c, i) => ({
+    // Position in the already market-cap-sorted response, not CoinGecko's
+    // own market_cap_rank field — that field is frequently null or stale
+    // for thinly-traded coins and produces duplicate/gappy ranks in the table.
+    rank:      i + 1,
     symbol:    c.symbol.toUpperCase(),
     name:      c.name,
     price:     c.current_price,
