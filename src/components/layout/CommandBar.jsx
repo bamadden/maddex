@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, memo } from 'react'
+import { useState, useRef, useEffect, useCallback, memo, Fragment } from 'react'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -384,11 +384,11 @@ function CompareModal({ assets, onClose }) {
             </div>
           ))}
           {rows.map((row) => (
-            <>
-              <div key={row.label+'-l'} className="px-3 py-1.5 border-r border-terminal-border border-t border-terminal-border/30 text-terminal-text-dim">{row.label}</div>
-              <div key={row.label+'-a'} className={`px-3 py-1.5 border-r border-terminal-border border-t border-terminal-border/30 text-center font-semibold ${row.aCls ?? 'text-terminal-text-bright'}`}>{row.aVal}</div>
-              <div key={row.label+'-b'} className={`px-3 py-1.5 border-t border-terminal-border/30 text-center font-semibold ${row.bCls ?? 'text-terminal-text-bright'}`}>{row.bVal}</div>
-            </>
+            <Fragment key={row.label}>
+              <div className="px-3 py-1.5 border-r border-terminal-border border-t border-terminal-border/30 text-terminal-text-dim">{row.label}</div>
+              <div className={`px-3 py-1.5 border-r border-terminal-border border-t border-terminal-border/30 text-center font-semibold ${row.aCls ?? 'text-terminal-text-bright'}`}>{row.aVal}</div>
+              <div className={`px-3 py-1.5 border-t border-terminal-border/30 text-center font-semibold ${row.bCls ?? 'text-terminal-text-bright'}`}>{row.bVal}</div>
+            </Fragment>
           ))}
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">

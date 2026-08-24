@@ -17,6 +17,9 @@ dist
 dist-ssr
 *.local
 
+# Supabase CLI scratch state (created by any `supabase`/`npx supabase` invocation)
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

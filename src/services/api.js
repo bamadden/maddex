@@ -1437,6 +1437,27 @@ export function buildSystemPrompt(experienceLevel) {
   return `USER CONTEXT: ${ctx}\n\n${MADDEX_SYSTEM_PROMPT}`
 }
 
+// The error body reaching the browser has a different shape depending on
+// which /api/claude backend served the request: the Vite dev proxy forwards
+// Anthropic's error straight through ({"error":{"message":"..."}}), while
+// the deployed Vercel function (api/claude.js) wraps that same text as a
+// JSON *string* inside another object ({"error":"{\"error\":{...}}"}) since
+// it does `res.json({ error: errText })` on the raw response body. Unwrap
+// up to a couple of JSON layers so both shapes resolve to the same message
+// instead of the prod path silently falling back to a generic one.
+function extractAnthropicErrorMessage(text) {
+  let cur = text
+  for (let i = 0; i < 3; i++) {
+    let obj
+    try { obj = JSON.parse(cur) } catch { return null }
+    if (obj?.error?.message) return obj.error.message
+    if (typeof obj?.message === 'string') return obj.message
+    if (typeof obj?.error === 'string') { cur = obj.error; continue }
+    return null
+  }
+  return null
+}
+
 export const askClaude = async (messages, onToken, options = {}) => {
   const startTime  = Date.now()
   const systemPrompt = options.systemPrompt ?? (options.experienceLevel ? buildSystemPrompt(options.experienceLevel) : MADDEX_SYSTEM_PROMPT)
@@ -1456,15 +1477,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
   if (!response.ok) {
     const errText = await response.text()
     console.error('[MADDEN API] Claude API error:', errText)
-    // The proxy forwards Anthropic's raw error body — extract just the
-    // human-readable message rather than surfacing the whole JSON blob
-    // (type/error/request_id) to the UI.
-    let friendly = 'AI service is currently unavailable — please try again shortly.'
-    try {
-      const parsed = JSON.parse(errText)
-      friendly = parsed?.error?.message || parsed?.message || friendly
-    } catch { /* not JSON — keep the generic fallback */ }
-    throw new Error(friendly)
+    throw new Error(extractAnthropicErrorMessage(errText) ?? 'AI service is currently unavailable — please try again shortly.')
   }
   const reader     = response.body.getReader()
   const decoder    = new TextDecoder()
