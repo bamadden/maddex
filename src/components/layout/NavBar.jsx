@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar,
+  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar, Lightbulb,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -127,8 +127,16 @@ export default function NavBar() {
         <span className={labelCls}>AI ANALYST</span>
       </button>
 
-      {/* Bottom: settings + sign out */}
+      {/* Bottom: ideas + settings + sign out */}
       <div className="border-t border-terminal-border flex-shrink-0">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('madden:open-ideas'))}
+          title="Ideas & roadmap"
+          className="flex items-center gap-3 w-full px-4 py-2.5 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
+        >
+          <Lightbulb size={18} strokeWidth={1.75} className="flex-shrink-0" />
+          <span className={labelCls}>IDEAS</span>
+        </button>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))}
           title="Settings"

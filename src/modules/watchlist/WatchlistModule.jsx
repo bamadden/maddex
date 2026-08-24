@@ -16,6 +16,8 @@ import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPrevi
 import EarningsResultPanel from '../../components/earningsPreview/EarningsResultPanel'
 import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import ShareLinkModal from '../../components/ui/ShareLinkModal'
+import { createShareLink } from '../../services/sharingService'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -92,7 +94,8 @@ function exportCSV(rows) {
 
 export default function WatchlistModule() {
   const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal } = useStore()
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
+  const [shareLink, setShareLink] = useState(null)
   const { canAccess } = useSubscription()
   const WATCHLIST_LIMIT = 20 // Core tier — Prime+ is unlimited
   const { usdToAud } = useAudRates()
@@ -277,6 +280,14 @@ export default function WatchlistModule() {
     }
   }
 
+  const handleShare = () => {
+    const ownerName = profile?.first_name || user?.email?.split('@')[0] || 'A Maddex user'
+    const stocks = sortedRows
+      .filter((r) => r.price != null)
+      .map((r) => ({ symbol: r.symbol, name: r.name, price: r.price, changePct: r.pct }))
+    setShareLink(createShareLink('watchlist', { ownerName, stocks }))
+  }
+
   const onDragStart = (i) => { dragIndexRef.current = i }
   const onDragOver  = (e) => e.preventDefault()
   const onDrop = (i) => {
@@ -327,6 +338,13 @@ export default function WatchlistModule() {
           className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0"
         >
           EXPORT CSV
+        </button>
+        <button
+          onClick={handleShare}
+          disabled={sortedRows.length === 0}
+          className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0 disabled:opacity-30"
+        >
+          SHARE
         </button>
         <button
           onClick={handleClearAll}
@@ -518,6 +536,14 @@ export default function WatchlistModule() {
           ticker={earningsResult.ticker}
           companyName={earningsResult.companyName}
           onClose={() => setEarningsResult(null)}
+        />
+      )}
+      {shareLink && (
+        <ShareLinkModal
+          title="SHARE WATCHLIST"
+          brandedUrl={shareLink.brandedUrl}
+          resolvableUrl={shareLink.resolvableUrl}
+          onClose={() => setShareLink(null)}
         />
       )}
     </div>

@@ -4,6 +4,8 @@ import html2canvas from 'html2canvas'
 import { generateResearchNote, RESEARCH_NOTE_STEPS } from '../../services/researchNoteService'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../ui/UpgradePrompt'
+import ShareLinkModal from '../ui/ShareLinkModal'
+import { createShareLink } from '../../services/sharingService'
 
 const RATING_COLOR = {
   BUY:  { bg: '#0e2a1a', text: '#3dad65', border: '#2d8a50' },
@@ -215,6 +217,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
   const [note, setNote] = useState(null)
   const [error, setError] = useState(null)
   const [downloading, setDownloading] = useState(false)
+  const [shareLink, setShareLink] = useState(null)
   const printableRef = useRef(null)
   const stepTimerRef = useRef(null)
 
@@ -243,6 +246,20 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
       setError(e.message)
       setStatus('error')
     }
+  }
+
+  const handleShare = () => {
+    if (!note) return
+    setShareLink(createShareLink('research', {
+      assetName: asset.name,
+      assetSymbol: asset.symbol,
+      rating: note.rating,
+      targetPrice: fmtPrice(note.targetPrice, note.targetCurrency),
+      timeHorizon: note.timeHorizon,
+      executiveSummary: note.executiveSummary,
+      conclusion: note.conclusion,
+      disclaimer: note.disclaimer,
+    }))
   }
 
   const handleDownload = async () => {
@@ -323,6 +340,10 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
                     >REGENERATE</button>
                     <button
+                      onClick={handleShare}
+                      className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
+                    >SHARE ▾</button>
+                    <button
                       onClick={handleDownload}
                       disabled={downloading}
                       className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-50"
@@ -340,6 +361,14 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
           </div>
         )}
       </div>
+      {shareLink && (
+        <ShareLinkModal
+          title="SHARE RESEARCH NOTE"
+          brandedUrl={shareLink.brandedUrl}
+          resolvableUrl={shareLink.resolvableUrl}
+          onClose={() => setShareLink(null)}
+        />
+      )}
     </div>
   )
 }

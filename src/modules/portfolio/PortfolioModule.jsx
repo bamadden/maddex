@@ -19,6 +19,7 @@ import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import StressTest from './StressTest'
 import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
+import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -394,7 +395,8 @@ const PORTFOLIO_LIMIT = 10 // Core tier — Prime+ is unlimited
 
 export default function PortfolioModule() {
   const { openModal, currency } = useStore()
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
+  const [showSnapshot, setShowSnapshot] = useState(false)
   const { canAccess } = useSubscription()
   const { usdToAud, audUsd }   = useAudRates()
   const displayMul = currency === 'USD' ? audUsd : 1
@@ -644,10 +646,27 @@ export default function PortfolioModule() {
                 className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
               >AI ANALYSIS ▶</button>
             )}
+            {live.length > 0 && (
+              <button
+                onClick={() => setShowSnapshot(true)}
+                className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-border-gold transition-colors font-bold tracking-wide"
+              >SHARE</button>
+            )}
           </div>
         )}
       />
       {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
+      {showSnapshot && (
+        <PortfolioSnapshot
+          holdings={live}
+          totalPnl={totalPnl}
+          pnlPct={pnlPct}
+          mktTotal={mktTotal}
+          currency={currency}
+          ownerName={profile?.first_name || user?.email?.split('@')[0] || 'A Maddex user'}
+          onClose={() => setShowSnapshot(false)}
+        />
+      )}
 
       {/* Stats bar */}
       <div className="grid grid-cols-4 xl:grid-cols-9 border-b border-terminal-border flex-shrink-0">

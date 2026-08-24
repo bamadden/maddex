@@ -4,6 +4,8 @@ import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
 import DiagPage from './DiagPage'
+import SharedWatchlistPage from './pages/SharedWatchlistPage'
+import SharedResearchNotePage from './pages/SharedResearchNotePage'
 import TopBar from './components/layout/TopBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
@@ -463,6 +465,10 @@ function AuthGate() {
 
 export default function App() {
   if (window.location.search.includes('diag')) return <DiagPage />
+  const watchlistShare = window.location.pathname.match(/^\/watchlist\/share\/([a-z0-9]+)$/i)
+  if (watchlistShare) return <SharedWatchlistPage id={watchlistShare[1]} />
+  const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9]+)$/i)
+  if (researchShare) return <SharedResearchNotePage id={researchShare[1]} />
   return (
     <QueryClientProvider client={queryClient}>
       <StoreProvider>

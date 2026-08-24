@@ -5,6 +5,7 @@ import { fetchFxRates } from '../../services/api'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import SettingsPanel from '../settings/SettingsPanel'
+import IdeasBoard from '../ideas/IdeasBoard'
 import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
@@ -293,6 +294,7 @@ export default function TopBar() {
   const { sentiment, status: sentimentStatus } = useSentiment()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsSection, setSettingsSection] = useState(undefined)
+  const [showIdeas, setShowIdeas] = useState(false)
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
@@ -312,6 +314,15 @@ export default function TopBar() {
     }
     window.addEventListener('madden:open-settings', handler)
     return () => window.removeEventListener('madden:open-settings', handler)
+  }, [])
+
+  // Same "self-contained modal, opened via a global event" pattern as
+  // Settings above — NavBar's sidebar button and CommandBar's "ideas"
+  // command both just dispatch this rather than needing prop-drilled state.
+  useEffect(() => {
+    const handler = () => setShowIdeas(true)
+    window.addEventListener('madden:open-ideas', handler)
+    return () => window.removeEventListener('madden:open-ideas', handler)
   }, [])
 
   // Yesterday's rate for % change
@@ -419,6 +430,7 @@ export default function TopBar() {
       </div>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />}
+      {showIdeas && <IdeasBoard onClose={() => setShowIdeas(false)} />}
     </div>
   )
 }

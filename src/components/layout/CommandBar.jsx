@@ -145,6 +145,7 @@ const HELP_SECTIONS = [
     { cmd:'CORRELATE {s1} {s2}', desc:'Open Correlation Explorer — e.g. CORRELATE BHP AUD' },
     { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
     { cmd:'AI {question}', desc:'Ask MaddenAI directly' },
+    { cmd:'IDEAS / ROADMAP', desc:'Vote on features, see what\'s coming' },
     { cmd:'HELP / ?', desc:'Show this panel' },
   ]},
   { title:'KEYBOARD', items:[
@@ -881,6 +882,13 @@ export default function CommandBar() {
     // ── HELP ──
     if (cmd === 'help' || cmd === '?' || cmd === 'commands') {
       setHelpOpen(true)
+      return
+    }
+
+    // ── IDEAS / ROADMAP ──
+    if (cmd === 'ideas' || cmd === 'roadmap') {
+      window.dispatchEvent(new CustomEvent('madden:open-ideas'))
+      flash('→ IDEAS & ROADMAP', 'text-terminal-green', 1500)
       return
     }
 
