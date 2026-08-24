@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooQuote, USING_MOCK_DATA } from '../../services/api'
+import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
@@ -127,7 +127,14 @@ export default function WatchlistModule() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  const yahooSymbols = watchlist.map((s) => toYahoo(s).yfSym)
+  // Equities/indices go through the existing Yahoo batch quote path; crypto
+  // symbols (BTC, ETH, ...) resolve to Yahoo's "-USD" format but that batch
+  // endpoint only serves equities, so they were silently coming back with
+  // no quote at all. Crypto gets its own CoinGecko-backed lookup instead,
+  // keyed by the plain ticker rather than the Yahoo symbol.
+  const equitySymbols = watchlist.filter((s) => toYahoo(s).type !== 'crypto')
+  const cryptoSymbols = watchlist.filter((s) => toYahoo(s).type === 'crypto')
+  const yahooSymbols  = equitySymbols.map((s) => toYahoo(s).yfSym)
 
   const { data: batchResult, isFetching, isError, refetch, dataUpdatedAt } = useQuery({
     queryKey:  ['watchlistBatch', ...yahooSymbols],
@@ -139,12 +146,47 @@ export default function WatchlistModule() {
   const batchQuotes = batchResult?.data
   const isDelayed   = batchResult?.stale === true
 
+  const { data: cryptoResult, isFetching: isFetchingCrypto, refetch: refetchCrypto } = useQuery({
+    queryKey:  ['watchlistCrypto', ...cryptoSymbols],
+    queryFn:   () => fetchCryptoMarkets('aud'),
+    enabled:   cryptoSymbols.length > 0,
+    staleTime: 60_000,
+    retry: 1,
+  })
+  const cryptoQuotes = cryptoResult
+    ? Object.fromEntries(transformCryptoMarkets(cryptoResult.data, cryptoResult.currency).map((c) => [c.symbol, c]))
+    : {}
+
+  const anyFetching = isFetching || isFetchingCrypto
+  const refetchAll = () => { refetch(); refetchCrypto() }
+
   const rows = watchlist.map((symbol) => {
     const { type, yfSym } = toYahoo(symbol)
+    const base   = { symbol, displaySymbol: displaySymbol(symbol), type }
+
+    if (type === 'crypto') {
+      const c = cryptoQuotes[displaySymbol(symbol)] ?? null
+      if (!c) return { ...base, name: symbol, price: null, change: null, pct: null, week52High: null, week52Low: null, volume: null, marketCap: null, isOpen: true, isLive: false }
+      return {
+        ...base,
+        name:        c.name ?? symbol,
+        price:       c.price,
+        change:      c.price * (c.pct24h / 100),
+        pct:         c.pct24h,
+        week52High:  null,
+        week52Low:   null,
+        volume:      c.volume,
+        marketCap:   c.marketCap,
+        isOpen:      true,
+        isLive:      true,
+        nativePrice: null,
+        currency:    'AUD',
+      }
+    }
+
     const q      = batchQuotes?.[yfSym] ?? null
     const isAsx  = type === 'asx'
     const conv   = isAsx ? (v) => v : usdToAud
-    const base   = { symbol, displaySymbol: displaySymbol(symbol), type }
     if (!q) return { ...base, name: symbol, price: null, change: null, pct: null, week52High: null, week52Low: null, volume: null, marketCap: null, isOpen: false, isLive: false }
     return {
       ...base,
@@ -244,11 +286,11 @@ export default function WatchlistModule() {
         title="WATCHLIST"
         subtitle={sortKey ? `${watchlist.length} tickers · sorted by ${SORT_LABEL[sortKey]}` : `${watchlist.length} tickers · drag ⠿ to reorder`}
         moduleId="watchlist"
-        isFetching={isFetching}
+        isFetching={anyFetching}
         lastUpdated={dataUpdatedAt}
-        onRefresh={refetch}
+        onRefresh={refetchAll}
         right={
-          !isFetching && (USING_MOCK_DATA
+          !anyFetching && (USING_MOCK_DATA
             ? <DemoBadge />
             : isDelayed
               ? <StaleBadge cachedAt={batchResult?.cachedAt} />
@@ -314,9 +356,9 @@ export default function WatchlistModule() {
               + ADD YOUR FIRST TICKER
             </button>
           </div>
-        ) : isError && !batchQuotes ? (
-          <ModuleError module="Watchlist prices" lastUpdated={dataUpdatedAt} onRetry={refetch} />
-        ) : isFetching && !batchQuotes ? (
+        ) : isError && !batchQuotes && !Object.keys(cryptoQuotes).length ? (
+          <ModuleError module="Watchlist prices" lastUpdated={dataUpdatedAt} onRetry={refetchAll} />
+        ) : anyFetching && !batchQuotes && !Object.keys(cryptoQuotes).length ? (
           <ModuleLoader name="WATCHLIST" />
         ) : (
           <table className="terminal-table w-full">
@@ -373,7 +415,7 @@ export default function WatchlistModule() {
                     {row.displaySymbol}
                     {row.isLive
                       ? <span className="text-2xs text-terminal-green ml-1">●</span>
-                      : isFetching
+                      : anyFetching
                         ? <span className="text-2xs text-terminal-text-dim ml-1">…</span>
                         : null}
                     {(() => {

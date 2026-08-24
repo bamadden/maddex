@@ -1451,8 +1451,17 @@ export const askClaude = async (messages, onToken, options = {}) => {
     }),
   })
   if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`Claude API error: ${err}`)
+    const errText = await response.text()
+    console.error('[MADDEN API] Claude API error:', errText)
+    // The proxy forwards Anthropic's raw error body — extract just the
+    // human-readable message rather than surfacing the whole JSON blob
+    // (type/error/request_id) to the UI.
+    let friendly = 'AI service is currently unavailable — please try again shortly.'
+    try {
+      const parsed = JSON.parse(errText)
+      friendly = parsed?.error?.message || parsed?.message || friendly
+    } catch { /* not JSON — keep the generic fallback */ }
+    throw new Error(friendly)
   }
   const reader     = response.body.getReader()
   const decoder    = new TextDecoder()
