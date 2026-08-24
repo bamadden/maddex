@@ -7,6 +7,8 @@ import { useTheme, THEMES } from '../../hooks/useTheme'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZONES } from '../../lib/profileUtils'
+import { generateAPIKey } from '../../utils/apiKey'
+import APIDocsModal from './APIDocsModal'
 
 const SECTIONS = ['PROFILE', 'PREFERENCES', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
 
@@ -717,18 +719,99 @@ function SubscriptionSection() {
 
 // ─── API Access (Apex only) ────────────────────────────────────────────────────
 
+const API_BASE_URL = 'https://maddex-app.vercel.app/api/terminal-api'
+
+function ApiUsageExample({ label, url }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="space-y-1">
+      <div className="text-2xs text-terminal-text-dim">{label}</div>
+      <div className="flex items-center gap-2">
+        <code className="text-2xs text-terminal-text-bright bg-terminal-bg px-2 py-1.5 flex-1 overflow-x-auto whitespace-nowrap">{url}</code>
+        <button
+          onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+          className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors flex-shrink-0"
+        >{copied ? 'COPIED ✓' : 'COPY'}</button>
+      </div>
+    </div>
+  )
+}
+
 function ApiAccessSection() {
   const { isApex, tier } = useSubscription()
+  const { profile, updateProfile } = useAuthStore()
+  const [keyVisible, setKeyVisible] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [docsOpen, setDocsOpen] = useState(false)
+  const apiKey = profile?.api_key
+
+  const handleGenerate = async () => {
+    setGenerating(true)
+    try {
+      await updateProfile({ api_key: generateAPIKey() })
+      setKeyVisible(true)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   return (
     <div className="space-y-5 relative" style={{ minHeight: 220 }}>
       <SectionLabel>API Access</SectionLabel>
       {isApex ? (
-        <div className="border border-terminal-border p-4 space-y-2">
-          <div className="text-xs font-bold text-terminal-text-bright">API keys</div>
-          <div className="text-2xs text-terminal-text-dim leading-relaxed">
-            Programmatic access to Maddex market data is coming soon for Apex subscribers.
-            Check back here once it launches.
+        <div className="space-y-4">
+          <div className="border border-terminal-border p-4 space-y-3">
+            <div className="text-xs font-bold text-terminal-text-bright tracking-widest">TERMINAL API ACCESS</div>
+            <div className="text-2xs text-terminal-text-dim leading-relaxed">
+              Query Maddex market data programmatically from your own tools — quotes, history, indices, and sentiment.
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-2xs text-terminal-text-dim">Your API key</div>
+              {apiKey ? (
+                <div className="flex items-center gap-2">
+                  <code className="text-2xs text-terminal-text-bright bg-terminal-bg px-2 py-1.5 flex-1 font-mono">
+                    {keyVisible ? apiKey : `mdx_${'•'.repeat(32)}`}
+                  </code>
+                  <button
+                    onClick={() => setKeyVisible((v) => !v)}
+                    className="text-2xs text-terminal-text-dim border border-terminal-border px-2 py-1.5 hover:text-terminal-gold hover:border-terminal-gold transition-colors flex-shrink-0"
+                  >{keyVisible ? 'HIDE' : 'SHOW KEY'}</button>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="text-2xs text-terminal-red border border-terminal-red/40 px-2 py-1.5 hover:bg-terminal-red hover:text-terminal-bg transition-colors flex-shrink-0 disabled:opacity-40"
+                  >REGENERATE</button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
+                >{generating ? 'GENERATING...' : 'GENERATE API KEY'}</button>
+              )}
+            </div>
+
+            <div className="text-2xs text-terminal-text-dim">
+              Endpoint: <code className="text-terminal-gold">{API_BASE_URL}</code>
+            </div>
           </div>
+
+          {apiKey && (
+            <div className="border border-terminal-border p-4 space-y-3">
+              <div className="text-2xs text-terminal-gold font-bold tracking-widest">USAGE EXAMPLES</div>
+              <ApiUsageExample label="Single quote" url={`GET ${API_BASE_URL}?endpoint=quote&symbol=BHP.AX`} />
+              <ApiUsageExample label="Batch quotes" url={`GET ${API_BASE_URL}?endpoint=batch&symbols=BHP.AX,CBA.AX,AAPL`} />
+              <div className="text-2xs text-terminal-text-dim/70">Pass your key as the <code className="text-terminal-gold">x-maddex-api-key</code> header on every request.</div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setDocsOpen(true)}
+            className="text-2xs text-terminal-text border border-terminal-border px-3 py-1.5 hover:border-terminal-gold hover:text-terminal-gold transition-colors"
+          >VIEW FULL API DOCS →</button>
+
+          {docsOpen && <APIDocsModal onClose={() => setDocsOpen(false)} />}
         </div>
       ) : (
         <UpgradePrompt feature="API Access" requiredTier="apex" currentTier={tier} />
