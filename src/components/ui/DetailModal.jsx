@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
@@ -7,7 +7,9 @@ import {
   fetchQuoteSummary, fetchYahooQuoteBatch,
 } from '../../services/api'
 import { DataUnavailable } from './DataUnavailable'
-import TradingChart from '../charts/TradingChart'
+// lightweight-charts is a sizeable dependency only needed once a user
+// actually picks the "pro" chart type — code-split it out.
+const TradingChart = lazy(() => import('../charts/TradingChart'))
 import { earningsFor, daysUntil } from '../../services/earningsCalendar'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
@@ -1180,14 +1182,16 @@ export default function DetailModal() {
             <CandleChart data={chartData} />
           ) : chartType === 'pro' ? (
             proChartData.length >= 2 ? (
-              <TradingChart
-                symbol={symbol}
-                name={name}
-                basePrice={latest.close ?? price ?? 100}
-                currency="AUD"
-                data={proChartData}
-                height={260}
-              />
+              <Suspense fallback={<div className="h-full flex items-center justify-center text-terminal-text-dim text-2xs tracking-widest animate-pulse">LOADING CHART...</div>}>
+                <TradingChart
+                  symbol={symbol}
+                  name={name}
+                  basePrice={latest.close ?? price ?? 100}
+                  currency="AUD"
+                  data={proChartData}
+                  height={260}
+                />
+              </Suspense>
             ) : (
               <DataUnavailable label="NOT ENOUGH OHLC DATA FOR PRO CHART" className="h-full" />
             )

@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
 import DiagPage from './DiagPage'
+import AppLoader from './components/ui/AppLoader'
 import SharedWatchlistPage from './pages/SharedWatchlistPage'
 import SharedResearchNotePage from './pages/SharedResearchNotePage'
 import OnboardingTour from './components/onboarding/OnboardingFlow'
@@ -22,7 +23,8 @@ import FXModule from './modules/fx/FXModule'
 import MacroModule from './modules/macro/MacroModule'
 import WatchlistModule from './modules/watchlist/WatchlistModule'
 import NewsModule from './modules/news/NewsModule'
-import GlobalModule from './modules/global/GlobalModule'
+// d3 + topojson-heavy — code-split out of the main bundle.
+const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
 import ScreenerModule from './modules/screener/ScreenerModule'
 import MorningBriefModule from './modules/brief/MorningBriefModule'
 import MarketReplayModule from './modules/replay/MarketReplayModule'
@@ -36,6 +38,17 @@ import TrialExpiredModal from './components/auth/TrialExpiredModal'
 import { useSubscription } from './hooks/useSubscription'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
+
+// Fallback while a lazy-loaded module chunk (currently just GlobalModule)
+// is still downloading — brief, so this stays minimal rather than
+// reusing the full AppLoader treatment.
+function ModuleSuspenseFallback() {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse font-mono">LOADING MODULE...</span>
+    </div>
+  )
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -162,28 +175,6 @@ function ShortcutModal({ onClose }) {
           ))}
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── Loading screen ─────────────────────────────────────────────────────────────
-
-function LoadingScreen() {
-  const [progress, setProgress] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setProgress(p => Math.min(p + Math.random() * 15, 95)), 120)
-    return () => clearInterval(t)
-  }, [])
-  return (
-    <div className="fixed inset-0 z-[100] bg-terminal-bg flex flex-col items-center justify-center gap-6 font-mono">
-      <div className="flex flex-col items-center gap-3">
-        <div className="text-terminal-gold text-4xl font-bold tracking-[0.3em]">▲ MADDEX</div>
-        <div className="text-terminal-text-dim text-xs tracking-[0.5em]">FINANCIAL INTELLIGENCE</div>
-      </div>
-      <div className="w-48 h-0.5 bg-terminal-border overflow-hidden">
-        <div className="h-full bg-terminal-gold transition-all duration-200" style={{ width: `${progress}%` }} />
-      </div>
-      <div className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">INITIALISING TERMINAL...</div>
     </div>
   )
 }
@@ -387,7 +378,9 @@ function Terminal() {
           <div className="flex flex-1 min-w-0 overflow-hidden">
             <div key={activeModule} className="flex-1 min-w-0 w-1/2 overflow-hidden border-r border-terminal-border module-fade">
               <ErrorBoundary label={MODULE_TITLES[activeModule]}>
-                <ActiveModule />
+                <Suspense fallback={<ModuleSuspenseFallback />}>
+                  <ActiveModule />
+                </Suspense>
               </ErrorBoundary>
             </div>
             <div className="flex-1 min-w-0 w-1/2 overflow-hidden flex flex-col">
@@ -405,7 +398,9 @@ function Terminal() {
               </div>
               <div key={splitModuleId} className="flex-1 min-h-0 overflow-hidden module-fade">
                 <ErrorBoundary label={MODULE_TITLES[splitModuleId]}>
-                  <SplitModule />
+                  <Suspense fallback={<ModuleSuspenseFallback />}>
+                    <SplitModule />
+                  </Suspense>
                 </ErrorBoundary>
               </div>
             </div>
@@ -413,7 +408,9 @@ function Terminal() {
         ) : (
           <div key={activeModule} className="flex-1 min-w-0 overflow-hidden module-fade">
             <ErrorBoundary label={MODULE_TITLES[activeModule]}>
-              <ActiveModule />
+              <Suspense fallback={<ModuleSuspenseFallback />}>
+                <ActiveModule />
+              </Suspense>
             </ErrorBoundary>
           </div>
         )}
@@ -439,7 +436,9 @@ function Terminal() {
             onClose={() => closeFloating(w.id)}
           >
             <ErrorBoundary label={w.title}>
-              <FloatingContent />
+              <Suspense fallback={<ModuleSuspenseFallback />}>
+                <FloatingContent />
+              </Suspense>
             </ErrorBoundary>
           </FloatingWindow>
         )
@@ -479,7 +478,7 @@ function AuthGate() {
     }
   }, [settings, setCurrency, setActiveModule])
 
-  if (loading || !appReady) return <LoadingScreen />
+  if (loading || !appReady) return <AppLoader />
   // TEMPORARY dev-only bypass — `npm run dev` skips the Supabase sign-in gate
   // so the terminal can be exercised without a real account. import.meta.env.DEV
   // is false in `vite build`, so production is unaffected. Remove once no
