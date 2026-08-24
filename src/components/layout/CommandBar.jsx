@@ -155,6 +155,37 @@ const HELP_SECTIONS = [
   ]},
 ]
 
+// ─── Command interpretation preview ────────────────────────────────────────────
+// A pure, side-effect-free mirror of execute()'s branching — shown live below
+// the input so the user sees what Enter will do before committing to it.
+
+function interpretCommand(raw) {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  const cmd = trimmed.toLowerCase()
+  const parts = trimmed.split(/\s+/)
+
+  if (cmd === 'help' || cmd === '?' || cmd === 'commands') return 'Show command reference'
+  if (parts[0].toLowerCase() === 'ai') return `Ask MaddenAI: "${parts.slice(1).join(' ') || 'market overview'}"`
+  for (const [module, aliases] of Object.entries(NAV_MAP)) {
+    if (aliases.includes(cmd)) return `Navigate to ${module.toUpperCase()}`
+  }
+  if (parts[0].toLowerCase() === 'news' && parts.length > 1) return `Filter news by "${parts.slice(1).join(' ')}"`
+  if (cmd === 'top' || cmd === 'movers' || cmd === 'gainers') return 'Show top 10 movers today'
+  if (cmd === 'losers') return 'Show top 10 losers today'
+  if (cmd === 'asx top') return 'Show top ASX 200 movers'
+  if (cmd === 'crypto top') return 'Navigate to CRYPTO module'
+  if (parts[0].toLowerCase() === 'wl' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Adding ${parts[2].toUpperCase()} to watchlist...`
+  if (parts[0].toLowerCase() === 'port' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Open Portfolio to add ${parts[2].toUpperCase()}`
+  if (parts[0].toLowerCase() === 'compare' && parts.length >= 3) return `Compare ${parts[1].toUpperCase()} vs ${parts[2].toUpperCase()}`
+  if (parts[0].toLowerCase() === 'alert' && parts.length >= 3) {
+    const p = parseFloat(parts[2])
+    return isNaN(p) ? 'Alert format: ALERT {symbol} {price}' : `Set alert: ${parts[1].toUpperCase()} @ A$${p.toFixed(2)}`
+  }
+  if (!trimmed.includes(' ')) return `Look up ${trimmed.toUpperCase()}`
+  return `Ask MaddenAI: "${trimmed.length > 50 ? trimmed.slice(0, 50) + '…' : trimmed}"`
+}
+
 // ─── History helpers (localStorage) ───────────────────────────────────────────
 
 const LS_KEY = 'madden_cmd_history'
@@ -1062,6 +1093,15 @@ export default function CommandBar() {
             <span className="text-terminal-text-dim/50 hidden xl:inline">↑↓ HISTORY · TAB FILL · ENTER EXECUTE</span>
           </div>
         </div>
+
+        {/* Live interpretation preview — mirrors what execute() will do if the
+            user hits Enter right now, before they commit to it. */}
+        {inputValue.trim() && (
+          <div className="px-3 py-1 bg-terminal-bg border-t border-terminal-border/30 text-2xs text-terminal-text-dim/70 flex items-center gap-1.5">
+            <span className="text-terminal-gold/60">→</span>
+            <span>{interpretCommand(inputValue)}</span>
+          </div>
+        )}
       </div>
     </>
   )
