@@ -381,6 +381,28 @@ body {
 }
 .pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
 
+/* Voice input waveform — 5 bars pulsing height on a staggered delay while
+   the mic is actively listening. */
+@keyframes voice-waveform {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1); }
+}
+.waveform { display: flex; align-items: center; gap: 2px; height: 14px; }
+.waveform span {
+  display: block;
+  width: 2px;
+  height: 100%;
+  background: currentColor;
+  border-radius: 1px;
+  animation: voice-waveform 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
+.waveform span:nth-child(1) { animation-delay: 0s; }
+.waveform span:nth-child(2) { animation-delay: 0.1s; }
+.waveform span:nth-child(3) { animation-delay: 0.2s; }
+.waveform span:nth-child(4) { animation-delay: 0.3s; }
+.waveform span:nth-child(5) { animation-delay: 0.4s; }
+
 /* Subtle full-viewport scanline overlay — distinct from the coarser
    .scanlines pattern already applied at the app root; opt-in per element. */
 .scanline::after {

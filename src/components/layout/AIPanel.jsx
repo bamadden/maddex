@@ -6,6 +6,7 @@ import { askClaude } from '../../services/api'
 import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
+import VoiceInterface from '../voice/VoiceInterface'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
 // Tracked client-side in localStorage under a month-stamped key, so it
@@ -629,6 +630,7 @@ export default function AIPanel({ wide = false }) {
           placeholder="Ask about ASX, RBA, AUD, markets..."
           disabled={loading}
         />
+        <VoiceInterface onTranscript={(text) => send(text)} />
         <button
           onClick={() => send()}
           disabled={loading || !input.trim()}
