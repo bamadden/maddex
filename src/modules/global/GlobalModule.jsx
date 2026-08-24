@@ -2456,7 +2456,7 @@ export default function GlobalModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="GLOBAL" subtitle="Trade Flows · Market Breadth · Country Risk" />
+      <ModuleHeader title="GLOBAL" subtitle="Trade Flows · Market Breadth · Country Risk" moduleId="global" />
 
       {/* Critical-event alert banner */}
       {criticalAlert && (

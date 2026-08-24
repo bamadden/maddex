@@ -243,6 +243,7 @@ export default function WatchlistModule() {
       <ModuleHeader
         title="WATCHLIST"
         subtitle={sortKey ? `${watchlist.length} tickers · sorted by ${SORT_LABEL[sortKey]}` : `${watchlist.length} tickers · drag ⠿ to reorder`}
+        moduleId="watchlist"
         isFetching={isFetching}
         lastUpdated={dataUpdatedAt}
         onRefresh={refetch}

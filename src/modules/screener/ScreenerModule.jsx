@@ -92,7 +92,7 @@ export default function ScreenerModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="SCREENER" subtitle="AI-assisted stock screening across ASX + US" />
+      <ModuleHeader title="SCREENER" subtitle="AI-assisted stock screening across ASX + US" moduleId="screener" />
 
       <div className="p-3 border-b border-terminal-border flex-shrink-0">
         <div className="flex items-center gap-2">

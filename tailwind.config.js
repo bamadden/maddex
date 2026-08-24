@@ -5,47 +5,39 @@ export default {
     extend: {
       colors: {
         terminal: {
-          // Core surfaces — bg/panel/header/accent are kept (not renamed) so
-          // the existing bg-terminal-panel / bg-terminal-header / bg-terminal-accent
-          // usages across every module keep resolving; panel/header are tuned
-          // to line up with the new surface/surface2 tones below.
-          bg:       '#060D1A',
-          panel:    '#0B1628',
-          header:   '#0A1F3D',
-          accent:   '#1a3a6b',
-          // New surface scale — same "card background" concept as `panel`,
-          // just with more steps for elevation/hover states.
-          surface:  '#0B1628',
-          surface2: '#0F1E35',
-          surface3: '#152540',
-          // `border` stays a solid hex (not the spec's raw rgba) so every
-          // existing border-terminal-border/NN opacity-modifier usage across
-          // the app keeps working — Tailwind's /NN modifier can't cleanly
-          // layer on top of a color that's already an rgba() string.
-          // `border-gold` is a brand-new token with no prior usages, so it's
-          // safe to use the raw rgba() from the spec directly.
-          border:        '#16304F',
-          'border-gold': 'rgba(201,168,76,0.25)',
-          gold:        '#C9A84C',
-          'gold-bright': '#E8C96A',
-          'gold-dim':    '#8A6E2A',
-          blue:        '#1A4E8A',
-          'blue-bright': '#2D7DD2',
-          // green/red now match --color-gain/--color-loss (index.css) exactly
-          // — those CSS vars already used this exact tone for price deltas
-          // throughout the app; badges/icons using text-terminal-green were
-          // the odd ones out with a brighter, less premium #00c853/#ff1744.
-          green:        '#2D8A50',
-          'green-bright': '#3DAD65',
-          'green-dim':    '#007a33',
-          red:          '#A83232',
-          'red-bright':   '#C93E3E',
-          'red-dim':      '#b71c1c',
-          muted:        '#637899',
-          'muted-bright': '#8BA3C4',
-          text:        '#E8EDF5',
-          'text-dim':    '#B8C8D8',
-          'text-bright': '#e8f0ff',
+          // Every terminal-* token resolves through a CSS custom property
+          // holding an "R G B" triplet, via Tailwind's rgb(var(x) / <alpha-value>)
+          // pattern — this is what lets useTheme.js swap the whole palette at
+          // runtime (see :root in index.css for defaults) while still fully
+          // supporting existing bg-terminal-x/NN opacity-modifier usages
+          // across the app (Tailwind substitutes NN as <alpha-value>, default 1).
+          bg:       'rgb(var(--t-bg) / <alpha-value>)',
+          panel:    'rgb(var(--t-panel) / <alpha-value>)',
+          header:   'rgb(var(--t-header) / <alpha-value>)',
+          accent:   'rgb(var(--t-accent) / <alpha-value>)',
+          surface:  'rgb(var(--t-surface) / <alpha-value>)',
+          surface2: 'rgb(var(--t-surface2) / <alpha-value>)',
+          surface3: 'rgb(var(--t-surface3) / <alpha-value>)',
+          border:        'rgb(var(--t-border) / <alpha-value>)',
+          // border-gold has no /NN modifier usages anywhere in the app, so it
+          // stays a plain rgba() var swap rather than needing the triplet dance.
+          'border-gold': 'var(--t-border-gold)',
+          gold:        'rgb(var(--t-gold) / <alpha-value>)',
+          'gold-bright': 'rgb(var(--t-gold-bright) / <alpha-value>)',
+          'gold-dim':    'rgb(var(--t-gold-dim) / <alpha-value>)',
+          blue:        'rgb(var(--t-blue) / <alpha-value>)',
+          'blue-bright': 'rgb(var(--t-blue-bright) / <alpha-value>)',
+          green:        'rgb(var(--t-green) / <alpha-value>)',
+          'green-bright': 'rgb(var(--t-green-bright) / <alpha-value>)',
+          'green-dim':    'rgb(var(--t-green-dim) / <alpha-value>)',
+          red:          'rgb(var(--t-red) / <alpha-value>)',
+          'red-bright':   'rgb(var(--t-red-bright) / <alpha-value>)',
+          'red-dim':      'rgb(var(--t-red-dim) / <alpha-value>)',
+          muted:        'rgb(var(--t-muted) / <alpha-value>)',
+          'muted-bright': 'rgb(var(--t-muted-bright) / <alpha-value>)',
+          text:        'rgb(var(--t-text) / <alpha-value>)',
+          'text-dim':    'rgb(var(--t-text-dim) / <alpha-value>)',
+          'text-bright': 'rgb(var(--t-text-bright) / <alpha-value>)',
         },
       },
       fontFamily: {

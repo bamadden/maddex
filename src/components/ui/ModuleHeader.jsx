@@ -14,7 +14,7 @@ function timeShort(ts) {
 // `live` is optional and opt-in: pass true for "● LIVE", false for "● DEMO"
 // (both pulsing), or omit it entirely — existing callers that build their
 // own live/demo indicator via `right` keep working unchanged.
-export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null }) {
+export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null, moduleId = null }) {
   const [spinning, setSpinning] = useState(false)
   const spinTimer = useRef(null)
 
@@ -44,6 +44,28 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           </span>
         )}
         {right}
+        {moduleId && (
+          <>
+            <button
+              onClick={(e) => {
+                // Fullscreens the active module's content wrapper (App.jsx's
+                // `.module-fade` div) — a no-op inside a floating window,
+                // which has no such ancestor.
+                const el = e.currentTarget.closest('.module-fade')
+                if (!el) return
+                if (document.fullscreenElement) document.exitFullscreen()
+                else el.requestFullscreen?.()
+              }}
+              title="Toggle fullscreen"
+              className="flex items-center justify-center text-terminal-muted hover:text-terminal-gold transition-colors p-1 border border-terminal-border hover:border-terminal-border-gold flex-shrink-0"
+            >⤢</button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('madden:pop-out', { detail: { moduleId, title } }))}
+              title="Pop out into a floating window"
+              className="flex items-center justify-center text-terminal-muted hover:text-terminal-gold transition-colors p-1 border border-terminal-border hover:border-terminal-border-gold flex-shrink-0"
+            >⊡</button>
+          </>
+        )}
         {(lastUpdated || onRefresh) && (
           <div className="flex items-center gap-2 flex-shrink-0">
             {isFetching ? (

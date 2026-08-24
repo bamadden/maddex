@@ -260,7 +260,7 @@ function NotesPanel({ notes, onDelete }) {
 
 // ─── Main AIPanel ─────────────────────────────────────────────────────────────
 
-export default function AIPanel() {
+export default function AIPanel({ wide = false }) {
   const {
     chatOpen, setChatOpen,
     aiMode, setAiMode,
@@ -444,7 +444,9 @@ export default function AIPanel() {
       className={
         isFullscreen
           ? 'fixed inset-0 z-40 flex flex-col bg-terminal-panel'
-          : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
+          : wide
+            ? 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-1/2 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
+            : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
       }
     >
       {/* Header */}

@@ -1539,7 +1539,7 @@ export default function MacroModule() {
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden">
-      <ModuleHeader title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" />
+      <ModuleHeader title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" moduleId="macro" />
 
       {/* Expanded chart modal — fixed overlay, unaffected by scroll */}
       {expandedChart && (

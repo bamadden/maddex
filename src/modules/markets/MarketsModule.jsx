@@ -17,7 +17,7 @@ export default function MarketsModule() {
       className="h-full overflow-y-auto"
     >
       <div className="flex flex-col min-h-full">
-        <ModuleHeader title="MARKETS" subtitle="ASX 200 · S&P 500 · Global Equities" />
+        <ModuleHeader title="MARKETS" subtitle="ASX 200 · S&P 500 · Global Equities" moduleId="markets" />
 
         {/* Global sentiment score */}
         <div className="flex-shrink-0">

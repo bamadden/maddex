@@ -962,7 +962,7 @@ export default function NewsModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="NEWS" subtitle="AFR · Reuters · CNBC · 30+ sources" />
+      <ModuleHeader title="NEWS" subtitle="AFR · Reuters · CNBC · 30+ sources" moduleId="news" />
 
       <MorningBriefing />
 

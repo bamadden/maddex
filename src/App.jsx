@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
@@ -19,10 +19,13 @@ import WatchlistModule from './modules/watchlist/WatchlistModule'
 import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
 import ScreenerModule from './modules/screener/ScreenerModule'
+import { FloatingWindow } from './components/ui/FloatingWindow'
 import AuthModal from './components/auth/AuthModal'
 import OnboardingFlow from './components/auth/OnboardingFlow'
 import TrialExpiredModal from './components/auth/TrialExpiredModal'
 import { useSubscription } from './hooks/useSubscription'
+import { useTheme } from './hooks/useTheme'
+import { useLayoutMode } from './hooks/useLayoutMode'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,7 +67,7 @@ const MODULE_TITLES = {
 
 const SHORTCUT_GROUPS = [
   {
-    title: 'MODULES',
+    title: 'NAVIGATION',
     items: [
       { keys: ['F1–F8'], desc: 'Switch module by position' },
       { keys: ['M'], desc: 'Markets' },
@@ -78,25 +81,38 @@ const SHORTCUT_GROUPS = [
     ],
   },
   {
-    title: 'NAVIGATION & SEARCH',
+    title: 'INTERFACE',
     items: [
       { keys: ['/'], desc: 'Focus the command bar' },
-      { keys: ['⌘', 'K'], desc: 'Focus the command bar (Mac)' },
       { keys: ['?'], desc: 'Show this shortcut reference' },
       { keys: ['Esc'], desc: 'Close modal / panel / shortcuts' },
+      { keys: ['A'], desc: 'Toggle the AI panel' },
+      { keys: ['R'], desc: 'Refresh all live data' },
+      { keys: ['Space'], desc: 'Pause / resume the ticker tape' },
     ],
   },
   {
-    title: 'AI PANEL',
+    title: 'CHARTS',
     items: [
-      { keys: ['A'], desc: 'Toggle the AI panel' },
+      { keys: ['Scroll'], desc: 'Zoom in / out' },
+      { keys: ['Drag'], desc: 'Pan across history' },
+      { keys: ['Dbl-click'], desc: 'Reset zoom' },
+    ],
+  },
+  {
+    title: 'MODULES',
+    items: [
+      { keys: ['⌘', 'K'], desc: 'Focus the command bar' },
+      { keys: ['⌘', 'F'], desc: 'Focus the command bar (alt)' },
+      { keys: ['⊡'], desc: 'Pop out into a floating window' },
+      { keys: ['⤢'], desc: 'Toggle fullscreen' },
     ],
   },
 ]
 
 function KeyBadge({ label }) {
   return (
-    <kbd className="min-w-[26px] h-6 inline-flex items-center justify-center px-1.5 rounded border border-terminal-border bg-terminal-accent text-terminal-gold font-bold font-mono text-2xs shadow-[0_1px_0_rgba(0,0,0,0.4)]">
+    <kbd className="key-badge min-w-[26px] h-6 inline-flex items-center justify-center px-1.5 text-terminal-gold font-bold font-mono text-2xs shadow-[0_1px_0_rgba(0,0,0,0.4)]">
       {label}
     </kbd>
   )
@@ -117,8 +133,8 @@ function ShortcutModal({ onClose }) {
             <div key={group.title}>
               <div className="text-2xs text-terminal-text-dim/60 tracking-widest mb-2">{group.title}</div>
               <div className="space-y-2">
-                {group.items.map((s) => (
-                  <div key={s.desc} className="flex items-center gap-3 text-2xs">
+                {group.items.map((s, si) => (
+                  <div key={si} className="flex items-center gap-3 text-2xs">
                     <div className="flex items-center gap-1 min-w-[64px]">
                       {s.keys.map((k, i) => <KeyBadge key={i} label={k} />)}
                     </div>
@@ -162,6 +178,12 @@ const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
 
 function Terminal() {
   const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge } = useStore()
+  // Applies the persisted theme (or default) to :root on mount — independent
+  // of whether the Settings panel (where the switcher lives) is open.
+  useTheme()
+  const { layout } = useLayoutMode()
+  const [splitModuleId, setSplitModuleId] = useState('crypto')
+  const SplitModule = MODULE_MAP[splitModuleId] || CryptoModule
 
   // Background news subscription — keeps the ['news'] query alive and enables nav badge
   const { data: bgNewsData } = useQuery({
@@ -192,6 +214,41 @@ function Terminal() {
   }, [bgNewsData, activeModule, clearNewsBadge, setNewsBadgeCount])
   const [showShortcuts, setShowShortcuts] = useState(false)
   const ActiveModule = MODULE_MAP[activeModule] || MarketsModule
+
+  // ── Multi-window mode — any module's ModuleHeader can pop itself out via
+  // its "⊡" button, which dispatches this event rather than needing direct
+  // prop-drilled access to floatingWindows state from nine module files.
+  const [floatingWindows, setFloatingWindows] = useState([])
+  const [topZ, setTopZ] = useState(1000)
+
+  const openFloating = useCallback((moduleId, title) => {
+    setFloatingWindows((prev) => {
+      // Re-focus rather than duplicate if this module is already popped out.
+      if (prev.some((w) => w.moduleId === moduleId)) return prev
+      return [...prev, {
+        id: Date.now(), moduleId, title,
+        pos: { x: 120 + prev.length * 28, y: 90 + prev.length * 28 },
+      }]
+    })
+  }, [])
+
+  const closeFloating = useCallback((id) => {
+    setFloatingWindows((prev) => prev.filter((w) => w.id !== id))
+  }, [])
+
+  const bringToFront = useCallback((id) => {
+    setTopZ((z) => z + 1)
+    setFloatingWindows((prev) => prev.map((w) => w.id === id ? { ...w, z: topZ + 1 } : w))
+  }, [topZ])
+
+  useEffect(() => {
+    const handler = (e) => {
+      const { moduleId, title } = e.detail ?? {}
+      if (moduleId) openFloating(moduleId, title ?? MODULE_TITLES[moduleId] ?? moduleId)
+    }
+    window.addEventListener('madden:pop-out', handler)
+    return () => window.removeEventListener('madden:pop-out', handler)
+  }, [openFloating])
 
   // Dynamic tab title — "Markets — Maddex" etc, falls back to the base title
   useEffect(() => {
@@ -225,9 +282,9 @@ function Terminal() {
         return
       }
 
-      // Cmd/Ctrl+K is the Mac-familiar alias for focusing the command bar —
-      // same target as plain "/".
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      // Cmd/Ctrl+K and Cmd/Ctrl+F are both Mac-familiar aliases for focusing
+      // the command bar — same target as plain "/".
+      if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'f')) {
         e.preventDefault()
         document.querySelector('.cmd-input')?.focus()
         return
@@ -239,10 +296,19 @@ function Terminal() {
         return
       }
 
-      // Module navigation + AI panel toggle (no modifier)
+      // Module navigation + interface toggles (no modifier)
       if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
         if (e.key.toLowerCase() === 'a') {
           setChatOpen((v) => !v)
+          return
+        }
+        if (e.key.toLowerCase() === 'r') {
+          queryClient.invalidateQueries()
+          return
+        }
+        if (e.key === ' ') {
+          e.preventDefault()
+          document.body.classList.toggle('ticker-paused')
           return
         }
         const navMap = { m: 'markets', c: 'crypto', f: 'fx', n: 'news', g: 'global', p: 'portfolio', w: 'watchlist', x: 'macro' }
@@ -260,16 +326,56 @@ function Terminal() {
       <TopBar />
       <TickerTape />
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <NavBar />
-        <div key={activeModule} className="flex-1 min-w-0 overflow-hidden module-fade">
-          <ActiveModule />
-        </div>
-        <AIPanel />
+        {layout !== 'focus' && <NavBar />}
+        {layout === 'split' ? (
+          <div className="flex flex-1 min-w-0 overflow-hidden">
+            <div key={activeModule} className="flex-1 min-w-0 w-1/2 overflow-hidden border-r border-terminal-border module-fade">
+              <ActiveModule />
+            </div>
+            <div className="flex-1 min-w-0 w-1/2 overflow-hidden flex flex-col">
+              <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-terminal-border bg-terminal-surface">
+                <span className="text-2xs text-terminal-text-dim tracking-widest">SPLIT PANE:</span>
+                <select
+                  value={splitModuleId}
+                  onChange={(e) => setSplitModuleId(e.target.value)}
+                  className="bg-terminal-bg border border-terminal-border px-2 py-0.5 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
+                >
+                  {Object.entries(MODULE_TITLES).map(([id, label]) => (
+                    <option key={id} value={id}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div key={splitModuleId} className="flex-1 min-h-0 overflow-hidden module-fade">
+                <SplitModule />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div key={activeModule} className="flex-1 min-w-0 overflow-hidden module-fade">
+            <ActiveModule />
+          </div>
+        )}
+        {layout !== 'focus' && layout !== 'split' && <AIPanel wide={layout === 'research'} />}
       </div>
       <CommandBar />
       <MobileNavBar />
       <DetailModal />
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
+      {floatingWindows.map((w) => {
+        const FloatingContent = MODULE_MAP[w.moduleId] || MarketsModule
+        return (
+          <FloatingWindow
+            key={w.id}
+            title={w.title}
+            defaultPos={w.pos}
+            zIndex={w.z ?? 1000}
+            onFocus={() => bringToFront(w.id)}
+            onClose={() => closeFloating(w.id)}
+          >
+            <FloatingContent />
+          </FloatingWindow>
+        )
+      })}
     </div>
   )
 }

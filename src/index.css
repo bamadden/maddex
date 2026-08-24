@@ -20,6 +20,37 @@
   --mt-muted: #4a6580;
   --mt-gold:  #c8a84b;
   --font: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
+
+  /* Theme palette — "R G B" triplets consumed by tailwind.config.js via
+     rgb(var(--t-x) / <alpha-value>), so terminal-* Tailwind classes (incl.
+     /NN opacity-modifier usages) stay live to runtime theme swaps.
+     useTheme.js overwrites these on :root when switching themes; defaults
+     here are the original dark theme so nothing changes pre-theme-select. */
+  --t-bg:       6 13 26;
+  --t-panel:    11 22 40;
+  --t-header:   10 31 61;
+  --t-accent:   26 58 107;
+  --t-surface:  11 22 40;
+  --t-surface2: 15 30 53;
+  --t-surface3: 21 37 64;
+  --t-border:        22 48 79;
+  --t-border-gold:   rgba(201,168,76,0.25);
+  --t-gold:        201 168 76;
+  --t-gold-bright: 232 201 106;
+  --t-gold-dim:    138 110 42;
+  --t-blue:        26 78 138;
+  --t-blue-bright: 45 125 210;
+  --t-green:        45 138 80;
+  --t-green-bright: 61 173 101;
+  --t-green-dim:    0 122 51;
+  --t-red:          168 50 50;
+  --t-red-bright:   201 62 62;
+  --t-red-dim:      183 28 28;
+  --t-muted:        99 120 153;
+  --t-muted-bright: 139 163 196;
+  --t-text:        232 237 245;
+  --t-text-dim:    184 200 216;
+  --t-text-bright: 232 240 255;
 }
 
 * {
@@ -370,6 +401,21 @@ body {
 :focus-visible {
   outline: 2px solid rgba(201, 168, 76, 0.5);
   outline-offset: 2px;
+}
+
+/* Keyboard-shortcut modal key badges — exact spec styling. */
+.key-badge {
+  background: #152540;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-bottom: 2px solid rgba(201, 168, 76, 0.4);
+  border-radius: 3px;
+}
+
+/* Space bar toggles the ticker tape scroll — pausing is a body-level class
+   rather than component state since TickerTape's scroll is a pure CSS
+   animation with no existing play/pause state to hook into. */
+body.ticker-paused .ticker-content {
+  animation-play-state: paused;
 }
 
 /* Shimmer loading skeleton — for widget-level placeholders while data is

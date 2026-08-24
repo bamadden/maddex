@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
+import { useTheme, THEMES } from '../../hooks/useTheme'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZONES } from '../../lib/profileUtils'
 
@@ -302,6 +303,7 @@ const DISPLAY_CURRENCIES = [
 function PreferencesSection() {
   const { settings, updateSettings, profile, updateProfile } = useAuthStore()
   const { setCurrency: setStoreCurrency } = useStore()
+  const { theme, setTheme } = useTheme()
   const [currency, setCurrency] = useState(settings?.currency || 'AUD')
   const [defaultModule, setDefaultModule] = useState(settings?.default_module || 'markets')
   const [refreshInterval, setRefreshInterval] = useState(settings?.auto_refresh_interval || 60)
@@ -412,12 +414,29 @@ function PreferencesSection() {
         <Toggle value={compactMode} onChange={setCompactMode} />
       </FieldRow>
 
-      <FieldRow label="Theme" note="Light theme coming soon">
-        <div className="flex gap-2">
-          <span className="px-2 py-0.5 text-2xs bg-terminal-gold text-terminal-bg font-bold">Dark</span>
-          <span className="px-2 py-0.5 text-2xs text-terminal-text-dim/40 border border-terminal-border">Light</span>
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-2xs text-terminal-text-dim mb-2">TERMINAL THEME</div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {Object.entries(THEMES).map(([key, t]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTheme(key)}
+              className={`flex flex-col items-center gap-1.5 px-2 py-2 border transition-colors ${
+                theme === key
+                  ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
+                  : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
+              }`}
+            >
+              <span
+                className="w-full h-5 border border-terminal-border/50"
+                style={{ background: t.swatch }}
+              />
+              <span className="text-2xs font-bold">{t.label}</span>
+            </button>
+          ))}
         </div>
-      </FieldRow>
+      </div>
 
       <SaveButton onClick={handleSave} loading={loading} saved={false} />
       {toast && <Toast message="Preferences saved" />}

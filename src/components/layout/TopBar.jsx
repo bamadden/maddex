@@ -8,6 +8,9 @@ import SettingsPanel from '../settings/SettingsPanel'
 import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
+import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
+
+const LAYOUT_ICONS = { standard: '⊞', focus: '▣', split: '◫', research: '◨' }
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -190,6 +193,57 @@ const Divider = () => <span className="w-px h-4 bg-terminal-border-gold mx-2 fle
 // Compact "DEMO" pill for the top bar — the fuller DemoBadge (ModuleStates.jsx)
 // carries an explanatory sentence that's the right call inside a module
 // header, but too long for this 44px strip.
+function LayoutSwitcher() {
+  const { layout, setLayout } = useLayoutMode()
+  const { setChatOpen } = useStore()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Layout mode"
+        className="flex items-center justify-center text-terminal-muted hover:text-terminal-gold transition-colors w-6 h-6 text-sm flex-shrink-0"
+      >
+        {LAYOUT_ICONS[layout]}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 bg-terminal-panel border border-terminal-border shadow-2xl w-48 font-mono">
+          {LAYOUT_MODES.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => {
+                setLayout(m.key)
+                // RESEARCH pairs content with the AI panel, so opening it is
+                // implied by picking the mode rather than a separate step.
+                if (m.key === 'research') setChatOpen(true)
+                setOpen(false)
+              }}
+              className={`w-full text-left px-3 py-2 text-2xs flex items-start gap-2 transition-colors ${
+                layout === m.key ? 'text-terminal-gold bg-terminal-accent/20' : 'text-terminal-text-dim hover:bg-terminal-accent/20'
+              }`}
+            >
+              <span className="text-sm leading-none">{LAYOUT_ICONS[m.key]}</span>
+              <span>
+                <div className="font-bold">{m.label}</div>
+                <div className="text-terminal-text-dim/60">{m.desc}</div>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TopBarDemoBadge() {
   return (
     <span
@@ -296,6 +350,8 @@ export default function TopBar() {
 
       {/* RIGHT — demo badge, notifications, avatar */}
       <div className="flex items-center justify-self-end flex-shrink-0">
+        <LayoutSwitcher />
+        <Divider />
         {USING_MOCK_DATA && <TopBarDemoBadge />}
         {user && (
           <>

@@ -872,6 +872,7 @@ export default function FXModule() {
     <ModuleHeader
       title="RATES"
       subtitle="FX Pairs · Yield Curves · Metals"
+      moduleId="fx"
       isFetching={isFetching}
       lastUpdated={fxResult?.cachedAt}
       onRefresh={refetch}

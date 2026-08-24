@@ -402,6 +402,7 @@ export default function PortfolioModule() {
       <ModuleHeader
         title="PORTFOLIO"
         subtitle={`${holdings.length} positions · ${equityHoldings.length} equities tracked`}
+        moduleId="portfolio"
         isFetching={isFetching}
         onRefresh={yfSymbols.length > 0 ? refetch : undefined}
         right={live.length > 0 && (

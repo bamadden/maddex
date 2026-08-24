@@ -718,6 +718,7 @@ export default function CryptoModule() {
       <ModuleHeader
         title="CRYPTO"
         subtitle="Bitcoin · Ethereum · Top 20 by Market Cap"
+        moduleId="crypto"
         isFetching={marketsFetching}
         lastUpdated={rawMarketsResult?.cachedAt}
         onRefresh={refetchMarkets}
