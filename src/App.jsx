@@ -20,6 +20,7 @@ import WatchlistModule from './modules/watchlist/WatchlistModule'
 import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
 import ScreenerModule from './modules/screener/ScreenerModule'
+import MorningBriefModule from './modules/brief/MorningBriefModule'
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import AuthModal from './components/auth/AuthModal'
@@ -51,6 +52,7 @@ const MODULE_MAP = {
   news:      NewsModule,
   global:    GlobalModule,
   screener:  ScreenerModule,
+  brief:     MorningBriefModule,
 }
 
 const MODULE_TITLES = {
@@ -63,6 +65,7 @@ const MODULE_TITLES = {
   news:      'News',
   global:    'Global',
   screener:  'Screener',
+  brief:     'Morning Brief',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────

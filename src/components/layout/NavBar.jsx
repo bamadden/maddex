@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, LogOut, Pin, PinOff,
+  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -32,8 +32,20 @@ const NAV_ITEMS = [
   { id: 'watchlist', label: 'WATCHLIST', short: 'WL',   fkey: 'F6', Icon: Star, groupBreak: true },
   { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT', fkey: 'F2', Icon: Briefcase },
   { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper, groupBreak: true },
+  { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise },
   { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search },
 ]
+
+// A fresh brief goes up at 7am AEST every weekday — show a notification dot
+// on the nav item for the first few hours after that so it's noticeable
+// without needing an actual push-notification system.
+function isBriefNotifyWindow(now) {
+  const aest = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }))
+  const day = aest.getDay()
+  if (day === 0 || day === 6) return false
+  const hour = aest.getHours()
+  return hour >= 7 && hour < 10
+}
 
 const APP_VERSION = 'v0.1.0-beta'
 const LABEL_BASE = 'text-2xs font-semibold tracking-widest uppercase whitespace-nowrap transition-opacity duration-150'
@@ -47,6 +59,12 @@ export default function NavBar() {
   const { signOut } = useAuthStore()
   const [pinned, setPinned] = usePinnedSidebar()
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const showBriefDot = isBriefNotifyWindow(now)
 
   return (
     <div
@@ -81,7 +99,12 @@ export default function NavBar() {
                     : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2'
                 }`}
               >
-                <item.Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />
+                <span className="relative flex-shrink-0">
+                  <item.Icon size={18} strokeWidth={1.75} />
+                  {item.id === 'brief' && showBriefDot && !isActive && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-terminal-gold pulse-gold" title="New brief available" />
+                  )}
+                </span>
                 <span className={labelCls}>{item.label}</span>
                 <span className={`ml-auto text-terminal-muted/60 ${labelCls}`}>{item.fkey}</span>
               </button>
