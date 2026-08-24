@@ -5,10 +5,11 @@ import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataS
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsService'
+import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import AlertsModule from '../../modules/alerts/AlertsModule'
 
 const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑' }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS' }
 
 function timeAgo(iso) {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -203,6 +204,26 @@ export default function NotificationCenter() {
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
   }, [queryClient, addNotification, watchlist])
+
+  // ── EARNINGS — notify once, 2 days before a watchlist stock reports.
+  // Watchlist-scoped (not every ASX_STOCKS ticker) to avoid noise for
+  // stocks the user doesn't actually track. ──────────────────────────────
+  useEffect(() => {
+    if (!watchlist.length) return
+    const check = () => {
+      for (const sym of watchlist) {
+        const e = upcomingEarnings().find((ev) => ev.ticker === sym || ev.ticker === `${sym}.AX`)
+        if (!e || daysUntil(e.date) !== 2) continue
+        const key = todayKey(`madden_notif_earnings_${e.ticker}_${e.date}`)
+        if (localStorage.getItem(key)) continue
+        addNotification('CALENDAR', `${e.ticker.replace('.AX', '')} reports in 2 days — earnings preview ready`)
+        localStorage.setItem(key, '1')
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [watchlist, addNotification])
 
   return (
     <div className="relative" ref={ref}>

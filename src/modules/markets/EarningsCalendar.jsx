@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
+import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
 
 export default function EarningsCalendar() {
   const earnings = upcomingEarnings().slice(0, 10)
+  const [preview, setPreview] = useState(null)
   if (!earnings.length) return null
 
   const timelineDates = [...new Set(earnings.map((e) => e.date))].slice(0, 6)
@@ -50,7 +53,11 @@ export default function EarningsCalendar() {
             {earnings.map((e) => {
               const d = daysUntil(e.date)
               return (
-                <tr key={e.ticker + e.date} className="border-t border-terminal-border/40">
+                <tr
+                  key={e.ticker + e.date}
+                  className="border-t border-terminal-border/40 cursor-pointer hover:bg-terminal-accent/20 transition-colors"
+                  onClick={() => setPreview({ ticker: e.ticker, earningsDate: e.date, companyName: e.company })}
+                >
                   <td className="px-3 py-1 text-terminal-text-bright">
                     {new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                     <span className="text-terminal-text-dim ml-1">({d}d)</span>
@@ -66,6 +73,15 @@ export default function EarningsCalendar() {
           </tbody>
         </table>
       </div>
+
+      {preview && (
+        <EarningsPreviewPanel
+          ticker={preview.ticker}
+          earningsDate={preview.earningsDate}
+          companyName={preview.companyName}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   )
 }

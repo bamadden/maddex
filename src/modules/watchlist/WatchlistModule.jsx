@@ -11,6 +11,7 @@ import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { earningsFor, daysUntil } from '../../services/earningsCalendar'
+import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
 import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 
@@ -102,6 +103,7 @@ export default function WatchlistModule() {
   const [synced, setSynced]           = useState(false)
   const [sortKey, setSortKey]         = useState(null)
   const [sortDir, setSortDir]         = useState('asc')
+  const [earningsPreview, setEarningsPreview] = useState(null)
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
 
@@ -423,6 +425,18 @@ export default function WatchlistModule() {
                       if (!e) return null
                       const d = daysUntil(e.date)
                       if (d < 0 || d > 45) return null
+                      // Within 7 days: a clickable "EARNINGS IN Xd" badge that opens the
+                      // MaddenAI preview panel. Outside that window: just the existing
+                      // hover-tooltip calendar icon, unchanged.
+                      if (d <= 7) {
+                        return (
+                          <button
+                            onClick={(ev) => { ev.stopPropagation(); setEarningsPreview({ ticker: e.ticker, earningsDate: e.date, companyName: e.company }) }}
+                            title={`${e.company} ${e.type} results — click for MaddenAI preview`}
+                            className="text-2xs text-terminal-gold ml-1 border border-terminal-gold/40 px-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                          >EARNINGS IN {d}D</button>
+                        )
+                      }
                       return (
                         <span
                           title={`${e.company} ${e.type} results — ${new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${d}d)`}
@@ -465,6 +479,15 @@ export default function WatchlistModule() {
           </table>
         )}
       </div>
+
+      {earningsPreview && (
+        <EarningsPreviewPanel
+          ticker={earningsPreview.ticker}
+          earningsDate={earningsPreview.earningsDate}
+          companyName={earningsPreview.companyName}
+          onClose={() => setEarningsPreview(null)}
+        />
+      )}
     </div>
   )
 }
