@@ -12,6 +12,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
 } from 'recharts'
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
+import SectorDeepDive from './SectorDeepDive'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -187,7 +188,7 @@ INDEX_SECTORS['^AORD'] = INDEX_SECTORS['^AXJO']
 
 // ─── ASX Constituent Stocks (by GICS sector name) ────────────────────────────
 
-const ASX_SECTOR_STOCKS = {
+export const ASX_SECTOR_STOCKS = {
   'Information Technology': [
     ['WTC.AX','WiseTech Global'],['XRO.AX','Xero'],['CPU.AX','Computershare'],
     ['NXT.AX','NextDC'],['ALU.AX','Altium'],['SEK.AX','Seek'],['CAR.AX','CAR Group'],
@@ -609,7 +610,7 @@ const STOCK_NAMES = {
   '601229.SS':'Shanghai Rural Commercial Bank','601336.SS':'New China Life Insurance',
 }
 
-const INDEX_LABELS = {
+export const INDEX_LABELS = {
   '^AXJO':'ASX 200','^AORD':'All Ords','^GSPC':'S&P 500','^IXIC':'NASDAQ 100',
   '^DJI':'Dow Jones 30','^FTSE':'FTSE 100','^N225':'Nikkei 225',
   '^GDAXI':'DAX 40','^HSI':'Hang Seng','^NZ50':'NZX 50','000001.SS':'Shanghai',
@@ -801,7 +802,7 @@ function MetricToggle({ metric, setMetric }) {
 
 // ─── Sectors View ─────────────────────────────────────────────────────────────
 
-function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal }) {
+function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal, onOpenDeepDive }) {
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [view3D, setView3D] = useState(false)
@@ -1115,6 +1116,15 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   <div className="text-[8px] font-mono text-terminal-text-dim tracking-wider truncate leading-tight flex-shrink-0">
                     {SECTOR_ABBR[sector]}
                   </div>
+
+                  {/* Top-right: expand into the full Sector Deep Dive overlay */}
+                  {isHovered && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onOpenDeepDive?.(sector) }}
+                      title={`${sector} deep dive`}
+                      className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[9px] text-terminal-text-dim hover:text-terminal-gold bg-black/30 hover:bg-black/50 transition-colors"
+                    >⛶</button>
+                  )}
 
                   {/* Dead centre: day change — primary metric */}
                   <div className="flex-1 flex items-center justify-center min-h-0">
@@ -1791,6 +1801,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
     try { return localStorage.getItem('madden_mkt_view') ?? 'sectors' } catch { return 'sectors' }
   })
   const [secondaryMetric, setSecondaryMetric] = useState('7D')
+  const [deepDiveSector, setDeepDiveSector] = useState(null)
 
   // When radar clicks a sector, switch to sectors view so detail panel appears
   useEffect(() => {
@@ -1861,6 +1872,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
             refetch={refetch}
             selectedIndex={selectedIndex}
             openModal={openModal}
+            onOpenDeepDive={setDeepDiveSector}
           />
         ) : view === 'index' ? (
           <IndexView
@@ -1873,6 +1885,15 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
           </div>
         )}
       </div>
+
+      {deepDiveSector && (
+        <SectorDeepDive
+          sectorName={deepDiveSector}
+          indexId={selectedIndex}
+          openModal={openModal}
+          onClose={() => setDeepDiveSector(null)}
+        />
+      )}
     </div>
   )
 }

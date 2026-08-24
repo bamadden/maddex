@@ -242,6 +242,7 @@ export function getMockFMPRow(symbol) {
     marketCap: base.marketCap ?? null,
     trailingPE: base.pe ?? null,
     epsTrailingTwelveMonths: base.eps ?? null,
+    dividendYield: base.divYield ?? null,
     fiftyTwoWeekHigh: base.week52High ?? null,
     fiftyTwoWeekLow: base.week52Low ?? null,
     sharesOutstanding: base.marketCap && price ? Math.round(base.marketCap / price) : null,
