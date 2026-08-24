@@ -2068,6 +2068,27 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
 
 const FEED_EXCHANGE_IDS = ['ASX', 'TSE', 'HKEX', 'LSE', 'NYSE', 'NASDAQ']
 
+// Mock — no live shipping-rate feed wired up yet, same DEMO convention.
+// 7D trend values are illustrative; sparkline just needs relative shape.
+const SHIPPING_INDEX = [
+  { name: 'BALTIC DRY (BDI)', value: 1847, chg: 2.1, trend: [1780, 1795, 1760, 1810, 1830, 1805, 1847] },
+  { name: 'FREIGHTOS (FBX)',  value: 3420, chg: -0.8, trend: [3480, 3460, 3510, 3470, 3440, 3455, 3420] },
+]
+
+function Sparkline({ points, positive }) {
+  const w = 56, h = 16
+  const min = Math.min(...points), max = Math.max(...points)
+  const range = max - min || 1
+  const path = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${(i / (points.length - 1)) * w} ${h - ((p - min) / range) * h}`)
+    .join(' ')
+  return (
+    <svg width={w} height={h} className="flex-shrink-0">
+      <path d={path} fill="none" stroke={positive ? 'var(--color-gain, #3aaa63)' : 'var(--color-loss, #a83232)'} strokeWidth={1.25} />
+    </svg>
+  )
+}
+
 // Mock — no live commodities feed wired up yet; matches the DEMO-badge
 // convention used across Markets/Rates until a real source is connected.
 const COMMODITY_PULSE = [
@@ -2179,6 +2200,24 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
               }`}
             >
               {a.headline}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 border-b border-terminal-border">
+        <FeedHeader badge="● DEMO">SHIPPING INDEX</FeedHeader>
+        <div className="px-2 py-1">
+          {SHIPPING_INDEX.map((s) => (
+            <div key={s.name} className="flex items-center justify-between py-1 gap-2">
+              <span className="text-2xs text-terminal-text-dim flex-shrink-0">{s.name}</span>
+              <Sparkline points={s.trend} positive={s.chg >= 0} />
+              <span className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-2xs text-terminal-text-bright tabular-nums">{s.value.toLocaleString()}</span>
+                <span className={`text-2xs tabular-nums w-11 text-right ${s.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {s.chg >= 0 ? '▲' : '▼'}{Math.abs(s.chg).toFixed(1)}%
+                </span>
+              </span>
             </div>
           ))}
         </div>
