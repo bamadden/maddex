@@ -16,6 +16,14 @@ import { toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import StressTest from './StressTest'
+
+const TABS = [
+  { key: 'holdings',    label: 'HOLDINGS' },
+  { key: 'performance', label: 'PERFORMANCE' },
+  { key: 'stresstest',  label: 'STRESS TEST' },
+  { key: 'ai',          label: 'AI ANALYSIS' },
+]
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -402,6 +410,7 @@ export default function PortfolioModule() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [allocView3D, setAllocView3D] = useState(false)
   const [dbSynced, setDbSynced] = useState(false)
+  const [activeTab, setActiveTab] = useState('holdings')
 
   // Persist to localStorage
   useEffect(() => {
@@ -532,6 +541,24 @@ export default function PortfolioModule() {
 
   const bestPerformer = live.filter((h) => h.pnlPct != null).sort((a, b) => b.pnlPct - a.pnlPct)[0] ?? null
 
+  const runAiAnalysis = () => dispatchAskAI({
+    instruction:
+      'You are MaddenAI. Analyse this portfolio and provide:\n' +
+      '1. Portfolio composition assessment (diversification)\n' +
+      '2. Key risks (concentration, sector, currency)\n' +
+      '3. Performance attribution (what\'s driving P&L)\n' +
+      '4. 3 specific suggestions for improvement\n' +
+      '5. Macro outlook for this portfolio\n\n' +
+      `Holdings: ${JSON.stringify(live.map((h) => ({
+        symbol: h.symbol, type: h.type, shares: h.shares,
+        avgCost: h.avgCost, last: h.last, mktVal: h.mktVal,
+        pnl: h.pnl, pnlPct: h.pnlPct, dayPct: h.dayPct,
+      })))}\n` +
+      `Total value: ${fmtCur(mktTotal)}\n` +
+      `Total P&L: ${fmtCur(totalPnl)} (${fmt.pct(pnlPct)})\n\n` +
+      'Format in professional markdown. Australian investor perspective. General information only, not advice.',
+  }, { fullscreen: true, rawPrompt: true })
+
   // ─── EMPTY STATE ───────────────────────────────────────────────────────────
 
   if (holdings.length === 0) {
@@ -574,7 +601,7 @@ export default function PortfolioModule() {
   // ─── MAIN VIEW ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full grid grid-rows-[auto_auto_auto_auto_1fr] overflow-hidden">
+    <div className="h-full grid grid-rows-[auto_auto_auto_1fr] overflow-hidden">
       <ModuleHeader
         title="PORTFOLIO"
         subtitle={`${holdings.length} positions · ${equityHoldings.length} equities tracked`}
@@ -583,23 +610,7 @@ export default function PortfolioModule() {
         onRefresh={yfSymbols.length > 0 ? refetch : undefined}
         right={live.length > 0 && (
           <button
-            onClick={() => dispatchAskAI({
-              instruction:
-                'You are MaddenAI. Analyse this portfolio and provide:\n' +
-                '1. Portfolio composition assessment (diversification)\n' +
-                '2. Key risks (concentration, sector, currency)\n' +
-                '3. Performance attribution (what\'s driving P&L)\n' +
-                '4. 3 specific suggestions for improvement\n' +
-                '5. Macro outlook for this portfolio\n\n' +
-                `Holdings: ${JSON.stringify(live.map((h) => ({
-                  symbol: h.symbol, type: h.type, shares: h.shares,
-                  avgCost: h.avgCost, last: h.last, mktVal: h.mktVal,
-                  pnl: h.pnl, pnlPct: h.pnlPct, dayPct: h.dayPct,
-                })))}\n` +
-                `Total value: ${fmtCur(mktTotal)}\n` +
-                `Total P&L: ${fmtCur(totalPnl)} (${fmt.pct(pnlPct)})\n\n` +
-                'Format in professional markdown. Australian investor perspective. General information only, not advice.',
-            }, { fullscreen: true, rawPrompt: true })}
+            onClick={runAiAnalysis}
             className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
           >AI ANALYSIS ▶</button>
         )}
@@ -636,17 +647,61 @@ export default function PortfolioModule() {
         />
       </div>
 
-      <PerformanceChart mktTotal={mktTotal} pnlPct={pnlPct} prefix={prefix} />
+      {/* Tab bar */}
+      <div className="flex border-b border-terminal-border flex-shrink-0">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`text-2xs font-bold tracking-widest px-4 py-2 border-b-2 transition-colors ${
+              activeTab === t.key
+                ? 'text-terminal-gold border-terminal-gold'
+                : 'text-terminal-text-dim border-transparent hover:text-terminal-text'
+            }`}
+          >{t.label}</button>
+        ))}
+      </div>
 
-      {/* Add form inline */}
+      {/* Everything below occupies the grid's single 1fr row — wrapped in one
+          flex-col container so the optional add-form (flex-shrink-0) and
+          whichever tab is active (flex-1) share that row correctly instead
+          of each becoming its own auto-sized implicit grid row. */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {showAddForm && (
         <div className="border-b border-terminal-border px-3 py-2 bg-terminal-panel flex-shrink-0">
           <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
         </div>
       )}
 
+      {activeTab === 'performance' && (
+        <div className="flex-1 overflow-y-auto">
+          <PerformanceChart mktTotal={mktTotal} pnlPct={pnlPct} prefix={prefix} />
+        </div>
+      )}
+
+      {activeTab === 'stresstest' && (
+        <StressTest holdings={computed} fmtCur={fmtCur} />
+      )}
+
+      {activeTab === 'ai' && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center overflow-y-auto">
+          <div className="text-3xl">▲</div>
+          <div className="text-terminal-text-bright text-sm font-semibold">AI Portfolio Analysis</div>
+          <div className="text-terminal-text-dim text-2xs max-w-sm leading-relaxed">
+            MaddenAI will assess your diversification, key risks, performance attribution, and give
+            specific suggestions — opens full-screen in the AI panel.
+          </div>
+          <button
+            onClick={runAiAnalysis}
+            disabled={live.length === 0}
+            className="mt-1 text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >{live.length === 0 ? 'ADD LIVE HOLDINGS FIRST' : 'RUN AI ANALYSIS ▶'}</button>
+        </div>
+      )}
+
       {/* Holdings table + allocation */}
-      <div className="grid grid-cols-[1fr_220px] min-h-0 overflow-hidden">
+      {activeTab === 'holdings' && (
+      <div className="flex-1 grid grid-cols-[1fr_220px] min-h-0 overflow-hidden">
         <div className="flex flex-col border-r border-terminal-border overflow-hidden">
           <div className="panel-header flex items-center gap-2 flex-shrink-0">
             POSITIONS
@@ -864,6 +919,8 @@ export default function PortfolioModule() {
             </div>
           )}
         </div>
+      </div>
+      )}
       </div>
     </div>
   )
