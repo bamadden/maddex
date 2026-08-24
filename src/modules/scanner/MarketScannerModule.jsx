@@ -29,7 +29,11 @@ function timeAgo(ms) {
   return `${Math.floor(seconds / 3600)}h ago`
 }
 
-function ResultCard({ badge, badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse }) {
+function detectedAtStr(ms) {
+  return new Date(ms).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST'
+}
+
+function ResultCard({ badge, badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt }) {
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/5 transition-colors">
       <span className={`text-2xs font-bold tracking-widest px-1.5 py-0.5 border flex-shrink-0 ${badgeColor}`}>{badge}</span>
@@ -40,6 +44,9 @@ function ResultCard({ badge, badgeColor, symbol, name, metricLabel, metricValue,
       <div className="flex-1 min-w-0 text-2xs text-terminal-text-dim">
         {metricLabel}: <span className="text-terminal-text">{metricValue}</span>
       </div>
+      {detectedAt != null && (
+        <div className="text-2xs text-terminal-text-dim/60 flex-shrink-0 w-20 text-right">{detectedAtStr(detectedAt)}</div>
+      )}
       <div className="text-right flex-shrink-0 w-24">
         <div className="text-2xs font-bold text-terminal-text-bright">{priceStr(symbol, price)}</div>
         <div className={`text-2xs font-bold ${changePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
@@ -62,7 +69,7 @@ function analyseSignal(symbol, name, instruction) {
   dispatchAskAI({ ticker: symbol, name, instruction }, { rawPrompt: true })
 }
 
-function BreakoutsTab({ tick }) {
+function BreakoutsTab({ tick, scanTime }) {
   const results = useMemo(() => scanBreakouts(tick), [tick])
   if (!results.length) return <EmptyState label="breakout" />
   return (
@@ -71,7 +78,7 @@ function BreakoutsTab({ tick }) {
         <ResultCard
           key={r.symbol}
           badge="BREAKOUT" badgeColor="border-terminal-green/50 text-terminal-green"
-          symbol={r.symbol} name={r.name}
+          symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel="Above resistance" metricValue={priceStr(r.symbol, r.breakoutLevel)}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
@@ -82,7 +89,7 @@ function BreakoutsTab({ tick }) {
   )
 }
 
-function OversoldTab({ label, results, badge, badgeColor, verb }) {
+function OversoldTab({ label, results, badge, badgeColor, verb, scanTime }) {
   if (!results.length) return <EmptyState label={label} />
   return (
     <div>
@@ -90,7 +97,7 @@ function OversoldTab({ label, results, badge, badgeColor, verb }) {
         <ResultCard
           key={r.symbol}
           badge={badge} badgeColor={badgeColor}
-          symbol={r.symbol} name={r.name}
+          symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel="RSI (14)" metricValue={r.rsi.toFixed(1)}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
@@ -101,7 +108,7 @@ function OversoldTab({ label, results, badge, badgeColor, verb }) {
   )
 }
 
-function VolumeTab({ tick }) {
+function VolumeTab({ tick, scanTime }) {
   const results = useMemo(() => scanVolume(tick), [tick])
   if (!results.length) return <EmptyState label="unusual volume" />
   return (
@@ -110,7 +117,7 @@ function VolumeTab({ tick }) {
         <ResultCard
           key={r.symbol}
           badge="VOLUME" badgeColor="border-terminal-gold/50 text-terminal-gold"
-          symbol={r.symbol} name={r.name}
+          symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel={`${r.volumeRatio.toFixed(1)}x average`} metricValue={r.explanation}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
@@ -121,7 +128,7 @@ function VolumeTab({ tick }) {
   )
 }
 
-function GapsTab({ tick }) {
+function GapsTab({ tick, scanTime }) {
   const results = useMemo(() => scanGaps(tick), [tick])
   if (!results.length) return <EmptyState label="gap" />
   return (
@@ -129,8 +136,8 @@ function GapsTab({ tick }) {
       {results.map((r) => (
         <ResultCard
           key={r.symbol}
-          badge={`GAP ${r.direction}`} badgeColor={r.direction === 'UP' ? 'border-terminal-green/50 text-terminal-green' : 'border-terminal-red/50 text-terminal-red'}
-          symbol={r.symbol} name={r.name}
+          badge={`GAP ${r.direction === 'UP' ? '↑' : '↓'}`} badgeColor="border-purple-400/50 text-purple-400"
+          symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel="Opened at" metricValue={`${priceStr(r.symbol, r.openPrice)} (prev close ${priceStr(r.symbol, r.prevClose)})`}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
@@ -160,9 +167,10 @@ function PatternCard({ candidate }) {
   return (
     <div className="border border-terminal-border p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-2">
+          <span className="text-2xs font-bold tracking-widest px-1.5 py-0.5 border border-cyan-400/50 text-cyan-400 flex-shrink-0">PATTERN</span>
           <span className="text-2xs font-bold text-terminal-text-bright">{tickerOf(candidate.symbol)}</span>
-          <span className="text-2xs text-terminal-text-dim ml-2">{candidate.name}</span>
+          <span className="text-2xs text-terminal-text-dim">{candidate.name}</span>
         </div>
         <div className="text-right">
           <div className="text-2xs font-bold text-terminal-text-bright">{priceStr(candidate.symbol, candidate.price)}</div>
@@ -276,11 +284,11 @@ export default function MarketScannerModule() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} />}
-        {activeTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-green/50 text-terminal-green" verb="oversold" />}
-        {activeTab === 'overbought' && <OversoldTab label="overbought" results={overbought} badge="OVERBOUGHT" badgeColor="border-terminal-red/50 text-terminal-red" verb="overbought" />}
-        {activeTab === 'volume'     && <VolumeTab tick={tick} />}
-        {activeTab === 'gaps'       && <GapsTab tick={tick} />}
+        {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} />}
+        {activeTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-blue-bright/50 text-terminal-blue-bright" verb="oversold" scanTime={lastScanAt} />}
+        {activeTab === 'overbought' && <OversoldTab label="overbought" results={overbought} badge="OVERBOUGHT" badgeColor="border-terminal-red/50 text-terminal-red" verb="overbought" scanTime={lastScanAt} />}
+        {activeTab === 'volume'     && <VolumeTab tick={tick} scanTime={lastScanAt} />}
+        {activeTab === 'gaps'       && <GapsTab tick={tick} scanTime={lastScanAt} />}
         {activeTab === 'patterns'   && <PatternsTab />}
       </div>
     </div>

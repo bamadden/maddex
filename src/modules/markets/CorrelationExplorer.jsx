@@ -161,8 +161,8 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
           <div className="flex">
             <div style={{ width: 70 }} />
             {orderedIds.map((id) => (
-              <div key={id} style={{ width: CELL }} className="text-2xs text-terminal-text-dim text-center font-bold relative group">
-                <button onClick={() => setSortBy(id)} className={`hover:text-terminal-gold ${sortBy === id ? 'text-terminal-gold' : ''}`}>{assetInfo(id).label}</button>
+              <div key={id} style={{ width: CELL }} className="text-2xs text-terminal-gold text-center font-bold relative group">
+                <button onClick={() => setSortBy(id)} className={`hover:text-terminal-gold-bright ${sortBy === id ? 'text-terminal-gold-bright underline' : ''}`}>{assetInfo(id).label}</button>
                 <button
                   onClick={() => removeAsset(id)}
                   className="absolute -top-1 right-0 text-terminal-text-dim/40 hover:text-terminal-red opacity-0 group-hover:opacity-100 text-2xs"
@@ -173,8 +173,8 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
           </div>
           {orderedIds.map((rowId) => (
             <div key={rowId} className="flex items-center">
-              <div style={{ width: 70 }} className="text-2xs text-terminal-text-dim font-bold text-right pr-2 truncate">
-                <button onClick={() => setSortBy(rowId)} className={`hover:text-terminal-gold ${sortBy === rowId ? 'text-terminal-gold' : ''}`}>{assetInfo(rowId).label}</button>
+              <div style={{ width: 70 }} className="text-2xs text-terminal-gold font-bold text-right pr-2 truncate">
+                <button onClick={() => setSortBy(rowId)} className={`hover:text-terminal-gold-bright ${sortBy === rowId ? 'text-terminal-gold-bright underline' : ''}`}>{assetInfo(rowId).label}</button>
               </div>
               {orderedIds.map((colId) => {
                 const r = correlationFor(rowId, colId, period)
@@ -183,10 +183,10 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
                     key={colId}
                     onMouseEnter={(e) => handleCellHover(e, rowId, colId)}
                     onMouseLeave={() => setHovered(null)}
-                    style={{ width: CELL, height: 36, background: cellColor(r) }}
+                    style={{ width: CELL, height: 36, background: rowId === colId ? '#c9a84c' : cellColor(r) }}
                     className="flex items-center justify-center text-2xs font-mono font-bold cursor-pointer border border-terminal-bg/40 hover:outline hover:outline-1 hover:outline-terminal-gold"
                   >
-                    <span style={{ color: Math.abs(r) > 0.55 ? '#fff' : '#0a1220' }}>{r.toFixed(2)}</span>
+                    <span style={{ color: rowId === colId ? '#0a1220' : Math.abs(r) > 0.55 ? '#fff' : '#0a1220' }}>{r.toFixed(2)}</span>
                   </div>
                 )
               })}

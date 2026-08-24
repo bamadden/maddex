@@ -78,7 +78,7 @@ export default function NavBar() {
       <button
         onClick={() => setPinned((p) => !p)}
         title={pinned ? 'Unpin sidebar' : 'Pin sidebar'}
-        className={`flex items-center gap-3 w-full px-4 py-2.5 border-b border-terminal-border flex-shrink-0 transition-colors duration-100 ${
+        className={`flex items-center gap-3 w-full px-4 py-2 border-b border-terminal-border flex-shrink-0 transition-colors duration-100 ${
           pinned ? 'text-terminal-gold' : 'text-terminal-muted/50 hover:text-terminal-muted'
         }`}
       >
@@ -92,11 +92,11 @@ export default function NavBar() {
           const isActive = activeModule === item.id
           return (
             <div key={item.id}>
-              {item.groupBreak && <div className="h-px bg-terminal-border mx-3 my-2 flex-shrink-0" />}
+              {item.groupBreak && <div className="h-px bg-terminal-border mx-3 my-1.5 flex-shrink-0" />}
               <button
                 onClick={() => setActiveModule(item.id)}
                 title={item.fkey ? `${item.label} — press ${item.fkey}` : item.label}
-                className={`relative flex items-center gap-3 w-full px-4 py-2.5 border-l-2 transition-colors duration-100 ${
+                className={`relative flex items-center gap-3 w-full px-4 py-2 border-l-2 transition-colors duration-100 ${
                   isActive
                     ? 'border-l-terminal-gold bg-terminal-gold/[0.07] text-terminal-gold'
                     : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2'
@@ -120,7 +120,7 @@ export default function NavBar() {
       <button
         onClick={() => setChatOpen((v) => !v)}
         title="AI Analyst"
-        className={`flex items-center gap-3 px-4 py-2.5 border-t border-l-2 border-terminal-border transition-colors duration-100 ${
+        className={`flex items-center gap-3 px-4 py-2 border-t border-l-2 border-terminal-border transition-colors duration-100 ${
           chatOpen ? 'border-l-terminal-gold bg-terminal-gold text-terminal-bg' : 'border-l-transparent text-terminal-gold hover:bg-terminal-surface2'
         }`}
       >
@@ -133,7 +133,7 @@ export default function NavBar() {
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-ideas'))}
           title="Ideas & roadmap"
-          className="flex items-center gap-3 w-full px-4 py-2.5 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
+          className="flex items-center gap-3 w-full px-4 py-2 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
         >
           <Lightbulb size={18} strokeWidth={1.75} className="flex-shrink-0" />
           <span className={labelCls}>IDEAS</span>
@@ -141,7 +141,7 @@ export default function NavBar() {
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))}
           title="Settings"
-          className="flex items-center gap-3 w-full px-4 py-2.5 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
+          className="flex items-center gap-3 w-full px-4 py-2 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
         >
           <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0" />
           <span className={labelCls}>SETTINGS</span>
@@ -149,7 +149,7 @@ export default function NavBar() {
         <button
           onClick={signOut}
           title="Sign out"
-          className="flex items-center gap-3 w-full px-4 py-2.5 text-terminal-muted hover:text-terminal-red hover:bg-terminal-surface2 transition-colors"
+          className="flex items-center gap-3 w-full px-4 py-2 text-terminal-muted hover:text-terminal-red hover:bg-terminal-surface2 transition-colors"
         >
           <LogOut size={18} strokeWidth={1.75} className="flex-shrink-0" />
           <span className={labelCls}>SIGN OUT</span>

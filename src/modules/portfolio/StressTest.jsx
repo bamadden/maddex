@@ -28,27 +28,27 @@ function sectorShockPct(h, table, fallback = 0) {
 
 const SCENARIOS = [
   {
-    key: 'ironOre', label: 'IRON ORE -20%',
+    key: 'ironOre', label: 'IRON ORE -20%', borderColor: 'border-red-500/50 hover:border-red-500',
     describe: 'Iron ore -20% — Materials down ~15%, Energy down ~8%, Financials flat.',
     shock: (h) => sectorShockPct(h, { Materials: -0.15, Energy: -0.08, Financials: 0 }, 0),
   },
   {
-    key: 'audUsd', label: 'AUD/USD -10%',
+    key: 'audUsd', label: 'AUD/USD -10%', borderColor: 'border-amber-500/50 hover:border-amber-500',
     describe: 'AUD/USD -10% — USD-denominated assets gain ~10% in AUD terms; ASX importers lose ground.',
     shock: (h) => h.type === 'us' || h.type === 'crypto' ? 0.10 : sectorShockPct(h, { 'Cons Disc': -0.03 }, 0),
   },
   {
-    key: 'rateHike', label: 'RATE HIKE +50BP',
+    key: 'rateHike', label: 'RATE HIKE +50BP', borderColor: 'border-orange-500/50 hover:border-orange-500',
     describe: 'RBA +50bp — Banks up ~2%, REITs down ~5%, growth/IT down ~8%.',
     shock: (h) => sectorShockPct(h, { Financials: 0.02, IT: -0.08, 'Cons Disc': -0.03 }, 0),
   },
   {
-    key: 'chinaSlowdown', label: 'CHINA SLOWDOWN',
+    key: 'chinaSlowdown', label: 'CHINA SLOWDOWN', borderColor: 'border-red-500/50 hover:border-red-500',
     describe: 'China slowdown — Materials down ~20%, Energy down ~12%, Consumer down ~5%.',
     shock: (h) => sectorShockPct(h, { Materials: -0.20, Energy: -0.12, 'Cons Disc': -0.05, 'Cons Staples': -0.02 }, 0),
   },
   {
-    key: 'crash', label: 'MARKET CRASH -30%',
+    key: 'crash', label: 'MARKET CRASH -30%', borderColor: 'border-red-800 hover:border-red-700',
     describe: 'Broad -30% market crash — every holding falls proportional to its estimated beta.',
     shock: (h) => -0.30 * betaFor(h),
   },
@@ -157,16 +157,16 @@ export default function StressTest({ holdings, fmtCur }) {
               key={s.key}
               onClick={() => { setScenarioKey(s.key); setCustomOpen(false) }}
               className={`text-2xs px-2.5 py-1 border transition-colors ${
-                !customOpen && scenarioKey === s.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+                !customOpen && scenarioKey === s.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : `${s.borderColor} text-terminal-text-dim hover:text-terminal-text-bright`
               }`}
             >{s.label}</button>
           ))}
           <button
             onClick={() => { setCustomOpen((v) => !v); setScenarioKey(null) }}
             className={`text-2xs px-2.5 py-1 border transition-colors ${
-              customOpen ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+              customOpen ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-gold/50 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
             }`}
-          >CUSTOM</button>
+          >CUSTOM ↕</button>
         </div>
         {activeScenario && <div className="text-2xs text-terminal-text-dim mt-1.5">{activeScenario.describe}</div>}
       </div>
@@ -230,7 +230,7 @@ export default function StressTest({ holdings, fmtCur }) {
                   </td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-terminal-border font-bold">
+              <tr className="border-t-2 border-terminal-gold/40 bg-terminal-gold/[0.06] font-bold">
                 <td className="px-2 py-1.5">TOTAL</td>
                 <td className="px-2 py-1.5 text-right">{fmtCur(totalCurrent)}</td>
                 <td className="px-2 py-1.5 text-right">{fmtCur(totalStressed)}</td>
