@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
+import { earningsFor, daysUntil } from '../../services/earningsCalendar'
 import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 
@@ -374,6 +375,18 @@ export default function WatchlistModule() {
                       : isFetching
                         ? <span className="text-2xs text-terminal-text-dim ml-1">…</span>
                         : null}
+                    {(() => {
+                      const e = earningsFor(row.symbol)
+                      if (!e) return null
+                      const d = daysUntil(e.date)
+                      if (d < 0 || d > 45) return null
+                      return (
+                        <span
+                          title={`${e.company} ${e.type} results — ${new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${d}d)`}
+                          className="text-2xs text-terminal-gold ml-1"
+                        >📅</span>
+                      )
+                    })()}
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-terminal-text-dim truncate max-w-[200px]">{row.name}</td>
                   <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">

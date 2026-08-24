@@ -1182,8 +1182,25 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                 .filter(Boolean)
                 .sort((a, b) => b.day - a.day)
               const maxAbs = Math.max(...rows.map(r => Math.abs(r.day)), ...rows.map(r => Math.abs(r.period ?? 0)), 0.1)
+              // Rotation signal — ranked by the period (secondaryMetric)
+              // change rather than today's move, since a single day's noise
+              // isn't "rotation"; the strongest/weakest over the period are.
+              const byPeriod = rows.filter(r => r.period != null).sort((a, b) => b.period - a.period)
+              const strongest = byPeriod[0]
+              const weakest = byPeriod[byPeriod.length - 1]
+              const showRotation = strongest && weakest && strongest.sector !== weakest.sector && (strongest.period - weakest.period) > 1
               return (
                 <div className="flex flex-col gap-1">
+                  {showRotation && (
+                    <div className="flex items-center gap-2 text-2xs px-2 py-1.5 mb-1 border border-terminal-gold/25 bg-terminal-gold/5 rounded">
+                      <span className="text-terminal-red font-bold">{SECTOR_ABBR[weakest.sector]}</span>
+                      <span className="text-terminal-gold">→</span>
+                      <span className="text-terminal-green font-bold">{SECTOR_ABBR[strongest.sector]}</span>
+                      <span className="text-terminal-text-dim ml-1">
+                        rotation over {secondaryMetric} — money moving from weaker to stronger
+                      </span>
+                    </div>
+                  )}
                   {rows.map(r => (
                     <div key={r.sector} className="flex items-center gap-2 text-[10px] font-mono">
                       <span className="text-terminal-text-dim w-24 flex-shrink-0 truncate">{SECTOR_ABBR[r.sector]}</span>

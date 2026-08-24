@@ -8,6 +8,7 @@ import {
 } from '../../services/api'
 import { DataUnavailable } from './DataUnavailable'
 import TradingChart from '../charts/TradingChart'
+import { earningsFor, daysUntil } from '../../services/earningsCalendar'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
 import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetUtils'
@@ -550,6 +551,7 @@ export default function DetailModal() {
   const priceCls  = colorClass(pct)
   const pctSign   = pct > 0 ? '+' : ''
   const isInWL    = watchlist.includes(symbol)
+  const upcomingEarnings = (type === 'asx' || type === 'index') ? earningsFor(symbol) : null
 
   const displayPrice  = price
   const displayChange = change
@@ -1054,6 +1056,18 @@ export default function DetailModal() {
               </div>
             ) : (
               <MarketStatusBadge extra={extra} />
+            )}
+            {upcomingEarnings && (
+              <div
+                title={`${upcomingEarnings.type} results — estimates only`}
+                className="flex items-center gap-1.5 border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 text-2xs whitespace-nowrap"
+              >
+                <span>📅</span>
+                <span className="font-bold">
+                  Earnings: {new Date(`${upcomingEarnings.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                </span>
+                <span className="text-terminal-text-dim">({daysUntil(upcomingEarnings.date)}d)</span>
+              </div>
             )}
             {display52High != null && (
               <div className="w-48">
