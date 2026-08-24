@@ -17,6 +17,7 @@ import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import StressTest from './StressTest'
+import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
 
 const TABS = [
@@ -24,6 +25,7 @@ const TABS = [
   { key: 'performance', label: 'PERFORMANCE' },
   { key: 'stresstest',  label: 'STRESS TEST' },
   { key: 'ai',          label: 'AI ANALYSIS' },
+  { key: 'analytics',   label: 'ANALYTICS' },
 ]
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
@@ -727,6 +729,12 @@ export default function PortfolioModule() {
             disabled={live.length === 0}
             className="mt-1 text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >{live.length === 0 ? 'ADD LIVE HOLDINGS FIRST' : 'RUN AI ANALYSIS ▶'}</button>
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="flex-1 overflow-y-auto">
+          <PortfolioAnalytics holdings={live} mktTotal={mktTotal} fmtCur={fmtCur} />
         </div>
       )}
 
