@@ -33,9 +33,8 @@ export function SentimentCompact({ sentiment, status }) {
   const label = sentiment?.label ?? (status === 'loading' ? 'ANALYSING...' : '—')
   const color = colorForScore(score)
   return (
-    <span className="hidden lg:flex items-center gap-1.5" title={sentiment?.keyTheme}>
+    <span className="hidden xl:flex items-center gap-1.5 flex-shrink-0" title={`${label}${sentiment?.keyTheme ? ` — ${sentiment.keyTheme}` : ''}`}>
       <span className="text-2xs font-bold font-mono" style={{ color }}>{score ?? '·'}</span>
-      <span className="text-2xs font-mono text-terminal-muted tracking-wider">{label}</span>
       <SentimentMiniGauge score={score} />
     </span>
   )

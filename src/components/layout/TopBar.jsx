@@ -344,7 +344,7 @@ export default function TopBar() {
 
   return (
     <div
-      className="grid grid-cols-[1fr_auto_1fr] items-center bg-terminal-header border-b border-terminal-border-gold px-3 flex-shrink-0"
+      className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center bg-terminal-header border-b border-terminal-border-gold px-3 flex-shrink-0"
       style={{ height: 44 }}
     >
       {/* LEFT — branding + AUD/USD + exchange dropdown */}
