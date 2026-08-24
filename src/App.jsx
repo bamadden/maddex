@@ -272,6 +272,14 @@ function Terminal() {
           // sidebar first, only close the panel entirely on a second Escape.
           if (aiMode === 'fullscreen') setAiMode('sidebar')
           else setChatOpen(false)
+          return
+        }
+        // Nothing else to dismiss — if the command bar has focus, blur it so
+        // the single-letter module shortcuts below work again. The command
+        // bar auto-retains focus, so without this Escape-to-blur, "M/C/F/..."
+        // just gets typed into the command input instead of switching modules.
+        if (document.activeElement?.classList?.contains('cmd-input')) {
+          document.activeElement.blur()
         }
         return
       }
