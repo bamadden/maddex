@@ -6,6 +6,8 @@ import { fetchNews } from './services/api'
 import DiagPage from './DiagPage'
 import SharedWatchlistPage from './pages/SharedWatchlistPage'
 import SharedResearchNotePage from './pages/SharedResearchNotePage'
+import OnboardingTour from './components/onboarding/OnboardingFlow'
+import WhatsNewModal from './components/onboarding/WhatsNewModal'
 import TopBar from './components/layout/TopBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
@@ -189,9 +191,30 @@ function LoadingScreen() {
 // ── Terminal ──────────────────────────────────────────────────────────────────
 
 const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
+const ONBOARDING_KEY = 'maddex_onboarding_complete'
+const WHATS_NEW_SHOWN_KEY = 'maddex_whatsnew_last_shown'
+const WHATS_NEW_INTERVAL_MS = 7 * 24 * 60 * 60_000
 
 function Terminal() {
   const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge } = useStore()
+  const [showTour, setShowTour] = useState(() => {
+    try { return !localStorage.getItem(ONBOARDING_KEY) } catch { return false }
+  })
+  const [showWhatsNew, setShowWhatsNew] = useState(() => {
+    if (showTour) return false // first-time users get the tour, not both at once
+    try {
+      const last = parseInt(localStorage.getItem(WHATS_NEW_SHOWN_KEY) ?? '0', 10)
+      return Date.now() - last > WHATS_NEW_INTERVAL_MS
+    } catch { return false }
+  })
+  const completeTour = () => {
+    try { localStorage.setItem(ONBOARDING_KEY, 'true') } catch { /* best-effort */ }
+    setShowTour(false)
+  }
+  const dismissWhatsNew = () => {
+    try { localStorage.setItem(WHATS_NEW_SHOWN_KEY, String(Date.now())) } catch { /* best-effort */ }
+    setShowWhatsNew(false)
+  }
   // Applies the persisted theme (or default) to :root on mount — independent
   // of whether the Settings panel (where the switcher lives) is open.
   useTheme()
@@ -421,6 +444,13 @@ function Terminal() {
           </FloatingWindow>
         )
       })}
+      {showTour && <OnboardingTour onComplete={completeTour} />}
+      {showWhatsNew && (
+        <WhatsNewModal
+          onDismiss={dismissWhatsNew}
+          onShowMe={() => { dismissWhatsNew(); setActiveModule('scanner') }}
+        />
+      )}
     </div>
   )
 }

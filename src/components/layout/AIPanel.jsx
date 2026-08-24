@@ -442,6 +442,7 @@ export default function AIPanel({ wide = false }) {
 
   return (
     <div
+      data-tour="ai-panel"
       className={
         isFullscreen
           ? 'fixed inset-0 z-40 flex flex-col bg-terminal-panel'

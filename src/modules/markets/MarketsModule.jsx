@@ -32,7 +32,7 @@ export default function MarketsModule() {
         <MarketBreadth />
 
         {/* Indices — scrollable horizontal */}
-        <div className="flex-shrink-0 border-b border-terminal-border">
+        <div data-tour="index-bar" className="flex-shrink-0 border-b border-terminal-border">
           <IndicesTable
             openModal={openModal}
             selectedIndex={selectedIndex}
@@ -49,7 +49,7 @@ export default function MarketsModule() {
         <UnusualActivityTracker />
 
         {/* Sector Heatmap / Index constituent list */}
-        <div className="flex-shrink-0 border-b border-terminal-border">
+        <div data-tour="sector-heatmap" className="flex-shrink-0 border-b border-terminal-border">
           <SectorHeatmap
             selectedIndex={selectedIndex}
             openModal={openModal}

@@ -70,6 +70,7 @@ export default function NavBar() {
 
   return (
     <div
+      data-tour="nav-sidebar"
       className={`group/nav hidden md:flex flex-col bg-terminal-bg border-r border-terminal-border flex-shrink-0 overflow-hidden transition-all duration-150 z-30 ${
         pinned ? 'w-[200px]' : 'w-14 hover:w-[200px]'
       }`}

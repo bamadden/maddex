@@ -1080,7 +1080,7 @@ export default function CommandBar() {
         )}
 
         {/* Command bar */}
-        <div className="flex items-center bg-terminal-bg border-t border-terminal-border px-3 py-1.5 gap-3">
+        <div data-tour="cmd-bar" className="flex items-center bg-terminal-bg border-t border-terminal-border px-3 py-1.5 gap-3">
           <span className="text-terminal-gold text-2xs font-bold tracking-widest flex-shrink-0 cursor-blink">CMD&gt;</span>
 
           <input
