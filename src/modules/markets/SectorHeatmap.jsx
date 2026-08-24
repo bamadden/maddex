@@ -11,6 +11,7 @@ import { DemoBadge } from '../../components/ui/ModuleStates'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
 } from 'recharts'
+import SectorLandscape3D from '../../components/visualisations/SectorLandscape3D'
 
 // ─── GICS Sector Configuration ───────────────────────────────────────────────
 // Official 11 GICS sectors used by ASX, S&P, NASDAQ, and all major indices
@@ -799,6 +800,7 @@ function MetricToggle({ metric, setMetric }) {
 function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal }) {
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
+  const [view3D, setView3D] = useState(false)
   const { canAccess, tier } = useSubscription()
 
   // Listen for sector-select events from SectorStrengthRadar
@@ -991,13 +993,39 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
         {isError && !isFetching && (
           <button onClick={refetch} className="text-2xs text-terminal-red hover:text-terminal-gold">⚠ RETRY</button>
         )}
-        {selected && (
-          <button onClick={() => setSelected(null)} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold">
-            CLOSE ✕
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center border border-terminal-border rounded-full overflow-hidden">
+            <button
+              onClick={() => setView3D(false)}
+              className={`text-2xs px-2.5 py-0.5 font-bold transition-colors ${!view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+            >2D</button>
+            <button
+              onClick={() => setView3D(true)}
+              className={`text-2xs px-2.5 py-0.5 font-bold transition-colors ${view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+            >3D</button>
+          </div>
+          {selected && (
+            <button onClick={() => setSelected(null)} className="text-2xs text-terminal-text-dim hover:text-terminal-gold">
+              CLOSE ✕
+            </button>
+          )}
+        </div>
       </div>
 
+      {view3D ? (
+        <div style={{ height: 460 }} className="flex-shrink-0">
+          <SectorLandscape3D
+            sectors={GICS_SECTORS
+              .filter((s) => sectorConfig[s]?.sym)
+              .map((s) => ({
+                name: s,
+                abbr: SECTOR_ABBR[s],
+                pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? 0,
+                marketCap: proxyQuotes?.[sectorConfig[s].sym]?.marketCap ?? null,
+              }))}
+          />
+        </div>
+      ) : (
       <div className="flex">
         {/* Heatmap grid */}
         <div className={`p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
@@ -1395,6 +1423,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

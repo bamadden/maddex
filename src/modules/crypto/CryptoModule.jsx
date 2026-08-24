@@ -16,6 +16,7 @@ import { ModuleLoader, StaleBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import CryptoLandscape3D from '../../components/visualisations/CryptoLandscape3D'
 
 // ── Coin colour circle (deterministic hash, not a real logo — Bloomberg-
 // terminal-style abstract avatar rather than brand marks) ──────────────────
@@ -585,6 +586,7 @@ export default function CryptoModule() {
   // Mobile only (<768px) — the overview/table/detail columns stack instead
   // of sitting side by side, so a small screen needs an explicit switcher.
   const [mobilePanel, setMobilePanel] = useState('table')
+  const [view3D, setView3D] = useState(false)
   const titleBarRef = useRef(null)
   const { openModal, currency } = useStore()
   const { usdToAud, audToUsd } = useAudRates()
@@ -766,12 +768,30 @@ export default function CryptoModule() {
               : !rawMarkets && !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
             }
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
+            <button
+              onClick={() => setView3D((v) => !v)}
+              className={`ml-auto text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
+                view3D ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+              }`}
+            >{view3D ? '2D TABLE' : '3D VIEW'}</button>
           </div>
           <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#071428', margin: 0, padding: 0 }} />
 
           {marketsError ? (
             <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
           ) : markets ? (
+            view3D ? (
+              // Absolute-positioned against the table container's own
+              // `position: relative` (set above) rather than a percentage
+              // height off titleBarHeight — R3F's Canvas sizes itself via
+              // ResizeObserver on its immediate parent, and a %/calc height
+              // computed through a flex chain doesn't reliably resolve
+              // before that first measurement, leaving the canvas stuck at
+              // the browser's intrinsic 300x150 default.
+              <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
+                <CryptoLandscape3D coins={markets.slice(0, 20)} />
+              </div>
+            ) : (
             <SortableCoinTable
               markets={markets}
               currPrefix={currPrefix}
@@ -781,6 +801,7 @@ export default function CryptoModule() {
               onRowClick={(coin) => { setSelectedCoin(coin.symbol); setMobilePanel('detail') }}
               onAskAI={askAI}
             />
+            )
           ) : <ModuleLoader name="CRYPTO" />}
         </div>
 

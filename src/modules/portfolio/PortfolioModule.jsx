@@ -14,6 +14,7 @@ import { DemoBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import Portfolio3D from '../../components/visualisations/Portfolio3D'
 
 const STORAGE_KEY = 'madden_portfolio_v2'
 
@@ -228,6 +229,7 @@ export default function PortfolioModule() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
   })
   const [showAddForm, setShowAddForm] = useState(false)
+  const [allocView3D, setAllocView3D] = useState(false)
   const [dbSynced, setDbSynced] = useState(false)
 
   // Persist to localStorage
@@ -548,8 +550,36 @@ export default function PortfolioModule() {
 
         {/* Right panel */}
         <div className="flex flex-col overflow-hidden">
-          <div className="panel-header flex-shrink-0">ALLOCATION</div>
+          <div className="panel-header flex-shrink-0 flex items-center gap-2">
+            <span>ALLOCATION</span>
+            {allocData.length > 0 && (
+              <div className="ml-auto flex items-center border border-terminal-border rounded-full overflow-hidden">
+                <button
+                  onClick={() => setAllocView3D(false)}
+                  className={`text-2xs px-2 py-0.5 font-bold normal-case transition-colors ${!allocView3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                >2D</button>
+                <button
+                  onClick={() => setAllocView3D(true)}
+                  className={`text-2xs px-2 py-0.5 font-bold normal-case transition-colors ${allocView3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                >3D</button>
+              </div>
+            )}
+          </div>
           {allocData.length > 0 ? (
+            allocView3D ? (
+              <div style={{ height: 260 }} className="flex-shrink-0 border-b border-terminal-border">
+                <Portfolio3D
+                  holdings={live}
+                  onSelect={(h) => h.last && openModal?.({
+                    symbol: h.symbol, name: h.name || h.symbol,
+                    price:  h.last * displayMul,
+                    pct:    h.dayPct,
+                    change: (h.last * (h.dayPct / 100)) * displayMul,
+                    type:   h.type,
+                  })}
+                />
+              </div>
+            ) : (
             <>
               <div className="h-40 p-2 flex-shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -576,6 +606,7 @@ export default function PortfolioModule() {
                 ))}
               </div>
             </>
+            )
           ) : (
             <div className="flex-1 flex items-center justify-center text-2xs text-terminal-text-dim animate-pulse">
               LOADING PRICES...
