@@ -39,6 +39,7 @@ export function StoreProvider({ children }) {
   const [chatMessages, setChatMessages] = useState([])
   const [watchlistFocus, setWatchlistFocus] = useState(null)
   const [modalAsset, setModalAsset]         = useState(null)
+  const [compareAssets, setCompareAssets]   = useState(null)
   const [newsFilter, setNewsFilterState]    = useState('')
   const [newsBadgeCount, setNewsBadgeCountState] = useState(0)
   const [alerts, setAlerts]                 = useState(() => {
@@ -106,6 +107,21 @@ export function StoreProvider({ children }) {
   const openModal  = useCallback((asset) => setModalAsset(asset), [])
   const closeModal = useCallback(() => setModalAsset(null), [])
 
+  // Compare mode — seeded with one asset (from a stock detail panel's
+  // COMPARE button) or opened empty (from the command bar's COMPARE {a} {b}).
+  const openCompare  = useCallback((asset) => setCompareAssets(asset ? [asset] : []), [])
+  const closeCompare = useCallback(() => setCompareAssets(null), [])
+  const addCompareAsset = useCallback((asset) => {
+    setCompareAssets((prev) => {
+      const list = prev ?? []
+      if (list.some((a) => a.symbol === asset.symbol)) return list
+      return [...list, asset].slice(0, 3)
+    })
+  }, [])
+  const removeCompareAsset = useCallback((symbol) => {
+    setCompareAssets((prev) => (prev ?? []).filter((a) => a.symbol !== symbol))
+  }, [])
+
   const setNewsFilter   = useCallback((kw) => setNewsFilterState(kw), [])
   const setNewsBadgeCount = useCallback((n) => setNewsBadgeCountState(n), [])
   const clearNewsBadge    = useCallback(() => setNewsBadgeCountState(0), [])
@@ -169,6 +185,7 @@ export function StoreProvider({ children }) {
         chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
         watchlistFocus, setWatchlistFocus,
         modalAsset, openModal, closeModal,
+        compareAssets, openCompare, closeCompare, addCompareAsset, removeCompareAsset,
         newsFilter, setNewsFilter,
         newsBadgeCount, setNewsBadgeCount, clearNewsBadge,
         alerts, addAlert, removeAlert,

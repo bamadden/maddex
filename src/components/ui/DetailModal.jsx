@@ -442,7 +442,7 @@ function AssetNewsPanel({ symbol, name }) {
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 export default function DetailModal() {
-  const { modalAsset, closeModal, addToWatchlist, watchlist, addAlert, setActiveModule } = useStore()
+  const { modalAsset, closeModal, addToWatchlist, watchlist, addAlert, setActiveModule, openCompare } = useStore()
   const queryClient = useQueryClient()
 
   const [timeframe, setTimeframe] = useState('1M')
@@ -979,6 +979,13 @@ export default function DetailModal() {
           <div className="flex items-center gap-3 flex-shrink-0">
             {(isChartLoading || qsLoading) && (
               <span className="text-2xs text-terminal-gold animate-pulse">LOADING...</span>
+            )}
+            {isStockOrIdx && (
+              <button
+                onClick={() => openCompare({ symbol, type })}
+                title="Open full side-by-side comparison"
+                className="text-2xs font-bold text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold px-2 py-1 transition-colors"
+              >COMPARE VIEW</button>
             )}
             <button
               onClick={() => setAlertOpen(o => !o)}

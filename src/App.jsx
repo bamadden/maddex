@@ -10,6 +10,7 @@ import TickerTape from './components/layout/TickerTape'
 import CommandBar from './components/layout/CommandBar'
 import AIPanel from './components/layout/AIPanel'
 import DetailModal from './components/ui/DetailModal'
+import ComparisonView from './components/markets/ComparisonView'
 import MarketsModule from './modules/markets/MarketsModule'
 import PortfolioModule from './modules/portfolio/PortfolioModule'
 import CryptoModule from './modules/crypto/CryptoModule'
@@ -367,6 +368,7 @@ function Terminal() {
       <CommandBar />
       <MobileNavBar />
       <DetailModal />
+      <ComparisonView />
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
       {floatingWindows.map((w) => {
         const FloatingContent = MODULE_MAP[w.moduleId] || MarketsModule

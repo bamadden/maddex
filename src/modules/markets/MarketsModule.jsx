@@ -4,6 +4,9 @@ import SectorHeatmap from './SectorHeatmap'
 import SectorStrengthRadar from './SectorStrengthRadar'
 import TopMovers from './TopMovers'
 import MarketSentimentBanner from './MarketSentimentBanner'
+import MarketBreadth from './MarketBreadth'
+import SectorRotation from './SectorRotation'
+import EarningsCalendar from './EarningsCalendar'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 
@@ -23,6 +26,9 @@ export default function MarketsModule() {
         <div className="flex-shrink-0">
           <MarketSentimentBanner />
         </div>
+
+        {/* Market breadth — advances/declines/A-D ratio */}
+        <MarketBreadth />
 
         {/* Indices — scrollable horizontal */}
         <div className="flex-shrink-0 border-b border-terminal-border">
@@ -50,6 +56,12 @@ export default function MarketsModule() {
         <div className="flex-shrink-0">
           <SectorStrengthRadar selectedIndex={selectedIndex} />
         </div>
+
+        {/* Sector rotation snapshot */}
+        <SectorRotation />
+
+        {/* Upcoming ASX earnings */}
+        <EarningsCalendar />
       </div>
     </div>
   )
