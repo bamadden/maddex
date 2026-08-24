@@ -14,7 +14,8 @@ import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line } from 'recharts'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -49,6 +50,172 @@ const PieTooltip = ({ active, payload }) => {
     <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
       <span className="text-terminal-gold">{payload[0].name}: </span>
       <span className="text-terminal-text-bright">{fmt.aud(payload[0].value)}</span>
+    </div>
+  )
+}
+
+// symbol (no .AX suffix, uppercase) -> GICS sector, for holdings that match
+// a tracked demo stock. Anything else (a real ticker not in the demo
+// universe, or crypto) falls back to 'Other' in the sector breakdown.
+const SECTOR_BY_SYMBOL = Object.fromEntries([
+  ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
+  ...Object.entries(MOCK_US_STOCKS).map(([sym, s]) => [sym, s.sector]),
+])
+
+// ─── Sector / Country / Currency allocation breakdown ─────────────────────────
+
+function BreakdownBars({ title, rows }) {
+  if (!rows.length) return null
+  return (
+    <div className="px-2 py-2 border-t border-terminal-border">
+      <div className="text-2xs text-terminal-text-dim tracking-widest mb-1.5">{title}</div>
+      <div className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.label} className="space-y-0.5">
+            <div className="flex items-center justify-between text-2xs">
+              <span className="text-terminal-text">{r.label}</span>
+              <span className="text-terminal-text-dim">{r.pct.toFixed(0)}%</span>
+            </div>
+            <div className="h-1.5 bg-terminal-border/40 rounded-sm overflow-hidden">
+              <div className="h-full bg-terminal-gold" style={{ width: `${r.pct}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function groupByPct(live, keyFn, othersLabel = 'Other') {
+  const totals = {}
+  let sum = 0
+  for (const h of live) {
+    if (!h.mktVal) continue
+    const key = keyFn(h)
+    totals[key] = (totals[key] ?? 0) + h.mktVal
+    sum += h.mktVal
+  }
+  if (!sum) return []
+  const rows = Object.entries(totals)
+    .map(([label, value]) => ({ label, pct: (value / sum) * 100 }))
+    .sort((a, b) => b.pct - a.pct)
+  // Collapse a long tail into "Other" so the bar list stays scannable
+  if (rows.length > 4) {
+    const top = rows.slice(0, 3)
+    const restPct = rows.slice(3).reduce((s, r) => s + r.pct, 0)
+    return [...top, { label: othersLabel, pct: restPct }]
+  }
+  return rows
+}
+
+// ─── Performance chart (illustrative demo trajectory) ─────────────────────────
+// This app has no real historical-price feed wired into the portfolio yet
+// (see the DEMO badges used everywhere else for the same reason), so the
+// chart traces a seeded random walk that starts flat and lands exactly on
+// today's real mktTotal/pnlPct — the shape is illustrative, the endpoint
+// isn't. A deterministic seed (not Math.random()) keeps the line stable
+// across re-renders instead of jumping every time state changes elsewhere.
+function seededRng(seed) {
+  let t = seed >>> 0
+  return () => {
+    t += 0x6D2B79F5
+    let r = Math.imul(t ^ (t >>> 15), 1 | t)
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const PERIODS = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+
+function buildSeries(days, endValue, cumReturnPct, seed) {
+  const rng = seededRng(seed)
+  const startValue = endValue / (1 + cumReturnPct / 100)
+  const points = []
+  for (let i = 0; i < days; i++) {
+    const t = days > 1 ? i / (days - 1) : 1
+    const target = startValue + (endValue - startValue) * t
+    const wobble = (rng() - 0.5) * endValue * 0.02 * (1 - t * 0.6)
+    points.push(Math.max(0, target + wobble))
+  }
+  points[points.length - 1] = endValue
+  return points
+}
+
+function PerformanceChart({ mktTotal, pnlPct, prefix }) {
+  const [period, setPeriod] = useState('1M')
+  if (!mktTotal) return null
+
+  const days = PERIODS[period]
+  // Scale the demo return by the selected window — a 1Y view shouldn't
+  // show the same % move as a 1M view.
+  const periodScale = { '1M': 1, '3M': 1.6, '6M': 2.2, '1Y': 3.4 }[period]
+  const portfolioReturn = pnlPct * (period === '1M' ? 0.35 : periodScale * 0.35)
+  const benchReturn = portfolioReturn * 0.55 - 0.6 // ASX 200 trails slightly, illustratively
+
+  const portfolioSeries = buildSeries(days, mktTotal, portfolioReturn, 1337)
+  const benchStart = mktTotal / (1 + portfolioReturn / 100)
+  const benchSeries = buildSeries(days, benchStart * (1 + benchReturn / 100), benchReturn, 7331)
+
+  const data = portfolioSeries.map((v, i) => ({ i, portfolio: v, benchmark: benchSeries[i] }))
+
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="panel-header flex items-center gap-2">
+        <span>PERFORMANCE</span>
+        <span className="text-2xs font-normal normal-case text-terminal-text-dim/50">illustrative — demo pricing history</span>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-2xs normal-case">
+            <span className="text-terminal-text-dim">Your portfolio:</span>{' '}
+            <span className={portfolioReturn >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>{fmt.pct(portfolioReturn)}</span>
+            {' | '}
+            <span className="text-terminal-text-dim">ASX 200:</span>{' '}
+            <span className={benchReturn >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>{fmt.pct(benchReturn)}</span>
+          </span>
+          <div className="flex border border-terminal-border rounded-full overflow-hidden">
+            {Object.keys(PERIODS).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`text-2xs px-2 py-0.5 font-bold normal-case transition-colors ${period === p ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              >{p}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="h-40 px-2 pt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="portfolioFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <XAxis dataKey="i" tick={false} axisLine={false} />
+            <YAxis
+              tick={{ fontSize: 8 }} width={44}
+              domain={[(min) => min * 0.99, (max) => max * 1.01]}
+              tickFormatter={(v) => `${prefix}${(v / 1000).toFixed(1)}k`}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null
+                const p = payload[0]?.payload
+                if (!p) return null
+                return (
+                  <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs space-y-0.5">
+                    <div><span className="text-terminal-gold">Portfolio: </span><span className="text-terminal-text-bright">{prefix}{p.portfolio.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-terminal-muted">ASX 200: </span><span className="text-terminal-text-dim">{prefix}{p.benchmark.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
+                  </div>
+                )
+              }}
+            />
+            <Area type="monotone" dataKey="portfolio" stroke="#C9A84C" strokeWidth={1.5} fill="url(#portfolioFill)" isAnimationActive={false} />
+            <Line type="monotone" dataKey="benchmark" stroke="#637899" strokeWidth={1.25} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
@@ -359,6 +526,12 @@ export default function PortfolioModule() {
   }))
   const updatedAt = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
+  const bySector   = groupByPct(live, (h) => SECTOR_BY_SYMBOL[h.symbol] ?? 'Other')
+  const byCountry  = groupByPct(live, (h) => h.type === 'asx' ? 'Australia' : h.type === 'crypto' ? 'Crypto (borderless)' : 'United States')
+  const byCurrency = groupByPct(live, (h) => h.type === 'us' ? 'USD' : 'AUD')
+
+  const bestPerformer = live.filter((h) => h.pnlPct != null).sort((a, b) => b.pnlPct - a.pnlPct)[0] ?? null
+
   // ─── EMPTY STATE ───────────────────────────────────────────────────────────
 
   if (holdings.length === 0) {
@@ -401,7 +574,7 @@ export default function PortfolioModule() {
   // ─── MAIN VIEW ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full grid grid-rows-[auto_auto_auto_1fr] overflow-hidden">
+    <div className="h-full grid grid-rows-[auto_auto_auto_auto_1fr] overflow-hidden">
       <ModuleHeader
         title="PORTFOLIO"
         subtitle={`${holdings.length} positions · ${equityHoldings.length} equities tracked`}
@@ -433,7 +606,7 @@ export default function PortfolioModule() {
       />
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 xl:grid-cols-8 border-b border-terminal-border flex-shrink-0">
+      <div className="grid grid-cols-4 xl:grid-cols-9 border-b border-terminal-border flex-shrink-0">
         <StatBox label="PORTFOLIO VALUE" value={mktTotal > 0 ? fmtCur(mktTotal) : '—'} color="text-terminal-text-bright" />
         <StatBox label="TOTAL COST"      value={fmtCur(costTotal)} color="text-terminal-text-dim" />
         <StatBox
@@ -455,7 +628,15 @@ export default function PortfolioModule() {
         />
         <StatBox label="DISPLAY CCY" value={currency}  color="text-terminal-gold" />
         <StatBox label="UPDATED"     value={updatedAt} color="text-terminal-text-dim" />
+        <StatBox
+          label="BEST PERFORMER"
+          value={bestPerformer ? bestPerformer.symbol : '—'}
+          sub={bestPerformer ? fmt.pct(bestPerformer.pnlPct) : ''}
+          color="text-terminal-green"
+        />
       </div>
+
+      <PerformanceChart mktTotal={mktTotal} pnlPct={pnlPct} prefix={prefix} />
 
       {/* Add form inline */}
       {showAddForm && (
@@ -576,7 +757,7 @@ export default function PortfolioModule() {
         </div>
 
         {/* Right panel */}
-        <div className="flex flex-col overflow-hidden">
+        <div className="flex flex-col overflow-y-auto">
           <div className="panel-header flex-shrink-0 flex items-center gap-2">
             <span>ALLOCATION</span>
             {allocData.length > 0 && (
@@ -672,6 +853,10 @@ export default function PortfolioModule() {
               </div>
             </>
           )}
+
+          <BreakdownBars title="BY SECTOR"   rows={bySector} />
+          <BreakdownBars title="BY COUNTRY"  rows={byCountry} />
+          <BreakdownBars title="BY CURRENCY" rows={byCurrency} />
 
           {holdings.some((h) => h.type === 'crypto') && (
             <div className="border-t border-terminal-border p-2 text-2xs text-terminal-text-dim/60 flex-shrink-0">
