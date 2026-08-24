@@ -155,6 +155,16 @@ export default function NavBar() {
           <span className={labelCls}>SIGN OUT</span>
         </button>
       </div>
+      <a
+        href="https://maddex.com.au/disclaimer"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="General information only — not financial advice"
+        className="flex items-center gap-3 px-4 py-1.5 border-t border-terminal-border flex-shrink-0 text-terminal-muted/40 hover:text-terminal-gold transition-colors"
+      >
+        <span className="text-2xs flex-shrink-0 w-[18px] text-center">⚠</span>
+        <span className={`text-2xs whitespace-nowrap ${labelCls}`}>General information only</span>
+      </a>
       <div className="px-4 py-1.5 border-t border-terminal-border flex-shrink-0">
         <span className={`text-terminal-muted/40 ${labelCls}`}>{APP_VERSION}</span>
       </div>

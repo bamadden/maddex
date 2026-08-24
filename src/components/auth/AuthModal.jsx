@@ -452,6 +452,15 @@ export default function AuthModal({ deletedMessage }) {
             )
           )}
         </div>
+
+        <div className="px-6 py-3 border-t border-terminal-border text-center">
+          <span className="text-2xs text-terminal-text-dim/60">
+            By continuing you agree to our{' '}
+            <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Terms of Service</a>
+            {' · '}
+            <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Privacy Policy</a>
+          </span>
+        </div>
       </div>
     </div>
   )

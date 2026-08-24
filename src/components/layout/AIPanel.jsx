@@ -280,6 +280,16 @@ export default function AIPanel({ wide = false }) {
   const [notes, setNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('madden_ai_notes') ?? '[]') } catch { return [] }
   })
+  // Dismissed per browser session (sessionStorage, not localStorage) — the
+  // brief reminder should resurface on a fresh session, not vanish forever
+  // the first time someone dismisses it.
+  const [disclaimerDismissed, setDisclaimerDismissed] = useState(() => {
+    try { return sessionStorage.getItem('maddex_ai_disclaimer_dismissed') === 'true' } catch { return false }
+  })
+  const dismissDisclaimer = () => {
+    setDisclaimerDismissed(true)
+    try { sessionStorage.setItem('maddex_ai_disclaimer_dismissed', 'true') } catch { /* best-effort */ }
+  }
   const isFullscreen = aiMode === 'fullscreen'
   const toggleMode = useCallback(() => {
     setAiMode(isFullscreen ? 'sidebar' : 'fullscreen')
@@ -504,6 +514,20 @@ export default function AIPanel({ wide = false }) {
               <UpgradePrompt feature="Research Notes" requiredTier="apex" currentTier={tier} />
             </div>
           )}
+        </div>
+      )}
+
+      {!disclaimerDismissed && (
+        <div className="flex items-center justify-between gap-2 px-3 py-1 border-b border-terminal-border/50 flex-shrink-0">
+          <span className="text-terminal-text-dim/60 font-mono" style={{ fontSize: '9px' }}>
+            ⓘ General information only — not financial advice
+          </span>
+          <button
+            onClick={dismissDisclaimer}
+            title="Dismiss"
+            className="text-terminal-text-dim/50 hover:text-terminal-gold flex-shrink-0 leading-none"
+            style={{ fontSize: '9px' }}
+          >✕</button>
         </div>
       )}
 
