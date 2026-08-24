@@ -822,6 +822,7 @@ export const transformCoinOHLC = (data) => {
   if (!Array.isArray(data)) return []
   return data.map(([ts, open, high, low, close]) => ({
     date:  new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    time:  Math.floor(ts / 1000), // unix seconds — for lightweight-charts consumers
     open:  parseFloat(open.toFixed(2)),
     high:  parseFloat(high.toFixed(2)),
     low:   parseFloat(low.toFixed(2)),

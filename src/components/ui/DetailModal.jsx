@@ -7,6 +7,7 @@ import {
   fetchQuoteSummary, fetchYahooQuoteBatch,
 } from '../../services/api'
 import { DataUnavailable } from './DataUnavailable'
+import TradingChart from '../charts/TradingChart'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
 import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetUtils'
@@ -17,7 +18,7 @@ import {
 } from 'recharts'
 
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
-const CHART_TYPES = ['area', 'line', 'candle']
+const CHART_TYPES = ['area', 'line', 'candle', 'pro']
 
 // Next scheduled earnings date — hardcoded for the app's top 20 most-viewed
 // ASX/US stocks (indicative reporting-season dates, not a live feed).
@@ -587,9 +588,9 @@ export default function DetailModal() {
   let isLiveChart = false
 
   if (type === 'crypto') {
-    if (chartType === 'candle' && Array.isArray(cryptoOHLC)) {
+    if ((chartType === 'candle' || chartType === 'pro') && Array.isArray(cryptoOHLC)) {
       chartData = transformCoinOHLC(cryptoOHLC); isLiveChart = true
-    } else if (chartType !== 'candle' && cryptoHistory?.prices) {
+    } else if (chartType !== 'candle' && chartType !== 'pro' && cryptoHistory?.prices) {
       chartData = transformCoinHistory(cryptoHistory); isLiveChart = true
     }
   } else if (isStockOrIdx && stockHistory) {
@@ -609,6 +610,16 @@ export default function DetailModal() {
   const latest  = chartData[chartData.length - 1] ?? {}
   const allHigh = chartData.length ? Math.max(...chartData.map((d) => d.high ?? d.price ?? 0)) : null
   const allLow  = chartData.length ? Math.min(...chartData.map((d) => d.low  ?? d.price ?? Infinity)) : null
+
+  // TradingChart wants {time, open, high, low, close, volume} — `time` as
+  // a unix-second int (crypto, via transformCoinOHLC) or an ISO date
+  // string (stocks, via transformYFHistory's rawDate). Only meaningful
+  // once every bar actually has OHLC (i.e. the candle/pro fetch path).
+  const proChartData = chartType === 'pro'
+    ? chartData
+        .filter((d) => d.open != null && d.high != null && d.low != null && d.close != null)
+        .map((d) => ({ time: d.rawDate ?? d.time, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume ?? 0 }))
+    : []
 
   // COMPARE mode — both series normalised to 100 at the period start and
   // zipped by index (both fetched for the same timeframe/range so lengths
@@ -1112,8 +1123,10 @@ export default function DetailModal() {
           )}
         </div>
 
-        {/* Chart */}
-        <div className="flex-shrink-0 px-4 py-2 overflow-hidden" style={{ height: '200px' }}>
+        {/* Chart — the "pro" TradingChart needs room for its toolbar +
+            indicator rows on top of the canvas, so it gets a taller slot
+            than the other (compact) chart types. */}
+        <div className={`flex-shrink-0 overflow-hidden ${chartType === 'pro' ? '' : 'px-4 py-2'}`} style={{ height: chartType === 'pro' ? '560px' : '200px' }}>
           {isChartLoading ? (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
           ) : chartData.length === 0 ? (
@@ -1141,6 +1154,19 @@ export default function DetailModal() {
             </ResponsiveContainer>
           ) : chartType === 'candle' ? (
             <CandleChart data={chartData} />
+          ) : chartType === 'pro' ? (
+            proChartData.length >= 2 ? (
+              <TradingChart
+                symbol={symbol}
+                name={name}
+                basePrice={latest.close ?? price ?? 100}
+                currency="AUD"
+                data={proChartData}
+                height={260}
+              />
+            ) : (
+              <DataUnavailable label="NOT ENOUGH OHLC DATA FOR PRO CHART" className="h-full" />
+            )
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'area' ? (

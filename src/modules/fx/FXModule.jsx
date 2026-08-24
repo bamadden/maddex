@@ -18,6 +18,7 @@ import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { ModuleLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import YieldCurveAnimator from '../../components/charts/YieldCurveAnimator'
 
 // ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
 
@@ -942,6 +943,11 @@ export default function FXModule() {
 
     {/* SECTION 4 — bond spreads */}
     <BondSpreadsTable />
+
+    {/* SECTION 5 — yield curve animation */}
+    <div className="border-t border-terminal-border">
+      <YieldCurveAnimator curve={YIELD_CURVES.AU} />
+    </div>
     </div>
     {historyPair && <FxHistoryModal pair={historyPair} onClose={() => setHistoryPair(null)} />}
     </>

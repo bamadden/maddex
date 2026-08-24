@@ -12,6 +12,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
 } from 'recharts'
 import SectorLandscape3D from '../../components/visualisations/SectorLandscape3D'
+import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
 
 // ─── GICS Sector Configuration ───────────────────────────────────────────────
 // Official 11 GICS sectors used by ASX, S&P, NASDAQ, and all major indices
@@ -755,7 +756,7 @@ function periodToYFParams(period) {
 function ViewToggle({ view, setView }) {
   return (
     <div className="flex gap-0 border border-terminal-gold/30">
-      {[['sectors','SECTORS VIEW'],['index','INDEX VIEW']].map(([v, label]) => (
+      {[['sectors','SECTORS VIEW'],['index','INDEX VIEW'],['correlation','CORRELATION']].map(([v, label]) => (
         <button
           key={v}
           onClick={() => {
@@ -1839,11 +1840,15 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
             selectedIndex={selectedIndex}
             openModal={openModal}
           />
-        ) : (
+        ) : view === 'index' ? (
           <IndexView
             selectedIndex={selectedIndex}
             openModal={openModal}
           />
+        ) : (
+          <div style={{ height: 520 }}>
+            <CorrelationMatrix />
+          </div>
         )}
       </div>
     </div>
