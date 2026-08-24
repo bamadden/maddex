@@ -6,10 +6,11 @@ import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsService'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
+import { checkAndAnalyseEarnings } from '../../services/earningsAnalystService'
 import AlertsModule from '../../modules/alerts/AlertsModule'
 
-const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑' }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS' }
+const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', EARNINGS_RESULT: 'EARNINGS RESULT' }
 
 function timeAgo(iso) {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -218,6 +219,36 @@ export default function NotificationCenter() {
         if (localStorage.getItem(key)) continue
         addNotification('CALENDAR', `${e.ticker.replace('.AX', '')} reports in 2 days — earnings preview ready`)
         localStorage.setItem(key, '1')
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [watchlist, addNotification])
+
+  // ── AI EARNINGS ANALYST — once a watchlist stock's earnings date has
+  // passed, simulate the print and have MaddenAI analyse it automatically:
+  // fire a notification, and (via earningsAnalystService's cache) flip the
+  // Watchlist badge from "EARNINGS IN Xd" to "RESULTS: BEAT/MISS". The News
+  // feed card is NOT pushed from here — NewsModule reads completed results
+  // straight from the same localStorage cache (see getAllEarningsResults),
+  // since pushing into the ['news'] query cache would just get silently
+  // dropped by that query's own periodic RSS refetch. checkAndAnalyseEarnings
+  // is itself idempotent (caches per ticker), this loop just polls it. ──────
+  useEffect(() => {
+    if (!watchlist.length) return
+    const inFlight = new Set()
+    const check = () => {
+      for (const sym of watchlist) {
+        if (inFlight.has(sym)) continue
+        inFlight.add(sym)
+        checkAndAnalyseEarnings(sym)
+          .then((result) => {
+            inFlight.delete(sym)
+            if (!result) return
+            addNotification('EARNINGS_RESULT', result.message)
+          })
+          .catch(() => { inFlight.delete(sym) })
       }
     }
     check()

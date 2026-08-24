@@ -9,6 +9,7 @@ import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
+import { getAllEarningsResults } from '../../services/earningsAnalystService'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,33 @@ function sinceMs(ts) {
   const m = Math.floor(s / 60)
   if (m < 60)  return `${m}m ago`
   return `${Math.floor(m / 60)}h ago`
+}
+
+// Synthetic "EARNINGS RESULT" article built from a completed AI Earnings
+// Analyst record (see earningsAnalystService) — shaped to match what
+// fetchNews() returns so it slots into the same list/filter/render logic
+// as a real article.
+function earningsResultToArticle({ ticker, reportData, analysis }) {
+  const bareTicker = ticker.replace('.AX', '')
+  const sentiment = ['STRONG BEAT', 'BEAT'].includes(analysis.verdict)
+    ? 'BULLISH'
+    : ['STRONG MISS', 'MISS'].includes(analysis.verdict) ? 'BEARISH' : 'NEUTRAL'
+  return {
+    id: `earnings-${ticker}`,
+    time: new Date(reportData.reportDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    pubDate: new Date(reportData.reportDate),
+    fetchedAt: new Date(reportData.reportDate).getTime(),
+    source: 'MaddenAI',
+    sourceCategory: 'AU',
+    tag: 'EARNINGS_RESULT',
+    categories: ['AU'],
+    sentiment,
+    headline: `${bareTicker} EARNINGS: ${analysis.verdict} — ${analysis.headline}`,
+    summary: analysis.fullAnalysis,
+    link: null,
+    tickers: [bareTicker],
+    priority: 0,
+  }
 }
 
 // ─── Article classification helpers ───────────────────────────────────────────
@@ -859,6 +887,27 @@ export default function NewsModule() {
     setIsFlashing(true)
     setTimeout(() => setIsFlashing(false), 800)
   }, [queryData])
+
+  // AI Earnings Analyst — merge in any completed earnings-result cards
+  // straight from localStorage (durable across the RSS query's own
+  // refetches, which is why these aren't pushed through the query cache).
+  // Polled independently of the RSS feed since a result can complete while
+  // News is already open.
+  useEffect(() => {
+    const mergeEarningsResults = () => {
+      const results = getAllEarningsResults()
+      if (!results.length) return
+      setAllArticles((prev) => {
+        const prevIds = new Set(prev.map((a) => a.id))
+        const newCards = results.map(earningsResultToArticle).filter((a) => !prevIds.has(a.id))
+        if (!newCards.length) return prev
+        return [...newCards, ...prev].sort((a, b) => b.pubDate - a.pubDate).slice(0, MAX_ARTICLES)
+      })
+    }
+    mergeEarningsResults()
+    const id = setInterval(mergeEarningsResults, 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   const sourceHealth = queryData?.sourceHealth ?? {}
   const isLive = allArticles.length > 0 && !isError
