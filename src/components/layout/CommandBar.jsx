@@ -82,6 +82,7 @@ const CMD_SUGGESTIONS = [
   { sym:'WL ADD',          label:'WL ADD {sym}',      type:'cmd', desc:'Quick add to watchlist' },
   { sym:'COMPARE',         label:'COMPARE {s1} {s2}', type:'cmd', desc:'Compare two assets side by side' },
   { sym:'ALERT',           label:'ALERT {sym} {$}',   type:'cmd', desc:'Set a price alert' },
+  { sym:'CORRELATE',       label:'CORRELATE {s1} {s2}', type:'cmd', desc:'Open the Correlation Explorer' },
   { sym:'HELP',            label:'HELP / ?',          type:'cmd', desc:'Show all commands' },
 ]
 
@@ -141,6 +142,7 @@ const HELP_SECTIONS = [
     { cmd:'NEWS {keyword}', desc:'Filter news — e.g. NEWS RBA, NEWS CHINA' },
     { cmd:'COMPARE {s1} {s2}', desc:'Side-by-side asset comparison' },
     { cmd:'ALERT {sym} {price}', desc:'Set price alert — e.g. ALERT BHP 50' },
+    { cmd:'CORRELATE {s1} {s2}', desc:'Open Correlation Explorer — e.g. CORRELATE BHP AUD' },
     { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
     { cmd:'AI {question}', desc:'Ask MaddenAI directly' },
     { cmd:'HELP / ?', desc:'Show this panel' },
@@ -959,6 +961,17 @@ export default function CommandBar() {
       } catch {
         flash('COMPARE FAILED — CHECK SYMBOLS', 'text-terminal-red', 3000)
       }
+      return
+    }
+
+    // ── CORRELATE {sym1} {sym2} — opens the Correlation Explorer preloaded
+    // with both assets (plus the default ASX top 10). "AUD" is accepted as
+    // shorthand for AUD/USD. ──
+    if (parts[0].toLowerCase() === 'correlate' && parts.length >= 2) {
+      const norm = (s) => (s.toUpperCase() === 'AUD' ? 'AUDUSD' : s.toUpperCase().replace(/\.AX$/i, ''))
+      const assets = parts.slice(1, 3).map(norm)
+      window.dispatchEvent(new CustomEvent('madden:open-correlation', { detail: { assets } }))
+      flash(`CORRELATION EXPLORER: ${assets.join(' · ')}`, 'text-terminal-green', 2000)
       return
     }
 

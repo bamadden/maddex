@@ -1880,8 +1880,16 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
             openModal={openModal}
           />
         ) : (
-          <div style={{ height: 520 }}>
-            <CorrelationMatrix />
+          <div style={{ height: 520 }} className="flex flex-col">
+            <div className="flex justify-end px-3 pt-2 flex-shrink-0">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('madden:open-correlation', { detail: { assets: [] } }))}
+                className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+              >⛶ OPEN INTERACTIVE EXPLORER</button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <CorrelationMatrix />
+            </div>
           </div>
         )}
       </div>

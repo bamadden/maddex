@@ -1246,6 +1246,14 @@ export default function DetailModal() {
               📄 GENERATE RESEARCH NOTE
             </button>
           )}
+          {(isStockOrIdx || isCryptoModal) && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('madden:open-correlation', { detail: { assets: [symbol.replace(/\.AX$/i, '')] } }))}
+              className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors cursor-pointer"
+            >
+              🔗 VIEW CORRELATIONS
+            </button>
+          )}
           {/* Quick actions */}
           <div className="flex items-center gap-2">
             <button

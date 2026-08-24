@@ -23,6 +23,7 @@ import ScreenerModule from './modules/screener/ScreenerModule'
 import MorningBriefModule from './modules/brief/MorningBriefModule'
 import MarketReplayModule from './modules/replay/MarketReplayModule'
 import { FloatingWindow } from './components/ui/FloatingWindow'
+import CorrelationExplorer from './modules/markets/CorrelationExplorer'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import AuthModal from './components/auth/AuthModal'
 import OnboardingFlow from './components/auth/OnboardingFlow'
@@ -258,6 +259,17 @@ function Terminal() {
     return () => window.removeEventListener('madden:pop-out', handler)
   }, [openFloating])
 
+  // Correlation Explorer — a global full-page overlay openable from the
+  // Markets Correlation sub-tab, the command bar ("correlate BHP AUD"), or
+  // a stock detail panel's Correlations section, all via this one event
+  // rather than each entry point needing its own copy of the modal.
+  const [correlationAssets, setCorrelationAssets] = useState(null)
+  useEffect(() => {
+    const handler = (e) => setCorrelationAssets(e.detail?.assets ?? [])
+    window.addEventListener('madden:open-correlation', handler)
+    return () => window.removeEventListener('madden:open-correlation', handler)
+  }, [])
+
   // Dynamic tab title — "Markets — Maddex" etc, falls back to the base title
   useEffect(() => {
     const label = MODULE_TITLES[activeModule]
@@ -384,6 +396,9 @@ function Terminal() {
       <DetailModal />
       <ComparisonView />
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
+      {correlationAssets && (
+        <CorrelationExplorer initialAssets={correlationAssets} onClose={() => setCorrelationAssets(null)} />
+      )}
       {floatingWindows.map((w) => {
         const FloatingContent = MODULE_MAP[w.moduleId] || MarketsModule
         return (
