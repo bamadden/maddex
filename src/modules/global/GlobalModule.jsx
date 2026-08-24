@@ -11,6 +11,7 @@ import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
 import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -1293,6 +1294,7 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
 
 function MaritimeTab({ newsItems }) {
   const [expanded, setExpanded] = useState(null)
+  const [impactChokepoint, setImpactChokepoint] = useState(null)
 
   const chokeStatuses = useMemo(() => CHOKEPOINTS.map(cp => {
     const related = (newsItems ?? []).filter(n => {
@@ -1405,15 +1407,21 @@ function MaritimeTab({ newsItems }) {
                 {cp.related.length === 0 && (
                   <div className="text-2xs text-terminal-text-dim/50 italic">No matching news in current feed</div>
                 )}
-                <button
-                  onClick={() => dispatchAskAI({
-                    name:        cp.name,
-                    sector:      cp.commodity,
-                    date:        todayAEST(),
-                    instruction: `Analyse the market impact of ${cp.name} (${cp.status}) on Australian investors. Cargo value: ${cp.cargoValue}. ${cp.note}. Key ASX stocks affected: ${cp.asxStocks?.join(', ')}. Include supply chain risks, AU commodity exposure, and freight cost outlook.`,
-                  })}
-                  className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                >ASK AI</button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setImpactChokepoint(cp)}
+                    className="text-2xs border border-terminal-gold text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold"
+                  >📊 VIEW PORTFOLIO IMPACT</button>
+                  <button
+                    onClick={() => dispatchAskAI({
+                      name:        cp.name,
+                      sector:      cp.commodity,
+                      date:        todayAEST(),
+                      instruction: `Analyse the market impact of ${cp.name} (${cp.status}) on Australian investors. Cargo value: ${cp.cargoValue}. ${cp.note}. Key ASX stocks affected: ${cp.asxStocks?.join(', ')}. Include supply chain risks, AU commodity exposure, and freight cost outlook.`,
+                    })}
+                    className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                  >ASK AI</button>
+                </div>
               </div>
             )}
           </div>
@@ -1433,6 +1441,10 @@ function MaritimeTab({ newsItems }) {
           Status: Reuters/BBC live news keyword matching · Static fallback: Jun 2026
         </div>
       </div>
+
+      {impactChokepoint && (
+        <GeopoliticalImpact chokepoint={impactChokepoint} onClose={() => setImpactChokepoint(null)} />
+      )}
     </div>
   )
 }
