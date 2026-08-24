@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { fmt } from '../../utils/format'
+import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
 
 const ALL_STOCKS = [
   ...Object.entries(MOCK_ASX_STOCKS).map(([symbol, s]) => ({ symbol, exchange: 'ASX', ...s })),
@@ -194,6 +195,7 @@ export default function ScreenerModule() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [sortKey, setSortKey] = useState('matchPct')
   const [sortDir, setSortDir] = useState('desc')
+  const [researchNoteAsset, setResearchNoteAsset] = useState(null)
 
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS)
 
@@ -383,7 +385,15 @@ export default function ScreenerModule() {
                     <td className="px-3 py-1.5 text-right text-terminal-text-dim">{fmt.large(s.marketCap)}</td>
                     <td className="px-3 py-1.5">{s.sector}</td>
                     <td className="px-3 py-1.5"><MatchBar pct={s.matchPct} /></td>
-                    <td className="px-3 py-1.5 text-right">
+                    <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setResearchNoteAsset({ symbol: s.symbol, name: s.name, type: s.exchange === 'ASX' ? 'asx' : 'us' })
+                        }}
+                        title="Generate research note"
+                        className="opacity-0 group-hover:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold px-1.5 py-0.5 rounded transition-opacity mr-1"
+                      >📄</button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -399,6 +409,9 @@ export default function ScreenerModule() {
           )}
         </div>
       </div>
+      {researchNoteAsset && (
+        <ResearchNoteGenerator asset={researchNoteAsset} onClose={() => setResearchNoteAsset(null)} />
+      )}
     </div>
   )
 }

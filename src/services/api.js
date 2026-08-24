@@ -1468,7 +1468,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
     },
     body: JSON.stringify({
       model:      'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: options.maxTokens ?? 1024,
       stream:     true,
       system:     systemPrompt,
       messages,
@@ -1509,6 +1509,28 @@ export const askClaude = async (messages, onToken, options = {}) => {
   }
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   return { text: fullText, inputTokens, outputTokens, elapsed }
+}
+
+// Shared helper for every "ask MaddenAI to generate structured JSON" feature
+// (research notes, morning brief, stress-test commentary, sector drivers,
+// sentiment, earnings previews, the NL portfolio builder) — one place to get
+// the prompt out, strip the ```json fences Claude sometimes adds despite
+// being told not to, and parse. Throws the same clean, already-unwrapped
+// error askClaude() throws on an API failure; throws a distinct message on
+// a JSON parse failure so callers can tell the two apart if they want to.
+export async function askClaudeJSON(prompt, options = {}) {
+  const { text } = await askClaude(
+    [{ role: 'user', content: prompt }],
+    null,
+    { maxTokens: options.maxTokens ?? 1500, systemPrompt: options.systemPrompt ?? 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. Always respond with ONLY valid JSON — no markdown, no commentary outside the JSON object.' },
+  )
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+  try {
+    return JSON.parse(cleaned)
+  } catch (e) {
+    console.error('[MADDEN API] Failed to parse Claude JSON response:', cleaned)
+    throw new Error(`MaddenAI returned an unexpected response — please try again. (${e.message})`, { cause: e })
+  }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

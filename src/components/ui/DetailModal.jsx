@@ -13,6 +13,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
 import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetUtils'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend,
@@ -459,6 +460,7 @@ export default function DetailModal() {
   const [compareSymbol, setCompareSymbol] = useState(null)
 
   const [noteOpen, setNoteOpen] = useState(false)
+  const [researchNoteOpen, setResearchNoteOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
 
@@ -470,6 +472,7 @@ export default function DetailModal() {
       setAlertOpen(false); setAlertPrice(''); setAlertSaved(false)
       setCompareOpen(false); setCompareInput(''); setCompareSymbol(null)
       setNoteOpen(false); setNoteSaved(false)
+      setResearchNoteOpen(false)
       try { setNoteText(JSON.parse(localStorage.getItem('madden_research_notes') ?? '{}')[modalAsset.symbol] ?? '') } catch { setNoteText('') }
     }
   }, [modalAsset?.symbol])
@@ -1235,6 +1238,14 @@ export default function DetailModal() {
           >
             ANALYSE WITH MADDENAI ▶
           </button>
+          {(isStockOrIdx || isCryptoModal) && (
+            <button
+              onClick={() => setResearchNoteOpen(true)}
+              className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
+            >
+              📄 GENERATE RESEARCH NOTE
+            </button>
+          )}
           {/* Quick actions */}
           <div className="flex items-center gap-2">
             <button
@@ -1257,7 +1268,7 @@ export default function DetailModal() {
               className={`flex-1 text-2xs px-2 py-1.5 border transition-colors ${
                 noteOpen ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
               }`}
-            >RESEARCH NOTE</button>
+            >MY NOTES</button>
           </div>
 
           {noteOpen && (
@@ -1296,6 +1307,12 @@ export default function DetailModal() {
           </div>
         </div>
       </div>
+      {researchNoteOpen && (
+        <ResearchNoteGenerator
+          asset={{ symbol, name: name ?? symbol, type }}
+          onClose={() => setResearchNoteOpen(false)}
+        />
+      )}
     </div>
   )
 }
