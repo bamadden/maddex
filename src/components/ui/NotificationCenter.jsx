@@ -4,9 +4,11 @@ import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
+import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsService'
+import AlertsModule from '../../modules/alerts/AlertsModule'
 
-const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆' }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST' }
+const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT' }
 
 function timeAgo(iso) {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -30,6 +32,7 @@ export default function NotificationCenter() {
   const queryClient = useQueryClient()
 
   const [open, setOpen] = useState(false)
+  const [manageOpen, setManageOpen] = useState(false)
   const [toasts, setToasts] = useState([])
   const ref = useRef(null)
   const seenToastIds  = useRef(null)
@@ -160,21 +163,46 @@ export default function NotificationCenter() {
   // fetched for the News module's badge (App.jsx keeps ['news'] warm) ────────
   useEffect(() => {
     const check = () => {
-      const articles = queryClient.getQueryData(['news']) ?? []
+      // getQueryData returns the raw cached fetchNews() result — the
+      // `select: d => d?.articles ?? []` on App.jsx's useQuery only
+      // transforms data for that hook's own consumers, not direct cache reads.
+      const articles = queryClient.getQueryData(['news'])?.articles ?? []
       for (const item of articles) {
         if (!item.pubDate) continue
         const isBreaking = Date.now() - new Date(item.pubDate).getTime() <= 5 * 60_000
         if (!isBreaking) continue
-        const id = item.link || item.title
+        const id = item.link || item.headline
         if (seenNewsIds.current.has(id)) continue
         seenNewsIds.current.add(id)
-        addNotification('NEWS', `Breaking: ${item.title}`)
+        addNotification('NEWS', `Breaking: ${item.headline}`)
       }
     }
     check()
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
   }, [queryClient, addNotification])
+
+  // ── CUSTOM ALERTS — the alertsService alerts engine (price/session-move/
+  // volume-spike/RSI/news-mention/economic-event/portfolio-P&L), separate
+  // from the simple CommandBar ALERT list above. Checked every 60s; fired
+  // alerts get a notification and are marked triggered so they don't re-fire
+  // the same day. ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const check = () => {
+      const engineAlerts = loadAlerts()
+      if (!engineAlerts.length) return
+      const articles = queryClient.getQueryData(['news'])?.articles ?? []
+      const newsHeadlines = articles.map((a) => a.headline).filter(Boolean)
+      const results = checkAlerts(engineAlerts, { symbols: watchlist, newsHeadlines })
+      for (const { alert, message } of results) {
+        addNotification('CUSTOM_ALERT', message)
+        markTriggered(alert.id)
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [queryClient, addNotification, watchlist])
 
   return (
     <div className="relative" ref={ref}>
@@ -224,8 +252,16 @@ export default function NotificationCenter() {
               ))
             )}
           </div>
+          <div className="border-t border-terminal-border px-3 py-1.5">
+            <button
+              onClick={() => { setManageOpen(true); setOpen(false) }}
+              className="text-2xs text-terminal-gold hover:text-terminal-gold-bright transition-colors"
+            >⚙ MANAGE ALERTS</button>
+          </div>
         </div>
       )}
+
+      {manageOpen && <AlertsModule onClose={() => setManageOpen(false)} />}
 
       {/* Toasts — slide in from the right, stack downward */}
       <div className="fixed top-14 right-3 z-[95] flex flex-col gap-2 pointer-events-none">
