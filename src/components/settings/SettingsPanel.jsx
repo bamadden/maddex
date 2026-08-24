@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
+import { useProfile } from '../../hooks/useProfile'
 import { useTheme, THEMES } from '../../hooks/useTheme'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
@@ -671,48 +672,190 @@ const PLANS = [
   { tier: 'apex',  label: 'APEX',  price: 'A$149/mo', features: ['Everything in Prime', 'Research Notes', 'API access'] },
 ]
 
-function SubscriptionSection() {
-  const { tier, isTrial, isTrialExpired, canAccess } = useSubscription()
+// Locked features require the SAME `requiredTier` gates the rest of the app
+// enforces (useSubscription's canAccess) — this list is descriptive of
+// those gates, not a separate source of truth for them.
+const FEATURE_CHECKLIST = [
+  { label: 'Markets module',        requiredTier: null },
+  { label: 'Crypto module',         requiredTier: null },
+  { label: 'MaddenAI (basic)',      requiredTier: null },
+  { label: 'MaddenAI (unlimited)',  requiredTier: 'prime' },
+  { label: 'Rates module',          requiredTier: 'prime' },
+  { label: 'Macro module',          requiredTier: 'prime' },
+  { label: 'Research Notes',        requiredTier: 'apex' },
+  { label: 'API access',            requiredTier: 'apex' },
+]
+
+function fmtExpiry(iso) {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function openUpgrade() {
+  // Already inside Settings → Subscription — this just scrolls the plan
+  // cards into view rather than re-navigating anywhere.
+  document.getElementById('subscription-plans')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function manageBilling() {
+  // TODO: replace with a real Stripe customer-portal redirect once
+  // payments are live — for now this is a visual placeholder, same as
+  // the plan-card UPGRADE buttons below.
+  alert('Billing management is launching soon — contact support for changes to your plan.')
+}
+
+function CurrentPlanCard() {
+  const { tier, isTrial, isTrialExpired } = useSubscription()
+  const { profile, daysLeftInTrial } = useProfile()
+
+  if (isTrial) {
+    const expired = isTrialExpired
+    return (
+      <div className="border border-terminal-gold/50 bg-terminal-gold/5 p-4 space-y-3">
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest">CURRENT PLAN</div>
+        <div className="flex items-start gap-3">
+          <span className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${expired ? 'bg-terminal-red' : 'bg-terminal-gold pulse-gold'}`} />
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-terminal-text-bright tracking-widest">TRIAL</span>
+              <span className="text-2xs text-terminal-text-dim">Full Apex access</span>
+            </div>
+            {profile?.trial_ends_at && (
+              <div className="text-2xs text-terminal-text-dim">Expires: {fmtExpiry(profile.trial_ends_at)}</div>
+            )}
+            <div className={`text-2xs font-bold ${expired ? 'text-terminal-red' : daysLeftInTrial <= 2 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
+              {expired ? 'Trial expired' : `${daysLeftInTrial} day${daysLeftInTrial === 1 ? '' : 's'} remaining`}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={openUpgrade}
+          className="w-full py-2 text-2xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors"
+        >UPGRADE NOW →</button>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="border border-terminal-border p-4 space-y-3">
+      <div className="text-2xs text-terminal-gold font-bold tracking-widest">CURRENT PLAN</div>
+      <div className="flex items-center gap-3">
+        <span className="w-2 h-2 rounded-full bg-terminal-green flex-shrink-0" />
+        <div>
+          <div className="text-xs font-bold text-terminal-text-bright tracking-widest">{TIER_BADGE_LABEL[tier] ?? tier.toUpperCase()}</div>
+          <div className="text-2xs text-terminal-text-dim">Active subscription</div>
+        </div>
+      </div>
+      <button
+        onClick={manageBilling}
+        className="w-full py-2 text-2xs font-bold border border-terminal-gold text-terminal-gold tracking-widest hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+      >MANAGE BILLING</button>
+    </div>
+  )
+}
+
+function PlanFeatureChecklist({ canAccess, onLockedClick }) {
+  return (
+    <div className="border border-terminal-border divide-y divide-terminal-border">
+      {FEATURE_CHECKLIST.map((f) => {
+        const unlocked = !f.requiredTier || canAccess(f.requiredTier)
+        return (
+          <button
+            key={f.label}
+            type="button"
+            onClick={() => { if (!unlocked) onLockedClick(f) }}
+            className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${
+              unlocked ? 'cursor-default' : 'hover:bg-terminal-accent/10'
+            }`}
+          >
+            <span className="flex items-center gap-2 text-2xs">
+              <span className={unlocked ? 'text-terminal-green' : 'text-terminal-gold'}>{unlocked ? '✓' : '⚡'}</span>
+              <span className={unlocked ? 'text-terminal-text' : 'text-terminal-text-dim'}>{f.label}</span>
+            </span>
+            {!unlocked && (
+              <span className="text-2xs font-bold px-1.5 py-0.5 border border-terminal-gold/40 text-terminal-gold tracking-wider">
+                {f.requiredTier === 'apex' ? 'APEX' : 'PRIME+'}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function SubscriptionSection() {
+  const { tier, isTrial, isApex, canAccess } = useSubscription()
+  const [lockedFeature, setLockedFeature] = useState(null)
+
+  // A genuinely-paid (non-trial) Apex user is already on the top plan —
+  // upgrade cards would have nothing to offer them.
+  const showUpgradeGrid = !(isApex && !isTrial)
+
+  return (
+    <div className="space-y-5 relative">
       <SectionLabel>Subscription</SectionLabel>
 
-      <div className="flex items-center gap-3">
-        <div className="text-xs text-terminal-text-bright font-bold">Current Plan:</div>
-        <span className="px-2 py-0.5 text-2xs font-bold bg-terminal-gold text-terminal-bg">{TIER_BADGE_LABEL[tier] ?? tier.toUpperCase()}</span>
-        {isTrial && (
-          <span className={`text-2xs ${isTrialExpired ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
-            {isTrialExpired ? 'Trial expired' : 'Trial active — full Apex access'}
-          </span>
-        )}
+      <CurrentPlanCard />
+
+      {showUpgradeGrid ? (
+        <div id="subscription-plans" className="space-y-2">
+          <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Upgrade options</div>
+          <div className="grid grid-cols-3 gap-2">
+            {PLANS.map((p) => (
+              <div key={p.tier} className={`border p-3 space-y-2 ${tier === p.tier ? 'border-terminal-gold' : 'border-terminal-border'}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-terminal-text-bright">{p.label}</span>
+                  {tier === p.tier && !isTrial && <span className="text-2xs text-terminal-gold">CURRENT</span>}
+                </div>
+                <div className="text-sm font-bold text-terminal-gold">{p.price}</div>
+                <ul className="space-y-1">
+                  {p.features.map((f) => (
+                    <li key={f} className="text-2xs text-terminal-text-dim leading-tight">· {f}</li>
+                  ))}
+                </ul>
+                {!canAccess(p.tier) && (
+                  <button
+                    // TODO: wire up Stripe checkout session for this plan once
+                    // payments are live — for now this is a visual placeholder.
+                    onClick={() => alert('Payments are launching soon — contact support to upgrade early.')}
+                    className="w-full py-1.5 text-2xs font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                  >
+                    UPGRADE
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="border border-terminal-gold/30 px-3 py-2 text-2xs text-terminal-text-dim text-center">
+          You're on our top plan — thanks for being an Apex member.
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Plan features</div>
+        <PlanFeatureChecklist canAccess={canAccess} onLockedClick={setLockedFeature} />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {PLANS.map((p) => (
-          <div key={p.tier} className={`border p-3 space-y-2 ${tier === p.tier ? 'border-terminal-gold' : 'border-terminal-border'}`}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-terminal-text-bright">{p.label}</span>
-              {tier === p.tier && !isTrial && <span className="text-2xs text-terminal-gold">CURRENT</span>}
-            </div>
-            <div className="text-sm font-bold text-terminal-gold">{p.price}</div>
-            <ul className="space-y-1">
-              {p.features.map((f) => (
-                <li key={f} className="text-2xs text-terminal-text-dim leading-tight">· {f}</li>
-              ))}
-            </ul>
-            {!canAccess(p.tier) && (
+      {lockedFeature && (
+        <div className="fixed inset-0 z-[250]" onClick={() => setLockedFeature(null)}>
+          <div className="absolute inset-0 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full max-w-xs" style={{ minHeight: 260 }}>
+              <UpgradePrompt
+                feature={lockedFeature.label}
+                requiredTier={lockedFeature.requiredTier}
+                currentTier={tier}
+              />
               <button
-                // TODO: wire up Stripe checkout session for this plan once
-                // payments are live — for now this is a visual placeholder.
-                onClick={() => alert('Payments are launching soon — contact support to upgrade early.')}
-                className="w-full py-1.5 text-2xs font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-              >
-                UPGRADE
-              </button>
-            )}
+                onClick={() => setLockedFeature(null)}
+                className="absolute -top-3 -right-3 z-30 w-6 h-6 flex items-center justify-center bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:text-terminal-gold"
+              >✕</button>
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
