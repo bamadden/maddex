@@ -815,8 +815,16 @@ function PRow({ label, value, cls }) {
   )
 }
 
+const COUNTRY_PANEL_TABS = [
+  { id: 'economy',      label: 'ECONOMY' },
+  { id: 'markets',      label: 'MARKETS' },
+  { id: 'geopolitical', label: 'GEOPOLITICAL' },
+  { id: 'trade',        label: 'TRADE' },
+]
+
 function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
   const { openModal } = useStore()
+  const [panelTab, setPanelTab] = useState('economy')
   const n      = parseInt(id)
   const name   = COUNTRY_NAMES[n] ?? 'Unknown Territory'
   const detail = COUNTRY_DETAIL[n]
@@ -995,8 +1003,23 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           </div>
         )}
 
-        {/* ── Geography ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── Tab strip — organises the sections below into 4 categories ── */}
+        <div className="flex border-b border-terminal-border/50 flex-shrink-0">
+          {COUNTRY_PANEL_TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setPanelTab(t.id)}
+              className={`flex-1 text-2xs font-bold tracking-wider py-1.5 border-b-2 transition-colors ${
+                panelTab === t.id
+                  ? 'text-terminal-gold border-terminal-gold'
+                  : 'text-terminal-text-dim border-transparent hover:text-terminal-text'
+              }`}
+            >{t.label}</button>
+          ))}
+        </div>
+
+        {/* ── Geography (ECONOMY tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
           {sec('Geography')}
           <PRow label="Capital"    value={capital} />
           <PRow label="Population" value={fmtPop(pop)} />
@@ -1008,8 +1031,8 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           <PRow label="Neighbours" value={enriched?.neighbours?.length ? enriched.neighbours.join(', ') : null} />
         </div>
 
-        {/* ── Local Time & Timezone ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── Local Time & Timezone (MARKETS tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'markets' ? '' : 'hidden'}`}>
           {sec('Local Time')}
           <PRow label="Time now" value={lt} cls={lt ? 'text-terminal-text-bright font-mono font-bold' : 'text-terminal-text-dim'} />
           <PRow label="Timezone" value={tz} cls="text-terminal-text-dim" />
@@ -1021,7 +1044,7 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
         {/* ── Market Connection — Maddex-tracked stocks listed on this
             country's exchange, click opens the stock's detail modal ── */}
         {ex?.topStocks?.length > 0 && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
+          <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'markets' ? '' : 'hidden'}`}>
             {sec('Market Connection')}
             <div className="flex flex-wrap gap-1.5">
               {ex.topStocks.slice(0, 6).map(symbol => (
@@ -1035,8 +1058,8 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           </div>
         )}
 
-        {/* ── Macro Statistics ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── Macro Statistics (ECONOMY tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
           {sec('Macro Statistics')}
           {/* GDP Total — dual currency */}
           <div className="flex justify-between text-2xs py-0.5">
@@ -1095,8 +1118,8 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           <PRow label="Data as at"   value={dataAsAt} cls="text-terminal-text-dim" />
         </div>
 
-        {/* ── Risk Assessment ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── Risk Assessment (GEOPOLITICAL tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'geopolitical' ? '' : 'hidden'}`}>
           {sec('Risk Assessment')}
           <PRow label="Political Stability" value={polStability} />
           <PRow label="Economic Outlook"    value={econOutlook} />
@@ -1120,8 +1143,8 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           {!creditRating && <PRow label="Credit Rating" value={null} />}
         </div>
 
-        {/* ── Trade ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── Trade (TRADE tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'trade' ? '' : 'hidden'}`}>
           {sec('Trade')}
           <PRow label="Top Exports" value={topExports?.length ? topExports.slice(0,3).join(', ') : null} />
           <PRow label="Top Imports" value={topImports?.length ? topImports.slice(0,3).join(', ') : null} />
@@ -1139,8 +1162,8 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           }
         </div>
 
-        {/* ── AU Relationship ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── AU Relationship (TRADE tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'trade' ? '' : 'hidden'}`}>
           {sec('AU Trade Relationship')}
           {auTrade
             ? <div className="text-2xs text-terminal-text leading-relaxed mb-1">{auTrade}</div>
@@ -1157,8 +1180,8 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           )}
         </div>
 
-        {/* ── Trade Intelligence ── */}
-        <div className="px-3 py-2 border-b border-terminal-border/50">
+        {/* ── Trade Intelligence (TRADE tab) ── */}
+        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'trade' ? '' : 'hidden'}`}>
           {sec(`Trade Intelligence — ${name}`)}
 
           {/* (a) Trade routes through this region */}
@@ -1228,16 +1251,16 @@ function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, curr
           </div>
         </div>
 
-        {/* ── Overview ── */}
+        {/* ── Overview (ECONOMY tab) ── */}
         {description && (
-          <div className="px-3 py-2 border-b border-terminal-border/50">
+          <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
             {sec('Overview')}
             <div className="text-2xs text-terminal-text leading-relaxed">{description}</div>
           </div>
         )}
 
-        {/* ── Recent News ── */}
-        <div className="px-3 py-2">
+        {/* ── Recent News (GEOPOLITICAL tab) ── */}
+        <div className={`px-3 py-2 ${panelTab === 'geopolitical' ? '' : 'hidden'}`}>
           {sec('Recent News')}
           {relatedNews.length === 0
             ? <div className="text-2xs text-terminal-text-dim/50 italic">No recent news matching {name}</div>
