@@ -62,38 +62,70 @@ const MODULE_TITLES = {
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────
 
-const SHORTCUTS = [
-  { key: '/',    desc: 'Focus command / search bar' },
-  { key: 'Esc', desc: 'Close modal / AI panel' },
-  { key: '?',   desc: 'Show keyboard shortcuts' },
-  { key: 'M',   desc: 'Navigate → Markets' },
-  { key: 'C',   desc: 'Navigate → Crypto' },
-  { key: 'G',   desc: 'Navigate → Global Intelligence' },
-  { key: 'W',   desc: 'Navigate → Watchlist' },
-  { key: 'P',   desc: 'Navigate → Portfolio' },
-  { key: 'N',   desc: 'Navigate → News' },
-  { key: 'F',   desc: 'Navigate → Rates' },
-  { key: 'X',   desc: 'Navigate → Macro' },
-  { key: 'F1–F8', desc: 'Navigate → module by position' },
+const SHORTCUT_GROUPS = [
+  {
+    title: 'MODULES',
+    items: [
+      { keys: ['F1–F8'], desc: 'Switch module by position' },
+      { keys: ['M'], desc: 'Markets' },
+      { keys: ['C'], desc: 'Crypto' },
+      { keys: ['F'], desc: 'Rates' },
+      { keys: ['X'], desc: 'Macro' },
+      { keys: ['G'], desc: 'Global intelligence' },
+      { keys: ['W'], desc: 'Watchlist' },
+      { keys: ['P'], desc: 'Portfolio' },
+      { keys: ['N'], desc: 'News' },
+    ],
+  },
+  {
+    title: 'NAVIGATION & SEARCH',
+    items: [
+      { keys: ['/'], desc: 'Focus the command bar' },
+      { keys: ['⌘', 'K'], desc: 'Focus the command bar (Mac)' },
+      { keys: ['?'], desc: 'Show this shortcut reference' },
+      { keys: ['Esc'], desc: 'Close modal / panel / shortcuts' },
+    ],
+  },
+  {
+    title: 'AI PANEL',
+    items: [
+      { keys: ['A'], desc: 'Toggle the AI panel' },
+    ],
+  },
 ]
+
+function KeyBadge({ label }) {
+  return (
+    <kbd className="min-w-[26px] h-6 inline-flex items-center justify-center px-1.5 rounded border border-terminal-border bg-terminal-accent text-terminal-gold font-bold font-mono text-2xs shadow-[0_1px_0_rgba(0,0,0,0.4)]">
+      {label}
+    </kbd>
+  )
+}
 
 function ShortcutModal({ onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={onClose}>
-      <div className="bg-terminal-panel border border-terminal-border p-6 min-w-72 shadow-2xl"
+      <div className="bg-terminal-panel border border-terminal-border-gold p-6 w-[420px] max-w-[90vw] shadow-2xl font-mono"
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <span className="text-terminal-gold font-bold tracking-widest text-sm">KEYBOARD SHORTCUTS</span>
-          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-lg">✕</button>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
         </div>
-        <div className="space-y-2">
-          {SHORTCUTS.map(s => (
-            <div key={s.key} className="flex items-center gap-4 text-2xs">
-              <kbd className="min-w-10 text-center bg-terminal-accent border border-terminal-border px-2 py-0.5 text-terminal-gold font-bold font-mono">
-                {s.key}
-              </kbd>
-              <span className="text-terminal-text-dim">{s.desc}</span>
+        <div className="space-y-5">
+          {SHORTCUT_GROUPS.map((group) => (
+            <div key={group.title}>
+              <div className="text-2xs text-terminal-text-dim/60 tracking-widest mb-2">{group.title}</div>
+              <div className="space-y-2">
+                {group.items.map((s) => (
+                  <div key={s.desc} className="flex items-center gap-3 text-2xs">
+                    <div className="flex items-center gap-1 min-w-[64px]">
+                      {s.keys.map((k, i) => <KeyBadge key={i} label={k} />)}
+                    </div>
+                    <span className="text-terminal-text-dim">{s.desc}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -193,14 +225,26 @@ function Terminal() {
         return
       }
 
+      // Cmd/Ctrl+K is the Mac-familiar alias for focusing the command bar —
+      // same target as plain "/".
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        document.querySelector('.cmd-input')?.focus()
+        return
+      }
+
       if (e.key === '/') {
         e.preventDefault()
         document.querySelector('.cmd-input')?.focus()
         return
       }
 
-      // Module navigation (no modifier)
+      // Module navigation + AI panel toggle (no modifier)
       if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        if (e.key.toLowerCase() === 'a') {
+          setChatOpen((v) => !v)
+          return
+        }
         const navMap = { m: 'markets', c: 'crypto', f: 'fx', n: 'news', g: 'global', p: 'portfolio', w: 'watchlist', x: 'macro' }
         const dest = navMap[e.key.toLowerCase()]
         if (dest) setActiveModule(dest)
