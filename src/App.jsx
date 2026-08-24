@@ -21,6 +21,7 @@ import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
 import ScreenerModule from './modules/screener/ScreenerModule'
 import MorningBriefModule from './modules/brief/MorningBriefModule'
+import MarketReplayModule from './modules/replay/MarketReplayModule'
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import AuthModal from './components/auth/AuthModal'
@@ -53,6 +54,7 @@ const MODULE_MAP = {
   global:    GlobalModule,
   screener:  ScreenerModule,
   brief:     MorningBriefModule,
+  replay:    MarketReplayModule,
 }
 
 const MODULE_TITLES = {
@@ -66,6 +68,7 @@ const MODULE_TITLES = {
   global:    'Global',
   screener:  'Screener',
   brief:     'Morning Brief',
+  replay:    'Market Replay',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────

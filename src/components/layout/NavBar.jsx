@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise,
+  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -34,6 +34,7 @@ const NAV_ITEMS = [
   { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper, groupBreak: true },
   { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise },
   { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search },
+  { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind },
 ]
 
 // A fresh brief goes up at 7am AEST every weekday — show a notification dot
