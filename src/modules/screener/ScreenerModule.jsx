@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
@@ -338,15 +339,17 @@ export default function ScreenerModule() {
             </div>
           ) : results.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
-              <div className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold text-xl flex items-center justify-center">▲</div>
-              <div className="text-terminal-text-bright text-xs font-semibold">No exact matches. Ask MaddenAI to search for you.</div>
+              <div className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
+                <Search size={20} strokeWidth={1.75} />
+              </div>
+              <div className="text-terminal-text-bright text-xs font-semibold tracking-wide">NO MATCHING STOCKS</div>
               <div className="text-terminal-text-dim text-2xs max-w-sm">
-                Nothing in the tracked demo universe matches this exact combination of filters.
+                Try different criteria or ask MaddenAI
               </div>
               <button
                 onClick={askAIToInterpret}
                 className="mt-1 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-              >Ask MaddenAI about this</button>
+              >ASK MADDENAI</button>
             </div>
           ) : (
             <table className="w-full text-2xs">

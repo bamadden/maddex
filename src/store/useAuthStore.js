@@ -18,32 +18,46 @@ export const useAuthStore = create((set, get) => ({
   settings: null,
   loading: true,
   fxRates: {},
+  // Set when Supabase itself is unreachable during initialize() (a real
+  // network/DNS/outage failure, not just "no session yet") — distinct from
+  // TopBar's navigator.onLine check, which only knows about the browser's
+  // own connectivity, not whether this specific backend is reachable.
+  supabaseOffline: false,
 
   initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      set({ session, user: session.user })
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        set({ session, user: session.user })
 
-      // Verify profile row exists — create if missing (DB trigger may not have fired)
-      const { data: profileCheck, error: checkError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, country, email')
-        .eq('id', session.user.id)
-      console.log('Profile check on init:', profileCheck, checkError)
-      if (!profileCheck || profileCheck.length === 0) {
-        console.log('No profile found — creating one for', session.user.id)
-        const { error: insertError } = await supabase.from('profiles').insert({
-          id: session.user.id,
-          email: session.user.email,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        if (insertError) console.error('Profile insert error:', insertError.message)
+        // Verify profile row exists — create if missing (DB trigger may not have fired)
+        const { data: profileCheck, error: checkError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, country, email')
+          .eq('id', session.user.id)
+        console.log('Profile check on init:', profileCheck, checkError)
+        if (!profileCheck || profileCheck.length === 0) {
+          console.log('No profile found — creating one for', session.user.id)
+          const { error: insertError } = await supabase.from('profiles').insert({
+            id: session.user.id,
+            email: session.user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          if (insertError) console.error('Profile insert error:', insertError.message)
+        }
+
+        await get().loadProfile()
+        await get().loadSettings()
+        await get().loadFxRates()
       }
-
-      await get().loadProfile()
-      await get().loadSettings()
-      await get().loadFxRates()
+    } catch (e) {
+      // Supabase unreachable — fall through to offline mode rather than
+      // leaving `loading` stuck true forever (which would spin the
+      // AppLoader indefinitely). Watchlist/portfolio already read from
+      // localStorage first, so they keep showing their last known state.
+      console.error('[MADDEN AUTH] initialize() failed — Supabase unreachable:', e.message)
+      set({ supabaseOffline: true })
     }
     set({ loading: false })
 

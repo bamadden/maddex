@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYFQuote, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -597,15 +598,16 @@ export default function PortfolioModule() {
               <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
             </div>
           : <>
-              <span className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold text-xl flex items-center justify-center">▲</span>
-              <div className="text-terminal-text-bright text-base font-semibold">Nothing here yet</div>
+              <span className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
+                <Briefcase size={22} strokeWidth={1.75} />
+              </span>
+              <div className="text-terminal-text-bright text-base font-semibold tracking-wide">NO HOLDINGS YET</div>
               <div className="text-terminal-text-dim text-sm text-center max-w-sm leading-relaxed -mt-2">
-                Track your investments with live equity and crypto pricing.
-                Holdings are stored locally — nothing leaves your device.
+                Add your first holding to track performance
               </div>
               <button onClick={() => setShowAddForm(true)}
                 className="px-6 py-2.5 text-sm font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors tracking-widest">
-                + ADD YOUR FIRST HOLDING
+                + ADD HOLDING
               </button>
               <div className="flex items-center gap-2 flex-wrap justify-center">
                 <span className="text-2xs text-terminal-text-dim/60">QUICK ADD:</span>

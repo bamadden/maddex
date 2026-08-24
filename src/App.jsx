@@ -7,6 +7,7 @@ import DiagPage from './DiagPage'
 import AppLoader from './components/ui/AppLoader'
 import SharedWatchlistPage from './pages/SharedWatchlistPage'
 import SharedResearchNotePage from './pages/SharedResearchNotePage'
+import NotFoundPage from './pages/NotFoundPage'
 import OnboardingTour from './components/onboarding/OnboardingFlow'
 import WhatsNewModal from './components/onboarding/WhatsNewModal'
 import TopBar from './components/layout/TopBar'
@@ -498,6 +499,7 @@ export default function App() {
   if (watchlistShare) return <SharedWatchlistPage id={watchlistShare[1]} />
   const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9]+)$/i)
   if (researchShare) return <SharedResearchNotePage id={researchShare[1]} />
+  if (window.location.pathname !== '/') return <NotFoundPage />
   return (
     <QueryClientProvider client={queryClient}>
       <StoreProvider>

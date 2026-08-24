@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Bookmark } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -367,16 +368,18 @@ export default function WatchlistModule() {
       <div className="flex-1 overflow-auto">
         {watchlist.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
-            <span className="w-10 h-10 rounded-full border border-terminal-gold/40 text-terminal-gold text-lg flex items-center justify-center">☆</span>
-            <div className="text-terminal-text-bright text-sm font-semibold mt-1">Nothing here yet</div>
+            <span className="w-10 h-10 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
+              <Bookmark size={18} strokeWidth={1.75} />
+            </span>
+            <div className="text-terminal-text-bright text-sm font-semibold mt-1 tracking-wide">YOUR WATCHLIST IS EMPTY</div>
             <div className="text-terminal-text-dim text-2xs max-w-xs leading-relaxed">
-              Track stocks and crypto by ticker to see live prices, daily change, and 52-week range in one place.
+              Search for stocks to add — press / to start
             </div>
             <button
               onClick={() => searchInputRef.current?.focus()}
               className="mt-2 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >
-              + ADD YOUR FIRST TICKER
+              + ADD STOCK
             </button>
           </div>
         ) : isError && !batchQuotes && !Object.keys(cryptoQuotes).length ? (

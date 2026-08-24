@@ -290,15 +290,27 @@ function DataFreshnessBadge() {
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { audUsd } = useAudRates()
-  const { user } = useAuthStore()
+  const { user, supabaseOffline } = useAuthStore()
   const { sentiment, status: sentimentStatus } = useSentiment()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsSection, setSettingsSection] = useState(undefined)
   const [showIdeas, setShowIdeas] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
   }, [])
 
   // Lives here (not inside UserMenu) so Settings — including the theme and
@@ -354,6 +366,7 @@ export default function TopBar() {
   const MAJOR_MARKETS = ['ASX', 'NYSE', 'LSE', 'TSE']
 
   return (
+    <>
     <div
       className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center bg-terminal-header border-b border-terminal-border-gold px-3 flex-shrink-0"
       style={{ height: 44 }}
@@ -432,5 +445,15 @@ export default function TopBar() {
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />}
       {showIdeas && <IdeasBoard onClose={() => setShowIdeas(false)} />}
     </div>
+    {!isOnline ? (
+      <div className="w-full px-3 py-1 bg-amber-500/15 border-b border-amber-500/40 text-amber-400 text-2xs font-mono font-bold tracking-wide text-center flex-shrink-0">
+        ⚠ NO INTERNET CONNECTION — showing cached data
+      </div>
+    ) : supabaseOffline && (
+      <div className="w-full px-3 py-1 bg-amber-500/15 border-b border-amber-500/40 text-amber-400 text-2xs font-mono font-bold tracking-wide text-center flex-shrink-0">
+        ⚠ Using offline mode — data sync unavailable
+      </div>
+    )}
+    </>
   )
 }
