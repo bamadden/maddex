@@ -3,6 +3,7 @@ import IndicesTable from './IndicesTable'
 import SectorHeatmap from './SectorHeatmap'
 import SectorStrengthRadar from './SectorStrengthRadar'
 import TopMovers from './TopMovers'
+import UnusualActivityTracker from './UnusualActivityTracker'
 import MarketSentimentBanner from './MarketSentimentBanner'
 import MarketBreadth from './MarketBreadth'
 import SectorRotation from './SectorRotation'
@@ -43,6 +44,9 @@ export default function MarketsModule() {
         <div className="flex-shrink-0 border-b border-terminal-border">
           <TopMovers openModal={openModal} />
         </div>
+
+        {/* Unusual volume / dark-pool-style activity signals */}
+        <UnusualActivityTracker />
 
         {/* Sector Heatmap / Index constituent list */}
         <div className="flex-shrink-0 border-b border-terminal-border">
