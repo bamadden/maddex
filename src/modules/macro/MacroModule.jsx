@@ -20,6 +20,7 @@ import {
 import { getEconomicCalendar, upcomingEvents, getPreviousEvents } from '../../services/calendarService'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
 import { getMacroThemes, FALLBACK_THEMES } from '../../services/macroThemeService'
+import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, Brush,
@@ -550,57 +551,6 @@ function RBADashboard({ askAI }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Economic Indicators Dashboard — 12 key AU indicators as gauge cards ──────
-
-const ECON_INDICATORS = [
-  { label: 'GDP Growth',          value: '+1.2%',  sub: 'YoY · target 2.5%',        status: 'amber',   pct: 48 },
-  { label: 'Inflation',           value: '3.8%',   sub: 'target 2-3%',              status: 'amber',   pct: 62 },
-  { label: 'Unemployment',        value: '4.2%',   sub: 'target <5%',               status: 'green',   pct: 84 },
-  { label: 'Cash Rate',           value: '4.35%',  sub: 'neutral ~2.5%',            status: 'red',     pct: 30 },
-  { label: 'Trade Balance',       value: '+A$5.2B',sub: 'monthly surplus',          status: 'green',   pct: 78 },
-  { label: 'Consumer Confidence', value: '84.3',   sub: 'index, 100=neutral',       status: 'amber',   pct: 42 },
-  { label: 'Business Confidence', value: '+6',     sub: 'NAB survey index',         status: 'green',   pct: 68 },
-  { label: 'House Prices',        value: '+3.2%',  sub: 'YoY, national',            status: 'neutral', pct: 58 },
-  { label: 'Wage Growth',         value: '+3.4%',  sub: 'YoY, WPI',                 status: 'amber',   pct: 55 },
-  { label: 'Retail Sales',        value: '+0.3%',  sub: 'MoM',                      status: 'green',   pct: 66 },
-  { label: 'PMI (Manufacturing)', value: '48.2',   sub: '<50 = contraction',        status: 'amber',   pct: 38 },
-  { label: 'Current Account',     value: '+A$2.1B',sub: 'quarterly',                status: 'green',   pct: 72 },
-]
-
-const ECON_STATUS_COLOR = {
-  green:   { text: 'text-terminal-green',  bar: 'bg-terminal-green' },
-  amber:   { text: 'text-terminal-gold',   bar: 'bg-terminal-gold' },
-  red:     { text: 'text-terminal-red',    bar: 'bg-terminal-red' },
-  neutral: { text: 'text-terminal-text-dim', bar: 'bg-terminal-text-dim' },
-}
-
-function EconomicDashboard() {
-  return (
-    <div className="border border-terminal-border">
-      <div className="panel-header flex items-center gap-2">
-        <span>ECONOMIC DASHBOARD</span>
-        <span className="text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">12 key AU indicators · vs target/historical</span>
-        <span className="ml-auto text-2xs text-terminal-gold/70">DEMO</span>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        {ECON_INDICATORS.map((ind) => {
-          const c = ECON_STATUS_COLOR[ind.status]
-          return (
-            <div key={ind.label} className="border-t border-l border-terminal-border/60 p-2.5 -ml-px -mt-px first:ml-0">
-              <div className="text-2xs text-terminal-text-dim tracking-wide truncate">{ind.label}</div>
-              <div className={`text-lg font-bold mt-0.5 ${c.text}`}>{ind.value}</div>
-              <div className="text-2xs text-terminal-text-dim/70 mt-0.5">{ind.sub}</div>
-              <div className="h-1 bg-terminal-surface2 rounded-full overflow-hidden mt-1.5">
-                <div className={`h-full ${c.bar}`} style={{ width: `${ind.pct}%` }} />
-              </div>
-            </div>
-          )
-        })}
       </div>
     </div>
   )
@@ -1691,9 +1641,9 @@ export default function MacroModule() {
         </div>
       </div>
 
-      {/* ── Economic Indicators Dashboard ── */}
+      {/* ── Economic Indicators Dashboard — expandable cards + MaddenAI forecast ── */}
       <div style={{ marginTop: 24 }}>
-        <EconomicDashboard />
+        <IndicatorForecaster />
       </div>
 
       {/* ── Section 4: Leading Indicators ── */}
