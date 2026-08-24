@@ -55,7 +55,31 @@
       "Bash(lsof -ti:5173 -sTCP:LISTEN)",
       "Bash(python3 -c ' *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d\\)\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('AUD rate:', d.get\\('conversion_rates',{}\\).get\\('AUD','NOT FOUND'\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('AUD rate:', d.get\\('conversion_rates',{}\\).get\\('AUD','NOT FOUND'\\)\\)\")",
+      "Bash(grep *)",
+      "Bash(npx eslint *)",
+      "Bash(git stash *)",
+      "Bash(npx --prefix /Users/ben/Projects/madden-terminal eslint /Users/ben/Projects/madden-terminal/src/components/layout/AIPanel.jsx /Users/ben/Projects/madden-terminal/src/components/ui/DetailModal.jsx /Users/ben/Projects/madden-terminal/src/modules/crypto/CryptoModule.jsx /Users/ben/Projects/madden-terminal/src/modules/macro/MacroModule.jsx /Users/ben/Projects/madden-terminal/src/modules/markets/SectorHeatmap.jsx /Users/ben/Projects/madden-terminal/src/modules/global/GlobalModule.jsx /Users/ben/Projects/madden-terminal/src/modules/news/NewsModule.jsx /Users/ben/Projects/madden-terminal/src/utils/askAI.js)",
+      "Bash(awk '/^\\\\/Users/{f=$0} /error/{print f\": \"$0}' baseline_lint.txt)",
+      "Bash(awk '/^\\\\/Users/{f=$0} /error/{print f\": \"$0}' current_lint.txt)",
+      "Bash(awk '/^\\\\/Users/{f=$0} /error/{sub\\(/^ +[0-9]+:[0-9]+ +/,\"\"\\); print f\": \"$0}' baseline_lint.txt)",
+      "Bash(awk '/^\\\\/Users/{f=$0} /error/{sub\\(/^ +[0-9]+:[0-9]+ +/,\"\"\\); print f\": \"$0}' current_lint.txt)",
+      "Bash(npx --version)",
+      "Bash(command -v chromium-cli)",
+      "Bash(npm ls *)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(break)",
+      "Bash(npx *)",
+      "Bash(xargs -r kill)",
+      "Bash(disown)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(awk '/^\\\\/Users/{f=$0} /error/{sub\\(/^ +[0-9]+:[0-9]+ +/,\"\"\\); print f\": \"$0}' baseline2.txt)",
+      "Bash(awk '/^\\\\/Users/{f=$0} /error/{sub\\(/^ +[0-9]+:[0-9]+ +/,\"\"\\); print f\": \"$0}' current2.txt)",
+      "Bash(awk '/error/{sub\\(/^ +[0-9]+:[0-9]+ +/,\"\"\\); print}' baseline3.txt)",
+      "Bash(awk '/error/{sub\\(/^ +[0-9]+:[0-9]+ +/,\"\"\\); print}' current3.txt)"
     ]
   }
 }
