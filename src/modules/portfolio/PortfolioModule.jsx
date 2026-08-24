@@ -13,6 +13,7 @@ import { StatBox } from '../../components/ui/Panel'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
+import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import Portfolio3D from '../../components/visualisations/Portfolio3D'
 
@@ -403,6 +404,28 @@ export default function PortfolioModule() {
         subtitle={`${holdings.length} positions · ${equityHoldings.length} equities tracked`}
         isFetching={isFetching}
         onRefresh={yfSymbols.length > 0 ? refetch : undefined}
+        right={live.length > 0 && (
+          <button
+            onClick={() => dispatchAskAI({
+              instruction:
+                'You are MaddenAI. Analyse this portfolio and provide:\n' +
+                '1. Portfolio composition assessment (diversification)\n' +
+                '2. Key risks (concentration, sector, currency)\n' +
+                '3. Performance attribution (what\'s driving P&L)\n' +
+                '4. 3 specific suggestions for improvement\n' +
+                '5. Macro outlook for this portfolio\n\n' +
+                `Holdings: ${JSON.stringify(live.map((h) => ({
+                  symbol: h.symbol, type: h.type, shares: h.shares,
+                  avgCost: h.avgCost, last: h.last, mktVal: h.mktVal,
+                  pnl: h.pnl, pnlPct: h.pnlPct, dayPct: h.dayPct,
+                })))}\n` +
+                `Total value: ${fmtCur(mktTotal)}\n` +
+                `Total P&L: ${fmtCur(totalPnl)} (${fmt.pct(pnlPct)})\n\n` +
+                'Format in professional markdown. Australian investor perspective. General information only, not advice.',
+            }, { fullscreen: true, rawPrompt: true })}
+            className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
+          >AI ANALYSIS ▶</button>
+        )}
       />
 
       {/* Stats bar */}

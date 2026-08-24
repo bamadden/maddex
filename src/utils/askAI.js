@@ -37,12 +37,19 @@ export function buildAskAIPrompt(fields) {
   return [header, '', body, DISCLAIMER].filter(Boolean).join('\n')
 }
 
-export function dispatchAskAI(fields) {
+// opts.fullscreen: switch the AI panel to fullscreen mode when the answer
+// arrives (used for long-form output like a portfolio review, where the
+// default sidebar width isn't a great read).
+// opts.rawPrompt: send `fields` itself as the prompt verbatim instead of
+// running it through buildAskAIPrompt's asset-header format — for prompts
+// that aren't about a single priced asset (e.g. a whole portfolio).
+export function dispatchAskAI(fields, opts = {}) {
   const { name, ticker, exchange, price, change, sector, date } = fields
   window.dispatchEvent(new CustomEvent('madden:ask-ai', {
     detail: {
-      prompt: buildAskAIPrompt(fields),
+      prompt: opts.rawPrompt ? fields.instruction : buildAskAIPrompt(fields),
       context: { ticker, name, price, change, exchange, sector, date },
+      fullscreen: !!opts.fullscreen,
     },
   }))
 }

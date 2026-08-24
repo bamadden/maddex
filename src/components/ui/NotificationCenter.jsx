@@ -3,9 +3,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
+import { dispatchAskAI } from '../../utils/askAI'
 
-const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅' }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM' }
+const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST' }
 
 function timeAgo(iso) {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -24,7 +25,7 @@ function todayKey(prefix) {
 export default function NotificationCenter() {
   const {
     notifications, addNotification, markNotificationRead, clearAllNotifications,
-    alerts, removeAlert,
+    alerts, removeAlert, watchlist,
   } = useStore()
   const queryClient = useQueryClient()
 
@@ -33,6 +34,7 @@ export default function NotificationCenter() {
   const ref = useRef(null)
   const seenToastIds  = useRef(null)
   const seenNewsIds   = useRef(new Set())
+  const alertedMoversToday = useRef(new Set())
 
   if (seenToastIds.current === null) {
     // Don't toast whatever was already in localStorage on first mount.
@@ -88,6 +90,46 @@ export default function NotificationCenter() {
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
   }, [alerts, addNotification, removeAlert])
+
+  // ── WATCHLIST MOVE — any tracked symbol crossing +/-2% intraday gets a
+  // notification plus a MaddenAI-generated one-line reason, dispatched into
+  // the AI panel the same way every other "Ask AI" button in the app does.
+  // Each symbol only fires once per session (todayKey-scoped set) so a
+  // stock hovering right at the 2% line doesn't spam on every poll.
+  useEffect(() => {
+    if (!watchlist.length) return
+    const check = async () => {
+      const symbols = watchlist.map((s) => toYahooSymbol(s, detectAssetType(s)))
+      try {
+        const { data } = await fetchEquityQuotes(symbols)
+        for (const sym of watchlist) {
+          const yfSym = toYahooSymbol(sym, detectAssetType(sym))
+          const q = data?.[yfSym]
+          const pct = q?.dayChangePct
+          if (pct == null || Math.abs(pct) < 2) continue
+          const key = todayKey(`madden_notif_mover_${sym}`)
+          if (alertedMoversToday.current.has(key)) continue
+          alertedMoversToday.current.add(key)
+          const dir = pct >= 0 ? 'up' : 'down'
+          addNotification('WATCHLIST_MOVE', `${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today — asking MaddenAI why`)
+          dispatchAskAI({
+            name: q.name ?? sym, ticker: sym,
+            price: q.price != null ? q.price.toFixed(2) : undefined,
+            change: `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`,
+            instruction:
+              `This watchlist stock just moved ${dir} ${Math.abs(pct).toFixed(2)}% today. ` +
+              'In 1-2 sentences, give the most likely specific reason (sector news, commodity/rate moves, ' +
+              'volume vs average, or broader market direction). Be concise and direct — this is a push-style alert, not a full report.',
+          })
+        }
+      } catch {
+        // Try again next tick
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [watchlist, addNotification])
 
   // ── MARKET OPEN — ASX 200, 09:58–10:02 AEST Mon–Fri, once per day ──────────
   useEffect(() => {

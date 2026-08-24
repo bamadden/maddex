@@ -95,6 +95,7 @@ const MODULE_LIST = [
   { key:'watchlist', label:'WATCHLIST', desc:'Your tracked tickers' },
   { key:'news',      label:'NEWS',      desc:'Market-moving headlines' },
   { key:'global',    label:'GLOBAL',    desc:'Global risk & intelligence' },
+  { key:'screener',  label:'SCREENER',  desc:'AI-assisted stock screening' },
 ]
 
 // Stocks to scan for TOP/LOSERS commands

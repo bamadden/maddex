@@ -304,9 +304,10 @@ export default function AIPanel() {
   // but never shown as a user bubble; see `send(text, { silent, context })`.
   useEffect(() => {
     const handler = (e) => {
-      const { prompt, context } = e.detail ?? {}
+      const { prompt, context, fullscreen: wantFullscreen } = e.detail ?? {}
       if (!prompt) return
       setChatOpen(true)
+      if (wantFullscreen) setAiMode('fullscreen')
       setTimeout(() => send(prompt, { context, silent: true }), 100)
     }
     window.addEventListener('madden:ask-ai', handler)

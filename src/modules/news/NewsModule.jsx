@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS } from '../../services/api'
+import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
 import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockData'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
@@ -692,6 +692,83 @@ function BreakingFeed({ items }) {
   )
 }
 
+// ─── Morning briefing — MaddenAI-generated, cached once per calendar day ──────
+
+function briefKey(date) { return `maddex_morning_brief_${date}` }
+
+function MorningBriefing() {
+  const today = todayAEST()
+  const [text, setText] = useState(() => {
+    try { return localStorage.getItem(briefKey(today)) ?? '' } catch { return '' }
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [expanded, setExpanded] = useState(true)
+
+  const generate = useCallback(async () => {
+    setLoading(true); setError(null)
+    try {
+      const prompt =
+        `You are MaddenAI. Today is ${today}. ` +
+        'Generate a professional 3-paragraph morning market briefing for Australian investors covering:\n' +
+        'Para 1: Overnight global market moves and key drivers\n' +
+        'Para 2: ASX outlook for today + key stocks to watch\n' +
+        'Para 3: Key risk events this week\n' +
+        'Keep it factual, specific, and Australian-focused. General information only.'
+      const { text: result } = await askClaude([{ role: 'user', content: prompt }], null, {
+        systemPrompt: 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal.',
+      })
+      setText(result)
+      try { localStorage.setItem(briefKey(today), result) } catch { /* best-effort cache write */ }
+    } catch (e) {
+      setError(e.message || 'Failed to generate briefing')
+    } finally {
+      setLoading(false)
+    }
+  }, [today])
+
+  useEffect(() => {
+    if (!text && !loading && !error) {
+      const t = setTimeout(generate, 0)
+      return () => clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpanded((v) => !v) }}
+        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-terminal-accent/10 transition-colors cursor-pointer"
+      >
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest">MORNING BRIEF</span>
+        <span className="text-2xs text-terminal-text-dim">{today}</span>
+        {loading && <span className="text-2xs text-terminal-text-dim animate-pulse">generating…</span>}
+        <button
+          onClick={(e) => { e.stopPropagation(); generate() }}
+          title="Regenerate"
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-1"
+        >↻</button>
+        <span className="ml-auto text-terminal-text-dim text-2xs">{expanded ? '▲' : '▼'}</span>
+      </div>
+      {expanded && (
+        <div className="px-3 pb-3 text-xs text-terminal-text leading-relaxed panel-fade">
+          {error ? (
+            <div className="text-terminal-red text-2xs">⚠ {error} — <button onClick={generate} className="underline hover:text-terminal-gold">retry</button></div>
+          ) : text ? (
+            text.split('\n').filter(Boolean).map((para, i) => <p key={i} className="mb-2 last:mb-0">{para}</p>)
+          ) : (
+            <div className="text-terminal-text-dim text-2xs animate-pulse">MaddenAI is drafting today's briefing…</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main module ──────────────────────────────────────────────────────────────
 
 export default function NewsModule() {
@@ -886,6 +963,8 @@ export default function NewsModule() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader title="NEWS" subtitle="AFR · Reuters · CNBC · 30+ sources" />
+
+      <MorningBriefing />
 
       {/* Header */}
       <div className="panel-header flex items-center gap-2 flex-shrink-0">

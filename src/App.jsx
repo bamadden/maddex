@@ -18,6 +18,7 @@ import MacroModule from './modules/macro/MacroModule'
 import WatchlistModule from './modules/watchlist/WatchlistModule'
 import NewsModule from './modules/news/NewsModule'
 import GlobalModule from './modules/global/GlobalModule'
+import ScreenerModule from './modules/screener/ScreenerModule'
 import AuthModal from './components/auth/AuthModal'
 import OnboardingFlow from './components/auth/OnboardingFlow'
 import TrialExpiredModal from './components/auth/TrialExpiredModal'
@@ -44,6 +45,7 @@ const MODULE_MAP = {
   watchlist: WatchlistModule,
   news:      NewsModule,
   global:    GlobalModule,
+  screener:  ScreenerModule,
 }
 
 const MODULE_TITLES = {
@@ -55,6 +57,7 @@ const MODULE_TITLES = {
   watchlist: 'Watchlist',
   news:      'News',
   global:    'Global',
+  screener:  'Screener',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────

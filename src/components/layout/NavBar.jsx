@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper,
+  LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
   Settings as SettingsIcon, LogOut, Pin, PinOff,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
@@ -32,6 +32,7 @@ const NAV_ITEMS = [
   { id: 'watchlist', label: 'WATCHLIST', short: 'WL',   fkey: 'F6', Icon: Star, groupBreak: true },
   { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT', fkey: 'F2', Icon: Briefcase },
   { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper, groupBreak: true },
+  { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search },
 ]
 
 const APP_VERSION = 'v0.1.0-beta'
@@ -73,7 +74,7 @@ export default function NavBar() {
               {item.groupBreak && <div className="h-px bg-terminal-border mx-3 my-2 flex-shrink-0" />}
               <button
                 onClick={() => setActiveModule(item.id)}
-                title={`${item.label} — press ${item.fkey}`}
+                title={item.fkey ? `${item.label} — press ${item.fkey}` : item.label}
                 className={`relative flex items-center gap-3 w-full px-4 py-2.5 border-l-2 transition-colors duration-100 ${
                   isActive
                     ? 'border-l-terminal-gold bg-terminal-gold/[0.07] text-terminal-gold'
