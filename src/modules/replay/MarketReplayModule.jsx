@@ -1,9 +1,14 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { Viz3DLoader } from '../../components/ui/ModuleStates'
 import {
   PRESET_SCENARIOS, rbaRateOn, eventOn, generateReplaySeries, generateReplayMovers, addDays,
 } from '../../services/replayService'
+
+// Code-split — three.js/@react-three pull in a large bundle only needed once
+// the user actually switches to the 3D view.
+const ReplayViewer3D = lazy(() => import('./ReplayViewer3D'))
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const SPEEDS = [
@@ -34,6 +39,7 @@ export default function MarketReplayModule() {
   const [speedMs, setSpeedMs] = useState(1000)
   const [pickerValue, setPickerValue] = useState('2020-03-01')
   const [dismissedEvent, setDismissedEvent] = useState(null)
+  const [view3D, setView3D] = useState(false)
   const intervalRef = useRef(null)
 
   const series = useMemo(() => (activeDate ? generateReplaySeries('^AXJO', activeDate, 90) : []), [activeDate])
@@ -148,18 +154,38 @@ export default function MarketReplayModule() {
           </div>
 
           <div className="border border-terminal-border p-3">
-            <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">90D · ASX 200 INDEX LEVEL (ILLUSTRATIVE)</div>
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
-                  <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
-                  <Tooltip content={<ChartTip />} />
-                  <Area type="monotone" dataKey="level" stroke="#c8a84b" fill="#c8a84b" fillOpacity={0.15} />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xs text-terminal-gold font-bold tracking-widest">90D · ASX 200 INDEX LEVEL (ILLUSTRATIVE)</span>
+              <div className="ml-auto flex items-center border border-terminal-border rounded-full overflow-hidden">
+                <button
+                  onClick={() => setView3D(false)}
+                  className={`text-2xs px-2.5 py-0.5 font-bold transition-colors ${!view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                >CHART VIEW</button>
+                <button
+                  onClick={() => setView3D(true)}
+                  className={`text-2xs px-2.5 py-0.5 font-bold transition-colors ${view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                >3D REPLAY</button>
+              </div>
             </div>
+            {view3D ? (
+              <div style={{ height: 340 }}>
+                <Suspense fallback={<Viz3DLoader />}>
+                  <ReplayViewer3D series={series} event={event && dismissedEvent !== event.date ? event : null} />
+                </Suspense>
+              </div>
+            ) : (
+              <div style={{ height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={series}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
+                    <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
+                    <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
+                    <Tooltip content={<ChartTip />} />
+                    <Area type="monotone" dataKey="level" stroke="#c8a84b" fill="#c8a84b" fillOpacity={0.15} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
 
           <div className="border border-terminal-border p-3">
