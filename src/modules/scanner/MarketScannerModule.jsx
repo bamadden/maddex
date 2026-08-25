@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { EmptyState as SharedEmptyState } from '../../components/ui/EmptyState'
 import { dispatchAskAI } from '../../utils/askAI'
 import { fmt } from '../../utils/format'
 import {
@@ -62,7 +63,14 @@ function ResultCard({ badge, badgeColor, symbol, name, metricLabel, metricValue,
 }
 
 function EmptyState({ label }) {
-  return <div className="px-3 py-8 text-2xs text-terminal-text-dim/60 text-center">No {label} signals detected right now</div>
+  return (
+    <SharedEmptyState
+      icon="◎"
+      title="No signals"
+      subtitle={`No ${label} signals detected right now. The scanner checks for breakouts, volume spikes, and unusual activity every 2 minutes.`}
+      className="min-h-0 py-8"
+    />
+  )
 }
 
 function analyseSignal(symbol, name, instruction) {

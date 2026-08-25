@@ -7,6 +7,7 @@ import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
 import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
+import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
@@ -1002,6 +1003,21 @@ export default function NewsModule() {
         <div className="flex-1 px-3 overflow-hidden">
           {Array.from({ length: 6 }).map((_, i) => <SkeletonNewsCard key={i} />)}
         </div>
+      </div>
+    )
+  }
+
+  if (!isFetching && !isError && allArticles.length === 0) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="panel-header flex-shrink-0">LIVE NEWS FEED</div>
+        <EmptyState
+          icon="📰"
+          title="No news loaded"
+          subtitle="News updates every 5 minutes. Pull to refresh."
+          actionLabel="REFRESH NOW"
+          action={refetch}
+        />
       </div>
     )
   }

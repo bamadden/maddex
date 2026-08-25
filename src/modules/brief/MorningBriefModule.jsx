@@ -114,13 +114,27 @@ export default function MorningBriefModule() {
         )}
         {status === 'error' && (
           <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <span className="text-terminal-red text-xl">⚠</span>
-            <div className="text-terminal-red text-2xs font-bold tracking-widest">BRIEF UNAVAILABLE</div>
-            <div className="text-terminal-text-dim text-2xs max-w-sm">{error}</div>
-            <button
-              onClick={load}
-              className="mt-1 text-2xs text-terminal-gold border border-terminal-gold px-3 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-            >RETRY</button>
+            <span className="text-2xl">{/credit balance/i.test(error ?? '') ? '🤖' : '⚠'}</span>
+            <div className="text-terminal-red text-2xs font-bold tracking-widest">
+              {/credit balance/i.test(error ?? '') ? 'BRIEF NOT GENERATED' : 'BRIEF UNAVAILABLE'}
+            </div>
+            <div className="text-terminal-text-dim text-2xs max-w-sm">
+              {/credit balance/i.test(error ?? '') ? 'Add Anthropic API credits to generate your daily market brief.' : error}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                onClick={load}
+                className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+              >RETRY</button>
+              {/credit balance/i.test(error ?? '') && (
+                <a
+                  href="https://console.anthropic.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-2xs font-bold text-terminal-bg bg-terminal-gold px-3 py-0.5 hover:bg-terminal-gold-bright transition-colors"
+                >ADD CREDITS →</a>
+              )}
+            </div>
           </div>
         )}
 
