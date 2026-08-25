@@ -166,6 +166,16 @@ export function StoreProvider({ children }) {
     })
   }, [])
 
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications((prev) => {
+      const next = prev.map((n) => ({ ...n, read: true }))
+      try { localStorage.setItem('madden_notifications', JSON.stringify(next)) } catch {
+        // Persistence is best-effort — the in-memory list still updates
+      }
+      return next
+    })
+  }, [])
+
   const clearAllNotifications = useCallback(() => {
     setNotifications([])
     try { localStorage.setItem('madden_notifications', '[]') } catch {
@@ -189,7 +199,7 @@ export function StoreProvider({ children }) {
         newsFilter, setNewsFilter,
         newsBadgeCount, setNewsBadgeCount, clearNewsBadge,
         alerts, addAlert, removeAlert,
-        notifications, addNotification, markNotificationRead, clearAllNotifications,
+        notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
       }}
     >
       {children}

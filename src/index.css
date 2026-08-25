@@ -204,6 +204,20 @@ button:not(:disabled):active {
 .count-up { animation: countUp 0.5s ease; }
 .count-down { animation: countDown 0.5s ease; }
 
+/* Toast auto-dismiss progress bar — matches NotificationCenter's 6s toast
+   timeout. Pauses on hover so a toast the user is reading doesn't vanish
+   mid-read. */
+@keyframes toastDeplete {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.toast-progress {
+  animation: toastDeplete 6s linear forwards;
+}
+.panel-slide-in:hover .toast-progress {
+  animation-play-state: paused;
+}
+
 /* Positive/negative color utilities — use CSS vars for muted premium palette */
 .pos  { color: var(--color-gain); }
 .neg  { color: var(--color-loss); }

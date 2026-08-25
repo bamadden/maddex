@@ -12,6 +12,18 @@ import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
 
 const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
+// Icon-circle background per type — gold for price/alert-family, blue for
+// earnings/calendar, green for news, muted for system.
+const TYPE_CIRCLE = {
+  PRICE_ALERT: 'bg-terminal-gold/15 text-terminal-gold',
+  CUSTOM_ALERT: 'bg-terminal-gold/15 text-terminal-gold',
+  MARKET_OPEN: 'bg-terminal-gold/15 text-terminal-gold',
+  EARNINGS_RESULT: 'bg-terminal-blue-bright/15 text-terminal-blue-bright',
+  CALENDAR: 'bg-terminal-blue-bright/15 text-terminal-blue-bright',
+  NEWS: 'bg-terminal-green/15 text-terminal-green',
+  WATCHLIST_MOVE: 'bg-terminal-green/15 text-terminal-green',
+  SYSTEM: 'bg-terminal-muted/15 text-terminal-muted',
+}
 const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', EARNINGS_RESULT: 'EARNINGS RESULT' }
 
 function timeAgo(iso) {
@@ -30,7 +42,7 @@ function todayKey(prefix) {
 
 export default function NotificationCenter() {
   const {
-    notifications, addNotification, markNotificationRead, clearAllNotifications,
+    notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
     alerts, removeAlert, watchlist,
   } = useStore()
   const queryClient = useQueryClient()
@@ -281,14 +293,23 @@ export default function NotificationCenter() {
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-terminal-border">
             <span className="text-2xs text-terminal-gold font-bold tracking-widest">NOTIFICATIONS</span>
             {notifications.length > 0 && (
-              <button onClick={clearAllNotifications} className="text-2xs text-terminal-text-dim hover:text-terminal-red transition-colors">
-                CLEAR ALL
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={markAllNotificationsRead} className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">
+                  MARK ALL READ
+                </button>
+                <button onClick={clearAllNotifications} className="text-2xs text-terminal-text-dim hover:text-terminal-red transition-colors">
+                  CLEAR ALL
+                </button>
+              </div>
             )}
           </div>
           <div className="max-h-96 overflow-auto">
             {notifications.length === 0 ? (
-              <div className="px-3 py-6 text-2xs text-terminal-text-dim/60 text-center">No notifications yet</div>
+              <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
+                <span className="text-2xl opacity-40">🔔</span>
+                <div className="text-2xs text-terminal-text-bright font-semibold">All caught up</div>
+                <div className="text-2xs text-terminal-text-dim/60">No new notifications</div>
+              </div>
             ) : (
               notifications.map((n) => (
                 <div
@@ -296,7 +317,9 @@ export default function NotificationCenter() {
                   onClick={() => markNotificationRead(n.id)}
                   className={`flex items-start gap-2 px-3 py-2 border-b border-terminal-border/40 cursor-pointer hover:bg-terminal-accent/20 transition-colors ${n.read ? 'opacity-50' : ''}`}
                 >
-                  <span className="text-terminal-gold text-xs flex-shrink-0">{TYPE_ICON[n.type] ?? '•'}</span>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${TYPE_CIRCLE[n.type] ?? 'bg-terminal-muted/15 text-terminal-muted'}`}>
+                    {TYPE_ICON[n.type] ?? '•'}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-2xs text-terminal-gold/70 font-bold tracking-wider">{TYPE_LABEL[n.type] ?? n.type}</span>
@@ -325,13 +348,17 @@ export default function NotificationCenter() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto w-72 bg-terminal-panel border border-terminal-gold/40 shadow-2xl px-3 py-2 panel-slide-in"
+            className="pointer-events-auto w-72 bg-terminal-panel border border-terminal-gold/40 border-l-2 shadow-2xl panel-slide-in overflow-hidden"
+            style={{ borderLeftColor: (TYPE_CIRCLE[t.type] ?? '').includes('blue') ? 'var(--mt-blue-bright, #2D7DD2)' : (TYPE_CIRCLE[t.type] ?? '').includes('green') ? 'var(--mt-green, #2D8A50)' : '#C9A84C' }}
           >
-            <div className="flex items-center gap-1.5">
-              <span className="text-terminal-gold text-xs">{TYPE_ICON[t.type] ?? '•'}</span>
-              <span className="text-2xs text-terminal-gold/70 font-bold tracking-wider">{TYPE_LABEL[t.type] ?? t.type}</span>
+            <div className="px-3 py-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-terminal-gold text-xs">{TYPE_ICON[t.type] ?? '•'}</span>
+                <span className="text-2xs text-terminal-gold/70 font-bold tracking-wider">{TYPE_LABEL[t.type] ?? t.type}</span>
+              </div>
+              <div className="text-2xs text-terminal-text-bright leading-snug mt-0.5">{t.message}</div>
             </div>
-            <div className="text-2xs text-terminal-text-bright leading-snug mt-0.5">{t.message}</div>
+            <div className="h-0.5 bg-terminal-gold/60 toast-progress" />
           </div>
         ))}
       </div>
