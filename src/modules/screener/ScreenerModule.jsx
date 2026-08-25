@@ -187,6 +187,18 @@ function FiltersSidebar({ open, filters, setFilters, onReset }) {
 
 const DEFAULT_FILTERS = { exchange: 'ALL', sector: 'ALL', peMax: Math.ceil(MAX_PE), mktCap: 'all', divMin: 0, pos52Min: 0 }
 
+const SAVED_SCREENS_KEY = 'maddex_saved_screens'
+function loadSavedScreens() {
+  try {
+    const raw = localStorage.getItem(SAVED_SCREENS_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch { return [] }
+}
+function persistSavedScreens(list) {
+  try { localStorage.setItem(SAVED_SCREENS_KEY, JSON.stringify(list)) } catch { /* best-effort */ }
+}
+
 export default function ScreenerModule() {
   const { openModal } = useStore()
   const [query, setQuery] = useState('')
@@ -197,8 +209,44 @@ export default function ScreenerModule() {
   const [sortKey, setSortKey] = useState('matchPct')
   const [sortDir, setSortDir] = useState('desc')
   const [researchNoteAsset, setResearchNoteAsset] = useState(null)
+  const [savedScreens, setSavedScreens] = useState(() => loadSavedScreens())
+  const [showSavePrompt, setShowSavePrompt] = useState(false)
+  const [saveNameInput, setSaveNameInput] = useState('')
+  const [showSavedList, setShowSavedList] = useState(false)
 
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS)
+
+  const saveCurrentScreen = () => {
+    const name = saveNameInput.trim() || query.trim() || 'Untitled screen'
+    const entry = { id: `screen_${Date.now()}`, name, createdAt: new Date().toISOString(), query, activePreset, filters }
+    const next = [entry, ...savedScreens].slice(0, 30)
+    setSavedScreens(next)
+    persistSavedScreens(next)
+    setShowSavePrompt(false)
+    setSaveNameInput('')
+  }
+
+  const loadSavedScreen = (screen) => {
+    setFilters(screen.filters ?? DEFAULT_FILTERS)
+    setQuery(screen.query ?? '')
+    if (screen.activePreset) {
+      setActivePreset(screen.activePreset)
+      setParsed(null)
+    } else if (screen.query) {
+      setActivePreset(null)
+      setParsed(parseQuery(screen.query))
+    } else {
+      setActivePreset(null)
+      setParsed(null)
+    }
+    setShowSavedList(false)
+  }
+
+  const deleteSavedScreen = (id) => {
+    const next = savedScreens.filter((s) => s.id !== id)
+    setSavedScreens(next)
+    persistSavedScreens(next)
+  }
 
   const runQuery = (text = query) => {
     setActivePreset(null)
@@ -299,6 +347,61 @@ export default function ScreenerModule() {
             onClick={() => runQuery()}
             className="flex-shrink-0 text-xs px-4 py-2 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold"
           >SCREEN ▶</button>
+
+          {hasSearched && (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => { setShowSavePrompt((v) => !v); setShowSavedList(false) }}
+                title="Save this screen"
+                className="text-2xs px-2.5 py-2 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors font-bold"
+              >★ SAVE</button>
+              {showSavePrompt && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-terminal-header border border-terminal-gold z-20 p-2 space-y-2">
+                  <div className="text-2xs text-terminal-gold font-bold tracking-widest">SAVE THIS SCREEN</div>
+                  <input
+                    autoFocus
+                    value={saveNameInput}
+                    onChange={(e) => setSaveNameInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveCurrentScreen(); if (e.key === 'Escape') setShowSavePrompt(false) }}
+                    placeholder={query.trim() || 'Screen name'}
+                    className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
+                  />
+                  <div className="flex gap-1.5">
+                    <button onClick={saveCurrentScreen} className="flex-1 text-2xs font-bold py-1 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold/80 transition-colors">SAVE</button>
+                    <button onClick={() => setShowSavePrompt(false)} className="flex-1 text-2xs py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-red transition-colors">CANCEL</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={() => { setShowSavedList((v) => !v); setShowSavePrompt(false) }}
+              title="Saved screens"
+              className={`text-2xs px-2.5 py-2 border transition-colors font-bold ${
+                showSavedList ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+              }`}
+            >SAVED ({savedScreens.length})</button>
+            {showSavedList && (
+              <div className="absolute right-0 top-full mt-1 w-64 max-h-72 overflow-y-auto bg-terminal-header border border-terminal-border z-20">
+                {savedScreens.length === 0 ? (
+                  <div className="p-3 text-2xs text-terminal-text-dim text-center">No saved screens yet</div>
+                ) : savedScreens.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-terminal-border/50 last:border-b-0 hover:bg-terminal-accent/10 group">
+                    <button onClick={() => loadSavedScreen(s)} className="min-w-0 text-left flex-1">
+                      <div className="text-2xs text-terminal-text-bright font-semibold truncate">{s.name}</div>
+                      <div className="text-2xs text-terminal-text-dim/60">{new Date(s.createdAt).toLocaleDateString('en-AU')}</div>
+                    </button>
+                    <button
+                      onClick={() => deleteSavedScreen(s.id)}
+                      className="opacity-0 group-hover:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-red transition-opacity flex-shrink-0"
+                    >🗑</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
