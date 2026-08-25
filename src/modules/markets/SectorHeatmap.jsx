@@ -13,10 +13,12 @@ import {
 } from 'recharts'
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
 import SectorDeepDive from './SectorDeepDive'
+import { getMockFMPRow } from '../../services/mockData'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
 const SectorLandscape3D = lazy(() => import('../../components/visualisations/SectorLandscape3D'))
+const MarketLandscape3D = lazy(() => import('../../components/visualisations/MarketLandscape3D'))
 
 // ─── GICS Sector Configuration ───────────────────────────────────────────────
 // Official 11 GICS sectors used by ASX, S&P, NASDAQ, and all major indices
@@ -806,7 +808,31 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [view3D, setView3D] = useState(false)
+  const [landscapeMode, setLandscapeMode] = useState('sectors') // 'sectors' | 'cityscape'
   const { canAccess, tier } = useSubscription()
+
+  // Per-stock rows for the cityscape — every ASX stock across all 11 GICS
+  // sectors, priced via the shared mock quote generator (same source
+  // MarketBreadth's sector-breakdown modal uses), so buildings exist even
+  // for sectors/stocks the sector-proxy quotes above don't cover.
+  const cityscapeStocks = useMemo(() => {
+    if (landscapeMode !== 'cityscape') return []
+    const rows = []
+    for (const sector of GICS_SECTORS) {
+      for (const [sym, name] of ASX_SECTOR_STOCKS[sector] ?? []) {
+        const q = getMockFMPRow(sym)
+        if (!q || q.marketCap == null || q.regularMarketVolume == null) continue
+        rows.push({
+          symbol: sym, name, sector,
+          price: q.regularMarketPrice,
+          changePct: q.regularMarketChangePercent,
+          volume: q.regularMarketVolume,
+          marketCap: q.marketCap,
+        })
+      }
+    }
+    return rows
+  }, [landscapeMode])
 
   // Listen for sector-select events from SectorStrengthRadar
   useEffect(() => {
@@ -1018,19 +1044,40 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
       </div>
 
       {view3D ? (
-        <div style={{ height: 460 }} className="flex-shrink-0">
-          <Suspense fallback={<Viz3DLoader />}>
-            <SectorLandscape3D
-              sectors={GICS_SECTORS
-                .filter((s) => sectorConfig[s]?.sym)
-                .map((s) => ({
-                  name: s,
-                  abbr: SECTOR_ABBR[s],
-                  pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? 0,
-                  marketCap: proxyQuotes?.[sectorConfig[s].sym]?.marketCap ?? null,
-                }))}
-            />
-          </Suspense>
+        <div style={{ height: 460 }} className="flex-shrink-0 flex flex-col">
+          <div className="flex items-center justify-center gap-2 py-1.5 border-b border-terminal-border/50 flex-shrink-0">
+            <div className="flex items-center border border-terminal-border rounded-full overflow-hidden">
+              <button
+                onClick={() => setLandscapeMode('sectors')}
+                className={`text-2xs px-2.5 py-0.5 font-bold transition-colors ${landscapeMode === 'sectors' ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              >SECTORS</button>
+              <button
+                onClick={() => setLandscapeMode('cityscape')}
+                className={`text-2xs px-2.5 py-0.5 font-bold transition-colors ${landscapeMode === 'cityscape' ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              >CITYSCAPE</button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0">
+            <Suspense fallback={<Viz3DLoader />}>
+              {landscapeMode === 'sectors' ? (
+                <SectorLandscape3D
+                  sectors={GICS_SECTORS
+                    .filter((s) => sectorConfig[s]?.sym)
+                    .map((s) => ({
+                      name: s,
+                      abbr: SECTOR_ABBR[s],
+                      pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? 0,
+                      marketCap: proxyQuotes?.[sectorConfig[s].sym]?.marketCap ?? null,
+                    }))}
+                />
+              ) : (
+                <MarketLandscape3D
+                  stocks={cityscapeStocks}
+                  onSelect={(s) => openModal?.({ symbol: s.symbol, name: s.name, price: s.price, pct: s.changePct, type: 'asx', extra: {} })}
+                />
+              )}
+            </Suspense>
+          </div>
         </div>
       ) : (
       <div className="flex">
