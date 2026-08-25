@@ -1192,6 +1192,17 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
     tweenRotation(DEFAULT_ROTATION)
   }
 
+  // "AU FOCUS" — DEFAULT_ROTATION is already Australia-centred (see its
+  // definition above), so this reuses the exact same smooth tween resetView
+  // does, plus pins Australia (id 36) so its border highlights gold, same
+  // treatment a search-selected country gets.
+  function focusAustralia() {
+    setPinnedCountry(36)
+    setPinnedExchange(null)
+    setPinnedRoute(null)
+    tweenRotation(DEFAULT_ROTATION, 1500)
+  }
+
   // Compass cardinal-point clicks — snap the globe to face that direction.
   function handleCompassSnap(dir) {
     const [lambda, phi] = rotationRef.current
@@ -1400,6 +1411,19 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
             {pill.key}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={focusAustralia}
+          title="Rotate to Australia and highlight it"
+          className={`font-mono text-[9px] tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-md transition-colors ${
+            pinnedCountry === 36
+              ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
+              : 'text-terminal-text-dim border-terminal-border-gold hover:text-terminal-gold hover:border-terminal-gold'
+          }`}
+          style={{ background: pinnedCountry === 36 ? undefined : 'rgba(6,13,26,0.7)' }}
+        >
+          🇦🇺 AU FOCUS
+        </button>
       </div>
 
       {/* Search — top-left. Matches countries, exchanges, and both route
