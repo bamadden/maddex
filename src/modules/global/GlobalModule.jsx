@@ -16,6 +16,9 @@ import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
 const MaddexGlobe = lazy(() => import('../../components/globe/MaddexGlobe'))
+// Three.js globe is heavier still (three + @react-three/fiber/drei) — only
+// loaded once the user actually switches to the 3D view.
+const Globe3D = lazy(() => import('../../components/globe/Globe3D'))
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -2364,6 +2367,7 @@ export default function GlobalModule() {
   // Mobile only (<768px) — the feed/globe/detail columns stack instead of
   // sitting side by side, so a small screen needs an explicit switcher.
   const [mobilePanel, setMobilePanel] = useState('globe')
+  const [globe3D, setGlobe3D] = useState(false)
 
   const { rates } = useAudRates()
   const audUsd = rates?.USD ?? FALLBACK_AUD_USD
@@ -2534,8 +2538,22 @@ export default function GlobalModule() {
 
           {/* Globe */}
           <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} md:block`} style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
+            <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 20 }} className="flex items-center border border-terminal-border rounded-full overflow-hidden bg-terminal-bg/80 backdrop-blur-sm">
+              <button
+                onClick={() => setGlobe3D(false)}
+                className={`text-2xs px-2.5 py-1 font-bold transition-colors ${!globe3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              >CLASSIC</button>
+              <button
+                onClick={() => setGlobe3D(true)}
+                className={`text-2xs px-2.5 py-1 font-bold transition-colors ${globe3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              >IMMERSIVE 3D</button>
+            </div>
             <Suspense fallback={<Viz3DLoader />}>
-              <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
+              {globe3D ? (
+                <Globe3D onExchangeClick={handleExchangeClick} />
+              ) : (
+                <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
+              )}
             </Suspense>
           </div>
 
