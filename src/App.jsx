@@ -367,9 +367,9 @@ function Terminal() {
         return
       }
 
-      // Workspace shortcuts (⌘⇧1-4 switch, ⌘⇧N new) — modifier-based, so
-      // checked ahead of the no-modifier block below.
-      const wsAction = ['ws.1', 'ws.2', 'ws.3', 'ws.4', 'ws.new']
+      // Workspace + AI PiP shortcuts (⌘⇧1-4 switch, ⌘⇧N new, ⌘⇧A toggle PiP)
+      // — modifier-based, so checked ahead of the no-modifier block below.
+      const wsAction = ['ws.1', 'ws.2', 'ws.3', 'ws.4', 'ws.new', 'ui.ai-pip']
         .find((a) => shortcutService.matches(e, shortcutService.shortcuts[a]))
       if (wsAction) {
         e.preventDefault()
@@ -421,8 +421,12 @@ function Terminal() {
     unsubs.push(shortcutService.register('ws.new', () => {
       window.dispatchEvent(new CustomEvent('madden:new-workspace'))
     }))
+    unsubs.push(shortcutService.register('ui.ai-pip', () => {
+      setAiMode(aiMode === 'pip' ? 'sidebar' : 'pip')
+      setChatOpen(true)
+    }))
     return () => unsubs.forEach((u) => u())
-  }, [])
+  }, [setAiMode, setChatOpen, aiMode])
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-mono bg-terminal-bg">

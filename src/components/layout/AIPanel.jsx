@@ -291,9 +291,40 @@ export default function AIPanel({ wide = false }) {
     try { sessionStorage.setItem('maddex_ai_disclaimer_dismissed', 'true') } catch { /* best-effort */ }
   }
   const isFullscreen = aiMode === 'fullscreen'
+  const isPip = aiMode === 'pip'
   const toggleMode = useCallback(() => {
     setAiMode(isFullscreen ? 'sidebar' : 'fullscreen')
   }, [isFullscreen, setAiMode])
+
+  // Picture-in-picture — a small draggable floating chat window, semi
+  // transparent until hovered. Position is transient (not persisted),
+  // same as the multi-window FloatingWindow instances.
+  const [pipPos, setPipPos] = useState(() => ({
+    x: Math.max(0, window.innerWidth - 340),
+    y: Math.max(0, window.innerHeight - 460),
+  }))
+  const [pipHovered, setPipHovered] = useState(false)
+  const pipDragging = useRef(false)
+  const pipOffset = useRef({ x: 0, y: 0 })
+  const onPipDragStart = useCallback((e) => {
+    if (!isPip) return
+    pipDragging.current = true
+    pipOffset.current = { x: e.clientX - pipPos.x, y: e.clientY - pipPos.y }
+    const onMove = (ev) => {
+      if (!pipDragging.current) return
+      setPipPos({
+        x: Math.min(Math.max(0, ev.clientX - pipOffset.current.x), window.innerWidth - 320),
+        y: Math.min(Math.max(0, ev.clientY - pipOffset.current.y), window.innerHeight - 400),
+      })
+    }
+    const onUp = () => {
+      pipDragging.current = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [isPip, pipPos])
 
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
@@ -453,16 +484,25 @@ export default function AIPanel({ wide = false }) {
   return (
     <div
       data-tour="ai-panel"
+      onMouseEnter={() => isPip && setPipHovered(true)}
+      onMouseLeave={() => isPip && setPipHovered(false)}
       className={
         isFullscreen
           ? 'fixed inset-0 z-40 flex flex-col bg-terminal-panel'
-          : wide
-            ? 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-1/2 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
-            : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
+          : isPip
+            ? 'fixed z-40 flex flex-col bg-terminal-panel border border-terminal-border-gold shadow-2xl rounded-[4px] overflow-hidden transition-opacity'
+            : wide
+              ? 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-1/2 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
+              : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
       }
+      style={isPip ? { left: pipPos.x, top: pipPos.y, width: 320, height: 400, opacity: pipHovered ? 1 : 0.85 } : undefined}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(201,168,76,0.35)', background: 'var(--mt-header, #0A1F3D)' }}>
+      <div
+        onMouseDown={isPip ? onPipDragStart : undefined}
+        className="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
+        style={{ borderBottom: '1px solid rgba(201,168,76,0.35)', background: 'var(--mt-header, #0A1F3D)', cursor: isPip ? 'grab' : undefined }}
+      >
         <div className="flex items-center gap-2" title="Model: Claude Sonnet">
           <span className="text-2xs font-semibold text-terminal-gold tracking-widest font-mono">MADDENAI</span>
           {turnCount > 0 && (
@@ -484,7 +524,20 @@ export default function AIPanel({ wide = false }) {
           >
             🗒
           </button>
+          {!isFullscreen && (
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => setAiMode(isPip ? 'sidebar' : 'pip')}
+              className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+                isPip ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+              title={isPip ? 'Exit picture-in-picture' : 'Picture-in-picture (⌘⇧A)'}
+            >
+              ⊡
+            </button>
+          )}
           <button
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={toggleMode}
             className="w-6 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
             title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}

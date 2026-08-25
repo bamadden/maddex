@@ -27,6 +27,8 @@ export const DEFAULT_SHORTCUTS = {
   'ui.refresh':        { key: 'r', display: 'R' },
   'ui.pause-ticker':   { key: ' ', display: 'SPACE' },
 
+  'ui.ai-pip': { mac: 'Meta+Shift+A', win: 'Ctrl+Shift+A', display: '⌘⇧A' },
+
   'ws.1':   { mac: 'Meta+Shift+1', win: 'Ctrl+Shift+1', display: '⌘⇧1' },
   'ws.2':   { mac: 'Meta+Shift+2', win: 'Ctrl+Shift+2', display: '⌘⇧2' },
   'ws.3':   { mac: 'Meta+Shift+3', win: 'Ctrl+Shift+3', display: '⌘⇧3' },
@@ -50,6 +52,7 @@ export const ACTION_LABELS = {
   'ui.ai':           'Toggle AI panel',
   'ui.refresh':      'Refresh all live data',
   'ui.pause-ticker': 'Pause/resume ticker tape',
+  'ui.ai-pip':       'Toggle AI picture-in-picture',
   'ws.1':   'Switch to workspace 1',
   'ws.2':   'Switch to workspace 2',
   'ws.3':   'Switch to workspace 3',
