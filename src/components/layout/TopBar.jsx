@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import { displayService } from '../../services/displayService'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fetchFxRates } from '../../services/api'
@@ -355,7 +356,13 @@ export default function TopBar() {
   const prevAudUsd = prevRates?.USD ?? null
   const audUsdChg  = prevAudUsd ? ((audUsd - prevAudUsd) / prevAudUsd) * 100 : null
 
-  const timeStr = time.toLocaleTimeString('en-US', { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' })
+  const clockFormat = useSyncExternalStore(
+    (cb) => displayService.subscribe(cb),
+    () => displayService.get('clockFormat'),
+  )
+  const timeStr = time.toLocaleTimeString('en-US', {
+    hour12: clockFormat === '12h', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
   const dateStr = time.toLocaleDateString('en-AU', {
     weekday:'short', day:'2-digit', month:'short', year:'numeric',
   }).toUpperCase().replace(/,/g, '')

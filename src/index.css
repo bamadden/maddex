@@ -157,7 +157,8 @@ body {
   @apply text-2xs font-semibold uppercase tracking-widest text-terminal-gold px-2 py-1 border-b border-terminal-border bg-terminal-header;
 }
 .card-hover {
-  @apply transition-all duration-150 cursor-pointer;
+  @apply transition-all cursor-pointer;
+  transition-duration: var(--transition-speed, 150ms);
 }
 .card-hover:hover {
   @apply border-terminal-border-gold bg-terminal-surface2;
@@ -296,6 +297,11 @@ body {
 
 /* Panel/detail fade-in */
 .panel-fade { animation: fadeIn 150ms ease-out; }
+
+/* Driven by displayService's --transition-speed (Settings → Display →
+   Animations/Reduced motion) — 0ms disables the fade entirely. Must come
+   after the shorthand `animation:` rules above so this duration wins. */
+.module-fade, .panel-fade { animation-duration: var(--transition-speed, 150ms); }
 
 /* Staggered row entrance — used by TopMovers; pair with an inline
    animation-delay per row index for the staggered effect. */

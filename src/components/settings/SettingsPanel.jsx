@@ -11,8 +11,9 @@ import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZON
 import { generateAPIKey } from '../../utils/apiKey'
 import APIDocsModal from './APIDocsModal'
 import { shortcutService, DEFAULT_SHORTCUTS, ACTION_LABELS } from '../../services/shortcutService'
+import { displayService } from '../../services/displayService'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'SHORTCUTS', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
+const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -484,6 +485,89 @@ function PreferencesSection() {
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+function DisplaySection() {
+  const [, forceUpdate] = useState(0)
+  useEffect(() => displayService.subscribe(() => forceUpdate((n) => n + 1)), [])
+  const prefs = displayService.prefs
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>Display</SectionLabel>
+
+      <div>
+        <div className="text-xs text-terminal-text-bright">Interface Scale</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">Adjusts the size of all text and UI elements</div>
+        <div className="flex border border-terminal-border w-fit">
+          {[80, 90, 100, 110, 120].map((s) => (
+            <button
+              key={s}
+              onClick={() => displayService.set('uiScale', s)}
+              className={`px-3 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-r-0 ${
+                prefs.uiScale === s ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+            >
+              {s}%
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-xs text-terminal-text-bright mb-2">Data Density</div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { id: 'compact', label: 'Compact', note: 'More data per screen' },
+            { id: 'comfortable', label: 'Comfortable', note: 'Balanced (default)' },
+            { id: 'spacious', label: 'Spacious', note: 'More breathing room' },
+          ].map((d) => (
+            <button
+              key={d.id}
+              onClick={() => displayService.set('density', d.id)}
+              className={`px-2 py-2 border text-left transition-colors ${
+                prefs.density === d.id ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
+              }`}
+            >
+              <div className="text-2xs font-bold">{d.label.toUpperCase()}</div>
+              <div className="text-[10px] mt-0.5 opacity-70">{d.note}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <FieldRow label="Enable animations" note="Module fades, hover transitions">
+        <Toggle value={prefs.animations} onChange={(v) => displayService.set('animations', v)} />
+      </FieldRow>
+      <FieldRow label="Reduce motion" note="Accessibility — disables all transition animations">
+        <Toggle value={prefs.reducedMotion} onChange={(v) => displayService.set('reducedMotion', v)} />
+      </FieldRow>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-xs text-terminal-text-bright mb-2">Clock Format</div>
+        <div className="flex border border-terminal-border w-32">
+          {[{ id: '12h', label: '12 HOUR' }, { id: '24h', label: '24 HOUR' }].map((c) => (
+            <button
+              key={c.id}
+              onClick={() => displayService.set('clockFormat', c.id)}
+              className={`flex-1 py-1.5 text-2xs font-bold transition-colors ${
+                prefs.clockFormat === c.id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        onClick={() => displayService.resetAll()}
+        className="text-2xs text-terminal-text-dim hover:text-terminal-red underline"
+      >
+        RESET ALL DISPLAY SETTINGS
+      </button>
+    </div>
+  )
+}
 
 function macDisplay(combo) {
   if (!combo) return '—'
@@ -1247,6 +1331,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         <div className="flex-1 overflow-y-auto p-6">
           {active === 'PROFILE'       && <ProfileSection />}
           {active === 'PREFERENCES'   && <PreferencesSection />}
+          {active === 'DISPLAY'       && <DisplaySection />}
           {active === 'SHORTCUTS'     && <ShortcutsSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
           {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}
