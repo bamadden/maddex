@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar, Lightbulb,
+  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar, Lightbulb, Home,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -24,6 +24,11 @@ function usePinnedSidebar() {
 // key-binding order diverge, as they now deliberately do (grouped by
 // function here vs. F1/F2/F3... in CommandBar).
 const NAV_ITEMS = [
+  // No fkey — F1-F8 are the existing hardcoded CommandBar bindings above;
+  // reassigning them to make room here would break muscle memory for
+  // existing shortcuts, so Dashboard/Calendar are mouse/click-nav only
+  // (also reachable via shortcutService's customisable nav.* bindings).
+  { id: 'dashboard', label: 'DASHBOARD', short: 'HOME', fkey: null, Icon: Home },
   { id: 'markets',   label: 'MARKETS',   short: 'MKT',  fkey: 'F1', Icon: LineChart },
   { id: 'crypto',    label: 'CRYPTO',    short: 'CRY',  fkey: 'F3', Icon: Bitcoin },
   { id: 'fx',        label: 'RATES',     short: 'FX',   fkey: 'F4', Icon: ArrowLeftRight },

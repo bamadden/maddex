@@ -8,6 +8,7 @@ import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsSer
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import { checkAndAnalyseEarnings } from '../../services/earningsAnalystService'
 import AlertsModule from '../../modules/alerts/AlertsModule'
+import { logActivity } from '../../services/activityLogService'
 
 const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
 const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', EARNINGS_RESULT: 'EARNINGS RESULT' }
@@ -199,6 +200,7 @@ export default function NotificationCenter() {
       for (const { alert, message } of results) {
         addNotification('CUSTOM_ALERT', message)
         markTriggered(alert.id)
+        logActivity('alert', message)
       }
     }
     check()

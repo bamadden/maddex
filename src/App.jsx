@@ -21,6 +21,7 @@ import CommandBar from './components/layout/CommandBar'
 import AIPanel from './components/layout/AIPanel'
 import DetailModal from './components/ui/DetailModal'
 import ComparisonView from './components/markets/ComparisonView'
+import DashboardModule from './modules/dashboard/DashboardModule'
 import MarketsModule from './modules/markets/MarketsModule'
 import PortfolioModule from './modules/portfolio/PortfolioModule'
 import CryptoModule from './modules/crypto/CryptoModule'
@@ -68,6 +69,7 @@ const queryClient = new QueryClient({
 })
 
 const MODULE_MAP = {
+  dashboard: DashboardModule,
   markets:   MarketsModule,
   portfolio: PortfolioModule,
   crypto:    CryptoModule,
@@ -83,6 +85,7 @@ const MODULE_MAP = {
 }
 
 const MODULE_TITLES = {
+  dashboard: 'Dashboard',
   markets:   'Markets',
   portfolio: 'Portfolio',
   crypto:    'Crypto',

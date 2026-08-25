@@ -20,6 +20,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import ShareLinkModal from '../../components/ui/ShareLinkModal'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import { createShareLink } from '../../services/sharingService'
+import { logActivity } from '../../services/activityLogService'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -263,6 +264,7 @@ export default function WatchlistModule() {
       const q = await fetchYahooQuote(yfSym)
       if (!q) { setAddError('TICKER NOT FOUND — check symbol and try again'); return }
       addToWatchlist(raw)
+      logActivity('watchlist', `Added ${raw} to watchlist`)
       setSearchInput('')
       if (user) {
         await supabase.from('watchlist').upsert({ symbol: raw, name: q.name ?? raw, position: watchlist.length }, { onConflict: 'user_id,symbol' })

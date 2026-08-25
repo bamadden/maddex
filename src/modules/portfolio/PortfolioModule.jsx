@@ -21,6 +21,7 @@ import StressTest from './StressTest'
 import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
 import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
+import { logActivity } from '../../services/activityLogService'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -453,6 +454,7 @@ export default function PortfolioModule() {
       if (idx >= 0) { const u = [...prev]; u[idx] = h; return u }
       return [...prev, h]
     })
+    logActivity('portfolio', `Added ${h.shares} ${h.symbol} to portfolio`)
     setShowAddForm(false)
     if (user) {
       const { data, error } = await supabase.from('portfolio_holdings').insert({
