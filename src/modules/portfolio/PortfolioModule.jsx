@@ -100,6 +100,65 @@ function BreakdownBars({ title, rows }) {
   )
 }
 
+// ─── AI Analysis tab — example fallback ────────────────────────────────────
+// The real "RUN AI ANALYSIS" button calls the Claude API, which fails at
+// zero credit balance like every other AI entry point this session. Rather
+// than leave the tab showing nothing until that error surfaces in the AI
+// panel, this renders a data-driven example computed from the portfolio's
+// actual sector mix — clearly labelled as an example, not a substitute.
+const COMMON_SECTORS = ['Financials', 'Materials', 'Health Care', 'Information Technology', 'Consumer Discretionary', 'Energy', 'Real Estate', 'Industrials']
+
+function MockAnalysisPreview({ bySector, mktTotal }) {
+  const top = bySector[0]
+  const diversificationScore = Math.max(15, Math.round(100 - (top?.pct ?? 0) * 0.8))
+  const present = new Set(bySector.map((s) => s.label))
+  const underweight = COMMON_SECTORS.find((s) => !present.has(s)) ?? 'Financials'
+  const concentrated = top && top.pct >= 40
+
+  return (
+    <div className="w-full max-w-lg text-left">
+      <div className="flex items-center gap-2 mb-3 px-3 py-1.5 bg-terminal-gold/10 border border-terminal-gold/40 text-terminal-gold text-2xs font-semibold">
+        ⚠ EXAMPLE ANALYSIS — add AI credits to generate your personalised analysis
+      </div>
+      <div className="space-y-3 text-2xs">
+        <div>
+          <div className="text-terminal-text-dim/60 tracking-widest mb-1">DIVERSIFICATION SCORE</div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-mono font-bold text-terminal-gold">{diversificationScore}/100</span>
+            <span className="text-terminal-text-dim">
+              {diversificationScore >= 70 ? 'Well diversified across sectors' : diversificationScore >= 45 ? 'Moderately concentrated' : 'Highly concentrated — few holdings drive most of the return'}
+            </span>
+          </div>
+        </div>
+        <div>
+          <div className="text-terminal-text-dim/60 tracking-widest mb-1">TOP RISK</div>
+          <div className="text-terminal-text-bright">
+            {concentrated
+              ? `Concentration in ${top.label} (${top.pct.toFixed(0)}% of portfolio value) — a sector-specific shock would disproportionately affect returns.`
+              : 'No single sector dominates the portfolio — concentration risk is currently limited.'}
+          </div>
+        </div>
+        <div>
+          <div className="text-terminal-text-dim/60 tracking-widest mb-1">TOP OPPORTUNITY</div>
+          <div className="text-terminal-text-bright">Underweight {underweight} — consider whether this sector deserves representation given its typical weight in the ASX 200.</div>
+        </div>
+        <div>
+          <div className="text-terminal-text-dim/60 tracking-widest mb-1">MACRO ALIGNMENT</div>
+          <div className="text-terminal-text-bright">RBA on hold at 4.35% with a cautious easing bias — rate-sensitive sectors (Financials, Real Estate) may benefit if cuts arrive in 2027; commodity-heavy portfolios stay exposed to China demand.</div>
+        </div>
+        <div>
+          <div className="text-terminal-text-dim/60 tracking-widest mb-1">SUGGESTIONS</div>
+          <ul className="list-disc list-inside space-y-0.5 text-terminal-text-bright">
+            <li>Trim the largest single-sector weighting toward the portfolio's long-run average.</li>
+            <li>Add exposure to {underweight} to smooth sector-level drawdowns.</li>
+            <li>Review currency mix — {fmt.aud(mktTotal, { decimals: 0, clarify: true })} tracked, check AUD/USD exposure against your risk tolerance.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function groupByPct(live, keyFn, othersLabel = 'Other') {
   const totals = {}
   let sum = 0
@@ -752,6 +811,7 @@ export default function PortfolioModule() {
             disabled={live.length === 0}
             className="mt-1 text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >{live.length === 0 ? 'ADD LIVE HOLDINGS FIRST' : 'RUN AI ANALYSIS ▶'}</button>
+          {live.length > 0 && <MockAnalysisPreview bySector={bySector} mktTotal={mktTotal} />}
         </div>
       )}
 

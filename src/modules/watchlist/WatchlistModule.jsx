@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import { Bookmark } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
@@ -247,6 +247,15 @@ export default function WatchlistModule() {
   })
 
   const sortedRows = sortRows(rows, sortKey, sortDir)
+  // Stock rows first, crypto rows grouped at the end (stable sort — each
+  // group keeps sortedRows' existing relative order) so the table can
+  // render two visually separated sections while `i` still indexes into
+  // `sortedRows` for onDragStart/onDrop, which reorder the underlying
+  // watchlist array by that position.
+  const groupedRows = sortedRows
+    .map((row, i) => ({ row, i }))
+    .sort((a, b) => (a.row.type === 'crypto' ? 1 : 0) - (b.row.type === 'crypto' ? 1 : 0))
+  const firstCryptoIdx = groupedRows.findIndex(({ row }) => row.type === 'crypto')
 
   const handleAdd = async (e) => {
     e.preventDefault()
@@ -456,9 +465,19 @@ export default function WatchlistModule() {
               </tr>
             </thead>
             <tbody>
-              {sortedRows.map((row, i) => (
+              {firstCryptoIdx > 0 && (
+                <tr className="pointer-events-none">
+                  <td colSpan={10} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
+                </tr>
+              )}
+              {groupedRows.map(({ row, i }, idx) => (
+                <Fragment key={row.symbol}>
+                  {idx === firstCryptoIdx && (
+                    <tr className="pointer-events-none">
+                      <td colSpan={10} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">CRYPTO WATCHLIST</td>
+                    </tr>
+                  )}
                 <tr
-                  key={row.symbol}
                   draggable={!sortKey}
                   onDragStart={() => onDragStart(i)}
                   onDragOver={onDragOver}
@@ -542,6 +561,7 @@ export default function WatchlistModule() {
                     </button>
                   </td>
                 </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
