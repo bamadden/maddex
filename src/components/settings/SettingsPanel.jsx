@@ -10,8 +10,9 @@ import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry, COUNTRY_TIMEZONES } from '../../lib/profileUtils'
 import { generateAPIKey } from '../../utils/apiKey'
 import APIDocsModal from './APIDocsModal'
+import { shortcutService, DEFAULT_SHORTCUTS, ACTION_LABELS } from '../../services/shortcutService'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
+const SECTIONS = ['PROFILE', 'PREFERENCES', 'SHORTCUTS', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -483,6 +484,152 @@ function PreferencesSection() {
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+function macDisplay(combo) {
+  if (!combo) return '—'
+  return combo.split('+').map((p) => (p === 'Meta' ? '⌘' : p === 'Shift' ? '⇧' : p === 'Alt' ? '⌥' : p)).join('')
+}
+function winDisplay(combo) {
+  if (!combo) return '—'
+  return combo.replace('Meta', 'Ctrl')
+}
+function bindingDisplay(binding, platform) {
+  if (!binding) return '—'
+  if (binding.key != null) return binding.display || (binding.key === ' ' ? 'SPACE' : binding.key.toUpperCase())
+  return platform === 'mac' ? macDisplay(binding.mac) : winDisplay(binding.win)
+}
+
+function ShortcutRecorder({ action, onDone }) {
+  const [recorded, setRecorded] = useState(null)
+  const [conflict, setConflict] = useState(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (['Meta', 'Control', 'Shift', 'Alt'].includes(e.key)) return
+      if (e.key === 'Escape') { onDone(); return }
+      const binding = shortcutService.bindingFromEvent(e)
+      setRecorded(binding)
+      setConflict(shortcutService.findConflict(binding, action))
+    }
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [action, onDone])
+
+  const save = () => {
+    if (!recorded) return
+    if (conflict) shortcutService.customize(conflict, { key: null, mac: null, win: null })
+    shortcutService.customize(action, recorded)
+    onDone()
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-2 border-b border-terminal-border/30 bg-terminal-gold/5 px-2 -mx-2">
+      <div className="flex-1">
+        <div className="text-2xs text-terminal-text-dim">
+          {recorded ? <>New shortcut: <span className="text-terminal-gold font-bold">{recorded.display}</span></> : 'Press your new shortcut…'}
+        </div>
+        {conflict && (
+          <div className="text-2xs text-terminal-red mt-0.5">
+            ⚠ This shortcut is already used by: {ACTION_LABELS[conflict] ?? conflict}. Reassign?
+          </div>
+        )}
+      </div>
+      <button
+        onClick={save}
+        disabled={!recorded}
+        className="px-2 py-1 text-2xs font-bold bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright disabled:opacity-30"
+      >
+        {conflict ? 'REASSIGN' : 'SAVE'}
+      </button>
+      <button onClick={onDone} className="px-2 py-1 text-2xs text-terminal-text-dim hover:text-terminal-text">CANCEL</button>
+      <button
+        onClick={() => { shortcutService.reset(action); onDone() }}
+        className="px-2 py-1 text-2xs text-terminal-text-dim hover:text-terminal-gold"
+      >
+        RESET
+      </button>
+    </div>
+  )
+}
+
+function ShortcutsSection() {
+  const [, forceUpdate] = useState(0)
+  const [platform, setPlatform] = useState(shortcutService.platform)
+  const [editing, setEditing] = useState(null)
+
+  useEffect(() => shortcutService.subscribe(() => forceUpdate((n) => n + 1)), [])
+
+  const actions = Object.keys(DEFAULT_SHORTCUTS).filter((a) => !a.startsWith('ws.'))
+  const wsActions = Object.keys(DEFAULT_SHORTCUTS).filter((a) => a.startsWith('ws.'))
+
+  const renderRow = (action) => {
+    const binding = shortcutService.shortcuts[action]
+    if (editing === action) {
+      return <ShortcutRecorder key={action} action={action} onDone={() => setEditing(null)} />
+    }
+    return (
+      <div key={action} className="flex items-center justify-between py-2 border-b border-terminal-border/30">
+        <span className="text-xs text-terminal-text-bright">{ACTION_LABELS[action] ?? action}</span>
+        <div className="flex items-center gap-4">
+          <kbd className="key-badge min-w-[52px] text-center px-1.5 py-0.5 text-terminal-gold font-bold font-mono text-2xs">
+            {bindingDisplay(binding, platform)}
+          </kbd>
+          <button
+            onClick={() => setEditing(action)}
+            className="text-2xs text-terminal-text-dim hover:text-terminal-gold px-1.5 py-0.5 border border-terminal-border hover:border-terminal-gold/50"
+          >
+            EDIT
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>Keyboard Shortcuts</SectionLabel>
+
+      <div className="flex border border-terminal-border w-40">
+        {['mac', 'win'].map((p) => (
+          <button
+            key={p}
+            onClick={() => setPlatform(p)}
+            className={`flex-1 py-1.5 text-2xs font-bold tracking-wide transition-colors ${
+              platform === p ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+            }`}
+          >
+            {p === 'mac' ? 'MAC' : 'WINDOWS'}
+          </button>
+        ))}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between text-2xs text-terminal-text-dim/60 tracking-widest mb-1 px-0">
+          <span>ACTION</span>
+          <span className="flex items-center gap-4">
+            <span className="min-w-[52px] text-center">{platform === 'mac' ? 'MAC' : 'WINDOWS'}</span>
+            <span className="w-[52px]" />
+          </span>
+        </div>
+        {actions.map(renderRow)}
+      </div>
+
+      <div className="pt-2">
+        <div className="text-2xs text-terminal-text-dim/60 tracking-widest mb-1">WORKSPACES</div>
+        {wsActions.map(renderRow)}
+      </div>
+
+      <button
+        onClick={() => shortcutService.resetAll()}
+        className="text-2xs text-terminal-text-dim hover:text-terminal-red underline"
+      >
+        RESET ALL SHORTCUTS TO DEFAULT
+      </button>
+    </div>
+  )
+}
 
 function NotificationsSection() {
   const { settings, updateSettings } = useAuthStore()
@@ -1100,6 +1247,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         <div className="flex-1 overflow-y-auto p-6">
           {active === 'PROFILE'       && <ProfileSection />}
           {active === 'PREFERENCES'   && <PreferencesSection />}
+          {active === 'SHORTCUTS'     && <ShortcutsSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
           {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}
           {active === 'DATA'          && (

@@ -202,6 +202,12 @@ export default function WorkspaceSwitcher() {
   const [showNew, setShowNew] = useState(false)
   const [contextMenu, setContextMenu] = useState(null)
 
+  useEffect(() => {
+    const handler = () => setShowNew(true)
+    window.addEventListener('madden:new-workspace', handler)
+    return () => window.removeEventListener('madden:new-workspace', handler)
+  }, [])
+
   const workspaces = workspaceService.workspaces
   const active = workspaceService.active
 

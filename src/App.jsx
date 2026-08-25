@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
+import { shortcutService } from './services/shortcutService'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
@@ -93,6 +94,21 @@ const MODULE_TITLES = {
   brief:     'Morning Brief',
   replay:    'Market Replay',
   scanner:   'Market Scanner',
+}
+
+// Maps shortcutService nav.* action ids to MODULE_MAP keys — see
+// shortcutService.js's DEFAULT_SHORTCUTS for the (customisable) bindings.
+const NAV_ACTION_MODULE = {
+  'nav.markets':   'markets',
+  'nav.crypto':    'crypto',
+  'nav.rates':     'fx',
+  'nav.macro':     'macro',
+  'nav.global':    'global',
+  'nav.watchlist': 'watchlist',
+  'nav.portfolio': 'portfolio',
+  'nav.news':      'news',
+  'nav.brief':     'brief',
+  'nav.scanner':   'scanner',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────
@@ -337,49 +353,76 @@ function Terminal() {
 
       if (isInput) return
 
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+      if (shortcutService.matches(e, shortcutService.shortcuts['ui.shortcuts']) || (e.shiftKey && e.key === '/')) {
         e.preventDefault()
         setShowShortcuts(v => !v)
         return
       }
 
       // Cmd/Ctrl+K and Cmd/Ctrl+F are both Mac-familiar aliases for focusing
-      // the command bar — same target as plain "/".
+      // the command bar — same target as plain "/". Fixed, not customisable.
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'f')) {
         e.preventDefault()
         document.querySelector('.cmd-input')?.focus()
         return
       }
 
-      if (e.key === '/') {
+      // Workspace shortcuts (⌘⇧1-4 switch, ⌘⇧N new) — modifier-based, so
+      // checked ahead of the no-modifier block below.
+      const wsAction = ['ws.1', 'ws.2', 'ws.3', 'ws.4', 'ws.new']
+        .find((a) => shortcutService.matches(e, shortcutService.shortcuts[a]))
+      if (wsAction) {
+        e.preventDefault()
+        shortcutService.dispatch(wsAction)
+        return
+      }
+
+      if (shortcutService.matches(e, shortcutService.shortcuts['ui.command'])) {
         e.preventDefault()
         document.querySelector('.cmd-input')?.focus()
         return
       }
 
-      // Module navigation + interface toggles (no modifier)
+      // Module navigation + interface toggles (no modifier) — customisable
+      // via shortcutService (Settings → Shortcuts). Note: a customisation
+      // that adds a modifier to one of these actions won't fire here, since
+      // this whole block requires no modifiers be held; plain key remaps
+      // (the common case — "change M to something else") work fully.
       if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-        if (e.key.toLowerCase() === 'a') {
+        if (shortcutService.matches(e, shortcutService.shortcuts['ui.ai'])) {
           setChatOpen((v) => !v)
           return
         }
-        if (e.key.toLowerCase() === 'r') {
+        if (shortcutService.matches(e, shortcutService.shortcuts['ui.refresh'])) {
           queryClient.invalidateQueries()
           return
         }
-        if (e.key === ' ') {
+        if (shortcutService.matches(e, shortcutService.shortcuts['ui.pause-ticker'])) {
           e.preventDefault()
           document.body.classList.toggle('ticker-paused')
           return
         }
-        const navMap = { m: 'markets', c: 'crypto', f: 'fx', n: 'news', g: 'global', p: 'portfolio', w: 'watchlist', x: 'macro' }
-        const dest = navMap[e.key.toLowerCase()]
-        if (dest) setActiveModule(dest)
+        const navAction = Object.keys(NAV_ACTION_MODULE)
+          .find((a) => shortcutService.matches(e, shortcutService.shortcuts[a]))
+        if (navAction) setActiveModule(NAV_ACTION_MODULE[navAction])
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, showShortcuts, setActiveModule])
+
+  // Workspace-switching shortcuts (ws.1-4, ws.new) — registered as live
+  // handlers since, unlike nav.*/ui.*, they aren't hardcoded module ids.
+  useEffect(() => {
+    const unsubs = [1, 2, 3, 4].map((n) => shortcutService.register(`ws.${n}`, () => {
+      const ws = workspaceService.workspaces[n - 1]
+      if (ws) workspaceService.setActive(ws.id)
+    }))
+    unsubs.push(shortcutService.register('ws.new', () => {
+      window.dispatchEvent(new CustomEvent('madden:new-workspace'))
+    }))
+    return () => unsubs.forEach((u) => u())
+  }, [])
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-mono bg-terminal-bg">
