@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts'
+import { useMemo, useState } from 'react'
+import { ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 
 const SECTOR_BY_SYMBOL = Object.fromEntries([
@@ -46,16 +46,6 @@ function mulberry32(seed) {
   }
 }
 
-function ChartTip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
-      <div className="text-terminal-text-dim">{label}</div>
-      {payload.map((p) => <div key={p.dataKey} style={{ color: p.color ?? p.fill }}>{p.name ?? p.dataKey}: {p.value}</div>)}
-    </div>
-  )
-}
-
 function MetricCard({ label, value, valueColor, sub, children }) {
   return (
     <div className="border border-terminal-border p-3">
@@ -63,6 +53,68 @@ function MetricCard({ label, value, valueColor, sub, children }) {
       <div className={`text-lg font-bold mt-0.5 ${valueColor ?? 'text-terminal-text-bright'}`}>{value}</div>
       {sub && <div className="text-2xs text-terminal-text-dim mt-0.5">{sub}</div>}
       {children}
+    </div>
+  )
+}
+
+// Opening value → each holding's $ contribution → currency effect →
+// dividends → closing value, as a connected SVG waterfall — each bar
+// starts where the running total left off, rather than every bar
+// starting from zero like a plain bar chart would.
+function WaterfallChart({ openingValue, bars, closingValue, fmtCur, totalReturn }) {
+  const [hoverIdx, setHoverIdx] = useState(null)
+  const W = 560, H = 170, padTop = 12, padBottom = 24, barGap = 6
+  const steps = [
+    { label: 'OPENING', delta: null, running: openingValue, kind: 'anchor' },
+    ...bars,
+    { label: 'CLOSING', delta: null, running: closingValue, kind: 'anchor' },
+  ]
+  const allValues = steps.flatMap((s) => s.kind === 'anchor' ? [0, s.running] : [s.runningBefore, s.runningAfter])
+  const minV = Math.min(0, ...allValues)
+  const maxV = Math.max(...allValues) * 1.08
+  const usableH = H - padTop - padBottom
+  const y = (v) => padTop + usableH - ((v - minV) / (maxV - minV || 1)) * usableH
+  const barW = (W - barGap * (steps.length - 1)) / steps.length
+
+  const colorFor = (s) => {
+    if (s.kind === 'anchor') return '#8BA3C4'
+    if (s.kind === 'currency') return '#2D7DD2'
+    if (s.kind === 'dividend') return '#C9A84C'
+    return s.delta >= 0 ? '#2D8A50' : '#A83232'
+  }
+
+  return (
+    <div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+        <line x1={0} y1={y(0)} x2={W} y2={y(0)} stroke="var(--t-border)" strokeDasharray="2 2" opacity={0.5} />
+        {steps.map((s, i) => {
+          const x = i * (barW + barGap)
+          const top = s.kind === 'anchor' ? y(s.running) : y(Math.max(s.runningBefore, s.runningAfter))
+          const bottom = s.kind === 'anchor' ? y(0) : y(Math.min(s.runningBefore, s.runningAfter))
+          const height = Math.max(1, bottom - top)
+          return (
+            <g key={i} onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(null)} style={{ cursor: 'default' }}>
+              <rect x={x} y={top} width={barW} height={height} fill={colorFor(s)} opacity={hoverIdx === null || hoverIdx === i ? 0.9 : 0.35} />
+              <text x={x + barW / 2} y={H - 8} textAnchor="middle" fontSize={7} fill="var(--t-text-dim)" className="font-mono">
+                {s.label.length > 8 ? `${s.label.slice(0, 7)}…` : s.label}
+              </text>
+              {hoverIdx === i && (
+                <g>
+                  <rect x={Math.min(Math.max(x - 20, 0), W - 100)} y={Math.max(top - 30, 0)} width={100} height={26} fill="var(--t-panel, #0B1628)" stroke="var(--mt-gold, #C9A84C)" strokeWidth={0.5} />
+                  <text x={Math.min(Math.max(x - 20, 0), W - 100) + 6} y={Math.max(top - 30, 0) + 11} fontSize={7} fill="var(--t-text-bright)" className="font-mono">
+                    {s.kind === 'anchor' ? fmtCur(s.running) : fmtCur(s.delta)}
+                  </text>
+                  {s.kind !== 'anchor' && totalReturn && (
+                    <text x={Math.min(Math.max(x - 20, 0), W - 100) + 6} y={Math.max(top - 30, 0) + 20} fontSize={6} fill="var(--t-text-dim)" className="font-mono">
+                      {((s.delta / totalReturn) * 100).toFixed(0)}% of return
+                    </text>
+                  )}
+                </g>
+              )}
+            </g>
+          )
+        })}
+      </svg>
     </div>
   )
 }
@@ -340,21 +392,40 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
         </div>
       </div>
 
-      {/* 5. Performance attribution */}
+      {/* 5. Performance attribution — connected waterfall: opening value →
+          each holding's contribution → currency effect → dividends →
+          closing value. */}
       <div>
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">PERFORMANCE ATTRIBUTION · LAST 30D</div>
-        <div className="border border-terminal-border p-2" style={{ height: 180 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={attribution.rows.map((r) => ({ name: r.symbol, value: parseFloat(r.contribution.toFixed(0)) }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-              <XAxis dataKey="name" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" />
-              <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" />
-              <Tooltip content={<ChartTip />} />
-              <Bar dataKey="value" name="Contribution">
-                {attribution.rows.map((r, i) => <Cell key={i} fill={r.contribution >= 0 ? '#2d8a50' : '#a83232'} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">RETURN ATTRIBUTION WATERFALL · LAST 30D</div>
+        <div className="border border-terminal-border p-2">
+          {(() => {
+            const openingValue = mktTotal - attribution.total
+            const steps = [
+              ...attribution.rows.map((r) => ({ label: r.symbol, delta: r.contribution, kind: 'stock' })),
+              { label: 'FX', delta: attribution.currencyEffect, kind: 'currency' },
+              { label: 'DIVS', delta: attribution.dividendsThisMonth, kind: 'dividend' },
+            ]
+            const bars = steps.reduce((acc, step) => {
+              const runningBefore = acc.length ? acc[acc.length - 1].runningAfter : openingValue
+              return [...acc, { ...step, runningBefore, runningAfter: runningBefore + step.delta }]
+            }, [])
+            return (
+              <WaterfallChart
+                openingValue={openingValue}
+                bars={bars}
+                closingValue={mktTotal}
+                fmtCur={fmtCur}
+                totalReturn={attribution.total}
+              />
+            )
+          })()}
+          <div className="flex items-center gap-3 text-[9px] text-terminal-text-dim mt-1 flex-wrap">
+            <span><span className="inline-block w-2 h-2 bg-[#8BA3C4] mr-1" />Opening/Closing</span>
+            <span><span className="inline-block w-2 h-2 bg-[#2D8A50] mr-1" />Gain</span>
+            <span><span className="inline-block w-2 h-2 bg-[#A83232] mr-1" />Loss</span>
+            <span><span className="inline-block w-2 h-2 bg-[#2D7DD2] mr-1" />Currency</span>
+            <span><span className="inline-block w-2 h-2 bg-[#C9A84C] mr-1" />Dividends</span>
+          </div>
         </div>
         <div className="space-y-1 mt-2">
           {attribution.rows.map((r) => (
