@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import AnimatedNumber from '../../components/ui/AnimatedNumber'
 import { fmt } from '../../utils/format'
 import { timeAgo, relativeDate } from '../../utils/dateUtils'
 import { getMockFMPRow, MOCK_CRYPTO } from '../../services/mockData'
@@ -125,7 +126,9 @@ function PortfolioSnapshotCard({ goto }) {
   return (
     <Card title="PORTFOLIO SNAPSHOT">
       <div className="flex flex-col gap-1.5">
-        <div className="text-2xl font-mono font-bold text-white">{fmt.aud(totalValue, { decimals: 0, clarify: true })}</div>
+        <div className="text-2xl font-mono font-bold text-white">
+          <AnimatedNumber value={totalValue} format={(v) => fmt.aud(v, { decimals: 0, clarify: true })} />
+        </div>
         <div className={`text-xs font-mono font-semibold ${dayPnl >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
           {dayPnl >= 0 ? '▲' : '▼'} {fmt.aud(Math.abs(dayPnl), { decimals: 0, clarify: true })} ({fmt.pct(dayPct)})
         </div>

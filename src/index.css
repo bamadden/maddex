@@ -139,8 +139,14 @@ body {
 .terminal-table td {
   @apply text-[11px] font-mono text-terminal-text py-2 px-3 border-b border-terminal-border tabular-nums;
 }
+.terminal-table tr td {
+  transition: background-color 100ms ease;
+}
 .terminal-table tr:hover td {
   @apply bg-terminal-surface2 cursor-pointer;
+}
+.terminal-table tr:hover td:first-child {
+  box-shadow: inset 2px 0 0 0 rgba(201,168,76,0.6);
 }
 /* Selected row — gold left border, matches the card "selected" state */
 .terminal-table tr.row-selected td:first-child {
@@ -162,10 +168,41 @@ body {
 }
 .card-hover:hover {
   @apply border-terminal-border-gold bg-terminal-surface2;
+  transform: translateY(-1px);
 }
 .card-selected {
   @apply border-terminal-gold border-l-2 bg-terminal-surface2;
 }
+
+/* Global button-press feedback — applies to every native <button> site-wide
+   without needing a shared component or per-callsite class, since this
+   codebase's buttons are mostly ad-hoc Tailwind rather than one shared
+   button component. */
+button:not(:disabled) {
+  transition: opacity 100ms ease, transform 100ms ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+/* Price-significant number pulse — AnimatedNumber (Skeleton-adjacent
+   src/components/ui/AnimatedNumber.jsx) applies count-up/count-down on a
+   >1% change, separate from useLivePrice's per-tick flash used on ticker
+   rows/tables (this is for larger, non-tick-driven jumps like a portfolio
+   total value recalculating). */
+@keyframes countUp {
+  0% { color: inherit; }
+  50% { color: var(--color-gain, #2D8A50); }
+  100% { color: inherit; }
+}
+@keyframes countDown {
+  0% { color: inherit; }
+  50% { color: var(--color-loss, #A83232); }
+  100% { color: inherit; }
+}
+.count-up { animation: countUp 0.5s ease; }
+.count-down { animation: countDown 0.5s ease; }
 
 /* Positive/negative color utilities — use CSS vars for muted premium palette */
 .pos  { color: var(--color-gain); }

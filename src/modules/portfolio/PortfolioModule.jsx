@@ -23,6 +23,7 @@ import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBu
 import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
 import { logActivity } from '../../services/activityLogService'
 import { SkeletonCard } from '../../components/ui/Skeleton'
+import AnimatedNumber from '../../components/ui/AnimatedNumber'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -745,7 +746,11 @@ export default function PortfolioModule() {
 
       {/* Stats bar */}
       <div className="grid grid-cols-4 xl:grid-cols-9 border-b border-terminal-border flex-shrink-0">
-        <StatBox label="PORTFOLIO VALUE" value={mktTotal > 0 ? fmtCur(mktTotal) : '—'} color="text-terminal-text-bright" />
+        <StatBox
+          label="PORTFOLIO VALUE"
+          value={mktTotal > 0 ? <AnimatedNumber value={mktTotal} format={fmtCur} /> : '—'}
+          color="text-terminal-text-bright"
+        />
         <StatBox label="TOTAL COST"      value={fmtCur(costTotal)} color="text-terminal-text-dim" />
         <StatBox
           label="UNREALIZED P&L"

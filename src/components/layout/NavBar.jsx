@@ -102,13 +102,13 @@ export default function NavBar() {
               <button
                 onClick={() => setActiveModule(item.id)}
                 title={item.fkey ? `${item.label} — press ${item.fkey}` : item.label}
-                className={`relative flex items-center gap-3 w-full px-4 py-2 border-l-2 transition-colors duration-100 ${
+                className={`group/item relative flex items-center gap-3 w-full px-4 py-2 border-l-2 transition-colors duration-100 ${
                   isActive
                     ? 'border-l-terminal-gold bg-terminal-gold/[0.07] text-terminal-gold'
                     : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2'
                 }`}
               >
-                <span className="relative flex-shrink-0">
+                <span className="relative flex-shrink-0 transition-transform duration-150 group-hover/item:scale-[1.15]">
                   <item.Icon size={18} strokeWidth={1.75} />
                   {item.id === 'brief' && showBriefDot && !isActive && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-terminal-gold pulse-gold" title="New brief available" />
