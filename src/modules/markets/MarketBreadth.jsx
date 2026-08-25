@@ -1,10 +1,55 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ASX_STOCKS, US_STOCKS } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
+import { GICS_SECTORS, SECTOR_ABBR, ASX_SECTOR_STOCKS } from './SectorHeatmap'
+import { getMockFMPRow } from '../../services/mockData'
+
+function SectorBreakdownModal({ onClose }) {
+  const bySector = GICS_SECTORS.map((sector) => {
+    const stocks = ASX_SECTOR_STOCKS[sector] ?? []
+    let adv = 0, dec = 0
+    for (const [sym] of stocks) {
+      const pct = getMockFMPRow(sym)?.regularMarketChangePercent
+      if (pct == null) continue
+      if (pct > 0) adv++
+      else if (pct < 0) dec++
+    }
+    const total = adv + dec
+    return { sector, abbr: SECTOR_ABBR[sector] ?? sector, adv, dec, total, advPct: total ? (adv / total) * 100 : 0 }
+  }).sort((a, b) => b.advPct - a.advPct)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-terminal-panel border border-terminal-border-gold p-4 w-[420px] max-w-[92vw] shadow-2xl font-mono"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-terminal-gold font-bold tracking-widest text-sm">BREADTH BY SECTOR</span>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
+        </div>
+        <div className="space-y-2">
+          {bySector.map((s) => (
+            <div key={s.sector} className="flex items-center gap-2 text-2xs">
+              <span className="w-24 flex-shrink-0 text-terminal-text-dim truncate">{s.abbr}</span>
+              <div className="flex-1 h-2.5 bg-terminal-red/40 rounded-sm overflow-hidden flex">
+                <div className="h-full bg-terminal-green" style={{ width: `${s.advPct}%` }} />
+              </div>
+              <span className="w-16 flex-shrink-0 text-right text-terminal-green">▲{s.adv}</span>
+              <span className="w-16 flex-shrink-0 text-right text-terminal-red">▼{s.dec}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // Shares TopMovers'/MarketSentimentBanner's exact queryKeys — one cached
 // fetch serves all three rather than issuing its own duplicate requests.
 export default function MarketBreadth() {
+  const [showBreakdown, setShowBreakdown] = useState(false)
   const { data: asxResult } = useQuery({
     queryKey:  ['yahooMoversBatch', 'asx'],
     queryFn:   () => fetchEquityQuotes(ASX_STOCKS),
@@ -37,8 +82,13 @@ export default function MarketBreadth() {
   const sentimentCls = adRatio >= 1.5 ? 'text-terminal-green' : adRatio >= 0.8 ? 'text-terminal-gold' : 'text-terminal-red'
   const advPct = (advances / (advances + declines + unchanged)) * 100
 
-  return (
-    <div className="flex-shrink-0 border-b border-terminal-border px-3 py-1.5 flex items-center gap-4 flex-wrap" style={{ minHeight: 32 }}>
+  const bar = (
+    <div
+      onClick={() => setShowBreakdown(true)}
+      title="Click for breadth by sector"
+      className="flex-shrink-0 border-b border-terminal-border px-3 py-1.5 flex items-center gap-4 flex-wrap cursor-pointer hover:bg-terminal-surface2 transition-colors"
+      style={{ minHeight: 32 }}
+    >
       <span className="text-2xs text-terminal-gold font-bold tracking-widest flex-shrink-0">MARKET BREADTH · TRACKED UNIVERSE</span>
       <div className="flex items-center gap-1 flex-shrink-0">
         <span className="text-2xs text-terminal-green font-bold">Advances: {advances} ▲</span>
@@ -63,5 +113,12 @@ export default function MarketBreadth() {
         <div className="h-full bg-terminal-green" style={{ width: `${advPct}%` }} />
       </div>
     </div>
+  )
+
+  return (
+    <>
+      {bar}
+      {showBreakdown && <SectorBreakdownModal onClose={() => setShowBreakdown(false)} />}
+    </>
   )
 }
