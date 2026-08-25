@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react'
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
+import { workspaceService } from './services/workspaceService'
+import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
@@ -214,6 +216,17 @@ function Terminal() {
   const [splitModuleId, setSplitModuleId] = useState('crypto')
   const SplitModule = MODULE_MAP[splitModuleId] || CryptoModule
 
+  // Custom multi-panel workspaces (see workspaceService.js / WorkspaceSwitcher).
+  // 'single' is the default one-module workspace — the existing single/split
+  // render path below still owns that case, so only a genuinely custom
+  // multi-panel workspace takes over the main content area.
+  useSyncExternalStore(
+    useCallback((cb) => workspaceService.subscribe(cb), []),
+    useCallback(() => `${workspaceService.active}::${JSON.stringify(workspaceService.getActive())}`, []),
+  )
+  const activeWorkspace = workspaceService.getActive()
+  const isCustomWorkspace = activeWorkspace.layout !== 'single'
+
   // Background news subscription — keeps the ['news'] query alive and enables nav badge
   const { data: bgNewsData } = useQuery({
     queryKey: ['news'],
@@ -375,7 +388,11 @@ function Terminal() {
       <TickerTape />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {layout !== 'focus' && <NavBar />}
-        {layout === 'split' ? (
+        {isCustomWorkspace ? (
+          <div key={activeWorkspace.id} className="flex-1 min-w-0 overflow-hidden module-fade">
+            <WorkspaceRenderer workspace={activeWorkspace} />
+          </div>
+        ) : layout === 'split' ? (
           <div className="flex flex-1 min-w-0 overflow-hidden">
             <div key={activeModule} className="flex-1 min-w-0 w-1/2 overflow-hidden border-r border-terminal-border module-fade">
               <ErrorBoundary label={MODULE_TITLES[activeModule]}>

@@ -12,6 +12,7 @@ import { USING_MOCK_DATA } from '../../services/api'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import { useSentiment } from '../../hooks/useSentiment'
 import { SentimentCompact } from '../ui/SentimentIndicator'
+import WorkspaceSwitcher from './WorkspaceSwitcher'
 
 const LAYOUT_ICONS = { standard: '⊞', focus: '▣', split: '◫', research: '◨' }
 
@@ -429,6 +430,8 @@ export default function TopBar() {
 
       {/* RIGHT — demo badge, notifications, avatar */}
       <div className="flex items-center justify-self-end flex-shrink-0">
+        <div className="hidden lg:block"><WorkspaceSwitcher /></div>
+        <Divider />
         <LayoutSwitcher />
         <Divider />
         {USING_MOCK_DATA && <DataFreshnessBadge />}
