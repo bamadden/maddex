@@ -15,8 +15,11 @@ import { displayService } from '../../services/displayService'
 import { workspaceService } from '../../services/workspaceService'
 import { priceStream } from '../../services/priceStreamService'
 import { soundService } from '../../services/soundService'
+import { getAiPreferences, setAiPreference } from '../../services/aiPreferencesService'
+import { clearAllHistory, listConversations } from '../../services/aiHistoryService'
+import { APP_VERSION } from '../layout/NavBar'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
+const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -911,8 +914,114 @@ function NotificationsSection() {
         </FieldRow>
       ))}
       <FieldRow label="Sound Effects" note="Subtle tones for alerts, AI responses, and actions — off by default">
-        <Toggle value={soundService.enabled} onChange={() => soundService.toggle()} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => soundService.play('alert')}
+            disabled={!soundService.enabled}
+            className="text-2xs text-terminal-text-dim border border-terminal-border px-2 py-1 hover:text-terminal-gold hover:border-terminal-gold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >TEST ▶</button>
+          <Toggle value={soundService.enabled} onChange={() => soundService.toggle()} />
+        </div>
       </FieldRow>
+    </div>
+  )
+}
+
+// ─── MADDENAI ─────────────────────────────────────────────────────────────────
+
+function MaddenAISection() {
+  const { profile, updateProfile } = useAuthStore()
+  const [prefs, setPrefs] = useState(() => getAiPreferences())
+  const [historyCount, setHistoryCount] = useState(() => listConversations().length)
+  const [clearConfirm, setClearConfirm] = useState(false)
+
+  const setPref = (key, value) => setPrefs(setAiPreference(key, value))
+
+  const handleClearHistory = () => {
+    if (clearConfirm) {
+      clearAllHistory()
+      setHistoryCount(0)
+      setClearConfirm(false)
+    } else {
+      setClearConfirm(true)
+      setTimeout(() => setClearConfirm(false), 3000)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>MaddenAI</SectionLabel>
+
+      <div>
+        <div className="text-xs text-terminal-text-bright">Analysis Depth</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">How detailed MaddenAI's responses should be — set via your experience level in Profile</div>
+        <div className="flex border border-terminal-border w-fit">
+          {EXPERIENCE_LEVELS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => updateProfile({ experience_level: value })}
+              className={`px-3 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-r-0 ${
+                (profile?.experience_level || 'INTERMEDIATE') === value ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+            >{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <FieldRow label="Context Awareness" note="Grounds responses in what you're currently viewing — active module, open asset, watchlist, portfolio size">
+        <Toggle value={prefs.contextAwareness} onChange={(v) => setPref('contextAwareness', v)} />
+      </FieldRow>
+
+      <FieldRow label="Auto-Analyse" note="Automatically ask MaddenAI to analyse an asset when you open its detail view (while the AI panel is open)">
+        <Toggle value={prefs.autoAnalyse} onChange={(v) => setPref('autoAnalyse', v)} />
+      </FieldRow>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-xs text-terminal-text-bright mb-2">Disclaimer Frequency</div>
+        <div className="flex border border-terminal-border w-fit">
+          {[
+            { id: 'always', label: 'ALWAYS' },
+            { id: 'session', label: 'ONCE PER SESSION' },
+            { id: 'never', label: 'NEVER' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setPref('disclaimerFrequency', f.id)}
+              className={`px-3 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-r-0 ${
+                prefs.disclaimerFrequency === f.id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+            >{f.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30 flex items-center justify-between">
+        <div>
+          <div className="text-xs text-terminal-text-bright">Saved Conversations</div>
+          <div className="text-2xs text-terminal-text-dim mt-0.5">{historyCount} conversation{historyCount === 1 ? '' : 's'} saved locally</div>
+        </div>
+        <button
+          onClick={handleClearHistory}
+          disabled={historyCount === 0}
+          className={`text-2xs font-bold px-3 py-1.5 border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+            clearConfirm ? 'border-terminal-red bg-terminal-red/10 text-terminal-red' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-red hover:text-terminal-red'
+          }`}
+        >{clearConfirm ? 'CONFIRM CLEAR' : 'CLEAR HISTORY'}</button>
+      </div>
+
+      <div className="mt-2 border border-terminal-border p-3 space-y-2">
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest">ANTHROPIC API STATUS</div>
+        <div className="text-2xs text-terminal-text-dim leading-relaxed">
+          MaddenAI runs on the Anthropic API. If responses show a credit-balance error, the account's
+          API key needs more credit before requests will succeed.
+        </div>
+        <a
+          href="https://console.anthropic.com/settings/billing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-2xs font-bold text-terminal-gold border border-terminal-gold px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >ADD CREDITS →</a>
+      </div>
     </div>
   )
 }
@@ -1369,6 +1478,74 @@ function ApiAccessSection() {
   )
 }
 
+// ─── ABOUT ────────────────────────────────────────────────────────────────────
+
+const BUILD_DATE = '2026-08-25'
+const WHATS_NEW = [
+  { date: '2026-08-25', note: 'MaddenAI settings (auto-analyse, context awareness, disclaimer frequency), saved screens in the Screener, and a portfolio returns attribution waterfall chart.' },
+  { date: '2026-08-24', note: 'Skeleton loading screens, micro-animations, elite empty states, and a Web Audio sound-effects system.' },
+  { date: '2026-08-24', note: 'Markets sector breadth drill-down, Global AU Focus, and MaddenAI conversation history.' },
+]
+
+function AboutSection() {
+  return (
+    <div className="space-y-5">
+      <SectionLabel>About</SectionLabel>
+
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 border border-terminal-gold/50 flex items-center justify-center text-terminal-gold text-lg font-bold flex-shrink-0">M</div>
+        <div>
+          <div className="text-sm font-bold text-terminal-text-bright tracking-widest">MADDEX</div>
+          <div className="text-2xs text-terminal-text-dim">Financial Intelligence Terminal</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="border border-terminal-border p-3">
+          <div className="text-2xs text-terminal-text-dim">VERSION</div>
+          <div className="text-xs text-terminal-text-bright font-bold mt-0.5">{APP_VERSION}</div>
+        </div>
+        <div className="border border-terminal-border p-3">
+          <div className="text-2xs text-terminal-text-dim">BUILD DATE</div>
+          <div className="text-xs text-terminal-text-bright font-bold mt-0.5">{BUILD_DATE}</div>
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-xs text-terminal-text-bright mb-2">What's New</div>
+        <div className="space-y-2.5">
+          {WHATS_NEW.map((entry, i) => (
+            <div key={i} className="text-2xs">
+              <span className="text-terminal-text-dim/60">{entry.date}</span>
+              <span className="text-terminal-text-dim"> — {entry.note}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30 space-y-1.5">
+        <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer"
+          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Service</a>
+        <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer"
+          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Privacy Policy</a>
+        <a href="https://maddex.com.au/disclaimer" target="_blank" rel="noopener noreferrer"
+          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Financial Disclaimer</a>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30 flex gap-2">
+        <a
+          href="mailto:ben@maddex.com.au?subject=Maddex%20Feedback"
+          className="flex-1 text-center text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >SEND FEEDBACK</a>
+        <a
+          href="mailto:ben@maddex.com.au?subject=Maddex%20Bug%20Report"
+          className="flex-1 text-center text-2xs font-bold text-terminal-text-dim border border-terminal-border px-3 py-1.5 hover:border-terminal-red hover:text-terminal-red transition-colors"
+        >REPORT A BUG</a>
+      </div>
+    </div>
+  )
+}
+
 // ─── Confirmation Dialog ──────────────────────────────────────────────────────
 
 function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requiresPassword }) {
@@ -1499,6 +1676,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
           {active === 'WORKSPACES'    && <WorkspacesSection />}
           {active === 'DATA & REFRESH' && <DataRefreshSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
+          {active === 'MADDENAI'      && <MaddenAISection />}
           {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}
           {active === 'DATA'          && (
             <DataSection
@@ -1509,6 +1687,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
           )}
           {active === 'SUBSCRIPTION'  && <SubscriptionSection />}
           {active === 'API ACCESS'    && <ApiAccessSection />}
+          {active === 'ABOUT'         && <AboutSection />}
         </div>
       </div>
 

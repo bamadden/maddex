@@ -12,6 +12,7 @@ import { createAlert } from '../../services/alertsService'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { logActivity } from '../../services/activityLogService'
 import { listConversations, saveConversation, deleteConversation } from '../../services/aiHistoryService'
+import { getAiPreferences } from '../../services/aiPreferencesService'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
 // Tracked client-side in localStorage under a month-stamped key, so it
@@ -389,11 +390,18 @@ export default function AIPanel({ wide = false }) {
   // brief reminder should resurface on a fresh session, not vanish forever
   // the first time someone dismisses it.
   const [disclaimerDismissed, setDisclaimerDismissed] = useState(() => {
+    const freq = getAiPreferences().disclaimerFrequency
+    if (freq === 'never') return true
+    if (freq === 'always') return false
     try { return sessionStorage.getItem('maddex_ai_disclaimer_dismissed') === 'true' } catch { return false }
   })
   const dismissDisclaimer = () => {
+    const freq = getAiPreferences().disclaimerFrequency
+    if (freq === 'always') return // Settings: "always show" — dismiss is a no-op
     setDisclaimerDismissed(true)
-    try { sessionStorage.setItem('maddex_ai_disclaimer_dismissed', 'true') } catch { /* best-effort */ }
+    if (freq !== 'never') {
+      try { sessionStorage.setItem('maddex_ai_disclaimer_dismissed', 'true') } catch { /* best-effort */ }
+    }
   }
   const isFullscreen = aiMode === 'fullscreen'
   const isPip = aiMode === 'pip'
@@ -517,6 +525,7 @@ export default function AIPanel({ wide = false }) {
   // portfolio/date, prepended to the base system prompt so every response
   // is grounded in what the user is actually looking at right now.
   const buildDynamicContext = useCallback(() => {
+    if (!getAiPreferences().contextAwareness) return ''
     const moduleLabel = MODULE_LABELS[activeModule] ?? activeModule
     let holdingsCount = 0
     try { holdingsCount = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]')).length } catch { /* best-effort */ }
@@ -582,6 +591,19 @@ export default function AIPanel({ wide = false }) {
       setLoading(false)
     }
   }
+
+  // Auto-analyse — when enabled in Settings, opening an asset's detail view
+  // while the AI panel is already open auto-sends the ANALYSE quick prompt
+  // for it, so a new symbol never gets analysed twice in a row.
+  const lastAutoAnalysedRef = useRef(null)
+  useEffect(() => {
+    if (!chatOpen || !modalAsset?.symbol) return
+    if (!getAiPreferences().autoAnalyse) return
+    if (lastAutoAnalysedRef.current === modalAsset.symbol) return
+    lastAutoAnalysedRef.current = modalAsset.symbol
+    const prompt = getQuickPrompts(activeModule, modalAsset.symbol)[0]?.prompt
+    if (prompt) send(prompt)
+  }, [modalAsset, chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const copyMessage = (content) => {
     navigator.clipboard?.writeText(content).catch(() => {})

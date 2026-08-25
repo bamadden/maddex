@@ -68,7 +68,7 @@ function isBriefNotifyWindow(now) {
   return hour >= 7 && hour < 10
 }
 
-const APP_VERSION = 'v0.1.0-beta'
+export const APP_VERSION = 'v0.1.0-beta'
 const LABEL_BASE = 'text-2xs font-semibold tracking-widest uppercase whitespace-nowrap transition-opacity duration-150'
 
 // Desktop left sidebar — 56px icon-only by default, expands to 200px with

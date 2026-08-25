@@ -54,6 +54,10 @@ export function deleteConversation(id) {
   save(load().filter((c) => c.id !== id))
 }
 
+export function clearAllHistory() {
+  save([])
+}
+
 export function getConversation(id) {
   return load().find((c) => c.id === id) ?? null
 }
