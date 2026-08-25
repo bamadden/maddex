@@ -192,7 +192,7 @@ export function StoreProvider({ children }) {
         chatOpen, setChatOpen,
         aiMode, setAiMode,
         currency, setCurrency,
-        chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
+        chatMessages, setChatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
         watchlistFocus, setWatchlistFocus,
         modalAsset, openModal, closeModal,
         compareAssets, openCompare, closeCompare, addCompareAsset, removeCompareAsset,

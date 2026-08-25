@@ -2,12 +2,16 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import { askClaude } from '../../services/api'
+import { askClaude, buildSystemPrompt } from '../../services/api'
 import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import VoiceInterface from '../voice/VoiceInterface'
 import { soundService } from '../../services/soundService'
+import { createAlert } from '../../services/alertsService'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import { logActivity } from '../../services/activityLogService'
+import { listConversations, saveConversation, deleteConversation } from '../../services/aiHistoryService'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
 // Tracked client-side in localStorage under a month-stamped key, so it
@@ -38,38 +42,90 @@ const lastRbaLabel = new Date(`${LAST_DECISIONS.RBA.date}T00:00:00`)
   .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
 
 // Exactly 6, rendered 2 rows of 3 — row order matters (matches the grid flow).
-const QUICK_PROMPTS = [
-  {
-    label:  'ASX OUTLOOK',
-    prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?',
-    dataKeys: ['asx', 'aud'],
-  },
-  {
-    label:  'BHP ANALYSIS',
-    prompt: 'Give a brief analysis of BHP.AX — current conditions, iron ore price exposure, and outlook for Australian investors.',
-    dataKeys: ['aud'],
-  },
-  {
-    label:  'AUD-USD',
-    prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.',
-    dataKeys: ['aud'],
-  },
-  {
-    label:  'RBA NEXT MOVE',
-    prompt: `What is the most likely RBA decision at the next board meeting on ${nextRbaLabel} and why? Current cash rate is 4.35% after the RBA ${LAST_DECISIONS.RBA.decision.toLowerCase()} at its ${lastRbaLabel} meeting (${LAST_DECISIONS.RBA.note}).`,
-    dataKeys: ['asx', 'aud'],
-  },
-  {
-    label:  'IRON ORE',
-    prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.',
-    dataKeys: ['aud'],
-  },
-  {
-    label:  'GLOBAL RISK',
-    prompt: 'What are the top 3 geopolitical risks currently affecting Australian markets and the AUD?',
-    dataKeys: ['asx', 'aud'],
-  },
+// Post-response ticker detection is checked against the real mock universe
+// rather than a bare regex, so it doesn't fire on capitalised acronyms like
+// RBA/CPI/GDP that a bare [A-Z]{2,5} match would catch.
+const VALID_TICKERS = new Set([...Object.keys(MOCK_ASX_STOCKS), ...Object.keys(MOCK_US_STOCKS)])
+
+// Readable labels for buildDynamicContext() — mirrors App.jsx's private
+// MODULE_TITLES (not exported, so duplicated here rather than touching a
+// file this session has already edited many times for an unrelated const).
+const MODULE_LABELS = {
+  dashboard: 'Dashboard', markets: 'Markets', portfolio: 'Portfolio', crypto: 'Crypto',
+  fx: 'Rates & FX', macro: 'Macro', watchlist: 'Watchlist', news: 'News', global: 'Global',
+  screener: 'Screener', brief: 'Morning Brief', replay: 'Market Replay', scanner: 'Market Scanner',
+  calendar: 'Calendar',
+}
+
+// Module-specific prompt sets (4 each, shown as a 2×2 pill grid) — replaces
+// the old single static list. RBA_PROMPT reuses the same nextRbaLabel/
+// lastRbaLabel computed above, so its dynamic date/rate text is unchanged.
+const RBA_PROMPT = {
+  label:  'RBA NEXT MOVE',
+  prompt: `What is the most likely RBA decision at the next board meeting on ${nextRbaLabel} and why? Current cash rate is 4.35% after the RBA ${LAST_DECISIONS.RBA.decision.toLowerCase()} at its ${lastRbaLabel} meeting (${LAST_DECISIONS.RBA.note}).`,
+  dataKeys: ['asx', 'aud'],
+}
+
+const MODULE_PROMPTS = {
+  markets: [
+    { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
+    { label: 'TOP SECTOR TODAY', prompt: "Which ASX sector is performing best today and why? What's driving it?", dataKeys: ['asx'] },
+    { label: "WHAT'S MOVING MARKETS?", prompt: 'What are the top 3 stories or catalysts moving markets right now?', dataKeys: ['asx', 'aud'] },
+    { label: 'IRON ORE OUTLOOK', prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.', dataKeys: ['aud'] },
+  ],
+  crypto: [
+    { label: 'BTC OUTLOOK', prompt: 'What is the current outlook for Bitcoin — key levels, sentiment, and near-term catalysts?', dataKeys: ['btc'] },
+    { label: 'CRYPTO SENTIMENT', prompt: 'Summarise current crypto market sentiment and what is driving it right now.', dataKeys: ['btc', 'eth'] },
+    { label: 'ETH VS BTC', prompt: 'Compare the current relative strength and outlook of Ethereum versus Bitcoin.', dataKeys: ['btc', 'eth'] },
+    { label: 'DEFI SECTOR OUTLOOK', prompt: 'What is the current outlook for the DeFi sector within crypto markets?', dataKeys: [] },
+  ],
+  fx: [
+    RBA_PROMPT,
+    { label: 'AUD/USD OUTLOOK', prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.', dataKeys: ['aud'] },
+    { label: 'YIELD CURVE ANALYSIS', prompt: 'What is the current AU yield curve telling us, and how does it compare to the US curve?', dataKeys: [] },
+    { label: 'RATE CUT TIMELINE', prompt: 'What is the market currently pricing for the RBA rate cut/hold timeline over the next 12 months?', dataKeys: ['aud'] },
+  ],
+  macro: [
+    { label: 'AU MACRO OUTLOOK', prompt: 'Summarise the current Australian macroeconomic outlook — growth, inflation, and labour market.', dataKeys: ['aud'] },
+    { label: 'INFLATION TRAJECTORY', prompt: "What is the current trajectory of Australian inflation and how does it compare to the RBA's target band?", dataKeys: [] },
+    { label: 'RBA POLICY OUTLOOK', prompt: RBA_PROMPT.prompt, dataKeys: ['asx', 'aud'] },
+    { label: 'GLOBAL RECESSION RISK', prompt: 'What is the current assessment of global recession risk and how would it affect Australian markets?', dataKeys: ['asx'] },
+  ],
+  global: [
+    { label: 'GEOPOLITICAL RISKS', prompt: 'What are the top 3 geopolitical risks currently affecting Australian markets and the AUD?', dataKeys: ['asx', 'aud'] },
+    { label: 'IRON ORE OUTLOOK', prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.', dataKeys: ['aud'] },
+    { label: 'TRADE WAR IMPACT', prompt: "What is the current state of global trade tensions and their impact on Australia's economy?", dataKeys: [] },
+    { label: 'CHINA ECONOMY', prompt: "Summarise the current state of China's economy and its implications for Australian exporters.", dataKeys: ['aud'] },
+  ],
+  news: [
+    { label: "TODAY'S KEY THEMES", prompt: "What are today's key market themes for Australian investors?", dataKeys: ['asx', 'aud'] },
+    { label: 'MARKET IMPACT SUMMARY', prompt: "Summarise the market impact of today's top news stories.", dataKeys: ['asx'] },
+    { label: 'RISKS TO WATCH', prompt: 'What are the key risks investors should watch based on current news flow?', dataKeys: ['asx', 'aud'] },
+    { label: 'ASX CATALYSTS TODAY', prompt: 'What are the key catalysts for the ASX today?', dataKeys: ['asx'] },
+  ],
+}
+
+const DEFAULT_PROMPTS = [
+  { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
+  RBA_PROMPT,
+  { label: 'IRON ORE OUTLOOK', prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.', dataKeys: ['aud'] },
+  { label: 'AUD/USD OUTLOOK', prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.', dataKeys: ['aud'] },
 ]
+
+// selectedSymbol: the ticker currently open in the stock detail modal, if
+// any — asset-specific prompts take priority over module-specific ones.
+function getQuickPrompts(activeModule, selectedSymbol) {
+  if (selectedSymbol) {
+    const bare = selectedSymbol.replace('.AX', '')
+    return [
+      { label: `ANALYSE ${bare}`, prompt: `Give a concise analysis of ${selectedSymbol} — current price action, key drivers, and near-term outlook.`, dataKeys: [] },
+      { label: `${bare} PRICE TARGETS`, prompt: `What are reasonable price targets for ${selectedSymbol} based on current technicals and fundamentals?`, dataKeys: [] },
+      { label: `NEWS ON ${bare}`, prompt: `What news or catalysts are currently driving ${selectedSymbol} right now?`, dataKeys: [] },
+      { label: `${bare} RISK FACTORS`, prompt: `What are the key risk factors investors should watch for ${selectedSymbol}?`, dataKeys: [] },
+    ]
+  }
+  return MODULE_PROMPTS[activeModule] ?? DEFAULT_PROMPTS
+}
 
 // ─── Inline text formatter (replaces markdown with styled HTML) ───────────────
 
@@ -266,11 +322,59 @@ export default function AIPanel({ wide = false }) {
   const {
     chatOpen, setChatOpen,
     aiMode, setAiMode,
-    chatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
-    addNotification,
+    chatMessages, setChatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
+    addNotification, activeModule, modalAsset, watchlist, addToWatchlist,
   } = useStore()
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyList, setHistoryList] = useState(() => listConversations())
+  const [currentConvId, setCurrentConvId] = useState(null)
+  const currentConvIdRef = useRef(null)
+  useEffect(() => { currentConvIdRef.current = currentConvId }, [currentConvId])
+
+  const persistConversation = useCallback(() => {
+    if (chatMessages.length === 0) return
+    const id = saveConversation(chatMessages, currentConvIdRef.current)
+    setCurrentConvId(id)
+    setHistoryList(listConversations())
+  }, [chatMessages])
+
+  // Auto-save on close and on tab close — the brief's third trigger
+  // ("starting a new conversation") is handled at the NEW CHAT button
+  // itself, since that's the one place the transition is explicit.
+  useEffect(() => {
+    if (chatOpen) return undefined
+    const t = setTimeout(persistConversation, 0)
+    return () => clearTimeout(t)
+  }, [chatOpen, persistConversation])
+
+  useEffect(() => {
+    const handler = () => persistConversation()
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [persistConversation])
+
+  const startNewChat = useCallback(() => {
+    persistConversation()
+    clearChatMessages()
+    setCurrentConvId(null)
+    setShowHistory(false)
+  }, [persistConversation, clearChatMessages])
+
+  const loadConversation = useCallback((conv) => {
+    setChatMessages(conv.messages)
+    setCurrentConvId(conv.id)
+    setShowHistory(false)
+  }, [setChatMessages])
+
+  const removeConversation = useCallback((id, e) => {
+    e.stopPropagation()
+    deleteConversation(id)
+    setHistoryList(listConversations())
+    setCurrentConvId((cur) => (cur === id ? null : cur))
+  }, [])
   const { profile } = useAuthStore()
   const { canAccess, isApex, tier } = useSubscription()
+  const quickPrompts = getQuickPrompts(activeModule, modalAsset?.symbol)
 
   const queryClient = useQueryClient()
 
@@ -409,6 +513,23 @@ export default function AIPanel({ wide = false }) {
 
   // ── Send message ──────────────────────────────────────────────────────────
 
+  // Dynamic per-turn context — active module/selected asset/watchlist/
+  // portfolio/date, prepended to the base system prompt so every response
+  // is grounded in what the user is actually looking at right now.
+  const buildDynamicContext = useCallback(() => {
+    const moduleLabel = MODULE_LABELS[activeModule] ?? activeModule
+    let holdingsCount = 0
+    try { holdingsCount = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]')).length } catch { /* best-effort */ }
+    const lines = [
+      `Today's date: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
+      `User is currently viewing: ${moduleLabel}`,
+    ]
+    if (modalAsset?.symbol) lines.push(`Asset currently open in detail view: ${modalAsset.symbol}`)
+    if (watchlist?.length) lines.push(`User's watchlist: ${watchlist.join(', ')}`)
+    lines.push(holdingsCount > 0 ? `User has ${holdingsCount} portfolio holding(s) tracked.` : 'User has no portfolio holdings tracked yet.')
+    return `CURRENT SESSION CONTEXT:\n${lines.join('\n')}`
+  }, [activeModule, modalAsset, watchlist])
+
   const send = async (textOverride, opts = {}) => {
     const { context, silent } = opts
     const text = (textOverride ?? input).trim()
@@ -443,7 +564,7 @@ export default function AIPanel({ wide = false }) {
       const result = await askClaude(
         [...history, userTurn],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { experienceLevel: profile?.experience_level }
+        { systemPrompt: `${buildSystemPrompt(profile?.experience_level)}\n\n${buildDynamicContext()}` }
       )
       updateLastChatMessage((prev) => ({
         ...prev,
@@ -479,6 +600,39 @@ export default function AIPanel({ wide = false }) {
   const turnCount = chatMessages.filter((m) => m.role === 'user').length
 
   // Monogram + disclaimer each appear once per session, not per message.
+  const detectResponseActions = useCallback((text) => {
+    if (!text) return []
+    const actions = []
+    const candidates = [...new Set(text.match(/\b[A-Z]{2,5}(?:\.AX)?\b/g) ?? [])]
+    const tickers = candidates
+      .map((t) => (VALID_TICKERS.has(t) ? t : VALID_TICKERS.has(`${t}.AX`) ? `${t}.AX` : null))
+      .filter(Boolean)
+    const uniqueTickers = [...new Set(tickers)]
+
+    uniqueTickers.slice(0, 2).forEach((ticker) => {
+      if (watchlist.includes(ticker)) return
+      actions.push({
+        key: `wl-${ticker}`, label: `+ ${ticker.replace('.AX', '')}`, type: 'watchlist',
+        onClick: () => { addToWatchlist(ticker); logActivity('watchlist', `Added ${ticker} to watchlist (from MaddenAI)`); soundService.actionSuccess() },
+      })
+    })
+
+    const priceMatch = text.match(/A\$[\d,]+(?:\.\d+)?|US\$[\d,]+(?:\.\d+)?/)
+    if (priceMatch && uniqueTickers[0]) {
+      const value = parseFloat(priceMatch[0].replace(/[A-Z$,]/g, ''))
+      actions.push({
+        key: 'alert', label: `⚡ Alert at ${priceMatch[0]}`, type: 'alert',
+        onClick: () => { createAlert({ type: 'PRICE', symbol: uniqueTickers[0], condition: 'above', value, label: `${uniqueTickers[0]} above ${priceMatch[0]}` }); addNotification('SYSTEM', `Alert set: ${uniqueTickers[0]} above ${priceMatch[0]}`) },
+      })
+    }
+    return actions
+  }, [watchlist, addToWatchlist, addNotification])
+
+  const ACTION_STYLE = {
+    watchlist: 'text-terminal-green border-terminal-green/40 hover:bg-terminal-green hover:text-terminal-bg',
+    alert:     'text-terminal-gold border-terminal-gold/40 hover:bg-terminal-gold hover:text-terminal-bg',
+  }
+
   const firstAssistantIdx = chatMessages.findIndex((m) => m.role === 'assistant' && !m.silent)
   const hasAnyReply = chatMessages.some((m) => m.role === 'assistant' && !m.silent && m.content)
 
@@ -519,6 +673,15 @@ export default function AIPanel({ wide = false }) {
         </div>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => setShowHistory((v) => !v)}
+            className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+              showHistory ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
+            }`}
+            title={`Conversation history${historyList.length > 0 ? ` (${historyList.length})` : ''}`}
+          >
+            🕐
+          </button>
+          <button
             onClick={() => setShowNotes((v) => !v)}
             className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
               showNotes ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
@@ -558,6 +721,51 @@ export default function AIPanel({ wide = false }) {
       </div>
 
       {/* Notes panel — Research Notes is an Apex feature */}
+      {showHistory && (
+        <div
+          className="absolute top-0 bottom-0 left-0 z-30 bg-terminal-panel border-r border-terminal-border-gold flex flex-col panel-slide-in"
+          style={{ width: 200 }}
+        >
+          <div className="flex items-center justify-between px-2 py-1.5 border-b border-terminal-border flex-shrink-0">
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">HISTORY</span>
+            <button onClick={() => setShowHistory(false)} className="text-terminal-text-dim hover:text-terminal-gold text-xs">✕</button>
+          </div>
+          <button
+            onClick={startNewChat}
+            className="mx-2 mt-2 text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-2 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+          >
+            + NEW CHAT
+          </button>
+          <div className="flex-1 overflow-y-auto mt-2">
+            {historyList.length === 0 ? (
+              <div className="px-2 py-4 text-2xs text-terminal-text-dim/50 text-center">No saved conversations</div>
+            ) : (
+              historyList.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => loadConversation(conv)}
+                  className={`group flex items-start gap-1 w-full text-left px-2 py-1.5 border-b border-terminal-border/30 hover:bg-terminal-surface2 transition-colors ${
+                    currentConvId === conv.id ? 'bg-terminal-gold/10' : ''
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] text-terminal-text-dim/60 font-mono">
+                      {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                    </div>
+                    <div className="text-2xs text-terminal-text-bright truncate">{conv.preview || 'Untitled'}</div>
+                  </div>
+                  <span
+                    onClick={(e) => removeConversation(conv.id, e)}
+                    className="text-terminal-text-dim/40 hover:text-terminal-red text-2xs opacity-0 group-hover:opacity-100 flex-shrink-0 px-0.5"
+                    title="Delete"
+                  >🗑</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {showNotes && (
         <div className="border-b border-terminal-border flex-shrink-0 relative">
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
@@ -587,9 +795,10 @@ export default function AIPanel({ wide = false }) {
         </div>
       )}
 
-      {/* Quick prompts — fixed 2 rows of 3 */}
-      <div className={`grid grid-cols-3 gap-1.5 p-2 border-b border-terminal-border flex-shrink-0 ${isFullscreen ? 'max-w-[800px] mx-auto w-full' : ''}`}>
-        {QUICK_PROMPTS.map((q) => (
+      {/* Quick prompts — context-aware: asset-specific when a stock detail
+          modal is open, otherwise module-specific (2 rows of 2). */}
+      <div className={`grid grid-cols-2 gap-1.5 p-2 border-b border-terminal-border flex-shrink-0 ${isFullscreen ? 'max-w-[800px] mx-auto w-full' : ''}`}>
+        {quickPrompts.map((q) => (
           <button
             key={q.label}
             onClick={() => send(buildQuickPrompt(q))}
@@ -675,6 +884,23 @@ export default function AIPanel({ wide = false }) {
                 </div>
 
                 <FormattedResponse text={msg.content} />
+
+                {msg.content && !(i === chatMessages.length - 1 && loading) && (() => {
+                  const responseActions = detectResponseActions(msg.content)
+                  return responseActions.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                      {responseActions.map((a) => (
+                        <button
+                          key={a.key}
+                          onClick={a.onClick}
+                          className={`text-[9px] font-mono px-2 py-0.5 border rounded-full transition-colors ${ACTION_STYLE[a.type]}`}
+                        >
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()}
 
                 {i === chatMessages.length - 1 && loading && !msg.content && (
                   <div className="flex items-center gap-1 py-1">
