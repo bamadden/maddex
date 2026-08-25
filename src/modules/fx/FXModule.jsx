@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
@@ -15,10 +15,14 @@ import { useStore } from '../../store/useStore'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
-import { ModuleLoader } from '../../components/ui/ModuleStates'
+import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import YieldCurveAnimator from '../../components/charts/YieldCurveAnimator'
+
+// Code-split — three.js/@react-three pull in a large bundle only needed once
+// the user actually switches to the 3D surface view.
+const YieldCurve3D = lazy(() => import('../../components/visualisations/YieldCurve3D'))
 
 // ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
 
@@ -800,6 +804,7 @@ export default function FXModule() {
   const { canAccess, tier } = useSubscription()
   const [historyPair, setHistoryPair] = useState(null)
   const [fxAttemptKey, setFxAttemptKey]   = useState(0)
+  const [yieldView3D, setYieldView3D] = useState(false)
 
   const askAI = (fields) => dispatchAskAI(fields)
 
@@ -945,9 +950,30 @@ export default function FXModule() {
     {/* SECTION 4 — bond spreads */}
     <BondSpreadsTable />
 
-    {/* SECTION 5 — yield curve animation */}
+    {/* SECTION 5 — yield curve animation / 3D surface */}
     <div className="border-t border-terminal-border">
-      <YieldCurveAnimator curve={YIELD_CURVES.AU} />
+      <div className="flex items-center gap-2 px-2 py-1 border-b border-terminal-border/50">
+        <span className="text-2xs text-terminal-text-dim tracking-widest">YIELD CURVE OVER TIME</span>
+        <div className="ml-auto flex items-center border border-terminal-border rounded-full overflow-hidden">
+          <button
+            onClick={() => setYieldView3D(false)}
+            className={`text-2xs px-2.5 py-0.5 font-bold normal-case transition-colors ${!yieldView3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+          >2D CHART</button>
+          <button
+            onClick={() => setYieldView3D(true)}
+            className={`text-2xs px-2.5 py-0.5 font-bold normal-case transition-colors ${yieldView3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+          >3D SURFACE</button>
+        </div>
+      </div>
+      {yieldView3D ? (
+        <div style={{ height: 420 }}>
+          <Suspense fallback={<Viz3DLoader />}>
+            <YieldCurve3D auCurve={YIELD_CURVES.AU} usCurve={YIELD_CURVES.US} />
+          </Suspense>
+        </div>
+      ) : (
+        <YieldCurveAnimator curve={YIELD_CURVES.AU} />
+      )}
     </div>
     </div>
     {historyPair && <FxHistoryModal pair={historyPair} onClose={() => setHistoryPair(null)} />}
