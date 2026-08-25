@@ -3,6 +3,7 @@ import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useLivePrice } from '../../hooks/useLivePrice'
 import { fmt } from '../../utils/format'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import PriceChange from '../../components/ui/PriceChange'
@@ -226,6 +227,31 @@ function CompareIndicesModal({ indices, onClose }) {
   )
 }
 
+// Live-ticking price/pct/sparkline block for one index card. All benchmark
+// symbols (including ^-prefixed indices) are supported natively by
+// getMockFMPRow via its MOCK_INDICES lookup, so unlike the stock tables no
+// exchange-suffix restriction is needed here.
+function LiveIndexPrice({ symbol, q, sparkPoints, isStale, dataDate }) {
+  const { quote, flash } = useLivePrice(symbol)
+  const livePrice = quote ? quote.regularMarketPrice : q.last
+  const livePct = quote ? quote.regularMarketChangePercent : q.pct
+  const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
+  return (
+    <div className="flex items-end justify-between gap-1.5 mt-0.5">
+      <div>
+        <div className={`text-[13px] font-mono font-semibold text-white leading-tight whitespace-nowrap ${flashClass}`}>
+          {fmt.price(livePrice, 1)}
+        </div>
+        <PriceChange pct={livePct} size="text-[10px]" />
+        {isStale && (
+          <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
+        )}
+      </div>
+      <Sparkline points={sparkPoints} color={sparkColor(livePct)} />
+    </div>
+  )
+}
+
 export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }) {
   const { usdToAud } = useAudRates()
   const lastClickTime   = useRef(0)
@@ -352,18 +378,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                   ⚠ RETRY
                 </button>
               ) : q ? (
-                <div className="flex items-end justify-between gap-1.5 mt-0.5">
-                  <div>
-                    <div className="text-[13px] font-mono font-semibold text-white leading-tight whitespace-nowrap">
-                      {fmt.price(q.last, 1)}
-                    </div>
-                    <PriceChange pct={q.pct} size="text-[10px]" />
-                    {isStale && (
-                      <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
-                    )}
-                  </div>
-                  <Sparkline points={sparkPoints} color={sparkColor(q?.pct)} />
-                </div>
+                <LiveIndexPrice symbol={symbol} q={q} sparkPoints={sparkPoints} isStale={isStale} dataDate={dataDate} />
               ) : (
                 <div className="text-[14px] font-mono font-semibold text-terminal-muted/40 mt-1">—</div>
               )}

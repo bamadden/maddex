@@ -1,4 +1,5 @@
 import { useRef, memo } from 'react'
+import { useLivePrice } from '../../hooks/useLivePrice'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   transformCryptoMarkets,
@@ -52,15 +53,25 @@ const Divider = memo(function Divider({ label }) {
   )
 })
 
-const TapeItem = memo(function TapeItem({ sym, price, pct, marketCap, onClick }) {
-  const tooltip = [price, pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')
+// liveSymbol (ASX-only, e.g. 'BHP.AX') opts an item into the simulated
+// price stream — its price/change tick every 3s independent of the real
+// data refetch, with a brief flash-highlight on each tick. Non-ASX/index/
+// FX/commodity items pass no liveSymbol and just render their static props
+// as before (useLivePrice itself is null-safe, so the hook call is always
+// made — required since hooks can't be conditional).
+const TapeItem = memo(function TapeItem({ sym, price, pct, marketCap, onClick, liveSymbol }) {
+  const { quote, flash } = useLivePrice(liveSymbol)
+  const livePrice = liveSymbol && quote ? `A$${quote.regularMarketPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : price
+  const livePct = liveSymbol && quote ? quote.regularMarketChangePercent : pct
+  const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
+  const tooltip = [livePrice, livePct != null ? `${livePct >= 0 ? '+' : ''}${livePct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')
   return (
-    <span className="ticker-item" title={tooltip || undefined} onClick={onClick}>
+    <span className={`ticker-item ${flashClass}`} title={tooltip || undefined} onClick={onClick}>
       <span className="text-terminal-gold font-semibold">{sym}</span>
-      {price != null && <span className="text-terminal-text">{price}</span>}
-      {pct != null && (
-        <span className="font-semibold" style={{ color: pctColor(pct) }}>
-          {arrow(pct)}{pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
+      {livePrice != null && <span className="text-terminal-text">{livePrice}</span>}
+      {livePct != null && (
+        <span className="font-semibold" style={{ color: pctColor(livePct) }}>
+          {arrow(livePct)}{livePct >= 0 ? '+' : ''}{livePct.toFixed(2)}%
         </span>
       )}
       {marketCap != null && (
@@ -194,6 +205,7 @@ export default function TickerTape() {
         price:     fmtAUD(priceAud),
         pct:       q.dayChangePct,
         marketCap: capAud,
+        liveSymbol: q.symbol.endsWith('.AX') ? q.symbol : null,
         onClick: () => openModal?.({
           symbol: q.symbol,
           name:   ticker,
@@ -253,12 +265,12 @@ export default function TickerTape() {
         {content.map(el =>
           el.type === 'div'
             ? <Divider key={`a-${el.key}`} label={el.label} />
-            : <TapeItem key={`a-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
+            : <TapeItem key={`a-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} liveSymbol={el.liveSymbol} />
         )}
         {content.map(el =>
           el.type === 'div'
             ? <Divider key={`b-${el.key}`} label={el.label} />
-            : <TapeItem key={`b-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} />
+            : <TapeItem key={`b-${el.key}`} sym={el.sym} price={el.price} pct={el.pct} marketCap={el.marketCap} onClick={el.onClick} liveSymbol={el.liveSymbol} />
         )}
       </div>
     </div>

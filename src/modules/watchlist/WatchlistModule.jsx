@@ -18,6 +18,7 @@ import EarningsResultPanel from '../../components/earningsPreview/EarningsResult
 import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import ShareLinkModal from '../../components/ui/ShareLinkModal'
+import { useLivePrice } from '../../hooks/useLivePrice'
 import { createShareLink } from '../../services/sharingService'
 
 function displaySymbol(symbol) {
@@ -43,6 +44,36 @@ function Week52Bar({ price, low, high }) {
       </div>
       <span className="text-2xs text-terminal-green flex-shrink-0">{fmt.aud(high)}</span>
     </div>
+  )
+}
+
+// Live-ticking price/change/pct/52W-bar cells for one row — a real hook
+// call per row requires its own component (can't call hooks inside the
+// .map() body directly). Only ASX symbols get the simulated live stream
+// (their mock quote is already AUD-native, no currency-conversion nuance
+// to replicate here); US/crypto rows keep their existing static values.
+function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
+  const isAsx = symbol.endsWith('.AX')
+  const { quote, flash } = useLivePrice(isAsx ? symbol : null)
+  const livePrice = isAsx && quote ? quote.regularMarketPrice : price
+  const liveChange = isAsx && quote ? quote.regularMarketChange : change
+  const livePct = isAsx && quote ? quote.regularMarketChangePercent : pct
+  const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
+  return (
+    <>
+      <td className={`px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright ${flashClass}`}>
+        {livePrice != null ? fmt.aud(livePrice) : '—'}
+      </td>
+      <td className="px-2 py-1.5 text-right">
+        <PriceChange value={liveChange} className="justify-end" />
+      </td>
+      <td className="px-2 py-1.5 text-right">
+        <PriceChange pct={livePct} className="justify-end" />
+      </td>
+      <td className="px-2 py-1.5 text-right">
+        <Week52Bar price={livePrice} low={week52Low} high={week52High} />
+      </td>
+    </>
   )
 }
 
@@ -492,18 +523,7 @@ export default function WatchlistModule() {
                     })()}
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-terminal-text-dim truncate max-w-[200px]">{row.name}</td>
-                  <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">
-                    {row.price != null ? fmt.aud(row.price) : '—'}
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    <PriceChange value={row.change} className="justify-end" />
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    <PriceChange pct={row.pct} className="justify-end" />
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    <Week52Bar price={row.price} low={row.week52Low} high={row.week52High} />
-                  </td>
+                  <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} />
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
                     {row.volume != null ? fmt.large(row.volume) : '—'}
                   </td>

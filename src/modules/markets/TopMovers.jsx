@@ -8,6 +8,28 @@ import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
+import { useLivePrice } from '../../hooks/useLivePrice'
+
+// Live-ticking price + change cells for one mover row (ASX symbols only —
+// their mock quote is already AUD-native, unlike US symbols which need the
+// same toAUD conversion the rest of this table applies).
+function LivePriceCells({ symbol, audPrice, dayChangePct }) {
+  const isAsx = symbol.endsWith('.AX')
+  const { quote, flash } = useLivePrice(isAsx ? symbol : null)
+  const livePrice = isAsx && quote ? quote.regularMarketPrice : audPrice
+  const livePct = isAsx && quote ? quote.regularMarketChangePercent : dayChangePct
+  const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
+  return (
+    <>
+      <td className={`px-1.5 py-0.5 text-2xs text-right ${flashClass}`} style={{ width: 80, minWidth: 80 }}>
+        {livePrice != null ? fmt.price(livePrice) : '—'}
+      </td>
+      <td className="px-1.5 py-0.5 text-right" style={{ width: 70, minWidth: 70 }}>
+        <PriceChange pct={livePct} className="justify-end" />
+      </td>
+    </>
+  )
+}
 
 function displaySym(yahoo) {
   return yahoo.replace(/\.AX$/, '')
@@ -102,12 +124,7 @@ function SortableTable({ items, audUsd, onRowClick }) {
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim" style={{ width: 24, minWidth: 24 }}>{i + 1}</td>
             <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold" style={{ width: 60, minWidth: 60 }}>{displaySym(q.symbol)}</td>
             <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
-            <td className="px-1.5 py-0.5 text-2xs text-right" style={{ width: 80, minWidth: 80 }}>
-              {audPrice != null ? fmt.price(audPrice) : '—'}
-            </td>
-            <td className="px-1.5 py-0.5 text-right" style={{ width: 70, minWidth: 70 }}>
-              <PriceChange pct={q.dayChangePct} className="justify-end" />
-            </td>
+            <LivePriceCells symbol={q.symbol} audPrice={audPrice} dayChangePct={q.dayChangePct} />
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell" style={{ width: 80, minWidth: 80 }}>
               {formatMarketCap(audMktCap)}
             </td>
