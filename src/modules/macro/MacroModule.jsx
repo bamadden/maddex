@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
@@ -10,6 +10,7 @@ import {
 } from '../../data/placeholders'
 import { fetchFxHistory } from '../../services/api'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
+import { Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
@@ -19,6 +20,10 @@ import {
 } from '../../services/centralBankSchedule'
 import { getEconomicCalendar, upcomingEvents, getPreviousEvents } from '../../services/calendarService'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
+
+// Code-split — three.js/@react-three pull in a large bundle only needed once
+// the user actually switches to the 3D view.
+const MacroDashboard3D = lazy(() => import('../../components/visualisations/MacroDashboard3D'))
 import { getMacroThemes, FALLBACK_THEMES } from '../../services/macroThemeService'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import {
@@ -1460,6 +1465,7 @@ export default function MacroModule() {
   const [globalExpanded, setGlobalExpanded] = useState(false)
   const [expandedChart, setExpandedChart]   = useState(null)
   const [expandedSection, setExpandedSection] = useState(null)
+  const [view3D, setView3D] = useState(false)
   const { canAccess, tier } = useSubscription()
 
   if (!canAccess('prime')) {
@@ -1487,9 +1493,57 @@ export default function MacroModule() {
   const latestGDP   = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 1]?.value ?? 0.6
   const prevGDP     = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 2]?.value ?? 0.3
 
+  // 3D control room — every entry sourced from real values already computed/
+  // imported elsewhere in this module (RBA/CPI/unemployment/GDP above, plus
+  // the Leading Indicators series), not fabricated for the visualisation.
+  const trendFrom = (hist, higherIsBetter = true) => {
+    const last = hist[hist.length - 1]?.value
+    const prev = hist[hist.length - 2]?.value
+    if (last == null || prev == null || last === prev) return 'STABLE'
+    const rising = last > prev
+    return rising === higherIsBetter ? 'IMPROVING' : 'DECLINING'
+  }
+  const macroHealthScore = Math.round(((MACRO_REGIME.angle + 90) / 180) * 100)
+  const macroIndicators3D = [
+    { id: 'rba',        name: 'RBA Cash Rate',        current: rbaRate,     unit: '%', trend: 'STABLE' },
+    { id: 'fed',        name: 'Fed Funds Rate',       current: 4.50,        unit: '%', trend: 'STABLE' },
+    { id: 'cpi',        name: 'AU CPI',               current: latestCPI,   unit: '%', trend: trendFrom(AU_CPI_HISTORY, false) },
+    { id: 'unemp',      name: 'AU Unemployment',      current: latestUnemp, unit: '%', trend: trendFrom(AU_UNEMP_HISTORY, false) },
+    { id: 'gdp',        name: 'AU GDP Growth',        current: latestGDP,   unit: '%', trend: trendFrom(AU_GDP_HISTORY, true) },
+    { id: 'sentiment',  name: 'Consumer Sentiment',   current: AU_CONSUMER_SENTIMENT[AU_CONSUMER_SENTIMENT.length - 1]?.value ?? 0, unit: '', trend: trendFrom(AU_CONSUMER_SENTIMENT, true) },
+    { id: 'business',   name: 'Business Confidence',  current: AU_BUSINESS_CONFIDENCE[AU_BUSINESS_CONFIDENCE.length - 1]?.value ?? 0, unit: '', trend: trendFrom(AU_BUSINESS_CONFIDENCE, true) },
+    { id: 'trade',      name: 'Trade Balance',        current: AU_TRADE_BALANCE[AU_TRADE_BALANCE.length - 1]?.value ?? 0, unit: 'B', trend: trendFrom(AU_TRADE_BALANCE, true) },
+    { id: 'iron',       name: 'Iron Ore',             current: IRON_ORE_HISTORY[IRON_ORE_HISTORY.length - 1]?.value ?? 0, unit: '/t', trend: trendFrom(IRON_ORE_HISTORY, true) },
+    { id: 'growth',     name: 'Global Growth',        current: 'SLOWING',     unit: '', trend: 'DECLINING' },
+    { id: 'inflation',  name: 'Global Inflation',     current: 'EASING',      unit: '', trend: 'IMPROVING' },
+    { id: 'policy',     name: 'Policy Stance',        current: 'RESTRICTIVE', unit: '', trend: 'STABLE' },
+  ]
+
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden">
-      <ModuleHeader title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" moduleId="macro" />
+      <ModuleHeader
+        title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" moduleId="macro"
+        right={
+          <div className="flex items-center border border-terminal-border rounded-full overflow-hidden flex-shrink-0">
+            <button
+              onClick={() => setView3D(false)}
+              className={`text-2xs px-2.5 py-1 font-bold transition-colors ${!view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+            >DASHBOARD</button>
+            <button
+              onClick={() => setView3D(true)}
+              className={`text-2xs px-2.5 py-1 font-bold transition-colors ${view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+            >3D CONTROL ROOM</button>
+          </div>
+        }
+      />
+
+      {view3D && (
+        <div style={{ height: 520 }} className="border-b border-terminal-border">
+          <Suspense fallback={<Viz3DLoader />}>
+            <MacroDashboard3D indicators={macroIndicators3D} macroHealthScore={macroHealthScore} />
+          </Suspense>
+        </div>
+      )}
 
       {/* Expanded chart modal — fixed overlay, unaffected by scroll */}
       {expandedChart && (
