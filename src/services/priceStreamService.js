@@ -10,12 +10,47 @@ class PriceStreamService {
     this.prices = new Map()      // symbol -> latest quote
     this.running = false
     this.intervalId = null
+    this.listeners = new Set()
+    this.tickMs = this.loadTickMs()
+    this.enabled = this.loadEnabled()
+  }
+
+  loadTickMs() {
+    try { return parseInt(localStorage.getItem('maddex_tick_speed'), 10) || 3000 } catch { return 3000 }
+  }
+
+  loadEnabled() {
+    try { return localStorage.getItem('maddex_tick_enabled') !== 'false' } catch { return true }
+  }
+
+  subscribeSettings(cb) {
+    this.listeners.add(cb)
+    return () => this.listeners.delete(cb)
+  }
+
+  // Settings → Data & Refresh: 5s/3s/1s presets. Restarts the interval at
+  // the new speed if currently running.
+  setTickMs(ms) {
+    this.tickMs = ms
+    try { localStorage.setItem('maddex_tick_speed', String(ms)) } catch { /* best-effort */ }
+    if (this.running) { this.stop(); this.start() }
+    this.listeners.forEach((cb) => cb())
+  }
+
+  // Settings → Data & Refresh: toggles the whole simulated feed on/off —
+  // disabled means every subscribed quote stays frozen at its last value.
+  setEnabled(v) {
+    this.enabled = v
+    try { localStorage.setItem('maddex_tick_enabled', String(v)) } catch { /* best-effort */ }
+    if (!v) this.stop()
+    this.listeners.forEach((cb) => cb())
   }
 
   start() {
+    if (!this.enabled) return
     if (this.running) return
     this.running = true
-    this.intervalId = setInterval(() => this.updatePrices(), 3000)
+    this.intervalId = setInterval(() => this.updatePrices(), this.tickMs)
   }
 
   stop() {

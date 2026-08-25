@@ -163,6 +163,18 @@ class WorkspaceService {
   isDefault(id) {
     return !!DEFAULT_WORKSPACES.find((w) => w.id === id)
   }
+
+  // Settings → Workspaces → Import: appends workspaces from an exported
+  // JSON array, regenerating ids so they never collide with existing ones.
+  importWorkspaces(list) {
+    if (!Array.isArray(list)) return 0
+    const valid = list.filter((w) => w && typeof w.name === 'string' && Array.isArray(w.panels))
+    valid.forEach((w, i) => {
+      this.workspaces.push({ ...w, id: `ws_${Date.now()}_${i}` })
+    })
+    if (valid.length) this.save()
+    return valid.length
+  }
 }
 
 export const workspaceService = new WorkspaceService()

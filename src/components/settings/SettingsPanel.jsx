@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
@@ -12,8 +12,10 @@ import { generateAPIKey } from '../../utils/apiKey'
 import APIDocsModal from './APIDocsModal'
 import { shortcutService, DEFAULT_SHORTCUTS, ACTION_LABELS } from '../../services/shortcutService'
 import { displayService } from '../../services/displayService'
+import { workspaceService } from '../../services/workspaceService'
+import { priceStream } from '../../services/priceStreamService'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
+const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -565,6 +567,161 @@ function DisplaySection() {
       >
         RESET ALL DISPLAY SETTINGS
       </button>
+    </div>
+  )
+}
+
+function WorkspacesSection() {
+  const [, forceUpdate] = useState(0)
+  const [renamingId, setRenamingId] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+  const fileInputRef = useRef(null)
+  const [importMsg, setImportMsg] = useState('')
+
+  useEffect(() => workspaceService.subscribe(() => forceUpdate((n) => n + 1)), [])
+
+  const workspaces = workspaceService.workspaces
+
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(workspaces, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'maddex-workspaces.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result)
+        const count = workspaceService.importWorkspaces(parsed)
+        setImportMsg(count > 0 ? `Imported ${count} workspace${count === 1 ? '' : 's'}` : 'No valid workspaces found in file')
+      } catch {
+        setImportMsg('Could not parse that file as workspace JSON')
+      }
+      setTimeout(() => setImportMsg(''), 4000)
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>Workspaces</SectionLabel>
+
+      <div className="space-y-1.5">
+        {workspaces.map((ws) => {
+          const isDefault = workspaceService.isDefault(ws.id)
+          return (
+            <div key={ws.id} className="flex items-center justify-between py-2 px-2 border border-terminal-border/40">
+              <div className="flex items-center gap-2 min-w-0">
+                <span>{ws.icon}</span>
+                {renamingId === ws.id ? (
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { workspaceService.renameWorkspace(ws.id, renameValue.trim() || ws.name); setRenamingId(null) }
+                      if (e.key === 'Escape') setRenamingId(null)
+                    }}
+                    onBlur={() => setRenamingId(null)}
+                    className="bg-terminal-bg border border-terminal-border px-1.5 py-0.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold w-40"
+                  />
+                ) : (
+                  <span className="text-xs text-terminal-text-bright truncate">{ws.name}</span>
+                )}
+                <span className="text-[10px] text-terminal-text-dim/50 uppercase tracking-wide">{ws.layout}</span>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={() => { setRenamingId(ws.id); setRenameValue(ws.name) }}
+                  className="text-2xs text-terminal-text-dim hover:text-terminal-gold"
+                >
+                  RENAME
+                </button>
+                <button
+                  onClick={() => workspaceService.duplicateWorkspace(ws.id)}
+                  className="text-2xs text-terminal-text-dim hover:text-terminal-gold"
+                >
+                  DUPLICATE
+                </button>
+                <button
+                  onClick={() => workspaceService.deleteWorkspace(ws.id)}
+                  disabled={isDefault}
+                  title={isDefault ? 'Built-in workspaces can’t be deleted' : undefined}
+                  className="text-2xs text-terminal-text-dim hover:text-terminal-red disabled:opacity-30 disabled:hover:text-terminal-text-dim"
+                >
+                  DELETE
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('madden:new-workspace'))}
+        className="px-3 py-1.5 text-2xs font-bold bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright"
+      >
+        + NEW WORKSPACE
+      </button>
+
+      <div className="pt-3 border-t border-terminal-border/30 flex items-center gap-3">
+        <button
+          onClick={handleExport}
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold/50 px-2 py-1"
+        >
+          EXPORT AS JSON
+        </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold/50 px-2 py-1"
+        >
+          IMPORT FROM JSON
+        </button>
+        <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleImportFile} className="hidden" />
+        {importMsg && <span className="text-2xs text-terminal-gold">{importMsg}</span>}
+      </div>
+    </div>
+  )
+}
+
+function DataRefreshSection() {
+  const [, forceUpdate] = useState(0)
+  useEffect(() => priceStream.subscribeSettings(() => forceUpdate((n) => n + 1)), [])
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>Data &amp; Refresh</SectionLabel>
+
+      <FieldRow label="Price tick simulation" note="Simulated live-ticking prices across index cards, watchlist, movers">
+        <Toggle value={priceStream.enabled} onChange={(v) => priceStream.setEnabled(v)} />
+      </FieldRow>
+
+      <div>
+        <div className="text-xs text-terminal-text-bright mb-1">Tick Speed</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">How often simulated prices update</div>
+        <div className="flex border border-terminal-border w-fit">
+          {[{ ms: 5000, label: 'SLOW (5s)' }, { ms: 3000, label: 'NORMAL (3s)' }, { ms: 1000, label: 'FAST (1s)' }].map((t) => (
+            <button
+              key={t.ms}
+              onClick={() => priceStream.setTickMs(t.ms)}
+              disabled={!priceStream.enabled}
+              className={`px-3 py-1.5 text-2xs font-bold border-r border-terminal-border last:border-r-0 disabled:opacity-30 ${
+                priceStream.tickMs === t.ms ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -1333,6 +1490,8 @@ export default function SettingsPanel({ onClose, initialSection }) {
           {active === 'PREFERENCES'   && <PreferencesSection />}
           {active === 'DISPLAY'       && <DisplaySection />}
           {active === 'SHORTCUTS'     && <ShortcutsSection />}
+          {active === 'WORKSPACES'    && <WorkspacesSection />}
+          {active === 'DATA & REFRESH' && <DataRefreshSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
           {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}
           {active === 'DATA'          && (
