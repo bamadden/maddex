@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, S
 import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { shortcutService } from './services/shortcutService'
+import { viewStateService } from './services/viewStateService'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
@@ -428,11 +429,67 @@ function Terminal() {
     return () => unsubs.forEach((u) => u())
   }, [setAiMode, setChatOpen, aiMode])
 
+  // Saved views + session auto-restore (viewStateService.js). Captures
+  // active workspace/module/AI-panel state — not per-panel scroll position
+  // or selected asset, which nothing in the app tracks globally to capture.
+  const captureViewState = useCallback(() => ({
+    workspace: workspaceService.active,
+    activeModule,
+    aiPanelOpen: chatOpen,
+    aiPanelMode: aiMode,
+  }), [activeModule, chatOpen, aiMode])
+
+  const applyViewState = useCallback((state) => {
+    if (!state) return
+    if (state.workspace) workspaceService.setActive(state.workspace)
+    if (state.activeModule) setActiveModule(state.activeModule)
+    if (state.aiPanelMode) setAiMode(state.aiPanelMode)
+    setChatOpen(!!state.aiPanelOpen)
+  }, [setActiveModule, setAiMode, setChatOpen])
+
+  const [restorePrompt, setRestorePrompt] = useState(() => !!viewStateService.loadAutosave())
+
+  useEffect(() => {
+    const id = setInterval(() => viewStateService.saveAutosave(captureViewState()), 5 * 60_000)
+    return () => clearInterval(id)
+  }, [captureViewState])
+
+  // WorkspaceSwitcher's "Save current view" / "Load saved view" controls
+  // don't have direct access to store state, so they go through events —
+  // same pattern as madden:pop-out / madden:new-workspace.
+  useEffect(() => {
+    const onSave = (e) => viewStateService.saveView(e.detail?.name, captureViewState())
+    const onLoad = (e) => applyViewState(viewStateService.getView(e.detail?.id)?.state)
+    window.addEventListener('madden:save-view', onSave)
+    window.addEventListener('madden:load-view', onLoad)
+    return () => {
+      window.removeEventListener('madden:save-view', onSave)
+      window.removeEventListener('madden:load-view', onLoad)
+    }
+  }, [captureViewState, applyViewState])
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-mono bg-terminal-bg">
       <div className="fixed inset-0 scanlines pointer-events-none z-50" />
       <TopBar />
       <TickerTape />
+      {restorePrompt && (
+        <div className="w-full px-3 py-1.5 bg-terminal-gold/10 border-b border-terminal-gold/40 text-2xs font-mono flex items-center justify-center gap-3 flex-shrink-0">
+          <span className="text-terminal-gold font-semibold tracking-wide">Welcome back. Restore your last session?</span>
+          <button
+            onClick={() => { applyViewState(viewStateService.loadAutosave()); setRestorePrompt(false) }}
+            className="px-2 py-0.5 bg-terminal-gold text-terminal-bg font-bold tracking-wide"
+          >
+            RESTORE
+          </button>
+          <button
+            onClick={() => setRestorePrompt(false)}
+            className="px-2 py-0.5 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold/10 tracking-wide"
+          >
+            START FRESH
+          </button>
+        </div>
+      )}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {layout !== 'focus' && <NavBar />}
         {isCustomWorkspace ? (

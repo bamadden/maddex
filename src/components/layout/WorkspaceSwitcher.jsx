@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import { workspaceService } from '../../services/workspaceService'
 import { WORKSPACE_MODULE_LIST } from '../../config/workspaceModules'
+import { viewStateService } from '../../services/viewStateService'
 
 const LAYOUT_OPTIONS = [
   { id: 'single', label: 'Single', panels: 1 },
@@ -194,6 +195,96 @@ function WorkspaceContextMenu({ workspace, position, onClose }) {
   )
 }
 
+function fmtViewTime(ts) {
+  const d = new Date(ts)
+  return d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }) + ' ' +
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function SavedViewsMenu() {
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState('')
+  const [, forceUpdate] = useState(0)
+  const ref = useRef(null)
+
+  useEffect(() => viewStateService.subscribe(() => forceUpdate((n) => n + 1)), [])
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => { if (!ref.current?.contains(e.target)) { setOpen(false); setSaving(false) } }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  const views = viewStateService.getSavedViews()
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Saved views"
+        className="px-1.5 py-0.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-transparent hover:border-terminal-gold/40"
+      >
+        ⧉
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 mt-0.5 min-w-[220px] bg-terminal-panel border border-terminal-border-gold shadow-2xl z-50 font-mono">
+          {saving ? (
+            <div className="p-2 flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    window.dispatchEvent(new CustomEvent('madden:save-view', { detail: { name: name.trim() || 'Untitled View' } }))
+                    setSaving(false); setName(''); setOpen(false)
+                  }
+                  if (e.key === 'Escape') setSaving(false)
+                }}
+                placeholder="View name…"
+                className="flex-1 bg-terminal-bg border border-terminal-border px-1.5 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold"
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setSaving(true)}
+              className="block w-full text-left px-3 py-2 text-2xs text-terminal-gold hover:bg-terminal-surface2 tracking-wide border-b border-terminal-border/40"
+            >
+              + SAVE CURRENT VIEW
+            </button>
+          )}
+          {views.length === 0 ? (
+            <div className="px-3 py-3 text-2xs text-terminal-text-dim/50 text-center">No saved views yet</div>
+          ) : (
+            views.map((v) => (
+              <div key={v.id} className="flex items-center justify-between px-3 py-1.5 border-b border-terminal-border/30 last:border-b-0 group">
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('madden:load-view', { detail: { id: v.id } }))
+                    setOpen(false)
+                  }}
+                  className="text-left flex-1 min-w-0"
+                >
+                  <div className="text-2xs text-terminal-text-bright truncate">{v.name}</div>
+                  <div className="text-[10px] text-terminal-text-dim/60">{fmtViewTime(v.timestamp)}</div>
+                </button>
+                <button
+                  onClick={() => viewStateService.deleteView(v.id)}
+                  className="text-terminal-text-dim/40 hover:text-terminal-red text-xs px-1.5 opacity-0 group-hover:opacity-100"
+                  title="Delete"
+                >
+                  ✕
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const subscribe = (cb) => workspaceService.subscribe(cb)
 const getSnapshot = () => `${workspaceService.active}::${workspaceService.workspaces.length}::${JSON.stringify(workspaceService.workspaces.map((w) => [w.id, w.name]))}`
 
@@ -239,6 +330,8 @@ export default function WorkspaceSwitcher() {
       >
         +
       </button>
+
+      <SavedViewsMenu />
 
       {showNew && <NewWorkspaceModal onClose={() => setShowNew(false)} />}
       {contextMenu && (
