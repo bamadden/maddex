@@ -19,6 +19,7 @@ export const DEFAULT_SHORTCUTS = {
   'nav.portfolio': { key: 'p', display: 'P' },
   'nav.news':      { key: 'n', display: 'N' },
   'nav.brief':     { key: 'b', display: 'B' },
+  'nav.calendar':  { key: 'k', display: 'K' },
   'nav.scanner':   { key: 's', display: 'S' },
 
   'ui.command':        { key: '/', display: '/' },
@@ -46,6 +47,7 @@ export const ACTION_LABELS = {
   'nav.portfolio': 'Go to Portfolio',
   'nav.news':      'Go to News',
   'nav.brief':     'Go to Morning Brief',
+  'nav.calendar':  'Go to Calendar',
   'nav.scanner':   'Go to Scanner',
   'ui.command':      'Focus command bar',
   'ui.shortcuts':    'Show shortcuts reference',

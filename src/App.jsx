@@ -22,6 +22,7 @@ import AIPanel from './components/layout/AIPanel'
 import DetailModal from './components/ui/DetailModal'
 import ComparisonView from './components/markets/ComparisonView'
 import DashboardModule from './modules/dashboard/DashboardModule'
+import CalendarModule from './modules/calendar/CalendarModule'
 import MarketsModule from './modules/markets/MarketsModule'
 import PortfolioModule from './modules/portfolio/PortfolioModule'
 import CryptoModule from './modules/crypto/CryptoModule'
@@ -70,6 +71,7 @@ const queryClient = new QueryClient({
 
 const MODULE_MAP = {
   dashboard: DashboardModule,
+  calendar:  CalendarModule,
   markets:   MarketsModule,
   portfolio: PortfolioModule,
   crypto:    CryptoModule,
@@ -86,6 +88,7 @@ const MODULE_MAP = {
 
 const MODULE_TITLES = {
   dashboard: 'Dashboard',
+  calendar:  'Calendar',
   markets:   'Markets',
   portfolio: 'Portfolio',
   crypto:    'Crypto',
@@ -112,6 +115,7 @@ const NAV_ACTION_MODULE = {
   'nav.portfolio': 'portfolio',
   'nav.news':      'news',
   'nav.brief':     'brief',
+  'nav.calendar':  'calendar',
   'nav.scanner':   'scanner',
 }
 
@@ -130,6 +134,9 @@ const SHORTCUT_GROUPS = [
       { keys: ['W'], desc: 'Watchlist' },
       { keys: ['P'], desc: 'Portfolio' },
       { keys: ['N'], desc: 'News' },
+      { keys: ['B'], desc: 'Morning Brief' },
+      { keys: ['K'], desc: 'Calendar' },
+      { keys: ['S'], desc: 'Scanner' },
     ],
   },
   {

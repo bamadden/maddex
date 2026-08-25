@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar, Lightbulb, Home,
+  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar, Lightbulb, Home, Calendar,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -38,6 +38,7 @@ const NAV_ITEMS = [
   { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT', fkey: 'F2', Icon: Briefcase },
   { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper, groupBreak: true },
   { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise },
+  { id: 'calendar',  label: 'CALENDAR',  short: 'CAL',  fkey: null, Icon: Calendar },
   { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search },
   { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind },
   { id: 'scanner',   label: 'SCANNER',   short: 'SCN',  fkey: null, Icon: Radar },
