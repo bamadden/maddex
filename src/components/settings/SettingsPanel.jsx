@@ -14,6 +14,7 @@ import { shortcutService, DEFAULT_SHORTCUTS, ACTION_LABELS } from '../../service
 import { displayService } from '../../services/displayService'
 import { workspaceService } from '../../services/workspaceService'
 import { priceStream } from '../../services/priceStreamService'
+import { soundService } from '../../services/soundService'
 
 const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'NOTIFICATIONS', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS']
 
@@ -882,6 +883,8 @@ function NotificationsSection() {
     email_notifications: settings?.email_notifications ?? false,
   })
   const [saving, setSaving] = useState(null)
+  const [, forceUpdate] = useState(0)
+  useEffect(() => soundService.subscribe(() => forceUpdate((n) => n + 1)), [])
 
   const toggle = async (key) => {
     const next = !vals[key]
@@ -907,6 +910,9 @@ function NotificationsSection() {
           <Toggle value={vals[key]} onChange={() => toggle(key)} disabled={saving === key} />
         </FieldRow>
       ))}
+      <FieldRow label="Sound Effects" note="Subtle tones for alerts, AI responses, and actions — off by default">
+        <Toggle value={soundService.enabled} onChange={() => soundService.toggle()} />
+      </FieldRow>
     </div>
   )
 }

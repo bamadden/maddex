@@ -22,6 +22,7 @@ import ShareLinkModal from '../../components/ui/ShareLinkModal'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import { createShareLink } from '../../services/sharingService'
 import { logActivity } from '../../services/activityLogService'
+import { soundService } from '../../services/soundService'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -275,6 +276,7 @@ export default function WatchlistModule() {
       if (!q) { setAddError('TICKER NOT FOUND — check symbol and try again'); return }
       addToWatchlist(raw)
       logActivity('watchlist', `Added ${raw} to watchlist`)
+      soundService.actionSuccess()
       setSearchInput('')
       if (user) {
         await supabase.from('watchlist').upsert({ symbol: raw, name: q.name ?? raw, position: watchlist.length }, { onConflict: 'user_id,symbol' })

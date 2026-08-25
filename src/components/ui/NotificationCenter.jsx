@@ -9,6 +9,7 @@ import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import { checkAndAnalyseEarnings } from '../../services/earningsAnalystService'
 import AlertsModule from '../../modules/alerts/AlertsModule'
 import { logActivity } from '../../services/activityLogService'
+import { soundService } from '../../services/soundService'
 
 const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
 const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', EARNINGS_RESULT: 'EARNINGS RESULT' }
@@ -152,6 +153,7 @@ export default function NotificationCenter() {
         const pct = data?.['^AXJO']?.pct
         const pctText = pct != null ? ` — ${pct >= 0 ? 'up' : 'down'} ${Math.abs(pct).toFixed(2)}%` : ''
         addNotification('MARKET_OPEN', `ASX 200 has opened${pctText}`)
+        soundService.marketOpen()
         localStorage.setItem(key, '1')
       } catch {
         // Try again next minute — key is only set on success
@@ -201,6 +203,7 @@ export default function NotificationCenter() {
         addNotification('CUSTOM_ALERT', message)
         markTriggered(alert.id)
         logActivity('alert', message)
+        soundService.priceAlert()
       }
     }
     check()

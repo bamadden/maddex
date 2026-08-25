@@ -7,6 +7,7 @@ import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../service
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import VoiceInterface from '../voice/VoiceInterface'
+import { soundService } from '../../services/soundService'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
 // Tracked client-side in localStorage under a month-stamped key, so it
@@ -449,11 +450,13 @@ export default function AIPanel({ wide = false }) {
         stats: { elapsed: result.elapsed, outputTokens: result.outputTokens },
       }))
       addNotification('SYSTEM', 'MaddenAI analysis ready')
+      soundService.aiComplete()
     } catch (err) {
       updateLastChatMessage({
         role: 'assistant',
         content: `[ERROR] ${err.message}\n\nEnsure ANTHROPIC_API_KEY is set (server-side, in .env for dev or the Vercel dashboard for prod)`,
       })
+      soundService.error()
     } finally {
       setLoading(false)
     }
