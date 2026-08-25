@@ -6,6 +6,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import { fmt } from '../../utils/format'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import { SkeletonIndexBar } from '../../components/ui/Skeleton'
 import PriceChange from '../../components/ui/PriceChange'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -318,6 +319,9 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
         >COMPARE INDICES</button>
       </div>
       {compareOpen && <CompareIndicesModal indices={indices} onClose={() => setCompareOpen(false)} />}
+      {isFetching && !quotes ? (
+        <SkeletonIndexBar count={indices.length} />
+      ) : (
       <div
         className="grid grid-flow-col auto-cols-[120px] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-5 lg:grid-cols-10 gap-0 overflow-x-auto sm:overflow-visible hide-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
@@ -386,6 +390,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
           )
         })}
       </div>
+      )}
     </div>
   )
 }

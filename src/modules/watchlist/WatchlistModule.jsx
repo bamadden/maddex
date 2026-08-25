@@ -15,7 +15,8 @@ import { earningsFor, daysUntil } from '../../services/earningsCalendar'
 import { getEarningsResult } from '../../services/earningsAnalystService'
 import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
 import EarningsResultPanel from '../../components/earningsPreview/EarningsResultPanel'
-import { ModuleLoader, ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import { ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import { SkeletonCard } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import ShareLinkModal from '../../components/ui/ShareLinkModal'
 import { useLivePrice } from '../../hooks/useLivePrice'
@@ -427,7 +428,9 @@ export default function WatchlistModule() {
         ) : isError && !batchQuotes && !Object.keys(cryptoQuotes).length ? (
           <ModuleError module="Watchlist prices" lastUpdated={dataUpdatedAt} onRetry={refetchAll} />
         ) : anyFetching && !batchQuotes && !Object.keys(cryptoQuotes).length ? (
-          <ModuleLoader name="WATCHLIST" />
+          <div className="p-2 space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} rows={1} className="p-2" />)}
+          </div>
         ) : (
           <table className="terminal-table w-full">
             <thead className="sticky top-0 bg-terminal-header z-10">

@@ -12,7 +12,8 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
-import { ModuleLoader, StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
+import { StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
+import { SkeletonCoinRow } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
@@ -808,7 +809,11 @@ export default function CryptoModule() {
               onAskAI={askAI}
             />
             )
-          ) : <ModuleLoader name="CRYPTO" />}
+          ) : (
+            <div>
+              {Array.from({ length: 8 }).map((_, i) => <SkeletonCoinRow key={i} />)}
+            </div>
+          )}
         </div>
 
         {/* ── RIGHT: coin detail slide-in, resizable (drag left edge) ── */}

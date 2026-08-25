@@ -22,6 +22,7 @@ import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
 import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
 import { logActivity } from '../../services/activityLogService'
+import { SkeletonCard } from '../../components/ui/Skeleton'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -638,6 +639,17 @@ export default function PortfolioModule() {
   }, { fullscreen: true, rawPrompt: true })
 
   // ─── EMPTY STATE ───────────────────────────────────────────────────────────
+
+  if (holdings.length > 0 && isFetching && !portfolioResult && yfSymbols.length > 0) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <ModuleHeader title="PORTFOLIO" subtitle="Loading live prices…" isFetching />
+        <div className="p-3 space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} rows={2} />)}
+        </div>
+      </div>
+    )
+  }
 
   if (holdings.length === 0) {
     return (

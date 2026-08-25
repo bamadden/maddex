@@ -5,6 +5,7 @@ import { fetchEquityQuotes } from '../../services/dataService'
 import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
+import { SkeletonCard } from '../../components/ui/Skeleton'
 import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -148,7 +149,9 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
   const { openModal } = useStore()
 
   if (isLoading) return (
-    <div className="p-3 text-2xs text-terminal-text-dim animate-pulse">LOADING {label} DATA...</div>
+    <div className="p-2 space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} rows={1} className="p-2" />)}
+    </div>
   )
   if (isError || !quotes) return (
     <DataUnavailable label={`${label} UNAVAILABLE`} onRetry={refetch} />

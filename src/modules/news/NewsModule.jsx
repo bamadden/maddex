@@ -5,7 +5,8 @@ import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockD
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { Badge } from '../../components/ui/Panel'
-import { ModuleLoader, ModuleError } from '../../components/ui/ModuleStates'
+import { ModuleError } from '../../components/ui/ModuleStates'
+import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
@@ -998,7 +999,9 @@ export default function NewsModule() {
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <div className="panel-header flex-shrink-0">LIVE NEWS FEED</div>
-        <div className="flex-1"><ModuleLoader name="NEWS" /></div>
+        <div className="flex-1 px-3 overflow-hidden">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonNewsCard key={i} />)}
+        </div>
       </div>
     )
   }

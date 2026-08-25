@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
-import { ModuleLoader } from '../../components/ui/ModuleStates'
+import { SkeletonText } from '../../components/ui/Skeleton'
 import { generateMorningBrief } from '../../services/morningBriefService'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
@@ -104,7 +104,14 @@ export default function MorningBriefModule() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        {status === 'loading' && <ModuleLoader name="MORNING BRIEF" />}
+        {status === 'loading' && (
+          <div className="p-6 space-y-5">
+            <div className="text-2xs text-terminal-gold tracking-widest animate-pulse">GENERATING YOUR BRIEF…</div>
+            <SkeletonText lines={4} />
+            <SkeletonText lines={3} />
+            <SkeletonText lines={5} />
+          </div>
+        )}
         {status === 'error' && (
           <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="text-terminal-red text-xl">⚠</span>
