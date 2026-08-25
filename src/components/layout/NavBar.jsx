@@ -5,6 +5,19 @@ import {
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
+import { shortcutService } from '../../services/shortcutService'
+
+// Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
+// the one exception (its action is nav.rates — see App.jsx's
+// NAV_ACTION_MODULE for the same mapping used the other direction).
+const NAV_ACTION_ID = { fx: 'nav.rates' }
+
+function shortcutHint(item) {
+  const actionId = NAV_ACTION_ID[item.id] ?? `nav.${item.id}`
+  const letter = shortcutService.shortcuts[actionId]?.display
+  const parts = [item.fkey, letter].filter(Boolean)
+  return parts.length ? parts.join(' / ') : null
+}
 
 const PIN_KEY = 'maddex_sidebar_pinned'
 
@@ -96,26 +109,30 @@ export default function NavBar() {
       <div className="flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar py-2">
         {NAV_ITEMS.map((item) => {
           const isActive = activeModule === item.id
+          const hint = shortcutHint(item)
           return (
             <div key={item.id}>
               {item.groupBreak && <div className="h-px bg-terminal-border mx-3 my-1.5 flex-shrink-0" />}
               <button
                 onClick={() => setActiveModule(item.id)}
-                title={item.fkey ? `${item.label} — press ${item.fkey}` : item.label}
+                title={hint ? `${item.label} (${hint})` : item.label}
                 className={`group/item relative flex items-center gap-3 w-full px-4 py-2 border-l-2 transition-colors duration-100 ${
                   isActive
                     ? 'border-l-terminal-gold bg-terminal-gold/[0.07] text-terminal-gold'
                     : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2'
                 }`}
               >
-                <span className="relative flex-shrink-0 transition-transform duration-150 group-hover/item:scale-[1.15]">
+                <span
+                  className="relative flex-shrink-0 transition-transform duration-150 group-hover/item:scale-[1.15]"
+                  style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(201,168,76,0.55))' } : undefined}
+                >
                   <item.Icon size={18} strokeWidth={1.75} />
                   {item.id === 'brief' && showBriefDot && !isActive && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-terminal-gold pulse-gold" title="New brief available" />
                   )}
                 </span>
                 <span className={labelCls}>{item.label}</span>
-                <span className={`ml-auto text-terminal-muted/60 ${labelCls}`}>{item.fkey}</span>
+                <span className={`ml-auto text-terminal-muted/60 ${labelCls}`}>{hint}</span>
               </button>
             </div>
           )

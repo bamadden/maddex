@@ -387,7 +387,7 @@ export default function TopBar() {
 
         <Divider />
 
-        <span className="hidden sm:inline text-terminal-muted text-[8px] tracking-[0.3em] uppercase flex-shrink-0">
+        <span className="hidden xl:inline text-terminal-muted text-[8px] tracking-[0.3em] uppercase flex-shrink-0">
           FINANCIAL INTELLIGENCE
         </span>
 
