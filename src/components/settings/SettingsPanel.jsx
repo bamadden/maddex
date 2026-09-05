@@ -18,6 +18,9 @@ import { soundService } from '../../services/soundService'
 import { getAiPreferences, setAiPreference } from '../../services/aiPreferencesService'
 import { clearAllHistory, listConversations } from '../../services/aiHistoryService'
 import { APP_VERSION } from '../layout/NavBar'
+import { liveDataService } from '../../services/liveDataService'
+import { aiContentService } from '../../services/aiContentService'
+import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
 const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
 
@@ -696,6 +699,192 @@ function WorkspacesSection() {
   )
 }
 
+
+// ─── Data provenance ────────────────────────────────────────────────────────
+//
+// Everything on screen in this terminal comes from one of three places, and
+// they are not interchangeable:
+//
+//   live feeds        — real APIs, cached with a TTL, stale-on-failure
+//   AI content        — MaddenAI prose, regenerated once a day
+//   verified constants — checked facts, maintained by hand
+//
+// Scattered across fourteen modules that distinction is invisible, so this is
+// the one screen that states it plainly: what each thing is, how old it is,
+// and — for the hand-maintained figures — when a human last confirmed it.
+//
+// The asymmetry is deliberate. A number nobody has checked in three weeks is
+// the failure this whole exercise exists to make visible, so it goes gold and
+// says so. Everything current stays quiet.
+
+const STATUS_STYLE = {
+  fresh:     { text: 'FRESH',      color: '#2D8A50' },
+  recent:    { text: 'RECENT',     color: '#2D8A50' },
+  stale:     { text: 'STALE',      color: '#C9A84C' },
+  never:     { text: 'NOT LOADED', color: '#637899' },
+  today:     { text: 'TODAY',      color: '#2D8A50' },
+  yesterday: { text: 'YESTERDAY',  color: '#C9A84C' },
+  none:      { text: 'NOT LOADED', color: '#637899' },
+}
+
+function StatusPill({ status }) {
+  const st = STATUS_STYLE[status] ?? STATUS_STYLE.none
+  return (
+    <span
+      className="text-[8px] font-mono tracking-widest px-1.5 py-0.5 rounded-sm flex-shrink-0"
+      style={{ color: st.color, border: `1px solid ${st.color}40`, background: `${st.color}14` }}
+    >
+      {st.text}
+    </span>
+  )
+}
+
+function ProvenanceRow({ name, detail, status, right }) {
+  return (
+    <div className="flex items-center gap-2 py-1.5 border-b border-terminal-border/40 last:border-b-0">
+      <span className="text-2xs text-terminal-text flex-1 min-w-0 truncate">{name}</span>
+      {detail && <span className="text-2xs text-terminal-text-dim flex-shrink-0 tabular-nums">{detail}</span>}
+      {right}
+      <StatusPill status={status} />
+    </div>
+  )
+}
+
+const AI_LABELS = {
+  geo_risks: 'Geopolitical risks',
+  shipping_status: 'Shipping chokepoints',
+  intel_ticker: 'Intelligence ticker',
+  macro_regime: 'Macro regime read',
+}
+
+function DataProvenancePanel() {
+  const [tick, setTick] = useState(0)
+  const [busy, setBusy] = useState(null)
+
+  // Re-read on an interval rather than holding a copy: these ages are derived
+  // from localStorage timestamps that other parts of the app write to, so a
+  // snapshot taken on mount would quietly go wrong while the panel is open.
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
+
+  const feeds = liveDataService.getDataStatus()
+  const ai = aiContentService.getContentStatus()
+  const constants = allVerifiedGroups()
+  const staleConstants = constants.filter((c) => c.stale)
+
+  const refreshLive = async () => {
+    setBusy('live')
+    liveDataService.clearCache()
+    // Re-request through the normal paths so the caches refill the same way
+    // they would on a page load, rather than inventing a second code path.
+    await Promise.allSettled([
+      liveDataService.getFXRates(),
+      liveDataService.getCryptoPrices(),
+      liveDataService.getGoldPrice(),
+      liveDataService.getFearGreed(),
+      liveDataService.getEarthquakes(),
+      liveDataService.getExchangeWeather(),
+    ])
+    setBusy(null)
+    setTick((n) => n + 1)
+  }
+
+  const regenerateAI = async () => {
+    setBusy('ai')
+    aiContentService.clearCache()
+    await aiContentService.refreshAll()
+    setBusy(null)
+    setTick((n) => n + 1)
+  }
+
+  return (
+    <div key={tick} className="space-y-4">
+      <div>
+        <div className="text-xs text-terminal-text-bright mb-1">Data Status</div>
+        <div className="text-2xs text-terminal-text-dim mb-3">
+          Where every figure on screen comes from, and how old it is.
+        </div>
+
+        {staleConstants.length > 0 && (
+          <div
+            className="text-2xs mb-3 px-2 py-1.5 rounded-sm"
+            style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}
+          >
+            ⚠ {staleConstants.length} manually-maintained {staleConstants.length === 1 ? 'group has' : 'groups have'} not
+            been verified in over {VERIFY_WARN_DAYS} days: {staleConstants.map((c) => c.label).join(', ')}.
+            Update src/data/verifiedConstants.js.
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-2xs text-terminal-gold tracking-widest">LIVE FEEDS</span>
+          <button
+            onClick={refreshLive}
+            disabled={busy != null}
+            className="btn-secondary btn-sm disabled:opacity-40"
+          >
+            {busy === 'live' ? 'REFRESHING…' : 'REFRESH ALL'}
+          </button>
+        </div>
+        <div className="text-2xs text-terminal-text-dim mb-1">Free public APIs, no key required. Cached, and served stale if a fetch fails.</div>
+        {feeds.map((f) => (
+          <ProvenanceRow
+            key={f.key}
+            name={f.label}
+            detail={f.ageMins == null ? '—' : f.ageMins < 1 ? 'just now' : `${f.ageMins}m ago`}
+            status={f.status}
+          />
+        ))}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-2xs text-terminal-gold tracking-widest">AI CONTENT</span>
+          <button
+            onClick={regenerateAI}
+            disabled={busy != null}
+            className="btn-secondary btn-sm disabled:opacity-40"
+          >
+            {busy === 'ai' ? 'GENERATING…' : 'REGENERATE'}
+          </button>
+        </div>
+        <div className="text-2xs text-terminal-text-dim mb-1">
+          Analysis and narrative only, regenerated once a day. Every figure MaddenAI reasons from is
+          supplied to it from the verified constants below — it never sources a number itself.
+        </div>
+        {ai.map((a) => (
+          <ProvenanceRow key={a.key} name={AI_LABELS[a.key] ?? a.key} status={a.status} />
+        ))}
+      </div>
+
+      <div>
+        <div className="text-2xs text-terminal-gold tracking-widest mb-1">VERIFIED CONSTANTS</div>
+        <div className="text-2xs text-terminal-text-dim mb-1">
+          Hand-maintained facts a model cannot know and no free feed publishes. Two dates each:
+          when the agency published it, and when we last confirmed our copy is still current.
+        </div>
+        {constants.map((c) => (
+          <ProvenanceRow
+            key={c.key}
+            name={c.label}
+            detail={c.asOf ? `as at ${c.asOf}` : '—'}
+            status={c.stale ? 'stale' : 'fresh'}
+            right={
+              <span className="text-2xs text-terminal-text-dim flex-shrink-0 tabular-nums w-24 text-right">
+                {c.daysSince === 0 ? 'verified today' : `verified ${c.daysSince}d ago`}
+              </span>
+            }
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function DataRefreshSection() {
   const [, forceUpdate] = useState(0)
   useEffect(() => priceStream.subscribeSettings(() => forceUpdate((n) => n + 1)), [])
@@ -725,6 +914,10 @@ function DataRefreshSection() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="pt-4 border-t border-terminal-border">
+        <DataProvenancePanel />
       </div>
     </div>
   )
