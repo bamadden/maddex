@@ -1,4 +1,5 @@
 import { dispatchAskAI } from '../../utils/askAI'
+import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import { sessionCountdown, formatCountdown, SEVERITY_COLOUR } from './intelMapData'
 
 // Slide-in detail panel for whatever is selected on the intelligence map.
@@ -82,7 +83,7 @@ function TickerPills({ tickers, watchlist = [] }) {
 // `width` is supplied by the map, which sizes it against its own measured
 // width rather than the viewport's — the map is one column of three, so a
 // wide window does not imply a wide map.
-export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300 }) {
+export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300, narrativeSource = 'fallback' }) {
   const { type, data } = object
   const askAI = (instruction) => dispatchAskAI({ instruction }, { rawPrompt: true })
 
@@ -96,8 +97,14 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
     }}>
       <div style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid rgba(201,168,76,0.15)',
         padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 10, color: '#C9A84C', letterSpacing: '0.15em' }}>
-          {type.toUpperCase()} DETAIL
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 10, color: '#C9A84C', letterSpacing: '0.15em' }}>
+            {type.toUpperCase()} DETAIL
+          </span>
+          {/* Only where the words on this card were actually rewritten by
+              MaddenAI. A row the overlay did not match keeps its editorial
+              prose and says nothing, which is the honest signal. */}
+          {data?.aiNarrative && <AIContentBadge source={narrativeSource} />}
         </span>
         <button onClick={onClose} aria-label="Close"
           style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>

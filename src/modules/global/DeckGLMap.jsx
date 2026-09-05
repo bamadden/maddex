@@ -9,9 +9,11 @@ import {
   EXCHANGES, TRADE_ROUTES, SHIPPING_DISRUPTIONS, COMMODITY_SITES,
   GEOPOLITICAL_EVENTS, UNDERSEA_CABLES, MILITARY_BASES, MAJOR_CITIES,
   SEVERITY_COLOUR, isExchangeOpen,
+  overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS,
 } from './intelMapData'
 import MapDetailPanel from './MapDetailPanel'
 import { liveDataService } from '../../services/liveDataService'
+import { aiContentService } from '../../services/aiContentService'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 // CartoCDN's GL styles are free and need no API key. INTELLIGENCE is not a
@@ -37,6 +39,39 @@ const INITIAL_VIEW = AU_VIEW
 
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+// Refreshes the narrative on the shipping and geopolitical rows once a day
+// from MaddenAI. Structure (coordinates, radii, routes) is never touched —
+// see overlayNarrative in intelMapData for why that boundary exists.
+//
+// Both requests are settled independently: geopolitics failing should not
+// cost us fresher shipping prose, which is the mistake the seismic feed made
+// before it moved to liveDataService.
+function useIntelNarratives() {
+  const [shipping, setShipping] = useState(SHIPPING_DISRUPTIONS)
+  const [geo, setGeo] = useState(GEOPOLITICAL_EVENTS)
+  const [source, setSource] = useState('fallback')
+
+  useEffect(() => {
+    let alive = true
+    Promise.allSettled([
+      aiContentService.getShippingStatus(),
+      aiContentService.getGeopoliticalRisks(),
+    ]).then(([ship, risk]) => {
+      if (!alive) return
+      if (ship.status === 'fulfilled' && Array.isArray(ship.value.data)) {
+        setShipping(overlayNarrative(SHIPPING_DISRUPTIONS, ship.value.data, SHIPPING_NARRATIVE_FIELDS))
+        setSource(ship.value.source)
+      }
+      if (risk.status === 'fulfilled' && Array.isArray(risk.value.data)) {
+        setGeo(overlayNarrative(GEOPOLITICAL_EVENTS, risk.value.data, GEO_NARRATIVE_FIELDS))
+      }
+    })
+    return () => { alive = false }
+  }, [])
+
+  return { shipping, geo, source }
+}
 
 // Stacking order for everything that floats over the map, in one place.
 // These used to be scattered literals, which is how the view toggle (20) and
@@ -65,6 +100,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const [mapWidth, setMapWidth] = useState(null)
   const wrapRef = useRef(null)
   const mapRef = useRef(null)
+  const { shipping: shippingRows, geo: geoRows, source: narrativeSource } = useIntelNarratives()
 
   // The overlays size themselves against the map, not the viewport: the map
   // is one of three columns, so a 1440px window can still leave it under
@@ -230,7 +266,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
     if (show('shipping')) {
       all.push(new ScatterplotLayer({
         id: 'disruption-fill',
-        data: SHIPPING_DISRUPTIONS,
+        data: shippingRows,
         getPosition: (d) => d.coordinates,
         getRadius: (d) => d.radius,
         getFillColor: (d) => [...(SEVERITY_COLOUR[d.severity] ?? [120, 120, 120]), 40],
@@ -243,7 +279,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       }))
       all.push(new TextLayer({
         id: 'disruption-labels',
-        data: SHIPPING_DISRUPTIONS,
+        data: shippingRows,
         getPosition: (d) => d.coordinates,
         getText: (d) => `⚠ ${d.name}`,
         getSize: 11,
@@ -317,7 +353,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
     if (show('geopolitical')) {
       all.push(new ScatterplotLayer({
         id: 'geo-events',
-        data: GEOPOLITICAL_EVENTS,
+        data: geoRows,
         getPosition: (d) => [d.lon, d.lat],
         getRadius: 90000,
         getFillColor: (d) => [...(SEVERITY_COLOUR[d.severity] ?? [201, 168, 76]), 55],
@@ -421,7 +457,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
     }))
 
     return all
-  }, [activeLayer, quakes, majorQuakes, mapStyle, auFocus, pulseAlpha, hover, flyTo, onExchangeSelect])
+  }, [activeLayer, quakes, majorQuakes, mapStyle, auFocus, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows])
 
   const shell = fullscreen
     ? { position: 'fixed', inset: 0, zIndex: 9999 }
@@ -486,7 +522,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
 
       {selected && (
         <MapDetailPanel object={selected} onClose={() => setSelected(null)} onFlyTo={flyTo}
-          watchlist={watchlist} width={panelWidth} />
+          watchlist={watchlist} width={panelWidth} narrativeSource={narrativeSource} />
       )}
 
       {/* Seismic status. Reports the feed's real state rather than only

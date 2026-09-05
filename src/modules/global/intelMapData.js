@@ -230,3 +230,50 @@ export function formatCountdown(mins) {
   const m = mins % 60
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
+
+// ─── AI narrative overlay ───────────────────────────────────────────────────
+//
+// The rows above are a fixed skeleton: coordinates, radii, affected routes,
+// ASX exposure. Those are structure, and structure must not move — a map
+// whose chokepoints wander between page loads is not a map, and a model
+// asked for coordinates will happily place the Strait of Malacca in the
+// wrong ocean.
+//
+// What does go stale is the prose. "Freight rates +340% on Asia-Europe
+// routes" was true when it was written and is an assertion with a number in
+// it that nobody is checking now.
+//
+// So MaddenAI refreshes only the narrative fields, matched onto existing rows
+// by id or name. An AI item that matches nothing is ignored rather than
+// appended: it would have no coordinates to draw at. A row that matches
+// nothing keeps the prose it already had. The overlay can only ever improve
+// the words on a row that already exists.
+
+// Loose match — the model returns "Red Sea" or "red-sea" or "Red Sea Crisis"
+// for the same place, and none of those are worth a failed lookup.
+const slug = (v) => String(v ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '')
+
+function findMatch(row, aiRows) {
+  const keys = [slug(row.id), slug(row.name), slug(row.title)].filter(Boolean)
+  return aiRows.find((a) => {
+    const cand = [slug(a.id), slug(a.name), slug(a.title)].filter(Boolean)
+    return cand.some((c) => keys.some((k) => c === k || c.includes(k) || k.includes(c)))
+  })
+}
+
+// `fields` names exactly which properties the model is allowed to replace.
+// An allowlist rather than a spread: the point is that it can rewrite the
+// narrative and cannot touch a coordinate.
+export function overlayNarrative(rows, aiRows, fields) {
+  if (!Array.isArray(aiRows) || !aiRows.length) return rows
+  return rows.map((row) => {
+    const m = findMatch(row, aiRows)
+    if (!m) return row
+    const patch = {}
+    for (const f of fields) if (typeof m[f] === 'string' && m[f].trim()) patch[f] = m[f]
+    return Object.keys(patch).length ? { ...row, ...patch, aiNarrative: true } : row
+  })
+}
+
+export const SHIPPING_NARRATIVE_FIELDS = ['title', 'detail', 'impact', 'auExports', 'trend']
+export const GEO_NARRATIVE_FIELDS = ['summary', 'marketImpact', 'asxExposure', 'trend']

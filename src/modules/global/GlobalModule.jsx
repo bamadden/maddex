@@ -13,6 +13,8 @@ import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 import TabBar from '../../components/ui/TabBar'
+import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -2114,9 +2116,28 @@ const FEED_EXCHANGE_IDS = ['ASX', 'TSE', 'HKEX', 'LSE', 'NYSE', 'NASDAQ']
 
 // Mock — no live shipping-rate feed wired up yet, same DEMO convention.
 // 7D trend values are illustrative; sparkline just needs relative shape.
+// Levels and changes come from VERIFIED_CONSTANTS.freight, not from a second
+// copy typed out here — the two had the same numbers today and no mechanism
+// to keep having them tomorrow.
+//
+// The sparkline trends stay literal. They are the shape of the last seven
+// readings, which is not a figure verifiedConstants carries, and a made-up
+// shape is less misleading than a made-up level: it carries no number a
+// reader could quote. The final point is pinned to the verified level so the
+// line always ends where the label says it does.
+const FREIGHT = VERIFIED_CONSTANTS.freight
+
 const SHIPPING_INDEX = [
-  { name: 'BALTIC DRY (BDI)', value: 1847, chg: 2.1, trend: [1780, 1795, 1760, 1810, 1830, 1805, 1847] },
-  { name: 'FREIGHTOS (FBX)',  value: 3420, chg: -0.8, trend: [3480, 3460, 3510, 3470, 3440, 3455, 3420] },
+  {
+    name: 'BALTIC DRY (BDI)', vkey: 'freight',
+    value: FREIGHT.balticDryIndex, chg: FREIGHT.balticDryChangePct,
+    trend: [1780, 1795, 1760, 1810, 1830, 1805, FREIGHT.balticDryIndex],
+  },
+  {
+    name: 'FREIGHTOS (FBX)', vkey: 'freight',
+    value: FREIGHT.freightosFBX, chg: FREIGHT.freightosChangePct,
+    trend: [3480, 3460, 3510, 3470, 3440, 3455, FREIGHT.freightosFBX],
+  },
 ]
 
 function Sparkline({ points, positive }) {
@@ -2250,7 +2271,7 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
       </div>
 
       <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader badge="● DEMO">SHIPPING INDEX</FeedHeader>
+        <FeedHeader badge={<VerifiedBadge dataKey="freight" alwaysShow />}>SHIPPING INDEX</FeedHeader>
         <div className="px-2 py-1">
           {SHIPPING_INDEX.map((s) => (
             <div key={s.name} className="flex items-center justify-between py-1 gap-2">

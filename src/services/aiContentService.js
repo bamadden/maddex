@@ -27,8 +27,15 @@ import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 
 const AI_CACHE_PREFIX = 'maddex_ai_content_'
 
-const today = () => new Date().toISOString().split('T')[0]
-const yesterday = () => new Date(Date.now() - 86400000).toISOString().split('T')[0]
+// Local date, not UTC. toISOString() keys the cache to the UTC day, which in
+// Australia (UTC+10/+11) rolls over at 10 or 11 in the morning — so "today's"
+// content expired mid-morning and the "yesterday" fallback pointed at a day
+// the user had not had yet. Observed: a cache key of 2026-09-05 written at
+// 00:47 local on the 6th. en-CA formats as YYYY-MM-DD.
+// macroThemeService already keys this way; the two now agree.
+const dayKey = (d = new Date()) => d.toLocaleDateString('en-CA')
+const today = () => dayKey()
+const yesterday = () => dayKey(new Date(Date.now() - 86400000))
 
 function readDay(key, day) {
   try {
@@ -46,10 +53,25 @@ function parseJson(text) {
 // Today's cache → network → yesterday's cache → fallback.
 // The yesterday step matters: a day-old set of macro themes is still broadly
 // true and far more useful than an empty panel when a request fails.
+// Requests in flight, keyed by content key. Without this, two components
+// mounting against a cold cache — or StrictMode double-invoking one effect —
+// each fired their own completion for the same content, which showed up in
+// the console as the same key failing twice in the same millisecond.
+const inFlight = new Map()
+
 async function withDailyCache(key, buildPrompt, fallback = null) {
   const cachedToday = readDay(key, today())
   if (cachedToday) return { data: cachedToday, source: 'cache' }
 
+  const pending = inFlight.get(key)
+  if (pending) return pending
+
+  const run = fetchAndCache(key, buildPrompt, fallback)
+  inFlight.set(key, run)
+  try { return await run } finally { inFlight.delete(key) }
+}
+
+async function fetchAndCache(key, buildPrompt, fallback) {
   try {
     const res = await fetch('/api/claude', {
       method: 'POST',
@@ -107,26 +129,10 @@ function contextBlock() {
 }
 
 export const aiContentService = {
-  // ── Macro themes ──────────────────────────────────────────────────────────
-  async getMacroThemes() {
-    return withDailyCache('macro_themes', () => `${contextBlock()}
-Generate 6 current macro themes relevant to Australian investors.
-
-Return a JSON array of 6 objects:
-[{
-  "title": "<theme name, max 5 words>",
-  "category": "DOMESTIC|GLOBAL|COMMODITY|RATES|FX|RISK",
-  "impact": "BULLISH|BEARISH|NEUTRAL",
-  "summary": "<2-3 sentences of analysis>",
-  "whatWouldChangeIt": "<1 sentence: the development that would invalidate this read>",
-  "affectedSectors": ["<ASX sector>"],          // max 3
-  "affectedStocks": ["<ASX ticker>"],            // max 4
-  "timeHorizon": "NEAR|MEDIUM|LONG"
-}]
-
-Write analysis, not data. Do not state index levels or prices.
-Keep affectedSectors to at most 3 and affectedStocks to at most 4.`)
-  },
+  // NOTE: macro themes are NOT generated here. src/services/macroThemeService
+  // already owns them, in the shape MacroModule renders, and two generators
+  // would mean two completions a day for one panel. That service is now fed
+  // the same verified figures this one uses, so the constraint is identical.
 
   // ── Geopolitical risk narratives ──────────────────────────────────────────
   async getGeopoliticalRisks() {
@@ -215,7 +221,7 @@ Reason from the verified figures supplied. Do not introduce new numbers.`)
   },
 
   // ── Status + maintenance ──────────────────────────────────────────────────
-  KEYS: ['macro_themes', 'geo_risks', 'shipping_status', 'intel_ticker', 'macro_regime'],
+  KEYS: ['geo_risks', 'shipping_status', 'intel_ticker', 'macro_regime'],
 
   getContentStatus() {
     const d = today()
@@ -243,7 +249,6 @@ Reason from the verified figures supplied. Do not introduce new numbers.`)
     let refreshed = 0
     for (const key of missing) {
       try {
-        if (key === 'macro_themes') await this.getMacroThemes()
         if (key === 'geo_risks') await this.getGeopoliticalRisks()
         if (key === 'shipping_status') await this.getShippingStatus()
         if (key === 'intel_ticker') await this.getIntelTicker()
