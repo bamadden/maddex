@@ -61,7 +61,7 @@ const Divider = memo(function Divider({ label }) {
 // made — required since hooks can't be conditional).
 const TapeItem = memo(function TapeItem({ sym, price, pct, marketCap, onClick, liveSymbol }) {
   const { quote, flash } = useLivePrice(liveSymbol)
-  const livePrice = liveSymbol && quote ? `A$${quote.regularMarketPrice.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : price
+  const livePrice = liveSymbol && quote ? `A$${fmt.price(quote.regularMarketPrice)}` : price
   const livePct = liveSymbol && quote ? quote.regularMarketChangePercent : pct
   const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
   const tooltip = [livePrice, livePct != null ? `${livePct >= 0 ? '+' : ''}${livePct.toFixed(2)}%` : null, marketCap ? `MKT CAP ${formatMarketCap(marketCap)}` : null].filter(Boolean).join(' · ')

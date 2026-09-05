@@ -350,7 +350,7 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
 
     const prompt = [
       `${name ?? symbol} (${symbol})`,
-      `Price: ${fmt.aud(priceAud, { clarify: true })} | Day: ${pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}${rangeCtx}`,
+      `Price: ${fmt.aud(priceAud, { clarify: true })} | Day: ${fmt.pct(pct)}${rangeCtx}`,
       fundamentalCtx || null,
       '',
       'Provide a comprehensive analysis (max 200 words):',
@@ -864,14 +864,10 @@ export default function DetailModal() {
       </Section>
 
       <Section title="PRICE PERFORMANCE">
-        <DataRow label="24H Change"  value={pct != null ? `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}
+        <DataRow label="24H Change"  value={fmt.pct(pct)}
           cls={colorClass(pct)} />
-        <DataRow label="7D Change"   value={coinRaw?.price_change_percentage_7d_in_currency != null
-          ? `${coinRaw.price_change_percentage_7d_in_currency > 0 ? '+' : ''}${coinRaw.price_change_percentage_7d_in_currency.toFixed(2)}%`
-          : '—'} cls={colorClass(coinRaw?.price_change_percentage_7d_in_currency)} />
-        <DataRow label="30D Change"  value={coinRaw?.price_change_percentage_30d_in_currency != null
-          ? `${coinRaw.price_change_percentage_30d_in_currency > 0 ? '+' : ''}${coinRaw.price_change_percentage_30d_in_currency.toFixed(2)}%`
-          : '—'} cls={colorClass(coinRaw?.price_change_percentage_30d_in_currency)} />
+        <DataRow label="7D Change"   value={fmt.pct(coinRaw?.price_change_percentage_7d_in_currency)} cls={colorClass(coinRaw?.price_change_percentage_7d_in_currency)} />
+        <DataRow label="30D Change"  value={fmt.pct(coinRaw?.price_change_percentage_30d_in_currency)} cls={colorClass(coinRaw?.price_change_percentage_30d_in_currency)} />
         <DataRow label="Mkt Cap Rank" value={coinRaw?.market_cap_rank ? `#${coinRaw.market_cap_rank}` : '—'} />
       </Section>
 

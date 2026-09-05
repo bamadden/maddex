@@ -115,7 +115,7 @@ function CryptoPriceCells({ price, pct, pct7d, audToUsd }) {
         {price != null ? fmt.aud(price) : '—'}
       </td>
       <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
-        {usd != null ? `US$${usd.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+        {usd != null ? `US$${fmt.price(usd)}` : '—'}
       </td>
       <td className="px-2 py-1.5 text-right">
         <PriceChange pct={pct} className="justify-end" pill graded />

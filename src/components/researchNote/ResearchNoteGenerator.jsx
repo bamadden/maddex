@@ -6,6 +6,7 @@ import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import ShareLinkModal from '../ui/ShareLinkModal'
 import { createShareLink } from '../../services/sharingService'
+import { fmt } from '../../utils/format'
 
 const RATING_COLOR = {
   BUY:  { bg: '#0e2a1a', text: '#3dad65', border: '#2d8a50' },
@@ -14,7 +15,7 @@ const RATING_COLOR = {
   'UNDER REVIEW': { bg: '#16304f', text: '#8ba3c4', border: '#637899' },
 }
 
-const fmtPrice = (v, ccy) => v == null ? '—' : `${ccy === 'USD' ? 'US$' : 'A$'}${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const fmtPrice = (v, ccy) => v == null ? '—' : `${ccy === 'USD' ? 'US$' : 'A$'}${fmt.price(Number(v))}`
 const fmtLarge = (n) => {
   if (n == null || isNaN(n)) return '—'
   if (n >= 1e12) return `${(n / 1e12).toFixed(2)}T`

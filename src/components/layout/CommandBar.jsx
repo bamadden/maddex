@@ -4,6 +4,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
 import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, askClaude } from '../../services/api'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
+import { fmt } from '../../utils/format'
 
 // ─── Autocomplete symbol catalogue ────────────────────────────────────────────
 
@@ -318,7 +319,7 @@ function MoversPanel({ title, items, onClose, onSelect }) {
                   <td className="px-2 font-bold text-terminal-text-bright">{item.symbol}</td>
                   <td className="px-2 text-terminal-text-dim truncate max-w-[180px]">{item.name}</td>
                   <td className="px-2 text-right text-terminal-text">
-                    A${item.price != null ? item.price.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                    A${item.price != null ? fmt.price(item.price) : '—'}
                   </td>
                   <td className={`px-3 text-right font-bold ${item.pct > 0 ? 'text-terminal-green' : item.pct < 0 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
                     {item.pct > 0 ? '+' : ''}{item.pct?.toFixed(2) ?? '—'}%
@@ -345,8 +346,8 @@ function CompareModal({ assets, onClose }) {
   if (!assets || assets.length < 2) return null
   const [a, b] = assets
 
-  const fmtP = (v) => v != null ? `A$${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
-  const fmtPct = (v) => v != null ? `${v > 0 ? '+' : ''}${v.toFixed(2)}%` : '—'
+  const fmtP = (v) => v != null ? `A$${fmt.price(Number(v))}` : '—'
+  const fmtPct = fmt.pct   // identical output, kept as a local alias for the call site below
   const rows = [
     { label:'PRICE', aVal: fmtP(a.price), bVal: fmtP(b.price) },
     { label:'DAY CHG', aVal: fmtPct(a.pct), bVal: fmtPct(b.pct),
@@ -510,7 +511,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
                 {q && (
                   <span className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-terminal-text-bright font-semibold">
-                      {q.price != null ? `A$${q.price.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                      {q.price != null ? `A$${fmt.price(q.price)}` : '—'}
                     </span>
                     <span className={`font-bold ${q.pct > 0 ? 'text-terminal-green' : q.pct < 0 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
                       {q.pct != null ? `${q.pct > 0 ? '+' : ''}${q.pct.toFixed(2)}%` : ''}
