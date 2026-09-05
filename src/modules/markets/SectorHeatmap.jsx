@@ -51,6 +51,23 @@ export const SECTOR_ABBR = {
   'Utilities':              'UTILITIES',
 }
 
+
+// One glyph per GICS sector. The brief named eight; Comms, Staples and
+// Utilities are extended in the same register so no tile renders bare.
+const SECTOR_ICON = {
+  'Information Technology': '💻',
+  'Financials':             '🏦',
+  'Health Care':            '🏥',
+  'Consumer Discretionary': '🛒',
+  'Communication Services': '📡',
+  'Industrials':            '🏗',
+  'Consumer Staples':       '🧺',
+  'Energy':                 '⚡',
+  'Materials':              '⛏',
+  'Real Estate':            '🏢',
+  'Utilities':              '💡',
+}
+
 // null = sector not applicable to this index (renders as greyed N/A tile)
 export const INDEX_SECTORS = {
   '^AXJO': {
@@ -1150,18 +1167,25 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   className={`relative p-2 cursor-pointer select-none transition-all duration-150 flex flex-col ${col} ${row}`}
                   style={{
                     backgroundColor: bg,
-                    border: isSelected ? '2px solid #C9A84C' : '1px solid rgba(255,255,255,0.06)',
+                    border: isSelected ? '2px solid #C9A84C' : '1px solid rgba(0,0,0,0.3)',
                     filter: isHovered ? 'brightness(1.25)' : '',
-                    boxShadow: isSelected ? '0 0 12px rgba(200,168,75,0.25)' : 'none',
+                    // Inset separation reads as depth between adjacent tiles;
+                    // an outer hairline just draws a grid over the heat.
+                    boxShadow: isSelected
+                      ? 'inset 0 0 8px rgba(201,168,76,0.15), 0 0 12px rgba(200,168,75,0.25)'
+                      : 'inset 0 0 0 1px rgba(0,0,0,0.25)',
                   }}
                   onMouseEnter={() => setHovered(sector)}
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => setSelected(isSelected ? null : sector)}
                   onContextMenu={(e) => handleSectorContextMenu(e, sector)}
                 >
-                  {/* Top-left: abbreviated sector name */}
-                  <div className="text-[8px] font-mono text-terminal-text-dim tracking-wider truncate leading-tight flex-shrink-0">
-                    {SECTOR_ABBR[sector]}
+                  {/* Top-left: sector glyph + abbreviated name */}
+                  <div className="flex items-center gap-1 text-[8px] font-mono text-terminal-text-dim tracking-wider leading-tight flex-shrink-0 min-w-0">
+                    <span aria-hidden="true" className="text-[10px] leading-none flex-shrink-0 opacity-80">
+                      {SECTOR_ICON[sector]}
+                    </span>
+                    <span className="truncate">{SECTOR_ABBR[sector]}</span>
                   </div>
 
                   {/* Top-right: expand into the full Sector Deep Dive overlay */}

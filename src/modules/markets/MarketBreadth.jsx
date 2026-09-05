@@ -4,6 +4,7 @@ import { ASX_STOCKS, US_STOCKS } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { GICS_SECTORS, SECTOR_ABBR, ASX_SECTOR_STOCKS } from './SectorHeatmap'
 import { getMockFMPRow } from '../../services/mockData'
+import Tooltip from '../../components/ui/Tooltip'
 
 function SectorBreakdownModal({ onClose }) {
   const bySector = GICS_SECTORS.map((sector) => {
@@ -109,9 +110,23 @@ export default function MarketBreadth() {
         <span className="text-2xs text-terminal-text-dim">A/D Ratio:</span>
         <span className={`text-2xs font-bold ${sentimentCls}`}>{adRatio.toFixed(2)} — {sentiment}</span>
       </div>
-      <div className="flex-1 min-w-[80px] h-1.5 bg-terminal-red/40 rounded-sm overflow-hidden flex">
-        <div className="h-full bg-terminal-green" style={{ width: `${advPct}%` }} />
-      </div>
+      {/* The bar itself carries no labels, so the full breakdown lives in a
+          hover — useful at narrow widths where the inline stats wrap away. */}
+      <Tooltip
+        className="flex-1 min-w-[80px]"
+        content={
+          `Advancing:     ${advances} stocks\n` +
+          `Declining:     ${declines} stocks\n` +
+          `Unchanged:     ${unchanged}\n` +
+          `A/D Ratio:     ${adRatio.toFixed(2)}\n` +
+          `New 52W Highs: ${newHighs}\n` +
+          `New 52W Lows:  ${newLows}`
+        }
+      >
+        <div className="flex-1 min-w-[80px] h-1.5 bg-terminal-red/40 rounded-sm overflow-hidden flex self-center">
+          <div className="h-full bg-terminal-green" style={{ width: `${advPct}%` }} />
+        </div>
+      </Tooltip>
     </div>
   )
 

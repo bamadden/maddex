@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -46,12 +46,58 @@ function totalTrackedMktCap(quotes, audUsd) {
   return total > 0 ? total : null
 }
 
+
+// Micro-sparkline of the session's price path. There is no intraday endpoint
+// in the demo data layer, so the path is synthesised as a random walk that is
+// pinned to the real open and close: it starts at the implied open, ends at
+// the actual last price, and wanders in between. That makes it an honest
+// shape (direction and magnitude are real) without implying tick-level
+// precision it does not have.
+//
+// Seeded off the symbol so a given stock draws the same path every render
+// rather than twitching on each re-render.
+function seededRandom(seed) {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296 }
+}
+
+function IntradaySpark({ symbol, price, pct, w = 50, h = 20 }) {
+  const pts = useMemo(() => {
+    if (price == null || pct == null) return null
+    const open = price / (1 + pct / 100)
+    if (!isFinite(open) || open <= 0) return null
+    const rand = seededRandom(symbol)
+    const n = 24
+    const drift = (price - open) / (n - 1)
+    const vol = Math.abs(price - open) * 0.55 + price * 0.0015
+    const out = [open]
+    for (let i = 1; i < n - 1; i++) out.push(out[i - 1] + drift + (rand() - 0.5) * vol)
+    out.push(price)                                    // always lands on the real close
+    return out
+  }, [symbol, price, pct])
+
+  if (!pts) return <span className="text-terminal-muted/40 text-[9px]">—</span>
+
+  const min = Math.min(...pts), max = Math.max(...pts)
+  const span = max - min || 1
+  const d = pts.map((v, i) => `${(i / (pts.length - 1)) * w},${h - ((v - min) / span) * h}`).join(' ')
+  const stroke = pct >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" className="block overflow-visible">
+      <polyline points={d} fill="none" stroke={stroke} strokeWidth="1" strokeLinejoin="round" strokeLinecap="round" opacity="0.85" />
+    </svg>
+  )
+}
+
 // Fixed widths so header cells line up exactly with the data below them —
 // only NAME is flexible, everything else is a known-width number/ticker.
 const COLUMNS = [
   { key: 'rank',       label: '#',        align: 'right', cell: 'always', width: 24, sortable: false },
   { key: 'symbol',     label: 'TICKER',   align: 'left',  cell: 'always', width: 60 },
   { key: 'name',       label: 'NAME',     align: 'left',  cell: 'lg' },
+  { key: 'spark',      label: '',         align: 'left',  cell: 'lg', width: 58, sortable: false },
   { key: 'price',      label: 'A$ PRICE', align: 'right', cell: 'always', width: 80 },
   { key: 'dayChangePct', label: 'CHG%',   align: 'right', cell: 'always', width: 70 },
   { key: 'marketCap',  label: 'MKT CAP',  align: 'right', cell: 'lg', width: 80 },
@@ -125,6 +171,9 @@ function SortableTable({ items, audUsd, onRowClick }) {
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim" style={{ width: 24, minWidth: 24 }}>{i + 1}</td>
             <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold" style={{ width: 60, minWidth: 60 }}>{displaySym(q.symbol)}</td>
             <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
+            <td className="px-1.5 py-0.5 hidden lg:table-cell align-middle" style={{ width: 58, minWidth: 58 }}>
+              <IntradaySpark symbol={q.symbol} price={audPrice} pct={q.dayChangePct} />
+            </td>
             <LivePriceCells symbol={q.symbol} audPrice={audPrice} dayChangePct={q.dayChangePct} />
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell" style={{ width: 80, minWidth: 80 }}>
               {formatMarketCap(audMktCap)}

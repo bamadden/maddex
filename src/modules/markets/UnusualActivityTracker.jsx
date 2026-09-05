@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { MOCK_ASX_STOCKS, getMockFMPRow } from '../../services/mockData'
+import PriceChange from '../../components/ui/PriceChange'
 import { dispatchAskAI } from '../../utils/askAI'
 
 // getMockFMPRow's own regularMarketVolume/averageVolume always land at a
@@ -71,6 +72,15 @@ function classify(volumeRatio, priceChange) {
   return null
 }
 
+
+// Header-bar colour per signal type. The bar is the loudest element on the
+// card, so the type is legible before any of the numbers are read.
+const SIGNAL_BAR = {
+  UNUSUAL_VOLUME:  { bg: '#C9A84C', fg: '#060D1A' },
+  HIGH_CONVICTION: { bg: '#2D8A50', fg: '#060D1A' },
+  ACCUMULATION:    { bg: '#3E5C7E', fg: '#E8EDF5' },
+}
+
 function timeAgo(ms) {
   const seconds = Math.floor((Date.now() - ms) / 1000)
   if (seconds < 60) return 'just now'
@@ -116,33 +126,56 @@ export default function UnusualActivityTracker() {
         <div className="px-3 py-6 text-2xs text-terminal-text-dim/60 text-center">No unusual activity detected right now</div>
       ) : (
         <div className="divide-y divide-terminal-border/50">
-          {signals.map((s) => (
-            <div key={s.symbol} className="flex items-start gap-3 px-3 py-2.5">
-              <span className="text-base flex-shrink-0">{s.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-2xs font-bold text-terminal-gold tracking-widest">{s.label}</span>
-                  <span className="text-2xs font-bold text-terminal-text-bright">{s.symbol.replace('.AX', '')}</span>
-                  <span className="text-2xs text-terminal-text-dim">{s.name}</span>
-                </div>
-                <div className="text-2xs text-terminal-text mt-0.5">
-                  Volume: {s.volumeRatio.toFixed(1)}x average · Price: {s.priceChange >= 0 ? '+' : ''}{s.priceChange.toFixed(2)}%
-                </div>
-                <div className="text-2xs text-terminal-text-dim italic mt-0.5">"{s.interpretation}"</div>
+          {signals.map((s) => {
+            const bar = SIGNAL_BAR[s.type] ?? SIGNAL_BAR.ACCUMULATION
+            return (
+            <div key={s.symbol} className="flex flex-col">
+              {/* Full-width type bar — the signal is the headline, not a
+                  chip competing with the ticker beside it. */}
+              <div
+                className="flex items-center gap-1.5 px-3 text-[9px] font-mono font-bold tracking-widest"
+                style={{ height: 24, backgroundColor: bar.bg, color: bar.fg }}
+              >
+                <span aria-hidden="true">{s.icon}</span>
+                <span>{s.label}</span>
+                <span className="ml-auto font-normal opacity-70">{timeAgo(detectedAt)}</span>
               </div>
-              <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <span className="text-2xs text-terminal-text-dim/50">{timeAgo(detectedAt)}</span>
-                <button
-                  onClick={() => dispatchAskAI({
-                    ticker: s.symbol, name: s.name,
-                    change: `${s.priceChange >= 0 ? '+' : ''}${s.priceChange.toFixed(2)}%`,
-                    instruction: `${s.symbol.replace('.AX', '')} is showing ${s.label.toLowerCase()} — volume is ${s.volumeRatio.toFixed(1)}x its average with price ${s.priceChange >= 0 ? 'up' : 'down'} ${Math.abs(s.priceChange).toFixed(2)}% today. What's the most likely explanation, and is this worth acting on?`,
-                  }, { rawPrompt: true })}
-                  className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                >ANALYSE</button>
+
+              <div className="px-3 py-2">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="text-xs font-bold text-terminal-gold flex-shrink-0">{s.symbol.replace('.AX', '')}</span>
+                  <span className="text-2xs text-terminal-text-dim truncate">{s.name}</span>
+                </div>
+
+                {/* Stats row — compact, evenly spaced, labels beneath values */}
+                <div className="flex items-center gap-4 mt-1.5">
+                  <div>
+                    <div className="text-[8px] font-mono tracking-widest text-terminal-muted/70 uppercase">Volume</div>
+                    <div className="text-2xs font-mono font-bold text-terminal-text-bright">{s.volumeRatio.toFixed(1)}× avg</div>
+                  </div>
+                  <div>
+                    <div className="text-[8px] font-mono tracking-widest text-terminal-muted/70 uppercase">Price</div>
+                    <PriceChange pct={s.priceChange} size="text-2xs" pill />
+                  </div>
+                </div>
+
+                <div className="flex items-end gap-3 mt-1.5">
+                  <p className="flex-1 min-w-0 text-2xs text-terminal-text-dim italic leading-snug line-clamp-2">
+                    &ldquo;{s.interpretation}&rdquo;
+                  </p>
+                  <button
+                    onClick={() => dispatchAskAI({
+                      ticker: s.symbol, name: s.name,
+                      change: `${s.priceChange >= 0 ? '+' : ''}${s.priceChange.toFixed(2)}%`,
+                      instruction: `${s.symbol.replace('.AX', '')} is showing ${s.label.toLowerCase()} — volume is ${s.volumeRatio.toFixed(1)}x its average with price ${s.priceChange >= 0 ? 'up' : 'down'} ${Math.abs(s.priceChange).toFixed(2)}% today. What's the most likely explanation, and is this worth acting on?`,
+                    }, { rawPrompt: true })}
+                    className="btn-secondary btn-sm flex-shrink-0"
+                  >ANALYSE</button>
+                </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

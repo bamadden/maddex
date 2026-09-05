@@ -240,10 +240,12 @@ function LiveIndexPrice({ symbol, q, sparkPoints, isStale, dataDate }) {
   return (
     <div className="flex items-end justify-between gap-1.5 mt-0.5">
       <div>
-        <div className={`text-[13px] font-mono font-semibold text-white leading-tight whitespace-nowrap ${flashClass}`}>
+        <div className={`text-[18px] font-mono font-semibold text-white leading-none whitespace-nowrap ${flashClass}`}>
           {fmt.price(livePrice, 1)}
         </div>
-        <PriceChange pct={livePct} size="text-[10px]" />
+        <div className="mt-1">
+          <PriceChange pct={livePct} size="text-[10px]" pill />
+        </div>
         {isStale && (
           <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
         )}
@@ -344,7 +346,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               onClick={() => handleClick(symbol, q, isAud, label)}
               onMouseEnter={() => setHoveredIdx(symbol)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className={`relative min-w-0 cursor-pointer transition-all border-r border-b sm:border-b-0 border-terminal-border ${
+              className={`index-card relative min-w-0 cursor-pointer border-r border-b sm:border-b-0 border-terminal-border ${
                 isSelected ? 'bg-terminal-surface2' : 'bg-terminal-surface hover:bg-terminal-surface2'
               }`}
               style={{
@@ -362,13 +364,17 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               )}
               {/* Name is the only thing allowed to ellipsis — the level and
                   change % must always render in full, per design spec. */}
-              <div className="flex items-center gap-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase overflow-hidden text-ellipsis whitespace-nowrap">
-                {isOpen != null && (
-                  <span
-                    className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOpen ? 'bg-terminal-green animate-pulse' : 'bg-terminal-muted/30'}`}
-                    title={isOpen ? 'Market open' : 'Market closed'}
-                  />
-                )}
+              {/* Session state sits in the corner rather than inline with the
+                  name — it is card-level status, not part of the label. */}
+              {isOpen != null && (
+                <span
+                  className={`absolute top-1.5 right-1.5 inline-block w-1 h-1 rounded-full ${
+                    isOpen ? 'bg-terminal-green market-dot-pulse' : 'bg-terminal-muted/40'
+                  }`}
+                  title={isOpen ? 'Market open' : 'Market closed'}
+                />
+              )}
+              <div className="flex items-center gap-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase overflow-hidden text-ellipsis whitespace-nowrap pr-3">
                 <span className="truncate">{label}</span>
               </div>
 

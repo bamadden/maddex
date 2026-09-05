@@ -4,7 +4,11 @@ import { fmt } from '../../utils/format'
 // place the app shows a change value. Positive → green ▲, negative → red ▼,
 // zero/null → dim ▶. Pass either `pct` (percentage) or `value` (absolute
 // change) — or both, to show "▲ 2.15 (+1.23%)" in one line.
-export default function PriceChange({ pct, value, showArrow = true, className = '', size = 'text-2xs' }) {
+//
+// `pill` wraps the value in a tinted background rather than colouring the
+// text alone. A change is the thing the eye hunts for on a dense board, and
+// a filled chip is findable in peripheral vision in a way bare text is not.
+export default function PriceChange({ pct, value, showArrow = true, className = '', size = 'text-2xs', pill = false }) {
   const n = pct ?? value ?? null
   const isUp = n != null && n > 0
   const isDown = n != null && n < 0
@@ -15,8 +19,25 @@ export default function PriceChange({ pct, value, showArrow = true, className = 
   if (value != null) parts.push(fmt.change(value))
   if (pct != null) parts.push(value != null ? `(${fmt.pct(pct)})` : fmt.pct(pct))
 
+  // Tints are deliberately low-alpha: they must read as a chip behind the
+  // number, never as a solid badge competing with the value itself.
+  const pillStyle = pill
+    ? {
+        backgroundColor: isUp
+          ? 'rgba(45,138,80,0.15)'
+          : isDown
+            ? 'rgba(168,50,50,0.15)'
+            : 'rgba(99,120,153,0.12)',
+        borderRadius: 2,
+        padding: '1px 5px',
+      }
+    : undefined
+
   return (
-    <span className={`inline-flex items-center gap-1 font-mono font-semibold ${size} ${color} ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1 font-mono font-semibold ${size} ${color} ${className}`}
+      style={pillStyle}
+    >
       {showArrow && <span aria-hidden="true">{arrow}</span>}
       <span>{parts.length ? parts.join(' ') : '—'}</span>
     </span>
