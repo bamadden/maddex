@@ -26,6 +26,7 @@ import { soundService } from '../../services/soundService'
 import Tooltip from '../../components/ui/Tooltip'
 import StockContextMenu from '../../components/ui/StockContextMenu'
 import { useStockContextMenu } from '../../hooks/useStockContextMenu'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -157,6 +158,41 @@ function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
 // Starting set for an empty watchlist — four ASX large caps, two US mega
 // caps, two majors in crypto. Chosen to span the asset classes the terminal
 // actually covers so the first click also demonstrates its scope.
+
+// Search universe, built once from the demo maps. Symbols are stored in the
+// form the watchlist expects (.AX suffixed for ASX) so a pick can be added
+// verbatim without re-deriving the exchange.
+const SEARCH_UNIVERSE = [
+  ...Object.entries(MOCK_ASX_STOCKS).map(([sym, v]) => ({
+    symbol: sym.endsWith('.AX') ? sym : `${sym}.AX`,
+    name: v.name ?? sym, exchange: 'ASX',
+  })),
+  ...Object.entries(MOCK_US_STOCKS).map(([sym, v]) => ({
+    symbol: sym, name: v.name ?? sym, exchange: 'US',
+  })),
+]
+
+// Ranked so an exact ticker match leads, then ticker prefixes, then name
+// matches — typing "CBA" should not surface a company whose description
+// happens to contain those letters ahead of the ticker itself.
+function searchTickers(query, limit = 6) {
+  const q = query.trim().toUpperCase()
+  if (q.length < 1) return []
+  const scored = []
+  for (const item of SEARCH_UNIVERSE) {
+    const sym = item.symbol.toUpperCase()
+    const bare = sym.replace('.AX', '')
+    const name = (item.name ?? '').toUpperCase()
+    let score = null
+    if (bare === q || sym === q) score = 0
+    else if (bare.startsWith(q)) score = 1
+    else if (name.startsWith(q)) score = 2
+    else if (name.includes(q)) score = 3
+    if (score != null) scored.push({ ...item, score })
+  }
+  return scored.sort((a, b) => a.score - b.score || a.symbol.localeCompare(b.symbol)).slice(0, limit)
+}
+
 const SUGGESTED_TICKERS = [
   { symbol: 'BHP.AX', name: 'BHP Group' },
   { symbol: 'CBA.AX', name: 'Commonwealth Bank' },
@@ -225,6 +261,7 @@ export default function WatchlistModule() {
   const { usdToAud, audToUsd } = useAudRates()
 
   const [searchInput, setSearchInput] = useState('')
+  const [highlight, setHighlight] = useState(0)
   const searchInputRef = useRef(null)
   const [addError, setAddError]       = useState(null)
   const [validating, setValidating]   = useState(false)
@@ -351,6 +388,9 @@ export default function WatchlistModule() {
     .sort((a, b) => (a.row.type === 'crypto' ? 1 : 0) - (b.row.type === 'crypto' ? 1 : 0))
   const firstCryptoIdx = groupedRows.findIndex(({ row }) => row.type === 'crypto')
 
+  // Instant results as the user types — no Enter needed to see candidates.
+  const matches = searchTickers(searchInput)
+
   const handleAdd = async (e) => {
     e.preventDefault()
     const raw = searchInput.trim().toUpperCase()
@@ -454,15 +494,63 @@ export default function WatchlistModule() {
 
       {/* Search / add bar */}
       <div className="flex items-center border-b border-terminal-border flex-shrink-0">
-        <form onSubmit={handleAdd} className="flex flex-1 items-center">
+        <form onSubmit={handleAdd} className="flex flex-1 items-center relative">
           <span className="px-2 text-2xs text-terminal-gold flex-shrink-0">+</span>
           <input
             ref={searchInputRef}
             className="cmd-input flex-1 py-1.5 text-2xs"
             value={searchInput}
-            onChange={(e) => { setSearchInput(e.target.value.toUpperCase()); setAddError(null) }}
+            onChange={(e) => { setSearchInput(e.target.value.toUpperCase()); setAddError(null); setHighlight(0) }}
+            onKeyDown={(e) => {
+              if (!matches.length) return
+              // Arrow keys move the highlight; Enter takes the highlighted
+              // match rather than the raw text, so a partial name resolves to
+              // the right ticker instead of failing validation.
+              if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => (h + 1) % matches.length) }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight((h) => (h - 1 + matches.length) % matches.length) }
+              else if (e.key === 'Enter') {
+                const pick = matches[highlight]
+                if (pick && !watchlist.includes(pick.symbol)) {
+                  e.preventDefault()
+                  addToWatchlist(pick.symbol)
+                  setSearchInput('')
+                  setHighlight(0)
+                }
+              } else if (e.key === 'Escape') { setSearchInput('') }
+            }}
             placeholder="ADD TICKER — ASX (BHP.AX) or US (AAPL) — press Enter"
           />
+
+          {/* Instant results — no Enter needed to see them. */}
+          {matches.length > 0 && (
+            <div
+              className="absolute left-0 right-0 top-full bg-terminal-panel border border-terminal-border-gold shadow-2xl"
+              style={{ zIndex: 100 }}
+            >
+              {matches.map((m, i) => {
+                const owned = watchlist.includes(m.symbol)
+                return (
+                  <button
+                    key={m.symbol}
+                    type="button"
+                    onMouseEnter={() => setHighlight(i)}
+                    onClick={() => { if (!owned) { addToWatchlist(m.symbol); setSearchInput('') } }}
+                    disabled={owned}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-2xs text-left transition-colors ${
+                      i === highlight ? 'bg-terminal-surface2' : ''
+                    } ${owned ? 'opacity-50' : 'hover:bg-terminal-surface2'}`}
+                  >
+                    <span className="font-bold text-terminal-gold w-16 flex-shrink-0">{m.symbol}</span>
+                    <span className="text-terminal-text-dim truncate flex-1 min-w-0">{m.name}</span>
+                    <span className="text-[9px] font-mono text-terminal-muted/70 flex-shrink-0">{m.exchange}</span>
+                    <span className={`w-3 text-center flex-shrink-0 ${owned ? 'text-terminal-green' : 'text-terminal-gold'}`}>
+                      {owned ? '✓' : '+'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <button
             type="submit"
             disabled={validating}
