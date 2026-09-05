@@ -728,14 +728,14 @@ export default function WatchlistModule() {
                        that changes meaning without saying so is a trap. */
                     <tr className="pointer-events-none">
                       <td className="px-2 py-1 bg-terminal-header/40" />
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase bg-terminal-header/40">Ticker</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase bg-terminal-header/40">Name</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Price (A$)</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Price (US$)</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">24H%</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">7D%</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Volume</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Mkt Cap</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap">Ticker</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap">Name</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Price (A$)</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Price (US$)</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">24H%</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">7D%</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Volume</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Mkt Cap</td>
                       <td className="px-2 py-1 bg-terminal-header/40" />
                       <td className="px-2 py-1 bg-terminal-header/40" />
                     </tr>
