@@ -205,7 +205,15 @@ body {
   width: 100%;
 }
 .terminal-table th {
-  @apply text-[8px] tracking-[0.2em] text-terminal-muted uppercase bg-terminal-surface2 border-b border-terminal-border py-2 px-3 font-mono font-normal text-left;
+  @apply text-[8px] tracking-[0.2em] text-terminal-muted uppercase bg-terminal-surface2 border-b border-terminal-border py-2 px-3 font-mono font-normal;
+}
+/* Default header alignment, deliberately at element-only specificity (0,0,1)
+   so a per-column `text-right`/`text-center` utility (0,1,0) always wins.
+   This lived inside the @apply above as `text-left`, which made the rule
+   (0,1,1) and silently overrode every text-right a table set on a numeric
+   column — headers sat left while their data sat right. */
+:where(.terminal-table) th {
+  text-align: left;
 }
 .terminal-table td {
   @apply text-[11px] font-mono text-terminal-text py-2 px-3 border-b border-terminal-border tabular-nums;

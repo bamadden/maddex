@@ -724,6 +724,26 @@ function BreakingFeed({ items }) {
   )
 }
 
+// Defensive plain-text rendering for the brief. The prompt asks for no
+// markdown, but briefs are cached per day in localStorage, so any already
+// stored with #/**/--- would keep rendering their syntax literally. Strips
+// the syntax and promotes **bold** to <strong> rather than showing asterisks.
+function renderBriefParagraphs(text) {
+  return text
+    .split('\n')
+    .map((line) => line.replace(/^\s*#{1,6}\s*/, '').trim())
+    .filter((line) => line && !/^([-*_]\s*){3,}$/.test(line))
+    .map((line, i) => (
+      <p key={i} className="mb-2 last:mb-0">
+        {line.split(/\*\*(.+?)\*\*/g).map((part, j) =>
+          j % 2 === 1
+            ? <strong key={j} className="text-terminal-text-bright">{part}</strong>
+            : part,
+        )}
+      </p>
+    ))
+}
+
 // ─── Morning briefing — MaddenAI-generated, cached once per calendar day ──────
 
 function briefKey(date) { return `maddex_morning_brief_${date}` }
@@ -748,7 +768,10 @@ function MorningBriefing() {
         'Para 3: Key risk events this week\n' +
         'Keep it factual, specific, and Australian-focused. General information only.'
       const { text: result } = await askClaude([{ role: 'user', content: prompt }], null, {
-        systemPrompt: 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal.',
+        systemPrompt:
+          'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. ' +
+          'This panel renders plain text only — never use markdown. No #/## headings, no **bold**, ' +
+          'no --- rules, no bullet syntax. Write flowing prose paragraphs separated by blank lines.',
       })
       setText(result)
       try { localStorage.setItem(briefKey(today), result) } catch { /* best-effort cache write */ }
@@ -791,7 +814,7 @@ function MorningBriefing() {
           {error ? (
             <div className="text-terminal-red text-2xs">⚠ {error} — <button onClick={generate} className="underline hover:text-terminal-gold">retry</button></div>
           ) : text ? (
-            text.split('\n').filter(Boolean).map((para, i) => <p key={i} className="mb-2 last:mb-0">{para}</p>)
+            renderBriefParagraphs(text)
           ) : (
             <div className="text-terminal-text-dim text-2xs animate-pulse">MaddenAI is drafting today's briefing…</div>
           )}
