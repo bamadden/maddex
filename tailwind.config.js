@@ -45,7 +45,11 @@ export default {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       fontSize: {
-        '2xs': ['0.65rem', { lineHeight: '1rem' }],
+        // 0.625rem = 10px exactly. Was 0.65rem (10.4px), which sat alongside
+        // ~15 hardcoded text-[10px] usages as an invisible near-duplicate —
+        // same problem as the two golds. Fixing the token unifies all 1391
+        // text-2xs call sites without touching one of them.
+        '2xs': ['0.625rem', { lineHeight: '1rem' }],
       },
       animation: {
         'ticker-scroll': 'ticker 40s linear infinite',

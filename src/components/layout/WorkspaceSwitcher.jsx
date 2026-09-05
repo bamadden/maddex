@@ -120,7 +120,7 @@ function NewWorkspaceModal({ onClose, onCreated }) {
 
         <button
           onClick={handleCreate}
-          className="w-full py-2 bg-terminal-gold text-terminal-bg font-bold text-2xs tracking-widest hover:bg-terminal-gold/90"
+          className="w-full btn-primary"
         >
           CREATE
         </button>

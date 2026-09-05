@@ -731,7 +731,7 @@ function LeadingIndicators() {
           <div
             key={c.title}
             className="flex flex-col"
-            style={{ background: '#071428', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, padding: 12 }}
+            style={{ background: '#0B1628', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 3, padding: 12 }}
           >
             <div className="flex-shrink-0 mb-1 flex items-start justify-between gap-1">
               <div>

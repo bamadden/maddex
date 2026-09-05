@@ -1245,7 +1245,7 @@ function CurrentPlanCard() {
         </div>
         <button
           onClick={openUpgrade}
-          className="w-full py-2 text-2xs font-bold bg-terminal-gold text-terminal-bg tracking-widest hover:bg-terminal-gold-bright transition-colors"
+          className="w-full btn-primary"
         >UPGRADE NOW →</button>
       </div>
     )

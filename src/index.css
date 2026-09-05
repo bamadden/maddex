@@ -74,6 +74,61 @@ body {
   font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
+/* ── Button variants ────────────────────────────────────────────────────
+   The three canonical action-button styles. Use these for actions rather
+   than hand-rolling padding/border/size per call site — an audit found 102
+   distinct button classNames across 128 buttons. Layout classes (w-full,
+   mt-1, flex-1) compose on top of these fine.
+   Not for icon-only buttons, tabs, or filter chips — those are their own
+   thing and forcing them into an action style would be wrong. */
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: 2px;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.btn-primary {
+  background: rgb(var(--t-gold));
+  color: rgb(var(--t-bg));
+  border: 1px solid rgb(var(--t-gold));
+}
+.btn-primary:hover { background: rgb(var(--t-gold-bright)); border-color: rgb(var(--t-gold-bright)); }
+
+.btn-secondary {
+  background: transparent;
+  color: rgb(var(--t-gold));
+  border: 1px solid rgba(201, 168, 76, 0.3);
+}
+.btn-secondary:hover { border-color: rgba(201, 168, 76, 0.6); background: rgba(201, 168, 76, 0.08); }
+
+.btn-ghost {
+  background: transparent;
+  color: rgb(var(--t-muted));
+  border: none;
+}
+.btn-ghost:hover { color: rgb(var(--t-gold)); }
+
+/* Dense variant. The terminal packs buttons into table rows and inline
+   label rows where the standard 8px/16px is too tall; this keeps the same
+   type and colour treatment at the density those rows need. */
+.btn-sm { padding: 3px 10px; font-size: 9px; letter-spacing: 0.06em; }
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ── Z-index scale ──────────────────────────────────────────────────────
    One source of truth for stacking order. Use these rather than inventing a
    new magic number; anything outside this ladder is a bug waiting to happen.
@@ -248,7 +303,7 @@ button:not(:disabled):active {
 .ticker-container {
   overflow: hidden;
   height: 28px;
-  background: #071428;
+  background: #0B1628;
   border-bottom: 1px solid rgba(30,60,120,0.4);
   position: relative;
   z-index: 5;

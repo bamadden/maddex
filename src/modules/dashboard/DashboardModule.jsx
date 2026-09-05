@@ -332,7 +332,7 @@ function WatchlistPreviewCard({ goto }) {
         {preview.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
             <div className="text-2xs text-terminal-text-dim">Add stocks to track</div>
-            <button onClick={() => goto('watchlist')} className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-3 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">+ ADD</button>
+            <button onClick={() => goto('watchlist')} className="btn-secondary btn-sm">+ ADD</button>
           </div>
         ) : (
           <div className="flex-1">

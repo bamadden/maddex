@@ -579,7 +579,7 @@ function ResizablePanel({ children, defaultWidth, minWidth, maxWidth, storageKey
 // ── Shared cell styles ─────────────────────────────────────────────────────────
 
 const CELL = { padding: '5px 8px', fontSize: '10px', verticalAlign: 'middle', position: 'static' }
-const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#071428', verticalAlign: 'middle' }
+const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#0B1628', verticalAlign: 'middle' }
 
 // ── Main Module ────────────────────────────────────────────────────────────────
 
@@ -763,9 +763,9 @@ export default function CryptoModule() {
         </ResizablePanel>
 
         {/* ── CENTRE: elite coin table ── */}
-        <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: '#071428', position: 'relative' }}>
+        <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: '#0B1628', position: 'relative' }}>
           <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
-            style={{ position: 'sticky', top: 0, zIndex: 20, background: '#071428', borderBottom: '1px solid #0d2244', margin: 0 }}>
+            style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0B1628', borderBottom: '1px solid #0d2244', margin: 0 }}>
             <span>TOP 20 BY MKT CAP ({currency})</span>
             {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} />}
             {rawMarkets && !marketsDelayed
@@ -780,7 +780,7 @@ export default function CryptoModule() {
               }`}
             >{view3D ? '2D TABLE' : '3D VIEW'}</button>
           </div>
-          <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#071428', margin: 0, padding: 0 }} />
+          <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#0B1628', margin: 0, padding: 0 }} />
 
           {marketsError ? (
             <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
@@ -942,7 +942,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
-        <tr style={{ background: '#071428', borderBottom: '1px solid #C9A84C' }}>
+        <tr style={{ background: '#0B1628', borderBottom: '1px solid #C9A84C' }}>
           {cols.map(col => (
             <th
               key={col.key}

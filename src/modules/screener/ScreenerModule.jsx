@@ -367,8 +367,8 @@ export default function ScreenerModule() {
                     className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
                   />
                   <div className="flex gap-1.5">
-                    <button onClick={saveCurrentScreen} className="flex-1 text-2xs font-bold py-1 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold/80 transition-colors">SAVE</button>
-                    <button onClick={() => setShowSavePrompt(false)} className="flex-1 text-2xs py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-red transition-colors">CANCEL</button>
+                    <button onClick={saveCurrentScreen} className="flex-1 btn-primary btn-sm">SAVE</button>
+                    <button onClick={() => setShowSavePrompt(false)} className="flex-1 btn-secondary btn-sm">CANCEL</button>
                   </div>
                 </div>
               )}

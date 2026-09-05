@@ -201,7 +201,7 @@ export default function ComparisonView() {
                 placeholder="Add symbol to compare — e.g. CBA.AX"
                 className="flex-1 bg-terminal-bg border border-terminal-border px-2 py-1.5 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono"
               />
-              <button onClick={addSymbol} className="px-3 py-1.5 text-2xs font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ADD</button>
+              <button onClick={addSymbol} className="btn-secondary btn-sm">ADD</button>
               {addError && <span className="text-2xs text-terminal-red">{addError}</span>}
             </div>
           )}

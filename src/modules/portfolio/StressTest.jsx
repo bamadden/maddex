@@ -248,7 +248,7 @@ export default function StressTest({ holdings, fmtCur }) {
           <div className="border border-terminal-border p-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-2xs text-terminal-gold font-bold tracking-widest">MADDENAI COMMENTARY</span>
-              <button onClick={askAboutScenario} className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ASK MADDENAI →</button>
+              <button onClick={askAboutScenario} className="btn-secondary btn-sm">ASK MADDENAI →</button>
             </div>
             <p className="text-2xs text-terminal-text leading-relaxed">
               Under this scenario, your portfolio would {totalImpact >= 0 ? 'gain' : 'decline'} {fmtCur(Math.abs(totalImpact))} ({totalImpactPct >= 0 ? '+' : ''}{totalImpactPct.toFixed(1)}%).
