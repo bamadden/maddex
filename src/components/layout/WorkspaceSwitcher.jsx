@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import { workspaceService } from '../../services/workspaceService'
 import { WORKSPACE_MODULE_LIST } from '../../config/workspaceModules'
 import { viewStateService } from '../../services/viewStateService'
+import Tooltip from '../ui/Tooltip'
+import { shortcutService } from '../../services/shortcutService'
 
 const LAYOUT_OPTIONS = [
   { id: 'single', label: 'Single', panels: 1 },
@@ -220,13 +222,14 @@ function SavedViewsMenu() {
 
   return (
     <div className="relative" ref={ref}>
+      <Tooltip content={'Saved views\nSave or restore a layout'}>
       <button
         onClick={() => setOpen((v) => !v)}
-        title="Saved views"
         className="flex items-center justify-center h-7 px-3 text-[9px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
       >
         ⧉
       </button>
+      </Tooltip>
       {open && (
         <div className="absolute top-full right-0 mt-0.5 min-w-[220px] bg-terminal-panel border border-terminal-border-gold shadow-2xl z-50 font-mono">
           {saving ? (
@@ -304,15 +307,20 @@ export default function WorkspaceSwitcher() {
 
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
-      {workspaces.map((ws) => (
-        <button
+      {workspaces.map((ws, wsIdx) => (
+        <Tooltip
           key={ws.id}
+          content={
+            `${ws.name}${wsIdx < 4 ? `\n${shortcutService.shortcuts[`ws.${wsIdx + 1}`]?.display ?? ''}` : ''}` +
+            '\nRight-click to rename, duplicate or delete'
+          }
+        >
+        <button
           onClick={() => workspaceService.setActive(ws.id)}
           onContextMenu={(e) => {
             e.preventDefault()
             setContextMenu({ workspace: ws, position: { x: e.clientX, y: e.clientY } })
           }}
-          title={ws.name}
           className={`flex items-center gap-1.5 h-7 px-3 text-[9px] font-mono tracking-wider uppercase rounded-[2px] whitespace-nowrap transition-colors ${
             ws.id === active
               ? 'bg-terminal-gold/[0.15] text-terminal-gold border border-terminal-gold/40'
@@ -322,14 +330,16 @@ export default function WorkspaceSwitcher() {
           <span className="leading-none">{ws.icon}</span>
           <span className="hidden lg:inline">{ws.name}</span>
         </button>
+        </Tooltip>
       ))}
+      <Tooltip content={`New workspace\n${shortcutService.shortcuts['ws.new']?.display ?? ''}`}>
       <button
         onClick={() => setShowNew(true)}
-        title="New workspace"
         className="flex items-center justify-center h-7 px-3 text-[9px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
       >
         +
       </button>
+      </Tooltip>
 
       <SavedViewsMenu />
 

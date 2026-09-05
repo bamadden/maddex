@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { RefreshCw } from 'lucide-react'
+import Tooltip from './Tooltip'
 
 // Relative age — "2m ago" reads faster than a wall-clock stamp for a
 // freshness indicator, which is the only thing this is used for.
@@ -75,32 +76,36 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           <span className="text-terminal-muted text-[9px] font-mono whitespace-nowrap">{timeAgo(lastUpdated)}</span>
         ) : null}
         {onRefresh && (
-          <button onClick={handleRefresh} title="Refresh" aria-label="Refresh" className={iconBtn}>
-            <RefreshCw size={14} strokeWidth={2} className={spinning ? 'animate-spin' : ''} />
-          </button>
+          <Tooltip content={`Refresh ${title}\nR`}>
+            <button onClick={handleRefresh} aria-label="Refresh" className={iconBtn}>
+              <RefreshCw size={14} strokeWidth={2} className={spinning ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip>
         )}
         {moduleId && (
           <>
-            <button
-              onClick={(e) => {
-                // Fullscreens the active module's content wrapper (App.jsx's
-                // `.module-fade` div) — a no-op inside a floating window,
-                // which has no such ancestor.
-                const el = e.currentTarget.closest('.module-fade')
-                if (!el) return
-                if (document.fullscreenElement) document.exitFullscreen()
-                else el.requestFullscreen?.()
-              }}
-              title="Toggle fullscreen"
-              aria-label="Toggle fullscreen"
-              className={`${iconBtn} text-[14px] leading-none`}
-            >⤢</button>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('madden:pop-out', { detail: { moduleId, title } }))}
-              title="Pop out into a floating window"
-              aria-label="Pop out into a floating window"
-              className={`${iconBtn} text-[14px] leading-none`}
-            >⊡</button>
+            <Tooltip content={'Toggle fullscreen\nF'}>
+              <button
+                onClick={(e) => {
+                  // Fullscreens the active module's content wrapper (App.jsx's
+                  // `.module-fade` div) — a no-op inside a floating window,
+                  // which has no such ancestor.
+                  const el = e.currentTarget.closest('.module-fade')
+                  if (!el) return
+                  if (document.fullscreenElement) document.exitFullscreen()
+                  else el.requestFullscreen?.()
+                }}
+                aria-label="Toggle fullscreen"
+                className={`${iconBtn} text-[14px] leading-none`}
+              >⤢</button>
+            </Tooltip>
+            <Tooltip content={`Pop ${title} into a floating window`}>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('madden:pop-out', { detail: { moduleId, title } }))}
+                aria-label="Pop out into a floating window"
+                className={`${iconBtn} text-[14px] leading-none`}
+              >⊡</button>
+            </Tooltip>
           </>
         )}
       </div>

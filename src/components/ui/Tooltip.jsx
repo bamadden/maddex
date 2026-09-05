@@ -26,13 +26,22 @@ export default function Tooltip({ content, children, placement = 'top', maxWidth
       const el = ref.current
       if (!el) return
       const r = el.getBoundingClientRect()
+      // Flip below when there isn't room above. Without this, anything near
+      // the top of the window — the whole top bar — opens its tooltip off
+      // the top of the viewport, i.e. invisibly.
+      const ROOM_NEEDED = 60
+      const openBelow = placement === 'bottom' || r.top < ROOM_NEEDED
+      // Keep the body on screen horizontally too, so a control at either edge
+      // doesn't push its tooltip out of view.
+      const half = Math.min(maxWidth, 240) / 2
+      const left = Math.min(Math.max(r.left + r.width / 2, half + 8), window.innerWidth - half - 8)
       setPos(
-        placement === 'bottom'
-          ? { left: r.left + r.width / 2, top: r.bottom + 6, flip: false }
-          : { left: r.left + r.width / 2, top: r.top - 6, flip: true },
+        openBelow
+          ? { left, top: r.bottom + 6, flip: false }
+          : { left, top: r.top - 6, flip: true },
       )
     }, OPEN_DELAY)
-  }, [placement])
+  }, [placement, maxWidth])
 
   const close = useCallback(() => {
     clearTimeout(timer.current)

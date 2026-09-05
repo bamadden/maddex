@@ -10,6 +10,7 @@ import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import { useSentiment } from '../../hooks/useSentiment'
 import WorkspaceSwitcher from './WorkspaceSwitcher'
+import Tooltip from '../ui/Tooltip'
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -217,16 +218,17 @@ function DataFreshnessBadge() {
   // moved into the tooltip.
   const stale = remaining === 0
   return (
+    <Tooltip content={`Data updated ${timeAgo}\n${stale ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
     <button
       onClick={handleClick}
       aria-label="Refresh live data"
-      title={`Data updated ${timeAgo} — click to refresh${stale ? '' : ` (auto in ${remaining}s)`}`}
       className="flex items-center justify-center w-3.5 h-7 flex-shrink-0 group"
     >
       <span className={`inline-block w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${
         stale ? 'bg-amber-400' : 'bg-terminal-green'
       } group-hover:bg-terminal-gold`} />
     </button>
+    </Tooltip>
   )
 }
 
@@ -238,14 +240,15 @@ function SentimentTick({ sentiment, status }) {
   const label = sentiment?.label ?? (status === 'loading' ? 'Analysing…' : '—')
   const bullish = typeof score === 'number' ? score >= 50 : null
   return (
+    <Tooltip content={`MaddenAI Sentiment\n${score ?? '·'} / 100 — ${label}`}>
     <span
-      title={`MaddenAI Sentiment: ${score ?? '·'} — ${label}`}
       className={`text-[9px] font-mono font-bold whitespace-nowrap flex-shrink-0 ${
         bullish === null ? 'text-terminal-muted' : bullish ? 'text-terminal-gold' : 'text-terminal-red'
       }`}
     >
       {score ?? '·'}{bullish === null ? '' : bullish ? ' ▲' : ' ▼'}
     </span>
+    </Tooltip>
   )
 }
 
