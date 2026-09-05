@@ -282,9 +282,10 @@ export default function NotificationCenter() {
       >
         <span className="text-sm">🔔</span>
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-terminal-red text-white text-[9px] font-bold flex items-center justify-center leading-none">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <span
+            className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-terminal-red"
+            title={`${unreadCount} unread`}
+          />
         )}
       </button>
 

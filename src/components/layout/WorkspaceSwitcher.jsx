@@ -223,7 +223,7 @@ function SavedViewsMenu() {
       <button
         onClick={() => setOpen((v) => !v)}
         title="Saved views"
-        className="px-1.5 py-0.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-transparent hover:border-terminal-gold/40"
+        className="flex items-center justify-center h-7 px-3 text-[9px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
       >
         ⧉
       </button>
@@ -313,20 +313,20 @@ export default function WorkspaceSwitcher() {
             setContextMenu({ workspace: ws, position: { x: e.clientX, y: e.clientY } })
           }}
           title={ws.name}
-          className={`flex items-center gap-1 px-1.5 py-0.5 text-2xs font-mono tracking-wide border transition-colors ${
+          className={`flex items-center gap-1.5 h-7 px-3 text-[9px] font-mono tracking-wider uppercase rounded-[2px] whitespace-nowrap transition-colors ${
             ws.id === active
-              ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-semibold'
-              : 'bg-transparent text-terminal-text-dim border-transparent hover:border-terminal-gold/40 hover:text-terminal-text'
+              ? 'bg-terminal-gold/[0.15] text-terminal-gold border border-terminal-gold/40'
+              : 'bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim'
           }`}
         >
-          <span>{ws.icon}</span>
-          <span className="hidden xl:inline">{ws.name}</span>
+          <span className="leading-none">{ws.icon}</span>
+          <span className="hidden lg:inline">{ws.name}</span>
         </button>
       ))}
       <button
         onClick={() => setShowNew(true)}
         title="New workspace"
-        className="px-1.5 py-0.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-transparent hover:border-terminal-gold/40"
+        className="flex items-center justify-center h-7 px-3 text-[9px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
       >
         +
       </button>
