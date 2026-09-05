@@ -11,6 +11,7 @@ import {
   SEVERITY_COLOUR, isExchangeOpen,
 } from './intelMapData'
 import MapDetailPanel from './MapDetailPanel'
+import { liveDataService } from '../../services/liveDataService'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 // CartoCDN's GL styles are free and need no API key. INTELLIGENCE is not a
@@ -37,9 +38,6 @@ const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, b
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
-const USGS_WEEK  = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson'
-const USGS_MAJOR = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/6.0_month.geojson'
-
 export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const [viewState, setViewState] = useState(INITIAL_VIEW)
   const [activeLayer, setActiveLayer] = useState('all')
@@ -55,31 +53,23 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const wrapRef = useRef(null)
 
   // ── Live seismic feed ───────────────────────────────────────────────────
-  // Both feeds in parallel, refreshed every 10 minutes. A failure leaves the
-  // previous data in place rather than blanking the layer — stale quakes are
-  // more useful than none.
+  // Routed through liveDataService so this shares the app's cache and its
+  // stale-on-failure fallback. The previous inline version used Promise.all
+  // over both USGS feeds, so a single slow or failed request blanked the
+  // whole layer; the service settles each feed independently and keeps the
+  // last good payload.
   useEffect(() => {
     let cancelled = false
-    const parse = (data) => (data?.features ?? []).map((f) => ({
-      coordinates: [f.geometry.coordinates[0], f.geometry.coordinates[1]],
-      magnitude: f.properties.mag,
-      place: f.properties.place,
-      time: f.properties.time,
-      depth: f.geometry.coordinates[2],
-    }))
     const load = async () => {
-      try {
-        const [w, m] = await Promise.all([
-          fetch(USGS_WEEK).then((r) => r.json()),
-          fetch(USGS_MAJOR).then((r) => r.json()),
-        ])
-        if (cancelled) return
-        setQuakes(parse(w))
-        setMajorQuakes(parse(m).filter((q) => q.magnitude >= 6))
-        setQuakeState('ready')
-      } catch {
-        if (!cancelled) setQuakeState((s) => (s === 'ready' ? 'ready' : 'error'))
-      }
+      const [week, major] = await Promise.all([
+        liveDataService.getEarthquakes(4.5),
+        liveDataService.getEarthquakes(6.0),
+      ])
+      if (cancelled) return
+      const rows = week.data ?? []
+      setQuakes(rows)
+      setMajorQuakes((major.data ?? []).filter((q) => q.magnitude >= 6))
+      setQuakeState(week.source === 'failed' ? 'error' : 'ready')
     }
     load()
     const id = setInterval(load, 600_000)
