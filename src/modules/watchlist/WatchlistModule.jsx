@@ -41,7 +41,7 @@ function Week52Bar({ price, low, high }) {
   const pct = Math.min(100, Math.max(0, ((price - low) / (high - low)) * 100))
   return (
     <Tooltip
-      className="w-full justify-end"
+      className="w-full min-w-0 justify-end"
       content={
         `52-week range\n` +
         `High:    ${fmt.aud(high)}\n` +
@@ -49,9 +49,9 @@ function Week52Bar({ price, low, high }) {
         `Low:     ${fmt.aud(low)}`
       }
     >
-      <div className="flex items-center gap-1.5 min-w-[120px]">
+      <div className="flex items-center gap-1.5 w-full min-w-0">
         <span className="text-2xs text-terminal-red flex-shrink-0">{fmt.aud(low)}</span>
-        <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[40px]">
+        <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[20px]">
           <div
             className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
             style={{ left: `calc(${pct}% - 3px)` }}
@@ -637,7 +637,31 @@ export default function WatchlistModule() {
             {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} rows={1} className="p-2" />)}
           </div>
         ) : (
-          <table className="terminal-table w-full">
+          <table className="terminal-table w-full" style={{ tableLayout: 'fixed' }}>
+            {/* table-layout:fixed + an explicit colgroup pins every column to
+                a known width. Without it the browser sizes columns from
+                content, so a long company name or a wide market cap shifts
+                the numeric columns and the row loses its scannable grid.
+                NAME is the only auto column — it absorbs the slack.
+
+                Widths are sized to what these rows actually carry rather than
+                to the nominal spec: TICKER holds a ticker plus a live dot
+                plus an "EARNINGS IN 3D" / "RESULTS: BEAT" badge, and the 52W
+                cell holds a labelled range bar. At the originally specified
+                72px and 100px both overflowed into their neighbours. */}
+            <colgroup>
+              <col style={{ width: 28 }} />{/* drag */}
+              <col style={{ width: 150 }} />{/* ticker + status badge */}
+              <col />{/* name — flexible */}
+              <col style={{ width: 90 }} />{/* price */}
+              <col style={{ width: 72 }} />{/* chg  · crypto: price US$ */}
+              <col style={{ width: 82 }} />{/* chg% · crypto: 24h% — holds a pill */}
+              <col style={{ width: 132 }} />{/* 52w bar · crypto: 7d% */}
+              <col style={{ width: 70 }} />{/* volume */}
+              <col style={{ width: 82 }} />{/* mkt cap */}
+              <col style={{ width: 40 }} />{/* alert */}
+              <col style={{ width: 32 }} />{/* remove */}
+            </colgroup>
             <thead className="sticky top-0 bg-terminal-header z-10">
               <tr>
                 <th className="px-2 w-6"></th>
@@ -717,6 +741,7 @@ export default function WatchlistModule() {
                     </tr>
                   )}
                 <tr
+                  style={{ height: 48 }}
                   draggable={!sortKey}
                   onDragStart={() => onDragStart(i)}
                   onDragOver={onDragOver}
