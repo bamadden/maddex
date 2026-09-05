@@ -568,9 +568,14 @@ export default function AIPanel({ wide = false }) {
     if (!silent) addChatMessage(userTurn)
     addChatMessage(silent ? { role: 'assistant', content: '', silent: true, context } : { role: 'assistant', content: '' })
 
+    // 20 messages ≈ 10 exchanges. Prompt caching matches on a byte-identical
+    // prefix, so the cached history holds only while this window is still
+    // growing; once it is full it slides by one exchange per turn, the head
+    // changes, and the match breaks. A bigger window pushes that boundary
+    // out — it does not remove it. See the note in api/claude.js.
     const history = chatMessages
       .filter((m) => m.role !== 'system')
-      .slice(-10)
+      .slice(-20)
       .map((m) => ({ role: m.role, content: m.content }))
 
     try {
