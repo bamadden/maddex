@@ -46,12 +46,31 @@ function mulberry32(seed) {
   }
 }
 
-function MetricCard({ label, value, valueColor, sub, children }) {
+// Verdict tints for the badge. A metric card's number means nothing to most
+// readers without a judgement attached — 1.24 beta is only "high" if you
+// already know what typical is — so each card states its own reading.
+const BADGE_TONE = {
+  good:    { bg: 'rgba(45,138,80,0.15)',  fg: '#2D8A50' },
+  neutral: { bg: 'rgba(201,168,76,0.15)', fg: '#C9A84C' },
+  warn:    { bg: 'rgba(214,158,46,0.15)', fg: '#D69E2E' },
+  bad:     { bg: 'rgba(168,50,50,0.15)',  fg: '#A83232' },
+}
+
+function MetricCard({ label, value, valueColor, sub, badge, badgeTone = 'neutral', children }) {
+  const tone = BADGE_TONE[badgeTone] ?? BADGE_TONE.neutral
   return (
-    <div className="border border-terminal-border p-3">
+    <div className="border border-terminal-border p-3 flex flex-col">
       <div className="text-2xs text-terminal-text-dim tracking-wide">{label}</div>
       <div className={`text-lg font-bold mt-0.5 ${valueColor ?? 'text-terminal-text-bright'}`}>{value}</div>
       {sub && <div className="text-2xs text-terminal-text-dim mt-0.5">{sub}</div>}
+      {badge && (
+        <span
+          className="mt-2 self-start text-[9px] font-mono font-bold tracking-widest uppercase"
+          style={{ background: tone.bg, color: tone.fg, borderRadius: 2, padding: '2px 6px' }}
+        >
+          {badge}
+        </span>
+      )}
       {children}
     </div>
   )
@@ -270,24 +289,32 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
                 value={risk.portfolioBeta.toFixed(2)}
                 valueColor={risk.portfolioBeta > 1 ? 'text-terminal-red' : 'text-terminal-green'}
                 sub={risk.portfolioBeta > 1 ? 'Higher risk than market' : 'Lower risk than market'}
+                badge={risk.portfolioBeta > 1.3 ? 'High risk' : risk.portfolioBeta > 1.05 ? 'Moderate risk' : risk.portfolioBeta < 0.85 ? 'Defensive' : 'Market-like'}
+                badgeTone={risk.portfolioBeta > 1.3 ? 'bad' : risk.portfolioBeta > 1.05 ? 'warn' : 'good'}
               />
               <MetricCard
                 label="VOLATILITY (ANN.)"
                 value={`${(risk.portfolioVol * 100).toFixed(1)}%`}
                 valueColor={risk.portfolioVol > risk.asxVol ? 'text-terminal-gold' : 'text-terminal-green'}
                 sub={`vs ASX 200: ${(risk.asxVol * 100).toFixed(1)}%`}
+                badge={risk.portfolioVol > risk.asxVol * 1.25 ? 'Well above market' : risk.portfolioVol > risk.asxVol ? 'Above market' : 'At or below market'}
+                badgeTone={risk.portfolioVol > risk.asxVol * 1.25 ? 'bad' : risk.portfolioVol > risk.asxVol ? 'warn' : 'good'}
               />
               <MetricCard
                 label="SHARPE RATIO"
                 value={risk.sharpe.toFixed(2)}
                 valueColor={risk.sharpe >= 0.5 ? 'text-terminal-green' : 'text-terminal-gold'}
                 sub={risk.sharpe >= 0.5 ? 'Acceptable risk-adjusted return' : 'Weak risk-adjusted return'}
+                badge={risk.sharpe >= 1 ? 'Strong' : risk.sharpe >= 0.5 ? 'Acceptable' : risk.sharpe >= 0 ? 'Below average' : 'Negative'}
+                badgeTone={risk.sharpe >= 1 ? 'good' : risk.sharpe >= 0.5 ? 'neutral' : risk.sharpe >= 0 ? 'warn' : 'bad'}
               />
               <MetricCard
                 label="MAX DRAWDOWN"
                 value={`${(risk.maxDD * 100).toFixed(1)}%`}
                 valueColor="text-terminal-red"
                 sub={`from peak ${risk.peakDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`}
+                badge={Math.abs(risk.maxDD) > 0.2 ? 'Severe' : Math.abs(risk.maxDD) > 0.1 ? 'Moderate' : 'Shallow'}
+                badgeTone={Math.abs(risk.maxDD) > 0.2 ? 'bad' : Math.abs(risk.maxDD) > 0.1 ? 'warn' : 'good'}
               />
             </div>
             <div className="mt-2 text-2xs text-terminal-text-dim">

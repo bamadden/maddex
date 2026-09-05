@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { dispatchAskAI } from '../../utils/askAI'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
@@ -24,6 +24,24 @@ function betaFor(h) {
 function sectorShockPct(h, table, fallback = 0) {
   const sector = SECTOR_BY_SYMBOL[h.symbol]
   return (table[sector] ?? fallback)
+}
+
+// Glyph and severity per scenario. Severity drives the card's border colour
+// so the grid ranks itself before any of the labels are read.
+const SCENARIO_META = {
+  ironOre:       { icon: '⛏',  severity: 'high' },
+  audUsd:        { icon: '💱', severity: 'medium' },
+  rateHike:      { icon: '📈', severity: 'medium' },
+  chinaSlowdown: { icon: '🇨🇳', severity: 'high' },
+  globalRecession: { icon: '🌍', severity: 'high' },
+  techSelloff:   { icon: '💻', severity: 'medium' },
+  creditCrunch:  { icon: '🏦', severity: 'high' },
+  oilSpike:      { icon: '🛢', severity: 'medium' },
+}
+const SEVERITY_BORDER = {
+  high:   'rgba(168,50,50,0.45)',
+  medium: 'rgba(201,168,76,0.4)',
+  low:    'rgba(99,120,153,0.35)',
 }
 
 const SCENARIOS = [
@@ -128,6 +146,15 @@ export default function StressTest({ holdings, fmtCur }) {
   const beforeDonut = live.map((h) => ({ name: h.type === 'asx' ? h.symbol + '.AX' : h.symbol, value: h.mktVal }))
   const afterDonut  = impact ? impact.map((h) => ({ name: h.type === 'asx' ? h.symbol + '.AX' : h.symbol, value: Math.max(h.stressedVal, 0) })) : beforeDonut
 
+  // Per-card impact preview. Runs the scenario's own shock function over the
+  // real book, so the number on the card is the same calculation the impact
+  // table below shows — not a hardcoded guess that could drift from it.
+  const estimateScenario = useCallback((scenario) => {
+    if (!live.length || !totalCurrent) return null
+    const stressed = live.reduce((sum, h) => sum + h.mktVal * (1 + scenario.shock(h)), 0)
+    return ((stressed - totalCurrent) / totalCurrent) * 100
+  }, [live, totalCurrent])
+
   const activeScenario = SCENARIOS.find((s) => s.key === scenarioKey)
   const biggestLoser = impact ? [...impact].sort((a, b) => a.impactVal - b.impactVal)[0] : null
 
@@ -151,40 +178,75 @@ export default function StressTest({ holdings, fmtCur }) {
     <div className="flex-1 overflow-y-auto p-3 space-y-4">
       <div>
         <div className="text-2xs text-terminal-text-dim tracking-widest mb-2">PRESET SCENARIOS</div>
-        <div className="flex flex-wrap gap-1.5">
-          {SCENARIOS.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => { setScenarioKey(s.key); setCustomOpen(false) }}
-              className={`text-2xs px-2.5 py-1 border transition-colors ${
-                !customOpen && scenarioKey === s.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : `${s.borderColor} text-terminal-text-dim hover:text-terminal-text-bright`
-              }`}
-            >{s.label}</button>
-          ))}
+        {/* Cards rather than chips: each scenario carries an estimated impact,
+            which a one-line chip has nowhere to put. Once one is picked the
+            rest drop to 40% so the selection is unambiguous. */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {SCENARIOS.map((s) => {
+            const meta = SCENARIO_META[s.key] ?? { icon: '⚠', severity: 'low' }
+            const isSelected = !customOpen && scenarioKey === s.key
+            const anySelected = customOpen || scenarioKey != null
+            const est = estimateScenario(s)
+            return (
+              <button
+                key={s.key}
+                onClick={() => { setScenarioKey(s.key); setCustomOpen(false) }}
+                className="text-left p-2 flex flex-col justify-between transition-all duration-150"
+                style={{
+                  height: 72,
+                  border: `1px solid ${isSelected ? '#C9A84C' : SEVERITY_BORDER[meta.severity]}`,
+                  background: isSelected ? 'rgba(201,168,76,0.08)' : 'transparent',
+                  opacity: anySelected && !isSelected ? 0.4 : 1,
+                }}
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span aria-hidden="true" className="text-[13px] leading-none flex-shrink-0">{meta.icon}</span>
+                  <span className={`text-2xs font-bold tracking-wide truncate ${isSelected ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
+                    {s.label}
+                  </span>
+                </span>
+                <span className={`text-2xs font-mono ${est == null ? 'text-terminal-text-dim' : est >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {est == null ? '—' : `${est >= 0 ? '+' : ''}${est.toFixed(1)}% est`}
+                </span>
+              </button>
+            )
+          })}
           <button
             onClick={() => { setCustomOpen((v) => !v); setScenarioKey(null) }}
-            className={`text-2xs px-2.5 py-1 border transition-colors ${
-              customOpen ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-gold/50 text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
-            }`}
-          >CUSTOM ↕</button>
+            className="text-left p-2 flex flex-col justify-between transition-all duration-150"
+            style={{
+              height: 72,
+              border: `1px solid ${customOpen ? '#C9A84C' : 'rgba(201,168,76,0.3)'}`,
+              background: customOpen ? 'rgba(201,168,76,0.08)' : 'transparent',
+              opacity: (customOpen || scenarioKey != null) && !customOpen ? 0.4 : 1,
+            }}
+          >
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="text-[13px] leading-none">🎛</span>
+              <span className={`text-2xs font-bold tracking-wide ${customOpen ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>CUSTOM</span>
+            </span>
+            <span className="text-2xs text-terminal-text-dim font-mono">set your own shock</span>
+          </button>
         </div>
-        {activeScenario && <div className="text-2xs text-terminal-text-dim mt-1.5">{activeScenario.describe}</div>}
+        {activeScenario && <div className="text-2xs text-terminal-text-dim mt-2">{activeScenario.describe}</div>}
       </div>
 
       {customOpen && (
         <div className="border border-terminal-border p-3 space-y-3">
           <div className="text-2xs text-terminal-gold font-bold tracking-widest">CUSTOM SHOCK</div>
           {CUSTOM_FACTORS.map((f) => (
-            <div key={f.key} className="space-y-1">
-              <div className="flex justify-between text-2xs">
-                <span className="text-terminal-text-dim">{f.label}</span>
-                <span className="text-terminal-text-bright font-bold">{factors[f.key] >= 0 ? '+' : ''}{factors[f.key]}%</span>
-              </div>
+            <div key={f.key} className="flex items-center gap-3">
+              <span className="text-2xs text-terminal-text-dim w-28 flex-shrink-0 truncate">{f.label}</span>
               <input
                 type="range" min="-50" max="50" value={factors[f.key]}
                 onChange={(e) => setFactors((prev) => ({ ...prev, [f.key]: Number(e.target.value) }))}
-                className="w-full accent-terminal-gold"
+                className="shock-slider flex-1 min-w-0"
               />
+              <span className={`text-2xs font-mono font-bold w-12 text-right flex-shrink-0 ${
+                factors[f.key] > 0 ? 'text-terminal-green' : factors[f.key] < 0 ? 'text-terminal-red' : 'text-terminal-text-dim'
+              }`}>
+                {factors[f.key] >= 0 ? '+' : ''}{factors[f.key]}%
+              </span>
             </div>
           ))}
         </div>

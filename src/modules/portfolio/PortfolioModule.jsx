@@ -15,7 +15,7 @@ import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line, ReferenceLine } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import StressTest from './StressTest'
 import PortfolioAnalytics from './PortfolioAnalytics'
@@ -59,7 +59,21 @@ function cleanSymbol(sym, type) {
 
 // Rotating palette for the per-stock donut — cycles once holdings outnumber
 // the palette, which is fine since colors only need to be locally distinct.
+// Coarse asset-class betas for the portfolio-beta estimate. The demo data
+// layer has no per-security beta, so these stand in: ASX large caps track the
+// local market closely, US names carry extra currency and index beta for an
+// AUD-based holder, and crypto is far more volatile than any equity index.
+const BETA_BY_TYPE = { asx: 1.0, us: 1.15, crypto: 2.4 }
+
 const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
+
+
+// Wash behind a P&L cell. Alpha is deliberately low — it must read as a tint
+// under the number, never as a filled badge competing with the figure.
+function pnlCellBg(pnl) {
+  if (pnl == null) return undefined
+  return { backgroundColor: pnl >= 0 ? 'rgba(45,138,80,0.08)' : 'rgba(168,50,50,0.08)' }
+}
 
 const PieTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
@@ -240,12 +254,21 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
         <span>PERFORMANCE</span>
         <span className="text-2xs font-normal normal-case text-terminal-text-dim/50">illustrative — demo pricing history</span>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-2xs normal-case">
-            <span className="text-terminal-text-dim">Your portfolio:</span>{' '}
-            <span className={portfolioReturn >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>{fmt.pct(portfolioReturn)}</span>
-            {' | '}
-            <span className="text-terminal-text-dim">ASX 200:</span>{' '}
-            <span className={benchReturn >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>{fmt.pct(benchReturn)}</span>
+          {/* Total return is the headline of this tab — it gets size and its
+              own dollar figure, with the benchmark demoted beside it. */}
+          <span className="flex items-baseline gap-2 normal-case">
+            <span
+              className={`font-mono font-bold leading-none ${portfolioReturn >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}
+              style={{ fontSize: 15 }}
+            >
+              {portfolioReturn >= 0 ? '▲' : '▼'} {fmt.pct(portfolioReturn)}
+            </span>
+            <span className="text-2xs text-terminal-text-dim">
+              ({prefix}{portfolioReturn >= 0 ? '+' : '−'}{Math.abs(mktTotal - mktTotal / (1 + portfolioReturn / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })})
+            </span>
+            <span className="text-2xs text-terminal-text-dim/70">
+              vs ASX 200 {fmt.pct(benchReturn)}
+            </span>
           </span>
           <div className="flex border border-terminal-border rounded-full overflow-hidden">
             {Object.keys(PERIODS).map((p) => (
@@ -268,6 +291,15 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
               </linearGradient>
             </defs>
             <CartesianGrid stroke="#0d2244" vertical={false} />
+            {/* Cost basis — the line that decides whether the book is up or
+                down, which the value axis alone doesn't tell you. */}
+            <ReferenceLine
+              y={mktTotal / (1 + portfolioReturn / 100)}
+              stroke="#C9A84C"
+              strokeDasharray="4 4"
+              strokeOpacity={0.5}
+              ifOverflow="extendDomain"
+            />
             <XAxis dataKey="i" tick={false} axisLine={false} />
             <YAxis
               tick={{ fontSize: 8 }} width={44}
@@ -275,6 +307,7 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
               tickFormatter={(v) => `${prefix}${(v / 1000).toFixed(1)}k`}
             />
             <Tooltip
+              cursor={{ stroke: '#C9A84C', strokeWidth: 1, strokeOpacity: 0.45 }}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null
                 const p = payload[0]?.payload
@@ -622,6 +655,26 @@ export default function PortfolioModule() {
 
   const bestPerformer = live.filter((h) => h.pnlPct != null).sort((a, b) => b.pnlPct - a.pnlPct)[0] ?? null
 
+  // Largest single position — concentration is the risk a holdings table
+  // hides, since the biggest weight is spread across a column of percentages.
+  const largestPosition = live
+    .filter((h) => h.mktVal != null)
+    .sort((a, b) => b.mktVal - a.mktVal)[0] ?? null
+  const largestWeight = largestPosition && mktTotal
+    ? (largestPosition.mktVal / mktTotal) * 100
+    : null
+
+  // Portfolio beta = market-value-weighted mean of each holding's beta.
+  // BETA_BY_TYPE is a coarse stand-in: the demo data layer carries no
+  // per-security beta, so this is an asset-class approximation, not a
+  // regression against a benchmark. Labelled EST in the UI for that reason.
+  const portfolioBeta = (() => {
+    const rated = live.filter((h) => h.mktVal != null)
+    if (!rated.length || !mktTotal) return null
+    const sum = rated.reduce((acc, h) => acc + (BETA_BY_TYPE[h.type] ?? 1) * h.mktVal, 0)
+    return sum / mktTotal
+  })()
+
   const runAiAnalysis = () => dispatchAskAI({
     instruction:
       'You are MaddenAI. Analyse this portfolio and provide:\n' +
@@ -778,6 +831,18 @@ export default function PortfolioModule() {
           sub={bestPerformer ? fmt.pct(bestPerformer.pnlPct) : ''}
           color="text-terminal-green"
         />
+        <StatBox
+          label="LARGEST POSITION"
+          value={largestPosition ? largestPosition.symbol : '—'}
+          sub={largestWeight != null ? `${largestWeight.toFixed(1)}% of book` : ''}
+          color="text-terminal-text-bright"
+        />
+        <StatBox
+          label="PORTFOLIO BETA"
+          value={portfolioBeta != null ? portfolioBeta.toFixed(2) : '—'}
+          sub="est · by asset class"
+          color={portfolioBeta == null ? 'text-terminal-text-dim' : portfolioBeta > 1.2 ? 'text-terminal-red' : portfolioBeta < 0.9 ? 'text-terminal-green' : 'text-terminal-gold'}
+        />
       </div>
 
       {/* Tab bar — one sliding underline rather than a border per tab */}
@@ -910,17 +975,35 @@ export default function PortfolioModule() {
                         }
                       </td>
                       <td className="px-1 py-0.5 text-2xs text-right">{h.mktVal ? fmtCur(h.mktVal) : '—'}</td>
-                      <td className={`px-1 py-0.5 text-2xs text-right font-semibold ${pnlCls}`}>
+                      {/* P&L is the column people scan first, so the cells
+                          carry a wash as well as coloured text — the block of
+                          colour is findable without reading any digits. */}
+                      <td className={`px-1 py-0.5 text-2xs text-right font-semibold ${pnlCls}`} style={pnlCellBg(h.pnl)}>
                         {h.pnl != null ? fmtCur(h.pnl) : '—'}
                       </td>
-                      <td className={`px-1 py-0.5 text-2xs text-right font-semibold ${pnlCls}`}>
+                      <td className={`px-1 py-0.5 text-2xs text-right font-semibold ${pnlCls}`} style={pnlCellBg(h.pnl)}>
                         {h.pnlPct != null ? fmt.pct(h.pnlPct) : '—'}
                       </td>
                       <td className={`px-1 py-0.5 text-2xs text-right ${dayCls}`}>
                         {h.dayPct ? fmt.pct(h.dayPct) : '—'}
                       </td>
-                      <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell">
-                        {h.mktVal && mktTotal ? ((h.mktVal / mktTotal) * 100).toFixed(1) + '%' : '—'}
+                      {/* Weight reads as a proportion, so it gets drawn as
+                          one — a fill behind the figure rather than a number
+                          the eye has to rank against ten others. */}
+                      <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell relative">
+                        {h.mktVal && mktTotal ? (() => {
+                          const w = (h.mktVal / mktTotal) * 100
+                          return (
+                            <>
+                              <span
+                                aria-hidden="true"
+                                className="absolute inset-y-0.5 left-0 rounded-[1px] pointer-events-none"
+                                style={{ width: `${Math.min(100, w)}%`, background: 'rgba(201,168,76,0.10)' }}
+                              />
+                              <span className="relative">{w.toFixed(1)}%</span>
+                            </>
+                          )
+                        })() : '—'}
                       </td>
                       <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden 2xl:table-cell">
                         {formatMarketCap(h.marketCap)}
@@ -1013,6 +1096,9 @@ export default function PortfolioModule() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={pnlData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                     <CartesianGrid stroke="#0d2244" vertical={false} />
+                    {/* Break-even, so winners and losers read as sides of a
+                        line rather than just bars of different heights. */}
+                    <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="4 4" strokeOpacity={0.5} />
                     <XAxis dataKey="symbol" tick={{ fontSize: 7 }} />
                     <YAxis tick={{ fontSize: 7 }} />
                     <Tooltip

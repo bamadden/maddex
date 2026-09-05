@@ -584,6 +584,35 @@ button:not(:disabled):active {
   .typing-dot { animation: none; }
 }
 
+/* Custom-shock sliders. A gold gradient track and a round gold thumb, so the
+   control matches the rest of the terminal rather than the browser default. */
+.shock-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(168,50,50,0.5), rgba(99,120,153,0.35), rgba(45,138,80,0.5));
+  outline: none;
+}
+.shock-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #C9A84C;
+  border: 2px solid #060D1A;
+  cursor: pointer;
+}
+.shock-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #C9A84C;
+  border: 2px solid #060D1A;
+  cursor: pointer;
+}
+
 @keyframes ripple {
   to { transform: scale(4); opacity: 0; }
 }
