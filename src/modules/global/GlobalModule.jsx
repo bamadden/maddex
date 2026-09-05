@@ -482,12 +482,12 @@ const CHOKEPOINTS = [
 
 // GeoJSON coordinates: [longitude, latitude]
 const COMMODITY_FLOWS = [
-  { id:'fe-au-cn', from:[133,-25], to:[121,35],  label:'Iron Ore',  color:'#c8a84b', width:3, vol:'155Mt/yr', val:'~A$19B', risk:'LOW',    desc:'Pilbara → Qingdao (62% Fe fines)', src:'Dept Resources 2025-26' },
+  { id:'fe-au-cn', from:[133,-25], to:[121,35],  label:'Iron Ore',  color:'#C9A84C', width:3, vol:'155Mt/yr', val:'~A$19B', risk:'LOW',    desc:'Pilbara → Qingdao (62% Fe fines)', src:'Dept Resources 2025-26' },
   { id:'co-au-cn', from:[133,-25], to:[118,31],  label:'Coal',      color:'#6b7280', width:2, vol:'68Mt/yr',  val:'~A$13B', risk:'LOW',    desc:'QLD thermal & coking coal → China', src:'Dept Resources 2025-26' },
   { id:'lng-au-jp',from:[133,-25], to:[138,35],  label:'LNG',       color:'#3b82f6', width:3, vol:'24Mt/yr',  val:'~A$20B', risk:'LOW',    desc:'Woodside/Chevron LNG → Osaka/Nagoya', src:'Dept Resources 2025-26' },
   { id:'co-au-jp', from:[133,-25], to:[138,36],  label:'Coal',      color:'#6b7280', width:2, vol:'52Mt/yr',  val:'~A$9B',  risk:'LOW',    desc:'QLD & NSW coal → Japan power stations', src:'Dept Resources 2025-26' },
   { id:'lng-au-kr',from:[133,-25], to:[128,36],  label:'LNG',       color:'#3b82f6', width:2, vol:'10Mt/yr',  val:'~A$9B',  risk:'LOW',    desc:'APLNG → Incheon terminal', src:'Dept Resources 2025-26' },
-  { id:'fe-au-kr', from:[133,-25], to:[130,35],  label:'Iron Ore',  color:'#c8a84b', width:2, vol:'45Mt/yr',  val:'~A$5B',  risk:'LOW',    desc:'Pilbara → POSCO Pohang', src:'Dept Resources 2025-26' },
+  { id:'fe-au-kr', from:[133,-25], to:[130,35],  label:'Iron Ore',  color:'#C9A84C', width:2, vol:'45Mt/yr',  val:'~A$5B',  risk:'LOW',    desc:'Pilbara → POSCO Pohang', src:'Dept Resources 2025-26' },
   { id:'co-au-in', from:[133,-25], to:[77,20],   label:'Coal',      color:'#6b7280', width:2, vol:'48Mt/yr',  val:'~A$6B',  risk:'MEDIUM', desc:'QLD coal → Mundra / Dahej', src:'Dept Resources 2025-26' },
   { id:'oil-me-as',from:[51,26],   to:[121,30],  label:'Crude Oil', color:'#ef4444', width:4, vol:'17Mb/day', val:'~A$1.4B/day', risk:'HIGH', desc:'Middle East crude → China/Japan/Korea via Hormuz', src:'IEA 2025' },
   { id:'fe-br-cn', from:[-50,-15], to:[122,28],  label:'Iron Ore',  color:'#f97316', width:3, vol:'205Mt/yr', val:'~A$24B', risk:'LOW',    desc:'Carajás Mine → Qingdao via Atlantic-Cape', src:'Vale 2025-26' },
@@ -529,16 +529,16 @@ const MAJOR_AIRPORTS = [
 
 const AIR_TRADE_ROUTES = [
   // Gold — AU origin/destination
-  { id:'syd-sin', label:'Sydney → Singapore', from:[151.2,-33.9], to:[103.8,1.3],  color:'#c8a84b', type:'gold',
+  { id:'syd-sin', label:'Sydney → Singapore', from:[151.2,-33.9], to:[103.8,1.3],  color:'#C9A84C', type:'gold',
     dailyFlights:28, carriers:['Qantas','Singapore Airlines','Scoot'], cargoSplit:'35% cargo',
     auNote:'Primary gateway for AU exports to SE Asia. Top commodities: fresh produce, medical supplies, manufactured goods.' },
-  { id:'syd-hkg', label:'Sydney → Hong Kong',  from:[151.2,-33.9], to:[114.2,22.3], color:'#c8a84b', type:'gold',
+  { id:'syd-hkg', label:'Sydney → Hong Kong',  from:[151.2,-33.9], to:[114.2,22.3], color:'#C9A84C', type:'gold',
     dailyFlights:14, carriers:['Cathay Pacific','Qantas'], cargoSplit:'40% cargo',
     auNote:'Key AU–China freight corridor. Electronics, consumer goods inbound; food/resources outbound.' },
-  { id:'syd-dxb', label:'Sydney → Dubai',       from:[151.2,-33.9], to:[55.4,25.3],  color:'#c8a84b', type:'gold',
+  { id:'syd-dxb', label:'Sydney → Dubai',       from:[151.2,-33.9], to:[55.4,25.3],  color:'#C9A84C', type:'gold',
     dailyFlights:21, carriers:['Emirates','Qantas'], cargoSplit:'30% cargo',
     auNote:'Transhipped hub for Europe/Middle East freight. Emirates operates largest AU capacity.' },
-  { id:'mel-lax', label:'Melbourne → Los Angeles', from:[144.9,-37.8], to:[-118.4,33.9], color:'#c8a84b', type:'gold',
+  { id:'mel-lax', label:'Melbourne → Los Angeles', from:[144.9,-37.8], to:[-118.4,33.9], color:'#C9A84C', type:'gold',
     dailyFlights:10, carriers:['Qantas','United'], cargoSplit:'25% cargo',
     auNote:'Longest non-stop AU route. Key corridor for AU–US trade in pharma, luxury goods, beef.' },
   // Blue — major international corridors
@@ -710,7 +710,7 @@ const ZONE_KEYWORDS = {
   Myanmar:            /myanmar|burma|rohingya/i,
   'Taiwan Strait':    /taiwan|pla\b|china military|taiwan strait/i,
 }
-const SEVERITY_TO_COLOR  = { CRITICAL: '#ff1744', HIGH: '#ff6d00', MEDIUM: '#f59e0b', LOW: '#4a6580' }
+const SEVERITY_TO_COLOR  = { CRITICAL: '#ff1744', HIGH: '#ff6d00', MEDIUM: '#f59e0b', LOW: '#4A6080' }
 const SEVERITY_TO_RADIUS = { CRITICAL: 9, HIGH: 7, MEDIUM: 5, LOW: 4 }
 
 const GEO_RISK_RE = /sanction|conflict|trade.?war|tariff|embargo|military|geopolitic|tension|coup|invasion|escalat|naval|nuclear|attack|crisis|war\b|protest|strike\b/i
@@ -1559,7 +1559,7 @@ function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
 
         {/* Legend */}
         <div className="flex gap-3 px-2 py-1.5 border-b border-terminal-border">
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#c8a84b'}}/>AU Origin/Dest</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#C9A84C'}}/>AU Origin/Dest</span>
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#3b82f6'}}/>Intl Corridor</span>
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#14b8a6'}}/>Cargo Heavy</span>
         </div>

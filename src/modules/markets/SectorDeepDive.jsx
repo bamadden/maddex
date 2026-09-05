@@ -275,7 +275,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                     <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
                     <Tooltip contentStyle={{ background: 'var(--t-panel)', border: '1px solid var(--t-border)', fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Area type="monotone" dataKey="sector" name={sectorName} stroke="#c8a84b" fill="#c8a84b" fillOpacity={0.15} />
+                    <Area type="monotone" dataKey="sector" name={sectorName} stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
                     <Area type="monotone" dataKey="index" name={indexLabel} stroke="#5b7fa6" fill="#5b7fa6" fillOpacity={0.1} />
                   </AreaChart>
                 </ResponsiveContainer>

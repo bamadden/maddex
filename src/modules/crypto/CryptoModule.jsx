@@ -24,7 +24,7 @@ const CryptoLandscape3D = lazy(() => import('../../components/visualisations/Cry
 
 // ── Coin colour circle (deterministic hash, not a real logo — Bloomberg-
 // terminal-style abstract avatar rather than brand marks) ──────────────────
-const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#c8a84b']
+const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#C9A84C']
 // Real (approximate) brand colours for the coins that actually show up in
 // the top-20 list — hash-based colour is only a fallback for the long tail.
 const COIN_COLORS = {
@@ -115,7 +115,7 @@ function TopVolumeList({ markets, currPrefix, selectedCoin, onSelect }) {
             >
               <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.5)', width: 10, flexShrink: 0 }}>{i + 1}</span>
               <CoinCircle symbol={c.symbol} size={16} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: selectedCoin === c.symbol ? '#c8a84b' : '#e8ecf0' }}>{c.symbol}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: selectedCoin === c.symbol ? '#C9A84C' : '#e8ecf0' }}>{c.symbol}</span>
               <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.6)', marginLeft: 'auto' }}>{currPrefix}{c.vol24h}</span>
             </div>
           ))}
@@ -181,7 +181,7 @@ function SectorPerformanceList({ markets }) {
 // its natural content height and let the column scroll.
 const P = {
   wrap:  { flexShrink:0, display:'flex', flexDirection:'column', padding:'12px 10px', marginBottom:16, boxSizing:'border-box' },
-  title: { fontSize:9, fontWeight:700, color:'#c8a84b', letterSpacing:'0.1em', marginBottom:6, textTransform:'uppercase' },
+  title: { fontSize:9, fontWeight:700, color:'#C9A84C', letterSpacing:'0.1em', marginBottom:6, textTransform:'uppercase' },
   empty: { display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'rgba(100,130,160,0.5)', minHeight:60 },
 }
 
@@ -230,7 +230,7 @@ function FearGreedPanel({ data }) {
             strokeDasharray={`${(value / 100) * 131.9} 131.9`} strokeLinecap="butt" />
           <text x="50" y="48" textAnchor="middle" fill={color} fontSize="26" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
           <text x="10" y="64" textAnchor="start" fill="var(--color-loss)" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">FEAR</text>
-          <text x="50" y="64" textAnchor="middle" fill="#c8a84b" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">NEUTRAL</text>
+          <text x="50" y="64" textAnchor="middle" fill="#C9A84C" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">NEUTRAL</text>
           <text x="90" y="64" textAnchor="end" fill="var(--color-gain)" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">GREED</text>
         </svg>
         <div style={{ fontSize:9 }}>
@@ -467,14 +467,14 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, 
               <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#c8a84b" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
                 <YAxis hide domain={['auto', 'auto']} />
                 <Tooltip content={<ChartTooltip currency="USD" />} />
-                <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5}
+                <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5}
                   fill="url(#detailGrad)" dot={false} isAnimationActive={false} connectNulls />
               </AreaChart>
             </ResponsiveContainer>
@@ -579,7 +579,7 @@ function ResizablePanel({ children, defaultWidth, minWidth, maxWidth, storageKey
 // ── Shared cell styles ─────────────────────────────────────────────────────────
 
 const CELL = { padding: '5px 8px', fontSize: '10px', verticalAlign: 'middle', position: 'static' }
-const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#c8a84b', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#071428', verticalAlign: 'middle' }
+const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#071428', verticalAlign: 'middle' }
 
 // ── Main Module ────────────────────────────────────────────────────────────────
 
@@ -942,7 +942,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
-        <tr style={{ background: '#071428', borderBottom: '1px solid #c8a84b' }}>
+        <tr style={{ background: '#071428', borderBottom: '1px solid #C9A84C' }}>
           {cols.map(col => (
             <th
               key={col.key}
@@ -951,7 +951,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
               className={col.cell === 'sm' ? 'hidden sm:table-cell' : col.cell === 'md' ? 'hidden md:table-cell' : col.cell === 'lg' ? 'hidden lg:table-cell' : col.cell === 'xl' ? 'hidden xl:table-cell' : ''}
             >
               {col.label}
-              {sortKey === col.key && <span style={{ color: '#c8a84b', marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+              {sortKey === col.key && <span style={{ color: '#C9A84C', marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
             </th>
           ))}
           <th style={{ ...HEAD, textAlign: 'right', width: 28, cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
@@ -1017,7 +1017,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
                   {supplyPct != null ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
                       <div style={{ width: 44, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
-                        <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: '#c8a84b' }} />
+                        <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: '#C9A84C' }} />
                       </div>
                       <span style={{ fontSize: 9, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
                     </div>

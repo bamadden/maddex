@@ -28,7 +28,7 @@ const YieldCurve3D = lazy(() => import('../../components/visualisations/YieldCur
 
 const YIELD_CURVES = {
   AU: {
-    label: 'AU GOV BONDS', color: '#c8a84b', src: 'AOFM / RBA · Aug 2026',
+    label: 'AU GOV BONDS', color: '#C9A84C', src: 'AOFM / RBA · Aug 2026',
     points: [
       { m:'3M', y:3.88 }, { m:'6M', y:3.80 }, { m:'1Y', y:3.72 },
       { m:'2Y', y:3.65 }, { m:'3Y', y:3.75 }, { m:'5Y', y:3.90 },
@@ -280,8 +280,8 @@ function FxHistoryModal({ pair, onClose }) {
               <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="fxGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#c8a84b" stopOpacity={0}   />
+                    <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}   />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#0d2244" vertical={false} />
@@ -296,11 +296,11 @@ function FxHistoryModal({ pair, onClose }) {
                 <Area
                   type="monotone"
                   dataKey="rate"
-                  stroke="#c8a84b"
+                  stroke="#C9A84C"
                   strokeWidth={2}
                   fill="url(#fxGrad)"
                   dot={false}
-                  activeDot={{ r: 4, fill: '#c8a84b' }}
+                  activeDot={{ r: 4, fill: '#C9A84C' }}
                   isAnimationActive={false}
                 />
               </AreaChart>
@@ -386,7 +386,7 @@ function GlobalRatesCardGrid() {
               <span className="text-2xs px-1 border text-2xs font-bold uppercase"
                 style={{
                   borderColor: cb.direction === 'hike' ? 'rgba(168,50,50,0.4)' : cb.direction === 'cut' ? 'rgba(45,138,80,0.4)' : 'rgba(201,168,76,0.4)',
-                  color: cb.direction === 'hike' ? '#a83232' : cb.direction === 'cut' ? '#2d8a50' : '#c8a84b',
+                  color: cb.direction === 'hike' ? '#a83232' : cb.direction === 'cut' ? '#2d8a50' : '#C9A84C',
                 }}
               >{cb.direction ?? 'hold'} · {shortMonth(cb.lastChange)}</span>
             </div>
@@ -410,7 +410,7 @@ function RbaRateComparisonBar() {
   // cash rate 4.35%, AU 10Y 4.20%) rather than re-deriving them, so the bar
   // stays consistent with the CPI and yield-curve panels if those change.
   const rows = [
-    { label: 'RBA CASH RATE', value: 4.35, color: '#c8a84b' },
+    { label: 'RBA CASH RATE', value: 4.35, color: '#C9A84C' },
     { label: 'AU CPI YoY',    value: 3.8,  color: '#3b82f6' },
     { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? 4.20, color: '#22c55e' },
   ]
@@ -543,8 +543,8 @@ function CompactRbaDashboard({ askAI }) {
           <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
             <defs>
               <linearGradient id="rbaCompactGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#c8a84b" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="#0d2244" vertical={false} />
@@ -552,7 +552,7 @@ function CompactRbaDashboard({ askAI }) {
               tickFormatter={d => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={30} />
             <Tooltip content={<RbaStepTooltip />} />
-            <Area type="stepAfter" dataKey="rate" stroke="#c8a84b" strokeWidth={1.5} fill="url(#rbaCompactGrad)" dot={false} isAnimationActive={false} />
+            <Area type="stepAfter" dataKey="rate" stroke="#C9A84C" strokeWidth={1.5} fill="url(#rbaCompactGrad)" dot={false} isAnimationActive={false} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -30,8 +30,8 @@ const arrow   = (p) => (p > 0 ? '▲' : p < 0 ? '▼' : '—')
 
 // Inline style tokens for sub-element colouring not covered by Tailwind classes
 const S = {
-  pipe:   { color: '#c8a84b', opacity: 0.7 },
-  dlabel: { color: '#c8a84b', fontWeight: 700, letterSpacing: '0.08em', fontSize: 10 },
+  pipe:   { color: '#C9A84C', opacity: 0.7 },
+  dlabel: { color: '#C9A84C', fontWeight: 700, letterSpacing: '0.08em', fontSize: 10 },
 }
 
 function pctColor(p) {

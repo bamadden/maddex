@@ -31,8 +31,8 @@ const TAG_VARIANTS = {
 // in the list rows (those use inline background-tint styling rather than
 // the <Badge> component's Tailwind classes).
 const TAG_COLOR = {
-  MACRO: '#c8a84b', AU: '#c8a84b', EQUITY: '#3b82f6', ENERGY: '#a83232', FX: '#8a94a6',
-  CRYPTO: '#22c55e', RATES: '#8a94a6', 'M&A': '#c8a84b', INTL: '#3b82f6', EARNINGS: '#a83232', TECH: '#3b82f6',
+  MACRO: '#C9A84C', AU: '#C9A84C', EQUITY: '#3b82f6', ENERGY: '#a83232', FX: '#8a94a6',
+  CRYPTO: '#22c55e', RATES: '#8a94a6', 'M&A': '#C9A84C', INTL: '#3b82f6', EARNINGS: '#a83232', TECH: '#3b82f6',
 }
 
 // ─── Persistence helpers ───────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ function storyImpactTier(item) {
   if ((item.tickers ?? []).length > 0) return 'MEDIUM'
   return 'LOW'
 }
-const IMPACT_COLOR = { HIGH: '#a83232', MEDIUM: '#c8a84b', LOW: '#4a6580' }
+const IMPACT_COLOR = { HIGH: '#a83232', MEDIUM: '#C9A84C', LOW: '#4A6080' }
 
 // ─── Category filter tabs (display subset — distinct from the full
 // NEWS_CATEGORIES taxonomy used for classification in api.js) ────────────────
@@ -160,11 +160,11 @@ function knownTickerBadges(tickers) {
 
 // ─── Source circle — colour derived from the source name, deterministic ─────
 
-const SOURCE_PALETTE = ['#c8a84b', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
+const SOURCE_PALETTE = ['#C9A84C', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
 // Named-source brand colours per spec — hash palette is only a fallback for
 // the long tail of RSS sources that aren't one of these six.
 const SOURCE_COLORS = {
-  Reuters: '#3b82f6', AFR: '#c8a84b', Bloomberg: '#a855f7',
+  Reuters: '#3b82f6', AFR: '#C9A84C', Bloomberg: '#a855f7',
   ABC: '#22c55e', FT: '#ec4899', WSJ: '#8a94a6',
 }
 function sourceHash(s) {
@@ -287,7 +287,7 @@ function MiniSparkline({ values, up, width = 80, height = 36 }) {
   const range = max - min || 1
   const step = width / (values.length - 1)
   const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ')
-  const color = up ? '#c8a84b' : '#a83232'
+  const color = up ? '#C9A84C' : '#a83232'
   return (
     <svg width={width} height={height} style={{ flexShrink: 0, display: 'block' }}>
       <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
@@ -486,7 +486,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
   return (
     <div
       className={`news-top-story ${isPulsing ? 'news-pulse' : ''} bg-terminal-surface hover:border-terminal-border-gold transition-colors cursor-pointer px-4 py-3`}
-      style={{ borderLeft: `3px solid ${isBreaking ? '#a83232' : '#c8a84b'}` }}
+      style={{ borderLeft: `3px solid ${isBreaking ? '#a83232' : '#C9A84C'}` }}
       onClick={() => onToggle(item)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -555,7 +555,7 @@ function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicke
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   const asset       = useMemo(() => (isExpanded ? resolveStoryAsset(item) : null), [item, isExpanded])
-  const relevanceColor = isBreaking ? '#a83232' : item.sentiment === 'BULLISH' ? '#3aaa63' : item.sentiment === 'BEARISH' ? '#a83232' : '#4a6580'
+  const relevanceColor = isBreaking ? '#a83232' : item.sentiment === 'BULLISH' ? '#3aaa63' : item.sentiment === 'BEARISH' ? '#a83232' : '#4A6080'
 
   return (
     <div className="border-b border-terminal-border">

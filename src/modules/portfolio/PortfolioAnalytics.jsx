@@ -296,7 +296,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
             <div className="border border-terminal-border p-2 mt-2" style={{ height: 120 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={risk.chartData}>
-                  <Area type="monotone" dataKey="value" stroke="#c8a84b" fill="#c8a84b" fillOpacity={0.15} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="value" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

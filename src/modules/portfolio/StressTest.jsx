@@ -73,7 +73,7 @@ function customShock(h, factors) {
   return pct
 }
 
-const STOCK_PALETTE = ['#c8a84b', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
+const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 function DonutMini({ data, title }) {
   return (

@@ -1150,7 +1150,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   className={`relative p-2 cursor-pointer select-none transition-all duration-150 flex flex-col ${col} ${row}`}
                   style={{
                     backgroundColor: bg,
-                    border: isSelected ? '2px solid #c8a84b' : '1px solid rgba(255,255,255,0.06)',
+                    border: isSelected ? '2px solid #C9A84C' : '1px solid rgba(255,255,255,0.06)',
                     filter: isHovered ? 'brightness(1.25)' : '',
                     boxShadow: isSelected ? '0 0 12px rgba(200,168,75,0.25)' : 'none',
                   }}
@@ -1787,14 +1787,14 @@ function IndexView({ selectedIndex, openModal }) {
                   <AreaChart data={idxChartData} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
                     <defs>
                       <linearGradient id="idxGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                        <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="date" hide />
                     <YAxis hide domain={['auto','auto']} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.2}
+                    <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.2}
                       fill="url(#idxGrad)" dot={false} isAnimationActive={false} connectNulls />
                     <Brush dataKey="date" height={14} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                   </AreaChart>

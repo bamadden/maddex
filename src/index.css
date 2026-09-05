@@ -17,8 +17,8 @@
   --color-neutral-bg:   rgba(201, 168, 76, 0.15);
   /* AI panel renderer aliases */
   --mt-text:  #b8cce4;
-  --mt-muted: #4a6580;
-  --mt-gold:  #c8a84b;
+  --mt-muted: #4A6080;
+  --mt-gold:  #C9A84C;
   --font: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
 
   /* Theme palette — "R G B" triplets consumed by tailwind.config.js via
@@ -74,13 +74,29 @@ body {
   font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
+/* ── Z-index scale ──────────────────────────────────────────────────────
+   One source of truth for stacking order. Use these rather than inventing a
+   new magic number; anything outside this ladder is a bug waiting to happen.
+   Existing ad-hoc values across the app have NOT been remapped onto these
+   yet — that needs per-layer visual verification. */
+:root {
+  --z-content:       1;
+  --z-sticky:       10;
+  --z-dropdown:    100;
+  --z-tooltip:     200;
+  --z-floating:    300;
+  --z-modal:       400;
+  --z-toast:       500;
+  --z-commandbar:  600;
+}
+
 /* Premium scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #060D1A;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(201,168,76,0.3);

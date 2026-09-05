@@ -40,7 +40,7 @@ const NEXT_EARNINGS = {
 // Same deterministic-hash approach as CryptoModule.jsx's CoinCircle — kept as
 // a small local copy rather than a cross-import from modules/ into
 // components/ui/, which would invert this app's dependency direction.
-const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#c8a84b']
+const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#C9A84C']
 function hashStr(s) {
   let h = 0
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
@@ -137,12 +137,12 @@ function CandleChart({ data }) {
           <line key={lbl.price} x1={padLeft} y1={lbl.y} x2={width - padRight} y2={lbl.y} stroke="#0d2244" strokeWidth={1} />
         ))}
         {yLabels.map((lbl) => (
-          <text key={lbl.price} x={padLeft - 4} y={lbl.y + 3} textAnchor="end" fill="#4a6580" fontSize={9} fontFamily="IBM Plex Mono">
+          <text key={lbl.price} x={padLeft - 4} y={lbl.y + 3} textAnchor="end" fill="#4A6080" fontSize={9} fontFamily="IBM Plex Mono">
             {lbl.price >= 1000 ? fmt.price(lbl.price, 0) : fmt.price(lbl.price, 2)}
           </text>
         ))}
         {xLabels.map((lbl) => (
-          <text key={lbl.date} x={lbl.x} y={height - 4} textAnchor="middle" fill="#4a6580" fontSize={9} fontFamily="IBM Plex Mono">
+          <text key={lbl.date} x={lbl.x} y={height - 4} textAnchor="middle" fill="#4A6080" fontSize={9} fontFamily="IBM Plex Mono">
             {lbl.date}
           </text>
         ))}
@@ -1173,7 +1173,7 @@ export default function DetailModal() {
                   formatter={(v, name) => [`${v.toFixed(1)}`, name === 'a' ? symbol : compareSymbol]}
                 />
                 <Legend wrapperStyle={{ fontSize: 9 }} formatter={(name) => name === 'a' ? symbol : compareSymbol} />
-                <Line type="monotone" dataKey="a" stroke="#c8a84b" strokeWidth={1.5} dot={false} isAnimationActive={false} name="a" />
+                <Line type="monotone" dataKey="a" stroke="#C9A84C" strokeWidth={1.5} dot={false} isAnimationActive={false} name="a" />
                 <Line type="monotone" dataKey="b" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} name="b" />
                 <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
               </LineChart>
@@ -1201,15 +1201,15 @@ export default function DetailModal() {
                 <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                   <defs>
                     <linearGradient id="modalAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                      <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="#0d2244" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="price" stroke="#c8a84b" strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
                   <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
                 </AreaChart>
               ) : (

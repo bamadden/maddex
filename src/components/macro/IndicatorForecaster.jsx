@@ -85,7 +85,7 @@ function IndicatorCard({ indicator, expanded, onToggle }) {
         <div className="text-lg font-bold mt-0.5 text-terminal-text-bright">{latest.actual}{indicator.unit}</div>
         <div className="flex items-center justify-between mt-1">
           <span className={`text-2xs font-bold ${vsColor}`}>{vsConsensus}</span>
-          <Sparkline data={history.slice(-8)} color="#c8a84b" />
+          <Sparkline data={history.slice(-8)} color="#C9A84C" />
         </div>
       </button>
 
@@ -98,7 +98,7 @@ function IndicatorCard({ indicator, expanded, onToggle }) {
                 <XAxis dataKey="date" tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(0, 7)} interval={4} />
                 <YAxis tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
                 <Tooltip content={<ChartTip />} />
-                <Area type="monotone" dataKey="actual" name="Actual" stroke="#c8a84b" fill="#c8a84b" fillOpacity={0.15} />
+                <Area type="monotone" dataKey="actual" name="Actual" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
                 <Area type="monotone" dataKey="consensus" name="Consensus" stroke="#5b7fa6" fill="none" strokeDasharray="4 2" />
               </AreaChart>
             </ResponsiveContainer>
@@ -168,7 +168,7 @@ export default function IndicatorForecaster() {
               <XAxis dataKey="label" tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" angle={-35} textAnchor="end" interval={0} />
               <YAxis tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" />
               <Tooltip content={<ChartTip />} />
-              <Bar dataKey="miss" name="Avg Miss" fill="#c8a84b" />
+              <Bar dataKey="miss" name="Avg Miss" fill="#C9A84C" />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -181,7 +181,7 @@ export default function MarketReplayModule() {
                     <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
                     <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
                     <Tooltip content={<ChartTip />} />
-                    <Area type="monotone" dataKey="level" stroke="#c8a84b" fill="#c8a84b" fillOpacity={0.15} />
+                    <Area type="monotone" dataKey="level" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

@@ -17,7 +17,7 @@ function ScatterMini({ idA, idB, period }) {
       <line x1={size / 2} y1={0} x2={size / 2} y2={size} stroke="var(--t-border)" strokeWidth={1} />
       <line x1={0} y1={size / 2} x2={size} y2={size / 2} stroke="var(--t-border)" strokeWidth={1} />
       {points.map((p, i) => (
-        <circle key={i} cx={toPx(p.x)} cy={size - toPx(p.y)} r={1.6} fill="#c8a84b" opacity={0.8} />
+        <circle key={i} cx={toPx(p.x)} cy={size - toPx(p.y)} r={1.6} fill="#C9A84C" opacity={0.8} />
       ))}
     </svg>
   )

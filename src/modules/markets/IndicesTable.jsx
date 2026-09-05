@@ -25,7 +25,7 @@ const BENCHMARK_ORDER = [
 // the trend line pop against the card gradient without competing visually
 // with the green PriceChange text right next to it.
 function sparkColor(pct) {
-  if (pct > 0) return '#c8a84b'
+  if (pct > 0) return '#C9A84C'
   if (pct < 0) return 'var(--color-loss)'
   return '#6b7f99'
 }
@@ -124,7 +124,7 @@ function SparklineLarge({ points, color, label }) {
 }
 
 const COMPARE_PERIODS = [['1mo','1M'],['3mo','3M'],['ytd','YTD'],['1y','1Y']]
-const COMPARE_COLORS = ['#c8a84b', '#4a90d9', '#22c55e', '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#8a94a6', '#0ea5e9']
+const COMPARE_COLORS = ['#C9A84C', '#4a90d9', '#22c55e', '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#8a94a6', '#0ea5e9']
 
 function CompareIndicesModal({ indices, onClose }) {
   const [period, setPeriod] = useState('3mo')

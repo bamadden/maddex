@@ -150,7 +150,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
         <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={1} />
         <YAxis tick={{ fontSize: 8 }} tickFormatter={(v) => `${v}${unit}`} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTooltip unit={unit} color={color} />} />
-        {refLine != null && <ReferenceLine y={refLine} stroke="#c8a84b" strokeDasharray="2 2" />}
+        {refLine != null && <ReferenceLine y={refLine} stroke="#C9A84C" strokeDasharray="2 2" />}
         <Line
           type="monotone"
           dataKey={dataKey}
@@ -321,9 +321,9 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               style={{ cursor: refLeft != null ? 'col-resize' : 'crosshair' }}
             >
               <CartesianGrid stroke="#0d2244" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#4a6580' }} interval={1} allowDataOverflow />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#4A6080' }} interval={1} allowDataOverflow />
               <YAxis
-                tick={{ fontSize: 10, fill: '#4a6580' }}
+                tick={{ fontSize: 10, fill: '#4A6080' }}
                 tickFormatter={(v) => `${v}${cfg.unit}`}
                 domain={['auto', 'auto']}
                 width={50}
@@ -333,9 +333,9 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               {cfg.refLine != null && (
                 <ReferenceLine
                   y={cfg.refLine}
-                  stroke="#c8a84b"
+                  stroke="#C9A84C"
                   strokeDasharray="4 4"
-                  label={{ value: cfg.refLabel, fill: '#c8a84b', fontSize: 9, position: 'right' }}
+                  label={{ value: cfg.refLabel, fill: '#C9A84C', fontSize: 9, position: 'right' }}
                 />
               )}
               <Line
@@ -348,7 +348,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
                 isAnimationActive={false}
               />
               {refLeft != null && refRight != null && (
-                <ReferenceArea x1={refLeft} x2={refRight} strokeOpacity={0.3} fill="#c8a84b" fillOpacity={0.15} />
+                <ReferenceArea x1={refLeft} x2={refRight} strokeOpacity={0.3} fill="#C9A84C" fillOpacity={0.15} />
               )}
               <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
             </LineChart>
@@ -474,8 +474,8 @@ function RBADashboard({ askAI }) {
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
                 <defs>
                   <linearGradient id="rbaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#c8a84b" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#c8a84b" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#0d2244" vertical={false} />
@@ -491,7 +491,7 @@ function RBADashboard({ askAI }) {
                     : null
                 } />
                 <ReferenceLine y={2.5} stroke="#3b82f6" strokeDasharray="3 3" />
-                <Area type="stepAfter" dataKey="rate" stroke="#c8a84b" strokeWidth={1.5}
+                <Area type="stepAfter" dataKey="rate" stroke="#C9A84C" strokeWidth={1.5}
                   fill="url(#rbaGrad)" dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
@@ -634,8 +634,8 @@ function LeadingIndicators() {
             <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={4} />
             <YAxis tick={{ fontSize: 7 }} domain={[70, 110]} width={34} />
             <Tooltip content={<SentimentTooltip />} />
-            <ReferenceLine y={100} stroke="#c8a84b" strokeDasharray="3 3"
-              label={{ value: 'NEUTRAL', fill: '#c8a84b', fontSize: 7, position: 'right' }} />
+            <ReferenceLine y={100} stroke="#C9A84C" strokeDasharray="3 3"
+              label={{ value: 'NEUTRAL', fill: '#C9A84C', fontSize: 7, position: 'right' }} />
             <Line type="monotone" dataKey="value" stroke="#f87171" strokeWidth={1.5}
               dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
@@ -656,7 +656,7 @@ function LeadingIndicators() {
             <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={4} />
             <YAxis tick={{ fontSize: 7 }} domain={[-5, 12]} width={28} />
             <Tooltip content={<SentimentTooltip />} />
-            <ReferenceLine y={0} stroke="#c8a84b" strokeDasharray="3 3" />
+            <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="3 3" />
             <Bar dataKey="value" isAnimationActive={false} radius={[1,1,0,0]}>
               {AU_BUSINESS_CONFIDENCE.map((d, i) => (
                 <Cell key={i} fill={d.value >= 0 ? 'rgba(46,160,90,0.6)' : 'rgba(180,60,60,0.6)'} />
@@ -686,7 +686,7 @@ function LeadingIndicators() {
             <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={4} />
             <YAxis tick={{ fontSize: 7 }} tickFormatter={v => `${v}B`} domain={[0, 14]} width={32} />
             <Tooltip content={<SentimentTooltip />} />
-            <ReferenceLine y={0} stroke="#c8a84b" strokeDasharray="2 2" />
+            <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="2 2" />
             <Area type="monotone" dataKey="value" stroke="#2ea05a" strokeWidth={1.5}
               fill="url(#tradeGrad)" dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
@@ -821,7 +821,7 @@ function ChinaWatch({ askAI }) {
             <div className="mt-1" style={{ height: 32 }}>
               <ResponsiveContainer width="100%" height={32}>
                 <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#c8a84b'}
+                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
                     strokeWidth={1.2} dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -844,7 +844,7 @@ function ChinaWatch({ askAI }) {
             <div className="mt-1" style={{ height: 32 }}>
               <ResponsiveContainer width="100%" height={32}>
                 <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#c8a84b'}
+                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
                     strokeWidth={1.2} dot={false} isAnimationActive={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -1103,7 +1103,7 @@ function PreviousEventsPanel() {
 // feed wired up, so this is a periodically-updated editorial judgment, not a
 // computed value.
 const MACRO_REGIME = {
-  label: 'RESTRICTIVE', angle: -20, color: '#c8a84b',
+  label: 'RESTRICTIVE', angle: -20, color: '#C9A84C',
   reason: 'Both the RBA (4.35%) and Fed (4.50%) are holding policy rates above neutral. Growth is slowing globally, but easing inflation is opening a path toward cuts into 2027 rather than forcing one now.',
 }
 
@@ -1114,7 +1114,7 @@ const MACRO_REGIME = {
 const MACRO_INDICATORS = [
   { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'PMI readings below 50 in both China and Europe are weighing on global trade volumes.' },
   { label: 'INFLATION',     status: 'EASING',      arrow: '▼', color: 'var(--color-gain)', context: 'AU CPI at 3.8% and moderating US CPI both support an extended RBA/Fed hold into September.' },
-  { label: 'POLICY',        status: 'RESTRICTIVE', arrow: '▬', color: '#c8a84b',           context: 'RBA at 4.35% and Fed at 4.50% — both above neutral, with cuts not yet confirmed for September.' },
+  { label: 'POLICY',        status: 'RESTRICTIVE', arrow: '▬', color: '#C9A84C',           context: 'RBA at 4.35% and Fed at 4.50% — both above neutral, with cuts not yet confirmed for September.' },
 ]
 
 // Same -90..+90 scale as MACRO_REGIME.angle — a hand-set monthly snapshot,
@@ -1127,7 +1127,7 @@ const MACRO_REGIME_HISTORY = [
   { date: 'Jul', label: 'RISK-OFF',      score: -30 },
   { date: 'Aug', label: 'RESTRICTIVE',   score: -20 },
 ]
-const regimeColor = (score) => score > 15 ? 'var(--color-gain)' : score < -15 ? 'var(--color-loss)' : '#c8a84b'
+const regimeColor = (score) => score > 15 ? 'var(--color-gain)' : score < -15 ? 'var(--color-loss)' : '#C9A84C'
 
 function RegimeHistoryTimeline() {
   return (
@@ -1159,10 +1159,10 @@ function MacroRegimeGauge() {
           </svg>
           <div style={{
             position: 'absolute', left: 59, bottom: 4, width: 2, height: 46,
-            background: '#c8a84b', transformOrigin: 'bottom center',
+            background: '#C9A84C', transformOrigin: 'bottom center',
             transform: `rotate(${MACRO_REGIME.angle}deg)`, borderRadius: 2,
           }} />
-          <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#c8a84b' }} />
+          <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#C9A84C' }} />
         </div>
         <div className="flex-1 min-w-[180px]">
           <div className="text-2xs text-terminal-text-dim tracking-widest mb-0.5">MACRO REGIME</div>
@@ -1195,7 +1195,7 @@ function MacroRegimeGauge() {
 
 const THEME_IMPACT_COLOR = {
   BULLISH: 'var(--color-gain)', BEARISH: 'var(--color-loss)',
-  MIXED: '#c8a84b', NEUTRAL: 'var(--color-text-dim)', BINARY: '#a855f7',
+  MIXED: '#C9A84C', NEUTRAL: 'var(--color-text-dim)', BINARY: '#a855f7',
 }
 
 const CATEGORY_ICON = {
@@ -1207,7 +1207,7 @@ const CATEGORY_ICON = {
 // series in placeholders.js, so those themes expand text-only rather than
 // showing a chart that isn't actually about the theme.
 const THEME_CHART_MAP = {
-  RBA:         { data: RBA_RATE_HISTORY, dataKey: 'rate', unit: '%', color: '#c8a84b' },
+  RBA:         { data: RBA_RATE_HISTORY, dataKey: 'rate', unit: '%', color: '#C9A84C' },
   COMMODITIES: { data: IRON_ORE_HISTORY, dataKey: 'value', unit: '', color: '#3b82f6' },
 }
 
@@ -1329,7 +1329,7 @@ function YieldCurveVisual() {
       <div className="flex items-center justify-between mb-1">
         <span className="text-2xs text-terminal-gold tracking-widest font-bold">AU vs US YIELD CURVE</span>
         <div className="flex items-center gap-3 text-2xs text-terminal-text-dim">
-          <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#c8a84b', display: 'inline-block' }} /> AU</span>
+          <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#C9A84C', display: 'inline-block' }} /> AU</span>
           <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#3b82f6', display: 'inline-block' }} /> US</span>
         </div>
       </div>
@@ -1337,7 +1337,7 @@ function YieldCurveVisual() {
         {maturities.map((m, i) => (
           <line key={m} x1={xAt(i)} y1={padT} x2={xAt(i)} y2={padT + chartH} stroke="#0d2244" strokeWidth="1" />
         ))}
-        <path d={pathFor(auPoints)} fill="none" stroke="#c8a84b" strokeWidth="1.8" />
+        <path d={pathFor(auPoints)} fill="none" stroke="#C9A84C" strokeWidth="1.8" />
         <path d={pathFor(usPoints)} fill="none" stroke="#3b82f6" strokeWidth="1.8" />
         {/* Label the higher curve above its point and the lower one below, per
             maturity — a fixed "AU above / US below" placement collides
@@ -1347,8 +1347,8 @@ function YieldCurveVisual() {
           const auAbove = auPoints[i] >= usPoints[i]
           return (
             <g key={`pts-${m}`}>
-              <circle cx={xAt(i)} cy={yAt(auPoints[i])} r="2.5" fill="#c8a84b" />
-              <text x={xAt(i)} y={yAt(auPoints[i]) + (auAbove ? -6 : 12)} textAnchor="middle" fontSize="8" fill="#c8a84b" fontFamily="IBM Plex Mono">{auPoints[i].toFixed(2)}</text>
+              <circle cx={xAt(i)} cy={yAt(auPoints[i])} r="2.5" fill="#C9A84C" />
+              <text x={xAt(i)} y={yAt(auPoints[i]) + (auAbove ? -6 : 12)} textAnchor="middle" fontSize="8" fill="#C9A84C" fontFamily="IBM Plex Mono">{auPoints[i].toFixed(2)}</text>
               <circle cx={xAt(i)} cy={yAt(usPoints[i])} r="2.5" fill="#3b82f6" />
               <text x={xAt(i)} y={yAt(usPoints[i]) + (auAbove ? 12 : -6)} textAnchor="middle" fontSize="8" fill="#3b82f6" fontFamily="IBM Plex Mono">{usPoints[i].toFixed(2)}</text>
             </g>
