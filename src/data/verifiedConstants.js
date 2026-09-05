@@ -114,9 +114,14 @@ export const VERIFIED_CONSTANTS = {
     gdpLastRelease: '2026-03-04',
 
     tradeBalanceBn: 7.2,
+    tradeBalanceRelease: '2026-04-02',
     retailSalesMoM: 0.3,
+    retailSalesRelease: '2026-05-28',
+    corelogicHpiMoM: 0.5,
+    corelogicRelease: '2026-06-02',
     asx200PE: 19.2,
     asx200DivYield: 3.7,
+    asxMetricsRelease: '2026-05-31',
 
     source: 'abs.gov.au',
     asOf: '2026-07-30',
@@ -125,16 +130,25 @@ export const VERIFIED_CONSTANTS = {
 
   // ── Other major economies ─────────────────────────────────────────────────
   us: {
-    cpi: 2.4, cpiPeriod: 'May 2026',
-    unemployment: 4.1, gdpQoQAnnualised: 1.8, nfpThousands: 142,
+    cpi: 2.4, cpiPeriod: 'May 2026', cpiRelease: '2026-05-13',
+    unemployment: 4.1, unemploymentRelease: '2026-06-05',
+    gdpQoQAnnualised: 1.8, gdpRelease: '2026-04-30',
+    nfpThousands: 142, nfpRelease: '2026-06-05',
+    fedFundsRelease: '2026-05-07',
     source: 'bls.gov / bea.gov', asOf: '2026-06-05', lastVerified: '2026-09-06',
   },
   cn: {
-    cpi: 0.1, gdpQoQ: 1.5, pmiManufacturing: 50.3,
+    cpi: 0.1, cpiRelease: '2026-05-14',
+    gdpQoQ: 1.5, gdpRelease: '2026-04-16',
+    pmiManufacturing: 50.3, pmiRelease: '2026-05-31',
     source: 'stats.gov.cn', asOf: '2026-05-31', lastVerified: '2026-09-06',
   },
-  eu: { cpi: 2.0, source: 'ec.europa.eu', asOf: '2026-06-03', lastVerified: '2026-09-06' },
-  uk: { cpi: 2.8, gdpQoQ: 0.4, source: 'ons.gov.uk', asOf: '2026-05-20', lastVerified: '2026-09-06' },
+  eu: { cpi: 2.0, cpiRelease: '2026-06-03', source: 'ec.europa.eu', asOf: '2026-06-03', lastVerified: '2026-09-06' },
+  uk: {
+    cpi: 2.8, cpiRelease: '2026-05-20',
+    gdpQoQ: 0.4, gdpRelease: '2026-05-15',
+    source: 'ons.gov.uk', asOf: '2026-05-20', lastVerified: '2026-09-06',
+  },
 
   // ── Commodities and freight ───────────────────────────────────────────────
   // Gold is deliberately absent: it comes live from liveDataService via PAXG.

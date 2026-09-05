@@ -6,6 +6,7 @@
 // subsequent module open that day is instant.
 
 import { askClaude } from './api'
+import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 
 const CACHE_PREFIX  = 'macro_themes_'
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000 // 24h safety net if the date key ever collides across a rollover
@@ -60,12 +61,35 @@ For each theme return JSON:
 
 Base themes on real current macro conditions as of today. Focus on: RBA policy, Fed policy, the China economy, commodities (iron ore, oil, gold), AUD strength, and geopolitical risks affecting Australia.
 
+You write ANALYSIS AND NARRATIVE, never invented statistics. You may quote any figure supplied to you in the user message, but you must NOT state a market level, policy rate, index value, currency cross, earnings number or economic print that was not supplied. Where a number would be needed and none was given, describe the direction or condition in words instead.
+
 You return only valid JSON. No prose, no markdown code fences, no disclaimers.
 Return ONLY a JSON array of 6 theme objects.`
 
+// The verified figures are pushed IN rather than asked for. A model cannot
+// know this morning's cash rate; asked for one it returns something
+// plausible and wrong, with nothing on screen to mark the error. So it gets
+// the numbers and supplies only the reasoning.
+//
+// This block is the whole user message and changes once a day, which also
+// keeps the cached system prefix above byte-identical between calls.
 function buildUserContent() {
   const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  return `Today is ${today}. Generate the macro themes now.`
+  const { rba, fed, au, us, cn, commodities } = VERIFIED_CONSTANTS
+  return [
+    `Today is ${today}.`,
+    '',
+    'VERIFIED FIGURES — you may quote these, and no others:',
+    `- RBA cash rate ${rba.cashRate}% (${rba.lastDecisionVerb} on ${rba.lastDecision}, previously ${rba.previousRate}%); next meeting ${rba.nextMeeting}`,
+    `- US Fed funds ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision}); next meeting ${fed.nextMeeting}`,
+    `- AU CPI ${au.cpi}% for the ${au.cpiPeriod}, trimmed mean ${au.cpiTrimmedMean}%; RBA target band ${au.rbaTargetBand}`,
+    `- AU unemployment ${au.unemployment}% (${au.unemploymentPeriod}); GDP ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
+    `- US CPI ${us.cpi}% (${us.cpiPeriod}); US unemployment ${us.unemployment}%`,
+    `- China CPI ${cn.cpi}%; manufacturing PMI ${cn.pmiManufacturing}`,
+    `- Iron ore US$${commodities.ironOreUSD}/t; Brent US$${commodities.brentUSD}/bbl; thermal coal US$${commodities.thermalCoalUSD}/t`,
+    '',
+    'Do not state any other figure. Generate the macro themes now.',
+  ].join('\n')
 }
 
 function readCache() {

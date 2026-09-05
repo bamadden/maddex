@@ -25,6 +25,9 @@ import { EARNINGS_2026 } from '../../services/earningsCalendar'
 // the user actually switches to the 3D view.
 const MacroDashboard3D = lazy(() => import('../../components/visualisations/MacroDashboard3D'))
 import { getMacroThemes, FALLBACK_THEMES } from '../../services/macroThemeService'
+import { aiContentService } from '../../services/aiContentService'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -1102,19 +1105,43 @@ function PreviousEventsPanel() {
 // the qualitative regime call below — there's no single live "regime score"
 // feed wired up, so this is a periodically-updated editorial judgment, not a
 // computed value.
+// Fallback regime read. This is what shows while the AI call is in flight and
+// if it fails — the panel is never blank and never waits.
+//
+// Note the figures in `reason` are interpolated from VERIFIED_CONSTANTS
+// rather than typed out: this sentence used to name 4.35% and 4.50% in prose
+// that no longer moved when those constants did.
 const MACRO_REGIME = {
   label: 'RESTRICTIVE', angle: -20, color: '#C9A84C',
-  reason: 'Both the RBA (4.35%) and Fed (4.50%) are holding policy rates above neutral. Growth is slowing globally, but easing inflation is opening a path toward cuts into 2027 rather than forcing one now.',
+  reason: `Both the RBA (${VERIFIED_CONSTANTS.rba.cashRate}%) and Fed (${VERIFIED_CONSTANTS.fed.cashRate}%) are holding policy rates above neutral. Growth is slowing globally, but easing inflation is opening a path toward cuts rather than forcing one now.`,
 }
 
-// Hand-set editorial judgment, same convention as MACRO_REGIME itself — no
-// single live "3 indicator" feed exists, so these are periodically updated
-// from the same published data (ABS/RBA/Fed releases) driving the rest of
-// this module rather than a computed score. As at 22 August 2026.
+// How the AI's categorical regime maps onto the gauge. The needle runs
+// -90 (maximally restrictive) to +90 (maximally accommodative); risk
+// appetite nudges it either side of the regime's base angle, so two
+// TIGHTENING reads with opposite risk tone do not render identically.
+const REGIME_GAUGE = {
+  TIGHTENING:   { angle: -45, color: 'var(--color-loss)' },
+  STAGFLATION:  { angle: -70, color: 'var(--color-loss)' },
+  NEUTRAL:      { angle: 0,   color: '#C9A84C' },
+  EASING:       { angle: 40,  color: 'var(--color-gain)' },
+}
+const RISK_NUDGE = { RISK_ON: 15, RISK_OFF: -15, NEUTRAL: 0 }
+
+const TREND_ARROW = { RISING: '▲', FALLING: '▼', STABLE: '▬', ACCELERATING: '▲', DECELERATING: '▼' }
+const TREND_COLOR = {
+  RISING: 'var(--color-loss)', FALLING: 'var(--color-gain)', STABLE: '#C9A84C',
+  ACCELERATING: 'var(--color-gain)', DECELERATING: 'var(--color-loss)',
+}
+
+// Fallback for the three-indicator strip, used on the same terms as
+// MACRO_REGIME above. No single live "3 indicator" feed exists, so when the
+// AI read is unavailable these are the periodically-updated editorial
+// defaults, with their figures interpolated from VERIFIED_CONSTANTS.
 const MACRO_INDICATORS = [
   { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'PMI readings below 50 in both China and Europe are weighing on global trade volumes.' },
-  { label: 'INFLATION',     status: 'EASING',      arrow: '▼', color: 'var(--color-gain)', context: 'AU CPI at 3.8% and moderating US CPI both support an extended RBA/Fed hold into September.' },
-  { label: 'POLICY',        status: 'RESTRICTIVE', arrow: '▬', color: '#C9A84C',           context: 'RBA at 4.35% and Fed at 4.50% — both above neutral, with cuts not yet confirmed for September.' },
+  { label: 'INFLATION',     status: 'EASING',      arrow: '▼', color: 'var(--color-gain)', context: `AU CPI at ${VERIFIED_CONSTANTS.au.cpi}% and moderating US CPI both support an extended RBA/Fed hold.` },
+  { label: 'POLICY',        status: 'RESTRICTIVE', arrow: '▬', color: '#C9A84C',           context: `RBA at ${VERIFIED_CONSTANTS.rba.cashRate}% and Fed at ${VERIFIED_CONSTANTS.fed.cashRate}% — both above neutral, with cuts not yet confirmed.` },
 ]
 
 // Same -90..+90 scale as MACRO_REGIME.angle — a hand-set monthly snapshot,
@@ -1148,7 +1175,49 @@ function RegimeHistoryTimeline() {
   )
 }
 
+// The regime read is prose and judgement, not a statistic, which is exactly
+// the split this terminal draws: MaddenAI characterises the regime, but every
+// figure it reasons from is passed in from VERIFIED_CONSTANTS rather than
+// recalled by the model. See aiContentService.
+function useMacroRegime() {
+  const [ai, setAi] = useState(null)
+  const [source, setSource] = useState('fallback')
+
+  useEffect(() => {
+    let alive = true
+    aiContentService.getMacroRegime().then(({ data, source: src }) => {
+      if (!alive || !data?.regime) return
+      setAi(data)
+      setSource(src)
+    }).catch(() => { /* fallback already rendered */ })
+    return () => { alive = false }
+  }, [])
+
+  return useMemo(() => {
+    if (!ai) return { regime: MACRO_REGIME, indicators: MACRO_INDICATORS, source, ai: null }
+
+    const base = REGIME_GAUGE[ai.regime] ?? REGIME_GAUGE.NEUTRAL
+    const angle = Math.max(-85, Math.min(85, base.angle + (RISK_NUDGE[ai.riskAppetite] ?? 0)))
+
+    return {
+      source,
+      ai,
+      regime: { label: ai.regime, angle, color: base.color, reason: ai.description },
+      indicators: [
+        { label: 'GLOBAL GROWTH', status: ai.growthMomentum, arrow: TREND_ARROW[ai.growthMomentum] ?? '▬',
+          color: TREND_COLOR[ai.growthMomentum] ?? '#C9A84C', context: ai.implications?.equities ?? '' },
+        { label: 'INFLATION', status: ai.inflationTrend, arrow: TREND_ARROW[ai.inflationTrend] ?? '▬',
+          color: TREND_COLOR[ai.inflationTrend] ?? '#C9A84C', context: ai.implications?.bonds ?? '' },
+        { label: 'RISK APPETITE', status: (ai.riskAppetite ?? '').replace('_', '-'), arrow: ai.riskAppetite === 'RISK_ON' ? '▲' : ai.riskAppetite === 'RISK_OFF' ? '▼' : '▬',
+          color: ai.riskAppetite === 'RISK_ON' ? 'var(--color-gain)' : ai.riskAppetite === 'RISK_OFF' ? 'var(--color-loss)' : '#C9A84C',
+          context: ai.implications?.commodities ?? '' },
+      ],
+    }
+  }, [ai, source])
+}
+
 function MacroRegimeGauge() {
+  const { regime, indicators, ai, source } = useMacroRegime()
   return (
     <div className="border border-terminal-border p-3 bg-terminal-panel/40">
       <div className="flex items-center gap-4 flex-wrap">
@@ -1160,19 +1229,22 @@ function MacroRegimeGauge() {
           <div style={{
             position: 'absolute', left: 59, bottom: 4, width: 2, height: 46,
             background: '#C9A84C', transformOrigin: 'bottom center',
-            transform: `rotate(${MACRO_REGIME.angle}deg)`, borderRadius: 2,
+            transform: `rotate(${regime.angle}deg)`, borderRadius: 2,
           }} />
           <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#C9A84C' }} />
         </div>
         <div className="flex-1 min-w-[180px]">
-          <div className="text-2xs text-terminal-text-dim tracking-widest mb-0.5">MACRO REGIME</div>
-          <div className="text-lg font-bold mb-1" style={{ color: MACRO_REGIME.color }}>{MACRO_REGIME.label}</div>
-          <div className="text-2xs text-terminal-text-dim leading-relaxed">{MACRO_REGIME.reason}</div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-2xs text-terminal-text-dim tracking-widest">MACRO REGIME</span>
+            <AIContentBadge source={source} />
+          </div>
+          <div className="text-lg font-bold mb-1" style={{ color: regime.color }}>{regime.label}</div>
+          <div className="text-2xs text-terminal-text-dim leading-relaxed">{regime.reason}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
-        {MACRO_INDICATORS.map((ind) => (
+        {indicators.map((ind) => (
           <div key={ind.label} className="border border-terminal-border/60 px-2 py-1.5">
             <div className="flex items-center justify-between">
               <span className="text-2xs text-terminal-text-dim tracking-wide">{ind.label}</span>
@@ -1183,6 +1255,13 @@ function MacroRegimeGauge() {
           </div>
         ))}
       </div>
+
+      {ai?.keyTension && (
+        <div className="mt-2 pt-2 border-t border-terminal-border/40">
+          <div className="text-2xs text-terminal-text-dim tracking-widest mb-1">KEY TENSION</div>
+          <div className="text-2xs text-terminal-text leading-relaxed">{ai.keyTension}</div>
+        </div>
+      )}
 
       <RegimeHistoryTimeline />
     </div>
@@ -1594,6 +1673,12 @@ export default function MacroModule() {
           <span className="text-2xs text-terminal-text-dim font-normal normal-case">
             AS AT {monthYear(AU_MACRO.find((m) => m.name === 'RBA Cash Rate')?.date).toUpperCase()}
           </span>
+          {/* Two different ages, deliberately both shown. The line above is
+              when the RBA published the rate; this is when we last confirmed
+              our copy of it is still the current one. A figure can be
+              correctly dated and still be one we have stopped checking. */}
+          <VerifiedBadge dataKey="rba" alwaysShow />
+          <VerifiedBadge dataKey="au" alwaysShow />
           <div className="flex items-center gap-4 ml-auto">
             {MEETINGS.map(m => <MeetingCountdown key={m.label} meeting={m} />)}
           </div>

@@ -27,12 +27,13 @@ const MAP_STYLES = {
 const AU_VIEW     = { longitude: 134.0, latitude: -25.0, zoom: 3.5, pitch: 45, bearing: 0 }
 const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, bearing: 0 }
 
-// Opens on the world, not on Australia. At the previous zoom 3.2 over
-// 134°E/25°S the frame was almost entirely the Indian Ocean: no chokepoints,
-// no exchanges, and the trade arcs all left the viewport within a few hundred
-// pixels of their origin. Every layer this map draws is global, so the
-// default camera has to be too. AU FOCUS is one click away for the AU view.
-const INITIAL_VIEW = GLOBAL_VIEW
+// Opens on Australia. This is an Australian investor's terminal, so the
+// home frame is the one they care about; GLOBAL VIEW in the layer panel is
+// one click away for the world.
+//
+// Note this is the camera only — auFocus stays false, so all global trade
+// routes still draw. It is a starting position, not a filter.
+const INITIAL_VIEW = AU_VIEW
 
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)

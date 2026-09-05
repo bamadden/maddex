@@ -58,3 +58,53 @@ export function LiveBadge({ label, ageMins, source = 'live', className = '' }) {
     </Tooltip>
   )
 }
+
+// Provenance marker for AI-written prose, the third kind of content in the
+// terminal after verified constants and live feeds.
+//
+// It exists because the three are not interchangeable and the reader should
+// never have to guess which one they are looking at. A theme written by
+// MaddenAI this morning and one recovered from yesterday's cache read
+// identically on the page; only this says which.
+//
+// Deliberately quiet — AI prose is normal here, not an exception — but never
+// silent, and it goes gold the moment the content stops being today's.
+const AI_SOURCE_LABEL = {
+  live:     { text: 'AI · TODAY',     dim: false },
+  cache:    { text: 'AI · TODAY',     dim: false },
+  stale:    { text: 'AI · YESTERDAY', dim: true  },
+  fallback: { text: 'DEFAULT',        dim: true  },
+  failed:   { text: 'DEFAULT',        dim: true  },
+}
+
+export function AIContentBadge({ source = 'fallback', className = '' }) {
+  const meta = AI_SOURCE_LABEL[source] ?? AI_SOURCE_LABEL.fallback
+  const detail = {
+    live: 'Written by MaddenAI today from verified figures.',
+    cache: 'Written by MaddenAI today from verified figures.',
+    stale: "Yesterday's generation — today's request failed.\nStill broadly current, but a day behind.",
+    fallback: 'Editorial default — the AI request was unavailable.',
+    failed: 'Editorial default — the AI request was unavailable.',
+  }[source] ?? 'Editorial default.'
+
+  return (
+    <Tooltip content={`${detail}\n\nAnalysis only. Every figure comes from verified constants or a live feed, never from the model.`}>
+      <span
+        className={className}
+        style={{
+          fontFamily: '"IBM Plex Mono", monospace',
+          fontSize: 8,
+          letterSpacing: '0.1em',
+          padding: '1px 5px',
+          borderRadius: 2,
+          whiteSpace: 'nowrap',
+          background: meta.dim ? 'rgba(201,168,76,0.12)' : 'rgba(99,120,153,0.12)',
+          border: `1px solid ${meta.dim ? 'rgba(201,168,76,0.4)' : 'rgba(99,120,153,0.25)'}`,
+          color: meta.dim ? '#C9A84C' : '#637899',
+        }}
+      >
+        {meta.text}
+      </span>
+    </Tooltip>
+  )
+}

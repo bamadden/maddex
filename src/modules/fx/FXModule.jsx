@@ -5,6 +5,7 @@ import {
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { CENTRAL_BANK_RATES, RBA_RATE_HISTORY } from '../../data/placeholders'
+import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
   BOJ_MEETINGS_2026, PBOC_MEETINGS_2026, RBNZ_MEETINGS_2026, BOC_MEETINGS_2026,
@@ -366,6 +367,9 @@ function GlobalRatesCardGrid() {
     <div className="border-b border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
         <span className="text-terminal-gold">GLOBAL POLICY RATES</span>
+        {/* Every bank in this table shares one verification date, so the
+            badge belongs on the header rather than repeated ten times. */}
+        <VerifiedBadge dataKey="rba" alwaysShow />
         <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">10 banks · official + typical-cadence next meetings</span>
       </div>
       <div className="grid grid-cols-5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>

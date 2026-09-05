@@ -1,6 +1,26 @@
 // Placeholder data — official statistics labeled with release dates
 // Index values (SPX, NDX etc.) are point values — displayed as pts
 // All AUS statistics: SOURCE ABS/RBA official releases
+//
+// SINGLE SOURCE OF TRUTH
+// Every headline figure below is DERIVED from src/data/verifiedConstants.js
+// rather than written out again here. Before this, the same numbers lived in
+// both files and had already drifted apart: this file had the RBA last
+// changing on 2026-05-06 with a HIKE, verifiedConstants had 2026-08-12 with a
+// HOLD, and the Fed differed by seven months. Two copies of a fact is one
+// copy plus one lie, and nothing on screen said which was which.
+//
+// The export names and row shapes are unchanged, so no call site had to move.
+// What each row gains is `vkey` — the verifiedConstants group it came from —
+// which is what lets the UI render a staleness badge next to the number.
+//
+// TO UPDATE A FIGURE: edit verifiedConstants.js. Not this file.
+
+import { VERIFIED_CONSTANTS } from './verifiedConstants'
+
+const { rba, fed, au, us, cn, eu, uk } = VERIFIED_CONSTANTS
+
+const pct = (n) => `${n}%`
 
 // ASX 200 Sector Heatmap — mktCapWeight is % of ASX 200
 export const ASX_SECTOR_HEATMAP = [
@@ -41,66 +61,81 @@ export const US_BONDS = [
   { maturity: '30Y', yield: 4.85 },
 ]
 
-// Central bank policy rates — SOURCE: official central bank releases, as at 3 Aug 2026
-// RBA hiked to 4.35% on 6 May 2026 — third 2026 hike (Feb/Mar/May, +0.25 each),
-// reversing the 2025 easing cycle in response to the Iran/Middle East energy shock.
-// `expectation` is the market-implied stance into the *next* meeting (not
-// the last decision's direction, which is `direction`) — HIKE/HOLD/CUT.
-export const CENTRAL_BANK_RATES = [
-  { bank: 'Reserve Bank of Australia', country: 'AUD', rate: 4.35, direction: 'hike', lastChange: '2026-05-06', src: 'rba.gov.au',          expectation: 'hold' },
-  { bank: 'Federal Reserve',           country: 'USD', rate: 4.50, direction: 'hold', lastChange: '2025-12-18', src: 'federalreserve.gov',   expectation: 'cut'  },
-  { bank: 'ECB',                       country: 'EUR', rate: 2.00, direction: 'cut',  lastChange: '2026-06-12', src: 'ecb.europa.eu',        expectation: 'hold' },
-  { bank: 'Bank of England',           country: 'GBP', rate: 4.25, direction: 'cut',  lastChange: '2026-05-08', src: 'bankofengland.co.uk',  expectation: 'hold' },
-  { bank: 'Bank of Japan',             country: 'JPY', rate: 0.50, direction: 'hold', lastChange: '2026-01-24', src: 'boj.or.jp',            expectation: 'hike' },
-  { bank: 'PBOC',                      country: 'CNY', rate: 3.10, direction: 'cut',  lastChange: '2026-02-20', src: 'pbc.gov.cn', note: 'LPR 1Y', expectation: 'hold' },
-  { bank: 'RBNZ',                      country: 'NZD', rate: 3.25, direction: 'cut',  lastChange: '2026-04-09', src: 'rbnz.govt.nz',         expectation: 'hold' },
-  { bank: 'Bank of Canada',            country: 'CAD', rate: 2.75, direction: 'cut',  lastChange: '2026-03-12', src: 'bankofcanada.ca',      expectation: 'hold' },
-  { bank: 'Swiss National Bank',       country: 'CHF', rate: 0.00, direction: 'cut',  lastChange: '2026-03-19', src: 'snb.ch',               expectation: 'hold' },
-  { bank: 'Riksbank',                  country: 'SEK', rate: 2.00, direction: 'hold', lastChange: '2026-06-25', src: 'riksbank.se',          expectation: 'hold' },
+// Central bank policy rates, derived from VERIFIED_CONSTANTS.
+//
+// `direction` is the last decision that was actually taken; `expectation` is
+// the market-implied stance into the NEXT meeting. They are different things
+// and are deliberately kept apart — a bank that just held can still be
+// expected to cut. `expectation` is a judgement rather than a published
+// statistic, so it stays here rather than in verifiedConstants.
+const CB_EXPECTATION = {
+  rba: 'hold', fed: 'cut', ecb: 'hold', boe: 'hold', boj: 'hike',
+  pboc: 'hold', rbnz: 'hold', boc: 'hold', snb: 'hold', riksbank: 'hold',
+}
+
+const CB_ORDER = [
+  ['rba', 'Reserve Bank of Australia', 'AUD'],
+  ['fed', 'Federal Reserve', 'USD'],
+  ['ecb', 'ECB', 'EUR'],
+  ['boe', 'Bank of England', 'GBP'],
+  ['boj', 'Bank of Japan', 'JPY'],
+  ['pboc', 'PBOC', 'CNY'],
+  ['rbnz', 'RBNZ', 'NZD'],
+  ['boc', 'Bank of Canada', 'CAD'],
+  ['snb', 'Swiss National Bank', 'CHF'],
+  ['riksbank', 'Riksbank', 'SEK'],
 ]
+
+export const CENTRAL_BANK_RATES = CB_ORDER.map(([key, bank, country]) => {
+  const c = VERIFIED_CONSTANTS[key]
+  return {
+    bank,
+    country,
+    rate: c.cashRate,
+    direction: c.lastDecisionVerb.toLowerCase(),
+    lastChange: c.lastDecision,
+    nextMeeting: c.nextMeeting,
+    src: c.source,
+    ...(c.note ? { note: c.note } : {}),
+    expectation: CB_EXPECTATION[key],
+    vkey: key,
+  }
+})
 
 // ─── AU Macro ─────────────────────────────────────────────────────────────────
 // Official ABS/RBA statistics — dates reflect the publication date of each figure
 // Sources: abs.gov.au | rba.gov.au
 
+// `prev` and `beat` describe the move from the previous print, not the print
+// itself, so they stay literal here — they are context about a transition
+// rather than a current figure that can go stale-wrong.
 export const AU_MACRO = [
-  // RBA Cash Rate: 4.35% — hiked at the 6 May 2026 Board meeting (from 4.10%,
-  // itself hiked from 3.85% in Mar 2026, itself hiked from 3.60% in Feb 2026)
-  // — third consecutive 2026 hike, held since at the 17 Jun meeting and
-  // again at 12 Aug 2026 (softer CPI of 3.8% cited); next decision 16 Sep 2026.
-  { name: 'RBA Cash Rate',       value: '4.35%', prev: '4.10%', date: '2026-08-12', beat: null, src: 'rba.gov.au' },
-  // AU CPI YoY: 3.8% Q2 2026 — ABS Cat. 6401.0, released 2026-07-30 (up from 2.4%)
-  { name: 'AU CPI YoY',          value: '3.8%',  prev: '2.4%',  date: '2026-07-30', beat: false, src: 'abs.gov.au/6401.0' },
-  { name: 'AU CPI Trimmed Mean', value: '2.7%',  prev: '2.9%',  date: '2026-04-29', beat: true,  src: 'abs.gov.au/6401.0' },
-  // AU Unemployment: 4.1% May 2026 — ABS Labour Force, released 2026-06-19
-  { name: 'AU Unemployment',     value: '4.1%',  prev: '4.1%',  date: '2026-06-19', beat: null,  src: 'abs.gov.au/6202.0' },
-  // AU GDP Q4 2025 — ABS National Accounts, released 2026-03-04
-  { name: 'AU GDP QoQ',          value: '0.4%',  prev: '0.3%',  date: '2026-03-04', beat: true,  src: 'abs.gov.au/5206.0' },
-  // AU GDP Annual 1.3% as at Q4 2025 — source: abs.gov.au
-  { name: 'AU GDP Annual',       value: '1.3%',  prev: '1.0%',  date: '2026-03-04', beat: true,  src: 'abs.gov.au/5206.0' },
-  { name: 'AU Trade Balance',    value: 'A$7.2B',prev: 'A$6.1B',date: '2026-04-02', beat: true,  src: 'abs.gov.au/5368.0' },
-  { name: 'AU Retail Sales MoM', value: '0.3%',  prev: '0.5%',  date: '2026-05-28', beat: false, src: 'abs.gov.au/8501.0' },
-  { name: 'CoreLogic HPI MoM',   value: '+0.5%', prev: '+0.4%', date: '2026-06-02', beat: null,  src: 'corelogic.com.au' },
-  { name: 'ASX200 P/E',          value: '19.2',  prev: '18.8',  date: '2026-05-31', beat: null,  src: 'asx.com.au' },
-  { name: 'ASX200 Div Yield',    value: '3.7%',  prev: '3.9%',  date: '2026-05-31', beat: null,  src: 'asx.com.au' },
+  { name: 'RBA Cash Rate',       value: pct(rba.cashRate),   prev: pct(rba.previousRate), date: rba.lastDecision,      beat: null,  src: rba.source,           vkey: 'rba' },
+  { name: 'AU CPI YoY',          value: pct(au.cpi),         prev: pct(au.cpiPrevious),   date: au.cpiLastRelease,     beat: false, src: 'abs.gov.au/6401.0',  vkey: 'au' },
+  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: '2.9%',             date: '2026-04-29',          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
+  { name: 'AU Unemployment',     value: pct(au.unemployment), prev: '4.1%',               date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },
+  { name: 'AU GDP QoQ',          value: pct(au.gdpQoQ),      prev: '0.3%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
+  { name: 'AU GDP Annual',       value: pct(au.gdpAnnual),   prev: '1.0%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
+  { name: 'AU Trade Balance',    value: `A$${au.tradeBalanceBn}B`, prev: 'A$6.1B',        date: au.tradeBalanceRelease, beat: true, src: 'abs.gov.au/5368.0',  vkey: 'au' },
+  { name: 'AU Retail Sales MoM', value: pct(au.retailSalesMoM), prev: '0.5%',             date: au.retailSalesRelease, beat: false, src: 'abs.gov.au/8501.0',  vkey: 'au' },
+  { name: 'CoreLogic HPI MoM',   value: `+${au.corelogicHpiMoM}%`, prev: '+0.4%',         date: au.corelogicRelease,   beat: null,  src: 'corelogic.com.au',   vkey: 'au' },
+  { name: 'ASX200 P/E',          value: String(au.asx200PE), prev: '18.8',                date: au.asxMetricsRelease,  beat: null,  src: 'asx.com.au',         vkey: 'au' },
+  { name: 'ASX200 Div Yield',    value: pct(au.asx200DivYield), prev: '3.9%',             date: au.asxMetricsRelease,  beat: null,  src: 'asx.com.au',         vkey: 'au' },
 ]
 
-// GLOBAL_MACRO — official statistical agency releases
-// US CPI 2.4% as at May 2026 (source: bls.gov), US Unemp 4.1% May 2026 (source: bls.gov)
+// GLOBAL_MACRO — official statistical agency releases, derived as above.
 export const GLOBAL_MACRO = [
-  { name: 'US CPI YoY',      value: '2.4%',  prev: '2.5%',  date: '2026-05-13', beat: true,  region: 'US', src: 'bls.gov' },
-  { name: 'US GDP QoQ Ann',  value: '1.8%',  prev: '2.4%',  date: '2026-04-30', beat: false, region: 'US', src: 'bea.gov' },
-  // US Unemployment: 4.1% — source: bls.gov
-  { name: 'US Unemployment', value: '4.1%',  prev: '4.1%',  date: '2026-06-05', beat: null,  region: 'US', src: 'bls.gov' },
-  { name: 'US NFP',          value: '142K',  prev: '185K',  date: '2026-06-05', beat: false, region: 'US', src: 'bls.gov' },
-  // US Fed Funds Rate: 4.25–4.50% target range (source: federalreserve.gov)
-  { name: 'US Fed Funds',    value: '4.25–4.50%', prev: '4.25–4.50%', date: '2026-05-07', beat: null, region: 'US', src: 'federalreserve.gov' },
-  { name: 'CN CPI YoY',     value: '0.1%',  prev: '-0.1%', date: '2026-05-14', beat: true,  region: 'CN', src: 'stats.gov.cn' },
-  { name: 'CN GDP QoQ',     value: '1.5%',  prev: '1.2%',  date: '2026-04-16', beat: true,  region: 'CN', src: 'stats.gov.cn' },
-  { name: 'CN PMI Mfg',     value: '50.3',  prev: '50.4',  date: '2026-05-31', beat: false, region: 'CN', src: 'stats.gov.cn' },
-  { name: 'EZ CPI YoY',     value: '2.0%',  prev: '2.2%',  date: '2026-06-03', beat: true,  region: 'EU', src: 'ec.europa.eu' },
-  { name: 'UK CPI YoY',     value: '2.8%',  prev: '3.0%',  date: '2026-05-20', beat: true,  region: 'UK', src: 'ons.gov.uk' },
-  { name: 'UK GDP QoQ',     value: '0.4%',  prev: '0.3%',  date: '2026-05-15', beat: true,  region: 'UK', src: 'ons.gov.uk' },
+  { name: 'US CPI YoY',      value: pct(us.cpi),               prev: '2.5%',  date: us.cpiRelease,          beat: true,  region: 'US', src: 'bls.gov',             vkey: 'us' },
+  { name: 'US GDP QoQ Ann',  value: pct(us.gdpQoQAnnualised),  prev: '2.4%',  date: us.gdpRelease,          beat: false, region: 'US', src: 'bea.gov',             vkey: 'us' },
+  { name: 'US Unemployment', value: pct(us.unemployment),      prev: '4.1%',  date: us.unemploymentRelease, beat: null,  region: 'US', src: 'bls.gov',             vkey: 'us' },
+  { name: 'US NFP',          value: `${us.nfpThousands}K`,     prev: '185K',  date: us.nfpRelease,          beat: false, region: 'US', src: 'bls.gov',             vkey: 'us' },
+  { name: 'US Fed Funds',    value: fed.rateRange,             prev: fed.rateRange, date: us.fedFundsRelease, beat: null, region: 'US', src: fed.source,           vkey: 'fed' },
+  { name: 'CN CPI YoY',      value: pct(cn.cpi),               prev: '-0.1%', date: cn.cpiRelease,          beat: true,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
+  { name: 'CN GDP QoQ',      value: pct(cn.gdpQoQ),            prev: '1.2%',  date: cn.gdpRelease,          beat: true,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
+  { name: 'CN PMI Mfg',      value: String(cn.pmiManufacturing), prev: '50.4', date: cn.pmiRelease,         beat: false, region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
+  { name: 'EZ CPI YoY',      value: pct(eu.cpi),               prev: '2.2%',  date: eu.cpiRelease,          beat: true,  region: 'EU', src: 'ec.europa.eu',        vkey: 'eu' },
+  { name: 'UK CPI YoY',      value: pct(uk.cpi),               prev: '3.0%',  date: uk.cpiRelease,          beat: true,  region: 'UK', src: 'ons.gov.uk',          vkey: 'uk' },
+  { name: 'UK GDP QoQ',      value: pct(uk.gdpQoQ),            prev: '0.3%',  date: uk.gdpRelease,          beat: true,  region: 'UK', src: 'ons.gov.uk',          vkey: 'uk' },
 ]
 
 export const MACRO_INDICATORS = GLOBAL_MACRO
