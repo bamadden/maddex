@@ -42,7 +42,9 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
       {/* Identity: name, then an optional sub-label on the same baseline —
           a second line here made the header's height vary per module. */}
       <div className="flex items-baseline gap-3 min-w-0">
-        <span className="font-mono font-semibold text-[11px] tracking-[0.2em] uppercase text-terminal-gold whitespace-nowrap">
+        {/* 13px, not 11 — keeps the gold mono terminal identity while staying
+            legible at a glance as the module you're currently in. */}
+        <span className="font-mono font-semibold text-[13px] tracking-[0.18em] uppercase text-terminal-gold whitespace-nowrap">
           {title}
         </span>
         {subtitle && (
