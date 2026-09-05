@@ -319,6 +319,28 @@ function NotesPanel({ notes, onDelete }) {
 
 // ─── Main AIPanel ─────────────────────────────────────────────────────────────
 
+// Conversation window, sized for prompt caching.
+//
+// Caching matches a byte-identical prefix. A window that slides one exchange
+// per turn changes its head message every turn, so the cached history prefix
+// is invalidated every single call. Instead the window grows to HISTORY_MAX
+// and then drops back to HISTORY_KEEP in one go, which means the head only
+// moves once per chunk — the prefix stays stable in between, and a long
+// session pays a cache reset periodically rather than continuously.
+//
+// The start index is quantised to whole chunks so it is a pure function of
+// the message count: the same conversation length always yields the same
+// window, which is what keeps the prefix reproducible across turns.
+const HISTORY_MAX   = 20                              // grow to here…
+const HISTORY_KEEP  = 12                              // …then cut back to here
+const HISTORY_CHUNK = HISTORY_MAX - HISTORY_KEEP      // 8 messages ≈ 4 exchanges
+
+function windowedHistory(msgs) {
+  if (msgs.length <= HISTORY_MAX) return msgs
+  const start = Math.floor((msgs.length - HISTORY_KEEP) / HISTORY_CHUNK) * HISTORY_CHUNK
+  return msgs.slice(start)
+}
+
 export default function AIPanel({ wide = false }) {
   const {
     chatOpen, setChatOpen,
@@ -568,14 +590,7 @@ export default function AIPanel({ wide = false }) {
     if (!silent) addChatMessage(userTurn)
     addChatMessage(silent ? { role: 'assistant', content: '', silent: true, context } : { role: 'assistant', content: '' })
 
-    // 20 messages ≈ 10 exchanges. Prompt caching matches on a byte-identical
-    // prefix, so the cached history holds only while this window is still
-    // growing; once it is full it slides by one exchange per turn, the head
-    // changes, and the match breaks. A bigger window pushes that boundary
-    // out — it does not remove it. See the note in api/claude.js.
-    const history = chatMessages
-      .filter((m) => m.role !== 'system')
-      .slice(-20)
+    const history = windowedHistory(chatMessages.filter((m) => m.role !== 'system'))
       .map((m) => ({ role: m.role, content: m.content }))
 
     try {
