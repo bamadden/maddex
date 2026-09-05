@@ -85,7 +85,7 @@ function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
         <PriceChange value={liveChange} className="justify-end" size="text-[11px]" />
       </td>
       <td className="px-2 py-1.5 text-right">
-        <PriceChange pct={livePct} className="justify-end" pill />
+        <PriceChange pct={livePct} className="justify-end" pill graded />
       </td>
       <td className="px-2 py-1.5 text-right">
         <Week52Bar price={livePrice} low={week52Low} high={week52High} />

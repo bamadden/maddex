@@ -1,4 +1,4 @@
-import { fmt } from '../../utils/format'
+import { fmt, changeTone } from '../../utils/format'
 
 // Consistent price/percent-change formatting + colour + arrow, for every
 // place the app shows a change value. Positive → green ▲, negative → red ▼,
@@ -8,11 +8,16 @@ import { fmt } from '../../utils/format'
 // `pill` wraps the value in a tinted background rather than colouring the
 // text alone. A change is the thing the eye hunts for on a dense board, and
 // a filled chip is findable in peripheral vision in a way bare text is not.
-export default function PriceChange({ pct, value, showArrow = true, className = '', size = 'text-2xs', pill = false }) {
+// `graded` opts into the four-level tone scale, where a move under 2% gets a
+// quieter shade than one over it. Off by default so existing call sites keep
+// their current two-level appearance until they choose otherwise.
+export default function PriceChange({ pct, value, showArrow = true, className = '', size = 'text-2xs', pill = false, graded = false }) {
   const n = pct ?? value ?? null
   const isUp = n != null && n > 0
   const isDown = n != null && n < 0
-  const color = isUp ? 'text-terminal-green' : isDown ? 'text-terminal-red' : 'text-terminal-muted'
+  const color = graded
+    ? changeTone(n)
+    : isUp ? 'text-terminal-green' : isDown ? 'text-terminal-red' : 'text-terminal-muted'
   const arrow = isUp ? '▲' : isDown ? '▼' : '▶'
 
   const parts = []

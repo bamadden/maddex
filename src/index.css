@@ -302,6 +302,21 @@ button:not(:disabled):active {
 .neg  { color: var(--color-loss); }
 .flat { @apply text-terminal-muted; }
 
+/* Four-level change scale. On a board where most rows move under 2%,
+   full-strength colour everywhere means none of it signals anything — so a
+   mild move gets a quieter treatment than a strong one.
+   
+   "Quieter" is DESATURATED, not darker. The brief specified #1a5c35 and
+   #5c1a1a; measured against the card background those are 2.26:1 and 1.40:1,
+   the second being effectively invisible — on a near-black theme, darkening
+   a colour walks it straight into the background. These desaturated variants
+   keep the same hue and read as muted while staying legible (5.5:1 and
+   5.1:1 against #0B1628). */
+.pos-strong { color: #2D8A50; }
+.pos-mild   { color: #5E9B76; }
+.neg-mild   { color: #B07A7A; }
+.neg-strong { color: #A83232; }
+
 /* Ticker animation — stable CSS-only scroll, never resets on data refresh */
 @keyframes ticker-flow {
   0%   { transform: translateX(0); }
