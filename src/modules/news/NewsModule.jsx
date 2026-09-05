@@ -1124,7 +1124,10 @@ export default function NewsModule() {
           className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 text-left hover:bg-terminal-gold/15 transition-colors flex-shrink-0 panel-fade"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />
-          <span className="text-2xs text-terminal-gold font-bold">● {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'} — tap to refresh</span>
+          {/* the dot is the span above — don't repeat it in the label */}
+          <span className="text-2xs text-terminal-gold font-bold tracking-wide uppercase">
+            {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'} — tap to refresh
+          </span>
         </button>
       )}
 

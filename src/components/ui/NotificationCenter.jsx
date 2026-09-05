@@ -40,6 +40,24 @@ function todayKey(prefix) {
   return `${prefix}_${new Date().toLocaleDateString('en-CA')}`
 }
 
+// Mirrors NewsModule's BREAKING_RE — a headline is breaking on keyword match
+// plus recency, since the feed carries no `breaking` flag of its own.
+const BREAKING_RE = /rate (cut|hike)|crash|collapse|record (high|low)|emergency|crisis|\bwar\b|sanction|default|bankruptcy|merger|acquisition|\bIPO\b|surge/i
+
+function isBreakingHeadline(item) {
+  if (!item?.pubDate || item.dateEstimated) return false
+  const ageMs = Date.now() - new Date(item.pubDate).getTime()
+  return ageMs <= 30 * 60_000 && BREAKING_RE.test(item.headline ?? '')
+}
+
+// Word-boundary match so "ALL" doesn't fire on "generally".
+function headlineMentions(headline, symbol) {
+  if (!headline || !symbol) return false
+  const base = symbol.replace('.AX', '').trim()
+  if (base.length < 2) return false
+  return new RegExp(`\\b${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(headline)
+}
+
 export default function NotificationCenter() {
   const {
     notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
@@ -176,8 +194,14 @@ export default function NotificationCenter() {
     return () => clearInterval(id)
   }, [addNotification])
 
-  // ── NEWS — breaking (published in the last 5 min) headlines already being
-  // fetched for the News module's badge (App.jsx keeps ['news'] warm) ────────
+  // ── NEWS — deliberately narrow. Background refreshes must never notify.
+  // Previously ANY article under 5 minutes old fired one, and fetchNews was
+  // stamping date-less articles with a random time inside the last 10
+  // minutes, so roughly half of them qualified the moment they arrived. Now
+  // only two things notify: a genuinely breaking headline (keyword match +
+  // under 30 min old, matching the News module's own definition), or a story
+  // naming a symbol the user actually tracks. Estimated dates never count.
+  // Everything else surfaces as the in-feed "N NEW STORIES" pill instead.
   useEffect(() => {
     const check = () => {
       // getQueryData returns the raw cached fetchNews() result — the
@@ -185,19 +209,29 @@ export default function NotificationCenter() {
       // transforms data for that hook's own consumers, not direct cache reads.
       const articles = queryClient.getQueryData(['news'])?.articles ?? []
       for (const item of articles) {
-        if (!item.pubDate) continue
-        const isBreaking = Date.now() - new Date(item.pubDate).getTime() <= 5 * 60_000
-        if (!isBreaking) continue
+        if (!item.pubDate || item.dateEstimated) continue
         const id = item.link || item.headline
         if (seenNewsIds.current.has(id)) continue
+
+        const breaking = isBreakingHeadline(item)
+        const mentioned = watchlist.find((sym) => headlineMentions(item.headline, sym))
+        if (!breaking && !mentioned) continue
+
+        // Only mark seen once it actually qualifies, so a story that becomes
+        // watchlist-relevant after the user adds the symbol can still notify.
         seenNewsIds.current.add(id)
-        addNotification('NEWS', `Breaking: ${item.headline}`)
+        addNotification(
+          'NEWS',
+          breaking
+            ? `🔴 BREAKING — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`
+            : `${mentioned} in the news — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`,
+        )
       }
     }
     check()
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
-  }, [queryClient, addNotification])
+  }, [queryClient, addNotification, watchlist])
 
   // ── CUSTOM ALERTS — the alertsService alerts engine (price/session-move/
   // volume-spike/RSI/news-mention/economic-event/portfolio-P&L), separate

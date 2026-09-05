@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
+import { notificationRateLimiter } from '../services/notificationRateLimiter'
 
 const StoreContext = createContext(null)
 
@@ -144,7 +145,11 @@ export function StoreProvider({ children }) {
   }, [])
 
   // type: 'PRICE_ALERT' | 'MARKET_OPEN' | 'NEWS' | 'SYSTEM'
+  // Rate limited to 3 per type per minute at this chokepoint so every producer
+  // is covered — including ones added later that would otherwise forget to
+  // wrap the call. Returns null when the notification was dropped.
   const addNotification = useCallback((type, message) => {
+    if (!notificationRateLimiter.canShow(type)) return null
     const notification = { id: Date.now() + Math.random(), type, message, read: false, createdAt: new Date().toISOString() }
     setNotifications((prev) => {
       const next = [notification, ...prev].slice(0, 20)

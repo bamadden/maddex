@@ -1261,12 +1261,18 @@ export const fetchNews = async () => {
     )
   )
 
-  function validatePubDate(dateStr, sourceName) {
+  // A missing or unparseable date used to be replaced with a RANDOM time in
+  // the last 10 minutes. That silently made ~half of every date-less article
+  // look newer than 5 minutes, which is what drove the breaking-news
+  // notification spam (and corrupted the NEW/BREAKING badges and feed order).
+  // Fall back to fetch time instead, and flag it so recency-sensitive
+  // consumers can exclude estimates rather than trusting them.
+  function validatePubDate(dateStr) {
     const now = new Date()
-    if (!dateStr) return new Date(now - Math.random() * 600000)
+    if (!dateStr) return { pubDate: new Date(fetchedAt), dateEstimated: true }
     const parsed = new Date(dateStr)
-    if (isNaN(parsed.getTime()) || parsed > now) return new Date(now - Math.random() * 600000)
-    return parsed
+    if (isNaN(parsed.getTime()) || parsed > now) return { pubDate: new Date(fetchedAt), dateEstimated: true }
+    return { pubDate: parsed, dateEstimated: false }
   }
 
   function diversifyFeed(articles, maxPerSource = 5) {
@@ -1287,7 +1293,7 @@ export const fetchNews = async () => {
     if (data.status !== 'ok' || !Array.isArray(data.items)) continue
     sourceHealth[source] = 'ok'
     for (const item of data.items) {
-      const pubDate = validatePubDate(item.pubDate, source)
+      const { pubDate, dateEstimated } = validatePubDate(item.pubDate)
       const ageMs   = Date.now() - pubDate.getTime()
       if (ageMs > 7 * 86400000) continue // skip articles older than 7 days
       const tag     = inferNewsTag(item.title, item.categories)
@@ -1295,6 +1301,7 @@ export const fetchNews = async () => {
         id:             id++,
         time:           pubDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
         pubDate,
+        dateEstimated,
         fetchedAt,
         source,
         sourceCategory,
