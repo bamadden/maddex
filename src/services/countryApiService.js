@@ -210,7 +210,45 @@ export function logGapReport(dbAlpha2Set) {
 
 // ─── Init — call once after app mounts ───────────────────────────────────────
 
-export async function initCountryDataRefresh(dbAlpha2Set) {
+// GlobalModule calls this from a mount effect, so it re-ran on every visit to
+// the module. The per-source localStorage caches only short-circuit on
+// SUCCESS, so whenever a source is unreachable every visit retried it — which
+// is why "[CountryAPI] REST Countries failed" repeated through a browsing
+// session. React StrictMode double-invokes mount effects in dev, doubling it
+// again.
+//
+// Memoise at module scope: concurrent callers share one in-flight promise
+// (killing the StrictMode double-call), and a resolved run makes later visits
+// a no-op for the session. A failed run is not cached forever — that would
+// strand the app on a transient network blip — but it is held off by a
+// cooldown so a dead endpoint is retried at most once every few minutes
+// rather than on every navigation.
+const REFRESH_RETRY_COOLDOWN = 5 * 60_000
+let refreshPromise = null
+let lastFailedAt = 0
+
+export function initCountryDataRefresh(dbAlpha2Set) {
+  if (refreshPromise) return refreshPromise
+  if (lastFailedAt && Date.now() - lastFailedAt < REFRESH_RETRY_COOLDOWN) {
+    return Promise.resolve()
+  }
+  refreshPromise = runCountryDataRefresh(dbAlpha2Set).catch((err) => {
+    // Allow a later retry, but not until the cooldown lapses.
+    lastFailedAt = Date.now()
+    refreshPromise = null
+    throw err
+  })
+  return refreshPromise
+}
+
+// Exposed for tests and for a manual "refresh now" that should bypass both
+// the memo and the cooldown.
+export function resetCountryDataRefresh() {
+  refreshPromise = null
+  lastFailedAt = 0
+}
+
+async function runCountryDataRefresh(dbAlpha2Set) {
   // Fire all three in parallel, non-blocking (failures logged, not thrown)
   const [restRes, wbRes, imfRes] = await Promise.allSettled([
     fetchRestCountries(),
