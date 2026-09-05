@@ -67,6 +67,65 @@ function Week52Bar({ price, low, high }) {
 // .map() body directly). Only ASX symbols get the simulated live stream
 // (their mock quote is already AUD-native, no currency-conversion nuance
 // to replicate here); US/crypto rows keep their existing static values.
+
+// Crypto occupies the same four column positions as the equity price cells,
+// but the columns mean different things: there is no session close, so a
+// day-change figure and a 52-week band are the wrong frame. A 24h/7d pair
+// plus the USD cross is what actually matters for a 24/7 asset.
+//
+// Dominance, which the brief also asked for, is deliberately absent: it needs
+// total crypto market cap as a denominator and the data layer does not carry
+// one. Market cap is shown instead rather than dividing by an invented total,
+// which would render a plausible-looking wrong percentage.
+
+// Price-alert toggle per row. Clicking with no alert set arms one 5% above
+// the current price — a sensible default that means the control does
+// something useful on a single click, rather than opening a form. Clicking
+// an armed bell clears it. The exact level is in the tooltip, and the alerts
+// module remains the place to set a specific one.
+function AlertBell({ symbol, price, alerts, addAlert, removeAlert }) {
+  const existing = alerts?.find((a) => a.sym?.toUpperCase() === symbol.toUpperCase())
+  const target = price != null ? price * 1.05 : null
+
+  if (!price && !existing) {
+    return <span className="text-terminal-text-dim/20 text-2xs" title="No price yet">⚡</span>
+  }
+
+  return (
+    <button
+      onClick={() => (existing ? removeAlert(existing.id) : addAlert(symbol, target, 'above'))}
+      title={existing
+        ? `Alert set at ${fmt.aud(existing.price)} — click to clear`
+        : `Set alert at ${fmt.aud(target)} (+5%)`}
+      className={`text-2xs transition-colors ${
+        existing ? 'text-terminal-gold' : 'text-terminal-text-dim/30 hover:text-terminal-gold/70'
+      }`}
+    >⚡</button>
+  )
+}
+
+function CryptoPriceCells({ price, pct, pct7d, audToUsd }) {
+  // Crypto quotes arrive in AUD (fetchCryptoMarkets('aud')), so the USD column
+  // is a conversion through the rate the app already holds — not a second fetch.
+  const usd = price != null ? audToUsd(price) : null
+  return (
+    <>
+      <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">
+        {price != null ? fmt.aud(price) : '—'}
+      </td>
+      <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
+        {usd != null ? `US$${usd.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+      </td>
+      <td className="px-2 py-1.5 text-right">
+        <PriceChange pct={pct} className="justify-end" pill graded />
+      </td>
+      <td className="px-2 py-1.5 text-right">
+        <PriceChange pct={pct7d} className="justify-end" size="text-[11px]" graded />
+      </td>
+    </>
+  )
+}
+
 function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
   const isAsx = symbol.endsWith('.AX')
   const { quote, flash } = useLivePrice(isAsx ? symbol : null)
@@ -157,13 +216,13 @@ function exportCSV(rows) {
 }
 
 export default function WatchlistModule() {
-  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal } = useStore()
+  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal, alerts, addAlert, removeAlert } = useStore()
   const { menu, openMenu, closeMenu } = useStockContextMenu()
   const { user, profile } = useAuthStore()
   const [shareLink, setShareLink] = useState(null)
   const { canAccess } = useSubscription()
   const WATCHLIST_LIMIT = 20 // Core tier — Prime+ is unlimited
-  const { usdToAud } = useAudRates()
+  const { usdToAud, audToUsd } = useAudRates()
 
   const [searchInput, setSearchInput] = useState('')
   const searchInputRef = useRef(null)
@@ -239,13 +298,16 @@ export default function WatchlistModule() {
 
     if (type === 'crypto') {
       const c = cryptoQuotes[displaySymbol(symbol)] ?? null
-      if (!c) return { ...base, name: symbol, price: null, change: null, pct: null, week52High: null, week52Low: null, volume: null, marketCap: null, isOpen: true, isLive: false }
+      if (!c) return { ...base, name: symbol, price: null, change: null, pct: null, pct7d: null, week52High: null, week52Low: null, volume: null, marketCap: null, isOpen: true, isLive: false }
       return {
         ...base,
         name:        c.name ?? symbol,
         price:       c.price,
         change:      c.price * (c.pct24h / 100),
         pct:         c.pct24h,
+        // 7-day change and the USD cross are crypto-only columns; equities
+        // use those same positions for CHG$ and the 52-week bar.
+        pct7d:       c.pct7d ?? null,
         week52High:  null,
         week52Low:   null,
         volume:      c.volume,
@@ -519,13 +581,14 @@ export default function WatchlistModule() {
                 >
                   MKT CAP{sortKey === 'marketCap' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                 </th>
+                <th className="px-1 w-8 text-center" title="Price alert">⚡</th>
                 <th className="px-2 w-6"></th>
               </tr>
             </thead>
             <tbody>
               {firstCryptoIdx > 0 && (
                 <tr className="pointer-events-none">
-                  <td colSpan={10} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
+                  <td colSpan={11} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
                 </tr>
               )}
               {groupedRows.map(({ row, i }, idx) => (
@@ -533,7 +596,7 @@ export default function WatchlistModule() {
                   {idx === firstCryptoIdx && (
                     <tr className="pointer-events-none">
                       <td
-                        colSpan={10}
+                        colSpan={11}
                         className="px-2 py-1.5 text-2xs font-bold text-terminal-gold tracking-widest"
                         style={{
                           background: 'rgba(201,168,76,0.03)',
@@ -545,6 +608,24 @@ export default function WatchlistModule() {
                           24/7 · no session close
                         </span>
                       </td>
+                    </tr>
+                  )}
+                  {idx === firstCryptoIdx && (
+                    /* Crypto reuses the equity column slots for different
+                       measures, so it gets its own header strip — a column
+                       that changes meaning without saying so is a trap. */
+                    <tr className="pointer-events-none">
+                      <td className="px-2 py-1 bg-terminal-header/40" />
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase bg-terminal-header/40">Ticker</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase bg-terminal-header/40">Name</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Price (A$)</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Price (US$)</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">24H%</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">7D%</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Volume</td>
+                      <td className="px-2 py-1 text-[8px] font-mono tracking-[0.2em] text-terminal-muted uppercase text-right bg-terminal-header/40">Mkt Cap</td>
+                      <td className="px-2 py-1 bg-terminal-header/40" />
+                      <td className="px-2 py-1 bg-terminal-header/40" />
                     </tr>
                   )}
                 <tr
@@ -615,12 +696,23 @@ export default function WatchlistModule() {
                     })()}
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-terminal-text-dim truncate max-w-[200px]">{row.name}</td>
-                  <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} />
+                  {row.type === 'crypto'
+                    ? <CryptoPriceCells price={row.price} pct={row.pct} pct7d={row.pct7d} audToUsd={audToUsd} />
+                    : <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} />}
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
                     {row.volume != null ? fmt.large(row.volume) : '—'}
                   </td>
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
                     {formatMarketCap(row.marketCap)}
+                  </td>
+                  <td className="px-1 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
+                    <AlertBell
+                      symbol={row.displaySymbol}
+                      price={row.price}
+                      alerts={alerts}
+                      addAlert={addAlert}
+                      removeAlert={removeAlert}
+                    />
                   </td>
                   <td className="px-2 py-1.5 text-right">
                     <button
