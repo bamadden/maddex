@@ -10,11 +10,17 @@ const getStoredCurrency = () => {
 
 const WATCHLIST_KEY = 'madden_watchlist_v1'
 
+// A stored empty array means the user cleared their watchlist; no stored key
+// at all means they have never had one. The old check conflated the two by
+// testing `parsed.length`, so CLEAR ALL silently reverted to the seven
+// default tickers on the next reload — the clear appeared to work, then
+// undid itself. Only an absent or unparseable key falls back to defaults now.
 const getStoredWatchlist = () => {
   try {
     const raw = localStorage.getItem(WATCHLIST_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    return Array.isArray(parsed) && parsed.length ? parsed : WATCHLIST_DEFAULT_SYMBOLS
+    if (raw == null) return WATCHLIST_DEFAULT_SYMBOLS      // never set → seed
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : WATCHLIST_DEFAULT_SYMBOLS
   } catch { return WATCHLIST_DEFAULT_SYMBOLS }
 }
 
