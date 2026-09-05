@@ -24,6 +24,8 @@ import { createShareLink } from '../../services/sharingService'
 import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
 import Tooltip from '../../components/ui/Tooltip'
+import StockContextMenu from '../../components/ui/StockContextMenu'
+import { useStockContextMenu } from '../../hooks/useStockContextMenu'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -156,6 +158,7 @@ function exportCSV(rows) {
 
 export default function WatchlistModule() {
   const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal } = useStore()
+  const { menu, openMenu, closeMenu } = useStockContextMenu()
   const { user, profile } = useAuthStore()
   const [shareLink, setShareLink] = useState(null)
   const { canAccess } = useSubscription()
@@ -551,6 +554,7 @@ export default function WatchlistModule() {
                   onDrop={() => onDrop(i)}
                   className="cursor-pointer hover:bg-terminal-accent/20 transition-colors border-b border-terminal-border/40"
                   onClick={() => handleRowClick(row)}
+                  onContextMenu={(e) => openMenu(e, { symbol: row.displaySymbol, name: row.name, price: row.price })}
                 >
                   <td
                     className={`px-2 py-1.5 select-none ${sortKey ? 'text-terminal-text-dim/15' : 'text-terminal-text-dim/40 cursor-grab'}`}
@@ -658,6 +662,7 @@ export default function WatchlistModule() {
           onClose={() => setShareLink(null)}
         />
       )}
+      <StockContextMenu menu={menu} onClose={closeMenu} />
     </div>
   )
 }

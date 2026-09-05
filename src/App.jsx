@@ -46,6 +46,7 @@ import { useSubscription } from './hooks/useSubscription'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
 import { initGlobalRipples } from './hooks/useRipple'
+import StatusBar from './components/layout/StatusBar'
 
 // Fallback while a lazy-loaded module chunk (currently just GlobalModule)
 // is still downloading — brief, so this stays minimal rather than
@@ -269,6 +270,20 @@ function Terminal() {
   // Ripple feedback for every canonical action button, registered once here
   // rather than wired into each of ~100 call sites.
   useEffect(() => initGlobalRipples(), [])
+
+  // Freshness clock for the status strip. React Query fires this whenever any
+  // query resolves, so the strip reports real data age rather than a timer
+  // that keeps counting while requests are failing.
+  const [statusUpdatedAt, setStatusUpdatedAt] = useState(() => Date.now())
+  useEffect(() => {
+    const unsub = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.type === 'updated' && event.query?.state?.status === 'success') {
+        setStatusUpdatedAt(Date.now())
+      }
+    })
+    return unsub
+    // queryClient is module-scoped, so it is not a valid dependency.
+  }, [])
 
   useEffect(() => {
     if (!bgNewsData?.length) return
@@ -554,6 +569,7 @@ function Terminal() {
         {layout !== 'focus' && layout !== 'split' && <AIPanel wide={layout === 'research'} />}
       </div>
       <CommandBar />
+      <StatusBar lastUpdated={statusUpdatedAt} />
       <MobileNavBar />
       <DetailModal />
       <ComparisonView />
