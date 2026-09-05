@@ -176,7 +176,7 @@ export default function NavBar() {
       {/* AI Analyst toggle */}
       <button
         onClick={() => setChatOpen((v) => !v)}
-        title="AI Analyst"
+        title={`AI Analyst (${shortcutService.shortcuts['ui.ai']?.display ?? 'A'})`}
         className={`${ROW} ${GAP} ${iconPad} pr-3 border-t border-terminal-border ${
           chatOpen ? 'border-l-terminal-gold bg-terminal-gold text-terminal-bg' : 'border-l-transparent text-terminal-gold hover:bg-terminal-surface2 rounded-r-[4px]'
         }`}

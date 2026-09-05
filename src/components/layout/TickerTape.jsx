@@ -260,7 +260,7 @@ export default function TickerTape() {
   ])
 
   return (
-    <div className="ticker-container">
+    <div className="ticker-container" title="Press SPACE to pause or resume the ticker">
       <div className="ticker-content">
         {content.map(el =>
           el.type === 'div'

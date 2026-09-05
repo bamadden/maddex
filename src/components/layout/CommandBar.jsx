@@ -5,6 +5,8 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, askClaude } from '../../services/api'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
+import Tooltip from '../ui/Tooltip'
+import { shortcutService } from '../../services/shortcutService'
 
 // ─── Autocomplete symbol catalogue ────────────────────────────────────────────
 
@@ -1082,7 +1084,9 @@ export default function CommandBar() {
 
         {/* Command bar */}
         <div data-tour="cmd-bar" className="flex items-center bg-terminal-bg border-t border-terminal-border px-3 py-1.5 gap-3">
-          <span className="text-terminal-gold text-2xs font-bold tracking-widest flex-shrink-0 cursor-blink">CMD&gt;</span>
+          <Tooltip content={`Command bar\n${shortcutService.shortcuts['ui.command']?.display ?? '/'} to focus from anywhere`}>
+            <span className="text-terminal-gold text-2xs font-bold tracking-widest flex-shrink-0 cursor-blink">CMD&gt;</span>
+          </Tooltip>
 
           <input
             ref={inputRef}
@@ -1105,12 +1109,14 @@ export default function CommandBar() {
             <span className="text-terminal-border">│</span>
             <AlertBadge alerts={alerts} />
             <span className="text-terminal-border hidden xl:inline">│</span>
-            <button
-              onClick={() => setHelpOpen(true)}
-              className="text-terminal-text-dim hover:text-terminal-gold transition-colors hidden xl:inline"
-            >
-              HELP
-            </button>
+            <Tooltip content={`All commands and shortcuts\n${shortcutService.shortcuts['ui.shortcuts']?.display ?? '?'}`}>
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="text-terminal-text-dim hover:text-terminal-gold transition-colors hidden xl:inline"
+              >
+                HELP
+              </button>
+            </Tooltip>
             <span className="text-terminal-border hidden xl:inline">│</span>
             <span className="text-terminal-text-dim/50 hidden xl:inline">↑↓ HISTORY · TAB FILL · ENTER EXECUTE</span>
           </div>
