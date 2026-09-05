@@ -23,6 +23,7 @@ import { useLivePrice } from '../../hooks/useLivePrice'
 import { createShareLink } from '../../services/sharingService'
 import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
+import Tooltip from '../../components/ui/Tooltip'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -36,17 +37,26 @@ function Week52Bar({ price, low, high }) {
   }
   const pct = Math.min(100, Math.max(0, ((price - low) / (high - low)) * 100))
   return (
-    <div className="flex items-center gap-1.5 min-w-[120px]">
-      <span className="text-2xs text-terminal-red flex-shrink-0">{fmt.aud(low)}</span>
-      <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[40px]">
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
-          style={{ left: `calc(${pct}% - 3px)` }}
-          title={`${pct.toFixed(0)}% of 52W range`}
-        />
+    <Tooltip
+      className="w-full justify-end"
+      content={
+        `52-week range\n` +
+        `High:    ${fmt.aud(high)}\n` +
+        `Current: ${fmt.aud(price)}  (${pct.toFixed(0)}% of range)\n` +
+        `Low:     ${fmt.aud(low)}`
+      }
+    >
+      <div className="flex items-center gap-1.5 min-w-[120px]">
+        <span className="text-2xs text-terminal-red flex-shrink-0">{fmt.aud(low)}</span>
+        <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[40px]">
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
+            style={{ left: `calc(${pct}% - 3px)` }}
+          />
+        </div>
+        <span className="text-2xs text-terminal-green flex-shrink-0">{fmt.aud(high)}</span>
       </div>
-      <span className="text-2xs text-terminal-green flex-shrink-0">{fmt.aud(high)}</span>
-    </div>
+    </Tooltip>
   )
 }
 
@@ -67,11 +77,13 @@ function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
       <td className={`px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright ${flashClass}`}>
         {livePrice != null ? fmt.aud(livePrice) : '—'}
       </td>
+      {/* CHG$ stays plain and one step smaller; CHG% takes the pill. Two
+          equally-loud change columns side by side just compete. */}
       <td className="px-2 py-1.5 text-right">
-        <PriceChange value={liveChange} className="justify-end" />
+        <PriceChange value={liveChange} className="justify-end" size="text-[11px]" />
       </td>
       <td className="px-2 py-1.5 text-right">
-        <PriceChange pct={livePct} className="justify-end" />
+        <PriceChange pct={livePct} className="justify-end" pill />
       </td>
       <td className="px-2 py-1.5 text-right">
         <Week52Bar price={livePrice} low={week52Low} high={week52High} />
@@ -79,6 +91,21 @@ function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
     </>
   )
 }
+
+
+// Starting set for an empty watchlist — four ASX large caps, two US mega
+// caps, two majors in crypto. Chosen to span the asset classes the terminal
+// actually covers so the first click also demonstrates its scope.
+const SUGGESTED_TICKERS = [
+  { symbol: 'BHP.AX', name: 'BHP Group' },
+  { symbol: 'CBA.AX', name: 'Commonwealth Bank' },
+  { symbol: 'CSL.AX', name: 'CSL Limited' },
+  { symbol: 'WES.AX', name: 'Wesfarmers' },
+  { symbol: 'AAPL',   name: 'Apple Inc.' },
+  { symbol: 'NVDA',   name: 'NVIDIA Corp.' },
+  { symbol: 'BTC',    name: 'Bitcoin' },
+  { symbol: 'ETH',    name: 'Ethereum' },
+]
 
 const SORT_VALUE = {
   name:      (r) => r.name ?? r.displaySymbol,
@@ -412,19 +439,42 @@ export default function WatchlistModule() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {watchlist.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
+          <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center overflow-y-auto py-8">
             <span className="w-10 h-10 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
               <Bookmark size={18} strokeWidth={1.75} />
             </span>
             <div className="text-terminal-text-bright text-sm font-semibold mt-1 tracking-wide">YOUR WATCHLIST IS EMPTY</div>
             <div className="text-terminal-text-dim text-2xs max-w-xs leading-relaxed">
-              Search for stocks to add — press / to start
+              Start tracking what matters to you
             </div>
+
+            {/* An empty watchlist is the one screen with nothing to look at,
+                so it offers a starting set rather than only a search box —
+                the fastest path out of empty is one click, not typing. */}
+            <div className="mt-5 w-full max-w-[560px]">
+              <div className="text-[9px] font-mono tracking-widest text-terminal-muted/70 uppercase mb-2 text-left">
+                Popular on Maddex
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {SUGGESTED_TICKERS.map((sug) => (
+                  <button
+                    key={sug.symbol}
+                    onClick={() => addToWatchlist(sug.symbol)}
+                    className="suggest-card text-left p-2"
+                  >
+                    <span className="block text-2xs font-bold text-terminal-gold">{sug.symbol}</span>
+                    <span className="block text-[10px] text-terminal-text-dim truncate">{sug.name}</span>
+                    <span className="block mt-1 text-[9px] font-mono text-terminal-muted/70">+ ADD</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={() => searchInputRef.current?.focus()}
-              className="mt-2 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+              className="mt-4 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >
-              + ADD STOCK
+              or search for a ticker
             </button>
           </div>
         ) : isError && !batchQuotes && !Object.keys(cryptoQuotes).length ? (
@@ -479,7 +529,19 @@ export default function WatchlistModule() {
                 <Fragment key={row.symbol}>
                   {idx === firstCryptoIdx && (
                     <tr className="pointer-events-none">
-                      <td colSpan={10} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">CRYPTO WATCHLIST</td>
+                      <td
+                        colSpan={10}
+                        className="px-2 py-1.5 text-2xs font-bold text-terminal-gold tracking-widest"
+                        style={{
+                          background: 'rgba(201,168,76,0.03)',
+                          borderTop: '2px solid rgba(201,168,76,0.15)',
+                        }}
+                      >
+                        CRYPTO WATCHLIST
+                        <span className="ml-2 font-normal text-terminal-muted/70 tracking-normal">
+                          24/7 · no session close
+                        </span>
+                      </td>
                     </tr>
                   )}
                 <tr
