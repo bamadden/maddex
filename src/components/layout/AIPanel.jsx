@@ -522,8 +522,9 @@ export default function AIPanel({ wide = false }) {
   // ── Send message ──────────────────────────────────────────────────────────
 
   // Dynamic per-turn context — active module/selected asset/watchlist/
-  // portfolio/date, prepended to the base system prompt so every response
-  // is grounded in what the user is actually looking at right now.
+  // portfolio/date. This is prepended to the USER message, never to the
+  // system prompt: it changes on almost every turn, and anything volatile
+  // inside the cached system prefix invalidates the prompt cache each call.
   const buildDynamicContext = useCallback(() => {
     if (!getAiPreferences().contextAwareness) return ''
     const moduleLabel = MODULE_LABELS[activeModule] ?? activeModule
@@ -536,7 +537,7 @@ export default function AIPanel({ wide = false }) {
     if (modalAsset?.symbol) lines.push(`Asset currently open in detail view: ${modalAsset.symbol}`)
     if (watchlist?.length) lines.push(`User's watchlist: ${watchlist.join(', ')}`)
     lines.push(holdingsCount > 0 ? `User has ${holdingsCount} portfolio holding(s) tracked.` : 'User has no portfolio holdings tracked yet.')
-    return `CURRENT SESSION CONTEXT:\n${lines.join('\n')}`
+    return `[CONTEXT]\n${lines.join('\n')}\n\n`
   }, [activeModule, modalAsset, watchlist])
 
   const send = async (textOverride, opts = {}) => {
@@ -560,7 +561,10 @@ export default function AIPanel({ wide = false }) {
     setLoading(true)
     incrementAiMessageCount()
 
-    const userTurn = { role: 'user', content: text }
+    // Displayed turn keeps the clean text; the wire turn carries the context
+    // prefix so the cached system prefix stays byte-identical between calls.
+    const userTurn     = { role: 'user', content: text }
+    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${text}` }
     if (!silent) addChatMessage(userTurn)
     addChatMessage(silent ? { role: 'assistant', content: '', silent: true, context } : { role: 'assistant', content: '' })
 
@@ -571,9 +575,9 @@ export default function AIPanel({ wide = false }) {
 
     try {
       const result = await askClaude(
-        [...history, userTurn],
+        [...history, userTurnWire],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { systemPrompt: `${buildSystemPrompt(profile?.experience_level)}\n\n${buildDynamicContext()}` }
+        { systemPrompt: buildSystemPrompt(profile?.experience_level) }
       )
       updateLastChatMessage((prev) => ({
         ...prev,

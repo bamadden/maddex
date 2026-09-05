@@ -44,11 +44,9 @@ export const FALLBACK_THEMES = [
     impact: 'MIXED', impactNote: 'Good for imports, negative for AUD earners' },
 ]
 
-function buildPrompt() {
-  const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  return `Today is ${today}.
-
-You are MaddenAI, the financial analyst for the Maddex terminal. Generate 6 current macro themes relevant to Australian investors.
+// Stable instruction template — cacheable system prefix. Only the date is
+// dynamic, so it is the sole content of the user message.
+const MACRO_SYSTEM = `You are MaddenAI, the financial analyst for the Maddex terminal. Generate 6 current macro themes relevant to Australian investors.
 
 For each theme return JSON:
 {
@@ -62,7 +60,12 @@ For each theme return JSON:
 
 Base themes on real current macro conditions as of today. Focus on: RBA policy, Fed policy, the China economy, commodities (iron ore, oil, gold), AUD strength, and geopolitical risks affecting Australia.
 
-Return ONLY a JSON array of 6 theme objects — no prose, no markdown fences, no disclaimer.`
+You return only valid JSON. No prose, no markdown code fences, no disclaimers.
+Return ONLY a JSON array of 6 theme objects.`
+
+function buildUserContent() {
+  const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  return `Today is ${today}. Generate the macro themes now.`
 }
 
 function readCache() {
@@ -99,9 +102,9 @@ export async function getMacroThemes() {
   if (cached) return { themes: cached, source: 'cache' }
   try {
     const { text } = await askClaude(
-      [{ role: 'user', content: buildPrompt() }],
+      [{ role: 'user', content: buildUserContent() }],
       null,
-      { systemPrompt: 'You return only valid JSON. No prose, no markdown code fences, no disclaimers.' },
+      { systemPrompt: MACRO_SYSTEM },
     )
     const themes = parseThemes(text)
     writeCache(themes)

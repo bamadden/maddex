@@ -1432,9 +1432,13 @@ IMPORTANT RULES:
 
 import { EXPERIENCE_CONTEXT } from '../lib/profileUtils'
 
+// Stable content first, per-user variation last: prompt caching is a prefix
+// match, so the long shared block has to lead for the cached prefix to be
+// byte-identical across users. Nothing volatile (dates, prices, watchlists)
+// belongs in here — that goes in the user message.
 export function buildSystemPrompt(experienceLevel) {
   const ctx = EXPERIENCE_CONTEXT[experienceLevel] || EXPERIENCE_CONTEXT.INTERMEDIATE
-  return `USER CONTEXT: ${ctx}\n\n${MADDEX_SYSTEM_PROMPT}`
+  return `${MADDEX_SYSTEM_PROMPT}\n\nUSER CONTEXT: ${ctx}`
 }
 
 // The error body reaching the browser has a different shape depending on
@@ -1484,6 +1488,8 @@ export const askClaude = async (messages, onToken, options = {}) => {
   let fullText     = ''
   let inputTokens  = 0
   let outputTokens = 0
+  let cacheRead    = 0
+  let cacheCreated = 0
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
@@ -1495,7 +1501,10 @@ export const askClaude = async (messages, onToken, options = {}) => {
       try {
         const evt = JSON.parse(json)
         if (evt.type === 'message_start') {
-          inputTokens = evt.message?.usage?.input_tokens ?? 0
+          const usage  = evt.message?.usage
+          inputTokens  = usage?.input_tokens ?? 0
+          cacheRead    = usage?.cache_read_input_tokens ?? 0
+          cacheCreated = usage?.cache_creation_input_tokens ?? 0
         }
         if (evt.type === 'message_delta' && evt.usage) {
           outputTokens = evt.usage.output_tokens ?? 0
@@ -1508,7 +1517,17 @@ export const askClaude = async (messages, onToken, options = {}) => {
     }
   }
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
-  return { text: fullText, inputTokens, outputTokens, elapsed }
+  // cached_read > 0 means the system prefix was served from cache. Staying at
+  // 0 across repeated calls means the prefix is either changing between calls
+  // or shorter than the model's minimum cacheable prefix (1024 tokens on
+  // claude-sonnet-4-6), which is a silent no-op rather than an error.
+  console.log('[CLAUDE CACHE STATS]', {
+    cached_read:    cacheRead,
+    cached_created: cacheCreated,
+    uncached:       inputTokens,
+    output:         outputTokens,
+  })
+  return { text: fullText, inputTokens, outputTokens, cacheRead, cacheCreated, elapsed }
 }
 
 // Shared helper for every "ask MaddenAI to generate structured JSON" feature
