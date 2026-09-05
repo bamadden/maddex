@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -106,6 +106,18 @@ const MODULE_PROMPTS = {
   ],
 }
 
+
+// Openers shown on a blank panel. Deliberately spans the four things the
+// terminal is actually for — a market read, a single name, the macro
+// backdrop, and the user's own holdings — so the empty state doubles as a
+// statement of scope.
+const EMPTY_STATE_CARDS = [
+  { icon: '📈', title: 'Market outlook',  subtitle: "What's driving ASX today?",       prompt: 'What is driving the ASX today? Cover the main sector moves, the macro backdrop, and what to watch into the close.' },
+  { icon: '🏦', title: 'Stock analysis',  subtitle: 'Deep dive any company',            prompt: 'I want to analyse a specific company. Ask me which ticker, then give a full read on it — business, valuation, catalysts and risks.' },
+  { icon: '🌐', title: 'Macro themes',    subtitle: 'Global forces shaping markets',    prompt: 'What are the major global macro themes shaping markets right now, and how does each one land for an Australian investor?' },
+  { icon: '💡', title: 'Portfolio review', subtitle: 'Analyse your holdings',           prompt: 'Review my portfolio holdings — concentration, sector balance, and the main risks I should be aware of.' },
+]
+
 const DEFAULT_PROMPTS = [
   { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
   RBA_PROMPT,
@@ -136,8 +148,10 @@ function formatInline(text) {
     .replace(/\*([^*]+)\*/g,     '<span style="color:var(--mt-muted)">$1</span>')
     .replace(/(\+[\d.]+%)/g,    '<span style="color:var(--color-gain)">$1</span>')
     .replace(/(−[\d.]+%|-[\d.]+%)/g, '<span style="color:var(--color-loss)">$1</span>')
-    .replace(/A?\$[\d,]+(?:\.[\d]+)?/g, '<span style="color:var(--mt-gold)">$&</span>')
-    .replace(/US\$[\d,]+(?:\.[\d]+)?/g, '<span style="color:var(--mt-muted)">$&</span>')
+    // Currency amounts render as chips rather than tinted text — a figure is
+    // the part of an answer people scan back for, so it gets an edge.
+    .replace(/US\$[\d,]+(?:\.[\d]+)?/g, '<span class="ai-chip">$&</span>')
+    .replace(/(?<!US)A?\$[\d,]+(?:\.[\d]+)?/g, '<span class="ai-chip">$&</span>')
     .replace(/^#+\s*/g, '')
 }
 
@@ -187,6 +201,74 @@ const SENTIMENT_FIELDS = new Set(['Overall', 'Momentum', 'Volume', 'Macro Alignm
   'Overall Market', 'Sector Momentum', 'Macro Environment', 'Global Risk'])
 
 // ─── Formatted response renderer ──────────────────────────────────────────────
+
+
+// Per-response feedback. Stored locally only — this is a signal for Ben when
+// reviewing where MaddenAI is weak, not telemetry, so it never leaves the
+// browser. Keyed by a hash of the response so re-renders and reordering
+// don't lose or misattribute a rating.
+const AI_FEEDBACK_KEY = 'madden_ai_feedback'
+const FEEDBACK_REASONS = ['Incorrect data', 'Not helpful', 'Too generic']
+
+function hashResponse(text) {
+  let h = 2166136261
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return (h >>> 0).toString(36)
+}
+
+function readFeedback() {
+  try { return JSON.parse(localStorage.getItem(AI_FEEDBACK_KEY) || '{}') } catch { return {} }
+}
+
+function ResponseFeedback({ text }) {
+  const id = useMemo(() => hashResponse(text), [text])
+  const [rating, setRating] = useState(() => readFeedback()[id]?.rating ?? null)
+  const [asking, setAsking] = useState(false)
+
+  const record = (next, reason) => {
+    try {
+      const all = readFeedback()
+      all[id] = { rating: next, reason: reason ?? all[id]?.reason ?? null, at: new Date().toISOString() }
+      localStorage.setItem(AI_FEEDBACK_KEY, JSON.stringify(all))
+    } catch { /* best-effort */ }
+    setRating(next)
+  }
+
+  return (
+    <div className="relative flex items-center gap-1.5">
+      <button
+        onClick={() => { record('up'); setAsking(false) }}
+        title="Helpful"
+        aria-label="Helpful"
+        className={`text-[12px] leading-none transition-opacity ${rating === 'up' ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+      >👍</button>
+      <button
+        onClick={() => { record('down'); setAsking(true) }}
+        title="Not helpful"
+        aria-label="Not helpful"
+        className={`text-[12px] leading-none transition-opacity ${rating === 'down' ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+      >👎</button>
+
+      {asking && (
+        <div
+          className="absolute right-0 top-full mt-1 z-[100] bg-terminal-panel border border-terminal-border-gold shadow-2xl"
+          onMouseLeave={() => setAsking(false)}
+        >
+          <div className="px-2 py-1 text-[9px] font-mono tracking-wider text-terminal-text-dim border-b border-terminal-border">
+            WHAT WAS WRONG?
+          </div>
+          {FEEDBACK_REASONS.map((r) => (
+            <button
+              key={r}
+              onClick={() => { record('down', r); setAsking(false) }}
+              className="block w-full text-left px-2 py-1.5 text-2xs text-terminal-text-dim hover:bg-terminal-surface2 hover:text-terminal-text whitespace-nowrap"
+            >{r}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function FormattedResponse({ text }) {
   if (!text) return null
@@ -860,19 +942,52 @@ export default function AIPanel({ wide = false }) {
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className={isFullscreen ? 'max-w-[800px] mx-auto p-4 space-y-3' : 'p-3 space-y-3'}>
         {chatMessages.length === 0 && (
-          <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <span className="w-10 h-10 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-base font-bold font-mono flex items-center justify-center">M</span>
-            <span className="text-2xs text-terminal-text-dim tracking-[0.2em] font-mono">READY</span>
+          <div className="flex flex-col items-center justify-center px-1 py-10">
+            <span className="text-terminal-gold font-mono font-bold leading-none" style={{ fontSize: 32 }}>M</span>
+            <span className="mt-2 text-terminal-gold font-mono tracking-[0.2em] text-2xs">MADDENAI</span>
+            <span className="mt-1 text-terminal-text-dim italic font-sans text-center" style={{ fontSize: 13 }}>
+              Financial intelligence at your command.
+            </span>
+
+            {/* Four openers. These are the same prompts the quick-prompt row
+                sends, surfaced as cards so a blank panel suggests what it is
+                actually good at rather than just sitting there. */}
+            <div className="grid grid-cols-2 gap-2 mt-5 w-full">
+              {EMPTY_STATE_CARDS.map((c) => (
+                <button
+                  key={c.title}
+                  onClick={() => send(c.prompt)}
+                  disabled={loading}
+                  className="empty-card text-left p-2.5 disabled:opacity-40"
+                >
+                  <span aria-hidden="true" className="block leading-none" style={{ fontSize: 16 }}>{c.icon}</span>
+                  <span className="block mt-1.5 font-mono text-terminal-gold uppercase tracking-wider" style={{ fontSize: 11 }}>
+                    {c.title}
+                  </span>
+                  <span className="block mt-0.5 font-sans text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>
+                    {c.subtitle}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {chatMessages.map((msg, i) => (
           <div key={i} className={msg.role === 'user' ? 'text-right' : ''}>
             {msg.role === 'user' ? (
               <div
-                className="inline-block bg-terminal-surface2 border-l-2 border-terminal-gold px-2.5 py-1.5 text-terminal-text-bright text-left max-w-[90%] font-sans"
-                style={{ fontSize: 13, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }}
+                className="inline-block text-terminal-text-bright text-left font-sans"
+                style={{
+                  fontSize: 13,
+                  maxWidth: '85%',
+                  padding: '10px 14px',
+                  background: 'rgba(201,168,76,0.1)',
+                  border: '1px solid rgba(201,168,76,0.2)',
+                  // Square only on the bottom-right, so the bubble points back
+                  // at its own side of the conversation.
+                  borderRadius: '3px 3px 0 3px',
+                }}
               >
-                <span className="text-terminal-gold text-2xs font-mono block mb-0.5">YOU &gt;</span>
                 {msg.content}
               </div>
             ) : msg.silent && !msg.content ? (
@@ -882,7 +997,10 @@ export default function AIPanel({ wide = false }) {
                 </span>
               </div>
             ) : (
-              <div className="group">
+              <div
+                className="group"
+                style={{ borderLeft: '2px solid rgba(201,168,76,0.3)', paddingLeft: 12, paddingTop: 8, paddingBottom: 8 }}
+              >
                 {msg.silent && msg.context && (
                   <div
                     className="-mx-3 mb-2 px-3 py-1.5"
@@ -910,6 +1028,11 @@ export default function AIPanel({ wide = false }) {
                       <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[9px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
                     )}
                     <span className="text-2xs text-terminal-gold font-mono">MADDENAI</span>
+                    {msg.at && (
+                      <span className="text-[9px] font-mono text-terminal-muted/60">
+                        {new Date(msg.at).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                      </span>
+                    )}
                   </span>
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -925,6 +1048,7 @@ export default function AIPanel({ wide = false }) {
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
                         title="Copy to clipboard"
                       >COPY</button>
+                      {!(i === chatMessages.length - 1 && loading) && <ResponseFeedback text={msg.content} />}
                     </div>
                   )}
                 </div>
@@ -950,13 +1074,13 @@ export default function AIPanel({ wide = false }) {
 
                 {i === chatMessages.length - 1 && loading && !msg.content && (
                   <div className="flex items-center gap-1 py-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" style={{ animationDelay: '200ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" style={{ animationDelay: '400ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold typing-dot" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold typing-dot" style={{ animationDelay: '200ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold typing-dot" style={{ animationDelay: '400ms' }} />
                   </div>
                 )}
                 {i === chatMessages.length - 1 && loading && msg.content && (
-                  <span className="inline-block w-2 h-3 bg-terminal-gold animate-pulse ml-0.5 mt-0.5" />
+                  <span className="stream-cursor text-terminal-gold font-mono ml-0.5" aria-hidden="true">│</span>
                 )}
 
               </div>

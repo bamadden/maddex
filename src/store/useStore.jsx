@@ -87,8 +87,10 @@ export function StoreProvider({ children }) {
     setCmdHistory((prev) => [cmd, ...prev].slice(0, 50))
   }, [])
 
+  // Stamp on arrival unless the caller supplied one — the AI panel shows the
+  // time beside each reply, and deriving it at render would drift.
   const addChatMessage = useCallback((msg) => {
-    setChatMessages((prev) => [...prev, msg])
+    setChatMessages((prev) => [...prev, { at: new Date().toISOString(), ...msg }])
   }, [])
 
   const clearChatMessages = useCallback(() => {
