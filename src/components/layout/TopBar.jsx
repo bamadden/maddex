@@ -56,7 +56,7 @@ function MarketDots({ now }) {
       <button
         onClick={() => setOpen(v => !v)}
         aria-label="Market hours"
-        className="flex items-center gap-1 h-7 px-1 rounded-[2px] hover:bg-terminal-surface2 transition-colors"
+        className="flex items-center gap-1 h-7 rounded-[2px] hover:bg-terminal-surface2 transition-colors"
       >
         {MAJOR_MARKETS.map((id) => {
           const ex = EXCHANGES.find(e => e.id === id)
@@ -174,7 +174,7 @@ function UserMenu() {
 
 // ─── TopBar ────────────────────────────────────────────────────────────────────
 
-const Divider = () => <span className="w-px h-4 bg-terminal-gold/10 mx-1 flex-shrink-0" />
+const Divider = () => <span className="w-px h-4 bg-terminal-gold/10 mx-0.5 flex-shrink-0" />
 
 // Data freshness indicator — shows how long since the last refresh and a
 // countdown to the next automatic one; click triggers an immediate refresh
@@ -221,7 +221,7 @@ function DataFreshnessBadge() {
       onClick={handleClick}
       aria-label="Refresh live data"
       title={`Data updated ${timeAgo} — click to refresh${stale ? '' : ` (auto in ${remaining}s)`}`}
-      className="flex items-center justify-center w-5 h-7 flex-shrink-0 group"
+      className="flex items-center justify-center w-3.5 h-7 flex-shrink-0 group"
     >
       <span className={`inline-block w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${
         stale ? 'bg-amber-400' : 'bg-terminal-green'

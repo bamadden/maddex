@@ -311,7 +311,7 @@ export default function NotificationCenter() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative flex items-center justify-center w-7 h-7 text-terminal-text-dim hover:text-terminal-gold transition-colors"
+        className="relative flex items-center justify-center w-6 h-7 text-terminal-text-dim hover:text-terminal-gold transition-colors"
         title="Notifications"
       >
         <span className="text-sm">🔔</span>
