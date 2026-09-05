@@ -20,6 +20,8 @@ const MaddexGlobe = lazy(() => import('../../components/globe/MaddexGlobe'))
 // Three.js globe is heavier still (three + @react-three/fiber/drei) — only
 // loaded once the user actually switches to the 3D view.
 const Globe3D = lazy(() => import('../../components/globe/Globe3D'))
+// Code-split: deck.gl + maplibre are a large bundle, only needed on this view.
+const DeckGLMap = lazy(() => import('./DeckGLMap'))
 
 // ─── ISO 3166-1 Numeric → Country Data ───────────────────────────────────────
 
@@ -2368,7 +2370,17 @@ export default function GlobalModule() {
   // Mobile only (<768px) — the feed/globe/detail columns stack instead of
   // sitting side by side, so a small screen needs an explicit switcher.
   const [mobilePanel, setMobilePanel] = useState('globe')
-  const [globe3D, setGlobe3D] = useState(false)
+  // 'map' | 'classic' | 'globe3d'. Replaces the previous globe3D boolean,
+  // which only had two states.
+  //
+  // Default is deliberately 'classic', NOT the new intelligence map: in
+  // testing the map's basemap tiles (tiles.basemaps.cartocdn.com — a
+  // different host from the style JSON, which does load) never painted, so
+  // defaulting to it would have replaced a working globe with a black panel.
+  // The map is one click away and fully functional for every data layer we
+  // draw ourselves. Flip this to 'map' once tile loading is confirmed.
+  const [viewMode, setViewMode] = useState('classic')
+  const { watchlist } = useStore()
 
   const { rates } = useAudRates()
   const audUsd = rates?.USD ?? FALLBACK_AUD_USD
@@ -2539,18 +2551,21 @@ export default function GlobalModule() {
 
           {/* Globe */}
           <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} md:block`} style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
+            {/* View switch. The intelligence map is the default; both globes
+                are kept so the existing D3/three views remain reachable. */}
             <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 20 }} className="flex items-center border border-terminal-border rounded-full overflow-hidden bg-terminal-bg/80 backdrop-blur-sm">
-              <button
-                onClick={() => setGlobe3D(false)}
-                className={`text-2xs px-2.5 py-1 font-bold transition-colors ${!globe3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-              >CLASSIC</button>
-              <button
-                onClick={() => setGlobe3D(true)}
-                className={`text-2xs px-2.5 py-1 font-bold transition-colors ${globe3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-              >IMMERSIVE 3D</button>
+              {[['map', 'INTEL MAP'], ['classic', 'CLASSIC'], ['globe3d', 'IMMERSIVE 3D']].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`text-2xs px-2.5 py-1 font-bold transition-colors ${viewMode === mode ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                >{label}</button>
+              ))}
             </div>
             <Suspense fallback={<Viz3DLoader />}>
-              {globe3D ? (
+              {viewMode === 'map' ? (
+                <DeckGLMap onExchangeSelect={handleExchangeClick} watchlist={watchlist} />
+              ) : viewMode === 'globe3d' ? (
                 <Globe3D onExchangeClick={handleExchangeClick} />
               ) : (
                 <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
