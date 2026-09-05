@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
+import Tooltip from '../../components/ui/Tooltip'
 
 const SECTOR_BY_SYMBOL = Object.fromEntries([
   ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
@@ -382,14 +383,37 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
             </div>
             <div className="border border-terminal-border p-2.5">
               <div className="text-2xs text-terminal-text-dim mb-1.5">DIVIDEND CALENDAR</div>
+              {/* One dot per payer rather than a comma-joined ticker list: the
+                  shape of the year — which months are heavy, which are empty —
+                  is the thing worth seeing at a glance, and a row of dots
+                  carries that where run-together text does not. Detail moves
+                  to the hover. */}
               <div className="grid grid-cols-6 xl:grid-cols-12 gap-1">
                 {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
                   const payers = dividends.rows.filter((r) => r.months.includes(i))
+                  const isCurrent = i === new Date().getMonth()
                   return (
-                    <div key={m} className="text-center">
-                      <div className="text-2xs text-terminal-text-dim/70">{m}</div>
-                      <div className={`text-2xs font-bold mt-0.5 ${payers.length ? 'text-terminal-gold' : 'text-terminal-text-dim/40'}`}>
-                        {payers.length ? payers.map((p) => p.symbol).join(',') : '—'}
+                    <div
+                      key={m}
+                      className="text-center rounded-[2px] py-1"
+                      style={isCurrent ? { background: 'rgba(201,168,76,0.07)' } : undefined}
+                    >
+                      <div className={`text-[9px] font-mono ${isCurrent ? 'text-terminal-gold' : 'text-terminal-text-dim/70'}`}>{m}</div>
+                      <div className="flex items-center justify-center gap-1 flex-wrap mt-1 min-h-[10px]">
+                        {payers.length === 0 && <span className="text-terminal-text-dim/25 text-[9px]">·</span>}
+                        {payers.map((p) => (
+                          <Tooltip
+                            key={p.symbol}
+                            content={
+                              `${p.symbol}\n` +
+                              `Yield:      ${p.yieldPct.toFixed(2)}%\n` +
+                              `Est. payout: ${fmtCur(p.annualIncome / 2)}\n` +
+                              `Month:      ${m}`
+                            }
+                          >
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold cursor-default" />
+                          </Tooltip>
+                        ))}
                       </div>
                     </div>
                   )

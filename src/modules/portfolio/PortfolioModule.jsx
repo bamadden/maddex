@@ -65,6 +65,18 @@ function cleanSymbol(sym, type) {
 // AUD-based holder, and crypto is far more volatile than any equity index.
 const BETA_BY_TYPE = { asx: 1.0, us: 1.15, crypto: 2.4 }
 
+const SORT_ACCESSOR = {
+  symbol:   (h) => h.symbol,
+  shares:   (h) => h.shares,
+  avgCost:  (h) => h.avgCost,
+  last:     (h) => h.last,
+  mktVal:   (h) => h.mktVal,
+  pnl:      (h) => h.pnl,
+  pnlPct:   (h) => h.pnlPct,
+  dayPct:   (h) => h.dayPct,
+  marketCap:(h) => h.marketCap,
+}
+
 const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 
@@ -73,6 +85,43 @@ const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#
 function pnlCellBg(pnl) {
   if (pnl == null) return undefined
   return { backgroundColor: pnl >= 0 ? 'rgba(45,138,80,0.08)' : 'rgba(168,50,50,0.08)' }
+}
+
+
+// Header cell that can sort. The caret only renders on the active column —
+// showing a neutral arrow on every header makes the one that is actually
+// applied harder to find, not easier.
+
+// Nulls always sink regardless of direction — a holding with no price yet is
+// not "the smallest", it's unknown, and letting it head an ascending P&L
+// column would be actively misleading.
+function sortHoldings(rows, key, dir) {
+  if (!key) return rows
+  const pick = SORT_ACCESSOR[key]
+  const mul = dir === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const va = pick(a), vb = pick(b)
+    if (va == null && vb == null) return 0
+    if (va == null) return 1
+    if (vb == null) return -1
+    if (typeof va === 'string') return va.localeCompare(vb) * mul
+    return (va - vb) * mul
+  })
+}
+
+function SortableTh({ label, sortKey, activeKey, dir, onSort, align = 'right', className = 'px-1' }) {
+  const isActive = activeKey === sortKey
+  return (
+    <th
+      onClick={() => onSort(sortKey)}
+      className={`${className} text-${align} cursor-pointer select-none transition-colors ${
+        isActive ? 'text-terminal-gold' : 'hover:text-terminal-gold'
+      }`}
+    >
+      {label}
+      {isActive && <span className="text-terminal-gold ml-0.5">{dir === 'asc' ? '▲' : '▼'}</span>}
+    </th>
+  )
 }
 
 const PieTooltip = ({ active, payload }) => {
@@ -231,8 +280,26 @@ function buildSeries(days, endValue, cumReturnPct, seed) {
   return points
 }
 
+
+// Comparison benchmarks. The demo data layer carries no index history beyond
+// the ASX 200 line, so each series is generated with the same seeded
+// buildSeries used for the portfolio itself — a fixed seed per benchmark so
+// a given period always redraws identically rather than reshuffling on every
+// render. Returns are illustrative, scaled off the period; the panel already
+// labels itself "illustrative — demo pricing history".
+//
+// Each carries its own tint so an inactive pill still says what it is.
+const BENCHMARKS = [
+  { key: 'asx',  label: 'ASX 200',   seed: 7331, factor: 0.55, offset: -0.6, colour: '#637899' },
+  { key: 'spx',  label: 'S&P 500',   seed: 2211, factor: 0.78, offset:  0.4, colour: '#4A7FB5' },
+  { key: 'gold', label: 'GOLD',      seed: 9182, factor: 0.42, offset:  1.8, colour: '#C9A84C' },
+  { key: 'btc',  label: 'BITCOIN',   seed: 5150, factor: 1.85, offset: -2.5, colour: '#E08B3A' },
+  { key: 'cash', label: 'CASH 4.35%', seed: 0,   factor: 0,    offset:  0,   colour: '#2D8A50', flat: 4.35 },
+]
+
 function PerformanceChart({ mktTotal, pnlPct, prefix }) {
   const [period, setPeriod] = useState('1M')
+  const [benchKey, setBenchKey] = useState('asx')
   if (!mktTotal) return null
 
   const days = PERIODS[period]
@@ -240,11 +307,16 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
   // show the same % move as a 1M view.
   const periodScale = { '1M': 1, '3M': 1.6, '6M': 2.2, '1Y': 3.4 }[period]
   const portfolioReturn = pnlPct * (period === '1M' ? 0.35 : periodScale * 0.35)
-  const benchReturn = portfolioReturn * 0.55 - 0.6 // ASX 200 trails slightly, illustratively
+  const bench = BENCHMARKS.find((b) => b.key === benchKey) ?? BENCHMARKS[0]
+  // Cash is a fixed annualised rate rather than a market series, so it earns
+  // its return from elapsed time instead of tracking the portfolio's shape.
+  const benchReturn = bench.flat != null
+    ? bench.flat * (days / 365)
+    : portfolioReturn * bench.factor + bench.offset
 
   const portfolioSeries = buildSeries(days, mktTotal, portfolioReturn, 1337)
   const benchStart = mktTotal / (1 + portfolioReturn / 100)
-  const benchSeries = buildSeries(days, benchStart * (1 + benchReturn / 100), benchReturn, 7331)
+  const benchSeries = buildSeries(days, benchStart * (1 + benchReturn / 100), benchReturn, bench.seed)
 
   const data = portfolioSeries.map((v, i) => ({ i, portfolio: v, benchmark: benchSeries[i] }))
 
@@ -267,7 +339,7 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
               ({prefix}{portfolioReturn >= 0 ? '+' : '−'}{Math.abs(mktTotal - mktTotal / (1 + portfolioReturn / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })})
             </span>
             <span className="text-2xs text-terminal-text-dim/70">
-              vs ASX 200 {fmt.pct(benchReturn)}
+              vs {bench.label} {fmt.pct(benchReturn)}
             </span>
           </span>
           <div className="flex border border-terminal-border rounded-full overflow-hidden">
@@ -281,6 +353,29 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
           </div>
         </div>
       </div>
+      {/* Benchmark pills — each tinted with its own series colour, so an
+          inactive pill still identifies what it would draw. */}
+      <div className="flex items-center gap-1.5 flex-wrap px-3 pb-1.5">
+        <span className="text-[9px] font-mono tracking-widest text-terminal-muted/70 uppercase mr-1">vs</span>
+        {BENCHMARKS.map((b) => {
+          const on = b.key === benchKey
+          return (
+            <button
+              key={b.key}
+              onClick={() => setBenchKey(b.key)}
+              className="text-[9px] font-mono tracking-wider uppercase transition-colors"
+              style={{
+                padding: '2px 8px',
+                borderRadius: 2,
+                border: `1px solid ${on ? b.colour : 'rgba(201,168,76,0.12)'}`,
+                background: on ? `${b.colour}26` : 'transparent',
+                color: on ? b.colour : '#4A6080',
+              }}
+            >{b.label}</button>
+          )
+        })}
+      </div>
+
       <div className="h-40 px-2 pt-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
@@ -315,13 +410,13 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
                 return (
                   <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs space-y-0.5">
                     <div><span className="text-terminal-gold">Portfolio: </span><span className="text-terminal-text-bright">{prefix}{p.portfolio.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
-                    <div><span className="text-terminal-muted">ASX 200: </span><span className="text-terminal-text-dim">{prefix}{p.benchmark.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-terminal-muted">{bench.label}: </span><span className="text-terminal-text-dim">{prefix}{p.benchmark.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
                   </div>
                 )
               }}
             />
             <Area type="monotone" dataKey="portfolio" stroke="#C9A84C" strokeWidth={1.5} fill="url(#portfolioFill)" isAnimationActive={false} />
-            <Line type="monotone" dataKey="benchmark" stroke="#637899" strokeWidth={1.25} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="benchmark" stroke={bench.colour} strokeWidth={1.25} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -514,6 +609,12 @@ export default function PortfolioModule() {
   const [allocView3D, setAllocView3D] = useState(false)
   const [dbSynced, setDbSynced] = useState(false)
   const [activeTab, setActiveTab] = useState('holdings')
+  const [sortKey, setSortKey] = useState(null)
+  const [sortDir, setSortDir] = useState('desc')
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
+    else { setSortKey(key); setSortDir('desc') }
+  }
 
   // Persist to localStorage
   useEffect(() => {
@@ -652,6 +753,16 @@ export default function PortfolioModule() {
   const bySector   = groupByPct(live, (h) => SECTOR_BY_SYMBOL[h.symbol] ?? 'Other')
   const byCountry  = groupByPct(live, (h) => h.type === 'asx' ? 'Australia' : h.type === 'crypto' ? 'Crypto (borderless)' : 'United States')
   const byCurrency = groupByPct(live, (h) => h.type === 'us' ? 'USD' : 'AUD')
+
+  // Holdings sort. Nulls always sink regardless of direction — a holding with
+  // no price yet is not "the smallest", it's unknown, and letting it sort to
+  // the top of an ascending P&L column would be actively misleading.
+  const sortProps = { activeKey: sortKey, dir: sortDir, onSort: toggleSort }
+
+  // Plain derivation rather than useMemo: `computed` is rebuilt on every
+  // render anyway, so memoising on it would never hit — and the compiler
+  // flags the dead memo rather than silently keeping it.
+  const sorted = sortHoldings(computed, sortKey, sortDir)
 
   const bestPerformer = live.filter((h) => h.pnlPct != null).sort((a, b) => b.pnlPct - a.pnlPct)[0] ?? null
 
@@ -921,22 +1032,22 @@ export default function PortfolioModule() {
             <table className="terminal-table w-full">
               <thead className="sticky top-0 bg-terminal-header">
                 <tr>
-                  <th className="px-2 text-left">SYMBOL</th>
+                  <SortableTh label="SYMBOL"   sortKey="symbol"  align="left"  className="px-2" {...sortProps} />
                   <th className="px-1 text-left hidden md:table-cell">TYPE</th>
-                  <th className="px-1 text-right">SHARES</th>
-                  <th className="px-1 text-right">AVG COST</th>
-                  <th className="px-1 text-right">LAST</th>
-                  <th className="px-1 text-right">MKT VAL</th>
-                  <th className="px-1 text-right">P&amp;L</th>
-                  <th className="px-1 text-right">P&amp;L%</th>
-                  <th className="px-1 text-right">DAY%</th>
+                  <SortableTh label="SHARES"   sortKey="shares"  {...sortProps} />
+                  <SortableTh label="AVG COST" sortKey="avgCost" {...sortProps} />
+                  <SortableTh label="LAST"     sortKey="last"    {...sortProps} />
+                  <SortableTh label="MKT VAL"  sortKey="mktVal"  {...sortProps} />
+                  <SortableTh label="P&L"      sortKey="pnl"     {...sortProps} />
+                  <SortableTh label="P&L%"     sortKey="pnlPct"  {...sortProps} />
+                  <SortableTh label="DAY%"     sortKey="dayPct"  {...sortProps} />
                   <th className="px-1 text-right hidden xl:table-cell">WT%</th>
-                  <th className="px-1 text-right hidden 2xl:table-cell">MKT CAP</th>
+                  <SortableTh label="MKT CAP"  sortKey="marketCap" className="px-1 hidden 2xl:table-cell" {...sortProps} />
                   <th className="px-1 text-center">✕</th>
                 </tr>
               </thead>
               <tbody>
-                {computed.map((h) => {
+                {sorted.map((h) => {
                   const pnlCls = h.pnl != null ? (h.pnl >= 0 ? 'pos' : 'neg') : ''
                   const dayCls = colorClass(h.dayPct)
                   const dispSym = h.type === 'asx' ? h.symbol + '.AX' : h.symbol
