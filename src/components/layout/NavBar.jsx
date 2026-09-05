@@ -46,11 +46,13 @@ const NAV_ITEMS = [
   { id: 'crypto',    label: 'CRYPTO',    short: 'CRY',  fkey: 'F3', Icon: Bitcoin },
   { id: 'fx',        label: 'RATES',     short: 'FX',   fkey: 'F4', Icon: ArrowLeftRight },
   { id: 'macro',     label: 'MACRO',     short: 'MAC',  fkey: 'F5', Icon: Activity },
-  { id: 'global',    label: 'GLOBAL',    short: 'GLB',  fkey: 'F8', Icon: Globe, groupBreak: true },
+  { id: 'global',    label: 'GLOBAL',    short: 'GLB',  fkey: 'F8', Icon: Globe },
+  // Dividers sit before the item carrying groupBreak, giving three groups:
+  // markets research | holdings | news & tools.
   { id: 'watchlist', label: 'WATCHLIST', short: 'WL',   fkey: 'F6', Icon: Star, groupBreak: true },
   { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT', fkey: 'F2', Icon: Briefcase },
-  { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper, groupBreak: true },
-  { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise },
+  { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper },
+  { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise, groupBreak: true },
   { id: 'calendar',  label: 'CALENDAR',  short: 'CAL',  fkey: null, Icon: Calendar },
   { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search },
   { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind },
@@ -69,10 +71,22 @@ function isBriefNotifyWindow(now) {
 }
 
 export const APP_VERSION = 'v0.1.0-beta'
-const LABEL_BASE = 'text-2xs font-semibold tracking-widest uppercase whitespace-nowrap transition-opacity duration-150'
+const LABEL_BASE = 'text-[13px] font-sans font-medium tracking-wide uppercase whitespace-nowrap transition-opacity duration-150'
 
-// Desktop left sidebar — 56px icon-only by default, expands to 200px with
-// labels on hover, or pins open at 200px via the toggle at the top. Hidden
+// Every nav row is the same 44px box in both states, so expanding the rail
+// slides labels in without the list jumping vertically. The transparent 3px
+// left border is carried by every row — active state just recolours it — so
+// one icon column lines up across nav, AI toggle and the bottom actions.
+const ROW = 'h-11 flex items-center w-full flex-shrink-0 border-l-[3px] border-l-transparent transition-colors duration-100'
+// Icon column = padding + the 3px border. Collapsed: 20+3 = 23px, centring an
+// 18px icon in the 64px rail. Expanded: 17+3 = 20px per spec. The 3px slide
+// rides the same 150ms width transition, so it reads as one motion.
+const ICON_PAD = (pinned) => (pinned ? 'pl-[17px]' : 'pl-5 group-hover/nav:pl-[17px]')
+// Icon (18px) ends at 38px; a 14px gap puts the label at the spec's 52px.
+const GAP = 'gap-[14px]'
+
+// Desktop left sidebar — 64px icon-only by default, expands to 220px with
+// labels on hover, or pins open at 220px via the toggle at the top. Hidden
 // below the md breakpoint in favour of MobileNavBar, a bottom tab bar that's
 // a better fit for touch navigation.
 export default function NavBar() {
@@ -80,6 +94,7 @@ export default function NavBar() {
   const { signOut } = useAuthStore()
   const [pinned, setPinned] = usePinnedSidebar()
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
+  const iconPad = ICON_PAD(pinned)
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000)
@@ -90,36 +105,48 @@ export default function NavBar() {
   return (
     <div
       data-tour="nav-sidebar"
-      className={`group/nav hidden md:flex flex-col bg-terminal-bg border-r border-terminal-border flex-shrink-0 overflow-hidden transition-all duration-150 z-30 ${
-        pinned ? 'w-[200px]' : 'w-14 hover:w-[200px]'
+      className={`group/nav hidden md:flex flex-col bg-terminal-bg border-r border-terminal-border flex-shrink-0 overflow-x-hidden transition-all duration-150 z-30 ${
+        pinned ? 'w-[220px]' : 'w-16 hover:w-[220px]'
       }`}
     >
-      <button
-        onClick={() => setPinned((p) => !p)}
-        title={pinned ? 'Unpin sidebar' : 'Pin sidebar'}
-        className={`flex items-center gap-3 w-full px-4 py-2 border-b border-terminal-border flex-shrink-0 transition-colors duration-100 ${
-          pinned ? 'text-terminal-gold' : 'text-terminal-muted/50 hover:text-terminal-muted'
+      {/* Pin toggle — 28px square, centred in the collapsed rail and pushed
+          right once the labels are in view. */}
+      <div
+        className={`h-8 flex items-center flex-shrink-0 border-b border-terminal-border px-3 ${
+          pinned ? 'justify-end' : 'justify-center group-hover/nav:justify-end'
         }`}
       >
-        {pinned
-          ? <Pin size={14} strokeWidth={1.75} className="flex-shrink-0" fill="currentColor" />
-          : <PinOff size={14} strokeWidth={1.75} className="flex-shrink-0" />}
-        <span className={labelCls}>{pinned ? 'PINNED' : 'PIN SIDEBAR'}</span>
-      </button>
+        <button
+          onClick={() => setPinned((p) => !p)}
+          title={pinned ? 'Unpin sidebar' : 'Pin sidebar open'}
+          aria-label={pinned ? 'Unpin sidebar' : 'Pin sidebar open'}
+          aria-pressed={pinned}
+          className={`w-7 h-7 flex items-center justify-center rounded-[3px] transition-colors duration-100 ${
+            pinned
+              ? 'text-terminal-gold bg-terminal-gold/[0.10]'
+              : 'text-terminal-muted/50 hover:text-terminal-muted hover:bg-terminal-surface2'
+          }`}
+        >
+          {pinned
+            ? <Pin size={14} strokeWidth={1.75} fill="currentColor" />
+            : <PinOff size={14} strokeWidth={1.75} />}
+        </button>
+      </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar py-2">
         {NAV_ITEMS.map((item) => {
           const isActive = activeModule === item.id
           const hint = shortcutHint(item)
           return (
             <div key={item.id}>
-              {item.groupBreak && <div className="h-px bg-terminal-border mx-3 my-1.5 flex-shrink-0" />}
+              {item.groupBreak && <div className="h-px bg-terminal-gold/[0.08] mx-3 my-1.5 flex-shrink-0" />}
               <button
                 onClick={() => setActiveModule(item.id)}
                 title={hint ? `${item.label} (${hint})` : item.label}
-                className={`group/item relative flex items-center gap-3 w-full px-4 py-2 border-l-2 transition-colors duration-100 ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`group/item relative ${ROW} ${GAP} ${iconPad} pr-3 ${
                   isActive
-                    ? 'border-l-terminal-gold bg-terminal-gold/[0.07] text-terminal-gold'
-                    : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2'
+                    ? 'border-l-terminal-gold bg-terminal-gold/[0.06] text-terminal-gold'
+                    : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 rounded-r-[4px]'
                 }`}
               >
                 <span
@@ -132,7 +159,14 @@ export default function NavBar() {
                   )}
                 </span>
                 <span className={labelCls}>{item.label}</span>
-                <span className={`ml-auto text-terminal-muted/60 ${labelCls}`}>{hint}</span>
+                {/* Shortcut hint is secondary — only surfaced on row hover. */}
+                {/* Hovering a row implies the rail is expanded, so the item
+                    group alone gates this correctly in both states. */}
+                <span
+                  className="ml-auto pl-2 text-[9px] font-mono tracking-wide text-terminal-muted/70 whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+                >
+                  {hint}
+                </span>
               </button>
             </div>
           )
@@ -143,8 +177,8 @@ export default function NavBar() {
       <button
         onClick={() => setChatOpen((v) => !v)}
         title="AI Analyst"
-        className={`flex items-center gap-3 px-4 py-2 border-t border-l-2 border-terminal-border transition-colors duration-100 ${
-          chatOpen ? 'border-l-terminal-gold bg-terminal-gold text-terminal-bg' : 'border-l-transparent text-terminal-gold hover:bg-terminal-surface2'
+        className={`${ROW} ${GAP} ${iconPad} pr-3 border-t border-terminal-border ${
+          chatOpen ? 'border-l-terminal-gold bg-terminal-gold text-terminal-bg' : 'border-l-transparent text-terminal-gold hover:bg-terminal-surface2 rounded-r-[4px]'
         }`}
       >
         <span className="text-[18px] leading-none flex-shrink-0 w-[18px] text-center">▲</span>
@@ -156,7 +190,7 @@ export default function NavBar() {
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-ideas'))}
           title="Ideas & roadmap"
-          className="flex items-center gap-3 w-full px-4 py-2 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
+          className={`${ROW} ${GAP} ${iconPad} pr-3 rounded-r-[4px] text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2`}
         >
           <Lightbulb size={18} strokeWidth={1.75} className="flex-shrink-0" />
           <span className={labelCls}>IDEAS</span>
@@ -164,7 +198,7 @@ export default function NavBar() {
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))}
           title="Settings"
-          className="flex items-center gap-3 w-full px-4 py-2 text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 transition-colors"
+          className={`${ROW} ${GAP} ${iconPad} pr-3 rounded-r-[4px] text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2`}
         >
           <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0" />
           <span className={labelCls}>SETTINGS</span>
@@ -172,24 +206,38 @@ export default function NavBar() {
         <button
           onClick={signOut}
           title="Sign out"
-          className="flex items-center gap-3 w-full px-4 py-2 text-terminal-muted hover:text-terminal-red hover:bg-terminal-surface2 transition-colors"
+          className={`${ROW} ${GAP} ${iconPad} pr-3 rounded-r-[4px] text-terminal-muted hover:text-terminal-red hover:bg-terminal-surface2`}
         >
           <LogOut size={18} strokeWidth={1.75} className="flex-shrink-0" />
           <span className={labelCls}>SIGN OUT</span>
         </button>
       </div>
-      <a
-        href="https://maddex.com.au/disclaimer"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="General information only — not financial advice"
-        className="flex items-center gap-3 px-4 py-1.5 border-t border-terminal-border flex-shrink-0 text-terminal-muted/40 hover:text-terminal-gold transition-colors"
-      >
-        <span className="text-2xs flex-shrink-0 w-[18px] text-center">⚠</span>
-        <span className={`text-2xs whitespace-nowrap ${labelCls}`}>General information only</span>
-      </a>
-      <div className="px-4 py-1.5 border-t border-terminal-border flex-shrink-0">
-        <span className={`text-terminal-muted/40 ${labelCls}`}>{APP_VERSION}</span>
+      <div className={`flex items-center ${GAP} ${iconPad} pr-3 h-8 border-l-[3px] border-l-transparent border-t border-terminal-border flex-shrink-0`}>
+        <a
+          href="https://maddex.com.au/disclaimer"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="General information only — not financial advice"
+          className="flex items-center gap-2 min-w-0 flex-1 text-terminal-muted/40 hover:text-terminal-gold transition-colors"
+        >
+          <span className="text-2xs flex-shrink-0 w-[18px] text-center">⚠</span>
+          {/* truncate (not nowrap) so a narrow rail ellipses this rather than
+              letting it run under the version stamp on the same row. */}
+          <span
+            className={`text-[11px] font-sans truncate transition-opacity duration-150 ${
+              pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
+            }`}
+          >
+            General info only
+          </span>
+        </a>
+        <span
+          className={`ml-auto pl-2 flex-shrink-0 text-[9px] font-mono tracking-wide text-terminal-muted/50 whitespace-nowrap transition-opacity duration-150 ${
+            pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
+          }`}
+        >
+          {APP_VERSION}
+        </span>
       </div>
     </div>
   )
