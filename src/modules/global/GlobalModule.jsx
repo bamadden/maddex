@@ -2511,7 +2511,28 @@ export default function GlobalModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="GLOBAL" subtitle="Trade Flows · Market Breadth · Country Risk" moduleId="global" />
+      <ModuleHeader
+        title="GLOBAL"
+        subtitle="Trade Flows · Market Breadth · Country Risk"
+        moduleId="global"
+        right={
+          /* The view switch belongs to the module, not to the map, so it
+             lives in the header. Floating it over the globe put it in the
+             same top-right corner as the map's own fullscreen button, the
+             detail panel and the classic globe's control pills — four
+             things competing for one corner, and the highest z-index won. */
+          <div className="flex items-center border border-terminal-border rounded-full overflow-hidden flex-shrink-0" role="group" aria-label="Globe view mode">
+            {[['map', 'INTEL MAP'], ['classic', 'CLASSIC'], ['globe3d', 'IMMERSIVE 3D']].map(([mode, label]) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                aria-pressed={viewMode === mode}
+                className={`text-2xs px-2.5 py-1 font-bold whitespace-nowrap transition-colors ${viewMode === mode ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              >{label}</button>
+            ))}
+          </div>
+        }
+      />
 
       {/* Critical-event alert banner */}
       {criticalAlert && (
@@ -2522,9 +2543,14 @@ export default function GlobalModule() {
         </div>
       )}
 
-      {/* Mobile-only panel switcher (<768px) — the three columns stack full-width
-          instead of sitting side by side, so a small screen needs to pick one. */}
-      <div className="flex md:hidden border-b border-terminal-border flex-shrink-0">
+      {/* Panel switcher below 1024px — the three columns stack full-width
+          instead of sitting side by side, so a narrow screen picks one.
+          The breakpoint is lg, not md: at 768px the feed (300px) and the
+          right panel (320px min) leave the map about 84px of a 704px content
+          area, and at 880px it was still only 156px wide — a sliver of
+          world with nothing legible in it. Three columns need roughly
+          300 + 340 + 320 + 64px of sidebar to be worth showing at all. */}
+      <div className="flex lg:hidden border-b border-terminal-border flex-shrink-0">
         {[
           { id:'feed',   label:'FEED'   },
           { id:'globe',  label:'GLOBE'  },
@@ -2545,23 +2571,12 @@ export default function GlobalModule() {
         <div style={{ flex:1, display:'flex', minHeight:0 }}>
 
           {/* Left — live intelligence feed, 260px */}
-          <div className={`${mobilePanel === 'feed' ? 'flex' : 'hidden'} md:flex w-full md:w-[260px] md:min-w-[260px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border`}>
+          <div className={`${mobilePanel === 'feed' ? 'flex' : 'hidden'} lg:flex w-full lg:w-[300px] lg:min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border`}>
             <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} />
           </div>
 
           {/* Globe */}
-          <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} md:block`} style={{ flex:1, position:'relative', overflow:'visible', minHeight:0 }}>
-            {/* View switch. The intelligence map is the default; both globes
-                are kept so the existing D3/three views remain reachable. */}
-            <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 20 }} className="flex items-center border border-terminal-border rounded-full overflow-hidden bg-terminal-bg/80 backdrop-blur-sm">
-              {[['map', 'INTEL MAP'], ['classic', 'CLASSIC'], ['globe3d', 'IMMERSIVE 3D']].map(([mode, label]) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`text-2xs px-2.5 py-1 font-bold transition-colors ${viewMode === mode ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-                >{label}</button>
-              ))}
-            </div>
+          <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} lg:block`} style={{ flex:1, position:'relative', overflow:'hidden', minHeight:0 }}>
             <Suspense fallback={<Viz3DLoader />}>
               {viewMode === 'map' ? (
                 <DeckGLMap onExchangeSelect={handleExchangeClick} watchlist={watchlist} />
@@ -2574,7 +2589,7 @@ export default function GlobalModule() {
           </div>
 
           {/* Right tab panel — 320-360px */}
-          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:min-w-[320px] md:max-w-[360px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
+          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} lg:flex w-full lg:min-w-[320px] lg:max-w-[360px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
           {/* Tab bar — equal-width columns spanning the full panel so every
               tab stays visible with no horizontal scroll needed. `fill` keeps
               that behaviour on the shared component. */}

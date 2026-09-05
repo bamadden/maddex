@@ -24,19 +24,30 @@ const MAP_STYLES = {
   intel:   null,
 }
 
-const INITIAL_VIEW = {
-  longitude: 134.0,
-  latitude: -25.0,
-  zoom: 3.2,
-  pitch: 45,
-  bearing: 0,
-}
-
 const AU_VIEW     = { longitude: 134.0, latitude: -25.0, zoom: 3.5, pitch: 45, bearing: 0 }
 const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, bearing: 0 }
 
+// Opens on the world, not on Australia. At the previous zoom 3.2 over
+// 134°E/25°S the frame was almost entirely the Indian Ocean: no chokepoints,
+// no exchanges, and the trade arcs all left the viewport within a few hundred
+// pixels of their origin. Every layer this map draws is global, so the
+// default camera has to be too. AU FOCUS is one click away for the AU view.
+const INITIAL_VIEW = GLOBAL_VIEW
+
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+// Stacking order for everything that floats over the map, in one place.
+// These used to be scattered literals, which is how the view toggle (20) and
+// the fullscreen button (25) ended up sharing the top-right corner with the
+// higher number silently painting over the lower one.
+const Z = {
+  ATMOSPHERE: 5,    // vignette + top fade, pointer-events: none
+  CHROME: 10,       // layer panel, seismic status
+  PANEL: 20,        // selection detail panel
+  CONTROL: 25,      // fullscreen toggle — must stay clickable above PANEL
+  TOOLTIP: 1000,    // hover card, position: fixed, above all map chrome
+}
 
 export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const [viewState, setViewState] = useState(INITIAL_VIEW)
@@ -50,7 +61,68 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const [auFocus, setAuFocus] = useState(false)
   const [pulse, setPulse] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
+  const [mapWidth, setMapWidth] = useState(null)
   const wrapRef = useRef(null)
+  const mapRef = useRef(null)
+
+  // The overlays size themselves against the map, not the viewport: the map
+  // is one of three columns, so a 1440px window can still leave it under
+  // 700px wide. Measuring the element is the only way to know.
+  // Returns true once the basemap is correctly sized AND its style is live,
+  // which is the point at which it will actually request tiles.
+  //
+  // Both conditions matter. Sizing the canvas is not enough on its own:
+  // MapLibre computes tile coverage from its internal transform, and a
+  // transform built while the container was collapsed covers nothing, so the
+  // map sat there having fetched style.json and the sprite but not a single
+  // vector tile. Resizing after the style is loaded rebuilds that transform
+  // and the tiles follow.
+  const resizeBasemap = useCallback(() => {
+    const m = mapRef.current?.getMap?.() ?? mapRef.current
+    const el = wrapRef.current
+    if (!m?.resize || !el) return false
+    const canvas = el.querySelector('canvas.maplibregl-canvas')
+    if (!canvas) return false
+    const sized = Math.abs(canvas.getBoundingClientRect().width - el.clientWidth) < 1
+    const styled = m.isStyleLoaded?.() ?? true
+    if (sized && styled) return true
+    m.resize()
+    return false
+  }, [])
+
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([entry]) => {
+      setMapWidth(entry.contentRect.width)
+      resizeBasemap()
+    })
+    ro.observe(el)
+    setMapWidth(el.getBoundingClientRect().width)
+    return () => ro.disconnect()
+  }, [resizeBasemap])
+
+  // The ResizeObserver alone cannot correct the basemap's initial size: it
+  // fires once on observe, before <Map> has mounted and while mapRef is
+  // still null, and the container never changes size afterwards so it never
+  // fires again. react-map-gl's onLoad is not an option either — under
+  // DeckGL it does not fire at all (verified: the handler never ran).
+  //
+  // So the map is nudged on a short interval until the basemap canvas
+  // matches the container, then left alone. Bounded at 4s so a genuinely
+  // absent basemap ('intel' style is deliberately null) does not spin.
+  useEffect(() => {
+    if (!MAP_STYLES[mapStyle]) return
+    const started = Date.now()
+    const id = setInterval(() => {
+      if (resizeBasemap() || Date.now() - started > 4000) clearInterval(id)
+    }, 150)
+    return () => clearInterval(id)
+  }, [mapStyle, resizeBasemap])
+
+  // The detail panel takes 300px where there is room and 40% of the map
+  // where there is not, so it never swallows more than a third of the view.
+  const panelWidth = mapWidth == null ? 300 : Math.round(Math.max(220, Math.min(300, mapWidth * 0.4)))
 
   // ── Live seismic feed ───────────────────────────────────────────────────
   // Routed through liveDataService so this shares the app's cache and its
@@ -95,8 +167,20 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
     setViewState({ ...target, transitionDuration: 1800, transitionEasing: easeInOutCubic })
   }, [])
 
-  const hover = useCallback((type) => ({ object, x, y }) => {
-    setTooltip(object ? { object, x, y, type } : null)
+  // info.x / info.y are relative to deck's own canvas, while the tooltip is
+  // position: fixed and so is placed in viewport coordinates. Those agree
+  // only when the map sits at the window's top-left, which it never does —
+  // it is the middle of three columns — so the card used to open one
+  // map-origin (~364px) left and above the cursor, over the news feed.
+  //
+  // The originating pointer event already carries viewport coordinates, so
+  // it is the source of truth here; info.x/y remain the fallback for a
+  // synthetic hover with no source event behind it.
+  const hover = useCallback((type) => (info, event) => {
+    const { object, x, y } = info
+    if (!object) return setTooltip(null)
+    const src = event?.srcEvent
+    setTooltip({ object, type, x: src?.clientX ?? x, y: src?.clientY ?? y })
   }, [])
 
   // Sine over the pulse tick, so the ring alpha breathes between ~20 and ~80.
@@ -352,15 +436,30 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
         getCursor={({ isHovering }) => (isHovering ? 'pointer' : 'grab')}
       >
         {MAP_STYLES[mapStyle] && (
-          <Map mapStyle={MAP_STYLES[mapStyle]} reuseMaps attributionControl={false} />
+          <Map
+            ref={mapRef}
+            mapStyle={MAP_STYLES[mapStyle]}
+            reuseMaps
+            attributionControl={false}
+            // MapLibre reads its container's size once, at construction, and
+            // that moment is inside a lazy/Suspense boundary where the box is
+            // still collapsed — so the basemap canvas stayed pinned at its
+            // 300x150 default while deck.gl's own canvas filled the 556x420
+            // container. That mismatch is why the map drew arcs and markers
+            // over a blank dark rectangle with no coastlines: deck.gl
+            // measures itself, MapLibre does not.
+            //
+            // Correcting it is handled by the effect in the parent, not by
+            // an onLoad prop here: under DeckGL that callback never fires.
+          />
         )}
       </DeckGL>
 
       {/* Vignette + top fade. Purely atmospheric, and inert to the pointer so
           they never intercept a click meant for the map. */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5,
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
         background: 'radial-gradient(ellipse at center, transparent 58%, rgba(6,13,26,0.45) 100%)' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, pointerEvents: 'none', zIndex: 5,
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
         background: 'linear-gradient(to bottom, rgba(6,13,26,0.55), transparent)' }} />
 
       {tooltip && <MapTooltip tooltip={tooltip} />}
@@ -371,23 +470,28 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
         auFocus={auFocus}
         onAuFocus={() => { setAuFocus((v) => !v); flyTo(AU_VIEW) }}
         onGlobal={() => { setAuFocus(false); flyTo(GLOBAL_VIEW) }}
+        mapWidth={fullscreen ? window.innerWidth : mapWidth}
       />
 
       {/* Fullscreen toggle */}
       <button
         onClick={() => setFullscreen((v) => !v)}
         title={fullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen map'}
-        style={{ position: 'absolute', top: 12, right: selected ? 324 : 12, zIndex: 25,
+        style={{ position: 'absolute', top: 12, right: selected ? panelWidth + 24 : 12, zIndex: Z.CONTROL,
           background: 'rgba(6,13,26,0.88)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2,
           color: '#8BA3C4', fontSize: 13, lineHeight: 1, padding: '6px 9px', cursor: 'pointer',
           backdropFilter: 'blur(8px)' }}
       >⤢</button>
 
-      {selected && <MapDetailPanel object={selected} onClose={() => setSelected(null)} onFlyTo={flyTo} watchlist={watchlist} />}
+      {selected && (
+        <MapDetailPanel object={selected} onClose={() => setSelected(null)} onFlyTo={flyTo}
+          watchlist={watchlist} width={panelWidth} />
+      )}
 
       {/* Seismic status. Reports the feed's real state rather than only
           rendering when data happens to have arrived. */}
-      <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 10,
+      <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: Z.CHROME,
+        maxWidth: 'calc(100% - 24px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${quakeState === 'error' ? 'rgba(201,168,76,0.3)' : 'rgba(168,50,50,0.4)'}`,
         borderRadius: 3, padding: '4px 10px', fontFamily: '"IBM Plex Mono", monospace',
         fontSize: 9, letterSpacing: '0.1em', color: quakeState === 'error' ? '#8BA3C4' : '#C86464' }}>
@@ -476,13 +580,23 @@ function MapTooltip({ tooltip }) {
 
   if (!body) return null
 
-  // Clamped so a hover near an edge doesn't open the card off-screen.
-  const left = Math.min(x + 14, window.innerWidth - 250)
-  const top = Math.min(Math.max(y - 10, 8), window.innerHeight - 190)
+  // x and y arrive already translated into viewport coordinates by the
+  // hover handler — see the note there.
+  //
+  // Near the right edge it FLIPS to the left of the cursor rather than
+  // pinning at the edge: pinning slid the card back under the pointer, which
+  // on a map means it covers the very marker you are reading about.
+  const W = 244   // maxWidth 230 + padding
+  const H = 190   // tallest body, measured
+  const M = 8
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const left = x + 14 + W > vw - M ? Math.max(M, x - 14 - W) : x + 14
+  const top = Math.min(Math.max(y - 10, M), Math.max(M, vh - H - M))
 
   return (
     <div style={{
-      position: 'fixed', left, top, zIndex: 1000, maxWidth: 230,
+      position: 'fixed', left, top, zIndex: Z.TOOLTIP, maxWidth: 230,
       background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 4,
       padding: '10px 14px', fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
       color: '#E8EDF5', pointerEvents: 'none', lineHeight: 1.4,
@@ -528,30 +642,65 @@ const btn = (active) => ({
   transition: 'color .15s, border-color .15s, background-color .15s',
 })
 
-function LayerPanel({ activeLayer, onLayerChange, mapStyle, onStyleChange, auFocus, onAuFocus, onGlobal }) {
+// The stack of layer buttons is 136px wide and 320px tall. Over a 1400px+
+// map that is a reasonable permanent fixture; over the ~560px map you get at
+// 1280px viewport width it occludes a quarter of the visible world. So below
+// `WIDE_MAP_PX` it starts collapsed behind a single button and opens on
+// demand — the controls stay one click away instead of always in the way.
+const WIDE_MAP_PX = 1400
+
+function LayerPanel({ activeLayer, onLayerChange, mapStyle, onStyleChange, auFocus, onAuFocus, onGlobal, mapWidth }) {
+  const wide = mapWidth == null || mapWidth >= WIDE_MAP_PX
+  const [open, setOpen] = useState(wide)
+
+  // Follow the breakpoint on resize, but only when it actually crosses it —
+  // re-running on every pixel would fight the user's own toggle.
+  const wasWide = useRef(wide)
+  useEffect(() => {
+    if (wide !== wasWide.current) { wasWide.current = wide; setOpen(wide) }
+  }, [wide])
+
+  const active = LAYERS.find((l) => l.id === activeLayer)
+
   return (
-    <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10,
+    <div style={{ position: 'absolute', top: 12, left: 12, zIndex: Z.CHROME,
       display: 'flex', flexDirection: 'column', gap: 3,
-      maxHeight: 'calc(100% - 90px)', overflowY: 'auto' }}>
-      {LAYERS.map((l) => (
-        <button key={l.id} onClick={() => onLayerChange(l.id)} style={btn(activeLayer === l.id)}>
-          {l.label}
+      maxHeight: 'calc(100% - 90px)', overflowY: 'auto', overflowX: 'hidden' }}>
+      {!wide && (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          title={open ? 'Hide layer controls' : 'Show layer controls'}
+          style={{ ...btn(open), display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <span>{open ? '×' : '☰'}</span>
+          <span>{open ? 'LAYERS' : (active?.label ?? 'LAYERS')}</span>
         </button>
-      ))}
+      )}
 
-      <div style={{ height: 1, background: 'rgba(201,168,76,0.1)', margin: '3px 0' }} />
+      {open && (
+        <>
+          {LAYERS.map((l) => (
+            <button key={l.id} onClick={() => onLayerChange(l.id)} style={btn(activeLayer === l.id)}>
+              {l.label}
+            </button>
+          ))}
 
-      <div style={{ display: 'flex', gap: 3 }}>
-        {STYLES.map((s) => (
-          <button key={s.id} onClick={() => onStyleChange(s.id)}
-            style={{ ...btn(mapStyle === s.id), flex: 1, padding: '5px 3px', fontSize: 8, textAlign: 'center' }}>
-            {s.label}
-          </button>
-        ))}
-      </div>
+          <div style={{ height: 1, background: 'rgba(201,168,76,0.1)', margin: '3px 0' }} />
 
-      <button onClick={onAuFocus} style={btn(auFocus)}>🇦🇺 AU FOCUS</button>
-      <button onClick={onGlobal} style={btn(false)}>🌐 GLOBAL VIEW</button>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {STYLES.map((s) => (
+              <button key={s.id} onClick={() => onStyleChange(s.id)}
+                style={{ ...btn(mapStyle === s.id), flex: 1, padding: '5px 3px', fontSize: 8, textAlign: 'center' }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={onAuFocus} style={btn(auFocus)}>🇦🇺 AU FOCUS</button>
+          <button onClick={onGlobal} style={btn(false)}>🌐 GLOBAL VIEW</button>
+        </>
+      )}
     </div>
   )
 }

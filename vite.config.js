@@ -9,6 +9,26 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+
+    // MapLibre ships its style/tile parser as a separate web worker, and
+    // Vite's dependency optimizer rewrites the package without emitting
+    // that worker file:
+    //
+    //   The file does not exist at ".../deps/maplibre-gl-worker.mjs" which
+    //   is in the optimize deps directory.
+    //
+    // The map then fails in the worst possible way — silently. It fetches
+    // style.json and the sprite on the main thread, reports no error, fires
+    // no 'error' event, and simply never finishes loading the style, so it
+    // requests zero vector tiles and renders an empty dark rectangle under
+    // the deck.gl layers. Confirmed with a standalone MapLibre instance in
+    // a correctly-sized container: same silent hang, no deck.gl involved.
+    //
+    // Excluding it from pre-bundling leaves the worker import intact.
+    optimizeDeps: {
+      exclude: ['maplibre-gl'],
+    },
+
     server: {
       proxy: {
         '/api/frankfurter': {

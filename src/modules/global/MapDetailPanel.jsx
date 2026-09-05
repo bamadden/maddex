@@ -79,13 +79,16 @@ function TickerPills({ tickers, watchlist = [] }) {
   )
 }
 
-export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [] }) {
+// `width` is supplied by the map, which sizes it against its own measured
+// width rather than the viewport's — the map is one column of three, so a
+// wide window does not imply a wide map.
+export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300 }) {
   const { type, data } = object
   const askAI = (instruction) => dispatchAskAI({ instruction }, { rawPrompt: true })
 
   return (
     <div style={{
-      position: 'absolute', top: 12, right: 12, width: 300, maxHeight: 'calc(100% - 24px)',
+      position: 'absolute', top: 12, right: 12, width, maxHeight: 'calc(100% - 24px)',
       display: 'flex', flexDirection: 'column',
       background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 4,
       boxShadow: '0 8px 32px rgba(0,0,0,0.6)', zIndex: 20, backdropFilter: 'blur(12px)',
