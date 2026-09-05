@@ -24,6 +24,49 @@ function buildSystem(system) {
   return [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
 }
 
+// Second breakpoint: the end of the conversation history.
+//
+// Marked on the LAST ASSISTANT message, not the last message overall. The
+// final user turn carries a per-turn [CONTEXT] prefix (date, module, open
+// asset) and changes every call, so a breakpoint there would never be read
+// back. Everything up to and including the previous assistant reply is
+// byte-stable — AIPanel stores clean text in chatMessages and only the
+// transient wire copy carries the context prefix — so that prefix matches on
+// the next turn and the whole history is served from cache.
+//
+// Requests with no assistant message (the one-shot JSON services) get no
+// second breakpoint, which is correct: there is no history to reuse.
+//
+// Cache lookups match the longest cached prefix regardless of where the
+// CURRENT request places its breakpoints, so each turn writing a new entry
+// one message further along still reads the previous turn's entry.
+function withHistoryCache(messages) {
+  if (!Array.isArray(messages) || messages.length < 2) return messages
+  let idx = -1
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') { idx = i; break }
+  }
+  if (idx === -1) return messages
+
+  const target = messages[idx]
+  const blocks = typeof target.content === 'string'
+    ? (target.content.trim() ? [{ type: 'text', text: target.content }] : null)
+    : Array.isArray(target.content) && target.content.length
+      ? target.content
+      : null
+  // An empty assistant turn (the streaming placeholder) has no cacheable
+  // block — an empty text block is rejected by the API.
+  if (!blocks) return messages
+
+  return messages.map((m, i) => (
+    i === idx
+      ? { ...m, content: blocks.map((b, j) => (
+          j === blocks.length - 1 ? { ...b, cache_control: { type: 'ephemeral' } } : b
+        )) }
+      : m
+  ))
+}
+
 function logCacheStats(usage) {
   if (!usage) return
   console.log('[CLAUDE CACHE STATS]', {
@@ -60,7 +103,7 @@ export default async function handler(req, res) {
         model:      model || 'claude-sonnet-4-6',
         max_tokens: max_tokens || 1024,
         system:     buildSystem(system),
-        messages,
+        messages:   withHistoryCache(messages),
         stream:     stream !== false,
       }),
     })
