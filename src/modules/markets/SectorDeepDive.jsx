@@ -5,6 +5,7 @@ import { getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 import { fmt } from '../../utils/format'
 import { askClaudeJSON } from '../../services/api'
 import { dispatchAskAI } from '../../utils/askAI'
+import TabBar from '../../components/ui/TabBar'
 
 const TABS = [
   { key: 'OVERVIEW', label: 'OVERVIEW' },
@@ -249,18 +250,8 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
         <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-terminal-border flex-shrink-0">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-2xs font-bold tracking-widest transition-colors ${
-              tab === t.key ? 'text-terminal-gold border-b-2 border-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-text'
-            }`}
-          >{t.label}</button>
-        ))}
-      </div>
+      {/* Tabs — shared sliding-underline bar */}
+      <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
 
       <div className="flex-1 overflow-y-auto">
         {tab === 'OVERVIEW' && (

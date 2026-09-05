@@ -11,7 +11,10 @@ import { useState, useRef, useLayoutEffect, useCallback } from 'react'
 // Measured with useLayoutEffect so the indicator is correct on first paint
 // (a useEffect would show it at 0,0 for a frame). Re-measures on container
 // resize, since label widths shift with the panel.
-export default function TabBar({ tabs, activeKey, onChange, className = '', size = 10 }) {
+// `fill` makes every tab an equal-width flex child and tightens the padding —
+// for tab rows living in a narrow column, where the default 16px inset would
+// overflow rather than fit.
+export default function TabBar({ tabs, activeKey, onChange, className = '', size = 10, fill = false }) {
   const items = tabs.map((t) => (typeof t === 'string' ? { key: t, label: t } : t))
   const activeIndex = Math.max(0, items.findIndex((t) => t.key === activeKey))
   const [line, setLine] = useState({ left: 0, width: 0 })
@@ -42,9 +45,9 @@ export default function TabBar({ tabs, activeKey, onChange, className = '', size
               ref={(el) => { refs.current[i] = el }}
               onClick={() => onChange?.(tab.key)}
               aria-current={isActive ? 'true' : undefined}
-              className="whitespace-nowrap"
+              className={fill ? 'flex-1 min-w-0 truncate' : 'whitespace-nowrap'}
               style={{
-                padding: '8px 16px',
+                padding: fill ? '6px 4px' : '8px 16px',
                 fontFamily: '"IBM Plex Mono", Menlo, Monaco, Consolas, monospace',
                 fontSize: size,
                 letterSpacing: '0.1em',

@@ -12,6 +12,7 @@ import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
 import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
+import TabBar from '../../components/ui/TabBar'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -2560,31 +2561,15 @@ export default function GlobalModule() {
           {/* Right tab panel — 320-360px */}
           <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} md:flex w-full md:min-w-[320px] md:max-w-[360px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
           {/* Tab bar — equal-width columns spanning the full panel so every
-              tab stays visible with no horizontal scroll needed. */}
-          <div className="flex flex-shrink-0 border-b border-terminal-border">
-            {TABS.filter(t => !t.hidden).map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)}
-                style={{
-                  flex: '1 1 0%',
-                  minWidth: 0,
-                  fontSize: '9px',
-                  letterSpacing: '0.02em',
-                  padding: '6px 2px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'center',
-                  borderRight: '1px solid rgba(13,34,68,0.8)',
-                }}
-                className={`font-bold uppercase transition-colors ${
-                  activeTab === t.id
-                    ? 'text-terminal-gold border-b-2 border-b-terminal-gold'
-                    : 'text-terminal-text-dim hover:text-terminal-text border-b-2 border-b-transparent'
-                }`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+              tab stays visible with no horizontal scroll needed. `fill` keeps
+              that behaviour on the shared component. */}
+          <TabBar
+            tabs={TABS.filter(t => !t.hidden).map(t => ({ key: t.id, label: t.label }))}
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size={9}
+            fill
+          />
 
           {/* Tab content — a selected country always takes over this area,
               regardless of which tab is active, per the globe-click rewire. */}
