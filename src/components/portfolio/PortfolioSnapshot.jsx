@@ -179,7 +179,7 @@ export default function PortfolioSnapshot({ holdings, totalPnl, pnlPct, mktTotal
   }
 
   return (
-    <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="relative bg-terminal-panel border border-terminal-gold/40 shadow-2xl font-mono max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}

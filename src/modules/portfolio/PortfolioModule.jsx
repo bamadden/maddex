@@ -24,6 +24,7 @@ import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
 import { logActivity } from '../../services/activityLogService'
 import { SkeletonCard } from '../../components/ui/Skeleton'
 import AnimatedNumber from '../../components/ui/AnimatedNumber'
+import TabBar from '../../components/ui/TabBar'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -779,20 +780,8 @@ export default function PortfolioModule() {
         />
       </div>
 
-      {/* Tab bar */}
-      <div className="flex border-b border-terminal-border flex-shrink-0">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`text-2xs font-bold tracking-widest px-4 py-2 border-b-2 transition-colors ${
-              activeTab === t.key
-                ? 'text-terminal-gold border-terminal-gold'
-                : 'text-terminal-text-dim border-transparent hover:text-terminal-text'
-            }`}
-          >{t.label}</button>
-        ))}
-      </div>
+      {/* Tab bar — one sliding underline rather than a border per tab */}
+      <TabBar tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {/* Everything below occupies the grid's single 1fr row — wrapped in one
           flex-col container so the optional add-form (flex-shrink-0) and

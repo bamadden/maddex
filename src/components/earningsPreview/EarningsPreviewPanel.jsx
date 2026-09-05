@@ -31,7 +31,7 @@ export default function EarningsPreviewPanel({ ticker, earningsDate, companyName
   }, [ticker, earningsDate])
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="bg-terminal-panel border border-terminal-border w-full max-w-xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}

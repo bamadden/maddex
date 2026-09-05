@@ -164,7 +164,7 @@ function CompareIndicesModal({ indices, onClose }) {
   })
 
   return (
-    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="modal-overlay modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div
         className="modal-panel bg-terminal-panel border border-terminal-border-gold flex flex-col overflow-hidden"
         style={{ width: '90vw', maxWidth: 900, height: '75vh' }}

@@ -3,6 +3,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { EmptyState as SharedEmptyState } from '../../components/ui/EmptyState'
 import { dispatchAskAI } from '../../utils/askAI'
 import { fmt } from '../../utils/format'
+import TabBar from '../../components/ui/TabBar'
 import {
   scanBreakouts, scanOversold, scanOverbought, scanVolume, scanGaps,
   getPatternCandidates, detectPattern,
@@ -277,19 +278,7 @@ export default function MarketScannerModule() {
         }
       />
 
-      <div className="flex border-b border-terminal-border flex-shrink-0 overflow-x-auto">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`text-2xs font-bold tracking-widest px-4 py-2 border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === t.key
-                ? 'text-terminal-gold border-terminal-gold'
-                : 'text-terminal-text-dim border-transparent hover:text-terminal-text'
-            }`}
-          >{t.label}</button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} activeKey={activeTab} onChange={setActiveTab} className="overflow-x-auto" />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} />}

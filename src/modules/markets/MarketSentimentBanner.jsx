@@ -324,7 +324,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
   return (
     <div
       ref={overlayRef}
-      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="modal-overlay modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={handleOverlay}
     >
       <div

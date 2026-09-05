@@ -63,7 +63,7 @@ export default function PortfolioBuilderModal({ onImport, onClose }) {
   const donutData = result?.holdings?.map((h) => ({ name: h.symbol.replace('.AX', ''), value: h.allocation ?? 0 })) ?? []
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="bg-terminal-panel border border-terminal-border w-full max-w-2xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}

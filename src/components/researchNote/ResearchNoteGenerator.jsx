@@ -275,7 +275,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="relative bg-terminal-panel border border-terminal-gold/40 w-full max-w-3xl shadow-2xl font-mono max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}

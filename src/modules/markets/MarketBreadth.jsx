@@ -21,7 +21,7 @@ function SectorBreakdownModal({ onClose }) {
   }).sort((a, b) => b.advPct - a.advPct)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-terminal-panel border border-terminal-border-gold p-4 w-[420px] max-w-[92vw] shadow-2xl font-mono"
         onClick={(e) => e.stopPropagation()}

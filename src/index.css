@@ -513,6 +513,36 @@ button:not(:disabled):active {
 /* Pulse animation for live indicators (dots, badges) */
 /* Session dot on the index cards — a scale pulse rather than an opacity
    fade, so a 4px dot still reads as "live" at the edge of vision. */
+/* ── Modal entrance ─────────────────────────────────────────────────────
+   Add `modal-backdrop` to a modal's overlay div. The panel is animated via
+   the direct-child selector so each modal only needs the one class, rather
+   than every panel in 30 files being edited to carry a second one.
+   The panel scales from 0.96 — a small enough step to read as the dialog
+   settling rather than zooming. */
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modalPanelIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.modal-backdrop {
+  animation: modalBackdropIn 0.2s ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.modal-backdrop > * {
+  animation: modalPanelIn 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop, .modal-backdrop > * { animation: none; }
+}
+
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+
 @keyframes tooltipPop {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -545,18 +575,30 @@ button:not(:disabled):active {
 }
 .pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
 
-/* Live price tick flash — briefly tints a price cell green/red when the
-   simulated stream ticks it up/down (see useLivePrice). */
-@keyframes flashGreen {
-  0% { background: rgba(45,138,80,0.3); }
-  100% { background: transparent; }
+/* Live price tick flash (see useLivePrice).
+   The number itself brightens and nudges in the direction of the tick, rather
+   than the cell behind it filling with colour. Tinting the background made
+   the whole row twitch and fought the row-hover state; moving the effect onto
+   the glyphs means the thing that changed is the thing that reacts. The nudge
+   travels toward its resting position — up-ticks settle from above — so the
+   motion reads as direction, not just as movement. */
+@keyframes flashTickUp {
+  0%   { color: #4ADE80; transform: translateY(-1px); }
+  100% { color: inherit; transform: translateY(0); }
 }
-@keyframes flashRed {
-  0% { background: rgba(168,50,50,0.3); }
-  100% { background: transparent; }
+@keyframes flashTickDown {
+  0%   { color: #F87171; transform: translateY(1px); }
+  100% { color: inherit; transform: translateY(0); }
 }
-.price-flash-up { animation: flashGreen 0.4s ease-out; }
-.price-flash-down { animation: flashRed 0.4s ease-out; }
+.price-flash-up   { animation: flashTickUp 0.4s ease-out; }
+.price-flash-down { animation: flashTickDown 0.4s ease-out; }
+/* transform needs a block-ish box to apply to inline text */
+.price-flash-up, .price-flash-down { display: inline-block; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .price-flash-up, .price-flash-down { animation-name: flashTickUpReduced; }
+  @keyframes flashTickUpReduced { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+}
 
 /* Voice input waveform — 5 bars pulsing height on a staggered delay while
    the mic is actively listening. */

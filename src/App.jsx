@@ -45,6 +45,7 @@ import TrialExpiredModal from './components/auth/TrialExpiredModal'
 import { useSubscription } from './hooks/useSubscription'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
+import { initGlobalRipples } from './hooks/useRipple'
 
 // Fallback while a lazy-loaded module chunk (currently just GlobalModule)
 // is still downloading — brief, so this stays minimal rather than
@@ -179,7 +180,7 @@ function KeyBadge({ label }) {
 
 function ShortcutModal({ onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={onClose}>
       <div className="bg-terminal-panel border border-terminal-border-gold p-6 w-[420px] max-w-[90vw] shadow-2xl font-mono"
         onClick={e => e.stopPropagation()}>
@@ -264,6 +265,10 @@ function Terminal() {
   })
 
   const lastSeenTsRef = useRef(parseInt(localStorage.getItem(NEWS_SEEN_TS_KEY) ?? '0'))
+
+  // Ripple feedback for every canonical action button, registered once here
+  // rather than wired into each of ~100 call sites.
+  useEffect(() => initGlobalRipples(), [])
 
   useEffect(() => {
     if (!bgNewsData?.length) return
