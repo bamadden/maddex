@@ -1413,8 +1413,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                         </linearGradient>
                       </defs>
                       <CartesianGrid stroke="#0d2244" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
-                      <YAxis tick={{ fontSize: 7 }} domain={['auto','auto']} width={36}
+                      <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
+                      <YAxis tick={{ fontSize: 8 }} domain={['auto','auto']} width={36}
                         tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
                       <Tooltip content={<CompositeTooltip />} />
                       <Area type="monotone" dataKey="pct" stroke={col} strokeWidth={1.5}
@@ -1443,8 +1443,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                             </linearGradient>
                           </defs>
                           <CartesianGrid stroke="#0d2244" vertical={false} />
-                          <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
-                          <YAxis tick={{ fontSize: 7 }} domain={['auto','auto']} width={36} />
+                          <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 8 }} domain={['auto','auto']} width={36} />
                           <Tooltip content={<ChartTooltip />} />
                           <Area type="monotone" dataKey="price" stroke={col} strokeWidth={1.5}
                             fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />

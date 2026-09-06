@@ -8,6 +8,11 @@ import { fetchBatch, USING_MOCK_DATA } from '../../services/api'
 import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from './SectorHeatmap'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 
+// Recharts renders these into SVG, where a bare 'monospace' resolves to the
+// browser default — Courier on some systems — which is a visibly different
+// typeface sitting inside a chart surrounded by IBM Plex Mono.
+const MONO = "'IBM Plex Mono', Menlo, Monaco, Consolas, monospace"
+
 // ─── Score calculation ────────────────────────────────────────────────────────
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
@@ -214,7 +219,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
             <PolarRadiusAxis
               angle={90}
               domain={[0, 100]}
-              tick={{ fill: '#374151', fontSize: 8, fontFamily: 'monospace' }}
+              tick={{ fill: '#374151', fontSize: 8, fontFamily: MONO }}
               tickCount={5}
               stroke="rgba(30,70,140,0.2)"
             />
@@ -240,7 +245,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
             <Tooltip content={<RadarTooltip />} />
             <Legend
               iconType="line"
-              wrapperStyle={{ fontSize: 10, fontFamily: 'monospace', color: '#6b7280', paddingTop: 4 }}
+              wrapperStyle={{ fontSize: 10, fontFamily: MONO, color: '#6b7280', paddingTop: 4 }}
             />
           </RadarChart>
         </ResponsiveContainer>

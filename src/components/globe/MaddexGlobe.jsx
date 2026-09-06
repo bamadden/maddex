@@ -1634,7 +1634,7 @@ function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
       <div className="flex flex-col gap-2">
         {active.map((key) => (
           <div key={key}>
-            <div className="text-[7px] text-terminal-text-dim tracking-widest mb-1">{LEGEND_TITLES[key]}</div>
+            <div className="text-[8px] text-terminal-text-dim tracking-widest mb-1">{LEGEND_TITLES[key]}</div>
             <div className="flex flex-wrap items-center gap-1.5">
               {LEGEND_SWATCHES[key].map(([swatch, label]) => (
                 <div key={label} className="flex items-center gap-1">
@@ -1642,7 +1642,7 @@ function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
                     ? <span style={{ width: 8, height: 8, background: swatch, display: 'inline-block', flexShrink: 0 }} />
                     : <span className="text-[9px] leading-none">{swatch}</span>
                   }
-                  <span className="text-[7px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+                  <span className="text-[8px] text-terminal-text-dim whitespace-nowrap">{label}</span>
                 </div>
               ))}
             </div>

@@ -1210,8 +1210,8 @@ export default function PortfolioModule() {
                     {/* Break-even, so winners and losers read as sides of a
                         line rather than just bars of different heights. */}
                     <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="4 4" strokeOpacity={0.5} />
-                    <XAxis dataKey="symbol" tick={{ fontSize: 7 }} />
-                    <YAxis tick={{ fontSize: 7 }} />
+                    <XAxis dataKey="symbol" tick={{ fontSize: 8 }} />
+                    <YAxis tick={{ fontSize: 8 }} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null

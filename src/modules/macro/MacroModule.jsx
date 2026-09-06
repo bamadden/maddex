@@ -499,9 +499,9 @@ function RBADashboard({ askAI }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#0d2244" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={2}
+                <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={2}
                   tickFormatter={(d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
-                <YAxis tick={{ fontSize: 7 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={32} />
+                <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={32} />
                 <Tooltip content={({ active, payload, label }) =>
                   active && payload?.length
                     ? <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
@@ -651,11 +651,11 @@ function LeadingIndicators() {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={4} />
-            <YAxis tick={{ fontSize: 7 }} domain={[70, 110]} width={34} />
+            <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
+            <YAxis tick={{ fontSize: 8 }} domain={[70, 110]} width={34} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={100} stroke="#C9A84C" strokeDasharray="3 3"
-              label={{ value: 'NEUTRAL', fill: '#C9A84C', fontSize: 7, position: 'right' }} />
+              label={{ value: 'NEUTRAL', fill: '#C9A84C', fontSize: 8, position: 'right' }} />
             <Line type="monotone" dataKey="value" stroke="#f87171" strokeWidth={1.5}
               dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
@@ -673,8 +673,8 @@ function LeadingIndicators() {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={4} />
-            <YAxis tick={{ fontSize: 7 }} domain={[-5, 12]} width={28} />
+            <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
+            <YAxis tick={{ fontSize: 8 }} domain={[-5, 12]} width={28} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="3 3" />
             <Bar dataKey="value" isAnimationActive={false} radius={[1,1,0,0]}>
@@ -703,8 +703,8 @@ function LeadingIndicators() {
               </linearGradient>
             </defs>
             <CartesianGrid stroke="#0d2244" vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={4} />
-            <YAxis tick={{ fontSize: 7 }} tickFormatter={v => `${v}B`} domain={[0, 14]} width={32} />
+            <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
+            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}B`} domain={[0, 14]} width={32} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="2 2" />
             <Area type="monotone" dataKey="value" stroke="#2ea05a" strokeWidth={1.5}
@@ -724,11 +724,11 @@ function LeadingIndicators() {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={IRON_ORE_HISTORY} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 7 }} interval={2} />
-            <YAxis tick={{ fontSize: 7 }} tickFormatter={v => `$${v}`} domain={[85, 115]} width={36} />
+            <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={2} />
+            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `$${v}`} domain={[85, 115]} width={36} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={90} stroke="#f87171" strokeDasharray="3 3"
-              label={{ value: '$90 support', fill: '#f87171', fontSize: 7, position: 'right' }} />
+              label={{ value: '$90 support', fill: '#f87171', fontSize: 8, position: 'right' }} />
             <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={1.5}
               dot={{ r: 2.5, fill: '#3b82f6' }} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />

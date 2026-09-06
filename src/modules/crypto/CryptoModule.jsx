@@ -471,7 +471,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, 
                     <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 7 }} interval="preserveStartEnd" />
+                <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
                 <YAxis hide domain={['auto', 'auto']} />
                 <Tooltip content={<ChartTooltip currency="USD" />} />
                 <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5}
