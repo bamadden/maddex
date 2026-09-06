@@ -17,7 +17,6 @@ import { toYahooSymbol } from '../../utils/assetUtils'
 import { requireYFSym } from '../../utils/tickerGuard'
 import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line, ReferenceLine } from 'recharts'
-import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import StressTest from './StressTest'
 import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
@@ -26,11 +25,14 @@ import { logActivity } from '../../services/activityLogService'
 import { SkeletonCard } from '../../components/ui/Skeleton'
 import AnimatedNumber from '../../components/ui/AnimatedNumber'
 import TabBar from '../../components/ui/TabBar'
+import { SECTOR_BY_SYMBOL } from './sectorMap'
+import WhatIf from './WhatIf'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
   { key: 'performance', label: 'PERFORMANCE' },
   { key: 'stresstest',  label: 'STRESS TEST' },
+  { key: 'whatif',      label: 'WHAT IF' },
   { key: 'ai',          label: 'AI ANALYSIS' },
   { key: 'analytics',   label: 'ANALYTICS' },
 ]
@@ -135,13 +137,6 @@ const PieTooltip = ({ active, payload }) => {
   )
 }
 
-// symbol (no .AX suffix, uppercase) -> GICS sector, for holdings that match
-// a tracked demo stock. Anything else (a real ticker not in the demo
-// universe, or crypto) falls back to 'Other' in the sector breakdown.
-const SECTOR_BY_SYMBOL = Object.fromEntries([
-  ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
-  ...Object.entries(MOCK_US_STOCKS).map(([sym, s]) => [sym, s.sector]),
-])
 
 // Colour per sector for the holdings table pill.
 //
@@ -1042,6 +1037,10 @@ export default function PortfolioModule() {
 
       {activeTab === 'stresstest' && (
         <StressTest holdings={computed} fmtCur={fmtCur} />
+      )}
+
+      {activeTab === 'whatif' && (
+        <WhatIf holdings={computed} />
       )}
 
       {activeTab === 'ai' && (
