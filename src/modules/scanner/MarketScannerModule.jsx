@@ -40,29 +40,90 @@ function detectedAtStr(ms) {
   return new Date(ms).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST'
 }
 
-function ResultCard({ badge, badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt }) {
+// Signal tone, keyed off the badge text.
+//
+// The badge colour arrived as a Tailwind class string, which is fine for a
+// border but useless for anything computed — a tint, a left rule, a glow. This
+// maps the same signal types to real colours so the row can be built around
+// one accent instead of six unrelated utility classes.
+const SIGNAL_TONE = {
+  BREAKOUT:   '#2D8A50',
+  OVERSOLD:   '#2D7DD2',
+  OVERBOUGHT: '#A83232',
+  VOLUME:     '#C9A84C',
+  MOMENTUM:   '#6FA34A',
+  PATTERN:    '#7C6BC4',
+}
+const toneFor = (badge) => {
+  const key = String(badge ?? '').split(' ')[0].toUpperCase()
+  if (SIGNAL_TONE[key]) return SIGNAL_TONE[key]
+  if (key === 'GAP') return '#9B6BC4'
+  return '#637899'
+}
+
+// A signal row with actual hierarchy.
+//
+// Everything here used to render at text-2xs — the smallest size in the
+// system — so the ticker, its company name, the metric label and the timestamp
+// all carried identical weight and nothing led the eye. On a scanner, the
+// ticker and the signal ARE the content; the rest is supporting detail.
+//
+// So: a 3px left rule in the signal's colour, the ticker at 13px, the price at
+// 12px, and everything else stepped down and dimmed. Same information, same
+// density, one obvious reading order.
+// badgeColor is accepted and ignored: every call site still passes the old
+// Tailwind class pair, and the colour now comes from toneFor(badge) so one
+// signal type cannot end up with a border in one colour and a tint in another.
+// Left in the signature rather than edited out of six call sites for no
+// behavioural gain.
+function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt }) {
+  const tone = toneFor(badge)
+  const up = changePct >= 0
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/5 transition-colors">
-      <span className={`text-2xs font-bold tracking-widest px-1.5 py-0.5 border flex-shrink-0 ${badgeColor}`}>{badge}</span>
+    <div
+      className="group flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/10 transition-colors"
+      style={{ borderLeft: `3px solid ${tone}` }}
+    >
+      <span
+        className="text-2xs font-bold tracking-widest px-1.5 py-0.5 flex-shrink-0 rounded-sm"
+        style={{ color: tone, background: `${tone}1F`, border: `1px solid ${tone}55` }}
+      >{badge}</span>
+
       <div className="min-w-0 w-28 flex-shrink-0">
-        <div className="text-2xs font-bold text-terminal-text-bright">{tickerOf(symbol)}</div>
-        <div className="text-2xs text-terminal-text-dim truncate">{name}</div>
+        <div className="font-bold text-terminal-text-bright leading-tight" style={{ fontSize: 13 }}>
+          {tickerOf(symbol)}
+        </div>
+        <div className="text-2xs text-terminal-text-dim/70 truncate leading-tight">{name}</div>
       </div>
-      <div className="flex-1 min-w-0 text-2xs text-terminal-text-dim">
-        {metricLabel}: <span className="text-terminal-text">{metricValue}</span>
+
+      <div className="flex-1 min-w-0">
+        <div className="text-2xs text-terminal-text-dim/60 tracking-widest leading-tight">{metricLabel}</div>
+        <div className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</div>
       </div>
+
       {detectedAt != null && (
-        <div className="text-2xs text-terminal-text-dim/60 flex-shrink-0 w-20 text-right">{detectedAtStr(detectedAt)}</div>
+        <div className="text-2xs text-terminal-text-dim/50 flex-shrink-0 w-20 text-right tabular-nums">
+          {detectedAtStr(detectedAt)}
+        </div>
       )}
+
       <div className="text-right flex-shrink-0 w-24">
-        <div className="text-2xs font-bold text-terminal-text-bright">{priceStr(symbol, price)}</div>
-        <div className={`text-2xs font-bold ${changePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-          {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+        <div className="font-bold text-terminal-text-bright tabular-nums leading-tight" style={{ fontSize: 12 }}>
+          {priceStr(symbol, price)}
+        </div>
+        <div
+          className="text-2xs font-bold tabular-nums leading-tight"
+          style={{ color: up ? '#2D8A50' : '#A83232' }}
+        >
+          {up ? '▲' : '▼'} {Math.abs(changePct).toFixed(2)}%
         </div>
       </div>
+
       <button
         onClick={onAnalyse}
-        className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors flex-shrink-0"
+        className="text-2xs font-bold px-2.5 py-1 flex-shrink-0 rounded-sm transition-colors opacity-60 group-hover:opacity-100"
+        style={{ color: tone, border: `1px solid ${tone}66` }}
       >ANALYSE</button>
     </div>
   )

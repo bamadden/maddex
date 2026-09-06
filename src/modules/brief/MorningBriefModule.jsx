@@ -5,7 +5,127 @@ import { generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey } 
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
+import { useQuery } from '@tanstack/react-query'
+import { getEconomicCalendar, upcomingEvents } from '../../services/calendarService'
+import { eventStars, starString } from '../../services/calendarExtras'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { useSentiment } from '../../hooks/useSentiment'
+
+// The weekend state.
+//
+// A morning brief on a Saturday used to be a gauge pinned at 50, one sentence
+// saying markets are closed, and two-thirds of an empty screen. That is a
+// correct statement and a dead end: the reason someone opens this module on a
+// weekend is to prepare for Monday, and it answered nothing.
+//
+// Everything below is real and already in the app — the week ahead comes from
+// the economic calendar, the policy settings from verifiedConstants, and the
+// last brief from the local history the module already keeps. Nothing is
+// generated to fill the space.
+function WeekendBrief({ currentDay }) {
+  const { data: cal } = useQuery({
+    queryKey: ['econCalendar'],
+    queryFn: getEconomicCalendar,
+    staleTime: 6 * 60 * 60_000,
+  })
+
+  const weekAhead = useMemo(() => {
+    const events = upcomingEvents(cal?.events ?? [], 9)
+    return [...events]
+      .sort((a, b) => eventStars(b) - eventStars(a) || a.dateObj - b.dateObj)
+      .slice(0, 6)
+      .sort((a, b) => a.dateObj - b.dateObj)
+  }, [cal])
+
+  const { rba, fed, au } = VERIFIED_CONSTANTS
+  const [now] = useState(() => Date.now())
+  const daysToRba = Math.max(0, Math.ceil((new Date(`${rba.nextMeeting}T00:00:00`) - now) / 86400000))
+
+  return (
+    <div className="space-y-4">
+      <div className="border border-terminal-border p-4">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+          <span className="text-sm font-bold text-terminal-text-bright">Markets are closed for the weekend.</span>
+          <span className="text-2xs text-terminal-text-dim">Next brief Monday, 7am AEST</span>
+        </div>
+        <div className="text-2xs text-terminal-text-dim leading-relaxed">
+          No brief is generated on non-trading days. What follows is the week ahead and
+          where policy stands — everything below is published data, not a forecast.
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="border border-terminal-border p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">RBA</span>
+            <VerifiedBadge dataKey="rba" alwaysShow />
+          </div>
+          <div className="text-xl font-bold text-terminal-gold tabular-nums">{rba.cashRate}%</div>
+          <div className="text-2xs text-terminal-text-dim mt-0.5">
+            {rba.lastDecisionVerb} on {rba.lastDecision}
+          </div>
+          <div className="text-2xs text-terminal-text mt-1">
+            Next meeting {new Date(`${rba.nextMeeting}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            <span className="text-terminal-gold"> · {daysToRba}d</span>
+          </div>
+        </div>
+
+        <div className="border border-terminal-border p-3">
+          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">US FED</div>
+          <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{fed.rateRange}</div>
+          <div className="text-2xs text-terminal-text-dim mt-0.5">
+            {fed.lastDecisionVerb} on {fed.lastDecision}
+          </div>
+          <div className="text-2xs text-terminal-text mt-1">
+            Next {new Date(`${fed.nextMeeting}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+          </div>
+        </div>
+
+        <div className="border border-terminal-border p-3">
+          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">AU INFLATION</div>
+          <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{au.cpi}%</div>
+          <div className="text-2xs text-terminal-text-dim mt-0.5">{au.cpiPeriod}</div>
+          <div className="text-2xs text-terminal-text mt-1">
+            Target band {au.rbaTargetBand} · unemployment {au.unemployment}%
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-terminal-border">
+        <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center justify-between">
+          <span className="text-2xs text-terminal-gold font-bold tracking-widest">THE WEEK AHEAD</span>
+          <span className="text-2xs text-terminal-text-dim">next 9 days · by importance</span>
+        </div>
+        {weekAhead.length === 0 ? (
+          <div className="px-3 py-6 text-center text-2xs text-terminal-text-dim">
+            No scheduled events in the next nine days.
+          </div>
+        ) : (
+          <div className="divide-y divide-terminal-border/30">
+            {weekAhead.map((e, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2">
+                <span className="text-2xs text-terminal-text-dim w-16 flex-shrink-0">
+                  {e.dateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' })}
+                </span>
+                <span className="text-2xs text-terminal-text-dim/60 w-12 flex-shrink-0">
+                  {e.time && e.time !== '—' ? e.time : ''}
+                </span>
+                <span className="text-2xs text-terminal-text flex-1 min-w-0 truncate">{e.event}</span>
+                <span
+                  className="text-2xs flex-shrink-0 font-mono"
+                  style={{ color: eventStars(e) >= 5 ? '#A83232' : eventStars(e) >= 4 ? '#C9A84C' : '#637899' }}
+                >{starString(eventStars(e))}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <PreviousBriefs currentDay={currentDay} />
+    </div>
+  )
+}
 
 // Score bands per spec — angular width is proportional to each band's share
 // of the 0-100 range, not evenly split, so the gauge's colour transitions
@@ -263,8 +383,10 @@ export default function MorningBriefModule() {
               <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
             )}
 
+            {brief.isWeekend && <WeekendBrief currentDay={briefDayKey()} />}
+
             {/* Middle — sections, 2-col */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${brief.isWeekend ? 'hidden' : ''}`}>
               {(brief.sections ?? []).map((s) => (
                 <div key={s.title} className="border border-terminal-border p-3">
                   <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">{s.title}</div>
@@ -273,7 +395,7 @@ export default function MorningBriefModule() {
               ))}
             </div>
 
-            <PreviousBriefs currentDay={briefDayKey()} />
+            {!brief.isWeekend && <PreviousBriefs currentDay={briefDayKey()} />}
 
             {/* Bottom — key events timeline */}
             {brief.keyEvents?.length > 0 && (

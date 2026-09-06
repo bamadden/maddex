@@ -200,7 +200,17 @@ function EconomicEventCard({ event, onReminderChange }) {
   const sensitivity = event.importance === 'high' ? 3 : event.importance === 'medium' ? 2 : 1
 
   return (
-    <div className={`bg-terminal-panel border border-terminal-border border-l-[3px] ${IMPORTANCE_BORDER[event.importance] ?? 'border-l-terminal-muted'}`}>
+    <div
+      className={`border border-terminal-border border-l-[3px] ${IMPORTANCE_BORDER[event.importance] ?? 'border-l-terminal-muted'}`}
+      style={{
+        // Depth rather than a flat panel: a top-lit gradient plus a soft drop
+        // shadow. These cards sit in a scrolling column against the same
+        // panel colour they were painted in, so without separation they read
+        // as one long block of text rather than as discrete events.
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0) 42%), rgb(var(--t-panel))',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+      }}
+    >
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border/50">
         <span className="text-2xs text-terminal-text-dim">{REGION_FLAGS[event.region] ?? '🌐'} {event.time !== '—' ? `${event.time} AEST` : 'Time TBC'}</span>
         <div className="flex items-center gap-2">
@@ -279,10 +289,19 @@ function EarningsEventCard({ event, onReminderChange }) {
   }
 
   return (
-    <div className="bg-terminal-panel border border-terminal-border border-l-[3px] border-l-terminal-gold">
+    <div
+      className="border border-terminal-border border-l-[3px] border-l-terminal-gold"
+      style={{
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0) 42%), rgb(var(--t-panel))',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+      }}
+    >
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border/50">
         <span className="text-2xs text-terminal-text-dim">📊 AFTER MARKET</span>
-        <span className="text-2xs font-bold text-terminal-gold">●MEDIUM</span>
+        <div className="flex items-center gap-2">
+          <Stars event={event} />
+          <span className="text-2xs font-bold text-terminal-gold">●MEDIUM</span>
+        </div>
       </div>
       <div className="px-3 py-2">
         <div className="flex items-start justify-between gap-2">
