@@ -154,14 +154,22 @@ export default function NavBar() {
       {/* Pin toggle — 28px square, centred in the collapsed rail and pushed
           right once the labels are in view. */}
       <div
-        className={`h-12 flex items-center flex-shrink-0 px-3 ${
+        className={`h-12 flex items-center flex-shrink-0 px-3 relative ${
           pinned ? 'justify-end' : 'justify-center group-hover/nav:justify-end'
         }`}
         style={{ borderBottom: '1px solid rgba(201,168,76,0.06)' }}
       >
-        {/* Wordmark only once there is room for it. */}
+        {/* The mark itself, always visible; the wordmark joins it once the
+            rail is open. Collapsed, the icon alone is the brand — which is
+            what a 64px rail can actually carry. */}
+        <img
+          src="/icons/icon-mark-96.png"
+          alt="Maddex"
+          className={pinned ? 'flex-shrink-0' : 'absolute left-1/2 -translate-x-1/2 group-hover/nav:static group-hover/nav:translate-x-0'}
+          style={{ width: 36, height: 36, objectFit: 'contain' }}
+        />
         <span
-          className={`mr-auto pl-[6px] font-mono text-[10px] tracking-[0.22em] text-terminal-gold transition-opacity duration-150 ${
+          className={`mr-auto pl-2 font-mono text-[10px] tracking-[0.22em] text-terminal-gold transition-opacity duration-150 ${
             pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
           }`}
         >

@@ -388,11 +388,27 @@ export default function TopBar() {
       {/* LEFT — exactly 64px, mirroring the sidebar rail beneath it, with a
           divider on the same line as the sidebar's own right border. The two
           verticals read as one continuous edge down the left of the app. */}
+      {/* Brand lockup: mark plus wordmark.
+          This zone is no longer pinned to 64px. The logo at 28px, an 8px gap
+          and MADDEX at 0.25em tracking need about 82px, and forcing that into
+          64px would either clip the wordmark or shrink it below the 8px floor
+          the typography pass just established. The alignment with the sidebar
+          rail was worth having but it only ever held while the rail was
+          collapsed — it breaks the moment the sidebar is hovered or pinned —
+          so the lockup wins. */}
       <div
-        className="flex items-center justify-center flex-shrink-0"
-        style={{ width: 64, borderRight: '1px solid rgba(201,168,76,0.08)' }}
+        className="flex items-center flex-shrink-0"
+        style={{ gap: 8, padding: '0 16px', borderRight: '1px solid rgba(201,168,76,0.08)' }}
       >
-        <span className="font-mono font-semibold text-[9px] tracking-[0.18em] text-terminal-gold whitespace-nowrap">
+        <img
+          src="/icons/icon-mark-96.png"
+          alt="Maddex"
+          style={{ width: 28, height: 28, objectFit: 'contain' }}
+        />
+        <span
+          className="font-mono whitespace-nowrap"
+          style={{ fontSize: 9, letterSpacing: '0.25em', color: '#C9A84C', fontWeight: 600 }}
+        >
           MADDEX
         </span>
       </div>
