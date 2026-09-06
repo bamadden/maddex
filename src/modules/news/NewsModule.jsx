@@ -9,6 +9,7 @@ import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { annotateArticles, clusterStories, marketSession } from '../../services/newsIntelligence'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
@@ -482,11 +483,23 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 text-[10px] font-mono text-terminal-text-dim mb-1.5">
+      <div className="flex items-center gap-1.5 text-[10px] font-mono text-terminal-text-dim mb-1.5 flex-wrap">
         <SourceCircle source={item.source} size={12} />
         <span>{item.source}</span>
         <span>· {timeAgo(item.pubDate)}</span>
         {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1">NEW</span>}
+        <ImpactDot impact={item.impact} />
+        {/* The watchlist marker has to live here too. Stories touching the
+            user's holdings are promoted to the top of the feed, which means
+            the one story most likely to carry the badge is the one rendered by
+            this card rather than by StoryRow — so the badge existed and was
+            never seen. */}
+        {item.inWatchlist && (
+          <span
+            className="text-[8px] font-mono tracking-widest text-terminal-gold"
+            title="You hold or track one of the companies in this story"
+          >IN YOUR WATCHLIST</span>
+        )}
       </div>
 
       {item.summary && (
@@ -502,7 +515,9 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
           >
             {impact === 'HIGH' ? 'HIGH IMPACT' : impact}
           </span>
-          <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
+          {item.companies?.length
+            ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
+            : <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />}
         </div>
         {item.link && (
           <a
@@ -530,6 +545,72 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
 // ─── STORY ROW — plain list row (48px), click expands an inline accordion
 // with the 2-line summary + Read/Ask actions; only one row open at a time. ──
 
+// Impact is a keyword heuristic, and the tooltip says so. A badge that reads
+// as a market call rather than as a word-count would be acted on.
+function ImpactDot({ impact }) {
+  if (!impact) return null
+  return (
+    <span
+      className="flex items-center gap-0.5 flex-shrink-0"
+      title={`${impact.level} — estimated from keywords in the headline, not a market forecast`}
+      style={{ color: impact.colour }}
+    >
+      <span style={{ fontSize: 7 }}>●</span>
+      <span style={{ fontSize: 8, letterSpacing: '0.08em' }}>{impact.level}</span>
+    </span>
+  )
+}
+
+// Companies named in the story, from newsIntelligence's alias matching. Shows
+// what was matched on hover, so a wrong match is diagnosable rather than
+// mysterious.
+function CompanyPills({ companies, onOpenTicker }) {
+  if (!companies?.length) return null
+  return (
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {companies.slice(0, 3).map((c) => (
+        <button
+          key={c.ticker}
+          onClick={(e) => { e.stopPropagation(); onOpenTicker({ symbol: c.ticker, label: c.ticker.replace('.AX', '') }) }}
+          title={`Matched on "${c.matched}" — open ${c.ticker}`}
+          className="text-2xs px-1 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >{c.ticker.replace('.AX', '')}</button>
+      ))}
+    </div>
+  )
+}
+
+// A cluster of related stories: the lead rendered in full, the rest collapsed
+// behind a count. Single-story clusters render as a bare row, so the feed only
+// grows chrome where there is actually something to group.
+function StoryCluster({ cluster, ...rowProps }) {
+  const [open, setOpen] = useState(false)
+  if (cluster.count <= 1) return <StoryRow item={cluster.lead} {...rowProps} />
+
+  return (
+    <div className="border-b border-terminal-border">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/5 hover:bg-terminal-gold/10 transition-colors text-left"
+      >
+        <span className="text-[8px] font-mono tracking-widest text-terminal-gold/70 truncate">
+          {cluster.label}
+        </span>
+        <span className="text-[8px] font-mono text-terminal-text-dim flex-shrink-0">
+          ({cluster.count} stories)
+        </span>
+        <span className="ml-auto text-[9px] text-terminal-text-dim flex-shrink-0">{open ? '▾' : '▸'}</span>
+      </button>
+      <StoryRow item={cluster.lead} {...rowProps} />
+      {open && cluster.items.slice(1).map((it) => (
+        <div key={it.id ?? it.link} className="pl-3 border-l-2 border-terminal-gold/20">
+          <StoryRow item={it} {...rowProps} isExpanded={false} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
@@ -540,7 +621,13 @@ function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicke
     <div className="border-b border-terminal-border">
       <div
         className={`news-row ${isPulsing ? 'news-pulse' : ''} flex items-start gap-2.5 px-3 py-2 cursor-pointer hover:bg-terminal-surface2 transition-colors`}
-        style={{ minHeight: 48 }}
+        style={{
+          minHeight: 48,
+          // A story about something the reader owns gets a gold edge. 3px, on
+          // the left, so it is unmistakable while scanning without competing
+          // with the sentiment dot on the right.
+          ...(item.inWatchlist ? { borderLeft: '3px solid #C9A84C', background: 'rgba(201,168,76,0.04)' } : null),
+        }}
         onClick={() => onExpand(item)}
       >
         <SourceCircle source={item.source} size={12} />
@@ -559,7 +646,16 @@ function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicke
             >
               {primaryDisplayCategory(item)}
             </span>
-            <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />
+            <ImpactDot impact={item.impact} />
+            {item.companies?.length
+              ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
+              : <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />}
+            {item.inWatchlist && (
+              <span
+                className="text-[8px] font-mono tracking-widest text-terminal-gold flex-shrink-0"
+                title="You hold or track one of the companies in this story"
+              >IN YOUR WATCHLIST</span>
+            )}
           </div>
         </div>
         <span
@@ -853,7 +949,7 @@ export default function NewsModule() {
   const prevHeadlines                 = useRef(new Set())
   const listTopRef                    = useRef(null)
 
-  const { newsFilter, setNewsFilter, clearNewsBadge, openModal } = useStore()
+  const { newsFilter, setNewsFilter, clearNewsBadge, openModal, watchlist } = useStore()
   const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
 
   // Clear nav badge and tick clock
@@ -934,6 +1030,29 @@ export default function NewsModule() {
     if (!def || def.key === 'ALL') return searchFiltered
     return searchFiltered.filter(def.test)
   }, [searchFiltered, activeCategory])
+
+  // Companies, impact and watchlist matches, attached once per feed pass.
+  // Purely lexical — see newsIntelligence.js for why none of this is generated.
+  const annotated = useMemo(
+    () => annotateArticles(byCategory, watchlist ?? []),
+    [byCategory, watchlist],
+  )
+
+  // Stories the user actually holds or tracks float to the top. This is the
+  // one reordering the module does, and it is deliberate: a feed sorted purely
+  // by recency buries the story about your own position under six about
+  // someone else's.
+  const prioritised = useMemo(() => {
+    const watched = annotated.filter((a) => a.inWatchlist)
+    const rest = annotated.filter((a) => !a.inWatchlist)
+    return [...watched, ...rest]
+  }, [annotated])
+
+  const clusters = useMemo(() => clusterStories(prioritised), [prioritised])
+
+  // Derived from the module's existing clock tick rather than a new interval.
+  const session = useMemo(() => marketSession(new Date(nowTs)), [nowTs])
+  const watchlistCount = useMemo(() => annotated.filter((a) => a.inWatchlist).length, [annotated])
 
   const catCount = useCallback(cat => {
     const def = DISPLAY_CATEGORIES.find(c => c.key === cat)
@@ -1033,8 +1152,8 @@ export default function NewsModule() {
     ? Math.max(0, Math.round((REFRESH_MS - (nowTs - lastUpdatedAt)) / 1000))
     : null
 
-  const topStory   = byCategory[0]
-  const listRest    = byCategory.slice(1)
+  const topStory   = prioritised[0]
+  const listRest    = clusters.slice(1)
   const bannerVisible = lastArrivalAt != null && (nowTs - lastArrivalAt < 10_000)
 
   return (
@@ -1047,6 +1166,33 @@ export default function NewsModule() {
         lastUpdated={lastUpdatedAt}
         onRefresh={refetch}
       />
+
+      {/* Market session — what the ASX is doing as you read. Recomputed from
+          `nowTs`, the ticker the module already runs, so it stays live without
+          a second interval. Pinned to Australian time: reading the browser's
+          clock would tell someone in London the ASX was open at 3am. */}
+      <div
+        className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0"
+        style={{
+          borderColor: `${session.colour}44`,
+          background: `${session.colour}0F`,
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+          style={{ background: session.colour }}
+        />
+        <span
+          className="text-[9px] font-mono font-bold tracking-widest"
+          style={{ color: session.colour }}
+        >{session.label}</span>
+        <span className="text-[9px] font-mono text-terminal-text-dim">· {session.detail}</span>
+        {watchlistCount > 0 && (
+          <span className="text-[9px] font-mono text-terminal-gold ml-auto">
+            {watchlistCount} {watchlistCount === 1 ? 'story' : 'stories'} on your watchlist
+          </span>
+        )}
+      </div>
 
       <MorningBriefing />
 
@@ -1171,13 +1317,13 @@ export default function NewsModule() {
           {/* CENTRE 40% — a "SPONSORED DATA" sparkline row breaks up the feed
               every 4th story, cycling through the tracked market-impact assets */}
           <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '40%' }} ref={listTopRef}>
-            {listRest.map((item, i) => (
-              <div key={item.id}>
-                <StoryRow
-                  item={item}
-                  isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
-                  isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
-                  isExpanded={expandedId === item.id}
+            {listRest.map((cluster, i) => (
+              <div key={cluster.id}>
+                <StoryCluster
+                  cluster={cluster}
+                  isUnread={!readIds.has(cluster.lead.id) && !readIds.has(cluster.lead.headline)}
+                  isPulsing={newIds.has(cluster.lead.headline) && (nowTs - newIds.get(cluster.lead.headline) < PULSE_MS)}
+                  isExpanded={expandedId === cluster.lead.id}
                   onExpand={handleExpand}
                   onOpenTicker={handleOpenTicker}
                   onAskAI={askAI}
