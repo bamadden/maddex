@@ -1079,17 +1079,33 @@ export const fetchRBARate = fetchRBACashRate
 
 // ─── News via RSS2JSON ────────────────────────────────────────────────────────
 
-const RSS2JSON_BASE = 'https://api.rss2json.com/v1/api.json'
+// Our own RSS proxy (api/rss.js in production, a Vite middleware in dev).
+//
+// Replaces api.rss2json.com, a free third-party service that used to sit in
+// the request path for all nineteen feeds. Every user's news request passed
+// through a host nobody chose, which could see it, rate-limit it, or alter
+// what came back — for a feed that drives sentiment scoring and a
+// notification badge, that is a lot of trust to delegate. It also imposed
+// their quota on us.
+//
+// The response shape is deliberately identical to rss2json's
+// ({ status, items: [{ title, link, pubDate, description }] }) so nothing
+// downstream of here had to change.
+const RSS_PROXY = '/api/rss'
 
+// Three feeds were removed after testing every URL through the new proxy:
+// AFR's /rss returns 404 and Reuters retired feeds.reuters.com. They were
+// failing on every load — three wasted requests and three permanent 'failed'
+// entries in source health, which made the health indicator useless because
+// it never showed all-green regardless of what was actually wrong.
 export const NEWS_SOURCES = [
   // Australian — authoritative financial sources only
-  { url: 'https://www.afr.com/rss',                                          name: 'AFR',              category: 'AU'          },
   { url: 'https://www.smh.com.au/rss/business.xml',                          name: 'SMH Business',     category: 'AU'          },
+  { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',                   name: 'ABC Business',     category: 'AU'          },
+  { url: 'https://www.theguardian.com/australia-news/rss',                   name: 'Guardian AU',      category: 'AU'          },
   { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                   name: 'RBA Speeches',     category: 'AU'          },
   { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml',             name: 'RBA Releases',     category: 'AU'          },
   // US Financial
-  { url: 'https://feeds.reuters.com/reuters/businessNews',                    name: 'Reuters Business', category: 'US'          },
-  { url: 'https://feeds.reuters.com/reuters/markets',                         name: 'Reuters Markets',  category: 'US'          },
   { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',            name: 'CNBC Top News',    category: 'US'          },
   { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',             name: 'CNBC Markets',     category: 'US'          },
   { url: 'https://feeds.marketwatch.com/marketwatch/topstories',              name: 'MarketWatch',      category: 'US'          },
@@ -1259,7 +1275,7 @@ export const fetchNews = async () => {
 
   const results = await Promise.allSettled(
     NEWS_SOURCES.map(({ url, name, category }) =>
-      axios.get(RSS2JSON_BASE, { params: { rss_url: url }, timeout: 8000 })
+      axios.get(RSS_PROXY, { params: { url }, timeout: 10000 })
         .then(({ data }) => ({ data, source: name, sourceCategory: category }))
     )
   )

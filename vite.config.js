@@ -7,8 +7,33 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
+  // Runs api/rss.js in dev, so the RSS proxy behaves identically here and on
+  // Vercel. A plain Vite proxy cannot do this job: the handler fetches AND
+  // parses, and a proxy only forwards. Importing the real handler means there
+  // is one parser to be correct rather than one per environment.
+  const rssDevMiddleware = {
+    name: 'maddex-rss-dev',
+    configureServer(server) {
+      server.middlewares.use('/api/rss', async (req, res) => {
+        const { default: handler } = await server.ssrLoadModule('/api/rss.js')
+        // Minimal Express-shaped res, which is what the Vercel handler expects.
+        const shim = {
+          status(code) { res.statusCode = code; return shim },
+          setHeader(k, v) { res.setHeader(k, v); return shim },
+          json(body) { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)) },
+        }
+        try {
+          await handler({ url: req.url, query: Object.fromEntries(new URL(req.url, 'http://x').searchParams) }, shim)
+        } catch (err) {
+          res.statusCode = 500
+          res.end(JSON.stringify({ error: err.message, items: [] }))
+        }
+      })
+    },
+  }
+
   return {
-    plugins: [react()],
+    plugins: [react(), rssDevMiddleware],
 
     // MapLibre ships its style/tile parser as a separate web worker, and
     // Vite's dependency optimizer rewrites the package without emitting
