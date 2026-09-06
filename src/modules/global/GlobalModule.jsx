@@ -2179,6 +2179,12 @@ function FeedHeader({ children, badge }) {
 // Pauses on hover — a line you want to read should not walk away from you.
 function IntelTicker() {
   const [lines, setLines] = useState(null)
+  const [regenerating, setRegenerating] = useState(false)
+
+  const load = useCallback(async () => {
+    const { data } = await aiContentService.getIntelTicker()
+    if (Array.isArray(data) && data.length) setLines(data)
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -2188,18 +2194,46 @@ function IntelTicker() {
     return () => { alive = false }
   }, [])
 
+  // The ticker is generated once per market day and cached, so a prompt change
+  // would otherwise not show until tomorrow. This drops the cached entry and
+  // asks for a fresh one.
+  const regenerate = useCallback(async () => {
+    setRegenerating(true)
+    aiContentService.clearKey('intel_ticker')
+    try { await load() } catch { /* keep the existing strip on failure */ }
+    finally { setRegenerating(false) }
+  }, [load])
+
   if (!lines) return null
   const run = [...lines, ...lines]
 
   return (
     <div
-      className="intel-ticker flex-shrink-0 overflow-hidden"
+      className="intel-ticker flex-shrink-0 overflow-hidden relative group"
       style={{
         height: 32,
         background: '#020609',
         borderBottom: '1px solid rgba(201,168,76,0.08)',
       }}
     >
+      {/* Regenerate. Sits over the right edge on its own gradient so the
+          scrolling text passes behind it rather than colliding with it, and
+          stays faint until the strip is hovered — this is maintenance, not a
+          control anyone needs to see while reading. */}
+      <button
+        onClick={regenerate}
+        disabled={regenerating}
+        title="Regenerate intelligence ticker — clears today's cached generation"
+        aria-label="Regenerate intelligence ticker"
+        className="absolute right-0 top-0 h-full z-10 flex items-center pr-2 pl-6 opacity-30 hover:opacity-100 transition-opacity disabled:opacity-40"
+        style={{
+          background: 'linear-gradient(to right, transparent, #020609 45%)',
+          color: '#C9A84C', fontSize: 11, lineHeight: 1, cursor: 'pointer', border: 'none',
+        }}
+      >
+        <span className={regenerating ? 'animate-spin inline-block' : 'inline-block'}>↻</span>
+      </button>
+
       <div className="intel-ticker-track flex items-center h-full whitespace-nowrap">
         {run.map((line, i) => (
           <span

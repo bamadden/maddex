@@ -818,13 +818,15 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
           // Momentum after a drag. This is the part that makes the map feel
           // like an instrument rather than a static image.
           inertia: 300,
-          // scrollZoom is left at its default — deliberately not configured.
-          // Both { smooth: true, speed: 0.01 } and { smooth: false, speed:
-          // 0.02 } left zoom completely frozen: 25 wheel ticks, zoom 3.5
-          // throughout, measured in the browser. This map drives viewState as
-          // a controlled prop, and supplying a scrollZoom object appears to
-          // take a path that the controlled round-trip cancels. Omitting the
-          // key restores the working default, which is what shipped before.
+          // scrollZoom stays at deck.gl's default — no override.
+          //
+          // { smooth: true } is measurably broken here: with the identical
+          // wheel-on-canvas test that moves zoom 3.5 -> 4.4 -> 5.4 on the
+          // default, the smooth variant does not move zoom at all. Smooth
+          // scroll-zoom runs its own interpolation, and this map is a fully
+          // controlled component whose onViewStateChange writes each frame
+          // back into React state — which cancels that interpolation before
+          // it advances. Stepped zoom is the working configuration.
         }}
         layers={layers}
         getCursor={({ isHovering }) => (isHovering ? 'pointer' : 'grab')}
@@ -856,7 +858,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
         background: 'linear-gradient(to bottom, rgba(6,13,26,0.55), transparent)' }} />
 
-      <HudFrame width={mapWidth ?? 0} />
+      <HudFrame />
       {(mapWidth ?? 0) >= 420 && (
         <CoordinateReadout viewState={viewState} offsetRight={selected ? panelWidth + 16 : 14} />
       )}
@@ -899,6 +901,24 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       </div>
 
       <DataStatus sources={feedStatus} bottom={12} />
+
+      {/* Classification strip.
+          Bottom-left, stacked above the data-status line rather than centred
+          at the top. Centred, it collided with the right-aligned clock on the
+          ~556px map column — two overlapping gold strings read as a rendering
+          fault. Here it joins the column of status chrome that already runs up
+          the left edge, which is where a reader is looking for provenance
+          anyway. Dimmer than the bars it sits above (0.25 alpha) because it
+          never changes: it is a label, not a reading. */}
+      <div style={{
+        position: 'absolute', bottom: 72, left: 12, zIndex: Z.HUD,
+        pointerEvents: 'none', whiteSpace: 'nowrap',
+        fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+        letterSpacing: '0.3em', color: 'rgba(201,168,76,0.25)',
+        textShadow: '0 1px 3px rgba(6,13,26,0.9)',
+      }}>
+        MADDEX INTELLIGENCE · UNCLASSIFIED
+      </div>
     </div>
   )
 }
@@ -969,7 +989,7 @@ function CoordinateReadout({ viewState, offsetRight }) {
   )
 }
 
-function HudFrame({ width }) {
+function HudFrame() {
   const corner = (pos) => ({
     position: 'absolute', width: 28, height: 28, ...pos,
   })
@@ -996,23 +1016,6 @@ function HudFrame({ width }) {
         <div style={{ ...corner({ bottom: 0, left: 0 }),  borderBottom: `1px solid ${gold}`, borderLeft: `1px solid ${gold}` }} />
         <div style={{ ...corner({ bottom: 0, right: 0 }), borderBottom: `1px solid ${gold}`, borderRight: `1px solid ${gold}` }} />
       </div>
-
-      {/* Classification strip. Hidden below 620px: the strip is centred and
-          the clock is right-aligned, and on the narrow three-column layout
-          they land on top of each other — two overlapping gold strings read
-          as a rendering fault, not as chrome. The clock is the one that
-          carries information, so it is the one that stays. */}
-      {width >= 620 && (
-        <div style={{
-          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-          zIndex: Z.HUD, pointerEvents: 'none', whiteSpace: 'nowrap',
-          fontFamily: '"IBM Plex Mono", monospace', fontSize: 8,
-          letterSpacing: '0.3em', color: 'rgba(201,168,76,0.35)',
-          textShadow: '0 1px 3px rgba(6,13,26,0.9)',
-        }}>
-          MADDEX INTELLIGENCE · UNCLASSIFIED
-        </div>
-      )}
 
       <MissionClock />
     </>

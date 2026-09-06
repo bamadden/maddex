@@ -27,13 +27,26 @@ import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 
 const AI_CACHE_PREFIX = 'maddex_ai_content_'
 
-// Local date, not UTC. toISOString() keys the cache to the UTC day, which in
-// Australia (UTC+10/+11) rolls over at 10 or 11 in the morning — so "today's"
-// content expired mid-morning and the "yesterday" fallback pointed at a day
-// the user had not had yet. Observed: a cache key of 2026-09-05 written at
-// 00:47 local on the 6th. en-CA formats as YYYY-MM-DD.
-// macroThemeService already keys this way; the two now agree.
-const dayKey = (d = new Date()) => d.toLocaleDateString('en-CA')
+// The Australian market day, not UTC and not the browser's day.
+//
+// toISOString() keys the cache to the UTC day, which in Australia (UTC+10/+11)
+// rolls over at 10 or 11 in the morning — "today's" content expired
+// mid-morning and the "yesterday" fallback pointed at a day the user had not
+// had yet. Observed: a cache key of 2026-09-05 written at 00:47 local on
+// the 6th.
+//
+// Plain toLocaleDateString('en-CA') fixed that but keyed to whatever timezone
+// the browser is in. This is an Australian terminal and its content is a
+// market-day artefact, so the boundary is pinned to Australian eastern time:
+// open the terminal from London and you still get Sydney's Tuesday brief
+// rather than a new day starting mid-Australian-afternoon.
+//
+// Australia/Brisbane specifically, because Queensland does not observe daylight
+// saving — it is a stable UTC+10 all year, so the day boundary never shifts
+// under the cache. Sydney would move it by an hour twice a year.
+const AU_MARKET_TZ = 'Australia/Brisbane'
+const dayKey = (d = new Date()) =>
+  d.toLocaleDateString('en-CA', { timeZone: AU_MARKET_TZ })
 const today = () => dayKey()
 const yesterday = () => dayKey(new Date(Date.now() - 86400000))
 
@@ -247,6 +260,24 @@ Reason from the verified figures supplied. Do not introduce new numbers.`)
       if (fresh) return { key, kind: 'ai', status: 'today' }
       return { key, kind: 'ai', status: readDay(key, yesterday()) ? 'yesterday' : 'none' }
     })
+  },
+
+  // Invalidates ONE content key rather than the whole AI cache.
+  //
+  // Deletes today's and yesterday's entries — yesterday matters because
+  // withDailyCache falls back to it, so leaving it would serve the previous
+  // generation and look like the regeneration silently did nothing.
+  //
+  // The in-flight entry goes too. Without that, a regenerate fired while a
+  // request for the same key is already running returns the pending promise
+  // for the generation being replaced, which resolves with exactly the content
+  // the user just asked to discard.
+  clearKey(key) {
+    try {
+      localStorage.removeItem(`${AI_CACHE_PREFIX}${key}_${today()}`)
+      localStorage.removeItem(`${AI_CACHE_PREFIX}${key}_${yesterday()}`)
+    } catch { /* best effort */ }
+    inFlight.delete(key)
   },
 
   clearCache() {
