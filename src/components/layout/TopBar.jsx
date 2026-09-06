@@ -133,7 +133,14 @@ function UserMenu() {
           className="group flex items-center hover:opacity-80 transition-opacity"
           title={displayName || 'Account'}
         >
-          <div className="w-7 h-7 rounded-full flex items-center justify-center bg-terminal-surface2 border border-terminal-gold/60 text-terminal-gold text-[10px] font-bold font-mono flex-shrink-0 transition-colors group-hover:border-terminal-gold">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] font-bold flex-shrink-0 transition-colors"
+            style={{
+              background: 'rgba(201,168,76,0.08)',
+              border: '1px solid rgba(201,168,76,0.3)',
+              color: '#C9A84C',
+            }}
+          >
             {initials}
           </div>
         </button>
@@ -175,7 +182,11 @@ function UserMenu() {
 
 // ─── TopBar ────────────────────────────────────────────────────────────────────
 
-const Divider = () => <span className="w-px h-4 bg-terminal-gold/10 mx-0.5 flex-shrink-0" />
+// 16px, not full height: a divider that reaches the bar's edges cuts the
+// row into boxes; one that stops short separates without partitioning.
+const Divider = () => (
+  <span className="w-px flex-shrink-0 mx-1.5" style={{ height: 16, background: 'rgba(201,168,76,0.08)' }} />
+)
 
 // Data freshness indicator — shows how long since the last refresh and a
 // countdown to the next automatic one; click triggers an immediate refresh
@@ -216,17 +227,26 @@ function DataFreshnessBadge() {
 
   // Green while fresh, amber once the refresh window has lapsed. The words
   // moved into the tooltip.
+  // Three states, matching how old the data actually is rather than only
+  // whether the refresh timer has lapsed: green under five minutes, gold
+  // under an hour, red beyond. A single "fresh or not" dot said nothing
+  // about the difference between two minutes and two hours.
+  const ageMins = Math.floor(elapsed / 60)
+  const tone = ageMins < 5 ? { c: '#2D8A50', pulse: true, word: 'Live' }
+    : ageMins < 60 ? { c: '#C9A84C', pulse: false, word: 'Recent' }
+    : { c: '#A83232', pulse: false, word: 'Stale' }
   const stale = remaining === 0
   return (
-    <Tooltip content={`Data updated ${timeAgo}\n${stale ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
+    <Tooltip content={`Data ${tone.word.toLowerCase()} — updated ${timeAgo}\n${stale ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
     <button
       onClick={handleClick}
       aria-label="Refresh live data"
       className="flex items-center justify-center w-3.5 h-7 flex-shrink-0 group"
     >
-      <span className={`inline-block w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${
-        stale ? 'bg-amber-400' : 'bg-terminal-green'
-      } group-hover:bg-terminal-gold`} />
+      <span
+        className={`inline-block rounded-full transition-colors ${tone.pulse ? 'animate-pulse' : ''}`}
+        style={{ width: 5, height: 5, background: tone.c }}
+      />
     </button>
     </Tooltip>
   )
@@ -263,13 +283,34 @@ function SentimentTick({ sentiment, status }) {
 // Deliberately inert: not a button, not a dropdown. A label.
 function ModuleCrumb() {
   const { activeModule } = useStore()
+  // Modules with internal views announce them rather than the TopBar reaching
+  // into their state, so this stays correct for the thirteen that have none.
+  //
+  // The announcement is stored WITH its module and matched during render,
+  // rather than cleared by an effect when the module changes. Clearing would
+  // leave the old module's subview on screen for a frame, and would mean two
+  // effects racing to decide what the label says.
+  const [sub, setSub] = useState(null)
+
+  useEffect(() => {
+    const handler = (e) => setSub(e.detail?.module ? { module: e.detail.module, label: e.detail.label } : null)
+    window.addEventListener('madden:subview', handler)
+    return () => window.removeEventListener('madden:subview', handler)
+  }, [])
+
+  const subview = sub?.module === activeModule ? sub.label : null
+
   const mod = WORKSPACE_MODULE_LIST.find((m) => m.id === activeModule)
   if (!mod) return null
   return (
     <span className="flex items-center gap-2 min-w-0" aria-live="polite">
       <span className="text-[11px] leading-none flex-shrink-0 opacity-60">{mod.icon}</span>
-      <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-terminal-muted whitespace-nowrap truncate">
+      <span
+        className="font-mono text-[10px] uppercase whitespace-nowrap truncate"
+        style={{ letterSpacing: '0.15em', color: '#637899' }}
+      >
         {mod.label}
+        {subview && <span style={{ color: '#3A4A61' }}> · {subview}</span>}
       </span>
     </span>
   )
@@ -337,26 +378,36 @@ export default function TopBar() {
   return (
     <>
     <div
-      className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center bg-terminal-header border-b border-terminal-border-gold px-3 flex-shrink-0"
-      style={{ height: 44 }}
+      className="flex items-stretch flex-shrink-0"
+      style={{
+        height: 48,
+        background: '#030912',
+        borderBottom: '1px solid rgba(201,168,76,0.08)',
+      }}
     >
-      {/* LEFT — wordmark only, sized to match the 64px sidebar rail */}
-      <div className="flex items-center min-w-0">
-        <span className="font-mono font-semibold text-[13px] tracking-[0.2em] text-terminal-gold whitespace-nowrap flex-shrink-0">
+      {/* LEFT — exactly 64px, mirroring the sidebar rail beneath it, with a
+          divider on the same line as the sidebar's own right border. The two
+          verticals read as one continuous edge down the left of the app. */}
+      <div
+        className="flex items-center justify-center flex-shrink-0"
+        style={{ width: 64, borderRight: '1px solid rgba(201,168,76,0.08)' }}
+      >
+        <span className="font-mono font-semibold text-[9px] tracking-[0.18em] text-terminal-gold whitespace-nowrap">
           MADDEX
         </span>
       </div>
 
-      {/* CENTRE — the current module's name. The grid's equal 1fr side columns
-          keep this centred regardless of how wide the right cluster gets. */}
-      <div className="flex items-center justify-self-center min-w-0 overflow-hidden">
+      {/* CENTRE — breadcrumb, left-aligned against the divider rather than
+          centred in the window. Centred text drifts as the right cluster
+          changes width; anchored text does not move at all. */}
+      <div className="flex items-center min-w-0 flex-1 overflow-hidden pl-5">
         <ModuleCrumb />
       </div>
 
       {/* RIGHT — compact groups on one line. Dividers are interleaved between
           present items only, so a signed-out or non-demo session never leaves
           a separator dangling with nothing after it. */}
-      <div className="flex items-center justify-self-end flex-shrink-0">
+      <div className="flex items-center flex-shrink-0 pr-3">
         {[
           <MarketDots key="markets" now={time} />,
           <SentimentTick key="sentiment" sentiment={sentiment} status={sentimentStatus} />,

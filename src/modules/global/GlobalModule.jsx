@@ -2534,6 +2534,15 @@ export default function GlobalModule() {
   // The map is one click away and fully functional for every data layer we
   // draw ourselves. Flip this to 'map' once tile loading is confirmed.
   const [viewMode, setViewMode] = useState('classic')
+
+  // Tells the TopBar which view is showing, so the breadcrumb can read
+  // "GLOBAL · INTELLIGENCE MAP" rather than just "GLOBAL". An event rather
+  // than shared state: the TopBar has no business reaching into this module,
+  // and thirteen other modules should not have to opt out of a store field.
+  useEffect(() => {
+    const label = { map: 'INTELLIGENCE MAP', classic: 'CLASSIC GLOBE', globe3d: 'IMMERSIVE 3D' }[viewMode]
+    window.dispatchEvent(new CustomEvent('madden:subview', { detail: { module: 'global', label } }))
+  }, [viewMode])
   const { watchlist } = useStore()
 
   const { rates } = useAudRates()
