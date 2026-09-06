@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { askClaude, buildSystemPrompt } from '../../services/api'
+import { detectQueryIntent, intentGuidance } from '../../services/queryIntent'
 import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
@@ -112,10 +113,10 @@ const MODULE_PROMPTS = {
 // backdrop, and the user's own holdings — so the empty state doubles as a
 // statement of scope.
 const EMPTY_STATE_CARDS = [
-  { icon: '📈', title: 'Market outlook',  subtitle: "What's driving ASX today?",       prompt: 'What is driving the ASX today? Cover the main sector moves, the macro backdrop, and what to watch into the close.' },
-  { icon: '🏦', title: 'Stock analysis',  subtitle: 'Deep dive any company',            prompt: 'I want to analyse a specific company. Ask me which ticker, then give a full read on it — business, valuation, catalysts and risks.' },
-  { icon: '🌐', title: 'Macro themes',    subtitle: 'Global forces shaping markets',    prompt: 'What are the major global macro themes shaping markets right now, and how does each one land for an Australian investor?' },
-  { icon: '💡', title: 'Portfolio review', subtitle: 'Analyse your holdings',           prompt: 'Review my portfolio holdings — concentration, sector balance, and the main risks I should be aware of.' },
+  { icon: '📊', title: 'Deep dive',       subtitle: 'Fundamentals, sector position, key risks', prompt: 'Analyse BHP.AX for me — the business, recent performance and its drivers, the metrics that matter for a miner, how it sits against its sector, the main risks, and what to watch next.' },
+  { icon: '🌏', title: 'Macro read',      subtitle: 'RBA, inflation, growth outlook',           prompt: 'Where is the Australian economy heading? Cover the RBA cash rate path, inflation, growth and unemployment, and what each means for ASX sectors, the AUD and bonds.' },
+  { icon: '⚖️', title: 'Compare',         subtitle: 'BHP vs RIO — which suits whom, and why',   prompt: 'Compare BHP and RIO. How do the two businesses actually differ, on which axes do they genuinely diverge, and what kind of investor does each suit?' },
+  { icon: '💼', title: 'Portfolio health', subtitle: 'Concentration risk and sector gaps',      prompt: 'Review my portfolio holdings for concentration risk and sector gaps. Where am I over-exposed, what is missing, and what are the main risks I should be aware of?' },
 ]
 
 const DEFAULT_PROMPTS = [
@@ -291,6 +292,29 @@ function FormattedResponse({ text }) {
               marginBottom: '6px', borderBottom: '1px solid rgba(201,168,76,0.25)',
               paddingBottom: '4px', textTransform: 'uppercase',
             }}>{content}</div>
+          )
+        }
+
+        // ALL-CAPS heading followed by an em dash — the shape the structured
+        // query modes ask for ("OVERVIEW — what the business does"). Rendered
+        // as a full section header rather than an inline label because these
+        // divide the answer rather than annotating a value.
+        if (/^[A-Z][A-Z\s/&-]{2,40}\s+—\s+/.test(trimmed)) {
+          const dashIdx = trimmed.indexOf('—')
+          const label = trimmed.slice(0, dashIdx).trim()
+          const rest = trimmed.slice(dashIdx + 1).trim()
+          return (
+            <div key={i} style={{ marginTop: i > 0 ? '14px' : '0', marginBottom: '4px' }}>
+              <div style={{
+                color: 'var(--mt-gold)', fontWeight: 700, fontSize: '10px',
+                letterSpacing: '0.14em', borderBottom: '1px solid rgba(201,168,76,0.2)',
+                paddingBottom: '3px', marginBottom: '5px',
+              }}>{label}</div>
+              {rest && (
+                <div style={{ color: 'var(--mt-text)' }}
+                  dangerouslySetInnerHTML={{ __html: formatInline(rest) }} />
+              )}
+            </div>
           )
         }
 
@@ -676,10 +700,17 @@ export default function AIPanel({ wide = false }) {
       .map((m) => ({ role: m.role, content: m.content }))
 
     try {
+      // The shape of the answer is chosen from the shape of the question.
+      // A stock query, a head-to-head and a macro query want visibly
+      // different structures, and a model given none produces the same
+      // flowing paragraphs for all three. See services/queryIntent.js.
+      const intent = detectQueryIntent(text)
+      const systemPrompt = buildSystemPrompt(profile?.experience_level) + intentGuidance(intent)
+
       const result = await askClaude(
         [...history, userTurnWire],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { systemPrompt: buildSystemPrompt(profile?.experience_level) }
+        { systemPrompt }
       )
       updateLastChatMessage((prev) => ({
         ...prev,
