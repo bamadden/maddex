@@ -43,15 +43,62 @@ const art = {
 // tall one both end up the same visual weight.
 const SQUARE = Math.round(Math.max(art.width, art.height) / 0.82)
 
-async function tile(size) {
-  const cropped = await sharp(source).extract(art).png().toBuffer()
+// Keys the flat navy out of the JPEG, turning it into a mark with real
+// transparency.
+//
+// Measured: the logo's own navy is #021236, the sidebar is #030912 and the
+// app background is #060D1A — a distance of 37 and 29 respectively, which
+// renders as a visibly lighter square sitting behind the mark. Matching one
+// of them still leaves the other wrong, and the source is a JPEG so there is
+// no alpha channel to reuse.
+//
+// Alpha is the pixel's distance from the background rather than a hard
+// threshold: a cutoff produces a jagged, aliased edge on a mark this size,
+// whereas a ramp keeps the anti-aliasing the original artwork already has.
+async function keyed() {
+  const { data, info } = await sharp(source).extract(art).raw().toBuffer({ resolveWithObject: true })
+  const out = Buffer.alloc(info.width * info.height * 4)
+  // Everything more than SOLID from the background is fully opaque; the band
+  // below it ramps, which is where the edge pixels live.
+  const SOLID = 90
+  const EDGE = 25
+  for (let i = 0, o = 0; i < data.length; i += info.channels, o += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2]
+    const dist = Math.sqrt((r - BG.r) ** 2 + (g - BG.g) ** 2 + (b - BG.b) ** 2)
+    const a = dist <= EDGE ? 0 : dist >= SOLID ? 255 : Math.round(((dist - EDGE) / (SOLID - EDGE)) * 255)
+    out[o] = r; out[o + 1] = g; out[o + 2] = b; out[o + 3] = a
+  }
+  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer()
+}
+
+// `transparent` marks are for in-app branding, where the tile has to sit on
+// the sidebar and the topbar — two different darks. A transparent mark blends
+// into both, and into any future surface, instead of matching one of them.
+//
+// PWA icons keep a solid background, on the app's #060D1A rather than the
+// source's navy: a home-screen icon with transparency gets composited onto
+// whatever the OS chooses, which on iOS is white.
+async function tile(size, { transparent = false } = {}) {
+  // BOTH variants start from the keyed mark. Cropping the raw JPEG instead
+  // left the source's own navy inside the artwork region while the padding
+  // around it took the app colour — a lighter rectangle in the middle of the
+  // tile, which is the exact seam this was meant to remove. Keying first and
+  // flattening after means one background across the whole icon.
+  const cropped = await keyed()
   const padX = Math.round((SQUARE - art.width) / 2)
   const padY = Math.round((SQUARE - art.height) / 2)
+  const pad = transparent
+    ? { r: 0, g: 0, b: 0, alpha: 0 }
+    : { r: 6, g: 13, b: 26, alpha: 1 }   // #060D1A — the app's background
   const squared = await sharp(cropped)
-    .extend({ top: padY, bottom: padY, left: padX, right: padX, background: BG })
+    .extend({ top: padY, bottom: padY, left: padX, right: padX, background: pad })
     .png()
     .toBuffer()
-  return sharp(squared).resize(size, size, { fit: 'fill' }).png().toBuffer()
+
+  // Solid tiles are flattened onto the app background so the source's own
+  // navy does not survive as a lighter rectangle inside the icon.
+  const resized = sharp(squared).resize(size, size, { fit: 'fill' })
+  return (transparent ? resized : resized.flatten({ background: { r: 6, g: 13, b: 26 } })).png().toBuffer()
 }
 
 const sizes = [
@@ -66,9 +113,10 @@ const sizes = [
   { size: 192, name: 'icon-192x192.png' },
   { size: 384, name: 'icon-384x384.png' },
   { size: 512, name: 'icon-512x512.png' },
-  // In-app branding (sidebar 36px, topbar 28px). Same artwork as everything
-  // else now that the source carries no wordmark — kept as separate files so
-  // the components' paths do not have to change.
+]
+
+// In-app branding (sidebar 36px, topbar 28px), generated with transparency.
+const MARKS = [
   { size: 96,  name: 'icon-mark-96.png' },
   { size: 192, name: 'icon-mark-192.png' },
 ]
@@ -76,6 +124,11 @@ const sizes = [
 for (const { size, name } of sizes) {
   await sharp(await tile(size)).toFile(`./public/icons/${name}`)
   console.log(`✓ ${name}`)
+}
+
+for (const { size, name } of MARKS) {
+  await sharp(await tile(size, { transparent: true })).toFile(`./public/icons/${name}`)
+  console.log(`✓ ${name} (transparent)`)
 }
 
 await sharp(await tile(32)).toFile('./public/favicon.png')
