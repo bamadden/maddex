@@ -1,9 +1,24 @@
 import { defineConfig, loadEnv } from 'vite'
+import { execSync } from 'node:child_process'
 import react from '@vitejs/plugin-react'
 
 // Needs the function form (not a plain object) so loadEnv can read
 // ANTHROPIC_API_KEY — a non-VITE_-prefixed var, kept out of the client
 // bundle on purpose — for the dev-only /api/claude proxy below.
+// The commit the running bundle was built from.
+//
+// Settings shows this so a bug report names a specific build rather than
+// "the current version" — the difference between a reproducible report and a
+// guess. Wrapped because a build from a tarball or a shallow CI checkout has
+// no git directory, and a missing hash must not fail the build.
+function gitCommit() {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
@@ -34,6 +49,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), rssDevMiddleware],
+
+    define: {
+      __GIT_COMMIT__: JSON.stringify(gitCommit()),
+      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    },
 
     // MapLibre ships its style/tile parser as a separate web worker, and
     // Vite's dependency optimizer rewrites the package without emitting

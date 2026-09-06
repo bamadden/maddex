@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import { useProfile } from '../../hooks/useProfile'
-import { useTheme, THEMES } from '../../hooks/useTheme'
+import { useTheme, THEMES, ACCENTS } from '../../hooks/useTheme'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry } from '../../lib/profileUtils'
@@ -23,7 +24,7 @@ import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
+const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -328,10 +329,56 @@ const DISPLAY_CURRENCIES = [
   { code: 'JPY', flag: '🇯🇵' }, { code: 'CAD', flag: '🇨🇦' },
 ]
 
+// A miniature of the terminal in a theme's own colours, rather than a single
+// flat swatch. A swatch shows the background and nothing else — which is the
+// one part of a terminal theme a user cares least about. This shows the
+// relationship between panel, border, text and accent, which is what actually
+// differs between DARK and DARKER.
+//
+// Takes the accent's variables separately so each preview reflects the
+// CURRENTLY SELECTED accent: picking BLUE should recolour all four theme
+// previews, because that is what picking it will do to the app.
+function ThemePreview({ vars, accentVars }) {
+  const v = { ...vars, ...(accentVars ?? {}) }
+  const rgb = (key, alpha) => {
+    const raw = v[key]
+    if (!raw) return 'transparent'
+    return alpha == null ? `rgb(${raw.split(' ').join(',')})` : `rgba(${raw.split(' ').join(',')},${alpha})`
+  }
+
+  return (
+    <span
+      className="w-full block border overflow-hidden"
+      style={{ height: 40, background: rgb('--t-bg'), borderColor: rgb('--t-border') }}
+      aria-hidden="true"
+    >
+      {/* header strip */}
+      <span className="block" style={{ height: 8, background: rgb('--t-header'), borderBottom: `1px solid ${rgb('--t-border')}` }}>
+        <span className="block" style={{ width: 12, height: 2, margin: '3px 0 0 3px', background: rgb('--t-gold') }} />
+      </span>
+      {/* body: a panel with two text lines and an accent bar */}
+      <span className="flex" style={{ height: 32 }}>
+        <span className="block" style={{ width: '34%', background: rgb('--t-panel'), borderRight: `1px solid ${rgb('--t-border')}`, padding: 3 }}>
+          <span className="block" style={{ height: 2, width: '80%', background: rgb('--t-text-dim', 0.5), marginBottom: 2 }} />
+          <span className="block" style={{ height: 2, width: '55%', background: rgb('--t-text-dim', 0.3) }} />
+        </span>
+        <span className="block flex-1" style={{ padding: 3 }}>
+          <span className="block" style={{ height: 3, width: '45%', background: rgb('--t-gold'), marginBottom: 3 }} />
+          <span className="block" style={{ height: 2, width: '85%', background: rgb('--t-text', 0.55), marginBottom: 2 }} />
+          <span className="flex" style={{ gap: 2 }}>
+            <span className="block" style={{ height: 2, width: '30%', background: rgb('--t-green') }} />
+            <span className="block" style={{ height: 2, width: '20%', background: rgb('--t-red') }} />
+          </span>
+        </span>
+      </span>
+    </span>
+  )
+}
+
 function PreferencesSection() {
   const { settings, updateSettings, profile, updateProfile } = useAuthStore()
   const { setCurrency: setStoreCurrency } = useStore()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, accent, setAccent } = useTheme()
   const { layout, setLayout } = useLayoutMode()
   const [currency, setCurrency] = useState(settings?.currency || 'AUD')
   const [defaultModule, setDefaultModule] = useState(settings?.default_module || 'markets')
@@ -457,13 +504,37 @@ function PreferencesSection() {
                   : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
               }`}
             >
-              <span
-                className="w-full h-5 border border-terminal-border/50"
-                style={{ background: t.swatch }}
-              />
+              <ThemePreview vars={t.vars} accentVars={ACCENTS[accent]?.vars} />
               <span className="text-2xs font-bold">{t.label}</span>
             </button>
           ))}
+        </div>
+
+        <div className="mt-4">
+          <div className="text-2xs text-terminal-text-dim mb-2">ACCENT COLOUR</div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {Object.entries(ACCENTS).map(([key, a]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setAccent(key)}
+                className={`flex items-center gap-1.5 px-2 py-1.5 border transition-colors ${
+                  accent === key
+                    ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
+                    : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
+                }`}
+              >
+                <span
+                  className="w-3 h-3 rounded-sm flex-shrink-0 border border-black/30"
+                  style={{ background: a.swatch }}
+                />
+                <span className="text-2xs font-bold">{a.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="text-2xs text-terminal-text-dim/60 mt-1.5">
+            Applies live across the terminal — headings, active tabs, badges and primary buttons.
+          </div>
         </div>
       </div>
 
@@ -1808,12 +1879,190 @@ function ApiAccessSection() {
 
 // ─── ABOUT ────────────────────────────────────────────────────────────────────
 
-const BUILD_DATE = '2026-08-25'
+// Injected by vite.config.js at build time, so they describe the bundle the
+// user is actually running rather than a date somebody remembered to edit.
+// eslint-disable-next-line no-undef
+const GIT_COMMIT = typeof __GIT_COMMIT__ !== 'undefined' ? __GIT_COMMIT__ : 'unknown'
+// eslint-disable-next-line no-undef
+const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
+const BUILD_DATE = BUILD_TIME ? BUILD_TIME.slice(0, 10) : '2026-08-25'
+const ENVIRONMENT = import.meta.env.DEV ? 'Development' : 'Production'
 const WHATS_NEW = [
   { date: '2026-08-25', note: 'MaddenAI settings (auto-analyse, context awareness, disclaimer frequency), saved screens in the Screener, and a portfolio returns attribution waterfall chart.' },
   { date: '2026-08-24', note: 'Skeleton loading screens, micro-animations, elite empty states, and a Web Audio sound-effects system.' },
   { date: '2026-08-24', note: 'Markets sector breadth drill-down, Global AU Focus, and MaddenAI conversation history.' },
 ]
+
+// ─── Data sources ────────────────────────────────────────────────────────────
+//
+// One page answering "where does each number in this terminal come from".
+//
+// The four tiers are the honest taxonomy this app actually has, and the reason
+// the page exists: a reader looking at an FX rate and a sector weight has no
+// way to tell that one is a live feed and the other is generated, because both
+// render as confident numbers. Grouping them by provenance says it once, in a
+// place that can be checked.
+//
+// Timestamps come from the live cache each service writes, so "updated 4m ago"
+// is read rather than claimed. A source with nothing cached says so.
+
+const SOURCE_TIERS = [
+  {
+    key: 'live',
+    label: 'LIVE SOURCES',
+    glyph: '●',
+    colour: '#2D8A50',
+    note: 'Fetched from a public API. Cached briefly, timestamped below.',
+    rows: [
+      { name: 'FX rates', detail: 'open.er-api.com', cacheKey: 'fx_rates' },
+      { name: 'Crypto prices', detail: 'CoinGecko', cacheKey: 'crypto_prices' },
+      { name: 'Crypto Fear & Greed', detail: 'alternative.me', cacheKey: 'fear_greed' },
+      { name: 'Gold', detail: 'PAXG proxy via CoinGecko', cacheKey: 'gold_price' },
+      { name: 'Earthquakes', detail: 'USGS', cacheKey: 'earthquakes' },
+      { name: 'Exchange weather', detail: 'Open-Meteo', cacheKey: 'exchange_weather' },
+      { name: 'News', detail: '18 RSS feeds via /api/rss', cacheKey: null },
+    ],
+  },
+  {
+    key: 'ai',
+    label: 'AI-GENERATED (PROSE ONLY)',
+    glyph: '○',
+    colour: '#7C6BC4',
+    note: 'Written by MaddenAI from figures supplied to it. The model never supplies a figure of its own.',
+    rows: [
+      { name: 'Macro themes', detail: 'Regenerated daily' },
+      { name: 'Geopolitical commentary', detail: 'Regenerated daily' },
+      { name: 'Intel ticker', detail: 'Regenerated daily' },
+      { name: 'Morning brief', detail: 'Once per market day' },
+      { name: 'Market sentiment score', detail: 'Hourly, from real headlines' },
+    ],
+  },
+  {
+    key: 'verified',
+    label: 'VERIFIED CONSTANTS (MANUALLY MAINTAINED)',
+    glyph: '⊙',
+    colour: '#C9A84C',
+    note: 'Policy rates and official statistics, checked by hand against the source and dated. Not a feed.',
+    rows: null, // built from VERIFIED_CONSTANTS at render
+  },
+  {
+    key: 'pending',
+    label: 'NOT CONNECTED',
+    glyph: '◌',
+    colour: '#637899',
+    note: 'Shown as DEMO throughout the terminal until an equity data provider is connected.',
+    rows: [
+      { name: 'ASX & US equity prices', detail: 'Every price under a DEMO badge' },
+      { name: 'Company fundamentals', detail: 'PE, yield, market cap on mock rows' },
+      { name: 'Intraday charts', detail: 'Generated series, not real ticks' },
+      { name: 'Rate-futures pricing', detail: 'No hold/cut probability is shown anywhere' },
+      { name: 'Economic release actuals', detail: 'Calendar shows consensus only' },
+    ],
+  },
+]
+
+function sinceLabel(ts) {
+  if (!ts) return null
+  const mins = Math.floor((Date.now() - ts) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+function DataSourcesSection() {
+  const [, bump] = useState(0)
+
+  // Read straight from the live-data cache each service writes, so the times
+  // shown are the times those payloads were actually fetched.
+  const cacheTimes = useMemo(() => {
+    const out = {}
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (!key.startsWith('maddex_live_')) continue
+        const parsed = JSON.parse(localStorage.getItem(key))
+        if (parsed?.timestamp) out[key.replace('maddex_live_', '')] = parsed.timestamp
+      }
+    } catch { /* storage unavailable — rows just show no timestamp */ }
+    return out
+  }, [])
+
+  const verifiedRows = useMemo(() => {
+    const c = VERIFIED_CONSTANTS
+    return [
+      { name: `RBA cash rate ${c.rba.cashRate}%`, detail: `verified ${c.rba.lastVerified} · ${c.rba.source}` },
+      { name: `US Fed funds ${c.fed.rateRange}`, detail: `verified ${c.fed.lastVerified} · ${c.fed.source}` },
+      { name: `AU CPI ${c.au.cpi}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
+      { name: `AU unemployment ${c.au.unemployment}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
+      { name: `Iron ore US$${c.commodities.ironOreUSD}/t`, detail: `as at ${c.commodities.asOf} · ${c.commodities.source}` },
+      { name: `Brent US$${c.commodities.brentUSD}/bbl`, detail: `as at ${c.commodities.asOf} · ${c.commodities.source}` },
+    ]
+  }, [])
+
+  const refreshLive = () => {
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('maddex_live_')) localStorage.removeItem(key)
+      }
+    } catch { /* best effort */ }
+    bump((n) => n + 1)
+    window.location.reload()
+  }
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>Data Sources</SectionLabel>
+      <div className="text-2xs text-terminal-text-dim leading-relaxed">
+        Where every number in the terminal comes from. Grouped by provenance, because
+        a live rate and a generated series both render as a confident figure and there
+        is otherwise no way to tell them apart.
+      </div>
+
+      {SOURCE_TIERS.map((tier) => {
+        const rows = tier.rows ?? verifiedRows
+        return (
+          <div key={tier.key} className="border border-terminal-border">
+            <div className="px-3 py-1.5 border-b border-terminal-border/50 bg-terminal-surface2/40">
+              <div className="flex items-center gap-2">
+                <span style={{ color: tier.colour, fontSize: 10 }}>{tier.glyph}</span>
+                <span className="text-2xs font-bold tracking-widest" style={{ color: tier.colour }}>{tier.label}</span>
+                <span className="text-2xs text-terminal-text-dim ml-auto">{rows.length}</span>
+              </div>
+              <div className="text-2xs text-terminal-text-dim/60 mt-0.5 leading-snug">{tier.note}</div>
+            </div>
+            <div className="divide-y divide-terminal-border/30">
+              {rows.map((r) => {
+                const ts = r.cacheKey ? cacheTimes[r.cacheKey] : null
+                return (
+                  <div key={r.name} className="flex items-baseline justify-between gap-3 px-3 py-1.5">
+                    <span className="text-2xs text-terminal-text-bright truncate">{r.name}</span>
+                    <span className="text-2xs text-terminal-text-dim/70 truncate flex-1 text-right">{r.detail}</span>
+                    {r.cacheKey && (
+                      <span className="text-2xs flex-shrink-0 w-20 text-right" style={{ color: ts ? tier.colour : '#4A6080' }}>
+                        {ts ? sinceLabel(ts) : 'not cached'}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={refreshLive}
+          className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >REFRESH ALL LIVE DATA</button>
+        <span className="text-2xs text-terminal-text-dim self-center">
+          Clears the local cache and reloads. AI content regenerates on its own daily schedule.
+        </span>
+      </div>
+    </div>
+  )
+}
 
 function AboutSection() {
   return (
@@ -1836,6 +2085,17 @@ function AboutSection() {
         <div className="border border-terminal-border p-3">
           <div className="text-2xs text-terminal-text-dim">BUILD DATE</div>
           <div className="text-xs text-terminal-text-bright font-bold mt-0.5">{BUILD_DATE}</div>
+        </div>
+        <div className="border border-terminal-border p-3">
+          <div className="text-2xs text-terminal-text-dim">BUILD</div>
+          <div className="text-xs text-terminal-text-bright font-bold mt-0.5 font-mono">{GIT_COMMIT}</div>
+        </div>
+        <div className="border border-terminal-border p-3">
+          <div className="text-2xs text-terminal-text-dim">ENVIRONMENT</div>
+          <div
+            className="text-xs font-bold mt-0.5"
+            style={{ color: ENVIRONMENT === 'Production' ? '#2D8A50' : '#C9A84C' }}
+          >{ENVIRONMENT}</div>
         </div>
       </div>
 
@@ -1866,7 +2126,7 @@ function AboutSection() {
           className="flex-1 text-center text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
         >SEND FEEDBACK</a>
         <a
-          href="mailto:ben@maddex.com.au?subject=Maddex%20Bug%20Report"
+          href={`mailto:ben@maddex.com.au?subject=${encodeURIComponent('Maddex Bug Report')}&body=${encodeURIComponent(`\n\n---\nVersion: ${APP_VERSION}\nBuild: ${GIT_COMMIT}\nEnvironment: ${ENVIRONMENT}`)}`}
           className="flex-1 text-center text-2xs font-bold text-terminal-text-dim border border-terminal-border px-3 py-1.5 hover:border-terminal-red hover:text-terminal-red transition-colors"
         >REPORT A BUG</a>
       </div>
@@ -2003,6 +2263,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
           {active === 'SHORTCUTS'     && <ShortcutsSection />}
           {active === 'WORKSPACES'    && <WorkspacesSection />}
           {active === 'DATA & REFRESH' && <DataRefreshSection />}
+          {active === 'DATA SOURCES'  && <DataSourcesSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
           {active === 'MADDENAI'      && <MaddenAISection />}
           {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}

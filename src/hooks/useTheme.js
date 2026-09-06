@@ -64,28 +64,66 @@ export const THEMES = {
 }
 
 const STORAGE_KEY = 'maddex_theme'
+const ACCENT_KEY = 'maddex_accent'
 
-function applyTheme(name) {
+// The accent is the colour every heading, active tab, badge border and primary
+// button in this terminal resolves through — `--t-gold` and its two variants.
+// Themes each set their own, so the accent is applied AFTER the theme and
+// overwrites those three properties only; everything else stays the theme's.
+//
+// Named "gold" throughout the codebase because that was the only option when
+// the variables were written. Renaming ~400 usages to `--t-accent` to make the
+// variable honest would touch every file and change nothing a user sees, so
+// the name stays and this comment explains it.
+export const ACCENTS = {
+  gold:   { label: 'GOLD',   swatch: '#C9A84C', vars: { '--t-gold': '201 168 76',  '--t-gold-bright': '232 201 106', '--t-gold-dim': '138 110 42' } },
+  blue:   { label: 'BLUE',   swatch: '#4A90D9', vars: { '--t-gold': '74 144 217',  '--t-gold-bright': '110 174 240', '--t-gold-dim': '42 88 138' } },
+  green:  { label: 'GREEN',  swatch: '#4FA86B', vars: { '--t-gold': '79 168 107',  '--t-gold-bright': '110 200 138', '--t-gold-dim': '44 106 66' } },
+  silver: { label: 'SILVER', swatch: '#A8B2C1', vars: { '--t-gold': '168 178 193', '--t-gold-bright': '206 214 226', '--t-gold-dim': '110 120 136' } },
+}
+
+function applyTheme(name, accent) {
   const theme = THEMES[name] || THEMES.dark
   const root = document.documentElement.style
   for (const [key, value] of Object.entries(theme.vars)) root.setProperty(key, value)
+
+  // Applied second, deliberately: the theme sets a gold triplet of its own and
+  // the accent has to win, or picking BLUE under DARKER would silently revert
+  // to gold on the next theme application.
+  const acc = ACCENTS[accent]
+  if (acc) for (const [key, value] of Object.entries(acc.vars)) root.setProperty(key, value)
 }
 
 export function useTheme() {
   const [theme, setThemeState] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    return saved && THEMES[saved] ? saved : 'dark'
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved && THEMES[saved] ? saved : 'dark'
+    } catch { return 'dark' }
+  })
+
+  const [accent, setAccentState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(ACCENT_KEY)
+      return saved && ACCENTS[saved] ? saved : 'gold'
+    } catch { return 'gold' }
   })
 
   useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
+    applyTheme(theme, accent)
+  }, [theme, accent])
 
   const setTheme = useCallback((name) => {
     if (!THEMES[name]) return
-    localStorage.setItem(STORAGE_KEY, name)
+    try { localStorage.setItem(STORAGE_KEY, name) } catch { /* private mode */ }
     setThemeState(name)
   }, [])
 
-  return { theme, setTheme, themes: THEMES }
+  const setAccent = useCallback((name) => {
+    if (!ACCENTS[name]) return
+    try { localStorage.setItem(ACCENT_KEY, name) } catch { /* private mode */ }
+    setAccentState(name)
+  }, [])
+
+  return { theme, setTheme, themes: THEMES, accent, setAccent, accents: ACCENTS }
 }
