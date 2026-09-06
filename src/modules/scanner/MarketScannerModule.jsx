@@ -205,12 +205,35 @@ function PatternCard({ candidate }) {
             <span className="text-2xs text-terminal-text-dim">· {pattern.probability} probability</span>
           </div>
           <div className="text-2xs text-terminal-text-dim">{pattern.description}</div>
-          <div className="text-2xs text-terminal-text-dim">Target: <span className="text-terminal-text-bright">{priceStr(candidate.symbol, pattern.targetLevel)}</span></div>
-          <button
-            onClick={() => analyseSignal(candidate.symbol, candidate.name,
-              `${tickerOf(candidate.symbol)} is forming a ${pattern.patternName} pattern (${pattern.implication.toLowerCase()}, ${pattern.probability.toLowerCase()} probability) with a target of ${priceStr(candidate.symbol, pattern.targetLevel)}. Walk me through this setup.`)}
-            className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-          >ANALYSE</button>
+          {/* The "Target: A$47.50" line that sat here was a number the model
+              invented from a DEMO price series. Confirmation and invalidation
+              are what a pattern actually tells you, and they are structural —
+              the model can describe them without knowing the price. */}
+          {pattern.confirmation && (
+            <div className="text-2xs text-terminal-text-dim">
+              <span className="text-terminal-green">Confirms:</span> {pattern.confirmation}
+            </div>
+          )}
+          {pattern.invalidation && (
+            <div className="text-2xs text-terminal-text-dim">
+              <span className="text-terminal-red">Invalidates:</span> {pattern.invalidation}
+            </div>
+          )}
+          <div className="flex items-center gap-2 pt-0.5">
+            <button
+              onClick={() => analyseSignal(candidate.symbol, candidate.name,
+                `${tickerOf(candidate.symbol)} is forming a ${pattern.patternName} pattern (${pattern.implication.toLowerCase()}, ${pattern.probability.toLowerCase()} probability). Walk me through this setup. Do not state a price target.`)}
+              className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+            >ANALYSE</button>
+            <span
+              title="Pattern read by MaddenAI from the shape of the recent series. No price target — chart patterns here describe structure, not a level to trade to."
+              style={{
+                fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.1em',
+                padding: '1px 5px', borderRadius: 2, whiteSpace: 'nowrap',
+                background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.4)', color: '#C9A84C',
+              }}
+            >AI ESTIMATE · NO TARGET</span>
+          </div>
         </div>
       )}
     </div>

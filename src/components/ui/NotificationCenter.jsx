@@ -6,7 +6,6 @@ import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsService'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
-import { checkAndAnalyseEarnings } from '../../services/earningsAnalystService'
 import AlertsModule from '../../modules/alerts/AlertsModule'
 import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
@@ -277,35 +276,126 @@ export default function NotificationCenter() {
     return () => clearInterval(id)
   }, [watchlist, addNotification])
 
-  // ── AI EARNINGS ANALYST — once a watchlist stock's earnings date has
-  // passed, simulate the print and have MaddenAI analyse it automatically:
-  // fire a notification, and (via earningsAnalystService's cache) flip the
-  // Watchlist badge from "EARNINGS IN Xd" to "RESULTS: BEAT/MISS". The News
-  // feed card is NOT pushed from here — NewsModule reads completed results
-  // straight from the same localStorage cache (see getAllEarningsResults),
-  // since pushing into the ['news'] query cache would just get silently
-  // dropped by that query's own periodic RSS refetch. checkAndAnalyseEarnings
-  // is itself idempotent (caches per ticker), this loop just polls it. ──────
+  // The AI EARNINGS ANALYST poll that sat here is gone.
+  //
+  // It called simulateEarningsResult, which produced a beat or a miss from
+  // Math.random(), then pushed "CSL EARNINGS: BEAT +8.3% — Analysis ready"
+  // as a notification, seeded a News feed card, and flipped a RESULTS badge
+  // in the Watchlist. Three authoritative-looking surfaces, all downstream of
+  // a coin flip. This terminal has no earnings-results feed, so it now
+  // reports no earnings results. The "reports in 2 days" notification above
+  // stays — those dates are real.
+
+
+  // ── MARKET OPEN — ASX 200, 09:58–10:02 AEST Mon–Fri, once per day ──────────
+  useEffect(() => {
+    const check = async () => {
+      const aest = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' }))
+      const day = aest.getDay()
+      if (day === 0 || day === 6) return
+      const mins = aest.getHours() * 60 + aest.getMinutes()
+      if (mins < 9 * 60 + 58 || mins > 10 * 60 + 2) return
+      const key = todayKey('madden_notif_mktopen')
+      if (localStorage.getItem(key)) return
+      try {
+        const { data } = await fetchIndexQuotesUnified(['^AXJO'])
+        const pct = data?.['^AXJO']?.pct
+        const pctText = pct != null ? ` — ${pct >= 0 ? 'up' : 'down'} ${Math.abs(pct).toFixed(2)}%` : ''
+        addNotification('MARKET_OPEN', `ASX 200 has opened${pctText}`)
+        soundService.marketOpen()
+        localStorage.setItem(key, '1')
+      } catch {
+        // Try again next minute — key is only set on success
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [addNotification])
+
+  // ── NEWS — deliberately narrow. Background refreshes must never notify.
+  // Previously ANY article under 5 minutes old fired one, and fetchNews was
+  // stamping date-less articles with a random time inside the last 10
+  // minutes, so roughly half of them qualified the moment they arrived. Now
+  // only two things notify: a genuinely breaking headline (keyword match +
+  // under 30 min old, matching the News module's own definition), or a story
+  // naming a symbol the user actually tracks. Estimated dates never count.
+  // Everything else surfaces as the in-feed "N NEW STORIES" pill instead.
+  useEffect(() => {
+    const check = () => {
+      // getQueryData returns the raw cached fetchNews() result — the
+      // `select: d => d?.articles ?? []` on App.jsx's useQuery only
+      // transforms data for that hook's own consumers, not direct cache reads.
+      const articles = queryClient.getQueryData(['news'])?.articles ?? []
+      for (const item of articles) {
+        if (!item.pubDate || item.dateEstimated) continue
+        const id = item.link || item.headline
+        if (seenNewsIds.current.has(id)) continue
+
+        const breaking = isBreakingHeadline(item)
+        const mentioned = watchlist.find((sym) => headlineMentions(item.headline, sym))
+        if (!breaking && !mentioned) continue
+
+        // Only mark seen once it actually qualifies, so a story that becomes
+        // watchlist-relevant after the user adds the symbol can still notify.
+        seenNewsIds.current.add(id)
+        addNotification(
+          'NEWS',
+          breaking
+            ? `🔴 BREAKING — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`
+            : `${mentioned} in the news — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`,
+        )
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [queryClient, addNotification, watchlist])
+
+  // ── CUSTOM ALERTS — the alertsService alerts engine (price/session-move/
+  // volume-spike/RSI/news-mention/economic-event/portfolio-P&L), separate
+  // from the simple CommandBar ALERT list above. Checked every 60s; fired
+  // alerts get a notification and are marked triggered so they don't re-fire
+  // the same day. ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const check = () => {
+      const engineAlerts = loadAlerts()
+      if (!engineAlerts.length) return
+      const articles = queryClient.getQueryData(['news'])?.articles ?? []
+      const newsHeadlines = articles.map((a) => a.headline).filter(Boolean)
+      const results = checkAlerts(engineAlerts, { symbols: watchlist, newsHeadlines })
+      for (const { alert, message } of results) {
+        addNotification('CUSTOM_ALERT', message)
+        markTriggered(alert.id)
+        logActivity('alert', message)
+        soundService.priceAlert()
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [queryClient, addNotification, watchlist])
+
+  // ── EARNINGS — notify once, 2 days before a watchlist stock reports.
+  // Watchlist-scoped (not every ASX_STOCKS ticker) to avoid noise for
+  // stocks the user doesn't actually track. ──────────────────────────────
   useEffect(() => {
     if (!watchlist.length) return
-    const inFlight = new Set()
     const check = () => {
       for (const sym of watchlist) {
-        if (inFlight.has(sym)) continue
-        inFlight.add(sym)
-        checkAndAnalyseEarnings(sym)
-          .then((result) => {
-            inFlight.delete(sym)
-            if (!result) return
-            addNotification('EARNINGS_RESULT', result.message)
-          })
-          .catch(() => { inFlight.delete(sym) })
+        const e = upcomingEarnings().find((ev) => ev.ticker === sym || ev.ticker === `${sym}.AX`)
+        if (!e || daysUntil(e.date) !== 2) continue
+        const key = todayKey(`madden_notif_earnings_${e.ticker}_${e.date}`)
+        if (localStorage.getItem(key)) continue
+        addNotification('CALENDAR', `${e.ticker.replace('.AX', '')} reports in 2 days — earnings preview ready`)
+        localStorage.setItem(key, '1')
       }
     }
     check()
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
   }, [watchlist, addNotification])
+
 
   return (
     <div className="relative" ref={ref}>

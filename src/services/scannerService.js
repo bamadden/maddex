@@ -152,7 +152,10 @@ export function getPatternCandidates() {
 
 function todayKey(symbol) {
   const day = new Date().toISOString().slice(0, 10)
-  return `${CACHE_PREFIX}${symbol}_${day}`
+  // _v2: v1 entries hold patterns carrying an invented targetLevel. They sit
+  // in real browsers and would keep being served after this fix, so the key
+  // is versioned to orphan them rather than trusted to expire.
+  return `${CACHE_PREFIX}v2_${symbol}_${day}`
 }
 
 export async function detectPattern(symbol) {
@@ -162,26 +165,39 @@ export async function detectPattern(symbol) {
     try { return JSON.parse(cached) } catch { /* fall through to regenerate */ }
   }
 
-  const row = baseRow(symbol)
   const hist = getMockFMPHistory(symbol, 20)
-  const closesSummary = hist.map((h) => h.close).join(', ')
 
-  const prompt = `You are MaddenAI, a technical analyst identifying chart patterns from recent price data.
+  // The close series is normalised to an index before it is sent.
+  //
+  // Two reasons. It comes from getMockFMPHistory — DEMO data — so the absolute
+  // levels are not real and must not reach the reader through the model. And a
+  // pattern is a shape: whether a series traced a wedge does not depend on
+  // where it sits on the price axis. Normalising keeps the shape, which is the
+  // only part of this the model is being asked to read, and removes the
+  // anchor it would otherwise quote a target from.
+  const closes = hist.map((h) => h.close)
+  const base = closes[0] || 1
+  const shape = closes.map((c) => (c / base * 100).toFixed(1)).join(', ')
+
+  const prompt = `You are MaddenAI, a technical analyst identifying chart patterns from the SHAPE of a recent price series.
 
 Symbol: ${symbol}
-Current price: ${row.price}
-Today's change: ${row.changePct >= 0 ? '+' : ''}${row.changePct.toFixed(2)}%
-Last 20 closes (oldest to newest): ${closesSummary}
+Last 20 closes, indexed so the first close = 100: ${shape}
+
+These are index values, not prices. You have NOT been given this security's price, and you must not state one.
 
 Identify the single most notable chart pattern in this series (e.g. cup-and-handle, descending triangle, ascending triangle, head-and-shoulders, double top/bottom, flag, wedge — or "no clear pattern" if genuinely none stands out).
+
+Do NOT provide a price target, a target level, a support or resistance price, or any figure in dollars. A target derived from data you do not have is a made-up number, and it is the part a reader would act on. Describe instead what would CONFIRM the pattern and what would INVALIDATE it, in terms of the shape: "confirmation on a close above the pattern's neckline", "invalidated if it breaks back below the lower trendline".
 
 Return JSON only:
 {
   "patternName": "short pattern name",
-  "description": "1-2 sentences describing what the pattern looks like in this data",
+  "description": "1-2 sentences describing what the pattern looks like in this series, no figures",
   "implication": "BULLISH" | "BEARISH" | "NEUTRAL",
   "probability": "LOW" | "MEDIUM" | "HIGH",
-  "targetLevel": number
+  "confirmation": "what would confirm the pattern, described structurally — no price levels",
+  "invalidation": "what would invalidate it, described structurally — no price levels"
 }`
 
   const pattern = await askClaudeJSON(prompt, { maxTokens: 400 })

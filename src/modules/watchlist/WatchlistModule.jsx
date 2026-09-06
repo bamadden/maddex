@@ -12,9 +12,7 @@ import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { earningsFor, daysUntil } from '../../services/earningsCalendar'
-import { getEarningsResult } from '../../services/earningsAnalystService'
 import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
-import EarningsResultPanel from '../../components/earningsPreview/EarningsResultPanel'
 import { ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import { SkeletonCard } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -270,7 +268,6 @@ export default function WatchlistModule() {
   const [sortKey, setSortKey]         = useState(null)
   const [sortDir, setSortDir]         = useState('asc')
   const [earningsPreview, setEarningsPreview] = useState(null)
-  const [earningsResult, setEarningsResult] = useState(null)
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
 
@@ -766,26 +763,13 @@ export default function WatchlistModule() {
                       if (!e) return null
                       const d = daysUntil(e.date)
 
-                      // Earnings date has passed: swap to the auto-generated result
-                      // badge (AI Earnings Analyst) once one exists — the analysis
-                      // itself is triggered centrally by NotificationCenter's poll,
-                      // not from here.
-                      if (d <= 0) {
-                        const result = getEarningsResult(e.ticker)
-                        if (!result?.reportData) return null
-                        const beat = result.reportData.actualEPS > result.reportData.consensusEPS
-                        return (
-                          <button
-                            onClick={(ev) => { ev.stopPropagation(); setEarningsResult({ ticker: e.ticker, companyName: e.company }) }}
-                            title={`${e.company} reported — click for MaddenAI analysis`}
-                            className={`text-2xs ml-1 border px-1 transition-colors ${
-                              beat
-                                ? 'text-terminal-green border-terminal-green/40 hover:bg-terminal-green hover:text-terminal-bg'
-                                : 'text-terminal-red border-terminal-red/40 hover:bg-terminal-red hover:text-terminal-bg'
-                            }`}
-                          >RESULTS: {beat ? 'BEAT ✓' : 'MISS ✗'}</button>
-                        )
-                      }
+                      // Earnings date has passed. There is no badge for this
+                      // any more: the green "RESULTS: BEAT ✓" that used to
+                      // appear here was decided by Math.random() in
+                      // simulateEarningsResult, so a coin flip coloured a
+                      // watchlist row green or red. We have no results feed,
+                      // so we say nothing.
+                      if (d <= 0) return null
 
                       if (d > 45) return null
                       // Within 7 days: a clickable "EARNINGS IN Xd" badge that opens the
@@ -850,13 +834,6 @@ export default function WatchlistModule() {
           earningsDate={earningsPreview.earningsDate}
           companyName={earningsPreview.companyName}
           onClose={() => setEarningsPreview(null)}
-        />
-      )}
-      {earningsResult && (
-        <EarningsResultPanel
-          ticker={earningsResult.ticker}
-          companyName={earningsResult.companyName}
-          onClose={() => setEarningsResult(null)}
         />
       )}
       {shareLink && (

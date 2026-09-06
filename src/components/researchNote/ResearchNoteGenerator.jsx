@@ -6,23 +6,16 @@ import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import ShareLinkModal from '../ui/ShareLinkModal'
 import { createShareLink } from '../../services/sharingService'
-import { fmt } from '../../utils/format'
 
-const RATING_COLOR = {
-  BUY:  { bg: '#0e2a1a', text: '#3dad65', border: '#2d8a50' },
-  HOLD: { bg: '#2a230e', text: '#e8c96a', border: '#c9a84c' },
-  SELL: { bg: '#2a1414', text: '#c93e3e', border: '#a83232' },
+// Stance, not rating. BUY/HOLD/SELL is a recommendation, and the note has no
+// valuation behind it to support one — see researchNoteService.
+const STANCE_COLOR = {
+  CONSTRUCTIVE: { bg: '#0e2a1a', text: '#3dad65', border: '#2d8a50' },
+  BALANCED:     { bg: '#16304f', text: '#8ba3c4', border: '#637899' },
+  CAUTIOUS:     { bg: '#2a1414', text: '#c93e3e', border: '#a83232' },
   'UNDER REVIEW': { bg: '#16304f', text: '#8ba3c4', border: '#637899' },
 }
 
-const fmtPrice = (v, ccy) => v == null ? '—' : `${ccy === 'USD' ? 'US$' : 'A$'}${fmt.price(Number(v))}`
-const fmtLarge = (n) => {
-  if (n == null || isNaN(n)) return '—'
-  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}T`
-  if (n >= 1e9)  return `${(n / 1e9).toFixed(2)}B`
-  if (n >= 1e6)  return `${(n / 1e6).toFixed(2)}M`
-  return n.toLocaleString()
-}
 const todayStr = () => new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 
 // ─── Printable note — mounted off-screen at a fixed A4-proportioned width so
@@ -68,10 +61,8 @@ function Para({ children }) {
 }
 
 function PrintableNote({ note, forwardRef }) {
-  const { asset, quote, rating, targetPrice, targetCurrency, timeHorizon, riskRating, executiveSummary, investmentThesis, businessOverview, financialAnalysis, valuationAnalysis, catalysts, risks, technicalAnalysis, conclusion, disclaimer } = note
-  const ratingStyle = RATING_COLOR[rating] ?? RATING_COLOR['UNDER REVIEW']
-  const currentPrice = quote?.regularMarketPrice
-  const upsidePct = currentPrice && targetPrice ? ((targetPrice - currentPrice) / currentPrice) * 100 : null
+  const { asset, stance, stanceRationale, timeHorizon, riskRating, executiveSummary, investmentThesis, businessOverview, financialAnalysis, valuationAnalysis, catalysts, risks, technicalAnalysis, conclusion, disclaimer } = note
+  const stanceStyle = STANCE_COLOR[stance] ?? STANCE_COLOR['UNDER REVIEW']
 
   return (
     <div ref={forwardRef} style={{ width: PAGE_W, background: '#060D1A', fontFamily: '"IBM Plex Mono", Menlo, monospace' }}>
@@ -86,21 +77,20 @@ function PrintableNote({ note, forwardRef }) {
         </div>
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ background: ratingStyle.bg, border: `2px solid ${ratingStyle.border}`, color: ratingStyle.text, fontSize: 22, fontWeight: 700, padding: '10px 28px', letterSpacing: 2 }}>{rating}</div>
-          <div>
-            <div style={{ color: '#C9A84C', fontSize: 24, fontWeight: 700 }}>{fmtPrice(targetPrice, targetCurrency)}</div>
-            <div style={{ color: '#637899', fontSize: 10 }}>{timeHorizon} price target</div>
-          </div>
-          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-            <span style={{ border: '1px solid #637899', color: '#8BA3C4', fontSize: 10, padding: '4px 10px' }}>RISK: {riskRating}</span>
+          <div style={{ background: stanceStyle.bg, border: `2px solid ${stanceStyle.border}`, color: stanceStyle.text, fontSize: 22, fontWeight: 700, padding: '10px 28px', letterSpacing: 2 }}>{stance}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#8BA3C4', fontSize: 11, lineHeight: 1.5 }}>{stanceRationale}</div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '1px solid #16304F', marginBottom: 22 }}>
+        {/* The CURRENT PRICE / TARGET PRICE / UPSIDE row that sat here was
+            arithmetic on two invented numbers: a mock quote and a model's
+            guess. The note is qualitative now, so the cover states its
+            character and horizon rather than a valuation it cannot support. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', border: '1px solid #16304F', marginBottom: 22 }}>
           {[
-            ['CURRENT PRICE', fmtPrice(currentPrice, quote?.currency ?? targetCurrency)],
-            ['TARGET PRICE', fmtPrice(targetPrice, targetCurrency)],
-            ['UPSIDE', upsidePct != null ? `${upsidePct >= 0 ? '+' : ''}${upsidePct.toFixed(1)}%` : '—'],
+            ['STANCE', stance],
+            ['HORIZON', timeHorizon],
             ['RISK', riskRating],
           ].map(([label, value], i) => (
             <div key={label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid #16304F' : 'none' }}>
@@ -108,6 +98,13 @@ function PrintableNote({ note, forwardRef }) {
               <div style={{ color: '#E8EDF5', fontSize: 15, fontWeight: 700 }}>{value}</div>
             </div>
           ))}
+        </div>
+
+        <div style={{ border: '1px solid rgba(201,168,76,0.3)', background: 'rgba(201,168,76,0.06)', padding: '8px 12px', marginBottom: 18 }}>
+          <div style={{ color: '#C9A84C', fontSize: 9, letterSpacing: 1.2, fontWeight: 700 }}>AI ESTIMATE · QUALITATIVE ANALYSIS</div>
+          <div style={{ color: '#8BA3C4', fontSize: 9, marginTop: 3, lineHeight: 1.5 }}>
+            Written by MaddenAI. Contains no price target, valuation or technical level — this note has no live market data behind it. Take every figure from the terminal&apos;s live panels, not from here.
+          </div>
         </div>
 
         <Para>{executiveSummary}</Para>
@@ -133,12 +130,6 @@ function PrintableNote({ note, forwardRef }) {
             <Para>{body}</Para>
           </div>
         ))}
-        {quote?.marketCap != null && (
-          <div style={{ display: 'flex', gap: 24, marginTop: 6, color: '#637899', fontSize: 10 }}>
-            <span>MKT CAP {fmtLarge(quote.marketCap)}</span>
-            {quote.trailingPE != null && <span>PE {Number(quote.trailingPE).toFixed(1)}</span>}
-          </div>
-        )}
       </SectionBlock>
 
       <SectionBlock title="VALUATION">
@@ -166,8 +157,7 @@ function PrintableNote({ note, forwardRef }) {
       <SectionBlock title="TECHNICAL ANALYSIS">
         <div style={{ display: 'flex', gap: 24, marginBottom: 10, fontSize: 10 }}>
           <span style={{ color: '#8BA3C4' }}>TREND <b style={{ color: '#E8EDF5' }}>{technicalAnalysis?.trend}</b></span>
-          <span style={{ color: '#8BA3C4' }}>SUPPORT <b style={{ color: '#3DAD65' }}>{(technicalAnalysis?.support ?? []).map((v) => fmtPrice(v, targetCurrency)).join(' / ')}</b></span>
-          <span style={{ color: '#8BA3C4' }}>RESISTANCE <b style={{ color: '#C93E3E' }}>{(technicalAnalysis?.resistance ?? []).map((v) => fmtPrice(v, targetCurrency)).join(' / ')}</b></span>
+
         </div>
         <Para>{technicalAnalysis?.momentum}</Para>
       </SectionBlock>
@@ -254,8 +244,8 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
     setShareLink(createShareLink('research', {
       assetName: asset.name,
       assetSymbol: asset.symbol,
-      rating: note.rating,
-      targetPrice: fmtPrice(note.targetPrice, note.targetCurrency),
+      stance: note.stance,
+      stanceRationale: note.stanceRationale,
       timeHorizon: note.timeHorizon,
       executiveSummary: note.executiveSummary,
       conclusion: note.conclusion,
@@ -297,7 +287,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                 <div className="text-3xl">📄</div>
                 <div className="text-terminal-text-bright text-sm font-semibold">Generate an institutional-quality research note</div>
                 <div className="text-terminal-text-dim text-2xs max-w-sm leading-relaxed">
-                  MaddenAI will produce a full rating, price target, investment thesis, financial analysis,
+                  MaddenAI will produce a full investment thesis, financial analysis,
                   valuation, catalysts, risks, and technicals for {asset.name} ({asset.symbol}) — exportable as a PDF.
                 </div>
                 <button

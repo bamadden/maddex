@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { generatePortfolio } from '../../services/portfolioBuilderService'
-import { fmt } from '../../utils/format'
 
 const PLACEHOLDER = 'e.g. Build me a diversified ASX portfolio with exposure to materials and financials, under A$10,000, with dividend yield over 3%'
 
@@ -43,14 +42,22 @@ export default function PortfolioBuilderModal({ onImport, onClose }) {
     if (!result?.holdings?.length) return
     const shaped = result.holdings.map((h, i) => {
       const bareSymbol = h.symbol.replace(/\.AX$/i, '').toUpperCase()
-      const units = h.suggestedUnits > 0 ? h.suggestedUnits : 1
+      // shares 0 and avgCost 0, deliberately.
+      //
+      // This used to import suggestedUnits and estimatedCost/units straight
+      // from the model, which stamped every holding with a purchase price
+      // that never happened — and every P&L figure the portfolio showed
+      // afterwards was measured against that fiction. An allocation idea is
+      // not a trade. The symbols come across so the user does not have to
+      // retype them; the units and cost are theirs to enter when they
+      // actually buy.
       return {
         id: `${Date.now()}_${i}`,
         symbol: bareSymbol,
         yfSym: `${bareSymbol}.AX`,
         name: h.name ?? bareSymbol,
-        shares: units,
-        avgCost: h.estimatedCost != null ? h.estimatedCost / units : 0,
+        shares: 0,
+        avgCost: 0,
         costCurrency: 'AUD',
         type: 'asx',
         addedAt: new Date().toISOString().slice(0, 10),
@@ -110,18 +117,17 @@ export default function PortfolioBuilderModal({ onImport, onClose }) {
             <div className="space-y-4 border-t border-terminal-border pt-4">
               <div className="text-2xs text-terminal-text leading-relaxed">{result.summary}</div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="border border-terminal-border p-2">
-                  <div className="text-2xs text-terminal-text-dim">BUDGET</div>
-                  <div className="text-sm font-bold text-terminal-text-bright">{fmt.aud(result.totalBudget, { clarify: true })}</div>
-                </div>
-                <div className="border border-terminal-border p-2">
-                  <div className="text-2xs text-terminal-text-dim">EXPECTED YIELD</div>
-                  <div className="text-sm font-bold text-terminal-gold">{result.expectedYield}%</div>
-                </div>
+              {/* BUDGET and EXPECTED YIELD used to sit here. Both were model
+                  output with nothing behind them — the yield in particular was
+                  a specific promised return on an invented portfolio. */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="border border-terminal-border p-2">
                   <div className="text-2xs text-terminal-text-dim">RISK PROFILE</div>
                   <div className="text-sm font-bold text-terminal-text-bright">{result.riskProfile}</div>
+                </div>
+                <div className="border border-terminal-border p-2">
+                  <div className="text-2xs text-terminal-text-dim">INCOME CHARACTER</div>
+                  <div className="text-2xs text-terminal-text leading-snug pt-0.5">{result.incomeCharacter ?? '—'}</div>
                 </div>
               </div>
 
@@ -140,8 +146,6 @@ export default function PortfolioBuilderModal({ onImport, onClose }) {
                       <tr className="border-b border-terminal-border text-left text-terminal-text-dim">
                         <th className="py-1 font-normal">Symbol</th>
                         <th className="py-1 font-normal text-right">Alloc</th>
-                        <th className="py-1 font-normal text-right">Units</th>
-                        <th className="py-1 font-normal text-right">Cost</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -152,13 +156,18 @@ export default function PortfolioBuilderModal({ onImport, onClose }) {
                             <span className="font-bold text-terminal-text-bright">{h.symbol.replace('.AX', '')}</span>
                           </td>
                           <td className="py-1 text-right text-terminal-text">{((h.allocation ?? 0) * 100).toFixed(0)}%</td>
-                          <td className="py-1 text-right text-terminal-text">{h.suggestedUnits}</td>
-                          <td className="py-1 text-right text-terminal-text">{fmt.aud(h.estimatedCost, { clarify: true })}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              <div style={{
+                fontFamily: '"IBM Plex Mono", monospace', fontSize: 9, color: '#4A6080',
+                letterSpacing: '0.1em', padding: '8px 0', borderTop: '1px solid rgba(201,168,76,0.08)',
+              }}>
+                ⓘ AI ESTIMATE · ALLOCATION IDEA ONLY · NO PRICE, COST OR YIELD DATA · IMPORTS WITH ZERO UNITS · NOT ADVICE
               </div>
 
               <div className="space-y-1.5">
