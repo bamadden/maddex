@@ -41,13 +41,13 @@ function loadReadSet() {
   try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) ?? '[]')) } catch { return new Set() }
 }
 function saveReadSet(set) {
-  try { localStorage.setItem(READ_KEY, JSON.stringify([...set].slice(-500))) } catch {}
+  try { localStorage.setItem(READ_KEY, JSON.stringify([...set].slice(-500))) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
 }
 function loadCategory() {
   try { return localStorage.getItem(CAT_KEY) ?? 'ALL' } catch { return 'ALL' }
 }
 function saveCategory(cat) {
-  try { localStorage.setItem(CAT_KEY, cat) } catch {}
+  try { localStorage.setItem(CAT_KEY, cat) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
 }
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
@@ -840,7 +840,7 @@ export default function NewsModule() {
   const [newIds, setNewIds]           = useState(new Map())
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
   const [isFlashing, setIsFlashing]   = useState(false)
-  const [nowTs, setNowTs]             = useState(Date.now())
+  const [nowTs, setNowTs]             = useState(() => Date.now())
   const [expandedId, setExpandedId]   = useState(null)
   // Timestamp of the most recent new-story arrival — the banner reads this
   // against the existing 1s `nowTs` ticker to auto-dismiss 10s later.

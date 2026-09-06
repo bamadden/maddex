@@ -996,7 +996,7 @@ export const fetchMetalsRates = async () => {
       console.log('[MADDEN API] Frankfurter metals XAU/USD:', (1 / data.rates.XAU).toFixed(2))
       return data.rates
     }
-  } catch {}
+  } catch { /* Frankfurter is ECB fiat-only and carries no XAU — see liveDataService.getGoldPrice */ }
 
   const key = import.meta.env.VITE_EXCHANGERATE_API_KEY
   if (!key) return null
@@ -1553,7 +1553,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
           fullText += evt.delta.text
           onToken?.(evt.delta.text, fullText)
         }
-      } catch {}
+      } catch { /* partial SSE frame — the next chunk completes it */ }
     }
   }
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)

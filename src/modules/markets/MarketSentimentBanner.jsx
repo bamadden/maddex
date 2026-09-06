@@ -81,7 +81,6 @@ function fmtTimestamp(ts, tab) {
 
 function histStats(hist) {
   if (!hist.length) return null
-  const scores = hist.map((h) => h.score)
   const avg = (arr) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : null
   const now  = Date.now()
   const last7d  = hist.filter((h) => h.timestamp >= now - 7  * 86_400_000).map((h) => h.score)

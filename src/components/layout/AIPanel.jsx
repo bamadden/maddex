@@ -30,7 +30,7 @@ function incrementAiMessageCount() {
   try {
     const next = getAiMessageCount() + 1
     localStorage.setItem(aiQuotaKey(), String(next))
-  } catch {}
+  } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
 }
 
 // ─── Quick prompts (base templates — live data injected at call time) ─────────
@@ -190,7 +190,7 @@ function ScoreBar({ score }) {
 
 // Detect sentiment bullet: "Label: XX/100 — BULLISH" or "Label: XX/100"
 function parseSentimentBullet(text) {
-  const m = text.match(/^([\w][\w\s]*):\s*(\d+)\/100(?:\s*[—\-]\s*([A-Z][A-Z\s]+))?/)
+  const m = text.match(/^([\w][\w\s]*):\s*(\d+)\/100(?:\s*[—-]\s*([A-Z][A-Z\s]+))?/)
   if (!m) return null
   const score = parseInt(m[2], 10)
   return { label: m[1].trim(), score, sentiment: m[3]?.trim() ?? null }
@@ -296,7 +296,7 @@ function FormattedResponse({ text }) {
 
         // ALL-CAPS label: value  (ASSESSMENT: / LEVELS: / OUTLOOK: etc.)
         if (
-          /^[A-Z][A-Z\s\/]+:/.test(trimmed) &&
+          /^[A-Z][A-Z\s/]+:/.test(trimmed) &&
           trimmed.length < 80 &&
           !trimmed.startsWith('A$') &&
           !trimmed.startsWith('US$')
@@ -318,7 +318,7 @@ function FormattedResponse({ text }) {
         }
 
         // Bullet: ◆ - • *
-        if (/^[◆\-\*•]\s/.test(trimmed)) {
+        if (/^[◆\-*•]\s/.test(trimmed)) {
           const content = trimmed.replace(/^[◆\-\*•]\s*/, '')
           const parsed  = parseSentimentBullet(content)
 
@@ -610,7 +610,7 @@ export default function AIPanel({ wide = false }) {
     const note = { id: Date.now(), content, savedAt: new Date().toISOString() }
     setNotes((prev) => {
       const next = [note, ...prev].slice(0, 20)
-      try { localStorage.setItem('madden_ai_notes', JSON.stringify(next)) } catch {}
+      try { localStorage.setItem('madden_ai_notes', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
       return next
     })
   }, [])
@@ -618,7 +618,7 @@ export default function AIPanel({ wide = false }) {
   const deleteNote = useCallback((id) => {
     setNotes((prev) => {
       const next = prev.filter((n) => n.id !== id)
-      try { localStorage.setItem('madden_ai_notes', JSON.stringify(next)) } catch {}
+      try { localStorage.setItem('madden_ai_notes', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
       return next
     })
   }, [])

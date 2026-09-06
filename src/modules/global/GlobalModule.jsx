@@ -39,7 +39,7 @@ const COUNTRY_NAMES = {
   148:'Chad', 152:'Chile', 156:'China', 158:'Taiwan', 170:'Colombia', 174:'Comoros',
   175:'Mayotte', 178:'Republic of Congo', 180:'DR Congo', 184:'Cook Islands',
   188:'Costa Rica', 191:'Croatia', 192:'Cuba', 196:'Cyprus', 203:'Czech Republic', 204:'Benin',
-  208:'Denmark', 212:'Dominica', 214:'Dominican Republic', 218:'Ecuador', 818:'Egypt',
+  208:'Denmark', 212:'Dominica', 214:'Dominican Republic', 218:'Ecuador',
   222:'El Salvador', 226:'Equatorial Guinea', 232:'Eritrea', 233:'Estonia', 231:'Ethiopia',
   238:'Falkland Islands', 242:'Fiji', 246:'Finland', 250:'France', 262:'Djibouti', 266:'Gabon',
   268:'Georgia', 270:'Gambia', 275:'Palestine', 276:'Germany', 288:'Ghana', 292:'Gibraltar',
@@ -486,21 +486,6 @@ const CHOKEPOINTS = [
 
 // ─── Commodity Flows (for map overlay) ───────────────────────────────────────
 
-// GeoJSON coordinates: [longitude, latitude]
-const COMMODITY_FLOWS = [
-  { id:'fe-au-cn', from:[133,-25], to:[121,35],  label:'Iron Ore',  color:'#C9A84C', width:3, vol:'155Mt/yr', val:'~A$19B', risk:'LOW',    desc:'Pilbara → Qingdao (62% Fe fines)', src:'Dept Resources 2025-26' },
-  { id:'co-au-cn', from:[133,-25], to:[118,31],  label:'Coal',      color:'#6b7280', width:2, vol:'68Mt/yr',  val:'~A$13B', risk:'LOW',    desc:'QLD thermal & coking coal → China', src:'Dept Resources 2025-26' },
-  { id:'lng-au-jp',from:[133,-25], to:[138,35],  label:'LNG',       color:'#3b82f6', width:3, vol:'24Mt/yr',  val:'~A$20B', risk:'LOW',    desc:'Woodside/Chevron LNG → Osaka/Nagoya', src:'Dept Resources 2025-26' },
-  { id:'co-au-jp', from:[133,-25], to:[138,36],  label:'Coal',      color:'#6b7280', width:2, vol:'52Mt/yr',  val:'~A$9B',  risk:'LOW',    desc:'QLD & NSW coal → Japan power stations', src:'Dept Resources 2025-26' },
-  { id:'lng-au-kr',from:[133,-25], to:[128,36],  label:'LNG',       color:'#3b82f6', width:2, vol:'10Mt/yr',  val:'~A$9B',  risk:'LOW',    desc:'APLNG → Incheon terminal', src:'Dept Resources 2025-26' },
-  { id:'fe-au-kr', from:[133,-25], to:[130,35],  label:'Iron Ore',  color:'#C9A84C', width:2, vol:'45Mt/yr',  val:'~A$5B',  risk:'LOW',    desc:'Pilbara → POSCO Pohang', src:'Dept Resources 2025-26' },
-  { id:'co-au-in', from:[133,-25], to:[77,20],   label:'Coal',      color:'#6b7280', width:2, vol:'48Mt/yr',  val:'~A$6B',  risk:'MEDIUM', desc:'QLD coal → Mundra / Dahej', src:'Dept Resources 2025-26' },
-  { id:'oil-me-as',from:[51,26],   to:[121,30],  label:'Crude Oil', color:'#ef4444', width:4, vol:'17Mb/day', val:'~A$1.4B/day', risk:'HIGH', desc:'Middle East crude → China/Japan/Korea via Hormuz', src:'IEA 2025' },
-  { id:'fe-br-cn', from:[-50,-15], to:[122,28],  label:'Iron Ore',  color:'#f97316', width:3, vol:'205Mt/yr', val:'~A$24B', risk:'LOW',    desc:'Carajás Mine → Qingdao via Atlantic-Cape', src:'Vale 2025-26' },
-  { id:'soy-br-cn',from:[-55,-12], to:[121,30],  label:'Soybeans',  color:'#84cc16', width:2, vol:'90Mt/yr',  val:'~A$58B', risk:'LOW',    desc:'Mato Grosso → Qingdao — China 65% of Brazil soy exports', src:'Abiove 2025-26' },
-  { id:'gas-ru-cn',from:[90,60],   to:[110,40],  label:'Gas/Oil',   color:'#dc2626', width:2, vol:'40bcm/yr', val:'~A$16B', risk:'MEDIUM', desc:'Power of Siberia — post-2022 EU redirect to China', src:'IEA 2025' },
-  { id:'lng-us-gl',from:[-90,30],  to:[138,35],  label:'LNG',       color:'#a78bfa', width:2, vol:'95Mt/yr',  val:'~A$65B', risk:'LOW',    desc:'US Gulf Coast LNG → Asia/Europe — Sabine Pass/Freeport', src:'FERC 2025-26' },
-]
 
 // ─── Geographic Markers ───────────────────────────────────────────────────────
 
@@ -519,75 +504,11 @@ const MAJOR_PORTS = [
   { name:'Hamburg',     lat:53.5,  lon:10.0,  type:'port',    rank:12 },
 ]
 
-const MAJOR_AIRPORTS = [
-  { name:'Dubai (DXB)',  lat:25.25, lon:55.37, vol:'88M pax',  type:'hub' },
-  { name:'Singapore (SIN)',lat:1.36,lon:103.99,vol:'67M pax',  type:'hub' },
-  { name:'London (LHR)', lat:51.48, lon:-0.46, vol:'79M pax',  type:'hub' },
-  { name:'JFK',          lat:40.64, lon:-73.78,vol:'62M pax',  type:'hub' },
-  { name:'LAX',          lat:33.94, lon:-118.4,vol:'88M pax',  type:'hub' },
-  { name:'Sydney (SYD)', lat:-33.94,lon:151.18,vol:'44M pax',  type:'hub' },
-  { name:'Hong Kong (HKG)',lat:22.31,lon:113.91,vol:'38M pax', type:'hub' },
-  { name:'Memphis (MEM)',lat:35.04, lon:-89.98,vol:'4.4M T',   type:'cargo'},
-  { name:'Frankfurt (FRA)',lat:50.03,lon:8.57,  vol:'60M pax', type:'hub' },
-]
 
 // ─── Air Trade Routes ──────────────────────────────────────────────────────────
 
-const AIR_TRADE_ROUTES = [
-  // Gold — AU origin/destination
-  { id:'syd-sin', label:'Sydney → Singapore', from:[151.2,-33.9], to:[103.8,1.3],  color:'#C9A84C', type:'gold',
-    dailyFlights:28, carriers:['Qantas','Singapore Airlines','Scoot'], cargoSplit:'35% cargo',
-    auNote:'Primary gateway for AU exports to SE Asia. Top commodities: fresh produce, medical supplies, manufactured goods.' },
-  { id:'syd-hkg', label:'Sydney → Hong Kong',  from:[151.2,-33.9], to:[114.2,22.3], color:'#C9A84C', type:'gold',
-    dailyFlights:14, carriers:['Cathay Pacific','Qantas'], cargoSplit:'40% cargo',
-    auNote:'Key AU–China freight corridor. Electronics, consumer goods inbound; food/resources outbound.' },
-  { id:'syd-dxb', label:'Sydney → Dubai',       from:[151.2,-33.9], to:[55.4,25.3],  color:'#C9A84C', type:'gold',
-    dailyFlights:21, carriers:['Emirates','Qantas'], cargoSplit:'30% cargo',
-    auNote:'Transhipped hub for Europe/Middle East freight. Emirates operates largest AU capacity.' },
-  { id:'mel-lax', label:'Melbourne → Los Angeles', from:[144.9,-37.8], to:[-118.4,33.9], color:'#C9A84C', type:'gold',
-    dailyFlights:10, carriers:['Qantas','United'], cargoSplit:'25% cargo',
-    auNote:'Longest non-stop AU route. Key corridor for AU–US trade in pharma, luxury goods, beef.' },
-  // Blue — major international corridors
-  { id:'sin-lhr', label:'Singapore → London',  from:[103.8,1.3],  to:[-0.5,51.5],  color:'#3b82f6', type:'blue',
-    dailyFlights:18, carriers:['Singapore Airlines','British Airways'], cargoSplit:'38% cargo',
-    auNote:'Major transhipment route for AU exports reaching Europe via Singapore hub.' },
-  { id:'dxb-lhr', label:'Dubai → London',      from:[55.4,25.3],  to:[-0.5,51.5],  color:'#3b82f6', type:'blue',
-    dailyFlights:42, carriers:['Emirates','flydubai','British Airways'], cargoSplit:'28% cargo',
-    auNote:'World\'s busiest long-haul route. Dubai serves as primary hub for AU–Europe connections.' },
-  { id:'jfk-lhr', label:'New York → London',   from:[-73.8,40.6], to:[-0.5,51.5],  color:'#3b82f6', type:'blue',
-    dailyFlights:55, carriers:['British Airways','American','Delta','Virgin Atlantic'], cargoSplit:'22% cargo',
-    auNote:'Highest-frequency transatlantic route. Critical for AU trade with North Atlantic markets.' },
-  { id:'hkg-jfk', label:'Hong Kong → New York', from:[114.2,22.3], to:[-73.8,40.6], color:'#3b82f6', type:'blue',
-    dailyFlights:12, carriers:['Cathay Pacific','American'], cargoSplit:'45% cargo',
-    auNote:'Key transpacific cargo corridor. AU goods transhipped via HKG reach US east coast here.' },
-  // Teal — cargo-heavy routes
-  { id:'nrt-lax', label:'Tokyo → Los Angeles', from:[139.8,35.7], to:[-118.4,33.9], color:'#14b8a6', type:'teal',
-    dailyFlights:20, carriers:['ANA','JAL','United'], cargoSplit:'55% cargo',
-    auNote:'Heavy electronics/automotive parts flow. AU exports (beef, seafood) move via NRT to US.' },
-  { id:'sin-bom', label:'Singapore → Mumbai',  from:[103.8,1.3],  to:[72.9,19.1],  color:'#14b8a6', type:'teal',
-    dailyFlights:16, carriers:['IndiGo','Air India','Singapore Airlines'], cargoSplit:'50% cargo',
-    auNote:'Fast-growing India–ASEAN cargo corridor. AU perishables increasingly transshipped here.' },
-]
 
-// lat/lon for projection([lon, lat])
-const CONFLICT_ZONES = [
-  { name:'Ukraine war',          lat:49.0, lon:32.0,  color:'#ff1744', radius:8 },
-  { name:'Gaza / West Bank',     lat:31.5, lon:34.8,  color:'#ff1744', radius:5 },
-  { name:'Yemen / Red Sea',      lat:15.5, lon:44.0,  color:'#ff6d00', radius:6 },
-  { name:'Sudan',                lat:15.5, lon:32.5,  color:'#ff1744', radius:6 },
-  { name:'Syria',                lat:35.0, lon:38.5,  color:'#ff6d00', radius:4 },
-  { name:'Myanmar',              lat:19.8, lon:96.1,  color:'#ff6d00', radius:4 },
-  { name:'Taiwan Strait',        lat:24.5, lon:120.5, color:'#f59e0b', radius:5 },
-]
 
-const SHIPPING_LANES = [
-  // Major sea routes (polylines of [lon, lat])
-  { id:'transpacific', pts:[[-118.2,33.7],[160,35],[140,35],[135,34],[130,35]] },
-  { id:'europe-suez',  pts:[[4.5,51.9],[2.3,51.5],[-0.1,51.5],[-5,36],[32.3,30.4],[43,12.5],[51,23],[57,21],[72,21],[79,9],[103.8,1.3]] },
-  { id:'au-asia',      pts:[[115,-20],[105,0],[103.8,1.3],[110,20],[121,30]] },
-  { id:'au-me',        pts:[[115,-20],[80,10],[55,23],[50,26]] },
-  { id:'cape-route',   pts:[[18.5,-34],[0,-30],[-5,36]] },
-]
 
 // ─── Session zones (lat/lon bounding boxes) ───────────────────────────────────
 
@@ -620,14 +541,13 @@ function getStatus(ex) {
 }
 
 const isOpenNow  = st => st === 'OPEN' || st === 'CLOSING_SOON'
-const isSoonSt   = st => st === 'OPENING_SOON' || st === 'CLOSING_SOON'
-const STATUS_LABEL = { OPEN:'OPEN', CLOSING_SOON:'CLOSING SOON', OPENING_SOON:'OPENING SOON', CLOSED:'CLOSED' }
 const STATUS_CLS   = {
   OPEN:         'text-terminal-green',
   CLOSING_SOON: 'text-terminal-gold',
   OPENING_SOON: 'text-terminal-gold',
   CLOSED:       'text-terminal-text-dim',
 }
+const STATUS_LABEL = { OPEN: 'OPEN', CLOSING_SOON: 'CLOSING SOON', OPENING_SOON: 'OPENING SOON', CLOSED: 'CLOSED' }
 const STATUS_DOT_CLS = {
   OPEN:         'bg-terminal-green animate-pulse',
   CLOSING_SOON: 'bg-terminal-gold',
@@ -706,18 +626,6 @@ function timeAgo(date) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-// ─── Dynamic conflict-zone severity from live news ───────────────────────────
-const ZONE_KEYWORDS = {
-  'Ukraine war':      /ukraine|kyiv|zelensky|kharkiv|zaporizhzhia/i,
-  'Gaza / West Bank': /gaza|west bank|hamas|israel|idf/i,
-  'Yemen / Red Sea':  /yemen|houthi|red sea|hormuz/i,
-  Sudan:              /sudan|khartoum|rsf\b/i,
-  Syria:              /\bsyria\b|damascus/i,
-  Myanmar:            /myanmar|burma|rohingya/i,
-  'Taiwan Strait':    /taiwan|pla\b|china military|taiwan strait/i,
-}
-const SEVERITY_TO_COLOR  = { CRITICAL: '#ff1744', HIGH: '#ff6d00', MEDIUM: '#f59e0b', LOW: '#4A6080' }
-const SEVERITY_TO_RADIUS = { CRITICAL: 9, HIGH: 7, MEDIUM: 5, LOW: 4 }
 
 const GEO_RISK_RE = /sanction|conflict|trade.?war|tariff|embargo|military|geopolitic|tension|coup|invasion|escalat|naval|nuclear|attack|crisis|war\b|protest|strike\b/i
 const COUNTRY_KEYWORDS = {
@@ -784,11 +692,6 @@ function fmtAuTrade(audMillions, audUsd, mode) {
   return `${sym}${v.toFixed(0)}M`
 }
 
-function FreshnessDot({ status }) {
-  if (status === 'fresh')     return <span title="Live data (≤7 days)" style={{ color: '#22c55e', fontSize: 9 }}>●</span>
-  if (status === 'stale')     return <span title="Stale data (>7 days)" style={{ color: '#fbbf24', fontSize: 9 }}>●</span>
-  return <span title="Hardcoded data" style={{ color: '#6b7280', fontSize: 9 }}>●</span>
-}
 
 function useLocalTime(tz) {
   const fmt = useCallback(() => {
@@ -835,7 +738,7 @@ const COUNTRY_PANEL_TABS = [
   { id: 'trade',        label: 'TRADE' },
 ]
 
-function CountryPanel({ id, newsItems, audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
+function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
   const { openModal } = useStore()
   const [panelTab, setPanelTab] = useState('economy')
   const n      = parseInt(id)
@@ -2008,6 +1911,16 @@ function WeatherWidget({ lat, lon, city }) {
 function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
   const { setActiveModule } = useStore()
   const ex = EXCHANGES.find(e => e.id === exchangeId)
+
+  // Above the early return below: a hook that only sometimes runs changes
+  // the hook order between renders, which is the desync React's rule exists
+  // to prevent.
+  const relatedNews = useMemo(() => {
+    if (!ex || !newsItems?.articles?.length) return []
+    const re = new RegExp(ex.city + '|' + ex.country + '|' + ex.id, 'i')
+    return newsItems.articles.filter(n => re.test(n.headline + ' ' + (n.summary ?? ''))).slice(0, 4)
+  }, [newsItems, ex])
+
   if (!ex) return null
 
   const st = getStatus(ex)
@@ -2017,13 +1930,6 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
   // AEST offset for trading hours
   const openHHMM  = `${String(ex.open[0]).padStart(2,'0')}:${String(ex.open[1]).padStart(2,'0')}`
   const closeHHMM = `${String(ex.close[0]).padStart(2,'0')}:${String(ex.close[1]).padStart(2,'0')}`
-
-  const relatedNews = useMemo(() => {
-    if (!newsItems?.articles?.length) return []
-    const q = ex.name.toLowerCase().split(' ')[0]
-    const re = new RegExp(ex.city + '|' + ex.country + '|' + ex.id, 'i')
-    return (newsItems?.articles ?? []).filter(n => re.test(n.headline + ' ' + (n.summary ?? ''))).slice(0, 4)
-  }, [newsItems, ex.id])
 
   return (
     <div className="flex flex-col h-full overflow-hidden panel-fade">
@@ -2500,7 +2406,7 @@ export default function GlobalModule() {
   const handleCurrencyToggle = useCallback(() => {
     setCurrencyMode(m => {
       const next = m === 'AUD' ? 'USD' : 'AUD'
-      try { localStorage.setItem('maddex_currency_pref', next) } catch {}
+      try { localStorage.setItem('maddex_currency_pref', next) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
       return next
     })
   }, [])

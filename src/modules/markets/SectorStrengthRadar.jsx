@@ -113,7 +113,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
   )
   const proxySyms = useMemo(() => proxySectors.map(p => p.sym), [proxySectors])
 
-  const { data: quotes, isLoading, isError, dataUpdatedAt, refetch } = useQuery({
+  const { data: quotes, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['sectorRadarProxies', selectedIndex, refreshKey],
     queryFn:  () => fetchBatch(proxySyms),
     staleTime: 5 * 60_000,
@@ -250,7 +250,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
       <div className="border-t border-terminal-border flex-shrink-0 px-3 py-2">
         <div className="text-2xs text-terminal-gold/70 font-bold tracking-widest mb-2">SECTOR SCORES</div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
-          {sorted.map(({ sector, fullSector, score, dayPct }) => (
+          {sorted.map(({ sector, score, dayPct }) => (
             <div
               key={sector}
               className="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-terminal-accent/10 rounded px-1 -mx-1"

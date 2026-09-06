@@ -284,7 +284,7 @@ function AnalystBar({ recMean, analystCount }) {
         </div>
       </div>
       <div className="flex justify-between mt-0.5 px-0.5">
-        {REC_LABELS.map((l, i) => (
+        {REC_LABELS.map((l) => (
           <span key={l} className="text-terminal-text-dim/40 text-center leading-tight" style={{ fontSize: '9px', width: '20%' }}>
             {l.split(' ').map((w, wi) => <span key={wi} className="block">{w}</span>)}
           </span>
@@ -450,7 +450,7 @@ export default function DetailModal() {
 
   const [timeframe, setTimeframe] = useState('1M')
   const [chartType, setChartType] = useState('area')
-  const { audUsd, usdToAud } = useAudRates()
+  const { usdToAud } = useAudRates()
 
   const [alertOpen, setAlertOpen]     = useState(false)
   const [alertPrice, setAlertPrice]   = useState('')

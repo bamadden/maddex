@@ -9,7 +9,6 @@ import {
   IRON_ORE_HISTORY, CHINA_WATCH, AU_BONDS, US_BONDS,
 } from '../../data/placeholders'
 import { fetchFxHistory } from '../../services/api'
-import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { useSubscription } from '../../hooks/useSubscription'
@@ -393,8 +392,25 @@ const MEETINGS = [
   { label: 'FOMC', name: 'Rate Decision', date: FOMC_NEXT_MEETING, color: 'text-terminal-blue-bright', note: '2:00pm EDT'  },
 ]
 
+// A ticking clock, so anything counting down actually counts down.
+//
+// Reading Date.now() in a render body is not just a lint violation — the
+// value only changes when something else happens to re-render, so a "2d 4h"
+// countdown could sit unchanged for an hour. Holding the time in state and
+// advancing it on an interval fixes the staleness and the purity rule at
+// once. Hourly is enough: these are displayed to the hour.
+function useNow(intervalMs = 3600000) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return now
+}
+
 function MeetingCountdown({ meeting }) {
-  const diff = meeting.date - Date.now()
+  const now = useNow()
+  const diff = meeting.date - now
   if (diff <= 0) return <span className={`text-2xs font-bold ${meeting.color}`}>{meeting.label}: TODAY {meeting.note}</span>
   const days  = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
@@ -429,8 +445,9 @@ function getCountdown(isoDate, timeStr) {
 
 function RBADashboard({ askAI }) {
   const [showBoard, setShowBoard] = useState(false)
+  const rbaNow = useNow()
 
-  const diffMs   = RBA_NEXT_MEETING ? RBA_NEXT_MEETING - Date.now() : 0
+  const diffMs   = RBA_NEXT_MEETING ? RBA_NEXT_MEETING - rbaNow : 0
   const daysLeft = Math.max(0, Math.floor(diffMs / 86400000))
   const nextMeetingBadge = nextRbaDateStr
     ? new Date(`${nextRbaDateStr}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()

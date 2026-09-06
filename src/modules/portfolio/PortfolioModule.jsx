@@ -461,7 +461,7 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
           setVdata({ name: q2.name || s, type: 'asx', yfSym: axSym, last: q2.last })
           setVstatus('ready')
           return
-        } catch {}
+        } catch { /* no .AX listing for this symbol — fall through to the next form */ }
       }
       const msg      = (e.message ?? '').toLowerCase()
       const notFound = msg.includes('no data') || msg.includes('404') || msg.includes('error')

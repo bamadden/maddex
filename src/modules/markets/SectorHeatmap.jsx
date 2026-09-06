@@ -784,7 +784,7 @@ function ViewToggle({ view, setView }) {
           key={v}
           onClick={() => {
             setView(v)
-            try { localStorage.setItem('madden_mkt_view', v) } catch {}
+            try { localStorage.setItem('madden_mkt_view', v) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
           }}
           className={`px-3 py-1 text-2xs font-bold transition-colors duration-150 ${
             view === v
@@ -1565,7 +1565,7 @@ function IndexView({ selectedIndex, openModal }) {
           return
         }
       }
-    } catch {}
+    } catch { /* unreadable or malformed cache — fall through and refetch */ }
 
     setQuotes({})
     setLoadCount(0)
@@ -1584,7 +1584,11 @@ function IndexView({ selectedIndex, openModal }) {
           if (loadRef.current !== indexKey) return
           setQuotes(prev => ({ ...prev, ...results }))
           setLoadCount(Object.keys(all).length)
-        } catch {}
+        } catch (err) {
+          // Not expected. A failed batch leaves the grid partially filled
+          // with no sign anything is missing, so say so rather than swallow.
+          console.warn(`[SectorHeatmap] batch quote fetch failed for ${indexKey}:`, err.message)
+        }
         await new Promise(r => setTimeout(r, 400))
       }
 
@@ -1596,7 +1600,7 @@ function IndexView({ selectedIndex, openModal }) {
           `madden_idx_${indexKey}_${today2}`,
           JSON.stringify({ data: all, ts: Date.now() })
         )
-      } catch {}
+      } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
     }
     run()
     return () => { loadRef.current = null }

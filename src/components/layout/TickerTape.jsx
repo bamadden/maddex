@@ -1,6 +1,6 @@
-import { useRef, memo } from 'react'
+import { memo } from 'react'
 import { useLivePrice } from '../../hooks/useLivePrice'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import {
   transformCryptoMarkets,
   YF_INDICES,
@@ -86,7 +86,6 @@ const TapeItem = memo(function TapeItem({ sym, price, pct, marketCap, onClick, l
 
 export default function TickerTape() {
   const { openModal } = useStore()
-  const qc = useQueryClient()
   const { audUsd } = useAudRates()
 
   const { data: rawMarkets } = useQuery({
@@ -96,7 +95,7 @@ export default function TickerTape() {
     retry: 1,
   })
 
-  const { data: indexResult, error: indexError } = useQuery({
+  const { data: indexResult } = useQuery({
     queryKey:  ['yfBatch', 'indices'],
     queryFn:   () => fetchIndexQuotesUnified(YF_INDICES.map(i => i.symbol)),
     staleTime: 60_000,

@@ -57,12 +57,12 @@ export function StoreProvider({ children }) {
   })
 
   const setCurrency = useCallback((c) => {
-    try { localStorage.setItem('madden_currency', c) } catch {}
+    try { localStorage.setItem('madden_currency', c) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
     setCurrencyState(c)
   }, [])
 
   const persistWatchlist = useCallback((next) => {
-    try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next)) } catch {}
+    try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
     return next
   }, [])
 
@@ -139,7 +139,7 @@ export function StoreProvider({ children }) {
     const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), direction, createdAt: new Date().toISOString() }
     setAlerts((prev) => {
       const next = [...prev, alert]
-      try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch {}
+      try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
       return next
     })
   }, [])
@@ -147,7 +147,7 @@ export function StoreProvider({ children }) {
   const removeAlert = useCallback((id) => {
     setAlerts((prev) => {
       const next = prev.filter((a) => a.id !== id)
-      try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch {}
+      try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
       return next
     })
   }, [])

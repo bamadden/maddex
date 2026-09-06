@@ -199,7 +199,7 @@ const readHistory = () => {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]') } catch { return [] }
 }
 const writeHistory = (hist) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(hist.slice(0, 50))) } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(hist.slice(0, 50))) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
 }
 
 // ─── Autocomplete filter ───────────────────────────────────────────────────────
@@ -567,7 +567,7 @@ export default function CommandBar() {
   const {
     setActiveModule, pushCmdHistory, cmdHistory,
     setChatOpen, addChatMessage, updateLastChatMessage,
-    addToWatchlist, setWatchlistFocus,
+    addToWatchlist,
     openModal, closeModal,
     setNewsFilter,
     alerts, addAlert,
@@ -806,7 +806,7 @@ export default function CommandBar() {
           flash(`PROFILE: ${sym}`, 'text-terminal-green', 2000)
           return
         }
-      } catch {}
+      } catch { /* not a known coin — fall through to the next lookup */ }
     }
 
     // FX pair → navigate to FX module with a status note
@@ -824,7 +824,7 @@ export default function CommandBar() {
       try {
         const q = await fetchYFQuote(s)
         if (q?.last != null) return { q, resolvedSym: s, type: type ?? detectAssetType(s) }
-      } catch {}
+      } catch { /* symbol variant did not resolve — caller tries the next one */ }
       return null
     }
 
@@ -874,7 +874,6 @@ export default function CommandBar() {
     const trimmed = raw.trim()
     if (!trimmed) return
     const cmd  = trimmed.toLowerCase()
-    const sym  = trimmed.toUpperCase()
     const parts = trimmed.split(/\s+/)
 
     pushHistory(trimmed)
@@ -1051,8 +1050,6 @@ export default function CommandBar() {
 
   const statusText = typeof status === 'object' ? status.text : status
   const statusCls  = typeof status === 'object' ? status.cls  : 'text-terminal-text-dim'
-
-  const activeSuggestion = suggestIdx >= 0 ? suggestions[suggestIdx] : null
 
   return (
     <>

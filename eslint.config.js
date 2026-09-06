@@ -17,6 +17,17 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // The codebase already uses a leading underscore to mark something as
+      // deliberately unused (`_dropped` in useAuthStore, `_unused` in
+      // format.js). Without this the convention was decorative and the rule
+      // flagged them anyway, which teaches people to ignore the linter.
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+    },
   },
   {
     // Node.js context: Vite's own config file and Vercel serverless
