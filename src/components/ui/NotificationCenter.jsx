@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
+import { getAiPreferences } from '../../services/aiPreferencesService'
 import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsService'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import AlertsModule from '../../modules/alerts/AlertsModule'
@@ -244,6 +245,19 @@ export default function NotificationCenter() {
           if (alertedMoversToday.current.has(key)) continue
           alertedMoversToday.current.add(key)
           const dir = pct >= 0 ? 'up' : 'down'
+
+          // The auto-analysis honours the Auto-Analyse preference, which
+          // defaults OFF. It previously fired regardless — so a setting that
+          // exists, is documented in Settings and defaults to off was silently
+          // overridden, and the AI panel took over the screen and spent a call
+          // on nearly every load (demo prices jitter across ±2% constantly).
+          // A notification is a notification; opening a panel over whatever
+          // someone was reading is not.
+          if (!getAiPreferences().autoAnalyse) {
+            addNotification('WATCHLIST_MOVE', `${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today`)
+            continue
+          }
+
           addNotification('WATCHLIST_MOVE', `${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today — asking MaddenAI why`)
           dispatchAskAI({
             name: q.name ?? sym, ticker: sym,
@@ -251,8 +265,15 @@ export default function NotificationCenter() {
             change: `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`,
             instruction:
               `This watchlist stock just moved ${dir} ${Math.abs(pct).toFixed(2)}% today. ` +
-              'In 1-2 sentences, give the most likely specific reason (sector news, commodity/rate moves, ' +
-              'volume vs average, or broader market direction). Be concise and direct — this is a push-style alert, not a full report.',
+              // "Give the most likely specific reason" asked for a cause the
+              // model has no news feed to know, and it answered with a list of
+              // candidates — an earnings miss OR a tariff escalation OR a
+              // regulatory ruling — presented as analysis. Naming what to
+              // check is honest and more useful than a guess dressed as a
+              // finding.
+              'In 1-2 sentences: say what category of driver a move this size in this sector usually implies, ' +
+              'and name the specific thing to check to confirm it. Do not assert a cause you have not been given — ' +
+              'you have no news feed for this move. Concise and direct; this is a push alert, not a report.',
           })
         }
       } catch {

@@ -15,35 +15,40 @@ const SECTORS = [...new Set(ALL_STOCKS.map((s) => s.sector))].sort()
 const MAX_PE  = Math.max(...ALL_STOCKS.map((s) => s.pe))
 const MAX_DIV = Math.max(...ALL_STOCKS.map((s) => s.divYield))
 
+// `criteria` names the numeric thresholds a preset constrains, so results can
+// be graded on the thing that was actually screened for. Presets with no
+// numeric threshold (ASX CORE, SMALL CAPS) declare none and are shown
+// unranked, which is honest — there is no "better" within a sector filter.
 const PRESETS = [
-  { key: 'dividend',   label: 'DIVIDEND KINGS', filter: (s) => s.divYield >= 4 },
-  { key: 'value',      label: 'VALUE PLAYS',    filter: (s) => s.pe > 0 && s.pe < 15 },
-  { key: 'momentum',   label: 'MOMENTUM',       filter: (s) => s.changePct >= 2 },
-  { key: 'asx200',     label: 'ASX CORE',       filter: (s) => s.exchange === 'ASX' },
-  { key: 'smallcap',   label: 'SMALL CAPS',     filter: (s) => s.marketCap < 10_000_000_000 },
-  { key: 'techgrowth', label: 'TECH GROWTH',    filter: (s) => /^(IT|Tech|Technology)$/i.test(s.sector) && s.changePct > 0 },
+  { key: 'dividend',   label: 'DIVIDEND KINGS', filter: (s) => s.divYield >= 4,                   criteria: { divMin: 4 } },
+  { key: 'value',      label: 'VALUE PLAYS',    filter: (s) => s.pe > 0 && s.pe < 15,             criteria: { peMax: 15 } },
+  { key: 'momentum',   label: 'MOMENTUM',       filter: (s) => s.changePct >= 2,                  criteria: { changeMin: 2 } },
+  { key: 'asx200',     label: 'ASX CORE',       filter: (s) => s.exchange === 'ASX',              criteria: {} },
+  { key: 'smallcap',   label: 'SMALL CAPS',     filter: (s) => s.marketCap < 10_000_000_000,      criteria: {} },
+  { key: 'techgrowth', label: 'TECH GROWTH',    filter: (s) => /^(IT|Tech|Technology)$/i.test(s.sector) && s.changePct > 0, criteria: { changeMin: 0 } },
 ]
 
 // Lightweight local NL parser — handles the common patterns without needing
 // a live AI call: "PE under 15", "dividend yield over 4%", a sector name,
 // "materials sector", "small cap(s)". Returns { filters, notes, understood }.
 function parseQuery(q) {
+  const criteria = {}
   const text = q.toLowerCase()
   const filters = []
   const notes = []
 
   const peMatch = text.match(/p\/?e\s*(under|below|less than|<)\s*(\d+(\.\d+)?)/)
-  if (peMatch) { const n = parseFloat(peMatch[2]); filters.push((s) => s.pe > 0 && s.pe < n); notes.push(`PE < ${n}`) }
+  if (peMatch) { const n = parseFloat(peMatch[2]); filters.push((s) => s.pe > 0 && s.pe < n); notes.push(`PE < ${n}`); criteria.peMax = n }
   const peOverMatch = text.match(/p\/?e\s*(over|above|greater than|>)\s*(\d+(\.\d+)?)/)
   if (peOverMatch) { const n = parseFloat(peOverMatch[2]); filters.push((s) => s.pe > n); notes.push(`PE > ${n}`) }
 
   const divMatch = text.match(/div(idend)?\s*(yield)?\s*(over|above|greater than|>)\s*(\d+(\.\d+)?)/)
-  if (divMatch) { const n = parseFloat(divMatch[4]); filters.push((s) => s.divYield >= n); notes.push(`Div yield >= ${n}%`) }
+  if (divMatch) { const n = parseFloat(divMatch[4]); filters.push((s) => s.divYield >= n); notes.push(`Div yield >= ${n}%`); criteria.divMin = n }
   const divUnderMatch = text.match(/div(idend)?\s*(yield)?\s*(under|below|less than|<)\s*(\d+(\.\d+)?)/)
   if (divUnderMatch) { const n = parseFloat(divUnderMatch[4]); filters.push((s) => s.divYield < n); notes.push(`Div yield < ${n}%`) }
 
   const upMatch = text.match(/up\s*(more than|over|>)?\s*(\d+(\.\d+)?)\s*%/)
-  if (upMatch) { const n = parseFloat(upMatch[2]); filters.push((s) => s.changePct >= n); notes.push(`Up >= ${n}%`) }
+  if (upMatch) { const n = parseFloat(upMatch[2]); filters.push((s) => s.changePct >= n); notes.push(`Up >= ${n}%`); criteria.changeMin = n }
   const downMatch = text.match(/down\s*(more than|over|>)?\s*(\d+(\.\d+)?)\s*%/)
   if (downMatch) { const n = parseFloat(downMatch[2]); filters.push((s) => s.changePct <= -n); notes.push(`Down >= ${n}%`) }
 
@@ -55,7 +60,10 @@ function parseQuery(q) {
   if (/\basx\b/.test(text) && !/\bus\b/.test(text)) { filters.push((s) => s.exchange === 'ASX'); notes.push('ASX only') }
   if (/\bus\b|american|nasdaq|nyse/.test(text)) { filters.push((s) => s.exchange === 'US'); notes.push('US only') }
 
-  return { filters, notes, understood: filters.length > 0 }
+  // criteria is the subset of the above that is numeric and rankable — a
+  // sector or exchange match narrows the field but says nothing about which
+  // result is a better fit, so it contributes no score.
+  return { filters, notes, criteria, understood: filters.length > 0 }
 }
 
 // Composite "match strength" — every row shown already passed every active
@@ -64,13 +72,56 @@ function parseQuery(q) {
 // results are sorted by (yield + inverse PE), scaled into a 60-100% band —
 // a below-60 stock wouldn't read as a sensible "match" once it's already
 // cleared the filter, but there's still real spread worth showing above that.
-function withMatchPct(stocks) {
-  if (!stocks.length) return []
-  const raw = stocks.map((s) => s.divYield + (100 - Math.min(s.pe > 0 ? s.pe : 100, 100)))
-  const max = Math.max(...raw)
-  const min = Math.min(...raw)
-  const span = Math.max(max - min, 1)
-  return stocks.map((s, i) => ({ ...s, matchPct: Math.round(60 + 40 * ((raw[i] - min) / span)) }))
+// ─── Match scoring ─────────────────────────────────────────────────────────
+//
+// Grades each result against the criteria ACTUALLY IN PLAY, not against a
+// fixed formula.
+//
+// The previous version scored every stock as divYield + (100 - PE), whatever
+// the user had screened for, then normalised the range into 60-100%. Two
+// consequences, both bad: screening for tech growth ranked results by
+// dividend yield, and every row scored at least 60% so the column always
+// looked reassuring. On "ASX CORE" — a screen with no numeric criteria at all
+// — results still came back 96-100% matched. The number was decoration.
+//
+// Now: each numeric criterion contributes how far past its threshold the
+// stock sits, and the score is the mean across criteria. Screen for PE under
+// 15 and yield over 4%, and PE 9 / yield 7% outranks PE 14.5 / yield 4.1%,
+// which is the ranking a person doing that screen actually wants.
+//
+// Where a screen has no numeric criteria (a sector or exchange filter alone),
+// there is nothing to grade and scoreCriteria returns null — the column then
+// hides rather than inventing a number. That is the important half: a
+// screener that cannot rank should say so.
+
+// Each entry reports how well a stock satisfies one threshold, 0..1, where 0
+// is "only just qualifies" and 1 is "comfortably past it".
+const CRITERION_SCORERS = {
+  // Lower is better, and the headroom is measured against the threshold.
+  peMax: (s, limit) => (s.pe > 0 && limit > 0 ? clamp01((limit - s.pe) / limit) : null),
+  divMin: (s, floor) => (floor > 0 ? clamp01((s.divYield - floor) / Math.max(floor, 1)) : null),
+  pos52Min: (s, floor) => (floor > 0 && s.pos52 != null ? clamp01((s.pos52 - floor) / Math.max(100 - floor, 1)) : null),
+  changeMin: (s, floor) => clamp01((s.changePct - floor) / 5),
+}
+
+const clamp01 = (v) => Math.max(0, Math.min(1, v))
+
+// criteria: { peMax?, divMin?, pos52Min?, changeMin? } — only the ones the
+// active screen actually constrains.
+function scoreCriteria(stocks, criteria) {
+  const active = Object.entries(criteria).filter(([, v]) => v != null)
+  if (!active.length) return null
+
+  return stocks.map((s) => {
+    const parts = active
+      .map(([key, threshold]) => CRITERION_SCORERS[key]?.(s, threshold))
+      .filter((v) => v != null)
+    if (!parts.length) return { ...s, matchPct: null }
+    const mean = parts.reduce((a, b) => a + b, 0) / parts.length
+    // 50-100 rather than 0-100: everything here already passed the screen, so
+    // the floor is "qualifies" and the range above it is headroom.
+    return { ...s, matchPct: Math.round(50 + 50 * mean) }
+  })
 }
 
 const MKT_CAP_BANDS = [
@@ -185,6 +236,17 @@ function FiltersSidebar({ open, filters, setFilters, onReset }) {
   )
 }
 
+// The sidebar's numeric constraints, as criteria. Only values the user has
+// actually moved off the default count — a PE slider still at its maximum is
+// not a constraint and grading against it would score every stock the same.
+function manualCriteria(f) {
+  const out = {}
+  if (f.peMax != null && f.peMax < Math.ceil(MAX_PE)) out.peMax = f.peMax
+  if (f.divMin > 0) out.divMin = f.divMin
+  if (f.pos52Min > 0) out.pos52Min = f.pos52Min
+  return out
+}
+
 const DEFAULT_FILTERS = { exchange: 'ALL', sector: 'ALL', peMax: Math.ceil(MAX_PE), mktCap: 'all', divMin: 0, pos52Min: 0 }
 
 const SAVED_SCREENS_KEY = 'maddex_saved_screens'
@@ -295,14 +357,36 @@ export default function ScreenerModule() {
     else if (!filtersActive) return []
 
     const matched = base.filter((s) => queryFilters.every((f) => f(s)))
-    const scored  = withMatchPct(matched)
-    const getVal  = SORT_VALUE[sortKey] ?? SORT_VALUE.matchPct
+
+    // Criteria come from every active source: the preset, the parsed natural
+    // language query, and the manual sidebar. A screen combining "PE under
+    // 15" typed in the box with a dividend floor from the sidebar is graded
+    // on both.
+    const criteria = {
+      ...(activePreset ? PRESETS.find((p) => p.key === activePreset).criteria : {}),
+      ...(parsed?.criteria ?? {}),
+      ...(filtersActive ? manualCriteria(filters) : {}),
+    }
+
+    const scored = scoreCriteria(matched, criteria) ?? matched.map((s) => ({ ...s, matchPct: null }))
+    // Falls back to market cap when the screen is unrankable, so an
+    // unranked list still arrives in a sensible order rather than whatever
+    // the source array happened to be in.
+    const unranked = scored.length > 0 && scored[0].matchPct == null
+    const getVal = (unranked && sortKey === 'matchPct')
+      ? SORT_VALUE.marketCap
+      : (SORT_VALUE[sortKey] ?? SORT_VALUE.matchPct)
     return [...scored].sort((a, b) => {
       const av = getVal(a), bv = getVal(b)
       const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [activePreset, parsed, manualFiltered, filtersActive, sortKey, sortDir])
+  }, [activePreset, parsed, manualFiltered, filtersActive, filters, sortKey, sortDir])
+
+  // Whether the active screen produced anything rankable. When it did not
+  // — a sector or exchange filter alone — the MATCH column is hidden rather
+  // than filled with a number that means nothing.
+  const rankable = results.length > 0 && results[0].matchPct != null
 
   const hasSearched = activePreset != null || parsed != null || filtersActive
   const toggleSort = (key) => {
@@ -466,7 +550,13 @@ export default function ScreenerModule() {
                   <th onClick={() => toggleSort('divYield')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">DIV YIELD{sortArrow('divYield')}</th>
                   <th onClick={() => toggleSort('marketCap')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">MKT CAP{sortArrow('marketCap')}</th>
                   <th className="text-left px-3 py-1.5">SECTOR</th>
-                  <th onClick={() => toggleSort('matchPct')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">MATCH %{sortArrow('matchPct')}</th>
+                  {rankable && (
+                    <th
+                      onClick={() => toggleSort('matchPct')}
+                      title="How far past the screen's thresholds each result sits — 50% only just qualifies, 100% is comfortably clear"
+                      className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold"
+                    >MATCH %{sortArrow('matchPct')}</th>
+                  )}
                   <th className="px-3 py-1.5 w-20" />
                 </tr>
               </thead>
@@ -490,7 +580,7 @@ export default function ScreenerModule() {
                     <td className="px-3 py-1.5 text-right">{s.divYield.toFixed(1)}%</td>
                     <td className="px-3 py-1.5 text-right text-terminal-text-dim">{fmt.large(s.marketCap)}</td>
                     <td className="px-3 py-1.5">{s.sector}</td>
-                    <td className="px-3 py-1.5"><MatchBar pct={s.matchPct} /></td>
+                    {rankable && <td className="px-3 py-1.5"><MatchBar pct={s.matchPct} /></td>}
                     <td className="px-3 py-1.5 text-right whitespace-nowrap">
                       <button
                         onClick={(e) => {
