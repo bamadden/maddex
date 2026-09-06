@@ -33,7 +33,12 @@ Return JSON only:
   "keyTheme": "one sentence on the dominant theme"
 }`
 
-  const sentiment = await askClaudeJSON(prompt, { maxTokens: 300 })
+  const raw = await askClaudeJSON(prompt, { maxTokens: 300 })
+  // Stamped so consumers can say how old the read is. The cache key is keyed
+  // by calendar hour, which tells you which hour it was generated in but not
+  // how long ago — at 10:59 an "hour 10" score is a minute old, and at 10:01
+  // it is an hour old. A widget showing "updated 2h ago" has to know which.
+  const sentiment = { ...raw, generatedAt: new Date().toISOString() }
   try { localStorage.setItem(cacheKey, JSON.stringify(sentiment)) } catch { /* best-effort */ }
   return sentiment
 }

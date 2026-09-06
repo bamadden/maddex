@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../../services/dataService'
 import { requireYFSym } from '../../../utils/tickerGuard'
 import { useAudRates } from '../../../hooks/useAudRates'
-import {WidgetBody, WidgetFigure, WidgetEmpty, WidgetRows, WidgetRow} from './_shared'
+import { recordPortfolioValue, getPortfolioHistory, marketDayKey } from '../../../services/portfolioHistory'
+import { WidgetBody, WidgetEmpty, Sparkline, ChangePill } from './_shared'
 import { goModule } from './navigate'
 
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
@@ -58,18 +59,30 @@ export default function PortfolioSnapshotWidget() {
   const stats = useMemo(() => {
     if (!priceable.length) return null
     const rows = data?.data ?? {}
-    let value = 0, cost = 0, priced = 0, best = null, worst = null
+    let value = 0, cost = 0, dayPnl = 0, dayBase = 0, priced = 0, best = null, worst = null
 
     for (const h of priceable) {
       const q = rows[requireYFSym(h)]
       const isAsx = h.type === 'asx'
-      const last = q?.last == null ? null : (isAsx ? q.last : usdToAud(q.last))
+      const conv = (v) => (v == null ? null : (isAsx ? v : usdToAud(v)))
+      const last = conv(q?.last)
       if (last == null) continue
 
       const avgCostAud = h.costCurrency === 'USD' ? usdToAud(h.avgCost) : h.avgCost
       value += last * h.shares
       cost += avgCostAud * h.shares
       priced += 1
+
+      // The day's move, in dollars, from the previous close — a different
+      // question from total P&L and the one a reader checks most mornings.
+      // Only holdings whose quote carries a previous close contribute, to
+      // both the numerator and the base, so the percentage stays honest when
+      // some positions lack one.
+      const prev = conv(q?.prevClose)
+      if (prev != null) {
+        dayPnl += (last - prev) * h.shares
+        dayBase += prev * h.shares
+      }
 
       const pct = q?.pct
       if (pct != null) {
@@ -79,25 +92,99 @@ export default function PortfolioSnapshotWidget() {
     }
 
     if (!priced) return null
-    return { value, pnl: value - cost, pnlPct: cost ? ((value - cost) / cost) * 100 : 0, best, worst, priced }
+    return {
+      value,
+      pnl: value - cost,
+      pnlPct: cost ? ((value - cost) / cost) * 100 : 0,
+      dayPnl: dayBase ? dayPnl : null,
+      dayPct: dayBase ? (dayPnl / dayBase) * 100 : null,
+      best,
+      worst,
+      priced,
+    }
   }, [priceable, data, usdToAud])
+
+  const value = stats?.value ?? null
+
+  // Recording is a side effect of having priced the portfolio, so it belongs
+  // in an effect rather than in the memo above — a memo that writes to storage
+  // runs during render and would fire again on any unrelated re-render that
+  // invalidated it.
+  useEffect(() => {
+    if (value == null) return
+    recordPortfolioValue(value)
+  }, [value])
+
+  // The series is derived rather than held in state, so it does not have to be
+  // re-read after the effect above writes. Today's stored point is dropped and
+  // replaced with the live value: they are the same number by the time the
+  // effect runs, but deriving it means the sparkline never lags a render
+  // behind the figure printed beside it.
+  const series = useMemo(() => {
+    const today = marketDayKey()
+    const past = getPortfolioHistory(7).filter((h) => h.day !== today).map((h) => h.value)
+    return value != null ? [...past, Math.round(value)] : past
+  }, [value])
 
   if (!stats) {
     return <WidgetEmpty action="ADD HOLDINGS" onAction={() => goModule('portfolio')}>No holdings yet</WidgetEmpty>
   }
 
   const up = stats.pnl >= 0
+
   return (
     <WidgetBody>
-      <WidgetFigure
-        value={`A$${Math.round(stats.value).toLocaleString()}`}
-        sub={`${up ? '▲' : '▼'} A$${Math.abs(Math.round(stats.pnl)).toLocaleString()} (${stats.pnlPct.toFixed(2)}%)`}
-        tone={up ? '#2D8A50' : '#A83232'}
-      />
-      <WidgetRows>
-        {stats.best && <WidgetRow label={`BEST · ${stats.best.sym}`} value="" change={stats.best.pct} />}
-        {stats.worst && <WidgetRow label={`WORST · ${stats.worst.sym}`} value="" change={stats.worst.pct} />}
-      </WidgetRows>
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0">
+          <div className="font-mono tabular-nums truncate" style={{ fontSize: 22, lineHeight: 1.15, color: '#E8EDF5' }}>
+            A${Math.round(stats.value).toLocaleString()}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <ChangePill value={stats.dayPct} suffix="%" />
+            <span className="font-mono text-[8px]" style={{ color: '#4A6080', letterSpacing: '0.08em' }}>
+              {stats.dayPnl == null
+                ? 'TODAY UNAVAILABLE'
+                : `TODAY ${stats.dayPnl >= 0 ? '+' : '−'}A$${Math.abs(Math.round(stats.dayPnl)).toLocaleString()}`}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+          {series.length >= 2
+            ? <Sparkline values={series} tone={up ? '#2D8A50' : '#A83232'} />
+            : (
+              // Not a placeholder shape — saying "collecting" is the honest
+              // answer on day one, and a flat line would not be.
+              <span className="font-mono text-[8px]" style={{ color: '#3A4E68' }}>
+                {series.length === 1 ? '7D · 1 day so far' : '7D · collecting'}
+              </span>
+            )}
+          {series.length >= 2 && (
+            <span className="font-mono text-[8px]" style={{ color: '#3A4E68' }}>{series.length}D OBSERVED</span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 flex flex-col justify-end gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-[9px]" style={{ color: '#4A6080' }}>TOTAL P&L</span>
+          <span className="font-mono text-[10px] tabular-nums" style={{ color: up ? '#2D8A50' : '#A83232' }}>
+            {up ? '+' : '−'}A${Math.abs(Math.round(stats.pnl)).toLocaleString()} ({stats.pnlPct.toFixed(2)}%)
+          </span>
+        </div>
+        {stats.best && (
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[9px] truncate" style={{ color: '#4A6080' }}>BEST · {stats.best.sym}</span>
+            <ChangePill value={stats.best.pct} suffix="%" />
+          </div>
+        )}
+        {stats.worst && stats.worst.sym !== stats.best?.sym && (
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[9px] truncate" style={{ color: '#4A6080' }}>WORST · {stats.worst.sym}</span>
+            <ChangePill value={stats.worst.pct} suffix="%" />
+          </div>
+        )}
+      </div>
     </WidgetBody>
   )
 }

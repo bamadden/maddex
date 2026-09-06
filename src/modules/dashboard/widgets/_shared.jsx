@@ -76,3 +76,48 @@ export function WidgetRow({ label, value, change, onClick }) {
     </Tag>
   )
 }
+
+// A small line, no axes, no labels — it exists to show shape, not values.
+//
+// Draws nothing at all with fewer than two points. A one-point "line" is a
+// flat segment, which reads as "unchanged" rather than "no data yet", and the
+// difference matters when the series is a portfolio balance.
+export function Sparkline({ values, tone = '#8BA3C4', width = 76, height = 20 }) {
+  if (!values || values.length < 2) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const span = max - min || 1
+  const step = width / (values.length - 1)
+  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / span) * height).toFixed(1)}`)
+
+  return (
+    <svg width={width} height={height} style={{ display: 'block', overflow: 'visible' }}>
+      <polyline points={points.join(' ')} fill="none" stroke={tone} strokeWidth={1.25} strokeLinejoin="round" strokeLinecap="round" />
+      {/* Latest point marked, so the eye knows which end is now. */}
+      <circle cx={(width).toFixed(1)} cy={points[points.length - 1].split(',')[1]} r={1.75} fill={tone} />
+    </svg>
+  )
+}
+
+// A change stated as a pill rather than as text.
+//
+// The day's P&L and the total P&L are different claims and were previously
+// rendered identically, one under the other, in the same dim grey. Giving the
+// day figure a coloured chip separates "what happened today" from "what this
+// position has done since you bought it" at a glance.
+export function ChangePill({ value, suffix = '', positiveIsGood = true }) {
+  if (value == null || !Number.isFinite(value)) return null
+  const good = positiveIsGood ? value >= 0 : value < 0
+  const colour = good ? '#2D8A50' : '#A83232'
+  return (
+    <span
+      className="font-mono tabular-nums flex-shrink-0"
+      style={{
+        fontSize: 9, color: colour, background: `${colour}1F`,
+        border: `1px solid ${colour}55`, borderRadius: 2, padding: '1px 5px',
+      }}
+    >
+      {value >= 0 ? '▲' : '▼'} {Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}{suffix}
+    </span>
+  )
+}

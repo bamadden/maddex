@@ -5,6 +5,7 @@ import {
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { CENTRAL_BANK_RATES, RBA_RATE_HISTORY } from '../../data/placeholders'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
@@ -571,49 +572,84 @@ function CompactRbaDashboard({ askAI }) {
   )
 }
 
-// ─── Market pricing panel — RBA/FOMC probability gauges + Big 4 forecasts ──
+// ─── Policy panel — what is actually known about the next decisions ───────
+//
+// This panel used to be headed "MARKET IMPLIES" and showed "82% HOLD / 18%
+// CUT" for the RBA and "65% / 35%" for the FOMC, above four named banks'
+// forecasts. Every one of those figures was a literal typed into this file.
+// There is no rate-futures feed connected to this app, and there never was —
+// the numbers described nothing, had no as-of date, and did not move.
+//
+// That is the same failure as the fabricated Brent price in the morning brief,
+// and worse in one respect: a market-implied cut probability is precisely the
+// figure someone positions against, and attributing a HOLD call to CBA by name
+// makes a claim about a real institution's published view.
+//
+// Replaced with what verifiedConstants actually holds — the last decision, the
+// current level, and the scheduled date of the next meeting — plus an explicit
+// statement that market pricing is not connected. Removing the number entirely
+// rather than labelling it, for the same reason the scanner's breakout prices
+// were removed: there is then nothing left to misread.
 
-function ProbabilityGauge({ label, hold, cut }) {
+function PolicyRow({ label, rate, verb, decidedOn, nextMeeting, now }) {
+  const next = nextMeeting ? new Date(`${nextMeeting}T00:00:00`) : null
+  const days = next ? Math.max(0, Math.ceil((next - now) / 86400000)) : null
   return (
-    <div className="mb-2">
-      <div className="text-2xs text-terminal-text-dim mb-1">{label}</div>
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <div className="flex-1 h-2 bg-terminal-surface2 rounded-full overflow-hidden">
-          <div className="h-full bg-terminal-gold/70 rounded-full" style={{ width: `${hold}%` }} />
-        </div>
-        <span className="text-2xs font-bold text-terminal-gold w-20 text-right">{hold}% HOLD</span>
+    <div className="mb-2.5 last:mb-0">
+      <div className="flex items-baseline justify-between gap-2 mb-0.5">
+        <span className="text-2xs text-terminal-text-dim">{label}</span>
+        <span className="text-xs font-bold text-terminal-gold tabular-nums">{rate}</span>
       </div>
-      <div className="flex items-center gap-1.5">
-        <div className="flex-1 h-2 bg-terminal-surface2 rounded-full overflow-hidden">
-          <div className="h-full bg-terminal-red/70 rounded-full" style={{ width: `${cut}%` }} />
-        </div>
-        <span className="text-2xs font-bold text-terminal-red w-20 text-right">{cut}% CUT</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-2xs text-terminal-text-dim/70">
+          Last: <span className="text-terminal-text-bright font-semibold">{verb}</span>
+          {decidedOn ? ` · ${new Date(`${decidedOn}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}` : ''}
+        </span>
+        {next && (
+          <span className="text-2xs text-terminal-text-dim/70 whitespace-nowrap">
+            Next: {next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            <span className="text-terminal-gold/80"> ({days}d)</span>
+          </span>
+        )}
       </div>
     </div>
   )
 }
 
-const BIG4_FORECASTS = [
-  { bank: 'CBA', call: 'HOLD' }, { bank: 'NAB', call: 'HOLD' },
-  { bank: 'WBC', call: 'HOLD' }, { bank: 'ANZ', call: 'HOLD' },
-]
-
 function MarketPricingPanel() {
+  const { rba, fed } = VERIFIED_CONSTANTS
+  // Captured once rather than read in the render body: a clock read during
+  // render makes "12d away" change only when something unrelated re-renders,
+  // and makes the component non-idempotent.
+  const [now] = useState(() => Date.now())
   return (
     <div className="p-2 border-t border-terminal-border flex-shrink-0">
-      <div className="text-2xs text-terminal-gold font-bold mb-2 tracking-widest">MARKET IMPLIES</div>
-      <ProbabilityGauge label="RBA — next meeting" hold={82} cut={18} />
-      <ProbabilityGauge label="FOMC — next meeting" hold={65} cut={35} />
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-2xs text-terminal-gold font-bold tracking-widest">POLICY SETTINGS</span>
+        <VerifiedBadge dataKey="rba" alwaysShow />
+      </div>
+
+      <PolicyRow
+        label="RBA cash rate"
+        rate={`${rba.cashRate}%`}
+        verb={rba.lastDecisionVerb}
+        decidedOn={rba.lastDecision}
+        nextMeeting={rba.nextMeeting}
+        now={now}
+      />
+      <PolicyRow
+        label="US Fed funds"
+        rate={fed.rateRange}
+        verb={fed.lastDecisionVerb}
+        decidedOn={fed.lastDecision}
+        nextMeeting={fed.nextMeeting}
+        now={now}
+      />
+
       <div className="mt-2 pt-2 border-t border-terminal-border/50">
-        <div className="text-2xs text-terminal-text-dim mb-1">BIG 4 BANK FORECASTS</div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {BIG4_FORECASTS.map(b => (
-            <span key={b.bank} className="text-2xs">
-              <span className="text-terminal-text-bright font-bold">{b.bank}</span>
-              <span className="text-terminal-text-dim">: </span>
-              <span className="text-terminal-gold font-semibold">{b.call}</span>
-            </span>
-          ))}
+        <div className="text-2xs text-terminal-text-dim/60 leading-snug">
+          No rate-futures feed is connected, so no market-implied probability of a
+          hold or cut is shown. Figures above are the published settings.
         </div>
       </div>
     </div>
