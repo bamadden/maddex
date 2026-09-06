@@ -29,10 +29,8 @@ import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
-import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Cell, Brush,
-} from 'recharts'
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
+import SafeChart from '../../components/ui/SafeChart'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
 // Every macro indicator carries its official release `date` (ISO) and `src`
@@ -147,7 +145,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
         ⤢
       </span>
     )}
-    <ResponsiveContainer width="100%" height="100%">
+    <SafeChart width="100%" height="100%">
       <LineChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
         <CartesianGrid stroke="#0d2244" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={1} />
@@ -164,7 +162,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
           isAnimationActive={false}
         />
       </LineChart>
-    </ResponsiveContainer>
+    </SafeChart>
   </div>
 )
 
@@ -314,7 +312,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
 
         {/* Chart — drag to zoom, double-click to reset, Brush for scrub/pan */}
         <div className="flex-1 p-4" ref={chartWrapRef} onDoubleClick={resetZoom}>
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeChart width="100%" height="100%">
             <LineChart
               data={viewData}
               margin={{ top: 12, right: 20, left: 0, bottom: 8 }}
@@ -355,7 +353,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               )}
               <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
             </LineChart>
-          </ResponsiveContainer>
+          </SafeChart>
         </div>
 
         {/* Footer stats */}
@@ -491,7 +489,7 @@ function RBADashboard({ askAI }) {
         <div className="p-2 flex flex-col h-full">
           <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
           <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
                 <defs>
                   <linearGradient id="rbaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -515,7 +513,7 @@ function RBADashboard({ askAI }) {
                 <Area type="stepAfter" dataKey="rate" stroke="#C9A84C" strokeWidth={1.5}
                   fill="url(#rbaGrad)" dot={false} isAnimationActive={false} />
               </AreaChart>
-            </ResponsiveContainer>
+            </SafeChart>
           </div>
         </div>
 
@@ -649,7 +647,7 @@ function LeadingIndicators() {
       note: 'Jul 2026 — PESSIMISTIC (below 100)',
       source: 'Westpac-MI',
       chart: (
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
@@ -661,7 +659,7 @@ function LeadingIndicators() {
               dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </LineChart>
-        </ResponsiveContainer>
+        </SafeChart>
       ),
     },
     {
@@ -671,7 +669,7 @@ function LeadingIndicators() {
       note: 'May 2026',
       source: 'NAB Survey',
       chart: (
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
@@ -685,7 +683,7 @@ function LeadingIndicators() {
             </Bar>
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </BarChart>
-        </ResponsiveContainer>
+        </SafeChart>
       ),
     },
     {
@@ -695,7 +693,7 @@ function LeadingIndicators() {
       note: 'Mar 2026 — SURPLUS',
       source: 'ABS 5368.0',
       chart: (
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
             <defs>
               <linearGradient id="tradeGrad" x1="0" y1="0" x2="0" y2="1">
@@ -712,7 +710,7 @@ function LeadingIndicators() {
               fill="url(#tradeGrad)" dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </AreaChart>
-        </ResponsiveContainer>
+        </SafeChart>
       ),
     },
     {
@@ -722,7 +720,7 @@ function LeadingIndicators() {
       note: 'Key AU export driver — impacts AUD & miners',
       source: 'SGX / Platts',
       chart: (
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <LineChart data={IRON_ORE_HISTORY} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={2} />
@@ -734,7 +732,7 @@ function LeadingIndicators() {
               dot={{ r: 2.5, fill: '#3b82f6' }} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </LineChart>
-        </ResponsiveContainer>
+        </SafeChart>
       ),
     },
   ]
@@ -840,12 +838,12 @@ function ChinaWatch({ askAI }) {
               </span>
             </div>
             <div className="mt-1" style={{ height: 32 }}>
-              <ResponsiveContainer width="100%" height={32}>
+              <SafeChart width="100%" height={32}>
                 <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
                   <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
                     strokeWidth={1.2} dot={false} isAnimationActive={false} />
                 </LineChart>
-              </ResponsiveContainer>
+              </SafeChart>
             </div>
             <div className="text-2xs text-terminal-text-dim/60 mt-0.5 truncate" title={ind.why}>{ind.why}</div>
           </div>
@@ -863,12 +861,12 @@ function ChinaWatch({ askAI }) {
               <span className="text-2xs text-terminal-text-dim ml-auto">{ind.date}</span>
             </div>
             <div className="mt-1" style={{ height: 32 }}>
-              <ResponsiveContainer width="100%" height={32}>
+              <SafeChart width="100%" height={32}>
                 <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
                   <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
                     strokeWidth={1.2} dot={false} isAnimationActive={false} />
                 </LineChart>
-              </ResponsiveContainer>
+              </SafeChart>
             </div>
             <div className="text-2xs text-terminal-text-dim/60 mt-0.5 truncate" title={ind.why}>{ind.why}</div>
           </div>

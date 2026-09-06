@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ResponsiveContainer, AreaChart, Area } from 'recharts'
+import { AreaChart, Area } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 import Tooltip from '../../components/ui/Tooltip'
+import SafeChart from '../../components/ui/SafeChart'
 
 const SECTOR_BY_SYMBOL = Object.fromEntries([
   ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
@@ -322,11 +323,11 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
               Beta driven mainly by: {risk.topDrivers.map((d) => d.symbol).join(', ')}
             </div>
             <div className="border border-terminal-border p-2 mt-2" style={{ height: 120 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <SafeChart width="100%" height="100%">
                 <AreaChart data={risk.chartData}>
                   <Area type="monotone" dataKey="value" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} isAnimationActive={false} />
                 </AreaChart>
-              </ResponsiveContainer>
+              </SafeChart>
             </div>
           </>
         )}

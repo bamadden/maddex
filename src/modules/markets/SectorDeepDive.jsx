@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS } from './SectorHeatmap'
 import { getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 import { fmt } from '../../utils/format'
 import { askClaudeJSON } from '../../services/api'
 import { dispatchAskAI } from '../../utils/askAI'
 import TabBar from '../../components/ui/TabBar'
+import SafeChart from '../../components/ui/SafeChart'
 
 const TABS = [
   { key: 'OVERVIEW', label: 'OVERVIEW' },
@@ -259,7 +260,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
             <div className="border border-terminal-border p-3">
               <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">30D · {sectorName.toUpperCase()} VS {indexLabel.toUpperCase()}</div>
               <div style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <SafeChart width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                     <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" />
@@ -269,7 +270,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                     <Area type="monotone" dataKey="sector" name={sectorName} stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
                     <Area type="monotone" dataKey="index" name={indexLabel} stroke="#5b7fa6" fill="#5b7fa6" fillOpacity={0.1} />
                   </AreaChart>
-                </ResponsiveContainer>
+                </SafeChart>
               </div>
             </div>
 

@@ -1,7 +1,8 @@
 import { useMemo, useState, useCallback } from 'react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { dispatchAskAI } from '../../utils/askAI'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import SafeChart from '../../components/ui/SafeChart'
 
 const SECTOR_BY_SYMBOL = Object.fromEntries([
   ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
@@ -98,7 +99,7 @@ function DonutMini({ data, title }) {
     <div className="flex-1 min-w-[160px]">
       <div className="text-2xs text-terminal-text-dim text-center mb-1">{title}</div>
       <div style={{ height: 140 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <PieChart>
             <Pie data={data} cx="50%" cy="50%" innerRadius={30} outerRadius={55} dataKey="value" isAnimationActive={false}>
               {data.map((d, i) => <Cell key={d.name} fill={STOCK_PALETTE[i % STOCK_PALETTE.length]} stroke="#040d1a" strokeWidth={1} />)}
@@ -110,7 +111,7 @@ function DonutMini({ data, title }) {
               }}
             />
           </PieChart>
-        </ResponsiveContainer>
+        </SafeChart>
       </div>
     </div>
   )

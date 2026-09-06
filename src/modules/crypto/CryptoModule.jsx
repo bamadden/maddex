@@ -16,7 +16,8 @@ import { StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import { SkeletonCoinRow } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
+import SafeChart from '../../components/ui/SafeChart'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -463,7 +464,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, 
           ) : chartLoading ? (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING...</div>
           ) : chartData?.length > 1 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
@@ -477,7 +478,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, 
                 <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5}
                   fill="url(#detailGrad)" dot={false} isAnimationActive={false} connectNulls />
               </AreaChart>
-            </ResponsiveContainer>
+            </SafeChart>
           ) : (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim">NO DATA</div>
           )}

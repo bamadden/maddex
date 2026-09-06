@@ -18,9 +18,10 @@ import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts'
 import YieldCurveAnimator from '../../components/charts/YieldCurveAnimator'
 import CentralBankTracker from './CentralBankTracker'
+import SafeChart from '../../components/ui/SafeChart'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D surface view.
@@ -278,7 +279,7 @@ function FxHistoryModal({ pair, onClose }) {
               LOADING RATE HISTORY...
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="fxGrad" x1="0" y1="0" x2="0" y2="1">
@@ -306,7 +307,7 @@ function FxHistoryModal({ pair, onClose }) {
                   isAnimationActive={false}
                 />
               </AreaChart>
-            </ResponsiveContainer>
+            </SafeChart>
           )}
         </div>
         <div className="border-t border-terminal-border px-4 py-1.5 text-2xs text-terminal-text-dim/60 flex items-center gap-4 flex-shrink-0">
@@ -544,7 +545,7 @@ function CompactRbaDashboard({ askAI }) {
       </div>
 
       <div className="flex-shrink-0 px-2 py-2" style={{ height: 220 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
             <defs>
               <linearGradient id="rbaCompactGrad" x1="0" y1="0" x2="0" y2="1">
@@ -559,7 +560,7 @@ function CompactRbaDashboard({ askAI }) {
             <Tooltip content={<RbaStepTooltip />} />
             <Area type="stepAfter" dataKey="rate" stroke="#C9A84C" strokeWidth={1.5} fill="url(#rbaCompactGrad)" dot={false} isAnimationActive={false} />
           </AreaChart>
-        </ResponsiveContainer>
+        </SafeChart>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -639,7 +640,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
         }`}>{shape === '—' ? 'NORMAL CURVE' : `${shape} CURVE`}</span>
       </div>
       <div style={{ height: 160 }} className="px-2 py-2">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
             <XAxis dataKey="tenor" tick={{ fontSize: 8 }} />
@@ -648,7 +649,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
             <Line type="monotone" dataKey="AU" stroke={YIELD_CURVES.AU.color} strokeWidth={2} dot={{ fill: YIELD_CURVES.AU.color, r: 2.5 }} connectNulls isAnimationActive={false} />
             <Line type="monotone" dataKey="US" stroke={YIELD_CURVES.US.color} strokeWidth={2} strokeDasharray="5 3" dot={{ fill: YIELD_CURVES.US.color, r: 2.5 }} connectNulls isAnimationActive={false} />
           </LineChart>
-        </ResponsiveContainer>
+        </SafeChart>
       </div>
       <div className="flex-1 min-h-0 flex flex-col justify-center overflow-y-auto">
         <MarketPricingPanel />

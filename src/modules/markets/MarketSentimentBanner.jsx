@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
-  Customized, LineChart, Line, XAxis, YAxis, ReferenceLine,
-} from 'recharts'
+import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, LineChart, Line, XAxis, YAxis, ReferenceLine } from 'recharts'
 import {
   YF_INDICES, fetchFearGreed, transformFearGreed,
   ASX_STOCKS,
 } from '../../services/api'
 import { fetchEquityQuotes, fetchIndexQuotesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
 import { useStore } from '../../store/useStore'
+import SafeChart from '../../components/ui/SafeChart'
 import {
   calculateMarketSentimentScore, generateShortSummary, scoreToColor,
 } from '../../services/maddenAiScoring'
@@ -244,7 +242,7 @@ function TrendSection({ currentScore }) {
           BUILDING HISTORY — scores recorded each session
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={90}>
+        <SafeChart width="100%" height={90}>
           <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
             <XAxis
               dataKey="t"
@@ -273,7 +271,7 @@ function TrendSection({ currentScore }) {
             />
             <Line type="monotone" dataKey="score" stroke={lineColor} strokeWidth={1.5} dot={false} />
           </LineChart>
-        </ResponsiveContainer>
+        </SafeChart>
       )}
 
       {/* Stats row */}
@@ -371,7 +369,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
             {/* Radar chart */}
             <div style={{ flex: '0 0 auto' }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8899aa)', letterSpacing: '0.08em', marginBottom: 4 }}>COMPONENT SCORES</div>
-              <ResponsiveContainer width="100%" height={210}>
+              <SafeChart width="100%" height={210}>
                 <RadarChart data={radarData} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
                   <Customized component={RadarZones} />
                   <PolarGrid stroke="rgba(30,70,140,0.35)" />
@@ -392,7 +390,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                     formatter={(v) => [`${v}/100`, 'Score']}
                   />
                 </RadarChart>
-              </ResponsiveContainer>
+              </SafeChart>
               {/* Legend */}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', fontSize: 8, color: 'var(--color-text-dim, #8899aa)' }}>
                 <span style={{ color: '#a83232' }}>● 0–33 BEARISH</span>

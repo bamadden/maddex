@@ -16,7 +16,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { requireYFSym } from '../../utils/tickerGuard'
 import { dispatchAskAI } from '../../utils/askAI'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line, ReferenceLine } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line, ReferenceLine } from 'recharts'
 import StressTest from './StressTest'
 import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
@@ -27,6 +27,7 @@ import AnimatedNumber from '../../components/ui/AnimatedNumber'
 import TabBar from '../../components/ui/TabBar'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import WhatIf from './WhatIf'
+import SafeChart from '../../components/ui/SafeChart'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -428,7 +429,7 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
       </div>
 
       <div className="h-40 px-2 pt-2">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="portfolioFill" x1="0" y1="0" x2="0" y2="1">
@@ -469,7 +470,7 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
             <Area type="monotone" dataKey="portfolio" stroke="#C9A84C" strokeWidth={1.5} fill="url(#portfolioFill)" isAnimationActive={false} />
             <Line type="monotone" dataKey="benchmark" stroke={bench.colour} strokeWidth={1.25} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
           </AreaChart>
-        </ResponsiveContainer>
+        </SafeChart>
       </div>
     </div>
   )
@@ -1236,7 +1237,7 @@ export default function PortfolioModule() {
             ) : (
             <>
               <div className="h-40 p-2 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <SafeChart width="100%" height="100%">
                   <PieChart>
                     <Pie data={allocData} cx="50%" cy="50%" innerRadius={30} outerRadius={58}
                       dataKey="value" isAnimationActive={false}>
@@ -1246,7 +1247,7 @@ export default function PortfolioModule() {
                     </Pie>
                     <Tooltip content={<PieTooltip />} />
                   </PieChart>
-                </ResponsiveContainer>
+                </SafeChart>
               </div>
               <div className="overflow-auto px-2 pb-1">
                 {allocData.map((d, i) => (
@@ -1271,7 +1272,7 @@ export default function PortfolioModule() {
             <>
               <div className="panel-header border-t border-terminal-border flex-shrink-0">P&amp;L BY POSITION</div>
               <div className="h-36 p-1 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <SafeChart width="100%" height="100%">
                   <BarChart data={pnlData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                     <CartesianGrid stroke="#0d2244" vertical={false} />
                     {/* Break-even, so winners and losers read as sides of a
@@ -1296,7 +1297,7 @@ export default function PortfolioModule() {
                       {pnlData.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'} />)}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
+                </SafeChart>
               </div>
             </>
           )}

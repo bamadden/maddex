@@ -1,12 +1,10 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  Radar, ResponsiveContainer, Tooltip, Legend,
-} from 'recharts'
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from 'recharts'
 import { fetchBatch, USING_MOCK_DATA } from '../../services/api'
 import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from './SectorHeatmap'
 import { DemoBadge } from '../../components/ui/ModuleStates'
+import SafeChart from '../../components/ui/SafeChart'
 
 // Recharts renders these into SVG, where a bare 'monospace' resolves to the
 // browser default — Courier on some systems — which is a visibly different
@@ -202,7 +200,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
 
       {/* Radar chart */}
       <div style={{ height: 500 }} className="flex-shrink-0 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <RadarChart
             cx="50%" cy="50%"
             outerRadius="75%"
@@ -248,7 +246,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
               wrapperStyle={{ fontSize: 10, fontFamily: MONO, color: '#6b7280', paddingTop: 4 }}
             />
           </RadarChart>
-        </ResponsiveContainer>
+        </SafeChart>
       </div>
 
       {/* Score table */}

@@ -8,12 +8,11 @@ import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
-} from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Brush } from 'recharts'
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
 import SectorDeepDive from './SectorDeepDive'
 import { getMockFMPRow } from '../../services/mockData'
+import SafeChart from '../../components/ui/SafeChart'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -1404,7 +1403,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                 const last = composite.points[composite.points.length - 1]?.pct ?? 0
                 const col = last >= 0 ? '#2d8a50' : '#a83232'
                 return (
-                  <ResponsiveContainer width="100%" height={118}>
+                  <SafeChart width="100%" height={118}>
                     <AreaChart data={composite.points} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                       <defs>
                         <linearGradient id="sectorCompositeGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1421,7 +1420,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                         fill="url(#sectorCompositeGrad)" dot={false} isAnimationActive={false} connectNulls />
                       <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                     </AreaChart>
-                  </ResponsiveContainer>
+                  </SafeChart>
                 )
               })() : (
                 <>
@@ -1434,7 +1433,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   {chartData.length >= 2 && (() => {
                     const col = proxyQuotes?.[proxySym]?.pct >= 0 ? '#2d8a50' : '#a83232'
                     return (
-                      <ResponsiveContainer width="100%" height={118}>
+                      <SafeChart width="100%" height={118}>
                         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                           <defs>
                             <linearGradient id="sectorGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1450,7 +1449,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                             fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />
                           <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                         </AreaChart>
-                      </ResponsiveContainer>
+                      </SafeChart>
                     )
                   })()}
                 </>
@@ -1811,7 +1810,7 @@ function IndexView({ selectedIndex, openModal }) {
                 <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/50 animate-pulse">LOADING...</div>
               )}
               {!idxHistLoading && idxChartData.length >= 2 && (
-                <ResponsiveContainer width="100%" height={90}>
+                <SafeChart width="100%" height={90}>
                   <AreaChart data={idxChartData} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
                     <defs>
                       <linearGradient id="idxGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1826,7 +1825,7 @@ function IndexView({ selectedIndex, openModal }) {
                       fill="url(#idxGrad)" dot={false} isAnimationActive={false} connectNulls />
                     <Brush dataKey="date" height={14} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
                   </AreaChart>
-                </ResponsiveContainer>
+                </SafeChart>
               )}
               {!idxHistLoading && idxChartData.length < 2 && (
                 <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/40">No data</div>

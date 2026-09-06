@@ -8,9 +8,8 @@ import { fmt } from '../../utils/format'
 import { StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import { SkeletonIndexBar } from '../../components/ui/Skeleton'
 import PriceChange from '../../components/ui/PriceChange'
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import SafeChart from '../../components/ui/SafeChart'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -206,7 +205,7 @@ function CompareIndicesModal({ indices, onClose }) {
           {chartData.length < 2 ? (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING...</div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                 <CartesianGrid stroke="#0d2244" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
@@ -220,7 +219,7 @@ function CompareIndicesModal({ indices, onClose }) {
                   <Line key={symbol} type="monotone" dataKey={symbol} stroke={COMPARE_COLORS[i % COMPARE_COLORS.length]} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
                 ))}
               </LineChart>
-            </ResponsiveContainer>
+            </SafeChart>
           )}
         </div>
       </div>

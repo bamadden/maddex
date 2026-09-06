@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
+import SafeChart from '../../components/ui/SafeChart'
 import {
   PRESET_SCENARIOS, rbaRateOn, eventOn, generateReplaySeries, generateReplayMovers, addDays,
 } from '../../services/replayService'
@@ -175,7 +176,7 @@ export default function MarketReplayModule() {
               </div>
             ) : (
               <div style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <SafeChart width="100%" height="100%">
                   <AreaChart data={series}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                     <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
@@ -183,7 +184,7 @@ export default function MarketReplayModule() {
                     <Tooltip content={<ChartTip />} />
                     <Area type="monotone" dataKey="level" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
                   </AreaChart>
-                </ResponsiveContainer>
+                </SafeChart>
               </div>
             )}
           </div>

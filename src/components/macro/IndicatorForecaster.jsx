@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import SafeChart from '../ui/SafeChart'
 import {
   INDICATORS, generateIndicatorHistory, consensusAccuracy, avgConsensusMiss, forecastIndicator,
 } from '../../services/economicForecastService'
@@ -25,11 +26,11 @@ const RBA_LINK = {
 function Sparkline({ data, color }) {
   return (
     <div style={{ width: 80, height: 28 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <SafeChart width="100%" height="100%">
         <LineChart data={data}>
           <Line type="monotone" dataKey="actual" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </LineChart>
-      </ResponsiveContainer>
+      </SafeChart>
     </div>
   )
 }
@@ -92,7 +93,7 @@ function IndicatorCard({ indicator, expanded, onToggle }) {
       {expanded && (
         <div className="border-t border-terminal-border/60 p-3 space-y-3">
           <div style={{ height: 160 }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               <AreaChart data={history}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                 <XAxis dataKey="date" tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(0, 7)} interval={4} />
@@ -101,7 +102,7 @@ function IndicatorCard({ indicator, expanded, onToggle }) {
                 <Area type="monotone" dataKey="actual" name="Actual" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
                 <Area type="monotone" dataKey="consensus" name="Consensus" stroke="#5b7fa6" fill="none" strokeDasharray="4 2" />
               </AreaChart>
-            </ResponsiveContainer>
+            </SafeChart>
           </div>
 
           <div className="text-2xs text-terminal-text-dim">
@@ -162,7 +163,7 @@ export default function IndicatorForecaster() {
         <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">FORECASTER ACCURACY</div>
         <div className="text-2xs text-terminal-text-dim mb-2">Average consensus miss vs actual, last 12 readings — consensus is often wrong by more than markets expect.</div>
         <div style={{ height: 200 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeChart width="100%" height="100%">
             <BarChart data={accuracyChartData} margin={{ bottom: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
               <XAxis dataKey="label" tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" angle={-35} textAnchor="end" interval={0} />
@@ -170,7 +171,7 @@ export default function IndicatorForecaster() {
               <Tooltip content={<ChartTip />} />
               <Bar dataKey="miss" name="Avg Miss" fill="#C9A84C" />
             </BarChart>
-          </ResponsiveContainer>
+          </SafeChart>
         </div>
       </div>
     </div>

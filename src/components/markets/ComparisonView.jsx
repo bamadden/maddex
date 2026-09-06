@@ -1,11 +1,12 @@
 import { useEffect, useState, Fragment } from 'react'
 import { useQueries } from '@tanstack/react-query'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { fetchYFQuote } from '../../services/api'
 import { toYahooSymbol, detectAssetType } from '../../utils/assetUtils'
 import { useStore } from '../../store/useStore'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI } from '../../utils/askAI'
+import SafeChart from '../ui/SafeChart'
 
 const LINE_COLORS = ['#C9A84C', '#4a9dd9', '#2ea05a']
 
@@ -139,7 +140,7 @@ export default function ComparisonView() {
 
               {/* Normalised performance chart */}
               <div className="h-48 px-3 pt-3">
-                <ResponsiveContainer width="100%" height="100%">
+                <SafeChart width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="#0d2244" vertical={false} />
                     <XAxis dataKey="i" tick={false} axisLine={false} />
@@ -160,7 +161,7 @@ export default function ComparisonView() {
                       <Line key={a.symbol} type="monotone" dataKey={a.symbol} stroke={LINE_COLORS[i % 3]} strokeWidth={1.5} dot={false} isAnimationActive={false} />
                     ))}
                   </LineChart>
-                </ResponsiveContainer>
+                </SafeChart>
               </div>
               <div className="px-3 text-2xs text-terminal-text-dim/50 text-center">Normalised to 100 · illustrative — demo pricing history</div>
 

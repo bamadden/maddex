@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import SafeChart from '../ui/SafeChart'
 
 const SPEEDS = { Slow: 5000, Normal: 2500, Fast: 1000 }
 
@@ -78,7 +79,7 @@ export default function YieldCurveAnimator({ curve }) {
       </div>
 
       <div style={{ height: 220 }} className="px-2 py-2">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeChart width="100%" height="100%">
           <LineChart data={frame} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0d2244" vertical={false} />
             <XAxis dataKey="tenor" tick={{ fontSize: 9 }} />
@@ -89,7 +90,7 @@ export default function YieldCurveAnimator({ curve }) {
             />
             <Line type="monotone" dataKey="yield" stroke={curve.color} strokeWidth={2} dot={{ fill: curve.color, r: 2.5 }} isAnimationActive={false} />
           </LineChart>
-        </ResponsiveContainer>
+        </SafeChart>
       </div>
 
       <div className="px-3 pb-2 flex items-center gap-3">

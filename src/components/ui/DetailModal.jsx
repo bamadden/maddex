@@ -17,10 +17,8 @@ import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetU
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
-import {
-  AreaChart, Area, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend,
-} from 'recharts'
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
+import SafeChart from './SafeChart'
 
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y', 'ALL']
 const CHART_TYPES = ['area', 'line', 'candle', 'pro']
@@ -1276,7 +1274,7 @@ export default function DetailModal() {
           ) : chartData.length < 10 ? (
             <DataUnavailable label={`INSUFFICIENT DATA (${chartData.length} pts)`} className="h-full" />
           ) : compareOpen && compareData.length > 1 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               <LineChart data={compareData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                 <CartesianGrid stroke="#0d2244" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
@@ -1290,7 +1288,7 @@ export default function DetailModal() {
                 <Line type="monotone" dataKey="b" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} name="b" />
                 <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
               </LineChart>
-            </ResponsiveContainer>
+            </SafeChart>
           ) : chartType === 'candle' ? (
             <CandleChart data={chartData} />
           ) : chartType === 'pro' ? (
@@ -1309,7 +1307,7 @@ export default function DetailModal() {
               <DataUnavailable label="NOT ENOUGH OHLC DATA FOR PRO CHART" className="h-full" />
             )
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeChart width="100%" height="100%">
               {chartType === 'area' ? (
                 <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                   <defs>
@@ -1335,7 +1333,7 @@ export default function DetailModal() {
                   <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
                 </LineChart>
               )}
-            </ResponsiveContainer>
+            </SafeChart>
           )}
         </div>
 
