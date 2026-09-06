@@ -44,9 +44,9 @@ const RESIZE_HANDLES = [
 // screen edge to see the target zone highlighted; release to snap) and
 // resize handles on all 4 edges + 4 corners, plus a maximise toggle that
 // remembers the pre-maximise geometry to restore.
-export function FloatingWindow({ title, children, onClose, defaultPos, zIndex = 1000, onFocus }) {
+export function FloatingWindow({ title, children, onClose, defaultPos, defaultSize, zIndex = 1000, onFocus }) {
   const [pos, setPos] = useState(defaultPos || { x: 100, y: 100 })
-  const [size, setSize] = useState({ w: 600, h: 420 })
+  const [size, setSize] = useState(defaultSize || { w: 600, h: 420 })
   const [minimised, setMinimised] = useState(false)
   const [maximised, setMaximised] = useState(false)
   const [snapPreview, setSnapPreview] = useState(null)

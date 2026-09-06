@@ -782,3 +782,13 @@ body.ticker-paused .ticker-content {
   animation: shimmer 1.5s infinite;
   border-radius: 2px;
 }
+
+/* Right-click nav menu rows. Hover state lives here rather than inline so it
+   can use a pseudo-class; everything else about the menu is inline because it
+   is portalled and positioned from JS. */
+.nav-ctx-item:hover,
+.nav-ctx-item:focus-visible {
+  background: rgba(201, 168, 76, 0.12);
+  color: #E8EDF5;
+  outline: none;
+}

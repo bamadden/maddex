@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
+import NavContextMenu from '../ui/NavContextMenu'
 import { shortcutService } from '../../services/shortcutService'
 
 // Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
@@ -102,6 +103,19 @@ export default function NavBar() {
   }, [])
   const showBriefDot = isBriefNotifyWindow(now)
 
+  // Right-click target: { x, y, id, label } or null.
+  const [ctxMenu, setCtxMenu] = useState(null)
+
+  const runCtxAction = (action, moduleId) => {
+    if (action === 'open') return setActiveModule(moduleId)
+    if (action === 'popout') {
+      return window.dispatchEvent(new CustomEvent('madden:pop-out', { detail: { moduleId } }))
+    }
+    if (action === 'split') {
+      return window.dispatchEvent(new CustomEvent('madden:split-with', { detail: { moduleId } }))
+    }
+  }
+
   return (
     <div
       data-tour="nav-sidebar"
@@ -141,6 +155,10 @@ export default function NavBar() {
               {item.groupBreak && <div className="h-px bg-terminal-gold/[0.08] mx-3 my-1.5 flex-shrink-0" />}
               <button
                 onClick={() => setActiveModule(item.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setCtxMenu({ x: e.clientX, y: e.clientY, id: item.id, label: item.label })
+                }}
                 title={hint ? `${item.label} (${hint})` : item.label}
                 aria-current={isActive ? 'page' : undefined}
                 className={`group/item relative ${ROW} ${GAP} ${iconPad} pr-3 ${
@@ -172,6 +190,16 @@ export default function NavBar() {
           )
         })}
       </div>
+
+      {ctxMenu && (
+        <NavContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          moduleLabel={ctxMenu.label}
+          onSelect={(action) => runCtxAction(action, ctxMenu.id)}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
 
       {/* AI Analyst toggle */}
       <button

@@ -241,8 +241,41 @@ function Terminal() {
   // Applies the persisted theme (or default) to :root on mount — independent
   // of whether the Settings panel (where the switcher lives) is open.
   useTheme()
-  const { layout } = useLayoutMode()
+  const { layout, setLayout } = useLayoutMode()
   const [splitModuleId, setSplitModuleId] = useState('crypto')
+  // Left pane's share of the split, 0.2–0.8. Held here rather than in the
+  // divider so both panes and the drag handler read one number.
+  const [splitRatio, setSplitRatio] = useState(0.5)
+  const splitWrapRef = useRef(null)
+
+  // Pointer capture rather than window listeners: the pointer crosses two
+  // iframably-complex module trees while dragging, and capture guarantees the
+  // move and up events keep coming back to the divider rather than being
+  // swallowed by whatever is underneath.
+  const beginSplitDrag = useCallback((e) => {
+    e.preventDefault()
+    const wrap = splitWrapRef.current
+    if (!wrap) return
+    const handle = e.currentTarget
+    handle.setPointerCapture?.(e.pointerId)
+
+    const onMove = (ev) => {
+      const box = wrap.getBoundingClientRect()
+      if (!box.width) return
+      const ratio = (ev.clientX - box.left) / box.width
+      setSplitRatio(Math.min(0.8, Math.max(0.2, ratio)))
+    }
+    const onUp = () => {
+      handle.releasePointerCapture?.(e.pointerId)
+      handle.removeEventListener('pointermove', onMove)
+      handle.removeEventListener('pointerup', onUp)
+      document.body.style.userSelect = ''
+    }
+    // Text selection across both panes while dragging looks broken.
+    document.body.style.userSelect = 'none'
+    handle.addEventListener('pointermove', onMove)
+    handle.addEventListener('pointerup', onUp)
+  }, [])
   const SplitModule = MODULE_MAP[splitModuleId] || CryptoModule
 
   // Custom multi-panel workspaces (see workspaceService.js / WorkspaceSwitcher).
@@ -314,10 +347,15 @@ function Terminal() {
     setFloatingWindows((prev) => {
       // Re-focus rather than duplicate if this module is already popped out.
       if (prev.some((w) => w.moduleId === moduleId)) return prev
-      return [...prev, {
-        id: Date.now(), moduleId, title,
-        pos: { x: 120 + prev.length * 28, y: 90 + prev.length * 28 },
-      }]
+      // Centred at 800x600, then cascaded so a second popout does not land
+      // exactly on top of the first and look like nothing happened.
+      const size = { w: 800, h: 600 }
+      const step = prev.length * 28
+      const pos = {
+        x: Math.max(16, Math.round((window.innerWidth - size.w) / 2) + step),
+        y: Math.max(16, Math.round((window.innerHeight - size.h) / 2) + step),
+      }
+      return [...prev, { id: Date.now(), moduleId, title, pos, size }]
     })
   }, [])
 
@@ -338,6 +376,38 @@ function Terminal() {
     window.addEventListener('madden:pop-out', handler)
     return () => window.removeEventListener('madden:pop-out', handler)
   }, [openFloating])
+
+  // "Open side by side" from the nav right-click menu. The chosen module
+  // fills the right pane and the current one stays on the left, which is why
+  // this sets splitModuleId rather than activeModule — the point of the
+  // action is to see the new thing WITHOUT losing what you were looking at.
+  useEffect(() => {
+    const handler = (e) => {
+      const { moduleId } = e.detail ?? {}
+      if (!moduleId) return
+      setSplitModuleId(moduleId)
+      setSplitRatio(0.5)
+      setLayout('split')
+    }
+    window.addEventListener('madden:split-with', handler)
+    return () => window.removeEventListener('madden:split-with', handler)
+  }, [setLayout])
+
+  // Esc leaves split view. Ignored while a modal, the command bar or any
+  // text input has focus, where Esc already means "cancel that".
+  useEffect(() => {
+    if (layout !== 'split') return
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      const el = document.activeElement
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      if (document.querySelector('[role="dialog"]')) return
+      setLayout('standard')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [layout, setLayout])
 
   // Correlation Explorer — a global full-page overlay openable from the
   // Markets Correlation sub-tab, the command bar ("correlate BHP AUD"), or
@@ -527,15 +597,40 @@ function Terminal() {
             <WorkspaceRenderer workspace={activeWorkspace} />
           </div>
         ) : layout === 'split' ? (
-          <div className="flex flex-1 min-w-0 overflow-hidden">
-            <div key={activeModule} className="flex-1 min-w-0 w-1/2 overflow-hidden border-r border-terminal-border module-fade">
+          <div className="flex flex-1 min-w-0 overflow-hidden" ref={splitWrapRef}>
+            <div
+              key={activeModule}
+              className="min-w-0 overflow-hidden module-fade"
+              style={{ flex: `${splitRatio} 1 0%` }}
+            >
               <ErrorBoundary label={MODULE_TITLES[activeModule]}>
                 <Suspense fallback={<ModuleSuspenseFallback />}>
                   <ActiveModule />
                 </Suspense>
               </ErrorBoundary>
             </div>
-            <div className="flex-1 min-w-0 w-1/2 overflow-hidden flex flex-col">
+
+            {/* Draggable divider. role="separator" with arrow-key support so
+                the split is adjustable without a pointer. */}
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize split panes"
+              aria-valuenow={Math.round(splitRatio * 100)}
+              tabIndex={0}
+              onPointerDown={beginSplitDrag}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowLeft')  setSplitRatio((r) => Math.max(0.2, r - 0.02))
+                if (e.key === 'ArrowRight') setSplitRatio((r) => Math.min(0.8, r + 0.02))
+              }}
+              className="group relative flex-shrink-0 w-1 bg-terminal-border hover:bg-terminal-gold/60 focus-visible:bg-terminal-gold transition-colors cursor-col-resize outline-none"
+            >
+              {/* Thin line, fat hit area — 4px is easy to see and miserable
+                  to grab, so the target is widened without moving the line. */}
+              <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
+            </div>
+
+            <div className="min-w-0 overflow-hidden flex flex-col" style={{ flex: `${1 - splitRatio} 1 0%` }}>
               <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-terminal-border bg-terminal-surface">
                 <span className="text-2xs text-terminal-text-dim tracking-widest">SPLIT PANE:</span>
                 <select
@@ -547,6 +642,12 @@ function Terminal() {
                     <option key={id} value={id}>{label}</option>
                   ))}
                 </select>
+                <button
+                  onClick={() => setLayout('standard')}
+                  title="Close split (Esc)"
+                  aria-label="Close split view"
+                  className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors px-1"
+                >✕</button>
               </div>
               <div key={splitModuleId} className="flex-1 min-h-0 overflow-hidden module-fade">
                 <ErrorBoundary label={MODULE_TITLES[splitModuleId]}>
@@ -584,6 +685,7 @@ function Terminal() {
             key={w.id}
             title={w.title}
             defaultPos={w.pos}
+            defaultSize={w.size}
             zIndex={w.z ?? 1000}
             onFocus={() => bringToFront(w.id)}
             onClose={() => closeFloating(w.id)}
