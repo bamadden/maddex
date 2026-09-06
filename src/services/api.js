@@ -1180,16 +1180,69 @@ function classifyNewsCategories(title, description = '', sourceCategory = null) 
 }
 
 // ─── Sentiment (keyword-derived, not a model call) ───────────────────────────
-const BULLISH_RE = /surge|soar|rall(y|ies)|jump(s|ed)?|record high|upgrade|outperform|ris(e|es|ing)|climbs?|beats?|strong|gains?\b|positive|growth|bullish/i
-const BEARISH_RE = /plunge|crash|slump|tumbl|drop(s|ped)?|falls?|misses?|downgrade|underperform|declin|weak|recession|sell-?off|warning|loss\b|cut(s|ting)?\b/i
+//
+// Scored by COUNTING matches, not by testing for presence.
+//
+// The previous version asked "does this contain a bullish word" and "does it
+// contain a bearish word", and returned NEUTRAL whenever both were true. That
+// is most real headlines — "shares rise despite profit warning" has one of
+// each and is not neutral — and it was pushing roughly three quarters of the
+// feed into NEUTRAL, which made the aggregate almost immovable.
+//
+// Global flags so matchAll can count every occurrence rather than stopping at
+// the first.
+// Only words that are directional ON THEIR OWN.
+//
+// "profit" and "risk" were in an earlier draft and both had to come out.
+// "Shares rise despite profit warning" scored POSITIVE, because "profit"
+// counted as bullish inside the phrase "profit warning" — a false positive on
+// one of the most common headline constructions in financial news. "risk" has
+// the same problem in both directions ("risk-off", "risk appetite returns").
+//
+// A word earns a place here only if it points one way in every headline it
+// plausibly appears in.
+const BULLISH_RE = /surge|soar|rall(y|ies)|jump(s|ed)?|record high|upgrade|outperform|ris(e|es|ing)|climbs?|beats?|strong|gains?\b|positive|growth|bullish|rebound|recover(y|s|ed)?|boost|optimis/gi
+const BEARISH_RE = /plunge|crash|slump|tumbl|drop(s|ped)?|falls?|misses?|downgrade|underperform|declin|weak|recession|sell-?off|warning|loss(es)?\b|slash|fear|concern|slowdown|deficit/gi
+
+// The headline carries more signal than the blurb, which is often boilerplate
+// or a syndication footer, so matches there are weighted double.
+function scoreText(title, description = '') {
+  const count = (re, str) => (str.match(re) ?? []).length
+  const bull = count(BULLISH_RE, title) * 2 + count(BULLISH_RE, description)
+  const bear = count(BEARISH_RE, title) * 2 + count(BEARISH_RE, description)
+  return { bull, bear, net: bull - bear }
+}
 
 function inferSentiment(title, description = '') {
-  const text = `${title} ${description}`
-  const bull = BULLISH_RE.test(text)
-  const bear = BEARISH_RE.test(text)
-  if (bull && !bear) return 'BULLISH'
-  if (bear && !bull) return 'BEARISH'
+  const { net } = scoreText(title, description)
+  if (net > 0) return 'BULLISH'
+  if (net < 0) return 'BEARISH'
   return 'NEUTRAL'
+}
+
+// Net score per article, exported so the feed can aggregate a 0-100 index
+// rather than only counting labels. Clamped: one article stuffed with
+// keywords should not dominate a hundred-headline average.
+export function articleSentimentScore(title, description = '') {
+  const { net } = scoreText(title, description)
+  return Math.max(-5, Math.min(5, net))
+}
+
+// Aggregates articles into a 0-100 index where 50 is balanced. Uses the mean
+// net score, not the ratio of labels: an article at +4 and one at +1 are both
+// "BULLISH" but say different things, and the ratio throws that away.
+export function aggregateNewsSentiment(articles = []) {
+  if (!articles.length) return { score: 50, label: 'NEUTRAL', sampled: 0 }
+  const scores = articles.map((a) => a.sentimentScore ?? articleSentimentScore(a.headline ?? '', a.summary ?? ''))
+  const mean = scores.reduce((s, v) => s + v, 0) / scores.length
+  // ±2.5 mean net maps to the full range, which is a wide swing for an
+  // average across dozens of headlines.
+  const score = Math.round(Math.max(0, Math.min(100, 50 + (mean / 2.5) * 50)))
+  return {
+    score,
+    label: score >= 60 ? 'BULLISH' : score <= 40 ? 'BEARISH' : 'NEUTRAL',
+    sampled: scores.length,
+  }
 }
 
 // ─── Dedup by headline similarity (Jaccard word overlap > 80%) ───────────────
@@ -1330,6 +1383,7 @@ export const fetchNews = async () => {
         tag,
         categories:     classifyNewsCategories(item.title, item.description, sourceCategory),
         sentiment:      inferSentiment(item.title, item.description),
+        sentimentScore: articleSentimentScore(item.title, item.description),
         headline:       item.title?.trim() || '(No title)',
         summary:        stripHtml(item.description || item.content),
         link:           item.link,

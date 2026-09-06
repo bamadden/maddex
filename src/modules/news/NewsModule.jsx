@@ -18,7 +18,11 @@ import { getAllEarningsResults } from '../../services/earningsAnalystService'
 const READ_KEY     = 'madden_news_read_v1'
 const CAT_KEY      = 'madden_news_category_v1'
 const MAX_ARTICLES = 500
-const REFRESH_MS   = 5 * 60_000
+// 15 minutes, matching the RSS proxy's edge cache (s-maxage=900 in
+// api/rss.js). At the previous five minutes, two of every three refetches
+// asked eighteen publishers for data the proxy would serve from cache
+// unchanged — three times the requests for the same headlines.
+const REFRESH_MS   = 15 * 60_000
 const PULSE_MS      = 30_000
 
 const BREAKING_RE = /rate (cut|hike)|crash|collapse|record (high|low)|emergency|crisis|\bwar\b|sanction|default|bankruptcy|merger|acquisition|\bIPO\b|surge/i
@@ -1056,7 +1060,14 @@ export default function NewsModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="NEWS" subtitle="AFR · Reuters · CNBC · 30+ sources" moduleId="news" />
+      <ModuleHeader
+        title="NEWS"
+        subtitle="SMH · ABC · Guardian · CNBC · 18 sources"
+        moduleId="news"
+        isFetching={isFetching}
+        lastUpdated={lastUpdatedAt}
+        onRefresh={refetch}
+      />
 
       <MorningBriefing />
 
@@ -1089,7 +1100,9 @@ export default function NewsModule() {
           {lastUpdatedDisplay && (
             <span className="text-2xs text-terminal-text-dim/40 font-normal normal-case">
               {lastUpdatedDisplay}
-              {nextRefreshSecs !== null && ` · ↺ ${nextRefreshSecs}s`}
+              {nextRefreshSecs !== null && ` · next update in ${
+                nextRefreshSecs >= 60 ? `${Math.floor(nextRefreshSecs / 60)}m` : `${nextRefreshSecs}s`
+              }`}
             </span>
           )}
           {isFetching && (
