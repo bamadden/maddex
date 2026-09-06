@@ -918,7 +918,12 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
         <div
           style={{
             position: 'absolute', top: 12, left: 12, zIndex: Z.CHROME,
-            width: PANEL_W, maxHeight: 'calc(100% - 84px)',
+            width: PANEL_W,
+            // Stops short of the seismic status bar in the bottom-left
+            // rather than running the full height: 12px top inset, plus the
+            // bar's own 12px inset, its ~24px height and a gap. Growing the
+            // panel to fit all twelve layers without this covered the bar.
+            maxHeight: 'calc(100% - 76px)',
             display: 'flex', flexDirection: 'column',
             background: 'rgba(6,13,26,0.94)',
             border: '1px solid rgba(201,168,76,0.28)', borderRadius: 3,
@@ -938,7 +943,10 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
               style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0 }}>✕</button>
           </div>
 
-          <div className="thin-scrollbar" style={{ overflowY: 'auto', padding: '5px 0', minHeight: 0 }}>
+          <div
+            className="thin-scrollbar map-layer-scroll"
+            style={{ overflowY: 'auto', padding: '4px 0', minHeight: 0 }}
+          >
             {LAYER_CATALOGUE.map((l) => {
               const on = !!layerOn[l.id]
               return (
@@ -950,7 +958,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
                   className="map-layer-row"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                    padding: '5px 10px', background: 'none', border: 'none',
+                    padding: '4px 10px', background: 'none', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
                     fontFamily: '"IBM Plex Mono", monospace', fontSize: 10,
                     color: on ? '#E8EDF5' : '#637899',
@@ -976,11 +984,11 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
             })}
           </div>
 
-          <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', padding: '7px 10px', flexShrink: 0 }}>
-            <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.14em', color: '#4A6080', marginBottom: 5 }}>
+          <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', padding: '5px 10px 6px', flexShrink: 0 }}>
+            <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.14em', color: '#4A6080', marginBottom: 3 }}>
               MAP STYLE
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
               {STYLE_OPTIONS.map((st) => (
                 <button key={st.id} onClick={() => onStyleChange(st.id)}
                   style={{ ...btn(mapStyle === st.id), padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>
@@ -988,7 +996,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 3, marginTop: 5 }}>
+            <div style={{ display: 'flex', gap: 2, marginTop: 3 }}>
               <button onClick={onAuFocus} style={{ ...btn(auFocus), flex: 1, padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>🇦🇺 AU</button>
               <button onClick={onGlobal} style={{ ...btn(false), flex: 1, padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>🌐 GLOBAL</button>
             </div>

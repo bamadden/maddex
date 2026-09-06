@@ -811,3 +811,13 @@ body.ticker-paused .ticker-content {
 @media (prefers-reduced-motion: reduce) {
   .intel-ticker-track { animation: none; }
 }
+
+/* Scroll affordance for the map layer list. The mask fades the last few
+   pixels only while the list actually overflows, so a full list has no
+   phantom gradient and an overflowing one is visibly cut rather than
+   silently truncated. */
+.map-layer-scroll {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent 100%);
+}
+.map-layer-scroll:not(:hover) { scrollbar-width: thin; }
