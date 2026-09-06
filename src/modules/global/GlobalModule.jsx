@@ -13,7 +13,8 @@ import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 import TabBar from '../../components/ui/TabBar'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import VerifiedBadge, { LiveBadge } from '../../components/ui/VerifiedBadge'
+import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
@@ -2156,13 +2157,83 @@ function Sparkline({ points, positive }) {
 
 // Mock — no live commodities feed wired up yet; matches the DEMO-badge
 // convention used across Markets/Rates until a real source is connected.
+// Commodity pulse. Three things were wrong with the hardcoded version and
+// all three are worth naming, because they are the failure modes this whole
+// pass is about:
+//
+//  1. The change percentages had no source at all. A daily move is the most
+//     perishable number on the panel and these were fixed forever — GOLD had
+//     been up 0.34% every day since the row was written. A figure with no
+//     source is worse than a missing one, because it invites a decision.
+//
+//  2. The prices disagreed with VERIFIED_CONSTANTS.commodities, which held
+//     copper at 4.12 against 4.31 here.
+//
+//  3. The units were silently mixed. Gold's 4,821 was AUD while iron ore's
+//     98.40 was USD, on adjacent rows, with no currency shown on either.
+//
+// Now: gold is genuinely live (with a real 24h change), everything else
+// comes from the verified constants and shows its publication date instead
+// of a change it cannot know, and every figure is explicitly US$.
+//
+// WTI became BRENT. The constants carry a verified Brent price and no WTI
+// one, and relabelling the benchmark to match the number is honest where
+// printing Brent under a WTI heading is not.
+const C = VERIFIED_CONSTANTS.commodities
+
+// "Jun '26" from '2026-06-30'. Formatted by hand rather than through
+// toLocaleDateString: en-AU renders June's short month as "June", giving
+// "June 26", which reads as the 26th of June rather than a month and year.
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function monthAbbr(iso) {
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${MONTH_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`
+}
+
 const COMMODITY_PULSE = [
-  { name: 'GOLD',       unit: '/oz',  price: 4821,  chg: 0.34 },
-  { name: 'WTI CRUDE',  unit: '/bbl', price: 71.85, chg: -0.62 },
-  { name: 'IRON ORE',   unit: '/t',   price: 98.40, chg: 1.05 },
-  { name: 'COPPER',     unit: '/lb',  price: 4.31,  chg: 0.28 },
-  { name: 'WHEAT',      unit: '/bu',  price: 561,   chg: -0.44 },
+  { name: 'BRENT',    unit: '/bbl', price: C.brentUSD },
+  { name: 'IRON ORE', unit: '/t',   price: C.ironOreUSD },
+  { name: 'COPPER',   unit: '/lb',  price: C.copperUSDPerLb },
+  { name: 'WHEAT',    unit: '/bu',  price: C.wheatUSDPerBu },
+  { name: 'COAL',     unit: '/t',   price: C.thermalCoalUSD },
 ]
+
+// Gold comes from liveDataService, which proxies spot via PAXG — an ERC-20
+// token redeemable for one LBMA-vaulted ounce. It tracks spot closely and is
+// genuinely live, but it is a proxy, so it is labelled as one rather than
+// presented as a spot feed.
+function useGoldPrice() {
+  const [gold, setGold] = useState(null)
+  const [source, setSource] = useState('failed')
+  const [fetchedAt, setFetchedAt] = useState(null)
+  const [ageMins, setAgeMins] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    liveDataService.getGoldPrice().then(({ data, source: src, at }) => {
+      if (!alive || !data) return
+      setGold(data)
+      setSource(src)
+      setFetchedAt(at ?? Date.now())
+    }).catch(() => { /* row simply does not render */ })
+    return () => { alive = false }
+  }, [])
+
+  // Age is recomputed on a timer rather than read from the clock during
+  // render: "4m ago" has to become "5m ago" on its own, and reading Date.now()
+  // in a render body makes the output depend on when React happens to paint.
+  useEffect(() => {
+    if (fetchedAt == null) return
+    const update = () => setAgeMins(Math.round((Date.now() - fetchedAt) / 60000))
+    update()
+    const id = setInterval(update, 60000)
+    return () => clearInterval(id)
+  }, [fetchedAt])
+
+  return { gold, source, ageMins }
+}
 
 const FX_CROSS_PAIRS = [
   { key: 'USD', label: 'AUD/USD', dp: 4 },
@@ -2208,6 +2279,7 @@ function FeedHeader({ children, badge }) {
 }
 
 function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
+  const { gold, source: goldSource, ageMins: goldAge } = useGoldPrice()
   const alerts = useMemo(() => {
     if (!newsItems?.length) return []
     return newsItems
@@ -2289,16 +2361,31 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
       </div>
 
       <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader badge="● DEMO">COMMODITY PULSE</FeedHeader>
+        <FeedHeader badge={<VerifiedBadge dataKey="commodities" alwaysShow />}>COMMODITY PULSE</FeedHeader>
         <div className="px-2 py-1">
+          {gold && (
+            <div className="flex items-center justify-between py-1">
+              <span className="text-2xs text-terminal-text-dim flex items-center gap-1.5">
+                GOLD
+                <LiveBadge label="Gold — PAXG proxy for spot, via CoinGecko" source={goldSource} ageMins={goldAge} />
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="text-2xs text-terminal-text-bright tabular-nums">US${gold.USD.toLocaleString()}/oz</span>
+                <span className={`text-2xs tabular-nums w-12 text-right ${(gold.change24h ?? 0) >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {gold.change24h == null ? '—' : `${gold.change24h >= 0 ? '▲' : '▼'}${Math.abs(gold.change24h).toFixed(2)}%`}
+                </span>
+              </span>
+            </div>
+          )}
           {COMMODITY_PULSE.map(c => (
             <div key={c.name} className="flex items-center justify-between py-1">
               <span className="text-2xs text-terminal-text-dim">{c.name}</span>
               <span className="flex items-center gap-2">
-                <span className="text-2xs text-terminal-text-bright tabular-nums">{c.price.toLocaleString()}{c.unit}</span>
-                <span className={`text-2xs tabular-nums w-12 text-right ${c.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {c.chg >= 0 ? '▲' : '▼'}{Math.abs(c.chg).toFixed(2)}%
-                </span>
+                <span className="text-2xs text-terminal-text-bright tabular-nums">US${c.price.toLocaleString()}{c.unit}</span>
+                {/* The publication date, not a change percentage. These are
+                    verified levels, not a feed, so there is no daily move to
+                    report and inventing one is the thing we just removed. */}
+                <span className="text-2xs text-terminal-text-dim tabular-nums w-12 text-right">{monthAbbr(C.asOf)}</span>
               </span>
             </div>
           ))}
