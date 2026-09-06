@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
@@ -14,6 +14,7 @@ import { earningsFor, daysUntil } from '../../services/earningsCalendar'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
 import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetUtils'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
 import {
@@ -474,8 +475,68 @@ function AssetNewsPanel({ symbol, name }) {
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
+// Three other names in the same sector.
+//
+// Sector comes from the live quote summary where there is one, and falls back
+// to the mock universe's own classification otherwise — a US name that FMP
+// has not returned a sector for still resolves via MOCK_US_STOCKS rather than
+// showing nothing.
+//
+// Peers are drawn from the same exchange as the subject. Offering ANZ as a
+// peer for AAPL because both are "Financials"/"IT" would be technically
+// correct and useless: someone reading a US bank wants US banks.
+function RelatedStocks({ symbol, type, sector, onPick }) {
+  const peers = useMemo(() => {
+    if (!sector) return []
+    const universe = type === 'asx' ? MOCK_ASX_STOCKS : type === 'us' ? MOCK_US_STOCKS : null
+    if (!universe) return []
+    const self = String(symbol).toUpperCase().replace(/\.AX$/, '')
+    return Object.entries(universe)
+      .filter(([sym, d]) => d.sector === sector && sym.replace(/\.AX$/, '').toUpperCase() !== self)
+      // Largest first — the biggest names in a sector are the ones a reader
+      // is most likely to already have a view on.
+      .sort((a, b) => (b[1].marketCap ?? 0) - (a[1].marketCap ?? 0))
+      .slice(0, 3)
+      .map(([sym, d]) => ({ sym, ...d }))
+  }, [symbol, type, sector])
+
+  if (!peers.length) return null
+
+  return (
+    <Section title={`IN THE SAME SECTOR — ${sector.toUpperCase()}`} noCols>
+      <div className="flex flex-col">
+        {peers.map((p) => (
+          <button
+            key={p.sym}
+            onClick={() => onPick(p)}
+            className="flex items-center justify-between gap-3 py-1.5 px-1 -mx-1 rounded-[2px] hover:bg-terminal-accent/20 transition-colors text-left"
+          >
+            <span className="flex items-baseline gap-2 min-w-0">
+              <span className="font-mono text-xs font-bold text-terminal-text-bright flex-shrink-0">
+                {p.sym.replace(/\.AX$/, '')}
+              </span>
+              <span className="text-2xs text-terminal-text-dim truncate">{p.name}</span>
+            </span>
+            <span className="flex items-baseline gap-3 flex-shrink-0">
+              <span className="font-mono text-2xs text-terminal-text tabular-nums">
+                {type === 'asx' ? 'A$' : 'US$'}{p.price.toFixed(2)}
+              </span>
+              <span
+                className="font-mono text-2xs tabular-nums text-right"
+                style={{ width: 52, color: p.changePct >= 0 ? '#2D8A50' : '#A83232' }}
+              >
+                {p.changePct >= 0 ? '▲' : '▼'}{Math.abs(p.changePct).toFixed(2)}%
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
 export default function DetailModal() {
-  const { modalAsset, closeModal, addToWatchlist, watchlist, addAlert, setActiveModule, openCompare } = useStore()
+  const { modalAsset, closeModal, openModal, addToWatchlist, watchlist, addAlert, setActiveModule, openCompare } = useStore()
   const queryClient = useQueryClient()
 
   const [timeframe, setTimeframe] = useState('1M')
@@ -587,6 +648,15 @@ export default function DetailModal() {
   const pctSign   = pct > 0 ? '+' : ''
   const isInWL    = watchlist.includes(symbol)
   const upcomingEarnings = (type === 'asx' || type === 'index') ? earningsFor(symbol) : null
+
+  // Sector for the peer list. FMP's quote summary carries one for most names
+  // but not all, so fall back to the mock universe's own classification —
+  // otherwise a US ticker with no summary sector shows no peers at all, which
+  // reads as "this stock has none" rather than "we did not look them up".
+  const relatedSector = qs?.sector
+    ?? MOCK_ASX_STOCKS[`${String(symbol).toUpperCase().replace(/\.AX$/, '')}.AX`]?.sector
+    ?? MOCK_US_STOCKS[String(symbol).toUpperCase()]?.sector
+    ?? null
 
   const displayPrice  = price
   const displayChange = change
@@ -825,6 +895,23 @@ export default function DetailModal() {
           </div>
         </Section>
       )}
+
+      {/* Peers sit above the company profile: "what else is like this" is a
+          question people ask while still forming a view, whereas the profile
+          is reference material they open deliberately. */}
+      <RelatedStocks
+        symbol={symbol}
+        type={type}
+        sector={relatedSector}
+        onPick={(p) => openModal({
+          symbol: p.sym.replace(/\.AX$/, ''),
+          name:   p.name,
+          price:  p.price,
+          pct:    p.changePct,
+          change: p.price * (p.changePct / 100),
+          type,
+        })}
+      />
 
       {(qs?.sector || qs?.description) && (
         <Section title="COMPANY PROFILE" defaultOpen={false} noCols>
