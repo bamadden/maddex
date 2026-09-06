@@ -1,6 +1,12 @@
 // Generates every PWA/favicon size from the Maddex logo.
 //
 // Run:  node scripts/generate-icons.js
+//
+// Bounds and background colour are DETECTED, not hardcoded. An earlier
+// version carried pixel coordinates measured from one particular source
+// file; swapping in a different logo silently cropped the wrong region,
+// because the numbers were still describing the old image. Nothing here
+// knows the source's dimensions in advance.
 import sharp from 'sharp'
 import { mkdirSync, existsSync } from 'fs'
 
@@ -13,34 +19,34 @@ if (!existsSync(source)) {
 
 mkdirSync('./public/icons', { recursive: true })
 
-// The source's OWN navy, sampled from it: rgb(1,16,49) / #011031.
-//
-// Not #060D1A, which the app uses. Those are visibly different — #011031 is
-// bluer and lighter — so padding a crop of this JPEG onto #060D1A leaves a
-// rectangle where the source ends. Since the logo is a photograph with no
-// alpha, its background cannot be removed; matching it is the only way to get
-// a seamless tile.
-const BG = { r: 1, g: 16, b: 49, alpha: 1 }
+const meta = await sharp(source).metadata()
 
-// Artwork bounds inside the 886x886 source, measured with sharp's trim.
-// The logo occupies 66% x 32% of the frame — two thirds of the height is
-// empty navy, which is why naive resizing produced a tiny mark in a big tile.
-const MARK = { left: 152, top: 315, width: 585, height: 205 }   // MX only
-const FULL = { left: 152, top: 320, width: 585, height: 285 }   // MX + wordmark
+// The source's OWN background, read from a corner. Not the app's #060D1A:
+// these logos sit on a navy that is bluer and lighter, and padding a crop
+// onto a different dark leaves a visible rectangle where the source ends.
+// A JPEG has no alpha, so matching is the only way to a seamless tile.
+const { data: corner } = await sharp(source).extract({ left: 0, top: 0, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true })
+const BG = { r: corner[0], g: corner[1], b: corner[2], alpha: 1 }
 
-// Below this, the MADDEX wordmark is a smudge — at 32px it renders about two
-// pixels tall. Small sizes get the monogram alone, which is the actual brand
-// mark and stays recognisable in a browser tab.
-const WORDMARK_LEGIBLE_AT = 72
+// Trim finds the artwork by walking in from the edges until the colour
+// changes, which is exactly the question "where does the mark start".
+const trimmed = await sharp(source).trim({ threshold: 12 }).toBuffer({ resolveWithObject: true })
+const art = {
+  width: trimmed.info.width,
+  height: trimmed.info.height,
+  left: -trimmed.info.trimOffsetLeft,
+  top: -trimmed.info.trimOffsetTop,
+}
 
-// Square canvas at ~86% fill, so the mark has margin instead of bleeding to
-// the edges.
-const SQUARE = Math.round(585 / 0.86)
+// Square canvas at ~82% fill so the mark has margin rather than bleeding to
+// the edge. Driven by whichever dimension is larger, so a wide mark and a
+// tall one both end up the same visual weight.
+const SQUARE = Math.round(Math.max(art.width, art.height) / 0.82)
 
-async function tile(region, size) {
-  const cropped = await sharp(source).extract(region).png().toBuffer()
-  const padX = Math.round((SQUARE - region.width) / 2)
-  const padY = Math.round((SQUARE - region.height) / 2)
+async function tile(size) {
+  const cropped = await sharp(source).extract(art).png().toBuffer()
+  const padX = Math.round((SQUARE - art.width) / 2)
+  const padY = Math.round((SQUARE - art.height) / 2)
   const squared = await sharp(cropped)
     .extend({ top: padY, bottom: padY, left: padX, right: padX, background: BG })
     .png()
@@ -60,27 +66,23 @@ const sizes = [
   { size: 192, name: 'icon-192x192.png' },
   { size: 384, name: 'icon-384x384.png' },
   { size: 512, name: 'icon-512x512.png' },
+  // In-app branding (sidebar 36px, topbar 28px). Same artwork as everything
+  // else now that the source carries no wordmark — kept as separate files so
+  // the components' paths do not have to change.
+  { size: 96,  name: 'icon-mark-96.png' },
+  { size: 192, name: 'icon-mark-192.png' },
 ]
 
 for (const { size, name } of sizes) {
-  const region = size < WORDMARK_LEGIBLE_AT ? MARK : FULL
-  const buf = await tile(region, size)
-  await sharp(buf).toFile(`./public/icons/${name}`)
-  console.log(`✓ ${name.padEnd(22)} ${size < WORDMARK_LEGIBLE_AT ? 'MX monogram' : 'full logo'}`)
+  await sharp(await tile(size)).toFile(`./public/icons/${name}`)
+  console.log(`✓ ${name}`)
 }
 
-await sharp(await tile(MARK, 32)).toFile('./public/favicon.png')
-console.log('✓ favicon.png            MX monogram')
+await sharp(await tile(32)).toFile('./public/favicon.png')
+console.log('✓ favicon.png')
 
-// Mark-only asset for in-app branding. The sidebar renders at 36px and the
-// topbar at 28px — both well under WORDMARK_LEGIBLE_AT — so the full lockup
-// would put an illegible smudge of a wordmark under the monogram. In the
-// topbar it would also sit directly beside real MADDEX text, saying the same
-// word twice, once unreadably.
-for (const size of [96, 192]) {
-  await sharp(await tile(MARK, size)).toFile(`./public/icons/icon-mark-${size}.png`)
-  console.log(`✓ icon-mark-${size}.png${' '.repeat(size === 96 ? 9 : 8)}MX monogram`)
+const bgHex = '#' + [BG.r, BG.g, BG.b].map((n) => n.toString(16).padStart(2, '0')).join('')
+console.log(`\nSource ${meta.width}x${meta.height} · artwork ${art.width}x${art.height} at (${art.left},${art.top}) · background ${bgHex}`)
+if (Math.max(art.width, art.height) < 512) {
+  console.warn('⚠ Artwork is under 512px — the largest icons are upscaled and will look soft.')
 }
-
-const { width, height } = await sharp(source).metadata()
-console.log(`\nGenerated from ${width}x${height} source.`)
