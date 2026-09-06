@@ -14,6 +14,7 @@ import { StatBox } from '../../components/ui/Panel'
 import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
+import { requireYFSym } from '../../utils/tickerGuard'
 import { dispatchAskAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line, ReferenceLine } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
@@ -741,9 +742,16 @@ export default function PortfolioModule() {
     }
   }
 
-  // Batch fetch for equity holdings
+  // Batch fetch for equity holdings.
+  //
+  // requireYFSym, not `h.yfSym ?? toYahooSymbol(...)`. The fallback silently
+  // covered for any path that forgot to set yfSym; the guard throws in dev
+  // instead, so that path gets fixed rather than papered over. Every holding
+  // this module holds already carries yfSym — it is set on add, on CSV import
+  // and on the Supabase load — so this should never fire in practice, which is
+  // the point.
   const equityHoldings = holdings.filter((h) => h.type !== 'crypto')
-  const yfSymbols = [...new Set(equityHoldings.map((h) => h.yfSym ?? toYahooSymbol(h.symbol, h.type)))]
+  const yfSymbols = [...new Set(equityHoldings.map(requireYFSym))]
 
   const { data: portfolioResult, isFetching, isError, refetch } = useQuery({
     queryKey:  ['yfPortfolio', ...yfSymbols],
@@ -758,8 +766,9 @@ export default function PortfolioModule() {
   const computed = holdings.map((h) => {
     const isCrypto = h.type === 'crypto'
     const isAsx    = h.type === 'asx'
-    const yfSym    = h.yfSym ?? toYahooSymbol(h.symbol, h.type)
-    const q        = isCrypto ? null : (batchQuotes?.[yfSym] ?? null)
+    // Must key on the same symbol the batch was fetched with, or every lookup
+    // misses and the row renders an em dash instead of a price.
+    const q        = isCrypto ? null : (batchQuotes?.[requireYFSym(h)] ?? null)
 
     let last = null, dayPct = 0, loadState = 'pending', nativePrice = null, currency = isAsx ? 'AUD' : 'USD'
     if (q) {

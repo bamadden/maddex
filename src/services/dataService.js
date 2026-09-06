@@ -19,6 +19,7 @@ import axios from 'axios'
 import {
   fetchBatch, fetchYFBatch, fetchFxRates, fetchCryptoMarkets,
 } from './api'
+import { warnIfBareASX } from '../utils/tickerGuard'
 
 const CACHE_PREFIX = 'maddex_ds_'
 const DEFAULT_TIMEOUT_MS = 8000
@@ -85,6 +86,14 @@ async function withFallback({ cacheKey, primary, fallback, timeoutMs = DEFAULT_T
 // straight through to the stale-cache safety net.
 export async function fetchEquityQuotes(symbols) {
   if (!symbols?.length) return { data: {}, stale: false, source: 'primary' }
+
+  // Every equity quote in the app comes through here, which makes it the one
+  // place worth checking that ASX names carry their .AX suffix. Without it the
+  // vendor returns the US listing at a USD price and says nothing — see
+  // utils/tickerGuard.js. Dev-only, and a warning rather than a throw, because
+  // a few of these codes are genuine US tickers too.
+  warnIfBareASX(symbols, 'fetchEquityQuotes')
+
   const cacheKey = `equities:${[...symbols].sort().join(',')}`
   return withFallback({
     cacheKey,

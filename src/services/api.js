@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { recordUsage } from './aiUsageService'
+import { ASX_TICKERS } from '../utils/asxTickers'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
 
@@ -1277,15 +1278,11 @@ export const GEO_RSS_FEEDS = [
 ]
 
 // ─── Ticker whitelist — only flag known listed symbols ────────────────────────
+// The ASX names live in utils/asxTickers.js because the quote guard needs to
+// ask "is this ASX-listed?" and cannot answer that from a Set that also holds
+// Apple and Bitcoin.
 export const TICKER_WHITELIST = new Set([
-  // ASX
-  'BHP','CBA','CSL','WOW','ANZ','NAB','WBC','MQG','RIO','TLS','FMG','WES','GMG',
-  'ALL','MIN','WDS','XRO','REA','COL','TCL','QBE','SHL','IAG','MPL','ORG','APA',
-  'ASX','BXB','CPU','DXS','EVN','GPT','JHX','LLC','MGR','NCM','NST','ORI','PLS',
-  'RMD','SGP','SUN','TAH','TWE','AMC','AMP','ANN','APE','ARB','AUB','AWC','BAP',
-  'BEN','BOQ','BSL','CAR','CGF','CHC','COH','CTD','CWY','DMP','EBO','ELD','FLT',
-  'GUD','HVN','IFL','IGO','ILU','JBH','LOV','LYC','MFG','MND','MPB','MTS','NEM',
-  'SKI','STO','VCX','WHC','WPR',
+  ...ASX_TICKERS,
   // US
   'AAPL','NVDA','MSFT','TSLA','AMZN','META','GOOG','GOOGL','JPM','V','MA','BAC',
   'XOM','CVX','JNJ','WMT','PG','HD','AVGO','MRK','ABBV','NFLX','AMD','ADBE',

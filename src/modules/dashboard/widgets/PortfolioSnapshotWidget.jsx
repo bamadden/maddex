@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../../services/dataService'
+import { requireYFSym } from '../../../utils/tickerGuard'
 import { useAudRates } from '../../../hooks/useAudRates'
 import {WidgetBody, WidgetFigure, WidgetEmpty, WidgetRows, WidgetRow} from './_shared'
 import { goModule } from './navigate'
@@ -25,8 +26,10 @@ export default function PortfolioSnapshotWidget() {
   // US-listed ADR at US$299 in place of BHP.AX at A$68. The holding is typed
   // 'asx', so no conversion was applied either. Three of five positions were
   // priced off the wrong listing and the total still looked like a portfolio.
+  // requireYFSym rather than `h.yfSym ?? h.symbol` — the `?? h.symbol` half is
+  // exactly the bug above, written as a fallback.
   const symbols = useMemo(
-    () => priceable.map((h) => h.yfSym ?? h.symbol).filter(Boolean),
+    () => priceable.map(requireYFSym).filter(Boolean),
     [priceable],
   )
   const { data } = useQuery({
@@ -58,7 +61,7 @@ export default function PortfolioSnapshotWidget() {
     let value = 0, cost = 0, priced = 0, best = null, worst = null
 
     for (const h of priceable) {
-      const q = rows[h.yfSym ?? h.symbol]
+      const q = rows[requireYFSym(h)]
       const isAsx = h.type === 'asx'
       const last = q?.last == null ? null : (isAsx ? q.last : usdToAud(q.last))
       if (last == null) continue
