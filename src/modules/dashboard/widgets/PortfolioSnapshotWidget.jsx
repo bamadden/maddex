@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../../services/dataService'
+import { useAudRates } from '../../../hooks/useAudRates'
 import {WidgetBody, WidgetFigure, WidgetEmpty, WidgetRows, WidgetRow} from './_shared'
 import { goModule } from './navigate'
 
@@ -10,7 +11,24 @@ export default function PortfolioSnapshotWidget() {
   const [holdings] = useState(() => {
     try { return JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || '[]') } catch { return [] }
   })
-  const symbols = useMemo(() => holdings.map((h) => h.symbol).filter(Boolean), [holdings])
+  // Equities only. PortfolioModule prices crypto through the Crypto module,
+  // not this quote path, and its own totals count "5/5" for six positions.
+  //
+  // Including BTC here did not just add a row — its quote comes back already
+  // in AUD, so the usdToAud applied to every non-ASX holding converted it a
+  // second time and inflated half a bitcoin by about A$88,500. The dashboard
+  // read A$136,103 against the portfolio page's A$47,543 for the same
+  // holdings, and both looked like plausible totals.
+  const priceable = useMemo(() => holdings.filter((h) => h.type === 'asx' || h.type === 'us'), [holdings])
+  // yfSym, not symbol. This passed the bare ticker — 'BHP' rather than
+  // 'BHP.AX' — and the quote API answered with a DIFFERENT SECURITY: BHP's
+  // US-listed ADR at US$299 in place of BHP.AX at A$68. The holding is typed
+  // 'asx', so no conversion was applied either. Three of five positions were
+  // priced off the wrong listing and the total still looked like a portfolio.
+  const symbols = useMemo(
+    () => priceable.map((h) => h.yfSym ?? h.symbol).filter(Boolean),
+    [priceable],
+  )
   const { data } = useQuery({
     queryKey: ['dashPortfolio', symbols],
     queryFn: () => fetchEquityQuotes(symbols),
@@ -19,23 +37,47 @@ export default function PortfolioSnapshotWidget() {
     retry: 1,
   })
 
+  const { usdToAud } = useAudRates()
+
+  // Mirrors PortfolioModule's own calculation deliberately, field for field.
+  //
+  // Two things it got wrong before and both produced a plausible number
+  // rather than an error, which is why the dashboard and the portfolio page
+  // disagreed by tens of thousands of dollars:
+  //
+  //   1. US quotes come back in USD and need converting; ASX ones do not.
+  //   2. A holding with no quote has no market value. Falling back to its
+  //      cost as if it were the price counts an unpriced position at book —
+  //      which for a crypto holding at A$90,000 average was most of the gap.
+  //
+  // Unpriced holdings are excluded from both sides of the P&L, so the ratio
+  // stays honest even when some positions have not loaded.
   const stats = useMemo(() => {
-    if (!holdings.length) return null
+    if (!priceable.length) return null
     const rows = data?.data ?? {}
-    let value = 0, cost = 0, best = null, worst = null
-    for (const h of holdings) {
-      const q = rows[h.symbol]
-      const price = q?.last ?? h.avgPrice ?? 0
-      value += price * (h.units ?? 0)
-      cost += (h.avgPrice ?? 0) * (h.units ?? 0)
+    let value = 0, cost = 0, priced = 0, best = null, worst = null
+
+    for (const h of priceable) {
+      const q = rows[h.yfSym ?? h.symbol]
+      const isAsx = h.type === 'asx'
+      const last = q?.last == null ? null : (isAsx ? q.last : usdToAud(q.last))
+      if (last == null) continue
+
+      const avgCostAud = h.costCurrency === 'USD' ? usdToAud(h.avgCost) : h.avgCost
+      value += last * h.shares
+      cost += avgCostAud * h.shares
+      priced += 1
+
       const pct = q?.pct
       if (pct != null) {
         if (!best || pct > best.pct) best = { sym: h.symbol, pct }
         if (!worst || pct < worst.pct) worst = { sym: h.symbol, pct }
       }
     }
-    return { value, pnl: value - cost, pnlPct: cost ? ((value - cost) / cost) * 100 : 0, best, worst }
-  }, [holdings, data])
+
+    if (!priced) return null
+    return { value, pnl: value - cost, pnlPct: cost ? ((value - cost) / cost) * 100 : 0, best, worst, priced }
+  }, [priceable, data, usdToAud])
 
   if (!stats) {
     return <WidgetEmpty action="ADD HOLDINGS" onAction={() => goModule('portfolio')}>No holdings yet</WidgetEmpty>
