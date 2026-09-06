@@ -20,6 +20,7 @@ import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import YieldCurveAnimator from '../../components/charts/YieldCurveAnimator'
+import CentralBankTracker from './CentralBankTracker'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D surface view.
@@ -898,6 +899,12 @@ export default function FXModule() {
       <div className="h-full" style={{ width: '45%' }}>
         <YieldCurveDualPanel chartData={chartData} yMin={yMin} yMax={yMax} primaryStats={auCurveStats} />
       </div>
+    </div>
+
+    {/* SECTION 2b — central bank tracker: RBA decision timeline, last decision
+        by bank, AU/US spread and the 90-day meeting calendar. */}
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <CentralBankTracker curves={YIELD_CURVES} schedule={BANK_SCHEDULE} />
     </div>
 
     {/* SECTION 3 — FX rates grid + converter + strength index */}
