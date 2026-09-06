@@ -7,26 +7,140 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
 
+// Two derived fields the raw data does not carry, computed once here rather
+// than at every filter, sort and render:
+//
+//   pos52   — where the price sits between its 52-week low and high, 0-100.
+//   offHigh — how far below the 52-week high it is, as a percent.
+//
+// Both are screening primitives ("near its low", "25% off its high") that were
+// previously either recomputed inline or, in the case of pos52, referenced by
+// a scorer against a field that did not exist — so that criterion silently
+// contributed nothing to the match score.
+function withDerived(s) {
+  const range = s.week52High - s.week52Low
+  return {
+    ...s,
+    pos52: range > 0 ? ((s.price - s.week52Low) / range) * 100 : 50,
+    offHigh: s.week52High > 0 ? ((s.week52High - s.price) / s.week52High) * 100 : 0,
+  }
+}
+
 const ALL_STOCKS = [
-  ...Object.entries(MOCK_ASX_STOCKS).map(([symbol, s]) => ({ symbol, exchange: 'ASX', ...s })),
-  ...Object.entries(MOCK_US_STOCKS).map(([symbol, s]) => ({ symbol, exchange: 'US', ...s })),
+  ...Object.entries(MOCK_ASX_STOCKS).map(([symbol, s]) => withDerived({ symbol, exchange: 'ASX', ...s })),
+  ...Object.entries(MOCK_US_STOCKS).map(([symbol, s]) => withDerived({ symbol, exchange: 'US', ...s })),
 ]
-const SECTORS = [...new Set(ALL_STOCKS.map((s) => s.sector))].sort()
+// Boolean filter, not truthiness — a few generated entries carry sector: null,
+// and an unlabelled "null" option in the sector dropdown selects nothing.
+const SECTORS = [...new Set(ALL_STOCKS.map((s) => s.sector).filter(Boolean))].sort()
 const MAX_PE  = Math.max(...ALL_STOCKS.map((s) => s.pe))
 const MAX_DIV = Math.max(...ALL_STOCKS.map((s) => s.divYield))
+
+// Sector colours, so a scan down the results reads by shape as well as by
+// text. Deliberately muted — this is a category tag, not a signal, and it must
+// not compete with the red/green of the change column.
+const SECTOR_COLOUR = {
+  Financials:    '#4A7FB5',
+  IT:            '#7C6BC4',
+  Materials:     '#B5834A',
+  Energy:        '#B55A4A',
+  Health:        '#4AB59A',
+  'Cons Disc':   '#B54A8F',
+  Staples:       '#6FA34A',
+  Comms:         '#4AA3B5',
+  Utilities:     '#8A8A5A',
+  'Real Est':    '#A36F4A',
+  Industrials:   '#6A7A8A',
+}
+const sectorColour = (sec) => SECTOR_COLOUR[sec] ?? '#6A6A6A'
 
 // `criteria` names the numeric thresholds a preset constrains, so results can
 // be graded on the thing that was actually screened for. Presets with no
 // numeric threshold (ASX CORE, SMALL CAPS) declare none and are shown
 // unranked, which is honest — there is no "better" within a sector filter.
+//
+// Every preset carries a `desc` naming its actual thresholds, shown on hover
+// and under the pill row. A screen called "OVERSOLD QUALITY" that does not say
+// what it screened for is a mood, not a tool — and the thresholds are the
+// first thing anyone acting on the results needs to disagree with.
+//
+// SMALL CAP MOMENTUM is the one preset whose threshold does not match its
+// name's usual meaning. A genuine small-cap floor (under A$500M) matches
+// nothing here: the tracked universe is 45 large caps and its smallest member
+// is A$8.6B. Rather than ship a preset that always returns an empty table, the
+// floor is set at the bottom of the universe that actually exists and the
+// description says so.
+const B = 1_000_000_000
+const isProfitable = (s) => s.pe > 0
+
 const PRESETS = [
-  { key: 'dividend',   label: 'DIVIDEND KINGS', filter: (s) => s.divYield >= 4,                   criteria: { divMin: 4 } },
-  { key: 'value',      label: 'VALUE PLAYS',    filter: (s) => s.pe > 0 && s.pe < 15,             criteria: { peMax: 15 } },
-  { key: 'momentum',   label: 'MOMENTUM',       filter: (s) => s.changePct >= 2,                  criteria: { changeMin: 2 } },
-  { key: 'asx200',     label: 'ASX CORE',       filter: (s) => s.exchange === 'ASX',              criteria: {} },
-  { key: 'smallcap',   label: 'SMALL CAPS',     filter: (s) => s.marketCap < 10_000_000_000,      criteria: {} },
-  { key: 'techgrowth', label: 'TECH GROWTH',    filter: (s) => /^(IT|Tech|Technology)$/i.test(s.sector) && s.changePct > 0, criteria: { changeMin: 0 } },
+  {
+    key: 'dividendKings', label: 'ASX DIVIDEND KINGS',
+    desc: 'ASX · yield > 4% · PE < 20 · mkt cap > A$5B',
+    filter: (s) => s.exchange === 'ASX' && s.divYield > 4 && s.pe > 0 && s.pe < 20 && s.marketCap > 5 * B,
+    criteria: { divMin: 4, peMax: 20 },
+  },
+  {
+    key: 'asxGrowth', label: 'ASX GROWTH',
+    desc: 'ASX · IT or Health · PE > 20 · mkt cap > A$1B',
+    filter: (s) => s.exchange === 'ASX' && /^(IT|Health)$/i.test(s.sector ?? '') && s.pe > 20 && s.marketCap > B,
+    criteria: {},
+  },
+  {
+    key: 'oversold', label: 'OVERSOLD QUALITY',
+    desc: 'Bottom 30% of 52W range · mkt cap > A$2B · profitable',
+    filter: (s) => s.pos52 < 30 && s.marketCap > 2 * B && isProfitable(s),
+    criteria: { pos52Max: 30 },
+  },
+  {
+    key: 'smallcapMomentum', label: 'SMALL CAP MOMENTUM',
+    desc: 'Smallest tracked names (< A$30B) moving up today',
+    filter: (s) => s.marketCap < 30 * B && s.changePct > 0,
+    criteria: { changeMin: 0 },
+  },
+  {
+    key: 'resourceMajors', label: 'RESOURCE MAJORS',
+    desc: 'Materials sector · mkt cap > A$5B',
+    filter: (s) => s.sector === 'Materials' && s.marketCap > 5 * B,
+    criteria: {},
+  },
+  {
+    key: 'auFinancials', label: 'AU FINANCIALS',
+    desc: 'ASX Financials · yield > 3%',
+    filter: (s) => s.exchange === 'ASX' && s.sector === 'Financials' && s.divYield > 3,
+    criteria: { divMin: 3 },
+  },
+  {
+    key: 'beatenDown', label: 'BEATEN DOWN',
+    desc: 'More than 25% below the 52W high · still profitable',
+    filter: (s) => s.offHigh > 25 && isProfitable(s),
+    criteria: { offHighMin: 25 },
+  },
+  {
+    key: 'value', label: 'VALUE PLAYS',
+    desc: 'PE under 15',
+    filter: (s) => s.pe > 0 && s.pe < 15,
+    criteria: { peMax: 15 },
+  },
+  {
+    key: 'momentum', label: 'MOMENTUM',
+    desc: 'Up 2% or more today',
+    filter: (s) => s.changePct >= 2,
+    criteria: { changeMin: 2 },
+  },
+  {
+    key: 'asx200', label: 'ASX CORE',
+    desc: 'Every tracked ASX name',
+    filter: (s) => s.exchange === 'ASX',
+    criteria: {},
+  },
 ]
+
+// Saved screens store a preset key, and preset keys change as the list is
+// revised. A saved screen naming a preset that no longer exists must degrade
+// to "no preset" rather than throwing on .filter of undefined — the alternative
+// is a blank module for anyone who saved a screen before this revision.
+const findPreset = (key) => PRESETS.find((p) => p.key === key) ?? null
 
 // Lightweight local NL parser — handles the common patterns without needing
 // a live AI call: "PE under 15", "dividend yield over 4%", a sector name,
@@ -102,11 +216,20 @@ const CRITERION_SCORERS = {
   divMin: (s, floor) => (floor > 0 ? clamp01((s.divYield - floor) / Math.max(floor, 1)) : null),
   pos52Min: (s, floor) => (floor > 0 && s.pos52 != null ? clamp01((s.pos52 - floor) / Math.max(100 - floor, 1)) : null),
   changeMin: (s, floor) => clamp01((s.changePct - floor) / 5),
+  // Oversold screens invert the 52-week test: the ceiling is the constraint
+  // and sitting well below it is the thing being screened for, so a stock at
+  // its low scores 1 and one right at the ceiling scores 0.
+  pos52Max: (s, ceiling) => (ceiling > 0 && s.pos52 != null ? clamp01((ceiling - s.pos52) / ceiling) : null),
+  // Same shape for drawdown, measured over the remaining distance to a total
+  // loss rather than to the threshold — 25% and 45% off the high are both
+  // "beaten down", and the gap between them should read as a gap.
+  offHighMin: (s, floor) => (s.offHigh != null ? clamp01((s.offHigh - floor) / Math.max(100 - floor, 1)) : null),
 }
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
-// criteria: { peMax?, divMin?, pos52Min?, changeMin? } — only the ones the
+// criteria: { peMax?, divMin?, pos52Min?, pos52Max?, changeMin?, offHighMin? }
+// — only the ones the
 // active screen actually constrains.
 function scoreCriteria(stocks, criteria) {
   const active = Object.entries(criteria).filter(([, v]) => v != null)
@@ -132,12 +255,48 @@ const MKT_CAP_BANDS = [
 ]
 
 const SORT_VALUE = {
-  symbol:   (s) => s.symbol,
-  price:    (s) => s.price,
-  pe:       (s) => s.pe,
-  divYield: (s) => s.divYield,
-  marketCap:(s) => s.marketCap,
-  matchPct: (s) => s.matchPct,
+  symbol:    (s) => s.symbol,
+  price:     (s) => s.price,
+  changePct: (s) => s.changePct,
+  pe:        (s) => s.pe,
+  divYield:  (s) => s.divYield,
+  marketCap: (s) => s.marketCap,
+  pos52:     (s) => s.pos52,
+  sector:    (s) => s.sector ?? '',
+  matchPct:  (s) => s.matchPct,
+}
+
+// Where the price sits in its 52-week range, as a bar with a marker rather
+// than a number. The number alone ("62%") requires the reader to remember what
+// the scale means; the bar shows the low and high ends as fixed points and the
+// marker's position carries the answer at a glance.
+function Range52Bar({ pos }) {
+  const clamped = Math.max(0, Math.min(100, pos))
+  // Near the low reads as opportunity or as damage depending on the screen, so
+  // the colour is deliberately neutral at the extremes and only the position
+  // varies. Gold marker on a dim track, matching the rest of the terminal.
+  return (
+    <div className="flex items-center gap-2 justify-end" title={`${clamped.toFixed(0)}% of the way from the 52-week low to the 52-week high`}>
+      <div className="relative w-16 h-1.5 bg-terminal-border/40 rounded-sm">
+        <div
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-1 h-3 bg-terminal-gold rounded-sm"
+          style={{ left: `${clamped}%` }}
+        />
+      </div>
+      <span className="text-terminal-text-dim w-8 text-right tabular-nums">{clamped.toFixed(0)}%</span>
+    </div>
+  )
+}
+
+function SectorPill({ sector }) {
+  if (!sector) return <span className="text-terminal-text-dim/50">—</span>
+  const c = sectorColour(sector)
+  return (
+    <span
+      className="inline-block px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+      style={{ background: `${c}22`, color: c, border: `1px solid ${c}55` }}
+    >{sector}</span>
+  )
 }
 
 function MatchBar({ pct }) {
@@ -249,7 +408,57 @@ function manualCriteria(f) {
 
 const DEFAULT_FILTERS = { exchange: 'ALL', sector: 'ALL', peMax: Math.ceil(MAX_PE), mktCap: 'all', divMin: 0, pos52Min: 0 }
 
+// ── CSV export ─────────────────────────────────────────────────────────────
+//
+// Exported so a result set can be taken into a spreadsheet, which is where
+// most people actually compare a screen against their own holdings.
+//
+// Two details that matter more than they look:
+//   - Every field is quoted and internal quotes are doubled. Company names
+//     contain commas ("Wesfarmers, Ltd") and one unquoted comma shifts every
+//     later column in that row by one, silently.
+//   - The file carries the demo-data caveat in its header comment lines, since
+//     a CSV outlives the screen it came from and nothing else travels with it.
+const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+
+function buildCsv(rows, { screenName, rankable }) {
+  const headers = ['Ticker', 'Company', 'Exchange', 'Price', 'Change %', 'PE', 'Div Yield %', 'Market Cap', '52W Position %', '% Off 52W High', 'Sector']
+  if (rankable) headers.push('Match %')
+
+  const lines = [
+    `# Madden Terminal screen: ${screenName}`,
+    `# Exported ${new Date().toLocaleString('en-AU')}`,
+    '# DEMO DATASET — prices and fundamentals are illustrative, not live market data.',
+    headers.map(csvCell).join(','),
+  ]
+
+  for (const s of rows) {
+    const cells = [
+      s.symbol, s.name, s.exchange, s.price.toFixed(2), s.changePct.toFixed(2),
+      s.pe > 0 ? s.pe.toFixed(1) : '', s.divYield.toFixed(1), s.marketCap,
+      s.pos52.toFixed(0), s.offHigh.toFixed(1), s.sector ?? '',
+    ]
+    if (rankable) cells.push(s.matchPct ?? '')
+    lines.push(cells.map(csvCell).join(','))
+  }
+  return lines.join('\n')
+}
+
+function downloadCsv(text, filename) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8;' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // Revoked on the next tick rather than immediately — Safari has not always
+  // finished reading the blob by the time click() returns.
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 const SAVED_SCREENS_KEY = 'maddex_saved_screens'
+const MAX_SAVED_SCREENS = 10
 function loadSavedScreens() {
   try {
     const raw = localStorage.getItem(SAVED_SCREENS_KEY)
@@ -281,7 +490,9 @@ export default function ScreenerModule() {
   const saveCurrentScreen = () => {
     const name = saveNameInput.trim() || query.trim() || 'Untitled screen'
     const entry = { id: `screen_${Date.now()}`, name, createdAt: new Date().toISOString(), query, activePreset, filters }
-    const next = [entry, ...savedScreens].slice(0, 30)
+    // Ten, and the oldest falls off the end. A saved-screen list long enough
+    // to need scrolling stops being a shortcut.
+    const next = [entry, ...savedScreens].slice(0, MAX_SAVED_SCREENS)
     setSavedScreens(next)
     persistSavedScreens(next)
     setShowSavePrompt(false)
@@ -317,7 +528,8 @@ export default function ScreenerModule() {
   }
 
   const runPreset = (key) => {
-    const preset = PRESETS.find((p) => p.key === key)
+    const preset = findPreset(key)
+    if (!preset) return
     setActivePreset(key)
     setParsed(null)
     setQuery(preset.label)
@@ -343,8 +555,7 @@ export default function ScreenerModule() {
       if (s.pe > 0 && s.pe > filters.peMax) return false
       if (!band.test(s)) return false
       if (s.divYield < filters.divMin) return false
-      const pos52 = s.week52High > s.week52Low ? ((s.price - s.week52Low) / (s.week52High - s.week52Low)) * 100 : 50
-      if (pos52 < filters.pos52Min) return false
+      if (s.pos52 < filters.pos52Min) return false
       return true
     })
   }, [filters, filtersActive])
@@ -352,7 +563,8 @@ export default function ScreenerModule() {
   const results = useMemo(() => {
     let base = manualFiltered
     let queryFilters = []
-    if (activePreset) queryFilters = [PRESETS.find((p) => p.key === activePreset).filter]
+    const preset = findPreset(activePreset)
+    if (preset) queryFilters = [preset.filter]
     else if (parsed?.filters?.length) queryFilters = parsed.filters
     else if (!filtersActive) return []
 
@@ -363,7 +575,7 @@ export default function ScreenerModule() {
     // 15" typed in the box with a dividend floor from the sidebar is graded
     // on both.
     const criteria = {
-      ...(activePreset ? PRESETS.find((p) => p.key === activePreset).criteria : {}),
+      ...(preset?.criteria ?? {}),
       ...(parsed?.criteria ?? {}),
       ...(filtersActive ? manualCriteria(filters) : {}),
     }
@@ -388,7 +600,21 @@ export default function ScreenerModule() {
   // than filled with a number that means nothing.
   const rankable = results.length > 0 && results[0].matchPct != null
 
+  const activePresetMeta = findPreset(activePreset)
   const hasSearched = activePreset != null || parsed != null || filtersActive
+
+  // The screen's name, for the CSV header and filename. Falls back through the
+  // preset label, the typed query, then a generic label — a file called
+  // "screen.csv" in a downloads folder is worth nothing a week later.
+  const screenName = activePresetMeta?.label ?? (query.trim() || 'Manual filters')
+
+  const exportCsv = () => {
+    const slug = screenName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'screen'
+    downloadCsv(
+      buildCsv(results, { screenName, rankable }),
+      `maddex-screen-${slug}-${new Date().toISOString().slice(0, 10)}.csv`,
+    )
+  }
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else { setSortKey(key); setSortDir('desc') }
@@ -496,9 +722,17 @@ export default function ScreenerModule() {
               className={`text-2xs px-2.5 py-0.5 rounded-full border transition-colors ${
                 activePreset === p.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
               }`}
+              title={p.desc}
             >{p.label}</button>
           ))}
         </div>
+
+        {activePresetMeta && (
+          <div className="mt-2 text-2xs text-terminal-text-dim">
+            <span className="text-terminal-gold/70 font-bold tracking-widest mr-1.5">SCREENING:</span>
+            {activePresetMeta.desc}
+          </div>
+        )}
 
         {parsed && (
           <div className="mt-2 text-2xs text-terminal-text-dim">
@@ -517,7 +751,25 @@ export default function ScreenerModule() {
       <div className="flex-1 flex overflow-hidden">
         <FiltersSidebar open={sidebarOpen} filters={filters} setFilters={setFilters} onReset={() => setFilters(DEFAULT_FILTERS)} />
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {hasSearched && results.length > 0 && (
+            <div className="flex items-center justify-between gap-3 px-3 py-1.5 border-b border-terminal-border flex-shrink-0">
+              <div className="text-2xs text-terminal-text-dim">
+                <span className="text-terminal-text-bright font-bold">{results.length}</span>
+                {` result${results.length === 1 ? '' : 's'}`}
+                {rankable
+                  ? ' · ranked by how far past the screen\u2019s thresholds each sits'
+                  : ' · this screen sets no numeric threshold, so results are unranked'}
+              </div>
+              <button
+                onClick={exportCsv}
+                title="Download these results as CSV"
+                className="flex-shrink-0 text-2xs px-2.5 py-1 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors font-bold"
+              >⤓ EXPORT CSV</button>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-auto">
           {!hasSearched ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-terminal-text-dim text-2xs px-8 text-center">
               <div className="text-3xl mb-2">▲</div>
@@ -545,11 +797,16 @@ export default function ScreenerModule() {
                   <th onClick={() => toggleSort('symbol')} className="text-left px-3 py-1.5 cursor-pointer hover:text-terminal-gold">TICKER{sortArrow('symbol')}</th>
                   <th className="text-left px-3 py-1.5">COMPANY</th>
                   <th onClick={() => toggleSort('price')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">PRICE{sortArrow('price')}</th>
-                  <th className="text-right px-3 py-1.5">CHANGE</th>
+                  <th onClick={() => toggleSort('changePct')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">CHANGE{sortArrow('changePct')}</th>
                   <th onClick={() => toggleSort('pe')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">PE{sortArrow('pe')}</th>
                   <th onClick={() => toggleSort('divYield')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">DIV YIELD{sortArrow('divYield')}</th>
                   <th onClick={() => toggleSort('marketCap')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">MKT CAP{sortArrow('marketCap')}</th>
-                  <th className="text-left px-3 py-1.5">SECTOR</th>
+                  <th
+                    onClick={() => toggleSort('pos52')}
+                    title="Where the price sits between its 52-week low and high"
+                    className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold whitespace-nowrap"
+                  >52W RANGE{sortArrow('pos52')}</th>
+                  <th onClick={() => toggleSort('sector')} className="text-left px-3 py-1.5 cursor-pointer hover:text-terminal-gold">SECTOR{sortArrow('sector')}</th>
                   {rankable && (
                     <th
                       onClick={() => toggleSort('matchPct')}
@@ -572,14 +829,15 @@ export default function ScreenerModule() {
                   >
                     <td className="px-3 py-1.5 font-bold text-terminal-gold">{s.symbol}</td>
                     <td className="px-3 py-1.5 text-terminal-text-bright truncate max-w-[200px]">{s.name}</td>
-                    <td className="px-3 py-1.5 text-right">{s.exchange === 'ASX' ? 'A$' : 'US$'}{s.price.toFixed(2)}</td>
-                    <td className={`px-3 py-1.5 text-right font-semibold ${s.changePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{s.exchange === 'ASX' ? 'A$' : 'US$'}{s.price.toFixed(2)}</td>
+                    <td className={`px-3 py-1.5 text-right font-semibold tabular-nums ${s.changePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
                       {s.changePct >= 0 ? '+' : ''}{s.changePct.toFixed(2)}%
                     </td>
-                    <td className="px-3 py-1.5 text-right">{s.pe > 0 ? s.pe.toFixed(1) : '—'}</td>
-                    <td className="px-3 py-1.5 text-right">{s.divYield.toFixed(1)}%</td>
-                    <td className="px-3 py-1.5 text-right text-terminal-text-dim">{fmt.large(s.marketCap)}</td>
-                    <td className="px-3 py-1.5">{s.sector}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{s.pe > 0 ? s.pe.toFixed(1) : '—'}</td>
+                    <td className={`px-3 py-1.5 text-right tabular-nums ${s.divYield > 0 ? '' : 'text-terminal-text-dim/50'}`}>{s.divYield > 0 ? `${s.divYield.toFixed(1)}%` : '—'}</td>
+                    <td className="px-3 py-1.5 text-right text-terminal-text-dim tabular-nums">{fmt.large(s.marketCap)}</td>
+                    <td className="px-3 py-1.5"><Range52Bar pos={s.pos52} /></td>
+                    <td className="px-3 py-1.5"><SectorPill sector={s.sector} /></td>
                     {rankable && <td className="px-3 py-1.5"><MatchBar pct={s.matchPct} /></td>}
                     <td className="px-3 py-1.5 text-right whitespace-nowrap">
                       <button
@@ -603,6 +861,7 @@ export default function ScreenerModule() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       </div>
       {researchNoteAsset && (
