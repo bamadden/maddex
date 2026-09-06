@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { dashboardService } from '../../services/dashboardService'
 import WidgetContent from './WidgetContent'
 
@@ -9,7 +9,7 @@ import WidgetContent from './WidgetContent'
 // borders on each tile, which double up between neighbours and leave a 2px
 // line down the middle of the grid.
 
-function WidgetCell({ widget, index, editMode, onRemove, drag }) {
+function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
   const meta = dashboardService.getWidget(widget.widgetId)
   const isDragging = drag.dragIndex === index
   const isTarget = drag.overIndex === index && drag.dragIndex !== index
@@ -32,7 +32,13 @@ function WidgetCell({ widget, index, editMode, onRemove, drag }) {
       onDrop={(e) => { e.preventDefault(); drag.onDrop(index) }}
       onDragEnd={drag.onEnd}
       style={{
-        gridColumn: `${widget.col + 1} / span ${widget.w}`,
+        // Placement is clamped to the RENDERED column count, not the saved one.
+        // A widget saved at column 3 spanning 2 keeps "4 / span 2" in a
+        // one-column render, and the grid answers by inventing implicit columns
+        // — the layout silently reflows into a shape nobody chose. Clamping
+        // here keeps the narrow view coherent while the saved layout is
+        // untouched.
+        gridColumn: `${Math.min(widget.col, columns - 1) + 1} / span ${Math.min(widget.w, columns)}`,
         gridRow: `${widget.row + 1} / span ${widget.h}`,
         background: '#060D1A',
         position: 'relative',
@@ -122,8 +128,38 @@ function EmptyCells({ layout, onAdd }) {
   return cells
 }
 
+// Caps the rendered column count by available width.
+//
+// The saved layout can be up to four columns, and gridTemplateColumns honoured
+// that at any viewport — on a 390px phone the "4x3 Research" layout renders
+// four ~95px columns, which makes every widget unreadable while still
+// technically laying out. The saved preference is left untouched; only what is
+// drawn is clamped, so widening the window restores the chosen layout without
+// the user having to re-pick it.
+function useResponsiveColumns(preferred, containerRef) {
+  const [width, setWidth] = useState(null)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    ro.observe(el)
+    setWidth(el.getBoundingClientRect().width)
+    return () => ro.disconnect()
+  }, [containerRef])
+
+  // Null until measured — render the preference rather than flashing a
+  // single-column layout on first paint.
+  if (width == null) return preferred
+  if (width < 560) return 1
+  if (width < 900) return Math.min(2, preferred)
+  if (width < 1200) return Math.min(3, preferred)
+  return preferred
+}
+
 export default function DashboardGrid({ layout, editMode, onAddAt }) {
-  const columns = layout.columns || 3
+  const gridRef = useRef(null)
+  const columns = useResponsiveColumns(layout.columns || 3, gridRef)
   // The index being dragged is held in a ref AND in state, deliberately.
   //
   // State drives the visual (dimmed source, highlighted target). The ref is
@@ -179,6 +215,7 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
 
   return (
     <div
+      ref={gridRef}
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
@@ -201,6 +238,7 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
           editMode={editMode}
           onRemove={(i) => dashboardService.removeWidget(i)}
           drag={drag}
+          columns={columns}
         />
       ))}
 

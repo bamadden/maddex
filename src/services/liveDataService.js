@@ -28,11 +28,33 @@ function writeCache(key, data) {
 // Fresh cache short-circuits the network. A failed fetch falls back to stale
 // cache before giving up, because last hour's FX rate is far more useful than
 // an em dash.
+// Requests in flight, keyed by cache key.
+//
+// Without this, two components mounting against a cold cache each fire their
+// own network request for the same resource — visible in the console as the
+// identical failure logged twice in the same millisecond. Same fix, and the
+// same reason, as aiContentService's inFlight map.
+const inFlight = new Map()
+
 async function withCache(key, fetchFn, ttlMs, fallbackData = null) {
   const cached = readCache(key)
   if (cached && Date.now() - cached.timestamp < ttlMs) {
     return { data: cached.data, source: 'cache', at: cached.timestamp }
   }
+
+  const pending = inFlight.get(key)
+  if (pending) return pending
+
+  const run = fetchOnce(key, fetchFn, cached, fallbackData)
+  inFlight.set(key, run)
+  try {
+    return await run
+  } finally {
+    inFlight.delete(key)
+  }
+}
+
+async function fetchOnce(key, fetchFn, cached, fallbackData) {
   try {
     const data = await fetchFn()
     writeCache(key, data)
