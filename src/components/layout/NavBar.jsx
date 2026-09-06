@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, LogOut, Pin, PinOff, Sunrise, Rewind, Radar, Lightbulb, Home, Calendar,
+  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import { useAuthStore } from '../../store/useAuthStore'
 import NavContextMenu from '../ui/NavContextMenu'
 import { shortcutService } from '../../services/shortcutService'
 
@@ -38,27 +37,27 @@ function usePinnedSidebar() {
 // key-binding order diverge, as they now deliberately do (grouped by
 // function here vs. F1/F2/F3... in CommandBar).
 const NAV_ITEMS = [
-  // No fkey — F1-F8 are the existing hardcoded CommandBar bindings above;
-  // reassigning them to make room here would break muscle memory for
-  // existing shortcuts, so Dashboard/Calendar are mouse/click-nav only
-  // (also reachable via shortcutService's customisable nav.* bindings).
-  { id: 'dashboard', label: 'DASHBOARD', short: 'HOME', fkey: null, Icon: Home },
-  { id: 'markets',   label: 'MARKETS',   short: 'MKT',  fkey: 'F1', Icon: LineChart },
-  { id: 'crypto',    label: 'CRYPTO',    short: 'CRY',  fkey: 'F3', Icon: Bitcoin },
-  { id: 'fx',        label: 'RATES',     short: 'FX',   fkey: 'F4', Icon: ArrowLeftRight },
-  { id: 'macro',     label: 'MACRO',     short: 'MAC',  fkey: 'F5', Icon: Activity },
-  { id: 'global',    label: 'GLOBAL',    short: 'GLB',  fkey: 'F8', Icon: Globe },
-  // Dividers sit before the item carrying groupBreak, giving three groups:
-  // markets research | holdings | news & tools.
-  { id: 'watchlist', label: 'WATCHLIST', short: 'WL',   fkey: 'F6', Icon: Star, groupBreak: true },
-  { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT', fkey: 'F2', Icon: Briefcase },
-  { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper },
-  { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise, groupBreak: true },
-  { id: 'calendar',  label: 'CALENDAR',  short: 'CAL',  fkey: null, Icon: Calendar },
-  { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search },
-  { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind },
-  { id: 'scanner',   label: 'SCANNER',   short: 'SCN',  fkey: null, Icon: Radar },
+  { id: 'dashboard', label: 'DASHBOARD', short: 'HOME', fkey: null, Icon: Home,       group: 'MARKETS' },
+  { id: 'markets',   label: 'MARKETS',   short: 'MKT',  fkey: 'F1', Icon: LineChart,  group: 'MARKETS' },
+  { id: 'crypto',    label: 'CRYPTO',    short: 'CRY',  fkey: 'F3', Icon: Bitcoin,    group: 'MARKETS' },
+  { id: 'fx',        label: 'RATES',     short: 'FX',   fkey: 'F4', Icon: ArrowLeftRight, group: 'MARKETS' },
+  { id: 'macro',     label: 'MACRO',     short: 'MAC',  fkey: 'F5', Icon: Activity,   group: 'MARKETS' },
+  { id: 'global',    label: 'GLOBAL',    short: 'GLB',  fkey: 'F8', Icon: Globe,      group: 'MARKETS' },
+
+  { id: 'watchlist', label: 'WATCHLIST', short: 'WL',   fkey: 'F6', Icon: Star,       group: 'PORTFOLIO' },
+  { id: 'portfolio', label: 'PORTFOLIO', short: 'PORT', fkey: 'F2', Icon: Briefcase,  group: 'PORTFOLIO' },
+  { id: 'news',      label: 'NEWS',      short: 'NWS',  fkey: 'F7', Icon: Newspaper,  group: 'PORTFOLIO' },
+
+  { id: 'brief',     label: 'BRIEF',     short: 'BRF',  fkey: null, Icon: Sunrise,    group: 'ANALYSIS' },
+  { id: 'calendar',  label: 'CALENDAR',  short: 'CAL',  fkey: null, Icon: Calendar,   group: 'ANALYSIS' },
+  { id: 'scanner',   label: 'SCANNER',   short: 'SCN',  fkey: null, Icon: Radar,      group: 'ANALYSIS' },
+  { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search,     group: 'ANALYSIS' },
+  { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind,     group: 'ANALYSIS' },
 ]
+
+// Headings are derived from the items as they render — a heading appears each
+// time `group` changes — rather than from a separate list of group names,
+// which is a second source of truth waiting to disagree with the first.
 
 // A fresh brief goes up at 7am AEST every weekday — show a notification dot
 // on the nav item for the first few hours after that so it's noticeable
@@ -72,17 +71,30 @@ function isBriefNotifyWindow(now) {
 }
 
 export const APP_VERSION = 'v0.1.0-beta'
-const LABEL_BASE = 'text-[13px] font-sans font-medium tracking-wide uppercase whitespace-nowrap transition-opacity duration-150'
 
-// Every nav row is the same 44px box in both states, so expanding the rail
-// slides labels in without the list jumping vertically. The transparent 3px
-// left border is carried by every row — active state just recolours it — so
-// one icon column lines up across nav, AI toggle and the bottom actions.
-const ROW = 'h-11 flex items-center w-full flex-shrink-0 border-l-[3px] border-l-transparent transition-colors duration-100'
-// Icon column = padding + the 3px border. Collapsed: 20+3 = 23px, centring an
-// 18px icon in the 64px rail. Expanded: 17+3 = 20px per spec. The 3px slide
-// rides the same 150ms width transition, so it reads as one motion.
-const ICON_PAD = (pinned) => (pinned ? 'pl-[17px]' : 'pl-5 group-hover/nav:pl-[17px]')
+// Labels are IBM Plex Mono at 10px, not sans at 13px. The sidebar is a
+// terminal chrome element sitting beside monospaced data; a 13px sans label
+// was the single loudest thing in the rail and read as a website menu.
+const LABEL_BASE =
+  'font-mono text-[10px] tracking-[0.12em] uppercase whitespace-nowrap transition-opacity duration-150'
+
+// Row height differs by state, deliberately, and not the way the spec first
+// reads. 44px collapsed AND while hover-expanded; 40px only when pinned.
+//
+// Shrinking rows on hover would move every item under the cursor at the exact
+// moment the user is reaching for one — you hover to read a label and the row
+// you were aiming at slides 4px per item up the list. Pinning is an explicit
+// click, so a one-off reflow there is fine; hovering is not.
+const rowH = (pinned) => (pinned ? 'h-10' : 'h-11')
+
+// 2px active border per spec, carried transparent by every row so the icon
+// column lines up across nav, AI toggle and the bottom actions.
+const ROW_BASE =
+  'flex items-center w-full flex-shrink-0 border-l-2 border-l-transparent transition-colors duration-150'
+
+// Icon column. Collapsed: 21+2 = 23px, centring an 18px icon in the 64px
+// rail. Expanded: 18+2 = 20px per spec.
+const ICON_PAD = (pinned) => (pinned ? 'pl-[18px]' : 'pl-[21px] group-hover/nav:pl-[18px]')
 // Icon (18px) ends at 38px; a 14px gap puts the label at the spec's 52px.
 const GAP = 'gap-[14px]'
 
@@ -92,10 +104,10 @@ const GAP = 'gap-[14px]'
 // a better fit for touch navigation.
 export default function NavBar() {
   const { activeModule, setActiveModule, chatOpen, setChatOpen } = useStore()
-  const { signOut } = useAuthStore()
   const [pinned, setPinned] = usePinnedSidebar()
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
   const iconPad = ICON_PAD(pinned)
+  const ROW = `${ROW_BASE} ${rowH(pinned)}`
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000)
@@ -105,6 +117,15 @@ export default function NavBar() {
 
   // Right-click target: { x, y, id, label } or null.
   const [ctxMenu, setCtxMenu] = useState(null)
+
+  // The list is taller than the rail on any realistic window, so the active
+  // row can sit off-screen — especially when navigation came from a keyboard
+  // shortcut or the command bar rather than from a click here. Scrolling it
+  // into view keeps the sidebar an accurate picture of where you are.
+  useEffect(() => {
+    const el = document.querySelector('[data-tour="nav-sidebar"] .nav-row.is-active')
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [activeModule])
 
   const runCtxAction = (action, moduleId) => {
     if (action === 'open') return setActiveModule(moduleId)
@@ -119,17 +140,33 @@ export default function NavBar() {
   return (
     <div
       data-tour="nav-sidebar"
-      className={`group/nav hidden md:flex flex-col bg-terminal-bg border-r border-terminal-border flex-shrink-0 overflow-x-hidden transition-all duration-150 z-30 ${
+      className={`group/nav hidden md:flex flex-col flex-shrink-0 overflow-x-hidden z-30 ${
         pinned ? 'w-[220px]' : 'w-16 hover:w-[220px]'
       }`}
+      style={{
+        background: '#030912',
+        borderRight: '1px solid rgba(201,168,76,0.08)',
+        // Explicit easing rather than Tailwind's default: the rail should
+        // leave quickly and settle slowly, which linear-ish easing does not.
+        transition: 'width 200ms cubic-bezier(0.2, 0, 0, 1)',
+      }}
     >
       {/* Pin toggle — 28px square, centred in the collapsed rail and pushed
           right once the labels are in view. */}
       <div
-        className={`h-8 flex items-center flex-shrink-0 border-b border-terminal-border px-3 ${
+        className={`h-12 flex items-center flex-shrink-0 px-3 ${
           pinned ? 'justify-end' : 'justify-center group-hover/nav:justify-end'
         }`}
+        style={{ borderBottom: '1px solid rgba(201,168,76,0.06)' }}
       >
+        {/* Wordmark only once there is room for it. */}
+        <span
+          className={`mr-auto pl-[6px] font-mono text-[10px] tracking-[0.22em] text-terminal-gold transition-opacity duration-150 ${
+            pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
+          }`}
+        >
+          MADDEX
+        </span>
         <button
           onClick={() => setPinned((p) => !p)}
           title={pinned ? 'Unpin sidebar' : 'Pin sidebar open'}
@@ -142,17 +179,45 @@ export default function NavBar() {
           }`}
         >
           {pinned
-            ? <Pin size={14} strokeWidth={1.75} fill="currentColor" />
-            : <PinOff size={14} strokeWidth={1.75} />}
+            ? <Pin size={16} strokeWidth={1.75} fill="currentColor" />
+            : <PinOff size={16} strokeWidth={1.75} />}
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar py-2">
-        {NAV_ITEMS.map((item) => {
+      {/* The scrollable region. This list is 14 rows tall and the viewport
+          often is not — before this it scrolled silently, and nine items
+          including GLOBAL and PORTFOLIO were simply unreachable unless you
+          guessed they were there. The mask fades the last 12px so an
+          overflowing list is visibly cut. */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden nav-scroll py-1.5">
+        {NAV_ITEMS.map((item, i) => {
           const isActive = activeModule === item.id
           const hint = shortcutHint(item)
+          const startsGroup = i === 0 || NAV_ITEMS[i - 1].group !== item.group
           return (
             <div key={item.id}>
-              {item.groupBreak && <div className="h-px bg-terminal-gold/[0.08] mx-3 my-1.5 flex-shrink-0" />}
+              {startsGroup && (
+                <>
+                  {/* Collapsed: a hairline, since a label would not fit.
+                      Expanded: the group name. Same slot either way, so the
+                      list does not reflow when the rail opens. */}
+                  <div className={`${i === 0 ? 'mt-1' : 'mt-2'} h-6 flex items-center`}>
+                    <span
+                      className={`pl-5 font-mono text-[8px] tracking-[0.2em] uppercase whitespace-nowrap transition-opacity duration-150 ${
+                        pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
+                      }`}
+                      style={{ color: '#4A6080' }}
+                    >
+                      {item.group}
+                    </span>
+                    <span
+                      className={`absolute h-px w-10 ml-3 transition-opacity duration-150 ${
+                        pinned ? 'opacity-0' : 'opacity-100 group-hover/nav:opacity-0'
+                      }`}
+                      style={{ background: 'rgba(201,168,76,0.06)' }}
+                    />
+                  </div>
+                </>
+              )}
               <button
                 onClick={() => setActiveModule(item.id)}
                 onContextMenu={(e) => {
@@ -161,27 +226,18 @@ export default function NavBar() {
                 }}
                 title={hint ? `${item.label} (${hint})` : item.label}
                 aria-current={isActive ? 'page' : undefined}
-                className={`group/item relative ${ROW} ${GAP} ${iconPad} pr-3 ${
-                  isActive
-                    ? 'border-l-terminal-gold bg-terminal-gold/[0.06] text-terminal-gold'
-                    : 'border-l-transparent text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2 rounded-r-[4px]'
-                }`}
+                className={`group/item relative nav-row ${ROW} ${GAP} ${iconPad} pr-3 ${isActive ? 'is-active' : ''}`}
               >
-                <span
-                  className="relative flex-shrink-0 transition-transform duration-150 group-hover/item:scale-[1.15]"
-                  style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(201,168,76,0.55))' } : undefined}
-                >
+                <span className="relative flex-shrink-0 nav-icon">
                   <item.Icon size={18} strokeWidth={1.75} />
                   {item.id === 'brief' && showBriefDot && !isActive && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-terminal-gold pulse-gold" title="New brief available" />
                   )}
                 </span>
-                <span className={labelCls}>{item.label}</span>
-                {/* Shortcut hint is secondary — only surfaced on row hover. */}
-                {/* Hovering a row implies the rail is expanded, so the item
-                    group alone gates this correctly in both states. */}
+                <span className={`nav-label ${labelCls}`}>{item.label}</span>
                 <span
-                  className="ml-auto pl-2 text-[9px] font-mono tracking-wide text-terminal-muted/70 whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+                  className="ml-auto pl-2 font-mono text-[9px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+                  style={{ color: '#4A6080' }}
                 >
                   {hint}
                 </span>
@@ -205,42 +261,39 @@ export default function NavBar() {
       <button
         onClick={() => setChatOpen((v) => !v)}
         title={`AI Analyst (${shortcutService.shortcuts['ui.ai']?.display ?? 'A'})`}
-        className={`${ROW} ${GAP} ${iconPad} pr-3 border-t border-terminal-border ${
-          chatOpen ? 'border-l-terminal-gold bg-terminal-gold text-terminal-bg' : 'border-l-transparent text-terminal-gold hover:bg-terminal-surface2 rounded-r-[4px]'
-        }`}
+        className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3 ${chatOpen ? 'is-active' : ''}`}
+        style={{ borderTop: '1px solid rgba(201,168,76,0.06)', color: chatOpen ? '#C9A84C' : '#C9A84C' }}
       >
         <span className="text-[18px] leading-none flex-shrink-0 w-[18px] text-center">▲</span>
-        <span className={labelCls}>AI ANALYST</span>
+        <span className={`nav-label ${labelCls}`} style={{ color: '#C9A84C' }}>AI ANALYST</span>
       </button>
 
-      {/* Bottom: ideas + settings + sign out */}
-      <div className="border-t border-terminal-border flex-shrink-0">
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('madden:open-ideas'))}
-          title="Ideas & roadmap"
-          className={`${ROW} ${GAP} ${iconPad} pr-3 rounded-r-[4px] text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2`}
-        >
-          <Lightbulb size={18} strokeWidth={1.75} className="flex-shrink-0" />
-          <span className={labelCls}>IDEAS</span>
-        </button>
+      {/* Bottom: Settings only.
+          IDEAS and SIGN OUT used to live here, costing 80px of permanent
+          vertical space for two rarely-used actions while nine NAV items sat
+          unreachable below the fold. Both remain available — sign out from
+          the TopBar user menu, ideas from the command bar — so this trades
+          nothing away and buys back two rows of navigation. */}
+      <div className="flex-shrink-0" style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))}
           title="Settings"
-          className={`${ROW} ${GAP} ${iconPad} pr-3 rounded-r-[4px] text-terminal-muted hover:text-terminal-text hover:bg-terminal-surface2`}
+          className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3`}
         >
-          <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0" />
-          <span className={labelCls}>SETTINGS</span>
-        </button>
-        <button
-          onClick={signOut}
-          title="Sign out"
-          className={`${ROW} ${GAP} ${iconPad} pr-3 rounded-r-[4px] text-terminal-muted hover:text-terminal-red hover:bg-terminal-surface2`}
-        >
-          <LogOut size={18} strokeWidth={1.75} className="flex-shrink-0" />
-          <span className={labelCls}>SIGN OUT</span>
+          <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0 nav-icon" />
+          <span className={`nav-label ${labelCls}`}>SETTINGS</span>
+          <span
+            className="ml-auto pl-2 font-mono text-[9px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+            style={{ color: '#4A6080' }}
+          >
+            {shortcutService.shortcuts['ui.settings']?.display ?? ''}
+          </span>
         </button>
       </div>
-      <div className={`flex items-center ${GAP} ${iconPad} pr-3 h-8 border-l-[3px] border-l-transparent border-t border-terminal-border flex-shrink-0`}>
+      <div
+        className={`flex items-center ${GAP} ${iconPad} pr-3 h-8 border-l-2 border-l-transparent flex-shrink-0`}
+        style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}
+      >
         <a
           href="https://maddex.com.au/disclaimer"
           target="_blank"
@@ -252,7 +305,7 @@ export default function NavBar() {
           {/* truncate (not nowrap) so a narrow rail ellipses this rather than
               letting it run under the version stamp on the same row. */}
           <span
-            className={`text-[11px] font-sans truncate transition-opacity duration-150 ${
+            className={`text-[10px] font-sans truncate transition-opacity duration-150 ${
               pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
             }`}
           >
