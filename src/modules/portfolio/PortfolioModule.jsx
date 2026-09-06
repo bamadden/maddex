@@ -27,6 +27,7 @@ import AnimatedNumber from '../../components/ui/AnimatedNumber'
 import TabBar from '../../components/ui/TabBar'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import WhatIf from './WhatIf'
+import Transactions from './Transactions'
 import SafeChart from '../../components/ui/SafeChart'
 
 const TABS = [
@@ -34,6 +35,7 @@ const TABS = [
   { key: 'performance', label: 'PERFORMANCE' },
   { key: 'stresstest',  label: 'STRESS TEST' },
   { key: 'whatif',      label: 'WHAT IF' },
+  { key: 'transactions', label: 'TRANSACTIONS' },
   { key: 'ai',          label: 'AI ANALYSIS' },
   { key: 'analytics',   label: 'ANALYTICS' },
 ]
@@ -1042,6 +1044,16 @@ export default function PortfolioModule() {
 
       {activeTab === 'whatif' && (
         <WhatIf holdings={computed} />
+      )}
+
+      {activeTab === 'transactions' && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Raw holdings, not `computed` — the ledger seeds opening buys from
+              what the user actually entered (shares, avgCost, addedAt), and
+              `computed` carries live prices that would drift the recorded
+              purchase price every time a quote refreshed. */}
+          <Transactions holdings={holdings} />
+        </div>
       )}
 
       {activeTab === 'ai' && (
