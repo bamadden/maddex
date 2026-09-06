@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 import { EmptyState as SharedEmptyState } from '../../components/ui/EmptyState'
 import { dispatchAskAI } from '../../utils/askAI'
 import { fmt } from '../../utils/format'
@@ -88,10 +89,10 @@ function BreakoutsTab({ tick, scanTime }) {
           key={r.symbol}
           badge="BREAKOUT" badgeColor="border-terminal-green/50 text-terminal-green"
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
-          metricLabel="Above resistance" metricValue={priceStr(r.symbol, r.breakoutLevel)}
+          metricLabel="Signal" metricValue={r.descriptor}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} is breaking above its resistance level of ${priceStr(r.symbol, r.breakoutLevel)} with ${r.volumeRatio.toFixed(1)}x average volume, now trading at ${priceStr(r.symbol, r.price)}. Is this breakout likely to hold, and what's the next level to watch?`)}
+            `${tickerOf(r.symbol)} is breaking out — ${r.descriptor.toLowerCase()} — on ${r.volumeRatio.toFixed(1)}x average volume, up ${r.changePct.toFixed(2)}% today. Is a breakout on this kind of volume likely to hold, and what would confirm or invalidate it? Do not state a price or a price target.`)}
         />
       ))}
     </div>
@@ -147,10 +148,10 @@ function GapsTab({ tick, scanTime }) {
           key={r.symbol}
           badge={`GAP ${r.direction === 'UP' ? '↑' : '↓'}`} badgeColor="border-purple-400/50 text-purple-400"
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
-          metricLabel="Opened at" metricValue={`${priceStr(r.symbol, r.openPrice)} (prev close ${priceStr(r.symbol, r.prevClose)})`}
+          metricLabel="Gap on open" metricValue={`${r.direction === 'UP' ? '+' : '−'}${Math.abs(r.gapPct).toFixed(1)}% vs prior close`}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} gapped ${r.direction.toLowerCase()} ${Math.abs(r.gapPct).toFixed(1)}% on open, from a prior close of ${priceStr(r.symbol, r.prevClose)} to ${priceStr(r.symbol, r.openPrice)}. What typically drives a gap like this, and is it likely to fill?`)}
+            `${tickerOf(r.symbol)} gapped ${r.direction.toLowerCase()} ${Math.abs(r.gapPct).toFixed(1)}% on the open. What typically drives a gap of that size, and is it likely to fill? Do not state a price or a price target.`)}
         />
       ))}
     </div>
@@ -289,6 +290,11 @@ export default function MarketScannerModule() {
         moduleId="scanner"
         right={
           <span className="flex items-center gap-2 text-2xs font-mono text-terminal-text-dim flex-shrink-0">
+            {/* Every signal on this page is computed from the DEMO price
+                series — the same data Markets labels. The prices on the cards
+                are that series, so the module says so once, up here, rather
+                than the reader having to infer it. */}
+            <DemoBadge />
             {scanning
               ? <span className="text-terminal-gold animate-pulse">SCANNING...</span>
               : <span>Last scan: {timeAgo(lastScanAt)}</span>}

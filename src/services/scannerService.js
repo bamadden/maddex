@@ -80,6 +80,19 @@ export function scanOverbought() {
 // (mirrors UnusualActivityTracker's seededVolumeRatio) so results actually
 // change across scans, the same deliberate mock-design tradeoff already
 // documented there.
+// Breakouts describe themselves in relative terms only.
+//
+// This used to derive a breakoutLevel — row.price / (1 + upsidePct/100) — and
+// render it as "Above resistance: A$32.49". Every input to that was synthetic:
+// the price comes from getMockFMPRow and the upsidePct was a roll from the
+// seeded RNG below. It read as a level a trader could act on, in the same
+// styling as a real quote, and it was also passed into the ANALYSE prompt so
+// MaddenAI reasoned about a resistance level that did not exist.
+//
+// A percentage above a moving average, or a position inside the 52-week range,
+// carries the same signal without ever printing something that can be mistaken
+// for a tradeable level. Both are computed from the same history the RSI scans
+// use, so they move with the data rather than being rolled.
 export function scanBreakouts(tick = 0) {
   const results = []
   for (const symbol of SCAN_UNIVERSE) {
@@ -87,10 +100,32 @@ export function scanBreakouts(tick = 0) {
     if (!row) continue
     const rng = mulberry32(hashStr(`${symbol}_breakout_${tick}`))
     if (rng() > 0.82) {
-      const upsidePct = 0.5 + rng() * 2.5 // 0.5%-3% above the breakout level
-      const breakoutLevel = row.price / (1 + upsidePct / 100)
       const volumeRatio = 1.5 + rng() * 2.5
-      results.push({ ...row, breakoutLevel: Math.round(breakoutLevel * 100) / 100, volumeRatio })
+      const hist = getMockFMPHistory(symbol, 30)
+      const closes = hist.map((h) => h.close)
+      const ma20 = closes.length >= 20
+        ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20
+        : null
+
+      // Distance above the 20-day mean, as a percentage of that mean. A ratio,
+      // not a level — it says how extended the move is without saying where.
+      const aboveMaPct = ma20 ? ((row.price - ma20) / ma20) * 100 : null
+
+      // Where the current price sits inside its own 52-week range, 0-100.
+      // Same idea: an index, meaningless as a price.
+      const hi = row.q.fiftyTwoWeekHigh
+      const lo = row.q.fiftyTwoWeekLow
+      const rangePct = hi != null && lo != null && hi > lo
+        ? Math.max(0, Math.min(100, ((row.price - lo) / (hi - lo)) * 100))
+        : null
+
+      const descriptor = rangePct != null && rangePct >= 95
+        ? 'Near 52-week high'
+        : aboveMaPct != null && aboveMaPct > 0
+          ? `Breaking above 20-day average, +${aboveMaPct.toFixed(1)}% extended`
+          : 'Above recent resistance'
+
+      results.push({ ...row, volumeRatio, aboveMaPct, rangePct, descriptor })
     }
   }
   return results.sort((a, b) => b.volumeRatio - a.volumeRatio)
@@ -127,10 +162,12 @@ export function scanGaps(tick = 0) {
     const rng = mulberry32(hashStr(`${symbol}_gap_${tick}`))
     if (rng() > 0.8) {
       const direction = rng() > 0.5 ? 1 : -1
+      // The gap percentage IS the signal and it is relative, so it stays. The
+      // prevClose/openPrice pair it used to carry alongside were absolute
+      // levels computed off a mock previous close — same problem as the
+      // breakout level, so they are gone.
       const gapPct = direction * (1.5 + rng() * 3.5)
-      const prevClose = row.q.regularMarketPreviousClose
-      const openPrice = Math.round(prevClose * (1 + gapPct / 100) * 100) / 100
-      results.push({ ...row, prevClose, openPrice, gapPct, direction: direction > 0 ? 'UP' : 'DOWN' })
+      results.push({ ...row, gapPct, direction: direction > 0 ? 'UP' : 'DOWN' })
     }
   }
   return results.sort((a, b) => Math.abs(b.gapPct) - Math.abs(a.gapPct))
