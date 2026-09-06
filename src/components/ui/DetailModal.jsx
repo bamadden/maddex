@@ -21,7 +21,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush, Legend,
 } from 'recharts'
 
-const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
+const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y', 'ALL']
 const CHART_TYPES = ['area', 'line', 'candle', 'pro']
 
 // Next scheduled earnings date — hardcoded for the app's top 20 most-viewed
@@ -196,17 +196,47 @@ const ChartTooltip = ({ active, payload, label }) => {
 
 // ─── 52W Range bar ────────────────────────────────────────────────────────────
 
+// Where the current price sits in its 52-week range.
+//
+// The percentage is the point of this control and it was missing: a dot on a
+// line tells you roughly where you are, but "83% of range" is the number
+// someone actually acts on. It sits above the marker and moves with it,
+// clamped at the ends so it cannot run outside the bar.
 function RangeBar({ price, low, high }) {
   if (low == null || high == null || low >= high) return null
   const pct = Math.max(0, Math.min(100, ((price - low) / (high - low)) * 100))
   return (
-    <div className="flex items-center gap-2 text-2xs">
-      <span className="text-terminal-red w-16 text-right">{fmt.aud(low, { decimals: 2 })}</span>
-      <div className="flex-1 relative h-1 bg-terminal-border/40">
-        <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-terminal-red via-terminal-gold to-terminal-green" style={{ width:'100%', opacity:0.3 }} />
-        <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-terminal-gold border border-terminal-bg" style={{ left:`${pct}%`, transform:'translate(-50%, -50%)' }} />
+    <div className="w-full" style={{ paddingTop: 14 }}>
+      <div className="relative">
+        <span
+          className="absolute font-mono tabular-nums whitespace-nowrap"
+          style={{
+            top: -14, left: `${pct}%`,
+            transform: `translateX(-${Math.max(6, Math.min(94, pct))}%)`,
+            fontSize: 9, color: '#C9A84C',
+          }}
+        >
+          {pct.toFixed(0)}%
+        </span>
+        <div className="relative" style={{ height: 5, borderRadius: 3, background: 'rgba(99,120,153,0.22)' }}>
+          <div
+            className="absolute inset-y-0 left-0"
+            style={{ width: '100%', borderRadius: 3, opacity: 0.35, background: 'linear-gradient(90deg,#A83232,#C9A84C,#2D8A50)' }}
+          />
+          <span
+            className="absolute"
+            style={{
+              left: `${pct}%`, top: -3, width: 3, height: 11, borderRadius: 2,
+              background: '#C9A84C', transform: 'translateX(-1.5px)',
+              boxShadow: '0 0 6px rgba(201,168,76,0.6)',
+            }}
+          />
+        </div>
       </div>
-      <span className="text-terminal-green w-16">{fmt.aud(high, { decimals: 2 })}</span>
+      <div className="flex items-center justify-between mt-1">
+        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#A83232' }}>{fmt.aud(low, { decimals: 2 })}</span>
+        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#2D8A50' }}>{fmt.aud(high, { decimals: 2 })}</span>
+      </div>
     </div>
   )
 }
@@ -1078,8 +1108,8 @@ export default function DetailModal() {
               </div>
             )}
             {display52High != null && (
-              <div className="w-48">
-                <div className="text-2xs text-terminal-text-dim/50 mb-0.5">52W RANGE</div>
+              <div style={{ width: 210 }}>
+                <div className="font-mono mb-0.5" style={{ fontSize: 8, letterSpacing: '0.18em', color: '#4A6080' }}>52W RANGE</div>
                 <RangeBar price={displayPrice} low={display52Low} high={display52High} />
               </div>
             )}
@@ -1093,10 +1123,10 @@ export default function DetailModal() {
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-2.5 py-0.5 rounded-full text-2xs transition-colors ${
+                className={`px-2.5 py-1 rounded-sm font-mono text-[9px] tracking-wider transition-colors ${
                   timeframe === tf
                     ? 'bg-terminal-gold text-terminal-bg font-bold'
-                    : 'text-terminal-text-dim hover:text-terminal-text border border-terminal-border'
+                    : 'text-terminal-text-dim hover:text-terminal-gold border border-terminal-border'
                 }`}
               >{tf}</button>
             ))}

@@ -723,6 +723,9 @@ export const toYFRange = (timeframe) => {
     '6M': { range: '6mo', interval: '1d' },
     '1Y': { range: '1y',  interval: '1d' },
     '5Y': { range: '5y',  interval: '1d' },
+    // Weekly candles beyond five years — daily over a full history is tens of
+    // thousands of points to draw a line nobody reads at that density.
+    'ALL': { range: 'max', interval: '1wk' },
   }
   return map[timeframe] ?? { range: '3mo', interval: '1d' }
 }

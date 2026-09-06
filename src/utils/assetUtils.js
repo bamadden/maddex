@@ -63,6 +63,10 @@ export const COIN_IDS_MAP = {
 }
 
 export function timeframeToDays(tf) {
-  const map = { '1D': 1, '5D': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365, '5Y': 1825 }
+  // 'ALL' is 10 years rather than a literal maximum: CoinGecko's free tier
+  // caps history anyway, and an unbounded request is the one that gets rate
+  // limited. Without this entry ALL fell through to the 30-day default and
+  // showed a month of data under a label promising everything.
+  const map = { '1D': 1, '5D': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365, '5Y': 1825, ALL: 3650 }
   return map[tf] ?? 30
 }
