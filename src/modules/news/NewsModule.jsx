@@ -12,6 +12,8 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
 import { getAllEarningsResults } from '../../services/earningsAnalystService'
+import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
+import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -761,21 +763,21 @@ function MorningBriefing() {
   const [error, setError] = useState(null)
   const [expanded, setExpanded] = useState(true)
 
+  // The prompt is built from gathered data, never from the instruction to be
+  // "specific" that this used to carry. See services/briefContext.js for why
+  // — in short, the previous version supplied no figures at all and the model
+  // filled the gap with plausible ones.
   const generate = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const prompt =
-        `You are MaddenAI. Today is ${today}. ` +
-        'Generate a professional 3-paragraph morning market briefing for Australian investors covering:\n' +
-        'Para 1: Overnight global market moves and key drivers\n' +
-        'Para 2: ASX outlook for today + key stocks to watch\n' +
-        'Para 3: Key risk events this week\n' +
-        'Keep it factual, specific, and Australian-focused. General information only.'
-      const { text: result } = await askClaude([{ role: 'user', content: prompt }], null, {
+      const ctx = await gatherBriefContext()
+      const { text: result } = await askClaude([{ role: 'user', content: buildNewsBriefPrompt(ctx) }], null, {
         systemPrompt:
           'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. ' +
           'This panel renders plain text only — never use markdown. No #/## headings, no **bold**, ' +
-          'no --- rules, no bullet syntax. Write flowing prose paragraphs separated by blank lines.',
+          'no --- rules, no bullet syntax. Write flowing prose paragraphs separated by blank lines. ' +
+          'You never state a financial figure that was not supplied to you in the user message. '
+          + 'If you have no figure for a market, you omit that market rather than describing it.',
       })
       setText(result)
       try { localStorage.setItem(briefKey(today), result) } catch { /* best-effort cache write */ }
@@ -805,6 +807,12 @@ function MorningBriefing() {
       >
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">MORNING BRIEF</span>
         <span className="text-2xs text-terminal-text-dim">{today}</span>
+        {/* Not a LIVE badge. The figures inside are live; the prose around
+            them is written by a model, and conflating the two is what let
+            invented numbers read as a feed. AIContentBadge already exists for
+            exactly this distinction, so it is reused with a label naming both
+            halves rather than a fourth badge being added beside it. */}
+        <AIContentBadge source="live" label="AI SUMMARY · LIVE DATA" />
         {loading && <span className="text-2xs text-terminal-text-dim animate-pulse">generating…</span>}
         <button
           onClick={(e) => { e.stopPropagation(); generate() }}
@@ -818,7 +826,25 @@ function MorningBriefing() {
           {error ? (
             <div className="text-terminal-red text-2xs">⚠ {error} — <button onClick={generate} className="underline hover:text-terminal-gold">retry</button></div>
           ) : text ? (
-            renderBriefParagraphs(text)
+            <>
+              {renderBriefParagraphs(text)}
+              {/* Always rendered with the brief, never conditional. A
+                  disclaimer that appears only sometimes teaches the reader to
+                  stop looking for it. */}
+              <div
+                style={{
+                  fontFamily: '"IBM Plex Mono", monospace',
+                  fontSize: 9,
+                  color: '#4A6080',
+                  letterSpacing: '0.1em',
+                  padding: '8px 0 0',
+                  borderTop: '1px solid rgba(201,168,76,0.08)',
+                  marginTop: 8,
+                }}
+              >
+                ⓘ AI-GENERATED SUMMARY · FIGURES FROM LIVE DATA ONLY · GENERAL INFORMATION · NOT ADVICE
+              </div>
+            </>
           ) : (
             <div className="text-terminal-text-dim text-2xs animate-pulse">MaddenAI is drafting today's briefing…</div>
           )}

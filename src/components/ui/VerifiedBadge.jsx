@@ -77,7 +77,12 @@ const AI_SOURCE_LABEL = {
   failed:   { text: 'DEFAULT',        dim: true  },
 }
 
-export function AIContentBadge({ source = 'fallback', className = '' }) {
+// `label` overrides the text for a caller that needs to name what grounds the
+// prose as well as who wrote it — the news brief says "AI SUMMARY · LIVE DATA"
+// because its figures come from live feeds while its sentences do not. The
+// source still drives the colour, so an overridden badge goes gold when the
+// content stops being today's exactly like every other one.
+export function AIContentBadge({ source = 'fallback', label = null, className = '' }) {
   const meta = AI_SOURCE_LABEL[source] ?? AI_SOURCE_LABEL.fallback
   const detail = {
     live: 'Written by MaddenAI today from verified figures.',
@@ -103,7 +108,7 @@ export function AIContentBadge({ source = 'fallback', className = '' }) {
           color: meta.dim ? '#C9A84C' : '#637899',
         }}
       >
-        {meta.text}
+        {label ?? meta.text}
       </span>
     </Tooltip>
   )
