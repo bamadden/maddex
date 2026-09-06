@@ -21,21 +21,36 @@ import CommandBar from './components/layout/CommandBar'
 import AIPanel from './components/layout/AIPanel'
 import DetailModal from './components/ui/DetailModal'
 import ComparisonView from './components/markets/ComparisonView'
-import DashboardModule from './modules/dashboard/DashboardModule'
-import CalendarModule from './modules/calendar/CalendarModule'
-import MarketsModule from './modules/markets/MarketsModule'
-import PortfolioModule from './modules/portfolio/PortfolioModule'
-import CryptoModule from './modules/crypto/CryptoModule'
-import FXModule from './modules/fx/FXModule'
-import MacroModule from './modules/macro/MacroModule'
-import WatchlistModule from './modules/watchlist/WatchlistModule'
-import NewsModule from './modules/news/NewsModule'
+// Every routable module is lazy.
+//
+// They were statically imported here while ModuleRenderer imported the same
+// files with lazy() — which does not split anything, it just adds a Suspense
+// boundary in front of code the main bundle already contains. Rollup said so
+// on every build:
+//
+//   INEFFECTIVE_DYNAMIC_IMPORT: MarketsModule.jsx is dynamically imported by
+//   ModuleRenderer.jsx but also statically imported by App.jsx
+//
+// Eleven of those warnings, and a 2MB entry chunk that made every visitor
+// download Replay, Scanner and Screener to look at the dashboard.
+//
+// Every render site here is already inside a Suspense boundary, so making
+// these lazy needed no other change.
+const DashboardModule     = lazy(() => import('./modules/dashboard/DashboardModule'))
+const CalendarModule      = lazy(() => import('./modules/calendar/CalendarModule'))
+const MarketsModule       = lazy(() => import('./modules/markets/MarketsModule'))
+const PortfolioModule     = lazy(() => import('./modules/portfolio/PortfolioModule'))
+const CryptoModule        = lazy(() => import('./modules/crypto/CryptoModule'))
+const FXModule            = lazy(() => import('./modules/fx/FXModule'))
+const MacroModule         = lazy(() => import('./modules/macro/MacroModule'))
+const WatchlistModule     = lazy(() => import('./modules/watchlist/WatchlistModule'))
+const NewsModule          = lazy(() => import('./modules/news/NewsModule'))
+const ScreenerModule      = lazy(() => import('./modules/screener/ScreenerModule'))
+const MorningBriefModule  = lazy(() => import('./modules/brief/MorningBriefModule'))
+const MarketReplayModule  = lazy(() => import('./modules/replay/MarketReplayModule'))
+const MarketScannerModule = lazy(() => import('./modules/scanner/MarketScannerModule'))
 // d3 + topojson-heavy — code-split out of the main bundle.
 const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
-import ScreenerModule from './modules/screener/ScreenerModule'
-import MorningBriefModule from './modules/brief/MorningBriefModule'
-import MarketReplayModule from './modules/replay/MarketReplayModule'
-import MarketScannerModule from './modules/scanner/MarketScannerModule'
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import CorrelationExplorer from './modules/markets/CorrelationExplorer'
 import ErrorBoundary from './components/ui/ErrorBoundary'

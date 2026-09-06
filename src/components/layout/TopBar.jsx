@@ -203,15 +203,28 @@ function DataFreshnessBadge() {
   // Auto-refresh once the countdown lapses — the invalidate + reset both
   // happen inside the interval callback (deferred, not synchronous with the
   // effect body itself), same pattern as the plain clock tick above it.
+  // lastRefresh is mirrored in a ref so the interval can read it without the
+  // effect depending on it — re-creating the interval every second to see a
+  // fresh value would be worse than the problem it solves.
+  const lastRefreshRef = useRef(lastRefresh)
+  useEffect(() => { lastRefreshRef.current = lastRefresh }, [lastRefresh])
+
   useEffect(() => {
     const id = setInterval(() => {
       setNow(Date.now())
-      setLastRefresh((prev) => {
-        const elapsed = Math.floor((Date.now() - prev) / 1000)
-        if (elapsed < REFRESH_INTERVAL) return prev
+      // invalidateQueries() used to sit INSIDE a setLastRefresh updater.
+      // React may run an updater during render and more than once, so that
+      // was a query-client update triggered from another component's render —
+      // React said so explicitly: "Cannot update a component (Terminal) while
+      // rendering a different component (DataFreshnessBadge)".
+      //
+      // The decision now happens in the interval callback, where a side
+      // effect belongs, and setState only sets state.
+      const elapsed = Math.floor((Date.now() - lastRefreshRef.current) / 1000)
+      if (elapsed >= REFRESH_INTERVAL) {
         queryClient.invalidateQueries()
-        return Date.now()
-      })
+        setLastRefresh(Date.now())
+      }
     }, 1000)
     return () => clearInterval(id)
   }, [queryClient])
