@@ -515,6 +515,18 @@ function Terminal() {
         return
       }
 
+      // Cmd/Ctrl+K, alongside the customisable ui.command binding.
+      //
+      // Not routed through shortcutService because it is not a remappable
+      // action but a convention: every command palette a user has met opens on
+      // this chord, and the command bar advertises it in its hint row. The
+      // default '/' binding still works and is still customisable.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        document.querySelector('.cmd-input')?.focus()
+        return
+      }
+
       if (shortcutService.matches(e, shortcutService.shortcuts['ui.command'])) {
         e.preventDefault()
         document.querySelector('.cmd-input')?.focus()

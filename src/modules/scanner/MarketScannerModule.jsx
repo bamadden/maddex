@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { takeModuleIntent } from '../../services/moduleIntent'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import { EmptyState as SharedEmptyState } from '../../components/ui/EmptyState'
@@ -419,7 +420,23 @@ function ScanSettings({ settings, onChange }) {
 }
 
 export default function MarketScannerModule() {
-  const [activeTab, setActiveTab] = useState('breakouts')
+  // The command bar can ask for a specific tab ("scan for oversold"), and it
+  // has to work whether or not this module is already mounted. The intent
+  // covers the cold case — read here, on mount, after the lazy chunk finally
+  // arrives — and the event below covers the warm one.
+  const [activeTab, setActiveTab] = useState(() => {
+    const intent = takeModuleIntent('scanner')
+    return TABS.some((t) => t.key === intent?.tab) ? intent.tab : 'breakouts'
+  })
+
+  useEffect(() => {
+    const onTab = (e) => {
+      const tab = e.detail?.tab
+      if (tab && TABS.some((t) => t.key === tab)) setActiveTab(tab)
+    }
+    window.addEventListener('madden:scanner-tab', onTab)
+    return () => window.removeEventListener('madden:scanner-tab', onTab)
+  }, [])
   const [tick, setTick] = useState(0)
   const [lastScanAt, setLastScanAt] = useState(() => Date.now())
   const [scanning, setScanning] = useState(false)

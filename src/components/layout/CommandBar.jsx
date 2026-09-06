@@ -7,6 +7,7 @@ import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
 import Tooltip from '../ui/Tooltip'
 import { shortcutService } from '../../services/shortcutService'
+import { setModuleIntent } from '../../services/moduleIntent'
 
 // ─── Autocomplete symbol catalogue ────────────────────────────────────────────
 
@@ -161,6 +162,176 @@ const HELP_SECTIONS = [
   ]},
 ]
 
+// ─── Natural language ─────────────────────────────────────────────────────────
+//
+// A terminal command line and a sentence are different interfaces, and this
+// bar had only the first: "WL ADD BHP" worked, "add BHP to my watchlist" fell
+// through to the catch-all and became an AI question — a round trip to a model
+// to do something the app can do locally and instantly.
+//
+// ONE PARSER, TWO CALLERS. parseNaturalLanguage returns a plain descriptor and
+// touches nothing. interpretCommand renders it as the preview line under the
+// input; execute() acts on it. That is deliberate: the preview exists to tell
+// the user what Enter will do, and a preview derived from a second, parallel
+// set of patterns is a preview that can lie. Adding a pattern here changes
+// both at once.
+//
+// Deliberately conservative. Every pattern is anchored and requires its
+// keywords in order, so ordinary prose still reaches MaddenAI rather than
+// being caught by a loose match — "how do I compare franking credits across
+// two brokers" is a question, not a COMPARE command.
+
+// Word characters, a dot, a caret or a slash — enough for BHP, BHP.AX, ^AXJO
+// and AUD/USD, and nothing else.
+const TICKER_RE = '[A-Za-z0-9.^/-]{1,12}'
+
+// Resolves what the user typed to the symbol the app actually uses.
+//
+// "add BHP to watchlist" must add BHP.AX, not BHP: a bare ASX ticker resolves
+// to the US listing at a USD price, silently — the failure tickerGuard.js
+// exists to catch. Known symbols resolve through the catalogue; anything else
+// is passed through untouched rather than guessed at.
+function resolveSymbol(raw) {
+  const q = String(raw ?? '').trim().toUpperCase()
+  if (!q) return null
+  const known = KNOWN_SYMBOLS.find((k) => k.label.toUpperCase() === q || k.sym.toUpperCase() === q)
+  return known ? known.sym : q
+}
+
+// Whether a token is plausibly a symbol rather than an English word.
+function looksLikeTicker(raw) {
+  const q = String(raw ?? '').trim()
+  if (!q) return false
+  if (KNOWN_SYMBOLS.some((k) => k.label.toUpperCase() === q.toUpperCase() || k.sym.toUpperCase() === q.toUpperCase())) return true
+  return /^[A-Z^][A-Z0-9.^/-]*$/.test(q)
+}
+
+// The display form — BHP rather than BHP.AX, for confirmations.
+function displaySymbol(raw) {
+  const q = String(raw ?? '').trim().toUpperCase()
+  const known = KNOWN_SYMBOLS.find((k) => k.label.toUpperCase() === q || k.sym.toUpperCase() === q)
+  return known ? known.label : q
+}
+
+// Module names as a person would say them, mapped to module ids. Checked
+// against NAV_MAP's aliases first, so this only has to carry the names that
+// are not already aliases.
+const SPOKEN_MODULES = {
+  brief: 'brief', 'morning brief': 'brief', 'my brief': 'brief',
+  scanner: 'scanner', scan: 'scanner', screener: 'screener', screen: 'screener',
+  dashboard: 'dashboard', home: 'dashboard',
+  calendar: 'calendar', settings: 'settings', replay: 'replay',
+  'ai analyst': 'ai', 'maddenai': 'ai',
+}
+
+function moduleIdFor(name) {
+  const n = String(name ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+  if (!n) return null
+  if (SPOKEN_MODULES[n]) return SPOKEN_MODULES[n]
+  for (const [module, aliases] of Object.entries(NAV_MAP)) {
+    if (aliases.includes(n)) return module
+  }
+  return null
+}
+
+// Returns { kind, ...args, say } or null. `say` is the preview line, and is
+// also what the confirmation flash is built from, so the two always agree.
+function parseNaturalLanguage(raw) {
+  const t = String(raw ?? '').trim().replace(/\s+/g, ' ')
+  if (!t) return null
+  const lower = t.toLowerCase()
+
+  const m = (re) => t.match(re)
+
+  // "add BHP to watchlist" / "add BHP to my watchlist"
+  let hit = m(new RegExp(`^add (${TICKER_RE}) to (?:my )?watch ?list$`, 'i'))
+  if (hit) {
+    const sym = resolveSymbol(hit[1])
+    return { kind: 'watchlist', symbol: sym, say: `Add ${sym} to watchlist` }
+  }
+
+  // "set alert BHP above 50" / "alert me when CBA goes below 170"
+  hit = m(new RegExp(`^(?:set )?alert (?:me )?(?:for |on |when )?(${TICKER_RE}) (?:goes |gets |is )?(above|below|over|under) \\$?([0-9]+(?:\\.[0-9]+)?)$`, 'i'))
+  if (hit) {
+    const sym = resolveSymbol(hit[1])
+    const direction = /above|over/i.test(hit[2]) ? 'above' : 'below'
+    const price = parseFloat(hit[3])
+    return {
+      kind: 'alert', symbol: sym, direction, price,
+      say: `Set alert: ${sym} ${direction} A$${price.toFixed(2)}`,
+    }
+  }
+
+  // "compare BHP and RIO" / "compare BHP vs RIO" / "compare BHP with RIO"
+  hit = m(new RegExp(`^compare (${TICKER_RE}) (?:and|vs\\.?|versus|with|to) (${TICKER_RE})$`, 'i'))
+  if (hit) {
+    const [a, b] = [displaySymbol(hit[1]), displaySymbol(hit[2])]
+    return { kind: 'compare', a: hit[1], b: hit[2], say: `Compare ${a} vs ${b}` }
+  }
+
+  // "analyse BHP" / "analyze BHP"
+  hit = m(new RegExp(`^analys[ez]e? (${TICKER_RE})$`, 'i'))
+  if (hit) {
+    const sym = displaySymbol(hit[1])
+    return {
+      kind: 'ai', symbol: sym,
+      query: `Give me a full analysis of ${sym}: what the business does, what is driving the share price, the main risks, and what an Australian investor should be watching. General information only, not advice.`,
+      say: `Ask MaddenAI to analyse ${sym}`,
+    }
+  }
+
+  // "how is BHP doing" / "how's BHP doing" / "how is BHP performing"
+  hit = m(new RegExp(`^how(?:'s| is| has) (${TICKER_RE}) (?:been )?(?:doing|performing|going|performed)\\??$`, 'i'))
+  if (hit) {
+    const sym = displaySymbol(hit[1])
+    return {
+      kind: 'ai', symbol: sym,
+      query: `How has ${sym} been performing recently, and what has been driving it? Describe direction and condition rather than quoting prices you were not given. General information only, not advice.`,
+      say: `Ask MaddenAI how ${sym} is performing`,
+    }
+  }
+
+  // "what is BHP" / "what's BHP" — a lookup, not a question for the model.
+  //
+  // Guarded on the token actually looking like a ticker. Without the guard
+  // "what is inflation" parses as a lookup of INFLATION, fails, and only then
+  // falls through to MaddenAI — a slower, worse answer to a real question. A
+  // token counts as a ticker if the catalogue knows it, or if the user typed
+  // it in capitals, which is how people write tickers and not how they write
+  // nouns.
+  hit = m(new RegExp(`^what(?:'s| is) (${TICKER_RE})\\??$`, 'i'))
+  if (hit && looksLikeTicker(hit[1])) {
+    const sym = displaySymbol(hit[1])
+    return { kind: 'lookup', symbol: hit[1], say: `Look up ${sym}` }
+  }
+
+  // "scan for breakouts" / "scan for oversold stocks"
+  hit = m(/^scan (?:for |the )?([a-z ]+?)(?: stocks| setups)?$/i)
+  if (hit) {
+    const wanted = hit[1].trim().toLowerCase()
+    const TABS = { breakouts: 'breakouts', breakout: 'breakouts', oversold: 'oversold', overbought: 'overbought', volume: 'volume', gaps: 'gaps', gap: 'gaps', momentum: 'momentum', patterns: 'patterns', pattern: 'patterns' }
+    const tab = TABS[wanted]
+    if (tab) return { kind: 'scanner', tab, say: `Scanner → ${tab.toUpperCase()}` }
+  }
+
+  // "my portfolio" / "my brief" / "morning brief" / "my watchlist"
+  hit = m(/^(?:my |the )?(portfolio|holdings|watchlist|morning brief|brief|dashboard)$/i)
+  if (hit) {
+    const id = moduleIdFor(hit[1]) ?? hit[1].toLowerCase()
+    return { kind: 'nav', module: id, say: `Navigate to ${id.toUpperCase()}` }
+  }
+
+  // "show me markets" / "go to the crypto module" / "open portfolio"
+  hit = m(/^(?:show me|show|go to|open|take me to)(?: the)? ([a-z ]+?)(?: module| page| tab)?$/i)
+  if (hit) {
+    const id = moduleIdFor(hit[1])
+    if (id) return { kind: 'nav', module: id, say: `Navigate to ${id.toUpperCase()}` }
+  }
+
+  // Everything else is prose, and prose goes to the model — unchanged.
+  return lower === '' ? null : null
+}
+
 // ─── Command interpretation preview ────────────────────────────────────────────
 // A pure, side-effect-free mirror of execute()'s branching — shown live below
 // the input so the user sees what Enter will do before committing to it.
@@ -183,11 +354,16 @@ function interpretCommand(raw) {
   if (cmd === 'crypto top') return 'Navigate to CRYPTO module'
   if (parts[0].toLowerCase() === 'wl' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Adding ${parts[2].toUpperCase()} to watchlist...`
   if (parts[0].toLowerCase() === 'port' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Open Portfolio to add ${parts[2].toUpperCase()}`
-  if (parts[0].toLowerCase() === 'compare' && parts.length >= 3) return `Compare ${parts[1].toUpperCase()} vs ${parts[2].toUpperCase()}`
+  if (parts[0].toLowerCase() === 'compare' && parts.length >= 3 && !/^(and|vs|vs\.|versus|with|to)$/i.test(parts[2])) return `Compare ${parts[1].toUpperCase()} vs ${parts[2].toUpperCase()}`
   if (parts[0].toLowerCase() === 'alert' && parts.length >= 3) {
     const p = parseFloat(parts[2])
     return isNaN(p) ? 'Alert format: ALERT {symbol} {price}' : `Set alert: ${parts[1].toUpperCase()} @ A$${p.toFixed(2)}`
   }
+  // Natural language, checked before the two catch-alls below so the preview
+  // says "Add BHP.AX to watchlist" rather than "Ask MaddenAI: …".
+  const nl = parseNaturalLanguage(trimmed)
+  if (nl) return nl.say
+
   if (!trimmed.includes(' ')) return `Look up ${trimmed.toUpperCase()}`
   return `Ask MaddenAI: "${trimmed.length > 50 ? trimmed.slice(0, 50) + '…' : trimmed}"`
 }
@@ -210,6 +386,19 @@ const writeHistory = (hist) => {
 function buildActionSuggestions(rawInput) {
   const q = rawInput.trim()
   if (!q) return []
+
+  // When the input already parses as a command, offer that command instead of
+  // the three generic ones. The generic list takes the first token as a ticker,
+  // which for "add BHP to watchlist" produced "Add ADD to watchlist" — an
+  // action that would run, and do the wrong thing.
+  const nl = parseNaturalLanguage(q)
+  if (nl) {
+    return [{
+      sym: `nl:${q}`, label: nl.say, type: 'action', category: 'ACTIONS',
+      desc: 'Press Enter to run', action: 'command', payload: q,
+    }]
+  }
+
   const ticker = q.toUpperCase().split(/\s+/)[0]
   return [
     { sym:`ai:${q}`,   label:`Ask MaddenAI about "${q}"`,   type:'action', category:'ACTIONS', desc:'Route this query to MaddenAI',       action:'ai',        payload:q },
@@ -456,6 +645,38 @@ function AlertBadge({ alerts }) {
   )
 }
 
+// ─── Keyboard hints ───────────────────────────────────────────────────────────
+//
+// The hints change with what is on screen, because a fixed row is wrong most
+// of the time: ENTER means "select this suggestion" with a list open and
+// "execute what I typed" without one, and TAB fills a suggestion only when
+// there is a suggestion to fill from. A row that says the same thing in both
+// states teaches the wrong model of the bar.
+function KeyHints({ context = 'idle', className = '' }) {
+  const HINTS = {
+    suggestions: [['↑↓', 'navigate'], ['↵', 'select'], ['Tab', 'fill'], ['Esc', 'close']],
+    recent:      [['↑↓', 'navigate'], ['↵', 'run'], ['Esc', 'close']],
+    typing:      [['↵', 'execute'], ['Esc', 'clear'], ['⌘K', 'focus']],
+    idle:        [['↑↓', 'history'], ['↵', 'execute'], ['⌘K', 'open anywhere']],
+  }
+  return (
+    <span className={`flex items-center gap-2.5 text-2xs ${className}`}>
+      {(HINTS[context] ?? HINTS.idle).map(([key, label]) => (
+        <span key={key} className="flex items-center gap-1 whitespace-nowrap">
+          <kbd
+            className="font-mono"
+            style={{
+              fontSize: 8, padding: '0 3px', borderRadius: 2,
+              border: '1px solid rgba(99,120,153,0.3)', color: '#8BA3C4',
+            }}
+          >{key}</kbd>
+          <span className="text-terminal-text-dim/50">{label}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 // ─── Suggestions dropdown (memoised to avoid re-renders on every keystroke) ──
 // Grouped by category (STOCKS/CRYPTO/FX/MODULES/COMMANDS/ACTIONS) in the
 // order categories first appear. `quotes` maps symbol -> { price, pct } for
@@ -525,10 +746,8 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
           })}
         </div>
       ))}
-      <div className="px-3 py-1 border-t border-terminal-border/40 text-2xs text-terminal-text-dim/40 flex items-center gap-3 sticky bottom-0 bg-terminal-panel">
-        <span>↑↓ navigate</span>
-        <span>ENTER select</span>
-        <span className="ml-auto">ESC close</span>
+      <div className="px-3 py-1 border-t border-terminal-border/40 flex items-center sticky bottom-0 bg-terminal-panel">
+        <KeyHints context="suggestions" />
       </div>
     </div>
   )
@@ -557,6 +776,9 @@ const RecentSearchesList = memo(function RecentSearchesList({ recents, activeIdx
           <span className="text-terminal-text-bright font-mono">{r}</span>
         </div>
       ))}
+      <div className="px-3 py-1 border-t border-terminal-border/40 flex items-center bg-terminal-panel">
+        <KeyHints context="recent" />
+      </div>
     </div>
   )
 })
@@ -956,7 +1178,14 @@ export default function CommandBar() {
     }
 
     // ── COMPARE {sym1} {sym2} ──
-    if (parts[0].toLowerCase() === 'compare' && parts.length >= 3) {
+    //
+    // The joining-word guard is not cosmetic. Without it "compare BHP and RIO"
+    // was caught here, took "and" as the second symbol, and fetched a quote for
+    // AND — a real NASDAQ listing (The Andersons) — then drew a comparison
+    // table headed "BHP vs AND" with genuine prices in it. Nothing errored.
+    // The natural-language branch further down handles that phrasing properly.
+    const JOINERS = /^(and|vs|vs\.|versus|with|to)$/i
+    if (parts[0].toLowerCase() === 'compare' && parts.length >= 3 && !JOINERS.test(parts[2])) {
       const [, s1raw, s2raw] = parts
       flash(`LOADING COMPARISON...`, 'text-terminal-gold', 0)
       try {
@@ -998,6 +1227,74 @@ export default function CommandBar() {
       return
     }
 
+    // ── Natural language ──
+    //
+    // Runs after every exact terminal command, so "TOP", "ALERT BHP 50" and
+    // the rest keep their existing behaviour, and before the ticker lookup and
+    // the AI catch-all, so "add BHP to watchlist" is handled locally rather
+    // than becoming a question for the model. parseNaturalLanguage is the same
+    // function the preview line uses — see its comment.
+    const nl = parseNaturalLanguage(trimmed)
+    if (nl) {
+      switch (nl.kind) {
+        case 'watchlist':
+          addToWatchlist(nl.symbol)
+          flash(`ADDED ${nl.symbol} ✓`, 'text-terminal-green', 2500)
+          return
+
+        case 'alert':
+          addAlert(nl.symbol, nl.price, nl.direction)
+          flash(`ALERT SET: ${nl.symbol} ${nl.direction.toUpperCase()} A$${nl.price.toFixed(2)} ✓`, 'text-terminal-green', 3000)
+          return
+
+        case 'nav':
+          setActiveModule(nl.module)
+          if (nl.module === 'news') setNewsFilter('')
+          flash(`→ ${nl.module.toUpperCase()}`, 'text-terminal-green', 1500)
+          return
+
+        case 'scanner':
+          // Intent first, then navigate, then the event. The intent is read by
+          // the Scanner's useState initialiser and covers a cold open (the
+          // module is lazy-loaded, so at this instant it may not exist yet);
+          // the event covers a Scanner already on screen. See moduleIntent.js.
+          setModuleIntent('scanner', { tab: nl.tab })
+          setActiveModule('scanner')
+          window.dispatchEvent(new CustomEvent('madden:scanner-tab', { detail: { tab: nl.tab } }))
+          flash(`→ SCANNER · ${nl.tab.toUpperCase()}`, 'text-terminal-green', 2000)
+          return
+
+        case 'lookup':
+          await lookupTicker(nl.symbol)
+          return
+
+        case 'ai':
+          await routeToAI(nl.query)
+          return
+
+        case 'compare': {
+          flash('LOADING COMPARISON...', 'text-terminal-gold', 0)
+          try {
+            const [q1, q2] = await Promise.all([
+              fetchYFQuote(toYahooSymbol(nl.a, detectAssetType(nl.a))),
+              fetchYFQuote(toYahooSymbol(nl.b, detectAssetType(nl.b))),
+            ])
+            setCompareAssets([
+              buildModalAsset(q1, detectAssetType(nl.a), nl.a.toUpperCase()),
+              buildModalAsset(q2, detectAssetType(nl.b), nl.b.toUpperCase()),
+            ])
+            flash('READY')
+          } catch {
+            flash('COMPARE FAILED — CHECK SYMBOLS', 'text-terminal-red', 3000)
+          }
+          return
+        }
+
+        default:
+          break
+      }
+    }
+
     // ── Ticker lookup (no spaces = likely a symbol) ──
     if (!trimmed.includes(' ')) {
       await lookupTicker(trimmed)
@@ -1006,7 +1303,7 @@ export default function CommandBar() {
 
     // ── Unknown → AI ──
     await routeToAI(trimmed)
-  }, [addAlert, audUsd, pushHistory, setActiveModule, setNewsFilter, openModal, setChatOpen, addChatMessage, updateLastChatMessage])
+  }, [addAlert, addToWatchlist, audUsd, pushHistory, setActiveModule, setNewsFilter, openModal, setChatOpen, addChatMessage, updateLastChatMessage])
 
   // ── Unified suggestion/recent-search selection — click and Enter both land ──
   // here, so "select" always means the same thing regardless of input method.
@@ -1020,6 +1317,10 @@ export default function CommandBar() {
         return
       case 'action':
         setInputValue('')
+        // A parsed natural-language command routes straight back through
+        // execute(), so clicking the suggestion and pressing Enter on the same
+        // text do exactly the same thing.
+        if (item.action === 'command') { execute(item.payload); return }
         if (item.action === 'ai') { routeToAI(item.payload); return }
         if (item.action === 'watchlist') {
           addToWatchlist(item.payload)
@@ -1115,7 +1416,7 @@ export default function CommandBar() {
               </button>
             </Tooltip>
             <span className="text-terminal-border hidden xl:inline">│</span>
-            <span className="text-terminal-text-dim/50 hidden xl:inline">↑↓ HISTORY · TAB FILL · ENTER EXECUTE</span>
+            <KeyHints context="idle" className="hidden xl:flex" />
           </div>
         </div>
 
@@ -1124,7 +1425,11 @@ export default function CommandBar() {
         {inputValue.trim() && (
           <div className="px-3 py-1 bg-terminal-bg border-t border-terminal-border/30 text-2xs text-terminal-text-dim/70 flex items-center gap-1.5">
             <span className="text-terminal-gold/60">→</span>
-            <span>{interpretCommand(inputValue)}</span>
+            <span className="truncate min-w-0">{interpretCommand(inputValue)}</span>
+            <KeyHints
+              context={suggestions.length ? 'suggestions' : 'typing'}
+              className="ml-auto flex-shrink-0 hidden md:flex"
+            />
           </div>
         )}
       </div>
