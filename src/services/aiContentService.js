@@ -187,13 +187,30 @@ Describe magnitude in words rather than percentages you cannot verify.`)
 Generate 12 brief market-intelligence lines for an Australian investor,
 suitable for a scrolling terminal ticker.
 
+EVERY line must relate to at least one of:
+- ASX stocks or Australian markets
+- Global market moves (indices, FX, rates)
+- Commodities — iron ore, gold, LNG, coal, oil, lithium
+- Central bank decisions
+- Economic data releases
+- Geopolitical events with a market or trade consequence
+- Crypto markets
+
+DO NOT include sport, entertainment, crime, celebrity, domestic politics with
+no market consequence, weather (unless it moves a commodity), or health news
+(unless it moves pharma). A line a reader cannot trade or position around does
+not belong on a market ticker, however newsworthy it is.
+
+Where a line is geopolitical, name the market consequence rather than the
+event alone: "Red Sea — carriers still routing via the Cape" earns its place;
+"unrest continues in region X" does not.
+
 Return a JSON array of 12 strings, each at most 80 characters, each beginning
 with a single relevant emoji:
 ["🔴 Red Sea — carriers still routing via the Cape", ...]
 
-Mix: market conditions, geopolitics, commodities, central banks, shipping,
-domestic data. Describe conditions and direction — do not state prices,
-index levels or percentages unless they appear in the verified figures above.`)
+Describe conditions and direction — do not state prices, index levels or
+percentages unless they appear in the verified figures above.`)
   },
 
   // ── Macro regime read ─────────────────────────────────────────────────────

@@ -1429,6 +1429,77 @@ export const transformFlightData = (raw) => {
   return { total: states.length, airborne: airborne.length, byCountry, timestamp: raw.time }
 }
 
+// ── Finance relevance filter ──────────────────────────────────────────────
+//
+// The geo feeds are BBC World, Guardian World and ABC News — general news
+// wires, not market wires. They carry the geopolitics this map needs (Red Sea
+// shipping, sanctions, OPEC) mixed in with crime, sport and weather. The
+// intelligence panel was rendering "Victoria police release image of man on
+// run after allegedly attacking three people with axe" as market intelligence.
+//
+// WORD BOUNDARIES, NOT SUBSTRINGS. The first version of this used
+// text.includes(kw) and a story about a crocodile handler at a PNG wildlife
+// park passed the filter — the summary said the park sits on "the banks of the
+// river", and 'bank' is a substring of 'banks'. Every term below is matched as
+// a whole word, and the genuinely ambiguous ones are qualified rather than
+// left bare: 'bank' alone is a riverbank as often as an institution, so what
+// is matched is 'banking', 'central bank', 'reserve bank' and the named banks.
+// Bare 'port' went the same way: it matched "Port Moresby" in a story about a
+// crocodile enclosure. Shipping is already carried by 'shipping', 'freight'
+// and 'supply chain', so the bare noun bought nothing and cost accuracy.
+//
+// Stems are written as explicit alternations ('equit(y|ies)') because a stem
+// with a boundary at the end would not match its own plural.
+const FINANCE_PATTERNS = [
+  // Markets
+  'asx', 'stocks?', 'shares?', 'share price', 'markets?', 'equit(y|ies)',
+  'trading', 'investors?', 'investment', 'index', 'indices', 'sharemarket',
+  // Australian names
+  'bhp', 'cba', 'anz', 'nab', 'westpac', 'csl', 'rio tinto', 'fortescue',
+  'wesfarmers', 'commonwealth bank', 'macquarie', 'woodside', 'qantas',
+  // Macro
+  'rba', 'reserve bank', 'central bank', 'interest rates?', 'inflation',
+  'gdp', 'unemployment', 'econom(y|ic|ies)', 'federal reserve', 'the fed',
+  'ecb', 'rate (cut|rise|hike)s?', 'cpi', 'recession', 'stimulus',
+  'monetary', 'fiscal', 'budget', 'deficit', 'surplus', 'tariffs?',
+  'sanctions?', 'banking',
+  // Commodities
+  'iron ore', 'coal', 'lng', 'gold price', 'bullion', 'copper', 'oil',
+  'crude', 'commodit(y|ies)', 'lithium', 'nickel', 'opec', 'gas prices?',
+  // Crypto
+  'bitcoin', 'btc', 'ethereum', 'crypto\\w*', 'blockchain', 'defi',
+  // Currencies, rates, corporate
+  'dollars?', 'aud', 'currenc(y|ies)', 'forex', 'bonds?', 'yields?',
+  'treasur(y|ies)', 'revenues?', 'earnings', 'dividends?', 'profits?',
+  'acquisitions?', 'mergers?', 'ipo', 'listings?',
+  // Trade and logistics
+  'trade', 'exports?', 'imports?', 'supply chain', 'shipping', 'freight',
+  'shipments?', 'port of \\w+', 'seaports?', 'container terminal',
+]
+
+const FINANCE_RE = new RegExp(`\\b(?:${FINANCE_PATTERNS.join('|')})\\b`, 'i')
+
+export const isFinanceRelevant = (article) =>
+  FINANCE_RE.test(`${article.headline ?? ''} ${article.summary ?? ''}`)
+
+// Filters to market-relevant stories.
+//
+// THE FALLBACK IS NOT "SHOW EVERYTHING". An earlier version returned the
+// unfiltered head of the list whenever fewer than five stories passed, on the
+// theory that an empty panel looks broken. In practice the ABC feed alone
+// yields two finance-relevant stories out of twenty-five, so that threshold
+// fired constantly and handed the panel straight back the crime and wildlife
+// coverage it exists to exclude — the filter ran, passed, and changed nothing
+// visible.
+//
+// Few real stories beat many wrong ones. When something relevant exists, that
+// is what shows, however short the list. Only a completely empty result falls
+// back, and the panel already renders "No active disruptions" for that, which
+// is honest.
+export function filterFinanceRelevant(items) {
+  return items.filter(isFinanceRelevant)
+}
+
 export const fetchGeoNews = async () => {
   const results = await Promise.allSettled(
     GEO_RSS_FEEDS.map(({ url, source }) =>
@@ -1456,8 +1527,9 @@ export const fetchGeoNews = async () => {
     }
   }
   items.sort((a, b) => b.pubDate - a.pubDate)
-  console.log('[MADDEN API] Geo news:', items.length, 'articles')
-  return items
+  const relevant = filterFinanceRelevant(items)
+  console.log(`[MADDEN API] Geo news: ${relevant.length} finance-relevant of ${items.length} fetched`)
+  return relevant
 }
 
 

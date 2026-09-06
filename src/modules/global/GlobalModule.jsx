@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData } from '../../services/api'
+import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
 import { fetchSignificantEarthquakes, fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
@@ -2393,7 +2393,26 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist }) {
                 a.severity === 'CRITICAL' ? 'border-l-terminal-red bg-terminal-red/10' : 'border-l-orange-500 bg-orange-500/10'
               }`}
             >
-              {a.headline}
+              <div>{a.headline}</div>
+              {/* Source badge. These items come from three different general
+                  news wires, and which one carried a story is part of reading
+                  it — an ABC line and a Guardian line are not interchangeable
+                  provenance. */}
+              {a.source && (
+                <div className="mt-1">
+                  <span
+                    style={{
+                      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+                      letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
+                      background: 'rgba(99,120,153,0.14)',
+                      border: '1px solid rgba(99,120,153,0.28)',
+                      color: '#8BA3C4', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {String(a.source).toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -2629,12 +2648,23 @@ export default function GlobalModule() {
     retry: 1,
   })
 
-  // Combine for geopolitical tab
+  // Combine for geopolitical tab.
+  //
+  // Filtered to market-relevant stories here, not only inside fetchGeoNews,
+  // because this list feeds four surfaces: ACTIVE INTELLIGENCE, the CRITICAL
+  // EVENT banner, the maritime tab and the geo-risk tab. The main news feed
+  // contributes to it too and carries sport and crime of its own.
+  //
+  // ACTIVE INTELLIGENCE selects on severity, and detectSeverity keys on words
+  // like "dies" and "attacked" — so a crocodile handler killed at a PNG
+  // wildlife park scored HIGH and led the panel as market intelligence.
+  // Severity answers "how urgent", never "is this about markets".
   const allNewsItems = useMemo(() => {
     const all = [...(geoNewsItems ?? []), ...(newsItems?.articles ?? [])]
     // Deduplicate by headline
     const seen = new Set()
-    return all.filter(n => { if (seen.has(n.headline)) return false; seen.add(n.headline); return true })
+    const deduped = all.filter(n => { if (seen.has(n.headline)) return false; seen.add(n.headline); return true })
+    return filterFinanceRelevant(deduped)
   }, [geoNewsItems, newsItems])
 
   // Critical-event alert banner — any CRITICAL-severity geo article from the last 60 minutes
