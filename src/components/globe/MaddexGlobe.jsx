@@ -19,7 +19,53 @@ const YF_SYMBOLS = [...new Set(EXCHANGES.map(e => e.ySymbol))]
 // with its own on/off + opacity). Replaces the old single-select DISPLAY_MODES.
 // Overlays are split into two panel sections: DATA (Markets/Heat/Crypto — get
 // an opacity slider) and ROUTE (Shipping/Freight/Trade Impact — on/off only).
-const BASE_LAYERS = ['EARTH', 'DARK']
+const BASE_LAYERS = ['EARTH', 'MARKETS', 'DARK']
+
+// Projections. Orthographic is the globe — the honest one, showing a real
+// sphere with a visible limb. The other two exist because a globe is a bad
+// way to compare things on opposite sides of it: Natural Earth shows every
+// market at once with tolerable distortion, and Mercator is what everyone
+// has seen a shipping lane drawn on.
+//
+// Only orthographic clips to a hemisphere; applying clipAngle to a flat
+// projection removes most of the map.
+const PROJECTIONS = [
+  { id: 'ORTHO',    label: 'ORTHO',   globe: true,  make: () => d3.geoOrthographic().clipAngle(90) },
+  { id: 'NATURAL',  label: 'NATURAL', globe: false, make: () => d3.geoNaturalEarth1() },
+  { id: 'MERCATOR', label: 'MERCATOR',globe: false, make: () => d3.geoMercator() },
+]
+
+// Countries coloured by the performance of the market listed there. Keyed by
+// the same numeric ISO ids the topology uses, so no name matching is needed.
+const MARKET_COUNTRY_PERF = {
+  36:  0.42,   // Australia — ASX
+  840: 0.32,   // United States — S&P 500
+  826: -0.21,  // United Kingdom — FTSE
+  392: 0.75,   // Japan — Nikkei
+  344: -0.46,  // Hong Kong — Hang Seng
+  156: -0.52,  // China — Shanghai
+  702: 0.18,   // Singapore — STI
+  276: 0.12,   // Germany — DAX
+  356: 0.64,   // India — Sensex
+  124: 0.21,   // Canada — TSX
+  410: 0.55,   // South Korea — KOSPI
+  756: 0.08,   // Switzerland — SMI
+  250: 0.15,   // France — CAC
+  554: -0.12,  // New Zealand — NZX
+  76:  -0.34,  // Brazil — Bovespa
+}
+
+// Dark green through dark red, matching the terminal's gain/loss language
+// rather than a generic diverging ramp. Deliberately dark: these are fills
+// under markers and arcs, not the subject.
+function marketFillColor(numericId) {
+  const pct = MARKET_COUNTRY_PERF[numericId]
+  if (pct == null) return '#0A0F1A'
+  const t = Math.min(Math.abs(pct) / 1.0, 1)
+  return pct >= 0
+    ? `rgb(${Math.round(10 + t * 8)}, ${Math.round(40 + t * 46)}, ${Math.round(24 + t * 22)})`
+    : `rgb(${Math.round(40 + t * 46)}, ${Math.round(10 + t * 8)}, ${Math.round(16 + t * 12)})`
+}
 const DATA_OVERLAY_KEYS = ['MARKETS', 'HEAT', 'CRYPTO']
 const ROUTE_OVERLAY_KEYS = ['SHIPPING', 'FREIGHT', 'TRADE_IMPACT']
 // New on/off-only layers — seismic events, population-density fill, the
@@ -272,6 +318,10 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
 
   const [size, setSize] = useState({ width: 800, height: 500 })
   const [topology, setTopology] = useState(null)
+  const [projectionId, setProjectionId] = useState(() => {
+    try { return localStorage.getItem('maddex_globe_projection') || 'ORTHO' } catch { return 'ORTHO' }
+  })
+
   const [baseLayer, setBaseLayer] = useState(() => {
     try {
       const saved = localStorage.getItem('maddex_globe_base')
@@ -495,15 +545,18 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
     const cy = height / 2
     const scaledRadius = radius * zoomK
 
-    const projection = d3.geoOrthographic()
-      .scale(scaledRadius)
+    const projSpec = PROJECTIONS.find((p) => p.id === projectionId) ?? PROJECTIONS[0]
+    // Flat projections need a smaller scale for the same pixel box — a globe
+    // fills a circle of `radius`, a world map fills a rectangle twice as wide.
+    const projection = projSpec.make()
+      .scale(projSpec.globe ? scaledRadius : scaledRadius * 0.62)
       .translate([cx, cy])
-      .clipAngle(90)
-      .rotate(rotation)
+      .rotate(projSpec.globe ? rotation : [rotation[0], 0, 0])
     const path = d3.geoPath(projection, ctx)
 
     const isDark = base === 'DARK'
     const isEarth = base === 'EARTH'
+    const isMarkets = base === 'MARKETS'
 
     // Star field — static background dots outside the globe/atmosphere, drawn
     // first so everything else sits on top. Positions are generated once
@@ -520,18 +573,23 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
       ctx.fill()
     }
 
-    // Atmosphere glow — radial gradient ring just outside the globe, blue at
-    // the inner edge fading to fully transparent at the outer edge.
-    const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
-    atmGrad.addColorStop(0, 'rgba(45,150,255,0.38)')
-    atmGrad.addColorStop(1, 'rgba(26,127,232,0)')
-    ctx.beginPath()
-    ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
-    ctx.fillStyle = atmGrad
-    ctx.fill()
+    // Atmosphere glow — a radial gradient ring just outside the globe. Only
+    // drawn for orthographic: it is a circle, and behind a flat world map it
+    // reads as an unexplained blue disc rather than as air.
+    if (projSpec.globe) {
+      const atmGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.94, cx, cy, atmR)
+      atmGrad.addColorStop(0, 'rgba(45,150,255,0.38)')
+      atmGrad.addColorStop(1, 'rgba(26,127,232,0)')
+      ctx.beginPath()
+      ctx.arc(cx, cy, atmR, 0, Math.PI * 2)
+      ctx.fillStyle = atmGrad
+      ctx.fill()
+    }
 
     // Ocean sphere with subtle radial gradient for depth
-    const oceanGrad = ctx.createRadialGradient(cx, cy, scaledRadius * 0.1, cx, cy, scaledRadius)
+    const oceanGrad = projSpec.globe
+      ? ctx.createRadialGradient(cx, cy, scaledRadius * 0.1, cx, cy, scaledRadius)
+      : ctx.createLinearGradient(0, cy - scaledRadius, 0, cy + scaledRadius)
     if (isDark) {
       oceanGrad.addColorStop(0, '#020508')
       oceanGrad.addColorStop(1, '#020508')
@@ -544,7 +602,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
     // Grid lines every 30° lat/long — geoPath clips to the visible hemisphere
     // automatically, same as country polygons.
     ctx.beginPath(); path(graticule)
-    ctx.strokeStyle = 'rgba(30,70,140,0.12)'
+    ctx.strokeStyle = 'rgba(201,168,76,0.10)'
     ctx.lineWidth = 0.5
     ctx.stroke()
 
@@ -561,7 +619,9 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
       const numericId = parseInt(feature.id)
 
       ctx.beginPath(); path(feature)
-      ctx.fillStyle = isEarth ? earthFillColor(numericId) : '#060D1A'
+      ctx.fillStyle = isEarth ? earthFillColor(numericId)
+        : isMarkets ? marketFillColor(numericId)
+        : '#060D1A'
       ctx.fill()
 
       if (heatOn) {
@@ -896,7 +956,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
     vignette.addColorStop(1, 'rgba(0,0,0,0.1)')
     ctx.fillStyle = vignette
     ctx.fillRect(0, 0, width, height)
-  }, [width, height, radius, countries, graticule, heatByCountry, countryCentroids, maxPopulation])
+  }, [width, height, radius, countries, graticule, heatByCountry, countryCentroids, maxPopulation, projectionId])
 
   // ── RAF loop: rotation + redraw ──────────────────────────────────────────
   useEffect(() => {
@@ -1260,6 +1320,30 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
               className="text-terminal-text-dim hover:text-terminal-gold leading-none px-1"
               title="Collapse"
             >−</button>
+          </div>
+
+          {/* Projection. A globe is honest about the planet but bad at
+              comparing two markets on opposite sides of it, which is most
+              pairs that matter here. */}
+          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">PROJECTION</div>
+          <div className="flex gap-1 mb-2.5">
+            {PROJECTIONS.map((proj) => (
+              <button
+                key={proj.id}
+                type="button"
+                onClick={() => {
+                  setProjectionId(proj.id)
+                  try { localStorage.setItem('maddex_globe_projection', proj.id) } catch { /* best-effort */ }
+                }}
+                className={`flex-1 font-mono text-[8px] tracking-widest px-1 py-1 transition-colors ${
+                  projectionId === proj.id
+                    ? 'bg-terminal-gold text-terminal-bg'
+                    : 'bg-terminal-bg border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+                }`}
+              >
+                {proj.label}
+              </button>
+            ))}
           </div>
 
           <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">BASE LAYERS</div>
