@@ -7,7 +7,9 @@ import { useState, useRef, useLayoutEffect, useCallback } from 'react'
 // to the new one, so the change reads as navigation rather than as two
 // separate things blinking.
 //
-// tabs: array of { key, label } or plain strings.
+// tabs: array of { key, label, title? } or plain strings. `title` is the
+// unabbreviated name, shown on hover — a narrow tab row has to shorten its
+// labels, and the full word should still be reachable rather than lost.
 // Measured with useLayoutEffect so the indicator is correct on first paint
 // (a useEffect would show it at 0,0 for a frame). Re-measures on container
 // resize, since label widths shift with the panel.
@@ -45,6 +47,8 @@ export default function TabBar({ tabs, activeKey, onChange, className = '', size
               ref={(el) => { refs.current[i] = el }}
               onClick={() => onChange?.(tab.key)}
               aria-current={isActive ? 'true' : undefined}
+              title={tab.title ?? undefined}
+              aria-label={tab.title ?? undefined}
               className={fill ? 'flex-1 min-w-0 truncate' : 'whitespace-nowrap'}
               style={{
                 padding: fill ? '6px 4px' : '8px 16px',

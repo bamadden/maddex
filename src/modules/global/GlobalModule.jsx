@@ -2860,14 +2860,20 @@ export default function GlobalModule() {
     setLeftOpen(false)
   }, [])
 
+  // Short labels, because six tabs share a 340px overlay and anything longer
+  // truncates — "MARITI…" and "GEO RI…" are worse than a shorter word that
+  // fits. A terminal audience reads SHIPPING and RISK without hesitation.
+  //
+  // `title` carries the full name for the hover, so nothing is lost: the tab
+  // is abbreviated on the face and spelled out on contact.
   const TABS = [
-    { id:'summary',     label:'SUMMARY'     },
-    { id:'maritime',    label:'MARITIME'    },
-    { id:'air',         label:'AIR'         },
-    { id:'commodities', label:'COMMOD'      },
-    { id:'geopolitical',label:'GEO RISK'    },
-    { id:'sessions',    label:'SESSIONS'    },
-    { id:'exchange',    label:'EXCHANGE',   hidden: !selectedExchange && activeTab !== 'exchange' },
+    { id:'summary',     label:'WORLD',    title:'World summary'        },
+    { id:'maritime',    label:'SHIPPING', title:'Maritime trade routes' },
+    { id:'air',         label:'AIR',      title:'Air freight routes'    },
+    { id:'commodities', label:'COMMOD',   title:'Commodity flows'       },
+    { id:'geopolitical',label:'RISK',     title:'Geopolitical risk'     },
+    { id:'sessions',    label:'HOURS',    title:'Market sessions'       },
+    { id:'exchange',    label:'EXCH',     title:'Selected exchange', hidden: !selectedExchange && activeTab !== 'exchange' },
   ]
 
   // Panel contents, defined once and rendered either inline (wide) or inside a
@@ -2881,7 +2887,7 @@ export default function GlobalModule() {
   const rightPanel = (
     <>
       <TabBar
-        tabs={TABS.filter(t => !t.hidden).map(t => ({ key: t.id, label: t.label }))}
+        tabs={TABS.filter(t => !t.hidden).map(t => ({ key: t.id, label: t.label, title: t.title }))}
         activeKey={activeTab}
         onChange={setActiveTab}
         size={9}
