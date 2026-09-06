@@ -42,7 +42,10 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
         gridRow: `${widget.row + 1} / span ${widget.h}`,
         background: '#060D1A',
         position: 'relative',
-        minHeight: 160,
+        // 140 in a single column: a phone shows one widget per row, so each gets
+        // the full width and needs less height to be readable than it does
+        // sharing a row with three others.
+        minHeight: columns === 1 ? 140 : 160,
         overflow: 'hidden',
         // outline, not border: a border would take space inside the cell and
         // shift the widget's content by a pixel when edit mode turns on.

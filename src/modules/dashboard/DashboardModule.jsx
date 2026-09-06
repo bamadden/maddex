@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { useContainerWidth } from '../../hooks/useContainerWidth'
 import { dashboardService } from '../../services/dashboardService'
 import DashboardGrid from './DashboardGrid'
 import DashboardControls from './DashboardControls'
@@ -32,10 +33,25 @@ export default function DashboardModule() {
   const layout = dashboardService.getLayout()
 
   const [showPicker, setShowPicker] = useState(false)
+  // Measured, not a media query — the dashboard also renders in a split
+  // pane and a popped-out window, where viewport width is not the
+  // available width.
+  const { ref: shellRef, isNarrow } = useContainerWidth()
+
   const [editMode, setEditMode] = useState(false)
   const [addAt, setAddAt] = useState(null)
   const [showSetup, setShowSetup] = useState(() => !dashboardService.isSetupDone())
   const [viewportCols, setViewportCols] = useState(null)
+
+  // Derived, not synchronised. Edit mode is suppressed while the layout is
+  // narrow — its exit button is hidden there, and leaving it on would strand
+  // someone amid dashed outlines and remove buttons they cannot turn off.
+  //
+  // Computing it beats an effect that calls setEditMode(false): the effect
+  // would be a setState-during-effect (the cascading-render pattern), and it
+  // would also DISCARD the user's choice, so widening the window would come
+  // back with edit mode off rather than as they left it.
+  const editing = editMode && !isNarrow
 
   // Widgets navigate by event so they can render anywhere, including inside
   // a popout window with no store provider in scope.
@@ -75,34 +91,44 @@ export default function DashboardModule() {
     : layout
 
   return (
-    <div className="h-full flex flex-col min-h-0 relative">
+    <div ref={shellRef} className="h-full flex flex-col min-h-0 relative">
       <ModuleHeader
         title="DASHBOARD"
         subtitle="Your terminal at a glance"
         right={
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setShowPicker((v) => !v)}
-              className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
-                showPicker ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
-              }`}
-              style={showPicker ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
-            >⊞ LAYOUT</button>
-            <button
-              onClick={() => setEditMode((v) => !v)}
-              title="Toggle edit mode (⌘E)"
-              className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
-                editMode ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
-              }`}
-              style={editMode ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
-            >{editMode ? '✓ DONE' : '✎ EDIT'}</button>
+            {/* Layout picker and edit mode are both hidden when narrow.
+                Choosing between 1x3, 2x2, 3x2, 3x3 and 4x3 grids is
+                meaningless when the grid renders as a single column
+                regardless, and drag-to-rearrange needs a pointer it will not
+                have. The saved layout is untouched — it returns when there is
+                room to act on it. */}
+            {!isNarrow && (
+              <button
+                onClick={() => setShowPicker((v) => !v)}
+                className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
+                  showPicker ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+                }`}
+                style={showPicker ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
+              >⊞ LAYOUT</button>
+            )}
+            {!isNarrow && (
+              <button
+                onClick={() => setEditMode((v) => !v)}
+                title="Toggle edit mode (⌘E)"
+                className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
+                  editing ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+                }`}
+                style={editing ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
+              >{editing ? '✓ DONE' : '✎ EDIT'}</button>
+            )}
           </div>
         }
       />
 
       {showPicker && <DashboardControls layout={layout} onChange={() => {}} />}
 
-      {editMode && (
+      {editing && (
         <div
           className="flex-shrink-0 font-mono"
           style={{
@@ -116,7 +142,7 @@ export default function DashboardModule() {
 
       <DashboardGrid
         layout={effective}
-        editMode={editMode}
+        editMode={editing}
         onAddAt={(col, row) => { setAddAt({ col, row }); }}
       />
 
