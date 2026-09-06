@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
@@ -57,6 +57,98 @@ function headlineMentions(headline, symbol) {
   return new RegExp(`\\b${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(headline)
 }
 
+// ── Alerts pane ────────────────────────────────────────────────────────────
+//
+// Shows what you are waiting for, grouped by symbol, with how close each one
+// is to firing. Proximity is the point: a list of alerts tells you what you
+// asked for, but "97% of the way there" tells you which one to care about
+// this morning.
+//
+// The proximity figure is a ratio of the live price to the target, clamped to
+// 100. For an ABOVE alert that is price/target; for a BELOW alert it inverts
+// to target/price, so both read "closer to 100 means closer to firing" rather
+// than one counting up and the other down.
+function alertProximity(alert, price) {
+  if (price == null || !alert?.price) return null
+  const ratio = (alert.direction === 'below') ? alert.price / price : price / alert.price
+  return Math.max(0, Math.min(100, Math.round(ratio * 100)))
+}
+
+function AlertsPane({ alerts, onRemove }) {
+  const symbols = useMemo(
+    () => [...new Set((alerts ?? []).map((a) => toYahooSymbol(a.sym, detectAssetType(a.sym))))],
+    [alerts],
+  )
+
+  // Prices for the proximity readout. Reuses the same quote path the alert
+  // checker uses, so the number here and the trigger agree.
+  const { data: quoteResult } = useQuery({
+    queryKey: ['alertPaneQuotes', symbols],
+    queryFn: () => fetchEquityQuotes(symbols),
+    enabled: symbols.length > 0,
+    staleTime: 60_000,
+  })
+  const quotes = quoteResult?.data
+
+  if (!alerts?.length) {
+    return (
+      <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
+        <span className="text-2xl opacity-40">⚡</span>
+        <div className="text-2xs text-terminal-text-bright font-semibold">No alerts set</div>
+        <div className="text-2xs text-terminal-text-dim/60">Set one from the ⚡ on any watchlist row</div>
+      </div>
+    )
+  }
+
+  const bySymbol = {}
+  for (const a of alerts) {
+    const k = a.sym?.toUpperCase() ?? '—'
+    ;(bySymbol[k] ??= []).push(a)
+  }
+
+  return (
+    <div className="max-h-96 overflow-auto">
+      {Object.entries(bySymbol).map(([sym, list]) => {
+        const price = quotes?.[toYahooSymbol(sym, detectAssetType(sym))]?.last
+        return (
+          <div key={sym} className="border-b border-terminal-border/40 px-3 py-2">
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-2xs font-bold text-terminal-text-bright">{sym}</span>
+              <span className="text-2xs text-terminal-text-dim tabular-nums">
+                {price != null ? `A$${price.toFixed(2)}` : '—'}
+              </span>
+            </div>
+            {list.map((a) => {
+              const pct = alertProximity(a, price)
+              const close = pct != null && pct >= 95
+              return (
+                <div key={a.id} className="flex items-center gap-2 py-0.5">
+                  <span className="text-2xs flex-shrink-0" style={{ color: close ? '#C9A84C' : '#4A6080' }}>⚡</span>
+                  <span className="text-2xs text-terminal-text-dim flex-1 min-w-0 truncate">
+                    {(a.direction ?? 'above').toUpperCase()} A${Number(a.price).toFixed(2)}
+                  </span>
+                  {pct != null && (
+                    <span
+                      className="text-2xs tabular-nums flex-shrink-0"
+                      title="How close this alert is to firing"
+                      style={{ color: close ? '#C9A84C' : '#637899' }}
+                    >{pct}%</span>
+                  )}
+                  <button
+                    onClick={() => onRemove(a.id)}
+                    title="Remove alert"
+                    className="text-2xs text-terminal-text-dim/50 hover:text-terminal-red flex-shrink-0"
+                  >✕</button>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function NotificationCenter() {
   const {
     notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
@@ -78,6 +170,11 @@ export default function NotificationCenter() {
   }
 
   const unreadCount = notifications.filter((n) => !n.read).length
+
+  // Which pane of the dropdown is showing. Alerts live here rather than in
+  // a separate surface because 'what am I waiting for' and 'what just
+  // happened' are the same question asked a moment apart.
+  const [pane, setPane] = useState('feed')
 
   // Close dropdown on outside click.
   useEffect(() => {
@@ -233,6 +330,11 @@ export default function NotificationCenter() {
   }, [queryClient, addNotification, watchlist])
 
   // ── CUSTOM ALERTS — the alertsService alerts engine (price/session-move/
+  // NOTE: this effect existed TWICE, byte-identical, each on its own 60s
+  // interval. Both ran check() on mount in the same tick, and both read
+  // loadAlerts() before either called markTriggered — so the lastFiredDate
+  // guard could not help and every alert fired twice: two notifications,
+  // two sounds. One copy removed.
   // volume-spike/RSI/news-mention/economic-event/portfolio-P&L), separate
   // from the simple CommandBar ALERT list above. Checked every 60s; fired
   // alerts get a notification and are marked triggered so they don't re-fire
@@ -287,116 +389,6 @@ export default function NotificationCenter() {
   // stays — those dates are real.
 
 
-  // ── MARKET OPEN — ASX 200, 09:58–10:02 AEST Mon–Fri, once per day ──────────
-  useEffect(() => {
-    const check = async () => {
-      const aest = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' }))
-      const day = aest.getDay()
-      if (day === 0 || day === 6) return
-      const mins = aest.getHours() * 60 + aest.getMinutes()
-      if (mins < 9 * 60 + 58 || mins > 10 * 60 + 2) return
-      const key = todayKey('madden_notif_mktopen')
-      if (localStorage.getItem(key)) return
-      try {
-        const { data } = await fetchIndexQuotesUnified(['^AXJO'])
-        const pct = data?.['^AXJO']?.pct
-        const pctText = pct != null ? ` — ${pct >= 0 ? 'up' : 'down'} ${Math.abs(pct).toFixed(2)}%` : ''
-        addNotification('MARKET_OPEN', `ASX 200 has opened${pctText}`)
-        soundService.marketOpen()
-        localStorage.setItem(key, '1')
-      } catch {
-        // Try again next minute — key is only set on success
-      }
-    }
-    check()
-    const id = setInterval(check, 60_000)
-    return () => clearInterval(id)
-  }, [addNotification])
-
-  // ── NEWS — deliberately narrow. Background refreshes must never notify.
-  // Previously ANY article under 5 minutes old fired one, and fetchNews was
-  // stamping date-less articles with a random time inside the last 10
-  // minutes, so roughly half of them qualified the moment they arrived. Now
-  // only two things notify: a genuinely breaking headline (keyword match +
-  // under 30 min old, matching the News module's own definition), or a story
-  // naming a symbol the user actually tracks. Estimated dates never count.
-  // Everything else surfaces as the in-feed "N NEW STORIES" pill instead.
-  useEffect(() => {
-    const check = () => {
-      // getQueryData returns the raw cached fetchNews() result — the
-      // `select: d => d?.articles ?? []` on App.jsx's useQuery only
-      // transforms data for that hook's own consumers, not direct cache reads.
-      const articles = queryClient.getQueryData(['news'])?.articles ?? []
-      for (const item of articles) {
-        if (!item.pubDate || item.dateEstimated) continue
-        const id = item.link || item.headline
-        if (seenNewsIds.current.has(id)) continue
-
-        const breaking = isBreakingHeadline(item)
-        const mentioned = watchlist.find((sym) => headlineMentions(item.headline, sym))
-        if (!breaking && !mentioned) continue
-
-        // Only mark seen once it actually qualifies, so a story that becomes
-        // watchlist-relevant after the user adds the symbol can still notify.
-        seenNewsIds.current.add(id)
-        addNotification(
-          'NEWS',
-          breaking
-            ? `🔴 BREAKING — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`
-            : `${mentioned} in the news — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`,
-        )
-      }
-    }
-    check()
-    const id = setInterval(check, 60_000)
-    return () => clearInterval(id)
-  }, [queryClient, addNotification, watchlist])
-
-  // ── CUSTOM ALERTS — the alertsService alerts engine (price/session-move/
-  // volume-spike/RSI/news-mention/economic-event/portfolio-P&L), separate
-  // from the simple CommandBar ALERT list above. Checked every 60s; fired
-  // alerts get a notification and are marked triggered so they don't re-fire
-  // the same day. ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    const check = () => {
-      const engineAlerts = loadAlerts()
-      if (!engineAlerts.length) return
-      const articles = queryClient.getQueryData(['news'])?.articles ?? []
-      const newsHeadlines = articles.map((a) => a.headline).filter(Boolean)
-      const results = checkAlerts(engineAlerts, { symbols: watchlist, newsHeadlines })
-      for (const { alert, message } of results) {
-        addNotification('CUSTOM_ALERT', message)
-        markTriggered(alert.id)
-        logActivity('alert', message)
-        soundService.priceAlert()
-      }
-    }
-    check()
-    const id = setInterval(check, 60_000)
-    return () => clearInterval(id)
-  }, [queryClient, addNotification, watchlist])
-
-  // ── EARNINGS — notify once, 2 days before a watchlist stock reports.
-  // Watchlist-scoped (not every ASX_STOCKS ticker) to avoid noise for
-  // stocks the user doesn't actually track. ──────────────────────────────
-  useEffect(() => {
-    if (!watchlist.length) return
-    const check = () => {
-      for (const sym of watchlist) {
-        const e = upcomingEarnings().find((ev) => ev.ticker === sym || ev.ticker === `${sym}.AX`)
-        if (!e || daysUntil(e.date) !== 2) continue
-        const key = todayKey(`madden_notif_earnings_${e.ticker}_${e.date}`)
-        if (localStorage.getItem(key)) continue
-        addNotification('CALENDAR', `${e.ticker.replace('.AX', '')} reports in 2 days — earnings preview ready`)
-        localStorage.setItem(key, '1')
-      }
-    }
-    check()
-    const id = setInterval(check, 60_000)
-    return () => clearInterval(id)
-  }, [watchlist, addNotification])
-
-
   return (
     <div className="relative" ref={ref}>
       <button
@@ -415,20 +407,33 @@ export default function NotificationCenter() {
 
       {open && (
         <div className="absolute top-full mt-1 right-0 bg-terminal-panel border border-terminal-border shadow-2xl z-[90]" style={{ width: 320 }}>
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-terminal-border">
-            <span className="text-2xs text-terminal-gold font-bold tracking-widest">NOTIFICATIONS</span>
-            {notifications.length > 0 && (
-              <div className="flex items-center gap-3">
-                <button onClick={markAllNotificationsRead} className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">
-                  MARK ALL READ
-                </button>
-                <button onClick={clearAllNotifications} className="text-2xs text-terminal-text-dim hover:text-terminal-red transition-colors">
-                  CLEAR ALL
-                </button>
-              </div>
-            )}
+          <div className="flex items-center border-b border-terminal-border">
+            {[['feed', 'NOTIFICATIONS'], ['alerts', `ALERTS${alerts.length ? ` (${alerts.length})` : ''}`]].map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setPane(id)}
+                aria-pressed={pane === id}
+                className={`flex-1 text-2xs font-bold tracking-widest py-2 transition-colors border-b-2 ${
+                  pane === id ? 'text-terminal-gold border-b-terminal-gold' : 'text-terminal-text-dim border-b-transparent hover:text-terminal-gold'
+                }`}
+              >{label}</button>
+            ))}
           </div>
-          <div className="max-h-96 overflow-auto">
+
+          {pane === 'feed' && notifications.length > 0 && (
+            <div className="flex items-center justify-end gap-3 px-3 py-1 border-b border-terminal-border/50">
+              <button onClick={markAllNotificationsRead} className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">
+                MARK ALL READ
+              </button>
+              <button onClick={clearAllNotifications} className="text-2xs text-terminal-text-dim hover:text-terminal-red transition-colors">
+                CLEAR ALL
+              </button>
+            </div>
+          )}
+
+          {pane === 'alerts' && <AlertsPane alerts={alerts} onRemove={removeAlert} />}
+
+          <div className="max-h-96 overflow-auto" hidden={pane !== 'feed'}>
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
                 <span className="text-2xl opacity-40">🔔</span>

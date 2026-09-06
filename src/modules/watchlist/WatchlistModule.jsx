@@ -77,29 +77,139 @@ function Week52Bar({ price, low, high }) {
 // one. Market cap is shown instead rather than dividing by an invented total,
 // which would render a plausible-looking wrong percentage.
 
-// Price-alert toggle per row. Clicking with no alert set arms one 5% above
-// the current price — a sensible default that means the control does
-// something useful on a single click, rather than opening a form. Clicking
-// an armed bell clears it. The exact level is in the tooltip, and the alerts
-// module remains the place to set a specific one.
-function AlertBell({ symbol, price, alerts, addAlert, removeAlert }) {
-  const existing = alerts?.find((a) => a.sym?.toUpperCase() === symbol.toUpperCase())
-  const target = price != null ? price * 1.05 : null
+// Price-alert control per row.
+//
+// This used to be a one-click toggle that armed a single alert 5% above the
+// current price. That is a reasonable default and a poor tool: the level you
+// actually want is almost never +5%, there was no way to set a downside
+// alert, and a second alert on the same symbol was impossible. It now opens
+// an inline panel on the row instead — no modal, because the row's own price
+// is the number you are setting the alert against and it should stay on
+// screen while you do it.
+//
+// Alerts go to the useStore list (`madden_alerts`), which is the one
+// NotificationCenter polls against live quotes. alertsService is a second,
+// richer engine used by the Alerts module; the two are deliberately not
+// merged here — this control writes to the path that actually fires.
+function AlertBell({ symbol, price, alerts, isOpen, onToggle }) {
+  const mine = (alerts ?? []).filter((a) => a.sym?.toUpperCase() === symbol.toUpperCase())
+  const count = mine.length
 
-  if (!price && !existing) {
+  if (price == null && count === 0) {
     return <span className="text-terminal-text-dim/20 text-2xs" title="No price yet">⚡</span>
   }
 
   return (
     <button
-      onClick={() => (existing ? removeAlert(existing.id) : addAlert(symbol, target, 'above'))}
-      title={existing
-        ? `Alert set at ${fmt.aud(existing.price)} — click to clear`
-        : `Set alert at ${fmt.aud(target)} (+5%)`}
-      className={`text-2xs transition-colors ${
-        existing ? 'text-terminal-gold' : 'text-terminal-text-dim/30 hover:text-terminal-gold/70'
-      }`}
-    >⚡</button>
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      title={count ? `${count} alert${count > 1 ? 's' : ''} set — click to manage` : 'Set a price alert'}
+      className="relative text-2xs transition-colors"
+      style={{ color: count ? '#C9A84C' : isOpen ? '#C9A84C' : 'rgba(74,96,128,0.55)' }}
+    >
+      ⚡
+      {count > 0 && (
+        <span
+          style={{
+            position: 'absolute', top: -5, right: -7,
+            fontFamily: '"IBM Plex Mono", monospace', fontSize: 7, lineHeight: '11px',
+            minWidth: 11, height: 11, padding: '0 2px', borderRadius: 6,
+            background: '#C9A84C', color: '#060D1A', fontWeight: 700, textAlign: 'center',
+          }}
+        >{count}</span>
+      )}
+    </button>
+  )
+}
+
+// The inline panel, rendered as a full-width row beneath its stock.
+//
+// Pre-fills the value a couple of percent the right side of the current price
+// so a single click on SET produces a sensible alert, while leaving the field
+// editable — the default should be useful, not the only option.
+function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose }) {
+  const mine = (alerts ?? []).filter((a) => a.sym?.toUpperCase() === symbol.toUpperCase())
+  const [direction, setDirection] = useState('above')
+  const [value, setValue] = useState(() => (price != null ? (price * 1.02).toFixed(2) : ''))
+
+  // Re-seed the field when the direction flips, so ABOVE suggests a level
+  // over the price and BELOW suggests one under it.
+  const pickDirection = (d) => {
+    setDirection(d)
+    if (price != null) setValue((price * (d === 'above' ? 1.02 : 0.98)).toFixed(2))
+  }
+
+  const numeric = Number(value)
+  const valid = Number.isFinite(numeric) && numeric > 0
+
+  const submit = () => {
+    if (!valid) return
+    addAlert(symbol, numeric, direction)
+    onClose()
+  }
+
+  return (
+    <tr>
+      <td colSpan={11} style={{ padding: 0, background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
+        <div className="px-3 py-2 flex flex-col gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-2xs font-bold text-terminal-gold tracking-widest">SET ALERT</span>
+            <span className="text-2xs text-terminal-text-bright font-semibold">{symbol}</span>
+            <span className="text-2xs text-terminal-text-dim">{price != null ? fmt.aud(price) : 'no price'}</span>
+
+            <div className="flex items-center border border-terminal-border rounded-sm overflow-hidden">
+              {['above', 'below'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => pickDirection(d)}
+                  className={`text-2xs px-2 py-1 font-bold uppercase transition-colors ${
+                    direction === d ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+                  }`}
+                >{d}</button>
+              ))}
+            </div>
+
+            <input
+              type="number"
+              step="0.01"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onClose() }}
+              aria-label={`Alert price for ${symbol}`}
+              className="bg-terminal-bg border border-terminal-border text-terminal-text-bright text-2xs px-2 py-1 w-24 tabular-nums focus:border-terminal-gold focus:outline-none"
+            />
+
+            <button
+              onClick={submit}
+              disabled={!valid}
+              className="text-2xs font-bold px-3 py-1 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-40"
+            >SET ⚡</button>
+
+            <button onClick={onClose} className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-auto">✕</button>
+          </div>
+
+          {mine.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[9px] text-terminal-text-dim tracking-widest">ACTIVE</span>
+              {mine.map((a) => (
+                <span
+                  key={a.id}
+                  className="inline-flex items-center gap-1.5 text-2xs px-2 py-0.5 rounded-sm"
+                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C' }}
+                >
+                  {(a.direction ?? 'above').toUpperCase()} {fmt.aud(a.price)}
+                  <button
+                    onClick={() => removeAlert(a.id)}
+                    title="Remove this alert"
+                    className="hover:text-terminal-red"
+                  >✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -268,6 +378,10 @@ export default function WatchlistModule() {
   const [sortKey, setSortKey]         = useState(null)
   const [sortDir, setSortDir]         = useState('asc')
   const [earningsPreview, setEarningsPreview] = useState(null)
+  // Symbol whose inline alert panel is open. One at a time — two open
+  // panels push every row below them down twice and neither is easier to
+  // read for it.
+  const [alertPanelFor, setAlertPanelFor] = useState(null)
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
 
@@ -807,8 +921,8 @@ export default function WatchlistModule() {
                       symbol={row.displaySymbol}
                       price={row.price}
                       alerts={alerts}
-                      addAlert={addAlert}
-                      removeAlert={removeAlert}
+                      isOpen={alertPanelFor === row.displaySymbol}
+                      onToggle={() => setAlertPanelFor((cur) => (cur === row.displaySymbol ? null : row.displaySymbol))}
                     />
                   </td>
                   <td className="px-2 py-1.5 text-right">
@@ -821,6 +935,16 @@ export default function WatchlistModule() {
                     </button>
                   </td>
                 </tr>
+                {alertPanelFor === row.displaySymbol && (
+                  <AlertRow
+                    symbol={row.displaySymbol}
+                    price={row.price}
+                    alerts={alerts}
+                    addAlert={addAlert}
+                    removeAlert={removeAlert}
+                    onClose={() => setAlertPanelFor(null)}
+                  />
+                )}
                 </Fragment>
               ))}
             </tbody>

@@ -448,7 +448,14 @@ export default function TopBar() {
             {timeStr}
           </span>,
           USING_MOCK_DATA ? <DataFreshnessBadge key="data" /> : null,
-          user ? <NotificationCenter key="bell" /> : null,
+          // Mounted for everyone, not just signed-in users.
+          //
+          // NotificationCenter is not just the bell — every alert checker in
+          // the app lives inside it (price alerts, market open, news, earnings).
+          // Gated behind `user`, a signed-out visitor could set a price alert
+          // from the watchlist, see it saved and badged, and have it never once
+          // be evaluated. The component reads nothing from auth.
+          <NotificationCenter key="bell" />,
           user ? <UserMenu key="user" /> : null,
         ]
           .filter(Boolean)
