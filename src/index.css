@@ -859,3 +859,7 @@ body.ticker-paused .ticker-content {
   border-radius: 2px;
 }
 .nav-scroll:hover::-webkit-scrollbar-thumb { background: rgba(201, 168, 76, 0.5); }
+
+/* Module header controls — one rule so every module's icons behave alike. */
+.mh-icon { color: #4A6080; }
+.mh-icon:hover { color: #C9A84C; }

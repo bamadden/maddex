@@ -36,20 +36,32 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
   }
 
   const iconBtn =
-    'flex items-center justify-center w-6 h-6 text-terminal-muted hover:text-terminal-gold transition-colors flex-shrink-0'
+    'flex items-center justify-center w-6 h-6 flex-shrink-0 transition-colors mh-icon'
 
   return (
-    <div className="group/mh flex-shrink-0 relative flex items-center h-12 px-5 bg-terminal-bg border-b border-terminal-gold/10">
+    <div
+      className="group/mh flex-shrink-0 relative flex items-center h-12"
+      style={{
+        padding: '0 20px',
+        background: '#030912',
+        borderBottom: '1px solid rgba(201,168,76,0.1)',
+      }}
+    >
       {/* Identity: name, then an optional sub-label on the same baseline —
           a second line here made the header's height vary per module. */}
-      <div className="flex items-baseline gap-3 min-w-0">
+      <div className="flex items-baseline min-w-0">
         {/* 13px, not 11 — keeps the gold mono terminal identity while staying
             legible at a glance as the module you're currently in. */}
-        <span className="font-mono font-semibold text-[13px] tracking-[0.18em] uppercase text-terminal-gold whitespace-nowrap">
+        <span
+          className="font-mono text-[13px] uppercase whitespace-nowrap"
+          style={{ fontWeight: 600, letterSpacing: '0.15em', color: '#C9A84C' }}
+        >
           {title}
         </span>
         {subtitle && (
-          <span className="font-sans text-[11px] text-terminal-muted/70 truncate">{subtitle}</span>
+          <span className="font-sans text-[11px] truncate" style={{ marginLeft: 12, color: '#4A6080' }}>
+            {subtitle}
+          </span>
         )}
       </div>
 
@@ -69,7 +81,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
 
       {/* The three standard affordances are noise until wanted, so they fade
           in on header hover. focus-within keeps them reachable by keyboard. */}
-      <div className="flex items-center gap-2 ml-2 opacity-0 group-hover/mh:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
+      <div className="flex items-center gap-3 ml-3 opacity-0 group-hover/mh:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
         {isFetching ? (
           <span className="text-terminal-muted text-[9px] font-mono animate-pulse whitespace-nowrap">REFRESHING…</span>
         ) : lastUpdated ? (
@@ -78,7 +90,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
         {onRefresh && (
           <Tooltip content={`Refresh ${title}\nR`}>
             <button onClick={handleRefresh} aria-label="Refresh" className={iconBtn}>
-              <RefreshCw size={14} strokeWidth={2} className={spinning ? 'animate-spin' : ''} />
+              <RefreshCw size={14} strokeWidth={1.75} className={spinning ? 'animate-spin' : ''} />
             </button>
           </Tooltip>
         )}
@@ -110,12 +122,15 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
         )}
       </div>
 
-      {/* Gold gradient underline, fading to transparent */}
+      {/* Gold gradient underline sitting ON the border, fading to transparent.
+          It is what gives the header edge depth rather than reading as a flat
+          rule — brightest at the title, gone by the right-hand controls. */}
       <div
-        className="absolute bottom-0 left-0 h-px w-full pointer-events-none"
+        className="absolute left-0 h-px w-full pointer-events-none"
         style={{
+          bottom: -1,
           background:
-            'linear-gradient(90deg, rgba(201,168,76,0.4) 0%, rgba(201,168,76,0.1) 40%, transparent 100%)',
+            'linear-gradient(90deg, rgba(201,168,76,0.35) 0%, rgba(201,168,76,0.08) 50%, transparent 100%)',
         }}
       />
     </div>
