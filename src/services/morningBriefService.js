@@ -45,13 +45,40 @@ Generate a JSON object:
 
 General information only, not financial advice. Return ONLY valid JSON.`
 
-// Local date, not UTC. toISOString() keys the cache to the UTC day, which in
-// Australia rolls over mid-morning — so the brief would regenerate partway
-// through the trading day and a reader who opened it at 9am and again at noon
-// would get two different briefs for the same morning. en-CA formats as
-// YYYY-MM-DD. Same fix as aiContentService.
-const BRIEF_CACHE_KEY = () => `maddex_morning_brief_${new Date().toLocaleDateString('en-CA')}`
+// The Australian market day, not UTC and not the browser's day.
+//
+// toISOString() keys the cache to the UTC day, which in Australia rolls over
+// mid-morning — the brief would regenerate partway through the trading day and
+// a reader who opened it at 9am and again at noon would get two different
+// briefs for the same morning.
+//
+// Pinned to Australia/Brisbane rather than plain local time for the same
+// reason aiContentService is: a morning brief is a market-day artefact, and
+// opening the terminal from London should still give Sydney's Tuesday brief
+// rather than starting a new day mid-Australian-afternoon. Queensland has no
+// daylight saving, so the boundary is a stable UTC+10 all year.
+const AU_MARKET_TZ = 'Australia/Brisbane'
+export const briefDayKey = (d = new Date()) =>
+  d.toLocaleDateString('en-CA', { timeZone: AU_MARKET_TZ })
+
+const BRIEF_CACHE_KEY = (day = briefDayKey()) => `maddex_morning_brief_${day}`
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
+const BRIEF_HISTORY_KEEP = 5
+
+// Weekday in Australian time, not the browser's. getDay() on a plain Date is
+// the reader's local weekday: at 8am Monday in Sydney it is still Sunday in
+// London, and a London-based holder would have been shown the weekend state
+// on a trading day.
+export function auWeekday(d = new Date()) {
+  return d.toLocaleDateString('en-AU', { timeZone: AU_MARKET_TZ, weekday: 'short' })
+}
+
+export const isAuWeekend = (d = new Date()) => ['Sat', 'Sun'].includes(auWeekday(d))
+
+// Hour of day in Australian time, for the auto-generation window.
+export function auHour(d = new Date()) {
+  return Number(d.toLocaleString('en-AU', { timeZone: AU_MARKET_TZ, hour: 'numeric', hour12: false }))
+}
 
 export function getWeekendMessage() {
   return {
@@ -87,6 +114,45 @@ async function gatherContext() {
   return { fx: ok(fx), gold: ok(gold), fg: ok(fg), crypto: ok(crypto) }
 }
 
+// ── Brief history ──────────────────────────────────────────────────────────
+//
+// The last few briefs, newest first. Worth keeping because the value of a
+// daily brief compounds: reading Monday's beside Thursday's shows how the
+// narrative moved, which no single day can.
+//
+// Read straight from the cache keys rather than a separate index, so there is
+// one source of truth and no way for an index to disagree with what is
+// actually stored.
+export function listBriefHistory(limit = BRIEF_HISTORY_KEEP) {
+  const out = []
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith('maddex_morning_brief_')) continue
+      const day = key.replace('maddex_morning_brief_', '')
+      // Only date-shaped keys. The News module writes its own brief under a
+      // differently formatted key with the same prefix, and including those
+      // would put "6 Sept 2026" in a list sorted as ISO dates.
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue
+      try {
+        const brief = JSON.parse(localStorage.getItem(key))
+        if (brief) out.push({ day, brief })
+      } catch { /* skip corrupt entry */ }
+    }
+  } catch { /* storage unavailable */ }
+  return out.sort((a, b) => (a.day < b.day ? 1 : -1)).slice(0, limit)
+}
+
+// Trims to the newest N so the cache cannot grow without bound.
+function trimBriefHistory() {
+  try {
+    const dated = Object.keys(localStorage)
+      .filter((k) => /^maddex_morning_brief_\d{4}-\d{2}-\d{2}$/.test(k))
+      .sort()
+      .reverse()
+    dated.slice(BRIEF_HISTORY_KEEP).forEach((k) => localStorage.removeItem(k))
+  } catch { /* best-effort */ }
+}
+
 export function clearBriefCache() {
   try {
     Object.keys(localStorage)
@@ -107,8 +173,7 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
     }
   }
 
-  const day = new Date().getDay()
-  if (day === 0 || day === 6) return getWeekendMessage()
+  if (isAuWeekend()) return getWeekendMessage()
 
   const holdings = portfolio ?? readPortfolioHoldings()
   const watchlistSymbols = watchlist.join(', ')
@@ -147,5 +212,35 @@ Generate the morning brief now. Do not state any figure not listed above.
   const brief = await askClaudeJSON(userContent, { maxTokens: 2200, systemPrompt: BRIEF_SYSTEM })
   const stamped = { ...brief, generatedAt: new Date().toISOString() }
   try { localStorage.setItem(cacheKey, JSON.stringify(stamped)) } catch { /* best-effort cache write */ }
+  trimBriefHistory()
   return stamped
+}
+
+// ── Auto-generation ────────────────────────────────────────────────────────
+//
+// Called once at app start. Generates today's brief in the background if it
+// is a weekday morning in Australia and one has not been made yet.
+//
+// THREE GUARDS, each for a reason:
+//   - Cached already: never regenerate a brief the reader may have read. A
+//     brief that changes under someone mid-morning is worse than a stale one.
+//   - Weekend: nothing to brief on, and getWeekendMessage covers the display.
+//   - Outside 6am-10am AEST: this is a morning ritual. Someone opening the
+//     terminal at 9pm wants yesterday's brief on screen, not a fresh one
+//     generated against a closed market — and it would silently spend an API
+//     call for every late-evening visit.
+//
+// Returns the brief when it generated one, null otherwise, so a caller can
+// decide whether to announce it.
+export async function autoGenerateBrief(watchlist = []) {
+  try {
+    if (localStorage.getItem(BRIEF_CACHE_KEY())) return null
+  } catch { /* storage unavailable — fall through and try */ }
+
+  if (isAuWeekend()) return null
+
+  const hour = auHour()
+  if (!(hour >= 6 && hour < 10)) return null
+
+  return generateMorningBrief(watchlist)
 }

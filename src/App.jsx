@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
+import { autoGenerateBrief } from './services/morningBriefService'
 import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { shortcutService } from './services/shortcutService'
@@ -234,7 +235,7 @@ const WHATS_NEW_SHOWN_KEY = 'maddex_whatsnew_last_shown'
 const WHATS_NEW_INTERVAL_MS = 7 * 24 * 60 * 60_000
 
 function Terminal() {
-  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge } = useStore()
+  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification, watchlist } = useStore()
   const [showTour, setShowTour] = useState(() => {
     try { return !localStorage.getItem(ONBOARDING_KEY) } catch { return false }
   })
@@ -318,6 +319,27 @@ function Terminal() {
   // Ripple feedback for every canonical action button, registered once here
   // rather than wired into each of ~100 call sites.
   useEffect(() => initGlobalRipples(), [])
+
+  // Morning brief, generated in the background at startup.
+  //
+  // Deliberately fire-and-forget and never awaited: the brief is a ~2000-token
+  // model call and blocking app load on it would trade a visible second of
+  // startup for a feature the reader has not asked for yet. autoGenerateBrief
+  // holds the guards — already cached, weekend, outside the 6-10am AEST
+  // window — so this stays a single call with no conditions of its own.
+  //
+  // The ref stops React 18 StrictMode's double-invoke from firing two
+  // generations for the same morning.
+  const briefAttempted = useRef(false)
+  useEffect(() => {
+    if (briefAttempted.current) return
+    briefAttempted.current = true
+    autoGenerateBrief(watchlist)
+      .then((brief) => {
+        if (brief && !brief.isWeekend) addNotification('SYSTEM', '☀ Your morning brief is ready')
+      })
+      .catch((err) => console.warn('[Brief] auto-generation skipped:', err.message))
+  }, [watchlist, addNotification])
 
   // Freshness clock for the status strip. React Query fires this whenever any
   // query resolves, so the strip reports real data age rather than a timer

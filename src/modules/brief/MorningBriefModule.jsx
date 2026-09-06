@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
-import { generateMorningBrief, clearBriefCache } from '../../services/morningBriefService'
+import { generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey } from '../../services/morningBriefService'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
@@ -60,6 +60,58 @@ function ScoreGauge({ score, label }) {
 }
 
 const IMPACT_COLOR = { HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', LOW: 'text-terminal-text-dim' }
+
+// Previous briefs, collapsed by default.
+//
+// The value of a daily brief compounds — Monday's beside Thursday's shows how
+// the narrative moved, which no single day can. Collapsed because that is a
+// deliberate act of looking back, not something to push in front of someone
+// reading today's.
+function PreviousBriefs({ currentDay }) {
+  const [open, setOpen] = useState(null)
+  const history = useMemo(
+    () => listBriefHistory().filter((h) => h.day !== currentDay),
+    [currentDay],
+  )
+  if (!history.length) return null
+
+  const label = (day) =>
+    new Date(`${day}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  return (
+    <div className="border-t border-terminal-border pt-3">
+      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">PREVIOUS BRIEFS</div>
+      <div className="flex flex-col gap-1">
+        {history.map(({ day, brief }) => (
+          <div key={day} className="border border-terminal-border">
+            <button
+              onClick={() => setOpen((cur) => (cur === day ? null : day))}
+              aria-expanded={open === day}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-terminal-accent/10 transition-colors"
+            >
+              <span className="text-2xs text-terminal-text-bright font-semibold">{label(day)}</span>
+              {brief.maddenAIScore != null && (
+                <span className="text-2xs text-terminal-text-dim">{brief.maddenAIScore} · {brief.scoreLabel}</span>
+              )}
+              <span className="ml-auto text-2xs text-terminal-text-dim">{open === day ? '▲' : '▼'}</span>
+            </button>
+            {open === day && (
+              <div className="px-2.5 pb-2.5 border-t border-terminal-border/40 pt-2">
+                <div className="text-2xs text-terminal-text-bright font-semibold mb-1.5">{brief.headline}</div>
+                {(brief.sections ?? []).map((sec) => (
+                  <div key={sec.title} className="mb-2">
+                    <div className="text-[9px] text-terminal-gold font-bold tracking-widest mb-0.5">{sec.title}</div>
+                    <div className="text-2xs text-terminal-text-dim leading-relaxed">{sec.content}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function MorningBriefModule() {
   const { watchlist } = useStore()
@@ -200,8 +252,16 @@ export default function MorningBriefModule() {
 
             {/* News sentiment index — a distinct, headline-derived score from
                 sentimentService, separate from the brief's own maddenAIScore
-                above (that one weighs watchlist/portfolio context too). */}
-            <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
+                above (that one weighs watchlist/portfolio context too).
+                
+                Hidden on weekends. The weekend brief reads "50 — NEUTRAL ·
+                Markets are closed for the weekend"; rendering a live sentiment
+                score of 52 CAUTIOUSLY BULLISH directly beneath it had the
+                module stating two different verdicts in a 130px span, which
+                reads as a fault rather than as two measures. */}
+            {!brief.isWeekend && (
+              <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
+            )}
 
             {/* Middle — sections, 2-col */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -212,6 +272,8 @@ export default function MorningBriefModule() {
                 </div>
               ))}
             </div>
+
+            <PreviousBriefs currentDay={briefDayKey()} />
 
             {/* Bottom — key events timeline */}
             {brief.keyEvents?.length > 0 && (
