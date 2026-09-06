@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
+import { GEO_RISK_INDEX, riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
 import { fetchSignificantEarthquakes, fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
@@ -2148,31 +2149,15 @@ const FX_CROSS_PAIRS = [
   { key: 'CNY', label: 'AUD/CNY', dp: 3 },
 ]
 
-// Reuses COUNTRY_KEYWORDS (already driving GeoRiskTab's region tagging) so
-// the gauge tracks the same live news feed instead of inventing a second,
-// disconnected notion of "region".
-const GEO_RISK_REGIONS = ['China', 'Middle East', 'Russia', 'United States']
-
-// Weights the region's N most severe matching headlines only (not every
-// match) — with an unbounded sum, a region name that happens to appear in a
-// lot of unrelated headlines would run the gauge to 100 on volume alone
-// rather than genuine severity.
-const SEVERITY_WEIGHT = { CRITICAL: 22, HIGH: 12, MEDIUM: 5, LOW: 1 }
-function regionRiskScore(newsItems, region) {
-  const re = COUNTRY_KEYWORDS[region]
-  if (!re || !newsItems?.length) return 12
-  const weights = newsItems
-    .filter(n => re.test(`${n.headline} ${n.summary ?? ''}`))
-    .map(n => SEVERITY_WEIGHT[detectSeverity(`${n.headline} ${n.summary ?? ''}`)])
-    .sort((a, b) => b - a)
-    .slice(0, 5)
-  return Math.min(100, 12 + weights.reduce((a, b) => a + b, 0))
-}
-function riskGaugeColor(score) {
-  if (score >= 70) return 'bg-terminal-red'
-  if (score >= 40) return 'bg-terminal-gold'
-  return 'bg-terminal-green'
-}
+// Geo risk scores come from data/geopoliticalRisk.js — a documented rubric
+// with a review date — not from counting headlines.
+//
+// regionRiskScore() used to live here: it matched news items by region name,
+// weighted them by detectSeverity and summed the top five. Volume is not risk.
+// It reported China 100, Middle East 100, Russia 100 and the United States 88,
+// which says that all four are equally and maximally dangerous, and that the
+// US is nearly as risky as an active war. What it actually measured was how
+// often a place name appears in severe-sounding coverage.
 
 function FeedHeader({ children, badge }) {
   return (
@@ -2485,22 +2470,42 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist }) {
       </CollapsibleSection>
 
       <div className="flex-shrink-0">
-        <FeedHeader>GEO RISK INDEX</FeedHeader>
+        <FeedHeader badge={`REVIEWED ${RISK_LAST_REVIEWED}`}>GEO RISK INDEX</FeedHeader>
         <div className="px-2 py-1.5 flex flex-col gap-2">
-          {GEO_RISK_REGIONS.map(region => {
-            const score = regionRiskScore(newsItems, region)
+          {GEO_RISK_INDEX.map(region => {
+            const band = riskBand(region.score)
             return (
-              <div key={region}>
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-2xs text-terminal-text-dim uppercase">{region}</span>
-                  <span className="text-2xs text-terminal-text-bright tabular-nums">{score}</span>
+              <div key={region.id} title={`${region.summary}\n\nAU IMPACT ${region.auImpact}/100 — ${region.auImpactNote}`}>
+                <div className="flex items-center justify-between mb-0.5 gap-2">
+                  <span className="text-2xs text-terminal-text-dim uppercase truncate">{region.label}</span>
+                  <span className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className={`text-[9px] font-bold tracking-wider ${band.tw}`}>{band.label}</span>
+                    <span className="text-2xs text-terminal-text-bright tabular-nums w-5 text-right">{region.score}</span>
+                  </span>
                 </div>
+                {/* Two bars, not one. Global severity and Australian
+                    consequence answer different questions, and for this
+                    audience the second is the more useful — China is the
+                    clearest case, low-to-mid severity and the highest AU
+                    impact on the board. A single blended score would hide
+                    exactly that. */}
                 <div className="w-full h-1 bg-terminal-surface2 rounded-full overflow-hidden">
-                  <div className={`h-full ${riskGaugeColor(score)}`} style={{ width: `${score}%` }} />
+                  <div className={`h-full ${band.bar}`} style={{ width: `${region.score}%` }} />
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[8px] text-terminal-text-dim/70 tracking-wider flex-shrink-0">AU</span>
+                  <div className="flex-1 h-[3px] bg-terminal-surface2 rounded-full overflow-hidden">
+                    <div className="h-full bg-terminal-blue-bright/70" style={{ width: `${region.auImpact}%` }} />
+                  </div>
+                  <span className="text-[8px] text-terminal-text-dim tabular-nums w-5 text-right">{region.auImpact}</span>
                 </div>
               </div>
             )
           })}
+          <div className="text-[8px] text-terminal-text-dim/60 leading-snug pt-0.5">
+            Maddex internal assessment · scored by documented rubric · AU bar is Australian
+            trade, security and investment exposure, not global severity.
+          </div>
         </div>
       </div>
     </div>
@@ -2518,12 +2523,9 @@ function StatBlock({ label, value, accent }) {
   )
 }
 
-function WorldStatsSummary({ newsItems }) {
+function WorldStatsSummary() {
   const openCount = useMemo(() => EXCHANGES.filter(ex => isOpenNow(getStatus(ex))).length, [])
-  const avgRisk = useMemo(() => {
-    const scores = GEO_RISK_REGIONS.map(r => regionRiskScore(newsItems, r))
-    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-  }, [newsItems])
+  const avgRisk = avgGeoRisk()
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-3 gap-3">
@@ -2535,7 +2537,7 @@ function WorldStatsSummary({ newsItems }) {
         <StatBlock label="Exchanges Tracked" value={EXCHANGES.length} />
         <StatBlock label="Open Now" value={openCount} accent="text-terminal-green" />
         <StatBlock label="Countries" value={COUNTRIES.length} />
-        <StatBlock label="Avg Geo Risk" value={avgRisk} accent={avgRisk >= 40 ? 'text-terminal-gold' : 'text-terminal-green'} />
+        <StatBlock label="Avg Geo Risk" value={avgRisk} accent={riskBand(avgRisk).tw} />
       </div>
     </div>
   )
@@ -2555,15 +2557,12 @@ export default function GlobalModule() {
   // Mobile only (<768px) — the feed/globe/detail columns stack instead of
   // sitting side by side, so a small screen needs an explicit switcher.
   const [mobilePanel, setMobilePanel] = useState('globe')
-  // 'map' | 'classic' | 'globe3d'. Replaces the previous globe3D boolean,
-  // which only had two states.
+  // 'map' | 'classic'.
   //
-  // Default is deliberately 'classic', NOT the new intelligence map: in
-  // testing the map's basemap tiles (tiles.basemaps.cartocdn.com — a
-  // different host from the style JSON, which does load) never painted, so
-  // defaulting to it would have replaced a working globe with a black panel.
-  // The map is one click away and fully functional for every data layer we
-  // draw ourselves. Flip this to 'map' once tile loading is confirmed.
+  // Default is 'map'. This comment previously explained why it was 'classic'
+  // — the Carto basemap tiles were not painting at the time — and that has
+  // since been fixed and confirmed in the browser: coastlines, borders and
+  // city lights all render on the INTEL style.
   const [viewMode, setViewMode] = useState('map')
 
   // Tells the TopBar which view is showing, so the breadcrumb can read
@@ -2833,7 +2832,7 @@ export default function GlobalModule() {
                 onAskAI={handleAskAI}
               />
             ) : activeTab === 'summary' ? (
-              <WorldStatsSummary newsItems={allNewsItems} />
+              <WorldStatsSummary />
             ) : activeTab === 'maritime' ? (
               <MaritimeTab newsItems={allNewsItems} />
             ) : activeTab === 'air' ? (
