@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { dashboardService } from '../../services/dashboardService'
 import WidgetContent from './WidgetContent'
 
@@ -8,11 +9,28 @@ import WidgetContent from './WidgetContent'
 // borders on each tile, which double up between neighbours and leave a 2px
 // line down the middle of the grid.
 
-function WidgetCell({ widget, index, editMode, onRemove }) {
+function WidgetCell({ widget, index, editMode, onRemove, drag }) {
   const meta = dashboardService.getWidget(widget.widgetId)
+  const isDragging = drag.dragIndex === index
+  const isTarget = drag.overIndex === index && drag.dragIndex !== index
 
   return (
     <div
+      draggable={editMode}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        // Firefox refuses to start a drag without data on the transfer.
+        e.dataTransfer.setData('text/plain', String(index))
+        drag.onStart(index)
+      }}
+      onDragOver={(e) => {
+        if (!drag.isDragging()) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        drag.onOver(index)
+      }}
+      onDrop={(e) => { e.preventDefault(); drag.onDrop(index) }}
+      onDragEnd={drag.onEnd}
       style={{
         gridColumn: `${widget.col + 1} / span ${widget.w}`,
         gridRow: `${widget.row + 1} / span ${widget.h}`,
@@ -23,6 +41,10 @@ function WidgetCell({ widget, index, editMode, onRemove }) {
         // outline, not border: a border would take space inside the cell and
         // shift the widget's content by a pixel when edit mode turns on.
         ...(editMode ? { outline: '1px dashed rgba(201,168,76,0.3)', outlineOffset: -1 } : null),
+        ...(editMode ? { cursor: isDragging ? 'grabbing' : 'grab' } : null),
+        ...(isDragging ? { opacity: 0.5, transform: 'scale(0.98)' } : null),
+        ...(isTarget ? { outline: '2px dashed #C9A84C', outlineOffset: -2, background: 'rgba(201,168,76,0.08)' } : null),
+        transition: 'opacity 120ms, transform 120ms, background-color 120ms',
       }}
     >
       {editMode && (
@@ -102,6 +124,58 @@ function EmptyCells({ layout, onAdd }) {
 
 export default function DashboardGrid({ layout, editMode, onAddAt }) {
   const columns = layout.columns || 3
+  // The index being dragged is held in a ref AND in state, deliberately.
+  //
+  // State drives the visual (dimmed source, highlighted target). The ref is
+  // what the handlers read, because dragover can fire in the same tick as
+  // dragstart — before React has re-rendered — and a handler that gates on
+  // stale state ignores the first dragover of every drag. Reading the ref
+  // makes the gate correct on the first event rather than the second.
+  const dragRef = useRef(null)
+  const [dragIndex, setDragIndex] = useState(null)
+  const [overIndex, setOverIndex] = useState(null)
+
+  const beginDrag = (i) => { dragRef.current = i; setDragIndex(i) }
+  const endDrag = () => { dragRef.current = null; setDragIndex(null); setOverIndex(null) }
+
+  // Swaps the two widgets' positions.
+  //
+  // The swap is validated before it is saved. Two widgets of different widths
+  // do not simply trade places: moving a 2-wide widget to a 1-wide widget's
+  // column can push its right edge past the last column, where it renders
+  // into a column that does not exist and disappears. When that would happen
+  // the widget is shifted left to fit, and if it still cannot fit the swap is
+  // refused rather than silently losing a tile.
+  const handleDrop = (dropIndex) => {
+    const from = dragRef.current
+    if (from == null || from === dropIndex) return endDrag()
+
+    const widgets = [...layout.widgets]
+    const a = widgets[from]
+    const b = widgets[dropIndex]
+    if (!a || !b) return endDrag()
+
+    const fit = (w, col) => Math.max(0, Math.min(col, columns - w.w))
+    const nextA = { ...a, col: fit(a, b.col), row: b.row }
+    const nextB = { ...b, col: fit(b, a.col), row: a.row }
+
+    if (nextA.col + nextA.w > columns || nextB.col + nextB.w > columns) return endDrag()
+
+    widgets[from] = nextA
+    widgets[dropIndex] = nextB
+    dashboardService.save({ ...layout, id: 'custom', widgets })
+    endDrag()
+  }
+
+  const drag = {
+    dragIndex,
+    overIndex,
+    onStart: beginDrag,
+    onOver: setOverIndex,
+    onDrop: handleDrop,
+    onEnd: endDrag,
+    isDragging: () => dragRef.current != null,
+  }
 
   return (
     <div
@@ -126,6 +200,7 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
           index={index}
           editMode={editMode}
           onRemove={(i) => dashboardService.removeWidget(i)}
+          drag={drag}
         />
       ))}
 
