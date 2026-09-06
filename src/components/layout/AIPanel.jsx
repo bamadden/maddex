@@ -582,21 +582,6 @@ export default function AIPanel({ wide = false }) {
   // to run before the "close the whole panel" Escape case, so it lives with
   // the rest of that priority chain rather than duplicated here).
 
-  // Global intelligence "ASK AI" button hook — dispatched by asset/headline/
-  // chokepoint click sites across the terminal. The prompt is sent to Claude
-  // but never shown as a user bubble; see `send(text, { silent, context })`.
-  useEffect(() => {
-    const handler = (e) => {
-      const { prompt, context, fullscreen: wantFullscreen } = e.detail ?? {}
-      if (!prompt) return
-      setChatOpen(true)
-      if (wantFullscreen) setAiMode('fullscreen')
-      setTimeout(() => send(prompt, { context, silent: true }), 100)
-    }
-    window.addEventListener('madden:ask-ai', handler)
-    return () => window.removeEventListener('madden:ask-ai', handler)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Live data injection for quick prompts ─────────────────────────────────
 
   const buildQuickPrompt = useCallback((item) => {
@@ -728,6 +713,44 @@ export default function AIPanel({ wide = false }) {
       setLoading(false)
     }
   }
+
+  // Global intelligence "ASK AI" button hook — dispatched by asset/headline/
+  // chokepoint click sites across the terminal. The prompt is sent to Claude
+  // but never shown as a user bubble; see `send(text, { silent, context })`.
+  //
+  // `send` IS A REAL DEPENDENCY, not a lint formality.
+  //
+  // This effect used to run with `[]` and an eslint-disable, which pinned the
+  // handler to the `send` closure from the first render. `send` reads
+  // `chatMessages` to build the history it puts on the wire, so every Ask-AI
+  // click anywhere in the terminal — asset panels, headlines, chokepoints —
+  // sent the conversation as it stood at mount, which is to say empty. The
+  // reply came back with no memory of the conversation it was appended to, and
+  // looked like a model that had lost the thread rather than a stale closure.
+  // It also read `loading` and `input` from that first render.
+  //
+  // `send` is redefined each render, so this now re-subscribes on render. That
+  // is the intended behaviour of the rule and is cheap: swapping one listener
+  // is a synchronous pair of calls inside React's commit, with no window in
+  // which an event could slip past.
+  //
+  // It also has to sit BELOW `send`. Naming a `const` in a dependency array
+  // evaluates it during render, at this line — so while it lived above the
+  // declaration the array itself threw a TDZ ReferenceError and took the
+  // whole panel down. With `[]` that never showed, because an empty array
+  // reads nothing; the stale closure and the ordering were the same bug seen
+  // from two sides.
+  useEffect(() => {
+    const handler = (e) => {
+      const { prompt, context, fullscreen: wantFullscreen } = e.detail ?? {}
+      if (!prompt) return
+      setChatOpen(true)
+      if (wantFullscreen) setAiMode('fullscreen')
+      setTimeout(() => send(prompt, { context, silent: true }), 100)
+    }
+    window.addEventListener('madden:ask-ai', handler)
+    return () => window.removeEventListener('madden:ask-ai', handler)
+  }, [send, setChatOpen, setAiMode])
 
   // Auto-analyse — when enabled in Settings, opening an asset's detail view
   // while the AI panel is already open auto-sends the ANALYSE quick prompt
