@@ -11,6 +11,7 @@ import {
 import { fetchFxHistory } from '../../services/api'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { IndicatorDeepDive, RbaSensitivityMatrix } from './MacroDeepDive'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
@@ -1562,6 +1563,9 @@ export default function MacroModule() {
   const [expandedChart, setExpandedChart]   = useState(null)
   const [expandedSection, setExpandedSection] = useState(null)
   const [view3D, setView3D] = useState(false)
+  // Which indicator card is expanded, or null. One at a time — the panel is
+  // full-width and two open would push the charts below off the fold.
+  const [openIndicator, setOpenIndicator] = useState(null)
   const { canAccess, tier } = useSubscription()
 
   if (!canAccess('prime')) {
@@ -1703,7 +1707,14 @@ export default function MacroModule() {
 
         <div className="grid grid-cols-4 xl:grid-cols-8 border-b border-terminal-border">
           {AU_MACRO.slice(0, 8).map((ind) => (
-            <div key={ind.name} className="border-r border-terminal-border p-2 hover:bg-terminal-accent/20">
+            <button
+              key={ind.name}
+              onClick={() => setOpenIndicator((cur) => (cur === ind.name ? null : ind.name))}
+              aria-expanded={openIndicator === ind.name}
+              title={`${ind.name} — click for the full read`}
+              className="border-r border-terminal-border p-2 text-left hover:bg-terminal-accent/20 transition-colors"
+              style={openIndicator === ind.name ? { background: 'rgba(201,168,76,0.08)' } : undefined}
+            >
               <div className="flex items-center gap-1 mb-0.5">
                 <FreshnessDot date={ind.date} name={ind.name} />
                 <div className="text-2xs text-terminal-text-dim leading-tight">{ind.name}</div>
@@ -1725,8 +1736,25 @@ export default function MacroModule() {
               {NEXT_RELEASE[ind.name] && (
                 <div className="text-2xs text-terminal-gold/70 mt-0.5">NEXT: {NEXT_RELEASE[ind.name]}</div>
               )}
-            </div>
+            </button>
           ))}
+        </div>
+
+        {/* Deep dive for whichever card is open, full width beneath the strip
+            rather than inside an 1/8th-width cell. */}
+        {openIndicator && (() => {
+          const ind = AU_MACRO.find((i) => i.name === openIndicator)
+          return ind ? (
+            <IndicatorDeepDive
+              indicator={ind}
+              nextRelease={NEXT_RELEASE[ind.name]}
+              onClose={() => setOpenIndicator(null)}
+            />
+          ) : null
+        })()}
+
+        <div className="px-3 py-3 border-b border-terminal-border">
+          <RbaSensitivityMatrix />
         </div>
 
         <div className="px-3 py-1 text-2xs text-terminal-text-dim/60 border-b border-terminal-border flex items-center gap-4 flex-wrap">
