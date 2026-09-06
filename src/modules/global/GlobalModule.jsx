@@ -2210,12 +2210,20 @@ function IntelTicker() {
 
   return (
     <div
-      className="intel-ticker flex-shrink-0 border-b border-terminal-border overflow-hidden"
-      style={{ height: 26, background: 'rgba(201,168,76,0.05)' }}
+      className="intel-ticker flex-shrink-0 overflow-hidden"
+      style={{
+        height: 32,
+        background: '#020609',
+        borderBottom: '1px solid rgba(201,168,76,0.08)',
+      }}
     >
       <div className="intel-ticker-track flex items-center h-full whitespace-nowrap">
         {run.map((line, i) => (
-          <span key={i} className="text-[9px] font-mono text-terminal-gold/85 px-3 flex-shrink-0">
+          <span
+            key={i}
+            className="font-mono flex-shrink-0"
+            style={{ fontSize: 9, letterSpacing: '0.08em', color: '#C9A84C', paddingLeft: 14, paddingRight: 14 }}
+          >
             {line}
           </span>
         ))}
@@ -2248,18 +2256,24 @@ function CollapsibleSection({ id, title, badge, defaultOpen = true, children }) 
 
   return (
     <div className="flex-shrink-0 border-b border-terminal-border">
+      {/* Scoped to this panel rather than reusing .panel-header, which every
+          other module also renders — restyling it here would silently change
+          fourteen modules to suit one. */}
       <button
         onClick={toggle}
         aria-expanded={open}
-        className="w-full panel-header flex items-center justify-between hover:bg-terminal-accent/15 transition-colors"
+        className="intel-section-header w-full flex items-center justify-between"
       >
-        <span className="flex items-center gap-1.5">
-          <span className="text-terminal-text-dim text-[8px]">{open ? '▾' : '▸'}</span>
-          {title}
+        <span className="flex items-center gap-2 min-w-0">
+          <span
+            className="flex-shrink-0 transition-transform duration-200"
+            style={{ fontSize: 10, color: '#4A6080', transform: open ? 'none' : 'rotate(-90deg)' }}
+          >▾</span>
+          <span className="intel-section-title truncate">{title}</span>
         </span>
-        {badge && <span className="text-[8px] font-normal normal-case tracking-normal">{badge}</span>}
+        {badge && <span className="flex-shrink-0">{badge}</span>}
       </button>
-      {open && children}
+      {open && <div className="intel-section-body">{children}</div>}
     </div>
   )
 }

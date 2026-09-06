@@ -863,3 +863,33 @@ body.ticker-paused .ticker-content {
 /* Module header controls — one rule so every module's icons behave alike. */
 .mh-icon { color: #4A6080; }
 .mh-icon:hover { color: #C9A84C; }
+
+/* ─── Global module intelligence panel ─────────────────────────────────────
+   Scoped rather than reusing .panel-header, which every module renders. */
+.intel-section-header {
+  height: 28px;
+  padding: 0 16px;
+  background: rgba(201, 168, 76, 0.04);
+  border-bottom: 1px solid rgba(201, 168, 76, 0.08);
+  transition: background-color 150ms;
+}
+.intel-section-header:hover { background: rgba(201, 168, 76, 0.08); }
+.intel-section-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  font-weight: 600;
+  color: #C9A84C;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+/* One padding value for every section body, so sections cannot drift to
+   8px here and 20px there the way they had. */
+.intel-section-body { padding: 12px 16px; }
+.intel-section-body > * + * { margin-top: 8px; }
+
+/* The ticker's own edges fade, so lines enter and leave rather than being
+   chopped at the panel border. */
+.intel-ticker {
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
