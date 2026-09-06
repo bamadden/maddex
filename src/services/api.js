@@ -1214,10 +1214,12 @@ function dedupeByHeadline(items) {
 }
 
 // Separate world/geo news feeds for the Global Intelligence module
+// Same story as NEWS_SOURCES: the two Reuters feeds are retired and were
+// failing silently on every call. Replaced with feeds that respond.
 export const GEO_RSS_FEEDS = [
-  { url: 'https://feeds.reuters.com/reuters/worldNews',          source: 'Reuters World' },
-  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml',         source: 'BBC World'     },
-  { url: 'https://feeds.reuters.com/reuters/topNews',            source: 'Reuters Top'   },
+  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml',          source: 'BBC World'     },
+  { url: 'https://www.theguardian.com/world/rss',                source: 'Guardian World' },
+  { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',       source: 'ABC News'      },
 ]
 
 // ─── Ticker whitelist — only flag known listed symbols ────────────────────────
@@ -1378,7 +1380,7 @@ export const transformFlightData = (raw) => {
 export const fetchGeoNews = async () => {
   const results = await Promise.allSettled(
     GEO_RSS_FEEDS.map(({ url, source }) =>
-      axios.get(RSS2JSON_BASE, { params: { rss_url: url } })
+      axios.get(RSS_PROXY, { params: { url }, timeout: 10000 })
         .then(({ data }) => ({ data, source }))
     )
   )
