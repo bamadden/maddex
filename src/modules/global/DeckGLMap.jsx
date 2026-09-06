@@ -268,7 +268,18 @@ const Z = {
   TOOLTIP: 1000,    // hover card, position: fixed, above all map chrome
 }
 
-export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
+// chromeInset shifts the map's own edge furniture — layer tab, status bars,
+// classification strip, clock, coordinates — inward by the width of anything
+// overlaying the map's edges. GlobalModule puts 32px rails there below
+// 1700px, and without this the LAYERS tab and both status bars render
+// underneath them.
+//
+// The deck.gl canvas itself is NOT inset. The map still spans the full
+// container — only the small chrome moves, which is the whole point: the
+// rails cost no map.
+export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInset = { left: 0, right: 0 } }) {
+  const insetL = chromeInset.left ?? 0
+  const insetR = chromeInset.right ?? 0
   const [viewState, setViewState] = useState(INITIAL_VIEW)
   // Per-layer visibility, persisted: someone who turns off eight layers to
   // study trade flows should not have to do it again next time.
@@ -858,9 +869,9 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
         background: 'linear-gradient(to bottom, rgba(6,13,26,0.55), transparent)' }} />
 
-      <HudFrame />
+      <HudFrame insetL={insetL} insetR={insetR} />
       {(mapWidth ?? 0) >= 420 && (
-        <CoordinateReadout viewState={viewState} offsetRight={selected ? panelWidth + 16 : 14} />
+        <CoordinateReadout viewState={viewState} offsetRight={(selected ? panelWidth + 16 : 14) + insetR} />
       )}
 
       {tooltip && <MapTooltip tooltip={tooltip} />}
@@ -871,13 +882,14 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
         auFocus={auFocus}
         onAuFocus={() => { setAuFocus((v) => !v); flyTo(AU_VIEW) }}
         onGlobal={() => { setAuFocus(false); flyTo(GLOBAL_VIEW) }}
+        insetL={insetL}
       />
 
       {/* Fullscreen toggle */}
       <button
         onClick={() => setFullscreen((v) => !v)}
         title={fullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen map'}
-        style={{ position: 'absolute', top: 12, right: selected ? panelWidth + 24 : 12, zIndex: Z.CONTROL,
+        style={{ position: 'absolute', top: 12, right: (selected ? panelWidth + 24 : 12) + insetR, zIndex: Z.CONTROL,
           background: 'rgba(6,13,26,0.88)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2,
           color: '#8BA3C4', fontSize: 13, lineHeight: 1, padding: '6px 9px', cursor: 'pointer',
           backdropFilter: 'blur(8px)' }}
@@ -890,7 +902,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
 
       {/* Seismic status. Reports the feed's real state rather than only
           rendering when data happens to have arrived. */}
-      <div style={{ position: 'absolute', bottom: 42, left: 12, zIndex: Z.CHROME,
+      <div style={{ position: 'absolute', bottom: 42, left: 12 + insetL, zIndex: Z.CHROME,
         maxWidth: 'calc(100% - 24px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${quakeState === 'error' ? 'rgba(201,168,76,0.3)' : 'rgba(168,50,50,0.4)'}`,
         borderRadius: 3, padding: '4px 10px', fontFamily: '"IBM Plex Mono", monospace',
@@ -900,7 +912,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
           : `🌍 ${quakes.length} QUAKES / WEEK (M4.5+) · ${majorQuakes.length} MAJOR (M6+)`}
       </div>
 
-      <DataStatus sources={feedStatus} bottom={12} />
+      <DataStatus sources={feedStatus} bottom={12} left={12 + insetL} />
 
       {/* Classification strip.
           Bottom-left, stacked above the data-status line rather than centred
@@ -911,7 +923,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
           anyway. Dimmer than the bars it sits above (0.25 alpha) because it
           never changes: it is a label, not a reading. */}
       <div style={{
-        position: 'absolute', bottom: 72, left: 12, zIndex: Z.HUD,
+        position: 'absolute', bottom: 72, left: 12 + insetL, zIndex: Z.HUD,
         pointerEvents: 'none', whiteSpace: 'nowrap',
         fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
         letterSpacing: '0.3em', color: 'rgba(201,168,76,0.25)',
@@ -935,7 +947,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
 // that state lived on DeckGLMap the whole map — every layer, the useMemo that
 // rebuilds them — would re-render 60 times a minute for a changing string in
 // the corner. Isolated here, only these two lines repaint.
-function MissionClock() {
+function MissionClock({ insetR = 0 }) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
@@ -944,7 +956,7 @@ function MissionClock() {
 
   return (
     <div style={{
-      position: 'absolute', top: 16, right: 16, zIndex: Z.HUD,
+      position: 'absolute', top: 16, right: 16 + insetR, zIndex: Z.HUD,
       pointerEvents: 'none', textAlign: 'right',
       fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
       letterSpacing: '0.15em', color: 'rgba(201,168,76,0.5)',
@@ -989,7 +1001,7 @@ function CoordinateReadout({ viewState, offsetRight }) {
   )
 }
 
-function HudFrame() {
+function HudFrame({ insetL = 0, insetR = 0 }) {
   const corner = (pos) => ({
     position: 'absolute', width: 28, height: 28, ...pos,
   })
@@ -1010,14 +1022,14 @@ function HudFrame() {
       </div>
 
       {/* Targeting corners */}
-      <div style={{ position: 'absolute', inset: 5, pointerEvents: 'none', zIndex: Z.HUD }}>
+      <div style={{ position: 'absolute', top: 5, bottom: 5, left: 5 + insetL, right: 5 + insetR, pointerEvents: 'none', zIndex: Z.HUD }}>
         <div style={{ ...corner({ top: 0, left: 0 }),     borderTop: `1px solid ${gold}`,    borderLeft: `1px solid ${gold}` }} />
         <div style={{ ...corner({ top: 0, right: 0 }),    borderTop: `1px solid ${gold}`,    borderRight: `1px solid ${gold}` }} />
         <div style={{ ...corner({ bottom: 0, left: 0 }),  borderBottom: `1px solid ${gold}`, borderLeft: `1px solid ${gold}` }} />
         <div style={{ ...corner({ bottom: 0, right: 0 }), borderBottom: `1px solid ${gold}`, borderRight: `1px solid ${gold}` }} />
       </div>
 
-      <MissionClock />
+      <MissionClock insetR={insetR} />
     </>
   )
 }
@@ -1025,7 +1037,7 @@ function HudFrame() {
 // Reports what is actually feeding the map right now, counted from the live
 // services rather than hardcoded — a "7 SOURCES ACTIVE" that says 7 whatever
 // happens is the same class of decoration as an invented figure.
-function DataStatus({ sources, bottom }) {
+function DataStatus({ sources, bottom, left = 12 }) {
   const active = sources.filter((s) => s.ok).length
   const allOk = active === sources.length
   const colour = active === 0 ? '#C86464' : allOk ? '#2D8A50' : '#C9A84C'
@@ -1033,7 +1045,7 @@ function DataStatus({ sources, bottom }) {
     <div
       title={sources.map((s) => `${s.ok ? '●' : '○'} ${s.label}`).join('\n')}
       style={{
-        position: 'absolute', bottom, left: 12, zIndex: Z.CHROME,
+        position: 'absolute', bottom, left, zIndex: Z.CHROME,
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${colour}44`,
         borderRadius: 3, padding: '4px 10px', whiteSpace: 'nowrap',
         fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
@@ -1178,7 +1190,7 @@ const btn = (active) => ({
 // the thing you are looking at usually is — stays clear.
 const PANEL_W = 200
 
-function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, onAuFocus, onGlobal }) {
+function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, onAuFocus, onGlobal, insetL = 0 }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -1190,7 +1202,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
           aria-expanded={false}
           title="Show intelligence layers"
           style={{
-            position: 'absolute', top: 12, left: 0, zIndex: Z.CHROME,
+            position: 'absolute', top: 12, left: insetL, zIndex: Z.CHROME,
             display: 'flex', alignItems: 'center', gap: 5,
             background: 'rgba(6,13,26,0.9)',
             border: '1px solid rgba(201,168,76,0.25)', borderLeft: 'none',
@@ -1209,7 +1221,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
       {open && (
         <div
           style={{
-            position: 'absolute', top: 12, left: 12, zIndex: Z.CHROME,
+            position: 'absolute', top: 12, left: 12 + insetL, zIndex: Z.CHROME,
             width: PANEL_W,
             // Stops short of the seismic status bar in the bottom-left
             // rather than running the full height: 12px top inset, plus the

@@ -311,7 +311,12 @@ function distToSegment(px, py, x1, y1, x2, y2) {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquakes } = {}) {
+// chromeInset — same contract as DeckGLMap. GlobalModule overlays 32px rails
+// on the map's edges below 1700px, and without this the projection/search
+// panel and the bottom-left controls render underneath the left rail.
+export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquakes, chromeInset = { left: 0, right: 0 } } = {}) {
+  const insetL = chromeInset.left ?? 0
+  const insetR = chromeInset.right ?? 0
   const containerRef = useRef(null)
   const canvasRef = useRef(null)
   const rafRef = useRef(null)
@@ -1303,14 +1308,19 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
         <button
           type="button"
           onClick={() => setLayerPanelCollapsed(false)}
-          className="absolute bottom-3 left-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2 py-1 font-mono text-[8px] tracking-widest text-terminal-gold hover:border-terminal-gold pointer-events-auto"
+          className="absolute bottom-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2 py-1 font-mono text-[8px] tracking-widest text-terminal-gold hover:border-terminal-gold pointer-events-auto"
+          style={{ left: 12 + insetL }}
         >
           LAYERS ▸
         </button>
       ) : (
         <div
-          className="absolute bottom-3 left-3 z-10 border border-terminal-border-gold px-2.5 py-2 backdrop-blur-md w-40 max-h-[70vh] overflow-y-auto pointer-events-auto"
-          style={{ background: 'rgba(6,13,26,0.8)' }}
+          className="absolute bottom-3 z-10 border border-terminal-border-gold px-2.5 py-2 backdrop-blur-md w-40 max-h-[70vh] overflow-y-auto pointer-events-auto"
+          // One style object, not two. The inset was originally added as a
+          // second style prop beside the existing background one — JSX takes
+          // the last and drops the first silently, with no lint error, so the
+          // panel kept rendering under the rail.
+          style={{ left: 12 + insetL, background: 'rgba(6,13,26,0.8)' }}
         >
           <div className="flex items-center justify-between mb-1.5">
             <span className="font-mono text-[8px] tracking-widest text-terminal-gold">LAYERS</span>
@@ -1477,7 +1487,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
       {/* Search — top-left. Matches countries, exchanges, and both route
           layers; selecting a country/exchange rotates to it, a route
           highlights gold and shows its tooltip. */}
-      <div className="absolute top-3 left-3 z-10 w-40">
+      <div className="absolute top-3 z-10 w-40" style={{ left: 12 + insetL }}>
         <input
           type="text"
           value={searchQuery}
@@ -1520,7 +1530,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           column-reverse keeps all three from overlapping regardless of how
           many legend entries are showing. z-20 keeps the whole stack above
           every other globe element, including route/overlay graphics. */}
-      <div className="absolute bottom-3 right-3 z-20 flex flex-col-reverse items-end gap-2">
+      <div className="absolute bottom-3 z-20 flex flex-col-reverse items-end gap-2" style={{ right: 12 + insetR }}>
         <div className="flex gap-1">
           <button
             type="button"

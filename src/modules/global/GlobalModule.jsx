@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
 import { GEO_RISK_INDEX, riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
@@ -2577,6 +2577,94 @@ function WorldStatsSummary() {
   )
 }
 
+// ─── Edge rail + slide-over ────────────────────────────────────────────────
+//
+// The two side panels become a 32px rail and an overlay below 1700px. The rail
+// is absolutely positioned over the map rather than taking a column, so the
+// map keeps the full width — the whole point of the change. Icons stand in for
+// the sections behind them so the rail reads as a control rather than a
+// decorative edge.
+function EdgeRail({ side, open, onToggle, label, icons }) {
+  const isLeft = side === 'left'
+  return (
+    <div
+      style={{
+        position: 'absolute', top: 0, bottom: 0, [side]: 0, width: 32, zIndex: 40,
+        background: 'rgba(6,13,26,0.92)',
+        [`border${isLeft ? 'Right' : 'Left'}`]: '1px solid rgba(201,168,76,0.18)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        paddingTop: 6, gap: 10,
+      }}
+    >
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-label={`${open ? 'Collapse' : 'Expand'} ${label.toLowerCase()} panel`}
+        title={`${open ? 'Collapse' : 'Expand'} ${label}`}
+        style={{
+          color: '#C9A84C', fontSize: 12, lineHeight: 1, padding: '4px 0', width: '100%',
+          cursor: 'pointer', background: 'none', border: 'none',
+        }}
+      >
+        {isLeft ? (open ? '❮' : '❯') : (open ? '❯' : '❮')}
+      </button>
+
+      {/* Rotated label. writing-mode keeps it legible top-to-bottom without a
+          transform that would fight the flex column's sizing. */}
+      <div
+        style={{
+          writingMode: 'vertical-rl', textOrientation: 'mixed',
+          transform: isLeft ? 'none' : 'rotate(180deg)',
+          fontFamily: '"IBM Plex Mono", monospace', fontSize: 8,
+          letterSpacing: '0.28em', color: 'rgba(201,168,76,0.45)',
+          whiteSpace: 'nowrap', userSelect: 'none',
+        }}
+      >{label}</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 4, opacity: 0.55 }}>
+        {icons.map((ic, i) => (
+          <span key={i} style={{ fontSize: 10, lineHeight: 1 }}>{ic}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SlideOverPanel({ side, open, width, children, onClose }) {
+  const isLeft = side === 'left'
+  return (
+    <div
+      // Always mounted, translated off-screen when closed — the feed and the
+      // tab panel both hold fetched state and query subscriptions, and
+      // unmounting them on every toggle would refetch and lose scroll
+      // position each time.
+      aria-hidden={!open}
+      style={{
+        position: 'absolute', top: 0, bottom: 0, [side]: 32, width, zIndex: 39,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        background: 'rgba(6,13,26,0.97)',
+        backdropFilter: 'blur(10px)',
+        [`border${isLeft ? 'Right' : 'Left'}`]: '1px solid rgba(201,168,76,0.25)',
+        boxShadow: open ? `${isLeft ? '' : '-'}12px 0 32px rgba(0,0,0,0.45)` : 'none',
+        transform: open ? 'translateX(0)' : `translateX(${isLeft ? '-' : ''}${width + 40}px)`,
+        transition: 'transform 220ms cubic-bezier(0.4, 0, 0.2, 1)',
+        pointerEvents: open ? 'auto' : 'none',
+      }}
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close panel"
+        className="self-end text-terminal-text-dim hover:text-terminal-gold"
+        style={{ fontSize: 11, padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer' }}
+      >✕</button>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
 export default function GlobalModule() {
@@ -2590,7 +2678,13 @@ export default function GlobalModule() {
   const [selectedArc, setSelectedArc] = useState(null)
   // Mobile only (<768px) — the feed/globe/detail columns stack instead of
   // sitting side by side, so a small screen needs an explicit switcher.
-  const [mobilePanel, setMobilePanel] = useState('globe')
+  // Panel rails. Below 1700px both side panels are overlays; only one is
+  // open at a time because two 300px+ overlays on a 1216px map leave less
+  // map than the three-column layout this replaced.
+  const [leftOpen, setLeftOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
+  const contentRef = useRef(null)
+  const [contentWidth, setContentWidth] = useState(null)
   // 'map' | 'classic'.
   //
   // Default is 'map'. This comment previously explained why it was 'classic'
@@ -2598,6 +2692,30 @@ export default function GlobalModule() {
   // since been fixed and confirmed in the browser: coastlines, borders and
   // city lights all render on the INTEL style.
   const [viewMode, setViewMode] = useState('map')
+
+  // Measured, not a media query: this module can also render inside a split
+  // pane or a popped-out window, where the viewport width says nothing about
+  // how much room the content row actually has.
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => setContentWidth(entry.contentRect.width))
+    ro.observe(el)
+    setContentWidth(el.getBoundingClientRect().width)
+    return () => ro.disconnect()
+  }, [])
+
+  // Null until measured — assume narrow, so the map never flashes at 556px
+  // before the observer reports.
+  const wideLayout = contentWidth != null && contentWidth >= 1700
+
+  // Escape closes whichever overlay is open.
+  useEffect(() => {
+    if (!leftOpen && !rightOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') { setLeftOpen(false); setRightOpen(false) } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [leftOpen, rightOpen])
 
   // Tells the TopBar which view is showing, so the breadcrumb can read
   // "GLOBAL · INTELLIGENCE MAP" rather than just "GLOBAL". An event rather
@@ -2718,7 +2836,10 @@ export default function GlobalModule() {
   // Globe country click — rewires the orphaned CountryPanel back to the globe.
   const handleCountryClick = useCallback((numericId) => {
     setSelectedCountry(numericId)
-    setMobilePanel('detail')
+    // Opens the detail overlay so a map click has a visible result at any
+    // width, rather than silently updating a panel behind a closed rail.
+    setRightOpen(true)
+    setLeftOpen(false)
   }, [])
 
   // Globe exchange-marker click — resolve the exchange's country (via this
@@ -2727,14 +2848,16 @@ export default function GlobalModule() {
   const handleExchangeClick = useCallback((exchangeId) => {
     const ex = EXCHANGES.find(e => e.id === exchangeId)
     if (ex?.countryId) setSelectedCountry(ex.countryId)
-    setMobilePanel('detail')
+    setRightOpen(true)
+    setLeftOpen(false)
   }, [])
 
   const handleSelectExchange = useCallback((exchangeId) => {
     setSelectedCountry(null)
     setSelectedExchange(exchangeId)
     setActiveTab('exchange')
-    setMobilePanel('detail')
+    setRightOpen(true)
+    setLeftOpen(false)
   }, [])
 
   const TABS = [
@@ -2746,6 +2869,63 @@ export default function GlobalModule() {
     { id:'sessions',    label:'SESSIONS'    },
     { id:'exchange',    label:'EXCHANGE',   hidden: !selectedExchange && activeTab !== 'exchange' },
   ]
+
+  // Panel contents, defined once and rendered either inline (wide) or inside a
+  // slide-over (narrow). Duplicating this JSX across the two branches would
+  // mean two places to keep in step, and React would remount the whole subtree
+  // on every crossing of the breakpoint.
+  const feedPanel = (
+    <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} watchlist={watchlist} />
+  )
+
+  const rightPanel = (
+    <>
+      <TabBar
+        tabs={TABS.filter(t => !t.hidden).map(t => ({ key: t.id, label: t.label }))}
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        size={9}
+        fill
+      />
+      <div className="flex-1 overflow-hidden">
+        {selectedCountry != null ? (
+          <CountryPanel
+            id={selectedCountry}
+            newsItems={allNewsItems}
+            audRates={rates}
+            audUsd={audUsd}
+            currencyMode={currencyMode}
+            onCurrencyToggle={handleCurrencyToggle}
+            onClose={() => setSelectedCountry(null)}
+            onAskAI={handleAskAI}
+          />
+        ) : activeTab === 'exchange' && selectedExchange ? (
+          <ExchangePanel
+            exchangeId={selectedExchange}
+            newsItems={allNewsItems}
+            onClose={() => { setSelectedExchange(null); setActiveTab('summary') }}
+            onAskAI={handleAskAI}
+          />
+        ) : activeTab === 'summary' ? (
+          <WorldStatsSummary />
+        ) : activeTab === 'maritime' ? (
+          <MaritimeTab newsItems={allNewsItems} />
+        ) : activeTab === 'air' ? (
+          <AirTradeRoutesTab
+            selectedArc={selectedArc}
+            onArcClick={setSelectedArc}
+            flightData={flightData}
+          />
+        ) : activeTab === 'commodities' ? (
+          <CommodityFlowsTab onAskAI={handleAskAI} />
+        ) : activeTab === 'geopolitical' ? (
+          <GeoRiskTab newsItems={allNewsItems} isLoading={geoNewsLoading} onAskAI={handleAskAI} updatedAt={geoNewsUpdatedAt} />
+        ) : activeTab === 'sessions' ? (
+          <MarketSessionsTab now={now} />
+        ) : null}
+      </div>
+    </>
+  )
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -2781,40 +2961,29 @@ export default function GlobalModule() {
         </div>
       )}
 
-      {/* Panel switcher below 1024px — the three columns stack full-width
-          instead of sitting side by side, so a narrow screen picks one.
-          The breakpoint is lg, not md: at 768px the feed (300px) and the
-          right panel (320px min) leave the map about 84px of a 704px content
-          area, and at 880px it was still only 156px wide — a sliver of
-          world with nothing legible in it. Three columns need roughly
-          300 + 340 + 320 + 64px of sidebar to be worth showing at all. */}
-      <div className="flex lg:hidden border-b border-terminal-border flex-shrink-0">
-        {[
-          { id:'feed',   label:'FEED'   },
-          { id:'globe',  label:'GLOBE'  },
-          { id:'detail', label:'DETAIL' },
-        ].map(p => (
-          <button key={p.id} onClick={() => setMobilePanel(p.id)}
-            className={`flex-1 font-mono text-2xs font-bold tracking-widest py-2 uppercase transition-colors border-b-2 ${
-              mobilePanel === p.id ? 'text-terminal-gold border-b-terminal-gold' : 'text-terminal-text-dim border-b-transparent'
-            }`}>
-            {p.label}
-          </button>
-        ))}
-      </div>
-
       <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
 
-        {/* ── Main content row: Feed | Globe | Right tab panel ── */}
-        <div style={{ flex:1, display:'flex', minHeight:0 }}>
+        {/* ── Main content row ──────────────────────────────────────────────
+            The map is the module. Below 1700px the two side panels stop being
+            columns and become overlays on a 32px rail, so the map keeps the
+            full content width instead of being squeezed into the ~556px that
+            was left after a 300px feed and a 340px tab panel. At 1280px the
+            map now measures ~1216px rather than 556px.
 
-          {/* Left — live intelligence feed, 260px */}
-          <div className={`${mobilePanel === 'feed' ? 'flex' : 'hidden'} lg:flex w-full lg:w-[300px] lg:min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border`}>
-            <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} watchlist={watchlist} />
-          </div>
+            Above 1700px there is genuinely room for three columns, so the
+            panels stay inline — an overlay covering a map that had space
+            beside it would be worse, not better. */}
+        <div ref={contentRef} style={{ flex:1, display:'flex', minHeight:0, position:'relative', overflow:'hidden' }}>
 
-          {/* Globe */}
-          <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} lg:block`} style={{ flex:1, position:'relative', overflow:'hidden', minHeight:0 }}>
+          {/* Left feed — inline only when wide */}
+          {wideLayout && (
+            <div className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border">
+              {feedPanel}
+            </div>
+          )}
+
+          {/* Map — always full remaining width. Panels float over it. */}
+          <div style={{ flex:1, position:'relative', overflow:'hidden', minHeight:0 }}>
             <Suspense fallback={<Viz3DLoader />}>
               {/* Two views. The Immersive 3D globe was removed — the intel
                   map is the primary view and the classic globe is the
@@ -2824,66 +2993,70 @@ export default function GlobalModule() {
                   persisted 'globe3d' from an older session lands somewhere
                   real instead of rendering nothing. */}
               {viewMode === 'classic' ? (
-                <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
+                <MaddexGlobe
+                  onCountryClick={handleCountryClick}
+                  onExchangeClick={handleExchangeClick}
+                  earthquakes={earthquakes}
+                  chromeInset={wideLayout ? { left: 0, right: 0 } : { left: 36, right: 36 }}
+                />
               ) : (
-                <DeckGLMap onExchangeSelect={handleExchangeClick} watchlist={watchlist} />
+                <DeckGLMap
+                  onExchangeSelect={handleExchangeClick}
+                  watchlist={watchlist}
+                  // The rails overlay the map's edges below 1700px, so the
+                  // map's own chrome steps inside them. Zero when the panels
+                  // are inline columns and nothing is covering the edges.
+                  chromeInset={wideLayout ? { left: 0, right: 0 } : { left: 36, right: 36 }}
+                />
               )}
             </Suspense>
           </div>
 
-          {/* Right tab panel — 320-360px */}
-          <div className={`${mobilePanel === 'detail' ? 'flex' : 'hidden'} lg:flex w-full lg:min-w-[320px] lg:max-w-[360px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border`}>
-          {/* Tab bar — equal-width columns spanning the full panel so every
-              tab stays visible with no horizontal scroll needed. `fill` keeps
-              that behaviour on the shared component. */}
-          <TabBar
-            tabs={TABS.filter(t => !t.hidden).map(t => ({ key: t.id, label: t.label }))}
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            size={9}
-            fill
-          />
+          {/* Right tab panel — inline only when wide */}
+          {wideLayout && (
+            <div className="flex w-[340px] min-w-[340px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border">
+              {rightPanel}
+            </div>
+          )}
 
-          {/* Tab content — a selected country always takes over this area,
-              regardless of which tab is active, per the globe-click rewire. */}
-          <div className="flex-1 overflow-hidden">
-            {selectedCountry != null ? (
-              <CountryPanel
-                id={selectedCountry}
-                newsItems={allNewsItems}
-                audRates={rates}
-                audUsd={audUsd}
-                currencyMode={currencyMode}
-                onCurrencyToggle={handleCurrencyToggle}
-                onClose={() => setSelectedCountry(null)}
-                onAskAI={handleAskAI}
+          {/* ── Narrow layout: rails + overlays ── */}
+          {!wideLayout && (
+            <>
+              <EdgeRail
+                side="left"
+                open={leftOpen}
+                onToggle={() => { setLeftOpen((v) => !v); setRightOpen(false) }}
+                label="INTELLIGENCE"
+                icons={['📡', '🏛', '⛏', '🚢', '⚠', '💼']}
               />
-            ) : activeTab === 'exchange' && selectedExchange ? (
-              <ExchangePanel
-                exchangeId={selectedExchange}
-                newsItems={allNewsItems}
-                onClose={() => { setSelectedExchange(null); setActiveTab('summary') }}
-                onAskAI={handleAskAI}
+              <EdgeRail
+                side="right"
+                open={rightOpen}
+                onToggle={() => { setRightOpen((v) => !v); setLeftOpen(false) }}
+                label="DETAIL"
+                icons={['🌐', '🚢', '✈', '⛏', '⚠', '🕐']}
               />
-            ) : activeTab === 'summary' ? (
-              <WorldStatsSummary />
-            ) : activeTab === 'maritime' ? (
-              <MaritimeTab newsItems={allNewsItems} />
-            ) : activeTab === 'air' ? (
-              <AirTradeRoutesTab
-                selectedArc={selectedArc}
-                onArcClick={setSelectedArc}
-                flightData={flightData}
-              />
-            ) : activeTab === 'commodities' ? (
-              <CommodityFlowsTab onAskAI={handleAskAI} />
-            ) : activeTab === 'geopolitical' ? (
-              <GeoRiskTab newsItems={allNewsItems} isLoading={geoNewsLoading} onAskAI={handleAskAI} updatedAt={geoNewsUpdatedAt} />
-            ) : activeTab === 'sessions' ? (
-              <MarketSessionsTab now={now} />
-            ) : null}
-          </div>
-        </div>
+
+              {/* One scrim for whichever panel is open. Click-away rather than
+                  a close button alone: an overlay covering the map should be
+                  dismissable by returning to the map. */}
+              {(leftOpen || rightOpen) && (
+                <div
+                  onClick={() => { setLeftOpen(false); setRightOpen(false) }}
+                  style={{ position:'absolute', inset:0, zIndex:38, background:'rgba(6,13,26,0.35)' }}
+                />
+              )}
+
+              <SlideOverPanel side="left" open={leftOpen} width={300} onClose={() => setLeftOpen(false)}>
+                {feedPanel}
+              </SlideOverPanel>
+
+              <SlideOverPanel side="right" open={rightOpen} width={340} onClose={() => setRightOpen(false)}>
+                {rightPanel}
+              </SlideOverPanel>
+            </>
+          )}
+
         </div>{/* end main content row */}
       </div>{/* end outer flex-col */}
     </div>
