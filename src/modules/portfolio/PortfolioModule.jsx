@@ -142,6 +142,61 @@ const SECTOR_BY_SYMBOL = Object.fromEntries([
   ...Object.entries(MOCK_US_STOCKS).map(([sym, s]) => [sym, s.sector]),
 ])
 
+// Colour per sector for the holdings table pill.
+//
+// Keyed on the ELEVEN values mockData actually uses — 'IT', 'Cons Disc',
+// 'Real Est' and so on — not on full GICS names. The first version guessed
+// at "Information Technology" and friends, so every tech holding fell through
+// to the default grey and lost the one thing the column is for: telling
+// sectors apart down a column at a glance.
+//
+// Hue carries the sector rather than brightness, because eleven shades of one
+// colour are not distinguishable in a table. Kept desaturated so the pills
+// sit under the P&L figures rather than competing with them.
+const SECTOR_COLOUR = {
+  Financials:    '#4A9EDB',
+  Materials:     '#C9A84C',
+  Health:        '#4ADBD0',
+  Industrials:   '#8BA3C4',
+  Staples:       '#7BE495',
+  'Cons Disc':   '#D98BC4',
+  IT:            '#8C8CFF',
+  Energy:        '#C87832',
+  Comms:         '#A8A8B8',
+  'Real Est':    '#B58C6A',
+  Utilities:     '#6ABF8B',
+}
+
+// Abbreviated to four characters so the column stays narrow beside a row of
+// numbers. The full name is on the pill's title.
+const SECTOR_SHORT = {
+  Financials: 'FIN', Materials: 'MAT', Health: 'HLTH', Industrials: 'IND',
+  Staples: 'STPL', 'Cons Disc': 'DISC', IT: 'TECH', Energy: 'ENRG',
+  Comms: 'COMM', 'Real Est': 'REIT', Utilities: 'UTIL',
+}
+
+function SectorPill({ symbol, type }) {
+  // Crypto has no GICS sector — labelling it "Other" alongside real sectors
+  // implies it was classified and came back unknown, which it was not.
+  const sector = type === 'crypto' ? null : SECTOR_BY_SYMBOL[String(symbol).toUpperCase()]
+  if (!sector) {
+    return <span className="font-mono" style={{ fontSize: 8, color: '#3A4A61' }}>{type === 'crypto' ? 'CRYPTO' : '—'}</span>
+  }
+  const colour = SECTOR_COLOUR[sector] ?? '#8BA3C4'
+  return (
+    <span
+      className="font-mono whitespace-nowrap"
+      title={sector}
+      style={{
+        fontSize: 8, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
+        color: colour, background: `${colour}1F`, border: `1px solid ${colour}3D`,
+      }}
+    >
+      {SECTOR_SHORT[sector] ?? sector.slice(0, 4).toUpperCase()}
+    </span>
+  )
+}
+
 // ─── Sector / Country / Currency allocation breakdown ─────────────────────────
 
 function BreakdownBars({ title, rows }) {
@@ -1034,6 +1089,7 @@ export default function PortfolioModule() {
                 <tr>
                   <SortableTh label="SYMBOL"   sortKey="symbol"  align="left"  className="px-2" {...sortProps} />
                   <th className="px-1 text-left hidden md:table-cell">TYPE</th>
+                  <th className="px-1 text-left hidden lg:table-cell">SECTOR</th>
                   <SortableTh label="SHARES"   sortKey="shares"  {...sortProps} />
                   <SortableTh label="AVG COST" sortKey="avgCost" {...sortProps} />
                   <SortableTh label="LAST"     sortKey="last"    {...sortProps} />
@@ -1068,6 +1124,9 @@ export default function PortfolioModule() {
                         <span className={h.type === 'asx' ? 'text-terminal-gold' : h.type === 'crypto' ? 'text-purple-400' : 'text-terminal-blue-bright'}>
                           {h.type === 'asx' ? 'ASX' : h.type === 'crypto' ? 'CRYPTO' : 'US'}
                         </span>
+                      </td>
+                      <td className="px-1 py-0.5 hidden lg:table-cell">
+                        <SectorPill symbol={h.symbol} type={h.type} />
                       </td>
                       <td className="px-1 py-0.5 text-2xs text-right">{h.shares}</td>
                       <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim">
