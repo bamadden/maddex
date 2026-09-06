@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
-import { generateMorningBrief } from '../../services/morningBriefService'
+import { generateMorningBrief, clearBriefCache } from '../../services/morningBriefService'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
@@ -68,17 +68,40 @@ export default function MorningBriefModule() {
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [error, setError] = useState(null)
 
-  const load = async () => {
+  const [copied, setCopied] = useState(false)
+
+  const load = async ({ force = false } = {}) => {
     setStatus('loading')
     setError(null)
     try {
-      const result = await generateMorningBrief(watchlist)
+      if (force) clearBriefCache()
+      const result = await generateMorningBrief(watchlist, null, { force })
       setBrief(result)
       setStatus('ready')
     } catch (e) {
       setError(e.message)
       setStatus('error')
     }
+  }
+
+  // Plain text, not the JSON. What someone pastes into a message should read
+  // as a brief, not as a payload.
+  const share = async () => {
+    if (!brief) return
+    const text = [
+      `MADDEX MORNING BRIEF — ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      '',
+      brief.headline,
+      brief.scoreRationale ? `\nMaddenAI score: ${brief.maddenAIScore}/100 — ${brief.scoreLabel}. ${brief.scoreRationale}` : `\nMaddenAI score: ${brief.maddenAIScore}/100 — ${brief.scoreLabel}`,
+      '',
+      ...(brief.sections ?? []).map((sec) => `${sec.title}\n${sec.content}\n`),
+      'General information only — not financial advice.',
+    ].join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard blocked — the button simply does not confirm */ }
   }
 
   // Deferred via setTimeout(fn, 0) rather than calling load() directly —
@@ -97,10 +120,28 @@ export default function MorningBriefModule() {
         subtitle="Your personalised market brief · generated 7am AEST weekdays"
         moduleId="brief"
         isFetching={status === 'loading'}
-        onRefresh={() => {
-          try { localStorage.removeItem(`maddex_morning_brief_${new Date().toISOString().split('T')[0]}`) } catch { /* ignore */ }
-          load()
-        }}
+        // Was deleting a UTC-keyed entry by hand. The cache key is now the
+        // LOCAL date, so that removed a key that does not exist and left the
+        // real one in place — refresh would have appeared to do nothing.
+        // clearBriefCache owns the key format instead of this file guessing.
+        onRefresh={() => load({ force: true })}
+        right={
+          brief && !brief.isWeekend ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => load({ force: true })}
+                disabled={status === 'loading'}
+                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40"
+                style={{ border: '1px solid rgba(201,168,76,0.2)' }}
+              >{status === 'loading' ? 'GENERATING…' : '↻ REGENERATE'}</button>
+              <button
+                onClick={share}
+                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
+                style={{ border: '1px solid rgba(201,168,76,0.2)' }}
+              >{copied ? '✓ COPIED' : '⧉ SHARE'}</button>
+            </div>
+          ) : null
+        }
       />
 
       <div className="flex-1 overflow-y-auto">
