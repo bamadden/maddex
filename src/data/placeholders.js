@@ -237,16 +237,30 @@ export const RBA_RATE_HISTORY = [
   { date: '2026-08-12', rate: 4.35 },
 ]
 
+// Board composition — names, roles and appointment years, which are public
+// record on rba.gov.au.
+//
+// THE `votes` FIELD IS GONE, DELIBERATELY.
+//
+// Each member used to carry a policy leaning: 'Hold', 'Cautious cut',
+// 'Hold / Cut', 'Data dependent'. Those were invented, and they were attached
+// to nine named, identifiable people and rendered in a column headed with
+// their roles — so the UI read as a published voting record.
+//
+// The RBA does not publish one. Decisions are announced as the Board's, and
+// the unattributed vote count introduced in 2024 is a count, not a roll call.
+// There is no source that could make this column true, which is why it was
+// removed rather than sourced or labelled.
 export const RBA_BOARD_MEMBERS = [
-  { name: 'Michele Bullock',    role: 'Governor (Chair)',           since: '2023', votes: 'Hold / Cut' },
-  { name: 'Andrew Hauser',      role: 'Deputy Governor',            since: '2024', votes: 'Hold / Cut' },
-  { name: 'Jenny Wilkinson',    role: 'Treasury Representative',    since: '2023', votes: 'Reflects Treasury' },
-  { name: 'Carol Schwartz',     role: 'External Member',            since: '2018', votes: 'Hold' },
-  { name: 'Ian Harper',         role: 'External Member',            since: '2016', votes: 'Hold' },
-  { name: 'Mark Barnaba',       role: 'External Member',            since: '2018', votes: 'Hold' },
-  { name: 'Elana Rubin',        role: 'External Member',            since: '2016', votes: 'Hold' },
-  { name: 'Iain Ross',          role: 'External Member',            since: '2016', votes: 'Cautious cut' },
-  { name: 'Renée Roberts',      role: 'External Member',            since: '2023', votes: 'Data dependent' },
+  { name: 'Michele Bullock',    role: 'Governor (Chair)',        since: '2023' },
+  { name: 'Andrew Hauser',      role: 'Deputy Governor',         since: '2024' },
+  { name: 'Jenny Wilkinson',    role: 'Treasury Representative', since: '2023' },
+  { name: 'Carol Schwartz',     role: 'External Member',         since: '2018' },
+  { name: 'Ian Harper',         role: 'External Member',         since: '2016' },
+  { name: 'Mark Barnaba',       role: 'External Member',         since: '2018' },
+  { name: 'Elana Rubin',        role: 'External Member',         since: '2016' },
+  { name: 'Iain Ross',          role: 'External Member',         since: '2016' },
+  { name: 'Renée Roberts',      role: 'External Member',         since: '2023' },
 ]
 
 // Trimmed to the last 3 (most recent first) — deliberately, so this column

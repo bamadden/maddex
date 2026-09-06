@@ -475,7 +475,7 @@ function RBADashboard({ askAI }) {
             price:       '4.35% p.a.',
             sector:      'Interest Rates',
             date:        todayAEST(),
-            instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate 4.35% (hiked from 4.10% in May 2026, the third consecutive 2026 hike after Feb and Mar, in response to the global energy shock from the Iran-Middle East conflict — reversing the 2025 easing cycle). The Board held at 4.35% at the 17 Jun 2026 meeting, and held again at 4.35% at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). What is the market pricing for a hold?`,
+            instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate 4.35% (hiked from 4.10% in May 2026, the third consecutive 2026 hike after Feb and Mar, in response to the global energy shock from the Iran-Middle East conflict — reversing the 2025 easing cycle). The Board held at 4.35% at the 17 Jun 2026 meeting, and held again at 4.35% at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). Describe the case for and against a move in words — do not state a market-implied probability, which you have not been given.`,
           })}
           className="ml-auto mr-16 text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
         >
@@ -517,32 +517,51 @@ function RBADashboard({ askAI }) {
           </div>
         </div>
 
-        {/* Market pricing — compact, no section subheads spelled out */}
+        {/* Policy settings — the published rates and the scheduled decisions.
+            This column previously showed "HOLD 82% / CUT 18%" for the RBA and
+            "HOLD 65% / CUT 35%" for the FOMC, drawn as filled probability
+            bars. Both were literals in this file, matching a second hardcoded
+            copy in FXModule's "MARKET IMPLIES" panel — no rate-futures feed is
+            connected to this app, so neither described anything, neither had
+            an as-of date, and neither ever moved. A market-implied cut
+            probability is the figure a reader positions against, which makes
+            an invented one worse than none. Shows the settings instead, and
+            says plainly that pricing is not connected. */}
         <div className="p-2 w-40 flex-shrink-0 flex flex-col h-full justify-between text-2xs">
           <div>
-            <div className="text-terminal-gold font-bold mb-1">NEXT MEETING</div>
-            {[
-              { label: 'HOLD 4.35%', pct: 82, color: 'var(--color-neutral)' },
-              { label: 'CUT 4.10%',  pct: 18, color: 'var(--color-loss)' },
-            ].map(({ label, pct, color }) => (
-              <div key={label} className="mb-1">
-                <div className="flex justify-between">
-                  <span style={{ color }}>{label}</span>
-                  <span className="font-bold" style={{ color }}>{pct}%</span>
-                </div>
-                <div className="h-1 bg-terminal-border/30">
-                  <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.7 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="pt-1 border-t border-terminal-border/40">
-            <div className="text-terminal-blue-bright font-bold">FOMC · 4.25–4.50%</div>
-            <div className="flex justify-between">
-              <span style={{ color: 'var(--color-neutral)' }}>HOLD 65%</span>
-              <span style={{ color: 'var(--color-loss)' }}>CUT 35%</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-terminal-gold font-bold">NEXT DECISION</span>
+              <VerifiedBadge dataKey="rba" alwaysShow />
             </div>
-            <div className="text-terminal-text-dim/60">Next: 17 Sep 2026</div>
+            <div className="flex justify-between">
+              <span className="text-terminal-text-dim">RBA</span>
+              <span className="font-bold text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-terminal-text-dim/60">{nextMeetingBadge}</span>
+              <span className="text-terminal-text-dim/60">{daysLeft}d</span>
+            </div>
+            <div className="text-terminal-text-dim/60 mt-0.5">
+              Last: <span className="text-terminal-text-bright">{VERIFIED_CONSTANTS.rba.lastDecisionVerb}</span>
+            </div>
+          </div>
+
+          <div className="pt-1 border-t border-terminal-border/40">
+            <div className="flex justify-between">
+              <span className="text-terminal-blue-bright font-bold">FOMC</span>
+              <span className="text-terminal-blue-bright font-bold">{VERIFIED_CONSTANTS.fed.rateRange}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-terminal-text-dim/60">
+                {new Date(`${VERIFIED_CONSTANTS.fed.nextMeeting}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+              <span className="text-terminal-text-dim/60">{VERIFIED_CONSTANTS.fed.lastDecisionVerb}</span>
+            </div>
+          </div>
+
+          <div className="pt-1 border-t border-terminal-border/40 text-terminal-text-dim/50 leading-snug">
+            No rate-futures feed connected — no market-implied hold/cut
+            probability is shown.
           </div>
         </div>
 
@@ -556,7 +575,7 @@ function RBADashboard({ askAI }) {
                   <div className="text-2xs font-semibold text-terminal-text-bright">{m.name}</div>
                   <div className="flex justify-between">
                     <span className="text-2xs text-terminal-text-dim">{m.role}</span>
-                    <span className="text-2xs text-terminal-gold/70">{m.votes}</span>
+                    <span className="text-2xs text-terminal-text-dim/60">since {m.since}</span>
                   </div>
                 </div>
               ))}

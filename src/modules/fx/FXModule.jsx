@@ -622,6 +622,12 @@ function MarketPricingPanel() {
   // render makes "12d away" change only when something unrelated re-renders,
   // and makes the component non-idempotent.
   const [now] = useState(() => Date.now())
+  // fed.cashRate is the TOP of the target range (4.50 of 4.25-4.50), not its
+  // midpoint — the label below says so. Deriving a midpoint would mean parsing
+  // rateRange, a display string, in a render body: it would work until someone
+  // changed an en dash to a hyphen, and then it would be quietly wrong rather
+  // than broken.
+  const auUsSpread = rba.cashRate - fed.cashRate
   return (
     <div className="p-2 border-t border-terminal-border flex-shrink-0">
       <div className="flex items-center gap-2 mb-2">
@@ -645,6 +651,21 @@ function MarketPricingPanel() {
         nextMeeting={fed.nextMeeting}
         now={now}
       />
+
+      {/* The AU-US policy spread — derived from the two rates above rather
+          than maintained separately, so it cannot disagree with them. The Fed
+          target is a range, so the midpoint is used and the label says so.
+          This is the one comparative number this panel can state honestly, and
+          it is the one that matters for the currency. */}
+      <div className="mt-2 pt-2 border-t border-terminal-border/50">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-2xs text-terminal-text-dim">AU − US spread</span>
+          <span className="text-2xs font-bold tabular-nums" style={{ color: auUsSpread >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
+            {auUsSpread >= 0 ? '+' : '−'}{Math.abs(auUsSpread).toFixed(2)}pp
+          </span>
+        </div>
+        <div className="text-2xs text-terminal-text-dim/50">RBA cash rate vs Fed target upper bound</div>
+      </div>
 
       <div className="mt-2 pt-2 border-t border-terminal-border/50">
         <div className="text-2xs text-terminal-text-dim/60 leading-snug">

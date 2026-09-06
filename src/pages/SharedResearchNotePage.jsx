@@ -1,10 +1,31 @@
 import { getSharedRecord } from '../services/sharingService'
 
-const RATING_COLOR = {
+// Stance, not rating.
+//
+// This page had drifted out of step with the note it renders. Research notes
+// used to carry a BUY/HOLD/SELL `rating` and a `targetPrice`; both were
+// removed at the source — a model was inventing them — and replaced with a
+// qualitative `stance` plus a one-sentence `stanceRationale`. The generator
+// and the share payload were updated; this reader was not.
+//
+// So every note shared after that change rendered here with an empty badge
+// (n.rating was undefined), an empty gold line where the price target had
+// been, an orphaned "· price target" caption, and no rationale at all — on
+// the one surface in this app that is public and unauthenticated.
+//
+// BUY/HOLD/SELL are kept in the colour map only so notes shared BEFORE the
+// change still render their badge. targetPrice is deliberately not read at
+// all: those old values were invented, and a stale share link is not a reason
+// to keep publishing one.
+const STANCE_COLOR = {
+  CONSTRUCTIVE: 'text-terminal-green border-terminal-green/50',
+  BALANCED:     'text-terminal-gold border-terminal-gold/50',
+  CAUTIOUS:     'text-terminal-red border-terminal-red/50',
+  'UNDER REVIEW': 'text-terminal-text-dim border-terminal-border',
+  // Legacy share links.
   BUY:  'text-terminal-green border-terminal-green/50',
   HOLD: 'text-terminal-gold border-terminal-gold/50',
   SELL: 'text-terminal-red border-terminal-red/50',
-  'UNDER REVIEW': 'text-terminal-text-dim border-terminal-border',
 }
 
 // Public, read-only web view of a shared research note — reached via
@@ -34,17 +55,22 @@ export default function SharedResearchNotePage({ id }) {
           <>
             {(() => {
               const n = record.payload
-              const ratingCls = RATING_COLOR[n.rating] ?? RATING_COLOR['UNDER REVIEW']
+              const stance = n.stance ?? n.rating ?? 'UNDER REVIEW'
+              const stanceCls = STANCE_COLOR[stance] ?? STANCE_COLOR['UNDER REVIEW']
               return (
                 <>
                   <div className="text-2xl font-bold text-terminal-text-bright mb-1">{n.assetName}</div>
                   <div className="text-2xs text-terminal-text-dim mb-4">{n.assetSymbol} · shared {new Date(record.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
-                  <div className="flex items-center gap-4 mb-6">
-                    <span className={`text-lg font-bold border px-4 py-1.5 ${ratingCls}`}>{n.rating}</span>
-                    <div>
-                      <div className="text-terminal-gold font-bold">{n.targetPrice}</div>
-                      <div className="text-2xs text-terminal-text-dim">{n.timeHorizon} price target</div>
+                  <div className="flex items-start gap-4 mb-6">
+                    <span className={`text-lg font-bold border px-4 py-1.5 flex-shrink-0 ${stanceCls}`}>{stance}</span>
+                    <div className="min-w-0">
+                      {n.stanceRationale && (
+                        <div className="text-2xs text-terminal-text leading-relaxed">{n.stanceRationale}</div>
+                      )}
+                      {n.timeHorizon && (
+                        <div className="text-2xs text-terminal-text-dim mt-1">Horizon: {n.timeHorizon}</div>
+                      )}
                     </div>
                   </div>
 
