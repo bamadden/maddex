@@ -9,8 +9,8 @@ import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import { useSentiment } from '../../hooks/useSentiment'
-import WorkspaceSwitcher from './WorkspaceSwitcher'
 import Tooltip from '../ui/Tooltip'
+import { WORKSPACE_MODULE_LIST } from '../../config/workspaceModules'
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -252,6 +252,29 @@ function SentimentTick({ sentiment, status }) {
   )
 }
 
+// Names the module you are looking at, and nothing else.
+//
+// This replaced the workspace switcher pills. The pills were four preset
+// layouts competing for the most valuable strip in the app, and switching
+// between them was a thing people did roughly never; the module you are
+// currently in is a thing they want to know constantly. WorkspaceRenderer is
+// untouched and still drives split view — only the pills are gone.
+//
+// Deliberately inert: not a button, not a dropdown. A label.
+function ModuleCrumb() {
+  const { activeModule } = useStore()
+  const mod = WORKSPACE_MODULE_LIST.find((m) => m.id === activeModule)
+  if (!mod) return null
+  return (
+    <span className="flex items-center gap-2 min-w-0" aria-live="polite">
+      <span className="text-[11px] leading-none flex-shrink-0 opacity-60">{mod.icon}</span>
+      <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-terminal-muted whitespace-nowrap truncate">
+        {mod.label}
+      </span>
+    </span>
+  )
+}
+
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { user, supabaseOffline } = useAuthStore()
@@ -324,10 +347,10 @@ export default function TopBar() {
         </span>
       </div>
 
-      {/* CENTRE — workspace pills only. The grid's equal 1fr side columns keep
-          this centred regardless of how wide the right cluster gets. */}
+      {/* CENTRE — the current module's name. The grid's equal 1fr side columns
+          keep this centred regardless of how wide the right cluster gets. */}
       <div className="flex items-center justify-self-center min-w-0 overflow-hidden">
-        <WorkspaceSwitcher />
+        <ModuleCrumb />
       </div>
 
       {/* RIGHT — compact groups on one line. Dividers are interleaved between
