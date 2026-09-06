@@ -17,6 +17,7 @@ import { priceStream } from '../../services/priceStreamService'
 import { soundService } from '../../services/soundService'
 import { getAiPreferences, setAiPreference } from '../../services/aiPreferencesService'
 import { clearAllHistory, listConversations } from '../../services/aiHistoryService'
+import { getUsageSummary } from '../../services/aiUsageService'
 import { APP_VERSION } from '../layout/NavBar'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
@@ -1122,11 +1123,72 @@ function NotificationsSection() {
 
 // ─── MADDENAI ─────────────────────────────────────────────────────────────────
 
+// Is the API key configured, funded, and reachable?
+//
+// The distinction matters because the three failures look identical from the
+// app's side — MaddenAI simply does not answer — but the fixes are entirely
+// different: set a key, add credits, or check the network. Guessing between
+// them is what makes an AI feature feel broken rather than unconfigured.
+//
+// Costs one token to find out, which is the cheapest possible question.
+const CREDIT_STATES = {
+  active:      { label: 'ACTIVE',      colour: '#2D8A50', note: 'Key configured and funded.' },
+  no_key:      { label: 'NO API KEY',  colour: '#A83232', note: 'ANTHROPIC_API_KEY is not set on the server.' },
+  no_credits:  { label: 'NO CREDITS',  colour: '#C9A84C', note: 'The key works but the account has no balance.' },
+  rate_limit:  { label: 'RATE LIMITED', colour: '#C9A84C', note: 'Too many requests — this usually clears in a minute.' },
+  error:       { label: 'API ERROR',   colour: '#A83232', note: 'Could not reach the API.' },
+  checking:    { label: 'CHECKING…',   colour: '#637899', note: '' },
+  unknown:     { label: 'UNKNOWN',     colour: '#637899', note: 'Unexpected response shape.' },
+}
+
+async function checkCredits() {
+  try {
+    const r = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1,
+        stream: false,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+    })
+    const data = await r.json().catch(() => ({}))
+    const type = data?.error?.type ?? ''
+    const msg = String(data?.error?.message ?? '')
+
+    if (type === 'authentication_error' || /api key/i.test(msg)) return 'no_key'
+    if (/credit|billing|quota/i.test(msg)) return 'no_credits'
+    if (type === 'rate_limit_error' || r.status === 429) return 'rate_limit'
+    if (data?.content?.[0] || r.ok) return 'active'
+    if (data?.error) return 'error'
+    return 'unknown'
+  } catch {
+    return 'error'
+  }
+}
+
 function MaddenAISection() {
   const { profile, updateProfile } = useAuthStore()
   const [prefs, setPrefs] = useState(() => getAiPreferences())
   const [historyCount, setHistoryCount] = useState(() => listConversations().length)
   const [clearConfirm, setClearConfirm] = useState(false)
+  const [credits, setCredits] = useState('checking')
+  const [usage, setUsage] = useState(() => getUsageSummary())
+  const [cacheCleared, setCacheCleared] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    checkCredits().then((s) => { if (alive) setCredits(s) })
+    return () => { alive = false }
+  }, [])
+
+  const clearAiCache = () => {
+    const before = Object.keys(localStorage).filter((k) => k.startsWith('maddex_ai_content_')).length
+    aiContentService.clearCache()
+    setCacheCleared(before)
+    setTimeout(() => setCacheCleared(null), 4000)
+  }
 
   const setPref = (key, value) => setPrefs(setAiPreference(key, value))
 
@@ -1144,6 +1206,79 @@ function MaddenAISection() {
   return (
     <div className="space-y-5">
       <SectionLabel>MaddenAI</SectionLabel>
+
+      <div>
+        <div className="text-xs text-terminal-text-bright mb-1">API Status</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="flex items-center gap-1.5 font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm"
+            style={{
+              color: CREDIT_STATES[credits].colour,
+              border: `1px solid ${CREDIT_STATES[credits].colour}40`,
+              background: `${CREDIT_STATES[credits].colour}14`,
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: CREDIT_STATES[credits].colour }} />
+            {CREDIT_STATES[credits].label}
+          </span>
+          <button
+            onClick={() => { setCredits('checking'); checkCredits().then(setCredits) }}
+            className="btn-secondary btn-sm"
+          >CHECK NOW</button>
+          {(credits === 'no_credits' || credits === 'no_key') && (
+            <a
+              href="https://console.anthropic.com/settings/billing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-[9px] tracking-widest text-terminal-gold hover:underline"
+            >ADD CREDITS →</a>
+          )}
+        </div>
+        {CREDIT_STATES[credits].note && (
+          <div className="text-2xs text-terminal-text-dim mt-1.5">{CREDIT_STATES[credits].note}</div>
+        )}
+      </div>
+
+      <div>
+        <div className="text-xs text-terminal-text-bright mb-1">Usage — rough estimate</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">
+          Counts only what this browser sent. It cannot see other devices or anything else on the same key,
+          so treat it as a signal that something is looping, not as a bill.
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2">
+          {[
+            ['CALLS TODAY', usage.calls.toLocaleString()],
+            ['TOKENS TODAY', `~${usage.tokensToday.toLocaleString()}`],
+            ['OF WHICH CACHED', `~${usage.cachedToday.toLocaleString()}`],
+            ['EST. TODAY', `~A$${usage.costTodayAud.toFixed(2)}`],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <div className="font-mono text-[8px] tracking-widest text-terminal-text-dim">{label}</div>
+              <div className="font-mono text-xs text-terminal-text-bright tabular-nums">{value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="text-2xs text-terminal-text-dim mt-2">
+          {usage.daysTracked > 0
+            ? `At this rate: ~A$${usage.projectedMonthlyAud.toFixed(2)}/month, from ${usage.daysTracked} day${usage.daysTracked === 1 ? '' : 's'} of data.`
+            : 'No usage recorded yet.'}
+          <button onClick={() => setUsage(getUsageSummary())} className="ml-2 text-terminal-gold hover:underline">refresh</button>
+        </div>
+      </div>
+
+      <div>
+        <div className="text-xs text-terminal-text-bright mb-1">AI Content Cache</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">
+          Themes, risk narratives and the intel ticker are generated once a day and cached. Clearing forces
+          the next module load to regenerate them.
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={clearAiCache} className="btn-secondary btn-sm">CLEAR AI CACHE</button>
+          {cacheCleared != null && (
+            <span className="text-2xs text-terminal-green">Cleared {cacheCleared} cached item{cacheCleared === 1 ? '' : 's'}</span>
+          )}
+        </div>
+      </div>
 
       <div>
         <div className="text-xs text-terminal-text-bright">Analysis Depth</div>

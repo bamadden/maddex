@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
+import { recordUsage } from './aiUsageService'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
 
@@ -1588,6 +1589,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
     uncached:       inputTokens,
     output:         outputTokens,
   })
+  recordUsage({ inputTokens, outputTokens, cacheRead, cacheCreated })
   return { text: fullText, inputTokens, outputTokens, cacheRead, cacheCreated, elapsed }
 }
 
