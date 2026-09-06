@@ -1,5 +1,5 @@
 // Shared exchange list + solar-position helper — used by MaddexGlobe (the
-// canvas/d3 globe) and Globe3D (the Three.js globe) so both stay in sync on
+// canvas/d3 globe) and the deck.gl intel map so both stay in sync on
 // exchange locations and the day/night terminator maths. Lives in its own
 // data module rather than a component file so both can import it without
 // tripping the fast-refresh only-export-components rule (same reasoning as

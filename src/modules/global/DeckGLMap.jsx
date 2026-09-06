@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import DeckGL from '@deck.gl/react'
+import { MapView } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
-import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PathLayer, GeoJsonLayer } from '@deck.gl/layers'
+import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PathLayer, GeoJsonLayer, IconLayer } from '@deck.gl/layers'
 import { HeatmapLayer, HexagonLayer } from '@deck.gl/aggregation-layers'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -28,9 +29,12 @@ import { aiContentService } from '../../services/aiContentService'
 // service is not a style, so it gets wrapped in the minimal one that renders
 // it. Written as a helper because satellite and terrain differ only by URL.
 //
-// INTELLIGENCE renders no tiles at all, leaving our own layers on black.
-// That is both the most legible for dense data and the cheapest to draw, and
-// it is the only style guaranteed to work with no network at all.
+// INTEL is Carto's dark-matter with the label layer removed. It draws
+// coastlines and borders and nothing else — no place names, no roads, no
+// country fills competing with our own overlays. That is the most legible
+// basemap for dense data and the one this map defaults to: the labels on the
+// standard dark style are a second, unrelated typography fighting the
+// terminal's own, and at a glance they read as noise.
 const rasterStyle = (url, attribution) => ({
   version: 8,
   sources: {
@@ -51,14 +55,14 @@ const MAP_STYLES = {
     `${ESRI}/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}`,
     'Relief © Esri',
   ),
-  intel: null,
+  intel: 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
 }
 
 const STYLE_OPTIONS = [
   { id: 'dark',      label: 'DARK' },
   { id: 'satellite', label: 'SATELLITE' },
   { id: 'terrain',   label: 'TERRAIN' },
-  { id: 'intel',     label: 'INTELLIGENCE' },
+  { id: 'intel',     label: 'INTEL' },
 ]
 
 // ── Layer catalogue ───────────────────────────────────────────────────────
@@ -102,8 +106,69 @@ const EXCHANGE_COUNTRY = {
   'New Zealand': 'NZX',
 }
 
+// ── Exchange reticle icons ────────────────────────────────────────────────
+//
+// Markets render as targeting reticles rather than dots: two rings, a centre
+// pip and four crosshair ticks. Built as SVG data URLs and drawn through an
+// IconLayer.
+//
+// ONE THING THIS DELIBERATELY DOES NOT DO: animate inside the SVG. An
+// <animate> element works in an <img>, but deck.gl bakes each icon into a
+// texture atlas exactly once — the SVG is rasterised at load and the SMIL
+// timeline never runs. The pulse on an open market is therefore still drawn
+// by the separate ScatterplotLayer below, which is driven by React state and
+// actually moves. An animated SVG here would have looked correct in the
+// source and rendered as a still frame.
+//
+// Icons are cached by key: there are three variants (open-up, open-down,
+// closed) across every exchange, so the atlas holds three textures rather
+// than one per market.
+// A plain object, not a Map. `Map` in this module is react-map-gl's basemap
+// component, imported at the top — `new Map()` here resolves to that React
+// component and throws "Map is not a constructor" at first render. The build
+// compiles it happily; only running it surfaces the shadowing.
+const RETICLE_CACHE = Object.create(null)
+
+function reticleIcon(isOpen, positive) {
+  const key = `${isOpen ? 'o' : 'c'}${positive ? 'u' : 'd'}`
+  const cached = RETICLE_CACHE[key]
+  if (cached) return cached
+
+  const rgb = isOpen ? (positive ? '45,138,80' : '168,50,50') : '74,96,128'
+  const core = isOpen ? 1 : 0.5
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">`
+    + `<circle cx="24" cy="24" r="20" fill="none" stroke="rgba(${rgb},0.15)" stroke-width="1"/>`
+    + `<circle cx="24" cy="24" r="13" fill="none" stroke="rgba(${rgb},0.4)" stroke-width="1"/>`
+    + `<circle cx="24" cy="24" r="3" fill="rgba(${rgb},${core})"/>`
+    + `<line x1="24" y1="4" x2="24" y2="11" stroke="rgba(${rgb},0.6)" stroke-width="1"/>`
+    + `<line x1="24" y1="37" x2="24" y2="44" stroke="rgba(${rgb},0.6)" stroke-width="1"/>`
+    + `<line x1="4" y1="24" x2="11" y2="24" stroke="rgba(${rgb},0.6)" stroke-width="1"/>`
+    + `<line x1="37" y1="24" x2="44" y2="24" stroke="rgba(${rgb},0.6)" stroke-width="1"/>`
+    + `</svg>`
+
+  // encodeURIComponent, not btoa. btoa throws on any character outside
+  // Latin-1, and a future edit adding a degree sign or an arrow to this
+  // markup would break every marker on the map at runtime.
+  const icon = {
+    id: key,
+    url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+    width: 48,
+    height: 48,
+    anchorX: 24,
+    anchorY: 24,
+  }
+  RETICLE_CACHE[key] = icon
+  return icon
+}
+
 const DEFAULT_LAYERS = Object.fromEntries(LAYER_CATALOGUE.map((l) => [l.id, l.on]))
 const LAYERS_KEY = 'maddex_map_layers'
+
+// One instance, module scope. A `new MapView(...)` in the render body is a
+// different object on every pass, which deck.gl reads as a changed view and
+// answers by tearing down and rebuilding the viewport each frame.
+const MAP_VIEW = new MapView({ repeat: true })
 
 const AU_VIEW     = { longitude: 134.0, latitude: -25.0, zoom: 3.5, pitch: 45, bearing: 0 }
 const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, bearing: 0 }
@@ -196,6 +261,7 @@ function useIntelNarratives() {
 // higher number silently painting over the lower one.
 const Z = {
   ATMOSPHERE: 5,    // vignette + top fade, pointer-events: none
+  HUD: 6,           // scan line, reticles, coordinates, clock — all inert
   CHROME: 10,       // layer panel, seismic status
   PANEL: 20,        // selection detail panel
   CONTROL: 25,      // fullscreen toggle — must stay clickable above PANEL
@@ -222,7 +288,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   }, [])
   const [tooltip, setTooltip] = useState(null)
   const [selected, setSelected] = useState(null)
-  const [mapStyle, setMapStyle] = useState('dark')
+  const [mapStyle, setMapStyle] = useState('intel')
   const [quakes, setQuakes] = useState([])
   const [majorQuakes, setMajorQuakes] = useState([])
   const [quakeState, setQuakeState] = useState('loading')
@@ -468,7 +534,21 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
         getTargetColor: (d) => (d.disrupted ? [168, 50, 50, 40] : [...d.color, 40]),
         getWidth: (d) => d.thickness,
         getHeight: 0.4,
+        // greatCircle follows the sphere, which is both the truthful path for
+        // a shipping or capital route and what makes an arc crossing the
+        // antimeridian render as one continuous curve under MapView repeat
+        // rather than shearing across the frame.
         greatCircle: true,
+        // The default segment count visibly facets a long great-circle arc —
+        // Sydney to New York reads as a series of chords. 100 is smooth at
+        // every zoom this map reaches.
+        numSegments: 100,
+        // Arcs breathe with the same 100ms pulse clock the exchange rings
+        // use, so the view has one heartbeat rather than two competing ones.
+        // Amplitude is small on purpose: this should register as life in the
+        // display, not as data changing.
+        opacity: 0.78 + Math.sin(pulse / 9) * 0.14,
+        updateTriggers: { opacity: pulse },
         pickable: true,
         onHover: hover('trade'),
       }))
@@ -563,6 +643,35 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
 
     // ── Geopolitical ──────────────────────────────────────────────────────
     if (show('geopolitical')) {
+      // Threat radar on the severe events only.
+      //
+      // Three concentric rings, each expanding on its own phase offset, drawn
+      // beneath the event marker. Restricted to CRITICAL and HIGH: putting a
+      // pulsing halo on every geopolitical row would make a map of ten events
+      // look like a map of ten emergencies, which is the opposite of what a
+      // severity encoding is for.
+      const severe = geoRows.filter((d) => d.severity === 'CRITICAL' || d.severity === 'HIGH')
+      for (let ring = 0; ring < 3; ring++) {
+        // Each ring runs the same 0→1 sweep, offset by a third of the cycle.
+        const phase = ((pulse / 28) + ring / 3) % 1
+        all.push(new ScatterplotLayer({
+          id: `geo-threat-ring-${ring}`,
+          data: severe,
+          getPosition: (d) => [d.lon, d.lat],
+          getRadius: (d) => (d.severity === 'CRITICAL' ? 420000 : 280000) * (0.35 + phase * 0.65),
+          getFillColor: [0, 0, 0, 0],
+          getLineColor: (d) => [
+            ...(SEVERITY_COLOUR[d.severity] ?? [201, 168, 76]),
+            Math.round(150 * (1 - phase)),
+          ],
+          lineWidthMinPixels: 1,
+          stroked: true,
+          filled: false,
+          pickable: false,
+          updateTriggers: { getRadius: phase, getLineColor: phase },
+        }))
+      }
+
       all.push(new ScatterplotLayer({
         id: 'geo-events',
         data: geoRows,
@@ -624,15 +733,15 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       filled: true,
       updateTriggers: { getFillColor: pulseAlpha },
     }))
-    all.push(new ScatterplotLayer({
+    all.push(new IconLayer({
       id: 'exchanges',
       data: EXCHANGES,
       getPosition: (d) => [d.lon, d.lat],
-      getRadius: (d) => (isExchangeOpen(d) ? 38000 : 22000),
-      getFillColor: (d) => (isExchangeOpen(d) ? [45, 138, 80, 220] : [74, 96, 128, 160]),
-      getLineColor: (d) => (isExchangeOpen(d) ? [201, 168, 76, 255] : [74, 96, 128, 110]),
-      lineWidthMinPixels: 2,
-      stroked: true,
+      getIcon: (d) => reticleIcon(isExchangeOpen(d), d.change >= 0),
+      // Pixel-sized, not metres: a reticle is chrome and should stay legible
+      // at every zoom rather than growing into a disc when you zoom in.
+      sizeUnits: 'pixels',
+      getSize: (d) => (isExchangeOpen(d) ? 40 : 30),
       pickable: true,
       onHover: hover('exchange'),
       onClick: ({ object }) => {
@@ -671,7 +780,20 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
     }))
 
     return all
-  }, [layerOn, quakes, majorQuakes, auFocus, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries])
+  }, [layerOn, quakes, majorQuakes, auFocus, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries])
+
+  // What the status line reports. Every entry is read from actual state — the
+  // seismic fetch's own result, the narrative service's source field, whether
+  // the Natural Earth outlines resolved. A hardcoded "7 SOURCES ACTIVE" would
+  // be decoration that says 7 while a feed is down.
+  const feedStatus = useMemo(() => [
+    { label: 'USGS seismic',        ok: quakeState === 'ready' },
+    { label: 'Basemap tiles',       ok: Boolean(MAP_STYLES[mapStyle]) },
+    { label: 'Exchange sessions',   ok: true },
+    { label: 'Trade routes',        ok: TRADE_ROUTES.length > 0 },
+    { label: 'Intel narrative (AI)', ok: narrativeSource === 'live' || narrativeSource === 'cache' },
+    { label: 'Country outlines',    ok: Boolean(countries) },
+  ], [quakeState, mapStyle, narrativeSource, countries])
 
   const shell = fullscreen
     ? { position: 'fixed', inset: 0, zIndex: 9999 }
@@ -682,7 +804,28 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       <DeckGL
         viewState={viewState}
         onViewStateChange={({ viewState: vs }) => setViewState(vs)}
-        controller={{ dragRotate: true, touchRotate: true, keyboard: false, doubleClickZoom: true }}
+        // repeat: true tiles the world horizontally, so panning east past the
+        // antimeridian continues into another copy of the map instead of
+        // hitting a hard edge. Without it the world ends at 180° and half the
+        // Pacific — the half Australia trades across — sits against a wall.
+        views={MAP_VIEW}
+        controller={{
+          dragRotate: true,
+          touchRotate: true,
+          keyboard: false,
+          doubleClickZoom: true,
+          dragPan: true,
+          // Momentum after a drag. This is the part that makes the map feel
+          // like an instrument rather than a static image.
+          inertia: 300,
+          // scrollZoom is left at its default — deliberately not configured.
+          // Both { smooth: true, speed: 0.01 } and { smooth: false, speed:
+          // 0.02 } left zoom completely frozen: 25 wheel ticks, zoom 3.5
+          // throughout, measured in the browser. This map drives viewState as
+          // a controlled prop, and supplying a scrollZoom object appears to
+          // take a path that the controlled round-trip cancels. Omitting the
+          // key restores the working default, which is what shipped before.
+        }}
         layers={layers}
         getCursor={({ isHovering }) => (isHovering ? 'pointer' : 'grab')}
       >
@@ -713,6 +856,11 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
         background: 'linear-gradient(to bottom, rgba(6,13,26,0.55), transparent)' }} />
 
+      <HudFrame width={mapWidth ?? 0} />
+      {(mapWidth ?? 0) >= 420 && (
+        <CoordinateReadout viewState={viewState} offsetRight={selected ? panelWidth + 16 : 14} />
+      )}
+
       {tooltip && <MapTooltip tooltip={tooltip} />}
 
       <LayerPanel
@@ -740,7 +888,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
 
       {/* Seismic status. Reports the feed's real state rather than only
           rendering when data happens to have arrived. */}
-      <div style={{ position: 'absolute', bottom: 12, left: 12, zIndex: Z.CHROME,
+      <div style={{ position: 'absolute', bottom: 42, left: 12, zIndex: Z.CHROME,
         maxWidth: 'calc(100% - 24px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${quakeState === 'error' ? 'rgba(201,168,76,0.3)' : 'rgba(168,50,50,0.4)'}`,
         borderRadius: 3, padding: '4px 10px', fontFamily: '"IBM Plex Mono", monospace',
@@ -749,6 +897,147 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
           : quakeState === 'error' ? '⚠ SEISMIC FEED UNAVAILABLE'
           : `🌍 ${quakes.length} QUAKES / WEEK (M4.5+) · ${majorQuakes.length} MAJOR (M6+)`}
       </div>
+
+      <DataStatus sources={feedStatus} bottom={12} />
+    </div>
+  )
+}
+
+// ── HUD chrome ─────────────────────────────────────────────────────────────
+//
+// The overlays that make this read as an intelligence product rather than a
+// chart: a scan sweep, corner reticles, a coordinate readout, a classification
+// strip and a live clock. All of it is inert to the pointer — every one of
+// these sits above the deck.gl canvas, and a stray pointer-events default
+// would swallow clicks meant for an exchange marker.
+//
+// The clock is its own component on purpose. It ticks once a second, and if
+// that state lived on DeckGLMap the whole map — every layer, the useMemo that
+// rebuilds them — would re-render 60 times a minute for a changing string in
+// the corner. Isolated here, only these two lines repaint.
+function MissionClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div style={{
+      position: 'absolute', top: 16, right: 16, zIndex: Z.HUD,
+      pointerEvents: 'none', textAlign: 'right',
+      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+      letterSpacing: '0.15em', color: 'rgba(201,168,76,0.5)',
+      textShadow: '0 1px 3px rgba(6,13,26,0.9)',
+    }}>
+      <div>{now.toUTCString().slice(0, 25)}</div>
+      <div style={{ color: 'rgba(201,168,76,0.3)', marginTop: 2 }}>
+        UTC · {now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane' })} AEST
+      </div>
+    </div>
+  )
+}
+
+// Longitude is normalised before display. deck.gl lets the camera wrap past
+// ±180 when you keep panning east, so the raw value reaches 190°E and beyond —
+// a coordinate that is real to the renderer and wrong to a reader.
+const normaliseLon = (lon) => (((lon + 180) % 360) + 360) % 360 - 180
+
+// Bottom-RIGHT, not bottom-centre.
+//
+// Centred was the obvious placement and it does not survive contact with the
+// panel: the seismic bar and the data-status line occupy the bottom-left to
+// about 300px, and the map column is ~556px in the three-column layout, so a
+// centred readout lands directly on top of them — measured, the latitude and
+// longitude were behind the quake count and only "ZOOM 3.5" was legible. The
+// bottom-right corner is the one piece of this frame nothing else claims.
+function CoordinateReadout({ viewState, offsetRight }) {
+  const lat = viewState.latitude
+  const lon = normaliseLon(viewState.longitude)
+  return (
+    <div style={{
+      position: 'absolute', bottom: 14, right: offsetRight,
+      zIndex: Z.HUD, pointerEvents: 'none', whiteSpace: 'nowrap',
+      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+      letterSpacing: '0.2em', color: 'rgba(201,168,76,0.5)',
+      textShadow: '0 1px 3px rgba(6,13,26,0.9)',
+    }}>
+      {Math.abs(lat).toFixed(4)}°{lat >= 0 ? 'N' : 'S'}
+      {'  '}{Math.abs(lon).toFixed(4)}°{lon >= 0 ? 'E' : 'W'}
+      {'  '}· ZOOM {viewState.zoom.toFixed(1)}
+    </div>
+  )
+}
+
+function HudFrame({ width }) {
+  const corner = (pos) => ({
+    position: 'absolute', width: 28, height: 28, ...pos,
+  })
+  // 1px, not 2px, and pulled to inset 5. At inset 12 with a 2px stroke the
+  // brackets sat directly under the layer-panel toggle, the fullscreen button
+  // and the two status bars — three of the four were invisible and the fourth
+  // read as a stray mark. Outside that chrome they frame the view instead.
+  const gold = 'rgba(201,168,76,0.55)'
+  return (
+    <>
+      {/* Scan sweep */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: Z.HUD, overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', left: 0, right: 0, height: 2,
+          background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.15), rgba(201,168,76,0.3), rgba(201,168,76,0.15), transparent)',
+          animation: 'scanLine 8s linear infinite',
+        }} />
+      </div>
+
+      {/* Targeting corners */}
+      <div style={{ position: 'absolute', inset: 5, pointerEvents: 'none', zIndex: Z.HUD }}>
+        <div style={{ ...corner({ top: 0, left: 0 }),     borderTop: `1px solid ${gold}`,    borderLeft: `1px solid ${gold}` }} />
+        <div style={{ ...corner({ top: 0, right: 0 }),    borderTop: `1px solid ${gold}`,    borderRight: `1px solid ${gold}` }} />
+        <div style={{ ...corner({ bottom: 0, left: 0 }),  borderBottom: `1px solid ${gold}`, borderLeft: `1px solid ${gold}` }} />
+        <div style={{ ...corner({ bottom: 0, right: 0 }), borderBottom: `1px solid ${gold}`, borderRight: `1px solid ${gold}` }} />
+      </div>
+
+      {/* Classification strip. Hidden below 620px: the strip is centred and
+          the clock is right-aligned, and on the narrow three-column layout
+          they land on top of each other — two overlapping gold strings read
+          as a rendering fault, not as chrome. The clock is the one that
+          carries information, so it is the one that stays. */}
+      {width >= 620 && (
+        <div style={{
+          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+          zIndex: Z.HUD, pointerEvents: 'none', whiteSpace: 'nowrap',
+          fontFamily: '"IBM Plex Mono", monospace', fontSize: 8,
+          letterSpacing: '0.3em', color: 'rgba(201,168,76,0.35)',
+          textShadow: '0 1px 3px rgba(6,13,26,0.9)',
+        }}>
+          MADDEX INTELLIGENCE · UNCLASSIFIED
+        </div>
+      )}
+
+      <MissionClock />
+    </>
+  )
+}
+
+// Reports what is actually feeding the map right now, counted from the live
+// services rather than hardcoded — a "7 SOURCES ACTIVE" that says 7 whatever
+// happens is the same class of decoration as an invented figure.
+function DataStatus({ sources, bottom }) {
+  const active = sources.filter((s) => s.ok).length
+  const allOk = active === sources.length
+  const colour = active === 0 ? '#C86464' : allOk ? '#2D8A50' : '#C9A84C'
+  return (
+    <div
+      title={sources.map((s) => `${s.ok ? '●' : '○'} ${s.label}`).join('\n')}
+      style={{
+        position: 'absolute', bottom, left: 12, zIndex: Z.CHROME,
+        background: 'rgba(6,13,26,0.9)', border: `1px solid ${colour}44`,
+        borderRadius: 3, padding: '4px 10px', whiteSpace: 'nowrap',
+        fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+        letterSpacing: '0.1em', color: colour,
+      }}
+    >
+      ● {active === 0 ? 'NO LIVE SOURCES' : `LIVE DATA · ${active}/${sources.length} SOURCES ACTIVE`}
     </div>
   )
 }

@@ -22,8 +22,6 @@ import { aiContentService } from '../../services/aiContentService'
 // the user actually opens the Global module.
 const MaddexGlobe = lazy(() => import('../../components/globe/MaddexGlobe'))
 // Three.js globe is heavier still (three + @react-three/fiber/drei) — only
-// loaded once the user actually switches to the 3D view.
-const Globe3D = lazy(() => import('../../components/globe/Globe3D'))
 // Code-split: deck.gl + maplibre are a large bundle, only needed on this view.
 const DeckGLMap = lazy(() => import('./DeckGLMap'))
 
@@ -2547,14 +2545,14 @@ export default function GlobalModule() {
   // defaulting to it would have replaced a working globe with a black panel.
   // The map is one click away and fully functional for every data layer we
   // draw ourselves. Flip this to 'map' once tile loading is confirmed.
-  const [viewMode, setViewMode] = useState('classic')
+  const [viewMode, setViewMode] = useState('map')
 
   // Tells the TopBar which view is showing, so the breadcrumb can read
   // "GLOBAL · INTELLIGENCE MAP" rather than just "GLOBAL". An event rather
   // than shared state: the TopBar has no business reaching into this module,
   // and thirteen other modules should not have to opt out of a store field.
   useEffect(() => {
-    const label = { map: 'INTELLIGENCE MAP', classic: 'CLASSIC GLOBE', globe3d: 'IMMERSIVE 3D' }[viewMode]
+    const label = { map: 'INTELLIGENCE MAP', classic: 'CLASSIC GLOBE' }[viewMode]
     window.dispatchEvent(new CustomEvent('madden:subview', { detail: { module: 'global', label } }))
   }, [viewMode])
   const { watchlist } = useStore()
@@ -2699,7 +2697,7 @@ export default function GlobalModule() {
              detail panel and the classic globe's control pills — four
              things competing for one corner, and the highest z-index won. */
           <div className="flex items-center border border-terminal-border rounded-full overflow-hidden flex-shrink-0" role="group" aria-label="Globe view mode">
-            {[['map', 'INTEL MAP'], ['classic', 'CLASSIC'], ['globe3d', 'IMMERSIVE 3D']].map(([mode, label]) => (
+            {[['map', 'INTEL MAP'], ['classic', 'CLASSIC GLOBE']].map(([mode, label]) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
@@ -2755,12 +2753,17 @@ export default function GlobalModule() {
           {/* Globe */}
           <div className={`${mobilePanel === 'globe' ? 'block' : 'hidden'} lg:block`} style={{ flex:1, position:'relative', overflow:'hidden', minHeight:0 }}>
             <Suspense fallback={<Viz3DLoader />}>
-              {viewMode === 'map' ? (
-                <DeckGLMap onExchangeSelect={handleExchangeClick} watchlist={watchlist} />
-              ) : viewMode === 'globe3d' ? (
-                <Globe3D onExchangeClick={handleExchangeClick} />
-              ) : (
+              {/* Two views. The Immersive 3D globe was removed — the intel
+                  map is the primary view and the classic globe is the
+                  orientation view; a third that did neither job better than
+                  either was a toggle nobody had a reason to press.
+                  Anything not 'classic' falls through to the map, so a
+                  persisted 'globe3d' from an older session lands somewhere
+                  real instead of rendering nothing. */}
+              {viewMode === 'classic' ? (
                 <MaddexGlobe onCountryClick={handleCountryClick} onExchangeClick={handleExchangeClick} earthquakes={earthquakes} />
+              ) : (
+                <DeckGLMap onExchangeSelect={handleExchangeClick} watchlist={watchlist} />
               )}
             </Suspense>
           </div>
