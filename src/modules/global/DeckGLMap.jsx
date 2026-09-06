@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import DeckGL from '@deck.gl/react'
 import { Map } from 'react-map-gl/maplibre'
-import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PathLayer } from '@deck.gl/layers'
-import { HeatmapLayer } from '@deck.gl/aggregation-layers'
+import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PathLayer, GeoJsonLayer } from '@deck.gl/layers'
+import { HeatmapLayer, HexagonLayer } from '@deck.gl/aggregation-layers'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 import {
@@ -16,15 +16,94 @@ import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
-// CartoCDN's GL styles are free and need no API key. INTELLIGENCE is not a
-// basemap at all — it renders no tiles, leaving our own layers on black,
-// which is both the most legible for data and the cheapest to draw.
+//
+// Four styles, none of which needs an API key.
+//
+// SATELLITE is ESRI's World Imagery service. It is genuine satellite
+// photography, served free without registration, and it is the one style
+// that makes this look like a real intelligence product rather than a chart
+// with a map behind it.
+//
+// MapLibre takes either a style URL or a full style object; a raster tile
+// service is not a style, so it gets wrapped in the minimal one that renders
+// it. Written as a helper because satellite and terrain differ only by URL.
+//
+// INTELLIGENCE renders no tiles at all, leaving our own layers on black.
+// That is both the most legible for dense data and the cheapest to draw, and
+// it is the only style guaranteed to work with no network at all.
+const rasterStyle = (url, attribution) => ({
+  version: 8,
+  sources: {
+    base: { type: 'raster', tiles: [url], tileSize: 256, maxzoom: 19, attribution },
+  },
+  layers: [{ id: 'base', type: 'raster', source: 'base' }],
+})
+
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
+
 const MAP_STYLES = {
-  dark:    'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  minimal: 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
-  night:   'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
-  intel:   null,
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  satellite: rasterStyle(
+    `${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
+    'Imagery © Esri, Maxar, Earthstar Geographics',
+  ),
+  terrain: rasterStyle(
+    `${ESRI}/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}`,
+    'Relief © Esri',
+  ),
+  intel: null,
 }
+
+const STYLE_OPTIONS = [
+  { id: 'dark',      label: 'DARK' },
+  { id: 'satellite', label: 'SATELLITE' },
+  { id: 'terrain',   label: 'TERRAIN' },
+  { id: 'intel',     label: 'INTELLIGENCE' },
+]
+
+// ── Layer catalogue ───────────────────────────────────────────────────────
+// One entry per toggleable layer. `dot` is the colour the panel shows beside
+// the label, so the legend and the map cannot drift apart — the panel reads
+// this table rather than repeating the colours.
+const LAYER_CATALOGUE = [
+  { id: 'exchanges',    label: 'Exchange Markets',  dot: '#C9A84C', on: true },
+  { id: 'trade',        label: 'Trade Flows',       dot: '#4A9EDB', on: true },
+  { id: 'shipping',     label: 'Shipping Risk',     dot: '#C86464', on: false },
+  { id: 'commodities',  label: 'Commodity Sites',   dot: '#D9A441', on: false },
+  { id: 'seismic',      label: 'Seismic Activity',  dot: '#A83232', on: false },
+  { id: 'geopolitical', label: 'Geopolitical',      dot: '#FF6D00', on: false },
+  { id: 'cables',       label: 'Data Cables',       dot: '#4ADBD0', on: false },
+  { id: 'military',     label: 'Strategic Assets',  dot: '#8C8CFF', on: false },
+  { id: 'countries',    label: 'Market Performance', dot: '#2D8A50', on: false },
+  { id: 'marketcap',    label: 'Market Cap Columns', dot: '#C9A84C', on: false },
+  { id: 'density',      label: 'Economic Density',  dot: '#7BE495', on: false },
+  { id: 'citylights',   label: 'City Lights',       dot: '#FFE4B5', on: true },
+]
+
+// Natural Earth's NAME field for each country an exchange sits in. Written
+// out rather than matched fuzzily because these names have exact forms —
+// "United States of America", not "United States" — and a near-miss would
+// silently colour nothing.
+const EXCHANGE_COUNTRY = {
+  'Australia': 'ASX',
+  'United States of America': 'NYSE',
+  'United Kingdom': 'LSE',
+  'Japan': 'TSE',
+  'Hong Kong S.A.R.': 'HKEX',
+  'China': 'SSE',
+  'Singapore': 'SGX',
+  'Germany': 'FSE',
+  'India': 'BSE',
+  'Canada': 'TSX',
+  'Brazil': 'B3',
+  'South Korea': 'KRX',
+  'Switzerland': 'SIX',
+  'France': 'EPA',
+  'New Zealand': 'NZX',
+}
+
+const DEFAULT_LAYERS = Object.fromEntries(LAYER_CATALOGUE.map((l) => [l.id, l.on]))
+const LAYERS_KEY = 'maddex_map_layers'
 
 const AU_VIEW     = { longitude: 134.0, latitude: -25.0, zoom: 3.5, pitch: 45, bearing: 0 }
 const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, bearing: 0 }
@@ -39,6 +118,44 @@ const INITIAL_VIEW = AU_VIEW
 
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+// Country outlines from Natural Earth, fetched once and cached in memory.
+//
+// This is the one geographic source with no tile server, no key and no rate
+// limit behind it — which is why it is also the fallback that keeps the map
+// legible if a basemap ever fails again. 110m resolution is the small file
+// (~250KB); at the zooms this map uses, anything finer is wasted bytes.
+//
+// Fetched lazily, only when a layer that needs it is switched on, so the
+// common case of looking at trade arcs never pays for it.
+const NE_COUNTRIES_URL =
+  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson'
+
+let countriesPromise = null
+
+function loadCountries() {
+  if (!countriesPromise) {
+    countriesPromise = fetch(NE_COUNTRIES_URL)
+      .then((r) => { if (!r.ok) throw new Error(`Natural Earth HTTP ${r.status}`); return r.json() })
+      .catch((err) => {
+        console.warn('[DeckGLMap] country outlines unavailable:', err.message)
+        countriesPromise = null   // let a later toggle retry
+        return null
+      })
+  }
+  return countriesPromise
+}
+
+function useCountries(enabled) {
+  const [countries, setCountries] = useState(null)
+  useEffect(() => {
+    if (!enabled || countries) return
+    let alive = true
+    loadCountries().then((d) => { if (alive && d) setCountries(d) })
+    return () => { alive = false }
+  }, [enabled, countries])
+  return countries
+}
 
 // Refreshes the narrative on the shipping and geopolitical rows once a day
 // from MaddenAI. Structure (coordinates, radii, routes) is never touched —
@@ -87,7 +204,22 @@ const Z = {
 
 export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const [viewState, setViewState] = useState(INITIAL_VIEW)
-  const [activeLayer, setActiveLayer] = useState('all')
+  // Per-layer visibility, persisted: someone who turns off eight layers to
+  // study trade flows should not have to do it again next time.
+  const [layerOn, setLayerOn] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LAYERS_KEY) ?? 'null')
+      return saved ? { ...DEFAULT_LAYERS, ...saved } : DEFAULT_LAYERS
+    } catch { return DEFAULT_LAYERS }
+  })
+
+  const toggleLayer = useCallback((id) => {
+    setLayerOn((prev) => {
+      const next = { ...prev, [id]: !prev[id] }
+      try { localStorage.setItem(LAYERS_KEY, JSON.stringify(next)) } catch { /* best-effort */ }
+      return next
+    })
+  }, [])
   const [tooltip, setTooltip] = useState(null)
   const [selected, setSelected] = useState(null)
   const [mapStyle, setMapStyle] = useState('dark')
@@ -101,6 +233,10 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
   const wrapRef = useRef(null)
   const mapRef = useRef(null)
   const { shipping: shippingRows, geo: geoRows, source: narrativeSource } = useIntelNarratives()
+
+  // Country outlines drive both the market-performance fill and the density
+  // hexagons, so one fetch serves both.
+  const countries = useCountries(layerOn.countries || layerOn.density)
 
   // The overlays size themselves against the map, not the viewport: the map
   // is one of three columns, so a 1440px window can still leave it under
@@ -225,10 +361,86 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
 
   const layers = useMemo(() => {
     const all = []
-    const show = (id) => activeLayer === 'all' || activeLayer === id
+    const show = (id) => !!layerOn[id]
     const openExchanges = EXCHANGES.filter(isExchangeOpen)
 
-    if (mapStyle === 'night') {
+    // ── Country fills, coloured by that market's performance ─────────────
+    // Drawn first so everything else sits on top of it. Countries with no
+    // exchange stay near-black rather than being dropped: an absent country
+    // reads as missing land, which is worse than reading as "no data".
+    if (show('countries') && countries) {
+      all.push(new GeoJsonLayer({
+        id: 'country-performance',
+        data: countries,
+        stroked: true,
+        filled: true,
+        getFillColor: (f) => {
+          const ex = EXCHANGES.find((e) => e.id === EXCHANGE_COUNTRY[f.properties?.NAME])
+          if (!ex) return [10, 15, 26, 190]
+          // Saturation scales with the size of the move, capped at 2% so one
+          // outlier does not flatten every other country to the same shade.
+          const t = Math.min(Math.abs(ex.change) / 2, 1)
+          return ex.change >= 0
+            ? [20, 60 + t * 90, 40 + t * 45, 210]
+            : [60 + t * 110, 20, 30 + t * 20, 210]
+        },
+        getLineColor: [201, 168, 76, 55],
+        lineWidthMinPixels: 0.5,
+        pickable: true,
+        onHover: hover('country'),
+        updateTriggers: { getFillColor: [countries] },
+      }))
+    }
+
+    // ── Economic density ─────────────────────────────────────────────────
+    // Hexagons binned over major cities, weighted by population and extruded.
+    // The effect is a cityscape: economic concentration reads as skyline
+    // height rather than as another colour ramp competing with everything
+    // else on the map.
+    if (show('density')) {
+      all.push(new HexagonLayer({
+        id: 'economic-density',
+        data: MAJOR_CITIES,
+        getPosition: (d) => [d.lon, d.lat],
+        getElevationWeight: (d) => d.pop,
+        elevationAggregation: 'SUM',
+        radius: 220000,
+        elevationScale: 380,
+        extruded: true,
+        coverage: 0.82,
+        opacity: 0.42,
+        colorRange: [
+          [24, 60, 48], [34, 92, 68], [50, 128, 88],
+          [86, 168, 108], [130, 200, 134], [180, 228, 168],
+        ],
+        pickable: false,
+      }))
+    }
+
+    // ── Market cap columns ───────────────────────────────────────────────
+    // Height is the cube root of market cap, not the raw value. NYSE is over
+    // twenty times the ASX; drawn linearly it is a spike that dwarfs every
+    // other exchange into invisibility, which tells you one fact and hides
+    // fourteen.
+    if (show('marketcap')) {
+      all.push(new ColumnLayer({
+        id: 'marketcap-columns',
+        data: EXCHANGES,
+        diskResolution: 16,
+        radius: 95000,
+        extruded: true,
+        elevationScale: 1,
+        getPosition: (d) => [d.lon, d.lat],
+        getElevation: (d) => Math.cbrt(d.marketCap) * 900,
+        getFillColor: (d) => (d.change >= 0 ? [45, 138, 80, 205] : [168, 50, 50, 205]),
+        getLineColor: [201, 168, 76, 120],
+        pickable: true,
+        onHover: hover('exchange'),
+        onClick: ({ object }) => object && setSelected({ type: 'exchange', data: object }),
+      }))
+    }
+
+    if (show('citylights')) {
       all.push(new HeatmapLayer({
         id: 'city-lights',
         data: MAJOR_CITIES,
@@ -397,7 +609,9 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       }))
     }
 
-    // ── Exchanges — always on, they are the spine of the view ─────────────
+    // ── Exchanges — the spine of the view, but still toggleable ──────────
+    if (!show('exchanges')) return all
+
     all.push(new ScatterplotLayer({
       id: 'exchange-glow',
       data: openExchanges,
@@ -457,7 +671,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
     }))
 
     return all
-  }, [activeLayer, quakes, majorQuakes, mapStyle, auFocus, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows])
+  }, [layerOn, quakes, majorQuakes, auFocus, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries])
 
   const shell = fullscreen
     ? { position: 'fixed', inset: 0, zIndex: 9999 }
@@ -502,12 +716,11 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [] }) {
       {tooltip && <MapTooltip tooltip={tooltip} />}
 
       <LayerPanel
-        activeLayer={activeLayer} onLayerChange={setActiveLayer}
+        layerOn={layerOn} onToggleLayer={toggleLayer}
         mapStyle={mapStyle} onStyleChange={setMapStyle}
         auFocus={auFocus}
         onAuFocus={() => { setAuFocus((v) => !v); flyTo(AU_VIEW) }}
         onGlobal={() => { setAuFocus(false); flyTo(GLOBAL_VIEW) }}
-        mapWidth={fullscreen ? window.innerWidth : mapWidth}
       />
 
       {/* Fullscreen toggle */}
@@ -644,25 +857,6 @@ function MapTooltip({ tooltip }) {
   )
 }
 
-// ── Layer + view controls ──────────────────────────────────────────────────
-const LAYERS = [
-  { id: 'all',          label: '⊞ ALL LAYERS' },
-  { id: 'trade',        label: '⇄ TRADE FLOWS' },
-  { id: 'shipping',     label: '⚓ SHIPPING RISK' },
-  { id: 'commodities',  label: '⛏ COMMODITIES' },
-  { id: 'seismic',      label: '🌍 SEISMIC' },
-  { id: 'geopolitical', label: '⚔ GEOPOLITICAL' },
-  { id: 'cables',       label: '⌁ DATA CABLES' },
-  { id: 'military',     label: '✦ STRATEGIC' },
-]
-
-const STYLES = [
-  { id: 'dark', label: 'DARK' },
-  { id: 'minimal', label: 'MIN' },
-  { id: 'night', label: 'NIGHT' },
-  { id: 'intel', label: 'INTEL' },
-]
-
 const btn = (active) => ({
   background: active ? 'rgba(201,168,76,0.18)' : 'rgba(6,13,26,0.88)',
   border: `1px solid rgba(201,168,76,${active ? 0.6 : 0.12})`,
@@ -674,70 +868,133 @@ const btn = (active) => ({
   color: active ? '#C9A84C' : '#637899',
   cursor: 'pointer',
   textAlign: 'left',
-  backdropFilter: 'blur(8px)',
   whiteSpace: 'nowrap',
   transition: 'color .15s, border-color .15s, background-color .15s',
 })
 
-// The stack of layer buttons is 136px wide and 320px tall. Over a 1400px+
-// map that is a reasonable permanent fixture; over the ~560px map you get at
-// 1280px viewport width it occludes a quarter of the visible world. So below
-// `WIDE_MAP_PX` it starts collapsed behind a single button and opens on
-// demand — the controls stay one click away instead of always in the way.
-const WIDE_MAP_PX = 1400
+// ── Layer + view controls ──────────────────────────────────────────────────
+// ── Layer + view controls ──────────────────────────────────────────────────
+//
+// A tab on the left edge that expands into a 200px overlay panel.
+//
+// The previous version was a permanent stack of buttons 136px wide and 320px
+// tall, sitting over the map. On a wide screen that was tolerable; at 1280px
+// the map is about 560px across and the panel occluded a quarter of the
+// visible world at all times. A tab costs 22px and gives that back.
+//
+// It opens on the LEFT and stops at 200px so the centre of the map — where
+// the thing you are looking at usually is — stays clear.
+const PANEL_W = 200
 
-function LayerPanel({ activeLayer, onLayerChange, mapStyle, onStyleChange, auFocus, onAuFocus, onGlobal, mapWidth }) {
-  const wide = mapWidth == null || mapWidth >= WIDE_MAP_PX
-  const [open, setOpen] = useState(wide)
-
-  // Follow the breakpoint on resize, but only when it actually crosses it —
-  // re-running on every pixel would fight the user's own toggle.
-  const wasWide = useRef(wide)
-  useEffect(() => {
-    if (wide !== wasWide.current) { wasWide.current = wide; setOpen(wide) }
-  }, [wide])
-
-  const active = LAYERS.find((l) => l.id === activeLayer)
+function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, onAuFocus, onGlobal }) {
+  const [open, setOpen] = useState(false)
 
   return (
-    <div style={{ position: 'absolute', top: 12, left: 12, zIndex: Z.CHROME,
-      display: 'flex', flexDirection: 'column', gap: 3,
-      maxHeight: 'calc(100% - 90px)', overflowY: 'auto', overflowX: 'hidden' }}>
-      {!wide && (
+    <>
+      {/* Collapsed tab — always present, so the panel is never lost */}
+      {!open && (
         <button
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          title={open ? 'Hide layer controls' : 'Show layer controls'}
-          style={{ ...btn(open), display: 'flex', alignItems: 'center', gap: 6 }}
+          onClick={() => setOpen(true)}
+          aria-expanded={false}
+          title="Show intelligence layers"
+          style={{
+            position: 'absolute', top: 12, left: 0, zIndex: Z.CHROME,
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(6,13,26,0.9)',
+            border: '1px solid rgba(201,168,76,0.25)', borderLeft: 'none',
+            borderRadius: '0 3px 3px 0',
+            padding: '7px 9px',
+            fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+            letterSpacing: '0.14em', color: '#C9A84C', cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
         >
-          <span>{open ? '×' : '☰'}</span>
-          <span>{open ? 'LAYERS' : (active?.label ?? 'LAYERS')}</span>
+          <span style={{ fontSize: 11, lineHeight: 1 }}>⟨</span>
+          <span>LAYERS</span>
         </button>
       )}
 
       {open && (
-        <>
-          {LAYERS.map((l) => (
-            <button key={l.id} onClick={() => onLayerChange(l.id)} style={btn(activeLayer === l.id)}>
-              {l.label}
-            </button>
-          ))}
-
-          <div style={{ height: 1, background: 'rgba(201,168,76,0.1)', margin: '3px 0' }} />
-
-          <div style={{ display: 'flex', gap: 3 }}>
-            {STYLES.map((s) => (
-              <button key={s.id} onClick={() => onStyleChange(s.id)}
-                style={{ ...btn(mapStyle === s.id), flex: 1, padding: '5px 3px', fontSize: 8, textAlign: 'center' }}>
-                {s.label}
-              </button>
-            ))}
+        <div
+          style={{
+            position: 'absolute', top: 12, left: 12, zIndex: Z.CHROME,
+            width: PANEL_W, maxHeight: 'calc(100% - 84px)',
+            display: 'flex', flexDirection: 'column',
+            background: 'rgba(6,13,26,0.94)',
+            border: '1px solid rgba(201,168,76,0.28)', borderRadius: 3,
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+            animation: 'panelSlideIn .16s ease-out',
+          }}
+        >
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '7px 10px', borderBottom: '1px solid rgba(201,168,76,0.18)',
+            fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+            letterSpacing: '0.14em', color: '#C9A84C', flexShrink: 0,
+          }}>
+            <span>INTELLIGENCE LAYERS</span>
+            <button onClick={() => setOpen(false)} aria-label="Hide layers"
+              style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0 }}>✕</button>
           </div>
 
-          <button onClick={onAuFocus} style={btn(auFocus)}>🇦🇺 AU FOCUS</button>
-          <button onClick={onGlobal} style={btn(false)}>🌐 GLOBAL VIEW</button>
-        </>
+          <div className="thin-scrollbar" style={{ overflowY: 'auto', padding: '5px 0', minHeight: 0 }}>
+            {LAYER_CATALOGUE.map((l) => {
+              const on = !!layerOn[l.id]
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => onToggleLayer(l.id)}
+                  role="switch"
+                  aria-checked={on}
+                  className="map-layer-row"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: '5px 10px', background: 'none', border: 'none',
+                    cursor: 'pointer', textAlign: 'left',
+                    fontFamily: '"IBM Plex Mono", monospace', fontSize: 10,
+                    color: on ? '#E8EDF5' : '#637899',
+                  }}
+                >
+                  {/* Drawn rather than a native checkbox so it matches the
+                      terminal's square, unrounded language. */}
+                  <span style={{
+                    width: 11, height: 11, flexShrink: 0, borderRadius: 2,
+                    border: `1px solid ${on ? 'rgba(201,168,76,0.8)' : 'rgba(99,120,153,0.45)'}`,
+                    background: on ? 'rgba(201,168,76,0.85)' : 'transparent',
+                    color: '#060D1A', fontSize: 9, lineHeight: '9px', textAlign: 'center',
+                  }}>{on ? '✓' : ''}</span>
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.label}</span>
+                  {/* The legend reads its colour from the same table the map
+                      draws from, so the two cannot drift apart. */}
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                    background: l.dot, opacity: on ? 1 : 0.3,
+                  }} />
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', padding: '7px 10px', flexShrink: 0 }}>
+            <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.14em', color: '#4A6080', marginBottom: 5 }}>
+              MAP STYLE
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+              {STYLE_OPTIONS.map((st) => (
+                <button key={st.id} onClick={() => onStyleChange(st.id)}
+                  style={{ ...btn(mapStyle === st.id), padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>
+                  {st.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 3, marginTop: 5 }}>
+              <button onClick={onAuFocus} style={{ ...btn(auFocus), flex: 1, padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>🇦🇺 AU</button>
+              <button onClick={onGlobal} style={{ ...btn(false), flex: 1, padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>🌐 GLOBAL</button>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   )
 }
