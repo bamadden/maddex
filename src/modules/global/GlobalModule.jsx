@@ -16,6 +16,7 @@ import TabBar from '../../components/ui/TabBar'
 import VerifiedBadge, { LiveBadge } from '../../components/ui/VerifiedBadge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { aiContentService } from '../../services/aiContentService'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -2184,7 +2185,145 @@ function FeedHeader({ children, badge }) {
   )
 }
 
-function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
+// ─── Left panel building blocks ─────────────────────────────────────────────
+
+// Scrolling intelligence ticker.
+//
+// Duplicated content, translated by exactly -50%: the loop is seamless
+// because the second copy is in the first copy's place when the animation
+// resets. Animating a single copy pops back to the start visibly.
+//
+// Pauses on hover — a line you want to read should not walk away from you.
+function IntelTicker() {
+  const [lines, setLines] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    aiContentService.getIntelTicker().then(({ data }) => {
+      if (alive && Array.isArray(data) && data.length) setLines(data)
+    }).catch(() => { /* strip stays hidden */ })
+    return () => { alive = false }
+  }, [])
+
+  if (!lines) return null
+  const run = [...lines, ...lines]
+
+  return (
+    <div
+      className="intel-ticker flex-shrink-0 border-b border-terminal-border overflow-hidden"
+      style={{ height: 26, background: 'rgba(201,168,76,0.05)' }}
+    >
+      <div className="intel-ticker-track flex items-center h-full whitespace-nowrap">
+        {run.map((line, i) => (
+          <span key={i} className="text-[9px] font-mono text-terminal-gold/85 px-3 flex-shrink-0">
+            {line}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Section wrapper. Every section in this panel collapses, and which ones are
+// collapsed persists — the panel is 300px against a full-height map, so what
+// a given person wants visible varies more than any default can capture.
+function CollapsibleSection({ id, title, badge, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('maddex_intel_sections') ?? '{}')
+      return saved[id] ?? defaultOpen
+    } catch { return defaultOpen }
+  })
+
+  const toggle = () => {
+    setOpen((prev) => {
+      const next = !prev
+      try {
+        const saved = JSON.parse(localStorage.getItem('maddex_intel_sections') ?? '{}')
+        localStorage.setItem('maddex_intel_sections', JSON.stringify({ ...saved, [id]: next }))
+      } catch { /* best-effort */ }
+      return next
+    })
+  }
+
+  return (
+    <div className="flex-shrink-0 border-b border-terminal-border">
+      <button
+        onClick={toggle}
+        aria-expanded={open}
+        className="w-full panel-header flex items-center justify-between hover:bg-terminal-accent/15 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <span className="text-terminal-text-dim text-[8px]">{open ? '▾' : '▸'}</span>
+          {title}
+        </span>
+        {badge && <span className="text-[8px] font-normal normal-case tracking-normal">{badge}</span>}
+      </button>
+      {open && children}
+    </div>
+  )
+}
+
+// Which of the user's watched stocks are exposed to what is happening on the
+// map. Keyword-matched against the same disruption and geopolitical rows the
+// map draws, so the panel and the map are describing one world.
+const EXPOSURE_MAP = {
+  BHP: ['China demand', 'Iron ore'],
+  RIO: ['China demand', 'Iron ore'],
+  FMG: ['China demand', 'Iron ore'],
+  S32: ['China demand', 'Commodities'],
+  WDS: ['Red Sea', 'LNG pricing'],
+  STO: ['Oil price', 'Middle East'],
+  WTC: ['Taiwan Strait', 'Logistics'],
+  GNC: ['Ukraine', 'Wheat'],
+  QAN: ['Fuel cost', 'Air freight'],
+  CBA: ['RBA policy'],
+  NAB: ['RBA policy'],
+  ANZ: ['RBA policy'],
+  WBC: ['RBA policy'],
+}
+
+function PortfolioExposure({ watchlist }) {
+  const rows = useMemo(() => {
+    const syms = (watchlist ?? []).map((w) => String(w.symbol ?? w).replace('.AX', '').toUpperCase())
+    return syms
+      .map((sym) => ({ sym, tags: EXPOSURE_MAP[sym] }))
+      .filter((r) => r.tags)
+      .slice(0, 6)
+  }, [watchlist])
+
+  if (!watchlist?.length) {
+    return (
+      <div className="px-2 py-2 text-2xs text-terminal-text-dim/70">
+        Add stocks to see exposure analysis
+      </div>
+    )
+  }
+  if (!rows.length) {
+    return (
+      <div className="px-2 py-2 text-2xs text-terminal-text-dim/70">
+        No watched stocks map to current global events
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-2 py-1">
+      {rows.map((r) => (
+        <div key={r.sym} className="flex items-center justify-between py-1 gap-2">
+          <span className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-2xs text-terminal-text-bright font-semibold w-9">{r.sym}</span>
+            {/* One dot per exposure — a count reads faster than a list. */}
+            <span className="text-terminal-gold text-[9px] tracking-tight">{'●'.repeat(r.tags.length)}</span>
+          </span>
+          <span className="text-[9px] text-terminal-text-dim text-right truncate">{r.tags.join(', ')}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist }) {
   const { gold, source: goldSource, ageMins: goldAge } = useGoldPrice()
   const alerts = useMemo(() => {
     if (!newsItems?.length) return []
@@ -2202,8 +2341,9 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden hide-scrollbar">
-      <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader>MARKET STATUS</FeedHeader>
+      <IntelTicker />
+
+      <CollapsibleSection id="markets" title="MARKET STATUS">
         <div className="px-2 py-1">
           {feedExchanges.map(ex => {
             const st = getStatus(ex)
@@ -2226,10 +2366,9 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
             )
           })}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader>ACTIVE ALERTS</FeedHeader>
+      <CollapsibleSection id="alerts" title="ACTIVE INTELLIGENCE">
         <div className="px-2 py-1.5 flex flex-col gap-1.5">
           {alerts.length === 0 && (
             <div className="text-2xs text-terminal-text-dim/60 py-1">No active disruptions</div>
@@ -2246,10 +2385,13 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader badge={<VerifiedBadge dataKey="freight" alwaysShow />}>SHIPPING INDEX</FeedHeader>
+      <CollapsibleSection id="exposure" title="PORTFOLIO EXPOSURE">
+        <PortfolioExposure watchlist={watchlist} />
+      </CollapsibleSection>
+
+      <CollapsibleSection id="freight" title="FREIGHT" badge={<VerifiedBadge dataKey="freight" alwaysShow />}>
         <div className="px-2 py-1">
           {SHIPPING_INDEX.map((s) => (
             <div key={s.name} className="flex items-center justify-between py-1 gap-2">
@@ -2264,10 +2406,9 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader badge={<VerifiedBadge dataKey="commodities" alwaysShow />}>COMMODITY PULSE</FeedHeader>
+      <CollapsibleSection id="commodities" title="COMMODITIES" badge={<VerifiedBadge dataKey="commodities" alwaysShow />}>
         <div className="px-2 py-1">
           {gold && (
             <div className="flex items-center justify-between py-1">
@@ -2296,10 +2437,9 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="flex-shrink-0 border-b border-terminal-border">
-        <FeedHeader>CURRENCY CROSS</FeedHeader>
+      <CollapsibleSection id="fx" title="CURRENCY CROSS">
         <div className="px-2 py-1">
           {FX_CROSS_PAIRS.map(p => {
             const v = audRates?.[p.key]
@@ -2311,7 +2451,7 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange }) {
             )
           })}
         </div>
-      </div>
+      </CollapsibleSection>
 
       <div className="flex-shrink-0">
         <FeedHeader>GEO RISK INDEX</FeedHeader>
@@ -2586,7 +2726,7 @@ export default function GlobalModule() {
 
           {/* Left — live intelligence feed, 260px */}
           <div className={`${mobilePanel === 'feed' ? 'flex' : 'hidden'} lg:flex w-full lg:w-[300px] lg:min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border`}>
-            <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} />
+            <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} watchlist={watchlist} />
           </div>
 
           {/* Globe */}

@@ -795,3 +795,19 @@ body.ticker-paused .ticker-content {
 
 /* Layer toggle rows in the intel map panel. */
 .map-layer-row:hover { background: rgba(201, 168, 76, 0.1); }
+
+/* Intelligence ticker. The track holds two copies of the content and
+   translates by exactly -50%, so the loop point lands where the first copy
+   started and the seam is invisible. */
+@keyframes intel-ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.intel-ticker-track {
+  width: max-content;
+  animation: intel-ticker-scroll 70s linear infinite;
+}
+.intel-ticker:hover .intel-ticker-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .intel-ticker-track { animation: none; }
+}
