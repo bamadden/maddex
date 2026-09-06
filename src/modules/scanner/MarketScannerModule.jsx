@@ -7,8 +7,12 @@ import { fmt } from '../../utils/format'
 import TabBar from '../../components/ui/TabBar'
 import {
   scanBreakouts, scanOversold, scanOverbought, scanVolume, scanGaps,
-  getPatternCandidates, detectPattern,
+  scanMomentum, scanDivergence, getPatternCandidates, detectPattern,
 } from '../../services/scannerService'
+import {
+  loadScanSettings, saveScanSettings, applyScanFilters,
+  SCAN_UNIVERSES, MIN_VOLUME_OPTIONS, MIN_MCAP_OPTIONS, INTERVAL_OPTIONS,
+} from '../../services/scannerSettings'
 
 const TABS = [
   { key: 'breakouts',   label: 'BREAKOUTS' },
@@ -16,10 +20,9 @@ const TABS = [
   { key: 'overbought',  label: 'OVERBOUGHT' },
   { key: 'volume',      label: 'VOLUME' },
   { key: 'gaps',        label: 'GAPS' },
+  { key: 'momentum',    label: 'MOMENTUM' },
   { key: 'patterns',    label: 'PATTERNS' },
 ]
-
-const SCAN_INTERVAL_MS = 2 * 60_000
 
 function tickerOf(symbol) { return symbol.replace('.AX', '') }
 function priceStr(symbol, price) { return `${symbol.endsWith('.AX') ? 'A$' : 'US$'}${fmt.price(price)}` }
@@ -79,8 +82,8 @@ function analyseSignal(symbol, name, instruction) {
   dispatchAskAI({ ticker: symbol, name, instruction }, { rawPrompt: true })
 }
 
-function BreakoutsTab({ tick, scanTime }) {
-  const results = useMemo(() => scanBreakouts(tick), [tick])
+function BreakoutsTab({ tick, scanTime, settings }) {
+  const results = useMemo(() => applyScanFilters(scanBreakouts(tick), settings), [tick, settings])
   if (!results.length) return <EmptyState label="breakout" />
   return (
     <div>
@@ -118,9 +121,105 @@ function OversoldTab({ label, results, badge, badgeColor, verb, scanTime }) {
   )
 }
 
-function VolumeTab({ tick, scanTime }) {
-  const results = useMemo(() => scanVolume(tick), [tick])
-  if (!results.length) return <EmptyState label="unusual volume" />
+// settings arrives as a prop rather than being read from localStorage inside
+// the memo. Read internally with an empty dep array, this computed once at
+// mount and never again — changing the universe to ASX left US tickers on
+// screen, which is a filter that appears to work and does not.
+function DivergenceSection({ settings }) {
+  const rows = useMemo(() => applyScanFilters(scanDivergence(), settings), [settings])
+  if (!rows.length) return null
+  return (
+    <div className="border-t border-terminal-border">
+      <div className="px-3 py-2 flex items-baseline gap-2">
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest">PRICE / VOLUME DIVERGENCE</span>
+        <span className="text-[9px] text-terminal-text-dim">5-session price move against the change in participation</span>
+      </div>
+      {rows.map((r) => (
+        <div key={r.symbol} className="px-3 py-2 border-t border-terminal-border/30 flex items-start gap-3">
+          <span
+            className="text-2xs font-bold px-1.5 py-0.5 border flex-shrink-0"
+            style={r.kind === 'BULLISH DIV'
+              ? { color: '#2D8A50', borderColor: 'rgba(45,138,80,0.5)' }
+              : { color: '#C86464', borderColor: 'rgba(200,100,100,0.5)' }}
+          >{r.kind}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xs font-bold text-terminal-text-bright">{tickerOf(r.symbol)}</span>
+              <span className="text-2xs text-terminal-text-dim truncate">{r.name}</span>
+            </div>
+            <div className="text-2xs text-terminal-text-dim mt-0.5">{r.note}</div>
+          </div>
+          <div className="text-right flex-shrink-0 tabular-nums">
+            <div className="text-2xs" style={{ color: r.pricePct >= 0 ? '#2D8A50' : '#C86464' }}>
+              PRICE {r.pricePct >= 0 ? '+' : ''}{r.pricePct.toFixed(1)}%
+            </div>
+            <div className="text-2xs text-terminal-text-dim">
+              VOL {r.volPct >= 0 ? '+' : ''}{r.volPct.toFixed(0)}%
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MomentumTab({ settings }) {
+  const rows = useMemo(() => applyScanFilters(scanMomentum(), settings).slice(0, 20), [settings])
+  if (!rows.length) return <EmptyState label="momentum" />
+  // Brightness carries the strength of the score, so the top of the list is
+  // visibly the top rather than merely first.
+  const peak = Math.max(...rows.map((r) => Math.abs(r.score)), 1)
+  return (
+    <div>
+      <div className="px-3 py-2 text-[9px] text-terminal-text-dim">
+        Score is a weighted blend of the three windows — 50% of the 5-day move, 30% of the 10-day, 20% of the 20-day.
+      </div>
+      <table className="w-full text-2xs">
+        <thead>
+          <tr className="text-terminal-text-dim border-b border-terminal-border">
+            <th className="text-left font-normal px-3 py-1 w-8">#</th>
+            <th className="text-left font-normal py-1">TICKER</th>
+            <th className="text-right font-normal py-1">5D</th>
+            <th className="text-right font-normal py-1">10D</th>
+            <th className="text-right font-normal py-1">20D</th>
+            <th className="text-right font-normal py-1">SCORE</th>
+            <th className="text-right font-normal px-3 py-1">SIGNAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const intensity = Math.min(1, Math.abs(r.score) / peak)
+            const colour = r.score >= 0
+              ? `rgba(45,138,80,${0.45 + intensity * 0.55})`
+              : `rgba(200,100,100,${0.45 + intensity * 0.55})`
+            return (
+              <tr key={r.symbol} className="border-b border-terminal-border/30 hover:bg-terminal-accent/10">
+                <td className="px-3 py-1 text-terminal-text-dim tabular-nums">{i + 1}</td>
+                <td className="py-1">
+                  <span className="font-bold text-terminal-text-bright">{tickerOf(r.symbol)}</span>
+                  {r.sector && <span className="text-terminal-text-dim/60 ml-1.5">{r.sector}</span>}
+                </td>
+                {[r.d5, r.d10, r.d20].map((v, j) => (
+                  <td key={j} className="py-1 text-right tabular-nums" style={{ color: v >= 0 ? '#2D8A50' : '#C86464' }}>
+                    {v >= 0 ? '+' : ''}{v.toFixed(1)}%
+                  </td>
+                ))}
+                <td className="py-1 text-right tabular-nums font-bold" style={{ color: colour }}>
+                  {r.score >= 0 ? '+' : ''}{r.score.toFixed(1)}
+                </td>
+                <td className="px-3 py-1 text-right text-terminal-text-dim">{r.signal}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function VolumeTab({ tick, scanTime, settings }) {
+  const results = useMemo(() => applyScanFilters(scanVolume(tick), settings), [tick, settings])
+  if (!results.length) return <><EmptyState label="unusual volume" /><DivergenceSection settings={settings} /></>
   return (
     <div>
       {results.map((r) => (
@@ -134,12 +233,13 @@ function VolumeTab({ tick, scanTime }) {
             `${tickerOf(r.symbol)} volume is ${r.volumeRatio.toFixed(1)}x its average with price ${r.changePct >= 0 ? 'up' : 'down'} ${Math.abs(r.changePct).toFixed(2)}% today. What's the most likely explanation, and is this worth acting on?`)}
         />
       ))}
+      <DivergenceSection settings={settings} />
     </div>
   )
 }
 
-function GapsTab({ tick, scanTime }) {
-  const results = useMemo(() => scanGaps(tick), [tick])
+function GapsTab({ tick, scanTime, settings }) {
+  const results = useMemo(() => applyScanFilters(scanGaps(tick), settings), [tick, settings])
   if (!results.length) return <EmptyState label="gap" />
   return (
     <div>
@@ -250,12 +350,85 @@ function PatternsTab() {
   )
 }
 
+// ── Scan settings ──────────────────────────────────────────────────────────
+//
+// A dropdown rather than a modal: these are adjustments you make while looking
+// at results, and a modal would hide the thing you are adjusting.
+// Hoisted out of ScanSettings deliberately. Declared inside the parent's body
+// it is a new component type on every render, so React unmounts and remounts
+// the whole group each time — losing focus and any transient state, and
+// throwing away the DOM for no reason.
+function SettingGroup({ label, options, value, onPick }) {
+  return (
+    <div className="mb-2.5">
+      <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1">{label}</div>
+      <div className="flex flex-wrap gap-1">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            onClick={() => onPick(o.id)}
+            className={`text-2xs px-2 py-0.5 border transition-colors ${
+              value === o.id
+                ? 'bg-terminal-gold text-terminal-bg border-terminal-gold'
+                : 'text-terminal-text-dim border-terminal-border hover:text-terminal-gold'
+            }`}
+          >{o.label}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ScanSettings({ settings, onChange }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <span className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Scan settings"
+        aria-expanded={open}
+        className="text-terminal-text-dim hover:text-terminal-gold transition-colors px-1"
+      >⚙</button>
+
+      {open && (
+        <>
+          {/* Click-away layer. Cheaper and more reliable than a document
+              listener that has to be careful not to fire on the toggle. */}
+          <div className="fixed inset-0 z-[80]" onClick={() => setOpen(false)} />
+          <div
+            className="absolute right-0 top-full mt-1 z-[81] bg-terminal-panel border border-terminal-border p-3 text-left shadow-2xl"
+            style={{ width: 230 }}
+          >
+            <SettingGroup label="SCAN UNIVERSE" options={SCAN_UNIVERSES} value={settings.universe}
+              onPick={(v) => onChange({ ...settings, universe: v })} />
+            <SettingGroup label="MINIMUM VOLUME" options={MIN_VOLUME_OPTIONS} value={settings.minVolume}
+              onPick={(v) => onChange({ ...settings, minVolume: v })} />
+            <SettingGroup label="MINIMUM MARKET CAP" options={MIN_MCAP_OPTIONS} value={settings.minMarketCap}
+              onPick={(v) => onChange({ ...settings, minMarketCap: v })} />
+            <SettingGroup label="AUTO-SCAN INTERVAL" options={INTERVAL_OPTIONS} value={settings.intervalMs}
+              onPick={(v) => onChange({ ...settings, intervalMs: v })} />
+            <div className="text-[9px] text-terminal-text-dim/60 leading-snug pt-1 border-t border-terminal-border/50">
+              Filters apply to the tracked demo universe.
+            </div>
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
 export default function MarketScannerModule() {
   const [activeTab, setActiveTab] = useState('breakouts')
   const [tick, setTick] = useState(0)
   const [lastScanAt, setLastScanAt] = useState(() => Date.now())
   const [scanning, setScanning] = useState(false)
   const [, forceTick] = useState(0) // re-renders "Last scan: Xm ago" every 30s
+  const [settings, setSettings] = useState(loadScanSettings)
+
+  const updateSettings = useCallback((next) => {
+    setSettings(saveScanSettings(next))
+  }, [])
 
   const runScan = useCallback(() => {
     setScanning(true)
@@ -266,10 +439,12 @@ export default function MarketScannerModule() {
     }, 900)
   }, [])
 
+  // Interval comes from settings, so changing it takes effect immediately
+  // rather than at the next reload.
   useEffect(() => {
-    const id = setInterval(runScan, SCAN_INTERVAL_MS)
+    const id = setInterval(runScan, settings.intervalMs)
     return () => clearInterval(id)
-  }, [runScan])
+  }, [runScan, settings.intervalMs])
 
   useEffect(() => {
     const id = setInterval(() => forceTick((t) => t + 1), 30_000)
@@ -279,8 +454,8 @@ export default function MarketScannerModule() {
   // scanOversold/scanOverbought read real RSI off the shared (page-load-stable)
   // mock history, so they don't vary with `tick` — cheap enough to just call
   // directly rather than memoize.
-  const oversold = scanOversold()
-  const overbought = scanOverbought()
+  const oversold = applyScanFilters(scanOversold(), settings)
+  const overbought = applyScanFilters(scanOverbought(), settings)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -303,6 +478,7 @@ export default function MarketScannerModule() {
               disabled={scanning}
               className="text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
             >RESCAN</button>
+            <ScanSettings settings={settings} onChange={updateSettings} />
           </span>
         }
       />
@@ -310,11 +486,12 @@ export default function MarketScannerModule() {
       <TabBar tabs={TABS} activeKey={activeTab} onChange={setActiveTab} className="overflow-x-auto" />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} />}
+        {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
         {activeTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-blue-bright/50 text-terminal-blue-bright" verb="oversold" scanTime={lastScanAt} />}
         {activeTab === 'overbought' && <OversoldTab label="overbought" results={overbought} badge="OVERBOUGHT" badgeColor="border-terminal-red/50 text-terminal-red" verb="overbought" scanTime={lastScanAt} />}
-        {activeTab === 'volume'     && <VolumeTab tick={tick} scanTime={lastScanAt} />}
-        {activeTab === 'gaps'       && <GapsTab tick={tick} scanTime={lastScanAt} />}
+        {activeTab === 'volume'     && <VolumeTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {activeTab === 'gaps'       && <GapsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {activeTab === 'momentum'   && <MomentumTab settings={settings} />}
         {activeTab === 'patterns'   && <PatternsTab />}
       </div>
     </div>

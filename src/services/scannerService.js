@@ -18,6 +18,13 @@ function mulberry32(seed) {
   }
 }
 
+// Symbol -> sector, for the context line on a breakout card. Both mock
+// universes carry a sector field already.
+const SECTOR_OF = Object.fromEntries([
+  ...Object.entries(MOCK_ASX_STOCKS).map(([k, v]) => [k, v.sector]),
+  ...Object.entries(MOCK_US_STOCKS).map(([k, v]) => [k, v.sector]),
+])
+
 export const SCAN_UNIVERSE = [
   ...Object.keys(MOCK_ASX_STOCKS),
   ...Object.keys(MOCK_US_STOCKS),
@@ -103,6 +110,17 @@ export function scanBreakouts(tick = 0) {
       const volumeRatio = 1.5 + rng() * 2.5
       const hist = getMockFMPHistory(symbol, 30)
       const closes = hist.map((h) => h.close)
+
+      // Days spent consolidating before the break: how far back you can go
+      // before the series leaves a tight band around its own recent mean. A
+      // breakout out of three weeks of range is a different event from one
+      // out of two days, and the count is the cheapest way to say which.
+      const recentMean = closes.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, closes.slice(-10).length)
+      let consolidationDays = 0
+      for (let i = closes.length - 2; i >= 0; i--) {
+        if (Math.abs(closes[i] - recentMean) / recentMean > 0.06) break
+        consolidationDays++
+      }
       const ma20 = closes.length >= 20
         ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20
         : null
@@ -125,7 +143,14 @@ export function scanBreakouts(tick = 0) {
           ? `Breaking above 20-day average, +${aboveMaPct.toFixed(1)}% extended`
           : 'Above recent resistance'
 
-      results.push({ ...row, volumeRatio, aboveMaPct, rangePct, descriptor })
+      results.push({
+        ...row, volumeRatio, aboveMaPct, rangePct, descriptor, consolidationDays,
+        // Volume confirmation is the difference between a breakout and a
+        // drift. Stated as a plain boolean plus the multiple, so the card
+        // can say 'confirmed' rather than leaving the reader to judge.
+        volumeConfirmed: volumeRatio >= 1.8,
+        sector: SECTOR_OF[symbol] ?? null,
+      })
     }
   }
   return results.sort((a, b) => b.volumeRatio - a.volumeRatio)
@@ -171,6 +196,91 @@ export function scanGaps(tick = 0) {
     }
   }
   return results.sort((a, b) => Math.abs(b.gapPct) - Math.abs(a.gapPct))
+}
+
+// ── Momentum ───────────────────────────────────────────────────────────────
+//
+// Ranks the universe by price momentum over three lookbacks, blended into one
+// score. Returns over 5, 10 and 20 sessions are all relative measures — a
+// percentage change of the series against itself — so nothing here is an
+// absolute level and none of it needs a real price to be meaningful.
+//
+// The weighting (50/30/20 toward the shortest window) is a choice, not a
+// standard: it makes the ranking responsive to this week rather than to a
+// move that finished a fortnight ago. It is stated on the panel so the reader
+// knows what they are sorting by.
+const MOMENTUM_WEIGHTS = { d5: 0.5, d10: 0.3, d20: 0.2 }
+
+const changeOver = (closes, days) => {
+  if (closes.length <= days) return null
+  const then = closes[closes.length - 1 - days]
+  const now = closes[closes.length - 1]
+  return then > 0 ? ((now - then) / then) * 100 : null
+}
+
+export function scanMomentum() {
+  const rows = []
+  for (const symbol of SCAN_UNIVERSE) {
+    const row = baseRow(symbol)
+    if (!row) continue
+    const closes = getMockFMPHistory(symbol, 40).map((h) => h.close)
+    const d5 = changeOver(closes, 5)
+    const d10 = changeOver(closes, 10)
+    const d20 = changeOver(closes, 20)
+    if (d5 == null || d10 == null || d20 == null) continue
+
+    const score = d5 * MOMENTUM_WEIGHTS.d5 + d10 * MOMENTUM_WEIGHTS.d10 + d20 * MOMENTUM_WEIGHTS.d20
+
+    // The signal describes agreement between the windows, which is the part
+    // worth knowing: three positive windows is a trend, one positive and two
+    // negative is a bounce inside a downtrend.
+    const positives = [d5, d10, d20].filter((v) => v > 0).length
+    const signal = positives === 3 ? 'STRONG UPTREND'
+      : positives === 0 ? 'STRONG DOWNTREND'
+      : d5 > 0 ? 'TURNING UP'
+      : 'TURNING DOWN'
+
+    rows.push({ ...row, d5, d10, d20, score, signal, sector: SECTOR_OF[symbol] ?? null })
+  }
+  return rows.sort((a, b) => b.score - a.score)
+}
+
+// ── Price / volume divergence ──────────────────────────────────────────────
+//
+// Price and participation moving apart. Price up on falling volume is a rally
+// fewer people are joining; price down on rising volume is selling that is
+// gathering rather than exhausting. Both are relative comparisons of a series
+// against its own recent average, so again no absolute level is involved.
+export function scanDivergence() {
+  const rows = []
+  for (const symbol of SCAN_UNIVERSE) {
+    const row = baseRow(symbol)
+    if (!row) continue
+    const hist = getMockFMPHistory(symbol, 20)
+    if (hist.length < 12) continue
+
+    const closes = hist.map((h) => h.close)
+    const vols = hist.map((h) => h.volume ?? 0)
+    if (vols.every((v) => !v)) continue
+
+    const pricePct = changeOver(closes, 5)
+    const recentVol = vols.slice(-5).reduce((a, b) => a + b, 0) / 5
+    const priorVol = vols.slice(-12, -5).reduce((a, b) => a + b, 0) / 7
+    if (pricePct == null || !priorVol) continue
+    const volPct = ((recentVol - priorVol) / priorVol) * 100
+
+    // A threshold on both axes, so a flat week does not read as divergence.
+    if (Math.abs(pricePct) < 1.5 || Math.abs(volPct) < 12) continue
+
+    if (pricePct > 0 && volPct < 0) {
+      rows.push({ ...row, kind: 'BEARISH DIV', pricePct, volPct,
+        note: 'Price rising while participation falls — the move is being driven by fewer hands.' })
+    } else if (pricePct < 0 && volPct > 0) {
+      rows.push({ ...row, kind: 'BULLISH DIV', pricePct, volPct,
+        note: 'Price falling on rising volume — selling is gathering, which often precedes capitulation or a base.' })
+    }
+  }
+  return rows.sort((a, b) => Math.abs(b.volPct) - Math.abs(a.volPct))
 }
 
 // ── AI-powered pattern detection ────────────────────────────────────────────
