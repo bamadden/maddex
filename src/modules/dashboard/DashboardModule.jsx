@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
+import DashboardStatusBar from './DashboardStatusBar'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { useContainerWidth } from '../../hooks/useContainerWidth'
@@ -128,6 +129,8 @@ export default function DashboardModule() {
 
       {showPicker && <DashboardControls layout={layout} onChange={() => {}} />}
 
+      <DashboardStatusBar />
+
       {editing && (
         <div
           className="flex-shrink-0 font-mono"
@@ -136,7 +139,9 @@ export default function DashboardModule() {
             background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.1)',
           }}
         >
-          Click + to add a widget · Click ✕ to remove · ⌘E or Esc when finished
+          <span className="text-terminal-gold font-bold tracking-widest">▣ EDITING DASHBOARD</span>
+          <span className="mx-2 opacity-40">·</span>
+          Drag to rearrange · + to add · ✕ to remove · ⌘E or Esc when finished
         </div>
       )}
 

@@ -1167,3 +1167,19 @@ input.cmd-input:focus,
     rgba(201, 168, 76, 0.1) 60%,
     transparent 100%);
 }
+
+
+/* ── Dashboard edit mode ──────────────────────────────────────────────────
+   In edit mode the user is arranging boxes, not reading them. Dimming the
+   unhovered cells makes the one under the cursor the only thing at full
+   contrast, so "which cell am I about to drag" is answered before the drag
+   starts. 0.55 rather than the more common 0.4: the widget still has to be
+   identifiable by its content, since that is how you know which one it is. */
+.dash-editing .dash-cell {
+  opacity: 0.55;
+  transition: opacity 0.15s ease, outline-color 0.15s ease;
+}
+.dash-editing .dash-cell:hover {
+  opacity: 1;
+  outline-color: rgba(201, 168, 76, 0.65) !important;
+}

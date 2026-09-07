@@ -113,12 +113,15 @@ export default function MarketScoreWidget() {
         <div className="min-w-0 flex-1">
           <div
             className="font-mono tabular-nums leading-none"
-            style={{ fontSize: 26, color: band?.colour ?? '#8BA3C4' }}
+            // 28px and 600 weight. The score is the single number this widget
+            // exists to deliver; at 26 regular it was competing with the
+            // index levels two cells down rather than leading them.
+            style={{ fontSize: 28, fontWeight: 600, color: band?.colour ?? '#8BA3C4' }}
           >
             {score ?? '·'}
           </div>
           <div
-            className="font-mono text-[9px] mt-1 truncate"
+            className="font-mono text-[11px] mt-1 truncate font-semibold"
             style={{ color: '#8BA3C4', letterSpacing: '0.08em' }}
           >
             {(sentiment?.label ?? (status === 'loading' ? 'Analysing…' : '—')).toUpperCase()}

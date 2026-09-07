@@ -16,6 +16,7 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
 
   return (
     <div
+      className="dash-cell"
       draggable={editMode}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
@@ -219,6 +220,7 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
   return (
     <div
       ref={gridRef}
+      className={editMode ? 'dash-editing' : undefined}
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,

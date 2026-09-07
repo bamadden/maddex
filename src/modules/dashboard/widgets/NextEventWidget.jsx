@@ -38,8 +38,14 @@ function Segment({ value, unit }) {
   )
 }
 
-const Colon = () => (
-  <span className="font-mono" style={{ fontSize: 14, color: '#2B3A50', marginTop: -6 }}>:</span>
+const Sep = () => (
+  // A gold dot, not a colon. A colon between countdown segments reads as a
+  // clock face — a time of day — which is the one thing this is not. A dot
+  // separates without asserting.
+  <span
+    className="rounded-full flex-shrink-0"
+    style={{ width: 3, height: 3, background: 'rgba(201,168,76,0.45)', marginTop: -4 }}
+  />
 )
 
 export default function NextEventWidget() {
@@ -81,11 +87,11 @@ export default function NextEventWidget() {
     <WidgetBody>
       <div className="flex items-center gap-1">
         <Segment value={d} unit="DAY" />
-        <Colon />
+        <Sep />
         <Segment value={h} unit="HR" />
-        <Colon />
+        <Sep />
         <Segment value={m} unit="MIN" />
-        <Colon />
+        <Sep />
         <Segment value={sec} unit="SEC" />
       </div>
 
