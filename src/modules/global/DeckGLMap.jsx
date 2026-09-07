@@ -62,7 +62,7 @@ const STYLE_OPTIONS = [
   { id: 'dark',      label: 'DARK' },
   { id: 'satellite', label: 'SATELLITE' },
   { id: 'terrain',   label: 'TERRAIN' },
-  { id: 'intel',     label: 'INTEL' },
+  { id: 'intel',     label: 'INTEL (NO LABELS)' },
 ]
 
 // ── Layer catalogue ───────────────────────────────────────────────────────
@@ -81,7 +81,10 @@ const LAYER_CATALOGUE = [
   { id: 'countries',    label: 'Market Performance', dot: '#2D8A50', on: false },
   { id: 'marketcap',    label: 'Market Cap Columns', dot: '#C9A84C', on: false },
   { id: 'density',      label: 'Economic Density',  dot: '#7BE495', on: false },
-  { id: 'citylights',   label: 'City Lights',       dot: '#FFE4B5', on: true },
+  // Off by default with everything except exchanges and trade flows. The
+  // opening frame should be a map, arcs and reticles — three things — rather
+  // than every overlay at once competing for the same pixels.
+  { id: 'citylights',   label: 'City Lights',       dot: '#FFE4B5', on: false },
 ]
 
 // Natural Earth's NAME field for each country an exchange sits in. Written
@@ -173,13 +176,22 @@ const MAP_VIEW = new MapView({ repeat: true })
 const AU_VIEW     = { longitude: 134.0, latitude: -25.0, zoom: 3.5, pitch: 45, bearing: 0 }
 const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, bearing: 0 }
 
-// Opens on Australia. This is an Australian investor's terminal, so the
-// home frame is the one they care about; GLOBAL VIEW in the layer panel is
-// one click away for the world.
+// The opening frame is Asia-Pacific, not Australia.
 //
-// Note this is the camera only — auFocus stays false, so all global trade
-// routes still draw. It is a starting position, not a filter.
-const INITIAL_VIEW = AU_VIEW
+// AU_VIEW at zoom 3.5 put Australia edge to edge, and a continent filling the
+// screen on a dark basemap is a large flat shape — the arcs left frame, the
+// other exchange reticles were off-screen entirely, and the first impression
+// of an intelligence map was an empty landmass. The module was showing its
+// least interesting possible view.
+//
+// Zoom 2.5 at 130E/15S keeps Australia prominent while bringing Tokyo, Seoul,
+// Hong Kong, Shanghai and Singapore into frame with it, so the trade arcs have
+// visible endpoints at both ends and several reticles pulse at once. Same data,
+// same layers — the camera was the whole problem.
+//
+// This is the camera only: auFocus stays false, so global routes still draw.
+// AU FOCUS still flies to the close-up, GLOBAL VIEW still pulls out.
+const INITIAL_VIEW = { longitude: 130.0, latitude: -15.0, zoom: 2.5, pitch: 35, bearing: 0 }
 
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
@@ -299,7 +311,15 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   }, [])
   const [tooltip, setTooltip] = useState(null)
   const [selected, setSelected] = useState(null)
-  const [mapStyle, setMapStyle] = useState('intel')
+  // 'dark', not 'intel'.
+  //
+  // The intel style is dark-matter-nolabels: coastlines and borders and
+  // nothing else. That is genuinely the most legible ground for dense overlays
+  // and it stays one click away — but as a DEFAULT it reads as a map that
+  // failed to load, because there is no place name anywhere to confirm it did.
+  // dark-matter proper carries borders, coastlines and city labels, so the
+  // first frame is recognisably a map.
+  const [mapStyle, setMapStyle] = useState('dark')
   const [quakes, setQuakes] = useState([])
   const [majorQuakes, setMajorQuakes] = useState([])
   const [quakeState, setQuakeState] = useState('loading')
