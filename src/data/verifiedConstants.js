@@ -94,7 +94,71 @@ export const VERIFIED_CONSTANTS = {
     source: 'riksbank.se', asOf: '2026-06-25', lastVerified: '2026-09-06',
   },
 
-  // ── Australian economy ────────────────────────────────────────────────────
+    // ── Central bank and government office holders ──────────────────────────
+  //
+  // WHY THIS IS HERE AND NOT IN THE MODEL'S HEAD.
+  //
+  // Asked in September 2026 who chairs the Fed, a model trained earlier answers
+  // "Jerome Powell" with complete confidence. It is wrong: Kevin Warsh was
+  // confirmed on 13 May 2026 and sworn in on 22 May. That is the whole problem
+  // with recalled facts about people — an appointment changes on a single day,
+  // the old answer stays fluent and plausible, and nothing on screen signals
+  // the error.
+  //
+  // Every entry below was verified against a primary or major source on the
+  // lastVerified date. termEnds is recorded ONLY where a source stated it.
+  //
+  // TO UPDATE: change the name, set `since`, and set lastVerified to today.
+  // These reach MaddenAI through the per-turn context, not the cached system
+  // prompt, so an edit here takes effect on the very next message.
+  centralBankOfficials: {
+    fed: {
+      role: 'Chair of the Federal Reserve',
+      name: 'Kevin Warsh',
+      since: '2026-05-22',
+      termEnds: '2030-05-21',
+      note: 'Confirmed 13 May 2026, succeeded Jerome Powell',
+      source: 'federalreserve.gov',
+      lastVerified: '2026-09-07',
+    },
+    rba: {
+      role: 'Governor of the Reserve Bank of Australia',
+      name: 'Michele Bullock',
+      since: '2023-09-18',
+      // Seven-year term. Note: not 2028 — RBA governors serve seven years,
+      // and 2023 + 7 is 2030.
+      termEnds: '2030-09-17',
+      source: 'rba.gov.au',
+      lastVerified: '2026-09-07',
+    },
+    ecb: {
+      role: 'President of the European Central Bank',
+      name: 'Christine Lagarde',
+      since: '2019-11-01',
+      // Derived from the fixed eight-year non-renewable term rather than
+      // quoted from a source, so it is marked as such.
+      termEnds: '2027-10-31',
+      termEndsDerived: true,
+      source: 'ecb.europa.eu',
+      lastVerified: '2026-09-07',
+    },
+    boe: {
+      role: 'Governor of the Bank of England',
+      name: 'Andrew Bailey',
+      since: '2020-03-16',
+      termEnds: '2028-03-15',
+      source: 'bankofengland.co.uk',
+      lastVerified: '2026-09-07',
+    },
+    au: {
+      treasurer: 'Jim Chalmers',
+      primeMinister: 'Anthony Albanese',
+      source: 'pm.gov.au / treasury.gov.au',
+      lastVerified: '2026-09-07',
+    },
+  },
+
+// ── Australian economy ────────────────────────────────────────────────────
   au: {
     cpi: 3.8,
     cpiPeriod: 'Jun 2026 quarter',
@@ -290,6 +354,21 @@ export function verifiedFactsForAI() {
     if (au.unemployment != null) lines.push(`AU unemployment ${au.unemployment}% (${au.unemploymentPeriod})`)
     if (au.gdpAnnual != null) lines.push(`AU GDP ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`)
   }
+  // Office holders. Same principle as the rates: verified by a person, dated,
+  // and sent per turn so an appointment change lands on the next message rather
+  // than waiting for a cached prompt to expire.
+  const o = VERIFIED_CONSTANTS.centralBankOfficials
+  if (o) {
+    const who = []
+    if (o.fed?.name) who.push(`${o.fed.role}: ${o.fed.name} (since ${o.fed.since})`)
+    if (o.rba?.name) who.push(`${o.rba.role}: ${o.rba.name} (since ${o.rba.since})`)
+    if (o.ecb?.name) who.push(`${o.ecb.role}: ${o.ecb.name}`)
+    if (o.boe?.name) who.push(`${o.boe.role}: ${o.boe.name}`)
+    if (o.au?.treasurer) who.push(`Australian Treasurer: ${o.au.treasurer}`)
+    if (o.au?.primeMinister) who.push(`Australian Prime Minister: ${o.au.primeMinister}`)
+    if (who.length) lines.push(`Office holders — ${who.join('; ')}`)
+  }
+
   if (!lines.length) return ''
 
   const verified = [rba?.lastVerified, fed?.lastVerified, au?.lastVerified].filter(Boolean).sort()[0]
