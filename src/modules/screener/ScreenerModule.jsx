@@ -304,6 +304,17 @@ function Range52Bar({ pos }) {
   )
 }
 
+// One metric in a card's 2x2 block. Label above value, because the label is
+// the thing you scan past and the value is the thing you stop on.
+function Metric({ label, value, tone }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-2xs text-terminal-text-dim/50 tracking-wider" style={{ fontSize: 8 }}>{label}</div>
+      <div className="font-mono font-semibold tabular-nums truncate" style={{ fontSize: 12, color: tone ?? '#E8EDF5' }}>{value}</div>
+    </div>
+  )
+}
+
 function SectorPill({ sector }) {
   if (!sector) return <span className="text-terminal-text-dim/50">—</span>
   const c = sectorColour(sector)
@@ -527,6 +538,16 @@ export default function ScreenerModule() {
   const [saveNameInput, setSaveNameInput] = useState('')
   const [showSavedList, setShowSavedList] = useState(false)
   const [quickKeys, setQuickKeys] = useState([])
+  // Persisted: a reader who prefers cards prefers them tomorrow too, and the
+  // choice is about how someone reads rather than about this particular screen.
+  const [view, setView] = useState(() => {
+    try { return localStorage.getItem('maddex_screener_view') === 'cards' ? 'cards' : 'table' }
+    catch { return 'table' }
+  })
+  const setViewPersist = (v) => {
+    setView(v)
+    try { localStorage.setItem('maddex_screener_view', v) } catch { /* quota */ }
+  }
 
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS)
 
@@ -906,6 +927,21 @@ export default function ScreenerModule() {
                 title="Download these results as CSV"
                 className="flex-shrink-0 text-2xs px-2.5 py-1 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors font-bold"
               >⤓ EXPORT CSV</button>
+              {/* TABLE is the default because a screener's job is comparison,
+                  and a table is the only layout where the eye can run down one
+                  column. CARDS is for reading a shortlist once it is short. */}
+              <div className="flex items-center border border-terminal-border rounded-sm overflow-hidden flex-shrink-0">
+                {[['table', 'TABLE'], ['cards', 'CARDS']].map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => setViewPersist(id)}
+                    aria-pressed={view === id}
+                    className={`text-2xs font-bold tracking-wider px-2.5 py-1 transition-colors ${
+                      view === id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+                    }`}
+                  >{label}</button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -929,6 +965,48 @@ export default function ScreenerModule() {
                 onClick={askAIToInterpret}
                 className="mt-1 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
               >ASK MADDENAI</button>
+            </div>
+          ) : view === 'cards' ? (
+            <div className="grid gap-2 p-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+              {results.map((s2) => {
+                const up = (s2.changePct ?? 0) >= 0
+                const cur = s2.exchange === 'ASX' ? 'A$' : 'US$'
+                return (
+                  <div
+                    key={s2.symbol}
+                    onClick={() => openModal?.({ symbol: s2.symbol, name: s2.name, price: s2.price, pct: s2.changePct, type: 'stock' })}
+                    className="group cursor-pointer transition-colors"
+                    style={{ background: '#0B1628', border: '1px solid rgba(201,168,76,0.12)', padding: 16, borderRadius: 2 }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <SectorPill sector={s2.sector} />
+                      {s2.matchPct != null && (
+                        <span className="text-2xs font-bold tabular-nums text-terminal-gold flex-shrink-0">{s2.matchPct}%</span>
+                      )}
+                    </div>
+                    <div className="font-mono font-bold text-terminal-gold mt-2" style={{ fontSize: 16 }}>
+                      {String(s2.symbol).replace(/\.AX$/i, '')}
+                    </div>
+                    <div className="text-2xs text-terminal-text-dim truncate">{s2.name}</div>
+                    <div className="my-2" style={{ height: 1, background: 'rgba(201,168,76,0.1)' }} />
+                    {/* 2x2 rather than a list: price against change and PE
+                        against yield are the two comparisons anyone makes, and
+                        pairing them puts each beside its own counterpart. */}
+                    <div className="grid grid-cols-2 gap-y-1.5 gap-x-2">
+                      <Metric label="PRICE" value={`${cur}${s2.price?.toFixed(2) ?? '—'}`} />
+                      <Metric label="CHANGE" value={s2.changePct != null ? `${up ? '+' : ''}${s2.changePct.toFixed(2)}%` : '—'}
+                        tone={s2.changePct == null ? undefined : up ? '#2D8A50' : '#A83232'} />
+                      <Metric label="P/E" value={s2.pe > 0 ? s2.pe.toFixed(1) : '—'} />
+                      <Metric label="YIELD" value={s2.divYield > 0 ? `${s2.divYield.toFixed(1)}%` : '—'} />
+                    </div>
+                    {s2.matchPct != null && (
+                      <div className="mt-3" style={{ height: 3, background: 'rgba(201,168,76,0.12)' }}>
+                        <div style={{ width: `${s2.matchPct}%`, height: '100%', background: '#C9A84C' }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <table className="table-zebra w-full text-2xs">
