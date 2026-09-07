@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { memo, useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
 import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockData'
@@ -611,7 +611,17 @@ function StoryCluster({ cluster, ...rowProps }) {
   )
 }
 
-function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI }) {
+// Memoised because the feed re-renders every second.
+//
+// NewsModule keeps a one-second clock so relative timestamps stay honest
+// ("3m ago"). That tick re-rendered all ~73 rows every second, each one
+// re-running its ticker-badge and asset lookups, for a change that affects at
+// most a handful of them.
+//
+// This only bites because the three handlers below are already useCallback —
+// a memo whose props are rebuilt every render is pure overhead, so it is worth
+// stating that the stability is load-bearing rather than incidental.
+const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   const asset       = useMemo(() => (isExpanded ? resolveStoryAsset(item) : null), [item, isExpanded])
@@ -700,7 +710,7 @@ function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicke
       )}
     </div>
   )
-}
+})
 
 // ─── SPONSORED DATA row — visual break inserted every 4th feed row, showing
 // the mini sparkline for one of the app's tracked market-impact assets. ────

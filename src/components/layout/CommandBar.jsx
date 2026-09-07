@@ -790,7 +790,7 @@ export default function CommandBar() {
     setActiveModule, pushCmdHistory, cmdHistory,
     setChatOpen, addChatMessage, updateLastChatMessage,
     addToWatchlist,
-    openModal, closeModal,
+    openModal,
     setNewsFilter,
     alerts, addAlert,
   } = useStore()
