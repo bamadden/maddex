@@ -6,6 +6,7 @@ import { useSubscription } from '../../hooks/useSubscription'
 import { useProfile } from '../../hooks/useProfile'
 import { useTheme, THEMES, ACCENTS } from '../../hooks/useTheme'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { getQuietHours, setQuietHours } from '../../services/notificationPolicy'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry } from '../../lib/profileUtils'
@@ -1143,6 +1144,7 @@ function ShortcutsSection() {
 
 function NotificationsSection() {
   const { settings, updateSettings } = useAuthStore()
+  const [quiet, setQuiet] = useState(() => getQuietHours())
   const [vals, setVals] = useState({
     price_alerts_enabled: settings?.price_alerts_enabled ?? true,
     market_alerts_enabled: settings?.market_alerts_enabled ?? true,
@@ -1178,6 +1180,20 @@ function NotificationsSection() {
           <Toggle value={vals[key]} onChange={() => toggle(key)} disabled={saving === key} />
         </FieldRow>
       ))}
+      {/* Quiet hours. Pinned to Australian time rather than the browser's: the
+          notifications are about an Australian market, and a user in Singapore
+          watching the ASX wants Sydney's night, not their own — silencing on a
+          foreign clock would mute the market open. */}
+      <FieldRow
+        label="Quiet Hours"
+        note={`No sounds or pop-ups between ${quiet.from}:00 and ${quiet.to}:00 AEST — notifications still collect in the bell. Price alerts still appear, silently.`}
+      >
+        <Toggle
+          value={quiet.enabled}
+          onChange={() => setQuiet(setQuietHours({ enabled: !quiet.enabled }))}
+        />
+      </FieldRow>
+
       <FieldRow label="Sound Effects" note="Subtle tones for alerts, AI responses, and actions — off by default">
         <div className="flex items-center gap-2">
           <button

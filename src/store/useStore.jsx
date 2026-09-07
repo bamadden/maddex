@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
+import { treatmentFor, recordHistory } from '../services/notificationPolicy'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
 import { notificationRateLimiter } from '../services/notificationRateLimiter'
 
@@ -158,7 +159,17 @@ export function StoreProvider({ children }) {
   // wrap the call. Returns null when the notification was dropped.
   const addNotification = useCallback((type, message) => {
     if (!notificationRateLimiter.canShow(type)) return null
-    const notification = { id: Date.now() + Math.random(), type, message, read: false, createdAt: new Date().toISOString() }
+    // Treatment is attached at creation, so every consumer — toast, sound,
+    // bell — reads one decision rather than each re-deciding. See
+    // notificationPolicy.js: nothing is suppressed, but only CRITICAL may
+    // interrupt, and quiet hours take the sound off even that.
+    const treatment = treatmentFor(type)
+    const notification = {
+      id: Date.now() + Math.random(), type, message, read: false,
+      createdAt: new Date().toISOString(),
+      priority: treatment.priority, toast: treatment.toast, sound: treatment.sound,
+    }
+    recordHistory(notification)
     setNotifications((prev) => {
       const next = [notification, ...prev].slice(0, 20)
       try { localStorage.setItem('madden_notifications', JSON.stringify(next)) } catch {

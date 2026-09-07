@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
@@ -10,8 +10,12 @@ import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import AlertsModule from '../../modules/alerts/AlertsModule'
 import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
+import {
+  getHistory, groupHistoryByDay, removeHistory, clearHistory,
+  shouldSendDigest, markDigestSent, buildDigest, inQuietHours,
+} from '../../services/notificationPolicy'
 
-const TYPE_ICON  = { PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
+const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
 // Icon-circle background per type — gold for price/alert-family, blue for
 // earnings/calendar, green for news, muted for system.
 const TYPE_CIRCLE = {
@@ -22,9 +26,23 @@ const TYPE_CIRCLE = {
   CALENDAR: 'bg-terminal-blue-bright/15 text-terminal-blue-bright',
   NEWS: 'bg-terminal-green/15 text-terminal-green',
   WATCHLIST_MOVE: 'bg-terminal-green/15 text-terminal-green',
+  DAILY_DIGEST: 'bg-terminal-blue-bright/15 text-terminal-blue-bright',
   SYSTEM: 'bg-terminal-muted/15 text-terminal-muted',
 }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', EARNINGS_RESULT: 'EARNINGS RESULT' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', DAILY_DIGEST: 'DAILY DIGEST', EARNINGS_RESULT: 'EARNINGS RESULT' }
+// Summary wording when several of a type arrive together. "3 price alerts
+// triggered" is the headline; the individual messages are one click away.
+const TYPE_SUMMARY = {
+  PRICE_ALERT: (n) => `${n} price alerts triggered`,
+  CUSTOM_ALERT: (n) => `${n} alerts triggered`,
+  WATCHLIST_MOVE: (n) => `${n} watchlist stocks are moving`,
+  NEWS: (n) => `${n} stories worth a look`,
+  CALENDAR: (n) => `${n} earnings reminders`,
+}
+const summaryFor = (type, n) => (TYPE_SUMMARY[type] ?? ((c) => `${c} ${TYPE_LABEL[type] ?? type} notifications`))(n)
+
+const TOAST_MS = 6000
+const TOAST_MAX_MS = 14000
 
 function timeAgo(iso) {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -164,6 +182,12 @@ export default function NotificationCenter() {
   const seenToastIds  = useRef(null)
   const seenNewsIds   = useRef(new Set())
   const alertedMoversToday = useRef(new Set())
+  // Set while the pointer is over the toast stack or a group is expanded — the
+  // sweeper skips those ticks so a toast never vanishes mid-read.
+  const toastHold = useRef(false)
+  // Queued between arrival and the next sweeper tick (≤250ms).
+  const pendingToasts = useRef([])
+  const [expandedToast, setExpandedToast] = useState(null)
 
   if (seenToastIds.current === null) {
     // Don't toast whatever was already in localStorage on first mount.
@@ -177,6 +201,22 @@ export default function NotificationCenter() {
   // happened' are the same question asked a moment apart.
   const [pane, setPane] = useState('feed')
 
+  // Seven days of notifications, read from storage rather than from the store
+  // — the bell only keeps the last 20. Recomputed rather than held in state so
+  // there is no second copy to fall out of date; historyBump is what a
+  // deletion nudges, since removing a row does not change `notifications`.
+  const [historyBump, setHistoryBump] = useState(0)
+  const history = useMemo(() => {
+    void notifications; void historyBump   // both are inputs: re-read on either
+    return open && pane === 'history' ? getHistory() : []
+  }, [open, pane, notifications, historyBump])
+  const historyGroups = useMemo(() => groupHistoryByDay(history), [history])
+
+  const dropHistory = useCallback((ids) => {
+    removeHistory(ids)
+    setHistoryBump((b) => b + 1)
+  }, [])
+
   // Close dropdown on outside click.
   useEffect(() => {
     if (!open) return
@@ -185,14 +225,87 @@ export default function NotificationCenter() {
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  // Toast any notification (from anywhere in the app) we haven't shown yet.
+  // Toast any notification (from anywhere in the app) we haven't shown yet —
+  // if its priority earns an interrupt. See notificationPolicy.js: MEDIUM and
+  // LOW land in the bell silently, and quiet hours demote HIGH to the same.
+  //
+  // This walks EVERY unseen notification rather than just notifications[0].
+  // The alert checker fires all its hits inside one loop, React batches those
+  // into a single render, and the old version — which only ever looked at the
+  // head of the list — showed one toast and silently dropped the rest. That is
+  // also precisely the case grouping exists for, so the bug hid the feature.
   useEffect(() => {
-    const latest = notifications[0]
-    if (!latest || seenToastIds.current.has(latest.id)) return
-    seenToastIds.current.add(latest.id)
-    setToasts((prev) => [...prev, latest])
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== latest.id)), 6000)
+    const fresh = []
+    // Oldest first, so a group reads in the order things actually happened.
+    for (let i = notifications.length - 1; i >= 0; i--) {
+      const n = notifications[i]
+      if (seenToastIds.current.has(n.id)) continue
+      seenToastIds.current.add(n.id)
+      if (!(n.toast ?? true)) continue
+      fresh.push(n)
+    }
+    if (!fresh.length) return
+
+    // A grouped card holds more to read than a single line, so it gets longer
+    // on screen — six seconds is right for "BHP hit your target" and much too
+    // short for a summary you are meant to consider expanding.
+    const perType = {}
+    for (const n of fresh) perType[n.type] = (perType[n.type] ?? 0) + 1
+    const now = Date.now()
+    pendingToasts.current.push(...fresh.map((n) => ({
+      ...n,
+      expiresAt: now + Math.min(TOAST_MS + (perType[n.type] - 1) * 1500, TOAST_MAX_MS),
+    })))
   }, [notifications])
+
+  // One sweeper owns the whole toast queue: it admits what the effect above
+  // queued and retires what has expired. Both halves run in the timer callback
+  // rather than in an effect body, so a burst of notifications produces one
+  // state update instead of a cascade — and "hold while the user is reading"
+  // is a single flag rather than a pile of timer ids to chase, which is what
+  // expanding a group needs.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const incoming = pendingToasts.current
+      if (toastHold.current && incoming.length === 0) return
+      pendingToasts.current = []
+      setToasts((prev) => {
+        const now = Date.now()
+        const kept = toastHold.current ? prev : prev.filter((t) => t.expiresAt > now)
+        if (incoming.length === 0 && kept.length === prev.length) return prev
+        return [...kept, ...incoming]
+      })
+    }, 250)
+    return () => clearInterval(id)
+  }, [])
+
+  // Coming off a hold, give everything a moment rather than letting the whole
+  // stack disappear the instant the pointer leaves.
+  const releaseHold = useCallback(() => {
+    toastHold.current = false
+    setToasts((prev) => prev.map((t) => ({ ...t, expiresAt: Math.max(t.expiresAt, Date.now() + 2500) })))
+  }, [])
+
+  // Toasts grouped by type, in the order each type first appeared.
+  const toastGroups = useMemo(() => {
+    const order = []
+    const byType = new Map()
+    for (const t of toasts) {
+      if (!byType.has(t.type)) { byType.set(t.type, []); order.push(t.type) }
+      byType.get(t.type).push(t)
+    }
+    return order.map((type) => ({ type, items: byType.get(type) }))
+  }, [toasts])
+
+  const dismissGroup = useCallback((type) => {
+    setToasts((prev) => prev.filter((t) => t.type !== type))
+    // Dismissing the expanded group must also drop the hold, or the sweeper
+    // stays paused and every later toast sits on screen forever.
+    setExpandedToast((cur) => {
+      if (cur === type) toastHold.current = false
+      return cur === type ? null : cur
+    })
+  }, [])
 
   // ── PRICE ALERT — poll watchlist-style quotes for any active alert ─────────
   // Alerts created via the CommandBar's ALERT {sym} {price} text command have
@@ -299,8 +412,9 @@ export default function NotificationCenter() {
         const { data } = await fetchIndexQuotesUnified(['^AXJO'])
         const pct = data?.['^AXJO']?.pct
         const pctText = pct != null ? ` — ${pct >= 0 ? 'up' : 'down'} ${Math.abs(pct).toFixed(2)}%` : ''
-        addNotification('MARKET_OPEN', `ASX 200 has opened${pctText}`)
-        soundService.marketOpen()
+        // The sound follows the notification's own treatment rather than
+        // firing unconditionally — quiet hours mean quiet.
+        if (addNotification('MARKET_OPEN', `ASX 200 has opened${pctText}`)?.sound) soundService.marketOpen()
         localStorage.setItem(key, '1')
       } catch {
         // Try again next minute — key is only set on success
@@ -368,10 +482,10 @@ export default function NotificationCenter() {
       const newsHeadlines = articles.map((a) => a.headline).filter(Boolean)
       const results = checkAlerts(engineAlerts, { symbols: watchlist, newsHeadlines })
       for (const { alert, message } of results) {
-        addNotification('CUSTOM_ALERT', message)
+        const n = addNotification('CUSTOM_ALERT', message)
         markTriggered(alert.id)
         logActivity('alert', message)
-        soundService.priceAlert()
+        if (n?.sound) soundService.priceAlert()
       }
     }
     check()
@@ -399,6 +513,33 @@ export default function NotificationCenter() {
     return () => clearInterval(id)
   }, [watchlist, addNotification])
 
+  // ── DAILY DIGEST — one summary per market day, after 4:30pm AEST ──────────
+  //
+  // Composed from the notification history this app actually recorded today
+  // plus the live ASX 200 close, so every clause in it is a count of something
+  // that happened rather than a written-up view of the day. shouldSendDigest
+  // owns the once-per-day guard; it is checked on mount and on the same 60s
+  // tick as everything else, so both "opens the app at 9pm" and "leaves it
+  // open through the close" get exactly one.
+  useEffect(() => {
+    const check = async () => {
+      if (!shouldSendDigest()) return
+      let close = null
+      try {
+        const { data } = await fetchIndexQuotesUnified(['^AXJO'])
+        close = data?.['^AXJO'] ?? null
+      } catch {
+        // Digest still goes out — it just leads with the counts instead of
+        // the close, rather than not arriving at all.
+      }
+      markDigestSent()
+      addNotification('DAILY_DIGEST', buildDigest({ close }).message)
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [addNotification])
+
   // The AI EARNINGS ANALYST poll that sat here is gone.
   //
   // It called simulateEarningsResult, which produced a beat or a miss from
@@ -413,7 +554,14 @@ export default function NotificationCenter() {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          const next = !open
+          setOpen(next)
+          // Opening the inbox retires the toasts. They occupy the same corner
+          // as the dropdown, and a preview of a notification has nothing to
+          // add once you are looking at the notification itself.
+          if (next) { setToasts([]); setExpandedToast(null); toastHold.current = false }
+        }}
         className="relative flex items-center justify-center w-6 h-7 text-terminal-text-dim hover:text-terminal-gold transition-colors"
         title="Notifications"
       >
@@ -429,7 +577,7 @@ export default function NotificationCenter() {
       {open && (
         <div className="absolute top-full mt-1 right-0 bg-terminal-panel border border-terminal-border shadow-2xl z-[90]" style={{ width: 320 }}>
           <div className="flex items-center border-b border-terminal-border">
-            {[['feed', 'NOTIFICATIONS'], ['alerts', `ALERTS${alerts.length ? ` (${alerts.length})` : ''}`]].map(([id, label]) => (
+            {[['feed', 'INBOX'], ['alerts', `ALERTS${alerts.length ? ` (${alerts.length})` : ''}`], ['history', 'HISTORY']].map(([id, label]) => (
               <button
                 key={id}
                 onClick={() => setPane(id)}
@@ -453,6 +601,64 @@ export default function NotificationCenter() {
           )}
 
           {pane === 'alerts' && <AlertsPane alerts={alerts} onRemove={removeAlert} />}
+
+          {pane === 'history' && (
+            <>
+              <div className="flex items-center justify-between px-3 py-1 border-b border-terminal-border/50">
+                <span className="text-2xs text-terminal-text-dim/60">Last 7 days · {history.length}</span>
+                {history.length > 0 && (
+                  <button
+                    onClick={() => { clearHistory(); setHistoryBump((b) => b + 1) }}
+                    className="text-2xs text-terminal-text-dim hover:text-terminal-red transition-colors"
+                  >CLEAR ALL</button>
+                )}
+              </div>
+              <div className="max-h-96 overflow-auto">
+                {history.length === 0 ? (
+                  <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
+                    <span className="text-2xl opacity-40">🗒</span>
+                    <div className="text-2xs text-terminal-text-bright font-semibold">Nothing in the last 7 days</div>
+                    <div className="text-2xs text-terminal-text-dim/60">History builds up as notifications arrive</div>
+                  </div>
+                ) : (
+                  Object.entries(historyGroups).map(([day, items]) => items.length === 0 ? null : (
+                    <div key={day}>
+                      <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-1 bg-terminal-panel border-b border-terminal-border/50">
+                        <span className="text-2xs text-terminal-gold font-bold tracking-widest">
+                          {day} <span className="text-terminal-text-dim/60 tabular-nums">({items.length})</span>
+                        </span>
+                        <button
+                          onClick={() => dropHistory(items.map((n) => n.id))}
+                          title={`Clear ${day.toLowerCase()}`}
+                          className="text-2xs text-terminal-text-dim/60 hover:text-terminal-red transition-colors"
+                        >CLEAR</button>
+                      </div>
+                      {items.map((n) => (
+                        <div key={n.id} className="group flex items-start gap-2 px-3 py-1.5 border-b border-terminal-border/30">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${TYPE_CIRCLE[n.type] ?? 'bg-terminal-muted/15 text-terminal-muted'}`} style={{ fontSize: 10 }}>
+                            {TYPE_ICON[n.type] ?? '•'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-2xs text-terminal-text-bright leading-snug">{n.message}</div>
+                            <div className="text-2xs text-terminal-text-dim/50 mt-0.5">
+                              {TYPE_LABEL[n.type] ?? n.type}
+                              {n.priority ? ` · ${n.priority}` : ''}
+                              {' · '}{new Date(n.createdAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => dropHistory(n.id)}
+                            title="Remove"
+                            className="text-2xs text-terminal-text-dim/30 hover:text-terminal-red flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
 
           <div className="max-h-96 overflow-auto" hidden={pane !== 'feed'}>
             {notifications.length === 0 ? (
@@ -488,30 +694,80 @@ export default function NotificationCenter() {
               onClick={() => { setManageOpen(true); setOpen(false) }}
               className="text-2xs text-terminal-gold hover:text-terminal-gold-bright transition-colors"
             >⚙ MANAGE ALERTS</button>
+            {inQuietHours() && (
+              <span className="ml-2 text-2xs text-terminal-text-dim/60" title="Only price alerts interrupt during quiet hours">
+                · 🌙 quiet hours
+              </span>
+            )}
           </div>
         </div>
       )}
 
       {manageOpen && <AlertsModule onClose={() => setManageOpen(false)} />}
 
-      {/* Toasts — slide in from the right, stack downward */}
-      <div className="fixed top-14 right-3 z-[95] flex flex-col gap-2 pointer-events-none">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="pointer-events-auto w-72 bg-terminal-panel border border-terminal-gold/40 border-l-2 shadow-2xl panel-slide-in overflow-hidden"
-            style={{ borderLeftColor: (TYPE_CIRCLE[t.type] ?? '').includes('blue') ? 'var(--mt-blue-bright, #2D7DD2)' : (TYPE_CIRCLE[t.type] ?? '').includes('green') ? 'var(--mt-green, #2D8A50)' : '#C9A84C' }}
-          >
-            <div className="px-3 py-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-terminal-gold text-xs">{TYPE_ICON[t.type] ?? '•'}</span>
-                <span className="text-2xs text-terminal-gold/70 font-bold tracking-wider">{TYPE_LABEL[t.type] ?? t.type}</span>
+      {/* Toasts — slide in from the right, stack downward. Several of a kind
+          collapse into one card ("3 price alerts triggered") that expands on
+          click, so a busy minute costs one slot on screen instead of ten. */}
+      <div
+        className="fixed top-14 right-3 z-[95] flex flex-col gap-2 pointer-events-none"
+        onMouseEnter={() => { toastHold.current = true }}
+        onMouseLeave={() => { if (!expandedToast) releaseHold() }}
+      >
+        {!open && toastGroups.map(({ type, items }) => {
+          const grouped = items.length > 1
+          const expanded = expandedToast === type
+          const accent = (TYPE_CIRCLE[type] ?? '').includes('blue') ? 'var(--mt-blue-bright, #2D7DD2)'
+            : (TYPE_CIRCLE[type] ?? '').includes('green') ? 'var(--mt-green, #2D8A50)' : '#C9A84C'
+          return (
+            <div
+              key={type}
+              className="pointer-events-auto w-72 bg-terminal-panel border border-terminal-gold/40 border-l-2 shadow-2xl panel-slide-in overflow-hidden"
+              style={{ borderLeftColor: accent }}
+            >
+              <div className="px-3 py-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-terminal-gold text-xs">{TYPE_ICON[type] ?? '•'}</span>
+                  <span className="text-2xs text-terminal-gold/70 font-bold tracking-wider">{TYPE_LABEL[type] ?? type}</span>
+                  {grouped && (
+                    <span className="text-2xs tabular-nums px-1 rounded-sm bg-terminal-gold/20 text-terminal-gold font-bold">{items.length}</span>
+                  )}
+                  <span className="flex-1" />
+                  <button
+                    onClick={() => dismissGroup(type)}
+                    title="Dismiss"
+                    className="text-2xs text-terminal-text-dim/50 hover:text-terminal-red"
+                  >✕</button>
+                </div>
+
+                {grouped && !expanded ? (
+                  <button
+                    onClick={() => { setExpandedToast(type); toastHold.current = true }}
+                    className="text-left w-full group"
+                  >
+                    <div className="text-2xs text-terminal-text-bright leading-snug mt-0.5">{summaryFor(type, items.length)}</div>
+                    <div className="text-2xs text-terminal-gold/60 mt-0.5 group-hover:text-terminal-gold">Click to see all {items.length} →</div>
+                  </button>
+                ) : (
+                  <div className="mt-0.5 space-y-1">
+                    {items.map((t) => (
+                      <div key={t.id} className="text-2xs text-terminal-text-bright leading-snug flex gap-1.5">
+                        {grouped && <span className="text-terminal-gold/40 flex-shrink-0">·</span>}
+                        <span className="min-w-0">{t.message}</span>
+                      </div>
+                    ))}
+                    {grouped && (
+                      <button
+                        onClick={() => { setExpandedToast(null); releaseHold() }}
+                        className="text-2xs text-terminal-text-dim/60 hover:text-terminal-gold"
+                      >Collapse</button>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="text-2xs text-terminal-text-bright leading-snug mt-0.5">{t.message}</div>
+              {!expanded && <div className="h-0.5 bg-terminal-gold/60 toast-progress" />}
             </div>
-            <div className="h-0.5 bg-terminal-gold/60 toast-progress" />
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
