@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { generateResearchNote, RESEARCH_NOTE_STEPS } from '../../services/researchNoteService'
+import { generateResearchNote, RESEARCH_NOTE_STEPS, noteToShareText } from '../../services/researchNoteService'
+import PrintableNote from './PrintableNote'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import ShareLinkModal from '../ui/ShareLinkModal'
@@ -9,176 +10,26 @@ import { createShareLink } from '../../services/sharingService'
 
 // Stance, not rating. BUY/HOLD/SELL is a recommendation, and the note has no
 // valuation behind it to support one — see researchNoteService.
-const STANCE_COLOR = {
-  CONSTRUCTIVE: { bg: '#0e2a1a', text: '#3dad65', border: '#2d8a50' },
-  BALANCED:     { bg: '#16304f', text: '#8ba3c4', border: '#637899' },
-  CAUTIOUS:     { bg: '#2a1414', text: '#c93e3e', border: '#a83232' },
-  'UNDER REVIEW': { bg: '#16304f', text: '#8ba3c4', border: '#637899' },
-}
 
-const todayStr = () => new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 
 // ─── Printable note — mounted off-screen at a fixed A4-proportioned width so
 // html2canvas captures consistent, print-quality output regardless of the
 // viewer's actual browser width. Inline styles throughout (not Tailwind
 // classes) — html2canvas renders most reliably against explicit computed
 // styles rather than relying on the app's CSS pipeline for an off-screen node.
-const PAGE_W = 800 // px, ~A4 width at ~96dpi-equivalent scale for this capture
 
-function Header() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 40px', borderBottom: '2px solid #C9A84C' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: '#C9A84C', fontSize: 18 }}>▲</span>
-        <span style={{ color: '#C9A84C', fontWeight: 700, fontSize: 16, letterSpacing: 2 }}>MADDEX</span>
-      </div>
-      <span style={{ color: '#8BA3C4', fontSize: 10, letterSpacing: 3 }}>EQUITY RESEARCH</span>
-      <span style={{ color: '#637899', fontSize: 10 }}>{todayStr()}</span>
-    </div>
-  )
-}
 
-function Footer({ page, totalPages }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 40px', borderTop: '1px solid #16304F', marginTop: 20 }}>
-      <span style={{ color: '#637899', fontSize: 9 }}>MADDEX FINANCIAL INTELLIGENCE · General information only · Not financial advice · {todayStr()}</span>
-      <span style={{ color: '#637899', fontSize: 9 }}>{page} / {totalPages}</span>
-    </div>
-  )
-}
 
-function SectionBlock({ title, children }) {
-  return (
-    <div style={{ padding: '0 40px 24px' }}>
-      <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderBottom: '1px solid #16304F', paddingBottom: 6, marginBottom: 10 }}>{title}</div>
-      {children}
-    </div>
-  )
-}
 
-function Para({ children }) {
-  return <p style={{ color: '#E8EDF5', fontSize: 11, lineHeight: 1.7, marginBottom: 10 }}>{children}</p>
-}
 
-function PrintableNote({ note, forwardRef }) {
-  const { asset, stance, stanceRationale, timeHorizon, riskRating, executiveSummary, investmentThesis, businessOverview, financialAnalysis, valuationAnalysis, catalysts, risks, technicalAnalysis, conclusion, disclaimer } = note
-  const stanceStyle = STANCE_COLOR[stance] ?? STANCE_COLOR['UNDER REVIEW']
-
-  return (
-    <div ref={forwardRef} style={{ width: PAGE_W, background: '#060D1A', fontFamily: '"IBM Plex Mono", Menlo, monospace' }}>
-      <Header />
-
-      {/* Cover */}
-      <div style={{ padding: '32px 40px 8px' }}>
-        <div style={{ color: '#FFFFFF', fontSize: 30, fontWeight: 700, marginBottom: 6 }}>{asset.name}</div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-          <span style={{ border: '1px solid #16304F', color: '#8BA3C4', fontSize: 10, padding: '3px 8px' }}>{asset.symbol}</span>
-          <span style={{ border: '1px solid #16304F', color: '#8BA3C4', fontSize: 10, padding: '3px 8px' }}>{(asset.type ?? 'EQUITY').toUpperCase()}</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ background: stanceStyle.bg, border: `2px solid ${stanceStyle.border}`, color: stanceStyle.text, fontSize: 22, fontWeight: 700, padding: '10px 28px', letterSpacing: 2 }}>{stance}</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: '#8BA3C4', fontSize: 11, lineHeight: 1.5 }}>{stanceRationale}</div>
-          </div>
-        </div>
-
-        {/* The CURRENT PRICE / TARGET PRICE / UPSIDE row that sat here was
-            arithmetic on two invented numbers: a mock quote and a model's
-            guess. The note is qualitative now, so the cover states its
-            character and horizon rather than a valuation it cannot support. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', border: '1px solid #16304F', marginBottom: 22 }}>
-          {[
-            ['STANCE', stance],
-            ['HORIZON', timeHorizon],
-            ['RISK', riskRating],
-          ].map(([label, value], i) => (
-            <div key={label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid #16304F' : 'none' }}>
-              <div style={{ color: '#637899', fontSize: 9, marginBottom: 4 }}>{label}</div>
-              <div style={{ color: '#E8EDF5', fontSize: 15, fontWeight: 700 }}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ border: '1px solid rgba(201,168,76,0.3)', background: 'rgba(201,168,76,0.06)', padding: '8px 12px', marginBottom: 18 }}>
-          <div style={{ color: '#C9A84C', fontSize: 9, letterSpacing: 1.2, fontWeight: 700 }}>AI ESTIMATE · QUALITATIVE ANALYSIS</div>
-          <div style={{ color: '#8BA3C4', fontSize: 9, marginTop: 3, lineHeight: 1.5 }}>
-            Written by MaddenAI. Contains no price target, valuation or technical level — this note has no live market data behind it. Take every figure from the terminal&apos;s live panels, not from here.
-          </div>
-        </div>
-
-        <Para>{executiveSummary}</Para>
-      </div>
-
-      <SectionBlock title="INVESTMENT THESIS">
-        {investmentThesis?.split('\n').filter(Boolean).map((p, i) => <Para key={i}>{p}</Para>)}
-      </SectionBlock>
-
-      <SectionBlock title="BUSINESS OVERVIEW">
-        {businessOverview?.split('\n').filter(Boolean).map((p, i) => <Para key={i}>{p}</Para>)}
-      </SectionBlock>
-
-      <SectionBlock title="FINANCIAL ANALYSIS">
-        {[
-          ['Revenue Outlook', financialAnalysis?.revenueOutlook],
-          ['Margin Analysis', financialAnalysis?.marginAnalysis],
-          ['Balance Sheet', financialAnalysis?.balanceSheet],
-          ['Cash Flow', financialAnalysis?.cashFlow],
-        ].map(([label, body]) => body && (
-          <div key={label} style={{ marginBottom: 10 }}>
-            <div style={{ color: '#8BA3C4', fontSize: 10, fontWeight: 700, marginBottom: 3 }}>{label.toUpperCase()}</div>
-            <Para>{body}</Para>
-          </div>
-        ))}
-      </SectionBlock>
-
-      <SectionBlock title="VALUATION">
-        {valuationAnalysis?.split('\n').filter(Boolean).map((p, i) => <Para key={i}>{p}</Para>)}
-      </SectionBlock>
-
-      <SectionBlock title="CATALYSTS">
-        {(catalysts ?? []).map((c, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-            <span style={{ color: '#3DAD65', fontWeight: 700, fontSize: 11 }}>{i + 1}.</span>
-            <span style={{ color: '#E8EDF5', fontSize: 11, lineHeight: 1.6 }}>{c}</span>
-          </div>
-        ))}
-      </SectionBlock>
-
-      <SectionBlock title="RISKS">
-        {(risks ?? []).map((r, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-            <span style={{ color: '#C93E3E', fontWeight: 700, fontSize: 11 }}>{i + 1}.</span>
-            <span style={{ color: '#E8EDF5', fontSize: 11, lineHeight: 1.6 }}>{r}</span>
-          </div>
-        ))}
-      </SectionBlock>
-
-      <SectionBlock title="TECHNICAL ANALYSIS">
-        <div style={{ display: 'flex', gap: 24, marginBottom: 10, fontSize: 10 }}>
-          <span style={{ color: '#8BA3C4' }}>TREND <b style={{ color: '#E8EDF5' }}>{technicalAnalysis?.trend}</b></span>
-
-        </div>
-        <Para>{technicalAnalysis?.momentum}</Para>
-      </SectionBlock>
-
-      <SectionBlock title="CONCLUSION">
-        <Para>{conclusion}</Para>
-      </SectionBlock>
-
-      <div style={{ padding: '0 40px 20px' }}>
-        <div style={{ border: '1px solid #16304F', padding: 12, color: '#637899', fontSize: 9, lineHeight: 1.6 }}>{disclaimer}</div>
-      </div>
-
-      <Footer page={1} totalPages={1} />
-    </div>
-  )
-}
+// A4 at 96dpi, and the width the preview is shrunk to inside the modal.
+const PAGE_W = 794
+const PREVIEW_W = 640
 
 async function downloadPDF(noteRef, symbol) {
   const canvas = await html2canvas(noteRef, {
     scale: 2,
-    backgroundColor: '#060D1A',
+    backgroundColor: '#FFFFFF',
     useCORS: true,
   })
   const pdf = new jsPDF('p', 'mm', 'a4')
@@ -209,6 +60,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
   const [error, setError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [shareLink, setShareLink] = useState(null)
+  const [copied, setCopied] = useState(false)
   const printableRef = useRef(null)
   const stepTimerRef = useRef(null)
 
@@ -236,6 +88,24 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
       clearInterval(stepTimerRef.current)
       setError(e.message)
       setStatus('error')
+    }
+  }
+
+  // Clipboard text, for pasting into a message.
+  //
+  // Deliberately the summary and the considerations rather than the whole
+  // note: a full paste is unreadable in a chat window, and an EXCERPT of a
+  // long argument is the easiest thing in the world to misquote. What goes on
+  // the clipboard carries the stance, the reasoning behind it, and the
+  // disclaimer — the three things that must never travel separately.
+  const handleCopy = async () => {
+    if (!note) return
+    try {
+      await navigator.clipboard.writeText(noteToShareText({ ...note, asset }))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError('Could not access the clipboard.')
     }
   }
 
@@ -331,6 +201,11 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
                     >REGENERATE</button>
                     <button
+                      onClick={handleCopy}
+                      title="Copy a short text version to the clipboard"
+                      className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
+                    >{copied ? '✓ COPIED' : '⧉ COPY'}</button>
+                    <button
                       onClick={handleShare}
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
                     >SHARE ▾</button>
@@ -341,11 +216,33 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                     >{downloading ? 'BUILDING PDF...' : 'DOWNLOAD PDF ▾'}</button>
                   </div>
                 </div>
-                {/* Live preview — the exact node captured for the PDF, at its
-                    real size (no CSS transform scaling: html2canvas would
-                    capture the scaled/distorted layout, not the true one). */}
-                <div className="border border-terminal-border overflow-auto" style={{ maxHeight: '60vh' }}>
-                  <PrintableNote note={note} forwardRef={printableRef} />
+                {/* Live preview of the exact node captured for the PDF.
+                    The page is a true 794px wide — A4 at 96dpi — which is
+                    wider than this modal, so it was clipping on the right and
+                    reading as a broken layout.
+                    The SCALE LIVES ON A WRAPPER, never on the captured node.
+                    html2canvas clones its target and renders it standalone, so
+                    an ancestor transform is not inherited into the capture:
+                    the preview shrinks to fit, the PDF is still generated from
+                    a full-size, unscaled page. */}
+                <div
+                  className="border border-terminal-border overflow-auto bg-white/5"
+                  style={{ maxHeight: '58vh' }}
+                >
+                  <div style={{ width: PREVIEW_W, margin: '0 auto' }}>
+                    <div
+                      style={{
+                        transform: `scale(${PREVIEW_W / PAGE_W})`,
+                        transformOrigin: 'top left',
+                        width: PAGE_W,
+                        // Reclaims the vertical space the scale gives back, so
+                        // the scroll height matches what is actually drawn.
+                        marginBottom: `calc(${PREVIEW_W / PAGE_W - 1} * 100%)`,
+                      }}
+                    >
+                      <PrintableNote note={note} forwardRef={printableRef} />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
