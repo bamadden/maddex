@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { timeAgo } from '../../utils/dateUtils'
 
 // Three panels for the Global intel rail. Each is built from data the module
 // already fetches or from the clock — nothing here adds a request, and nothing
@@ -21,13 +22,6 @@ function distanceKm([lon1, lat1], [lon2, lat2]) {
 
 const magTone = (m) => (m >= 6.5 ? '#A83232' : m >= 5.5 ? '#C9A84C' : '#8BA3C4')
 
-function timeAgo(ms, now) {
-  const mins = Math.floor((now - ms) / 60000)
-  if (mins < 60) return `${Math.max(0, mins)}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
 
 export function SeismicSection({ earthquakes, onFocus }) {
   const [now] = useState(() => Date.now())

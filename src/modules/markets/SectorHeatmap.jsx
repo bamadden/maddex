@@ -1141,7 +1141,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                     <div className="text-2xs font-bold text-terminal-text-dim/35 tracking-wider truncate">
                       {SECTOR_ABBR[sector]}
                     </div>
-                    <div className="text-sm font-bold text-terminal-text-dim/20">N/A</div>
+                    <div className="text-sm font-bold text-terminal-text-dim/20">—</div>
                     <div className="text-2xs text-terminal-text-dim/18" style={{ fontSize: '9px' }}>Not in index</div>
                   </div>
                 )
@@ -1844,7 +1844,7 @@ function IndexView({ selectedIndex, openModal }) {
               </div>
             ))}
             {gainers.length === 0 && (
-              <div className="px-2 py-1 text-2xs text-terminal-text-dim/40">Loading...</div>
+              <div className="px-2 py-1 text-2xs text-terminal-text-dim/40">Loading gainers…</div>
             )}
           </div>
 
@@ -1859,7 +1859,7 @@ function IndexView({ selectedIndex, openModal }) {
               </div>
             ))}
             {losers.length === 0 && (
-              <div className="px-2 py-1 text-2xs text-terminal-text-dim/40">Loading...</div>
+              <div className="px-2 py-1 text-2xs text-terminal-text-dim/40">Loading losers…</div>
             )}
           </div>
         </div>

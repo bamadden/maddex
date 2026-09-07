@@ -1,19 +1,11 @@
 import { useState, useRef } from 'react'
+import { timeAgo } from '../../utils/dateUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { RefreshCw } from 'lucide-react'
 import Tooltip from './Tooltip'
 
 // Relative age — "2m ago" reads faster than a wall-clock stamp for a
 // freshness indicator, which is the only thing this is used for.
-function timeAgo(ts) {
-  if (!ts) return null
-  const secs = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000))
-  if (secs < 10) return 'just now'
-  if (secs < 60) return `${secs}s ago`
-  const mins = Math.round(secs / 60)
-  if (mins < 60) return `${mins}m ago`
-  return `${Math.round(mins / 60)}h ago`
-}
 
 // Page-level header for each top-level module (Markets, Crypto, Rates, ...).
 // Distinct from the smaller `.panel-header` class used on sub-panels within

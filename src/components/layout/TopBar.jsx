@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import { timeAgo } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -231,7 +232,7 @@ function DataFreshnessBadge() {
 
   const elapsed = Math.floor((now - lastRefresh) / 1000)
   const remaining = Math.max(0, REFRESH_INTERVAL - elapsed)
-  const timeAgo = elapsed < 5 ? 'just now' : `${elapsed}s ago`
+  const refreshedLabel = timeAgo(lastRefresh, now)
 
   const handleClick = () => {
     queryClient.invalidateQueries()
@@ -250,7 +251,7 @@ function DataFreshnessBadge() {
     : { c: '#A83232', pulse: false, word: 'Stale' }
   const stale = remaining === 0
   return (
-    <Tooltip content={`Data ${tone.word.toLowerCase()} — updated ${timeAgo}\n${stale ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
+    <Tooltip content={`Data ${tone.word.toLowerCase()} — updated ${refreshedLabel}\n${stale ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
     <button
       onClick={handleClick}
       aria-label="Refresh live data"

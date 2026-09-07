@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { timeAgo } from '../../utils/dateUtils'
 import { useStore } from '../../store/useStore'
 import { USING_MOCK_DATA } from '../../services/api'
 
@@ -75,10 +76,11 @@ export default function StatusBar({ lastUpdated }) {
   // Derived from the ticking `now` state rather than Date.now(), so the
   // render stays pure and the age advances with the same 30s tick.
   const ageSecs = lastUpdated ? Math.max(0, Math.round((now.getTime() - lastUpdated) / 1000)) : null
+  // Shares the app's one relative-time formatter, so the status bar cannot
+  // say "updated 2m ago" while the module header above it says "1m ago".
   const freshness = ageSecs == null
     ? 'awaiting data'
-    : ageSecs < 60 ? `updated ${ageSecs}s ago`
-    : `updated ${Math.round(ageSecs / 60)}m ago`
+    : `updated ${timeAgo(now.getTime() - ageSecs * 1000, now.getTime())}`
 
   const crumbs = [MODULE_LABEL[activeModule] ?? activeModule?.toUpperCase()]
   if (modalAsset?.symbol) crumbs.push(modalAsset.symbol)

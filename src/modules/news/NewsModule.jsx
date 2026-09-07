@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { timeAgo as sharedTimeAgo } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
 import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockData'
@@ -76,13 +77,7 @@ function getRelativeTime(pubDate) {
 
 function timeAgo(pubDate) { return getRelativeTime(pubDate) }
 
-function sinceMs(ts) {
-  const s = Math.floor((Date.now() - ts) / 1000)
-  if (s < 60)  return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60)  return `${m}m ago`
-  return `${Math.floor(m / 60)}h ago`
-}
+const sinceMs = (ts) => sharedTimeAgo(ts)
 
 // Synthetic "EARNINGS RESULT" article built from a completed AI Earnings
 // ─── Article classification helpers ───────────────────────────────────────────

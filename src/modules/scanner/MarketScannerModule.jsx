@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { timeAgo } from '../../utils/dateUtils'
 import { takeModuleIntent } from '../../services/moduleIntent'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { DemoBadge } from '../../components/ui/ModuleStates'
@@ -28,13 +29,6 @@ const TABS = [
 function tickerOf(symbol) { return symbol.replace('.AX', '') }
 function priceStr(symbol, price) { return `${symbol.endsWith('.AX') ? 'A$' : 'US$'}${fmt.price(price)}` }
 
-function timeAgo(ms) {
-  const seconds = Math.floor((Date.now() - ms) / 1000)
-  if (seconds < 5) return 'just now'
-  if (seconds < 60) return `${seconds}s ago`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  return `${Math.floor(seconds / 3600)}h ago`
-}
 
 function detectedAtStr(ms) {
   return new Date(ms).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST'

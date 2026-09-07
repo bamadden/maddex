@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { timeAgo } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -48,13 +49,6 @@ const summaryFor = (type, n) => (TYPE_SUMMARY[type] ?? ((c) => `${c} ${TYPE_LABE
 const TOAST_MS = 6000
 const TOAST_MAX_MS = 14000
 
-function timeAgo(iso) {
-  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (seconds < 60) return 'just now'
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-  return `${Math.floor(seconds / 86400)}d ago`
-}
 
 // Today's date key, AEST — used to show the market-open notification once
 // per day rather than once per minute-check.

@@ -422,7 +422,7 @@ function FormattedResponse({ text }) {
                 <span style={{ color:'var(--mt-muted)', minWidth:'120px', flexShrink:0 }}>{parsed.label}:</span>
                 {parsed.score != null
                   ? <ScoreBar score={parsed.score} />
-                  : <span style={{ color:'var(--mt-muted)' }}>N/A</span>
+                  : <span style={{ color:'var(--mt-muted)' }} title="No score for this line">—</span>
                 }
                 {parsed.sentiment && (
                   <span style={{ color: sentimentLabelColour(parsed.sentiment), fontWeight:700, fontSize:'10px', marginLeft:'4px' }}>

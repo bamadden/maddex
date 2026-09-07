@@ -1,19 +1,11 @@
+import { timeAgo } from '../../utils/dateUtils'
+
 // Shared full-module loading/error states — used by any module while its
 // primary dataset is fetching for the first time, or has failed with nothing
 // to show. Nested per-widget spinners inside a module (a single chart, a
 // single tile) should keep their own compact indicators; these are for the
 // "the whole module has nothing to render yet" case.
 
-function timeAgoShort(ts) {
-  if (!ts) return null
-  const s = Math.floor((Date.now() - ts) / 1000)
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-}
 
 // Generic row-shaped shimmer skeleton — stands in for whatever's about to
 // load (most of this app's "whole module empty" cases are eventually a
@@ -56,7 +48,7 @@ export function Viz3DLoader() {
 // *some* data (even if old) is available. `cachedAt` is the ms-epoch
 // timestamp dataService captured that copy at.
 export function StaleBadge({ cachedAt, className = '' }) {
-  const age = timeAgoShort(cachedAt)
+  const age = timeAgo(cachedAt)
   return (
     <span
       title={age ? `Showing cached data from ${age}` : 'Showing cached data'}
@@ -83,7 +75,7 @@ export function DemoBadge({ className = '' }) {
 }
 
 export function ModuleError({ module = 'MODULE', lastUpdated, onRetry, className = '' }) {
-  const lastSeen = timeAgoShort(lastUpdated)
+  const lastSeen = timeAgo(lastUpdated)
   return (
     <div className={`h-full flex flex-col items-center justify-center gap-2 px-6 text-center ${className}`}>
       <span className="text-terminal-red text-xl">⚠</span>
