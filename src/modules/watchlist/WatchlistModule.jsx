@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useMemo, Fragment } from 'react'
 import {
   rememberEntryPrice, sinceAdded, metaFor, setNote, watchlistToText, watchlistToCsv,
 } from '../../services/watchlistMeta'
+import {
+  loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder,
+} from '../../services/watchlistPrefs'
 import { Bookmark } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
@@ -137,7 +140,7 @@ function AlertBell({ symbol, price, alerts, isOpen, onToggle }) {
 // Pre-fills the value a couple of percent the right side of the current price
 // so a single click on SET produces a sensible alert, while leaving the field
 // editable — the default should be useful, not the only option.
-function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose }) {
+function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose, colSpan = 12 }) {
   const mine = (alerts ?? []).filter((a) => a.sym?.toUpperCase() === symbol.toUpperCase())
   const [direction, setDirection] = useState('above')
   const [value, setValue] = useState(() => (price != null ? (price * 1.02).toFixed(2) : ''))
@@ -160,7 +163,7 @@ function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose }) {
 
   return (
     <tr>
-      <td colSpan={12} style={{ padding: 0, background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
+      <td colSpan={colSpan} style={{ padding: 0, background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
         <div className="px-3 py-2 flex flex-col gap-2">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-2xs font-bold text-terminal-gold tracking-widest">SET ALERT</span>
@@ -223,29 +226,41 @@ function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose }) {
   )
 }
 
-function CryptoPriceCells({ price, pct, pct7d, audToUsd }) {
+// Both cell components take `show`, the visibility predicate, and render only
+// the columns that are on. They stay components rather than becoming four
+// separate cell renderers because LivePriceCells subscribes to a live quote —
+// a hook cannot be called once per column inside a loop.
+function CryptoPriceCells({ price, pct, pct7d, audToUsd, show }) {
   // Crypto quotes arrive in AUD (fetchCryptoMarkets('aud')), so the USD column
   // is a conversion through the rate the app already holds — not a second fetch.
   const usd = price != null ? audToUsd(price) : null
   return (
     <>
-      <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">
-        {price != null ? fmt.aud(price) : '—'}
-      </td>
-      <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
-        {usd != null ? `US$${fmt.price(usd)}` : '—'}
-      </td>
-      <td className="px-2 py-1.5 text-right">
-        <PriceChange pct={pct} className="justify-end" pill graded />
-      </td>
-      <td className="px-2 py-1.5 text-right">
-        <PriceChange pct={pct7d} className="justify-end" size="text-[11px]" graded />
-      </td>
+      {show('price') && (
+        <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">
+          {price != null ? fmt.aud(price) : '—'}
+        </td>
+      )}
+      {show('change') && (
+        <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
+          {usd != null ? `US$${fmt.price(usd)}` : '—'}
+        </td>
+      )}
+      {show('pct') && (
+        <td className="px-2 py-1.5 text-right">
+          <PriceChange pct={pct} className="justify-end" pill graded />
+        </td>
+      )}
+      {show('week52') && (
+        <td className="px-2 py-1.5 text-right">
+          <PriceChange pct={pct7d} className="justify-end" size="text-[11px]" graded />
+        </td>
+      )}
     </>
   )
 }
 
-function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
+function LivePriceCells({ symbol, price, change, pct, week52Low, week52High, show }) {
   const isAsx = symbol.endsWith('.AX')
   const { quote, flash } = useLivePrice(isAsx ? symbol : null)
   const livePrice = isAsx && quote ? quote.regularMarketPrice : price
@@ -254,20 +269,28 @@ function LivePriceCells({ symbol, price, change, pct, week52Low, week52High }) {
   const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
   return (
     <>
-      <td className={`px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright ${flashClass}`}>
-        {livePrice != null ? fmt.aud(livePrice) : '—'}
-      </td>
+      {show('price') && (
+        <td className={`px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright ${flashClass}`}>
+          {livePrice != null ? fmt.aud(livePrice) : '—'}
+        </td>
+      )}
       {/* CHG$ stays plain and one step smaller; CHG% takes the pill. Two
           equally-loud change columns side by side just compete. */}
-      <td className="px-2 py-1.5 text-right">
-        <PriceChange value={liveChange} className="justify-end" size="text-[11px]" />
-      </td>
-      <td className="px-2 py-1.5 text-right">
-        <PriceChange pct={livePct} className="justify-end" pill graded />
-      </td>
-      <td className="px-2 py-1.5 text-right">
-        <Week52Bar price={livePrice} low={week52Low} high={week52High} />
-      </td>
+      {show('change') && (
+        <td className="px-2 py-1.5 text-right">
+          <PriceChange value={liveChange} className="justify-end" size="text-[11px]" />
+        </td>
+      )}
+      {show('pct') && (
+        <td className="px-2 py-1.5 text-right">
+          <PriceChange pct={livePct} className="justify-end" pill graded />
+        </td>
+      )}
+      {show('week52') && (
+        <td className="px-2 py-1.5 text-right">
+          <Week52Bar price={livePrice} low={week52Low} high={week52High} />
+        </td>
+      )}
     </>
   )
 }
@@ -322,13 +345,63 @@ const SUGGESTED_TICKERS = [
   { symbol: 'ETH',    name: 'Ethereum' },
 ]
 
+// ─── Column model ───────────────────────────────────────────────────────────
+//
+// ONE ARRAY DRIVES THE COLGROUP, THE HEADER AND THE BODY.
+//
+// The table previously wrote those three by hand: twelve <col> widths, twelve
+// <th>, twelve <td> per row, and a crypto sub-header with twelve more. They
+// only lined up because nobody had ever hidden one. Column visibility makes
+// that fragile arrangement break immediately and invisibly — a hidden column
+// shifts every cell after it one place left under a header that did not move,
+// so PRICE renders under CHG and the numbers are simply wrong.
+//
+// So visibility is resolved once, into a list, and everything renders from it.
+//
+// `always: true` marks the columns that are structure rather than data — the
+// drag handle, the ticker, the remove button. Nothing offers to hide those.
+const COLUMNS = [
+  { key: 'drag',       label: '',            width: 28,   always: true },
+  { key: 'ticker',     label: 'TICKER',      width: 150,  always: true, align: 'left' },
+  { key: 'name',       label: 'NAME',        width: null, always: true, align: 'left', sort: 'name' },
+  { key: 'price',      label: 'PRICE (A$)',  width: 90,   align: 'right', sort: 'price',     menu: 'Price' },
+  { key: 'change',     label: 'CHG',         width: 72,   align: 'right',                    menu: 'Day $' },
+  { key: 'pct',        label: 'CHG%',        width: 82,   align: 'right', sort: 'pct',       menu: 'Day %' },
+  { key: 'week52',     label: '52W RANGE',   width: 132,  align: 'right',                    menu: '52W Range' },
+  { key: 'volume',     label: 'VOLUME',      width: 70,   align: 'right',                    menu: 'Volume' },
+  { key: 'marketCap',  label: 'MKT CAP',     width: 82,   align: 'right', sort: 'marketCap', menu: 'Mkt Cap' },
+  { key: 'pe',         label: 'P/E',         width: 58,   align: 'right', sort: 'pe',        menu: 'P/E' },
+  { key: 'divYield',   label: 'DIV YIELD',   width: 76,   align: 'right', sort: 'divYield',  menu: 'Div Yield' },
+  { key: 'sinceAdded', label: 'SINCE ADDED', width: 128,  align: 'right',                    menu: 'Since Added' },
+  { key: 'alert',      label: '⚡',           width: 40,   align: 'center',                   menu: 'Alert' },
+  { key: 'remove',     label: '',            width: 32,   always: true },
+]
+
+// All on except SINCE ADDED, which is off until the user asks for it: an entry
+// price is only recorded from the first time this browser saw a quote for the
+// symbol, so for an existing watchlist the column is a row of dashes.
+const DEFAULT_COLUMNS = Object.fromEntries(
+  COLUMNS.filter((c) => c.menu).map((c) => [c.key, c.key !== 'sinceAdded']),
+)
+
+// Crypto reuses four equity column slots for different measures. The header
+// strip that says so has to follow the same visibility, so it reads from the
+// same model rather than from a second hardcoded list.
+const CRYPTO_LABEL = {
+  price: 'Price (A$)', change: 'Price (US$)', pct: '24H%', week52: '7D%',
+  volume: 'Volume', marketCap: 'Mkt Cap', pe: '—', divYield: '—',
+  sinceAdded: 'Since added', ticker: 'Ticker', name: 'Name',
+}
+
 const SORT_VALUE = {
   name:      (r) => r.name ?? r.displaySymbol,
   price:     (r) => r.price,
   pct:       (r) => r.pct,
   marketCap: (r) => r.marketCap,
+  pe:        (r) => r.pe,
+  divYield:  (r) => r.divYield,
 }
-const SORT_LABEL = { name: 'NAME', price: 'PRICE (A$)', pct: 'CHG%', marketCap: 'MKT CAP' }
+const SORT_LABEL = Object.fromEntries(COLUMNS.filter((c) => c.sort).map((c) => [c.sort, c.label]))
 
 function sortRows(rows, sortKey, sortDir) {
   if (!sortKey) return rows
@@ -385,8 +458,15 @@ export default function WatchlistModule() {
   const [validating, setValidating]   = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [synced, setSynced]           = useState(false)
-  const [sortKey, setSortKey]         = useState(null)
-  const [sortDir, setSortDir]         = useState('asc')
+  // Sort restored on mount. `null` is a restorable state, not an absence — it
+  // means manual order, which is what drag-to-reorder produces.
+  const [sortKey, setSortKey] = useState(() => loadSort(Object.keys(SORT_VALUE)).column)
+  const [sortDir, setSortDir] = useState(() => loadSort(Object.keys(SORT_VALUE)).direction)
+  const [columns, setColumns] = useState(() => loadColumns(DEFAULT_COLUMNS))
+  const [colMenuOpen, setColMenuOpen] = useState(false)
+  const colMenuRef = useRef(null)
+  const [dragOverIdx, setDragOverIdx] = useState(null)
+  const [draggingIdx, setDraggingIdx] = useState(null)
   const [earningsPreview, setEarningsPreview] = useState(null)
   // Symbol whose inline alert panel is open. One at a time — two open
   // panels push every row below them down twice and neither is easier to
@@ -395,14 +475,48 @@ export default function WatchlistModule() {
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
 
+  // asc → desc → off. The third click matters: without it, sorting once locks
+  // the table out of drag-to-reorder for good, because reordering is only
+  // meaningful on an unsorted list and there was no way back to unsorted.
   const toggleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
+    if (sortKey !== key) {
+      setSortKey(key); setSortDir('asc'); saveSort(key, 'asc'); return
     }
+    if (sortDir === 'asc') { setSortDir('desc'); saveSort(key, 'desc'); return }
+    setSortKey(null); setSortDir('asc'); saveSort(null, 'asc')
   }
+
+  // Close the column menu on any click outside it. A dropdown that only closes
+  // by re-clicking its own trigger stays open behind whatever the user does
+  // next, and this one floats over the table.
+  useEffect(() => {
+    if (!colMenuOpen) return
+    const onDown = (e) => {
+      if (!colMenuRef.current?.contains(e.target)) setColMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [colMenuOpen])
+
+  const toggleColumn = (key) => {
+    setColumns((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      saveColumns(next)
+      return next
+    })
+  }
+
+  // Visible columns, resolved once. Everything below renders from this list.
+  const visibleColumns = COLUMNS.filter((c) => c.always || columns[c.key])
+  const isOn = (key) => visibleColumns.some((c) => c.key === key)
+
+  // PRICE / CHG / CHG% / 52W are emitted together by one component, because
+  // the live-quote hook inside it must be called once per row rather than once
+  // per column. The group renders at the first of those four that is VISIBLE —
+  // not at 'price' — otherwise hiding Price alone would drop the other three
+  // cells while their headers stayed, shifting every row out of its columns.
+  const PRICE_GROUP = ['price', 'change', 'pct', 'week52']
+  const priceAnchor = PRICE_GROUP.find((k) => isOn(k)) ?? null
 
   // Load watchlist from Supabase on mount when logged in
   useEffect(() => {
@@ -470,6 +584,8 @@ export default function WatchlistModule() {
         week52Low:   null,
         volume:      c.volume,
         marketCap:   c.marketCap,
+        pe:          null,
+        divYield:    null,
         isOpen:      true,
         isLive:      true,
         nativePrice: null,
@@ -491,6 +607,11 @@ export default function WatchlistModule() {
       week52Low:   q.week52Low  != null ? conv(q.week52Low)  : null,
       volume:      q.volume ?? q.vol ?? null,
       marketCap:   q.marketCap != null ? conv(q.marketCap) : null,
+      // Ratios carry through unconverted — a P/E divided by unconverted
+      // earnings would move with the exchange rate, and a yield is already a
+      // percentage of price.
+      pe:          q.trailingPE ?? null,
+      divYield:    q.divYield ?? null,
       isOpen:      q.isOpen,
       isLive:      true,
       nativePrice: isAsx ? null : q.price,
@@ -525,10 +646,28 @@ export default function WatchlistModule() {
     }
   }, [rows])
 
+  // Manual order per group, applied when nothing is sorted. The store already
+  // persists the flat watchlist array, so a drag survives a reload on its own;
+  // this keeps the stock block and the crypto block arranged independently.
+  const orderedSymbols = useMemo(() => {
+    if (sortKey) return null
+    const stocks = watchlist.filter((sym) => toYahoo(sym).type !== 'crypto')
+    const cryptos = watchlist.filter((sym) => toYahoo(sym).type === 'crypto')
+    return new Map([
+      ...applyOrder(stocks, loadOrder('stocks')).map((sym, i) => [sym, i]),
+      ...applyOrder(cryptos, loadOrder('crypto')).map((sym, i) => [sym, i]),
+    ])
+  }, [watchlist, sortKey])
+
   const [copied, setCopied] = useState(false)
   const [noteFor, setNoteFor] = useState(null)   // symbol whose note is open
   const [noteDraft, setNoteDraft] = useState('')
-  const [, bumpNotes] = useState(0)
+  const [noteVersion, bumpNotes] = useState(0)
+
+  // noteVersion is read here purely so every note lookup below re-runs after a
+  // save or delete. localStorage is not reactive; without a dependency on it
+  // the 📝 marker would not appear until something unrelated re-rendered.
+  const noteOf = (symbol) => (noteVersion, metaFor(symbol)?.note ?? '')
 
   const openNote = (symbol) => {
     setNoteDraft(metaFor(symbol)?.note ?? '')
@@ -536,6 +675,12 @@ export default function WatchlistModule() {
   }
   const saveNote = (symbol) => {
     setNote(symbol, noteDraft)
+    setNoteFor(null)
+    bumpNotes((n) => n + 1)
+  }
+  const deleteNote = (symbol) => {
+    setNote(symbol, '')
+    setNoteDraft('')
     setNoteFor(null)
     bumpNotes((n) => n + 1)
   }
@@ -568,7 +713,13 @@ export default function WatchlistModule() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  const sortedRows = sortRows(rows, sortKey, sortDir)
+  // Manual order is applied only when nothing is sorted — a saved arrangement
+  // and an active sort are two answers to the same question, and the sort is
+  // the one the user just asked for.
+  const orderedRows = orderedSymbols
+    ? [...rows].sort((a, b) => (orderedSymbols.get(a.symbol) ?? 0) - (orderedSymbols.get(b.symbol) ?? 0))
+    : rows
+  const sortedRows = sortRows(orderedRows, sortKey, sortDir)
   // Stock rows first, crypto rows grouped at the end (stable sort — each
   // group keeps sortedRows' existing relative order) so the table can
   // render two visually separated sections while `i` still indexes into
@@ -661,7 +812,17 @@ export default function WatchlistModule() {
   const onDragOver  = (e) => e.preventDefault()
   const onDrop = (i) => {
     const from = dragIndexRef.current
-    if (from != null && from !== i) reorderWatchlist(from, i)
+    if (from != null && from !== i) {
+      reorderWatchlist(from, i)
+      // Record the resulting arrangement per group. The store persists the
+      // flat array on its own, so this is what keeps the stock block and the
+      // crypto block independently arranged rather than sharing one sequence.
+      const next = [...sortedRows]
+      const [moved] = next.splice(from, 1)
+      next.splice(i, 0, moved)
+      saveOrder('stocks', next.filter((r) => r.type !== 'crypto').map((r) => r.symbol))
+      saveOrder('crypto', next.filter((r) => r.type === 'crypto').map((r) => r.symbol))
+    }
     dragIndexRef.current = null
   }
 
@@ -780,41 +941,67 @@ export default function WatchlistModule() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Analytics bar — one line, live off the same quotes the table sorts
+          by, so the summary and the rows it sits above can never disagree.
+          ASX rows also carry a per-row live tick that can run a few seconds
+          ahead of this; the batch is what both the bar and the sort use. */}
       {overview && (
-        <div className="flex items-center gap-4 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 flex-wrap">
-          <span className="text-2xs text-terminal-gold font-bold tracking-widest">OVERVIEW</span>
-
-          {/* One bar, proportional. A count alone ("18 advancing") does not
-              show the balance; the bar does, at a glance, which is the only
-              thing this row is for. */}
-          <div className="flex h-1.5 w-28 overflow-hidden rounded-sm flex-shrink-0" title={`${overview.advancing} up · ${overview.declining} down · ${overview.flat} flat`}>
+        <div
+          className="flex items-center gap-3 flex-shrink-0 flex-wrap"
+          style={{
+            height: 32, padding: '0 16px', background: '#030912',
+            borderBottom: '1px solid rgba(201,168,76,0.08)',
+          }}
+        >
+          {/* One proportional bar. A count alone ("18 advancing") does not show
+              the balance; the bar does, at a glance. */}
+          <div className="flex h-1.5 w-20 overflow-hidden rounded-sm flex-shrink-0">
             <div style={{ width: `${(overview.advancing / overview.total) * 100}%`, background: '#2D8A50' }} />
             <div style={{ width: `${(overview.flat / overview.total) * 100}%`, background: '#4A6080' }} />
             <div style={{ width: `${(overview.declining / overview.total) * 100}%`, background: '#A83232' }} />
           </div>
 
-          <span className="text-2xs"><span className="text-terminal-green font-bold">{overview.advancing}</span> <span className="text-terminal-text-dim">up</span></span>
-          <span className="text-2xs"><span className="text-terminal-red font-bold">{overview.declining}</span> <span className="text-terminal-text-dim">down</span></span>
-          <span className="text-2xs text-terminal-text-dim">
-            avg <span className="tabular-nums font-bold" style={{ color: overview.avg >= 0 ? '#2D8A50' : '#A83232' }}>
+          <span className="text-2xs whitespace-nowrap">
+            <span className="text-terminal-green font-bold">▲ {overview.advancing}</span>
+            <span className="text-terminal-text-dim"> advancing</span>
+          </span>
+          <span className="text-2xs whitespace-nowrap">
+            <span className="text-terminal-red font-bold">▼ {overview.declining}</span>
+            <span className="text-terminal-text-dim"> declining</span>
+          </span>
+          <span className="text-2xs whitespace-nowrap">
+            <span className="text-terminal-text-dim/70 font-bold">— {overview.flat}</span>
+            <span className="text-terminal-text-dim"> flat</span>
+          </span>
+
+          <span className="text-terminal-text-dim/25">|</span>
+
+          <span className="text-2xs text-terminal-text-dim whitespace-nowrap">
+            Avg:{' '}
+            <span className="tabular-nums font-bold" style={{ color: overview.avg >= 0 ? '#2D8A50' : '#A83232' }}>
               {overview.avg >= 0 ? '+' : ''}{overview.avg.toFixed(2)}%
             </span>
           </span>
+
           {overview.best && (
-            <span className="text-2xs text-terminal-text-dim">
-              best <span className="text-terminal-text-bright font-bold">{overview.best.displaySymbol}</span>{' '}
-              <span className="text-terminal-green tabular-nums">+{overview.best.pct.toFixed(2)}%</span>
-            </span>
+            <>
+              <span className="text-terminal-text-dim/25">|</span>
+              <span className="text-2xs text-terminal-text-dim whitespace-nowrap">
+                Best: <span className="text-terminal-text-bright font-bold">{overview.best.displaySymbol}</span>{' '}
+                <span className="text-terminal-green tabular-nums">
+                  {overview.best.pct >= 0 ? '+' : ''}{overview.best.pct.toFixed(2)}%
+                </span>
+              </span>
+            </>
           )}
           {overview.worst && overview.worst !== overview.best && (
-            <span className="text-2xs text-terminal-text-dim">
-              worst <span className="text-terminal-text-bright font-bold">{overview.worst.displaySymbol}</span>{' '}
+            <span className="text-2xs text-terminal-text-dim whitespace-nowrap">
+              Worst: <span className="text-terminal-text-bright font-bold">{overview.worst.displaySymbol}</span>{' '}
               <span className="text-terminal-red tabular-nums">{overview.worst.pct.toFixed(2)}%</span>
             </span>
           )}
 
-          <div className="ml-auto flex gap-1.5">
+          <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={copyWatchlist}
               className="text-2xs px-2 py-0.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors"
@@ -823,6 +1010,48 @@ export default function WatchlistModule() {
               onClick={exportWatchlistCsv}
               className="text-2xs px-2 py-0.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors"
             >⤓ CSV</button>
+
+            {/* Column visibility. */}
+            <div className="relative" ref={colMenuRef}>
+              <button
+                onClick={() => setColMenuOpen((v) => !v)}
+                title="Show or hide columns"
+                aria-expanded={colMenuOpen}
+                className={`text-xs px-1.5 py-0.5 border transition-colors ${
+                  colMenuOpen
+                    ? 'border-terminal-gold text-terminal-gold'
+                    : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+                }`}
+              >⚙</button>
+              {colMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 bg-terminal-panel border border-terminal-border-gold shadow-2xl"
+                  style={{ zIndex: 120, minWidth: 190 }}
+                >
+                  <div className="px-3 py-1.5 text-[9px] font-mono tracking-widest text-terminal-gold border-b border-terminal-border">
+                    COLUMNS
+                  </div>
+                  {COLUMNS.filter((c) => c.menu).map((c) => (
+                    <button
+                      key={c.key}
+                      onClick={() => toggleColumn(c.key)}
+                      className="w-full flex items-center gap-2 px-3 py-1 text-2xs text-left hover:bg-terminal-surface2 transition-colors"
+                    >
+                      <span className={columns[c.key] ? 'text-terminal-gold' : 'text-terminal-text-dim/40'}>
+                        {columns[c.key] ? '☑' : '☐'}
+                      </span>
+                      <span className={columns[c.key] ? 'text-terminal-text-bright' : 'text-terminal-text-dim'}>
+                        {c.menu}
+                      </span>
+                    </button>
+                  ))}
+                  <div className="px-3 py-1.5 text-[9px] text-terminal-text-dim/50 border-t border-terminal-border leading-snug">
+                    Saved to this browser. SINCE ADDED is off by default — it needs
+                    a price recorded when the ticker was added.
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -875,71 +1104,45 @@ export default function WatchlistModule() {
           </div>
         ) : (
           <table className="terminal-table table-zebra w-full" style={{ tableLayout: 'fixed' }}>
-            {/* table-layout:fixed + an explicit colgroup pins every column to
-                a known width. Without it the browser sizes columns from
-                content, so a long company name or a wide market cap shifts
-                the numeric columns and the row loses its scannable grid.
-                NAME is the only auto column — it absorbs the slack.
+            {/* table-layout:fixed + a colgroup pins every column to a known
+                width. Without it the browser sizes columns from content, so a
+                long company name or a wide market cap shifts the numeric
+                columns and the row loses its scannable grid. NAME is the only
+                auto column — it absorbs the slack.
 
-                Widths are sized to what these rows actually carry rather than
-                to the nominal spec: TICKER holds a ticker plus a live dot
-                plus an "EARNINGS IN 3D" / "RESULTS: BEAT" badge, and the 52W
-                cell holds a labelled range bar. At the originally specified
-                72px and 100px both overflowed into their neighbours. */}
+                Both this and the header below are generated from
+                visibleColumns, so hiding a column cannot leave the header and
+                the body one cell out of step. */}
             <colgroup>
-              <col style={{ width: 28 }} />{/* drag */}
-              <col style={{ width: 150 }} />{/* ticker + status badge */}
-              <col />{/* name — flexible */}
-              <col style={{ width: 90 }} />{/* price */}
-              <col style={{ width: 72 }} />{/* chg  · crypto: price US$ */}
-              <col style={{ width: 82 }} />{/* chg% · crypto: 24h% — holds a pill */}
-              <col style={{ width: 132 }} />{/* 52w bar · crypto: 7d% */}
-              <col style={{ width: 70 }} />{/* volume */}
-              <col style={{ width: 82 }} />{/* mkt cap */}
-              <col style={{ width: 92 }} />{/* since added */}
-              <col style={{ width: 40 }} />{/* alert */}
-              <col style={{ width: 32 }} />{/* remove */}
+              {visibleColumns.map((c) => (
+                <col key={c.key} style={c.width ? { width: c.width } : undefined} />
+              ))}
             </colgroup>
             <thead className="sticky top-0 bg-terminal-header z-10">
               <tr>
-                <th className="px-2 w-6"></th>
-                <th className="px-2 text-left">TICKER</th>
-                <th
-                  onClick={() => toggleSort('name')}
-                  className="px-2 text-left cursor-pointer hover:text-terminal-gold transition-colors select-none"
-                >
-                  NAME{sortKey === 'name' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                </th>
-                <th
-                  onClick={() => toggleSort('price')}
-                  className="px-2 text-right cursor-pointer hover:text-terminal-gold transition-colors select-none"
-                >
-                  PRICE (A$){sortKey === 'price' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                </th>
-                <th className="px-2 text-right">CHG</th>
-                <th
-                  onClick={() => toggleSort('pct')}
-                  className="px-2 text-right cursor-pointer hover:text-terminal-gold transition-colors select-none"
-                >
-                  CHG%{sortKey === 'pct' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                </th>
-                <th className="px-2 text-right">52W RANGE</th>
-                <th className="px-2 text-right">VOLUME</th>
-                <th
-                  onClick={() => toggleSort('marketCap')}
-                  className="px-2 text-right cursor-pointer hover:text-terminal-gold transition-colors select-none"
-                >
-                  MKT CAP{sortKey === 'marketCap' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                </th>
-                <th className="px-2 text-right" title="Change since this stock was added to your watchlist">SINCE ADDED</th>
-                <th className="px-1 w-8 text-center" title="Price alert">⚡</th>
-                <th className="px-2 w-6"></th>
+                {visibleColumns.map((c) => {
+                  const alignClass = c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'
+                  const sortable = !!c.sort
+                  return (
+                    <th
+                      key={c.key}
+                      onClick={sortable ? () => toggleSort(c.sort) : undefined}
+                      title={sortable ? 'Sort — click again to reverse, a third time to return to manual order' : undefined}
+                      className={`px-2 ${alignClass} ${sortable ? 'cursor-pointer hover:text-terminal-gold transition-colors select-none' : ''}`}
+                    >
+                      {c.label}
+                      {sortable && sortKey === c.sort && (
+                        <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
               {firstCryptoIdx > 0 && (
                 <tr className="pointer-events-none">
-                  <td colSpan={12} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
+                  <td colSpan={visibleColumns.length} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
                 </tr>
               )}
               {groupedRows.map(({ row, i }, idx) => (
@@ -947,7 +1150,7 @@ export default function WatchlistModule() {
                   {idx === firstCryptoIdx && (
                     <tr className="pointer-events-none">
                       <td
-                        colSpan={12}
+                        colSpan={visibleColumns.length}
                         className="px-2 py-1.5 text-2xs font-bold text-terminal-gold tracking-widest"
                         style={{
                           background: 'rgba(201,168,76,0.03)',
@@ -966,159 +1169,248 @@ export default function WatchlistModule() {
                        measures, so it gets its own header strip — a column
                        that changes meaning without saying so is a trap. */
                     <tr className="pointer-events-none">
-                      <td className="px-2 py-1 bg-terminal-header/40" />
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap">Ticker</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap">Name</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Price (A$)</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Price (US$)</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">24H%</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">7D%</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Volume</td>
-                      <td className="px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase text-right bg-terminal-header/40 whitespace-nowrap">Mkt Cap</td>
-                      <td className="px-2 py-1 bg-terminal-header/40" />
-                      <td className="px-2 py-1 bg-terminal-header/40" />
+                      {visibleColumns.map((c) => (
+                        <td
+                          key={c.key}
+                          className={`px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap ${
+                            c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''
+                          }`}
+                        >{CRYPTO_LABEL[c.key] ?? ''}</td>
+                      ))}
                     </tr>
                   )}
                 <tr
-                  style={{ height: 48 }}
+                  style={{
+                    height: 48,
+                    // Dragging row fades; drop target takes a gold top edge.
+                    // Without either, an HTML5 drag on a dense table gives no
+                    // indication of what is moving or where it will land.
+                    opacity: draggingIdx === i ? 0.5 : 1,
+                    borderTop: dragOverIdx === i && draggingIdx !== i ? '2px solid #C9A84C' : undefined,
+                  }}
                   draggable={!sortKey}
-                  onDragStart={() => onDragStart(i)}
-                  onDragOver={onDragOver}
-                  onDrop={() => onDrop(i)}
-                  className="cursor-pointer hover:bg-terminal-accent/20 transition-colors border-b border-terminal-border/40"
+                  onDragStart={() => { onDragStart(i); setDraggingIdx(i) }}
+                  onDragOver={(e) => { onDragOver(e); if (dragOverIdx !== i) setDragOverIdx(i) }}
+                  onDragEnd={() => { setDraggingIdx(null); setDragOverIdx(null) }}
+                  onDrop={() => { onDrop(i); setDraggingIdx(null); setDragOverIdx(null) }}
+                  className="group cursor-pointer hover:bg-terminal-accent/20 transition-colors border-b border-terminal-border/40"
                   onClick={() => handleRowClick(row)}
                   onContextMenu={(e) => openMenu(e, { symbol: row.displaySymbol, name: row.name, price: row.price })}
                 >
-                  <td
-                    className={`px-2 py-1.5 select-none ${sortKey ? 'text-terminal-text-dim/15' : 'text-terminal-text-dim/40 cursor-grab'}`}
-                    title={sortKey ? 'Clear sort to reorder' : 'Drag to reorder'}
-                  >⠿</td>
-                  <td className="px-2 py-1.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
-                    {row.displaySymbol}
-                    {row.isLive
-                      ? <span className="text-2xs text-terminal-green ml-1">●</span>
-                      : anyFetching
-                        ? <span className="text-2xs text-terminal-text-dim ml-1">…</span>
-                        : null}
-                    {(() => {
-                      const e = earningsFor(row.symbol)
-                      if (!e) return null
-                      const d = daysUntil(e.date)
-
-                      // Earnings date has passed. There is no badge for this
-                      // any more: the green "RESULTS: BEAT ✓" that used to
-                      // appear here was decided by Math.random() in
-                      // simulateEarningsResult, so a coin flip coloured a
-                      // watchlist row green or red. We have no results feed,
-                      // so we say nothing.
-                      if (d <= 0) return null
-
-                      if (d > 45) return null
-                      // Within 7 days: a clickable "EARNINGS IN Xd" badge that opens the
-                      // MaddenAI preview panel. Outside that window: just the existing
-                      // hover-tooltip calendar icon, unchanged.
-                      if (d <= 7) {
+                  {/* Cells are emitted in visibleColumns order, so a hidden
+                      column removes its cell from every row and the header
+                      above it at the same time. */}
+                  {visibleColumns.map((c) => {
+                    switch (c.key) {
+                      case 'drag':
                         return (
-                          <button
-                            onClick={(ev) => { ev.stopPropagation(); setEarningsPreview({ ticker: e.ticker, earningsDate: e.date, companyName: e.company }) }}
-                            title={`${e.company} ${e.type} results — click for MaddenAI preview`}
-                            className="text-2xs text-terminal-gold ml-1 border border-terminal-gold/40 px-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                          >EARNINGS IN {d}D</button>
+                          <td
+                            key={c.key}
+                            className={`px-2 py-1.5 select-none transition-opacity ${
+                              sortKey
+                                ? 'text-terminal-text-dim/15'
+                                : 'cursor-grab opacity-0 group-hover:opacity-100'
+                            }`}
+                            style={sortKey ? undefined : { color: '#4A6080' }}
+                            title={sortKey ? 'Clear sort to reorder — click the sorted header again' : 'Drag to reorder'}
+                          >⠿</td>
+                        )
+                      case 'ticker':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
+                            {row.displaySymbol}
+                            {row.isLive
+                              ? <span className="text-2xs text-terminal-green ml-1">●</span>
+                              : anyFetching
+                                ? <span className="text-2xs text-terminal-text-dim ml-1">…</span>
+                                : null}
+                            {(() => {
+                              const e = earningsFor(row.symbol)
+                              if (!e) return null
+                              const d = daysUntil(e.date)
+                              // Earnings date has passed. There is no badge for
+                              // this any more: the green "RESULTS: BEAT ✓" that
+                              // used to appear here was decided by Math.random()
+                              // in simulateEarningsResult, so a coin flip
+                              // coloured a watchlist row green or red. We have no
+                              // results feed, so we say nothing.
+                              if (d <= 0 || d > 45) return null
+                              if (d <= 7) {
+                                return (
+                                  <button
+                                    onClick={(ev) => { ev.stopPropagation(); setEarningsPreview({ ticker: e.ticker, earningsDate: e.date, companyName: e.company }) }}
+                                    title={`${e.company} ${e.type} results — click for MaddenAI preview`}
+                                    className="text-2xs text-terminal-gold ml-1 border border-terminal-gold/40 px-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                                  >EARNINGS IN {d}D</button>
+                                )
+                              }
+                              return (
+                                <span
+                                  title={`${e.company} ${e.type} results — ${new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${d}d)`}
+                                  className="text-2xs text-terminal-gold ml-1"
+                                >📅</span>
+                              )
+                            })()}
+                          </td>
+                        )
+                      case 'name':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-terminal-text-dim truncate max-w-[200px]">
+                            {row.name}
+                            {noteOf(row.symbol) && (
+                              <Tooltip content={noteOf(row.symbol)}>
+                                <span className="ml-1.5 opacity-60" style={{ fontSize: 10 }}>📝</span>
+                              </Tooltip>
+                            )}
+                          </td>
+                        )
+                      // The four price columns are rendered together by one
+                      // component, at the position of the first of them, so
+                      // the live-quote hook is called once per row.
+                      case 'price': case 'change': case 'pct': case 'week52':
+                        if (c.key !== priceAnchor) return null
+                        return (
+                          <Fragment key={c.key}>
+                            {row.type === 'crypto'
+                              ? <CryptoPriceCells price={row.price} pct={row.pct} pct7d={row.pct7d} audToUsd={audToUsd} show={isOn} />
+                              : <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} show={isOn} />}
+                          </Fragment>
+                        )
+                      case 'volume':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
+                            {row.volume != null ? fmt.large(row.volume) : '—'}
+                          </td>
+                        )
+                      case 'marketCap':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
+                            {formatMarketCap(row.marketCap)}
+                          </td>
+                        )
+                      case 'pe':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim tabular-nums">
+                            {row.pe != null ? row.pe.toFixed(1) : '—'}
+                          </td>
+                        )
+                      case 'divYield':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right tabular-nums" style={{ color: row.divYield != null ? '#C9A84C' : undefined }}>
+                            {row.divYield != null ? `${row.divYield.toFixed(1)}%` : <span className="text-terminal-text-dim">—</span>}
+                          </td>
+                        )
+                      // SINCE ADDED — measured from the first price this
+                      // browser saw for the symbol, not from a purchase. It
+                      // answers "has watching this been worth it", which is a
+                      // different question from portfolio P&L.
+                      case 'sinceAdded': {
+                        const since = sinceAdded(row.symbol, row.price)
+                        return (
+                          <td key={c.key} className="px-2 py-1 text-right tabular-nums whitespace-nowrap">
+                            {since ? (
+                              <span
+                                title={`From A$${since.entryPrice.toFixed(2)}${since.entryAt ? ` on ${new Date(since.entryAt).toLocaleDateString('en-AU')}` : ''}`}
+                                style={{ color: since.pct >= 0 ? '#2D8A50' : '#A83232', fontSize: 10 }}
+                              >
+                                {since.pct >= 0 ? '▲ +' : '▼ '}{Math.abs(since.pct).toFixed(2)}%
+                                {since.entryAt && (
+                                  <span className="text-terminal-text-dim/50 ml-1">
+                                    since {new Date(since.entryAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                                  </span>
+                                )}
+                              </span>
+                            ) : (
+                              <Tooltip content="Price not recorded when this was added. Remove and add again to start tracking it.">
+                                <span className="text-terminal-text-dim/40">—</span>
+                              </Tooltip>
+                            )}
+                          </td>
                         )
                       }
-                      return (
-                        <span
-                          title={`${e.company} ${e.type} results — ${new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${d}d)`}
-                          className="text-2xs text-terminal-gold ml-1"
-                        >📅</span>
-                      )
-                    })()}
-                  </td>
-                  <td className="px-2 py-1.5 text-2xs text-terminal-text-dim truncate max-w-[200px]">{row.name}</td>
-                  {row.type === 'crypto'
-                    ? <CryptoPriceCells price={row.price} pct={row.pct} pct7d={row.pct7d} audToUsd={audToUsd} />
-                    : <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} />}
-                  <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
-                    {row.volume != null ? fmt.large(row.volume) : '—'}
-                  </td>
-                  <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
-                    {formatMarketCap(row.marketCap)}
-                  </td>
-                  {/* SINCE ADDED — measured from the first price this browser
-                      saw for the symbol, not from a purchase. It answers "has
-                      watching this been worth it", which is a different
-                      question from portfolio P&L and is why it lives here. */}
-                  <td className="px-2 py-1 text-right tabular-nums">
-                    {(() => {
-                      const since = sinceAdded(row.symbol, row.price)
-                      if (!since) return <span className="text-terminal-text-dim/40">—</span>
-                      return (
-                        <span
-                          title={`From A$${since.entryPrice.toFixed(2)}${since.entryAt ? ` on ${new Date(since.entryAt).toLocaleDateString('en-AU')}` : ''}`}
-                          style={{ color: since.pct >= 0 ? '#2D8A50' : '#A83232' }}
-                        >
-                          {since.pct >= 0 ? '▲+' : '▼'}{Math.abs(since.pct).toFixed(2)}%
-                        </span>
-                      )
-                    })()}
-                    {/* Note affordance rides in this cell rather than claiming
-                        a twelfth column — the table is already dense, and a
-                        column that is empty for most rows costs width on every
-                        row to serve a few. */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openNote(row.symbol) }}
-                      title={metaFor(row.symbol)?.note || 'Add a note'}
-                      className={`ml-1.5 text-2xs leading-none align-middle transition-opacity ${
-                        metaFor(row.symbol)?.note
-                          ? 'opacity-100 text-terminal-gold'
-                          : 'opacity-25 hover:opacity-70 text-terminal-text-dim'
-                      }`}
-                    >✎</button>
-                  </td>
-                  <td className="px-1 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
-                    <AlertBell
-                      symbol={row.displaySymbol}
-                      price={row.price}
-                      alerts={alerts}
-                      isOpen={alertPanelFor === row.displaySymbol}
-                      onToggle={() => setAlertPanelFor((cur) => (cur === row.displaySymbol ? null : row.displaySymbol))}
-                    />
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleRemove(row.symbol) }}
-                      className="text-terminal-text-dim hover:text-terminal-red text-xs px-1"
-                      title="Remove from watchlist"
-                    >
-                      ✕
-                    </button>
-                  </td>
+                      case 'alert':
+                        return (
+                          <td key={c.key} className="px-1 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
+                            <AlertBell
+                              symbol={row.displaySymbol}
+                              price={row.price}
+                              alerts={alerts}
+                              isOpen={alertPanelFor === row.displaySymbol}
+                              onToggle={() => setAlertPanelFor((cur) => (cur === row.displaySymbol ? null : row.displaySymbol))}
+                            />
+                          </td>
+                        )
+                      case 'remove':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => openNote(row.symbol)}
+                              title={noteOf(row.symbol) ? 'Edit note' : 'Add note'}
+                              className={`text-2xs px-0.5 transition-opacity ${
+                                noteOf(row.symbol) ? 'text-terminal-gold opacity-100' : 'text-terminal-text-dim opacity-0 group-hover:opacity-60 hover:!opacity-100'
+                              }`}
+                            >✎</button>
+                            <button
+                              onClick={() => handleRemove(row.symbol)}
+                              className="text-terminal-text-dim hover:text-terminal-red text-xs px-0.5"
+                              title="Remove from watchlist"
+                            >✕</button>
+                          </td>
+                        )
+                      default:
+                        return <td key={c.key} />
+                    }
+                  })}
                 </tr>
+                {/* Note editor. Always mounted for the open row so the
+                    0fr → 1fr grid transition has something to animate in both
+                    directions; a panel that unmounts on the first frame of the
+                    close reads as a snap, not a collapse. */}
                 {noteFor === row.symbol && (
                   <tr>
-                    <td colSpan={12} className="px-3 py-2 bg-terminal-header/40 border-b border-terminal-border/40">
-                      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">
-                        NOTE · {row.displaySymbol}
-                      </div>
-                      <textarea
-                        autoFocus
-                        value={noteDraft}
-                        maxLength={200}
-                        onChange={(e) => setNoteDraft(e.target.value)}
-                        placeholder="Why you're watching this stock…"
-                        className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono resize-none"
-                        rows={2}
-                      />
-                      <div className="flex items-center gap-2 mt-1">
-                        <button onClick={() => saveNote(row.symbol)} className="btn-primary btn-sm">SAVE</button>
-                        <button onClick={() => setNoteFor(null)} className="btn-secondary btn-sm">CANCEL</button>
-                        <span className="text-2xs text-terminal-text-dim/50 ml-auto">{noteDraft.length}/200</span>
+                    <td colSpan={visibleColumns.length} className="px-3 py-0 bg-terminal-header/40 border-b border-terminal-border/40">
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateRows: '1fr',
+                          transition: 'grid-template-rows 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >
+                        <div style={{ overflow: 'hidden' }} className="py-2">
+                          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">
+                            NOTE · {row.displaySymbol}
+                          </div>
+                          <textarea
+                            autoFocus
+                            value={noteDraft}
+                            maxLength={200}
+                            onChange={(e) => setNoteDraft(e.target.value)}
+                            placeholder={`Your notes about ${row.displaySymbol}…`}
+                            className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono resize-none"
+                            style={{ height: 72 }}
+                          />
+                          <div className="flex items-center gap-2 mt-1">
+                            <button onClick={() => saveNote(row.symbol)} className="btn-primary btn-sm">SAVE NOTE</button>
+                            <button onClick={() => setNoteFor(null)} className="btn-secondary btn-sm">CANCEL</button>
+                            {noteOf(row.symbol) && (
+                              <button
+                                onClick={() => deleteNote(row.symbol)}
+                                className="text-2xs px-2 py-0.5 border border-terminal-red/40 text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-colors"
+                              >DELETE</button>
+                            )}
+                            <span
+                              className="text-2xs ml-auto tabular-nums"
+                              style={{ color: noteDraft.length >= 190 ? '#C9A84C' : 'rgba(139,163,196,0.5)' }}
+                            >{noteDraft.length}/200</span>
+                          </div>
+                        </div>
                       </div>
                     </td>
                   </tr>
                 )}
                 {alertPanelFor === row.displaySymbol && (
                   <AlertRow
+                    colSpan={visibleColumns.length}
                     symbol={row.displaySymbol}
                     price={row.price}
                     alerts={alerts}

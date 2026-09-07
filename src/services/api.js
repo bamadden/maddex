@@ -260,6 +260,14 @@ function fmpQuoteToLegacyShape(q) {
     dayChangePct,
     marketCap: q.marketCap,
     trailingPE: q.trailingPE,
+    // THE SOURCE CARRIES THIS AND BOTH RESHAPERS THREW IT AWAY.
+    //
+    // getMockFMPRow returns `dividendYield` per symbol (BHP 5.4, CBA 3.1).
+    // This function never mapped it, and the summary-detail shape below hard
+    // coded `divYield: null` — so every consumer in the app saw null and
+    // concluded the data did not exist. The portfolio's dividend schedule
+    // rendered "no holdings carry a dividend yield yet" because of it.
+    divYield: q.dividendYield ?? null,
     epsTrailing: q.epsTrailingTwelveMonths,
     sharesOutstanding: q.sharesOutstanding,
     ma50: q.priceAvg50,
@@ -401,7 +409,9 @@ export async function fetchQuoteSummary(symbol) {
     // Summary Detail
     trailingPE:   q.trailingPE,
     forwardPE:    null,
-    divYield:     null,
+    // See the note in fmpQuoteToLegacyShape — this was `null` while the row
+    // it is built from carried a real yield.
+    divYield:     q.dividendYield ?? null,
     payoutRatio:  null,
     beta:         null,
     week52High:   q.fiftyTwoWeekHigh,
