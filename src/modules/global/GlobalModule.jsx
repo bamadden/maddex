@@ -697,6 +697,10 @@ function useLocalTime(tz) {
   }, [tz])
   const [time, setTime] = useState(fmt)
   useEffect(() => {
+    // Starts a one-second clock and seeds it immediately, so the first paint
+    // shows a time rather than an empty slot for up to a second. A timer is an
+    // external system by definition.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTime(fmt())
     const id = setInterval(() => setTime(fmt()), 1000)
     return () => clearInterval(id)
@@ -1773,16 +1777,24 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
 // ─── Tab: Market Sessions ─────────────────────────────────────────────────────
 
 function MarketSessionsTab({ now }) {
+  // `now` is NOT unnecessary, whatever eslint says. getStatus, localTime and
+  // countdown all read the clock internally, so none of them appears in this
+  // dependency array — the linter sees a memo over constants and concludes the
+  // ticking prop is surplus. Remove it and every countdown in this tab freezes
+  // at the value it held on mount.
   const statuses = useMemo(() => EXCHANGES.map(ex => ({
     ...ex,
     status:    getStatus(ex),
     localT:    localTime(ex.tz),
     cd:        countdown(ex),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   })), [now])
 
   const openCount = statuses.filter(s => isOpenNow(s.status)).length
 
   // Determine active sessions
+  // Same as `statuses` above: this body calls new Date() directly, so `now` is
+  // the only thing that can tell React the result has expired.
   const activeSessions = useMemo(() => SESSIONS.map(s => {
     const local = new Date(new Date().toLocaleString('en-US', { timeZone: s.tz }))
     const day   = local.getDay()
@@ -1791,6 +1803,7 @@ function MarketSessionsTab({ now }) {
     const close = s.close[0] * 60 + s.close[1]
     const isOpen = day !== 0 && day !== 6 && mins >= open && mins < close
     return { ...s, isOpen, localT: localTime(s.tz) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [now])
 
   const REGION_ORDER = ['APAC', 'EUROPE', 'AMERICAS', 'MIDDLE EAST', 'AFRICA']

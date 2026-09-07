@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ASX_STOCKS, US_STOCKS } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
-import { GICS_SECTORS, SECTOR_ABBR, ASX_SECTOR_STOCKS } from './SectorHeatmap'
+import { GICS_SECTORS, SECTOR_ABBR, ASX_SECTOR_STOCKS } from '../../data/sectorTaxonomy'
 import { getMockFMPRow } from '../../services/mockData'
 import Tooltip from '../../components/ui/Tooltip'
 

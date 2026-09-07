@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS } from './SectorHeatmap'
+import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS } from '../../data/sectorTaxonomy'
 import { getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI } from '../../utils/askAI'

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../../services/dataService'
-import { ASX_SECTOR_STOCKS, SECTOR_ABBR } from '../../markets/SectorHeatmap'
+import { ASX_SECTOR_STOCKS, SECTOR_ABBR } from '../../../data/sectorTaxonomy'
 import {WidgetBody} from './_shared'
 import { goModule } from './navigate'
 

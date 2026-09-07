@@ -842,6 +842,10 @@ export default function CommandBar() {
     const stockSyms  = suggestions.filter((s) => s.category === 'STOCKS').map((s) => s.sym).slice(0, 4)
     const cryptoSyms = suggestions.filter((s) => s.category === 'CRYPTO').map((s) => s.label).slice(0, 4)
     if (debouncedValue.trim().length < 2 || (!stockSyms.length && !cryptoSyms.length)) {
+      // Clears stale quotes before starting a new suggestion fetch, so the previous
+      // query's prices cannot sit under the current query's names. The fetch below
+      // is the external system; this is its reset.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuggestionQuotes({})
       return
     }
@@ -898,10 +902,24 @@ export default function CommandBar() {
     setShowRecent(false)
   }
 
-  useEffect(() => {
+  // Derived during render, not in an effect — the same pattern AnimatedNumber
+  // uses in this codebase, and React's documented shape for "adjust state when
+  // an input changes".
+  //
+  // A useMemo would be wrong here: `suggestions` is not purely a function of
+  // the query. Escape clears it, selecting an item clears it, blur clears it —
+  // seven call sites write to it. So it has to stay state, and this is how you
+  // reset state on an input change without paying a committed render first.
+  //
+  // As an effect it produced a visible artifact, not just a lint error: the
+  // list rendered once with the PREVIOUS query's suggestions before the effect
+  // replaced them, so a fast typist saw the prior match flash under the cursor.
+  const [prevQuery, setPrevQuery] = useState(debouncedValue)
+  if (prevQuery !== debouncedValue) {
+    setPrevQuery(debouncedValue)
     setSuggestIdx(-1)
     setSuggestions(debouncedValue.trim() ? getSuggestions(debouncedValue) : [])
-  }, [debouncedValue])
+  }
 
   // Recent-search entries treated as a navigable list, same shape as a
   // suggestion item, so keyboard nav can be shared between both dropdowns.

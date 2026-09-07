@@ -957,6 +957,11 @@ export default function NewsModule() {
 
   // Sync CMD: NEWS filter
   useEffect(() => {
+    // Consumes a one-shot command from the command bar: CMD "NEWS xyz" sets
+    // newsFilter in the store, this reads it into local search state and clears
+    // it so it cannot fire twice. The store is the external system here — there
+    // is no way to derive this, because the value must be consumed exactly once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (newsFilter) { setSearchTerm(newsFilter); setNewsFilter('') }
   }, [newsFilter, setNewsFilter])
 
@@ -1058,7 +1063,11 @@ export default function NewsModule() {
 
   const breakingItems = useMemo(() =>
     allArticles.filter(a => isBreakingArticle(a) || isNewArticle(a)).slice(0, 10)
-  , [allArticles, nowTs])
+  // nowTs is load-bearing: isBreakingArticle and isNewArticle both compare
+  // against Date.now() internally, so an article stops being "breaking" purely
+  // with the passage of time. Drop the ticking dependency and this list is
+  // computed once — a two-hour-old story stays flagged as breaking forever.
+  , [allArticles, nowTs])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const trending = useMemo(() => extractTrending(allArticles), [allArticles])
   const sponsoredAssets = useMemo(() => marketImpactAssets(), [])

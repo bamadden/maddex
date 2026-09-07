@@ -341,7 +341,9 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
   const { usdToAud } = useAudRates()
   const [text, setText]       = useState(null)
   const [loading, setLoading] = useState(false)
-  const [triggered, setTriggered] = useState(false)
+  // A run-once latch, not display state. Nothing renders it, so holding it in
+  // useState bought a committed re-render purely to record "already started".
+  const triggeredRef = useRef(false)
 
   const generate = useCallback(async () => {
     setLoading(true)
@@ -407,7 +409,7 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
   }, [asset, displayPrice, display52High, display52Low, qs, usdToAud])
 
   useEffect(() => {
-    if (!triggered) { setTriggered(true); generate() }
+    if (!triggeredRef.current) { triggeredRef.current = true; generate() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -568,6 +570,12 @@ export default function DetailModal() {
 
   useEffect(() => {
     if (modalAsset) {
+      // Resets the panel when a DIFFERENT asset is opened into the same mounted
+      // modal. The canonical fix is a key on the component so React remounts it,
+      // which is a change to App.jsx and to how the modal is addressed; that is
+      // worth doing deliberately, not as a lint cleanup on the highest-traffic
+      // surface in the app.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimeframe('1M'); setChartType('area')
       setAlertOpen(false); setAlertPrice(''); setAlertSaved(false)
       setCompareOpen(false); setCompareInput(''); setCompareSymbol(null)

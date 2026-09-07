@@ -128,6 +128,10 @@ function ResultRow({ test }) {
     }
   }
 
+  // run() performs a diagnostic fetch and reports progress through state.
+  // Fetch-on-mount is the textbook effect; the rule flags it only because run()
+  // sets its first state synchronously before awaiting.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { run() }, [])
 
   const isOk = state === 'done' && result && result.ok !== false

@@ -231,6 +231,16 @@ export function StoreProvider({ children }) {
   )
 }
 
+// NOT a false positive, and NOT worth fixing.
+//
+// The rule is right that a module exporting both a component (StoreProvider)
+// and a non-component (this hook) cannot be hot-swapped cleanly by fast
+// refresh. The fix is to split the hook into its own module — which would
+// rewrite the import line in the thirty-odd files that call useStore, to buy a
+// marginally better dev-server reload. That trade is not worth thirty diffs
+// through the app's most-imported module.
+//
+// eslint-disable-next-line react-refresh/only-export-components
 export const useStore = () => {
   const ctx = useContext(StoreContext)
   if (!ctx) throw new Error('useStore must be inside StoreProvider')

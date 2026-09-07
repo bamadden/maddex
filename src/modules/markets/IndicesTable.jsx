@@ -266,8 +266,15 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
     []
   )
 
-  const handleClick = (symbol, q, isAud, label) => {
-    const now = Date.now()
+  // Takes the event so it can use e.timeStamp rather than Date.now().
+  //
+  // Two reasons, and the lint rule is the lesser one. e.timeStamp is when the
+  // BROWSER recorded the click; Date.now() is when our handler happened to run,
+  // which on a busy frame can be tens of milliseconds later — so a genuine
+  // double-click could measure as 410ms and fall outside the window. Reading
+  // the event is both more accurate and provably not an impure render call.
+  const handleClick = (e, symbol, q, isAud, label) => {
+    const now = e?.timeStamp ?? 0
     const isDouble = (now - lastClickTime.current) < 400 && lastClickSymbol.current === symbol
     lastClickTime.current   = now
     lastClickSymbol.current = symbol
@@ -342,7 +349,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
           return (
             <div
               key={symbol}
-              onClick={() => handleClick(symbol, q, isAud, label)}
+              onClick={(e) => handleClick(e, symbol, q, isAud, label)}
               onMouseEnter={() => setHoveredIdx(symbol)}
               onMouseLeave={() => setHoveredIdx(null)}
               className={`index-card relative min-w-0 cursor-pointer border-r border-b sm:border-b-0 border-terminal-border ${

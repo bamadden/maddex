@@ -199,9 +199,17 @@ const TREND_TABS = ['1D', '1W', '1M', '1Y']
 
 function TrendSection({ currentScore }) {
   const [tab, setTab]     = useState('1W')
-  const [hist, setHist]   = useState(() => readHistory())
+  // Read once at mount. The history is appended to elsewhere and this panel
+  // only ever displays it, so there is nothing here to keep in sync.
+  const [hist]            = useState(() => readHistory())
 
-  useEffect(() => { setHist(readHistory()) }, [tab])
+  // Was: useEffect(() => setHist(readHistory()), [tab]).
+  //
+  // readHistory() does not take `tab` and does not depend on it — filtering by
+  // period happens below in filterHistory(hist, tab). So the effect re-read
+  // localStorage and set identical state on every tab click, costing an extra
+  // render each time to arrive at the value already held. The initialiser has
+  // it; nothing else needs to.
 
   const filtered  = filterHistory(hist, tab)
   const stats     = histStats(hist)

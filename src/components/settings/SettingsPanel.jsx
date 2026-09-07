@@ -186,6 +186,11 @@ function ProfileSection() {
   // Sync form when profile loads from Supabase (useState only runs once at mount)
   useEffect(() => {
     if (profile) {
+      // Seeds the form once the profile arrives from Supabase. useState only runs
+      // at mount and the profile is async, so without this the form renders empty
+      // for a signed-in user. The documented alternative — remounting on a key —
+      // would discard whatever the user had already typed if the profile refetched.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',

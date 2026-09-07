@@ -414,7 +414,7 @@ function FormattedResponse({ text }) {
 
         // Bullet: ◆ - • *
         if (/^[◆\-*•]\s/.test(trimmed)) {
-          const content = trimmed.replace(/^[◆\-\*•]\s*/, '')
+          const content = trimmed.replace(/^[◆\-*•]\s*/, '')
           const parsed  = parseSentimentBullet(content)
 
           if (parsed && SENTIMENT_FIELDS.has(parsed.label)) {
@@ -848,11 +848,15 @@ export default function AIPanel({ wide = false }) {
   // for it, so a new symbol never gets analysed twice in a row.
   const lastAutoAnalysedRef = useRef(null)
   useEffect(() => {
+    // Auto-analyse: fires a prompt when a new asset opens while the panel is
+    // already open. send() is an async side effect on the network, not derived
+    // state — there is nothing here to compute during render.
     if (!chatOpen || !modalAsset?.symbol) return
     if (!getAiPreferences().autoAnalyse) return
     if (lastAutoAnalysedRef.current === modalAsset.symbol) return
     lastAutoAnalysedRef.current = modalAsset.symbol
     const prompt = getQuickPrompts(activeModule, modalAsset.symbol)[0]?.prompt
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (prompt) send(prompt)
   }, [modalAsset, chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 

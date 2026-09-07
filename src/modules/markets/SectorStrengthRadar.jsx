@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from 'recharts'
 import { fetchBatch, USING_MOCK_DATA } from '../../services/api'
-import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from './SectorHeatmap'
+import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from '../../data/sectorTaxonomy'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import SafeChart from '../../components/ui/SafeChart'
 
