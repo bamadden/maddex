@@ -141,6 +141,21 @@ const PRESETS = [
 // revised. A saved screen naming a preset that no longer exists must degrade
 // to "no preset" rather than throwing on .filter of undefined — the alternative
 // is a blank module for anyone who saved a screen before this revision.
+// QUICK FILTERS — single criteria, toggled independently and stacked with AND.
+//
+// Distinct from PRESETS on purpose. A preset is a complete screen and replaces
+// whatever came before it; these are one condition each and compose, so
+// "large cap" plus "high yield" is two clicks rather than a preset nobody
+// thought to write. Every threshold matches one already used by a preset, so a
+// stock cannot qualify as high-yield here and not there.
+const QUICK_FILTERS = [
+  { key: 'yield',  label: 'HIGH YIELD >4%', test: (s) => s.divYield > 4 },
+  { key: 'lowpe',  label: 'LOW PE <15',     test: (s) => s.pe > 0 && s.pe < 15 },
+  { key: 'large',  label: 'LARGE CAP',      test: (s) => s.marketCap >= 50 * B },
+  { key: 'up',     label: 'UP TODAY',       test: (s) => s.changePct > 0 },
+  { key: 'nearlow', label: 'NEAR 52W LOW',  test: (s) => s.pos52 < 30 },
+]
+
 const findPreset = (key) => PRESETS.find((p) => p.key === key) ?? null
 
 // Lightweight local NL parser — handles the common patterns without needing
@@ -511,6 +526,7 @@ export default function ScreenerModule() {
   const [showSavePrompt, setShowSavePrompt] = useState(false)
   const [saveNameInput, setSaveNameInput] = useState('')
   const [showSavedList, setShowSavedList] = useState(false)
+  const [quickKeys, setQuickKeys] = useState([])
 
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS)
 
@@ -595,7 +611,7 @@ export default function ScreenerModule() {
     else if (parsed?.filters?.length) queryFilters = parsed.filters
     else if (!filtersActive) return []
 
-    const matched = base.filter((s) => queryFilters.every((f) => f(s)))
+    let matched = base.filter((s) => queryFilters.every((f) => f(s)))
 
     // Criteria come from every active source: the preset, the parsed natural
     // language query, and the manual sidebar. A screen combining "PE under
@@ -606,6 +622,12 @@ export default function ScreenerModule() {
       ...(parsed?.criteria ?? {}),
       ...(filtersActive ? manualCriteria(filters) : {}),
     }
+
+    // Quick filters narrow whatever the screen produced — they never widen it,
+    // so a pill can only ever remove rows and the count moving down is the
+    // feedback that the click landed.
+    const quick = QUICK_FILTERS.filter((q) => quickKeys.includes(q.key))
+    if (quick.length) matched = matched.filter((s) => quick.every((q) => q.test(s)))
 
     const scored = scoreCriteria(matched, criteria) ?? matched.map((s) => ({ ...s, matchPct: null }))
     // Falls back to market cap when the screen is unrankable, so an
@@ -620,15 +642,38 @@ export default function ScreenerModule() {
       const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [activePreset, parsed, manualFiltered, filtersActive, filters, sortKey, sortDir])
+  }, [activePreset, parsed, manualFiltered, filtersActive, filters, sortKey, sortDir, quickKeys])
 
   // Whether the active screen produced anything rankable. When it did not
   // — a sector or exchange filter alone — the MATCH column is hidden rather
   // than filled with a number that means nothing.
   const rankable = results.length > 0 && results[0].matchPct != null
 
+  // SCREEN INSIGHTS — computed from the result set, never asserted.
+  //
+  // The point is to answer "is this a cheap list or an expensive one" before
+  // the reader has scanned a single row. Every figure is an aggregate of what
+  // is on screen, so it cannot disagree with the table beneath it. Averages
+  // skip stocks missing that field rather than treating a gap as zero, which
+  // would silently drag every average toward nothing.
+  const insights = useMemo(() => {
+    if (!results.length) return null
+    const avg = (pick) => {
+      const vals = results.map(pick).filter((v) => Number.isFinite(v) && v > 0)
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    }
+    const best = results.reduce((b, s2) => (b == null || (s2.changePct ?? -Infinity) > (b.changePct ?? -Infinity) ? s2 : b), null)
+    return {
+      count: results.length,
+      pe: avg((s2) => s2.pe),
+      divYield: avg((s2) => s2.divYield),
+      best: best && Number.isFinite(best.changePct) ? best : null,
+      asx: results.filter((s2) => s2.exchange === 'ASX').length,
+    }
+  }, [results])
+
   const activePresetMeta = findPreset(activePreset)
-  const hasSearched = activePreset != null || parsed != null || filtersActive
+  const hasSearched = activePreset != null || parsed != null || filtersActive || quickKeys.length > 0
 
   // The screen's name, for the CSV header and filename. Falls back through the
   // preset label, the typed query, then a generic label — a file called
@@ -767,6 +812,34 @@ export default function ScreenerModule() {
           </div>
         </div>
 
+        {/* Quick filters sit ABOVE the presets: they compose, presets replace,
+            and putting the composable row first stops a preset click silently
+            wiping a pill the user had just set. */}
+        <div className="flex items-center gap-1.5 flex-wrap mt-2">
+          <span className="text-2xs text-terminal-text-dim/50 tracking-widest mr-1">QUICK</span>
+          {QUICK_FILTERS.map((q) => {
+            const on = quickKeys.includes(q.key)
+            return (
+              <button
+                key={q.key}
+                onClick={() => setQuickKeys((k) => (on ? k.filter((x) => x !== q.key) : [...k, q.key]))}
+                aria-pressed={on}
+                className={`text-2xs px-2 py-0.5 rounded-sm border transition-colors font-bold tracking-wider ${
+                  on
+                    ? 'bg-terminal-gold/15 border-terminal-gold text-terminal-gold'
+                    : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-gold'
+                }`}
+              >{on ? '✓ ' : ''}{q.label}</button>
+            )
+          })}
+          {quickKeys.length > 0 && (
+            <button
+              onClick={() => setQuickKeys([])}
+              className="text-2xs text-terminal-text-dim/60 hover:text-terminal-red transition-colors ml-1"
+            >clear</button>
+          )}
+        </div>
+
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
           {PRESETS.map((p) => (
             <button
@@ -813,6 +886,20 @@ export default function ScreenerModule() {
                 {rankable
                   ? ' · ranked by how far past the screen\u2019s thresholds each sits'
                   : ' · this screen sets no numeric threshold, so results are unranked'}
+                {insights && (
+                  <span className="text-terminal-text-dim/70">
+                    {insights.pe != null && <> · avg PE <span className="text-terminal-text-bright tabular-nums">{insights.pe.toFixed(1)}x</span></>}
+                    {insights.divYield != null && <> · avg yield <span className="text-terminal-text-bright tabular-nums">{insights.divYield.toFixed(1)}%</span></>}
+                    {insights.best && (
+                      <> · best today <span className="text-terminal-gold font-bold">{String(insights.best.symbol).replace(/\.AX$/i, '')}</span>{' '}
+                        <span style={{ color: insights.best.changePct >= 0 ? '#2D8A50' : '#A83232' }} className="tabular-nums">
+                          {insights.best.changePct >= 0 ? '+' : ''}{insights.best.changePct.toFixed(2)}%
+                        </span>
+                      </>
+                    )}
+                    {` · ${insights.asx} ASX / ${insights.count - insights.asx} US`}
+                  </span>
+                )}
               </div>
               <button
                 onClick={exportCsv}

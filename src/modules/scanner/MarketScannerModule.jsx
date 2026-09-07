@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useStore } from '../../store/useStore'
 import { timeAgo } from '../../utils/dateUtils'
 import { takeModuleIntent } from '../../services/moduleIntent'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -70,14 +71,63 @@ const toneFor = (badge) => {
 // signal type cannot end up with a border in one colour and a tint in another.
 // Left in the signature rather than edited out of six call sites for no
 // behavioural gain.
-function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt }) {
+// SIGNAL STRENGTH — how far outside normal, on a 0-1 scale supplied by the tab
+// that knows what "normal" means for its own metric. Rendered as five bars
+// rather than a percentage because a scanner row is scanned, not read, and
+// "████░" resolves at a glance where "68%" has to be interpreted.
+//
+// null is a real value here: a tab whose signal has no natural magnitude
+// (a pattern match either happened or it did not) shows nothing rather than
+// an invented middle.
+function StrengthBars({ strength }) {
+  if (strength == null) return null
+  const filled = Math.max(1, Math.min(5, Math.round(strength * 5)))
+  const label = filled >= 4 ? 'STRONG' : filled >= 3 ? 'MODERATE' : 'WEAK'
+  const tone = filled >= 4 ? '#C9A84C' : filled >= 3 ? '#8BA3C4' : '#4A6080'
+  return (
+    <div className="flex items-center gap-1.5 flex-shrink-0" title={`Signal strength: ${label}`}>
+      <span className="flex gap-px">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} style={{ width: 3, height: 9, background: i < filled ? tone : 'rgba(201,168,76,0.12)' }} />
+        ))}
+      </span>
+      <span className="text-2xs font-bold tracking-wider" style={{ color: tone, fontSize: 8 }}>{label}</span>
+    </div>
+  )
+}
+
+function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt, strength }) {
+  const { addToWatchlist, watchlist, addAlert } = useStore()
+  const [flash, setFlash] = useState(null)
   const tone = toneFor(badge)
   const up = changePct >= 0
+  const owned = watchlist?.includes(symbol)
+
+  // FRESHNESS. A scanner is only useful if you can tell a signal from this
+  // minute apart from one from an hour ago. Under five minutes the row's left
+  // rule pulses; past thirty it dims, because a stale signal presented at full
+  // contrast is the scanner lying about how current it is.
+  // A ticking clock rather than Date.now() during render: reading the clock in
+  // a render body is impure, and freezing it at mount would mean a row that was
+  // fresh when the scan landed stays visually fresh for as long as it is on
+  // screen — which is the exact thing freshness is supposed to disprove.
+  // 30s granularity, because the thresholds are 5 and 30 minutes.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const ageMs = detectedAt != null ? now - detectedAt : null
+  const veryFresh = ageMs != null && ageMs < 5 * 60_000
+  const stale = ageMs != null && ageMs > 30 * 60_000
+
+  const act = (kind, fn) => { fn(); setFlash(kind); setTimeout(() => setFlash(null), 1600) }
 
   return (
     <div
-      className="group flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/10 transition-colors"
-      style={{ borderLeft: `3px solid ${tone}` }}
+      className={`group flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/10 transition-colors ${veryFresh ? 'signal-fresh' : ''}`}
+      style={{ borderLeft: `3px solid ${tone}`, opacity: stale ? 0.55 : 1 }}
     >
       <span
         className="text-2xs font-bold tracking-widest px-1.5 py-0.5 flex-shrink-0 rounded-sm"
@@ -99,9 +149,10 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
           "Signal" from "Volume" or "RSI" across tabs. */}
       <div className="flex-1 min-w-0 flex items-baseline gap-2" title={metricLabel}>
         <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
+        <StrengthBars strength={strength} />
         {detectedAt != null && (
-          <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0 tabular-nums ml-auto">
-            {detectedAtStr(detectedAt)}
+          <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0 tabular-nums ml-auto" title={detectedAtStr(detectedAt)}>
+            {timeAgo(detectedAt)}
           </span>
         )}
       </div>
@@ -118,11 +169,31 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
         </div>
       </div>
 
-      <button
-        onClick={onAnalyse}
-        className="text-2xs font-bold px-2.5 py-1 flex-shrink-0 rounded-sm transition-colors opacity-80 group-hover:opacity-100"
-        style={{ color: tone, border: `1px solid ${tone}66` }}
-      >ANALYSE</button>
+      {/* Three actions, all of which complete without leaving the row. The
+          alert pre-fills from the signal's own price, so "alert me if this
+          keeps going" is one click rather than a modal and a typed number. */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          onClick={() => act('wl', () => !owned && addToWatchlist(symbol))}
+          disabled={owned}
+          title={owned ? 'Already on your watchlist' : `Add ${tickerOf(symbol)} to watchlist`}
+          className={`text-2xs font-bold px-2 py-1 rounded-sm transition-colors ${
+            owned ? 'text-terminal-green/70 border border-terminal-green/30 cursor-default'
+                  : 'text-terminal-text-dim border border-terminal-border hover:border-terminal-gold hover:text-terminal-gold'
+          }`}
+        >{flash === 'wl' ? '✓ ADDED' : owned ? '✓ ON LIST' : '+ WATCH'}</button>
+        <button
+          onClick={() => act('al', () => price != null && addAlert(symbol, price, up ? 'above' : 'below'))}
+          disabled={price == null}
+          title={price != null ? `Alert if ${tickerOf(symbol)} goes ${up ? 'above' : 'below'} ${priceStr(symbol, price)}` : 'No price for this signal'}
+          className="text-2xs font-bold px-2 py-1 rounded-sm transition-colors text-terminal-text-dim border border-terminal-border hover:border-terminal-gold hover:text-terminal-gold disabled:opacity-40"
+        >{flash === 'al' ? '✓ SET' : '⚡ ALERT'}</button>
+        <button
+          onClick={onAnalyse}
+          className="text-2xs font-bold px-2.5 py-1 rounded-sm transition-colors opacity-90 group-hover:opacity-100"
+          style={{ color: tone, border: `1px solid ${tone}66` }}
+        >ANALYSE</button>
+      </div>
     </div>
   )
 }
@@ -153,6 +224,8 @@ function BreakoutsTab({ tick, scanTime, settings }) {
           badge="BREAKOUT" badgeColor="border-terminal-green/50 text-terminal-green"
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel="Signal" metricValue={r.descriptor}
+          // Volume against its own average: 1x is normal, 5x saturates.
+          strength={Math.min(1, Math.max(0, ((r.volumeRatio ?? 1) - 1) / 4))}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
             `${tickerOf(r.symbol)} is breaking out — ${r.descriptor.toLowerCase()} — on ${r.volumeRatio.toFixed(1)}x average volume, up ${r.changePct.toFixed(2)}% today. Is a breakout on this kind of volume likely to hold, and what would confirm or invalidate it? Do not state a price or a price target.`)}
@@ -172,6 +245,9 @@ function OversoldTab({ label, results, badge, badgeColor, verb, scanTime }) {
           badge={badge} badgeColor={badgeColor}
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel="RSI (14)" metricValue={r.rsi.toFixed(1)}
+          // How far past the 30/70 line, where 30 points of overshoot is the
+          // top of the scale — RSI 15 or 85 is as extreme as this gets.
+          strength={Math.min(1, Math.max(0, (r.rsi < 50 ? 30 - r.rsi : r.rsi - 70) / 30))}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
             `${tickerOf(r.symbol)} has an RSI of ${r.rsi.toFixed(1)}, technically ${verb}, trading at ${priceStr(r.symbol, r.price)} (${r.changePct >= 0 ? '+' : ''}${r.changePct.toFixed(2)}% today). Is this a genuine reversal setup or a stock that's ${verb} for a reason?`)}
