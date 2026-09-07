@@ -243,7 +243,7 @@ function TrendSection({ currentScore }) {
         </div>
       ) : (
         <SafeChart width="100%" height={90}>
-          <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <XAxis
               dataKey="t"
               type="number"

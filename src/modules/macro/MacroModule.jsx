@@ -147,7 +147,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
       </span>
     )}
     <SafeChart width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
+      <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid stroke="#0F1E35" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={1} />
         <YAxis tick={{ fontSize: 8 }} tickFormatter={(v) => `${v}${unit}`} domain={['auto', 'auto']} />
@@ -491,7 +491,7 @@ function RBADashboard({ askAI }) {
           <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
           <div className="flex-1 min-h-0">
             <SafeChart width="100%" height="100%">
-              <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+              <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <defs>
                   <linearGradient id="rbaGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
@@ -668,7 +668,7 @@ function LeadingIndicators() {
       source: 'Westpac-MI',
       chart: (
         <SafeChart width="100%" height="100%">
-          <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
+          <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
             <YAxis tick={{ fontSize: 8 }} domain={[70, 110]} width={34} />
@@ -690,7 +690,7 @@ function LeadingIndicators() {
       source: 'NAB Survey',
       chart: (
         <SafeChart width="100%" height="100%">
-          <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
+          <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
             <YAxis tick={{ fontSize: 8 }} domain={[-5, 12]} width={28} />
@@ -714,7 +714,7 @@ function LeadingIndicators() {
       source: 'ABS 5368.0',
       chart: (
         <SafeChart width="100%" height="100%">
-          <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+          <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="tradeGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#3AAA63" stopOpacity={0.4} />
@@ -741,7 +741,7 @@ function LeadingIndicators() {
       source: 'SGX / Platts',
       chart: (
         <SafeChart width="100%" height="100%">
-          <LineChart data={IRON_ORE_HISTORY} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
+          <LineChart data={IRON_ORE_HISTORY} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={2} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `$${v}`} domain={[85, 115]} width={36} />

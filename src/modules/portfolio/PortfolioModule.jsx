@@ -1291,7 +1291,7 @@ export default function PortfolioModule() {
               <div className="panel-header border-t border-terminal-border flex-shrink-0">P&amp;L BY POSITION</div>
               <div className="h-36 p-1 flex-shrink-0">
                 <SafeChart width="100%" height="100%">
-                  <BarChart data={pnlData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                  <BarChart data={pnlData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="#0F1E35" vertical={false} />
                     {/* Break-even, so winners and losers read as sides of a
                         line rather than just bars of different heights. */}

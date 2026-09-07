@@ -567,7 +567,7 @@ function CompactRbaDashboard({ askAI }) {
 
       <div className="flex-shrink-0 px-2 py-2" style={{ height: 220 }}>
         <SafeChart width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="rbaCompactGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3} />
