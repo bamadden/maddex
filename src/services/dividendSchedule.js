@@ -23,6 +23,8 @@
 
 // Payment months, 1-indexed. Sourced from each company's published dividend
 // history; these cadences have held for a decade or more.
+import { getMockFMPRow } from './mockData'
+
 export const DIVIDEND_CALENDAR = {
   'BHP.AX': { months: [3, 9],  franking: 100, note: 'Interim Mar, final Sep' },
   'CBA.AX': { months: [3, 9],  franking: 100, note: 'Interim Mar, final Sep' },
@@ -49,18 +51,53 @@ export const monthLabel = (m) => MONTH_LABEL[m - 1] ?? '—'
 // specific months from nothing is exactly the kind of invention this file
 // avoids — and an Australian reader's dividend calendar is about franking
 // season anyway.
-const isAsx = (sym) => /\.AX$/i.test(sym)
+const isAsx = (holding) =>
+  holding?.type === 'asx' || /\.AX$/i.test(holding?.symbol ?? '')
+
+// THE KEY SHAPE THIS FILE LOOKS UP BY, AND THE ONE HOLDINGS ACTUALLY CARRY.
+//
+// DIVIDEND_CALENDAR is keyed 'BHP.AX'. The portfolio stores holdings as
+// symbol 'BHP' with type 'asx' — every other consumer in the module strips or
+// appends the suffix on its way in, and this file did neither. So
+// DIVIDEND_CALENDAR[holding.symbol] missed on every Australian holding: no
+// payment months reached the twelve-month calendar (every row rendered a
+// dash), no franking percentage reached the credits calculation (every
+// holding grossed up to zero), and `payments` fell through to the US default
+// of four, so an ASX stock's per-payment estimate was half what it should be.
+//
+// One normaliser, used everywhere the calendar is consulted.
+const calendarKey = (holding) => {
+  const sym = String(holding?.symbol ?? '').toUpperCase()
+  if (!sym) return ''
+  if (sym.endsWith('.AX')) return sym
+  return holding?.type === 'asx' ? `${sym}.AX` : sym
+}
 
 // Annual income per holding, from the yield the holding already carries.
+//
+// FALLS BACK TO THE DEMO ROW, AND HAS TO.
+//
+// api.js's quote shape declares `divYield` and sets it to null on every
+// holding — so `holding.divYield` is null for everything in this build, this
+// function returned null for everything, and the whole dividend schedule
+// rendered its empty state ("no holdings carry a dividend yield yet") while
+// the DIVIDEND ANALYSIS panel three inches below it listed income for the same
+// stocks. That panel reads getMockFMPRow, which does carry a yield per symbol.
+//
+// This is why the dividend tracker had never been seen populated: not a
+// missing feature, a field that is declared and never filled.
 export function incomeFor(holding) {
-  const yieldPct = holding?.divYield
+  const raw = holding?.divYield
+  const yieldPct = Number.isFinite(raw) && raw > 0
+    ? raw
+    : getMockFMPRow(calendarKey(holding))?.dividendYield
   // Accepts either shape: the portfolio computes mktVal for each holding, and
   // the raw qty x price is the fallback for callers that have not.
   const value = holding?.mktVal ?? ((holding?.qty ?? 0) * (holding?.price ?? 0))
   if (!Number.isFinite(yieldPct) || yieldPct <= 0 || !Number.isFinite(value) || value <= 0) return null
   const annual = value * (yieldPct / 100)
-  const entry = DIVIDEND_CALENDAR[holding.symbol]
-  const payments = entry?.months?.length ?? (isAsx(holding.symbol) ? 2 : 4)
+  const entry = DIVIDEND_CALENDAR[calendarKey(holding)]
+  const payments = entry?.months?.length ?? (isAsx(holding) ? 2 : 4)
   return {
     annual,
     perPayment: annual / payments,

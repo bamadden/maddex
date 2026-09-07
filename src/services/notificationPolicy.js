@@ -41,6 +41,17 @@ const TYPE_PRIORITY = {
   // bell only — so the toast this type existed for had never fired.
   BREAKING_WATCHLIST: PRIORITY.HIGH,
 
+  // A breaking headline. HIGH for the same reason BREAKING_WATCHLIST is: it
+  // toasts, silently. It was raised as NEWS, which is LOW — bell only — so a
+  // story the app had explicitly flagged as breaking was delivered exactly as
+  // quietly as a routine market wrap. A breaking flag that changes nothing
+  // about the delivery is not a flag.
+  //
+  // Not CRITICAL. CRITICAL means "make a noise", and that tier belongs to the
+  // two alerts the user configured themselves. The keyword rule behind this
+  // one matches "surge" and "merger", which is a wide net for a sound.
+  BREAKING_NEWS: PRIORITY.HIGH,
+
   MORNING_BRIEF: PRIORITY.HIGH,
   EARNINGS_WATCHLIST: PRIORITY.HIGH,
   RBA_DECISION: PRIORITY.HIGH,
@@ -228,6 +239,8 @@ const DIGEST_LABEL = {
   CUSTOM_ALERT: ['alert', 'alerts'],
   WATCHLIST_MOVE: ['watchlist move', 'watchlist moves'],
   NEWS: ['news story', 'news stories'],
+  BREAKING_NEWS: ['breaking story', 'breaking stories'],
+  BREAKING_WATCHLIST: ['watchlist story', 'watchlist stories'],
   CALENDAR: ['earnings reminder', 'earnings reminders'],
   MARKET_OPEN: ['market open', 'market opens'],
 }

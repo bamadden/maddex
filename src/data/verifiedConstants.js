@@ -202,6 +202,30 @@ export const VERIFIED_CONSTANTS = {
     twiAsOf: '2026-08-31',
     twiSource: 'rba.gov.au/statistics/frequency/exchange-rates.html',
 
+    // ASX 200 GICS sector weights, for the portfolio's overweight/underweight
+    // read against the index.
+    //
+    // THREE SECTORS, NOT ELEVEN — DELIBERATELY.
+    //
+    // These three are the ones the STW factsheet actually stated. The other
+    // eight are not here because no source gave them, and the difference
+    // between "Materials 42% vs ASX 25%" and "Materials 42% vs ASX 28%"
+    // decides whether a reader thinks they are wildly overweight or roughly
+    // in line. An index weight is precisely the kind of figure that reads as
+    // authoritative and is trivially wrong from memory, so a sector with no
+    // verified weight shows the portfolio's own weight and says the
+    // comparison is unavailable rather than inventing the other half of it.
+    //
+    // Keys match mockData.js's sector strings exactly, so the lookup is
+    // direct rather than going through a name-mapping table that could drift.
+    asx200SectorWeights: {
+      Financials: 32.38,
+      Materials: 24.90,
+      Health: 7.15,
+    },
+    asx200SectorWeightsAsOf: '2026-01-31',
+    asx200SectorWeightsSource: 'SPDR S&P/ASX 200 ETF (STW) factsheet, ssga.com',
+
     source: 'abs.gov.au',
     asOf: '2026-07-30',
     lastVerified: '2026-09-06',

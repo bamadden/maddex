@@ -16,8 +16,9 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { requireYFSym } from '../../utils/tickerGuard'
 import { dispatchAskAI } from '../../utils/askAI'
-import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Line, ReferenceLine } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts'
 import StressTest from './StressTest'
+import PerformanceTab from './PerformanceTab'
 import PortfolioAnalytics from './PortfolioAnalytics'
 import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
 import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
@@ -301,182 +302,15 @@ function groupByPct(live, keyFn, othersLabel = 'Other') {
   return rows
 }
 
-// ─── Performance chart (illustrative demo trajectory) ─────────────────────────
-// This app has no real historical-price feed wired into the portfolio yet
-// (see the DEMO badges used everywhere else for the same reason), so the
-// chart traces a seeded random walk that starts flat and lands exactly on
-// today's real mktTotal/pnlPct — the shape is illustrative, the endpoint
-// isn't. A deterministic seed (not Math.random()) keeps the line stable
-// across re-renders instead of jumping every time state changes elsewhere.
-function seededRng(seed) {
-  let t = seed >>> 0
-  return () => {
-    t += 0x6D2B79F5
-    let r = Math.imul(t ^ (t >>> 15), 1 | t)
-    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-const PERIODS = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
-
-function buildSeries(days, endValue, cumReturnPct, seed) {
-  const rng = seededRng(seed)
-  const startValue = endValue / (1 + cumReturnPct / 100)
-  const points = []
-  for (let i = 0; i < days; i++) {
-    const t = days > 1 ? i / (days - 1) : 1
-    const target = startValue + (endValue - startValue) * t
-    const wobble = (rng() - 0.5) * endValue * 0.02 * (1 - t * 0.6)
-    points.push(Math.max(0, target + wobble))
-  }
-  points[points.length - 1] = endValue
-  return points
-}
-
-
-// Comparison benchmarks. The demo data layer carries no index history beyond
-// the ASX 200 line, so each series is generated with the same seeded
-// buildSeries used for the portfolio itself — a fixed seed per benchmark so
-// a given period always redraws identically rather than reshuffling on every
-// render. Returns are illustrative, scaled off the period; the panel already
-// labels itself "illustrative — demo pricing history".
+// The single-benchmark PerformanceChart that used to live here is gone.
 //
-// Each carries its own tint so an inactive pill still says what it is.
-const BENCHMARKS = [
-  { key: 'asx',  label: 'ASX 200',   seed: 7331, factor: 0.55, offset: -0.6, colour: '#637899' },
-  { key: 'spx',  label: 'S&P 500',   seed: 2211, factor: 0.78, offset:  0.4, colour: '#4A7FB5' },
-  { key: 'gold', label: 'GOLD',      seed: 9182, factor: 0.42, offset:  1.8, colour: '#C9A84C' },
-  { key: 'btc',  label: 'BITCOIN',   seed: 5150, factor: 1.85, offset: -2.5, colour: '#E08B3A' },
-  { key: 'cash', label: 'CASH 4.35%', seed: 0,   factor: 0,    offset:  0,   colour: '#2D8A50', flat: 4.35 },
-]
-
-function PerformanceChart({ mktTotal, pnlPct, prefix }) {
-  const [period, setPeriod] = useState('1M')
-  const [benchKey, setBenchKey] = useState('asx')
-  if (!mktTotal) return null
-
-  const days = PERIODS[period]
-  // Scale the demo return by the selected window — a 1Y view shouldn't
-  // show the same % move as a 1M view.
-  const periodScale = { '1M': 1, '3M': 1.6, '6M': 2.2, '1Y': 3.4 }[period]
-  const portfolioReturn = pnlPct * (period === '1M' ? 0.35 : periodScale * 0.35)
-  const bench = BENCHMARKS.find((b) => b.key === benchKey) ?? BENCHMARKS[0]
-  // Cash is a fixed annualised rate rather than a market series, so it earns
-  // its return from elapsed time instead of tracking the portfolio's shape.
-  const benchReturn = bench.flat != null
-    ? bench.flat * (days / 365)
-    : portfolioReturn * bench.factor + bench.offset
-
-  const portfolioSeries = buildSeries(days, mktTotal, portfolioReturn, 1337)
-  const benchStart = mktTotal / (1 + portfolioReturn / 100)
-  const benchSeries = buildSeries(days, benchStart * (1 + benchReturn / 100), benchReturn, bench.seed)
-
-  const data = portfolioSeries.map((v, i) => ({ i, portfolio: v, benchmark: benchSeries[i] }))
-
-  return (
-    <div className="border-b border-terminal-border flex-shrink-0">
-      <div className="panel-header flex items-center gap-2">
-        <span>PERFORMANCE</span>
-        <span className="text-2xs font-normal normal-case text-terminal-text-dim/50">illustrative — demo pricing history</span>
-        <div className="ml-auto flex items-center gap-3">
-          {/* Total return is the headline of this tab — it gets size and its
-              own dollar figure, with the benchmark demoted beside it. */}
-          <span className="flex items-baseline gap-2 normal-case">
-            <span
-              className={`font-mono font-bold leading-none ${portfolioReturn >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}
-              style={{ fontSize: 15 }}
-            >
-              {portfolioReturn >= 0 ? '▲' : '▼'} {fmt.pct(portfolioReturn)}
-            </span>
-            <span className="text-2xs text-terminal-text-dim">
-              ({prefix}{portfolioReturn >= 0 ? '+' : '−'}{Math.abs(mktTotal - mktTotal / (1 + portfolioReturn / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })})
-            </span>
-            <span className="text-2xs text-terminal-text-dim/70">
-              vs {bench.label} {fmt.pct(benchReturn)}
-            </span>
-          </span>
-          <div className="flex border border-terminal-border rounded-full overflow-hidden">
-            {Object.keys(PERIODS).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`text-2xs px-2 py-0.5 font-bold normal-case transition-colors ${period === p ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-              >{p}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Benchmark pills — each tinted with its own series colour, so an
-          inactive pill still identifies what it would draw. */}
-      <div className="flex items-center gap-1.5 flex-wrap px-3 pb-1.5">
-        <span className="text-[9px] font-mono tracking-widest text-terminal-muted/70 uppercase mr-1">vs</span>
-        {BENCHMARKS.map((b) => {
-          const on = b.key === benchKey
-          return (
-            <button
-              key={b.key}
-              onClick={() => setBenchKey(b.key)}
-              className="text-[9px] font-mono tracking-wider uppercase transition-colors"
-              style={{
-                padding: '2px 8px',
-                borderRadius: 2,
-                border: `1px solid ${on ? b.colour : 'rgba(201,168,76,0.12)'}`,
-                background: on ? `${b.colour}26` : 'transparent',
-                color: on ? b.colour : '#4A6080',
-              }}
-            >{b.label}</button>
-          )
-        })}
-      </div>
-
-      <div className="h-40 px-2 pt-2">
-        <SafeChart width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="portfolioFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            {/* Cost basis — the line that decides whether the book is up or
-                down, which the value axis alone doesn't tell you. */}
-            <ReferenceLine
-              y={mktTotal / (1 + portfolioReturn / 100)}
-              stroke="#C9A84C"
-              strokeDasharray="4 4"
-              strokeOpacity={0.5}
-              ifOverflow="extendDomain"
-            />
-            <XAxis dataKey="i" tick={false} axisLine={false} />
-            <YAxis
-              tick={{ fontSize: 8 }} width={44}
-              domain={[(min) => min * 0.99, (max) => max * 1.01]}
-              tickFormatter={(v) => `${prefix}${(v / 1000).toFixed(1)}k`}
-            />
-            <Tooltip
-              cursor={{ stroke: '#C9A84C', strokeWidth: 1, strokeOpacity: 0.45 }}
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null
-                const p = payload[0]?.payload
-                if (!p) return null
-                return (
-                  <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs space-y-0.5">
-                    <div><span className="text-terminal-gold">Portfolio: </span><span className="text-terminal-text-bright">{prefix}{p.portfolio.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
-                    <div><span className="text-terminal-muted">{bench.label}: </span><span className="text-terminal-text-dim">{prefix}{p.benchmark.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
-                  </div>
-                )
-              }}
-            />
-            <Area type="monotone" dataKey="portfolio" stroke="#C9A84C" strokeWidth={1.5} fill="url(#portfolioFill)" isAnimationActive={false} />
-            <Line type="monotone" dataKey="benchmark" stroke={bench.colour} strokeWidth={1.25} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
-          </AreaChart>
-        </SafeChart>
-      </div>
-    </div>
-  )
-}
+// It drew one comparison series at a time in absolute dollars, and it derived
+// the portfolio's period return by SCALING pnlPct — a since-purchase figure
+// over an unknown holding period — by a per-period fudge factor, so the "1M
+// return" it printed described no month in particular. PerformanceTab replaces
+// it with five toggleable series normalised to 100, and builds the portfolio
+// line from each holding's own price history over the selected window, which
+// is a return over that window rather than a stretched one.
 
 // ─── Add Holding Form ─────────────────────────────────────────────────────────
 
@@ -1040,7 +874,7 @@ export default function PortfolioModule() {
 
       {activeTab === 'performance' && (
         <div className="flex-1 overflow-y-auto">
-          <PerformanceChart mktTotal={mktTotal} pnlPct={pnlPct} prefix={prefix} />
+          <PerformanceTab holdings={computed} mktTotal={mktTotal} fmtCur={fmtCur} />
         </div>
       )}
 

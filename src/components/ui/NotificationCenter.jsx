@@ -22,7 +22,7 @@ import {
 // One face, one weight, one baseline. Every glyph here is text-presentation,
 // so it inherits the panel's colour and the monospace metrics rather than
 // arriving as a coloured bitmap from the OS.
-const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '⚡', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞', BREAKING_WATCHLIST: '≡' }
+const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '⚡', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞', BREAKING_WATCHLIST: '≡', BREAKING_NEWS: '◉' }
 // Icon-circle background per type — gold for price/alert-family, blue for
 // earnings/calendar, green for news, muted for system.
 const TYPE_CIRCLE = {
@@ -36,7 +36,7 @@ const TYPE_CIRCLE = {
   DAILY_DIGEST: 'bg-terminal-blue-bright/15 text-terminal-blue-bright',
   SYSTEM: 'bg-terminal-muted/15 text-terminal-muted',
 }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', DAILY_DIGEST: 'DAILY DIGEST', EARNINGS_RESULT: 'EARNINGS RESULT', BREAKING_WATCHLIST: 'WATCHLIST NEWS' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', DAILY_DIGEST: 'DAILY DIGEST', EARNINGS_RESULT: 'EARNINGS RESULT', BREAKING_WATCHLIST: 'WATCHLIST NEWS', BREAKING_NEWS: 'BREAKING' }
 // Summary wording when several of a type arrive together. "3 price alerts
 // triggered" is the headline; the individual messages are one click away.
 const TYPE_SUMMARY = {
@@ -45,6 +45,7 @@ const TYPE_SUMMARY = {
   WATCHLIST_MOVE: (n) => `${n} watchlist stocks are moving`,
   NEWS: (n) => `${n} stories worth a look`,
   BREAKING_WATCHLIST: (n) => `${n} stories about stocks you track`,
+  BREAKING_NEWS: (n) => `${n} breaking stories`,
   CALENDAR: (n) => `${n} earnings reminders`,
 }
 const summaryFor = (type, n) => (TYPE_SUMMARY[type] ?? ((c) => `${c} ${TYPE_LABEL[type] ?? type} notifications`))(n)
@@ -480,7 +481,10 @@ export default function NotificationCenter() {
             { link: item.link },
           )
         } else {
-          addNotification('NEWS', `🔴 BREAKING — ${trimmed}`, { link: item.link })
+          // BREAKING_NEWS, not NEWS. NEWS is LOW — bell only — so a headline
+          // this app had already decided was breaking arrived exactly as
+          // quietly as a routine market wrap, which makes the flag decorative.
+          addNotification('BREAKING_NEWS', `🔴 BREAKING — ${trimmed}`, { link: item.link })
         }
       }
     }
