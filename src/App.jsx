@@ -22,14 +22,11 @@ import ContextualTip from './components/onboarding/ContextualTip'
 import {
   hasBeenWelcomed, markWelcomed, shouldShowWhatsNew, markWhatsNewSeen,
 } from './services/onboardingState'
-import WhatsNewModal from './components/onboarding/WhatsNewModal'
 import TopBar from './components/layout/TopBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
 import CommandBar from './components/layout/CommandBar'
 import AIPanel from './components/layout/AIPanel'
-import DetailModal from './components/ui/DetailModal'
-import ComparisonView from './components/markets/ComparisonView'
 // Every routable module is lazy.
 //
 // They were statically imported here while ModuleRenderer imported the same
@@ -60,12 +57,29 @@ const MarketReplayModule  = lazy(() => import('./modules/replay/MarketReplayModu
 const MarketScannerModule = lazy(() => import('./modules/scanner/MarketScannerModule'))
 // d3 + topojson-heavy — code-split out of the main bundle.
 const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
+
+// Overlays that only exist after a click.
+//
+// Every module was already lazy, so the 449KB entry chunk was the shell — and
+// most of the shell is code for screens the user has not opened. DetailModal,
+// ComparisonView and CorrelationExplorer are 2,100 lines of chart-heavy UI that
+// a visitor downloads before they have clicked a single ticker; the trial and
+// what's-new modals are for states most sessions never enter.
+//
+// Each is now gated on the state that reveals it, so React never even asks for
+// the chunk until the user does something that needs it. DetailModal and
+// ComparisonView used to mount unconditionally and self-gate on store state,
+// which is fine for rendering and useless for splitting — the import happens
+// either way.
+const DetailModal        = lazy(() => import('./components/ui/DetailModal'))
+const ComparisonView     = lazy(() => import('./components/markets/ComparisonView'))
+const CorrelationExplorer = lazy(() => import('./modules/markets/CorrelationExplorer'))
+const WhatsNewModal      = lazy(() => import('./components/onboarding/WhatsNewModal'))
+const TrialExpiredModal  = lazy(() => import('./components/auth/TrialExpiredModal'))
 import { FloatingWindow } from './components/ui/FloatingWindow'
-import CorrelationExplorer from './modules/markets/CorrelationExplorer'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import AuthModal from './components/auth/AuthModal'
 import OnboardingFlow from './components/auth/OnboardingFlow'
-import TrialExpiredModal from './components/auth/TrialExpiredModal'
 import { useSubscription } from './hooks/useSubscription'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
@@ -241,7 +255,7 @@ const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
 const ONBOARDING_KEY = 'maddex_onboarding_complete'
 
 function Terminal() {
-  const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification, watchlist } = useStore()
+  const { activeModule, setActiveModule, modalAsset, closeModal, compareAssets, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification, watchlist } = useStore()
   // Welcome runs before everything, once per browser, and before sign-in —
   // it is the screen that answers "should I make an account", so gating it
   // behind having one defeats it.
@@ -753,11 +767,13 @@ function Terminal() {
       <CommandBar />
       <StatusBar lastUpdated={statusUpdatedAt} />
       <MobileNavBar />
-      <DetailModal />
-      <ComparisonView />
+      <Suspense fallback={null}>{modalAsset && <DetailModal />}</Suspense>
+      <Suspense fallback={null}>{compareAssets != null && <ComparisonView />}</Suspense>
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
       {correlationAssets && (
-        <CorrelationExplorer initialAssets={correlationAssets} onClose={() => setCorrelationAssets(null)} />
+        <Suspense fallback={null}>
+          <CorrelationExplorer initialAssets={correlationAssets} onClose={() => setCorrelationAssets(null)} />
+        </Suspense>
       )}
       {floatingWindows.map((w) => {
         const FloatingContent = MODULE_MAP[w.moduleId] || MarketsModule
@@ -782,10 +798,12 @@ function Terminal() {
       {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
       {!showWelcome && showTour && <OnboardingTour onComplete={completeTour} />}
       {!showWelcome && !showTour && showWhatsNew && (
-        <WhatsNewModal
-          onDismiss={dismissWhatsNew}
-          onShowMe={() => { dismissWhatsNew(); setActiveModule('scanner') }}
-        />
+        <Suspense fallback={null}>
+          <WhatsNewModal
+            onDismiss={dismissWhatsNew}
+            onShowMe={() => { dismissWhatsNew(); setActiveModule('scanner') }}
+          />
+        </Suspense>
       )}
     </div>
   )
@@ -825,7 +843,7 @@ function AuthGate() {
   if (profile && !profile.onboarding_complete && !onboardingDone) {
     return <OnboardingFlow onComplete={() => setOnboardingDone(true)} />
   }
-  if (user && isTrial && isTrialExpired) return <TrialExpiredModal />
+  if (user && isTrial && isTrialExpired) return <Suspense fallback={<AppLoader />}><TrialExpiredModal /></Suspense>
   return <Terminal />
 }
 

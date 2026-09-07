@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import {useState, useEffect, useRef, useSyncExternalStore, lazy, Suspense } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import SettingsPanel from '../settings/SettingsPanel'
 import IdeasBoard from '../ideas/IdeasBoard'
 import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
@@ -12,6 +11,9 @@ import { USING_MOCK_DATA } from '../../services/api'
 import { useSentiment } from '../../hooks/useSentiment'
 import Tooltip from '../ui/Tooltip'
 import { WORKSPACE_MODULE_LIST } from '../../config/workspaceModules'
+
+// 2,336 lines for a screen most sessions never open.
+const SettingsPanel = lazy(() => import('../settings/SettingsPanel'))
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -463,7 +465,11 @@ export default function TopBar() {
           .flatMap((node, i) => (i === 0 ? [node] : [<Divider key={`d${i}`} />, node]))}
       </div>
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />}
+      {showSettings && (
+        <Suspense fallback={null}>
+          <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />
+        </Suspense>
+      )}
       {showIdeas && <IdeasBoard onClose={() => setShowIdeas(false)} />}
     </div>
     {!isOnline ? (
