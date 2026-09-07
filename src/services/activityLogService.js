@@ -8,11 +8,11 @@ const MAX_ENTRIES = 50
 
 const ICONS = {
   watchlist: '★',
-  alert: '🔔',
+  alert: '⚡',
   brief: '☀',
-  research: '📝',
+  research: '◈',
   unusual: '⚡',
-  portfolio: '💼',
+  portfolio: '▣',
   ai: '▲',
 }
 

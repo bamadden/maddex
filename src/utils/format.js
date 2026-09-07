@@ -1,3 +1,5 @@
+import { timeAgo } from './dateUtils'
+
 export const fmt = {
   // Plain number with commas — used for rates, index points, share counts
   price: (n, decimals = 2) => {
@@ -65,17 +67,14 @@ export const fmt = {
     })
   },
 
-  relativeTime: (d) => {
-    if (!d) return '—'
-    const ms = Date.now() - new Date(d).getTime()
-    if (isNaN(ms)) return '—'
-    const mins = Math.floor(ms / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    return `${Math.floor(hrs / 24)}d ago`
-  },
+  // Delegates to the one relative-time formatter in dateUtils.
+  //
+  // This had its own implementation and zero call sites — the worst
+  // combination, because the next person to want "3m ago" looks in fmt first,
+  // finds this, and quietly reintroduces the divergence the consolidation just
+  // removed. It differed too: no seconds tier, and 'just now' up to a full
+  // minute rather than ten seconds.
+  relativeTime: (d) => (d ? timeAgo(d) ?? '—' : '—'),
 
   countdown: (target) => {
     const diff = new Date(target).getTime() - Date.now()

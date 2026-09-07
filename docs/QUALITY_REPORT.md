@@ -95,6 +95,63 @@ Portfolio, Screener, Scanner, sector heatmap. Needs a provider key
 
 ---
 
+## Verification pass — 7 September 2026
+
+Four items re-checked after the quality pass. Two were already correct; two
+were not, and one of those was a real bug the original pass had missed.
+
+**1. Timestamp unification — INCOMPLETE, now fixed.** Two implementations had
+survived. `fmt.relativeTime` had its own logic and zero call sites — the worst
+combination, since the next person wanting "3m ago" looks in `fmt` first. And
+`NewsModule.getRelativeTime` was still live behind a local `timeAgo` that
+shadowed the shared import, saying "yesterday" where every other surface says
+"1d ago". Both now delegate to the one function in `dateUtils`. Verified in the
+browser: zero occurrences of "yesterday", and a seconds tier the news feed
+previously lacked.
+
+**2. Chart margins — one module still clipping, now fixed.** A programmatic
+sweep across 34 charts found 7 remaining clips in Macro, all outside the
+original `left: -20` class: rotated category labels given 30px of bottom margin
+when they project 49px, two `ReferenceLine` labels positioned `right` (which
+places them *outside* the plot area), and a final date tick 2px past an 8px
+right margin. **34 charts, 0 clipped.**
+
+**3. 52-week range colouring — CORRECT.** 21 cells checked programmatically:
+every endpoint neutral. The only gain/loss colour in that column region is a
+genuine change percentage in the crypto section's differently-shaped row. The
+detail modal's copy is neutral too.
+
+**4. MaddenAI rate knowledge — A REAL BUG, now fixed.** Asked through the AI
+panel it answered correctly. Asked through the **command bar** it answered
+"4.10%, following a 25 basis point cut delivered at the February 2025 meeting"
+— recalled from training data, wrong, and it said so itself: *"I don't have a
+[VERIFIED FACTS] block in this session."*
+
+`CommandBar.routeToAI` called `askClaude` directly, bypassing `AIPanel.send()`
+and therefore the context block, the verified facts, the system prompt, the
+query-intent shaping, the conversation history **and the Core message quota**.
+The command bar advertises "Ticker · Command · Question", so this is a primary
+way in. It now dispatches the same `madden:ask-ai` event every other surface
+uses. One event, one code path, one answer.
+
+A second, subtler fault surfaced while verifying the fix: the model twice
+described the 12 August **hold** as "a hike from 4.10%". `previousRate` is the
+level before the last *change* and the constants carry no date for it — given
+an undated figure beside a dated meeting, the model attaches one to the other.
+It is no longer sent. A figure that cannot be stated unambiguously is worse
+than an absent one.
+
+Final answer through the command bar: *"The RBA cash rate is 4.35%, held at the
+12 August 2026 meeting. The next decision is nine days away — 16 September 2026
+... Trimmed mean CPI came in at 2.7% for the June quarter ... headline CPI is
+still running at 3.8%. GDP growth is soft at 1.3% annually, and unemployment
+has edged up to 4.1%."* Every figure from the verified block.
+
+**Also finished:** the module icon set (breadcrumb, workspace switcher, quick
+actions) was six text glyphs and six colour emoji; it is now one typeface.
+
+---
+
 ## What this pass did not do
 
 **Did not rewrite 409 `.toFixed()` call sites.** Almost all produce exactly the

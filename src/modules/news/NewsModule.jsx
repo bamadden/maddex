@@ -59,24 +59,15 @@ function saveCategory(cat) {
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
 
-function getRelativeTime(pubDate) {
-  if (!pubDate) return '—'
-  const now = new Date()
-  const published = new Date(pubDate)
-  const diffMs   = now - published
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays  = Math.floor(diffMs / 86400000)
-  if (diffMins < 1)   return 'just now'
-  if (diffMins < 60)  return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return 'yesterday'
-  if (diffDays < 7)   return `${diffDays}d ago`
-  return published.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-}
-
-function timeAgo(pubDate) { return getRelativeTime(pubDate) }
-
+// The news feed had its own relative-time function, still live behind a local
+// `timeAgo` that shadowed the shared import. It said "yesterday" where every
+// other surface in the terminal says "1d ago" — so a story and the
+// notification about that same story disagreed about when it happened.
+//
+// "1d ago" wins over "yesterday" for the same reason the rest of the scale is
+// compact: these render in dense rows beside a source name and a headline,
+// where a fixed-width "1d ago" scans and a variable-width word does not.
+const timeAgo = (pubDate) => sharedTimeAgo(pubDate) ?? '—'
 const sinceMs = (ts) => sharedTimeAgo(ts)
 
 // Synthetic "EARNINGS RESULT" article built from a completed AI Earnings

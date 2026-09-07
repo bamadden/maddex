@@ -263,14 +263,27 @@ export function verifiedFactsForAI() {
   const lines = []
 
   if (rba) {
+    // previousRate is DELIBERATELY NOT SENT.
+    //
+    // It is the level before the last change, and the constants carry no date
+    // for when that change happened — only the date of the last MEETING. Given
+    // an undated "from 4.1%" beside a dated meeting, the model attaches one to
+    // the other every time: two rewordings later it still described the
+    // 12 August HOLD as "a hike from 4.10%", which is flatly wrong and is
+    // exactly the kind of confident, plausible, false statement this whole
+    // file exists to prevent.
+    //
+    // A figure that cannot be stated unambiguously is worse than an absent
+    // one. The terminal's own UI shows the previous rate with its full
+    // context; the model does not need it to answer "what is the cash rate".
     lines.push(
-      `RBA cash rate ${rba.cashRate}% — ${rba.lastDecisionVerb ?? 'set'} at the ${rba.lastDecision} meeting` +
-      `${rba.previousRate != null && rba.previousRate !== rba.cashRate ? ` (from ${rba.previousRate}%)` : ''}` +
+      `RBA cash rate ${rba.cashRate}% — ${(rba.lastDecisionVerb ?? 'SET').toUpperCase()} at the ${rba.lastDecision} meeting` +
       `${rba.nextMeeting ? `; next meeting ${rba.nextMeeting}` : ''}`,
     )
   }
   if (fed) {
-    lines.push(`US Fed funds ${fed.rateRange ?? `${fed.cashRate}%`} — ${fed.lastDecisionVerb ?? 'set'} ${fed.lastDecision}${fed.nextMeeting ? `; next meeting ${fed.nextMeeting}` : ''}`)
+    const fedHeld = (fed.lastDecisionVerb ?? '').toUpperCase() === 'HOLD'
+    lines.push(`US Fed funds ${fed.rateRange ?? `${fed.cashRate}%`} — ${fedHeld ? 'HELD at this level' : fed.lastDecisionVerb ?? 'set'} at the ${fed.lastDecision} meeting${fed.nextMeeting ? `; next meeting ${fed.nextMeeting}` : ''}`)
   }
   if (au) {
     if (au.cpi != null) lines.push(`AU CPI ${au.cpi}% YoY (${au.cpiPeriod}), trimmed mean ${au.cpiTrimmedMean}%, RBA target band ${au.rbaTargetBand}`)

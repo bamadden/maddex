@@ -830,11 +830,14 @@ export default function AIPanel({ wide = false }) {
   // from two sides.
   useEffect(() => {
     const handler = (e) => {
-      const { prompt, context, fullscreen: wantFullscreen } = e.detail ?? {}
+      const { prompt, context, fullscreen: wantFullscreen, visible } = e.detail ?? {}
       if (!prompt) return
       setChatOpen(true)
       if (wantFullscreen) setAiMode('fullscreen')
-      setTimeout(() => send(prompt, { context, silent: true }), 100)
+      // `visible` is for prompts the user typed themselves — the command bar.
+      // Those should appear as a user bubble; an ASK AI button's generated
+      // prompt should not, because the user never wrote it.
+      setTimeout(() => send(prompt, { context, silent: !visible }), 100)
     }
     window.addEventListener('madden:ask-ai', handler)
     return () => window.removeEventListener('madden:ask-ai', handler)
@@ -971,7 +974,7 @@ export default function AIPanel({ wide = false }) {
             }`}
             title={`Conversation history${historyList.length > 0 ? ` (${historyList.length})` : ''}`}
           >
-            🕐
+            ◷
           </button>
           <button
             onClick={() => { setShowInsights((v) => !v); setShowHistory(false) }}
@@ -989,7 +992,7 @@ export default function AIPanel({ wide = false }) {
             }`}
             title={`Saved notes${notes.length > 0 ? ` (${notes.length})` : ''}`}
           >
-            🗒
+            ≡
           </button>
           {!isFullscreen && (
             <button

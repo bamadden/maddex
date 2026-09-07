@@ -164,7 +164,13 @@ export default function IndicatorForecaster() {
         <div className="text-2xs text-terminal-text-dim mb-2">Average consensus miss vs actual, last 12 readings — consensus is often wrong by more than markets expect.</div>
         <div style={{ height: 200 }}>
           <SafeChart width="100%" height="100%">
-            <BarChart data={accuracyChartData} margin={{ bottom: 30 }}>
+            {/* 56, not 30. The labels are rotated -35 degrees, so a
+                19-character name like "Consumer Confidence" projects ~49px
+                down the y-axis before the tick gap — it was being sliced off
+                at the baseline. This is a measured clearance rather than a
+                spacing-scale value; the scale governs layout, not the height
+                a rotated glyph needs. */}
+            <BarChart data={accuracyChartData} margin={{ bottom: 56 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
               <XAxis dataKey="label" tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" angle={-35} textAnchor="end" interval={0} />
               <YAxis tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" />

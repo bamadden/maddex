@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, memo, Fragment } from 'react'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
-import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, askClaude } from '../../services/api'
+import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
 import Tooltip from '../ui/Tooltip'
@@ -959,19 +959,25 @@ export default function CommandBar() {
   }
 
   // ── AI routing ────────────────────────────────────────────────────────────────
-  const routeToAI = async (raw) => {
-    flash(`ROUTING TO AI — "${raw.trim().substring(0, 40)}${raw.length > 40 ? '…' : ''}"`, 'text-terminal-gold', 0)
-    setChatOpen(true)
-    const userMsg = { role:'user', content: raw.trim() }
-    addChatMessage(userMsg)
-    addChatMessage({ role:'assistant', content:'' })
-    try {
-      await askClaude([userMsg], (_, full) => updateLastChatMessage({ role:'assistant', content: full }))
-      flash('READY')
-    } catch (err) {
-      updateLastChatMessage({ role:'assistant', content:`[ERROR] ${err.message}` })
-      flash('AI ERROR — CHECK API KEY', 'text-terminal-red', 5000)
-    }
+  // Routes through AIPanel rather than calling askClaude directly.
+  //
+  // THE BUG THIS FIXES. This function used to call askClaude([userMsg]) itself,
+  // which skipped everything AIPanel's send() does: the [CONTEXT] block, the
+  // [VERIFIED FACTS] block, the system prompt with the user's experience level,
+  // the query-intent shaping, the conversation history and the Core message
+  // quota. The command bar advertises itself as "Ticker · Command · Question",
+  // so this is a primary way in — and asking "what is the current RBA cash
+  // rate" here got an answer recalled from training data (4.10%, from a
+  // February 2025 meeting) while the same question in the panel got the
+  // verified 4.35%. The model even said so: "I don't have a [VERIFIED FACTS]
+  // block in this session."
+  //
+  // One event, one code path, one answer.
+  const routeToAI = (raw) => {
+    flash(`ROUTING TO AI — "${raw.trim().substring(0, 40)}${raw.length > 40 ? '…' : ''}"`, 'text-terminal-gold', 2000)
+    window.dispatchEvent(new CustomEvent('madden:ask-ai', {
+      detail: { prompt: raw.trim(), visible: true },
+    }))
   }
 
   // ── Build modal asset from YF quote ──────────────────────────────────────────

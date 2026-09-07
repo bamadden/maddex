@@ -5,7 +5,7 @@ import { useContainerWidth } from '../../../hooks/useContainerWidth'
 const ACTIONS = [
   { label: 'MARKETS',   icon: '📈', to: 'markets' },
   { label: 'WATCHLIST', icon: '★',  to: 'watchlist' },
-  { label: 'PORTFOLIO', icon: '💼', to: 'portfolio' },
+  { label: 'PORTFOLIO', icon: '▣', to: 'portfolio' },
   { label: 'NEWS',      icon: '📰', to: 'news' },
   { label: 'GLOBAL',    icon: '◉',  to: 'global' },
   { label: 'ASK AI',    icon: '▲',  ai: true },

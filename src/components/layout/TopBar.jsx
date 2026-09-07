@@ -157,7 +157,7 @@ function UserMenu() {
             {[
               ['⚙', 'Settings', () => { openSettings(); setOpen(false) }],
               ['◉', 'Edit Profile', () => { openSettings(); setOpen(false) }],
-              ['📊', 'Portfolio', () => { setActiveModule('portfolio'); setOpen(false) }],
+              ['▣', 'Portfolio', () => { setActiveModule('portfolio'); setOpen(false) }],
               ['◎', 'Price Alerts', () => { setActiveModule('watchlist'); setOpen(false) }],
             ].map(([icon, label, onClick]) => (
               <button key={label} onClick={onClick}
