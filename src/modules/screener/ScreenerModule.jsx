@@ -6,6 +6,7 @@ import { dispatchAskAI } from '../../utils/askAI'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
+import { useSubscription } from '../../hooks/useSubscription'
 
 // Two derived fields the raw data does not carry, computed once here rather
 // than at every filter, sort and render:
@@ -470,8 +471,34 @@ function persistSavedScreens(list) {
   try { localStorage.setItem(SAVED_SCREENS_KEY, JSON.stringify(list)) } catch { /* best-effort */ }
 }
 
+// Where the Prime line falls in this module.
+//
+// The presets and the manual filter sidebar are open to everyone: a screener
+// that cannot screen is not a product, and every plan advertises the Markets
+// module this sits beside. What Prime buys is the two things that turn a screen
+// into a workflow — asking for one in plain English, and keeping it.
+//
+// This module had NO gating of any kind, which meant a Core subscriber and an
+// Apex subscriber got an identical screener. The plan copy in Settings now
+// advertises the same line this enforces; a gate the pricing page does not
+// mention is just a feature quietly taken away.
+function LockedHint({ label }) {
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'SUBSCRIPTION' } }))}
+      title={`${label} requires Prime — view plans`}
+      className="flex items-center gap-1.5 text-2xs text-terminal-gold/70 hover:text-terminal-gold transition-colors"
+    >
+      <span>🔒</span>
+      <span className="font-bold tracking-wider">PRIME</span>
+    </button>
+  )
+}
+
 export default function ScreenerModule() {
   const { openModal } = useStore()
+  const { canAccess } = useSubscription()
+  const advanced = canAccess('prime')
   const [query, setQuery] = useState('')
   const [activePreset, setActivePreset] = useState(null)
   const [parsed, setParsed] = useState(null)
@@ -643,10 +670,22 @@ export default function ScreenerModule() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') runQuery() }}
-              placeholder='e.g. ASX stocks with PE under 15 and dividend yield over 4%'
-              className="w-full bg-terminal-bg border border-terminal-border focus:border-terminal-gold outline-none transition-colors text-xs pl-9 pr-9 py-2 text-terminal-text-bright font-mono"
+              disabled={!advanced}
+              placeholder={advanced
+                ? 'e.g. ASX stocks with PE under 15 and dividend yield over 4%'
+                : 'Plain-English screening is a Prime feature — presets and filters below are open to every plan'}
+              className={`w-full bg-terminal-bg border border-terminal-border outline-none transition-colors text-xs pl-9 pr-9 py-2 font-mono ${
+                advanced
+                  ? 'focus:border-terminal-gold text-terminal-text-bright'
+                  : 'text-terminal-text-dim/60 cursor-not-allowed'
+              }`}
             />
-            {query && (
+            {!advanced && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <LockedHint label="Plain-English screening" />
+              </span>
+            )}
+            {advanced && query && (
               <button
                 onClick={() => { setQuery(''); setParsed(null); setActivePreset(null) }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-terminal-text-dim hover:text-terminal-red"
@@ -655,10 +694,16 @@ export default function ScreenerModule() {
           </div>
           <button
             onClick={() => runQuery()}
-            className="flex-shrink-0 text-xs px-4 py-2 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold"
+            disabled={!advanced}
+            title={advanced ? undefined : 'Plain-English screening requires Prime'}
+            className={`flex-shrink-0 text-xs px-4 py-2 border transition-colors font-bold ${
+              advanced
+                ? 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg'
+                : 'border-terminal-border text-terminal-text-dim/50 cursor-not-allowed'
+            }`}
           >SCREEN ▶</button>
 
-          {hasSearched && (
+          {hasSearched && advanced && (
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => { setShowSavePrompt((v) => !v); setShowSavedList(false) }}
@@ -686,6 +731,12 @@ export default function ScreenerModule() {
           )}
 
           <div className="relative flex-shrink-0">
+            {!advanced ? (
+              <div className="px-2.5 py-2 border border-terminal-border/60 flex items-center">
+                <LockedHint label="Saved screens" />
+              </div>
+            ) : (
+            <>
             <button
               onClick={() => { setShowSavedList((v) => !v); setShowSavePrompt(false) }}
               title="Saved screens"
@@ -710,6 +761,8 @@ export default function ScreenerModule() {
                   </div>
                 ))}
               </div>
+            )}
+            </>
             )}
           </div>
         </div>

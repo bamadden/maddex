@@ -1598,7 +1598,7 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes }) {
 const TIER_BADGE_LABEL = { trial: 'TRIAL', core: 'CORE', prime: 'PRIME', apex: 'APEX' }
 const PLANS = [
   { tier: 'core',  label: 'CORE',  price: 'A$29/mo',  features: ['Markets, Crypto, News, Global modules', 'Watchlist — up to 20 items', 'Portfolio — up to 10 holdings', 'MaddenAI — 50 messages/month'] },
-  { tier: 'prime', label: 'PRIME', price: 'A$79/mo',  features: ['Everything in Core', 'Rates/FX + Macro modules', 'Unlimited MaddenAI messages', 'Unlimited watchlist & portfolio', 'Sector heatmap detail view'] },
+  { tier: 'prime', label: 'PRIME', price: 'A$79/mo',  features: ['Everything in Core', 'Rates/FX + Macro modules', 'Unlimited MaddenAI messages', 'Unlimited watchlist & portfolio', 'Sector heatmap detail view', 'Advanced screener — plain English & saved screens'] },
   { tier: 'apex',  label: 'APEX',  price: 'A$149/mo', features: ['Everything in Prime', 'Research Notes', 'API access'] },
 ]
 
@@ -1612,6 +1612,7 @@ const FEATURE_CHECKLIST = [
   { label: 'MaddenAI (unlimited)',  requiredTier: 'prime' },
   { label: 'Rates module',          requiredTier: 'prime' },
   { label: 'Macro module',          requiredTier: 'prime' },
+  { label: 'Advanced screener',     requiredTier: 'prime' },
   { label: 'Research Notes',        requiredTier: 'apex' },
   { label: 'API access',            requiredTier: 'apex' },
 ]

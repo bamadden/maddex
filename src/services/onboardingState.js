@@ -76,7 +76,12 @@ export function resetTips() {
 // rather than narrating what is already on screen.
 export const MODULE_TIPS = {
   markets:   { id: 'tip-markets',   text: 'Hover a sector tile and click ⛶ for the full sector deep dive.' },
-  screener:  { id: 'tip-screener',  text: 'Type a screen in plain English — "PE under 15 and yield over 4%".' },
+  // Deliberately NOT the plain-English hint: that is a Prime feature, and a
+  // first-run tip that teaches a Core user something they cannot do is an
+  // advertisement wearing a tip's clothes. The NL input's own placeholder
+  // already spells it out for the plans that have it. MATCH % is the hidden
+  // thing on every plan.
+  screener:  { id: 'tip-screener',  text: 'MATCH % ranks results by how far past the screen\'s thresholds each stock sits — every column sorts.' },
   portfolio: { id: 'tip-portfolio', text: 'The TRANSACTIONS tab records buys, sells and dividends, and derives realised P&L.' },
   news:      { id: 'tip-news',      text: 'Stories about your watchlist are marked in gold and float to the top.' },
   calendar:  { id: 'tip-calendar',  text: 'Set a reminder on any event, or export the whole calendar as .ics.' },
