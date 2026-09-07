@@ -65,6 +65,22 @@ export default function TabBar({ tabs, activeKey, onChange, className = '', size
               }}
             >
               {tab.label}
+              {/* Optional count, for tab sets where "how many are in here"
+                  is the reason you would switch. Muted when the tab is not
+                  active so it reads as a subscript rather than competing with
+                  the label; gold on the active tab because there it IS the
+                  headline. A count of 0 still renders — an empty tab you can
+                  see is empty saves a click. */}
+              {tab.count != null && (
+                <span
+                  className="tabular-nums"
+                  style={{
+                    marginLeft: 6, fontSize: Math.max(8, size - 2),
+                    color: isActive ? '#C9A84C' : '#4A6080',
+                    opacity: isActive ? 0.85 : 0.6,
+                  }}
+                >({tab.count})</span>
+              )}
             </button>
           )
         })}

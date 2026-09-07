@@ -1213,3 +1213,30 @@ input.cmd-input:focus,
 @media (prefers-reduced-motion: reduce) {
   .signal-fresh { animation: none; }
 }
+
+
+/* Scan sweep — a gold band crossing the module while the scanner recomputes.
+   The scanner is the one module whose work is invisible: nothing on screen
+   moves while it runs, so a RESCAN click otherwise reads as having done
+   nothing. 1.1s per pass, which is long enough to register and short enough
+   that a fast scan still shows one complete travel. */
+@keyframes scanSweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.scan-sweep {
+  position: relative;
+  height: 2px;
+  overflow: hidden;
+  background: rgba(201, 168, 76, 0.08);
+}
+.scan-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.9), transparent);
+  animation: scanSweep 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-sweep::after { animation: none; background: rgba(201, 168, 76, 0.4); }
+}

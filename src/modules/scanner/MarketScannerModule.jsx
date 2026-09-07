@@ -118,8 +118,16 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
     return () => clearInterval(id)
   }, [])
 
+  // Four tiers, because "how old is this" is the first question about any
+  // signal and a binary fresh/stale throws away the middle of the answer.
+  //   < 5 min   pulsing gold rule — act now
+  //   5-15 min  normal — still current
+  //   15-30 min dimmed to 0.72 — check before acting
+  //   > 30 min  dimmed to 0.5 plus a STALE badge, because past half an hour
+  //             the signal is a record of what happened, not a prompt.
   const ageMs = detectedAt != null ? now - detectedAt : null
   const veryFresh = ageMs != null && ageMs < 5 * 60_000
+  const ageing = ageMs != null && ageMs >= 15 * 60_000 && ageMs <= 30 * 60_000
   const stale = ageMs != null && ageMs > 30 * 60_000
 
   const act = (kind, fn) => { fn(); setFlash(kind); setTimeout(() => setFlash(null), 1600) }
@@ -127,7 +135,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
   return (
     <div
       className={`group flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/10 transition-colors ${veryFresh ? 'signal-fresh' : ''}`}
-      style={{ borderLeft: `3px solid ${tone}`, opacity: stale ? 0.55 : 1 }}
+      style={{ borderLeft: `3px solid ${tone}`, opacity: stale ? 0.5 : ageing ? 0.72 : 1 }}
     >
       <span
         className="text-2xs font-bold tracking-widest px-1.5 py-0.5 flex-shrink-0 rounded-sm"
@@ -150,6 +158,11 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
       <div className="flex-1 min-w-0 flex items-baseline gap-2" title={metricLabel}>
         <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
         <StrengthBars strength={strength} />
+        {stale && (
+          <span className="badge flex-shrink-0" style={{ color: '#637899', border: '1px solid rgba(99,120,153,0.35)' }}>
+            STALE
+          </span>
+        )}
         {detectedAt != null && (
           <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0 tabular-nums ml-auto" title={detectedAtStr(detectedAt)}>
             {timeAgo(detectedAt)}
@@ -575,6 +588,24 @@ export default function MarketScannerModule() {
   const [tick, setTick] = useState(0)
   const [lastScanAt, setLastScanAt] = useState(() => Date.now())
   const [scanning, setScanning] = useState(false)
+  // Held for three seconds after a scan finishes, so the result is readable
+  // rather than flashing past. Distinct from `scanning` because "done, here is
+  // what I found" is a different state from "working".
+  //
+  // Derived during render, not in an effect: it is a pure function of which
+  // scan we last saw complete, which is React's documented
+  // adjust-state-when-an-input-changes shape.
+  const [shownScanAt, setShownScanAt] = useState(null)
+  const [justScanned, setJustScanned] = useState(false)
+  if (!scanning && lastScanAt != null && shownScanAt !== lastScanAt) {
+    setShownScanAt(lastScanAt)
+    setJustScanned(true)
+  }
+  useEffect(() => {
+    if (!justScanned) return undefined
+    const id = setTimeout(() => setJustScanned(false), 3000)
+    return () => clearTimeout(id)
+  }, [justScanned])
   const [, forceTick] = useState(0) // re-renders "Last scan: Xm ago" every 30s
   const [settings, setSettings] = useState(loadScanSettings)
 
@@ -609,6 +640,27 @@ export default function MarketScannerModule() {
   const oversold = applyScanFilters(scanOversold(), settings)
   const overbought = applyScanFilters(scanOverbought(), settings)
 
+  // Signal counts on the tab pills. Computed from the same scan functions the
+  // tabs themselves run, with the same filters applied, so a badge cannot
+  // disagree with the list it labels. PATTERNS is deliberately absent: that
+  // tab reads shapes through MaddenAI on demand, so there is no count to know
+  // before the user opens it, and a zero would be a lie rather than a count.
+  const tabCounts = useMemo(() => ({
+    breakouts:  applyScanFilters(scanBreakouts(tick), settings).length,
+    oversold:   oversold.length,
+    overbought: overbought.length,
+    volume:     applyScanFilters(scanVolume(tick), settings).length,
+    gaps:       applyScanFilters(scanGaps(tick), settings).length,
+    momentum:   applyScanFilters(scanMomentum(), settings).length,
+  }), [tick, settings, oversold.length, overbought.length])
+
+  const totalSignals = Object.values(tabCounts).reduce((a, b) => a + b, 0)
+
+  const TABS_WITH_COUNTS = useMemo(
+    () => TABS.map((t) => ({ ...t, count: tabCounts[t.key] })),
+    [tabCounts],
+  )
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
@@ -623,8 +675,10 @@ export default function MarketScannerModule() {
                 than the reader having to infer it. */}
             <DemoBadge />
             {scanning
-              ? <span className="text-terminal-gold animate-pulse">SCANNING...</span>
-              : <span>Last scan: {timeAgo(lastScanAt)}</span>}
+              ? <span className="text-terminal-gold animate-pulse">SCANNING…</span>
+              : justScanned
+                ? <span className="text-terminal-green">✓ SCAN COMPLETE · {totalSignals} signals</span>
+                : <span>Last scan: {timeAgo(lastScanAt)}</span>}
             <button
               onClick={runScan}
               disabled={scanning}
@@ -635,7 +689,13 @@ export default function MarketScannerModule() {
         }
       />
 
-      <TabBar tabs={TABS} activeKey={activeTab} onChange={setActiveTab} className="overflow-x-auto" />
+      {/* A gold sweep across the full width while a scan runs. The scanner is
+          the one module where the work is invisible — nothing moves while it
+          recomputes — so without this a RESCAN click reads as having done
+          nothing at all. */}
+      {scanning && <div className="scan-sweep flex-shrink-0" />}
+
+      <TabBar tabs={TABS_WITH_COUNTS} activeKey={activeTab} onChange={setActiveTab} className="overflow-x-auto" />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
