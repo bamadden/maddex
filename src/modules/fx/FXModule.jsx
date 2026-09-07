@@ -5,15 +5,13 @@ import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
-import { CENTRAL_BANK_RATES, RBA_RATE_HISTORY } from '../../data/placeholders'
+import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
-import {
-  RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
-  BOJ_MEETINGS_2026, PBOC_MEETINGS_2026, RBNZ_MEETINGS_2026, BOC_MEETINGS_2026,
-  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026,
-  getNextMeeting, getDaysUntil,
-} from '../../services/centralBankSchedule'
+// The full ten-bank schedule now lives in UpcomingDecisions, which owns the
+// 90-day calendar. This module only needs the RBA's own dates, for the hero
+// countdown and the compact dashboard's next-meeting label.
+import { RBA_MEETINGS_2026, getNextMeeting } from '../../services/centralBankSchedule'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useSubscription } from '../../hooks/useSubscription'
@@ -23,6 +21,10 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts'
 import YieldCurveAnimator from '../../components/charts/YieldCurveAnimator'
 import CentralBankTracker from './CentralBankTracker'
+import CentralBankCards from './CentralBankCards'
+import UpcomingDecisions from './UpcomingDecisions'
+import AudTwiCard from './AudTwiCard'
+import { useAudStrength, meanMove } from './useAudStrength'
 import SafeChart from '../../components/ui/SafeChart'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
@@ -115,22 +117,6 @@ function FxRetryCountdown({ onRetry, seconds = 15 }) {
   )
 }
 
-// Maps CENTRAL_BANK_RATES' bank names to their published 2026 meeting
-// schedule — only the 4 banks we have a schedule for get a "next meeting"
-// line; the rest just show their last-change date as before.
-const BANK_SCHEDULE = {
-  'Reserve Bank of Australia': RBA_MEETINGS_2026,
-  'Federal Reserve':           FOMC_MEETINGS_2026,
-  'ECB':                       ECB_MEETINGS_2026,
-  'Bank of England':           BOE_MEETINGS_2026,
-  'Bank of Japan':             BOJ_MEETINGS_2026,
-  'PBOC':                      PBOC_MEETINGS_2026,
-  'RBNZ':                      RBNZ_MEETINGS_2026,
-  'Bank of Canada':            BOC_MEETINGS_2026,
-  'Swiss National Bank':       SNB_MEETINGS_2026,
-  'Riksbank':                  RIKSBANK_MEETINGS_2026,
-}
-
 const FLAG_BY_CCY = {
   AUD: '🇦🇺', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵',
   CNY: '🇨🇳', NZD: '🇳🇿', CAD: '🇨🇦', CHF: '🇨🇭', SEK: '🇸🇪', SGD: '🇸🇬',
@@ -141,16 +127,6 @@ function RateBadge({ dir }) {
     : dir === 'cut' ? 'border-terminal-green/40 text-terminal-green'
     : 'border-terminal-gold/40 text-terminal-gold'
   return <span className={`px-1.5 py-0.5 border text-2xs font-bold uppercase ${cls}`}>{dir ?? 'hold'}</span>
-}
-
-function nextMeetingLabel(bankName) {
-  const dates = BANK_SCHEDULE[bankName]
-  if (!dates) return null
-  const next = getNextMeeting(dates)
-  if (!next) return null
-  const days = getDaysUntil(next)
-  const label = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
-  return `Next meeting: ${label} (${days}d)`
 }
 
 const rateDecimals = (pair) => (pair.includes('JPY') || pair.includes('CNY') ? 2 : 4)
@@ -352,81 +328,6 @@ function YieldTooltip({ active, payload, label }) {
           </div>
         )
       })}
-    </div>
-  )
-}
-
-// ─── Global central bank rates — compact card grid, 2 rows of 5 ────────────
-// No charts here by design — this section is a fast data scan, the RBA
-// step-chart below carries the visual weight.
-
-function shortMonth(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso + 'T00:00:00')
-  return isNaN(d) ? '—' : d.toLocaleDateString('en-AU', { month: 'short' })
-}
-
-function GlobalRatesCardGrid() {
-  return (
-    <div className="border-b border-terminal-border flex-shrink-0">
-      <div className="panel-header flex items-center gap-2">
-        <span className="text-terminal-gold">GLOBAL POLICY RATES</span>
-        {/* Every bank in this table shares one verification date, so the
-            badge belongs on the header rather than repeated ten times. */}
-        <VerifiedBadge dataKey="rba" alwaysShow />
-        <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">10 banks · official + typical-cadence next meetings</span>
-      </div>
-      <div className="grid grid-cols-5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        {CENTRAL_BANK_RATES.map((cb) => (
-          <div
-            key={cb.bank}
-            // THE RBA IS NOT ONE OF TEN.
-            //
-            // This is an Australian terminal, and the RBA cash rate is the
-            // single number in this grid that prices an Australian reader's
-            // mortgage, their term deposit and half their portfolio. It was
-            // rendered identically to the Riksbank, distinguished only by a 5%
-            // gold wash that reads as a hover state. It now carries the left
-            // marker, the brighter type and the larger figure that say "start
-            // here" — the other nine are context for this one.
-            className={`border-r border-b border-terminal-border p-2 ${
-              cb.country === 'AUD'
-                ? 'bg-terminal-gold/[0.07] border-l-2 border-l-terminal-gold'
-                : ''
-            }`}
-            style={{ minWidth: 180 }}
-          >
-            <div className={`flex items-center gap-1 text-[8px] font-mono uppercase tracking-wide truncate ${
-              cb.country === 'AUD' ? 'text-terminal-gold font-bold' : 'text-terminal-text-dim'
-            }`}>
-              <span>{FLAG_BY_CCY[cb.country] ?? '⬚'}</span>
-              <span className="truncate">{cb.bank}</span>
-              {cb.country === 'AUD' && (
-                <span className="ml-auto text-[7px] tracking-widest text-terminal-gold/60 flex-shrink-0">HOME</span>
-              )}
-            </div>
-            <div className={`font-mono font-bold leading-tight mt-0.5 ${
-              cb.country === 'AUD' ? 'text-[26px] text-terminal-gold' : 'text-[20px] text-terminal-text-bright'
-            }`}>
-              {cb.rate.toFixed(2)}%
-            </div>
-            <div className="flex items-center gap-1 mt-1 flex-wrap">
-              <span className="text-2xs px-1 border text-2xs font-bold uppercase"
-                style={{
-                  borderColor: cb.direction === 'hike' ? 'rgba(168,50,50,0.4)' : cb.direction === 'cut' ? 'rgba(45,138,80,0.4)' : 'rgba(201,168,76,0.4)',
-                  color: cb.direction === 'hike' ? '#a83232' : cb.direction === 'cut' ? '#2d8a50' : '#C9A84C',
-                }}
-              >{cb.direction ?? 'hold'} · {shortMonth(cb.lastChange)}</span>
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <RateBadge dir={cb.expectation} />
-            </div>
-            <div className="text-[8px] text-terminal-text-dim/60 mt-1 truncate">
-              {nextMeetingLabel(cb.bank) ?? '—'}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
@@ -694,8 +595,24 @@ function MarketPricingPanel() {
 // for SECTION 2's right column; the full 5-country selector interaction
 // stays available via the props passed in from the module). ────────────────
 
+// ON THE PERIOD TOGGLE, AND WHY IT HAS TWO OPTIONS RATHER THAN FOUR.
+//
+// The obvious control here is [TODAY] [3M AGO] [6M AGO] [1Y AGO] with a faded
+// ghost line for whichever is picked. There is no 3-, 6- or 12-month yield
+// series in this build. Generating one — shifting each point by a seeded
+// pseudo-random ±0.2 so it looks plausible and stays stable between renders —
+// would put a line on a chart labelled "6M AGO" that describes nothing. It
+// would be the most convincing fabricated figure in the terminal, because a
+// curve reads as data in a way a single number does not.
+//
+// What DOES exist is `prev`: the previous published curve for both countries,
+// already carried in YIELD_CURVES and already used by this module's tooltip
+// and by the spread monitor. So the toggle offers the comparison that is real,
+// and says plainly that the others are not available rather than drawing them.
+
 function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
   const { shape } = primaryStats
+  const [ghost, setGhost] = useState(false)
   // Both curves' 2s10s, in basis points. The shape word alone says which side
   // of zero the curve is on; the number says how far, and "+15bp" versus
   // "+120bp" are different worlds wearing the same NORMAL label. The US badge
@@ -734,6 +651,38 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
           </span>
         ))}
       </div>
+      {/* Period comparison. TODAY is always drawn at full opacity; the ghost
+          is the previous published curve at 30%. */}
+      <div className="flex items-center gap-1 px-2 py-1 flex-shrink-0"
+        style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
+        {[[false, 'TODAY'], [true, '+ PREV CURVE']].map(([val, label]) => (
+          <button
+            key={label}
+            onClick={() => setGhost(val)}
+            className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${
+              ghost === val
+                ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
+                : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+            }`}
+          >{label}</button>
+        ))}
+        {ghost ? (
+          <span className="ml-auto flex items-center gap-2 text-terminal-text-dim/60" style={{ fontSize: 8 }}>
+            <span className="flex items-center gap-1">
+              <span style={{ width: 12, height: 2, background: '#C9A84C', display: 'inline-block' }} />today
+            </span>
+            <span className="flex items-center gap-1">
+              <span style={{ width: 12, height: 2, background: '#C9A84C', opacity: 0.3, display: 'inline-block' }} />previous
+            </span>
+          </span>
+        ) : (
+          <span className="ml-auto text-terminal-text-dim/45 truncate" style={{ fontSize: 8 }}
+            title="No 3-, 6- or 12-month yield series is held in this build, so no older ghost curve can be drawn without inventing one.">
+            no 3M/6M/1Y series held — only the previous curve
+          </span>
+        )}
+      </div>
+
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
@@ -741,6 +690,15 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
             <XAxis dataKey="tenor" tick={{ fontSize: 8 }} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
             <Tooltip content={<YieldTooltip />} />
+            {/* Ghosts first, so today's curves paint over them. */}
+            {ghost && (
+              <Line type="monotone" dataKey="AUprev" stroke={YIELD_CURVES.AU.color} strokeOpacity={0.3}
+                strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+            )}
+            {ghost && (
+              <Line type="monotone" dataKey="USprev" stroke={YIELD_CURVES.US.color} strokeOpacity={0.3}
+                strokeWidth={1.5} strokeDasharray="5 3" dot={false} connectNulls isAnimationActive={false} />
+            )}
             <Line type="monotone" dataKey="AU" stroke={YIELD_CURVES.AU.color} strokeWidth={2} dot={{ fill: YIELD_CURVES.AU.color, r: 2.5 }} connectNulls isAnimationActive={false} />
             <Line type="monotone" dataKey="US" stroke={YIELD_CURVES.US.color} strokeWidth={2} strokeDasharray="5 3" dot={{ fill: YIELD_CURVES.US.color, r: 2.5 }} connectNulls isAnimationActive={false} />
           </LineChart>
@@ -830,33 +788,14 @@ function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
 
 // ─── FX section: currency strength index + AUD TWI ─────────────────────────
 
-const STRENGTH_MAJORS = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'NZD']
-const AUD_TWI = 65.5 // RBA trade-weighted index, hardcoded snapshot — Aug 2026
+// The 30-day series and the mean now live in useAudStrength, shared with the
+// TWI card above the FX grid. Same query key, so it is still one set of
+// requests however many panels read it.
 
 function CurrencyStrengthIndex() {
-  const results = useQuery({
-    queryKey: ['fxStrength30d', STRENGTH_MAJORS],
-    queryFn: async () => {
-      const settled = await Promise.allSettled(
-        STRENGTH_MAJORS.map((ccy) => fetchFxHistory('AUD', ccy, 30))
-      )
-      return STRENGTH_MAJORS.map((ccy, i) => {
-        const r = settled[i]
-        if (r.status !== 'fulfilled' || !r.value?.rates) return { ccy, pct: null }
-        const entries = Object.entries(r.value.rates)
-          .map(([date, rates]) => ({ date, rate: rates[ccy] }))
-          .filter(e => e.rate != null)
-          .sort((a, b) => a.date.localeCompare(b.date))
-        if (entries.length < 2) return { ccy, pct: null }
-        const first = entries[0].rate, last = entries[entries.length - 1].rate
-        // AUD strengthening vs ccy means 1 AUD buys MORE of ccy over the period.
-        return { ccy, pct: ((last - first) / first) * 100 }
-      })
-    },
-    staleTime: 30 * 60_000,
-    retry: 1,
-  })
+  const results = useAudStrength()
   const rows = results.data ?? []
+  const mean = meanMove(rows)
   const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.pct ?? 0)))
 
   return (
@@ -892,10 +831,17 @@ function CurrencyStrengthIndex() {
           </div>
         ))}
       </div>
-      <div className="mt-2 pt-2 border-t border-terminal-border/50 flex items-center justify-between">
-        <span className="text-2xs text-terminal-text-dim">AUD TRADE-WEIGHTED INDEX (TWI)</span>
-        <span className="text-xs font-bold text-terminal-gold">{AUD_TWI}</span>
-      </div>
+      {/* The TWI moved to its own card above the FX grid, where it has the
+          room to carry its source and its date. What belongs here is the
+          summary of the bars directly above it. */}
+      {mean != null && (
+        <div className="mt-2 pt-2 border-t border-terminal-border/50 flex items-center justify-between">
+          <span className="text-2xs text-terminal-text-dim">MEAN ACROSS MAJORS</span>
+          <span className="text-xs font-bold tabular-nums" style={{ color: mean >= 0 ? '#2D8A50' : '#CC4444' }}>
+            {mean >= 0 ? '+' : ''}{mean.toFixed(2)}%
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -951,10 +897,16 @@ export default function FXModule() {
     return ORDER.filter(t => tenorSet.has(t))
   }, [])
 
+  // Both the current curve and the previous published one. `prev` is already
+  // in YIELD_CURVES and already drives the tooltip's "vs prev mo" and the
+  // spread monitor's move — the ghost lines draw the same numbers rather than
+  // introducing a second version of last month.
   const chartData = useMemo(() => allTenors.map(tenor => ({
     tenor,
     AU: YIELD_CURVES.AU.points.find(p => p.m === tenor)?.y ?? null,
     US: YIELD_CURVES.US.points.find(p => p.m === tenor)?.y ?? null,
+    AUprev: YIELD_CURVES.AU.prev?.[tenor] ?? null,
+    USprev: YIELD_CURVES.US.prev?.[tenor] ?? null,
   })), [allTenors])
 
   const allYieldValues = chartData.flatMap(r => [r.AU, r.US]).filter(v => typeof v === 'number')
@@ -984,8 +936,8 @@ export default function FXModule() {
       onRefresh={refetch}
     />
 
-    {/* SECTION 1 — global policy rates, compact card grid */}
-    <GlobalRatesCardGrid />
+    {/* SECTION 1 — global policy rates, expandable comparison cards */}
+    <CentralBankCards />
 
     {/* SECTION 2 — RBA (left 55%) vs yield curve + market pricing (right 45%) */}
     <div className="flex border-b border-terminal-border flex-shrink-0" style={{ height: 480 }}>
@@ -1000,8 +952,14 @@ export default function FXModule() {
     {/* SECTION 2b — central bank tracker: RBA decision timeline, last decision
         by bank, AU/US spread and the 90-day meeting calendar. */}
     <div className="border-b border-terminal-border flex-shrink-0">
-      <CentralBankTracker curves={YIELD_CURVES} schedule={BANK_SCHEDULE} />
+      <CentralBankTracker curves={YIELD_CURVES} />
     </div>
+
+    {/* SECTION 2c — AUD trade-weighted index. Full width above the FX grid
+        rather than inside its 60% column: it is the headline AUD number and
+        needs the room to carry its source, its date and the measured 30-day
+        move beside it. */}
+    <AudTwiCard />
 
     {/* SECTION 3 — FX rates grid + converter + strength index */}
     <div className="flex flex-shrink-0">
@@ -1082,6 +1040,9 @@ export default function FXModule() {
         <YieldCurveAnimator curve={YIELD_CURVES.AU} />
       )}
     </div>
+
+    {/* SECTION 6 — every tracked bank's next 90 days, in order */}
+    <UpcomingDecisions />
     </div>
     {historyPair && <FxHistoryModal pair={historyPair} onClose={() => setHistoryPair(null)} />}
     </>

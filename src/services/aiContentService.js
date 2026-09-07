@@ -250,8 +250,55 @@ Return a JSON object:
 Reason from the verified figures supplied. Do not introduce new numbers.`)
   },
 
+  // ── Central bank policy bias ──────────────────────────────────────────────
+  //
+  // ONE CALL FOR TEN BANKS, NOT TEN CALLS.
+  //
+  // Each expanded card needs a single sentence, and ten separate completions
+  // for ten sentences would be ten times the cost and ten chances to fail
+  // independently — a card grid where three banks have prose and seven have a
+  // spinner. One request returns the whole map, cached for the day like every
+  // other generator here.
+  //
+  // Called lazily, on the first card expansion rather than on module mount, so
+  // visiting Rates does not spend a completion on a panel nobody opened.
+  //
+  // The prompt supplies every figure. The model is asked for a stance, in
+  // words, from the rate and the last decision it is given — it is not asked
+  // what any rate IS, and the shared system prompt above forbids it inventing
+  // one.
+  async getPolicyBias() {
+    const banks = ['rba', 'fed', 'ecb', 'boe', 'boj', 'pboc', 'rbnz', 'boc', 'snb', 'riksbank']
+    const rows = banks
+      .map((k) => {
+        const c = VERIFIED_CONSTANTS[k]
+        if (!c) return null
+        return `- ${k}: ${c.label} (${c.country}), policy rate ${c.rateRange ?? `${c.cashRate}%`}, `
+          + `last decision ${c.lastDecisionVerb} on ${c.lastDecision}, next meeting ${c.nextMeeting}`
+      })
+      .filter(Boolean)
+      .join('\n')
+
+    return withDailyCache('policy_bias', () => `${contextBlock()}
+Below are ten central banks with their current policy rate and most recent
+decision. All figures are verified.
+
+${rows}
+
+For each, write ONE sentence (maximum 22 words) characterising the bank's
+current policy bias — the direction of travel and what is holding it there.
+
+Return a JSON object keyed by the lowercase bank id exactly as given above:
+{"rba": "<sentence>", "fed": "<sentence>", ...}
+
+Every id must be present. Write about stance and pressure in words. Do not
+state any rate, inflation print or probability that is not in the list above,
+and do not invent a market-implied likelihood of a hold or a cut — no such
+feed exists here.`)
+  },
+
   // ── Status + maintenance ──────────────────────────────────────────────────
-  KEYS: ['geo_risks', 'shipping_status', 'intel_ticker', 'macro_regime'],
+  KEYS: ['geo_risks', 'shipping_status', 'intel_ticker', 'macro_regime', 'policy_bias'],
 
   getContentStatus() {
     const d = today()

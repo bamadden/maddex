@@ -187,6 +187,21 @@ export const VERIFIED_CONSTANTS = {
     asx200DivYield: 3.7,
     asxMetricsRelease: '2026-05-31',
 
+    // The RBA trade-weighted index — the AUD against a basket of Australia's
+    // trading partners, weighted by trade share. It lived as a bare literal in
+    // FXModule (`const AUD_TWI = 65.5`) with a comment for a date; it belongs
+    // here with the rest of the hand-maintained figures so the staleness badge
+    // applies to it like everything else.
+    //
+    // NO DAILY CHANGE FIGURE. The RBA publishes the TWI every business day,
+    // but this build holds one verified snapshot, not the series — so there is
+    // no "+0.2% today" to compute and none is shown. The card states the level
+    // and its date, and puts the live 30-day AUD move against the majors
+    // beside it as the change figure that IS measured.
+    twi: 65.5,
+    twiAsOf: '2026-08-31',
+    twiSource: 'rba.gov.au/statistics/frequency/exchange-rates.html',
+
     source: 'abs.gov.au',
     asOf: '2026-07-30',
     lastVerified: '2026-09-06',

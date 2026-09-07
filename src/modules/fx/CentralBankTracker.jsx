@@ -195,81 +195,22 @@ function SpreadMonitor({ curves }) {
   )
 }
 
-// Every tracked bank's upcoming meetings inside a 90-day window, merged into
-// one chronological list. The value of this over ten separate "next meeting"
-// lines is that it answers the question people actually have — what is coming
-// up, in order — rather than requiring the reader to sort ten dates by eye.
-function MeetingCalendar({ schedule, days = 90 }) {
-  // Captured once on mount rather than read inside the memo. Date.now() in a
-  // render path is impure — the memo would produce a different result on any
-  // re-render, and "days away" would drift by a day mid-session. A calendar
-  // does not need to tick; it needs to be stable while you read it.
-  const [now] = useState(() => Date.now())
+// The 90-day meeting calendar that used to sit here has moved to
+// UpcomingDecisions, at the bottom of the module. It gained flags, an EXPECTED
+// column and a wider table, and two 90-day calendars in one module would be
+// one calendar too many — this was the strict subset, so this is the one that
+// went.
 
-  const rows = useMemo(() => {
-    const horizon = now + days * 86400000
-    const out = []
-    for (const [bank, dates] of Object.entries(schedule ?? {})) {
-      for (const d of dates ?? []) {
-        const ts = new Date(`${d}T00:00:00`).getTime()
-        if (ts <= now || ts > horizon) continue
-        out.push({ bank, date: d, ts, daysAway: Math.ceil((ts - now) / 86400000) })
-      }
-    }
-    return out.sort((a, b) => a.ts - b.ts)
-  }, [schedule, days, now])
-
-  if (!rows.length) return null
-
-  return (
-    <div className="border border-terminal-border">
-      <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest">CENTRAL BANK CALENDAR · NEXT 90 DAYS</span>
-        <span className="text-[9px] text-terminal-text-dim">{rows.length} meetings</span>
-      </div>
-      <div className="max-h-64 overflow-y-auto">
-        <table className="w-full text-2xs">
-          <thead>
-            <tr className="text-terminal-text-dim border-b border-terminal-border/50">
-              <th className="text-left font-normal px-3 py-1">DATE</th>
-              <th className="text-left font-normal py-1">BANK</th>
-              <th className="text-right font-normal px-3 py-1">AWAY</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={`${r.bank}-${r.date}`} className="border-b border-terminal-border/25">
-                <td className="px-3 py-1 tabular-nums text-terminal-text-bright">
-                  {new Date(`${r.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
-                </td>
-                <td className="py-1 text-terminal-text truncate">{r.bank}</td>
-                <td className="px-3 py-1 text-right tabular-nums" style={{ color: r.daysAway <= 14 ? '#C9A84C' : '#637899' }}>
-                  {r.daysAway}d
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="px-3 py-1.5 text-[9px] text-terminal-text-dim/70 border-t border-terminal-border/40 leading-snug">
-        RBA, Fed, ECB and BOE dates are from each bank&apos;s published calendar. The
-        remaining six follow each bank&apos;s known meeting cadence — treat those as
-        approximate.
-      </div>
-    </div>
-  )
-}
-
-export default function CentralBankTracker({ curves, schedule }) {
+export default function CentralBankTracker({ curves }) {
   return (
     <div className="flex flex-col gap-3 px-3 py-3">
       <RbaTimeline />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+      {/* items-start, not the default stretch: the spread panel is four lines
+          tall and the decisions board is ten rows, and a stretched panel is a
+          bordered box that is mostly empty. Its own height is the honest one. */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
         <DecisionsBoard />
-        <div className="flex flex-col gap-3">
-          <SpreadMonitor curves={curves} />
-          <MeetingCalendar schedule={schedule} />
-        </div>
+        <SpreadMonitor curves={curves} />
       </div>
     </div>
   )
