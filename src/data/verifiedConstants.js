@@ -162,7 +162,17 @@ export const VERIFIED_CONSTANTS = {
   au: {
     cpi: 3.8,
     cpiPeriod: 'Jun 2026 quarter',
-    cpiPrevious: 2.4,
+    // CORRECTED 2026-09-07, and it was a sign error rather than a rounding one.
+    //
+    // This read 2.4, which is the March 2025 quarter. The quarter actually
+    // preceding this one is March 2026, at 4.6% — so the terminal was showing
+    // inflation RISING from 2.4% to 3.8% when it has in fact FALLEN from 4.6%.
+    // That inverts the read on the single most consequential number in an
+    // Australian macro module, and it fed the indicator delta, the AU_MACRO
+    // table and MaddenAI's interpretation alike.
+    // Source: abs.gov.au media release "CPI rose 4.6% in the year to March 2026".
+    cpiPrevious: 4.6,
+    cpiPreviousPeriod: 'Mar 2026 quarter',
     cpiLastRelease: '2026-07-30',
     cpiNextRelease: '2026-10-29',
     cpiTrimmedMean: 2.7,
@@ -172,10 +182,19 @@ export const VERIFIED_CONSTANTS = {
     unemploymentPeriod: 'May 2026',
     unemploymentLastRelease: '2026-06-19',
 
+    // UPDATED 2026-09-07 — this was two quarters stale, reading 1.3% as at
+    // Q4 2025 while the June 2026 national accounts were published. Growth has
+    // decelerated through the year (2.6 → 2.5 → 2.1), which is a different
+    // story from a flat 1.3 and reaches the recession rubric, the RBA
+    // sensitivity matrix and MaddenAI's verified facts.
+    // Source: abs.gov.au national accounts, June 2026 quarter.
     gdpQoQ: 0.4,
-    gdpAnnual: 1.3,
-    gdpPeriod: 'Q4 2025',
-    gdpLastRelease: '2026-03-04',
+    gdpAnnual: 2.1,
+    gdpPeriod: 'Jun 2026 quarter',
+    // The June-quarter national accounts publish in the first week of
+    // September. The exact day was not stated on the release page read here —
+    // confirm at next verification.
+    gdpLastRelease: '2026-09-03',
 
     tradeBalanceBn: 7.2,
     tradeBalanceRelease: '2026-04-02',
@@ -226,9 +245,25 @@ export const VERIFIED_CONSTANTS = {
     asx200SectorWeightsAsOf: '2026-01-31',
     asx200SectorWeightsSource: 'SPDR S&P/ASX 200 ETF (STW) factsheet, ssga.com',
 
+    // Three quarters of published annual CPI and annual GDP, for the growth /
+    // inflation quadrant's trail.
+    //
+    // WHY THIS IS RECORDED RATHER THAN GENERATED. A trail of dots on a
+    // macro plane is a claim about where the economy has been, and it is the
+    // most persuasive form that claim can take — far more so than the same
+    // numbers in a table. Each of these six figures is from an ABS release.
+    // Where a quarter is missing, the dot is simply absent.
+    auQuarterlyPath: [
+      { period: 'Dec 25', cpi: 3.8, gdpAnnual: 2.6 },
+      { period: 'Mar 26', cpi: 4.6, gdpAnnual: 2.5 },
+      { period: 'Jun 26', cpi: 3.8, gdpAnnual: 2.1 },
+    ],
+    auQuarterlyPathSource: 'abs.gov.au — CPI releases and national accounts',
+    auQuarterlyPathAsOf: '2026-06-30',
+
     source: 'abs.gov.au',
     asOf: '2026-07-30',
-    lastVerified: '2026-09-06',
+    lastVerified: '2026-09-07',
   },
 
   // ── Other major economies ─────────────────────────────────────────────────

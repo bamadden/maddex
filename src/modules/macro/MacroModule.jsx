@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
 import RecessionMonitor from './RecessionMonitor'
-import { useQuery } from '@tanstack/react-query'
+import RegimeQuadrant from './RegimeQuadrant'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
   AU_MACRO,
@@ -25,7 +26,7 @@ import { EARNINGS_2026 } from '../../services/earningsCalendar'
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D view.
 const MacroDashboard3D = lazy(() => import('../../components/visualisations/MacroDashboard3D'))
-import { getMacroThemes, FALLBACK_THEMES } from '../../services/macroThemeService'
+import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES } from '../../services/macroThemeService'
 import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
@@ -1259,28 +1260,19 @@ function MacroRegimeGauge() {
   const { regime, indicators, ai, source } = useMacroRegime()
   return (
     <div className="border border-terminal-border p-3 bg-terminal-panel/40">
-      <div className="flex items-center gap-4 flex-wrap">
-        <div style={{ position: 'relative', width: 120, height: 64, flexShrink: 0 }}>
-          <svg viewBox="0 0 120 64" style={{ width: 120, height: 64, display: 'block' }}>
-            <path d="M 8 60 A 52 52 0 0 1 60 8"   fill="none" stroke="var(--color-loss)" strokeWidth="9" opacity="0.55" />
-            <path d="M 60 8 A 52 52 0 0 1 112 60" fill="none" stroke="var(--color-gain)" strokeWidth="9" opacity="0.55" />
-          </svg>
-          <div style={{
-            position: 'absolute', left: 59, bottom: 4, width: 2, height: 46,
-            background: '#C9A84C', transformOrigin: 'bottom center',
-            transform: `rotate(${regime.angle}deg)`, borderRadius: 2,
-          }} />
-          <div style={{ position: 'absolute', left: 55, bottom: 0, width: 8, height: 8, borderRadius: '50%', background: '#C9A84C' }} />
-        </div>
-        <div className="flex-1 min-w-[180px]">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-2xs text-terminal-text-dim tracking-widest">MACRO REGIME</span>
-            <AIContentBadge source={source} />
-          </div>
-          <div className="text-lg font-bold mb-1" style={{ color: regime.color }}>{regime.label}</div>
-          <div className="text-2xs text-terminal-text-dim leading-relaxed">{regime.reason}</div>
-        </div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-2xs text-terminal-gold font-bold tracking-widest">MACRO REGIME</span>
+        <span className="text-lg font-bold ml-1" style={{ color: regime.color }}>{regime.label}</span>
+        <AIContentBadge source={source} className="ml-auto" />
       </div>
+
+      {/* The needle that used to sit here ran one axis — restrictive to
+          accommodative — which describes POLICY, not the economy policy is
+          responding to. A stagflationary economy and a cooling one can carry
+          the same cash rate and rendered identically on it. */}
+      <RegimeQuadrant />
+
+      <div className="text-2xs text-terminal-text-dim leading-relaxed mt-3">{regime.reason}</div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
         {indicators.map((ind) => (
@@ -1329,58 +1321,107 @@ const THEME_CHART_MAP = {
   COMMODITIES: { data: IRON_ORE_HISTORY, dataKey: 'value', unit: '', color: '#2D7DD2' },
 }
 
-function MacroThemeCard({ theme }) {
-  const [expanded, setExpanded] = useState(false)
+// Sector pills. The model is asked for these now (see macroThemeService); the
+// map is the fallback for a theme generated before that field existed, keyed
+// off the category rather than guessed from the prose.
+const CATEGORY_SECTORS = {
+  RBA: ['FINANCIALS', 'PROPERTY', 'CONSUMER'],
+  FED: ['TECH', 'MATERIALS'],
+  CHINA: ['MATERIALS', 'ENERGY'],
+  COMMODITIES: ['MATERIALS', 'ENERGY'],
+  GLOBAL: ['TECH'],
+  GEOPOLITICAL: ['ENERGY'],
+}
+
+const SECTOR_TONE = {
+  MATERIALS: '#B05030', ENERGY: '#8A6A2D', FINANCIALS: '#2D5A8A', HEALTH: '#2D8A50',
+  TECH: '#7B2D8A', CONSUMER: '#C9A84C', PROPERTY: '#8A5A7D', UTILITIES: '#4A7D7D',
+  INDUSTRIALS: '#6A6A8A', COMMS: '#5A7D9A',
+}
+
+function MacroThemeCard({ theme, expanded, onToggle }) {
   const color = THEME_IMPACT_COLOR[theme.impact] ?? 'var(--color-text-dim)'
   const analysis = theme.analysis ?? theme.impactNote ?? theme.note
   const chartCfg = THEME_CHART_MAP[theme.category]
+  const sectors = theme.sectors?.length ? theme.sectors : (CATEGORY_SECTORS[theme.category] ?? [])
 
   return (
     <div
       className={`border border-terminal-border bg-terminal-panel/40 transition-all ${expanded ? 'md:col-span-2' : ''}`}
       style={{ borderLeft: `3px solid ${color}` }}
     >
-      <div className="p-2.5">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-sm">{CATEGORY_ICON[theme.category] ?? '📌'}</span>
-          <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-1">{theme.title}</span>
-          <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full border" style={{ color, borderColor: color }}>
+      {/* Collapsed height is fixed so a grid of six reads as a grid rather
+          than as six different-sized boxes; the summary clamps to one line
+          and the full text is one click away. */}
+      <button
+        onClick={onToggle}
+        className="w-full text-left px-2.5 py-2 hover:bg-terminal-accent/10 transition-colors"
+        style={{ minHeight: 56 }}
+        aria-expanded={expanded}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm flex-shrink-0">{CATEGORY_ICON[theme.category] ?? '📌'}</span>
+          <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-1 min-w-0 truncate">{theme.title}</span>
+          <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0" style={{ color, borderColor: color }}>
             {theme.impact}
           </span>
+          <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0">{expanded ? '▲' : '▼'}</span>
         </div>
-        <div className="text-2xs text-terminal-text-dim leading-relaxed mb-1.5">{theme.summary}</div>
+        <div className={`text-2xs text-terminal-text-dim leading-relaxed mt-1 ${expanded ? '' : 'line-clamp-1'}`}>
+          {theme.summary}
+        </div>
+      </button>
 
-        {expanded && (
-          <div className="pt-1.5 border-t border-terminal-border/40 mb-1.5">
+      {/* 0fr → 1fr animates height without measuring, in both directions. */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: expanded ? '1fr' : '0fr',
+          transition: 'grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <div className="px-2.5 pb-2.5 pt-1.5 border-t border-terminal-border/40">
             {analysis && (
               <div className="text-2xs text-terminal-text-dim leading-relaxed mb-2 whitespace-pre-line">
                 {analysis}
               </div>
             )}
             {chartCfg && (
-              <div style={{ height: 90 }} className="mb-1">
+              <div style={{ height: 90 }} className="mb-2">
                 <MiniChart data={chartCfg.data} dataKey={chartCfg.dataKey} color={chartCfg.color} unit={chartCfg.unit} />
               </div>
             )}
+            {sectors.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                <span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/50">AFFECTED</span>
+                {sectors.map((sec) => (
+                  <span
+                    key={sec}
+                    className="font-mono font-bold"
+                    style={{
+                      fontSize: 8, letterSpacing: '0.1em', padding: '2px 6px', borderRadius: 2,
+                      color: SECTOR_TONE[sec] ?? '#8BA3C4',
+                      background: `${SECTOR_TONE[sec] ?? '#8BA3C4'}22`,
+                      border: `1px solid ${SECTOR_TONE[sec] ?? '#8BA3C4'}55`,
+                    }}
+                  >{sec}</span>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                dispatchAskAI({
+                  name: theme.title, sector: theme.category, date: todayAEST(),
+                  instruction: `Give a deeper analysis of this macro theme for Australian investors: "${theme.title}" — ${theme.summary} Current stance: ${theme.impact}.`,
+                })
+              }}
+              className="text-2xs text-terminal-gold/70 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"
+            >
+              ASK MADDENAI →
+            </button>
           </div>
-        )}
-
-        <div className="flex items-center gap-2 mt-1.5">
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
-          >
-            {expanded ? '▲ LESS' : '▼ FULL ANALYSIS'}
-          </button>
-          <button
-            onClick={() => dispatchAskAI({
-              name: theme.title, sector: theme.category, date: todayAEST(),
-              instruction: `Give a deeper analysis of this macro theme for Australian investors: "${theme.title}" — ${theme.summary} Current stance: ${theme.impact}.`,
-            })}
-            className="ml-auto text-2xs text-terminal-gold/70 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"
-          >
-            ASK MADDENAI →
-          </button>
         </div>
       </div>
     </div>
@@ -1402,6 +1443,13 @@ function ThemeCardSkeleton() {
 // a static baseline while loading and if the AI call/parse fails.
 function MacroThemesSection() {
   const todayKey = new Date().toLocaleDateString('en-CA')
+  const queryClient = useQueryClient()
+  // One theme open at a time. Two expanded cards in a two-column grid push
+  // every card below them twice and neither is easier to read for it.
+  const [openTitle, setOpenTitle] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshedAt, setRefreshedAt] = useState(null)
+
   const { data: themeResult, isLoading } = useQuery({
     queryKey:  ['macroThemes', todayKey],
     queryFn:   getMacroThemes,
@@ -1411,18 +1459,49 @@ function MacroThemesSection() {
   const isLive     = themeResult?.source === 'live'
   const isFallback = themeResult?.source === 'fallback'
 
+  // Refresh has to clear the day's cache first. Without that, refetching calls
+  // getMacroThemes, which hands straight back the cached day — a spinner that
+  // resolves to exactly what was already on screen.
+  const refresh = async () => {
+    setRefreshing(true)
+    clearMacroThemeCache()
+    try {
+      await queryClient.refetchQueries({ queryKey: ['macroThemes', todayKey] })
+      setRefreshedAt(Date.now())
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <div>
-      <div className="text-2xs text-terminal-gold tracking-widest font-bold mb-2 flex items-center gap-2">
+      <div className="text-2xs text-terminal-gold tracking-widest font-bold mb-2 flex items-center gap-2 flex-wrap">
         KEY MACRO THEMES
         {isLoading    && <span className="text-terminal-text-dim font-normal normal-case animate-pulse">GENERATING...</span>}
         {isLive       && <span className="text-terminal-green font-normal normal-case">● MaddenAI · updated today</span>}
         {isFallback   && <span className="text-terminal-text-dim font-normal normal-case">Baseline themes</span>}
+        {refreshedAt && !refreshing && (
+          <span className="text-terminal-text-dim/60 font-normal normal-case">Generated just now</span>
+        )}
+        <button
+          onClick={refresh}
+          disabled={refreshing}
+          className="ml-auto text-2xs font-normal normal-case tracking-normal border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors disabled:opacity-50"
+        >
+          {refreshing ? '⟳ Refreshing…' : '↻ REFRESH THEMES'}
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {isLoading
+        {isLoading || refreshing
           ? Array.from({ length: 6 }).map((_, i) => <ThemeCardSkeleton key={i} />)
-          : themes.map((t) => <MacroThemeCard key={t.title} theme={t} />)}
+          : themes.map((t) => (
+            <MacroThemeCard
+              key={t.title}
+              theme={t}
+              expanded={openTitle === t.title}
+              onToggle={() => setOpenTitle((cur) => (cur === t.title ? null : t.title))}
+            />
+          ))}
       </div>
     </div>
   )
@@ -1580,7 +1659,10 @@ function ExpandPill({ onClick }) {
 }
 
 export default function MacroModule() {
-  const [globalExpanded, setGlobalExpanded] = useState(false)
+  // Default OPEN. The macro regime and the daily themes were the two headline
+  // reads of this module and both sat inside a collapsed section at the bottom
+  // of a 2,900px page — present in the DOM, and effectively invisible.
+  const [globalExpanded, setGlobalExpanded] = useState(true)
   const [expandedChart, setExpandedChart]   = useState(null)
   const [expandedSection, setExpandedSection] = useState(null)
   const [view3D, setView3D] = useState(false)

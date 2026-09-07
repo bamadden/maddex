@@ -37,27 +37,27 @@ export const FALLBACK_THEMES = [
   { title: 'RBA HOLDING ABOVE NEUTRAL', category: 'RBA',
     summary: 'The RBA is holding the cash rate above neutral with headline inflation still above its target band. The Board has signalled patience rather than a near-term move in either direction.',
     analysis: 'The Board has paused after an extended tightening phase rather than declaring it finished. Inflation has moderated from its peak but has not yet settled inside the target band, so the hold reads as caution rather than a pivot, and the statement language has stayed deliberately non-committal about what comes next.\n\nThe drivers to watch are the quarterly CPI prints and the labour market. Unemployment drifting higher would strengthen the case for staying on hold and eventually easing; a reacceleration in services inflation or a fresh energy shock would reopen the question of further tightening. Wage growth sits between the two as the variable the Board watches most closely.\n\nFor Australian investors an extended hold is broadly neutral, and mildly supportive for the rate-sensitive parts of the market — REITs, retailers and the banks — that had been pricing further increases. The AUD should stay range-bound against the USD unless the Fed moves first, which would reopen the rate-differential trade.',
-    impact: 'NEUTRAL', impactNote: 'Neutral for equities, mildly supportive for rate-sensitives' },
+    impact: 'NEUTRAL', impactNote: 'Neutral for equities, mildly supportive for rate-sensitives' , sectors: ["FINANCIALS", "PROPERTY", "CONSUMER"] },
 
   { title: 'FED PATIENT, MARKET IMPATIENT', category: 'FED',
     summary: 'US policy remains restrictive while markets continue to price an easing cycle earlier than the Fed itself has guided. That gap between pricing and guidance is the live tension.',
     analysis: 'The Fed has held policy in restrictive territory while describing the balance of risks between inflation and employment as more even than it was through the tightening cycle. Markets have consistently run ahead of that language, pricing cuts sooner and faster than the dot plot implies — a pattern that has repeated for several quarters and been repeatedly disappointed.\n\nPayrolls and CPI remain the two prints that move this. A soft employment report pulls expectations forward sharply; a firm inflation read pushes the Fed back toward higher-for-longer framing. Fed funds futures are the cleanest real-time read on where that balance sits.\n\nFor Australian investors, Fed easing tends to weaken the USD and support AUD/USD, and has historically been a tailwind for ASX growth names sensitive to global discount rates. It also narrows the policy gap between the RBA and the Fed, which matters for capital flows into Australian bonds.',
-    impact: 'MIXED', impactNote: 'Direction depends on which way the data breaks' },
+    impact: 'MIXED', impactNote: 'Direction depends on which way the data breaks' , sectors: ["TECH", "MATERIALS"] },
 
   { title: 'CHINA DEMAND SOFT', category: 'CHINA',
     summary: 'Chinese manufacturing activity has been subdued and the property sector remains under stress. Stimulus has been targeted rather than broad, which limits the read-across to bulk commodity demand.',
     analysis: 'Chinese factory activity has hovered around the expansion threshold rather than recovering decisively, held back by weak property construction and soft external orders. Beijing has leaned on targeted measures — local-government debt support, selective infrastructure spending — rather than the broad fiscal expansion seen in earlier downturns.\n\nThe property sector is the variable that matters most. New-home sales and developer credit conditions drive steel output, and steel output drives iron ore. A genuinely large stimulus package would be the clearest bullish catalyst; continued targeted measures leave the trade where it is.\n\nFor Australia this runs straight through Materials and Energy, given China\'s position as the dominant buyer of iron ore, coal and LNG. Sustained weakness without a matching policy response pressures bulk commodity prices, the ASX\'s heavily weighted mining majors, and the AUD as a commodity-linked currency.',
-    impact: 'BEARISH', impactNote: 'Bearish Materials and Energy, a headwind for the ASX' },
+    impact: 'BEARISH', impactNote: 'Bearish Materials and Energy, a headwind for the ASX' , sectors: ["MATERIALS", "ENERGY"] },
 
   { title: 'AI INFRASTRUCTURE BUILDOUT', category: 'GLOBAL',
     summary: 'Hyperscaler capital spending on AI infrastructure remains the dominant driver of global tech earnings. Australian direct exposure is limited; the indirect effects are not.',
     analysis: 'Data-centre construction and AI hardware demand have continued to absorb an unusually large share of global technology capex, with the largest cloud providers guiding to multi-year commitments rather than single-year budgets. That visibility is what has sustained the trade well beyond the point sceptics expected it to break.\n\nThe leading indicator is hyperscaler capex guidance each earnings season, not any single chipmaker\'s results. A deceleration in combined capex plans would be the first genuine crack in the narrative, and would show up there before it showed up in semiconductor revenue.\n\nDirect ASX exposure to this theme is thin — there are no large local AI infrastructure players. The indirect channels matter more: US technology strength supports global risk appetite and superannuation returns through international equity allocations, and the electricity demand from data-centre growth is a slow-building tailwind for Australian LNG and uranium exporters.',
-    impact: 'BULLISH', impactNote: 'Bullish global tech, largely indirect for the ASX' },
+    impact: 'BULLISH', impactNote: 'Bullish global tech, largely indirect for the ASX' , sectors: ["TECH", "ENERGY", "UTILITIES"] },
 
   { title: 'SHIPPING LANE RISK PERSISTS', category: 'GEOPOLITICAL',
     summary: 'Red Sea transits remain disrupted with carriers routing around southern Africa, and Middle East tensions continue to carry an energy risk premium.',
     analysis: 'Commercial shipping through the Red Sea has stayed well below normal levels, with major carriers continuing to route around the Cape of Good Hope. Longer voyages absorb vessel capacity, which keeps effective global container supply tighter than the headline fleet count suggests and leaves freight rates sensitive to any further disruption.\n\nThe variables to watch are whether transits normalise and whether tensions spread to affect the Strait of Hormuz, which would have a far larger effect on energy markets than the Red Sea alone. Both have repeatedly moved on short notice, so positioning around either has been costly.\n\nFor Australian investors this transmits through energy prices and freight costs. Elevated energy prices complicate the inflation picture the RBA is working against, which is a headwind for rate-sensitive equities, while supporting the ASX Energy sector. Higher freight costs weigh on import-dependent retailers.',
-    impact: 'MIXED', impactNote: 'Supports Energy, pressures retail and rate-sensitives' },
+    impact: 'MIXED', impactNote: 'Supports Energy, pressures retail and rate-sensitives' , sectors: ["ENERGY", "CONSUMER"] },
 
   { title: 'AUD TIED TO CHINA AND THE FED', category: 'COMMODITIES',
     summary: 'The Australian dollar continues to trade as a proxy for Chinese demand and the RBA-Fed policy gap. Neither driver has resolved decisively in either direction.',
@@ -76,8 +76,14 @@ For each theme return JSON:
   "analysis": "3-4 paragraph deep-dive (separated by \\n\\n): context and how we got here, key drivers to watch, and the outlook/implications for Australian investors",
   "impact": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
   "impactNote": "Impact on ASX/AUD in one line",
-  "category": "RBA" | "FED" | "CHINA" | "GLOBAL" | "COMMODITIES" | "GEOPOLITICAL"
+  "category": "RBA" | "FED" | "CHINA" | "GLOBAL" | "COMMODITIES" | "GEOPOLITICAL",
+  "sectors": ["MATERIALS", "ENERGY"]
 }
+
+"sectors" is 1-3 ASX GICS sector names this theme actually transmits through,
+drawn from: MATERIALS, ENERGY, FINANCIALS, HEALTH, TECH, CONSUMER, PROPERTY,
+UTILITIES, INDUSTRIALS, COMMS. Name only sectors the analysis genuinely
+touches — an empty-ish list is better than tagging every sector on the board.
 
 Base themes on real current macro conditions as of today. Focus on: RBA policy, Fed policy, the China economy, commodities (iron ore, oil, gold), AUD strength, and geopolitical risks affecting Australia.
 
@@ -141,6 +147,13 @@ function parseThemes(text) {
 }
 
 // Returns { themes, source: 'cache' | 'live' | 'fallback' }.
+// Drops today's cached themes so the next getMacroThemes() call regenerates.
+// Exported for the REFRESH control — without this the button would refetch a
+// query whose queryFn hands straight back the same cached day.
+export function clearMacroThemeCache() {
+  try { localStorage.removeItem(todayKey()) } catch { /* storage unavailable */ }
+}
+
 export async function getMacroThemes() {
   const cached = readCache()
   if (cached) return { themes: cached, source: 'cache' }

@@ -33,7 +33,27 @@ function targetRead(name, value) {
   return { label: 'IN TARGET BAND', colour: '#2D8A50', detail: `${v}% within the RBA's 2–3% band` }
 }
 
-const CACHE_PREFIX = 'maddex_macro_read_'
+// How directly each indicator feeds the RBA's decision. This is a property of
+// the series, not a judgement made per render: CPI and the labour market are
+// the two halves of the Bank's mandate, GDP and retail sales inform the demand
+// picture, and an ASX ratio does not enter the framework at all.
+const RBA_RELEVANCE = [
+  { test: /CPI|inflation|trimmed/i,        level: 'HIGH',   why: 'Inflation is one half of the RBA\'s dual mandate — this reading feeds the decision directly.' },
+  { test: /unemploy|labour|employ|wage/i,  level: 'HIGH',   why: 'Full employment is the other half of the mandate; the labour market is watched as closely as inflation.' },
+  { test: /cash rate/i,                    level: 'HIGH',   why: 'This IS the policy setting.' },
+  { test: /GDP|growth/i,                   level: 'MEDIUM', why: 'Growth shapes the demand picture the Board reasons about, but it is not a mandate target.' },
+  { test: /retail|housing|HPI|confidence/i, level: 'MEDIUM', why: 'A demand-side input — informative for the outlook rather than decisive on its own.' },
+  { test: /trade|balance/i,                level: 'LOW',    why: 'Reaches policy indirectly, mainly through the currency.' },
+]
+
+const RELEVANCE_TONE = { HIGH: '#CC4444', MEDIUM: '#C9A84C', LOW: '#637899' }
+
+function rbaRelevance(name = '') {
+  const hit = RBA_RELEVANCE.find((r) => r.test.test(name))
+  return hit ?? { level: 'LOW', why: 'Not a direct input to the policy framework.' }
+}
+
+const CACHE_PREFIX = 'maddex_macro_read_' 
 const dayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Brisbane' })
 
 // One short interpretation per indicator per day.
@@ -115,6 +135,17 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
               {target.label}
             </span>
           )}
+          {(() => {
+            const rel = rbaRelevance(indicator.name)
+            const tone = RELEVANCE_TONE[rel.level]
+            return (
+              <span
+                className="text-2xs font-bold px-1.5 py-0.5"
+                style={{ color: tone, border: `1px solid ${tone}66` }}
+                title={rel.why}
+              >{rel.level} RELEVANCE TO RBA POLICY</span>
+            )
+          })()}
           <button onClick={onClose} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold">✕ CLOSE</button>
         </div>
 
