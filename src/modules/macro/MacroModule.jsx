@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
+import RecessionMonitor from './RecessionMonitor'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
@@ -1580,6 +1581,7 @@ export default function MacroModule() {
   const [expandedChart, setExpandedChart]   = useState(null)
   const [expandedSection, setExpandedSection] = useState(null)
   const [view3D, setView3D] = useState(false)
+  const [showRecession, setShowRecession] = useState(false)
   // Which indicator card is expanded, or null. One at a time — the panel is
   // full-width and two open would push the charts below off the fold.
   const [openIndicator, setOpenIndicator] = useState(null)
@@ -1643,16 +1645,22 @@ export default function MacroModule() {
         right={
           <div className="flex items-center border border-terminal-border rounded-full overflow-hidden flex-shrink-0">
             <button
-              onClick={() => setView3D(false)}
-              className={`text-2xs px-2.5 py-1 font-bold transition-colors ${!view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+              onClick={() => { setView3D(false); setShowRecession(false) }}
+              className={`text-2xs px-2.5 py-1 font-bold transition-colors ${!view3D && !showRecession ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
             >DASHBOARD</button>
             <button
-              onClick={() => setView3D(true)}
+              onClick={() => { setShowRecession(true); setView3D(false) }}
+              className={`text-2xs px-2.5 py-1 font-bold transition-colors ${showRecession ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+            >RECESSION RISK</button>
+            <button
+              onClick={() => { setView3D(true); setShowRecession(false) }}
               className={`text-2xs px-2.5 py-1 font-bold transition-colors ${view3D ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
             >3D CONTROL ROOM</button>
           </div>
         }
       />
+
+      {showRecession && <RecessionMonitor />}
 
       {view3D && (
         <div style={{ height: 520 }} className="border-b border-terminal-border">
