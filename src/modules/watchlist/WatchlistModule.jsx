@@ -1,4 +1,7 @@
-import { useState, useRef, useEffect, Fragment } from 'react'
+import { useState, useRef, useEffect, useMemo, Fragment } from 'react'
+import {
+  rememberEntryPrice, sinceAdded, metaFor, setNote, watchlistToText, watchlistToCsv,
+} from '../../services/watchlistMeta'
 import { Bookmark } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
@@ -150,7 +153,7 @@ function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose }) {
 
   return (
     <tr>
-      <td colSpan={11} style={{ padding: 0, background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
+      <td colSpan={12} style={{ padding: 0, background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
         <div className="px-3 py-2 flex flex-col gap-2">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-2xs font-bold text-terminal-gold tracking-widest">SET ALERT</span>
@@ -488,6 +491,76 @@ export default function WatchlistModule() {
     }
   })
 
+  // Entry prices are captured the first time a symbol is seen WITH a price.
+  // Recording at add-time would store a null — the quote has not arrived yet —
+  // and permanently blank the SINCE ADDED column for that stock with nothing
+  // to tell the user why. Written in an effect, not during render.
+  useEffect(() => {
+    for (const r of rows) {
+      if (r.price != null) rememberEntryPrice(r.symbol, r.price)
+    }
+  }, [rows])
+
+  const overview = useMemo(() => {
+    const priced = rows.filter((r) => r.pct != null)
+    if (!priced.length) return null
+    const up = priced.filter((r) => r.pct > 0)
+    const down = priced.filter((r) => r.pct < 0)
+    const sorted = [...priced].sort((a, b) => b.pct - a.pct)
+    return {
+      advancing: up.length,
+      declining: down.length,
+      flat: priced.length - up.length - down.length,
+      avg: priced.reduce((s2, r) => s2 + r.pct, 0) / priced.length,
+      best: sorted[0],
+      worst: sorted[sorted.length - 1],
+      total: priced.length,
+    }
+  }, [rows])
+
+  const [copied, setCopied] = useState(false)
+  const [noteFor, setNoteFor] = useState(null)   // symbol whose note is open
+  const [noteDraft, setNoteDraft] = useState('')
+  const [, bumpNotes] = useState(0)
+
+  const openNote = (symbol) => {
+    setNoteDraft(metaFor(symbol)?.note ?? '')
+    setNoteFor((cur) => (cur === symbol ? null : symbol))
+  }
+  const saveNote = (symbol) => {
+    setNote(symbol, noteDraft)
+    setNoteFor(null)
+    bumpNotes((n) => n + 1)
+  }
+
+  const exportRows = () => rows.map((r) => {
+    const since = sinceAdded(r.symbol, r.price)
+    return {
+      symbol: r.displaySymbol, name: r.name, price: r.price, pct: r.pct,
+      sincePct: since?.pct ?? null, note: metaFor(r.symbol)?.note ?? '',
+      groupName: '',
+    }
+  })
+
+  const copyWatchlist = async () => {
+    try {
+      await navigator.clipboard.writeText(watchlistToText(exportRows()))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable */ }
+  }
+
+  const exportWatchlistCsv = () => {
+    const url = URL.createObjectURL(new Blob([watchlistToCsv(exportRows())], { type: 'text/csv;charset=utf-8;' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `maddex-watchlist-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   const sortedRows = sortRows(rows, sortKey, sortDir)
   // Stock rows first, crypto rows grouped at the end (stable sort — each
   // group keeps sortedRows' existing relative order) so the table can
@@ -701,6 +774,52 @@ export default function WatchlistModule() {
       )}
 
       {/* Table */}
+      {overview && (
+        <div className="flex items-center gap-4 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 flex-wrap">
+          <span className="text-2xs text-terminal-gold font-bold tracking-widest">OVERVIEW</span>
+
+          {/* One bar, proportional. A count alone ("18 advancing") does not
+              show the balance; the bar does, at a glance, which is the only
+              thing this row is for. */}
+          <div className="flex h-1.5 w-28 overflow-hidden rounded-sm flex-shrink-0" title={`${overview.advancing} up · ${overview.declining} down · ${overview.flat} flat`}>
+            <div style={{ width: `${(overview.advancing / overview.total) * 100}%`, background: '#2D8A50' }} />
+            <div style={{ width: `${(overview.flat / overview.total) * 100}%`, background: '#4A6080' }} />
+            <div style={{ width: `${(overview.declining / overview.total) * 100}%`, background: '#A83232' }} />
+          </div>
+
+          <span className="text-2xs"><span className="text-terminal-green font-bold">{overview.advancing}</span> <span className="text-terminal-text-dim">up</span></span>
+          <span className="text-2xs"><span className="text-terminal-red font-bold">{overview.declining}</span> <span className="text-terminal-text-dim">down</span></span>
+          <span className="text-2xs text-terminal-text-dim">
+            avg <span className="tabular-nums font-bold" style={{ color: overview.avg >= 0 ? '#2D8A50' : '#A83232' }}>
+              {overview.avg >= 0 ? '+' : ''}{overview.avg.toFixed(2)}%
+            </span>
+          </span>
+          {overview.best && (
+            <span className="text-2xs text-terminal-text-dim">
+              best <span className="text-terminal-text-bright font-bold">{overview.best.displaySymbol}</span>{' '}
+              <span className="text-terminal-green tabular-nums">+{overview.best.pct.toFixed(2)}%</span>
+            </span>
+          )}
+          {overview.worst && overview.worst !== overview.best && (
+            <span className="text-2xs text-terminal-text-dim">
+              worst <span className="text-terminal-text-bright font-bold">{overview.worst.displaySymbol}</span>{' '}
+              <span className="text-terminal-red tabular-nums">{overview.worst.pct.toFixed(2)}%</span>
+            </span>
+          )}
+
+          <div className="ml-auto flex gap-1.5">
+            <button
+              onClick={copyWatchlist}
+              className="text-2xs px-2 py-0.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors"
+            >{copied ? '✓ COPIED' : '⧉ COPY'}</button>
+            <button
+              onClick={exportWatchlistCsv}
+              className="text-2xs px-2 py-0.5 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors"
+            >⤓ CSV</button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto">
         {watchlist.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center overflow-y-auto py-8">
@@ -770,6 +889,7 @@ export default function WatchlistModule() {
               <col style={{ width: 132 }} />{/* 52w bar · crypto: 7d% */}
               <col style={{ width: 70 }} />{/* volume */}
               <col style={{ width: 82 }} />{/* mkt cap */}
+              <col style={{ width: 92 }} />{/* since added */}
               <col style={{ width: 40 }} />{/* alert */}
               <col style={{ width: 32 }} />{/* remove */}
             </colgroup>
@@ -804,6 +924,7 @@ export default function WatchlistModule() {
                 >
                   MKT CAP{sortKey === 'marketCap' && <span className="text-terminal-gold ml-0.5">{sortDir === 'asc' ? '▲' : '▼'}</span>}
                 </th>
+                <th className="px-2 text-right" title="Change since this stock was added to your watchlist">SINCE ADDED</th>
                 <th className="px-1 w-8 text-center" title="Price alert">⚡</th>
                 <th className="px-2 w-6"></th>
               </tr>
@@ -811,7 +932,7 @@ export default function WatchlistModule() {
             <tbody>
               {firstCryptoIdx > 0 && (
                 <tr className="pointer-events-none">
-                  <td colSpan={11} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
+                  <td colSpan={12} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
                 </tr>
               )}
               {groupedRows.map(({ row, i }, idx) => (
@@ -819,7 +940,7 @@ export default function WatchlistModule() {
                   {idx === firstCryptoIdx && (
                     <tr className="pointer-events-none">
                       <td
-                        colSpan={11}
+                        colSpan={12}
                         className="px-2 py-1.5 text-2xs font-bold text-terminal-gold tracking-widest"
                         style={{
                           background: 'rgba(201,168,76,0.03)',
@@ -916,6 +1037,37 @@ export default function WatchlistModule() {
                   <td className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
                     {formatMarketCap(row.marketCap)}
                   </td>
+                  {/* SINCE ADDED — measured from the first price this browser
+                      saw for the symbol, not from a purchase. It answers "has
+                      watching this been worth it", which is a different
+                      question from portfolio P&L and is why it lives here. */}
+                  <td className="px-2 py-1 text-right tabular-nums">
+                    {(() => {
+                      const since = sinceAdded(row.symbol, row.price)
+                      if (!since) return <span className="text-terminal-text-dim/40">—</span>
+                      return (
+                        <span
+                          title={`From A$${since.entryPrice.toFixed(2)}${since.entryAt ? ` on ${new Date(since.entryAt).toLocaleDateString('en-AU')}` : ''}`}
+                          style={{ color: since.pct >= 0 ? '#2D8A50' : '#A83232' }}
+                        >
+                          {since.pct >= 0 ? '▲+' : '▼'}{Math.abs(since.pct).toFixed(2)}%
+                        </span>
+                      )
+                    })()}
+                    {/* Note affordance rides in this cell rather than claiming
+                        a twelfth column — the table is already dense, and a
+                        column that is empty for most rows costs width on every
+                        row to serve a few. */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openNote(row.symbol) }}
+                      title={metaFor(row.symbol)?.note || 'Add a note'}
+                      className={`ml-1.5 text-2xs leading-none align-middle transition-opacity ${
+                        metaFor(row.symbol)?.note
+                          ? 'opacity-100 text-terminal-gold'
+                          : 'opacity-25 hover:opacity-70 text-terminal-text-dim'
+                      }`}
+                    >✎</button>
+                  </td>
                   <td className="px-1 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
                     <AlertBell
                       symbol={row.displaySymbol}
@@ -935,6 +1087,29 @@ export default function WatchlistModule() {
                     </button>
                   </td>
                 </tr>
+                {noteFor === row.symbol && (
+                  <tr>
+                    <td colSpan={12} className="px-3 py-2 bg-terminal-header/40 border-b border-terminal-border/40">
+                      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">
+                        NOTE · {row.displaySymbol}
+                      </div>
+                      <textarea
+                        autoFocus
+                        value={noteDraft}
+                        maxLength={200}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        placeholder="Why you're watching this stock…"
+                        className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono resize-none"
+                        rows={2}
+                      />
+                      <div className="flex items-center gap-2 mt-1">
+                        <button onClick={() => saveNote(row.symbol)} className="btn-primary btn-sm">SAVE</button>
+                        <button onClick={() => setNoteFor(null)} className="btn-secondary btn-sm">CANCEL</button>
+                        <span className="text-2xs text-terminal-text-dim/50 ml-auto">{noteDraft.length}/200</span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {alertPanelFor === row.displaySymbol && (
                   <AlertRow
                     symbol={row.displaySymbol}
