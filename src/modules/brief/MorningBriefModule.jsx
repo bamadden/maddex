@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
-import { generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey } from '../../services/morningBriefService'
+import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey } from '../../services/morningBriefService'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
@@ -243,6 +243,18 @@ export default function MorningBriefModule() {
   const [copied, setCopied] = useState(false)
 
   const load = async ({ force = false } = {}) => {
+    // Weekends short-circuit before the network call. getWeekendMessage()
+    // existed in the service and was rendered by nothing, so Saturday and
+    // Sunday spent an AI call producing a brief about a market that had not
+    // traded — and the reader got a stale-looking one either way.
+    //
+    // `force` still overrides: someone who presses REGENERATE on a Sunday has
+    // asked for it explicitly, and refusing would be the app arguing with them.
+    if (!force && isAuWeekend()) {
+      setBrief(getWeekendMessage())
+      setStatus('ready')
+      return
+    }
     setStatus('loading')
     setError(null)
     try {
