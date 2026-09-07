@@ -83,16 +83,29 @@ function TickerPills({ tickers, watchlist = [] }) {
 // `width` is supplied by the map, which sizes it against its own measured
 // width rather than the viewport's — the map is one column of three, so a
 // wide window does not imply a wide map.
-export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300, narrativeSource = 'fallback' }) {
+export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300, insetRight = 0, narrativeSource = 'fallback' }) {
   const { type, data } = object
   const askAI = (instruction) => dispatchAskAI({ instruction }, { rawPrompt: true })
 
   return (
+    // insetRight, and z-index above CONTROL rather than at PANEL.
+    //
+    // GlobalModule renders a 32px rail down the right edge of the map below
+    // 1700px. Every other piece of map furniture — the HUD frame, the
+    // coordinate readout, the fullscreen toggle — offsets itself by
+    // chromeInset.right for exactly that reason. This panel did not, so it
+    // was pinned to right:12 and the rail sat on top of its right-hand edge,
+    // clipping the close button and the scrollbar.
+    //
+    // z-index also has to clear CONTROL (25), not just PANEL (20): the
+    // fullscreen toggle is deliberately above PANEL so it stays clickable,
+    // and at 20 this panel rendered underneath it.
     <div style={{
-      position: 'absolute', top: 12, right: 12, width, maxHeight: 'calc(100% - 24px)',
+      position: 'absolute', top: 12, right: 12 + insetRight, width, maxHeight: 'calc(100% - 24px)',
       display: 'flex', flexDirection: 'column',
       background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 4,
-      boxShadow: 'var(--shadow-floating)', zIndex: 20, backdropFilter: 'blur(12px)',
+      boxShadow: 'var(--shadow-floating)', zIndex: 30, backdropFilter: 'blur(12px)',
+      overflowY: 'auto',
       animation: 'panelSlideIn .2s ease-out',
     }}>
       <div style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid rgba(201,168,76,0.15)',

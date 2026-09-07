@@ -956,7 +956,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
 
       {selected && (
         <MapDetailPanel object={selected} onClose={() => setSelected(null)} onFlyTo={flyTo}
-          watchlist={watchlist} width={panelWidth} narrativeSource={narrativeSource} />
+          watchlist={watchlist} width={panelWidth} insetRight={insetR} narrativeSource={narrativeSource} />
       )}
 
       {/* Seismic status. Reports the feed's real state rather than only
