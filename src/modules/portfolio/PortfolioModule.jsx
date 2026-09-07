@@ -1111,7 +1111,7 @@ export default function PortfolioModule() {
             }
           </div>
           <div className="overflow-auto flex-1">
-            <table className="terminal-table w-full">
+            <table className="terminal-table table-zebra w-full">
               <thead className="sticky top-0 bg-terminal-header">
                 <tr>
                   <SortableTh label="SYMBOL"   sortKey="symbol"  align="left"  className="px-2" {...sortProps} />

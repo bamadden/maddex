@@ -844,7 +844,7 @@ export default function ScreenerModule() {
               >ASK MADDENAI</button>
             </div>
           ) : (
-            <table className="w-full text-2xs">
+            <table className="table-zebra w-full text-2xs">
               <thead className="sticky top-0 bg-terminal-header z-10">
                 <tr className="text-terminal-text-dim select-none">
                   <th onClick={() => toggleSort('symbol')} className="text-left px-3 py-1.5 cursor-pointer hover:text-terminal-gold">TICKER{sortArrow('symbol')}</th>

@@ -874,7 +874,7 @@ export default function WatchlistModule() {
             {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} rows={1} className="p-2" />)}
           </div>
         ) : (
-          <table className="terminal-table w-full" style={{ tableLayout: 'fixed' }}>
+          <table className="terminal-table table-zebra w-full" style={{ tableLayout: 'fixed' }}>
             {/* table-layout:fixed + an explicit colgroup pins every column to
                 a known width. Without it the browser sizes columns from
                 content, so a long company name or a wide market cap shifts

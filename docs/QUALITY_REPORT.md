@@ -152,6 +152,74 @@ actions) was six text glyphs and six colour emoji; it is now one typeface.
 
 ---
 
+## Elite refinement pass — 7 September 2026
+
+Eight groups. Build 2.3s, **first paint 268 KB gzip — unchanged**, 97 chunks,
+1.84 MB JS gzip, lint 32 (20 errors, 12 warnings) — every number held flat
+while the work went in.
+
+**QA sweep:** all 14 modules navigated in sequence. **Zero console errors.**
+Three warnings, two of which are external feeds failing gracefully (REST
+Countries, and a USGS earthquake response that came back non-JSON — both
+logged and handled). The third is Recharts' `width(-1)` notice from Markets,
+Rates and Macro; SafeChart exists to prevent it and catches most cases, but the
+stack for these is entirely inside Recharts with no application frame, so it is
+raised by the chart component's own render rather than by container
+measurement. All 34 charts draw correctly and none clips.
+
+**Mobile:** a true 390px viewport was not reachable — this harness clamps
+`window.innerWidth` to 1280 regardless of the OS window size, so I could not
+verify layout at phone width and am not going to claim I did. What is verifiable
+statically: the viewport meta is correct, `MobileNavBar` renders, the AI panel
+goes `fixed inset-0` below `md`, the dashboard grid collapses to one column at
+140px row height, there are 118 responsive utilities in play, and no element
+declares a fixed width of 400px or more that would force horizontal scroll.
+**Ben should check this on a real phone before launch.**
+
+### What went in
+
+**Micro-details.** A 1px 3%-white highlight on every card top — how a physical
+panel catches light, and the cheapest way to stop a dark rectangle reading as a
+hole. The sidebar's active state became a radial falloff from the gold marker
+rather than a flat wash. Number ticks now strike and fade over 300ms instead of
+throbbing over 500. Inputs took the terminal treatment: a weighted 2px gold
+left edge and three quiet sides, which says "command line" where a focus ring
+says "form field". Scrollbars to 3px. Ghost buttons gained the hover background
+they never had.
+
+**Dashboard.** A 32px status bar above the grid: greeting, date, live session
+pill, clock. It turns a control panel into a briefing, and everything in it is
+derived — nothing fetched. The greeting uses the Australian hour, not the
+browser's, and the session dot pulses only while the market is actually
+trading.
+
+**Markets.** Index cards lift 2px on hover with a shadow and a z-index so the
+shadow does not paint under its neighbours. Sector tiles took a sign-tinted
+inner glow, so a green tile looks lit rather than painted.
+
+**MaddenAI.** The panel went from 320px to 360/420/480. At 320 a 300-word
+analysis wraps every six words and the reader loses the sentence — the voice
+work from two briefs ago was being spent on a column nobody could follow.
+
+**Rates.** The cash rate went from a 16px number in a one-line strip to a 40px
+hero with a live countdown to the next meeting and full provenance.
+
+### Three places I did not follow the brief
+
+**No probability bars on the RBA card.** The brief asks for "MARKET CONSENSUS —
+HOLD 82% / CUT 14% / HIKE 4%". Those exact figures were fabricated literals
+removed earlier in this project, there is still no rate-futures feed, and a
+filled bar chart is the most persuasive way in existence to present a number
+nobody measured. The space says so instead.
+
+**User message bubbles are 4px, not 12px.** Every other radius in this terminal
+is 2px. A 12px bubble would be the single most consumer-app element on screen.
+
+**Looping animations keep `ease-in-out`.** A symmetric curve is what stops a
+pulse stuttering at the seam where it restarts.
+
+---
+
 ## What this pass did not do
 
 **Did not rewrite 409 `.toFixed()` call sites.** Almost all produce exactly the
