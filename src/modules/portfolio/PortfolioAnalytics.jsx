@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { buildSchedule } from '../../services/dividendSchedule'
 import { fmt } from '../../utils/format'
 import { auRecessionRisk } from '../../data/recessionRisk'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
@@ -139,6 +140,90 @@ function WaterfallChart({ openingValue, bars, closingValue, fmtCur, totalReturn 
           )
         })}
       </svg>
+    </div>
+  )
+}
+
+
+// ─── Dividends ───────────────────────────────────────────────────────────────
+
+function DividendSection({ holdings, fmtCur }) {
+  const sched = useMemo(() => buildSchedule(holdings), [holdings])
+  if (!sched.rows.length) {
+    return (
+      <div className="text-2xs text-terminal-text-dim/60 px-3 py-6 text-center">
+        No holdings carry a dividend yield yet — add an income stock to see a schedule.
+      </div>
+    )
+  }
+  const maxMonth = Math.max(...sched.calendar.map((c) => c.total), 1)
+
+  return (
+    <div className="space-y-3">
+      {/* Four numbers, because they answer four different questions: how much,
+          how often, how it compares to what you paid, and how it compares to
+          what it is worth now. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ background: 'rgba(201,168,76,0.12)' }}>
+        {[
+          ['EST. ANNUAL INCOME', fmtCur(sched.totalAnnual), '#C9A84C'],
+          ['MONTHLY AVERAGE', fmtCur(sched.monthlyAverage), null],
+          ['YIELD ON VALUE', sched.yieldOnValue != null ? `${sched.yieldOnValue.toFixed(2)}%` : '—', null],
+          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', '#2D8A50'],
+        ].map(([label, value, tone]) => (
+          <div key={label} style={{ background: '#0B1628', padding: '10px 12px' }}>
+            <div className="text-2xs text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 8 }}>{label}</div>
+            <div className="font-mono font-bold tabular-nums mt-0.5" style={{ fontSize: 16, color: tone ?? '#E8EDF5' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Twelve months forward from this one, not from January — the question
+          is "what is coming", not "what does a calendar year look like". */}
+      <div>
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">NEXT 12 MONTHS</div>
+        <div className="flex items-end gap-1" style={{ height: 72 }}>
+          {sched.calendar.map((c, i) => (
+            <div key={`${c.month}-${i}`} className="flex-1 flex flex-col items-center justify-end min-w-0"
+              title={c.payers.length ? `${c.label}: ${c.payers.map((p) => p.symbol.replace(/\.AX$/i, '')).join(', ')} — ${fmtCur(c.total)}` : `${c.label}: no scheduled payments`}>
+              <div className="w-full" style={{
+                height: `${Math.max(c.total > 0 ? 6 : 2, (c.total / maxMonth) * 52)}px`,
+                background: c.total > 0 ? 'rgba(201,168,76,0.55)' : 'rgba(201,168,76,0.08)',
+              }} />
+              <div className="text-2xs text-terminal-text-dim/50 mt-1" style={{ fontSize: 8 }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Per-holding, biggest contributor first. */}
+      <div className="border border-terminal-border divide-y divide-terminal-border/50">
+        {sched.rows.map((r) => (
+          <div key={r.symbol} className="flex items-center gap-2 px-3 py-1.5">
+            <span className="text-2xs font-bold text-terminal-text-bright w-14 flex-shrink-0">
+              {r.symbol.replace(/\.AX$/i, '')}
+            </span>
+            <span className="text-2xs text-terminal-text-dim truncate flex-1 min-w-0">{r.note ?? '—'}</span>
+            {r.franking != null && (
+              <span className="badge flex-shrink-0" style={{
+                color: r.franking >= 100 ? '#2D8A50' : r.franking > 0 ? '#C9A84C' : '#637899',
+                border: `1px solid ${r.franking >= 100 ? 'rgba(45,138,80,0.4)' : r.franking > 0 ? 'rgba(201,168,76,0.4)' : 'rgba(99,120,153,0.3)'}`,
+              }}>{r.franking}% FRANKED</span>
+            )}
+            <span className="text-2xs font-mono tabular-nums text-terminal-gold w-20 text-right flex-shrink-0">
+              {fmtCur(r.annual)}/yr
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {sched.totalCredits > 0 && (
+        <div className="text-2xs text-terminal-text-dim leading-relaxed px-1">
+          <span className="text-terminal-green font-bold">Est. franking credits: {fmtCur(sched.totalCredits)}/year.</span>
+          {' '}Franking credits attach to dividends already taxed at the company rate and may be claimable
+          as a tax offset. Figures here are arithmetic on each holding&rsquo;s trailing yield, not a forecast
+          of future dividends — general information only, not tax advice.
+        </div>
+      )}
     </div>
   )
 }
@@ -503,7 +588,16 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
         )}
       </div>
 
-      {/* 3. Dividends */}
+      {/* 3a. Dividend schedule — when the income actually arrives, and what
+             it is worth against cost and against current value. Sits above the
+             existing yield analysis because "when do I get paid" is the
+             question people open this tab with. */}
+      <div>
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">DIVIDEND SCHEDULE</div>
+        <DividendSection holdings={holdings} fmtCur={fmtCur} />
+      </div>
+
+      {/* 3b. Dividends */}
       <div>
         <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">DIVIDEND ANALYSIS</div>
         {dividends.rows.length === 0 ? (
