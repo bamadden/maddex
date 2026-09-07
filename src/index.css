@@ -944,3 +944,17 @@ body.ticker-paused .ticker-content {
   0%   { transform: scale(0.35); opacity: 0.55; }
   100% { transform: scale(1);    opacity: 0; }
 }
+
+/* Contextual onboarding tip — rises slightly as it fades in, so it reads as
+   arriving rather than as a layout shift. */
+@keyframes maddex-tip-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Welcome card entrance. Transform only — see WelcomeModal.jsx for why the
+   card must never depend on an animation to be visible. */
+@keyframes maddex-welcome-in {
+  from { transform: translateY(10px) scale(0.985); }
+  to   { transform: translateY(0) scale(1); }
+}

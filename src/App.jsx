@@ -14,6 +14,12 @@ import SharedWatchlistPage from './pages/SharedWatchlistPage'
 import SharedResearchNotePage from './pages/SharedResearchNotePage'
 import NotFoundPage from './pages/NotFoundPage'
 import OnboardingTour from './components/onboarding/OnboardingFlow'
+import WelcomeModal from './components/onboarding/WelcomeModal'
+import { APP_VERSION } from './components/layout/NavBar'
+import ContextualTip from './components/onboarding/ContextualTip'
+import {
+  hasBeenWelcomed, markWelcomed, shouldShowWhatsNew, markWhatsNewSeen,
+} from './services/onboardingState'
 import WhatsNewModal from './components/onboarding/WhatsNewModal'
 import TopBar from './components/layout/TopBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
@@ -231,27 +237,42 @@ function ShortcutModal({ onClose }) {
 
 const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
 const ONBOARDING_KEY = 'maddex_onboarding_complete'
-const WHATS_NEW_SHOWN_KEY = 'maddex_whatsnew_last_shown'
-const WHATS_NEW_INTERVAL_MS = 7 * 24 * 60 * 60_000
 
 function Terminal() {
   const { activeModule, setActiveModule, modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification, watchlist } = useStore()
+  // Welcome runs before everything, once per browser, and before sign-in —
+  // it is the screen that answers "should I make an account", so gating it
+  // behind having one defeats it.
+  const [showWelcome, setShowWelcome] = useState(() => !hasBeenWelcomed())
+
   const [showTour, setShowTour] = useState(() => {
     try { return !localStorage.getItem(ONBOARDING_KEY) } catch { return false }
   })
+
+  // KEYED TO THE VERSION, NOT A TIMER.
+  //
+  // This used to re-open every seven days regardless of whether anything had
+  // shipped — the same three features, forever. That is nagware, and its real
+  // cost is the habit it builds: dismiss on sight. Now it appears once per
+  // version and then never again until the version changes.
   const [showWhatsNew, setShowWhatsNew] = useState(() => {
-    if (showTour) return false // first-time users get the tour, not both at once
-    try {
-      const last = parseInt(localStorage.getItem(WHATS_NEW_SHOWN_KEY) ?? '0', 10)
-      return Date.now() - last > WHATS_NEW_INTERVAL_MS
-    } catch { return false }
+    if (!hasBeenWelcomed()) return false  // a brand-new user gets welcome, not release notes
+    return shouldShowWhatsNew(APP_VERSION)
   })
+
+  const completeWelcome = () => {
+    markWelcomed()
+    // A first-time user should not be shown release notes for a version they
+    // have never used, so this version is marked seen on the way past.
+    markWhatsNewSeen(APP_VERSION)
+    setShowWelcome(false)
+  }
   const completeTour = () => {
     try { localStorage.setItem(ONBOARDING_KEY, 'true') } catch { /* best-effort */ }
     setShowTour(false)
   }
   const dismissWhatsNew = () => {
-    try { localStorage.setItem(WHATS_NEW_SHOWN_KEY, String(Date.now())) } catch { /* best-effort */ }
+    markWhatsNewSeen(APP_VERSION)
     setShowWhatsNew(false)
   }
   // Applies the persisted theme (or default) to :root on mount — independent
@@ -708,12 +729,21 @@ function Terminal() {
             </div>
           </div>
         ) : (
-          <div key={activeModule} className="flex-1 min-w-0 overflow-hidden module-fade">
+          <div key={activeModule} className="relative flex-1 min-w-0 overflow-hidden module-fade">
             <ErrorBoundary label={MODULE_TITLES[activeModule]}>
               <Suspense fallback={<ModuleSuspenseFallback />}>
                 <ActiveModule />
               </Suspense>
             </ErrorBoundary>
+            {/* Keyed on the module so switching modules mounts a fresh tip
+                rather than reusing the previous one's dismissed state. Only
+                renders at all for a user in their first week — see
+                onboardingState.js. */}
+            <ContextualTip
+              key={`tip-${activeModule}`}
+              moduleId={activeModule}
+              suppressed={showWelcome || showTour || showWhatsNew}
+            />
           </div>
         )}
         {layout !== 'focus' && layout !== 'split' && <AIPanel wide={layout === 'research'} />}
@@ -747,8 +777,9 @@ function Terminal() {
           </FloatingWindow>
         )
       })}
-      {showTour && <OnboardingTour onComplete={completeTour} />}
-      {showWhatsNew && (
+      {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
+      {!showWelcome && showTour && <OnboardingTour onComplete={completeTour} />}
+      {!showWelcome && !showTour && showWhatsNew && (
         <WhatsNewModal
           onDismiss={dismissWhatsNew}
           onShowMe={() => { dismissWhatsNew(); setActiveModule('scanner') }}

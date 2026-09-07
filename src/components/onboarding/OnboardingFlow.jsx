@@ -170,13 +170,18 @@ export default function OnboardingFlow({ onComplete }) {
   if (step === 0) {
     return (
       <CenterModal dotIndex={0} onSkip={onComplete}>
+        {/* The greeting belongs to WelcomeModal, which runs immediately before
+            this. Repeating "Welcome to Maddex" here gave a new user two
+            welcome screens back to back and made the tour feel like a restart
+            rather than a continuation. This step now does the one job the
+            welcome card cannot: tell them what the next sixty seconds are. */}
         <div className="text-terminal-gold text-3xl mb-3">▲</div>
-        <div className="text-2xl font-bold text-terminal-text-bright mb-2">Welcome to Maddex.</div>
+        <div className="text-2xl font-bold text-terminal-text-bright mb-2">A quick tour.</div>
         <div className="text-2xs text-terminal-text-dim mb-6 leading-relaxed">
-          The financial intelligence terminal built for everyday investors.
-          Let me show you around.
+          Five stops — navigation, the markets view, MaddenAI, and the command bar.
+          About a minute. You can skip at any point and come back to it from Settings.
         </div>
-        <NextBtn label="GET STARTED" onClick={next} />
+        <NextBtn label="SHOW ME" onClick={next} />
       </CenterModal>
     )
   }
