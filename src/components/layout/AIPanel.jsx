@@ -945,7 +945,12 @@ export default function AIPanel({ wide = false }) {
             ? 'fixed z-40 flex flex-col bg-terminal-panel border border-terminal-border-gold shadow-2xl rounded-[4px] overflow-hidden transition-opacity'
             : wide
               ? 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-1/2 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
-              : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-80 xl:w-96 flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
+              // 320px (md:w-80) is a chat strip, not a reading column. MaddenAI
+              // writes 200-350 word analyses in prose; at 320 that wraps every
+              // six or seven words and the reader loses the sentence. 360 -> 420
+              // -> 480 as the viewport allows, which keeps the measure in the
+              // 45-75 character band prose is actually readable in.
+              : 'fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-[360px] xl:w-[420px] 2xl:w-[480px] flex flex-col border-l border-terminal-border bg-terminal-panel flex-shrink-0'
       }
       style={isPip ? { left: pipPos.x, top: pipPos.y, width: 320, height: 400, opacity: pipHovered ? 1 : 0.85 } : undefined}
     >
@@ -1221,7 +1226,14 @@ export default function AIPanel({ wide = false }) {
                   border: '1px solid rgba(201,168,76,0.2)',
                   // Square only on the bottom-right, so the bubble points back
                   // at its own side of the conversation.
-                  borderRadius: '3px 3px 0 3px',
+                  //
+                  // 4px, not the 12px a chat app would use. Every other radius
+                  // in this terminal is 2px; a 12px bubble here would be the
+                  // single most consumer-app element on the screen and would
+                  // read as imported from somewhere else. 4 is enough to
+                  // distinguish the user's turn from the model's full-width
+                  // reply without breaking the language.
+                  borderRadius: '4px 4px 0 4px',
                 }}
               >
                 {msg.content}
@@ -1235,7 +1247,10 @@ export default function AIPanel({ wide = false }) {
             ) : (
               <div
                 className="group"
-                style={{ borderLeft: '2px solid rgba(201,168,76,0.3)', paddingLeft: 12, paddingTop: 8, paddingBottom: 8 }}
+                // The gold bar is MaddenAI's signature — the one mark that says
+                // "this is the model talking" without a bubble or an avatar. At
+                // 0.3 it was reading as a divider; 0.4 makes it deliberate.
+                style={{ borderLeft: '2px solid rgba(201,168,76,0.4)', paddingLeft: 14, paddingTop: 8, paddingBottom: 8 }}
               >
                 {msg.silent && msg.context && (
                   <div
