@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { emailAlertsEnabled, setEmailAlertsEnabled } from '../../services/alertEmailService'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
@@ -1150,6 +1151,8 @@ function ShortcutsSection() {
 function NotificationsSection() {
   const { settings, updateSettings } = useAuthStore()
   const [quiet, setQuiet] = useState(() => getQuietHours())
+  const [emailOn, setEmailOn] = useState(() => emailAlertsEnabled())
+  const userEmail = useAuthStore.getState().profile?.email ?? useAuthStore.getState().user?.email ?? null
   const [vals, setVals] = useState({
     price_alerts_enabled: settings?.price_alerts_enabled ?? true,
     market_alerts_enabled: settings?.market_alerts_enabled ?? true,
@@ -1196,6 +1199,18 @@ function NotificationsSection() {
         <Toggle
           value={quiet.enabled}
           onChange={() => setQuiet(setQuietHours({ enabled: !quiet.enabled }))}
+        />
+      </FieldRow>
+
+      <FieldRow
+        label="Email Alerts"
+        note={userEmail
+          ? `Triggered price alerts are also emailed to ${userEmail}. In-app alerts are unaffected — this is a second copy for when the tab is closed.`
+          : 'Sign in to receive triggered price alerts by email. In-app alerts work either way.'}
+      >
+        <Toggle
+          value={emailOn && Boolean(userEmail)}
+          onChange={() => { if (userEmail) setEmailOn(setEmailAlertsEnabled(!emailOn)) }}
         />
       </FieldRow>
 

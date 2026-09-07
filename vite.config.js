@@ -47,8 +47,34 @@ export default defineConfig(({ mode }) => {
     },
   }
 
+  // Same idea for the alert-email handler: it verifies a Supabase token and
+  // calls Resend, neither of which a plain proxy can do. Running the real
+  // handler in dev means the 503-without-a-key and 401-without-a-session paths
+  // are exercised locally rather than discovered in production.
+  const alertEmailDevMiddleware = {
+    name: 'maddex-alert-email-dev',
+    configureServer(server) {
+      server.middlewares.use('/api/alert-email', async (req, res) => {
+        const { default: handler } = await server.ssrLoadModule('/api/alert-email.js')
+        const chunks = []
+        for await (const c of req) chunks.push(c)
+        const shim = {
+          status(code) { res.statusCode = code; return shim },
+          setHeader(k, v) { res.setHeader(k, v); return shim },
+          json(body) { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)) },
+        }
+        try {
+          await handler({ method: req.method, headers: req.headers, body: Buffer.concat(chunks).toString() || '{}' }, shim)
+        } catch (err) {
+          res.statusCode = 500
+          res.end(JSON.stringify({ error: err.message }))
+        }
+      })
+    },
+  }
+
   return {
-    plugins: [react(), rssDevMiddleware],
+    plugins: [react(), rssDevMiddleware, alertEmailDevMiddleware],
 
     define: {
       __GIT_COMMIT__: JSON.stringify(gitCommit()),

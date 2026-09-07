@@ -153,7 +153,7 @@ export default function AlertsModule({ onClose }) {
               <label className="flex flex-col gap-1">
                 <span className="text-2xs text-terminal-text-dim">Notification</span>
                 <select disabled className="bg-terminal-bg border border-terminal-border text-2xs text-terminal-text-dim px-2 py-1 opacity-60 cursor-not-allowed">
-                  <option>App (Email coming soon)</option>
+                  <option>App + Email (if enabled in Settings)</option>
                 </select>
               </label>
             </div>

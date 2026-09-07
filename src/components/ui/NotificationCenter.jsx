@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { sendAlertEmail } from '../../services/alertEmailService'
 import { timeAgo } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
@@ -327,6 +328,15 @@ export default function NotificationCenter() {
             : q?.last != null && q.last >= alert.price
           if (hit) {
             addNotification('PRICE_ALERT', `${alert.sym} reached your target of A$${alert.price.toFixed(2)}`)
+            // Second copy, for someone who is not looking at the tab. The
+            // in-app notification above has already been delivered, so this is
+            // deliberately not awaited and its failure is not surfaced.
+            sendAlertEmail({
+              symbol: alert.sym,
+              direction: alert.direction ?? 'above',
+              value: alert.price,
+              currentPrice: q.last,
+            })
             removeAlert(alert.id)
           }
         }
