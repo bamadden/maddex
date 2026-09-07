@@ -184,14 +184,17 @@ const GLOBAL_VIEW = { longitude: 60.0,  latitude: 15.0,  zoom: 1.4, pitch: 30, b
 // of an intelligence map was an empty landmass. The module was showing its
 // least interesting possible view.
 //
-// Zoom 2.5 at 130E/15S keeps Australia prominent while bringing Tokyo, Seoul,
-// Hong Kong, Shanghai and Singapore into frame with it, so the trade arcs have
-// visible endpoints at both ends and several reticles pulse at once. Same data,
-// same layers — the camera was the whole problem.
+// Zoom 2.5 at 118E/8S keeps Australia prominent while bringing Singapore,
+// Indonesia, the Philippines and the North Asian exchanges into frame with it,
+// so the trade arcs have visible endpoints at both ends and several reticles
+// pulse at once. Centring on the Indonesian archipelago rather than on open
+// ocean also puts land under the middle of the frame, which is what stops a
+// dark basemap reading as an empty one. Same data, same layers — the camera
+// was the whole problem.
 //
 // This is the camera only: auFocus stays false, so global routes still draw.
 // AU FOCUS still flies to the close-up, GLOBAL VIEW still pulls out.
-const INITIAL_VIEW = { longitude: 130.0, latitude: -15.0, zoom: 2.5, pitch: 35, bearing: 0 }
+const INITIAL_VIEW = { longitude: 118.0, latitude: -8.0, zoom: 2.5, pitch: 35, bearing: 0 }
 
 // Ease-in-out cubic — the camera should settle rather than arrive abruptly.
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
@@ -890,6 +893,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
             mapStyle={MAP_STYLES[mapStyle]}
             reuseMaps
             attributionControl={false}
+
             // MapLibre reads its container's size once, at construction, and
             // that moment is inside a lazy/Suspense boundary where the box is
             // still collapsed — so the basemap canvas stayed pinned at its
@@ -905,11 +909,24 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
       </DeckGL>
 
       {/* Vignette + top fade. Purely atmospheric, and inert to the pointer so
-          they never intercept a click meant for the map. */}
+          they never intercept a click meant for the map.
+
+          The vignette was transparent to 58% then ramping to 45% black — which
+          on a basemap whose ocean is already near-black meant the outer two
+          fifths of the map read as empty space rather than as sea. It was
+          costing more legibility than it bought atmosphere.
+
+          Now it holds off until 50%, reaches only 15% at the 80% mark, and
+          tops out at 30% in the corners. The three stops matter: a two-stop
+          ramp from 50% to 30% darkens the mid-field noticeably, where holding
+          it at 15% until 80% keeps the darkening in the corners where a
+          vignette belongs. */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
-        background: 'radial-gradient(ellipse at center, transparent 58%, rgba(6,13,26,0.45) 100%)' }} />
+        background: 'radial-gradient(ellipse at center, transparent 50%, rgba(6,13,26,0.15) 80%, rgba(6,13,26,0.3) 100%)' }} />
+      {/* The top fade exists to seat the header against the map, so it stays —
+          but at 0.55 it was a band, not a fade. */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, pointerEvents: 'none', zIndex: Z.ATMOSPHERE,
-        background: 'linear-gradient(to bottom, rgba(6,13,26,0.55), transparent)' }} />
+        background: 'linear-gradient(to bottom, rgba(6,13,26,0.38), transparent)' }} />
 
       <HudFrame insetL={insetL} insetR={insetR} />
       {(mapWidth ?? 0) >= 420 && (
