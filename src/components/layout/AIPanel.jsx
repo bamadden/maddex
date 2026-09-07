@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { marketSession } from '../../services/newsIntelligence'
+import { verifiedFactsForAI } from '../../data/verifiedConstants'
 import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights, INSIGHT_LIMIT } from '../../services/savedInsights'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -714,16 +716,29 @@ export default function AIPanel({ wide = false }) {
   const buildDynamicContext = useCallback(() => {
     if (!getAiPreferences().contextAwareness) return ''
     const moduleLabel = MODULE_LABELS[activeModule] ?? activeModule
-    let holdingsCount = 0
-    try { holdingsCount = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]')).length } catch { /* best-effort */ }
+    let holdingSymbols = []
+    try {
+      holdingSymbols = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]'))
+        .map((h) => h?.symbol).filter(Boolean)
+    } catch { /* best-effort */ }
     const lines = [
       `Today's date: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
       `User is currently viewing: ${moduleLabel}`,
     ]
+    // Reuses the session logic the news module and status bar already run on,
+    // so the model is told the same session the user can see on screen.
+    const session = marketSession()
+    lines.push(`Market session: ${session.label} — ${session.detail}`)
     if (modalAsset?.symbol) lines.push(`Asset currently open in detail view: ${modalAsset.symbol}`)
-    if (watchlist?.length) lines.push(`User's watchlist: ${watchlist.join(', ')}`)
-    lines.push(holdingsCount > 0 ? `User has ${holdingsCount} portfolio holding(s) tracked.` : 'User has no portfolio holdings tracked yet.')
-    return `[CONTEXT]\n${lines.join('\n')}\n\n`
+    if (watchlist?.length) lines.push(`User's watchlist: ${watchlist.slice(0, 12).join(', ')}`)
+    // Symbols, not just a count. "User has 6 holdings" tells the model nothing
+    // it can use; the tickers let it answer "am I exposed to iron ore" without
+    // asking the user to retype their own portfolio.
+    if (holdingSymbols.length) lines.push(`User's portfolio holdings: ${holdingSymbols.slice(0, 12).join(', ')}`)
+    else lines.push('User has no portfolio holdings tracked yet.')
+
+    const facts = verifiedFactsForAI()
+    return `[CONTEXT]\n${lines.join('\n')}\n\n${facts ? facts + '\n\n' : ''}`
   }, [activeModule, modalAsset, watchlist])
 
   const send = async (textOverride, opts = {}) => {

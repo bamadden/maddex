@@ -239,3 +239,47 @@ export function allVerifiedGroups() {
 }
 
 export default VERIFIED_CONSTANTS
+
+// ─── For MaddenAI ────────────────────────────────────────────────────────────
+//
+// The model had no access to any of this. Asked "what is the RBA cash rate",
+// it correctly refused — because rule 2 of its system prompt forbids recalling
+// a figure it was not given, and nothing gave it one. So the terminal held a
+// human-verified 4.35% on screen while the analyst sitting beside it said it
+// could not say. That is the wrong kind of honest.
+//
+// This goes into the PER-TURN context, never the system prompt. The system
+// prompt is cached on a stable prefix, and a cached prompt carrying a cash rate
+// is a stale cash rate the moment the RBA moves — the exact failure this file
+// exists to prevent. Sent per turn, it is read fresh from the constants every
+// time, and it carries its own dates so the model can say "as at 12 August"
+// rather than implying it is live.
+//
+// Deliberately narrow: policy rates and the headline Australian series. Not
+// prices, not index levels, not anything that moves intraday — those reach the
+// model through the live-price context or not at all.
+export function verifiedFactsForAI() {
+  const { rba, fed, au } = VERIFIED_CONSTANTS
+  const lines = []
+
+  if (rba) {
+    lines.push(
+      `RBA cash rate ${rba.cashRate}% — ${rba.lastDecisionVerb ?? 'set'} at the ${rba.lastDecision} meeting` +
+      `${rba.previousRate != null && rba.previousRate !== rba.cashRate ? ` (from ${rba.previousRate}%)` : ''}` +
+      `${rba.nextMeeting ? `; next meeting ${rba.nextMeeting}` : ''}`,
+    )
+  }
+  if (fed) {
+    lines.push(`US Fed funds ${fed.rateRange ?? `${fed.cashRate}%`} — ${fed.lastDecisionVerb ?? 'set'} ${fed.lastDecision}${fed.nextMeeting ? `; next meeting ${fed.nextMeeting}` : ''}`)
+  }
+  if (au) {
+    if (au.cpi != null) lines.push(`AU CPI ${au.cpi}% YoY (${au.cpiPeriod}), trimmed mean ${au.cpiTrimmedMean}%, RBA target band ${au.rbaTargetBand}`)
+    if (au.unemployment != null) lines.push(`AU unemployment ${au.unemployment}% (${au.unemploymentPeriod})`)
+    if (au.gdpAnnual != null) lines.push(`AU GDP ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`)
+  }
+  if (!lines.length) return ''
+
+  const verified = [rba?.lastVerified, fed?.lastVerified, au?.lastVerified].filter(Boolean).sort()[0]
+  return `[VERIFIED FACTS — human-checked, dated, safe to quote${verified ? `; oldest check ${verified}` : ''}]\n`
+    + lines.map((l) => `- ${l}`).join('\n')
+}
