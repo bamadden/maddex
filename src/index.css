@@ -214,19 +214,22 @@ body {
 }
 
 /* Premium scrollbar */
+/* 3px, not 4. At this density the scrollbar is a hint that there is more
+   below, not a control anyone drags — the wheel does that. Quieter at rest,
+   clearly there on hover. */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(201,168,76,0.3);
+  background: rgba(201,168,76,0.25);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(201,168,76,0.6);
+  background: rgba(201,168,76,0.5);
 }
 
 /* Selection colour */
@@ -338,18 +341,34 @@ button:not(:disabled):active {
    >1% change, separate from useLivePrice's per-tick flash used on ticker
    rows/tables (this is for larger, non-tick-driven jumps like a portfolio
    total value recalculating). */
+/* Colour peaks EARLY and decays. The old curve put peak colour at the
+   midpoint, which reads as a slow throb; a real tick is a strike followed by
+   a fade. The 1px nudge travels toward rest — an up-tick settles from above —
+   so the motion carries direction rather than just saying "something moved".
+   Both are deliberately tiny: at 2px this becomes a jitter, and a number that
+   jitters is a number nobody trusts. */
 @keyframes countUp {
-  0% { color: inherit; }
-  50% { color: var(--color-gain, #2D8A50); }
-  100% { color: inherit; }
+  0%   { color: var(--color-gain-bright, #3AAA63); transform: translateY(-1px); }
+  30%  { color: var(--color-gain, #2D8A50); transform: translateY(0); }
+  100% { color: inherit; transform: translateY(0); }
 }
 @keyframes countDown {
+  0%   { color: var(--color-loss-bright, #CC4444); transform: translateY(1px); }
+  30%  { color: var(--color-loss, #A83232); transform: translateY(0); }
+  100% { color: inherit; transform: translateY(0); }
+}
+@keyframes countDownOld {
   0% { color: inherit; }
   50% { color: var(--color-loss, #A83232); }
   100% { color: inherit; }
 }
-.count-up { animation: countUp 0.5s ease; }
-.count-down { animation: countDown 0.5s ease; }
+/* 300ms on a decelerating curve. Half a second is long enough that a second
+   update lands mid-animation on a fast-ticking figure and the colours smear. */
+.count-up   { animation: countUp   0.3s cubic-bezier(0.16, 1, 0.3, 1); display: inline-block; }
+.count-down { animation: countDown 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: inline-block; }
+@media (prefers-reduced-motion: reduce) {
+  .count-up, .count-down { animation-duration: 0.01s; }
+}
 
 /* Toast auto-dismiss progress bar — matches NotificationCenter's 6s toast
    timeout. Pauses on hover so a toast the user is reading doesn't vanish
@@ -901,7 +920,14 @@ body.ticker-paused .ticker-content {
 .nav-row .nav-label { color: #637899; }
 .nav-row.is-active {
   border-left-color: #C9A84C;
-  background: rgba(201, 168, 76, 0.06);
+  /* A radial falloff from the gold marker, not a flat wash. The eye reads the
+     flat version as a filled rectangle sitting behind the icon; the gradient
+     reads as light coming off the marker itself, which is what the marker is
+     for. Layered over a faint base so the row still has a floor on displays
+     that flatten gradients. */
+  background:
+    radial-gradient(ellipse at left center, rgba(201, 168, 76, 0.12) 0%, transparent 70%),
+    rgba(201, 168, 76, 0.03);
   color: #C9A84C;
 }
 .nav-row.is-active .nav-label,
@@ -1039,4 +1065,105 @@ body.ticker-paused .ticker-content {
   color: rgb(var(--t-gold-bright));
   border-bottom-style: solid;
   outline: none;
+}
+
+
+/* ═══ ELITE POLISH LAYER ═══════════════════════════════════════════════════
+   Micro-details. None of these is individually noticeable, which is the
+   point: what registers is the absence of them.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Lifted edge ──────────────────────────────────────────────────────────
+   A one-pixel highlight along the top of a surface, at 3% white. This is how
+   a physical panel catches light on its top edge, and it is the cheapest way
+   to make a flat dark rectangle read as a raised object rather than a hole.
+   Kept at 0.03 deliberately: at 0.06 it becomes a visible white line and the
+   effect inverts — the card starts to look outlined rather than lit. */
+.card,
+.terminal-card,
+.panel {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────
+   The same highlight on the gold primary, at a strength that reads against
+   gold rather than against navy. */
+.btn-primary {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.btn-primary:active {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: translateY(0.5px);
+}
+/* Ghost buttons had no background on hover at all — only a colour change,
+   which on a dense row is easy to miss and gives no sense of the button's
+   actual hit area. */
+.btn-ghost:hover {
+  background: rgba(201, 168, 76, 0.08);
+}
+.btn-secondary:active,
+.btn-ghost:active {
+  transform: translateY(0.5px);
+}
+
+/* ── Table zebra ──────────────────────────────────────────────────────────
+   1% white. Below the threshold where anyone notices stripes, above the
+   threshold where the eye stops losing its place tracking across a wide row.
+   Applied via a class rather than a bare tbody selector so a table that
+   already colours its own rows (the watchlist's group headers) is untouched. */
+.table-zebra tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+/* ── Inputs: the terminal treatment ───────────────────────────────────────
+   A focus ring says "form field". A weighted left edge says "command line",
+   which is what these are. The asymmetry is the whole idea: the 2px gold
+   left border marks the cursor's home, and the other three sides stay quiet
+   so the field never becomes a box the eye has to escape. */
+.input-terminal,
+input.cmd-input,
+.terminal-input {
+  border-left: 2px solid transparent;
+  transition: border-color var(--t-fast, 0.15s) ease, background-color var(--t-fast, 0.15s) ease;
+}
+.input-terminal:focus,
+input.cmd-input:focus,
+.terminal-input:focus {
+  outline: none;
+  border-left: 2px solid #C9A84C;
+  border-top: 1px solid rgba(201, 168, 76, 0.3);
+  border-right: 1px solid rgba(201, 168, 76, 0.15);
+  border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+  background: rgba(201, 168, 76, 0.03);
+}
+
+/* ── Badges ───────────────────────────────────────────────────────────────
+   8px, wide tracking, square corners. Rounded pills read as consumer chips;
+   a terminal's badges are stamped, not bubbled. The wide letter-spacing is
+   what keeps 8px legible — without it this size turns to mud. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: var(--space-badge-y, 2px) var(--space-badge-x, 6px);
+  border-radius: 2px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* ── Gradient rules ───────────────────────────────────────────────────────
+   A hairline that starts gold at the left and dissolves to nothing by the
+   right. Used under the top bar and any full-width divider that should read
+   as a considered edge rather than a seam. */
+.rule-gradient {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg,
+    rgba(201, 168, 76, 0.5) 0%,
+    rgba(201, 168, 76, 0.1) 60%,
+    transparent 100%);
 }

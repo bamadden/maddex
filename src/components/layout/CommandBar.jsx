@@ -1394,7 +1394,7 @@ export default function CommandBar() {
 
           <input
             ref={inputRef}
-            className="cmd-input flex-1 text-xs"
+            className="cmd-input input-terminal flex-1 text-xs"
             value={inputValue}
             onChange={handleChange}
             onKeyDown={handleKeyDown}

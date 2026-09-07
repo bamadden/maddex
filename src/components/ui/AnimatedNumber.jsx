@@ -18,7 +18,9 @@ export default function AnimatedNumber({ value, format = (v) => v, className = '
 
   useEffect(() => {
     if (!state.animClass) return undefined
-    const id = setTimeout(() => setState((s) => ({ ...s, animClass: '' })), 500)
+    // Matches the 300ms animation. At 500 the class outlived the animation by
+    // 200ms, and a second update inside that window could not restart it.
+    const id = setTimeout(() => setState((s) => ({ ...s, animClass: '' })), 300)
     return () => clearTimeout(id)
   }, [state.animClass])
 

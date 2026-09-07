@@ -153,7 +153,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
         style={{
           bottom: -1,
           background:
-            'linear-gradient(90deg, rgba(201,168,76,0.35) 0%, rgba(201,168,76,0.08) 50%, transparent 100%)',
+            'linear-gradient(90deg, rgba(201,168,76,0.5) 0%, rgba(201,168,76,0.1) 60%, transparent 100%)',
         }}
       />
     </div>

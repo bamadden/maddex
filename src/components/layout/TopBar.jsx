@@ -398,7 +398,13 @@ export default function TopBar() {
       style={{
         height: 48,
         background: '#030912',
-        borderBottom: '1px solid rgba(201,168,76,0.08)',
+        // A gradient edge rather than a flat 1px rule. The bar carries the
+        // brand at its left and controls at its right; the border now does the
+        // same thing, brightest under the wordmark and gone by the time it
+        // reaches the clock. borderImage is used rather than a pseudo-element
+        // so the edge stays part of the box and nothing has to be positioned.
+        borderBottom: '1px solid transparent',
+        borderImage: 'linear-gradient(90deg, rgba(201,168,76,0.5) 0%, rgba(201,168,76,0.1) 60%, transparent 100%) 1',
       }}
     >
       {/* LEFT — exactly 64px, mirroring the sidebar rail beneath it, with a
