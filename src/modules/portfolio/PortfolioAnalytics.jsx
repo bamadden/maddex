@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react'
+import { fmt } from '../../utils/format'
+import { auRecessionRisk } from '../../data/recessionRisk'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { AreaChart, Area } from 'recharts'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 import Tooltip from '../../components/ui/Tooltip'
@@ -142,6 +145,147 @@ function WaterfallChart({ openingValue, bars, closingValue, fmtCur, totalReturn 
 
 export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
   const asxHoldings = useMemo(() => holdings.filter((h) => h.type === 'asx' && h.mktVal != null), [holdings])
+
+  // ── Regime alignment ─────────────────────────────────────────────────────
+  //
+  // The regime comes from the recession rubric in the Macro module, so the two
+  // modules cannot describe the same economy differently. Sector reads are
+  // MECHANISMS — how a sector connects to the current policy setting — not
+  // backtested excess returns, which this app has no series to compute.
+  const regime = useMemo(() => {
+    const au = auRecessionRisk()
+    const real = au.factors.find((f) => f.key === 'policy')
+    const restrictive = (real?.points ?? 0) > 0
+
+    const MECHANISMS = {
+      Materials: { exposed: true, text: 'Earnings track commodity prices set offshore, so domestic rates reach them mainly through the currency.' },
+      Energy: { exposed: true, text: 'Same offshore pricing, plus oil-linked contracts — largely insulated from the domestic cycle.' },
+      Financials: { exposed: true, text: 'Margins widen with the cash rate but bad debts rise if unemployment follows. Cuts both ways.' },
+      IT: { exposed: false, text: 'Long-duration earnings are the most sensitive to the discount rate — a restrictive setting compresses them hardest.' },
+      'Cons Disc': { exposed: false, text: 'Mortgage repayments and discretionary spending come out of the same household budget.' },
+      Staples: { exposed: true, text: 'Defensive demand; typically where money rotates when the labour market turns.' },
+      Health: { exposed: true, text: 'Defensive, and largely USD-earning — domestic rates reach it only indirectly.' },
+      'Real Est': { exposed: false, text: 'Directly rate-sensitive through both cap rates and financing costs.' },
+      Utilities: { exposed: false, text: 'Bond-proxy earnings; competes with cash when the cash rate is high.' },
+      Comms: { exposed: true, text: 'Mostly domestic and defensive, with steady subscription revenue.' },
+      Industrials: { exposed: false, text: 'Tracks domestic activity, which slows when policy is restrictive.' },
+    }
+
+    const byWeight = new Map()
+    for (const h of holdings) {
+      const sector = SECTOR_BY_SYMBOL[h.symbol]
+      if (!sector || !mktTotal) continue
+      byWeight.set(sector, (byWeight.get(sector) ?? 0) + ((h.mktVal ?? 0) / mktTotal) * 100)
+    }
+
+    const sectorReads = [...byWeight.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([sector, weight]) => ({
+        sector,
+        weight,
+        exposed: MECHANISMS[sector]?.exposed ?? true,
+        mechanism: MECHANISMS[sector]?.text ?? 'General domestic market exposure.',
+      }))
+
+    return {
+      label: restrictive ? 'RESTRICTIVE POLICY' : 'ACCOMMODATIVE POLICY',
+      score: au.score,
+      realRate: real?.reading ?? '—',
+      description: restrictive
+        ? 'The cash rate sits above inflation, so policy is actively slowing the economy. Rate-sensitive and long-duration earnings face the most pressure; offshore-earning and defensive businesses are the least exposed to the domestic setting.'
+        : 'The cash rate sits below inflation, so policy is still supporting activity. Rate-sensitive sectors face less pressure than they would in a restrictive setting.',
+      sectorReads,
+    }
+  }, [holdings, mktTotal])
+
+  // ── Factor tilts ─────────────────────────────────────────────────────────
+  //
+  // Cap-weighted portfolio fundamentals against the ASX 200's, from
+  // verifiedConstants. Only holdings that actually carry the field contribute,
+  // to BOTH the weighted average and its weight base — otherwise a portfolio
+  // where half the positions lack a P/E would report the other half's average
+  // as the whole book's, which is the same error that made the dashboard and
+  // the portfolio page disagree earlier in this project.
+  const factorTilts = useMemo(() => {
+    if (!holdings.length || !mktTotal) return []
+
+    const weightedAvg = (pick) => {
+      let sum = 0, base = 0
+      for (const h of holdings) {
+        const v = pick(h)
+        const w = h.mktVal ?? 0
+        if (v == null || !Number.isFinite(v) || w <= 0) continue
+        sum += v * w
+        base += w
+      }
+      return base > 0 ? { value: sum / base, coverage: base / mktTotal } : null
+    }
+
+    const mktPE = VERIFIED_CONSTANTS.au.asx200PE
+    const mktYield = VERIFIED_CONSTANTS.au.asx200DivYield
+
+    const out = []
+
+    // VALUE: a lower P/E than the market is a value tilt, so the sign is
+    // inverted relative to the raw comparison.
+    const pe = weightedAvg((h) => h.pe)
+    if (pe && pe.coverage >= 0.4) {
+      const rel = (mktPE - pe.value) / mktPE
+      out.push({
+        key: 'value',
+        label: 'Value',
+        tilt: Math.max(-1, Math.min(1, rel * 2)),
+        direction: rel > 0.08 ? 'over' : rel < -0.08 ? 'under' : 'neutral',
+        mineLabel: `${pe.value.toFixed(1)}x P/E`,
+        marketLabel: `${mktPE}x`,
+        note: rel > 0
+          ? 'You hold cheaper earnings than the index on average. Value tilts have historically done better when rates rise.'
+          : 'You pay more per dollar of earnings than the index. That is typical of growth-tilted books.',
+      })
+    }
+
+    // YIELD
+    const dy = weightedAvg((h) => h.divYield)
+    if (dy && dy.coverage >= 0.4) {
+      const rel = (dy.value - mktYield) / mktYield
+      out.push({
+        key: 'yield',
+        label: 'Yield',
+        tilt: Math.max(-1, Math.min(1, rel)),
+        direction: rel > 0.08 ? 'over' : rel < -0.08 ? 'under' : 'neutral',
+        mineLabel: `${dy.value.toFixed(2)}%`,
+        marketLabel: `${mktYield}%`,
+        note: rel > 0
+          ? 'More income than the index, which usually means more of the return arrives as franked dividends rather than capital growth.'
+          : 'Less income than the index — more of any return has to come from price.',
+      })
+    }
+
+    // SIZE: median-ish comparison against a large-cap threshold rather than
+    // against an index average this app does not hold.
+    const cap = weightedAvg((h) => h.marketCap)
+    if (cap && cap.coverage >= 0.4) {
+      const LARGE = 50e9
+      const rel = Math.log10(Math.max(cap.value, 1) / LARGE)
+      out.push({
+        key: 'size',
+        label: 'Size (large cap)',
+        tilt: Math.max(-1, Math.min(1, rel)),
+        direction: rel > 0.1 ? 'over' : rel < -0.1 ? 'under' : 'neutral',
+        // fmt.large, not fmtCur — a cap-weighted average market cap is in the
+        // hundreds of billions, and the currency formatter rendered it as
+        // "A$2,103,920,676,888.16", which is accurate and unreadable.
+        mineLabel: fmt.large(cap.value),
+        marketLabel: 'A$50B large-cap line',
+        note: rel > 0
+          ? 'Concentrated in large caps — typically steadier, and typically slower.'
+          : 'Tilted below the large-cap line, which usually means more volatility in both directions.',
+      })
+    }
+
+    return out
+  }, [holdings, mktTotal])
 
   // ── 1. Risk metrics ──────────────────────────────────────────────────────
   const risk = useMemo(() => {
@@ -425,9 +569,75 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
         )}
       </div>
 
-      {/* 4. Sector / factor exposure */}
+      {/* 4. Factor tilts — MEASURED, not asserted */}
       <div>
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">FACTOR EXPOSURE</div>
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <span className="text-2xs text-terminal-gold font-bold tracking-widest">FACTOR TILTS VS MARKET</span>
+          <span className="text-2xs text-terminal-text-dim/60">DEMO fundamentals</span>
+        </div>
+
+        {factorTilts.length === 0 ? (
+          <div className="border border-terminal-border p-3 text-2xs text-terminal-text-dim">
+            No holdings with the fundamentals needed to measure a tilt.
+          </div>
+        ) : (
+          <div className="border border-terminal-border divide-y divide-terminal-border/30">
+            {factorTilts.map((f) => {
+              // Centre line at 50%; the marker moves either side of it.
+              const offset = 50 + Math.max(-50, Math.min(50, f.tilt * 50))
+              return (
+                <div key={f.key} className="p-2.5">
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <span className="text-2xs font-bold text-terminal-text-bright">{f.label}</span>
+                    <span
+                      className="text-2xs font-bold tabular-nums"
+                      style={{ color: f.direction === 'over' ? '#2D8A50' : f.direction === 'under' ? '#A83232' : '#637899' }}
+                    >
+                      {f.direction === 'over' ? '▲ OVERWEIGHT' : f.direction === 'under' ? '▼ UNDERWEIGHT' : '→ NEUTRAL'}
+                    </span>
+                  </div>
+
+                  <div className="relative h-2 mb-1">
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-terminal-border/50" />
+                    <div className="absolute top-0 bottom-0 left-1/2 w-px bg-terminal-text-dim/40" />
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                      style={{ left: `${offset}%`, background: '#C9A84C' }}
+                    />
+                  </div>
+
+                  <div className="flex items-baseline justify-between gap-2 text-2xs">
+                    <span className="text-terminal-text-dim">
+                      Yours <span className="text-terminal-text-bright">{f.mineLabel}</span>
+                      {' · '}Market <span className="text-terminal-text-bright">{f.marketLabel}</span>
+                    </span>
+                  </div>
+                  <div className="text-2xs text-terminal-text-dim/70 leading-snug mt-0.5">{f.note}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* WHY THIS IS A TILT AND NOT A FACTOR LOADING.
+            A real factor exposure is a regression coefficient against a factor
+            return series. This app has neither the factor returns nor a price
+            history to regress, so a "+0.8 Value loading" would be a precise
+            number with nothing behind it. What IS computable is the portfolio's
+            weighted fundamentals against the market's — a comparison, stated as
+            a comparison, with both sides shown so the reader can see the
+            arithmetic. */}
+        <div className="text-2xs text-terminal-text-dim/60 mt-2 leading-relaxed">
+          Measured by comparing your cap-weighted fundamentals with the ASX 200's, not by
+          regression against factor returns — this app holds neither the factor series nor the
+          price history that would need. Both sides of each comparison are shown. Equity
+          fundamentals are DEMO until a data provider is connected.
+        </div>
+      </div>
+
+      {/* Sector weights, kept — it answers a different question from the tilts */}
+      <div>
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">SECTOR EXPOSURE</div>
         <div className="space-y-1.5">
           {factorExposure.map((f) => (
             <div key={f.sector} className="border border-terminal-border p-2">
@@ -438,9 +648,57 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
               <div className="h-1 bg-terminal-surface2 rounded-full overflow-hidden mt-1">
                 <div className="h-full bg-terminal-gold" style={{ width: `${f.pct}%` }} />
               </div>
-              <div className="text-2xs text-terminal-text-dim mt-1">Factor exposure: {f.factor}</div>
+              <div className="text-2xs text-terminal-text-dim mt-1">Driven by: {f.factor}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Regime alignment */}
+      <div>
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <span className="text-2xs text-terminal-gold font-bold tracking-widest">POSITIONING VS THE CURRENT REGIME</span>
+          <span className="text-2xs text-terminal-text-dim/60">from the recession rubric</span>
+        </div>
+        <div className="border border-terminal-border p-3 space-y-2">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-2xs text-terminal-text-dim">Regime:</span>
+            <span className="text-2xs font-bold text-terminal-text-bright">{regime.label}</span>
+            <span className="text-2xs text-terminal-text-dim">
+              · AU risk score {regime.score}/100 · real policy rate {regime.realRate}
+            </span>
+          </div>
+
+          <div className="text-2xs text-terminal-text leading-relaxed">{regime.description}</div>
+
+          <div className="pt-2 border-t border-terminal-border/40 space-y-1.5">
+            {regime.sectorReads.map((r) => (
+              <div key={r.sector} className="flex items-start gap-2">
+                <span
+                  className="text-2xs font-bold flex-shrink-0 w-16"
+                  style={{ color: r.exposed ? '#C9A84C' : '#637899' }}
+                >{r.weight.toFixed(0)}%</span>
+                <span className="text-2xs font-bold text-terminal-text-bright w-20 flex-shrink-0">{r.sector}</span>
+                <span className="text-2xs text-terminal-text-dim flex-1 leading-snug">{r.mechanism}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* NO FABRICATED EXCESS RETURNS.
+              The design asked for "Energy: +2.1% avg excess return in
+              tightening regimes". That is a backtest result, and this app has
+              neither the historical sector series nor the regime dating to
+              produce one — the figure would be invented, and it is exactly the
+              sort a reader would size a position against. What is stated
+              instead is the MECHANISM connecting each sector to the current
+              setting, which is structural and checkable, plus the weight the
+              portfolio actually carries. */}
+          <div className="text-2xs text-terminal-text-dim/60 pt-2 border-t border-terminal-border/30 leading-relaxed">
+            Mechanisms, not backtests. This shows how each sector connects to the current
+            policy setting and what you hold in it — no historical excess-return figures,
+            because this terminal holds neither the sector series nor the regime dating that
+            would take. General information only.
+          </div>
         </div>
       </div>
 

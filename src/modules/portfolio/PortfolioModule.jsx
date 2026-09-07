@@ -787,7 +787,13 @@ export default function PortfolioModule() {
     const pnl        = mktVal != null ? mktVal - totalCost : null
     const pnlPct     = pnl != null && totalCost > 0 ? (pnl / totalCost) * 100 : null
     const marketCap = q?.marketCap != null ? (isAsx ? q.marketCap : usdToAud(q.marketCap)) : null
-    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, loadState, isOpen: q?.isOpen, nativePrice, currency, marketCap }
+    // P/E and yield are ratios, so they carry through unconverted — dividing a
+    // converted price by unconverted earnings would produce a P/E that moves
+    // with the exchange rate. The analytics tab needs both to measure a value
+    // or income tilt; without them those tilts silently never rendered.
+    const pe = q?.trailingPE ?? null
+    const divYield = q?.divYield ?? null
+    return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, loadState, isOpen: q?.isOpen, nativePrice, currency, marketCap, pe, divYield }
   })
 
   const live      = computed.filter((h) => h.mktVal != null)
