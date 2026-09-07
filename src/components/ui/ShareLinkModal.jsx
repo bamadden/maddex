@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 // Small shared "here's your link" modal used by both Watchlist and Research
 // Note sharing — same copy-to-clipboard shape, different title/copy line.
 export default function ShareLinkModal({ title, brandedUrl, resolvableUrl, onClose }) {
+  useEscapeKey(onClose)
+
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {

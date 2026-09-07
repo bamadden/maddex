@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
@@ -234,9 +235,14 @@ function RangeBar({ price, low, high }) {
           />
         </div>
       </div>
+      {/* Scale endpoints, not signals — same reasoning as the watchlist's
+          Week52Bar. The gradient behind the track already carries the
+          low-to-high sense; colouring the numbers too made a red figure sit
+          directly under a green day-change, meaning two different things in
+          the same 200px. */}
       <div className="flex items-center justify-between mt-1">
-        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#A83232' }}>{fmt.aud(low, { decimals: 2 })}</span>
-        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#2D8A50' }}>{fmt.aud(high, { decimals: 2 })}</span>
+        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#637899' }}>{fmt.aud(low, { decimals: 2 })}</span>
+        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#637899' }}>{fmt.aud(high, { decimals: 2 })}</span>
       </div>
     </div>
   )
@@ -556,6 +562,7 @@ export default function DetailModal() {
   const [researchNoteOpen, setResearchNoteOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
+  const [wlFlash, setWlFlash] = useState(false)
 
   const overlayRef = useRef(null)
 
@@ -573,6 +580,11 @@ export default function DetailModal() {
   const handleOverlayClick = useCallback((e) => {
     if (e.target === overlayRef.current) closeModal()
   }, [closeModal])
+
+  // Clicking the backdrop closed this; Escape did not. The modal is opened
+  // from a keyboard-driven command bar, so the one route in had no matching
+  // route out. Gated on modalAsset so it is not listening while closed.
+  useEscapeKey(closeModal, Boolean(modalAsset))
 
   const coinId        = modalAsset?.coinId ?? COIN_IDS_MAP[modalAsset?.symbol?.toUpperCase()]
   const days          = timeframeToDays(timeframe)
@@ -644,6 +656,9 @@ export default function DetailModal() {
   if (!modalAsset) return null
 
   const { symbol, name, price, pct, change, type, extra = {} } = modalAsset
+  // The bare ticker, for confirmations that should read the way a person says
+  // it out loud: "BHP above A$44.00", not "BHP.AX above A$44.00".
+  const tickerLabel = String(symbol ?? '').replace(/\.AX$/i, '').replace(/^\^/, '')
   const priceCls  = colorClass(pct)
   const pctSign   = pct > 0 ? '+' : ''
   const isInWL    = watchlist.includes(symbol)
@@ -1109,7 +1124,7 @@ export default function DetailModal() {
               onClick={() => setAlertOpen(o => !o)}
               title="Set price alert"
               className={`text-lg leading-none transition-colors ${alertOpen ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-            >◎</button>
+            >⚡</button>
             <button onClick={closeModal} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
           </div>
         </div>
@@ -1141,11 +1156,16 @@ export default function DetailModal() {
               onClick={() => {
                 if (!alertPrice || isNaN(parseFloat(alertPrice))) return
                 addAlert(symbol, alertPrice, alertDir)
-                setAlertSaved(true)
+                // Echo back the alert that was set, not the fact that one was.
+                // "Alert saved" leaves the user checking whether they typed
+                // 44 or 4.4 — the confirmation should answer that.
+                setAlertSaved(`${tickerLabel} ${alertDir} ${fmt.aud(parseFloat(alertPrice))}`)
               }}
               className="text-2xs font-bold px-2.5 py-0.5 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
             >SET ALERT</button>
-            {alertSaved && <span className="text-2xs text-terminal-green">✓ Alert saved</span>}
+            {alertSaved && (
+              <span className="text-2xs text-terminal-green truncate">⚡ Alert set — {alertSaved}</span>
+            )}
           </div>
         )}
 
@@ -1374,7 +1394,12 @@ export default function DetailModal() {
           {/* Quick actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => !isInWL && addToWatchlist(symbol)}
+              onClick={() => {
+                if (isInWL) return
+                addToWatchlist(symbol)
+                setWlFlash(true)
+                setTimeout(() => setWlFlash(false), 2400)
+              }}
               disabled={isInWL}
               className={`flex-1 text-2xs px-2 py-1.5 border transition-colors ${
                 isInWL
@@ -1382,7 +1407,7 @@ export default function DetailModal() {
                   : 'border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg cursor-pointer'
               }`}
             >
-              {isInWL ? '✓ WATCHING' : '+ WATCHLIST'}
+              {wlFlash ? `✓ ADDED — ${tickerLabel}` : isInWL ? '✓ WATCHING' : '+ WATCHLIST'}
             </button>
             <button
               onClick={() => { setActiveModule('portfolio'); closeModal() }}

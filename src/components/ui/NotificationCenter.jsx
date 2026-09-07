@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
@@ -18,7 +19,7 @@ import {
 // One face, one weight, one baseline. Every glyph here is text-presentation,
 // so it inherits the panel's colour and the monospace metrics rather than
 // arriving as a coloured bitmap from the OS.
-const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞' }
+const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '⚡', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞' }
 // Icon-circle background per type — gold for price/alert-family, blue for
 // earnings/calendar, green for news, muted for system.
 const TYPE_CIRCLE = {
@@ -219,6 +220,9 @@ export default function NotificationCenter() {
     removeHistory(ids)
     setHistoryBump((b) => b + 1)
   }, [])
+
+  // Outside click closed this, Escape did not.
+  useEscapeKey(() => setOpen(false), open)
 
   // Close dropdown on outside click.
   useEffect(() => {

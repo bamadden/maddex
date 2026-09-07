@@ -16,6 +16,21 @@
   transition-timing-function: ease;
 }
 
+/* Programmatic scrolling glides rather than teleports — scrollIntoView on a
+   search result, a table jumping to a row, the plan cards scrolling into view
+   from an upgrade prompt. Wheel and trackpad scrolling are unaffected; this
+   only governs scrolls the app initiates. `auto` on the html element keeps
+   anchor jumps instant, which is what a jump is for. */
+* {
+  scroll-behavior: smooth;
+}
+html {
+  scroll-behavior: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto; }
+}
+
 :root {
   --color-gain:         #2d8a50;
   --color-gain-bg:      rgba(46, 160, 90, 0.20);

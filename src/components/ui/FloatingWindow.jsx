@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 const SNAP_MARGIN = 40
 const TOP_OFFSET = 0 // snap zones fill the viewport; the window's own z-index already sits above TopBar/TickerTape
@@ -45,6 +46,8 @@ const RESIZE_HANDLES = [
 // resize handles on all 4 edges + 4 corners, plus a maximise toggle that
 // remembers the pre-maximise geometry to restore.
 export function FloatingWindow({ title, children, onClose, defaultPos, defaultSize, zIndex = 1000, onFocus }) {
+  useEscapeKey(onClose)
+
   const [pos, setPos] = useState(defaultPos || { x: 100, y: 100 })
   const [size, setSize] = useState(defaultSize || { w: 600, h: 420 })
   const [minimised, setMinimised] = useState(false)
