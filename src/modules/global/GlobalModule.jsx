@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
+import { SeismicSection, MarketSessionSection } from './IntelSections'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
 import { GEO_RISK_INDEX, riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
@@ -2354,7 +2355,7 @@ function PortfolioExposure({ watchlist }) {
   )
 }
 
-function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist }) {
+function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist, earthquakes, onFocusQuake }) {
   const { gold, source: goldSource, ageMins: goldAge } = useGoldPrice()
   const alerts = useMemo(() => {
     if (!newsItems?.length) return []
@@ -2372,6 +2373,8 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist }) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden hide-scrollbar">
+      <SeismicSection earthquakes={earthquakes} onFocus={onFocusQuake} />
+      <MarketSessionSection />
       <IntelTicker />
 
       <CollapsibleSection id="markets" title="MARKET STATUS">
@@ -2852,6 +2855,15 @@ export default function GlobalModule() {
     setLeftOpen(false)
   }, [])
 
+  // A NEW object per request, deliberately. The map flies when this prop
+  // changes identity, so reusing one object would make a second click on the
+  // same earthquake do nothing.
+  const [mapFocus, setMapFocus] = useState(null)
+  const handleFocusQuake = useCallback((q) => {
+    if (!Array.isArray(q?.coordinates)) return
+    setMapFocus({ longitude: q.coordinates[0], latitude: q.coordinates[1], zoom: 5, pitch: 40, at: Date.now() })
+  }, [])
+
   const handleSelectExchange = useCallback((exchangeId) => {
     setSelectedCountry(null)
     setSelectedExchange(exchangeId)
@@ -2881,7 +2893,14 @@ export default function GlobalModule() {
   // mean two places to keep in step, and React would remount the whole subtree
   // on every crossing of the breakpoint.
   const feedPanel = (
-    <IntelFeedPanel newsItems={allNewsItems} audRates={rates} onSelectExchange={handleSelectExchange} watchlist={watchlist} />
+    <IntelFeedPanel
+      newsItems={allNewsItems}
+      audRates={rates}
+      onSelectExchange={handleSelectExchange}
+      watchlist={watchlist}
+      earthquakes={earthquakes}
+      onFocusQuake={handleFocusQuake}
+    />
   )
 
   const rightPanel = (
@@ -3004,6 +3023,7 @@ export default function GlobalModule() {
                   onExchangeClick={handleExchangeClick}
                   earthquakes={earthquakes}
                   chromeInset={wideLayout ? { left: 0, right: 0 } : { left: 36, right: 36 }}
+                  focusTarget={mapFocus}
                 />
               ) : (
                 <DeckGLMap
@@ -3013,6 +3033,7 @@ export default function GlobalModule() {
                   // map's own chrome steps inside them. Zero when the panels
                   // are inline columns and nothing is covering the edges.
                   chromeInset={wideLayout ? { left: 0, right: 0 } : { left: 36, right: 36 }}
+                  focusTarget={mapFocus}
                 />
               )}
             </Suspense>

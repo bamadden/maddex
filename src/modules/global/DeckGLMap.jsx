@@ -277,7 +277,7 @@ const Z = {
 // The deck.gl canvas itself is NOT inset. The map still spans the full
 // container — only the small chrome moves, which is the whole point: the
 // rails cost no map.
-export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInset = { left: 0, right: 0 } }) {
+export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInset = { left: 0, right: 0 }, focusTarget = null }) {
   const insetL = chromeInset.left ?? 0
   const insetR = chromeInset.right ?? 0
   const [viewState, setViewState] = useState(INITIAL_VIEW)
@@ -416,6 +416,28 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   const flyTo = useCallback((target) => {
     setViewState({ ...target, transitionDuration: 1800, transitionEasing: easeInOutCubic })
   }, [])
+
+  // External fly-to, driven by a prop rather than an imperative ref.
+  //
+  // The intel rail needs to point the map at an earthquake. A ref handle would
+  // work, but a prop keeps the camera a function of the map's inputs — the
+  // parent says where to look and the map obeys, rather than reaching in. The
+  // parent passes a NEW object each request, so re-renders alone never re-fly.
+  useEffect(() => {
+    if (!focusTarget) return
+    // Deferred a frame rather than set synchronously in the effect. Two
+    // reasons: a synchronous setState here re-renders the map inside its own
+    // commit, and deck's camera transition should begin after the frame that
+    // triggered it so the easing starts from what is actually on screen.
+    const id = requestAnimationFrame(() => flyTo({
+      longitude: focusTarget.longitude,
+      latitude: focusTarget.latitude,
+      zoom: focusTarget.zoom ?? 5,
+      pitch: focusTarget.pitch ?? 40,
+      bearing: 0,
+    }))
+    return () => cancelAnimationFrame(id)
+  }, [focusTarget, flyTo])
 
   // info.x / info.y are relative to deck's own canvas, while the tooltip is
   // position: fixed and so is placed in viewport coordinates. Those agree
