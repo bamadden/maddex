@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar,
+  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import NavContextMenu from '../ui/NavContextMenu'
@@ -53,6 +53,9 @@ const NAV_ITEMS = [
   { id: 'scanner',   label: 'SCANNER',   short: 'SCN',  fkey: null, Icon: Radar,      group: 'ANALYSIS' },
   { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search,     group: 'ANALYSIS' },
   { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind,     group: 'ANALYSIS' },
+
+  // INSTRUMENTS — asset classes the terminal covers beyond equities.
+  { id: 'bonds',     label: 'BONDS',     short: 'BND',  fkey: null, Icon: Landmark,   group: 'INSTRUMENTS' },
 ]
 
 // Headings are derived from the items as they render — a heading appears each

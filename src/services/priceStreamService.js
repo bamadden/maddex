@@ -50,7 +50,7 @@ class PriceStreamService {
     if (!this.enabled) return
     if (this.running) return
     this.running = true
-    this.intervalId = setInterval(() => this.updatePrices(), this.tickMs)
+    this.intervalId = setInterval(() => { this.updatePrices(); this.updateSeries() }, this.tickMs)
   }
 
   stop() {
@@ -85,6 +85,56 @@ class PriceStreamService {
       }
 
       this.prices.set(symbol, updated)
+      callbacks.forEach((cb) => cb(updated))
+    })
+  }
+
+  // ─── Generic numeric series ───────────────────────────────────────────
+  //
+  // subscribe() seeds from getMockFMPRow, so it only works for symbols in the
+  // equity demo universe — a bond yield, an ETF price or a futures contract
+  // returns null there and the subscription silently does nothing.
+  //
+  // This is the same random walk against a caller-supplied seed and
+  // volatility, sharing the SAME tick interval and the SAME global enable
+  // switch, so the speed control in Settings governs every simulated series in
+  // the terminal rather than just the equity ones.
+  //
+  // volPct is the per-tick standard move as a percentage of the value: a
+  // 30-year bond yield wants a wider one than a 1-month bill.
+  subscribeSeries(key, { seed, volPct = 0.05, decimals = 2 }, callback) {
+    if (!this.series) this.series = new Map()
+    if (!this.seriesSubs) this.seriesSubs = new Map()
+
+    if (!this.series.has(key)) this.series.set(key, { value: seed, base: seed, volPct, decimals })
+    if (!this.seriesSubs.has(key)) this.seriesSubs.set(key, new Set())
+    this.seriesSubs.get(key).add(callback)
+
+    callback(this.series.get(key))
+    this.start()
+
+    return () => {
+      const subs = this.seriesSubs.get(key)
+      if (!subs) return
+      subs.delete(callback)
+      if (subs.size === 0) this.seriesSubs.delete(key)
+    }
+  }
+
+  updateSeries() {
+    if (!this.seriesSubs?.size) return
+    this.seriesSubs.forEach((callbacks, key) => {
+      if (callbacks.size === 0) return
+      const cur = this.series.get(key)
+      if (!cur) return
+      const step = (Math.random() - 0.5) * Math.abs(cur.base) * (cur.volPct / 100) * 2
+      // Tethered to the seed. An untethered walk over a long session drifts
+      // somewhere absurd, and a 10-year yield at 9% is not "simulated", it is
+      // broken.
+      const pull = (cur.base - cur.value) * 0.05
+      const next = parseFloat((cur.value + step + pull).toFixed(cur.decimals + 2))
+      const updated = { ...cur, value: next, change: next - cur.base }
+      this.series.set(key, updated)
       callbacks.forEach((cb) => cb(updated))
     })
   }
