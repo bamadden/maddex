@@ -2584,94 +2584,11 @@ function WorldStatsSummary() {
     </div>
   )
 }
-
-// ─── Edge rail + slide-over ────────────────────────────────────────────────
-//
-// The two side panels become a 32px rail and an overlay below 1700px. The rail
-// is absolutely positioned over the map rather than taking a column, so the
-// map keeps the full width — the whole point of the change. Icons stand in for
-// the sections behind them so the rail reads as a control rather than a
-// decorative edge.
-function EdgeRail({ side, open, onToggle, label, icons }) {
-  const isLeft = side === 'left'
-  return (
-    <div
-      style={{
-        position: 'absolute', top: 0, bottom: 0, [side]: 0, width: 32, zIndex: 40,
-        background: 'rgba(6,13,26,0.92)',
-        [`border${isLeft ? 'Right' : 'Left'}`]: '1px solid rgba(201,168,76,0.18)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        paddingTop: 6, gap: 10,
-      }}
-    >
-      <button
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-label={`${open ? 'Collapse' : 'Expand'} ${label.toLowerCase()} panel`}
-        title={`${open ? 'Collapse' : 'Expand'} ${label}`}
-        style={{
-          color: '#C9A84C', fontSize: 12, lineHeight: 1, padding: '4px 0', width: '100%',
-          cursor: 'pointer', background: 'none', border: 'none',
-        }}
-      >
-        {isLeft ? (open ? '❮' : '❯') : (open ? '❯' : '❮')}
-      </button>
-
-      {/* Rotated label. writing-mode keeps it legible top-to-bottom without a
-          transform that would fight the flex column's sizing. */}
-      <div
-        style={{
-          writingMode: 'vertical-rl', textOrientation: 'mixed',
-          transform: isLeft ? 'none' : 'rotate(180deg)',
-          fontFamily: '"IBM Plex Mono", monospace', fontSize: 8,
-          letterSpacing: '0.28em', color: 'rgba(201,168,76,0.45)',
-          whiteSpace: 'nowrap', userSelect: 'none',
-        }}
-      >{label}</div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 4, opacity: 0.55 }}>
-        {icons.map((ic, i) => (
-          <span key={i} style={{ fontSize: 10, lineHeight: 1 }}>{ic}</span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function SlideOverPanel({ side, open, width, children, onClose }) {
-  const isLeft = side === 'left'
-  return (
-    <div
-      // Always mounted, translated off-screen when closed — the feed and the
-      // tab panel both hold fetched state and query subscriptions, and
-      // unmounting them on every toggle would refetch and lose scroll
-      // position each time.
-      aria-hidden={!open}
-      style={{
-        position: 'absolute', top: 0, bottom: 0, [side]: 32, width, zIndex: 39,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        background: 'rgba(6,13,26,0.97)',
-        backdropFilter: 'blur(10px)',
-        [`border${isLeft ? 'Right' : 'Left'}`]: '1px solid rgba(201,168,76,0.25)',
-        boxShadow: open ? `${isLeft ? '' : '-'}12px 0 32px rgba(0,0,0,0.45)` : 'none',
-        transform: open ? 'translateX(0)' : `translateX(${isLeft ? '-' : ''}${width + 40}px)`,
-        transition: 'transform 220ms cubic-bezier(0.4, 0, 0.2, 1)',
-        pointerEvents: open ? 'auto' : 'none',
-      }}
-    >
-      <button
-        onClick={onClose}
-        aria-label="Close panel"
-        className="self-end text-terminal-text-dim hover:text-terminal-gold"
-        style={{ fontSize: 11, padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer' }}
-      >✕</button>
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
+// EdgeRail and SlideOverPanel lived here. They were the narrow-viewport half
+// of a two-engine layout — 32px rails with slide-over overlays below 1700px,
+// inline columns above it. The dual-pin system replaces both at every width,
+// so keeping them would leave a second layout engine that nothing renders and
+// that the next person would reasonably assume is still in use.
 
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
@@ -2691,6 +2608,66 @@ export default function GlobalModule() {
   // map than the three-column layout this replaced.
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
+
+  // ── Dual-pin layout ─────────────────────────────────────────────────────
+  //
+  // Four states rather than the old wide/narrow split. That split decided FOR
+  // the user based on viewport: three inline columns above 1700px, overlays on
+  // rails below, and no way to say "I want the intel feed AND the map". This
+  // makes it a choice.
+  //
+  //   A  map only          B  left + map
+  //   C  map + right       D  both
+  //
+  // Default B: the intelligence feed is the most valuable context to have
+  // beside the map, and a first-time visitor who sees only a map does not
+  // learn the panel exists.
+  const [layout, setLayoutState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('maddex_global_layout')
+      return ['A', 'B', 'C', 'D'].includes(saved) ? saved : 'B'
+    } catch { return 'B' }
+  })
+  const setLayout = useCallback((next) => {
+    setLayoutState(next)
+    try { localStorage.setItem('maddex_global_layout', next) } catch { /* quota */ }
+  }, [])
+
+  // Cmd/Ctrl + [ and ] toggle the two panels. Bracket keys because they sit
+  // either side of the map on the keyboard the way the panels sit either side
+  // of it on screen.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      if (e.key !== '[' && e.key !== ']') return
+      const el = document.activeElement
+      if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return
+      e.preventDefault()
+      const left = e.key === '['
+      setLayoutState((cur) => {
+        const hasL = cur === 'B' || cur === 'D'
+        const hasR = cur === 'C' || cur === 'D'
+        const nl = left ? !hasL : hasL
+        const nr = left ? hasR : !hasR
+        const next = nl && nr ? 'D' : nl ? 'B' : nr ? 'C' : 'A'
+        try { localStorage.setItem('maddex_global_layout', next) } catch { /* quota */ }
+        return next
+      })
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const [leftPinned, setLeftPinned] = useState(() => {
+    try { return localStorage.getItem('maddex_global_left_pinned') === 'true' } catch { return false }
+  })
+  const toggleLeftPin = useCallback(() => {
+    setLeftPinned((v) => {
+      const next = !v
+      try { localStorage.setItem('maddex_global_left_pinned', String(next)) } catch { /* quota */ }
+      return next
+    })
+  }, [])
   const contentRef = useRef(null)
   const [contentWidth, setContentWidth] = useState(null)
   // 'map' | 'classic'.
@@ -2716,6 +2693,22 @@ export default function GlobalModule() {
   // Null until measured — assume narrow, so the map never flashes at 556px
   // before the observer reports.
   const wideLayout = contentWidth != null && contentWidth >= 1700
+
+  // ── Derived visibility, with the min-map-width guard ────────────────────
+  //
+  // State D needs 280 + 500 + 280 = 1060px of content width. Below that the
+  // right panel drops out and the layout degrades to B rather than squeezing
+  // the map under its floor — the map is the module, and a 400px map with two
+  // panels beside it is two panels with a stripe between them.
+  //
+  // Degrading rather than blocking matters: the user keeps the state they
+  // chose, and it comes back the moment the window is wide enough.
+  const DUAL_MIN = 280 + 500 + 280
+  const roomForBoth = contentWidth == null || contentWidth >= DUAL_MIN
+  const rightWanted = layout === 'C' || layout === 'D'
+  const leftVisible = layout === 'B' || layout === 'D'
+  const rightVisible = rightWanted && (layout === 'C' || roomForBoth)
+  const dualBlocked = layout === 'D' && !roomForBoth
 
   // Escape closes whichever overlay is open.
   useEffect(() => {
@@ -2969,6 +2962,34 @@ export default function GlobalModule() {
              same top-right corner as the map's own fullscreen button, the
              detail panel and the classic globe's control pills — four
              things competing for one corner, and the highest z-index won. */
+          <>
+          {/* Layout presets. Four glyphs rather than four words: they are
+              pictures of the layout they select, which is faster to read than
+              "LEFT + MAP" and does not need translating. D disables itself
+              when the viewport cannot hold it, with the reason in the tooltip
+              rather than silently doing something else. */}
+          <div className="flex items-center border border-terminal-border rounded-sm overflow-hidden flex-shrink-0 mr-2" role="group" aria-label="Panel layout">
+            {[
+              ['B', '◧', 'Intel panel + map  (⌘[)', true],
+              ['A', '▣', 'Map only', true],
+              ['C', '▨', 'Map + detail panel  (⌘])', true],
+              ['D', '⊞', roomForBoth ? 'Both panels  (⌘[ ⌘])' : 'Both panels — window too narrow', roomForBoth],
+            ].map(([mode, glyph, title, enabled]) => (
+              <button
+                key={mode}
+                onClick={() => enabled && setLayout(mode)}
+                disabled={!enabled}
+                aria-pressed={layout === mode}
+                title={title}
+                className={`text-2xs px-2 py-1 font-bold transition-colors ${
+                  layout === mode ? 'bg-terminal-gold text-terminal-bg'
+                    : enabled ? 'text-terminal-text-dim hover:text-terminal-gold'
+                    : 'text-terminal-text-dim/25 cursor-not-allowed'
+                }`}
+              >{glyph}</button>
+            ))}
+          </div>
+
           <div className="flex items-center border border-terminal-border rounded-full overflow-hidden flex-shrink-0" role="group" aria-label="Globe view mode">
             {[['map', 'INTEL MAP'], ['classic', 'CLASSIC GLOBE']].map(([mode, label]) => (
               <button
@@ -2979,8 +3000,21 @@ export default function GlobalModule() {
               >{label}</button>
             ))}
           </div>
+          </>
         }
       />
+
+      {/* Says why, rather than leaving the user to wonder why ⊞ did nothing.
+          Degrading silently is worse than degrading loudly. */}
+      {dualBlocked && (
+        <div className="flex items-center gap-2 px-3 py-1 flex-shrink-0"
+          style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
+          <span className="text-2xs text-terminal-gold">⊞</span>
+          <span className="text-2xs text-terminal-text-dim">
+            Window too narrow for both panels — the map has a 500px floor. Showing the intelligence panel only.
+          </span>
+        </div>
+      )}
 
       {/* Critical-event alert banner */}
       {criticalAlert && (
@@ -3005,15 +3039,55 @@ export default function GlobalModule() {
             beside it would be worse, not better. */}
         <div ref={contentRef} style={{ flex:1, display:'flex', minHeight:0, position:'relative', overflow:'hidden' }}>
 
-          {/* Left feed — inline only when wide */}
-          {wideLayout && (
-            <div className="flex w-[300px] min-w-[300px] flex-shrink-0 flex-col overflow-hidden border-r border-terminal-border">
-              {feedPanel}
+          {/* Left feed. Always mounted, width-animated — see .global-panel in
+              index.css for why width rather than transform. Keeping it mounted
+              also means its feed subscriptions and scroll position survive a
+              collapse, so reopening returns you to where you were rather than
+              to the top of a freshly-fetched list. */}
+          <div className={`global-panel flex flex-col border-r border-terminal-border ${leftVisible ? 'visible' : ''}`}>
+            <div className="flex flex-col h-full" style={{ width: 280 }}>
+              <div className="flex items-center gap-2 px-3 flex-shrink-0"
+                style={{ height: 28, borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+                <span className="text-2xs text-terminal-gold font-bold tracking-widest">INTELLIGENCE</span>
+                <button
+                  onClick={toggleLeftPin}
+                  title={leftPinned ? 'Unpin panel' : 'Pin panel open'}
+                  aria-pressed={leftPinned}
+                  className="ml-auto transition-colors"
+                  style={{ color: leftPinned ? '#C9A84C' : '#4A6080', fontSize: 11 }}
+                >📌</button>
+                <button
+                  onClick={() => setLayout(layout === 'D' ? 'C' : 'A')}
+                  title="Close panel"
+                  className="text-terminal-text-dim hover:text-terminal-gold transition-colors"
+                  style={{ fontSize: 11 }}
+                >✕</button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden">{feedPanel}</div>
             </div>
-          )}
+          </div>
 
-          {/* Map — always full remaining width. Panels float over it. */}
-          <div style={{ flex:1, position:'relative', overflow:'hidden', minHeight:0 }}>
+          {/* Map — takes whatever the panels leave, never below 500px. */}
+          <div className="global-map-container" style={{ overflow:'hidden', minHeight:0 }}>
+            {/* Rail shown only when the left panel is collapsed, so there is
+                always a way back to it without hunting the header. */}
+            {!leftVisible && (
+              <button
+                onClick={() => setLayout(layout === 'C' ? 'D' : 'B')}
+                title="Open intelligence panel (⌘[)"
+                style={{
+                  position: 'absolute', left: 0, top: 0, bottom: 0, width: 32, zIndex: 40,
+                  background: 'rgba(6,13,26,0.92)', borderRight: '1px solid rgba(201,168,76,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                }}
+              >
+                <span style={{
+                  writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+                  fontSize: 8, letterSpacing: '0.2em', color: '#C9A84C',
+                  fontFamily: '"IBM Plex Mono", monospace',
+                }}>INTEL</span>
+              </button>
+            )}
             <Suspense fallback={<Viz3DLoader />}>
               {/* Two views. The Immersive 3D globe was removed — the intel
                   map is the primary view and the classic globe is the
@@ -3044,50 +3118,30 @@ export default function GlobalModule() {
             </Suspense>
           </div>
 
-          {/* Right tab panel — inline only when wide */}
-          {wideLayout && (
-            <div className="flex w-[340px] min-w-[340px] flex-shrink-0 flex-col overflow-hidden border-l border-terminal-border">
-              {rightPanel}
+          {/* Right detail/tabs panel — same width-animated treatment. */}
+          <div className={`global-panel flex flex-col border-l border-terminal-border ${rightVisible ? 'visible' : ''}`}>
+            <div className="flex flex-col h-full" style={{ width: 280 }}>
+              <div className="flex items-center gap-2 px-3 flex-shrink-0"
+                style={{ height: 28, borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+                <span className="text-2xs text-terminal-gold font-bold tracking-widest">DETAIL</span>
+                <button
+                  onClick={() => setLayout(layout === 'D' ? 'B' : 'A')}
+                  title="Close panel (⌘])"
+                  className="ml-auto text-terminal-text-dim hover:text-terminal-gold transition-colors"
+                  style={{ fontSize: 11 }}
+                >✕</button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden">{rightPanel}</div>
             </div>
-          )}
+          </div>
 
-          {/* ── Narrow layout: rails + overlays ── */}
-          {!wideLayout && (
-            <>
-              <EdgeRail
-                side="left"
-                open={leftOpen}
-                onToggle={() => { setLeftOpen((v) => !v); setRightOpen(false) }}
-                label="INTELLIGENCE"
-                icons={['📡', '🏛', '⛏', '🚢', '⚠', '💼']}
-              />
-              <EdgeRail
-                side="right"
-                open={rightOpen}
-                onToggle={() => { setRightOpen((v) => !v); setLeftOpen(false) }}
-                label="DETAIL"
-                icons={['🌐', '🚢', '✈', '⛏', '⚠', '🕐']}
-              />
-
-              {/* One scrim for whichever panel is open. Click-away rather than
-                  a close button alone: an overlay covering the map should be
-                  dismissable by returning to the map. */}
-              {(leftOpen || rightOpen) && (
-                <div
-                  onClick={() => { setLeftOpen(false); setRightOpen(false) }}
-                  style={{ position:'absolute', inset:0, zIndex:38, background:'rgba(6,13,26,0.35)' }}
-                />
-              )}
-
-              <SlideOverPanel side="left" open={leftOpen} width={300} onClose={() => setLeftOpen(false)}>
-                {feedPanel}
-              </SlideOverPanel>
-
-              <SlideOverPanel side="right" open={rightOpen} width={340} onClose={() => setRightOpen(false)}>
-                {rightPanel}
-              </SlideOverPanel>
-            </>
-          )}
+          {/* The old narrow-layout branch lived here: two 32px EdgeRails plus
+              a pair of SlideOverPanel overlays, rendered whenever the content
+              was under 1700px. The dual-pin system above replaces it at every
+              width, and leaving both in place put four extra elements in the
+              same flex row — 32 + 32 + 300 + 340 = 704px of it — which is why
+              the right panel measured 1px while carrying the visible class.
+              One layout engine, not two. */}
 
         </div>{/* end main content row */}
       </div>{/* end outer flex-col */}

@@ -1240,3 +1240,33 @@ input.cmd-input:focus,
 @media (prefers-reduced-motion: reduce) {
   .scan-sweep::after { animation: none; background: rgba(201, 168, 76, 0.4); }
 }
+
+
+/* ── Global module: dual-pin layout ───────────────────────────────────────
+   Panels animate by WIDTH rather than by transform, deliberately. A transform
+   slide leaves the panel occupying its space the whole time, so the map cannot
+   grow into it and the two move independently — which reads as the panel
+   sliding over a map that then jumps. Animating width means the map's flex
+   basis resolves every frame and the two move as one piece.
+
+   overflow:hidden on the panel is what makes a 0-width panel safe: its 280px
+   of content is clipped rather than spilling across the map mid-transition. */
+.global-panel {
+  flex-shrink: 0;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+.global-panel.visible { width: 280px; }
+
+.global-map-container {
+  flex: 1;
+  position: relative;
+  /* The floor that makes state D honest. Below this a three-pane layout stops
+     being a map with panels and becomes two panels with a stripe. */
+  min-width: 500px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-panel { transition: none; }
+}
