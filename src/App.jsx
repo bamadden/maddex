@@ -58,6 +58,7 @@ const MarketScannerModule = lazy(() => import('./modules/scanner/MarketScannerMo
 const BondsModule         = lazy(() => import('./modules/bonds/BondsModule'))
 const CalculatorsModule   = lazy(() => import('./modules/calculators/CalculatorsModule'))
 const ETFModule           = lazy(() => import('./modules/etf/ETFModule'))
+const FuturesModule       = lazy(() => import('./modules/futures/FuturesModule'))
 // d3 + topojson-heavy — code-split out of the main bundle.
 const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
 
@@ -130,6 +131,7 @@ const MODULE_MAP = {
   bonds:     BondsModule,
   calculators: CalculatorsModule,
   etf:       ETFModule,
+  futures:   FuturesModule,
 }
 
 const MODULE_TITLES = {
@@ -150,6 +152,7 @@ const MODULE_TITLES = {
   bonds:     'Bonds',
   calculators: 'Calculators',
   etf:       'ETF Explorer',
+  futures:   'Futures & Derivatives',
 }
 
 // Maps shortcutService nav.* action ids to MODULE_MAP keys — see
@@ -171,6 +174,8 @@ const NAV_ACTION_MODULE = {
   'nav.calc':      'calculators',
   'nav.etf':       'etf',
   'nav.etfs':      'etf',
+  'nav.futures':   'futures',
+  'nav.options':   'futures',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────
