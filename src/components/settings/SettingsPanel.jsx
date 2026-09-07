@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { getReminders, removeReminder } from '../../services/calendarExtras'
 import { emailAlertsEnabled, setEmailAlertsEnabled } from '../../services/alertEmailService'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
@@ -1148,6 +1149,51 @@ function ShortcutsSection() {
   )
 }
 
+function UpcomingReminders() {
+  const [items, setItems] = useState(() => getReminders().filter((r) => !r.dismissed))
+  const cancel = (id) => { removeReminder(id); setItems(getReminders().filter((r) => !r.dismissed)) }
+
+  if (!items.length) {
+    return (
+      <div className="border-t border-terminal-border pt-4">
+        <div className="text-2xs text-terminal-text-dim tracking-widest uppercase mb-1">Upcoming reminders</div>
+        <div className="text-2xs text-terminal-text-dim/60">
+          None set. Add one from any event in the Calendar module.
+        </div>
+      </div>
+    )
+  }
+
+  const sorted = [...items].sort((a, b) => new Date(a.fireAt) - new Date(b.fireAt))
+  return (
+    <div className="border-t border-terminal-border pt-4">
+      <div className="text-2xs text-terminal-text-dim tracking-widest uppercase mb-2">
+        Upcoming reminders <span className="text-terminal-gold">({sorted.length})</span>
+      </div>
+      <div className="border border-terminal-border divide-y divide-terminal-border/50">
+        {sorted.map((r) => (
+          <div key={r.id} className="flex items-center gap-2 px-3 py-2">
+            <span className="text-terminal-gold flex-shrink-0" style={{ fontSize: 11 }}>⏰</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-2xs text-terminal-text-bright truncate">{r.eventName}</div>
+              <div className="text-2xs text-terminal-text-dim/60">
+                {new Date(r.fireAt).toLocaleString('en-AU', {
+                  weekday: 'short', day: 'numeric', month: 'short',
+                  hour: '2-digit', minute: '2-digit', hour12: false,
+                })} AEST · {r.offsetLabel ?? r.offsetKey}
+              </div>
+            </div>
+            <button
+              onClick={() => cancel(r.id)}
+              className="text-2xs text-terminal-text-dim hover:text-terminal-red transition-colors flex-shrink-0 tracking-wider"
+            >CANCEL</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function NotificationsSection() {
   const { settings, updateSettings } = useAuthStore()
   const [quiet, setQuiet] = useState(() => getQuietHours())
@@ -1201,6 +1247,11 @@ function NotificationsSection() {
           onChange={() => setQuiet(setQuietHours({ enabled: !quiet.enabled }))}
         />
       </FieldRow>
+
+      {/* Every reminder the user has set, in one place. The calendar shows a
+          reminder on the event it belongs to; it cannot answer "what have I
+          got coming", which is the question you ask in settings. */}
+      <UpcomingReminders />
 
       <FieldRow
         label="Email Alerts"

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { pendingReminders, dismissReminder } from '../../services/calendarExtras'
 import { sendAlertEmail } from '../../services/alertEmailService'
 import { timeAgo } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
@@ -523,6 +524,34 @@ export default function NotificationCenter() {
     const id = setInterval(check, 60_000)
     return () => clearInterval(id)
   }, [watchlist, addNotification])
+
+  // ── CALENDAR REMINDERS — fire wherever the user happens to be ────────────
+  //
+  // pendingReminders() already existed and was already correct, including the
+  // timezone handling that stops an 11:30 AEST print firing ninety minutes
+  // late. It was only ever read INSIDE CalendarModule — so a reminder you set
+  // for the RBA decision only reached you if you happened to have the calendar
+  // open when it came due. A reminder you have to be watching for is not a
+  // reminder.
+  //
+  // This is the right home for it: every other alert checker in the app lives
+  // in this component, and it mounts for the whole session regardless of which
+  // module is on screen.
+  //
+  // dismissReminder is called immediately after raising the notification, so a
+  // reminder fires exactly once — the 60s tick would otherwise re-raise it
+  // every minute until its event passed.
+  useEffect(() => {
+    const check = () => {
+      for (const r of pendingReminders()) {
+        addNotification('CALENDAR', `⏰ ${r.eventName}${r.detail ? ` — ${r.detail}` : ''}`)
+        dismissReminder(r.id)
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [addNotification])
 
   // ── DAILY DIGEST — one summary per market day, after 4:30pm AEST ──────────
   //
