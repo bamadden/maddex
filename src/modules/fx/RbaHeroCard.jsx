@@ -57,6 +57,7 @@ function Seg({ value, unit }) {
 export default function RbaHeroCard({ onAskAI }) {
   const rba = VERIFIED_CONSTANTS.rba
   const cd = useCountdown(rba?.nextMeeting)
+  const gov = VERIFIED_CONSTANTS.centralBankOfficials?.rba
 
   return (
     <div
@@ -75,7 +76,7 @@ export default function RbaHeroCard({ onAskAI }) {
           </div>
           <div
             className="font-mono font-bold text-terminal-gold leading-none tabular-nums"
-            style={{ fontSize: 40, marginTop: 4 }}
+            style={{ fontSize: 48, marginTop: 4 }}
           >
             {rba?.cashRate?.toFixed(2)}%
           </div>
@@ -83,6 +84,15 @@ export default function RbaHeroCard({ onAskAI }) {
             <span className="text-terminal-text-bright font-bold">{(rba?.lastDecisionVerb ?? 'SET').toUpperCase()}</span>
             {' '}{fmtDate(rba?.lastDecision)}
           </div>
+          {/* The Governor's name, from the verified office-holder block rather
+              than from anyone's memory. It belongs on this card because a rate
+              decision is a person's decision — "the Board" is the formal
+              answer and "who is running it" is the useful one. */}
+          {gov?.name && (
+            <div className="font-mono text-terminal-text-dim/70 italic mt-1" style={{ fontSize: 10 }}>
+              {gov.name}, Governor
+            </div>
+          )}
         </div>
 
         <div className="w-px self-stretch" style={{ background: 'rgba(201,168,76,0.12)' }} />

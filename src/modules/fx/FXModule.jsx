@@ -696,6 +696,18 @@ function MarketPricingPanel() {
 
 function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
   const { shape } = primaryStats
+  // Both curves' 2s10s, in basis points. The shape word alone says which side
+  // of zero the curve is on; the number says how far, and "+15bp" versus
+  // "+120bp" are different worlds wearing the same NORMAL label. The US badge
+  // is what makes the pair worth showing side by side at all — an inverted US
+  // curve beside a normal AU one is the single most-watched divergence in this
+  // module.
+  const auStats = getCurveStats('AU')
+  const usStats = getCurveStats('US')
+  const bp = (v) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${Math.round(v * 100)}bp`)
+  const toneFor = (sh) => sh === 'INVERTED' ? 'border-terminal-red/40 text-terminal-red'
+    : sh === 'FLAT' ? 'border-terminal-gold/40 text-terminal-gold'
+    : 'border-terminal-green/40 text-terminal-green'
   return (
     <div className="flex flex-col h-full border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
@@ -708,6 +720,19 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
           shape === 'FLAT'     ? 'border-terminal-gold/40 text-terminal-gold' :
                                   'border-terminal-green/40 text-terminal-green'
         }`}>{shape === '—' ? 'NORMAL CURVE' : `${shape} CURVE`}</span>
+      </div>
+
+      {/* 2s10s for each curve, under the header where the legend colours are. */}
+      <div className="flex items-center gap-3 px-2 py-1 flex-shrink-0"
+        style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
+        <span className="text-2xs text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 8 }}>2s10s SPREAD</span>
+        {[['AU', auStats, YIELD_CURVES.AU.color], ['US', usStats, YIELD_CURVES.US.color]].map(([lbl, st, col]) => (
+          <span key={lbl} className="flex items-center gap-1.5">
+            <span className="text-2xs font-bold" style={{ color: col }}>{lbl}</span>
+            <span className="text-2xs font-mono tabular-nums text-terminal-text-bright">{bp(st.spread)}</span>
+            <span className={`badge ${toneFor(st.shape)}`} style={{ borderWidth: 1, borderStyle: 'solid' }}>{st.shape}</span>
+          </span>
+        ))}
       </div>
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
