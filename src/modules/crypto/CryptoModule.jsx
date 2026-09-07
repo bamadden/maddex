@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
+import DefiPanel from './DefiPanel'
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchCoinHistory, fetchFearGreed, fetchCryptoGlobal,
@@ -592,6 +593,7 @@ export default function CryptoModule() {
   // of sitting side by side, so a small screen needs an explicit switcher.
   const [mobilePanel, setMobilePanel] = useState('table')
   const [view3D, setView3D] = useState(false)
+  const [showDefi, setShowDefi] = useState(false)
   const titleBarRef = useRef(null)
   const { openModal, currency } = useStore()
   const { usdToAud, audToUsd } = useAudRates()
@@ -774,16 +776,30 @@ export default function CryptoModule() {
               : !rawMarkets && !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
             }
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
-            <button
-              onClick={() => setView3D((v) => !v)}
-              className={`ml-auto text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
-                view3D ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
-              }`}
-            >{view3D ? '2D TABLE' : '3D VIEW'}</button>
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                onClick={() => { setShowDefi((v) => !v); setView3D(false) }}
+                className={`text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
+                  showDefi ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+                }`}
+              >{showDefi ? 'COINS' : 'DEFI / ON-CHAIN'}</button>
+              <button
+                onClick={() => { setView3D((v) => !v); setShowDefi(false) }}
+                className={`text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
+                  view3D ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+                }`}
+              >{view3D ? '2D TABLE' : '3D VIEW'}</button>
+            </div>
           </div>
           <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#0B1628', margin: 0, padding: 0 }} />
 
-          {marketsError ? (
+          {showDefi ? (
+            // Absolutely positioned for the same reason the 3D canvas is —
+            // it owns the remaining height below the sticky title bar.
+            <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
+              <DefiPanel />
+            </div>
+          ) : marketsError ? (
             <DataUnavailable label="CRYPTO MARKETS UNAVAILABLE" onRetry={refetchMarkets} />
           ) : markets ? (
             view3D ? (
