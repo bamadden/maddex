@@ -69,7 +69,7 @@ export default function NavContextMenu({ x, y, moduleLabel, onSelect, onClose })
         background: 'rgba(6,13,26,0.97)',
         border: '1px solid rgba(201,168,76,0.3)',
         borderRadius: 3,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.65)',
+        boxShadow: 'var(--shadow-floating)',
         backdropFilter: 'blur(10px)',
         animation: 'tooltipPop .12s ease-out',
       }}

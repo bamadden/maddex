@@ -100,7 +100,7 @@ function IndicatorCard({ indicator, expanded, onToggle }) {
                 <YAxis tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
                 <Tooltip content={<ChartTip />} />
                 <Area type="monotone" dataKey="actual" name="Actual" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
-                <Area type="monotone" dataKey="consensus" name="Consensus" stroke="#5b7fa6" fill="none" strokeDasharray="4 2" />
+                <Area type="monotone" dataKey="consensus" name="Consensus" stroke="#4A6080" fill="none" strokeDasharray="4 2" />
               </AreaChart>
             </SafeChart>
           </div>

@@ -81,7 +81,7 @@ export default function Tooltip({ content, children, placement = 'top', maxWidth
             fontSize: 10,
             lineHeight: 1.5,
             color: '#E8EDF5',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: 'var(--shadow-elevated)',
             pointerEvents: 'none',
             whiteSpace: 'pre-line',
           }}

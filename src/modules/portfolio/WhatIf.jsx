@@ -76,7 +76,7 @@ function Delta({ before, after, lowerIsBetter = false, neutral = false }) {
   const arrow = diff > 0 ? '▲' : '▼'
   if (neutral) return <span style={{ color: '#8BA3C4' }}>{arrow}</span>
   const good = lowerIsBetter ? diff < 0 : diff > 0
-  return <span style={{ color: good ? '#2D8A50' : '#C86464', fontWeight: 700 }}>{arrow}</span>
+  return <span style={{ color: good ? '#2D8A50' : '#CC4444', fontWeight: 700 }}>{arrow}</span>
 }
 
 export default function WhatIf({ holdings, onOpenAI }) {
@@ -210,7 +210,7 @@ export default function WhatIf({ holdings, onOpenAI }) {
                 {trades.map((t, i) => (
                   <div key={i} className="flex items-center gap-2 text-2xs px-2 py-1"
                     style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)' }}>
-                    <span className="font-bold" style={{ color: t.action === 'BUY' ? '#2D8A50' : '#C86464' }}>{t.action}</span>
+                    <span className="font-bold" style={{ color: t.action === 'BUY' ? '#2D8A50' : '#CC4444' }}>{t.action}</span>
                     <span className="text-terminal-text-bright">{t.units} × {t.symbol}</span>
                     <span className="text-terminal-text-dim">@ A${t.price.toFixed(2)}</span>
                     <span className="text-terminal-text-dim ml-auto tabular-nums">{money(t.units * t.price)}</span>

@@ -111,7 +111,7 @@ function SparklineLarge({ points, color, label }) {
     <div>
       <div className="text-2xs text-terminal-text-dim mb-1">{label} · 7D</div>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-        <line x1={pad} y1={h/2} x2={w-pad} y2={h/2} stroke="#0d2244" strokeWidth="1" />
+        <line x1={pad} y1={h/2} x2={w-pad} y2={h/2} stroke="#0F1E35" strokeWidth="1" />
         <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
       <div className="flex justify-between text-2xs text-terminal-text-dim/60">
@@ -123,7 +123,7 @@ function SparklineLarge({ points, color, label }) {
 }
 
 const COMPARE_PERIODS = [['1mo','1M'],['3mo','3M'],['ytd','YTD'],['1y','1Y']]
-const COMPARE_COLORS = ['#C9A84C', '#4a90d9', '#22c55e', '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#8a94a6', '#0ea5e9']
+const COMPARE_COLORS = ['#C9A84C', '#4a90d9', '#2D8A50', '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#8BA3C4', '#0ea5e9']
 
 function CompareIndicesModal({ indices, onClose }) {
   const [period, setPeriod] = useState('3mo')
@@ -207,7 +207,7 @@ function CompareIndicesModal({ indices, onClose }) {
           ) : (
             <SafeChart width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <CartesianGrid stroke="#0F1E35" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                 <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} width={45} tickFormatter={(v) => v.toFixed(0)} />
                 <Tooltip

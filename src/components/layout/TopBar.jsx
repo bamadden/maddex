@@ -153,9 +153,9 @@ function UserMenu() {
             </div>
             {[
               ['⚙', 'Settings', () => { openSettings(); setOpen(false) }],
-              ['👤', 'Edit Profile', () => { openSettings(); setOpen(false) }],
+              ['◉', 'Edit Profile', () => { openSettings(); setOpen(false) }],
               ['📊', 'Portfolio', () => { setActiveModule('portfolio'); setOpen(false) }],
-              ['🔔', 'Price Alerts', () => { setActiveModule('watchlist'); setOpen(false) }],
+              ['◎', 'Price Alerts', () => { setActiveModule('watchlist'); setOpen(false) }],
             ].map(([icon, label, onClick]) => (
               <button key={label} onClick={onClick}
                 className="w-full flex items-center gap-2 px-3 py-2 text-2xs text-terminal-text hover:bg-terminal-accent/30 transition-colors text-left"

@@ -50,8 +50,8 @@ export default function StockContextMenu({ menu, onClose }) {
     already
       ? { icon: '✓', label: 'Already in watchlist', disabled: true, run: () => {} }
       : { icon: '+', label: 'Add to watchlist', flash: 'ADDED', run: () => addToWatchlist(ticker) },
-    { icon: '📋', label: 'Copy ticker', flash: 'COPIED', run: () => copy(ticker) },
-    { icon: '📋', label: 'Copy price', flash: 'COPIED', disabled: asset.price == null,
+    { icon: '⊟', label: 'Copy ticker', flash: 'COPIED', run: () => copy(ticker) },
+    { icon: '⊟', label: 'Copy price', flash: 'COPIED', disabled: asset.price == null,
       run: () => copy(String(asset.price)) },
     { icon: '🔗', label: 'Open in Markets', run: () => setActiveModule('markets') },
   ]

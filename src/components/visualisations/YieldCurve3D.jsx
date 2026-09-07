@@ -130,12 +130,12 @@ function AxisLabels({ half, curves }) {
     <group>
       {maturities.map((m) => (
         <Html key={m} position={[logX(MATURITY_YEARS[m], half), -0.3, ((TIME_LABELS.length - 1) * 2.0) / 2 + 0.6]} center distanceFactor={14}>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: '#8a94a6', whiteSpace: 'nowrap' }}>{m}</div>
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: '#8BA3C4', whiteSpace: 'nowrap' }}>{m}</div>
         </Html>
       ))}
       {TIME_LABELS.map((label, ti) => (
         <Html key={label} position={[-half - 0.8, 0, ti * 2.0 - ((TIME_LABELS.length - 1) * 2.0) / 2]} center distanceFactor={14}>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: '#8a94a6', whiteSpace: 'nowrap' }}>{label}</div>
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: '#8BA3C4', whiteSpace: 'nowrap' }}>{label}</div>
         </Html>
       ))}
     </group>

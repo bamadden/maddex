@@ -202,7 +202,7 @@ function DivergenceSection({ settings }) {
             className="text-2xs font-bold px-1.5 py-0.5 border flex-shrink-0"
             style={r.kind === 'BULLISH DIV'
               ? { color: '#2D8A50', borderColor: 'rgba(45,138,80,0.5)' }
-              : { color: '#C86464', borderColor: 'rgba(200,100,100,0.5)' }}
+              : { color: '#CC4444', borderColor: 'rgba(200,100,100,0.5)' }}
           >{r.kind}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
@@ -212,7 +212,7 @@ function DivergenceSection({ settings }) {
             <div className="text-2xs text-terminal-text-dim mt-0.5">{r.note}</div>
           </div>
           <div className="text-right flex-shrink-0 tabular-nums">
-            <div className="text-2xs" style={{ color: r.pricePct >= 0 ? '#2D8A50' : '#C86464' }}>
+            <div className="text-2xs" style={{ color: r.pricePct >= 0 ? '#2D8A50' : '#CC4444' }}>
               PRICE {r.pricePct >= 0 ? '+' : ''}{r.pricePct.toFixed(1)}%
             </div>
             <div className="text-2xs text-terminal-text-dim">
@@ -262,7 +262,7 @@ function MomentumTab({ settings }) {
                   {r.sector && <span className="text-terminal-text-dim/60 ml-1.5">{r.sector}</span>}
                 </td>
                 {[r.d5, r.d10, r.d20].map((v, j) => (
-                  <td key={j} className="py-1 text-right tabular-nums" style={{ color: v >= 0 ? '#2D8A50' : '#C86464' }}>
+                  <td key={j} className="py-1 text-right tabular-nums" style={{ color: v >= 0 ? '#2D8A50' : '#CC4444' }}>
                     {v >= 0 ? '+' : ''}{v.toFixed(1)}%
                   </td>
                 ))}
@@ -308,7 +308,7 @@ function GapsTab({ tick, scanTime, settings }) {
       {results.map((r) => (
         <ResultCard
           key={r.symbol}
-          badge={`GAP ${r.direction === 'UP' ? '↑' : '↓'}`} badgeColor="border-purple-400/50 text-purple-400"
+          badge={`GAP ${r.direction === 'UP' ? '▲' : '▼'}`} badgeColor="border-purple-400/50 text-purple-400"
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
           metricLabel="Gap on open" metricValue={`${r.direction === 'UP' ? '+' : '−'}${Math.abs(r.gapPct).toFixed(1)}% vs prior close`}
           price={r.price} changePct={r.changePct}

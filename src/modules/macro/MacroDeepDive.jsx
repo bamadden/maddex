@@ -28,7 +28,7 @@ function targetRead(name, value) {
   if (!/CPI/i.test(name)) return null
   const v = parseNum(value)
   if (v == null) return null
-  if (v > 3) return { label: 'ABOVE TARGET BAND', colour: '#C86464', detail: `${v}% against the RBA's 2–3% band` }
+  if (v > 3) return { label: 'ABOVE TARGET BAND', colour: '#CC4444', detail: `${v}% against the RBA's 2–3% band` }
   if (v < 2) return { label: 'BELOW TARGET BAND', colour: '#4A9EDB', detail: `${v}% against the RBA's 2–3% band` }
   return { label: 'IN TARGET BAND', colour: '#2D8A50', detail: `${v}% within the RBA's 2–3% band` }
 }
@@ -106,7 +106,7 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
           <span className="text-2xs font-bold text-terminal-gold tracking-widest">{indicator.name.toUpperCase()}</span>
           <span className="text-lg font-bold text-terminal-text-bright tabular-nums">{indicator.value}</span>
           {delta != null && (
-            <span className="text-2xs tabular-nums" style={{ color: delta > 0 ? '#2D8A50' : delta < 0 ? '#C86464' : '#637899' }}>
+            <span className="text-2xs tabular-nums" style={{ color: delta > 0 ? '#2D8A50' : delta < 0 ? '#CC4444' : '#637899' }}>
               {delta > 0 ? '▲' : delta < 0 ? '▼' : '→'} {Math.abs(delta)} vs previous ({indicator.prev})
             </span>
           )}
@@ -169,7 +169,7 @@ export function RbaSensitivityMatrix() {
     { growth: false, infl: false, lean: 'CUT',       note: 'Room to support activity' },
   ]
 
-  const LEAN_COLOUR = { HIKE: '#2D8A50', HOLD: '#C9A84C', CUT: '#C86464' }
+  const LEAN_COLOUR = { HIKE: '#2D8A50', HOLD: '#C9A84C', CUT: '#CC4444' }
 
   return (
     <div className="border border-terminal-border">

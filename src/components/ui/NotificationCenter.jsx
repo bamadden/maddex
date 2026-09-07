@@ -15,7 +15,10 @@ import {
   shouldSendDigest, markDigestSent, buildDigest, inQuietHours,
 } from '../../services/notificationPolicy'
 
-const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '📰', SYSTEM: '✦', CALENDAR: '📅', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '📊' }
+// One face, one weight, one baseline. Every glyph here is text-presentation,
+// so it inherits the panel's colour and the monospace metrics rather than
+// arriving as a coloured bitmap from the OS.
+const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '◎', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞' }
 // Icon-circle background per type — gold for price/alert-family, blue for
 // earnings/calendar, green for news, muted for system.
 const TYPE_CIRCLE = {
@@ -565,7 +568,7 @@ export default function NotificationCenter() {
         className="relative flex items-center justify-center w-6 h-7 text-terminal-text-dim hover:text-terminal-gold transition-colors"
         title="Notifications"
       >
-        <span className="text-sm">🔔</span>
+        <span className="text-sm">◎</span>
         {unreadCount > 0 && (
           <span
             className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-terminal-red"
@@ -616,7 +619,7 @@ export default function NotificationCenter() {
               <div className="max-h-96 overflow-auto">
                 {history.length === 0 ? (
                   <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
-                    <span className="text-2xl opacity-40">🗒</span>
+                    <span className="text-2xl opacity-40">≡</span>
                     <div className="text-2xs text-terminal-text-bright font-semibold">Nothing in the last 7 days</div>
                     <div className="text-2xs text-terminal-text-dim/60">History builds up as notifications arrive</div>
                   </div>
@@ -663,7 +666,7 @@ export default function NotificationCenter() {
           <div className="max-h-96 overflow-auto" hidden={pane !== 'feed'}>
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
-                <span className="text-2xl opacity-40">🔔</span>
+                <span className="text-2xl opacity-40">◎</span>
                 <div className="text-2xs text-terminal-text-bright font-semibold">All caught up</div>
                 <div className="text-2xs text-terminal-text-dim/60">No new notifications</div>
               </div>
@@ -696,7 +699,7 @@ export default function NotificationCenter() {
             >⚙ MANAGE ALERTS</button>
             {inQuietHours() && (
               <span className="ml-2 text-2xs text-terminal-text-dim/60" title="Only price alerts interrupt during quiet hours">
-                · 🌙 quiet hours
+                · ◗ quiet hours
               </span>
             )}
           </div>

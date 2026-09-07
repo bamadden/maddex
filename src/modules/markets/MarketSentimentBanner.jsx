@@ -219,7 +219,7 @@ function TrendSection({ currentScore }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
       {/* Tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8899aa)', letterSpacing: '0.08em', marginRight: 8 }}>TREND</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginRight: 8 }}>TREND</span>
         {TREND_TABS.map((t) => (
           <button
             key={t}
@@ -227,7 +227,7 @@ function TrendSection({ currentScore }) {
             style={{
               fontSize: 9, padding: '2px 7px', cursor: 'pointer', border: 'none',
               background: t === tab ? 'rgba(201,168,76,0.15)' : 'transparent',
-              color: t === tab ? '#C9A84C' : 'var(--color-text-dim, #8899aa)',
+              color: t === tab ? '#C9A84C' : 'var(--color-text-dim, #8BA3C4)',
               fontFamily: 'IBM Plex Mono, monospace', fontWeight: t === tab ? 700 : 400,
             }}
           >
@@ -238,7 +238,7 @@ function TrendSection({ currentScore }) {
 
       {/* Chart */}
       {chartData.length < 2 ? (
-        <div style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)', fontStyle: 'italic', padding: '12px 0' }}>
+        <div style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic', padding: '12px 0' }}>
           BUILDING HISTORY — scores recorded each session
         </div>
       ) : (
@@ -250,14 +250,14 @@ function TrendSection({ currentScore }) {
               scale="time"
               domain={['dataMin', 'dataMax']}
               tickFormatter={(v) => fmtTimestamp(v, tab)}
-              tick={{ fontSize: 8, fill: 'var(--color-text-dim, #8899aa)', fontFamily: 'IBM Plex Mono, monospace' }}
+              tick={{ fontSize: 8, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
               tickCount={5}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               domain={[0, 100]}
-              tick={{ fontSize: 8, fill: 'var(--color-text-dim, #8899aa)', fontFamily: 'IBM Plex Mono, monospace' }}
+              tick={{ fontSize: 8, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
               axisLine={false}
               tickLine={false}
               ticks={[0, 33, 66, 100]}
@@ -275,7 +275,7 @@ function TrendSection({ currentScore }) {
       )}
 
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>
         <span>Current: <b style={{ color: lineColor }}>{currentScore}/100</b></span>
         {prev && (
           <span>
@@ -368,14 +368,14 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
           >
             {/* Radar chart */}
             <div style={{ flex: '0 0 auto' }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8899aa)', letterSpacing: '0.08em', marginBottom: 4 }}>COMPONENT SCORES</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>COMPONENT SCORES</div>
               <SafeChart width="100%" height={210}>
                 <RadarChart data={radarData} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
                   <Customized component={RadarZones} />
                   <PolarGrid stroke="rgba(30,70,140,0.35)" />
                   <PolarAngleAxis
                     dataKey="factor"
-                    tick={{ fill: 'var(--color-text-dim, #8899aa)', fontSize: 8, fontFamily: 'IBM Plex Mono, monospace' }}
+                    tick={{ fill: 'var(--color-text-dim, #8BA3C4)', fontSize: 8, fontFamily: 'IBM Plex Mono, monospace' }}
                   />
                   <Radar
                     name="Score"
@@ -392,7 +392,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                 </RadarChart>
               </SafeChart>
               {/* Legend */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', fontSize: 8, color: 'var(--color-text-dim, #8899aa)' }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', fontSize: 8, color: 'var(--color-text-dim, #8BA3C4)' }}>
                 <span style={{ color: '#a83232' }}>● 0–33 BEARISH</span>
                 <span style={{ color: '#c9a84c' }}>● 34–66 NEUTRAL</span>
                 <span style={{ color: '#2d8a50' }}>● 67–100 BULLISH</span>
@@ -401,13 +401,13 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
 
             {/* Signal summary */}
             <div style={{ flex: '1 1 0', minHeight: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8899aa)', letterSpacing: '0.08em', marginBottom: 4 }}>SIGNAL SUMMARY</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>SIGNAL SUMMARY</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {sentiment.factors.filter((f) => f.score >= 55).map((f) => (
                   <div key={f.name} style={{ fontSize: 9, color: '#2d8a50' }}>▲ {f.name}</div>
                 ))}
                 {sentiment.factors.filter((f) => f.score >= 45 && f.score < 55).map((f) => (
-                  <div key={f.name} style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>◆ {f.name}</div>
+                  <div key={f.name} style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>◆ {f.name}</div>
                 ))}
                 {sentiment.factors.filter((f) => f.score < 45).map((f) => (
                   <div key={f.name} style={{ fontSize: 9, color: '#a83232' }}>▼ {f.name}</div>
@@ -418,7 +418,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
 
           {/* Right: component breakdown */}
           <div style={{ overflow: 'hidden', padding: '10px 12px 8px' }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8899aa)', letterSpacing: '0.08em', marginBottom: 6 }}>COMPONENT BREAKDOWN</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 6 }}>COMPONENT BREAKDOWN</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {sentiment.factors.map((f) => {
                 const desc = getFactorDescription(f.name, f.score, { asxChanges, fearGreed })
@@ -428,7 +428,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                       <span style={{ fontSize: 10, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>wt {f.weight}%</span>
+                        <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>wt {f.weight}%</span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: col }}>{f.score}/100</span>
                       </div>
                     </div>
@@ -437,7 +437,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                         <div style={{ width: `${f.score}%`, height: '100%', background: col, borderRadius: 2, opacity: 0.85 }} />
                       </div>
                     </div>
-                    {desc && <div style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)', fontStyle: 'italic' }}>{desc}</div>}
+                    {desc && <div style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic' }}>{desc}</div>}
                   </div>
                 )
               })}

@@ -5,7 +5,7 @@ export const GAIN_COLOR   = '#3aaa63'
 export const GAIN_BRIGHT  = '#4ade80'
 export const LOSS_COLOR   = '#a83232'
 export const LOSS_BRIGHT  = '#f87171'
-export const NEUTRAL      = '#8a94a6'
+export const NEUTRAL      = '#8BA3C4'
 export const GOLD         = '#c8a84b'
 export const BG_COLOR     = '#060D1A'
 

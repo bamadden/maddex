@@ -77,7 +77,9 @@ function coinDescription(symbol, name) {
 }
 
 const REC_LABELS = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
-const REC_COLORS = ['#22c55e', '#86efac', '#fbbf24', '#f97316', '#ef4444']
+// STRONG BUY -> BUY -> HOLD -> SELL -> STRONG SELL, walked through the
+// terminal's own green, gold and red rather than five Tailwind swatches.
+const REC_COLORS = ['#2D8A50', '#5E9B76', '#C9A84C', '#B07A7A', '#A83232']
 
 // ─── Candlestick Chart ────────────────────────────────────────────────────────
 
@@ -133,7 +135,7 @@ function CandleChart({ data }) {
     <div ref={containerRef} className="w-full relative" style={{ height: `${height}px` }}>
       <svg width={width} height={height} onMouseLeave={() => setTooltip(null)}>
         {yLabels.map((lbl) => (
-          <line key={lbl.price} x1={padLeft} y1={lbl.y} x2={width - padRight} y2={lbl.y} stroke="#0d2244" strokeWidth={1} />
+          <line key={lbl.price} x1={padLeft} y1={lbl.y} x2={width - padRight} y2={lbl.y} stroke="#0F1E35" strokeWidth={1} />
         ))}
         {yLabels.map((lbl) => (
           <text key={lbl.price} x={padLeft - 4} y={lbl.y + 3} textAnchor="end" fill="#4A6080" fontSize={9} fontFamily="IBM Plex Mono">
@@ -1107,7 +1109,7 @@ export default function DetailModal() {
               onClick={() => setAlertOpen(o => !o)}
               title="Set price alert"
               className={`text-lg leading-none transition-colors ${alertOpen ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-            >🔔</button>
+            >◎</button>
             <button onClick={closeModal} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
           </div>
         </div>
@@ -1185,7 +1187,7 @@ export default function DetailModal() {
                 title={`${upcomingEarnings.type} results — estimates only`}
                 className="flex items-center gap-1.5 border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 text-2xs whitespace-nowrap"
               >
-                <span>📅</span>
+                <span>◈</span>
                 <span className="font-bold">
                   Earnings: {new Date(`${upcomingEarnings.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                 </span>
@@ -1276,7 +1278,7 @@ export default function DetailModal() {
           ) : compareOpen && compareData.length > 1 ? (
             <SafeChart width="100%" height="100%">
               <LineChart data={compareData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <CartesianGrid stroke="#0F1E35" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                 <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} width={40} tickFormatter={(v) => v.toFixed(0)} />
                 <Tooltip
@@ -1316,7 +1318,7 @@ export default function DetailModal() {
                       <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#0d2244" vertical={false} />
+                  <CartesianGrid stroke="#0F1E35" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
@@ -1325,7 +1327,7 @@ export default function DetailModal() {
                 </AreaChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                  <CartesianGrid stroke="#0d2244" vertical={false} />
+                  <CartesianGrid stroke="#0F1E35" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
@@ -1366,7 +1368,7 @@ export default function DetailModal() {
               onClick={() => window.dispatchEvent(new CustomEvent('madden:open-correlation', { detail: { assets: [symbol.replace(/\.AX$/i, '')] } }))}
               className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors cursor-pointer"
             >
-              🔗 VIEW CORRELATIONS
+              ◇ VIEW CORRELATIONS
             </button>
           )}
           {/* Quick actions */}

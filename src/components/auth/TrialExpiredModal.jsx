@@ -23,7 +23,7 @@ export default function TrialExpiredModal() {
 
   return (
     <div className="fixed inset-0 z-[300] bg-terminal-bg flex items-center justify-center font-mono p-4"
-      style={{ backgroundImage: 'radial-gradient(circle, #0d2244 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
     >
       <div className="w-full max-w-2xl border border-terminal-gold bg-terminal-panel shadow-2xl">
         <div className="py-6 px-6 text-center border-b border-terminal-border">

@@ -83,7 +83,7 @@ const SORT_ACCESSOR = {
   marketCap:(h) => h.marketCap,
 }
 
-const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#2ea05a', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
+const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#3AAA63', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 
 // Wash behind a P&L cell. Alpha is deliberately low — it must read as a tint
@@ -439,7 +439,7 @@ function PerformanceChart({ mktTotal, pnlPct, prefix }) {
                 <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             {/* Cost basis — the line that decides whether the book is up or
                 down, which the value axis alone doesn't tell you. */}
             <ReferenceLine
@@ -1292,7 +1292,7 @@ export default function PortfolioModule() {
               <div className="h-36 p-1 flex-shrink-0">
                 <SafeChart width="100%" height="100%">
                   <BarChart data={pnlData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                    <CartesianGrid stroke="#0d2244" vertical={false} />
+                    <CartesianGrid stroke="#0F1E35" vertical={false} />
                     {/* Break-even, so winners and losers read as sides of a
                         line rather than just bars of different heights. */}
                     <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="4 4" strokeOpacity={0.5} />

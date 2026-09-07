@@ -92,7 +92,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
       position: 'absolute', top: 12, right: 12, width, maxHeight: 'calc(100% - 24px)',
       display: 'flex', flexDirection: 'column',
       background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 4,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.6)', zIndex: 20, backdropFilter: 'blur(12px)',
+      boxShadow: 'var(--shadow-floating)', zIndex: 20, backdropFilter: 'blur(12px)',
       animation: 'panelSlideIn .2s ease-out',
     }}>
       <div style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid rgba(201,168,76,0.15)',

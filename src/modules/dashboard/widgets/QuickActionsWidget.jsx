@@ -7,7 +7,7 @@ const ACTIONS = [
   { label: 'WATCHLIST', icon: '★',  to: 'watchlist' },
   { label: 'PORTFOLIO', icon: '💼', to: 'portfolio' },
   { label: 'NEWS',      icon: '📰', to: 'news' },
-  { label: 'GLOBAL',    icon: '🗺',  to: 'global' },
+  { label: 'GLOBAL',    icon: '◉',  to: 'global' },
   { label: 'ASK AI',    icon: '▲',  ai: true },
 ]
 

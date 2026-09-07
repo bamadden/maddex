@@ -40,6 +40,37 @@ export default {
           'text-bright': 'rgb(var(--t-text-bright) / <alpha-value>)',
         },
       },
+      // ONE CURVE FOR STATE CHANGES.
+      //
+      // Tailwind's default is cubic-bezier(.4, 0, .2, 1) — an ease-in-out that
+      // starts slowly. On a hover that reads as lag. Setting the DEFAULT here
+      // reaches every transition-colors / transition-opacity / transition-all
+      // in the app at once; a `*` rule in CSS could not, because a utility
+      // class outranks it.
+      transitionTimingFunction: {
+        DEFAULT: 'ease',
+        enter: 'ease-out',
+      },
+      transitionDuration: { DEFAULT: '150ms' },
+
+      // TWO SHADOWS, AND ONLY TWO.
+      //
+      // Overriding Tailwind's scale rather than editing 52 call sites: the app
+      // uses shadow-2xl (44x), shadow-lg (7x) and shadow-xl (1x), which was
+      // three different elevations chosen by whoever typed fastest. They now
+      // resolve to one of two, so "is this panel floating or merely raised?" is
+      // the only question a component can answer.
+      boxShadow: {
+        elevated: '0 4px 16px rgba(0, 0, 0, 0.4)',
+        floating: '0 8px 32px rgba(0, 0, 0, 0.6)',
+        sm:  '0 4px 16px rgba(0, 0, 0, 0.4)',
+        DEFAULT: '0 4px 16px rgba(0, 0, 0, 0.4)',
+        md:  '0 4px 16px rgba(0, 0, 0, 0.4)',
+        lg:  '0 4px 16px rgba(0, 0, 0, 0.4)',
+        xl:  '0 8px 32px rgba(0, 0, 0, 0.6)',
+        '2xl': '0 8px 32px rgba(0, 0, 0, 0.6)',
+        none: 'none',
+      },
       fontFamily: {
         mono: ['"IBM Plex Mono"', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],

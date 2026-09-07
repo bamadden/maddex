@@ -22,7 +22,7 @@ const FILTERS = [
   { key: 'AU',       label: '🇦🇺 AU' },
   { key: 'US',       label: '🇺🇸 US' },
   { key: 'earnings', label: '📊 EARNINGS' },
-  { key: 'cb',       label: '🏦 CB' },
+  { key: 'cb',       label: '◈ CB' },
   { key: 'high',     label: 'HIGH ONLY' },
 ]
 
@@ -208,7 +208,7 @@ function EconomicEventCard({ event, onReminderChange }) {
         // panel colour they were painted in, so without separation they read
         // as one long block of text rather than as discrete events.
         background: 'linear-gradient(180deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0) 42%), rgb(var(--t-panel))',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+        boxShadow: 'var(--shadow-elevated)',
       }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border/50">
@@ -293,7 +293,7 @@ function EarningsEventCard({ event, onReminderChange }) {
       className="border border-terminal-border border-l-[3px] border-l-terminal-gold"
       style={{
         background: 'linear-gradient(180deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0) 42%), rgb(var(--t-panel))',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+        boxShadow: 'var(--shadow-elevated)',
       }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border/50">

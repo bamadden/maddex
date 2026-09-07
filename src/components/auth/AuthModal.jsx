@@ -60,7 +60,9 @@ function passwordStrength(pw) {
 }
 
 const STRENGTH_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong']
-const STRENGTH_COLORS = ['', '#ff1744', '#f59e0b', '#3b82f6', '#00c853']
+// Weak -> strong, on the same green/gold/red axis every other severity
+// reading in the terminal uses, so "red is bad" means one thing everywhere.
+const STRENGTH_COLORS = ['', '#A83232', '#CC4444', '#C9A84C', '#2D8A50']
 
 function PasswordStrength({ password }) {
   if (!password) return null
@@ -72,7 +74,7 @@ function PasswordStrength({ password }) {
           <div
             key={i}
             className="h-0.5 flex-1 transition-all duration-300"
-            style={{ backgroundColor: i <= score ? STRENGTH_COLORS[score] : '#0d2244' }}
+            style={{ backgroundColor: i <= score ? STRENGTH_COLORS[score] : '#0F1E35' }}
           />
         ))}
       </div>
@@ -244,7 +246,7 @@ export default function AuthModal({ deletedMessage }) {
 
   return (
     <div className="fixed inset-0 z-[200] bg-terminal-bg flex items-center justify-center font-mono"
-      style={{ backgroundImage: 'radial-gradient(circle, #0d2244 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
     >
       <div className="w-full max-w-[420px] border border-terminal-gold bg-terminal-panel shadow-2xl mx-4">
         {/* Header */}

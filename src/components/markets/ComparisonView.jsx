@@ -9,7 +9,7 @@ import { getMockFMPHistory } from '../../services/mockData'
 import { dispatchAskAI } from '../../utils/askAI'
 import SafeChart from '../ui/SafeChart'
 
-const LINE_COLORS = ['#C9A84C', '#4a9dd9', '#2ea05a', '#9B6BC4']
+const LINE_COLORS = ['#C9A84C', '#4a9dd9', '#3AAA63', '#9B6BC4']
 const MAX_COMPARE = 4
 
 const PERIODS = [
@@ -247,7 +247,7 @@ export default function ComparisonView() {
               <div className="h-48 px-3 pt-1">
                 <SafeChart width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#0d2244" vertical={false} />
+                    <CartesianGrid stroke="#0F1E35" vertical={false} />
                     <XAxis dataKey="i" tick={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 8 }} width={36} domain={yDomain} />
                     <Tooltip

@@ -81,7 +81,7 @@ export default function YieldCurveAnimator({ curve }) {
       <div style={{ height: 220 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
           <LineChart data={frame} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="tenor" tick={{ fontSize: 9 }} />
             <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
             <Tooltip

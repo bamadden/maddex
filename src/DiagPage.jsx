@@ -151,7 +151,7 @@ function ResultRow({ test }) {
             isOk               ? 'bg-green-700 text-green-100' :
                                   'bg-red-700 text-red-100'
           }`}>
-            {state === 'running' ? '⟳ RUNNING' : isOk ? '✓ OK' : state === 'error' ? '✗ NETWORK ERROR' : '✗ API ERROR'}
+            {state === 'running' ? '⟳ RUNNING' : isOk ? '✓ OK' : state === 'error' ? '✕ NETWORK ERROR' : '✕ API ERROR'}
             {ms != null && ` ${ms}ms`}
           </span>
         </div>

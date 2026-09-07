@@ -40,8 +40,8 @@ function scoreStock(q) {
 
 function scoreColor(s) {
   if (s == null) return '#4a5568'
-  if (s >= 67)   return '#22c55e'
-  if (s >= 34)   return '#fbbf24'
+  if (s >= 67)   return '#2D8A50'
+  if (s >= 34)   return '#C9A84C'
   return '#ef4444'
 }
 
@@ -280,7 +280,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
       {/* Legend + footer */}
       <div className="border-t border-terminal-border px-3 py-1.5 flex items-center justify-between flex-shrink-0">
         <div className="flex gap-4">
-          {[['0–33','WEAK','#ef4444'],['34–66','NEUTRAL','#fbbf24'],['67–100','STRONG','#22c55e']].map(([range, label, color]) => (
+          {[['0–33','WEAK','#ef4444'],['34–66','NEUTRAL','#C9A84C'],['67–100','STRONG','#2D8A50']].map(([range, label, color]) => (
             <div key={label} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color, opacity: 0.7 }} />
               <span className="text-2xs text-terminal-text-dim">{label} <span className="text-terminal-text-dim/40">{range}</span></span>

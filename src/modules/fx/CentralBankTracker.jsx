@@ -23,7 +23,7 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 
 const DECISION_STYLE = {
   HIKE: { colour: '#2D8A50', bg: 'rgba(45,138,80,0.15)', border: 'rgba(45,138,80,0.5)', mark: '▲' },
-  CUT:  { colour: '#C86464', bg: 'rgba(200,100,100,0.15)', border: 'rgba(200,100,100,0.5)', mark: '▼' },
+  CUT:  { colour: '#CC4444', bg: 'rgba(200,100,100,0.15)', border: 'rgba(200,100,100,0.5)', mark: '▼' },
   HOLD: { colour: '#C9A84C', bg: 'rgba(201,168,76,0.12)', border: 'rgba(201,168,76,0.4)', mark: '—' },
 }
 
@@ -175,7 +175,7 @@ function SpreadMonitor({ curves }) {
         <span className="text-2xs text-terminal-text-dim">US 10Y <b className="text-terminal-text-bright tabular-nums ml-1">{us.toFixed(2)}%</b></span>
         <span className="text-2xs text-terminal-text-dim">
           SPREAD
-          <b className="tabular-nums ml-1" style={{ color: auDiscount ? '#C86464' : '#2D8A50' }}>
+          <b className="tabular-nums ml-1" style={{ color: auDiscount ? '#CC4444' : '#2D8A50' }}>
             {spread >= 0 ? '+' : ''}{spread.toFixed(0)} bp
           </b>
         </span>

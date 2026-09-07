@@ -148,7 +148,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
     )}
     <SafeChart width="100%" height="100%">
       <LineChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
-        <CartesianGrid stroke="#0d2244" vertical={false} />
+        <CartesianGrid stroke="#0F1E35" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={1} />
         <YAxis tick={{ fontSize: 8 }} tickFormatter={(v) => `${v}${unit}`} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTooltip unit={unit} color={color} />} />
@@ -197,7 +197,7 @@ const CHART_CONFIGS = {
   gdp: {
     title: 'AU GDP Growth QoQ (%)',
     data: null,
-    color: '#3b82f6',
+    color: '#2D7DD2',
     unit: '%',
     refLine: 0,
     refLabel: 'Zero growth',
@@ -322,7 +322,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               onMouseUp={handleMouseUp}
               style={{ cursor: refLeft != null ? 'col-resize' : 'crosshair' }}
             >
-              <CartesianGrid stroke="#0d2244" vertical={false} />
+              <CartesianGrid stroke="#0F1E35" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#4A6080' }} interval={1} allowDataOverflow />
               <YAxis
                 tick={{ fontSize: 10, fill: '#4A6080' }}
@@ -498,7 +498,7 @@ function RBADashboard({ askAI }) {
                     <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <CartesianGrid stroke="#0F1E35" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={2}
                   tickFormatter={(d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
                 <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={32} />
@@ -510,7 +510,7 @@ function RBADashboard({ askAI }) {
                       </div>
                     : null
                 } />
-                <ReferenceLine y={2.5} stroke="#3b82f6" strokeDasharray="3 3" />
+                <ReferenceLine y={2.5} stroke="#2D7DD2" strokeDasharray="3 3" />
                 <Area type="stepAfter" dataKey="rate" stroke="#C9A84C" strokeWidth={1.5}
                   fill="url(#rbaGrad)" dot={false} isAnimationActive={false} />
               </AreaChart>
@@ -669,7 +669,7 @@ function LeadingIndicators() {
       chart: (
         <SafeChart width="100%" height="100%">
           <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
             <YAxis tick={{ fontSize: 8 }} domain={[70, 110]} width={34} />
             <Tooltip content={<SentimentTooltip />} />
@@ -691,7 +691,7 @@ function LeadingIndicators() {
       chart: (
         <SafeChart width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 8, left: -28, bottom: 4 }}>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
             <YAxis tick={{ fontSize: 8 }} domain={[-5, 12]} width={28} />
             <Tooltip content={<SentimentTooltip />} />
@@ -717,16 +717,16 @@ function LeadingIndicators() {
           <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
             <defs>
               <linearGradient id="tradeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#2ea05a" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#2ea05a" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#3AAA63" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#3AAA63" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}B`} domain={[0, 14]} width={32} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="2 2" />
-            <Area type="monotone" dataKey="value" stroke="#2ea05a" strokeWidth={1.5}
+            <Area type="monotone" dataKey="value" stroke="#3AAA63" strokeWidth={1.5}
               fill="url(#tradeGrad)" dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </AreaChart>
@@ -742,14 +742,14 @@ function LeadingIndicators() {
       chart: (
         <SafeChart width="100%" height="100%">
           <LineChart data={IRON_ORE_HISTORY} margin={{ top: 4, right: 8, left: -24, bottom: 4 }}>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={2} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `$${v}`} domain={[85, 115]} width={36} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={90} stroke="#f87171" strokeDasharray="3 3"
               label={{ value: '$90 support', fill: '#f87171', fontSize: 8, position: 'right' }} />
-            <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={1.5}
-              dot={{ r: 2.5, fill: '#3b82f6' }} isAnimationActive={false} />
+            <Line type="monotone" dataKey="value" stroke="#2D7DD2" strokeWidth={1.5}
+              dot={{ r: 2.5, fill: '#2D7DD2' }} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
           </LineChart>
         </SafeChart>
@@ -860,7 +860,7 @@ function ChinaWatch({ askAI }) {
             <div className="mt-1" style={{ height: 32 }}>
               <SafeChart width="100%" height={32}>
                 <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
+                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#3AAA63' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
                     strokeWidth={1.2} dot={false} isAnimationActive={false} />
                 </LineChart>
               </SafeChart>
@@ -883,7 +883,7 @@ function ChinaWatch({ askAI }) {
             <div className="mt-1" style={{ height: 32 }}>
               <SafeChart width="100%" height={32}>
                 <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#2ea05a' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
+                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? '#3AAA63' : ind.trend === 'down' ? '#b43c3c' : '#C9A84C'}
                     strokeWidth={1.2} dot={false} isAnimationActive={false} />
                 </LineChart>
               </SafeChart>
@@ -1323,7 +1323,7 @@ const CATEGORY_ICON = {
 // showing a chart that isn't actually about the theme.
 const THEME_CHART_MAP = {
   RBA:         { data: RBA_RATE_HISTORY, dataKey: 'rate', unit: '%', color: '#C9A84C' },
-  COMMODITIES: { data: IRON_ORE_HISTORY, dataKey: 'value', unit: '', color: '#3b82f6' },
+  COMMODITIES: { data: IRON_ORE_HISTORY, dataKey: 'value', unit: '', color: '#2D7DD2' },
 }
 
 function MacroThemeCard({ theme }) {
@@ -1445,15 +1445,15 @@ function YieldCurveVisual() {
         <span className="text-2xs text-terminal-gold tracking-widest font-bold">AU vs US YIELD CURVE</span>
         <div className="flex items-center gap-3 text-2xs text-terminal-text-dim">
           <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#C9A84C', display: 'inline-block' }} /> AU</span>
-          <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#3b82f6', display: 'inline-block' }} /> US</span>
+          <span className="flex items-center gap-1"><span style={{ width: 10, height: 2, background: '#2D7DD2', display: 'inline-block' }} /> US</span>
         </div>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto' }}>
         {maturities.map((m, i) => (
-          <line key={m} x1={xAt(i)} y1={padT} x2={xAt(i)} y2={padT + chartH} stroke="#0d2244" strokeWidth="1" />
+          <line key={m} x1={xAt(i)} y1={padT} x2={xAt(i)} y2={padT + chartH} stroke="#0F1E35" strokeWidth="1" />
         ))}
         <path d={pathFor(auPoints)} fill="none" stroke="#C9A84C" strokeWidth="1.8" />
-        <path d={pathFor(usPoints)} fill="none" stroke="#3b82f6" strokeWidth="1.8" />
+        <path d={pathFor(usPoints)} fill="none" stroke="#2D7DD2" strokeWidth="1.8" />
         {/* Label the higher curve above its point and the lower one below, per
             maturity — a fixed "AU above / US below" placement collides
             whenever one curve sits consistently above the other (as AU/US do
@@ -1464,8 +1464,8 @@ function YieldCurveVisual() {
             <g key={`pts-${m}`}>
               <circle cx={xAt(i)} cy={yAt(auPoints[i])} r="2.5" fill="#C9A84C" />
               <text x={xAt(i)} y={yAt(auPoints[i]) + (auAbove ? -6 : 12)} textAnchor="middle" fontSize="8" fill="#C9A84C" fontFamily="IBM Plex Mono">{auPoints[i].toFixed(2)}</text>
-              <circle cx={xAt(i)} cy={yAt(usPoints[i])} r="2.5" fill="#3b82f6" />
-              <text x={xAt(i)} y={yAt(usPoints[i]) + (auAbove ? 12 : -6)} textAnchor="middle" fontSize="8" fill="#3b82f6" fontFamily="IBM Plex Mono">{usPoints[i].toFixed(2)}</text>
+              <circle cx={xAt(i)} cy={yAt(usPoints[i])} r="2.5" fill="#2D7DD2" />
+              <text x={xAt(i)} y={yAt(usPoints[i]) + (auAbove ? 12 : -6)} textAnchor="middle" fontSize="8" fill="#2D7DD2" fontFamily="IBM Plex Mono">{usPoints[i].toFixed(2)}</text>
             </g>
           )
         })}
@@ -1841,7 +1841,7 @@ export default function MacroModule() {
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
-              <MiniChart data={AU_GDP_HISTORY} dataKey="value" color="#3b82f6" refLine={0} unit="%" onClick={() => setExpandedChart('gdp')} />
+              <MiniChart data={AU_GDP_HISTORY} dataKey="value" color="#2D7DD2" refLine={0} unit="%" onClick={() => setExpandedChart('gdp')} />
             </div>
             <div className="px-2 py-1 text-2xs text-terminal-text-dim border-t border-terminal-border flex-shrink-0">
               QUARTERLY · ABS NATIONAL ACCOUNTS
@@ -1910,7 +1910,7 @@ export default function MacroModule() {
 
       {/* Subtle data attribution footer */}
       <div className="px-3 py-2 border-t border-terminal-border/30 mt-2">
-        <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8899aa)' }}>
+        <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>
           Data current as at 12 August 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
         </span>
       </div>

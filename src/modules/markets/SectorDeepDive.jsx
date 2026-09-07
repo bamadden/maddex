@@ -97,7 +97,7 @@ function ChangeText({ v, className = '' }) {
 
 function SortIcon({ active, dir }) {
   if (!active) return <span className="text-terminal-border ml-0.5">↕</span>
-  return <span className="text-terminal-gold ml-0.5">{dir === 'asc' ? '↑' : '↓'}</span>
+  return <span className="text-terminal-gold ml-0.5">{dir === 'asc' ? '▲' : '▼'}</span>
 }
 
 // ─── Macro drivers ────────────────────────────────────────────────────────────
@@ -455,7 +455,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                     />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
                     <Area type="monotone" dataKey="sector" name={sectorName} stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
-                    <Area type="monotone" dataKey="index" name={indexLabel} stroke="#5b7fa6" fill="#5b7fa6" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="index" name={indexLabel} stroke="#4A6080" fill="#4A6080" fillOpacity={0.1} />
                   </AreaChart>
                 </SafeChart>
               </div>
@@ -670,7 +670,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                     />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
                     <Area type="monotone" dataKey="sector" name={sectorName} stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
-                    <Area type="monotone" dataKey="index" name={indexLabel} stroke="#5b7fa6" fill="#5b7fa6" fillOpacity={0.1} />
+                    <Area type="monotone" dataKey="index" name={indexLabel} stroke="#4A6080" fill="#4A6080" fillOpacity={0.1} />
                   </AreaChart>
                 </SafeChart>
               </div>

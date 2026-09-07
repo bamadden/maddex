@@ -114,10 +114,10 @@ const MODULE_PROMPTS = {
 // backdrop, and the user's own holdings — so the empty state doubles as a
 // statement of scope.
 const EMPTY_STATE_CARDS = [
-  { icon: '📊', title: 'Deep dive',       subtitle: 'Fundamentals, sector position, key risks', prompt: 'Analyse BHP.AX for me — the business, recent performance and its drivers, the metrics that matter for a miner, how it sits against its sector, the main risks, and what to watch next.' },
-  { icon: '🌏', title: 'Macro read',      subtitle: 'RBA, inflation, growth outlook',           prompt: 'Where is the Australian economy heading? Cover the RBA cash rate path, inflation, growth and unemployment, and what each means for ASX sectors, the AUD and bonds.' },
+  { icon: '⊞', title: 'Deep dive',       subtitle: 'Fundamentals, sector position, key risks', prompt: 'Analyse BHP.AX for me — the business, recent performance and its drivers, the metrics that matter for a miner, how it sits against its sector, the main risks, and what to watch next.' },
+  { icon: '◉', title: 'Macro read',      subtitle: 'RBA, inflation, growth outlook',           prompt: 'Where is the Australian economy heading? Cover the RBA cash rate path, inflation, growth and unemployment, and what each means for ASX sectors, the AUD and bonds.' },
   { icon: '⚖️', title: 'Compare',         subtitle: 'BHP vs RIO — which suits whom, and why',   prompt: 'Compare BHP and RIO. How do the two businesses actually differ, on which axes do they genuinely diverge, and what kind of investor does each suit?' },
-  { icon: '💼', title: 'Portfolio health', subtitle: 'Concentration risk and sector gaps',      prompt: 'Review my portfolio holdings for concentration risk and sector gaps. Where am I over-exposed, what is missing, and what are the main risks I should be aware of?' },
+  { icon: '▦', title: 'Portfolio health', subtitle: 'Concentration risk and sector gaps',      prompt: 'Review my portfolio holdings for concentration risk and sector gaps. Where am I over-exposed, what is missing, and what are the main risks I should be aware of?' },
 ]
 
 const DEFAULT_PROMPTS = [
@@ -219,7 +219,7 @@ function formatInline(text) {
 
 function scoreColour(score) {
   if (score >= 67) return 'var(--color-gain)'
-  if (score >= 34) return 'var(--mt-amber, #fbbf24)'
+  if (score >= 34) return 'var(--mt-amber, #C9A84C)'
   return 'var(--color-loss)'
 }
 
@@ -227,7 +227,7 @@ function sentimentLabelColour(label) {
   const u = label?.toUpperCase()
   if (u === 'BULLISH' || u === 'RISK ON') return 'var(--color-gain)'
   if (u === 'BEARISH' || u === 'RISK OFF') return 'var(--color-loss)'
-  return 'var(--mt-amber, #fbbf24)'
+  return 'var(--mt-amber, #C9A84C)'
 }
 
 function ScoreBar({ score }) {
@@ -1099,7 +1099,7 @@ export default function AIPanel({ wide = false }) {
                     onClick={(e) => removeConversation(conv.id, e)}
                     className="text-terminal-text-dim/40 hover:text-terminal-red text-2xs opacity-0 group-hover:opacity-100 flex-shrink-0 px-0.5"
                     title="Delete"
-                  >🗑</span>
+                  >✕</span>
                 </button>
               ))
             )}
@@ -1260,7 +1260,7 @@ export default function AIPanel({ wide = false }) {
                           : window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'SUBSCRIPTION' } }))}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
                         title={isApex ? 'Save to notes' : 'Research Notes requires Apex — upgrade to save'}
-                      >SAVE{!isApex ? ' 🔒' : ''}</button>
+                      >SAVE{!isApex ? ' ⊘' : ''}</button>
                       <button
                         onClick={() => copyMessage(msg.content)}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"

@@ -37,8 +37,8 @@ const TAG_VARIANTS = {
 // in the list rows (those use inline background-tint styling rather than
 // the <Badge> component's Tailwind classes).
 const TAG_COLOR = {
-  MACRO: '#C9A84C', AU: '#C9A84C', EQUITY: '#3b82f6', ENERGY: '#a83232', FX: '#8a94a6',
-  CRYPTO: '#22c55e', RATES: '#8a94a6', 'M&A': '#C9A84C', INTL: '#3b82f6', EARNINGS: '#a83232', TECH: '#3b82f6',
+  MACRO: '#C9A84C', AU: '#C9A84C', EQUITY: '#2D7DD2', ENERGY: '#a83232', FX: '#8BA3C4',
+  CRYPTO: '#2D8A50', RATES: '#8BA3C4', 'M&A': '#C9A84C', INTL: '#2D7DD2', EARNINGS: '#a83232', TECH: '#2D7DD2',
 }
 
 // ─── Persistence helpers ───────────────────────────────────────────────────────
@@ -140,12 +140,12 @@ function knownTickerBadges(tickers) {
 
 // ─── Source circle — colour derived from the source name, deterministic ─────
 
-const SOURCE_PALETTE = ['#C9A84C', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
+const SOURCE_PALETTE = ['#C9A84C', '#2D7DD2', '#2D8A50', '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
 // Named-source brand colours per spec — hash palette is only a fallback for
 // the long tail of RSS sources that aren't one of these six.
 const SOURCE_COLORS = {
-  Reuters: '#3b82f6', AFR: '#C9A84C', Bloomberg: '#a855f7',
-  ABC: '#22c55e', FT: '#ec4899', WSJ: '#8a94a6',
+  Reuters: '#2D7DD2', AFR: '#C9A84C', Bloomberg: '#a855f7',
+  ABC: '#2D8A50', FT: '#ec4899', WSJ: '#8BA3C4',
 }
 function sourceHash(s) {
   let h = 0
@@ -652,7 +652,7 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded,
             <span className="text-[9px] font-mono text-terminal-text-dim">{item.source} · {timeAgo(item.pubDate)}</span>
             <span
               className="px-1 rounded-full leading-none py-0.5"
-              style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8a94a6'}22`, color: TAG_COLOR[item.tag] ?? '#8a94a6' }}
+              style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`, color: TAG_COLOR[item.tag] ?? '#8BA3C4' }}
             >
               {primaryDisplayCategory(item)}
             </span>

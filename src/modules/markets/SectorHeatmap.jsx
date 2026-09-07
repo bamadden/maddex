@@ -703,7 +703,7 @@ function nativeToAud(price, currency, rates) {
 
 function SortIcon({ col, current, dir }) {
   if (col !== current) return <span className="text-terminal-border ml-1">↕</span>
-  return <span className="text-terminal-gold ml-1">{dir === 'asc' ? '↑' : '↓'}</span>
+  return <span className="text-terminal-gold ml-1">{dir === 'asc' ? '▲' : '▼'}</span>
 }
 
 function ChartTooltip({ active, payload, label }) {
@@ -1411,7 +1411,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                           <stop offset="95%" stopColor={col} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid stroke="#0d2244" vertical={false} />
+                      <CartesianGrid stroke="#0F1E35" vertical={false} />
                       <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
                       <YAxis tick={{ fontSize: 8 }} domain={['auto','auto']} width={36}
                         tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
@@ -1441,7 +1441,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                               <stop offset="95%" stopColor={col} stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid stroke="#0d2244" vertical={false} />
+                          <CartesianGrid stroke="#0F1E35" vertical={false} />
                           <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
                           <YAxis tick={{ fontSize: 8 }} domain={['auto','auto']} width={36} />
                           <Tooltip content={<ChartTooltip />} />

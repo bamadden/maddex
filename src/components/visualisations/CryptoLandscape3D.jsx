@@ -204,7 +204,7 @@ function CoinPoint({ coin, position, radius, color, showLabel, onHover, hovered,
                 <div style={{ color, fontWeight: 600 }}>
                   {coin.pct24h >= 0 ? '▲' : '▼'} {Math.abs(coin.pct24h).toFixed(2)}% 24H
                 </div>
-                <div style={{ color: '#8a94a6' }}>
+                <div style={{ color: '#8BA3C4' }}>
                   MCAP {(coin.marketCap / 1e9).toFixed(1)}B · VOL {(coin.volume / 1e9).toFixed(2)}B
                 </div>
               </>

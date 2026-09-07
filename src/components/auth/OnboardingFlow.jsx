@@ -63,7 +63,7 @@ export default function OnboardingFlow({ onComplete }) {
   if (step === 0) {
     return (
       <div className="fixed inset-0 z-[200] bg-terminal-bg flex flex-col items-center justify-center gap-6 font-mono"
-        style={{ backgroundImage: 'radial-gradient(circle, #0d2244 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+        style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
       >
         <div className="text-terminal-gold text-2xl font-bold tracking-[0.3em]">▲ MADDEX</div>
         <div className="text-center space-y-2">
@@ -84,7 +84,7 @@ export default function OnboardingFlow({ onComplete }) {
   if (step === 1) {
     return (
       <div className="fixed inset-0 z-[200] bg-terminal-bg flex items-center justify-center font-mono"
-        style={{ backgroundImage: 'radial-gradient(circle, #0d2244 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+        style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
       >
         <div className="w-full max-w-md border border-terminal-gold bg-terminal-panel p-6 mx-4 space-y-5">
           <div>
@@ -159,7 +159,7 @@ export default function OnboardingFlow({ onComplete }) {
 
   return (
     <div className="fixed inset-0 z-[200] bg-terminal-bg flex items-center justify-center font-mono"
-      style={{ backgroundImage: 'radial-gradient(circle, #0d2244 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
     >
       <div className="w-full max-w-md border border-terminal-gold bg-terminal-panel p-6 mx-4 space-y-5">
         <div>

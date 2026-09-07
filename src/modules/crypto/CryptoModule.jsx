@@ -227,7 +227,7 @@ function FearGreedPanel({ data }) {
       <div style={P.title}>FEAR &amp; GREED</div>
       <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
         <svg viewBox="0 0 100 66" style={{ width: '100%', maxWidth: 120, height: 'auto', flexShrink: 0 }}>
-          <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke="#0d2244" strokeWidth="9" />
+          <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke="#0F1E35" strokeWidth="9" />
           <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke={color} strokeWidth="9"
             strokeDasharray={`${(value / 100) * 131.9} 131.9`} strokeLinecap="butt" />
           <text x="50" y="48" textAnchor="middle" fill={color} fontSize="26" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
@@ -314,7 +314,7 @@ function DominanceArc({ pct, color, size = 56 }) {
   const c = 2 * Math.PI * r
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#0d2244" strokeWidth="6" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#0F1E35" strokeWidth="6" />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="6"
         strokeDasharray={`${(pct / 100) * c} ${c}`}
@@ -768,7 +768,7 @@ export default function CryptoModule() {
         {/* ── CENTRE: elite coin table ── */}
         <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: '#0B1628', position: 'relative' }}>
           <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
-            style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0B1628', borderBottom: '1px solid #0d2244', margin: 0 }}>
+            style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0B1628', borderBottom: '1px solid #0F1E35', margin: 0 }}>
             <span>TOP 20 BY MKT CAP ({currency})</span>
             {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} />}
             {rawMarkets && !marketsDelayed

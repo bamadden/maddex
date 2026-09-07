@@ -72,7 +72,7 @@ const STYLE_OPTIONS = [
 const LAYER_CATALOGUE = [
   { id: 'exchanges',    label: 'Exchange Markets',  dot: '#C9A84C', on: true },
   { id: 'trade',        label: 'Trade Flows',       dot: '#4A9EDB', on: true },
-  { id: 'shipping',     label: 'Shipping Risk',     dot: '#C86464', on: false },
+  { id: 'shipping',     label: 'Shipping Risk',     dot: '#CC4444', on: false },
   { id: 'commodities',  label: 'Commodity Sites',   dot: '#D9A441', on: false },
   { id: 'seismic',      label: 'Seismic Activity',  dot: '#A83232', on: false },
   { id: 'geopolitical', label: 'Geopolitical',      dot: '#FF6D00', on: false },
@@ -928,7 +928,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         maxWidth: 'calc(100% - 24px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${quakeState === 'error' ? 'rgba(201,168,76,0.3)' : 'rgba(168,50,50,0.4)'}`,
         borderRadius: 3, padding: '4px 10px', fontFamily: '"IBM Plex Mono", monospace',
-        fontSize: 9, letterSpacing: '0.1em', color: quakeState === 'error' ? '#8BA3C4' : '#C86464' }}>
+        fontSize: 9, letterSpacing: '0.1em', color: quakeState === 'error' ? '#8BA3C4' : '#CC4444' }}>
         {quakeState === 'loading' ? '◌ LOADING SEISMIC FEED…'
           : quakeState === 'error' ? '⚠ SEISMIC FEED UNAVAILABLE'
           : `🌍 ${quakes.length} QUAKES / WEEK (M4.5+) · ${majorQuakes.length} MAJOR (M6+)`}
@@ -1062,7 +1062,7 @@ function HudFrame({ insetL = 0, insetR = 0 }) {
 function DataStatus({ sources, bottom, left = 12 }) {
   const active = sources.filter((s) => s.ok).length
   const allOk = active === sources.length
-  const colour = active === 0 ? '#C86464' : allOk ? '#2D8A50' : '#C9A84C'
+  const colour = active === 0 ? '#CC4444' : allOk ? '#2D8A50' : '#C9A84C'
   return (
     <div
       title={sources.map((s) => `${s.ok ? '●' : '○'} ${s.label}`).join('\n')}
@@ -1176,7 +1176,7 @@ function MapTooltip({ tooltip }) {
       background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 4,
       padding: '10px 14px', fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
       color: '#E8EDF5', pointerEvents: 'none', lineHeight: 1.4,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+      boxShadow: 'var(--shadow-floating)',
     }}>
       {body()}
     </div>
@@ -1254,7 +1254,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
             background: 'rgba(6,13,26,0.94)',
             border: '1px solid rgba(201,168,76,0.28)', borderRadius: 3,
             backdropFilter: 'blur(10px)',
-            boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+            boxShadow: 'var(--shadow-floating)',
             animation: 'panelSlideIn .16s ease-out',
           }}
         >

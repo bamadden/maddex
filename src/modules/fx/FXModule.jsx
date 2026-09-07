@@ -41,7 +41,7 @@ const YIELD_CURVES = {
     prev: { '3M':4.10,'6M':4.05,'1Y':3.98,'2Y':3.90,'3Y':3.95,'5Y':4.08,'10Y':4.25,'30Y':4.40 },
   },
   US: {
-    label: 'US TREASURIES', color: '#3b82f6', src: 'US Treasury · Aug 2026',
+    label: 'US TREASURIES', color: '#2D7DD2', src: 'US Treasury · Aug 2026',
     points: [
       { m:'3M', y:4.30 }, { m:'6M', y:4.22 }, { m:'1Y', y:4.15 },
       { m:'2Y', y:4.10 }, { m:'5Y', y:4.25 }, { m:'10Y',y:4.45 },
@@ -68,7 +68,7 @@ const YIELD_CURVES = {
     prev: { '3M':0.30,'6M':0.38,'1Y':0.50,'2Y':0.68,'5Y':1.00,'10Y':1.38,'30Y':2.12 },
   },
   DE: {
-    label: 'DE BUNDS', color: '#22c55e', src: 'Bundesbank · Jul 2026',
+    label: 'DE BUNDS', color: '#2D8A50', src: 'Bundesbank · Jul 2026',
     points: [
       { m:'3M', y:2.18 }, { m:'6M', y:2.12 }, { m:'1Y', y:2.05 },
       { m:'2Y', y:2.02 }, { m:'5Y', y:2.15 }, { m:'10Y',y:2.48 },
@@ -288,7 +288,7 @@ function FxHistoryModal({ pair, onClose }) {
                     <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}   />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#0d2244" vertical={false} />
+                <CartesianGrid stroke="#0F1E35" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 9 }} interval={4} />
                 <YAxis
                   tick={{ fontSize: 9 }}
@@ -418,8 +418,8 @@ function RbaRateComparisonBar() {
   // stays consistent with the CPI and yield-curve panels if those change.
   const rows = [
     { label: 'RBA CASH RATE', value: 4.35, color: '#C9A84C' },
-    { label: 'AU CPI YoY',    value: 3.8,  color: '#3b82f6' },
-    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? 4.20, color: '#22c55e' },
+    { label: 'AU CPI YoY',    value: 3.8,  color: '#2D7DD2' },
+    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? 4.20, color: '#2D8A50' },
   ]
   const max = Math.max(...rows.map(r => r.value)) * 1.15
   const realRate = (4.35 - 3.8).toFixed(2)
@@ -554,7 +554,7 @@ function CompactRbaDashboard({ askAI }) {
                 <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd"
               tickFormatter={d => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={30} />
@@ -699,7 +699,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke="#0d2244" vertical={false} />
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="tenor" tick={{ fontSize: 8 }} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
             <Tooltip content={<YieldTooltip />} />

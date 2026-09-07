@@ -6,6 +6,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* One curve, for anything that transitions without saying which curve it
+   wants. Tailwind's own utilities carry their own timing function and are set
+   to the same value in tailwind.config.js; this catches hand-written inline
+   styles, which are the ones that drift. Looping animations deliberately keep
+   ease-in-out — a symmetric curve is what stops a pulse stuttering at the
+   seam where it restarts. */
+*, *::before, *::after {
+  transition-timing-function: ease;
+}
+
 :root {
   --color-gain:         #2d8a50;
   --color-gain-bg:      rgba(46, 160, 90, 0.20);
@@ -16,10 +26,53 @@
   --color-neutral:      #c9a84c;
   --color-neutral-bg:   rgba(201, 168, 76, 0.15);
   /* AI panel renderer aliases */
-  --mt-text:  #b8cce4;
+  --mt-text:  #E8EDF5;
   --mt-muted: #4A6080;
   --mt-gold:  #C9A84C;
   --font: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
+
+  /* ── THE DESIGN SYSTEM ─────────────────────────────────────────────────
+     Three scales, and nothing outside them.
+
+     SPACING. Every gap, padding and margin comes from here. The values are
+     not arbitrary: 4 is the smallest unit the eye registers as deliberate at
+     this density, and each step is large enough that "one step bigger" is
+     visible rather than debatable. A layout using 13px is not 1px worse than
+     one using 12px — it is a layout nobody decided. */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+
+  /* Sub-4px exists ONLY inside inline pills and badges, where 10px type in a
+     4px-tall box would touch its own border. It is a separate, named thing
+     rather than a quiet exception to the scale above. */
+  --space-badge-y: 2px;
+  --space-badge-x: 6px;
+
+  /* ELEVATION. Two, because there are only two questions worth asking: is
+     this raised off the page, or is it floating over it? A third value is
+     always someone splitting the difference. */
+  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  /* MOTION. One duration and one curve for state changes; ease-out for
+     anything that enters, because things arriving should decelerate. */
+  --t-fast: 0.15s;
+  --ease:   ease;
+  --ease-enter: ease-out;
+
+  /* BORDERS. Gold at four opacities, and no greys. A grey border on a navy
+     panel reads as a seam; a gold one at 8% reads as a rule. */
+  --border-divider: rgba(201, 168, 76, 0.08);
+  --border-card:    rgba(201, 168, 76, 0.12);
+  --border-strong:  rgba(201, 168, 76, 0.2);
+  --border-hover:   rgba(201, 168, 76, 0.3);
+  --border-focus:   rgba(201, 168, 76, 0.5);
 
   /* Theme palette — "R G B" triplets consumed by tailwind.config.js via
      rgb(var(--t-x) / <alpha-value>), so terminal-* Tailwind classes (incl.
@@ -67,8 +120,8 @@ html, body, #root {
 
 body {
   font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
-  background-color: #060D1A;
-  color: #B8C8D8;
+  background-color: rgb(var(--t-bg));
+  color: rgb(var(--t-text));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'kern' 1, 'liga' 1;
@@ -87,7 +140,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: 600;
@@ -123,7 +176,7 @@ body {
 /* Dense variant. The terminal packs buttons into table rows and inline
    label rows where the standard 8px/16px is too tall; this keeps the same
    type and colour treatment at the density those rows need. */
-.btn-sm { padding: 3px 10px; font-size: 9px; letter-spacing: 0.06em; }
+.btn-sm { padding: 4px 12px; font-size: 9px; letter-spacing: 0.06em; }
 
 .btn-primary:disabled,
 .btn-secondary:disabled,
@@ -326,8 +379,8 @@ button:not(:disabled):active {
 .ticker-container {
   overflow: hidden;
   height: 28px;
-  background: #0B1628;
-  border-bottom: 1px solid rgba(30,60,120,0.4);
+  background: rgb(var(--t-header));
+  border-bottom: 1px solid rgba(201,168,76,0.12);
   position: relative;
   z-index: 5;
   flex-shrink: 0;
@@ -350,15 +403,15 @@ button:not(:disabled):active {
 .ticker-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 14px;
+  gap: 4px;
+  padding: 0 16px;
   height: 100%;
   white-space: nowrap;
   flex-shrink: 0;
-  color: #d4dce8;
+  color: rgb(var(--t-text));
   font-size: 10px;
   font-family: var(--font, 'IBM Plex Mono', monospace);
-  border-right: 1px solid rgba(30,60,120,0.25);
+  border-right: 1px solid rgba(201,168,76,0.08);
   cursor: pointer;
   box-sizing: border-box;
 }
@@ -370,11 +423,11 @@ button:not(:disabled):active {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 0 14px;
+  padding: 0 16px;
   height: 100%;
   flex-shrink: 0;
   white-space: nowrap;
-  border-right: 1px solid rgba(30,60,120,0.25);
+  border-right: 1px solid rgba(201,168,76,0.08);
 }
 
 /* Blinking cursor */
@@ -388,20 +441,20 @@ button:not(:disabled):active {
   background: transparent;
   border: none;
   outline: none;
-  color: #f0c040;
+  color: rgb(var(--t-gold));
   font-family: inherit;
   font-size: 0.75rem;
   width: 100%;
-  caret-color: #f0c040;
+  caret-color: rgb(var(--t-gold));
 }
 
 /* Recharts overrides */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: #0d2244;
+  stroke: rgba(201, 168, 76, 0.08);
 }
 .recharts-text {
-  fill: #4a6580;
+  fill: rgb(var(--t-text-dim));
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
 }
@@ -693,11 +746,11 @@ button:not(:disabled):active {
    travels toward its resting position — up-ticks settle from above — so the
    motion reads as direction, not just as movement. */
 @keyframes flashTickUp {
-  0%   { color: #4ADE80; transform: translateY(-1px); }
+  0%   { color: var(--color-gain-bright); transform: translateY(-1px); }
   100% { color: inherit; transform: translateY(0); }
 }
 @keyframes flashTickDown {
-  0%   { color: #F87171; transform: translateY(1px); }
+  0%   { color: var(--color-loss-bright); transform: translateY(1px); }
   100% { color: inherit; transform: translateY(0); }
 }
 .price-flash-up   { animation: flashTickUp 0.4s ease-out; }

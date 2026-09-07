@@ -147,7 +147,7 @@ export function FloatingWindow({ title, children, onClose, defaultPos, defaultSi
           width: size.w, height: minimised ? 36 : size.h,
           background: '#0B1628', border: '1px solid rgba(201,168,76,0.3)',
           borderRadius: maximised ? 0 : '4px', zIndex,
-          boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+          boxShadow: 'var(--shadow-floating)',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}
       >

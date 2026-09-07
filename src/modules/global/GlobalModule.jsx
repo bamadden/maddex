@@ -1470,7 +1470,7 @@ function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
         {/* Legend */}
         <div className="flex gap-3 px-2 py-1.5 border-b border-terminal-border">
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#C9A84C'}}/>AU Origin/Dest</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#3b82f6'}}/>Intl Corridor</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#2D7DD2'}}/>Intl Corridor</span>
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#14b8a6'}}/>Cargo Heavy</span>
         </div>
 
@@ -1523,7 +1523,7 @@ function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
           {AU_FREIGHT_COMMODITIES.map(c => (
             <div key={c.name} className="flex items-start gap-2 py-0.5">
               <span className={`flex-shrink-0 font-bold ${c.dir === 'IN' ? 'text-terminal-blue-bright' : c.dir === 'OUT' ? 'text-terminal-gold' : 'text-terminal-green'}`}>
-                {c.dir === 'IN' ? '↓' : c.dir === 'OUT' ? '↑' : '↕'}
+                {c.dir === 'IN' ? '▼' : c.dir === 'OUT' ? '▲' : '◆'}
               </span>
               <div>
                 <span className="text-terminal-text">{c.name}</span>

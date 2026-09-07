@@ -1590,8 +1590,8 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
 
 const LEGEND_SWATCHES = {
   MARKETS: [
-    ['🟢', 'Open exchange'],
-    ['⚫', 'Closed exchange'],
+    ['#2D8A50', 'Open exchange'],
+    ['#4A6080', 'Closed exchange'],
   ],
   HEAT: [
     ['#A83232', '< -1%'], ['#6B2323', '-1 to -0.3%'], ['#1A3A6A', 'Flat'], ['#2D8A50', '0 to 1%'], ['#1a5c35', '> 1%'],
@@ -1600,13 +1600,13 @@ const LEGEND_SWATCHES = {
     ['#2D8A50', 'Very High'], ['#1a5c35', 'High'], ['#1A3A6A', 'Medium'], ['#6B2323', 'Low'], ['#A83232', 'Banned'],
   ],
   SHIPPING: [
-    ['🔵', 'Active route'], ['🔴', 'Disrupted'], ['⚠', 'Tension zone'],
+    ['#2D7DD2', 'Active route'], ['#A83232', 'Disrupted'], ['#C9A84C', 'Tension zone'],
   ],
   FREIGHT: [
-    ['🟡', 'Air cargo route'],
+    ['#C9A84C', 'Air cargo route'],
   ],
   TRADE_IMPACT: [
-    ['🔴', 'High tension'], ['🟠', 'Elevated'], ['🔵', 'Monitoring'],
+    ['#A83232', 'High tension'], ['#C9A84C', 'Elevated'], ['#2D7DD2', 'Monitoring'],
   ],
 }
 const LEGEND_TITLES = {
@@ -1648,10 +1648,7 @@ function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
             <div className="flex flex-wrap items-center gap-1.5">
               {LEGEND_SWATCHES[key].map(([swatch, label]) => (
                 <div key={label} className="flex items-center gap-1">
-                  {swatch.startsWith('#')
-                    ? <span style={{ width: 8, height: 8, background: swatch, display: 'inline-block', flexShrink: 0 }} />
-                    : <span className="text-[9px] leading-none">{swatch}</span>
-                  }
+                  <span style={{ width: 8, height: 8, background: swatch, display: 'inline-block', flexShrink: 0 }} />
                   <span className="text-[8px] text-terminal-text-dim whitespace-nowrap">{label}</span>
                 </div>
               ))}

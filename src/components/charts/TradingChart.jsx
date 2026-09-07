@@ -11,7 +11,7 @@ const PERIODS = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
 const CHART_COLORS = {
   bg: '#060D1A',
   grid: '#0d1a2e',
-  text: '#8a94a6',
+  text: '#8BA3C4',
   border: '#1a2b4a',
   up: '#3aaa63',
   down: '#a83232',

@@ -38,17 +38,17 @@ setTimeout(async () => {
   for (const c of CHECKS) {
     try {
       const q = await fetchYahooQuote(c.sym)
-      if (!q) { console.warn(`[MADDEN VERIFY] ✗ ${c.label}: null response`); continue }
+      if (!q) { console.warn(`[MADDEN VERIFY] ✕ ${c.label}: null response`); continue }
       // For display, we need AUD rate — approximate 0.645 as sanity check only
       const audUsd = 0.645
       const audPrice = toAUD(q.price, q.currency, audUsd)
       const ok = audPrice >= c.minAUD && audPrice <= c.maxAUD
-      const arrow = ok ? '✓' : '✗'
+      const arrow = ok ? '✓' : '✕'
       console[ok ? 'log' : 'warn'](
         `[MADDEN VERIFY] ${arrow} ${c.label}: ${q.price} ${q.currency} → A$${audPrice?.toFixed(2)} (expected A$${c.minAUD}–${c.maxAUD})`
       )
     } catch (e) {
-      console.warn(`[MADDEN VERIFY] ✗ ${c.label}:`, e.message)
+      console.warn(`[MADDEN VERIFY] ✕ ${c.label}:`, e.message)
     }
   }
 }, 2000)
@@ -61,7 +61,7 @@ const KEYED_APIS = {
 }
 for (const [name, key] of Object.entries(KEYED_APIS)) {
   if (key) console.log(`[MADDEN] ✓ ${name}: configured (${key.slice(0, 8)}...)`)
-  else     console.warn(`[MADDEN] ✗ ${name}: MISSING — set in .env`)
+  else     console.warn(`[MADDEN] ✕ ${name}: MISSING — set in .env`)
 }
 
 createRoot(document.getElementById('root')).render(
