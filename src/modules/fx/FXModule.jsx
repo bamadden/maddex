@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
+import RbaHeroCard from './RbaHeroCard'
 import { useQuery } from '@tanstack/react-query'
 import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
@@ -523,7 +524,6 @@ function RbaStepTooltip({ active, payload, label }) {
 function CompactRbaDashboard({ askAI }) {
   const [period, setPeriod] = useState('5Y')
   const nextRbaDate = useMemo(() => getNextMeeting(RBA_MEETINGS_2026), [])
-  const nextRbaDays = nextRbaDate ? getDaysUntil(nextRbaDate) : null
   const nextRbaLabel = nextRbaDate ? nextRbaDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'
 
   const chartData = useMemo(() => {
@@ -539,19 +539,12 @@ function CompactRbaDashboard({ askAI }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="panel-header flex items-center gap-2 flex-shrink-0 flex-wrap">
-        <span className="text-terminal-gold">RBA CASH RATE</span>
-        <span className="text-base font-mono font-bold text-terminal-text-bright">4.35%</span>
-        <span className="text-2xs px-1.5 py-0.5 border border-terminal-border text-terminal-text-bright font-bold">HOLD</span>
-        <span className="text-2xs text-terminal-text-dim">Next: {nextRbaLabel} · {nextRbaDays}d</span>
-        <button
-          onClick={() => askAI({
-            name: 'RBA Cash Rate', price: '4.35% p.a.', sector: 'Interest Rates', date: todayAEST(),
-            instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate 4.35%.`,
-          })}
-          className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
-        >AI ▶</button>
-      </div>
+      <RbaHeroCard
+        onAskAI={() => askAI({
+          name: 'RBA Cash Rate', price: '4.35% p.a.', sector: 'Interest Rates', date: todayAEST(),
+          instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate 4.35%.`,
+        })}
+      />
 
       <div className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border flex-shrink-0">
         {RBA_PERIODS.map(([k]) => (
