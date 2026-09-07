@@ -12,7 +12,7 @@ export default function SharedWatchlistPage({ id }) {
   const record = getSharedRecord('watchlist', id)
 
   return (
-    <div className="min-h-screen bg-terminal-bg text-terminal-text font-mono flex flex-col items-center px-4 py-10">
+    <div className="h-screen overflow-y-auto bg-terminal-bg text-terminal-text font-mono flex flex-col items-center px-4 py-10">
       <div className="w-full max-w-2xl">
         <div className="flex items-center gap-2 mb-8">
           <span className="text-terminal-gold text-xl">▲</span>

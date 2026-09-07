@@ -308,11 +308,11 @@ function ProfileSection() {
 
       <div className="border-t border-terminal-border pt-4 space-y-1.5">
         <div className="text-2xs text-terminal-text-dim tracking-widest uppercase mb-1">Links</div>
-        <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer"
+        <a href="/terms" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Service →</a>
-        <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer"
+        <a href="/privacy" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Privacy Policy →</a>
-        <a href="https://maddex.com.au/disclaimer" target="_blank" rel="noopener noreferrer"
+        <a href="/disclaimer" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Disclaimer →</a>
         <a href="mailto:ben@maddex.com.au"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Contact: ben@maddex.com.au</a>
@@ -2128,11 +2128,11 @@ function AboutSection() {
       </div>
 
       <div className="pt-2 border-t border-terminal-border/30 space-y-1.5">
-        <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer"
+        <a href="/terms" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Service</a>
-        <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer"
+        <a href="/privacy" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Privacy Policy</a>
-        <a href="https://maddex.com.au/disclaimer" target="_blank" rel="noopener noreferrer"
+        <a href="/disclaimer" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Financial Disclaimer</a>
       </div>
 

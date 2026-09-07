@@ -303,7 +303,7 @@ export default function NavBar() {
         style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}
       >
         <a
-          href="https://maddex.com.au/disclaimer"
+          href="/disclaimer"
           target="_blank"
           rel="noopener noreferrer"
           title="General information only — not financial advice"

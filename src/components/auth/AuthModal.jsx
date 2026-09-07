@@ -162,9 +162,9 @@ function LegalLinks() {
   return (
     <div className="text-2xs text-terminal-text-dim text-center leading-relaxed">
       By creating an account you agree to our{' '}
-      <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Terms of Service</a>
+      <a href="/terms" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Terms of Service</a>
       {' '}and{' '}
-      <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Privacy Policy</a>
+      <a href="/privacy" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Privacy Policy</a>
     </div>
   )
 }
@@ -456,9 +456,9 @@ export default function AuthModal({ deletedMessage }) {
         <div className="px-6 py-3 border-t border-terminal-border text-center">
           <span className="text-2xs text-terminal-text-dim/60">
             By continuing you agree to our{' '}
-            <a href="https://maddex.com.au/terms" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Terms of Service</a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Terms of Service</a>
             {' · '}
-            <a href="https://maddex.com.au/privacy" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Privacy Policy</a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Privacy Policy</a>
           </span>
         </div>
       </div>

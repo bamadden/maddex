@@ -13,6 +13,8 @@ import AppLoader from './components/ui/AppLoader'
 import SharedWatchlistPage from './pages/SharedWatchlistPage'
 import SharedResearchNotePage from './pages/SharedResearchNotePage'
 import NotFoundPage from './pages/NotFoundPage'
+import LegalPage from './pages/LegalPage'
+import { LEGAL_DOCS } from './data/legalDocs'
 import OnboardingTour from './components/onboarding/OnboardingFlow'
 import WelcomeModal from './components/onboarding/WelcomeModal'
 import { APP_VERSION } from './components/layout/NavBar'
@@ -833,6 +835,11 @@ export default function App() {
   if (watchlistShare) return <SharedWatchlistPage id={watchlistShare[1]} />
   const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9]+)$/i)
   if (researchShare) return <SharedResearchNotePage id={researchShare[1]} />
+  // Legal pages are public and mount before the auth gate: someone has to be
+  // able to read the terms they are being asked to agree to on the sign-in
+  // screen, and that screen appears before they have an account.
+  const legalSlug = window.location.pathname.replace(/^\/|\/$/g, '')
+  if (LEGAL_DOCS[legalSlug]) return <LegalPage slug={legalSlug} />
   if (window.location.pathname !== '/') return <NotFoundPage />
   return (
     <QueryClientProvider client={queryClient}>
