@@ -1170,9 +1170,17 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                     filter: isHovered ? 'brightness(1.25)' : '',
                     // Inset separation reads as depth between adjacent tiles;
                     // an outer hairline just draws a grid over the heat.
+                    // A directional inner glow on top of the separation
+                    // hairline. The tile's fill already encodes magnitude; the
+                    // glow gives it a light source, so a green tile looks lit
+                    // from within rather than painted. Tinted to match its own
+                    // sign — a green tile glowing red would read as a tile that
+                    // has just turned.
                     boxShadow: isSelected
                       ? 'inset 0 0 8px rgba(201,168,76,0.15), 0 0 12px rgba(200,168,75,0.25)'
-                      : 'inset 0 0 0 1px rgba(0,0,0,0.25)',
+                      : `inset 0 0 0 1px rgba(0,0,0,0.25), inset 0 0 20px ${
+                          pct == null ? 'transparent' : pct >= 0 ? 'rgba(45,138,80,0.1)' : 'rgba(168,50,50,0.1)'
+                        }`,
                   }}
                   onMouseEnter={() => setHovered(sector)}
                   onMouseLeave={() => setHovered(null)}
@@ -1198,7 +1206,10 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
                   {/* Dead centre: day change — primary metric */}
                   <div className="flex-1 flex items-center justify-center min-h-0">
-                    <div className={row === 'row-span-2' ? 'text-xl font-bold leading-tight' : 'text-sm font-bold leading-tight'} style={{ color: text }}>
+                    <div
+                      className="font-bold leading-tight tabular-nums"
+                      style={{ color: text, fontSize: row === 'row-span-2' ? 22 : 16 }}
+                    >
                       {pct != null
                         ? `${arrow} ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
                         : <span className="text-terminal-text-dim/40 text-xs animate-pulse">—</span>

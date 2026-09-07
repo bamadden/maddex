@@ -349,7 +349,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                 isSelected ? 'bg-terminal-surface2' : 'bg-terminal-surface hover:bg-terminal-surface2'
               }`}
               style={{
-                padding: '9px 12px 8px',
+                padding: '8px 12px',
                 borderTop: isSelected ? '2px solid #C9A84C' : '2px solid transparent',
               }}
             >

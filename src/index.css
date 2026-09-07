@@ -752,14 +752,31 @@ button:not(:disabled):active {
 }
 .market-dot-pulse { animation: marketDotPulse 2s ease-in-out infinite; }
 
-/* Index card hover — a 1px lift plus a warmer border. Deliberately small:
-   the bar is ten cards wide, so anything more reads as the row jumping. */
+/* Index card hover.
+   The strip a user sees on every visit to Markets, so it is worth two pixels
+   rather than one. The lift is what makes the card read as an object instead
+   of a region of a table: it rises, its edge catches gold, and a shadow
+   appears underneath to say it left the surface.
+
+   z-index matters more than it looks — without it the lifted card's shadow
+   paints under its neighbours and the lift reads as a rendering glitch.
+
+   The curve is deliberately not `ease`. A card that lifts should decelerate
+   hard into position; cubic-bezier(0.2,0,0,1) arrives and stops, where `ease`
+   drifts the last pixels and feels loose. */
 .index-card {
-  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 .index-card:hover {
-  transform: translateY(-1px);
-  border-color: rgba(201, 168, 76, 0.3);
+  transform: translateY(-2px);
+  z-index: 5;
+  border-color: rgba(201, 168, 76, 0.4);
+  background: rgba(201, 168, 76, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 @media (prefers-reduced-motion: reduce) {
   .market-dot-pulse { animation: none; }
