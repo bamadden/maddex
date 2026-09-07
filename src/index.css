@@ -958,3 +958,17 @@ body.ticker-paused .ticker-content {
   from { transform: translateY(10px) scale(0.985); }
   to   { transform: translateY(0) scale(1); }
 }
+
+/* Tickers inside a MaddenAI reply. Underlined on hover rather than always, so
+   a reply mentioning six companies does not read as a link farm. */
+.ai-ticker {
+  color: rgb(var(--t-gold));
+  cursor: pointer;
+  border-bottom: 1px dotted rgba(201, 168, 76, 0.45);
+}
+.ai-ticker:hover,
+.ai-ticker:focus-visible {
+  color: rgb(var(--t-gold-bright));
+  border-bottom-style: solid;
+  outline: none;
+}

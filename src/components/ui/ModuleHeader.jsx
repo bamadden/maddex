@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { dispatchAskAI } from '../../utils/askAI'
 import { RefreshCw } from 'lucide-react'
 import Tooltip from './Tooltip'
 
@@ -24,6 +25,15 @@ function timeAgo(ts) {
 // `live` is optional and opt-in: pass true for "● LIVE", false for "● DEMO"
 // (both pulsing), or omit it entirely — existing callers that build their
 // own live/demo indicator via `right` keep working unchanged.
+// Readable names for the prompt — "fx" would have MaddenAI answering about a
+// module the user knows as RATES.
+const MODULE_LABELS = {
+  markets: 'Markets', crypto: 'Crypto', fx: 'Rates & FX', macro: 'Macro',
+  global: 'Global Intelligence', watchlist: 'Watchlist', portfolio: 'Portfolio',
+  news: 'News', screener: 'Screener', scanner: 'Market Scanner',
+  calendar: 'Economic Calendar', brief: 'Morning Brief', dashboard: 'Dashboard',
+}
+
 export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null, moduleId = null }) {
   const [spinning, setSpinning] = useState(false)
   const spinTimer = useRef(null)
@@ -78,6 +88,27 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
       {/* Module-specific controls stay visible — hiding a module's own
           filters behind a hover would make them undiscoverable. */}
       {right}
+
+      {/* Ask MaddenAI about whatever module you are in.
+          Lives in the shared header so it appears in every module without each
+          one wiring it up — the point of the feature is that MaddenAI feels
+          available everywhere rather than only in its own panel. Always
+          visible, unlike the fade-in affordances below, because it is an
+          invitation rather than a utility. */}
+      {moduleId && (
+        <button
+          onClick={() => dispatchAskAI({
+            instruction:
+              `I'm looking at the ${(MODULE_LABELS[moduleId] ?? moduleId).toUpperCase()} module in the Maddex terminal. `
+              + 'What is the single most important thing to know right now, and what should I watch next? '
+              + 'Be specific and brief. Do not quote prices you were not given.',
+          }, { rawPrompt: true })}
+          title={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
+          aria-label={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
+          className="flex items-center justify-center w-6 h-6 flex-shrink-0 ml-3 transition-colors font-mono font-bold"
+          style={{ fontSize: 12, color: '#C9A84C', border: '1px solid rgba(201,168,76,0.3)' }}
+        >M</button>
+      )}
 
       {/* The three standard affordances are noise until wanted, so they fade
           in on header hover. focus-within keeps them reachable by keyboard. */}

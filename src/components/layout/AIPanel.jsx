@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights, INSIGHT_LIMIT } from '../../services/savedInsights'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -143,8 +144,53 @@ function getQuickPrompts(activeModule, selectedSymbol) {
 
 // ─── Inline text formatter (replaces markdown with styled HTML) ───────────────
 
+// Model output is injected with dangerouslySetInnerHTML, so it MUST be escaped
+// before any markup is added.
+//
+// This was missing. The model's reply went into innerHTML raw, and a user can
+// make the model emit whatever they like — "reply with exactly
+// <img src=x onerror=...>" is a two-line prompt injection, and the terminal
+// would have executed it. Nothing upstream sanitises: DOMPurify is in the
+// bundle only as a transitive dependency of jspdf and is not wired to this
+// path.
+//
+// Escaping FIRST and adding markup after is what makes the rest of this
+// function safe: every tag below is one this file wrote, and anything that
+// arrived in the text is now inert.
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// Tickers the terminal can open.
+//
+// MaddenAI writes both forms — "BHP.AX" in a data context and a bare "BHP" or
+// "CBA's" in prose — so both have to match, and the suffixed form must come
+// first or "BHP.AX" would link as "BHP" and leave a stray ".AX".
+//
+// The bare form is matched CASE-SENSITIVELY and a few codes are excluded from
+// it entirely. ALL, MIN, COL and REA are ordinary English words, and a reply
+// containing "all of the above" or "a min of" would otherwise sprout links
+// into unrelated stocks. Their .AX forms still match, which is how the model
+// writes them when it means the security.
+const LINKABLE = [
+  'BHP', 'CBA', 'CSL', 'WBC', 'ANZ', 'NAB', 'FMG', 'RIO', 'WES', 'WOW',
+  'MQG', 'WDS', 'STO', 'TLS', 'QAN', 'GMG', 'TCL', 'WTC', 'XRO', 'NEM',
+]
+const BARE_UNSAFE = new Set(['ALL', 'MIN', 'COL', 'REA'])
+const ALL_CODES = [...LINKABLE, ...BARE_UNSAFE]
+
+const suffixed = ALL_CODES.map((t) => `${t}\\.AX`)
+const bare = LINKABLE.filter((t) => !BARE_UNSAFE.has(t))
+// Suffixed alternatives first so the longer match wins.
+const TICKER_RE = new RegExp(`\\b(${[...suffixed, ...bare].join('|')})\\b`, 'g')
+
 function formatInline(text) {
-  return text
+  return escapeHtml(text)
     .replace(/\*\*([^*]+)\*\*/g, '<span style="color:var(--mt-text);font-weight:700">$1</span>')
     .replace(/\*([^*]+)\*/g,     '<span style="color:var(--mt-muted)">$1</span>')
     .replace(/(\+[\d.]+%)/g,    '<span style="color:var(--color-gain)">$1</span>')
@@ -153,6 +199,19 @@ function formatInline(text) {
     // the part of an answer people scan back for, so it gets an edge.
     .replace(/US\$[\d,]+(?:\.[\d]+)?/g, '<span class="ai-chip">$&</span>')
     .replace(/(?<!US)A?\$[\d,]+(?:\.[\d]+)?/g, '<span class="ai-chip">$&</span>')
+    // Unsigned rates and levels — "4.35%", "3.8%". Signed changes are already
+    // coloured above and are skipped by the lookbehind so they keep their
+    // green/red rather than being flattened to gold.
+    .replace(/(?<![+\-−>\d.])(\d{1,3}(?:\.\d{1,2})?%)/g, '<span style="color:var(--mt-gold)">$1</span>')
+    // Tickers become clickable. A delegated listener on the message container
+    // reads data-sym — an onClick cannot survive innerHTML.
+    // data-sym always carries the .AX form so the detail panel opens the ASX
+    // listing — a bare "BHP" passed to a quote API returns the US ADR at a USD
+    // price, which is the exact failure tickerGuard.js exists to prevent.
+    .replace(TICKER_RE, (m) => {
+      const sym = m.endsWith('.AX') ? m : `${m}.AX`
+      return `<span class="ai-ticker" data-sym="${sym}" role="link" tabindex="0">${m}</span>`
+    })
     .replace(/^#+\s*/g, '')
 }
 
@@ -221,10 +280,11 @@ function readFeedback() {
   try { return JSON.parse(localStorage.getItem(AI_FEEDBACK_KEY) || '{}') } catch { return {} }
 }
 
-function ResponseFeedback({ text }) {
+function ResponseFeedback({ text, onSaved }) {
   const id = useMemo(() => hashResponse(text), [text])
   const [rating, setRating] = useState(() => readFeedback()[id]?.rating ?? null)
   const [asking, setAsking] = useState(false)
+  const [saved, setSaved] = useState(() => isInsightSaved(text))
 
   const record = (next, reason) => {
     try {
@@ -249,6 +309,15 @@ function ResponseFeedback({ text }) {
         aria-label="Not helpful"
         className={`text-[12px] leading-none transition-opacity ${rating === 'down' ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
       >👎</button>
+      {/* Save sits with the rating controls because it is the same gesture —
+          "this reply was worth something" — expressed at a different strength. */}
+      <button
+        onClick={() => { saveInsight({ content: text }); setSaved(true); onSaved?.() }}
+        disabled={saved}
+        title={saved ? 'Saved to your insights' : 'Save this analysis'}
+        aria-label={saved ? 'Saved to your insights' : 'Save this analysis'}
+        className={`text-[12px] leading-none transition-opacity ${saved ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+      >{saved ? '★' : '☆'}</button>
 
       {asking && (
         <div
@@ -452,9 +521,13 @@ export default function AIPanel({ wide = false }) {
     chatOpen, setChatOpen,
     aiMode, setAiMode,
     chatMessages, setChatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
-    addNotification, activeModule, modalAsset, watchlist, addToWatchlist,
+    addNotification, activeModule, modalAsset, watchlist, addToWatchlist, openModal,
   } = useStore()
   const [showHistory, setShowHistory] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
+  const [insights, setInsights] = useState(() => listInsights())
+  const [expandedInsight, setExpandedInsight] = useState(null)
+  const refreshInsights = useCallback(() => setInsights(listInsights()), [])
   const [historyList, setHistoryList] = useState(() => listConversations())
   const [currentConvId, setCurrentConvId] = useState(null)
   const currentConvIdRef = useRef(null)
@@ -765,6 +838,28 @@ export default function AIPanel({ wide = false }) {
     if (prompt) send(prompt)
   }, [modalAsset, chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Opens the asset panel for a ticker mentioned in a reply. Reads the symbol
+  // off the element rather than the text, so a ticker rendered inside other
+  // markup still resolves.
+  const openTickerFromEvent = useCallback((el) => {
+    const sym = el?.dataset?.sym
+    if (!sym) return
+    openModal({ symbol: sym, name: sym, type: sym.endsWith('.AX') ? 'asx' : 'us' })
+  }, [openModal])
+
+  const handleTickerClick = useCallback((e) => {
+    const el = e.target.closest?.('.ai-ticker')
+    if (el) { e.preventDefault(); openTickerFromEvent(el) }
+  }, [openTickerFromEvent])
+
+  // Keyboard equivalent — the spans carry role="link" and tabindex, so they
+  // are reachable by tab and must respond to Enter and Space.
+  const handleTickerKey = useCallback((e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const el = e.target.closest?.('.ai-ticker')
+    if (el) { e.preventDefault(); openTickerFromEvent(el) }
+  }, [openTickerFromEvent])
+
   const copyMessage = (content) => {
     navigator.clipboard?.writeText(content).catch(() => {})
   }
@@ -864,6 +959,15 @@ export default function AIPanel({ wide = false }) {
             🕐
           </button>
           <button
+            onClick={() => { setShowInsights((v) => !v); setShowHistory(false) }}
+            className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+              showInsights ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
+            }`}
+            title={`Saved insights${insights.length > 0 ? ` (${insights.length})` : ''}`}
+          >
+            ★
+          </button>
+          <button
             onClick={() => setShowNotes((v) => !v)}
             className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
               showNotes ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
@@ -903,6 +1007,61 @@ export default function AIPanel({ wide = false }) {
       </div>
 
       {/* Notes panel — Research Notes is an Apex feature */}
+      {showInsights && (
+        <div
+          className="absolute top-0 bottom-0 left-0 z-30 bg-terminal-panel border-r border-terminal-border-gold flex flex-col panel-slide-in"
+          style={{ width: 260 }}
+        >
+          <div className="flex items-center justify-between px-2 py-1.5 border-b border-terminal-border flex-shrink-0">
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">
+              SAVED INSIGHTS {insights.length > 0 && `(${insights.length}/${INSIGHT_LIMIT})`}
+            </span>
+            <button onClick={() => setShowInsights(false)} className="text-terminal-text-dim hover:text-terminal-gold text-xs">✕</button>
+          </div>
+
+          {insights.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center px-4 text-center">
+              <span className="text-2xs text-terminal-text-dim leading-relaxed">
+                Nothing saved yet. Press ☆ on any MaddenAI reply to keep it here.
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto">
+                {insights.map((ins) => (
+                  <div key={ins.id} className="border-b border-terminal-border/40">
+                    <button
+                      onClick={() => setExpandedInsight((id) => (id === ins.id ? null : ins.id))}
+                      className="w-full text-left px-2 py-2 hover:bg-terminal-accent/10 transition-colors"
+                    >
+                      <div className="text-2xs text-terminal-text-dim/60">
+                        {new Date(ins.savedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      </div>
+                      <div className="text-2xs text-terminal-text leading-snug mt-0.5">{ins.preview}</div>
+                    </button>
+                    {expandedInsight === ins.id && (
+                      <div className="px-2 pb-2">
+                        <div
+                          className="text-2xs text-terminal-text-dim leading-relaxed whitespace-pre-wrap max-h-52 overflow-y-auto border-l-2 border-terminal-gold/30 pl-2"
+                        >{ins.content}</div>
+                        <button
+                          onClick={() => { removeInsight(ins.id); refreshInsights(); setExpandedInsight(null) }}
+                          className="text-2xs text-terminal-text-dim hover:text-terminal-red mt-1.5"
+                        >Remove</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => { clearInsights(); refreshInsights(); setExpandedInsight(null) }}
+                className="text-2xs text-terminal-text-dim hover:text-terminal-red py-2 border-t border-terminal-border flex-shrink-0"
+              >CLEAR SAVED</button>
+            </>
+          )}
+        </div>
+      )}
+
       {showHistory && (
         <div
           className="absolute top-0 bottom-0 left-0 z-30 bg-terminal-panel border-r border-terminal-border-gold flex flex-col panel-slide-in"
@@ -993,7 +1152,12 @@ export default function AIPanel({ wide = false }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* Delegated ticker clicks.
+          formatInline emits <span class="ai-ticker" data-sym="..."> because an
+          onClick cannot survive dangerouslySetInnerHTML. One listener here
+          covers every ticker in every message, including ones still streaming
+          in, and costs one handler rather than one per span. */}
+      <div className="flex-1 overflow-y-auto min-h-0" onClick={handleTickerClick} onKeyDown={handleTickerKey}>
         <div className={isFullscreen ? 'max-w-[800px] mx-auto p-4 space-y-3' : 'p-3 space-y-3'}>
         {chatMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center px-1 py-10">
@@ -1102,7 +1266,7 @@ export default function AIPanel({ wide = false }) {
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
                         title="Copy to clipboard"
                       >COPY</button>
-                      {!(i === chatMessages.length - 1 && loading) && <ResponseFeedback text={msg.content} />}
+                      {!(i === chatMessages.length - 1 && loading) && <ResponseFeedback text={msg.content} onSaved={refreshInsights} />}
                     </div>
                   )}
                 </div>
