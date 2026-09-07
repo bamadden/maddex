@@ -97,16 +97,20 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
         <div className="text-2xs text-terminal-text-dim/70 truncate leading-tight">{name}</div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="text-2xs text-terminal-text-dim/60 tracking-widest leading-tight">{metricLabel}</div>
-        <div className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</div>
+      {/* The label sat above every descriptor reading "Signal" — in a module
+          called MARKET SCANNER where every row is a signal. Dropping it lets
+          the descriptor sit on the ticker's own baseline, which closes the
+          band of empty row that used to run between the name and the price.
+          metricLabel is kept in the tooltip, where it still distinguishes
+          "Signal" from "Volume" or "RSI" across tabs. */}
+      <div className="flex-1 min-w-0 flex items-baseline gap-2" title={metricLabel}>
+        <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
+        {detectedAt != null && (
+          <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0 tabular-nums ml-auto">
+            {detectedAtStr(detectedAt)}
+          </span>
+        )}
       </div>
-
-      {detectedAt != null && (
-        <div className="text-2xs text-terminal-text-dim/50 flex-shrink-0 w-20 text-right tabular-nums">
-          {detectedAtStr(detectedAt)}
-        </div>
-      )}
 
       <div className="text-right flex-shrink-0 w-24">
         <div className="font-bold text-terminal-text-bright tabular-nums leading-tight" style={{ fontSize: 12 }}>
@@ -122,7 +126,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
 
       <button
         onClick={onAnalyse}
-        className="text-2xs font-bold px-2.5 py-1 flex-shrink-0 rounded-sm transition-colors opacity-60 group-hover:opacity-100"
+        className="text-2xs font-bold px-2.5 py-1 flex-shrink-0 rounded-sm transition-colors opacity-80 group-hover:opacity-100"
         style={{ color: tone, border: `1px solid ${tone}66` }}
       >ANALYSE</button>
     </div>

@@ -50,15 +50,22 @@ function Week52Bar({ price, low, high }) {
         `Low:     ${fmt.aud(low)}`
       }
     >
+      {/* The endpoints are AXIS LABELS, not signals.
+          They were red and green, which put a red $52.30 and a green $82.10
+          immediately beside a change column where red and green mean today's
+          direction — so a stock up 0.7% displayed a red number in the next
+          cell. It also asserted that the top of the range is the good end,
+          which is a view, not a fact. The dot carries the reading; the
+          endpoints just say where the scale starts and stops. */}
       <div className="flex items-center gap-1.5 w-full min-w-0">
-        <span className="text-2xs text-terminal-red flex-shrink-0">{fmt.aud(low)}</span>
+        <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(low)}</span>
         <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[20px]">
           <div
             className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
             style={{ left: `calc(${pct}% - 3px)` }}
           />
         </div>
-        <span className="text-2xs text-terminal-green flex-shrink-0">{fmt.aud(high)}</span>
+        <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(high)}</span>
       </div>
     </Tooltip>
   )

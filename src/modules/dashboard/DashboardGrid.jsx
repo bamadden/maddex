@@ -225,7 +225,14 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
         gridAutoRows: 'minmax(160px, auto)',
         gap: 1,
         background: 'rgba(201,168,76,0.08)',
-        alignContent: 'start',
+        // `start` packed the rows against the top and left whatever height was
+        // spare as a dead band under the dashboard — the one thing a
+        // "your terminal at a glance" screen cannot afford, since the empty
+        // strip reads as a widget that failed to load. `stretch` grows the
+        // auto-sized rows to fill instead. Rows whose content needs more than
+        // their share still grow past it, so nothing clips, and a dashboard
+        // with more widgets than fit still scrolls.
+        alignContent: 'stretch',
         flex: 1,
         minHeight: 0,
         overflowY: 'auto',

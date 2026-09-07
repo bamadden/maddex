@@ -379,14 +379,34 @@ function GlobalRatesCardGrid() {
         {CENTRAL_BANK_RATES.map((cb) => (
           <div
             key={cb.bank}
-            className={`border-r border-b border-terminal-border p-2 ${cb.country === 'AUD' ? 'bg-terminal-gold/5' : ''}`}
+            // THE RBA IS NOT ONE OF TEN.
+            //
+            // This is an Australian terminal, and the RBA cash rate is the
+            // single number in this grid that prices an Australian reader's
+            // mortgage, their term deposit and half their portfolio. It was
+            // rendered identically to the Riksbank, distinguished only by a 5%
+            // gold wash that reads as a hover state. It now carries the left
+            // marker, the brighter type and the larger figure that say "start
+            // here" — the other nine are context for this one.
+            className={`border-r border-b border-terminal-border p-2 ${
+              cb.country === 'AUD'
+                ? 'bg-terminal-gold/[0.07] border-l-2 border-l-terminal-gold'
+                : ''
+            }`}
             style={{ minWidth: 180 }}
           >
-            <div className="flex items-center gap-1 text-[8px] font-mono text-terminal-text-dim uppercase tracking-wide truncate">
-              <span>{FLAG_BY_CCY[cb.country] ?? '🏳'}</span>
+            <div className={`flex items-center gap-1 text-[8px] font-mono uppercase tracking-wide truncate ${
+              cb.country === 'AUD' ? 'text-terminal-gold font-bold' : 'text-terminal-text-dim'
+            }`}>
+              <span>{FLAG_BY_CCY[cb.country] ?? '⬚'}</span>
               <span className="truncate">{cb.bank}</span>
+              {cb.country === 'AUD' && (
+                <span className="ml-auto text-[7px] tracking-widest text-terminal-gold/60 flex-shrink-0">HOME</span>
+              )}
             </div>
-            <div className="text-[20px] font-mono font-bold text-terminal-text-bright leading-tight mt-0.5">
+            <div className={`font-mono font-bold leading-tight mt-0.5 ${
+              cb.country === 'AUD' ? 'text-[26px] text-terminal-gold' : 'text-[20px] text-terminal-text-bright'
+            }`}>
               {cb.rate.toFixed(2)}%
             </div>
             <div className="flex items-center gap-1 mt-1 flex-wrap">

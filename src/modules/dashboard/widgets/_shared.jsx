@@ -50,8 +50,15 @@ export function WidgetFigure({ value, sub, tone }) {
   )
 }
 
+// Rows read DOWN from the header, not out from the middle.
+//
+// This was justify-center, which was invisible while every cell was 160px and
+// wrong the moment cells started stretching to fill the dashboard: a five-row
+// index list floated in the vertical centre of its cell with a band of empty
+// panel above it, disconnected from the header that names it. A list is read
+// top-down; it starts at the top.
 export function WidgetRows({ children }) {
-  return <div className="flex-1 min-h-0 flex flex-col justify-center gap-1.5">{children}</div>
+  return <div className="flex-1 min-h-0 flex flex-col justify-start gap-1.5">{children}</div>
 }
 
 export function WidgetRow({ label, value, change, onClick }) {

@@ -126,7 +126,12 @@ export default function MarketScoreWidget() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col justify-end gap-1">
+        {/* justify-between, not justify-end: the body belongs directly under
+            the hero it describes, and only the footer meta belongs at the
+            bottom of the card. Pinning both to the bottom opened a band of
+            empty panel under the hero once dashboard cells started stretching,
+            which read as the widget having failed to finish loading. */}
+      <div className="flex-1 min-h-0 flex flex-col justify-between gap-2">
         {driver && (
           <div className="font-sans text-[10px] leading-snug line-clamp-2" style={{ color: '#8BA3C4' }}>
             {driver}
