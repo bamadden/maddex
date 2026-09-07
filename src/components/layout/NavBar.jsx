@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator,
+  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import NavContextMenu from '../ui/NavContextMenu'
@@ -56,6 +56,7 @@ const NAV_ITEMS = [
 
   // INSTRUMENTS — asset classes the terminal covers beyond equities.
   { id: 'bonds',     label: 'BONDS',     short: 'BND',  fkey: null, Icon: Landmark,   group: 'INSTRUMENTS' },
+  { id: 'etf',       label: 'ETFs',      short: 'ETF',  fkey: null, Icon: Package,    group: 'INSTRUMENTS' },
   { id: 'calculators', label: 'CALC',    short: 'CLC',  fkey: null, Icon: Calculator, group: 'INSTRUMENTS' },
 ]
 
