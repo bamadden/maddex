@@ -5,7 +5,6 @@ import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS, ask
 import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockData'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
-import { Badge } from '../../components/ui/Panel'
 import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -30,13 +29,10 @@ const PULSE_MS      = 30_000
 
 const BREAKING_RE = /rate (cut|hike)|crash|collapse|record (high|low)|emergency|crisis|\bwar\b|sanction|default|bankruptcy|merger|acquisition|\bIPO\b|surge/i
 
-const TAG_VARIANTS = {
-  MACRO: 'gold', AU: 'gold', EQUITY: 'blue', ENERGY: 'red', FX: 'default',
-  CRYPTO: 'green', RATES: 'default', 'M&A': 'gold', INTL: 'blue', EARNINGS: 'red', TECH: 'blue',
-}
-// Hex equivalents of the same variants, for the tiny inline category pills
-// in the list rows (those use inline background-tint styling rather than
-// the <Badge> component's Tailwind classes).
+// Category tint. There used to be a parallel TAG_VARIANTS map of Tailwind
+// <Badge> variants for the same categories, used only by the top story card —
+// so one category had two colour definitions that had to be kept in step by
+// hand. The card now uses these hexes like every other surface in the module.
 const TAG_COLOR = {
   MACRO: '#C9A84C', AU: '#C9A84C', EQUITY: '#2D7DD2', ENERGY: '#a83232', FX: '#8BA3C4',
   CRYPTO: '#2D8A50', RATES: '#8BA3C4', 'M&A': '#C9A84C', INTL: '#2D7DD2', EARNINGS: '#a83232', TECH: '#2D7DD2',
@@ -68,7 +64,6 @@ function saveCategory(cat) {
 // compact: these render in dense rows beside a source name and a headline,
 // where a fixed-width "1d ago" scans and a variable-width word does not.
 const timeAgo = (pubDate) => sharedTimeAgo(pubDate) ?? '—'
-const sinceMs = (ts) => sharedTimeAgo(ts)
 
 // Synthetic "EARNINGS RESULT" article built from a completed AI Earnings
 // ─── Article classification helpers ───────────────────────────────────────────
@@ -84,17 +79,14 @@ function isBreakingArticle(item) {
   return ageMs <= 30 * 60_000 && BREAKING_RE.test(item.headline)
 }
 
-// Heuristic market-impact tier for the featured-story badge — breaking
-// headlines or macro/rates-tagged stories read as HIGH impact, stories
-// naming a tracked ticker as MEDIUM (they move a specific stock), everything
-// else LOW. Not a model, just a legible signal for the reader's eye.
-function storyImpactTier(item) {
-  if (isBreakingArticle(item)) return 'HIGH'
-  if (item.tag === 'MACRO' || item.tag === 'RATES' || item.categories?.includes('MACRO')) return 'HIGH'
-  if ((item.tickers ?? []).length > 0) return 'MEDIUM'
-  return 'LOW'
-}
-const IMPACT_COLOR = { HIGH: '#a83232', MEDIUM: '#C9A84C', LOW: '#4A6080' }
+// THERE WAS A SECOND IMPACT SCALE HERE, AND IT DISAGREED WITH THE FIRST.
+//
+// `storyImpactTier` graded HIGH/MEDIUM/LOW from the tag and ticker count;
+// `impactOf` in newsIntelligence grades HIGH/MED/LOW from headline keywords.
+// Both rendered on the top story card at once — the dot from one, the pill
+// from the other — so the same article could read "● LOW" beside
+// "HIGH IMPACT". Deleted in favour of `impactOf`, which is the one the rest of
+// the feed already uses and the one whose tooltip explains what it is.
 
 // ─── Category filter tabs (display subset — distinct from the full
 // NEWS_CATEGORIES taxonomy used for classification in api.js) ────────────────
@@ -353,14 +345,30 @@ function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
         <span className="text-2xs font-bold" style={{ color: '#c9a84c' }}>{s.neutralPct}% NEUTRAL</span>
         <span className="text-2xs text-terminal-text-dim/50">·</span>
         <span className="text-2xs font-bold" style={{ color: '#cc4444' }}>{s.bearPct}% BEARISH</span>
-        <span className="text-2xs text-terminal-text-dim/40 ml-auto">{s.total} articles analysed</span>
+        <span className="text-2xs text-terminal-text-dim/40 ml-auto" title="Each article is scored by keyword at fetch time (inferSentiment in api.js) — no model is involved and nothing here is cached from an earlier session">
+          {s.total} articles · keyword-scored
+        </span>
       </div>
 
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <div
-          style={{ width: `${s.bullPct}%`, height: '100%', background: '#c9a84c', transition: 'width 300ms ease' }}
-          title={`Bullish ${s.bullPct}%`}
-        />
+      {/* SEGMENTED, and it was not.
+          The row above has said "25% BULLISH · 67% NEUTRAL · 8% BEARISH" for a
+          while; the bar under it drew a single gold segment at the bullish
+          width and left the other 75% empty track. So the one graphic in the
+          module carried a third of the number beside it and coloured it gold,
+          which is this terminal's neutral. Three segments, three colours,
+          full width, adding to 100. */}
+      <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        {[
+          { pct: s.bullPct, colour: '#3aaa63', label: 'Bullish' },
+          { pct: s.neutralPct, colour: '#c9a84c', label: 'Neutral' },
+          { pct: s.bearPct, colour: '#cc4444', label: 'Bearish' },
+        ].map((seg) => (
+          <div
+            key={seg.label}
+            style={{ width: `${seg.pct}%`, height: '100%', background: seg.colour, transition: 'width 300ms ease' }}
+            title={`${seg.label} ${seg.pct}% — from per-article keyword scoring across ${s.total} headlines`}
+          />
+        ))}
       </div>
 
       {topTags.length > 0 && (
@@ -383,6 +391,61 @@ function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── FEED STATUS — live dot, article count, refresh countdown ──────────────
+//
+// The countdown was already computed and rendered as eight muted grey words
+// inside the panel header, beside the source count and the article count and
+// the LIVE label — five facts sharing one line, none of them findable. This is
+// the same information given its own 28px band, which is what makes "when does
+// this next update" answerable at a glance.
+//
+// The clock is the module's existing one-second tick; react-query's
+// refetchInterval owns the actual refresh, so the countdown reports the
+// schedule rather than driving it and the two cannot drift apart.
+
+function FeedStatusBar({ isLive, isFetching, articleCount, lastUpdatedAt, nowTs, onRefresh }) {
+  const sinceRefresh = lastUpdatedAt == null ? null : nowTs - lastUpdatedAt
+  const secsLeft = sinceRefresh == null ? null : Math.max(0, Math.round((REFRESH_MS - sinceRefresh) / 1000))
+  const countdown = secsLeft == null ? '—'
+    : secsLeft >= 60 ? `${Math.floor(secsLeft / 60)}m`
+    : `${secsLeft}s`
+
+  return (
+    <div
+      className="flex items-center gap-2 px-3 border-b border-terminal-border flex-shrink-0"
+      style={{ height: 28, background: 'rgba(201,168,76,0.025)' }}
+    >
+      <span className="flex items-center gap-1.5 flex-shrink-0" style={{ width: 90 }}>
+        <span
+          className={`rounded-full ${isLive ? 'animate-pulse' : ''}`}
+          style={{ width: 6, height: 6, background: isLive ? '#2D8A50' : '#a83232' }}
+        />
+        <span
+          className="font-mono font-bold tracking-widest"
+          style={{ fontSize: 9, color: isLive ? '#2D8A50' : '#a83232' }}
+        >{isLive ? 'LIVE' : 'OFFLINE'}</span>
+      </span>
+
+      <span className="font-mono text-terminal-text-dim mx-auto text-center" style={{ fontSize: 9 }}>
+        {articleCount} articles
+        {lastUpdatedAt != null && <> · updated {sharedTimeAgo(lastUpdatedAt) ?? 'just now'}</>}
+      </span>
+
+      <span className="flex items-center gap-2 flex-shrink-0 justify-end" style={{ width: 130 }}>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
+          {isFetching ? 'refreshing…' : `refresh in ${countdown}`}
+        </span>
+        <button
+          onClick={onRefresh}
+          title="Refresh now"
+          className="text-terminal-text-dim hover:text-terminal-gold transition-colors leading-none"
+          style={{ fontSize: 12 }}
+        >↻</button>
+      </span>
     </div>
   )
 }
@@ -443,24 +506,76 @@ function TickerBadgeRow({ tickers, onOpenTicker }) {
 // ─── TOP STORY — full-width card, with a mini sparkline (top-right) when the
 // headline mentions a tracked asset ──────────────────────────────────────────
 
-function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI, onOpenTicker }) {
+function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAskAI, onOpenTicker }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
-  const asset       = useMemo(() => resolveStoryAsset(item), [item])
-  const impact      = storyImpactTier(item)
+  const asset      = useMemo(() => resolveStoryAsset(item), [item])
+  const impact     = item.impact ?? { level: 'LOW', colour: '#4A6080' }
 
   return (
     <div
-      className={`news-top-story ${isPulsing ? 'news-pulse' : ''} bg-terminal-surface hover:border-terminal-border-gold transition-colors cursor-pointer px-4 py-3`}
-      style={{ borderLeft: `3px solid ${isBreaking ? '#a83232' : '#C9A84C'}` }}
-      onClick={() => onToggle(item)}
+      className={`news-top-story ${isPulsing ? 'news-pulse' : ''} bg-terminal-surface transition-colors`}
+      style={{
+        borderLeft: `3px solid ${isBreaking ? '#a83232' : '#C9A84C'}`,
+        background: 'rgba(201,168,76,0.04)',
+        padding: 16,
+        marginBottom: 1,
+      }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-terminal-text-bright leading-snug mb-1 line-clamp-3" style={{ fontSize: 16 }}>
-          {isUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mr-1.5" />}
-          {isBreaking && <span className="text-[#a83232] font-bold mr-1.5">● BREAKING</span>}
-          <HighlightText text={item.headline} term={searchTerm} />
-        </p>
+      {/* Header row — what this is, where it came from, and when. */}
+      <div className="flex items-center gap-1.5 flex-wrap mb-2">
+        <span
+          className="font-mono font-bold tracking-widest flex-shrink-0"
+          style={{ fontSize: 8, color: '#C9A84C', background: 'rgba(201,168,76,0.12)', padding: '2px 6px', borderRadius: 2 }}
+        >TOP STORY</span>
+        <span
+          className="font-mono font-bold tracking-wider flex-shrink-0"
+          style={{
+            fontSize: 8, padding: '2px 6px', borderRadius: 2,
+            color: TAG_COLOR[item.tag] ?? '#8BA3C4',
+            background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`,
+          }}
+        >{primaryDisplayCategory(item)}</span>
+        <span
+          className="rounded-full flex-shrink-0"
+          style={{ width: 6, height: 6, background: sourceColor(item.source) }}
+          title={item.source}
+        />
+        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{item.source}</span>
+        {isBreaking && <span className="font-mono font-bold text-[#a83232]" style={{ fontSize: 9 }}>● BREAKING</span>}
+        {isNew && !isBreaking && <span className="font-mono font-bold text-terminal-gold" style={{ fontSize: 9 }}>NEW</span>}
+        {/* The watchlist marker has to live here too. Stories touching the
+            user's holdings are promoted to the top of the feed, which means
+            the one story most likely to carry the badge is the one rendered by
+            this card rather than by StoryRow. */}
+        {item.inWatchlist && (
+          <span
+            className="font-mono tracking-widest text-terminal-gold flex-shrink-0"
+            style={{ fontSize: 8 }}
+            title="You hold or track one of the companies in this story"
+          >IN YOUR WATCHLIST</span>
+        )}
+        <span className="font-mono text-terminal-text-dim/60 ml-auto flex-shrink-0" style={{ fontSize: 9 }}>
+          {timeAgo(item.pubDate)}
+        </span>
+      </div>
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p
+            className="font-semibold text-terminal-text-bright line-clamp-2"
+            style={{ fontSize: 16, lineHeight: 1.35 }}
+          >
+            {isUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mr-1.5" />}
+            <HighlightText text={item.headline} term={searchTerm} />
+          </p>
+          {item.summary && (
+            <p
+              className="text-terminal-text-dim line-clamp-2 mt-1.5"
+              style={{ fontSize: 12, lineHeight: 1.6, color: '#8BA3C4' }}
+            >{item.summary}</p>
+          )}
+        </div>
         {asset && (
           <div className="flex-shrink-0 text-right">
             <MiniSparkline values={asset.values} up={asset.up} width={60} height={30} />
@@ -469,61 +584,36 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onToggle, onAskAI
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 text-[10px] font-mono text-terminal-text-dim mb-1.5 flex-wrap">
-        <SourceCircle source={item.source} size={12} />
-        <span>{item.source}</span>
-        <span>· {timeAgo(item.pubDate)}</span>
-        {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1">NEW</span>}
-        <ImpactDot impact={item.impact} />
-        {/* The watchlist marker has to live here too. Stories touching the
-            user's holdings are promoted to the top of the feed, which means
-            the one story most likely to carry the badge is the one rendered by
-            this card rather than by StoryRow — so the badge existed and was
-            never seen. */}
-        {item.inWatchlist && (
-          <span
-            className="text-[8px] font-mono tracking-widest text-terminal-gold"
-            title="You hold or track one of the companies in this story"
-          >IN YOUR WATCHLIST</span>
-        )}
-      </div>
-
-      {item.summary && (
-        <p className="text-xs text-terminal-text-dim leading-snug mb-2 line-clamp-2">{item.summary}</p>
-      )}
-
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5">
-          <Badge variant={TAG_VARIANTS[item.tag] || 'default'}>{primaryDisplayCategory(item)}</Badge>
-          <span
-            className="text-2xs font-bold px-1.5 py-0.5 rounded-full border"
-            style={{ color: IMPACT_COLOR[impact], borderColor: `${IMPACT_COLOR[impact]}66` }}
-          >
-            {impact === 'HIGH' ? 'HIGH IMPACT' : impact}
-          </span>
+      {/* Companies named in the story. */}
+      {(item.companies?.length || knownTickerBadges(item.tickers).length > 0) && (
+        <div className="flex items-center gap-1 mt-2 flex-wrap">
           {item.companies?.length
             ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
             : <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />}
         </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap mt-3 pt-2" style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+        <span
+          className="font-mono font-bold flex-shrink-0"
+          style={{ fontSize: 8, letterSpacing: '0.08em', color: impact.colour }}
+          title={`${impact.level} — estimated from keywords in the headline, not a market forecast`}
+        >● {impact.level}</span>
+
         {item.link && (
           <a
             href={item.link}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors ml-auto"
-          >
-            READ FULL STORY →
-          </a>
+            onClick={() => onMarkRead(item)}
+            className="text-2xs font-bold tracking-wide text-terminal-blue-bright border border-terminal-blue-bright/30 rounded-full hover:bg-terminal-blue-bright hover:text-terminal-bg transition-colors px-3 py-1 ml-auto"
+          >READ FULL ARTICLE →</a>
         )}
+        <button
+          onClick={() => onAskAI(item)}
+          className={`text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1 ${item.link ? '' : 'ml-auto'}`}
+        >ASK MADDENAI ▶</button>
       </div>
-
-      <button
-        onClick={e => { e.stopPropagation(); onAskAI(item) }}
-        className="mt-2 w-full text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-1.5"
-      >
-        ASK MADDENAI ▶
-      </button>
     </div>
   )
 }
@@ -610,7 +700,10 @@ function StoryCluster({ cluster, ...rowProps }) {
 const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
-  const asset       = useMemo(() => (isExpanded ? resolveStoryAsset(item) : null), [item, isExpanded])
+  // Not gated on isExpanded any more: the accordion panel stays mounted so it
+  // can animate closed. Memoised per item, and StoryRow itself is memo'd, so
+  // this runs once per article rather than on every one-second tick.
+  const asset       = useMemo(() => resolveStoryAsset(item), [item])
   const relevanceColor = isBreaking ? '#a83232' : item.sentiment === 'BULLISH' ? '#3aaa63' : item.sentiment === 'BEARISH' ? '#a83232' : '#4A6080'
 
   return (
@@ -660,40 +753,72 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded,
         />
       </div>
 
-      {isExpanded && (
-        <div className="px-3 pb-3 pl-8 panel-fade">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-xs text-terminal-text-dim leading-snug flex-1">
-              {item.summary || <span className="italic text-terminal-text-dim/60">Full story available at {item.source}.</span>}
-            </p>
-            {asset && (
-              <div className="flex-shrink-0 text-right">
-                <MiniSparkline values={asset.values} up={asset.up} />
-                <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
+      {/* 0fr → 1fr on a grid row animates height without measuring anything,
+          so the accordion opens and CLOSES smoothly. The panel content stays
+          mounted through the collapse — unmounting it on the first frame
+          leaves an empty box to animate, which reads as an instant snap. */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isExpanded ? '1fr' : '0fr',
+          transition: 'grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <div className="px-3 pb-3 pl-8">
+            {/* The full headline, unclamped. The row above truncates to one
+                line, and the whole point of opening a row is to read the part
+                that was cut off. */}
+            <p className="text-terminal-text-bright leading-snug" style={{ fontSize: 14 }}>{item.headline}</p>
+
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
+                {item.source}
+                {item.author ? ` · ${item.author}` : ''}
+                {' · '}{timeAgo(item.pubDate)}
+              </span>
+              <ImpactDot impact={item.impact} />
+              {item.inWatchlist && (
+                <span className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>IN YOUR WATCHLIST</span>
+              )}
+            </div>
+
+            <div className="flex items-start justify-between gap-3 mt-1.5">
+              <p className="text-terminal-text-dim flex-1" style={{ fontSize: 12, lineHeight: 1.6 }}>
+                {item.summary || <span className="italic text-terminal-text-dim/60">No summary in the feed — full story at {item.source}.</span>}
+              </p>
+              {asset && (
+                <div className="flex-shrink-0 text-right">
+                  <MiniSparkline values={asset.values} up={asset.up} />
+                  <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
+                </div>
+              )}
+            </div>
+
+            {item.companies?.length > 0 && (
+              <div className="flex items-center gap-1 mt-2 flex-wrap">
+                <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
               </div>
             )}
-          </div>
-          <div className="flex items-center gap-3 mt-2">
-            {item.link && (
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-                className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
-              >
-                Read →
-              </a>
-            )}
-            <button
-              onClick={e => { e.stopPropagation(); onAskAI(item) }}
-              className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
-            >
-              Ask MaddenAI ▶
-            </button>
+
+            <div className="flex items-center gap-3 mt-2">
+              {item.link && (
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
+                >READ →</a>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); onAskAI(item) }}
+                className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
+              >Ask MaddenAI ▶</button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 })
@@ -1082,15 +1207,16 @@ export default function NewsModule() {
     })
   }, [])
 
-  // Clicking the top story marks it read and opens the source article
-  // directly (it's the hero item, no accordion). Story-row clicks instead
-  // toggle the inline accordion via handleExpand below.
-  const handleToggle = useCallback((item) => {
+  // Marks the featured story read. It used to also window.open() the source
+  // on any click anywhere in the card — including on the headline someone was
+  // only trying to select — which is a trapdoor. The card now has an explicit
+  // READ FULL ARTICLE → link, so opening a tab is something the reader asks
+  // for rather than something the card does to them.
+  const handleMarkRead = useCallback((item) => {
     if (!readIds.has(item.id)) {
       const next = new Set(readIds); next.add(item.id); next.add(item.headline)
       setReadIds(next); saveReadSet(next)
     }
-    if (item.link) window.open(item.link, '_blank', 'noopener,noreferrer')
   }, [readIds])
 
   // Story rows: click expands an inline accordion (only one open at a time)
@@ -1144,7 +1270,7 @@ export default function NewsModule() {
         <EmptyState
           icon="📰"
           title="No news loaded"
-          subtitle="News updates every 5 minutes. Pull to refresh."
+          subtitle={`News updates every ${REFRESH_MS / 60_000} minutes. Pull to refresh.`}
           actionLabel="REFRESH NOW"
           action={refetch}
         />
@@ -1152,13 +1278,22 @@ export default function NewsModule() {
     )
   }
 
-  const lastUpdatedDisplay = lastUpdatedAt ? sinceMs(lastUpdatedAt) : null
-  const nextRefreshSecs    = lastUpdatedAt
-    ? Math.max(0, Math.round((REFRESH_MS - (nowTs - lastUpdatedAt)) / 1000))
-    : null
-
-  const topStory   = prioritised[0]
-  const listRest    = clusters.slice(1)
+  // THE FEATURED SLOT GOES TO THE MOST IMPORTANT STORY, NOT THE NEWEST ONE.
+  //
+  // It used to be prioritised[0] — whatever arrived last. On a wire carrying
+  // seventy-five articles that is frequently a routine market wrap sitting
+  // above an RBA decision three rows down. The hero slot now takes the most
+  // recent article whose keyword impact reads HIGH, and falls back to the most
+  // recent article when nothing does.
+  //
+  // `prioritised` already floats watchlist stories to the front, so a HIGH
+  // story about something the reader owns wins over a HIGH story about
+  // something they do not, without this needing to know that.
+  const topStory = prioritised.find((a) => a.impact?.level === 'HIGH') ?? prioritised[0]
+  // Whichever cluster leads with the featured story is dropped from the centre
+  // feed. Slicing off clusters[0] only worked while the top story was
+  // guaranteed to be the first one.
+  const listRest = clusters.filter((c) => c.lead !== topStory)
   const bannerVisible = lastArrivalAt != null && (nowTs - lastArrivalAt < 10_000)
 
   return (
@@ -1205,7 +1340,11 @@ export default function NewsModule() {
         <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
       </div>
 
-      {/* Header */}
+      {/* Header. The live dot, the article count and the countdown moved down
+          into FeedStatusBar — this line had five facts on it and was where
+          none of them could be found. What stays is the title and the one
+          thing the status bar does not carry: how many of the eighteen
+          sources actually answered. */}
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
         <span>LIVE NEWS FEED</span>
         <span
@@ -1216,30 +1355,19 @@ export default function NewsModule() {
             transition: 'background 0.2s',
           }}
         />
-        <span className="text-2xs text-terminal-text-dim/70 font-normal normal-case">
-          {isLive ? 'LIVE' : isFetching ? 'LOADING...' : 'OFFLINE'}
+        <span className="text-2xs text-terminal-text-dim/40 font-normal normal-case ml-auto">
+          {Object.values(sourceHealth).filter(v => v === 'ok').length}/{NEWS_SOURCES.length} sources responding
         </span>
-
-        {isLive && (
-          <span className="text-2xs text-terminal-text-dim/40 font-normal normal-case">
-            · {allArticles.length} articles · {Object.values(sourceHealth).filter(v => v === 'ok').length}/{NEWS_SOURCES.length} sources
-          </span>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          {lastUpdatedDisplay && (
-            <span className="text-2xs text-terminal-text-dim/40 font-normal normal-case">
-              {lastUpdatedDisplay}
-              {nextRefreshSecs !== null && ` · next update in ${
-                nextRefreshSecs >= 60 ? `${Math.floor(nextRefreshSecs / 60)}m` : `${nextRefreshSecs}s`
-              }`}
-            </span>
-          )}
-          {isFetching && (
-            <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">REFRESHING...</span>
-          )}
-        </div>
       </div>
+
+      <FeedStatusBar
+        isLive={isLive}
+        isFetching={isFetching}
+        articleCount={allArticles.length}
+        lastUpdatedAt={lastUpdatedAt}
+        nowTs={nowTs}
+        onRefresh={refetch}
+      />
 
       {/* Category pills — moved to the very top of the interactive area,
           above search, per the redesign */}
@@ -1312,7 +1440,7 @@ export default function NewsModule() {
               isUnread={!readIds.has(topStory.id) && !readIds.has(topStory.headline)}
               searchTerm={searchTerm}
               isPulsing={newIds.has(topStory.headline) && (nowTs - newIds.get(topStory.headline) < PULSE_MS)}
-              onToggle={handleToggle}
+              onMarkRead={handleMarkRead}
               onAskAI={askAI}
               onOpenTicker={handleOpenTicker}
             />
@@ -1324,6 +1452,23 @@ export default function NewsModule() {
           <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '40%' }} ref={listTopRef}>
             {listRest.map((cluster, i) => (
               <div key={cluster.id}>
+                {/* The feed already floats watchlist stories to the front. It
+                    did it silently, so the reordering read as the wire simply
+                    being out of order. Two dividers make the promotion legible
+                    — and make the boundary visible, which is the part a reader
+                    needs to know they are back in ordinary recency. */}
+                {i === 0 && cluster.lead.inWatchlist && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/25">
+                    <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>WATCHLIST MENTIONS</span>
+                    <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8 }}>promoted above the wire</span>
+                  </div>
+                )}
+                {i > 0 && !cluster.lead.inWatchlist && listRest[i - 1].lead.inWatchlist && (
+                  <div className="flex items-center gap-2 px-3 py-1 border-b border-terminal-border bg-terminal-surface2/40">
+                    <span className="font-mono font-bold tracking-widest text-terminal-text-dim/70" style={{ fontSize: 8 }}>ALL STORIES</span>
+                    <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>newest first</span>
+                  </div>
+                )}
                 <StoryCluster
                   cluster={cluster}
                   isUnread={!readIds.has(cluster.lead.id) && !readIds.has(cluster.lead.headline)}
@@ -1352,7 +1497,7 @@ export default function NewsModule() {
       {/* Footer */}
       <div className="border-t border-terminal-border px-3 py-1 flex-shrink-0">
         <span className="text-2xs text-terminal-text-dim/40">
-          {byCategory.length} articles · auto-refresh 5min · {NEWS_SOURCES.length} sources
+          {byCategory.length} articles · auto-refresh {REFRESH_MS / 60_000}min · {NEWS_SOURCES.length} sources
         </span>
       </div>
     </div>

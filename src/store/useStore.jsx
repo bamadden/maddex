@@ -157,7 +157,13 @@ export function StoreProvider({ children }) {
   // Rate limited to 3 per type per minute at this chokepoint so every producer
   // is covered — including ones added later that would otherwise forget to
   // wrap the call. Returns null when the notification was dropped.
-  const addNotification = useCallback((type, message) => {
+  //
+  // `meta` carries optional extras a notification type may need — currently
+  // only `link`, so a story toast can offer READ → instead of naming a
+  // headline the reader then has to go and find. Kept as one bag rather than a
+  // growing argument list, and everything in it is optional so no existing
+  // caller changes.
+  const addNotification = useCallback((type, message, meta = null) => {
     if (!notificationRateLimiter.canShow(type)) return null
     // Treatment is attached at creation, so every consumer — toast, sound,
     // bell — reads one decision rather than each re-deciding. See
@@ -168,6 +174,7 @@ export function StoreProvider({ children }) {
       id: Date.now() + Math.random(), type, message, read: false,
       createdAt: new Date().toISOString(),
       priority: treatment.priority, toast: treatment.toast, sound: treatment.sound,
+      ...(meta?.link ? { link: meta.link } : null),
     }
     recordHistory(notification)
     setNotifications((prev) => {

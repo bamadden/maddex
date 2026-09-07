@@ -22,7 +22,7 @@ import {
 // One face, one weight, one baseline. Every glyph here is text-presentation,
 // so it inherits the panel's colour and the monospace metrics rather than
 // arriving as a coloured bitmap from the OS.
-const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '⚡', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞' }
+const TYPE_ICON  = { DAILY_DIGEST: '▣', PRICE_ALERT: '⚡', MARKET_OPEN: '▲', NEWS: '≡', SYSTEM: '✦', CALENDAR: '◈', WATCHLIST_MOVE: '◆', CUSTOM_ALERT: '⚑', EARNINGS_RESULT: '⊞', BREAKING_WATCHLIST: '≡' }
 // Icon-circle background per type — gold for price/alert-family, blue for
 // earnings/calendar, green for news, muted for system.
 const TYPE_CIRCLE = {
@@ -36,7 +36,7 @@ const TYPE_CIRCLE = {
   DAILY_DIGEST: 'bg-terminal-blue-bright/15 text-terminal-blue-bright',
   SYSTEM: 'bg-terminal-muted/15 text-terminal-muted',
 }
-const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', DAILY_DIGEST: 'DAILY DIGEST', EARNINGS_RESULT: 'EARNINGS RESULT' }
+const TYPE_LABEL = { PRICE_ALERT: 'PRICE ALERT', MARKET_OPEN: 'MARKET OPEN', NEWS: 'NEWS', SYSTEM: 'SYSTEM', WATCHLIST_MOVE: 'WATCHLIST', CUSTOM_ALERT: 'ALERT', CALENDAR: 'EARNINGS', DAILY_DIGEST: 'DAILY DIGEST', EARNINGS_RESULT: 'EARNINGS RESULT', BREAKING_WATCHLIST: 'WATCHLIST NEWS' }
 // Summary wording when several of a type arrive together. "3 price alerts
 // triggered" is the headline; the individual messages are one click away.
 const TYPE_SUMMARY = {
@@ -44,6 +44,7 @@ const TYPE_SUMMARY = {
   CUSTOM_ALERT: (n) => `${n} alerts triggered`,
   WATCHLIST_MOVE: (n) => `${n} watchlist stocks are moving`,
   NEWS: (n) => `${n} stories worth a look`,
+  BREAKING_WATCHLIST: (n) => `${n} stories about stocks you track`,
   CALENDAR: (n) => `${n} earnings reminders`,
 }
 const summaryFor = (type, n) => (TYPE_SUMMARY[type] ?? ((c) => `${c} ${TYPE_LABEL[type] ?? type} notifications`))(n)
@@ -463,12 +464,24 @@ export default function NotificationCenter() {
         // Only mark seen once it actually qualifies, so a story that becomes
         // watchlist-relevant after the user adds the symbol can still notify.
         seenNewsIds.current.add(id)
-        addNotification(
-          'NEWS',
-          breaking
-            ? `🔴 BREAKING — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`
-            : `${mentioned} in the news — ${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`,
-        )
+        const trimmed = `${item.headline.slice(0, 60)}${item.headline.length > 60 ? '…' : ''}`
+        // A story about a stock the user tracks goes out as
+        // BREAKING_WATCHLIST, which is HIGH — it toasts, silently. It used to
+        // go out as NEWS, which is LOW: bell only. So the one news
+        // notification the user has actually opted into, by putting the symbol
+        // on their watchlist, was the one they never saw.
+        //
+        // The link rides along so the toast can offer READ → rather than
+        // naming a headline and leaving the reader to find it.
+        if (mentioned) {
+          addNotification(
+            'BREAKING_WATCHLIST',
+            `📰 ${mentioned} in the news — ${trimmed}`,
+            { link: item.link },
+          )
+        } else {
+          addNotification('NEWS', `🔴 BREAKING — ${trimmed}`, { link: item.link })
+        }
       }
     }
     check()
@@ -792,7 +805,17 @@ export default function NotificationCenter() {
                     {items.map((t) => (
                       <div key={t.id} className="text-2xs text-terminal-text-bright leading-snug flex gap-1.5">
                         {grouped && <span className="text-terminal-gold/40 flex-shrink-0">·</span>}
-                        <span className="min-w-0">{t.message}</span>
+                        <span className="min-w-0">
+                          {t.message}
+                          {t.link && (
+                            <a
+                              href={t.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-1.5 font-bold text-terminal-gold/80 hover:text-terminal-gold whitespace-nowrap"
+                            >READ →</a>
+                          )}
+                        </span>
                       </div>
                     ))}
                     {grouped && (

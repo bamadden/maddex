@@ -29,7 +29,17 @@ const TYPE_PRIORITY = {
   CUSTOM_ALERT: PRIORITY.CRITICAL,
 
   MARKET_CRASH: PRIORITY.CRITICAL,
-  BREAKING_WATCHLIST: PRIORITY.CRITICAL,
+
+  // A story naming a stock the user tracks. HIGH, not CRITICAL: it toasts,
+  // silently. CRITICAL is for the two things the user configured themselves —
+  // a price alert they set is a request to be interrupted; a headline the wire
+  // happened to publish is not, however relevant, and a feed that makes a
+  // noise every time a bank is mentioned is a feed that gets turned off.
+  //
+  // This type was declared CRITICAL here with no producer anywhere in the app.
+  // The News module's watchlist mentions were raised as NEWS, which is LOW —
+  // bell only — so the toast this type existed for had never fired.
+  BREAKING_WATCHLIST: PRIORITY.HIGH,
 
   MORNING_BRIEF: PRIORITY.HIGH,
   EARNINGS_WATCHLIST: PRIORITY.HIGH,
