@@ -28,7 +28,18 @@ export function SeismicSection({ earthquakes, onFocus }) {
 
   const top = useMemo(() => {
     const list = Array.isArray(earthquakes) ? earthquakes : []
-    return [...list]
+    // Two feeds produce quakes in two shapes: liveDataService gives
+    // { magnitude, coordinates, depth }, globalDataService's USGS fetch gives
+    // { mag, lon, lat, depthKm }. Normalised here so either renders — reading
+    // only the first shape left this panel empty while the map beside it
+    // reported over a hundred events.
+    return list
+      .map((q) => q && ({
+        ...q,
+        magnitude: q.magnitude ?? q.mag ?? null,
+        coordinates: q.coordinates ?? (q.lon != null && q.lat != null ? [q.lon, q.lat] : null),
+        depth: q.depth ?? q.depthKm ?? null,
+      }))
       .filter((q) => q?.magnitude != null && Array.isArray(q.coordinates))
       .sort((a, b) => (b.time ?? 0) - (a.time ?? 0))
       .slice(0, 5)
@@ -38,12 +49,12 @@ export function SeismicSection({ earthquakes, onFocus }) {
     <div className="border-b border-terminal-border">
       <div className="flex items-center justify-between px-3 py-1.5">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">SEISMIC ACTIVITY</span>
-        <span className="text-2xs text-terminal-text-dim/50">USGS · M4.5+ · 7 days</span>
+        <span className="text-2xs text-terminal-text-dim/50">USGS · significant · 7 days</span>
       </div>
 
       {top.length === 0 ? (
         <div className="px-3 pb-2 text-2xs text-terminal-text-dim/60">
-          No M4.5+ events in the last seven days, or the feed is unavailable.
+          No significant events in the last seven days, or the feed is unavailable.
         </div>
       ) : (
         <div className="pb-1">

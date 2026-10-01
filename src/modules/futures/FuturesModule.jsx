@@ -179,10 +179,11 @@ function FuturesTab() {
             </table>
             {g.key === 'rates' && (
               <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 9 }}>
-                Implied rates show where the market expects rates to sit at each expiry. Against the RBA&apos;s current
-                cash rate of <b className="text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%</b>, a bank-bill
-                strip that falls across later expiries is the market pricing cuts. These are indicative figures —
-                this build has no rate-futures feed, and the Rates module says so too.
+                In a live market, implied rates show where traders expect rates to sit at each expiry: against the
+                RBA&apos;s cash rate of <b className="text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%</b>, a strip
+                that rises across later expiries is pricing hikes, and one that falls is pricing cuts. This build has
+                no rate-futures feed, so the strip here is held flat at today&apos;s policy rates — it shows the
+                mechanics, not a market expectation.
               </div>
             )}
           </div>
