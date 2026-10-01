@@ -7,6 +7,7 @@ import {
   COIN_IDS,
 } from '../../services/api'
 import { fetchCryptoMarketsUnified } from '../../services/dataService'
+import { HalvingCard, MyCryptoPanel } from './CryptoExtras'
 import { calculateCryptoMomentumIndex, scoreToColor } from '../../services/maddenAiScoring'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -402,18 +403,29 @@ function pearsonCorrelation(a, b) {
 
 // ── RIGHT: coin detail slide-in ─────────────────────────────────────────────
 
-function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, historyError, onRetryHistory, timeframe, onTimeframeChange, btcCorrelation, onAskAI, onExpand, onClose }) {
+function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, chartLoading, historyError, onRetryHistory, timeframe, onTimeframeChange, btcCorrelation, onAskAI, onExpand, onClose }) {
   if (!coin) return null
-  const audPrice = usdToAud(coin.price)
+  // Rows arrive in the module's selected currency (AUD by default) — every
+  // figure below is in that currency. The panel used to label them all "US$"
+  // and then convert the AUD price to AUD a second time.
+  const isAud = currPrefix === 'A$'
+  const dp = (v) => (v != null && v < 1 ? 4 : 2)
+  const money = (v) => (v == null ? '—' : `${currPrefix}${v.toLocaleString('en-AU', { minimumFractionDigits: dp(v), maximumFractionDigits: dp(v) })}`)
+  const other = isAud ? audToUsd?.(coin.price) : usdToAud?.(coin.price)
+  const otherLabel = other != null ? `≈ ${isAud ? 'US$' : 'A$'}${other.toLocaleString('en-AU', { maximumFractionDigits: dp(other) })}` : null
+
+  const lo = coin.low24h, hi = coin.high24h
+  const rangePct = lo != null && hi != null && hi > lo ? Math.min(100, Math.max(0, ((coin.price - lo) / (hi - lo)) * 100)) : null
+  const minted = coin.maxSupply && coin.circulatingSupply ? (coin.circulatingSupply / coin.maxSupply) * 100 : null
+  const compact = (n) => n == null ? '—' : n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n.toLocaleString('en-AU', { maximumFractionDigits: 0 })
+
   const statRows = [
     ['MCap',        `${currPrefix}${coin.mktCap}`],
     ['Vol 24H',     `${currPrefix}${coin.vol24h}`],
-    ['Circ Supply', coin.circulatingSupply ? coin.circulatingSupply.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—'],
-    ['Max Supply',  coin.maxSupply ? coin.maxSupply.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '∞'],
-    ['ATH',         coin.ath != null ? `US$${coin.ath.toLocaleString(undefined, { maximumFractionDigits: coin.ath < 1 ? 4 : 2 })}` : '—'],
-    ['From ATH',    coin.athPct != null ? `${coin.athPct.toFixed(1)}%` : '—'],
-    ['ATL',         coin.atl != null ? `US$${coin.atl.toLocaleString(undefined, { maximumFractionDigits: coin.atl < 1 ? 4 : 2 })}` : '—'],
-    ['From ATL',    coin.atlPct != null ? `+${coin.atlPct.toFixed(0)}%` : '—'],
+    ['ATH',         money(coin.ath)],
+    ['Below ATH',   coin.athPct != null ? `${coin.athPct.toFixed(1)}%` : '—'],
+    ['ATL',         money(coin.atl)],
+    ['Above ATL',   coin.atlPct != null ? `+${Math.round(coin.atlPct).toLocaleString('en-AU')}%` : '—'],
   ]
   return (
     <div className="flex flex-col h-full overflow-y-auto hide-scrollbar panel-slide-in">
@@ -421,30 +433,57 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, chartData, chartLoading, 
         <div className="flex items-center gap-2 min-w-0">
           <CoinCircle symbol={coin.symbol} size={32} />
           <div className="min-w-0">
-            <div className="text-sm font-bold text-terminal-text-bright truncate">{coin.name}</div>
-            <div className="text-2xs text-terminal-text-dim">{coin.symbol} · Rank #{coin.rank}</div>
+            <div className="font-mono text-[9px] text-terminal-gold tracking-widest">#{coin.rank} {coin.name.toUpperCase()}</div>
+            <div className="text-sm font-bold text-terminal-text-bright truncate">{coin.symbol}</div>
           </div>
         </div>
         <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm flex-shrink-0">✕</button>
       </div>
 
       <div className="px-3 py-3 border-b border-terminal-border/50">
-        <div className="text-xl font-bold text-terminal-text-bright font-mono">
-          US${coin.price.toLocaleString('en-US', { maximumFractionDigits: coin.price < 1 ? 4 : 2 })}
-        </div>
-        <div className="text-2xs text-terminal-text-dim mt-0.5">{fmt.aud(audPrice)}</div>
+        <div className="text-xl font-bold text-terminal-text-bright font-mono tabular-nums">{money(coin.price)}</div>
+        {otherLabel && <div className="text-2xs text-terminal-text-dim mt-0.5">{otherLabel}</div>}
         <div className={`text-xs font-semibold mt-1 ${coin.pct24h >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
           {coin.pct24h >= 0 ? '▲' : '▼'} {Math.abs(coin.pct24h).toFixed(2)}% (24h)
         </div>
+        {rangePct != null && (
+          <div className="mt-2.5">
+            <div className="flex justify-between text-[9px] text-terminal-text-dim mb-1"><span>24H LOW</span><span>24H HIGH</span></div>
+            <div className="relative h-1.5 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(168,50,50,0.5), rgba(45,138,80,0.5))' }}>
+              <span className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2" style={{ left: `calc(${rangePct}% - 5px)`, background: '#E8EDF5', borderColor: '#040d1a' }} />
+            </div>
+            <div className="flex justify-between text-[9px] font-mono tabular-nums text-terminal-text mt-1"><span>{money(lo)}</span><span>{money(hi)}</span></div>
+          </div>
+        )}
       </div>
 
       <div className="px-3 py-2.5 border-b border-terminal-border/50 grid grid-cols-2 gap-x-3 gap-y-2">
         {statRows.map(([label, value]) => (
           <div key={label}>
             <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide">{label}</div>
-            <div className="text-2xs text-terminal-text-bright font-semibold mt-0.5">{value}</div>
+            <div className="text-2xs text-terminal-text-bright font-semibold mt-0.5 tabular-nums">{value}</div>
           </div>
         ))}
+      </div>
+
+      <div className="px-3 py-2.5 border-b border-terminal-border/50">
+        <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide mb-1">Supply</div>
+        {minted != null ? (
+          <>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(100,130,160,0.2)' }}>
+              <div className="h-full bg-terminal-gold" style={{ width: `${minted}%` }} />
+            </div>
+            <div className="text-2xs text-terminal-text mt-1 tabular-nums">
+              {compact(coin.circulatingSupply)} / {compact(coin.maxSupply)} {coin.symbol} <span className="text-terminal-text-dim">({minted.toFixed(1)}% minted)</span>
+            </div>
+          </>
+        ) : (
+          <div className="text-2xs text-terminal-text tabular-nums">{compact(coin.circulatingSupply)} {coin.symbol} circulating <span className="text-terminal-text-dim">· no max supply</span></div>
+        )}
+        {coin.id && (
+          <a href={`https://www.coingecko.com/en/coins/${coin.id}`} target="_blank" rel="noopener noreferrer"
+            className="inline-block mt-2 text-[9px] font-bold tracking-widest text-terminal-gold/80 hover:text-terminal-gold">VIEW ON COINGECKO ↗</a>
+        )}
       </div>
 
       <div className="px-3 py-2.5 border-b border-terminal-border/50">
@@ -594,6 +633,7 @@ export default function CryptoModule() {
   const [mobilePanel, setMobilePanel] = useState('table')
   const [view3D, setView3D] = useState(false)
   const [showDefi, setShowDefi] = useState(false)
+  const [showMine, setShowMine] = useState(false)
   const titleBarRef = useRef(null)
   const { openModal, currency } = useStore()
   const { usdToAud, audToUsd } = useAudRates()
@@ -758,6 +798,7 @@ export default function CryptoModule() {
           className="border-r border-terminal-border overflow-y-auto overflow-x-hidden flex-col divide-y divide-terminal-border"
         >
           <MaddenAIPanel momentum={momentum} />
+          <HalvingCard />
           <MarketPulsePanel globalData={globalData} currency={currency} capSparkline={capSparkline} />
           <FearGreedPanel data={fearGreed} />
           <DominancePanel globalData={globalData} />
@@ -778,13 +819,19 @@ export default function CryptoModule() {
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
             <div className="ml-auto flex items-center gap-1.5">
               <button
-                onClick={() => { setShowDefi((v) => !v); setView3D(false) }}
+                onClick={() => { setShowMine((v) => !v); setShowDefi(false); setView3D(false) }}
+                className={`text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
+                  showMine ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
+                }`}
+              >{showMine ? 'COINS' : 'MY CRYPTO'}</button>
+              <button
+                onClick={() => { setShowDefi((v) => !v); setView3D(false); setShowMine(false) }}
                 className={`text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
                   showDefi ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
                 }`}
               >{showDefi ? 'COINS' : 'DEFI / ON-CHAIN'}</button>
               <button
-                onClick={() => { setView3D((v) => !v); setShowDefi(false) }}
+                onClick={() => { setView3D((v) => !v); setShowDefi(false); setShowMine(false) }}
                 className={`text-2xs px-2.5 py-0.5 rounded-full border font-bold tracking-wide transition-colors ${
                   view3D ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
                 }`}
@@ -793,7 +840,11 @@ export default function CryptoModule() {
           </div>
           <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#0B1628', margin: 0, padding: 0 }} />
 
-          {showDefi ? (
+          {showMine ? (
+            <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
+              <MyCryptoPanel markets={markets} currPrefix={currPrefix} />
+            </div>
+          ) : showDefi ? (
             // Absolutely positioned for the same reason the 3D canvas is —
             // it owns the remaining height below the sticky title bar.
             <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
@@ -820,6 +871,7 @@ export default function CryptoModule() {
               markets={markets}
               currPrefix={currPrefix}
               usdToAud={usdToAud}
+              audToUsd={audToUsd}
               titleBarHeight={titleBarHeight}
               selectedCoin={selectedCoin}
               onRowClick={(coin) => { setSelectedCoin(coin.symbol); setMobilePanel('detail') }}
@@ -845,6 +897,7 @@ export default function CryptoModule() {
               coin={selectedCoinObj}
               currPrefix={currPrefix}
               usdToAud={usdToAud}
+              audToUsd={audToUsd}
               chartData={chartData}
               chartLoading={chartLoading}
               historyError={historyError}
@@ -867,7 +920,7 @@ export default function CryptoModule() {
 const COIN_COLUMNS = [
   { key: 'rank',       label: '#',         align: 'right', width: 28,  hideable: false },
   { key: 'symbol',     label: 'COIN',      align: 'left',              hideable: false },
-  { key: 'price',      label: 'PRICE (USD/AUD)', align: 'right',       hideable: false },
+  { key: 'price',      label: 'PRICE', align: 'right',       hideable: false },
   { key: 'pct24h',     label: '24H%',      align: 'right',             hideable: true },
   { key: 'pct7d',      label: '7D%',       align: 'right', cell: 'sm', hideable: true },
   { key: 'marketCap',  label: 'MKT CAP',   align: 'right', cell: 'md', hideable: true },
@@ -924,7 +977,7 @@ function ColumnSelector({ visibleCols, onToggle }) {
   )
 }
 
-function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, selectedCoin, onRowClick }) {
+function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHeight, selectedCoin, onRowClick }) {
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
   const [visibleCols, setVisibleCols] = useState(loadVisibleCols)
@@ -978,7 +1031,12 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
       </thead>
       <tbody>
         {sorted.map(coin => {
-          const audPrice = usdToAud(coin.price)
+          // Rows are priced in the selected currency (currPrefix). The second
+          // line is the other currency, converted once — this used to label an
+          // AUD price "US$" and then convert it to AUD again, overstating every
+          // AUD figure by the exchange rate.
+          const isAud = currPrefix === 'A$'
+          const otherPrice = isAud ? audToUsd?.(coin.price) : usdToAud?.(coin.price)
           const supplyPct = coin.maxSupply ? Math.min(100, (coin.circulatingSupply / coin.maxSupply) * 100) : null
           const isSelected = coin.symbol === selectedCoin
           return (
@@ -1002,10 +1060,10 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, titleBarHeight, sele
               </td>
               <td style={{ ...CELL, textAlign: 'right', whiteSpace: 'nowrap' }}>
                 <div style={{ fontWeight: 700, fontFamily: 'IBM Plex Mono' }}>
-                  US${coin.price.toLocaleString('en-US', { maximumFractionDigits: coin.price < 1 ? 4 : 2 })}
+                  {currPrefix}{coin.price.toLocaleString('en-AU', { minimumFractionDigits: coin.price < 1 ? 4 : 2, maximumFractionDigits: coin.price < 1 ? 4 : 2 })}
                 </div>
                 <div style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>
-                  {fmt.aud(audPrice)}
+                  {otherPrice != null ? `${isAud ? 'US$' : 'A$'}${otherPrice.toLocaleString('en-AU', { maximumFractionDigits: otherPrice < 1 ? 4 : 2 })}` : ''}
                 </div>
               </td>
               {show('pct24h') && (

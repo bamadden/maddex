@@ -877,6 +877,7 @@ export const transformCryptoMarkets = (items, currency = 'aud') =>
     // own market_cap_rank field — that field is frequently null or stale
     // for thinly-traded coins and produces duplicate/gappy ranks in the table.
     rank:      i + 1,
+    id:        c.id,
     symbol:    c.symbol.toUpperCase(),
     name:      c.name,
     price:     c.current_price,

@@ -124,6 +124,22 @@ export const defiService = {
     })
   },
 
+  // Chain tip and the network's recent average block time — what the halving
+  // estimate is computed from. Both come from mempool.space; nothing assumed
+  // except that the recent block rate continues.
+  async getHalvingInputs() {
+    return withCache('btc_halving', async () => {
+      const [tip, adj] = await Promise.allSettled([
+        json(`${MEMPOOL}/blocks/tip/height`),
+        json(`${MEMPOOL}/v1/difficulty-adjustment`),
+      ])
+      const height = tip.status === 'fulfilled' ? Number(tip.value) : null
+      const avgMs = adj.status === 'fulfilled' ? Number(adj.value?.timeAvg) : null
+      if (!Number.isFinite(height)) throw new Error('mempool tip unavailable')
+      return { height, avgBlockMs: Number.isFinite(avgMs) && avgMs > 0 ? avgMs : 600000 }
+    })
+  },
+
   async getStablecoins() {
     return withCache('stablecoins', async () => {
       const raw = await json('https://stablecoins.llama.fi/stablecoins?includePrices=false')
