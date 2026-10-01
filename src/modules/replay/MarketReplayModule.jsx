@@ -4,8 +4,10 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
 import SafeChart from '../../components/ui/SafeChart'
 import {
-  PRESET_SCENARIOS, rbaRateOn, eventOn, generateReplaySeries, generateReplayMovers, addDays,
+  rbaRateOn, eventOn, generateReplaySeries, generateReplayMovers, addDays,
 } from '../../services/replayService'
+import { SCENARIOS, CATEGORY_STYLE } from '../../services/replayScenarios'
+import ScenarioPlayer, { FactPill } from './ScenarioPlayer'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D view.
@@ -33,7 +35,35 @@ function ChartTip({ active, payload, label }) {
   )
 }
 
+const DIFFICULTY_COLOUR = { BEGINNER: '#2D8A50', INTERMEDIATE: '#C9A84C', ADVANCED: '#A83232' }
+
+function ScenarioCard({ s, onPlay }) {
+  const st = CATEGORY_STYLE[s.category]
+  return (
+    <div className="border border-terminal-border flex flex-col hover:border-terminal-gold/50 transition-colors" style={{ background: 'rgba(7,20,40,0.6)' }}>
+      <div style={{ height: 3, background: st.colour }} />
+      <div className="p-3 flex flex-col gap-2 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="font-mono font-bold tracking-widest" style={{ fontSize: 8, color: st.colour }}>{s.category}</span>
+          <span className="font-mono tracking-widest px-1.5 py-px" style={{ fontSize: 7, color: DIFFICULTY_COLOUR[s.difficulty], border: `1px solid ${DIFFICULTY_COLOUR[s.difficulty]}55` }}>{s.difficulty}</span>
+        </div>
+        <div className="font-bold text-terminal-text-bright" style={{ fontSize: 16, lineHeight: 1.2 }}>{s.title}</div>
+        <div className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{s.dateLabel} · {s.duration}</div>
+        <div className="text-2xs text-terminal-text-dim leading-snug line-clamp-2">{s.description}</div>
+        <div className="flex flex-wrap gap-1 mt-auto pt-1">
+          {s.facts.slice(0, 3).map((f) => <FactPill key={f.label} f={f} />)}
+        </div>
+        <button
+          onClick={onPlay}
+          className="mt-1 text-2xs font-bold tracking-widest border border-terminal-gold/60 text-terminal-gold py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+        >▶ REPLAY THIS</button>
+      </div>
+    </div>
+  )
+}
+
 export default function MarketReplayModule() {
+  const [scenarioId, setScenarioId] = useState(null)
   const [activeDate, setActiveDate] = useState(null) // null = not in replay mode
   const [scenarioEnd, setScenarioEnd] = useState(null)
   const [playing, setPlaying] = useState(false)
@@ -83,46 +113,49 @@ export default function MarketReplayModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="MARKET REPLAY" subtitle="Step or play back through market history — educational, illustrative data" moduleId="replay" />
+      <ModuleHeader title="MARKET REPLAY" subtitle="Replay real market episodes · sourced figures, reconstructed paths" moduleId="replay" />
 
-      {activeDate && (
+      {activeDate && !scenarioId && (
         <div className="bg-terminal-gold text-terminal-bg px-3 py-1.5 flex items-center justify-between flex-shrink-0">
           <span className="text-2xs font-bold tracking-widest">VIEWING: {fmtDate(activeDate)} — REPLAY MODE</span>
           <button onClick={exitReplay} className="text-2xs font-bold underline">EXIT REPLAY</button>
         </div>
       )}
 
-      {!activeDate ? (
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-6">
-          <div className="text-center max-w-md">
-            <div className="text-terminal-gold text-sm font-bold tracking-widest mb-2">STEP BACK IN TIME</div>
-            <div className="text-2xs text-terminal-text-dim">Pick any past date, or jump straight into one of the preset scenarios below, to see how the terminal would have looked and play the market forward day by day.</div>
+      {scenarioId ? (
+        <ScenarioPlayer key={scenarioId} scenario={SCENARIOS.find((x) => x.id === scenarioId)} onExit={() => setScenarioId(null)} />
+      ) : !activeDate ? (
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div>
+            <div className="flex items-baseline justify-between mb-3">
+              <div>
+                <div className="text-terminal-gold text-sm font-bold tracking-widest">SCENARIO LIBRARY</div>
+                <div className="text-2xs text-terminal-text-dim mt-0.5">Replay real market episodes. Every figure is sourced; the path between sourced points is reconstructed and labelled as such.</div>
+              </div>
+              <span className="text-2xs text-terminal-text-dim/60">{SCENARIOS.length} scenarios</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {SCENARIOS.map((s) => <ScenarioCard key={s.id} s={s} onPlay={() => setScenarioId(s.id)} />)}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={pickerValue}
-              max={TODAY}
-              onChange={(e) => setPickerValue(e.target.value)}
-              className="bg-terminal-bg border border-terminal-border text-2xs text-terminal-text px-2 py-1.5"
-            />
-            <button
-              onClick={() => startReplay(pickerValue)}
-              className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-widest"
-            >VIEW THIS DATE</button>
-          </div>
-
-          <div className="w-full max-w-xl">
-            <div className="text-2xs text-terminal-text-dim font-bold tracking-widest mb-2 text-center">OR PLAY A PRESET SCENARIO</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {PRESET_SCENARIOS.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => { startReplay(s.startDate, s.endDate); setPlaying(true) }}
-                  className="text-2xs text-terminal-text border border-terminal-border px-3 py-2 hover:border-terminal-gold hover:text-terminal-gold transition-colors text-left"
-                >▶ {s.label}</button>
-              ))}
+          <div className="border-t border-terminal-border pt-5 flex flex-col items-center gap-3">
+            <div className="text-center max-w-md">
+              <div className="text-terminal-text-dim text-2xs font-bold tracking-widest mb-1">OR BROWSE ANY DATE</div>
+              <div className="text-2xs text-terminal-text-dim/70">Free browse shows the RBA cash rate as at the date with an illustrative index path — not sourced prices.</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={pickerValue}
+                max={TODAY}
+                onChange={(e) => setPickerValue(e.target.value)}
+                className="bg-terminal-bg border border-terminal-border text-2xs text-terminal-text px-2 py-1.5"
+              />
+              <button
+                onClick={() => startReplay(pickerValue)}
+                className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-widest"
+              >VIEW THIS DATE</button>
             </div>
           </div>
         </div>
@@ -150,7 +183,7 @@ export default function MarketReplayModule() {
             </div>
             <div className="border border-terminal-border p-3">
               <div className="text-2xs text-terminal-text-dim">SCENARIO</div>
-              <div className="text-2xs text-terminal-text-bright font-semibold">{scenarioEnd ? PRESET_SCENARIOS.find((s) => s.endDate === scenarioEnd)?.label ?? 'Custom range' : 'Free browse'}</div>
+              <div className="text-2xs text-terminal-text-bright font-semibold">{scenarioEnd ? 'Custom range' : 'Free browse'}</div>
             </div>
           </div>
 
@@ -207,7 +240,7 @@ export default function MarketReplayModule() {
         </div>
       )}
 
-      {activeDate && (
+      {activeDate && !scenarioId && (
         <div className="border-t border-terminal-border px-4 py-2.5 flex items-center justify-center gap-4 flex-shrink-0 flex-wrap">
           <button onClick={() => stepDay(-1)} className="text-2xs text-terminal-text border border-terminal-border px-2.5 py-1 hover:border-terminal-gold hover:text-terminal-gold transition-colors">⏮ PREV DAY</button>
           <button

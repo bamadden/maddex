@@ -39,6 +39,10 @@ export const RBA_RATE_HISTORY = [
   { date: '2025-02-19', rate: 4.10 },
   { date: '2025-05-21', rate: 3.85 },
   { date: '2025-08-13', rate: 3.60 },
+  { date: '2026-02-04', rate: 3.85 },
+  { date: '2026-03-18', rate: 4.10 },
+  { date: '2026-05-06', rate: 4.35 },
+  { date: '2026-09-30', rate: 4.60 },
 ]
 
 export function rbaRateOn(dateStr) {
@@ -63,7 +67,7 @@ export const EDUCATIONAL_EVENTS = [
   { date: '2022-05-04', text: 'RBA raises rates for the first time since 2010, ending the record-low-rate era' },
   { date: '2022-06-08', text: 'RBA delivers a 50bp hike — its largest single move since 2000' },
   { date: '2023-02-08', text: "RBA hikes for the 9th consecutive meeting as inflation stays elevated" },
-  { date: '2023-11-08', text: "RBA delivers what becomes its final hike of the cycle, taking the cash rate to 4.35%" },
+  { date: '2023-11-08', text: "RBA delivers what becomes the final hike of that cycle, taking the cash rate to 4.35%" },
   { date: '2023-01-01', text: 'ChatGPT-driven AI enthusiasm begins reshaping tech valuations through the year' },
   { date: '2023-05-24', text: "NVIDIA's blowout earnings guidance ignites the AI trade" },
 ]
