@@ -11,6 +11,7 @@ import { eventStars, starString } from '../../services/calendarExtras'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { useSentiment } from '../../hooks/useSentiment'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
 
 // The weekend state.
 //
@@ -181,6 +182,46 @@ function ScoreGauge({ score, label }) {
 
 const IMPACT_COLOR = { HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', LOW: 'text-terminal-text-dim' }
 
+// Model prose arrives as plain text that sometimes carries markdown. Strip the
+// markup rather than render it — a stray "**" reads as a glitch — and turn
+// line breaks into paragraphs, or list items where the line is a
+// "Name — reason" pair.
+const clean = (t) => String(t ?? '').replace(/\*\*|__|^#+\s*/gm, '').replace(/^\s*[-*•]\s+/gm, '')
+function SectionText({ text }) {
+  const lines = clean(text).split(/\n+/).map((l) => l.trim()).filter(Boolean)
+  const isList = lines.length > 1 && lines.every((l) => / [—–-] /.test(l) || l.length < 160)
+  if (isList) {
+    return (
+      <ul className="space-y-2">
+        {lines.map((l, i) => {
+          const m = l.match(/^(.{2,48}?)\s+[—–-]\s+(.+)$/)
+          return (
+            <li key={i} className="flex gap-2.5">
+              <span className="text-terminal-gold flex-shrink-0 mt-[1px]">›</span>
+              <span>{m ? <><b className="text-terminal-text-bright font-semibold">{m[1]}</b> — {m[2]}</> : l}</span>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
+  return <div className="space-y-2.5">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>
+}
+
+function BriefSection({ title, content }) {
+  return (
+    <section className="relative pl-5 py-4 pr-4" style={{ background: 'rgba(7,20,40,0.55)', border: '1px solid rgba(201,168,76,0.08)' }}>
+      <span className="absolute left-0 top-0 bottom-0" style={{ width: 3, background: '#C9A84C' }} />
+      <h3 className="font-mono text-terminal-gold uppercase mb-2" style={{ fontSize: 8, letterSpacing: '0.22em' }}>{title}</h3>
+      <div className="font-sans text-terminal-text" style={{ fontSize: 14, lineHeight: 1.7 }}>
+        <SectionText text={content} />
+      </div>
+    </section>
+  )
+}
+
+const scoreColour = (score) => BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? '#8BA3C4'
+
 // Previous briefs, collapsed by default.
 //
 // The value of a daily brief compounds — Monday's beside Thursday's shows how
@@ -190,7 +231,7 @@ const IMPACT_COLOR = { HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', 
 function PreviousBriefs({ currentDay }) {
   const [open, setOpen] = useState(null)
   const history = useMemo(
-    () => listBriefHistory().filter((h) => h.day !== currentDay),
+    () => listBriefHistory(6).filter((h) => h.day !== currentDay).slice(0, 5),
     [currentDay],
   )
   if (!history.length) return null
@@ -211,7 +252,9 @@ function PreviousBriefs({ currentDay }) {
             >
               <span className="text-2xs text-terminal-text-bright font-semibold">{label(day)}</span>
               {brief.maddenAIScore != null && (
-                <span className="text-2xs text-terminal-text-dim">{brief.maddenAIScore} · {brief.scoreLabel}</span>
+                <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 9, color: scoreColour(brief.maddenAIScore), border: `1px solid ${scoreColour(brief.maddenAIScore)}55` }}>
+                  {brief.maddenAIScore} · {brief.scoreLabel}
+                </span>
               )}
               <span className="ml-auto text-2xs text-terminal-text-dim">{open === day ? '▲' : '▼'}</span>
             </button>
@@ -219,9 +262,9 @@ function PreviousBriefs({ currentDay }) {
               <div className="px-2.5 pb-2.5 border-t border-terminal-border/40 pt-2">
                 <div className="text-2xs text-terminal-text-bright font-semibold mb-1.5">{brief.headline}</div>
                 {(brief.sections ?? []).map((sec) => (
-                  <div key={sec.title} className="mb-2">
+                  <div key={sec.title} className="mb-2.5">
                     <div className="text-[9px] text-terminal-gold font-bold tracking-widest mb-0.5">{sec.title}</div>
-                    <div className="text-2xs text-terminal-text-dim leading-relaxed">{sec.content}</div>
+                    <div className="text-xs text-terminal-text-dim leading-relaxed"><SectionText text={sec.content} /></div>
                   </div>
                 ))}
               </div>
@@ -272,14 +315,17 @@ export default function MorningBriefModule() {
   // as a brief, not as a payload.
   const share = async () => {
     if (!brief) return
+    const day = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase()
     const text = [
-      `MADDEX MORNING BRIEF — ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      `MADDEX MORNING BRIEF — ${day}`,
+      `Market Score: ${brief.maddenAIScore} (${brief.scoreLabel})`,
       '',
       brief.headline,
-      brief.scoreRationale ? `\nMaddenAI score: ${brief.maddenAIScore}/100 — ${brief.scoreLabel}. ${brief.scoreRationale}` : `\nMaddenAI score: ${brief.maddenAIScore}/100 — ${brief.scoreLabel}`,
+      brief.scoreDriver ?? brief.scoreRationale ?? '',
       '',
-      ...(brief.sections ?? []).map((sec) => `${sec.title}\n${sec.content}\n`),
-      'General information only — not financial advice.',
+      ...(brief.sections ?? []).map((sec) => `${sec.title}\n${clean(sec.content)}\n`),
+      'Generated by MaddenAI · maddex.com.au',
+      'General information only — not advice.',
     ].join('\n')
     try {
       await navigator.clipboard.writeText(text)
@@ -363,55 +409,54 @@ export default function MorningBriefModule() {
           </div>
         )}
 
-        {status === 'ready' && brief && (
+        {status === 'ready' && brief && brief.isWeekend && (
           <div className="p-4 space-y-4">
-            {/* Top — headline + gauge */}
-            <div className="flex items-center gap-6 flex-wrap border-b border-terminal-border pb-4">
-              <ScoreGauge score={brief.maddenAIScore ?? 50} label={brief.scoreLabel ?? 'NEUTRAL'} />
-              <div className="flex-1 min-w-[240px]">
-                <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">
-                  MADDENAI MARKET SCORE: {brief.maddenAIScore} — {brief.scoreLabel}
-                </div>
-                <div className="text-terminal-text-bright text-base font-semibold leading-snug">{brief.headline}</div>
-                {!brief.isWeekend && (
-                  <button
-                    onClick={() => dispatchAskAI({ instruction: `Elaborate on today's market brief: "${brief.headline}". Give more detail on what's driving this.` }, { rawPrompt: true })}
-                    className="mt-2 text-2xs text-terminal-gold border border-terminal-gold/40 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                  >Ask MaddenAI for more detail →</button>
-                )}
+            <WeekendBrief currentDay={briefDayKey()} />
+          </div>
+        )}
+
+        {status === 'ready' && brief && !brief.isWeekend && (
+          <article className="max-w-[920px] mx-auto px-5 pb-8">
+            {/* Masthead */}
+            <header className="pt-6 pb-5 flex items-end justify-between gap-4 flex-wrap">
+              <div>
+                <div className="font-mono text-terminal-gold uppercase" style={{ fontSize: 9, letterSpacing: '0.28em' }}>Morning Intelligence Brief</div>
+                <h1 className="font-mono font-bold text-terminal-text-bright mt-1.5" style={{ fontSize: 26, letterSpacing: '0.04em' }}>
+                  {new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase()}
+                </h1>
               </div>
-            </div>
-
-            {/* News sentiment index — a distinct, headline-derived score from
-                sentimentService, separate from the brief's own maddenAIScore
-                above (that one weighs watchlist/portfolio context too).
-                
-                Hidden on weekends. The weekend brief reads "50 — NEUTRAL ·
-                Markets are closed for the weekend"; rendering a live sentiment
-                score of 52 CAUTIOUSLY BULLISH directly beneath it had the
-                module stating two different verdicts in a 130px span, which
-                reads as a fault rather than as two measures. */}
-            {!brief.isWeekend && (
-              <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
-            )}
-
-            {brief.isWeekend && <WeekendBrief currentDay={briefDayKey()} />}
-
-            {/* Middle — sections, 2-col */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${brief.isWeekend ? 'hidden' : ''}`}>
-              {(brief.sections ?? []).map((s) => (
-                <div key={s.title} className="border border-terminal-border p-3">
-                  <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">{s.title}</div>
-                  <div className="text-2xs text-terminal-text leading-relaxed">{s.content}</div>
+              {brief.generatedAt && (
+                <div className="font-mono text-terminal-text-dim text-right" style={{ fontSize: 10 }}>
+                  Generated {new Date(brief.generatedAt).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', timeZone: 'Australia/Sydney' })}{' '}
+                  {sydneyTzAbbr(new Date(brief.generatedAt).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))}
                 </div>
-              ))}
+              )}
+            </header>
+
+            {/* Score */}
+            <div className="flex flex-col items-center text-center py-4">
+              <ScoreGauge score={brief.maddenAIScore ?? 50} label={brief.scoreLabel ?? 'NEUTRAL'} />
+              {(brief.scoreDriver || brief.scoreRationale) && (
+                <div className="font-sans text-terminal-text-dim mt-2 max-w-lg" style={{ fontSize: 13 }}>{brief.scoreDriver ?? brief.scoreRationale}</div>
+              )}
+              <div className="font-sans text-terminal-text-bright font-semibold mt-4 max-w-2xl leading-snug" style={{ fontSize: 18 }}>{brief.headline}</div>
+              <button
+                onClick={() => dispatchAskAI({ instruction: `Elaborate on today's market brief: "${brief.headline}". Give more detail on what's driving this.` }, { rawPrompt: true })}
+                className="mt-3 text-2xs text-terminal-gold border border-terminal-gold/40 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+              >Ask MaddenAI for more detail →</button>
             </div>
 
-            {!brief.isWeekend && <PreviousBriefs currentDay={briefDayKey()} />}
+            <div className="my-5" style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.55), transparent)' }} />
 
-            {/* Bottom — key events timeline */}
+            <div className="mb-4"><SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} /></div>
+
+            {/* Sections */}
+            <div className="flex flex-col gap-3">
+              {(brief.sections ?? []).map((sec) => <BriefSection key={sec.title} title={sec.title} content={sec.content} />)}
+            </div>
+
             {brief.keyEvents?.length > 0 && (
-              <div className="border-t border-terminal-border pt-3">
+              <div className="mt-5 border-t border-terminal-border pt-3">
                 <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">TODAY'S KEY EVENTS</div>
                 <div className="space-y-1.5">
                   {brief.keyEvents.map((e, i) => (
@@ -425,7 +470,22 @@ export default function MorningBriefModule() {
                 </div>
               </div>
             )}
-          </div>
+
+            {/* Footer */}
+            <footer className="mt-6 pt-3 border-t border-terminal-border flex items-center justify-between gap-3 flex-wrap">
+              <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+                AI-GENERATED SUMMARY · FIGURES FROM VERIFIED AND LIVE DATA ONLY · GENERAL INFORMATION · NOT ADVICE
+                {brief.generatedAt && <> · {new Date(brief.generatedAt).toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</>}
+              </div>
+              <button
+                onClick={() => load({ force: true })}
+                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
+                style={{ border: '1px solid rgba(201,168,76,0.2)' }}
+              >↻ REGENERATE</button>
+            </footer>
+
+            <div className="mt-6"><PreviousBriefs currentDay={briefDayKey()} /></div>
+          </article>
         )}
       </div>
     </div>

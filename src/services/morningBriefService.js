@@ -33,12 +33,13 @@ Generate a JSON object:
   "maddenAIScore": number 0-100 (overall market bullishness),
   "scoreLabel": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH",
   "scoreRationale": "One sentence justifying that score specifically",
+  "scoreDriver": "One short line naming what is driving the score, e.g. 'Materials leading; the rate hike weighing on property'",
   "sections": [
-    { "title": "OVERNIGHT SUMMARY", "content": "3-4 sentences: what happened globally while Australia slept, and which parts matter here" },
-    { "title": "ASX OUTLOOK", "content": "3-4 sentences: how overnight action feeds into today's open, which sectors to watch and why" },
-    { "title": "KEY THEMES", "content": "The three most important macro themes right now, each as 'Theme name — one sentence'. Separate with a newline." },
-    { "title": "YOUR WATCHLIST", "content": "2-3 sentences on the investor's specific watchlist names. If the watchlist is empty, say what a starting watchlist for these conditions would emphasise instead." },
-    { "title": "WHAT TO WATCH", "content": "Three specific things to monitor today, with times where applicable. Separate with a newline." }
+    { "title": "MARKET OVERVIEW", "content": "3-4 sentences: the state of play going into today's session — overnight offshore action and how it feeds into the Sydney open" },
+    { "title": "AUSTRALIAN ECONOMY", "content": "3-4 sentences: RBA policy, inflation, jobs and growth using only the verified figures supplied, and what they mean for Australian investors and borrowers" },
+    { "title": "GLOBAL CONTEXT", "content": "3-4 sentences: the Fed, bond yields, the AUD and the global themes that matter for Australia" },
+    { "title": "SECTOR FOCUS", "content": "Three ASX sectors to focus on today, each as 'Sector — one sentence on why'. Separate with a newline. Tie in the investor's watchlist names where relevant." },
+    { "title": "WHAT TO WATCH TODAY", "content": "Three specific things to monitor, using the scheduled events supplied with their times. Separate with a newline." }
   ],
   "keyEvents": [
     {"time": "10:30 AM", "event": "AU CPI Monthly", "impact": "HIGH"}
@@ -65,7 +66,7 @@ export const briefDayKey = (d = new Date()) =>
 
 const BRIEF_CACHE_KEY = (day = briefDayKey()) => `maddex_morning_brief_${day}`
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
-const BRIEF_HISTORY_KEEP = 5
+const BRIEF_HISTORY_KEEP = 6 // today plus the five shown under PREVIOUS BRIEFS
 
 // Weekday in Australian time, not the browser's. getDay() on a plain Date is
 // the reader's local weekday: at 8am Monday in Sydney it is still Sunday in
@@ -166,7 +167,8 @@ export function clearBriefCache() {
 // Identifies the set of verified figures a brief was written from.
 function factsStamp() {
   const { rba, fed, au, bonds } = VERIFIED_CONSTANTS
-  return [rba.cashRate, rba.lastDecision, fed.rateRange, au.cpi, au.cpiPeriod, au.unemployment, au.unemploymentPeriod, bonds?.asOf].join('|')
+  // 'v2' is the brief schema: bumping it retires briefs in the old layout.
+  return ['v2', rba.cashRate, rba.lastDecision, fed.rateRange, au.cpi, au.cpiPeriod, au.unemployment, au.unemploymentPeriod, bonds?.asOf].join('|')
 }
 
 // watchlist: array of ticker strings (useStore's shape). portfolio: optional
@@ -204,7 +206,7 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
     upcoming = upcomingEvents(events, 14)
       .filter((e) => e.importance === 'high' || e.importance === 'medium')
       .slice(0, 8)
-      .map((e) => `- ${e.date}${e.time && e.time !== '—' ? ` ${e.time}` : ''}: ${e.event} (${e.region})`)
+      .map((e) => `- ${e.date}${e.time && e.time !== '—' ? ` ${e.time} ${sydneyTzAbbr(e.date)}` : ''}: ${e.event} (${e.region})`)
       .join('\n')
   } catch { /* calendar is optional context */ }
   const spreadBp = bonds ? Math.round((bonds.au10y - bonds.us10y) * 100) : null
@@ -228,6 +230,8 @@ VERIFIED FIGURES — you may quote these, and no others:
 - US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})
 - AU CPI: ${au.cpi.toFixed(1)}% YoY (${au.cpiPeriod}), trimmed mean ${au.cpiTrimmedMean}%; RBA target band ${au.rbaTargetBand}
 - AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})
+- AU GDP: ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})
+- Fed next meeting: ${fed.nextMeeting}; RBA–Fed policy spread ${Math.round((rba.cashRate - fed.cashRate) * 100)}bp
 ${bonds ? `- Bond yields: AU 10Y ${bonds.au10y.toFixed(2)}% (${bonds.au10yAsOf}), US 10Y ${bonds.us10y.toFixed(2)}% (${bonds.us10yAsOf}); spread ${spreadBp >= 0 ? '+' : ''}${spreadBp}bp (${spreadBp >= 0 ? 'AU premium' : 'US premium'})` : ''}
 ${upcoming ? `\nSCHEDULED EVENTS — next 14 days (dates are fixed; use these, not any you recall):\n${upcoming}` : ''}
 ${live ? `\nLIVE AS OF NOW:\n${live}` : ''}
