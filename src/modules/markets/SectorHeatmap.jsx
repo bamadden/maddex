@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
+import { sydneyTzNow } from '../../utils/dateUtils'
 import {
   GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS, ASX_SECTOR_STOCKS, INDEX_LABELS, INDEX_METADATA,
 } from '../../data/sectorTaxonomy'
@@ -1033,7 +1034,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           </div>
           <div className="text-2xs text-terminal-text-dim/50 text-center" style={{ marginTop: 8 }}>
             {isLive
-              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO DATA' : `Live · ${updatedTime} AEST`}`
+              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO DATA' : `Live · ${updatedTime} ${sydneyTzNow()}`}`
               : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
           </div>
 

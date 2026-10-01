@@ -97,9 +97,9 @@ export async function generateResearchNote(asset) {
   // quote these, invent nothing else.
   const { rba, fed, au, commodities } = VERIFIED_CONSTANTS
   const macroBlock = [
-    `- RBA cash rate: ${rba.cashRate}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
+    `- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
     `- US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})`,
-    `- AU CPI: ${au.cpi}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}`,
+    `- AU CPI: ${au.cpi.toFixed(1)}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}`,
     `- AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})`,
     `- AU GDP: ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
     `- Iron ore: US$${commodities.ironOreUSD}/t (as at ${commodities.asOf})`,

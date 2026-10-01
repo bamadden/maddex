@@ -132,9 +132,9 @@ function contextBlock() {
     `Today is ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.`,
     '',
     'VERIFIED FIGURES you may quote (do not invent others):',
-    `- RBA cash rate: ${rba.cashRate}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
+    `- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
     `- US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})`,
-    `- AU CPI: ${au.cpi}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}`,
+    `- AU CPI: ${au.cpi.toFixed(1)}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}`,
     `- AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})`,
     `- AU GDP: ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
     '',
@@ -273,7 +273,7 @@ Reason from the verified figures supplied. Do not introduce new numbers.`)
       .map((k) => {
         const c = VERIFIED_CONSTANTS[k]
         if (!c) return null
-        return `- ${k}: ${c.label} (${c.country}), policy rate ${c.rateRange ?? `${c.cashRate}%`}, `
+        return `- ${k}: ${c.label} (${c.country}), policy rate ${c.rateRange ?? `${c.cashRate.toFixed(2)}%`}, `
           + `last decision ${c.lastDecisionVerb} on ${c.lastDecision}, next meeting ${c.nextMeeting}`
       })
       .filter(Boolean)

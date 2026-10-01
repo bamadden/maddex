@@ -163,6 +163,12 @@ export function clearBriefCache() {
   } catch { /* best effort */ }
 }
 
+// Identifies the set of verified figures a brief was written from.
+function factsStamp() {
+  const { rba, fed, au, bonds } = VERIFIED_CONSTANTS
+  return [rba.cashRate, rba.lastDecision, fed.rateRange, au.cpi, au.cpiPeriod, au.unemployment, au.unemploymentPeriod, bonds?.asOf].join('|')
+}
+
 // watchlist: array of ticker strings (useStore's shape). portfolio: optional
 // override — defaults to reading the same localStorage key PortfolioModule
 // persists to, since holdings are not in the shared store.
@@ -171,7 +177,13 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   if (!force) {
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
-      try { return JSON.parse(cached) } catch { /* fall through and regenerate */ }
+      // A brief written before the verified figures changed (an RBA decision
+      // mid-day, a CPI print) describes a world that no longer exists, so it
+      // is regenerated rather than served for the rest of the day.
+      try {
+        const parsed = JSON.parse(cached)
+        if (parsed?.factsStamp === factsStamp()) return parsed
+      } catch { /* fall through and regenerate */ }
     }
   }
 
@@ -227,7 +239,7 @@ Generate the morning brief now. Do not state any figure not listed above.
   `.trim()
 
   const brief = await askClaudeJSON(userContent, { maxTokens: 2200, systemPrompt: BRIEF_SYSTEM })
-  const stamped = { ...brief, generatedAt: new Date().toISOString() }
+  const stamped = { ...brief, generatedAt: new Date().toISOString(), factsStamp: factsStamp() }
   try { localStorage.setItem(cacheKey, JSON.stringify(stamped)) } catch { /* best-effort cache write */ }
   trimBriefHistory()
   return stamped

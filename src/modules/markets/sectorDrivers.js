@@ -82,7 +82,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
       {
         name: 'RBA cash rate',
         reading: {
-          value: `${rba.cashRate}%`,
+          value: `${rba.cashRate.toFixed(2)}%`,
           asOf: rba.lastDecision,
           source: rba.source,
           trend: dir(rba.cashRate, rba.previousRate),
@@ -196,7 +196,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
       {
         name: 'RBA cash rate',
         reading: {
-          value: `${rba.cashRate}%`,
+          value: `${rba.cashRate.toFixed(2)}%`,
           asOf: rba.lastDecision,
           source: rba.source,
           trend: dir(rba.cashRate, rba.previousRate),
@@ -214,7 +214,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
       {
         name: 'AU CPI',
         reading: {
-          value: `${au.cpi}%`,
+          value: `${au.cpi.toFixed(1)}%`,
           asOf: au.cpiLastRelease,
           source: au.source,
           trend: dir(au.cpi, au.cpiPrevious),
@@ -241,7 +241,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
     {
       name: 'RBA cash rate',
       reading: {
-        value: `${rba.cashRate}%`,
+        value: `${rba.cashRate.toFixed(2)}%`,
         asOf: rba.lastDecision,
         source: rba.source,
         trend: dir(rba.cashRate, rba.previousRate),
@@ -256,7 +256,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
     {
       name: 'AU CPI',
       reading: {
-        value: `${au.cpi}%`,
+        value: `${au.cpi.toFixed(1)}%`,
         asOf: au.cpiLastRelease,
         source: au.source,
         trend: dir(au.cpi, au.cpiPrevious),

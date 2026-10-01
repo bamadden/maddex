@@ -21,7 +21,8 @@ import { curveForRates } from './bondCurves'
 
 const { rba, fed, au, us, cn, eu, uk } = VERIFIED_CONSTANTS
 
-const pct = (n) => `${n}%`
+const pct = (n) => `${Number(n).toFixed(1)}%`
+const pct2 = (n) => `${Number(n).toFixed(2)}%`
 
 // ASX 200 Sector Heatmap — mktCapWeight is % of ASX 200
 export const ASX_SECTOR_HEATMAP = [
@@ -93,7 +94,7 @@ export const CENTRAL_BANK_RATES = CB_ORDER.map(([key, bank, country]) => {
 // itself, so they stay literal here — they are context about a transition
 // rather than a current figure that can go stale-wrong.
 export const AU_MACRO = [
-  { name: 'RBA Cash Rate',       value: pct(rba.cashRate),   prev: pct(rba.previousRate), date: rba.lastDecision,      beat: null,  src: rba.source,           vkey: 'rba' },
+  { name: 'RBA Cash Rate',       value: pct2(rba.cashRate),  prev: pct2(rba.previousRate), date: rba.lastDecision,      beat: null,  src: rba.source,           vkey: 'rba' },
   { name: 'AU CPI YoY',          value: pct(au.cpi),         prev: pct(au.cpiPrevious),   date: au.cpiLastRelease,     beat: false, src: 'abs.gov.au/6401.0',  vkey: 'au' },
   { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: '3.6%',             date: au.cpiLastRelease,          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
   { name: 'AU Unemployment',     value: pct(au.unemployment), prev: '4.5%',               date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },

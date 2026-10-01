@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
+import { sydneyTzNow } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -550,7 +551,7 @@ function MarketPricingPanel() {
 
       <PolicyRow
         label="RBA cash rate"
-        rate={`${rba.cashRate}%`}
+        rate={`${rba.cashRate.toFixed(2)}%`}
         verb={rba.lastDecisionVerb}
         decidedOn={rba.lastDecision}
         nextMeeting={rba.nextMeeting}
@@ -612,6 +613,7 @@ function MarketPricingPanel() {
 function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
   const { shape } = primaryStats
   const [ghost, setGhost] = useState(false)
+  const hasPrev = Object.keys(YIELD_CURVES.AU.prev ?? {}).length > 0 || Object.keys(YIELD_CURVES.US.prev ?? {}).length > 0
   // Both curves' 2s10s, in basis points. The shape word alone says which side
   // of zero the curve is on; the number says how far, and "+15bp" versus
   // "+120bp" are different worlds wearing the same NORMAL label. The US badge
@@ -657,15 +659,17 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
         {[[false, 'TODAY'], [true, '+ PREV CURVE']].map(([val, label]) => (
           <button
             key={label}
+            disabled={val && !hasPrev}
+            title={val && !hasPrev ? 'No verified previous curve is held for AU/US' : undefined}
             onClick={() => setGhost(val)}
             className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${
               ghost === val
                 ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
-                : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
+                : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold disabled:opacity-30 disabled:hover:border-terminal-border disabled:cursor-not-allowed'
             }`}
           >{label}</button>
         ))}
-        {ghost ? (
+        {ghost && hasPrev ? (
           <span className="ml-auto flex items-center gap-2 text-terminal-text-dim/60" style={{ fontSize: 8 }}>
             <span className="flex items-center gap-1">
               <span style={{ width: 12, height: 2, background: '#C9A84C', display: 'inline-block' }} />today
@@ -677,7 +681,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
         ) : (
           <span className="ml-auto text-terminal-text-dim/45 truncate" style={{ fontSize: 8 }}
             title="No 3-, 6- or 12-month yield series is held in this build, so no older ghost curve can be drawn without inventing one.">
-            no 3M/6M/1Y series held — only the previous curve
+            {hasPrev ? 'no 3M/6M/1Y series held — only the previous curve' : `as at ${YIELD_CURVES.AU.src.split(' · ')[1]} · no verified prior curve held`}
           </span>
         )}
       </div>
@@ -975,7 +979,7 @@ export default function FXModule() {
             <div className="text-2xs text-terminal-gold font-bold mb-1">AUD/USD · LIVE</div>
             <div className="text-2xl font-bold text-terminal-text-bright">{audUsd.toFixed(4)}</div>
             <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD · 1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
-            <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} AEST · Frankfurter{fxDelayed ? ' · STALE' : ''}</div>
+            <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} {sydneyTzNow()} · Frankfurter{fxDelayed ? ' · STALE' : ''}</div>
           </div>
         )}
         <CurrencyConverter rates={rawRates} />
@@ -1005,7 +1009,7 @@ export default function FXModule() {
             </div>
           )}
           {metals.length > 0 && (
-            <div className="text-2xs text-terminal-text-dim/60 mt-1 px-1">{updatedTime} AEST · ExchangeRate-API</div>
+            <div className="text-2xs text-terminal-text-dim/60 mt-1 px-1">{updatedTime} {sydneyTzNow()} · ExchangeRate-API</div>
           )}
         </div>
       </div>

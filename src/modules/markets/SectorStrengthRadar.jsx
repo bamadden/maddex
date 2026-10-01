@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
+import { sydneyTzNow } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from 'recharts'
 import { fetchBatch, USING_MOCK_DATA } from '../../services/api'
@@ -287,7 +288,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
             </div>
           ))}
         </div>
-        {lastUpdate && <span className="text-2xs text-terminal-text-dim/40">Updated {lastUpdate} AEST</span>}
+        {lastUpdate && <span className="text-2xs text-terminal-text-dim/40">Updated {lastUpdate} {sydneyTzNow()}</span>}
       </div>
     </div>
   )

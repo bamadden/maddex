@@ -47,7 +47,7 @@ function WeekendBrief({ currentDay }) {
       <div className="border border-terminal-border p-4">
         <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
           <span className="text-sm font-bold text-terminal-text-bright">Markets are closed for the weekend.</span>
-          <span className="text-2xs text-terminal-text-dim">Next brief Monday, 7am AEST</span>
+          <span className="text-2xs text-terminal-text-dim">Next brief Monday, 7am Sydney time</span>
         </div>
         <div className="text-2xs text-terminal-text-dim leading-relaxed">
           No brief is generated on non-trading days. What follows is the week ahead and
@@ -61,7 +61,7 @@ function WeekendBrief({ currentDay }) {
             <span className="text-2xs text-terminal-gold font-bold tracking-widest">RBA</span>
             <VerifiedBadge dataKey="rba" alwaysShow />
           </div>
-          <div className="text-xl font-bold text-terminal-gold tabular-nums">{rba.cashRate}%</div>
+          <div className="text-xl font-bold text-terminal-gold tabular-nums">{rba.cashRate.toFixed(2)}%</div>
           <div className="text-2xs text-terminal-text-dim mt-0.5">
             {rba.lastDecisionVerb} on {rba.lastDecision}
           </div>
@@ -84,7 +84,7 @@ function WeekendBrief({ currentDay }) {
 
         <div className="border border-terminal-border p-3">
           <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">AU INFLATION</div>
-          <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{au.cpi}%</div>
+          <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{au.cpi.toFixed(1)}%</div>
           <div className="text-2xs text-terminal-text-dim mt-0.5">{au.cpiPeriod}</div>
           <div className="text-2xs text-terminal-text mt-1">
             Target band {au.rbaTargetBand} · unemployment {au.unemployment}%
@@ -301,7 +301,7 @@ export default function MorningBriefModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="MORNING BRIEF"
-        subtitle="Your personalised market brief · generated 7am AEST weekdays"
+        subtitle="Your personalised market brief · generated 7am Sydney time, weekdays"
         moduleId="brief"
         isFetching={status === 'loading'}
         // Was deleting a UTC-keyed entry by hand. The cache key is now the

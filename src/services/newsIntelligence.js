@@ -243,7 +243,7 @@ export function marketSession(now = new Date()) {
   }
 
   if (weekend) {
-    return { key: 'weekend', label: 'WEEKEND', detail: 'ASX closed until Monday', colour: '#4A6080' }
+    return { key: 'weekend', label: 'WEEKEND', detail: 'ASX opens 10:00am Monday', colour: '#4A6080' }
   }
   if (mins >= 5 * 60 && mins < OPEN_MIN) {
     return { key: 'pre', label: 'PRE-MARKET', detail: `ASX opens in ${fmtGap(OPEN_MIN - mins)}`, colour: '#C9A84C' }
@@ -252,7 +252,8 @@ export function marketSession(now = new Date()) {
     return { key: 'open', label: 'MARKET OPEN', detail: `${fmtGap(CLOSE_MIN - mins)} remaining`, colour: '#2D8A50' }
   }
   if (mins >= CLOSE_MIN) {
-    return { key: 'after', label: 'AFTER HOURS', detail: 'ASX closed', colour: '#8BA3C4' }
+    // Public holidays are not modelled; Friday evening points at Monday.
+    return { key: 'after', label: 'ASX CLOSED', detail: `Opens 10:00am ${weekday === 'Fri' ? 'Monday' : 'tomorrow'}`, colour: '#4A6080' }
   }
   return { key: 'overnight', label: 'OVERNIGHT', detail: 'US markets active', colour: '#7C6BC4' }
 }

@@ -4,7 +4,7 @@
 // static list. Every date below is ISO, so "upcoming"/"past" is always
 // computed from today rather than hand-maintained.
 
-import { getRelativeDate } from '../utils/dateUtils'
+import { getRelativeDate, sydneyOffset } from '../utils/dateUtils'
 
 const FMP_KEY   = import.meta.env.VITE_FMP_API_KEY || 'demo'
 const CACHE_KEY = 'madden_econ_calendar_v1'
@@ -123,4 +123,23 @@ export function upcomingEvents(events, days = 30) {
 
 export function getPreviousEvents() {
   return FALLBACK_PREVIOUS
+}
+
+// The moment an event lands, as a real instant. Event times are Sydney local;
+// an event with no time counts as lasting the whole day.
+export function eventInstant(e, { endOfDayIfUntimed = false } = {}) {
+  if (!e?.date) return null
+  const hasTime = /^\d{1,2}:\d{2}$/.test(e.time ?? '')
+  const hhmm = hasTime ? e.time.padStart(5, '0') : (endOfDayIfUntimed ? '23:59' : '00:00')
+  const t = new Date(`${e.date}T${hhmm}:00${sydneyOffset(e.date)}`)
+  return isNaN(t) ? null : t
+}
+
+// upcomingEvents() keeps everything dated today, including this morning's
+// releases. This drops the ones that have already happened.
+export function pendingEvents(events, days = 30, now = Date.now()) {
+  return upcomingEvents(events, days).filter((e) => {
+    const t = eventInstant(e, { endOfDayIfUntimed: true })
+    return !t || t.getTime() > now
+  })
 }

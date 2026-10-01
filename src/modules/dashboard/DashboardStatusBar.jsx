@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { marketSession } from '../../services/newsIntelligence'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
 
 // The first line of the first screen.
 //
@@ -14,8 +15,10 @@ import { marketSession } from '../../services/newsIntelligence'
 
 function greetingFor(hour) {
   if (hour >= 5 && hour < 12) return 'GOOD MORNING'
-  if (hour >= 12 && hour < 17) return 'GOOD AFTERNOON'
-  if (hour >= 17 && hour < 22) return 'GOOD EVENING'
+  // Afternoon runs to 6pm: at 5:30 the working day is still on, and the
+  // greeting should not jump to evening the moment the ASX closes.
+  if (hour >= 12 && hour < 18) return 'GOOD AFTERNOON'
+  if (hour >= 18) return 'GOOD EVENING'
   return 'GOOD NIGHT'
 }
 
@@ -44,11 +47,12 @@ export default function DashboardStatusBar() {
   const open = session.key === 'open'
 
   const dateStr = now.toLocaleDateString('en-AU', {
-    weekday: 'long', day: 'numeric', month: 'short', year: 'numeric',
+    timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric',
   }).toUpperCase()
   const timeStr = now.toLocaleTimeString('en-AU', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   })
+  const tz = sydneyTzAbbr(now.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
 
   return (
     <div
@@ -85,7 +89,7 @@ export default function DashboardStatusBar() {
       </div>
 
       <span className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0">{timeStr}</span>
-      <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0">AEST</span>
+      <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0">{tz}</span>
     </div>
   )
 }

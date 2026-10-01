@@ -432,7 +432,8 @@ export function verifiedFactsForAI() {
     // context; the model does not need it to answer "what is the cash rate".
     lines.push(
       `RBA cash rate ${rba.cashRate.toFixed(2)}% — ${(rba.lastDecisionVerb ?? 'SET').toUpperCase()}${rba.lastChange ? ` ${rba.lastChange}` : ''} at the ${rba.lastDecision} meeting` +
-      `${rba.nextMeeting ? `; next meeting ${rba.nextMeeting}` : ''}`,
+      `${rba.nextMeeting ? `; next meeting ${rba.nextMeeting}` : ''}` +
+      `${rba.note ? ` (${rba.note})` : ''}`,
     )
   }
   if (fed) {

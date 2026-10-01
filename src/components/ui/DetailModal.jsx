@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
+import { sydneyTzNow } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -1459,7 +1460,7 @@ export default function DetailModal() {
 
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-2">
-              <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} AEST</span>
+              <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} {sydneyTzNow()}</span>
               {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
             </div>
           </div>

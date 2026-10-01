@@ -1,5 +1,6 @@
 // Country database — Batch 1: Major economies (G20 + key Asian economies)
 // Data as of June 2026
+import { VERIFIED_CONSTANTS } from './verifiedConstants'
 
 export const COUNTRIES = [
   {
@@ -314,10 +315,12 @@ export const COUNTRIES = [
     population: 26_800_000,
     gdpTotal: 1_780_000,
     gdpPerCapita: 66_400,
-    gdpGrowth: 1.8,
-    inflation: 3.8,
-    unemployment: 4.2,
-    interestRate: 4.35,
+    gdpGrowth: VERIFIED_CONSTANTS.au.gdpAnnual,
+    // Australia's headline figures follow verifiedConstants rather than the
+    // June snapshot the rest of this file holds.
+    inflation: VERIFIED_CONSTANTS.au.cpi,
+    unemployment: VERIFIED_CONSTANTS.au.unemployment,
+    interestRate: VERIFIED_CONSTANTS.rba.cashRate,
     interestRateBank: 'Reserve Bank of Australia',
     currency: 'AUD',
     flag: '🇦🇺',

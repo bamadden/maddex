@@ -61,12 +61,14 @@ export default function RbaHeroCard({ onAskAI }) {
   const rba = VERIFIED_CONSTANTS.rba
   const cd = useCountdown(rba?.nextMeeting)
   const gov = VERIFIED_CONSTANTS.centralBankOfficials?.rba
+  const verb = (rba?.lastDecisionVerb ?? '').toUpperCase()
+  const moved = verb === 'HIKE' || verb === 'CUT'
 
   return (
     <div
       className="flex-shrink-0"
       style={{
-        borderLeft: '3px solid #C9A84C',
+        borderLeft: `3px solid ${['HIKE', 'CUT'].includes((VERIFIED_CONSTANTS.rba?.lastDecisionVerb ?? '').toUpperCase()) ? '#E8A33D' : '#C9A84C'}`,
         background: 'linear-gradient(90deg, rgba(201,168,76,0.06) 0%, rgba(201,168,76,0.015) 55%, transparent 100%)',
         padding: '16px 20px',
         borderBottom: '1px solid rgba(201,168,76,0.12)',
@@ -83,10 +85,28 @@ export default function RbaHeroCard({ onAskAI }) {
           >
             {rba?.cashRate?.toFixed(2)}%
           </div>
-          <div className="font-mono text-terminal-text-dim mt-2" style={{ fontSize: 10, letterSpacing: '0.06em' }}>
-            <span className="text-terminal-text-bright font-bold">{PAST_TENSE[(rba?.lastDecisionVerb ?? '').toUpperCase()] ?? 'SET'}</span>
-            {' '}{fmtDate(rba?.lastDecision)}
+          {/* A move is news and a hold is not, so the verb carries the
+              weight: amber when the Board acted, quiet gold when it held. */}
+          <div className="flex items-center gap-2 mt-2 font-mono" style={{ fontSize: 10, letterSpacing: '0.06em' }}>
+            <span
+              className="font-bold"
+              style={{
+                color: moved ? '#E8A33D' : '#C9A84C',
+                border: `1px solid ${moved ? 'rgba(232,163,61,0.45)' : 'rgba(201,168,76,0.3)'}`,
+                background: moved ? 'rgba(232,163,61,0.10)' : 'transparent',
+                padding: '2px 6px', borderRadius: 2, letterSpacing: '0.14em',
+              }}
+            >
+              {verb === 'HIKE' ? '▲ ' : verb === 'CUT' ? '▼ ' : ''}{PAST_TENSE[verb] ?? 'SET'}
+              {moved && rba?.lastChange ? ` ${rba.lastChange}` : ''}
+            </span>
+            <span className="text-terminal-text-dim">{fmtDate(rba?.lastDecision)}</span>
           </div>
+          {moved && rba?.previousRate != null && (
+            <div className="font-mono text-terminal-text-dim/70 mt-1" style={{ fontSize: 9 }}>
+              from {rba.previousRate.toFixed(2)}%
+            </div>
+          )}
           {/* The Governor's name, from the verified office-holder block rather
               than from anyone's memory. It belongs on this card because a rate
               decision is a person's decision — "the Board" is the formal

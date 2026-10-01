@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
+import { sydneyTzAbbr, sydneyTzNow, sydneyOffset } from '../../utils/dateUtils'
 import RecessionMonitor from './RecessionMonitor'
 import RegimeQuadrant from './RegimeQuadrant'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -382,14 +383,21 @@ function nextMeetingDateStr(dates) {
 const nextRbaDateStr  = nextMeetingDateStr(RBA_MEETINGS_2026)
 const nextFomcDateStr = nextMeetingDateStr(FOMC_MEETINGS_2026)
 
-// RBA announces at 2:30pm AEST (04:30 UTC); FOMC at ~2:00pm EDT (18:00 UTC) —
-// only the date itself comes from the schedule, the time-of-day is fixed.
-const RBA_NEXT_MEETING  = nextRbaDateStr  ? new Date(`${nextRbaDateStr}T04:30:00Z`)  : null
-const FOMC_NEXT_MEETING = nextFomcDateStr ? new Date(`${nextFomcDateStr}T18:00:00Z`) : null
+// RBA announces at 2:30pm Sydney time; FOMC at 2:00pm New York time. Both
+// cities observe daylight saving, so the UTC instant is resolved per date.
+const nyOffset = (iso) => {
+  try {
+    const n = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'longOffset' })
+      .formatToParts(new Date(`${iso}T12:00:00Z`)).find((p) => p.type === 'timeZoneName')?.value
+    return n?.match(/GMT([+-]\d{2}:\d{2})/)?.[1] ?? '-05:00'
+  } catch { return '-05:00' }
+}
+const RBA_NEXT_MEETING  = nextRbaDateStr  ? new Date(`${nextRbaDateStr}T14:30:00${sydneyOffset(nextRbaDateStr)}`) : null
+const FOMC_NEXT_MEETING = nextFomcDateStr ? new Date(`${nextFomcDateStr}T14:00:00${nyOffset(nextFomcDateStr)}`) : null
 
 const MEETINGS = [
-  { label: 'RBA',  name: 'Rate Decision', date: RBA_NEXT_MEETING,  color: 'text-terminal-gold',        note: '2:30pm AEST' },
-  { label: 'FOMC', name: 'Rate Decision', date: FOMC_NEXT_MEETING, color: 'text-terminal-blue-bright', note: '2:00pm EDT'  },
+  { label: 'RBA',  name: 'Rate Decision', date: RBA_NEXT_MEETING,  color: 'text-terminal-gold',        note: `2:30pm ${nextRbaDateStr ? sydneyTzAbbr(nextRbaDateStr) : 'AET'}` },
+  { label: 'FOMC', name: 'Rate Decision', date: FOMC_NEXT_MEETING, color: 'text-terminal-blue-bright', note: `2:00pm ${nextFomcDateStr && nyOffset(nextFomcDateStr) === '-04:00' ? 'EDT' : 'EST'}` },
 ]
 
 // A ticking clock, so anything counting down actually counts down.
@@ -536,7 +544,7 @@ function RBADashboard({ askAI }) {
             </div>
             <div className="flex justify-between">
               <span className="text-terminal-text-dim">RBA</span>
-              <span className="font-bold text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate}%</span>
+              <span className="font-bold text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
               <span className="text-terminal-text-dim/60">{nextMeetingBadge}</span>
@@ -977,7 +985,7 @@ function EnhancedEvents() {
     const dueToday = allEvents.filter(e => e.date === todayIso && reminders.includes(reminderKey(e)))
     const fresh = dueToday.filter(e => !notified.includes(reminderKey(e)))
     if (!fresh.length) return
-    fresh.forEach(e => addNotification('CALENDAR', `Reminder: ${e.event} is today${e.time !== '—' ? ` at ${e.time} AEST` : ''}`))
+    fresh.forEach(e => addNotification('CALENDAR', `Reminder: ${e.event} is today${e.time !== '—' ? ` at ${e.time} ${sydneyTzAbbr(e.date)}` : ''}`))
     try { localStorage.setItem(REMINDER_NOTIFIED_KEY, JSON.stringify([...notified, ...fresh.map(reminderKey)])) } catch { /* ignore */ }
   }, [allEvents, reminders, addNotification])
 
@@ -1008,7 +1016,7 @@ function EnhancedEvents() {
     <div className="border-b border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
         <span>MARKET MOVING EVENTS</span>
-        <span className="text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">Next 30 days · All times AEST</span>
+        <span className="text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">Next 30 days · All times Sydney ({sydneyTzNow()})</span>
         {isLoading && <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>}
         {isFallback && <span className="text-2xs text-terminal-gold/70">DEMO SCHEDULE</span>}
         <div className="ml-auto flex items-center gap-3 text-2xs text-terminal-text-dim">
@@ -1179,8 +1187,8 @@ const TREND_COLOR = {
 // defaults, with their figures interpolated from VERIFIED_CONSTANTS.
 const MACRO_INDICATORS = [
   { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'PMI readings below 50 in both China and Europe are weighing on global trade volumes.' },
-  { label: 'INFLATION',     status: 'EASING',      arrow: '▼', color: 'var(--color-gain)', context: `AU CPI at ${VERIFIED_CONSTANTS.au.cpi}% and moderating US CPI both support an extended RBA/Fed hold.` },
-  { label: 'POLICY',        status: 'RESTRICTIVE', arrow: '▬', color: '#C9A84C',           context: `RBA at ${VERIFIED_CONSTANTS.rba.cashRate}% and Fed at ${VERIFIED_CONSTANTS.fed.cashRate}% — both above neutral, with cuts not yet confirmed.` },
+  { label: 'INFLATION',     status: 'RISING',      arrow: '▲', color: 'var(--color-loss)', context: `AU CPI re-accelerated to ${VERIFIED_CONSTANTS.au.cpi.toFixed(1)}% (${VERIFIED_CONSTANTS.au.cpiPeriod}) from ${VERIFIED_CONSTANTS.au.cpiPrevious.toFixed(1)}% — above the RBA's ${VERIFIED_CONSTANTS.au.rbaTargetBand} band.` },
+  { label: 'POLICY',        status: 'TIGHTENING',  arrow: '▲', color: '#C9A84C',           context: `RBA hiked to ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% and the Fed to ${VERIFIED_CONSTANTS.fed.rateRange} at their latest meetings — both moving further above neutral.` },
 ]
 
 // Same -90..+90 scale as MACRO_REGIME.angle — a hand-set monthly snapshot,
@@ -1718,7 +1726,7 @@ export default function MacroModule() {
     { id: 'trade',      name: 'Trade Balance',        current: AU_TRADE_BALANCE[AU_TRADE_BALANCE.length - 1]?.value ?? 0, unit: 'B', trend: trendFrom(AU_TRADE_BALANCE, true) },
     { id: 'iron',       name: 'Iron Ore',             current: IRON_ORE_HISTORY[IRON_ORE_HISTORY.length - 1]?.value ?? 0, unit: '/t', trend: trendFrom(IRON_ORE_HISTORY, true) },
     { id: 'growth',     name: 'Global Growth',        current: 'SLOWING',     unit: '', trend: 'DECLINING' },
-    { id: 'inflation',  name: 'Global Inflation',     current: 'EASING',      unit: '', trend: 'IMPROVING' },
+    { id: 'inflation',  name: 'Global Inflation',     current: 'RISING',      unit: '', trend: 'DECLINING' },
     { id: 'policy',     name: 'Policy Stance',        current: 'RESTRICTIVE', unit: '', trend: 'STABLE' },
   ]
 
@@ -1869,7 +1877,7 @@ export default function MacroModule() {
         <div className="px-3 py-1 text-2xs text-terminal-text-dim/60 border-b border-terminal-border flex items-center gap-4 flex-wrap">
           <span>AU MACRO: ABS/RBA OFFICIAL RELEASES · DATES = RELEASE DATES</span>
           <span>RBA: <a href="https://www.rba.gov.au/monetary-policy/rba-board-minutes/" target="_blank" rel="noopener noreferrer" className="text-terminal-blue-bright hover:underline">rba.gov.au ↗</a> · ABS: abs.gov.au</span>
-          <span className="ml-auto">Rate decisions announced day of meeting at 2:30pm AEST</span>
+          <span className="ml-auto">Rate decisions announced day of meeting at 2:30pm Sydney time</span>
         </div>
       </div>
 

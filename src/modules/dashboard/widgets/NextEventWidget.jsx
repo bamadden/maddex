@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getEconomicCalendar, upcomingEvents } from '../../../services/calendarService'
+import { getEconomicCalendar, pendingEvents, eventInstant } from '../../../services/calendarService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 
@@ -10,20 +10,9 @@ const IMPACT = {
   low:    { label: 'LOW',    colour: '#4A6080' },
 }
 
-// The moment an event actually lands.
-//
-// The countdown previously used `new Date(event.date)`, which ignores the
-// event's `time` field and — because a bare 'YYYY-MM-DD' is parsed as UTC
-// midnight — resolves to 10am the same day in Sydney. An 11:30 AEST CPI print
-// therefore counted down to a time 90 minutes before it, and a 22:30 US
-// release counted down to twelve and a half hours before it. Combining the
-// two fields as local time fixes both.
-function eventTime(e) {
-  if (!e?.date) return null
-  const hasTime = /^\d{1,2}:\d{2}$/.test(e.time ?? '')
-  const t = new Date(`${e.date}T${hasTime ? e.time : '00:00'}:00`)
-  return isNaN(t) ? null : t
-}
+// The moment an event actually lands — Sydney local time on its own date,
+// not the browser's zone and not UTC midnight. See eventInstant.
+const eventTime = (e) => eventInstant(e)
 
 function Segment({ value, unit }) {
   return (
@@ -52,10 +41,13 @@ export default function NextEventWidget() {
   const { data } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
   // 90-day window, then take the first — the second argument is a day
   // range, not a count, so asking for 1 means "events in the next day".
-  const events = upcomingEvents(data?.events ?? [], 90)
-  const next = events[0]
-
   const [now, setNow] = useState(() => Date.now())
+
+  // upcomingEvents keeps everything dated today, including this morning's
+  // releases. Drop the ones that have already landed so the card never counts
+  // down to zero on a print that is already out.
+  const events = pendingEvents(data?.events ?? [], 90, now)
+  const next = events[0]
 
   // Ticks every second because this is a countdown; reading the clock in
   // render would leave it frozen until something else re-rendered.

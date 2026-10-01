@@ -2079,9 +2079,9 @@ function DataSourcesSection() {
   const verifiedRows = useMemo(() => {
     const c = VERIFIED_CONSTANTS
     return [
-      { name: `RBA cash rate ${c.rba.cashRate}%`, detail: `verified ${c.rba.lastVerified} · ${c.rba.source}` },
+      { name: `RBA cash rate ${c.rba.cashRate.toFixed(2)}%`, detail: `verified ${c.rba.lastVerified} · ${c.rba.source}` },
       { name: `US Fed funds ${c.fed.rateRange}`, detail: `verified ${c.fed.lastVerified} · ${c.fed.source}` },
-      { name: `AU CPI ${c.au.cpi}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
+      { name: `AU CPI ${c.au.cpi.toFixed(1)}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
       { name: `AU unemployment ${c.au.unemployment}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
       { name: `Iron ore US$${c.commodities.ironOreUSD}/t`, detail: `as at ${c.commodities.asOf} · ${c.commodities.source}` },
       { name: `Brent US$${c.commodities.brentUSD}/bbl`, detail: `as at ${c.commodities.asOf} · ${c.commodities.source}` },

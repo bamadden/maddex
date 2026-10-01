@@ -163,7 +163,7 @@ export default function RegimeQuadrant() {
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9, width: 60 }}>INFLATION</span>
             <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 11 }}>
-              {au.cpi}%
+              {au.cpi.toFixed(1)}%
             </span>
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>
               vs {au.rbaTargetBand} band · {au.cpiPeriod}
@@ -172,7 +172,7 @@ export default function RegimeQuadrant() {
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9, width: 60 }}>POLICY</span>
             <span className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 11 }}>
-              {rba.cashRate}%
+              {rba.cashRate.toFixed(2)}%
             </span>
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>cash rate</span>
           </div>

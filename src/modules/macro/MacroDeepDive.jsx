@@ -90,7 +90,7 @@ Indicator: ${indicator.name}
 Latest reading: ${indicator.value} (released ${indicator.date})
 Previous reading: ${indicator.prev}
 ${nextRelease ? `Next release: ${nextRelease}` : ''}
-RBA cash rate: ${VERIFIED_CONSTANTS.rba.cashRate}%; inflation target band ${VERIFIED_CONSTANTS.au.rbaTargetBand}
+RBA cash rate: ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%; inflation target band ${VERIFIED_CONSTANTS.au.rbaTargetBand}
 
 In 2-3 sentences, say what this reading means for RBA policy, the AUD, and which ASX sectors it touches.
 Quote only the figures given above. State no other number — no forecast, no estimate, no level for any market.
@@ -207,7 +207,7 @@ export function RbaSensitivityMatrix() {
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">RBA SENSITIVITY MATRIX</span>
         <span className="text-[9px] text-terminal-text-dim">
-          CPI {au.cpi}% · GDP {au.gdpAnnual}% · cash rate {rba.cashRate}%
+          CPI {au.cpi.toFixed(1)}% · GDP {au.gdpAnnual}% · cash rate {rba.cashRate.toFixed(2)}%
         </span>
       </div>
 
@@ -223,7 +223,7 @@ export function RbaSensitivityMatrix() {
         </div>
 
         <div className="text-[9px] text-terminal-text-dim/70 leading-snug mt-2.5">
-          Current readings place Australia in the highlighted quadrant: inflation {au.cpi}%
+          Current readings place Australia in the highlighted quadrant: inflation {au.cpi.toFixed(1)}%
           {inflationHigh ? ' above' : ' within or below'} the {au.rbaTargetBand} band, annual growth {au.gdpAnnual}%
           {growthHigh ? ' at or above' : ' below'} a ~{TREND_GDP}% trend. The lean shown is what the framework
           implies, not a forecast of what the board will decide.

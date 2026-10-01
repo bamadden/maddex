@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { sydneyTzNow } from '../../utils/dateUtils'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -942,7 +943,7 @@ export default function PortfolioModule() {
                   </span>
                 : USING_MOCK_DATA
                   ? <span className="ml-auto"><DemoBadge /></span>
-                  : <span className="text-2xs text-terminal-text-dim font-normal ml-auto">{updatedAt} AEST</span>
+                  : <span className="text-2xs text-terminal-text-dim font-normal ml-auto">{updatedAt} {sydneyTzNow()}</span>
             }
           </div>
           <div className="overflow-auto flex-1">

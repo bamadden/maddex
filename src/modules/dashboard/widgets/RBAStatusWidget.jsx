@@ -39,9 +39,9 @@ export default function RBAStatusWidget() {
   // level rather than the last decision's verb.
   const delta = rba.cashRate - (rba.previousRate ?? rba.cashRate)
   const trend = delta > 0
-    ? { arrow: '▲', colour: '#A83232', text: `up ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate}%` }
+    ? { arrow: '▲', colour: '#A83232', text: `up ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate.toFixed(2)}%` }
     : delta < 0
-      ? { arrow: '▼', colour: '#2D8A50', text: `down ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate}%` }
+      ? { arrow: '▼', colour: '#2D8A50', text: `down ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate.toFixed(2)}%` }
       : { arrow: '▬', colour: '#4A6080', text: 'unchanged' }
 
   return (
@@ -50,7 +50,7 @@ export default function RBAStatusWidget() {
         <div className="min-w-0">
           <div className="flex items-baseline gap-1.5">
             <span className="font-mono tabular-nums leading-none" style={{ fontSize: 28, color: '#C9A84C' }}>
-              {rba.cashRate}%
+              {rba.cashRate.toFixed(2)}%
             </span>
             <span className="font-mono leading-none" style={{ fontSize: 12, color: trend.colour }}>{trend.arrow}</span>
           </div>

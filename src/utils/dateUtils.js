@@ -80,3 +80,6 @@ export function sydneyOffset(iso) {
 }
 
 export const sydneyTzAbbr = (iso) => (sydneyOffset(iso) === '+11:00' ? 'AEDT' : 'AEST')
+
+// Today's Sydney abbreviation, for "updated 14:05 AEDT"-style labels.
+export const sydneyTzNow = () => sydneyTzAbbr(new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
