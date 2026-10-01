@@ -174,7 +174,7 @@ const SECTOR_COLOUR = {
 const SECTOR_SHORT = {
   Financials: 'FIN', Materials: 'MAT', Health: 'HLTH', Industrials: 'IND',
   Staples: 'STPL', 'Cons Disc': 'DISC', IT: 'TECH', Energy: 'ENRG',
-  Comms: 'COMM', 'Real Est': 'REIT', Utilities: 'UTIL',
+  Comms: 'COMM', 'Real Est': 'REIT', Utilities: 'UTIL', ETF: 'ETF',
 }
 
 function SectorPill({ symbol, type }) {
@@ -321,6 +321,12 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
   const [shares,  setShares]  = useState('')
   const [avgCost, setAvgCost] = useState('')
   const [ccy,     setCcy]     = useState('AUD')
+  // Purchase date. Every holding used to be stamped with the day it was
+  // typed in, so the opening BUY in Transactions, the holding period and
+  // anything keyed to it (the 12-month CGT discount) were all wrong for
+  // any position bought before today.
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  const [bought,  setBought]  = useState(today)
   const [vstatus, setVstatus] = useState('idle') // idle | validating | error | ready
   const [verr,    setVerr]    = useState('')
   const [vdata,   setVdata]   = useState(null)
@@ -379,7 +385,7 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
       avgCost:      costN,
       costCurrency: ccy,
       type:         vdata.type,
-      addedAt:      new Date().toISOString().slice(0, 10),
+      addedAt:      bought && bought <= today ? bought : today,
     })
   }
 
@@ -419,7 +425,7 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
       )}
       {vstatus === 'error' && <div className="text-2xs text-terminal-red px-1">⚠ {verr}</div>}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <div>
           <div className="text-2xs text-terminal-text-dim mb-1">SHARES / UNITS</div>
           <input type="number" min="0" step="any" placeholder="0.00" value={shares}
@@ -431,6 +437,12 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
           <div className="text-2xs text-terminal-text-dim mb-1">AVG BUY PRICE</div>
           <input type="number" min="0" step="any" placeholder="0.00" value={avgCost}
             onChange={(e) => setAvgCost(e.target.value)}
+            className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold"
+          />
+        </div>
+        <div>
+          <div className="text-2xs text-terminal-text-dim mb-1">BOUGHT ON</div>
+          <input type="date" max={today} value={bought} onChange={(e) => setBought(e.target.value)}
             className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-xs text-terminal-text-bright outline-none focus:border-terminal-gold"
           />
         </div>

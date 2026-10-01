@@ -1,4 +1,5 @@
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import { AU_ETFS } from '../../data/etfData'
 
 // symbol (no .AX suffix, uppercase) -> GICS sector, for holdings that match
 // a tracked demo stock. Anything else (a real ticker not in the demo
@@ -10,4 +11,7 @@ import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 export const SECTOR_BY_SYMBOL = Object.fromEntries([
   ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
   ...Object.entries(MOCK_US_STOCKS).map(([sym, s]) => [sym, s.sector]),
+  // ASX-listed ETFs: one bucket rather than "Other", since a broad index fund
+  // is a diversifier, not an unclassified stock.
+  ...AU_ETFS.map((e) => [e.ticker, 'ETF']),
 ])

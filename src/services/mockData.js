@@ -1,3 +1,4 @@
+import { AU_ETFS } from '../data/etfData'
 // ─── Demo/mock data layer ──────────────────────────────────────────────────
 // Active only when no equities API key is configured (see USING_MOCK_DATA in
 // api.js). Every function here returns data shaped EXACTLY like the real
@@ -201,9 +202,17 @@ function generateSyntheticBase(symbol) {
 // data" placeholder instead of a plausible-looking but meaningless number.
 const CRYPTO_PAIR_RE = /-USD$/i
 
+// ASX-listed ETFs, priced from the ETF explorer's own table so a VAS holding
+// and the VAS row in ETFs agree. Without this, an ETF fell through to the
+// synthetic generator and got an invented price — VAS validated at A$16.80
+// against ~A$95, turning a demo portfolio into an 81% loss.
+const ETF_BASE = Object.fromEntries(AU_ETFS.filter((e) => !e.complex).map((e) => [
+  `${e.ticker}.AX`, { name: e.name, price: e.price, changePct: 0, currency: 'AUD', divYield: e.yield, sector: 'ETF' },
+]))
+
 function lookupBase(symbol) {
   if (CRYPTO_PAIR_RE.test(symbol)) return null
-  return MOCK_ASX_STOCKS[symbol] || MOCK_US_STOCKS[symbol] || MOCK_INDICES[symbol] || generateSyntheticBase(symbol)
+  return MOCK_ASX_STOCKS[symbol] || MOCK_US_STOCKS[symbol] || MOCK_INDICES[symbol] || ETF_BASE[symbol] || generateSyntheticBase(symbol)
 }
 
 const NYSE_SYMBOLS = new Set(['JPM', 'BAC', 'GS', 'MS', 'V', 'MA', 'UNH', 'JNJ', 'XOM', 'CVX'])
@@ -249,7 +258,7 @@ export function getMockFMPRow(symbol) {
     exchange: exchangeFor(symbol),
     priceAvg50: round2(price * 0.985),
     priceAvg200: round2(price * 0.95),
-    currency: base.currency ?? (MOCK_ASX_STOCKS[symbol] ? 'AUD' : (MOCK_US_STOCKS[symbol] ? 'USD' : 'USD')),
+    currency: base.currency ?? (MOCK_ASX_STOCKS[symbol] || /\.AX$/i.test(symbol) ? 'AUD' : 'USD'),
   }
 }
 

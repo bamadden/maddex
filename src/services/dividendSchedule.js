@@ -123,7 +123,9 @@ export function buildSchedule(holdings, now = new Date()) {
   for (const h of holdings ?? []) {
     const inc = incomeFor(h)
     totalValue += h.mktVal ?? ((h.qty ?? 0) * (h.price ?? 0))
-    totalCost += h.costBasis ?? ((h.qty ?? 0) * (h.avgPrice ?? h.price ?? 0))
+    // Holdings from the portfolio carry shares/avgCost, not qty/avgPrice;
+    // reading only the latter left cost at zero and yield-on-cost blank.
+    totalCost += h.costBasis ?? ((h.qty ?? h.shares ?? 0) * (h.avgPrice ?? h.avgCost ?? h.price ?? 0))
     if (!inc) continue
     totalAnnual += inc.annual
     totalCredits += inc.frankingCredits
