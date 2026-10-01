@@ -973,6 +973,13 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                       {SECTOR_ICON[sector]}
                     </span>
                     <span className="truncate">{SECTOR_ABBR[sector]}</span>
+                    {/* How many stocks the tile is built from — the terminal's
+                        tracked constituents, not the index's full count. */}
+                    {isASX && ASX_SECTOR_STOCKS[sector]?.length > 0 && (
+                      <span className="flex-shrink-0 opacity-60" title={`${ASX_SECTOR_STOCKS[sector].length} tracked stocks in this sector`}>
+                        · {ASX_SECTOR_STOCKS[sector].length} stocks
+                      </span>
+                    )}
                   </div>
 
                   {/* Top-right: expand into the full Sector Deep Dive overlay */}

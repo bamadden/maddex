@@ -2,6 +2,7 @@ import { useRef, useMemo, useState } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
+import { BENCHMARK_ORDER } from './benchmarks'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import { fmt } from '../../utils/format'
@@ -15,9 +16,6 @@ import SafeChart from '../../components/ui/SafeChart'
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
 // local order/subset here so this bar can differ from what those show without
 // forking the underlying quote data.
-const BENCHMARK_ORDER = [
-  '^AXJO', '^AORD', '^GSPC', '^IXIC', '^DJI', '^FTSE', '^N225', '^HSI', '^GDAXI', '000001.SS',
-]
 
 // Sparkline colour is gold-for-up/red-for-down (distinct from the price
 // text's green/red) — a deliberate choice for this bar specifically, to make
@@ -68,9 +66,25 @@ function fmtDataDate(ts) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
-// Plain SVG polyline sparkline — no charting library needed.
+// Smoothed SVG sparkline with a soft gradient fill. The curve is a
+// Catmull-Rom spline through the closes, so it passes through every real
+// point — smoothing changes the line between closes, never a close itself.
+function smoothPath(xy) {
+  if (xy.length < 2) return ''
+  let d = `M${xy[0][0].toFixed(1)},${xy[0][1].toFixed(1)}`
+  for (let i = 0; i < xy.length - 1; i++) {
+    const p0 = xy[i - 1] ?? xy[i], p1 = xy[i], p2 = xy[i + 1], p3 = xy[i + 2] ?? p2
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`
+  }
+  return d
+}
+
+let sparkId = 0
 function Sparkline({ points, color }) {
-  const w = 40, h = 20, pad = 2
+  const [id] = useState(() => `spark-${++sparkId}`)
+  const w = 56, h = 24, pad = 2
   if (!points || points.length < 2) {
     return <svg width={w} height={h} aria-hidden="true" />
   }
@@ -78,14 +92,22 @@ function Sparkline({ points, color }) {
   const min = Math.min(...prices)
   const max = Math.max(...prices)
   const range = max - min || 1
-  const path = points.map((p, i) => {
-    const x = (i / (points.length - 1)) * (w - pad * 2) + pad
-    const y = h - pad - ((p.price - min) / range) * (h - pad * 2)
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
+  const xy = points.map((p, i) => [
+    (i / (points.length - 1)) * (w - pad * 2) + pad,
+    h - pad - ((p.price - min) / range) * (h - pad * 2),
+  ])
+  const line = smoothPath(xy)
+  const area = `${line} L${xy[xy.length - 1][0].toFixed(1)},${h} L${xy[0][0].toFixed(1)},${h} Z`
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${id})`} stroke="none" />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }
@@ -305,13 +327,14 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
   const quotes     = quotesResult?.data
   const isDelayed  = quotesResult?.stale === true
 
-  // 7-day sparkline history, straight from each index's own Yahoo symbol —
+  // 30-trading-day sparkline history (daily closes), straight from each
+  // index's own Yahoo symbol —
   // Yahoo's chart endpoint handles ^-symbols the same as stock tickers, so no
   // stock-proxy stand-in is needed now that Stooq is out of the index flow.
   const sparkResults = useQueries({
     queries: indices.map(({ symbol }) => ({
-      queryKey:  ['sparkline', symbol],
-      queryFn:   () => fetchYFHistory(symbol, { range: '7d', interval: '1h' }),
+      queryKey:  ['sparkline30d', symbol],
+      queryFn:   () => fetchYFHistory(symbol, { range: '1mo', interval: '1d' }).then((rows) => (Array.isArray(rows) ? rows.slice(-30) : rows)),
       staleTime: 5 * 60_000,
       retry: 1,
     })),

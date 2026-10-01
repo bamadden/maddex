@@ -8,6 +8,8 @@ import MarketSentimentBanner from './MarketSentimentBanner'
 import MarketBreadth from './MarketBreadth'
 import SectorRotation from './SectorRotation'
 import EarningsCalendar from './EarningsCalendar'
+import MarketInternals from './MarketInternals'
+import VolatilityBanner from './VolatilityBanner'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 
@@ -22,6 +24,9 @@ export default function MarketsModule() {
     >
       <div className="flex flex-col min-h-full">
         <ModuleHeader title="MARKETS" subtitle="ASX 200 · S&P 500 · Global Equities" moduleId="markets" />
+
+        {/* Only renders when a benchmark is down more than 2% */}
+        <VolatilityBanner />
 
         {/* Global sentiment score */}
         <div className="flex-shrink-0">
@@ -39,6 +44,9 @@ export default function MarketsModule() {
             onSelectIndex={setSelectedIndex}
           />
         </div>
+
+        {/* Breadth, highs/lows, moving averages, realised volatility */}
+        <MarketInternals />
 
         {/* ASX Movers + US Movers */}
         <div className="flex-shrink-0 border-b border-terminal-border">

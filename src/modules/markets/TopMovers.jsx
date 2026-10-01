@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA } from '../../services/api'
+import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA, fetchNews } from '../../services/api'
+import { annotateArticles } from '../../services/newsIntelligence'
+import { timeAgo } from '../../utils/dateUtils'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
@@ -91,6 +93,27 @@ function IntradaySpark({ symbol, price, pct, w = 50, h = 20 }) {
   )
 }
 
+// WHY IS IT MOVING — answered with the latest real headline that names the
+// stock, not a generated reason. A model asked to explain a move it has no
+// information about writes a plausible cause ("takeover speculation") with
+// nothing behind it; on demo prices it would be explaining a move that never
+// happened. A matched headline is checkable; no match says so.
+function NewsCell({ article }) {
+  if (!article) {
+    return <td className="px-1.5 py-0.5 text-[9px] text-terminal-text-dim/40 hidden xl:table-cell">no recent story</td>
+  }
+  return (
+    <td className="px-1.5 py-0.5 hidden xl:table-cell max-w-[220px]">
+      <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+        title={`${article.headline} — ${article.source}`}
+        className="block text-[9px] text-terminal-text truncate hover:text-terminal-gold">
+        {article.headline}
+      </a>
+      <div className="text-[8px] text-terminal-text-dim/60">{article.source} · {timeAgo(article.pubDate)}</div>
+    </td>
+  )
+}
+
 // Fixed widths so header cells line up exactly with the data below them —
 // only NAME is flexible, everything else is a known-width number/ticker.
 const COLUMNS = [
@@ -100,12 +123,13 @@ const COLUMNS = [
   { key: 'spark',      label: '',         align: 'left',  cell: 'lg', width: 58, sortable: false },
   { key: 'price',      label: 'A$ PRICE', align: 'right', cell: 'always', width: 80 },
   { key: 'dayChangePct', label: 'CHG%',   align: 'right', cell: 'always', width: 70 },
+  { key: 'why',        label: 'IN THE NEWS', align: 'left', cell: 'xl', sortable: false },
   { key: 'marketCap',  label: 'MKT CAP',  align: 'right', cell: 'lg', width: 80 },
   { key: 'trailingPE', label: 'P/E',      align: 'right', cell: 'xl', width: 50 },
   { key: 'vol',        label: 'VOLUME',   align: 'right', cell: 'xl', width: 70 },
 ]
 
-function SortableTable({ items, audUsd, onRowClick }) {
+function SortableTable({ items, audUsd, onRowClick, newsBy }) {
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
 
@@ -175,6 +199,7 @@ function SortableTable({ items, audUsd, onRowClick }) {
               <IntradaySpark symbol={q.symbol} price={audPrice} pct={q.dayChangePct} />
             </td>
             <LivePriceCells symbol={q.symbol} audPrice={audPrice} dayChangePct={q.dayChangePct} />
+            <NewsCell article={newsBy?.[displaySym(q.symbol)]} />
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden lg:table-cell" style={{ width: 80, minWidth: 80 }}>
               {formatMarketCap(audMktCap)}
             </td>
@@ -183,6 +208,11 @@ function SortableTable({ items, audUsd, onRowClick }) {
             </td>
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell" style={{ width: 70, minWidth: 70 }}>
               {q.vol != null ? fmt.large(q.vol) : '—'}
+              {/* vs average only on live data — the demo layer's average
+                  volume is a fixed fraction of volume, so the ratio is noise */}
+              {!USING_MOCK_DATA && q.vol != null && q.avgVolume > 0 && (
+                <div className="text-[8px]" style={{ color: q.vol / q.avgVolume >= 1.5 ? '#C9A84C' : undefined }}>{(q.vol / q.avgVolume).toFixed(1)}× avg</div>
+              )}
             </td>
           </tr>
         ))}
@@ -194,7 +224,7 @@ function SortableTable({ items, audUsd, onRowClick }) {
   )
 }
 
-function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
+function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd, newsBy }) {
   const { openModal } = useStore()
 
   if (isLoading) return (
@@ -239,13 +269,13 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd }) {
         <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-gain)', backgroundColor: 'var(--color-gain-bg)' }}>
           ▲ GAINERS
         </div>
-        <div className="overflow-x-auto"><SortableTable items={gainers} audUsd={audUsd} onRowClick={handleClick} /></div>
+        <div className="overflow-x-auto"><SortableTable items={gainers} audUsd={audUsd} onRowClick={handleClick} newsBy={newsBy} /></div>
       </div>
       <div>
         <div className="px-2 py-1 text-2xs font-bold border-b border-terminal-border/50" style={{ color: 'var(--color-loss)', backgroundColor: 'var(--color-loss-bg)' }}>
           ▼ LOSERS
         </div>
-        <div className="overflow-x-auto"><SortableTable items={losers} audUsd={audUsd} onRowClick={handleClick} /></div>
+        <div className="overflow-x-auto"><SortableTable items={losers} audUsd={audUsd} onRowClick={handleClick} newsBy={newsBy} /></div>
       </div>
     </div>
   )
@@ -273,6 +303,19 @@ export default function TopMovers() {
   const usQuotes  = usResult?.data
   const usDelayed = usResult?.stale === true
 
+  // Same cached feed the News module reads (queryKey ['news']).
+  const { data: news } = useQuery({ queryKey: ['news'], queryFn: fetchNews, staleTime: 15 * 60_000, retry: 1 })
+  const newsBy = useMemo(() => {
+    const out = {}
+    for (const a of annotateArticles(news?.articles ?? [])) {
+      for (const c of a.companies ?? []) {
+        const key = c.ticker.replace(/\.AX$/, '').toUpperCase()
+        if (!out[key] || a.pubDate > out[key].pubDate) out[key] = a
+      }
+    }
+    return out
+  }, [news])
+
   const asxTrackedCap = totalTrackedMktCap(asxQuotes, audUsd)
   const usTrackedCap  = totalTrackedMktCap(usQuotes, audUsd)
 
@@ -291,7 +334,7 @@ export default function TopMovers() {
           </span>
         </div>
         <MoverTable quotes={asxQuotes} label="ASX" isLoading={asxFetching && !asxQuotes}
-          isError={asxError} refetch={refetchASX} audUsd={audUsd} />
+          isError={asxError} refetch={refetchASX} audUsd={audUsd} newsBy={newsBy} />
       </div>
       <div>
         <div className="panel-header flex items-center gap-2">
@@ -306,7 +349,7 @@ export default function TopMovers() {
           </span>
         </div>
         <MoverTable quotes={usQuotes} label="US" isLoading={usFetching && !usQuotes}
-          isError={usError} refetch={refetchUS} audUsd={audUsd} />
+          isError={usError} refetch={refetchUS} audUsd={audUsd} newsBy={newsBy} />
       </div>
     </div>
   )
