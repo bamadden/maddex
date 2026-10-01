@@ -16,4 +16,15 @@ export const WORKSPACE_MODULE_LIST = [
   { id: 'scanner',   label: 'Scanner',    icon: '◎' },
   { id: 'screener',  label: 'Screener',   icon: '⚡' },
   { id: 'replay',    label: 'Market Replay', icon: '⏮' },
+  { id: 'calendar',  label: 'Calendar',   icon: '▦' },
+  { id: 'bonds',     label: 'Bonds',      icon: '⌇' },
+  { id: 'etf',       label: 'ETFs',       icon: '▤' },
+  { id: 'futures',   label: 'Futures',    icon: '⧖' },
+  { id: 'calculators', label: 'Calculators', icon: '∑' },
+]
+
+// Routable from the nav but not offered as a workspace pane — the dashboard
+// is itself a grid of panes. Listed so the breadcrumb can still name it.
+export const NAV_ONLY_MODULES = [
+  { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
 ]

@@ -7,7 +7,7 @@ import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
 import Tooltip from '../ui/Tooltip'
 import { shortcutService } from '../../services/shortcutService'
-import { setModuleIntent } from '../../services/moduleIntent'
+import { setModuleIntent, sendModuleIntent } from '../../services/moduleIntent'
 
 // ─── Autocomplete symbol catalogue ────────────────────────────────────────────
 
@@ -101,6 +101,11 @@ const MODULE_LIST = [
   { key:'news',      label:'NEWS',      desc:'Market-moving headlines' },
   { key:'global',    label:'GLOBAL',    desc:'Global risk & intelligence' },
   { key:'screener',  label:'SCREENER',  desc:'AI-assisted stock screening' },
+  { key:'calendar',  label:'CALENDAR',  desc:'Economic & earnings calendar' },
+  { key:'bonds',     label:'BONDS',     desc:'Sovereign curves, bond maths' },
+  { key:'etf',       label:'ETFs',      desc:'ETF explorer, fee drag, comparison' },
+  { key:'futures',   label:'FUTURES',   desc:'Futures, options chain, short interest' },
+  { key:'calculators', label:'CALC',    desc:'Compound, super, CGT, mortgage, tax' },
 ]
 
 // Stocks to scan for TOP/LOSERS commands
@@ -112,11 +117,16 @@ const NAV_MAP = {
   markets:   ['markets','mkt','indices','heat'],
   portfolio: ['portfolio','holdings','pnl'],
   crypto:    ['crypto','defi','cry','crypt'],
-  fx:        ['fx','forex','rates','yield','bonds'],
-  macro:     ['macro','economic','calendar','gdp','cpi','rba','mac'],
+  fx:        ['fx','forex','rates','yield'],
+  macro:     ['macro','economic','gdp','cpi','rba','mac'],
   watchlist: ['watchlist','wl','watch'],
   news:      ['news','feed','headlines'],
   global:    ['global','glb','globe'],
+  calendar:  ['calendar','cal','events'],
+  bonds:     ['bonds','bond','bnd','yields','gilts','treasuries'],
+  etf:       ['etf','etfs'],
+  futures:   ['futures','fut','derivatives'],
+  calculators: ['calc','calcs','calculator','calculators'],
 }
 
 const HELP_SECTIONS = [
@@ -129,6 +139,11 @@ const HELP_SECTIONS = [
     { cmd:'WATCHLIST / WL', desc:'Watchlist module' },
     { cmd:'NEWS', desc:'News feed module' },
     { cmd:'GLOBAL / GLB', desc:'Global intelligence module' },
+    { cmd:'CALENDAR / CAL', desc:'Economic & earnings calendar' },
+    { cmd:'BONDS / BND', desc:'Sovereign bond curves' },
+    { cmd:'ETF', desc:'ETF explorer' },
+    { cmd:'FUTURES / FUT', desc:'Futures, options, market structure' },
+    { cmd:'CALC', desc:'Calculators' },
   ]},
   { title:'TICKER LOOKUP', items:[
     { cmd:'BHP / CBA / AAPL ...', desc:'Any symbol → full asset profile' },
@@ -313,6 +328,35 @@ function parseNaturalLanguage(raw) {
     const tab = TABS[wanted]
     if (tab) return { kind: 'scanner', tab, say: `Scanner → ${tab.toUpperCase()}` }
   }
+
+  // Phrases that name a tool rather than a module: open the module on the
+  // right tab. Exact phrases only, so a question about the topic still
+  // reaches MaddenAI.
+  const DEEP = {
+    'compound':             ['calculators', { tab: 'investment' }, 'CALC · INVESTMENT'],
+    'compound interest':    ['calculators', { tab: 'investment' }, 'CALC · INVESTMENT'],
+    'mortgage':             ['calculators', { tab: 'property' },   'CALC · PROPERTY'],
+    'cgt':                  ['calculators', { tab: 'tax' },        'CALC · TAX'],
+    'super':                ['calculators', { tab: 'super' },      'CALC · SUPER'],
+    'options':              ['futures', { tab: 'options' },        'FUTURES · OPTIONS'],
+    'compound calculator':  ['calculators', { tab: 'investment' }, 'CALC · INVESTMENT'],
+    'mortgage calculator':  ['calculators', { tab: 'property' },   'CALC · PROPERTY'],
+    'stamp duty':           ['calculators', { tab: 'property' },   'CALC · PROPERTY'],
+    'cgt calculator':       ['calculators', { tab: 'tax' },        'CALC · TAX'],
+    'tax calculator':       ['calculators', { tab: 'tax' },        'CALC · TAX'],
+    'super calculator':     ['calculators', { tab: 'super' },      'CALC · SUPER'],
+    'au bonds':             ['bonds', { market: 'AU' }, 'BONDS · AU'],
+    'us bonds':             ['bonds', { market: 'US' }, 'BONDS · US'],
+    'treasuries':           ['bonds', { market: 'US' }, 'BONDS · US'],
+    'gilts':                ['bonds', { market: 'UK' }, 'BONDS · UK'],
+    'etf comparison':       ['etf', { compareMode: true }, 'ETFs · COMPARISON'],
+    'compare etfs':         ['etf', { compareMode: true }, 'ETFs · COMPARISON'],
+    'short interest':       ['futures', { tab: 'structure' }, 'FUTURES · MARKET STRUCTURE'],
+    'options calculator':   ['futures', { tab: 'options' },   'FUTURES · OPTIONS'],
+    'options chain':        ['futures', { tab: 'options' },   'FUTURES · OPTIONS'],
+  }
+  const deep = DEEP[lower.replace(/[?.!]$/, '')]
+  if (deep) return { kind: 'deeplink', module: deep[0], intent: deep[1], say: `Open ${deep[2]}` }
 
   // "my portfolio" / "my brief" / "morning brief" / "my watchlist"
   hit = m(/^(?:my |the )?(portfolio|holdings|watchlist|morning brief|brief|dashboard)$/i)
@@ -1275,6 +1319,12 @@ export default function CommandBar() {
           setActiveModule(nl.module)
           if (nl.module === 'news') setNewsFilter('')
           flash(`→ ${nl.module.toUpperCase()}`, 'text-terminal-green', 1500)
+          return
+
+        case 'deeplink':
+          sendModuleIntent(nl.module, nl.intent)
+          setActiveModule(nl.module)
+          flash(`→ ${nl.say.replace(/^Open /, '')}`, 'text-terminal-green', 2000)
           return
 
         case 'scanner':

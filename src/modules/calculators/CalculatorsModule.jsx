@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ReferenceLine } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -811,7 +812,7 @@ function BrokerComparison() {
 const DISCLAIMER = `These calculators are for educational purposes and general information only. Results are estimates based on the assumptions you enter. Not financial, tax, or legal advice. Always consult a licensed professional for personal advice.`
 
 export default function CalculatorsModule() {
-  const [tab, setTab] = useState('investment')
+  const [tab, setTab] = useIntentState('calculators', 'tab', 'investment')
 
   return (
     <div className="h-full flex flex-col overflow-hidden">

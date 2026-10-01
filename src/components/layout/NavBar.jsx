@@ -37,7 +37,9 @@ function usePinnedSidebar() {
 // key-binding order diverge, as they now deliberately do (grouped by
 // function here vs. F1/F2/F3... in CommandBar).
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'DASHBOARD', short: 'HOME', fkey: null, Icon: Home,       group: 'MARKETS' },
+  // Overview — the home row stands alone, without a heading.
+  { id: 'dashboard', label: 'DASHBOARD', short: 'HOME', fkey: null, Icon: Home,       group: null },
+
   { id: 'markets',   label: 'MARKETS',   short: 'MKT',  fkey: 'F1', Icon: LineChart,  group: 'MARKETS' },
   { id: 'crypto',    label: 'CRYPTO',    short: 'CRY',  fkey: 'F3', Icon: Bitcoin,    group: 'MARKETS' },
   { id: 'fx',        label: 'RATES',     short: 'FX',   fkey: 'F4', Icon: ArrowLeftRight, group: 'MARKETS' },
@@ -206,7 +208,7 @@ export default function NavBar() {
         {NAV_ITEMS.map((item, i) => {
           const isActive = activeModule === item.id
           const hint = shortcutHint(item)
-          const startsGroup = i === 0 || NAV_ITEMS[i - 1].group !== item.group
+          const startsGroup = item.group && (i === 0 || NAV_ITEMS[i - 1].group !== item.group)
           return (
             <div key={item.id}>
               {startsGroup && (

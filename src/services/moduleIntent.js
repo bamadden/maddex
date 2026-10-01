@@ -34,3 +34,12 @@ export function takeModuleIntent(module) {
   intents.delete(module)
   return value ?? null
 }
+
+// Leaves an intent AND announces it, for a module that may already be on
+// screen (its useState initialiser has run, so only the event reaches it).
+export function sendModuleIntent(module, intent) {
+  setModuleIntent(module, intent)
+  try {
+    window.dispatchEvent(new CustomEvent('madden:module-intent', { detail: { module, intent } }))
+  } catch { /* non-browser */ }
+}

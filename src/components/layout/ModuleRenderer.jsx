@@ -19,6 +19,11 @@ const MODULES = {
   brief:     lazy(() => import('../../modules/brief/MorningBriefModule')),
   replay:    lazy(() => import('../../modules/replay/MarketReplayModule')),
   scanner:   lazy(() => import('../../modules/scanner/MarketScannerModule')),
+  calendar:  lazy(() => import('../../modules/calendar/CalendarModule')),
+  bonds:     lazy(() => import('../../modules/bonds/BondsModule')),
+  etf:       lazy(() => import('../../modules/etf/ETFModule')),
+  futures:   lazy(() => import('../../modules/futures/FuturesModule')),
+  calculators: lazy(() => import('../../modules/calculators/CalculatorsModule')),
 }
 
 function ModuleFallback() {

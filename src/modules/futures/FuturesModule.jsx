@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import {
   FUTURES_GROUPS, impliedRate, SHORT_INTEREST, MARGIN_LENDERS, POSITIONING,
 } from '../../data/futuresData'
@@ -179,7 +180,7 @@ function FuturesTab() {
             {g.key === 'rates' && (
               <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 9 }}>
                 Implied rates show where the market expects rates to sit at each expiry. Against the RBA&apos;s current
-                cash rate of <b className="text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate}%</b>, a bank-bill
+                cash rate of <b className="text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%</b>, a bank-bill
                 strip that falls across later expiries is the market pricing cuts. These are indicative figures —
                 this build has no rate-futures feed, and the Rates module says so too.
               </div>
@@ -637,7 +638,7 @@ function StructureTab() {
 // ─── Module ─────────────────────────────────────────────────────────────────
 
 export default function FuturesModule() {
-  const [tab, setTab] = useState('futures')
+  const [tab, setTab] = useIntentState('futures', 'tab', 'futures')
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader

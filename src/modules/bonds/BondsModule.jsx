@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import {
   BOND_MARKETS, BOND_CURVES, BOND_CURVES_AS_OF, curveStats, priceFromYield, durationOf, dv01, ytm,
 } from '../../data/bondCurves'
@@ -180,7 +181,7 @@ function BondDetail({ market, row, onClose }) {
           {stat('CONVEXITY', row.years < 1 ? '—' : dur.convexity.toFixed(1), 'The curvature duration alone misses — why a long bond gains more on a rate fall than it loses on an equal rate rise.')}
           {stat('DV01 / A$10K', `A$${dv.toFixed(2)}`, 'Dollar value of one basis point: what a A$10,000 holding gains or loses if the yield moves 0.01%.')}
           {stat('REAL YIELD', `${realYield >= 0 ? '+' : ''}${realYield.toFixed(2)}%`, `Nominal yield minus AU CPI of ${cpi}% (${VERIFIED_CONSTANTS.au.cpiPeriod}). Positive means the bond beats inflation before tax.`)}
-          {stat('VS CASH', `${(row.yield - VERIFIED_CONSTANTS.rba.cashRate) >= 0 ? '+' : ''}${(row.yield - VERIFIED_CONSTANTS.rba.cashRate).toFixed(2)}%`, `Against the RBA cash rate of ${VERIFIED_CONSTANTS.rba.cashRate}%.`)}
+          {stat('VS CASH', `${(row.yield - VERIFIED_CONSTANTS.rba.cashRate) >= 0 ? '+' : ''}${(row.yield - VERIFIED_CONSTANTS.rba.cashRate).toFixed(2)}%`, `Against the RBA cash rate of ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%.`)}
           {stat('ISSUER', market.issuer)}
         </div>
 
@@ -188,7 +189,7 @@ function BondDetail({ market, row, onClose }) {
           onClick={() => dispatchAskAI({
             name: `${market.label} ${row.maturity} government bond`,
             sector: 'Fixed income', date: todayAEST(),
-            instruction: `Explain the ${market.label} ${row.maturity} government bond yielding ${row.yield.toFixed(2)}% and what it means for an Australian investor compared with cash at ${VERIFIED_CONSTANTS.rba.cashRate}% and equities. AU CPI is ${cpi}%. Do not state any figure I have not given you.`,
+            instruction: `Explain the ${market.label} ${row.maturity} government bond yielding ${row.yield.toFixed(2)}% and what it means for an Australian investor compared with cash at ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% and equities. AU CPI is ${cpi}%. Do not state any figure I have not given you.`,
           })}
           className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
         >ASK MADDENAI ▶</button>
@@ -287,7 +288,7 @@ function BondCalculator() {
 // ─── Module ─────────────────────────────────────────────────────────────────
 
 export default function BondsModule() {
-  const [marketKey, setMarketKey] = useState('AU')
+  const [marketKey, setMarketKey] = useIntentState('bonds', 'market', 'AU')
   const [showAll, setShowAll] = useState(false)
   const [hover, setHover] = useState(null)
   const [picked, setPicked] = useState(null)
@@ -328,7 +329,7 @@ export default function BondsModule() {
         <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>INDICATIVE DATA</span>
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
           AU and US curves are anchored to quoted closes (AU {BOND_CURVES_AS_OF.AU}, US Treasury par curve {BOND_CURVES_AS_OF.US});
-          UK, DE and JP are illustrative. Ticking is simulated, not a market feed. Real yields use verified AU CPI of {cpi}%.
+          UK, DE and JP are illustrative. Ticking is simulated, not a market feed. Real yields use verified AU CPI of {cpi.toFixed(1)}%.
         </span>
       </div>
 
@@ -507,7 +508,7 @@ export default function BondsModule() {
             </tbody>
           </table>
           <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 8 }}>
-            REAL YIELD is the nominal yield less AU CPI of {cpi}% ({VERIFIED_CONSTANTS.au.cpiPeriod}) — a negative
+            REAL YIELD is the nominal yield less AU CPI of {cpi.toFixed(1)}% ({VERIFIED_CONSTANTS.au.cpiPeriod}) — a negative
             figure means the bond loses purchasing power before tax. PRICE, DURATION and the change column are
             calculated from the yield, not quoted.
           </div>

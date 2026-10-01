@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import { ETF_CATEGORIES, feeDrag, isComplex } from '../../data/etfData'
 import { useEtfPrices } from './useEtfPrices'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -254,7 +255,7 @@ export default function ETFModule() {
   const [sort, setSort] = useState({ key: 'aum', dir: 'desc' })
   const [selected, setSelected] = useState(null)
   const [compare, setCompare] = useState([])
-  const [compareMode, setCompareMode] = useState(false)
+  const [compareMode, setCompareMode] = useIntentState('etf', 'compareMode', false)
 
   const filtered = useMemo(() => {
     const q = search.trim().toUpperCase()

@@ -20,6 +20,9 @@ const WIDGET_COMPONENTS = {
   'rba-status':            lazy(() => import('./widgets/RBAStatusWidget')),
   'commodity-pulse':       lazy(() => import('./widgets/CommodityWidget')),
   'morning-brief-preview': lazy(() => import('./widgets/MorningBriefWidget')),
+  'bond-yield-widget':     lazy(() => import('./widgets/BondYieldWidget')),
+  'etf-mover-widget':      lazy(() => import('./widgets/ETFMoverWidget')),
+  'calc-quick-widget':     lazy(() => import('./widgets/CalcQuickWidget')),
 }
 
 // Staggered so a six-widget dashboard does not shimmer in lockstep, which

@@ -10,7 +10,7 @@ import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import { useSentiment } from '../../hooks/useSentiment'
 import Tooltip from '../ui/Tooltip'
-import { WORKSPACE_MODULE_LIST } from '../../config/workspaceModules'
+import { WORKSPACE_MODULE_LIST, NAV_ONLY_MODULES } from '../../config/workspaceModules'
 
 // 2,336 lines for a screen most sessions never open.
 const SettingsPanel = lazy(() => import('../settings/SettingsPanel'))
@@ -316,7 +316,7 @@ function ModuleCrumb() {
 
   const subview = sub?.module === activeModule ? sub.label : null
 
-  const mod = WORKSPACE_MODULE_LIST.find((m) => m.id === activeModule)
+  const mod = [...WORKSPACE_MODULE_LIST, ...NAV_ONLY_MODULES].find((m) => m.id === activeModule)
   if (!mod) return null
   return (
     <span className="flex items-center gap-2 min-w-0" aria-live="polite">

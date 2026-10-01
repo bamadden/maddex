@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { marketSession } from '../../services/newsIntelligence'
-import { verifiedFactsForAI } from '../../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { verifiedFactsForAI } from '../../data/verifiedConstants'
 import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights, INSIGHT_LIMIT } from '../../services/savedInsights'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -71,6 +71,14 @@ const RBA_PROMPT = {
   dataKeys: ['asx', 'aud'],
 }
 
+// Figures in prompt labels come from verifiedConstants, so the pills move
+// with the data rather than naming a rate that has since changed.
+const RBA_RATE = `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%`
+const RBA_VERB_PAST = { HIKE: 'raised', CUT: 'cut', HOLD: 'held' }[VERIFIED_CONSTANTS.rba.lastDecisionVerb] ?? 'set'
+const RBA_MOVE_LABEL = { HIKE: 'RBA JUST HIKED — WHAT NOW?', CUT: 'RBA JUST CUT — WHAT NOW?' }[VERIFIED_CONSTANTS.rba.lastDecisionVerb] ?? `WHAT DOES ${RBA_RATE} MEAN?`
+const FED_RANGE = VERIFIED_CONSTANTS.fed.rateRange
+const AU_UNEMP = `${VERIFIED_CONSTANTS.au.unemployment}%`
+
 const MODULE_PROMPTS = {
   markets: [
     { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
@@ -85,16 +93,40 @@ const MODULE_PROMPTS = {
     { label: 'DEFI SECTOR OUTLOOK', prompt: 'What is the current outlook for the DeFi sector within crypto markets?', dataKeys: [] },
   ],
   fx: [
-    RBA_PROMPT,
-    { label: 'AUD/USD OUTLOOK', prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.', dataKeys: ['aud'] },
-    { label: 'YIELD CURVE ANALYSIS', prompt: 'What is the current AU yield curve telling us, and how does it compare to the US curve?', dataKeys: [] },
-    { label: 'RATE CUT TIMELINE', prompt: 'What is the market currently pricing for the RBA rate cut/hold timeline over the next 12 months?', dataKeys: ['aud'] },
+    { label: RBA_MOVE_LABEL, prompt: `The RBA ${RBA_VERB_PAST} the cash rate to ${RBA_RATE} at its ${lastRbaLabel} meeting. What does that mean for Australian borrowers, savers and investors?`, dataKeys: ['asx', 'aud'] },
+    { label: `${RBA_RATE} & ASX SECTORS`, prompt: `How does a ${RBA_RATE} cash rate affect ASX sectors — banks, REITs, consumer discretionary, miners and growth stocks?`, dataKeys: ['asx'] },
+    { label: 'WHEN WILL THE RBA CUT?', prompt: `What would need to happen for the RBA to start cutting from ${RBA_RATE}? Describe the conditions in words — you have no market-implied pricing, so do not state a probability or a date.`, dataKeys: ['aud'] },
+    { label: 'AUD IMPACT', prompt: `How does the RBA's latest decision (${RBA_VERB_PAST} to ${RBA_RATE}) bear on the AUD, given the Fed is at ${FED_RANGE}?`, dataKeys: ['aud'] },
   ],
   macro: [
-    { label: 'AU MACRO OUTLOOK', prompt: 'Summarise the current Australian macroeconomic outlook — growth, inflation, and labour market.', dataKeys: ['aud'] },
-    { label: 'INFLATION TRAJECTORY', prompt: "What is the current trajectory of Australian inflation and how does it compare to the RBA's target band?", dataKeys: [] },
-    { label: 'RBA POLICY OUTLOOK', prompt: RBA_PROMPT.prompt, dataKeys: ['asx', 'aud'] },
-    { label: 'GLOBAL RECESSION RISK', prompt: 'What is the current assessment of global recession risk and how would it affect Australian markets?', dataKeys: ['asx'] },
+    { label: 'RBA MOVE & THE ECONOMY', prompt: `What is the likely impact of the RBA's move to ${RBA_RATE} on the Australian economy — households, housing, business investment and jobs?`, dataKeys: ['aud'] },
+    { label: 'RECESSION RISK?', prompt: 'Is Australia heading for recession? Weigh growth, unemployment, inflation and the policy rate you have been given.', dataKeys: ['asx'] },
+    { label: `${AU_UNEMP} UNEMPLOYMENT`, prompt: `What does unemployment at ${AU_UNEMP} mean for the labour market and for the RBA's next decision?`, dataKeys: [] },
+    { label: 'AU VS US OUTLOOK', prompt: 'Compare the Australian and US economic outlooks — growth, inflation, labour market and policy.', dataKeys: ['aud'] },
+  ],
+  bonds: [
+    { label: 'YIELD CURVE SHAPE', prompt: 'Explain the current shape of the Australian and US yield curves and what it signals.', dataKeys: [] },
+    { label: 'AU VS US SPREAD', prompt: `What do the AU–US spreads mean — the policy spread (RBA ${RBA_RATE} vs Fed ${FED_RANGE}) and the 10-year bond spread — for the AUD and for investors?`, dataKeys: ['aud'] },
+    { label: 'CASH VS 10Y BONDS', prompt: `With the cash rate at ${RBA_RATE}, how does holding cash compare with locking in a 10-year Australian government bond? Cover duration risk.`, dataKeys: [] },
+    { label: 'BONDS VS CASH VS SHARES', prompt: 'At current rates, how do bonds, cash and equities compare for an Australian investor? General information only.', dataKeys: ['asx'] },
+  ],
+  etf: [
+    { label: 'ETFS IN A HIGH-RATE WORLD', prompt: `Which kinds of ETFs tend to suit a high-rate environment like a ${RBA_RATE} cash rate, and which struggle? Explain by category rather than recommending products.`, dataKeys: [] },
+    { label: 'VAS VS A200', prompt: 'VAS vs A200 — how do these two ASX 200/300 ETFs differ (index, fees, size, holdings), and what kind of investor does each suit?', dataKeys: [] },
+    { label: 'RATE HIKES & BOND ETFS', prompt: 'How do rate hikes affect bond ETFs — duration, price falls, and the yield you lock in afterwards?', dataKeys: [] },
+    { label: 'ETFS VS STOCKS', prompt: 'Should an Australian investor use ETFs or individual stocks? Cover cost, diversification, tax and effort.', dataKeys: [] },
+  ],
+  futures: [
+    { label: 'RATE FUTURES & THE RBA', prompt: 'How do ASX 30-day interbank cash rate futures imply an expected RBA decision? Explain the mechanics — you have no live futures pricing, so do not state an implied probability.', dataKeys: [] },
+    { label: 'SPI 200 FUTURES', prompt: 'Explain the SPI 200 futures contract — what it tracks, contract size, trading hours, and how investors use it.', dataKeys: ['asx'] },
+    { label: 'SHORT INTEREST SIGNALS', prompt: 'What is short interest, how is it reported on the ASX, and what can high short interest tell us (and not tell us)?', dataKeys: [] },
+    { label: 'OPTIONS ON ASX STOCKS', prompt: 'How do exchange-traded options work for ASX stocks — calls, puts, premiums, expiry and the main risks?', dataKeys: [] },
+  ],
+  calculators: [
+    { label: 'COMPOUND INTEREST', prompt: 'How does compound interest work, and why does time matter more than the rate?', dataKeys: [] },
+    { label: 'NEGATIVE GEARING', prompt: 'What is negative gearing in Australia, how does it work for property and shares, and what are the risks?', dataKeys: [] },
+    { label: 'CGT 50% DISCOUNT', prompt: 'Explain the Australian CGT 50% discount — who gets it, the 12-month rule, and a worked example.', dataKeys: [] },
+    { label: 'SUPER VS PROPERTY', prompt: 'Super vs property for building wealth in Australia — tax treatment, leverage, liquidity and risk. General information only.', dataKeys: [] },
   ],
   global: [
     { label: 'GEOPOLITICAL RISKS', prompt: 'What are the top 3 geopolitical risks currently affecting Australian markets and the AUD?', dataKeys: ['asx', 'aud'] },

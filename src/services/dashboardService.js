@@ -21,6 +21,9 @@ const WIDGET_CATALOGUE = [
   { id: 'rba-status',            name: 'RBA Status',         category: 'Macro',     minW: 1, minH: 1, description: 'Rate, next meeting, outlook' },
   { id: 'commodity-pulse',       name: 'Commodities',        category: 'Global',    minW: 1, minH: 1, description: 'Iron ore, gold, LNG prices' },
   { id: 'morning-brief-preview', name: 'Morning Brief',      category: 'AI',        minW: 2, minH: 1, description: 'Daily AI market brief' },
+  { id: 'bond-yield-widget',     name: 'Bond Yields',        category: 'Bonds',     minW: 1, minH: 1, description: 'AU 10Y and US 10Y yields and spread' },
+  { id: 'etf-mover-widget',      name: 'ETF Movers',         category: 'ETFs',      minW: 1, minH: 1, description: 'Top moving ETFs today' },
+  { id: 'calc-quick-widget',     name: 'Quick Calculator',   category: 'Tools',     minW: 1, minH: 1, description: 'Compound interest calculator' },
 ]
 
 // Presets are templates. applyPreset deep-copies them — see the note there.
