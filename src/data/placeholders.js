@@ -54,7 +54,7 @@ export const US_BONDS = toBondRows('US')
 // statistic, so it stays here rather than in verifiedConstants.
 const CB_EXPECTATION = {
   rba: 'hold', fed: 'hike', ecb: 'hold', boe: 'hold', boj: 'hike',
-  pboc: 'hold', rbnz: 'hold', boc: 'hold', snb: 'hold', riksbank: 'hold',
+  pboc: 'hold', rbnz: 'hold', boc: 'hold', snb: 'hold', riksbank: 'hike',
 }
 
 const CB_ORDER = [

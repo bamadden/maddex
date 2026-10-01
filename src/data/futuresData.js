@@ -44,8 +44,14 @@ export const FUTURES = [
   f({ id: 'ES-Dec26', group: 'equity', name: 'S&P 500 E-mini', expiry: 'Dec-26', price: idx('^GSPC', 0.5), change: 12, volume: 892341,
     exchange: 'CME', size: 'US$50 × index', tick: 0.25, tickValue: 12.50, margin: 13200, currency: 'USD',
     context: 'The most heavily traded equity futures contract in the world, and the overnight lead most Australian traders watch before the ASX open.' }),
+  // Not tied to an index level: the demo data carries the NASDAQ Composite
+  // (^IXIC), not the NASDAQ 100 this contract tracks, and the two are
+  // different indices at different levels. Flagged in the row rather than
+  // quietly priced off the wrong one.
   f({ id: 'NQ-Dec26', group: 'equity', name: 'NASDAQ 100 E-mini', expiry: 'Dec-26', price: 18894, change: 42, volume: 445231,
-    exchange: 'CME', size: 'US$20 × index', tick: 0.25, tickValue: 5.00, margin: 21500, currency: 'USD' }),
+    exchange: 'CME', size: 'US$20 × index', tick: 0.25, tickValue: 5.00, margin: 21500, currency: 'USD',
+    unanchored: 'INDICATIVE — no NASDAQ 100 index feed',
+    context: 'Price is indicative only: this build has no NASDAQ 100 index level to anchor it to, so unlike the other index rows it does not track the Markets module.' }),
   f({ id: 'YM-Dec26', group: 'equity', name: 'Dow Jones E-mini', expiry: 'Dec-26', price: idx('^DJI', 0.4), change: 84, volume: 124281,
     exchange: 'CBOT', size: 'US$5 × index', tick: 1, tickValue: 5.00, margin: 9600, currency: 'USD' }),
   f({ id: 'NK-Dec26', group: 'equity', name: 'Nikkei 225', expiry: 'Dec-26', price: idx('^N225', 0.1), change: 284, volume: 84241,

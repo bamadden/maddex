@@ -406,14 +406,15 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      const [week, major] = await Promise.all([
-        liveDataService.getEarthquakes(4.5),
-        liveDataService.getEarthquakes(6.0),
-      ])
+      // One feed for everything seismic. MAJOR used to come from a separate
+      // M6+ monthly feed, so when that request failed the header read
+      // "0 MAJOR" over a map showing an M6.6 — and even when it worked it
+      // counted a month beside a figure labelled per week.
+      const week = await liveDataService.getEarthquakes(4.5)
       if (cancelled) return
       const rows = week.data ?? []
       setQuakes(rows)
-      setMajorQuakes((major.data ?? []).filter((q) => q.magnitude >= 6))
+      setMajorQuakes(rows.filter((q) => q.magnitude >= 6))
       setQuakeState(week.source === 'failed' ? 'error' : 'ready')
     }
     load()

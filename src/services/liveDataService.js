@@ -158,12 +158,21 @@ export const liveDataService = {
     const feed = minMagnitude >= 6 ? '6.0_month' : '4.5_week'
     return withCache(`earthquakes_${minMagnitude}`, async () => {
       const d = await json(`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${feed}.geojson`, 'USGS')
-      return (d.features ?? []).map((f) => ({
+      // Both field shapes, because two renderers grew up on two feeds: the
+      // deck.gl map reads { magnitude, coordinates, depth }, the classic globe
+      // { mag, lon, lat, depthKm }. One row satisfies both.
+      return (d.features ?? []).filter((f) => f.properties?.mag != null).map((f) => ({
+        id: f.id,
+        url: f.properties.url,
         coordinates: [f.geometry.coordinates[0], f.geometry.coordinates[1]],
+        lon: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
         magnitude: f.properties.mag,
+        mag: f.properties.mag,
         place: f.properties.place,
         time: f.properties.time,
         depth: f.geometry.coordinates[2],
+        depthKm: f.geometry.coordinates[2],
       }))
     }, 10 * 60 * 1000, [])
   },

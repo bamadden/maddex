@@ -903,7 +903,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
     }
     exchangeScreenPosRef.current = nextScreenPos
 
-    // Seismic markers — USGS significant earthquakes (M4.0+, last 7 days),
+    // Seismic markers — USGS M4.5+ earthquakes, last 7 days,
     // red circles sized by magnitude, only on the visible hemisphere.
     const nextQuakePos = {}
     if (seismicOn && earthquakesRef.current?.length) {

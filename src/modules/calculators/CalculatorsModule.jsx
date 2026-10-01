@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ReferenceLine } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
@@ -405,10 +406,17 @@ function SuperTrackCalc() {
 
 // ─── PROPERTY ───────────────────────────────────────────────────────────────
 
+// Default variable rate: the verified cash rate plus an assumed lender margin.
+// The margin is an estimate, not a sourced average — it exists so the default
+// moves with the RBA instead of going stale after every decision, as the old
+// literal 6.2% did. The note under the field says so.
+const MORTGAGE_MARGIN = 2.14
+const defaultMortgageRate = () => (VERIFIED_CONSTANTS.rba.cashRate + MORTGAGE_MARGIN).toFixed(2)
+
 function MortgageCalc() {
   const [price, setPrice] = useState('800000')
   const [depositPct, setDepositPct] = useState('20')
-  const [rate, setRate] = useState('6.2')
+  const [rate, setRate] = useState(defaultMortgageRate)
   const [term, setTerm] = useState('30')
   const [freq, setFreq] = useState('12')
 
@@ -438,6 +446,11 @@ function MortgageCalc() {
             </div>
           </div>
           <Field label="INTEREST RATE" value={rate} onChange={setRate} suffix="%" step="0.05" />
+          <div className="font-mono text-terminal-text-dim/60 -mt-1.5 mb-2.5 leading-snug" style={{ fontSize: 9 }}>
+            RBA cash rate: {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% ({VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'HIKE' ? 'hiked' : VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'CUT' ? 'cut' : 'held'}{' '}
+            {new Date(`${VERIFIED_CONSTANTS.rba.lastDecision}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}).
+            Default assumes variable rates of roughly RBA + {MORTGAGE_MARGIN.toFixed(1)}% — an estimate; use your lender&apos;s actual rate.
+          </div>
           <Field label="LOAN TERM" value={term} onChange={setTerm} suffix="yr" />
           <Field label="REPAYMENT FREQUENCY" value={freq} onChange={setFreq}
             options={[{ value: '12', label: 'Monthly' }, { value: '26', label: 'Fortnightly' }, { value: '52', label: 'Weekly' }]} />

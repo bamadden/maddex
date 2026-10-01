@@ -156,7 +156,14 @@ function FuturesTab() {
                   <tr key={c.id} onClick={() => setPicked(c.id)}
                     className="cursor-pointer hover:bg-terminal-accent/20 transition-colors border-b border-terminal-border/30"
                     style={picked === c.id ? { background: 'rgba(201,168,76,0.08)' } : undefined}>
-                    <td className="px-3 py-1.5 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>{c.name}</td>
+                    <td className="px-3 py-1.5 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>
+                      {c.name}
+                      {c.unanchored && (
+                        <span className="ml-2 font-normal text-terminal-gold/70 tracking-wider" style={{ fontSize: 8 }} title={c.context}>
+                          {c.unanchored}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>{c.expiry}</td>
                     <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>
                       {c.unit?.startsWith('US$') ? 'US$' : ''}

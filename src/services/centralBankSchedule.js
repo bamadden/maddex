@@ -24,7 +24,7 @@ export const PBOC_MEETINGS_2026     = ['2026-09-21', '2026-10-20', '2026-11-20']
 export const RBNZ_MEETINGS_2026     = ['2026-10-28', '2026-11-25']
 export const BOC_MEETINGS_2026      = ['2026-09-02', '2026-10-28', '2026-12-09']
 export const SNB_MEETINGS_2026      = ['2026-09-24', '2026-12-17']
-export const RIKSBANK_MEETINGS_2026 = ['2026-09-22', '2026-11-19']
+export const RIKSBANK_MEETINGS_2026 = ['2026-09-24', '2026-11-19']
 
 // Most recently confirmed decision per bank. Derived from verifiedConstants —
 // the one place a decision gets hand-updated — keeping the original row shape.

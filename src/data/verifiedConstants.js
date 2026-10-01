@@ -74,10 +74,12 @@ export const VERIFIED_CONSTANTS = {
     source: 'boj.or.jp', asOf: '2026-09-18', lastVerified: '2026-10-01',
   },
   pboc: {
-    label: 'PBOC', country: 'China', cashRate: 3.10,
-    lastDecision: '2026-02-20', lastDecisionVerb: 'CUT', nextMeeting: '2026-09-21',
-    note: '1Y Loan Prime Rate',
-    source: 'pbc.gov.cn', asOf: '2026-02-20', lastVerified: '2026-09-06',
+    label: 'PBOC', country: 'China', cashRate: 3.00,
+    lastDecision: '2026-09-21', lastDecisionVerb: 'HOLD', nextMeeting: '2026-10-20',
+    // Was 3.10% with a Feb 2026 CUT — wrong on both counts. The 1Y LPR has
+    // been 3.00% since the May 2025 cut; September was the 16th straight hold.
+    note: '1Y Loan Prime Rate (5Y LPR 3.50%)',
+    source: 'pbc.gov.cn (via FXStreet, 21 Sep 2026)', asOf: '2026-09-21', lastVerified: '2026-10-01',
   },
   rbnz: {
     label: 'RBNZ', country: 'New Zealand', cashRate: 2.75,
@@ -91,14 +93,17 @@ export const VERIFIED_CONSTANTS = {
   },
   snb: {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,
-    lastDecision: '2026-03-19', lastDecisionVerb: 'CUT', nextMeeting: '2026-09-24',
-    source: 'snb.ch', asOf: '2026-03-19', lastVerified: '2026-09-06',
+    lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-17',
+    note: 'Next assessment date not confirmed — SNB meets quarterly',
+    source: 'snb.ch', asOf: '2026-09-24', lastVerified: '2026-10-01',
   },
   riksbank: {
-    label: 'Riksbank', country: 'Sweden', cashRate: 2.00,
-    lastDecision: '2026-06-25', lastDecisionVerb: 'HOLD', nextMeeting: '2026-09-23',
-    source: 'riksbank.se', asOf: '2026-06-25', lastVerified: '2026-09-06',
+    label: 'Riksbank', country: 'Sweden', cashRate: 1.75,
+    lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-19',
+    note: 'Effective 30 Sep; next date per the Riksbank cadence, not confirmed',
+    source: 'riksbank.se', asOf: '2026-09-24', lastVerified: '2026-10-01',
   },
+
 
     // ── Central bank and government office holders ──────────────────────────
   //

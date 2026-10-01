@@ -4,7 +4,7 @@ import { SeismicSection, MarketSessionSection } from './IntelSections'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
 import { GEO_RISK_INDEX, riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
-import { fetchSignificantEarthquakes, fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
+import { fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useCountryData } from '../../hooks/useCountryData'
@@ -125,7 +125,7 @@ const COUNTRY_DETAIL = {
          macro:{ gdp:2.8, gdpLbl:'Q1 2026, BEA', cpi:2.4, cpiLbl:'Apr 2026, BLS', rate:4.38, rateLbl:'May 2026, Fed' },
          partners:['Mexico','Canada','China','Japan','Germany','United Kingdom'] },
   156: { currency:'CNY', tz:'Asia/Shanghai',      exchange:'SSE',         index:'CSI 300',      flag:'🇨🇳',
-         macro:{ gdp:4.8, gdpLbl:'Q1 2026, NBS', cpi:0.1, cpiLbl:'Apr 2026, NBS', rate:3.10, rateLbl:'Jun 2026, PBoC' },
+         macro:{ gdp:4.8, gdpLbl:'Q1 2026, NBS', cpi:0.1, cpiLbl:'Apr 2026, NBS', rate:VERIFIED_CONSTANTS.pboc.cashRate, rateLbl:`${VERIFIED_CONSTANTS.pboc.lastDecision}, PBoC 1Y LPR` },
          partners:['United States','Japan','South Korea','Germany','Australia','Vietnam'] },
   392: { currency:'JPY', tz:'Asia/Tokyo',         exchange:'TSE',         index:'Nikkei 225',   flag:'🇯🇵',
          macro:{ gdp:0.8, gdpLbl:'Q4 2025, CAO', cpi:3.2, cpiLbl:'Apr 2026, Stat Bureau', rate:0.50, rateLbl:'May 2026, BoJ' },
@@ -2791,10 +2791,12 @@ export default function GlobalModule() {
   })
   const flightData = useMemo(() => transformFlightData(flightRaw), [flightRaw])
 
-  // USGS significant earthquakes (M4.0+, last 7 days) — SEISMIC globe layer
+  // USGS M4.5+, last 7 days — the same feed (and cache) the intel map's
+  // seismic layer and header count read, so every seismic figure on this
+  // screen agrees.
   const { data: earthquakes } = useQuery({
-    queryKey: ['usgsQuakes'],
-    queryFn:  fetchSignificantEarthquakes,
+    queryKey: ['usgsQuakes45w'],
+    queryFn:  async () => (await liveDataService.getEarthquakes(4.5)).data ?? [],
     staleTime: 10 * 60_000,
     refetchInterval: 10 * 60_000,
     retry: 1,

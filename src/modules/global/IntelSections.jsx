@@ -49,12 +49,12 @@ export function SeismicSection({ earthquakes, onFocus }) {
     <div className="border-b border-terminal-border">
       <div className="flex items-center justify-between px-3 py-1.5">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">SEISMIC ACTIVITY</span>
-        <span className="text-2xs text-terminal-text-dim/50">USGS · significant · 7 days</span>
+        <span className="text-2xs text-terminal-text-dim/50">USGS · M4.5+ · 7 days</span>
       </div>
 
       {top.length === 0 ? (
         <div className="px-3 pb-2 text-2xs text-terminal-text-dim/60">
-          No significant events in the last seven days, or the feed is unavailable.
+          No M4.5+ events in the last seven days, or the feed is unavailable.
         </div>
       ) : (
         <div className="pb-1">
