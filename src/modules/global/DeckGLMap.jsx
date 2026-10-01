@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import DeckGL from '@deck.gl/react'
-import { MapView } from '@deck.gl/core'
+import { MapView, FlyToInterpolator } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
 import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PathLayer, GeoJsonLayer, IconLayer } from '@deck.gl/layers'
 import { HeatmapLayer, HexagonLayer } from '@deck.gl/aggregation-layers'
@@ -13,6 +13,7 @@ import {
   overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS,
 } from './intelMapData'
 import MapDetailPanel from './MapDetailPanel'
+import MapLocationSearch from './MapLocationSearch'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 
@@ -296,6 +297,10 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   const insetL = chromeInset.left ?? 0
   const insetR = chromeInset.right ?? 0
   const [viewState, setViewState] = useState(INITIAL_VIEW)
+  // Location search: the pin it leaves, and whether the pointer is over the
+  // map (the F-to-search shortcut only applies there).
+  const [searchPin, setSearchPin] = useState(null)
+  const [mapHovered, setMapHovered] = useState(false)
   // Per-layer visibility, persisted: someone who turns off eight layers to
   // study trade flows should not have to do it again next time.
   const [layerOn, setLayerOn] = useState(() => {
@@ -485,6 +490,34 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   const layers = useMemo(() => {
     const all = []
     const show = (id) => !!layerOn[id]
+
+    // Searched-location pin. Pixel-sized so it stays a pin at every zoom
+    // rather than becoming a disc over a city; pushed first so it is never
+    // skipped by a layer toggle returning early below.
+    if (searchPin) {
+      all.push(new ScatterplotLayer({
+        id: 'search-pin-halo',
+        data: [searchPin],
+        getPosition: (d) => [d.longitude, d.latitude],
+        radiusUnits: 'pixels',
+        getRadius: 16,
+        getFillColor: [201, 168, 76, 45],
+        getLineColor: [201, 168, 76, 160],
+        lineWidthMinPixels: 1,
+        stroked: true,
+      }))
+      all.push(new ScatterplotLayer({
+        id: 'search-pin',
+        data: [searchPin],
+        getPosition: (d) => [d.longitude, d.latitude],
+        radiusUnits: 'pixels',
+        getRadius: 6,
+        getFillColor: [201, 168, 76, 255],
+        getLineColor: [6, 13, 26, 255],
+        lineWidthMinPixels: 2,
+        stroked: true,
+      }))
+    }
     const openExchanges = EXCHANGES.filter(isExchangeOpen)
 
     // ── Country fills, coloured by that market's performance ─────────────
@@ -837,7 +870,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     }))
 
     return all
-  }, [layerOn, quakes, majorQuakes, auFocus, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries])
+  }, [layerOn, quakes, majorQuakes, auFocus, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries, searchPin])
 
   // What the status line reports. Every entry is read from actual state — the
   // seismic fetch's own result, the narrative service's source field, whether
@@ -857,7 +890,26 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     : { position: 'relative', width: '100%', height: '100%' }
 
   return (
-    <div ref={wrapRef} style={{ ...shell, background: '#060D1A', overflow: 'hidden' }}>
+    <div ref={wrapRef} style={{ ...shell, background: '#060D1A', overflow: 'hidden' }}
+      onMouseEnter={() => setMapHovered(true)} onMouseLeave={() => setMapHovered(false)}>
+      <MapLocationSearch
+        mapHovered={mapHovered}
+        hasPin={!!searchPin}
+        onClear={() => setSearchPin(null)}
+        onSelect={(r) => {
+          setSearchPin(r)
+          setViewState((vs) => ({
+            ...vs,
+            longitude: r.longitude,
+            latitude: r.latitude,
+            zoom: r.zoom,
+            pitch: 45,
+            bearing: 0,
+            transitionDuration: 1500,
+            transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
+          }))
+        }}
+      />
       <DeckGL
         viewState={viewState}
         onViewStateChange={({ viewState: vs }) => setViewState(vs)}
