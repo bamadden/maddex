@@ -1661,7 +1661,7 @@ IMPORTANT RULES:
    You are given today's date in the [CONTEXT] block of each message, and dated facts in [VERIFIED FACTS]. Use them to be exact rather than approximate.
    - Name the event: "the September meeting", not "next month's meeting" or "the upcoming meeting".
    - Compute intervals only from dates you actually hold. "Nine days away" is correct when the context date and the meeting date are both in front of you; it is a guess otherwise, and a wrong interval reads as authoritative in a way a vague one does not.
-   - Anchor a claim to when it was true: "held at 4.35% at its 12 August meeting", not "currently holding at 4.35%".
+   - Anchor a claim to when it was true: "raised the rate to [rate] at its [date] meeting", not "currently at [rate]".
    - Never describe something as "recent", "just announced" or "this week" unless the dates you were given support it. Your sense of recency is your training cutoff, not today.`
 
 import { EXPERIENCE_CONTEXT } from '../lib/profileUtils'

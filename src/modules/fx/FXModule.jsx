@@ -7,6 +7,7 @@ import {
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { curveForRates, BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 // The full ten-bank schedule now lives in UpcomingDecisions, which owns the
 // 90-day calendar. This module only needs the RBA's own dates, for the hero
@@ -31,26 +32,24 @@ import SafeChart from '../../components/ui/SafeChart'
 // the user actually switches to the 3D surface view.
 const YieldCurve3D = lazy(() => import('../../components/visualisations/YieldCurve3D'))
 
-// ─── 5-Country Yield Curve Data — July 2026 ──────────────────────────────────
+// ─── 5-Country Yield Curve Data ──────────────────────────────────────────────
+// AU and US derive from bondCurves.js (sourced points, see BOND_CURVES_AS_OF),
+// so this panel and the Bonds module cannot disagree. Their `prev` is empty:
+// no verified month-ago curve is held, and an invented one would draw a move
+// that never happened. UK/JP/DE remain an illustrative July snapshot.
+
+const asAtLabel = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 
 const YIELD_CURVES = {
   AU: {
-    label: 'AU GOV BONDS', color: '#C9A84C', src: 'AOFM / RBA · Aug 2026',
-    points: [
-      { m:'3M', y:3.88 }, { m:'6M', y:3.80 }, { m:'1Y', y:3.72 },
-      { m:'2Y', y:3.65 }, { m:'3Y', y:3.75 }, { m:'5Y', y:3.90 },
-      { m:'10Y',y:4.20 }, { m:'30Y',y:4.55 },
-    ],
-    prev: { '3M':4.10,'6M':4.05,'1Y':3.98,'2Y':3.90,'3Y':3.95,'5Y':4.08,'10Y':4.25,'30Y':4.40 },
+    label: 'AU GOV BONDS', color: '#C9A84C', src: `Market close · ${asAtLabel(BOND_CURVES_AS_OF.AU)}`,
+    points: curveForRates('AU'),
+    prev: {},
   },
   US: {
-    label: 'US TREASURIES', color: '#2D7DD2', src: 'US Treasury · Aug 2026',
-    points: [
-      { m:'3M', y:4.30 }, { m:'6M', y:4.22 }, { m:'1Y', y:4.15 },
-      { m:'2Y', y:4.10 }, { m:'5Y', y:4.25 }, { m:'10Y',y:4.45 },
-      { m:'30Y',y:4.85 },
-    ],
-    prev: { '3M':4.32,'6M':4.28,'1Y':4.15,'2Y':4.05,'5Y':4.12,'10Y':4.38,'30Y':4.62 },
+    label: 'US TREASURIES', color: '#2D7DD2', src: `US Treasury par curve · ${asAtLabel(BOND_CURVES_AS_OF.US)}`,
+    points: curveForRates('US'),
+    prev: {},
   },
   UK: {
     label: 'UK GILTS', color: '#a855f7', src: 'UK DMO · Jul 2026',
@@ -335,16 +334,16 @@ function YieldTooltip({ active, payload, label }) {
 // ─── RBA section: real-rate comparison bar + last-10-decisions table ───────
 
 function RbaRateComparisonBar() {
-  // Reuses the same figures already surfaced elsewhere (CPI YoY 3.8%, RBA
-  // cash rate 4.35%, AU 10Y 4.20%) rather than re-deriving them, so the bar
-  // stays consistent with the CPI and yield-curve panels if those change.
+  // Reads the same verified figures the CPI and yield-curve panels show, so
+  // the bar cannot drift from them.
+  const { rba, au } = VERIFIED_CONSTANTS
   const rows = [
-    { label: 'RBA CASH RATE', value: 4.35, color: '#C9A84C' },
-    { label: 'AU CPI YoY',    value: 3.8,  color: '#2D7DD2' },
-    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? 4.20, color: '#2D8A50' },
-  ]
+    { label: 'RBA CASH RATE', value: rba.cashRate, color: '#C9A84C' },
+    { label: 'AU CPI YoY',    value: au.cpi,       color: '#2D7DD2' },
+    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? null, color: '#2D8A50' },
+  ].filter(r => r.value != null)
   const max = Math.max(...rows.map(r => r.value)) * 1.15
-  const realRate = (4.35 - 3.8).toFixed(2)
+  const realRate = (rba.cashRate - au.cpi).toFixed(2)
   return (
     <div className="p-2 border-b border-terminal-border">
       <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">REAL RATES CHECK</div>
@@ -442,8 +441,8 @@ function CompactRbaDashboard({ askAI }) {
     <div className="flex flex-col h-full overflow-hidden">
       <RbaHeroCard
         onAskAI={() => askAI({
-          name: 'RBA Cash Rate', price: '4.35% p.a.', sector: 'Interest Rates', date: todayAEST(),
-          instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate 4.35%.`,
+          name: 'RBA Cash Rate', price: `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% p.a.`, sector: 'Interest Rates', date: todayAEST(),
+          instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%.`,
         })}
       />
 
@@ -536,7 +535,7 @@ function MarketPricingPanel() {
   // render makes "12d away" change only when something unrelated re-renders,
   // and makes the component non-idempotent.
   const [now] = useState(() => Date.now())
-  // fed.cashRate is the TOP of the target range (4.50 of 4.25-4.50), not its
+  // fed.cashRate is the TOP of the target range (4.00 of 3.75-4.00), not its
   // midpoint — the label below says so. Deriving a midpoint would mean parsing
   // rateRange, a display string, in a render body: it would work until someone
   // changed an en dash to a hyphen, and then it would be quietly wrong rather

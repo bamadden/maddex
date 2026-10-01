@@ -17,6 +17,7 @@
 // TO UPDATE A FIGURE: edit verifiedConstants.js. Not this file.
 
 import { VERIFIED_CONSTANTS } from './verifiedConstants'
+import { curveForRates } from './bondCurves'
 
 const { rba, fed, au, us, cn, eu, uk } = VERIFIED_CONSTANTS
 
@@ -37,29 +38,11 @@ export const ASX_SECTOR_HEATMAP = [
   { name: 'Comm Services',    ticker: 'XTJ', pct: null, mktCapWeight:  2.4 },
 ]
 
-// AU Government Bond Yield Curve — RBA/AOFM published rates — as at 2 Aug 2026
-export const AU_BONDS = [
-  { maturity: '3M',  yield: 3.88 },
-  { maturity: '6M',  yield: 3.80 },
-  { maturity: '1Y',  yield: 3.72 },
-  { maturity: '2Y',  yield: 3.65 },
-  { maturity: '3Y',  yield: 3.75 },
-  { maturity: '5Y',  yield: 3.90 },
-  { maturity: '10Y', yield: 4.20 },
-  { maturity: '30Y', yield: 4.55 },
-]
-
-// US Treasury Yield Curve — as at 2 Aug 2026
-export const US_BONDS = [
-  { maturity: '3M',  yield: 4.30 },
-  { maturity: '6M',  yield: 4.22 },
-  { maturity: '1Y',  yield: 4.15 },
-  { maturity: '2Y',  yield: 4.10 },
-  { maturity: '3Y',  yield: 4.15 },
-  { maturity: '5Y',  yield: 4.25 },
-  { maturity: '10Y', yield: 4.45 },
-  { maturity: '30Y', yield: 4.85 },
-]
+// AU / US yield curves — derived from bondCurves.js, the single source for
+// yields (see BOND_CURVES_AS_OF there for the as-at dates).
+const toBondRows = (key) => curveForRates(key).map(({ m, y }) => ({ maturity: m, yield: y }))
+export const AU_BONDS = toBondRows('AU')
+export const US_BONDS = toBondRows('US')
 
 // Central bank policy rates, derived from VERIFIED_CONSTANTS.
 //
@@ -69,7 +52,7 @@ export const US_BONDS = [
 // expected to cut. `expectation` is a judgement rather than a published
 // statistic, so it stays here rather than in verifiedConstants.
 const CB_EXPECTATION = {
-  rba: 'hold', fed: 'cut', ecb: 'hold', boe: 'hold', boj: 'hike',
+  rba: 'hold', fed: 'hike', ecb: 'hold', boe: 'hold', boj: 'hike',
   pboc: 'hold', rbnz: 'hold', boc: 'hold', snb: 'hold', riksbank: 'hold',
 }
 
@@ -112,8 +95,8 @@ export const CENTRAL_BANK_RATES = CB_ORDER.map(([key, bank, country]) => {
 export const AU_MACRO = [
   { name: 'RBA Cash Rate',       value: pct(rba.cashRate),   prev: pct(rba.previousRate), date: rba.lastDecision,      beat: null,  src: rba.source,           vkey: 'rba' },
   { name: 'AU CPI YoY',          value: pct(au.cpi),         prev: pct(au.cpiPrevious),   date: au.cpiLastRelease,     beat: false, src: 'abs.gov.au/6401.0',  vkey: 'au' },
-  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: '2.9%',             date: '2026-04-29',          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
-  { name: 'AU Unemployment',     value: pct(au.unemployment), prev: '4.1%',               date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },
+  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: '3.6%',             date: au.cpiLastRelease,          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
+  { name: 'AU Unemployment',     value: pct(au.unemployment), prev: '4.5%',               date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },
   { name: 'AU GDP QoQ',          value: pct(au.gdpQoQ),      prev: '0.3%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
   { name: 'AU GDP Annual',       value: pct(au.gdpAnnual),   prev: '1.0%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
   { name: 'AU Trade Balance',    value: `A$${au.tradeBalanceBn}B`, prev: 'A$6.1B',        date: au.tradeBalanceRelease, beat: true, src: 'abs.gov.au/5368.0',  vkey: 'au' },
@@ -157,8 +140,12 @@ export const AU_CPI_HISTORY = [
   { date: 'Mar-25', value: 2.4 },
   { date: 'Jun-25', value: 2.7 },
   { date: 'Sep-25', value: 2.5 },
-  { date: 'Dec-25', value: 2.3 },
-  { date: 'Mar-26', value: 2.4 },
+  { date: 'Dec-25', value: 3.8 },
+  { date: 'Mar-26', value: 4.6 },
+  { date: 'Jun-26', value: 3.8 },
+  // From Jul-26 the series is the ABS monthly CPI, now the headline measure.
+  { date: 'Jul-26', value: 3.5 },
+  { date: 'Aug-26', value: 4.0 },
 ]
 
 // AU Unemployment History — ABS Labour Force Survey (%) — SOURCE: abs.gov.au/6202.0
@@ -175,6 +162,8 @@ export const AU_UNEMP_HISTORY = [
   { date: 'Sep-25', value: 4.0 },
   { date: 'Dec-25', value: 4.0 },
   { date: 'Mar-26', value: 4.1 },
+  { date: 'Jul-26', value: 4.5 },
+  { date: 'Aug-26', value: 4.6 },
 ]
 
 // AU GDP History — ABS National Accounts (QoQ %) — SOURCE: abs.gov.au/5206.0
@@ -192,6 +181,7 @@ export const AU_GDP_HISTORY = [
   { date: 'Q2-25', value: 0.3 },
   { date: 'Q3-25', value: 0.3 },
   { date: 'Q4-25', value: 0.4 },
+  { date: 'Q2-26', value: 0.4 },
 ]
 
 export const BREAKING_NEWS_THRESHOLD_MINUTES = 30
@@ -202,7 +192,7 @@ export const DEMO_PORTFOLIO_HOLDINGS = []
 
 export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX', 'AAPL', 'NVDA', 'BTC-USD']
 
-// ─── RBA Rate History (Jan 2022 – Aug 2026) ─────────────────────────────────
+// ─── RBA Rate History (Jan 2022 – Sep 2026) ─────────────────────────────────
 // SOURCE: rba.gov.au board decisions. One entry per decision date (not one
 // per month) — dates are exact board-meeting dates, values only change when
 // the Board actually moved; render as a step chart (rates don't interpolate
@@ -211,8 +201,9 @@ export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX'
 // 2025 saw an easing cycle (Feb/May/Aug, -0.25 each, 4.35% → 3.60%). 2026
 // reversed that with three hikes (Feb/Mar/May, +0.25 each, 3.60% → 4.35%) in
 // response to the global energy shock from the Iran-Middle East conflict.
-// The Jun 2026 meeting held at 4.35%, and the Board held again at the Aug 12
-// 2026 meeting following a softer CPI print of 3.8%. Next decision 16 Sep 2026.
+// The Jun and Aug 2026 meetings held at 4.35%; the 29 Sep 2026 meeting hiked
+// a fourth time, to 4.60%. Dates are EFFECTIVE dates — the day after the
+// announcement — which is why they read one day later than the decisions.
 export const RBA_RATE_HISTORY = [
   { date: '2022-05-04', rate: 0.35 },
   { date: '2022-06-08', rate: 0.85 },
@@ -235,6 +226,7 @@ export const RBA_RATE_HISTORY = [
   { date: '2026-05-06', rate: 4.35 },
   { date: '2026-06-17', rate: 4.35 },
   { date: '2026-08-12', rate: 4.35 },
+  { date: '2026-09-30', rate: 4.60 },
 ]
 
 // Board composition — names, roles and appointment years, which are public
@@ -268,19 +260,19 @@ export const RBA_BOARD_MEMBERS = [
 // next to it instead of running much longer.
 export const RBA_RECENT_STATEMENTS = [
   {
-    date: '12 Aug 2026',
-    decision: 'HOLD at 4.35%',
-    key: '"Held, citing softer June CPI of 3.8% and Middle East uncertainty."',
+    date: '29 Sep 2026',
+    decision: 'HIKE +25bp to 4.60%',
+    key: '"Inflation remains elevated and some of the upside risks flagged in August are materialising."',
   },
   {
-    date: '17 Jun 2026',
+    date: '11 Aug 2026',
     decision: 'HOLD at 4.35%',
-    key: '"Held after three straight hikes — monitoring inflation and labour market conditions."',
+    key: 'Held, citing softer June CPI of 3.8% and Middle East uncertainty.',
   },
   {
-    date: '06 May 2026',
-    decision: 'HIKE +25bp to 4.35%',
-    key: '"Raised rates on persistent inflation from the energy shock — third straight 2026 hike."',
+    date: '16 Jun 2026',
+    decision: 'HOLD at 4.35%',
+    key: 'Held after three straight hikes — monitoring inflation and labour market conditions.',
   },
 ]
 

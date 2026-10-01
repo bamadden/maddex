@@ -29,6 +29,7 @@ const MacroDashboard3D = lazy(() => import('../../components/visualisations/Macr
 import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES } from '../../services/macroThemeService'
 import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
@@ -118,11 +119,9 @@ const nextRbaMeetingLabel = nextRbaMeetingDate
 // blank rather than guessed.
 const NEXT_RELEASE = {
   'RBA Cash Rate':       nextRbaMeetingLabel,
-  'AU CPI YoY':          'Late October 2026 (Q3 2026)',
-  'AU CPI Trimmed Mean': 'Late October 2026 (Q3 2026)',
-  'AU Unemployment':     'Mid-September 2026',
-  'AU GDP QoQ':          'September 2026',
-  'AU GDP Annual':       'September 2026',
+  'AU CPI YoY':          '28 October 2026 (Sep)',
+  'AU CPI Trimmed Mean': '28 October 2026 (Sep)',
+  'AU Unemployment':     '15 October 2026 (Sep)',
 }
 
 
@@ -460,8 +459,8 @@ function RBADashboard({ askAI }) {
           one inline line of pills, replacing the old multi-label header. */}
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">RBA DASHBOARD</span>
-        <span className="text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 py-0.5">4.35%</span>
-        <span className="text-2xs font-bold text-terminal-text-bright border border-terminal-border px-1.5 py-0.5">HOLD</span>
+        <span className="text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 py-0.5">{VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%</span>
+        <span className="text-2xs font-bold text-terminal-text-bright border border-terminal-border px-1.5 py-0.5">{VERIFIED_CONSTANTS.rba.lastDecisionVerb}</span>
         <span className="text-2xs text-terminal-text-dim border border-terminal-border px-1.5 py-0.5">
           Next: {nextMeetingBadge} · {daysLeft}d
         </span>
@@ -474,10 +473,10 @@ function RBADashboard({ askAI }) {
         <button
           onClick={() => askAI({
             name:        'RBA Cash Rate',
-            price:       '4.35% p.a.',
+            price:       `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% p.a.`,
             sector:      'Interest Rates',
             date:        todayAEST(),
-            instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate 4.35% (hiked from 4.10% in May 2026, the third consecutive 2026 hike after Feb and Mar, in response to the global energy shock from the Iran-Middle East conflict — reversing the 2025 easing cycle). The Board held at 4.35% at the 17 Jun 2026 meeting, and held again at 4.35% at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). Describe the case for and against a move in words — do not state a market-implied probability, which you have not been given.`,
+            instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate ${LAST_DECISIONS.RBA.rate} after a ${LAST_DECISIONS.RBA.decision} at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). 2026 so far: hikes in Feb, Mar and May reversed the 2025 easing cycle, holds in Jun and Aug, then the September hike. Describe the case for and against a move in words — do not state a market-implied probability, which you have not been given.`,
           })}
           className="ml-auto mr-16 text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
         >
@@ -489,7 +488,7 @@ function RBADashboard({ askAI }) {
           each with no elaboration, so the whole section reads at a glance. */}
       <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border" style={{ height: 200 }}>
         <div className="p-2 flex flex-col h-full">
-          <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Aug 2026)</div>
+          <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Sep 2026)</div>
           <div className="flex-1 min-h-0">
             <SafeChart width="100%" height="100%">
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
@@ -1153,7 +1152,7 @@ function PreviousEventsPanel() {
 // that no longer moved when those constants did.
 const MACRO_REGIME = {
   label: 'RESTRICTIVE', angle: -20, color: '#C9A84C',
-  reason: `Both the RBA (${VERIFIED_CONSTANTS.rba.cashRate}%) and Fed (${VERIFIED_CONSTANTS.fed.cashRate}%) are holding policy rates above neutral. Growth is slowing globally, but easing inflation is opening a path toward cuts rather than forcing one now.`,
+  reason: `The RBA (${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%) and Fed (${VERIFIED_CONSTANTS.fed.rateRange}) are both tightening above neutral. AU inflation is ${VERIFIED_CONSTANTS.au.cpi.toFixed(1)}% (${VERIFIED_CONSTANTS.au.cpiPeriod}) against slowing growth (${VERIFIED_CONSTANTS.au.gdpAnnual}% annual) and rising unemployment (${VERIFIED_CONSTANTS.au.unemployment}%) — a stagflationary tilt.`,
 }
 
 // How the AI's categorical regime maps onto the gauge. The needle runs
@@ -1683,11 +1682,11 @@ export default function MacroModule() {
 
   const askAI = (fields) => dispatchAskAI(fields)
 
-  // RBA Cash Rate — hardcoded from official rba.gov.au 19 May 2026 board decision.
-  // The live RBA API (api.rba.gov.au) is unreliable; for a single data point that
-  // changes at most 8 times per year, hardcoding the confirmed rate is more reliable.
-  const rbaRate    = 4.35
-  const rbaRateStr = '4.35%'
+  // RBA Cash Rate — from verifiedConstants. The live RBA API (api.rba.gov.au)
+  // is unreliable; for a figure that changes at most 8 times a year, the
+  // human-verified copy is more reliable.
+  const rbaRate    = VERIFIED_CONSTANTS.rba.cashRate
+  const rbaRateStr = `${rbaRate.toFixed(2)}%`
 
   // AU indicator stats from ABS (updated in placeholders to latest known release)
   const latestCPI   = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 1]?.value ?? 2.4
@@ -1710,7 +1709,7 @@ export default function MacroModule() {
   const macroHealthScore = Math.round(((MACRO_REGIME.angle + 90) / 180) * 100)
   const macroIndicators3D = [
     { id: 'rba',        name: 'RBA Cash Rate',        current: rbaRate,     unit: '%', trend: 'STABLE' },
-    { id: 'fed',        name: 'Fed Funds Rate',       current: 4.50,        unit: '%', trend: 'STABLE' },
+    { id: 'fed',        name: 'Fed Funds Rate',       current: VERIFIED_CONSTANTS.fed.cashRate, unit: '%', trend: 'STABLE' },
     { id: 'cpi',        name: 'AU CPI',               current: latestCPI,   unit: '%', trend: trendFrom(AU_CPI_HISTORY, false) },
     { id: 'unemp',      name: 'AU Unemployment',      current: latestUnemp, unit: '%', trend: trendFrom(AU_UNEMP_HISTORY, false) },
     { id: 'gdp',        name: 'AU GDP Growth',        current: latestGDP,   unit: '%', trend: trendFrom(AU_GDP_HISTORY, true) },
@@ -1987,7 +1986,7 @@ export default function MacroModule() {
             </div>
 
             <div className="px-0.5 text-2xs text-terminal-text-dim/60">
-              Regime call is editorial. Macro themes are generated daily by MaddenAI (cached per day) — not a live computed feed. Yield curve: AOFM/RBA · US Treasury, as at 2 Aug 2026. Currency heatmap: Frankfurter.app (ECB reference rates).
+              Regime call is editorial. Macro themes are generated daily by MaddenAI (cached per day) — not a live computed feed. Yield curve: AU market close · US Treasury par curve, as at {BOND_CURVES_AS_OF.AU}. Currency heatmap: Frankfurter.app (ECB reference rates).
             </div>
           </div>
         )}
@@ -1996,7 +1995,7 @@ export default function MacroModule() {
       {/* Subtle data attribution footer */}
       <div className="px-3 py-2 border-t border-terminal-border/30 mt-2">
         <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>
-          Data current as at 12 August 2026 · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
+          Verified figures checked {VERIFIED_CONSTANTS.rba.lastVerified} · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
         </span>
       </div>
 

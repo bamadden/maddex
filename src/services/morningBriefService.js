@@ -1,6 +1,8 @@
 import { askClaudeJSON } from './api'
 import { liveDataService } from './liveDataService'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
+import { getEconomicCalendar, upcomingEvents } from './calendarService'
+import { sydneyTzAbbr } from '../utils/dateUtils'
 
 // Stable instruction template — identical on every call, so it sits in the
 // cached system prefix. Everything that changes day to day goes in the user
@@ -180,7 +182,20 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   const portfolioSummary = holdings.map((p) => `${p.symbol}: ${p.shares} units @ A$${p.avgCost}`).join(', ')
 
   const { fx, gold, fg, crypto } = await gatherContext()
-  const { rba, fed, au } = VERIFIED_CONSTANTS
+  const { rba, fed, au, bonds } = VERIFIED_CONSTANTS
+
+  // The next fortnight of scheduled events, so the brief names what is
+  // actually coming rather than recalling a calendar from training data.
+  let upcoming = ''
+  try {
+    const { events } = await getEconomicCalendar()
+    upcoming = upcomingEvents(events, 14)
+      .filter((e) => e.importance === 'high' || e.importance === 'medium')
+      .slice(0, 8)
+      .map((e) => `- ${e.date}${e.time && e.time !== '—' ? ` ${e.time}` : ''}: ${e.event} (${e.region})`)
+      .join('\n')
+  } catch { /* calendar is optional context */ }
+  const spreadBp = bonds ? Math.round((bonds.au10y - bonds.us10y) * 100) : null
 
   // Only lines with a value are included — an "AUD/USD: unavailable" line
   // invites the model to comment on the fact that it is unavailable.
@@ -194,13 +209,15 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
 
   const userContent = `
 Today: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-Time: 7:00 AM AEST
+Time: 7:00 AM ${sydneyTzAbbr(new Date().toLocaleDateString('en-CA'))}
 
 VERIFIED FIGURES — you may quote these, and no others:
-- RBA cash rate: ${rba.cashRate}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}
+- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb}${rba.lastChange ? ` ${rba.lastChange}` : ''} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}
 - US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})
-- AU CPI: ${au.cpi}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}
+- AU CPI: ${au.cpi.toFixed(1)}% YoY (${au.cpiPeriod}), trimmed mean ${au.cpiTrimmedMean}%; RBA target band ${au.rbaTargetBand}
 - AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})
+${bonds ? `- Bond yields: AU 10Y ${bonds.au10y.toFixed(2)}% (${bonds.au10yAsOf}), US 10Y ${bonds.us10y.toFixed(2)}% (${bonds.us10yAsOf}); spread ${spreadBp >= 0 ? '+' : ''}${spreadBp}bp (${spreadBp >= 0 ? 'AU premium' : 'US premium'})` : ''}
+${upcoming ? `\nSCHEDULED EVENTS — next 14 days (dates are fixed; use these, not any you recall):\n${upcoming}` : ''}
 ${live ? `\nLIVE AS OF NOW:\n${live}` : ''}
 
 Investor's watchlist: ${watchlistSymbols || 'Not set'}

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import VERIFIED_CONSTANTS, { provenance } from '../../data/verifiedConstants'
+import { sydneyOffset, sydneyTzAbbr } from '../../utils/dateUtils'
+
+const PAST_TENSE = { HIKE: 'HIKED', CUT: 'CUT', HOLD: 'HELD' }
 
 // The RBA card.
 //
@@ -27,7 +30,7 @@ function useCountdown(target) {
     return () => clearInterval(id)
   }, [])
   if (!target) return null
-  const ms = new Date(`${target}T14:30:00+10:00`).getTime() - now
+  const ms = new Date(`${target}T14:30:00${sydneyOffset(target)}`).getTime() - now
   if (ms <= 0) return null
   return {
     d: Math.floor(ms / 86400000),
@@ -81,7 +84,7 @@ export default function RbaHeroCard({ onAskAI }) {
             {rba?.cashRate?.toFixed(2)}%
           </div>
           <div className="font-mono text-terminal-text-dim mt-2" style={{ fontSize: 10, letterSpacing: '0.06em' }}>
-            <span className="text-terminal-text-bright font-bold">{(rba?.lastDecisionVerb ?? 'SET').toUpperCase()}</span>
+            <span className="text-terminal-text-bright font-bold">{PAST_TENSE[(rba?.lastDecisionVerb ?? '').toUpperCase()] ?? 'SET'}</span>
             {' '}{fmtDate(rba?.lastDecision)}
           </div>
           {/* The Governor's name, from the verified office-holder block rather
@@ -115,7 +118,7 @@ export default function RbaHeroCard({ onAskAI }) {
             <div className="font-mono text-terminal-text-dim mt-2" style={{ fontSize: 11 }}>Decision day</div>
           )}
           <div className="font-mono text-terminal-text-dim/50 mt-2" style={{ fontSize: 8 }}>
-            2:30PM AEST · {provenance('rba')}
+            2:30PM {sydneyTzAbbr(rba?.nextMeeting)} · {provenance('rba')}
           </div>
         </div>
 

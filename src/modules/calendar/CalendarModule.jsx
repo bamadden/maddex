@@ -12,8 +12,9 @@ import { LAST_DECISIONS } from '../../services/centralBankSchedule'
 import { upcomingEarnings } from '../../services/earningsCalendar'
 import { dispatchAskAI } from '../../utils/askAI'
 import { logActivity } from '../../services/activityLogService'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
 
-const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧' }
+const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿' }
 const IMPORTANCE_COLOR = { high: 'text-terminal-red', medium: 'text-terminal-gold', low: 'text-terminal-muted' }
 const IMPORTANCE_BORDER = { high: 'border-l-terminal-red', medium: 'border-l-terminal-gold', low: 'border-l-terminal-muted' }
 
@@ -212,7 +213,7 @@ function EconomicEventCard({ event, onReminderChange }) {
       }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border/50">
-        <span className="text-2xs text-terminal-text-dim">{REGION_FLAGS[event.region] ?? '🌐'} {event.time !== '—' ? `${event.time} AEST` : 'Time TBC'}</span>
+        <span className="text-2xs text-terminal-text-dim">{REGION_FLAGS[event.region] ?? '🌐'} {event.time !== '—' ? `${event.time} ${sydneyTzAbbr(event.date)}` : 'Time TBC'}</span>
         <div className="flex items-center gap-2">
           <Stars event={event} />
           <span className={`text-2xs font-bold ${IMPORTANCE_COLOR[event.importance]}`}>●{event.importance?.toUpperCase()}</span>
@@ -555,7 +556,7 @@ export default function CalendarModule() {
       ...e, type: 'economic', label: e.event,
     })) : []
     const earnings = upcomingEarnings().map((e) => ({
-      ...e, type: 'earnings', label: `${e.company} earnings`, importance: 'medium', region: 'AU',
+      ...e, type: 'earnings', label: `${e.company} ${e.type === 'AGM' ? 'AGM' : 'earnings'}`, importance: 'medium', region: 'AU',
       dateObj: new Date(`${e.date}T00:00:00`),
     }))
     return [...econ, ...earnings].sort((a, b) => a.dateObj - b.dateObj)

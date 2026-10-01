@@ -30,42 +30,48 @@ export const VERIFIED_CONSTANTS = {
   rba: {
     label: 'RBA',
     country: 'Australia',
-    cashRate: 4.35,
-    lastDecision: '2026-08-12',
-    lastDecisionVerb: 'HOLD',
-    previousRate: 4.10,
-    nextMeeting: '2026-09-16',
-    note: 'Softer June-quarter CPI (3.8%) cited',
-    source: 'rba.gov.au',
-    asOf: '2026-08-12',
-    lastVerified: '2026-09-06',
+    cashRate: 4.60,
+    lastDecision: '2026-09-29',
+    lastDecisionVerb: 'HIKE',
+    previousRate: 4.35,
+    nextMeeting: '2026-11-03',
+    lastChange: '+25bp',
+    nextMeetingTime: '2:30pm AEDT',
+    note: 'Fourth hike of 2026, unanimous. "Upside risks flagged in August are materialising."',
+    source: 'rba.gov.au (mr-26-27)',
+    asOf: '2026-09-29',
+    lastVerified: '2026-10-01',
   },
   fed: {
     label: 'Fed',
     country: 'United States',
-    cashRate: 4.50,
-    rateRange: '4.25–4.50%',
-    lastDecision: '2026-07-30',
-    lastDecisionVerb: 'HOLD',
-    nextMeeting: '2026-09-17',
+    cashRate: 4.00,
+    rateRange: '3.75–4.00%',
+    previousRate: 3.75,
+    lastChange: '+25bp',
+    note: 'Unanimous 12-0 vote; first hike since 2023',
+    lastDecision: '2026-09-16',
+    lastDecisionVerb: 'HIKE',
+    nextMeeting: '2026-10-28',
     source: 'federalreserve.gov',
-    asOf: '2026-07-30',
-    lastVerified: '2026-09-06',
+    asOf: '2026-09-16',
+    lastVerified: '2026-10-01',
   },
   ecb: {
-    label: 'ECB', country: 'Euro area', cashRate: 2.00,
-    lastDecision: '2026-06-12', lastDecisionVerb: 'CUT', nextMeeting: '2026-09-11',
-    source: 'ecb.europa.eu', asOf: '2026-06-12', lastVerified: '2026-09-06',
+    label: 'ECB', country: 'Euro area', cashRate: 2.50,
+    lastDecision: '2026-09-10', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-29',
+    note: 'Deposit facility rate',
+    source: 'ecb.europa.eu', asOf: '2026-09-10', lastVerified: '2026-10-01',
   },
   boe: {
-    label: 'BOE', country: 'United Kingdom', cashRate: 4.25,
-    lastDecision: '2026-05-08', lastDecisionVerb: 'CUT', nextMeeting: '2026-09-04',
-    source: 'bankofengland.co.uk', asOf: '2026-05-08', lastVerified: '2026-09-06',
+    label: 'BOE', country: 'United Kingdom', cashRate: 3.75,
+    lastDecision: '2026-09-17', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-05',
+    source: 'bankofengland.co.uk', asOf: '2026-09-17', lastVerified: '2026-10-01',
   },
   boj: {
-    label: 'BOJ', country: 'Japan', cashRate: 0.50,
-    lastDecision: '2026-01-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-09-18',
-    source: 'boj.or.jp', asOf: '2026-01-24', lastVerified: '2026-09-06',
+    label: 'BOJ', country: 'Japan', cashRate: 1.25,
+    lastDecision: '2026-09-18', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-30',
+    source: 'boj.or.jp', asOf: '2026-09-18', lastVerified: '2026-10-01',
   },
   pboc: {
     label: 'PBOC', country: 'China', cashRate: 3.10,
@@ -74,14 +80,14 @@ export const VERIFIED_CONSTANTS = {
     source: 'pbc.gov.cn', asOf: '2026-02-20', lastVerified: '2026-09-06',
   },
   rbnz: {
-    label: 'RBNZ', country: 'New Zealand', cashRate: 3.25,
-    lastDecision: '2026-04-09', lastDecisionVerb: 'CUT', nextMeeting: '2026-10-07',
-    source: 'rbnz.govt.nz', asOf: '2026-04-09', lastVerified: '2026-09-06',
+    label: 'RBNZ', country: 'New Zealand', cashRate: 2.75,
+    lastDecision: '2026-09-02', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-28',
+    source: 'rbnz.govt.nz', asOf: '2026-09-02', lastVerified: '2026-10-01',
   },
   boc: {
-    label: 'BOC', country: 'Canada', cashRate: 2.75,
-    lastDecision: '2026-03-12', lastDecisionVerb: 'CUT', nextMeeting: '2026-09-09',
-    source: 'bankofcanada.ca', asOf: '2026-03-12', lastVerified: '2026-09-06',
+    label: 'BOC', country: 'Canada', cashRate: 2.25,
+    lastDecision: '2026-09-02', lastDecisionVerb: 'HOLD', nextMeeting: '2026-10-28',
+    source: 'bankofcanada.ca', asOf: '2026-09-02', lastVerified: '2026-10-01',
   },
   snb: {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,
@@ -119,7 +125,7 @@ export const VERIFIED_CONSTANTS = {
       termEnds: '2030-05-21',
       note: 'Confirmed 13 May 2026, succeeded Jerome Powell',
       source: 'federalreserve.gov',
-      lastVerified: '2026-09-07',
+      lastVerified: '2026-10-01',
     },
     rba: {
       role: 'Governor of the Reserve Bank of Australia',
@@ -129,7 +135,7 @@ export const VERIFIED_CONSTANTS = {
       // and 2023 + 7 is 2030.
       termEnds: '2030-09-17',
       source: 'rba.gov.au',
-      lastVerified: '2026-09-07',
+      lastVerified: '2026-10-01',
     },
     ecb: {
       role: 'President of the European Central Bank',
@@ -160,27 +166,25 @@ export const VERIFIED_CONSTANTS = {
 
 // ── Australian economy ────────────────────────────────────────────────────
   au: {
-    cpi: 3.8,
-    cpiPeriod: 'Jun 2026 quarter',
-    // CORRECTED 2026-09-07, and it was a sign error rather than a rounding one.
-    //
-    // This read 2.4, which is the March 2025 quarter. The quarter actually
-    // preceding this one is March 2026, at 4.6% — so the terminal was showing
-    // inflation RISING from 2.4% to 3.8% when it has in fact FALLEN from 4.6%.
-    // That inverts the read on the single most consequential number in an
-    // Australian macro module, and it fed the indicator delta, the AU_MACRO
-    // table and MaddenAI's interpretation alike.
-    // Source: abs.gov.au media release "CPI rose 4.6% in the year to March 2026".
-    cpiPrevious: 4.6,
-    cpiPreviousPeriod: 'Mar 2026 quarter',
-    cpiLastRelease: '2026-07-30',
-    cpiNextRelease: '2026-10-29',
-    cpiTrimmedMean: 2.7,
+    // UPDATED 2026-10-01 to the ABS monthly CPI, which is now the headline
+    // series. Source: abs.gov.au media release "CPI rose 4.0% in the year to
+    // August 2026" (released 30 Sep). July was 3.5%; June 3.8%. Trimmed mean
+    // "remained steady at 3.6 per cent for the third consecutive month".
+    // The 2.7% trimmed mean this file carried before was not a 2026 figure.
+    cpi: 4.0,
+    cpiPeriod: 'Aug 2026',
+    cpiPrevious: 3.5,
+    cpiPreviousPeriod: 'Jul 2026',
+    cpiLastRelease: '2026-09-30',
+    cpiNextRelease: '2026-10-28',
+    cpiTrimmedMean: 3.6,
     rbaTargetBand: '2–3%',
 
-    unemployment: 4.1,
-    unemploymentPeriod: 'May 2026',
-    unemploymentLastRelease: '2026-06-19',
+    unemployment: 4.6,
+    unemploymentPeriod: 'Aug 2026',
+    unemploymentLastRelease: '2026-09-24',
+    unemploymentNextRelease: '2026-10-15',
+
 
     // UPDATED 2026-09-07 — this was two quarters stale, reading 1.3% as at
     // Q4 2025 while the June 2026 national accounts were published. Growth has
@@ -262,8 +266,8 @@ export const VERIFIED_CONSTANTS = {
     auQuarterlyPathAsOf: '2026-06-30',
 
     source: 'abs.gov.au',
-    asOf: '2026-07-30',
-    lastVerified: '2026-09-07',
+    asOf: '2026-09-30',
+    lastVerified: '2026-10-01',
   },
 
   // ── Other major economies ─────────────────────────────────────────────────
@@ -310,6 +314,18 @@ export const VERIFIED_CONSTANTS = {
     source: 'balticexchange.com / freightos.com',
     asOf: '2026-06-30',
     lastVerified: '2026-09-06',
+  },
+
+  // ── Sovereign 10Y benchmarks ───────────────────────────────────────────────
+  // The two points the dashboard widget, the brief and the Bonds hero quote.
+  // The full curves live in bondCurves.js and agree with these.
+  bonds: {
+    label: 'Bonds',
+    au10y: 5.45, au10yAsOf: '2026-10-01',
+    us10y: 5.19, us10yAsOf: '2026-09-30',
+    source: 'home.treasury.gov (US par curve) / tradingeconomics.com (AU)',
+    asOf: '2026-10-01',
+    lastVerified: '2026-10-01',
   },
 
   // ── Benchmark index levels ────────────────────────────────────────────────
@@ -415,7 +431,7 @@ export function verifiedFactsForAI() {
     // one. The terminal's own UI shows the previous rate with its full
     // context; the model does not need it to answer "what is the cash rate".
     lines.push(
-      `RBA cash rate ${rba.cashRate}% — ${(rba.lastDecisionVerb ?? 'SET').toUpperCase()} at the ${rba.lastDecision} meeting` +
+      `RBA cash rate ${rba.cashRate.toFixed(2)}% — ${(rba.lastDecisionVerb ?? 'SET').toUpperCase()}${rba.lastChange ? ` ${rba.lastChange}` : ''} at the ${rba.lastDecision} meeting` +
       `${rba.nextMeeting ? `; next meeting ${rba.nextMeeting}` : ''}`,
     )
   }
@@ -423,8 +439,12 @@ export function verifiedFactsForAI() {
     const fedHeld = (fed.lastDecisionVerb ?? '').toUpperCase() === 'HOLD'
     lines.push(`US Fed funds ${fed.rateRange ?? `${fed.cashRate}%`} — ${fedHeld ? 'HELD at this level' : fed.lastDecisionVerb ?? 'set'} at the ${fed.lastDecision} meeting${fed.nextMeeting ? `; next meeting ${fed.nextMeeting}` : ''}`)
   }
+  if (rba && fed?.cashRate != null) {
+    const bp = Math.round((rba.cashRate - fed.cashRate) * 100)
+    lines.push(`AU/US policy spread: RBA ${rba.cashRate.toFixed(2)}% vs top of Fed range ${fed.cashRate.toFixed(2)}% = ${bp >= 0 ? '+' : ''}${bp}bp`)
+  }
   if (au) {
-    if (au.cpi != null) lines.push(`AU CPI ${au.cpi}% YoY (${au.cpiPeriod}), trimmed mean ${au.cpiTrimmedMean}%, RBA target band ${au.rbaTargetBand}`)
+    if (au.cpi != null) lines.push(`AU CPI ${au.cpi.toFixed(1)}% YoY (${au.cpiPeriod}; ${au.cpiPrevious}% in ${au.cpiPreviousPeriod}), trimmed mean ${au.cpiTrimmedMean}%, RBA target band ${au.rbaTargetBand}`)
     if (au.unemployment != null) lines.push(`AU unemployment ${au.unemployment}% (${au.unemploymentPeriod})`)
     if (au.gdpAnnual != null) lines.push(`AU GDP ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`)
   }

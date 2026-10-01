@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  BOND_MARKETS, BOND_CURVES, curveStats, priceFromYield, durationOf, dv01, ytm,
+  BOND_MARKETS, BOND_CURVES, BOND_CURVES_AS_OF, curveStats, priceFromYield, durationOf, dv01, ytm,
 } from '../../data/bondCurves'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { useBondYields } from './useBondYields'
@@ -152,7 +152,7 @@ function BondDetail({ market, row, onClose }) {
             {row.yield.toFixed(3)}%
           </span>
           {row.indicative && (
-            <Tooltip content="Ultra-long bonds are thinly traded. Yields at these maturities are market estimates even in the real market, and this whole curve is indicative.">
+            <Tooltip content="Not a sourced point. Interpolated between quoted maturities, or an ultra-long tenor that is thinly traded even in the real market.">
               <span className="font-mono text-terminal-text-dim/60 italic" style={{ fontSize: 9 }}>INDICATIVE</span>
             </Tooltip>
           )}
@@ -327,8 +327,8 @@ export default function BondsModule() {
         style={{ background: 'rgba(201,168,76,0.04)' }}>
         <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>INDICATIVE DATA</span>
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
-          Yields are an illustrative snapshot with simulated ticking, not a market feed. Real yields use
-          verified AU CPI of {cpi}%.
+          AU and US curves are anchored to quoted closes (AU {BOND_CURVES_AS_OF.AU}, US Treasury par curve {BOND_CURVES_AS_OF.US});
+          UK, DE and JP are illustrative. Ticking is simulated, not a market feed. Real yields use verified AU CPI of {cpi}%.
         </span>
       </div>
 

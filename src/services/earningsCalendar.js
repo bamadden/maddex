@@ -1,4 +1,4 @@
-// Hardcoded ASX reporting-season earnings dates, Aug-Oct 2026. Real dates for
+// Hardcoded ASX reporting-season earnings dates and AGMs, Aug-Oct 2026. Real dates for
 // the companies already tracked elsewhere in the app (ASX_STOCKS,
 // MOCK_ASX_STOCKS) — eps/rev estimates are illustrative, not sourced.
 export const EARNINGS_2026 = [
@@ -22,14 +22,17 @@ export const EARNINGS_2026 = [
   { ticker: 'REA.AX', company: 'REA Group',           date: '2026-09-29', type: 'Full Year',    epsEst: 3.94, revEst: 1650 },
   { ticker: 'AGL.AX', company: 'AGL Energy',          date: '2026-10-01', type: 'Full Year',    epsEst: 0.96, revEst: 14200 },
   { ticker: 'QBE.AX', company: 'QBE Insurance Group', date: '2026-10-06', type: 'Q3 Trading Update', epsEst: null, revEst: null },
+  // AGM dates from each company's 2026 notice of meeting.
+  { ticker: 'CBA.AX', company: 'Commonwealth Bank',   date: '2026-10-14', type: 'AGM',          epsEst: null, revEst: null },
+  { ticker: 'WES.AX', company: 'Wesfarmers',          date: '2026-10-29', type: 'AGM',          epsEst: null, revEst: null },
 ]
 
 export function earningsFor(ticker) {
-  return EARNINGS_2026.find((e) => e.ticker === ticker || e.ticker === `${ticker}.AX`) ?? null
+  return EARNINGS_2026.find((e) => e.type !== 'AGM' && (e.ticker === ticker || e.ticker === `${ticker}.AX`)) ?? null
 }
 
 export function upcomingEarnings(fromDate = new Date()) {
-  const from = fromDate.toISOString().slice(0, 10)
+  const from = fromDate.toLocaleDateString('en-CA')
   return EARNINGS_2026.filter((e) => e.date >= from).sort((a, b) => a.date.localeCompare(b.date))
 }
 

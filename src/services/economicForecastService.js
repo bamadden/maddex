@@ -1,4 +1,5 @@
 import { askClaudeJSON } from './api'
+import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 
 // Deterministic seeded PRNG — same technique used elsewhere in this app's
 // mock layer, used here instead of the brief's raw Math.random() so the
@@ -19,11 +20,14 @@ function mulberry32(seed) {
   }
 }
 
+// Seeds for the four headline series come from verifiedConstants.
+const { au, rba } = VERIFIED_CONSTANTS
+
 export const INDICATORS = [
-  { key: 'gdp',      label: 'GDP Growth',          current: 1.2,  vol: 0.3,  trend: -0.02, unit: '%', targetHint: 'RBA target 2-3%' },
-  { key: 'inflation',label: 'Inflation',            current: 3.8,  vol: 0.2,  trend: -0.05, unit: '%', targetHint: 'RBA target 2-3%' },
-  { key: 'unemp',    label: 'Unemployment',         current: 4.2,  vol: 0.1,  trend: 0.01,  unit: '%', targetHint: 'full employment ~4%' },
-  { key: 'cashrate', label: 'Cash Rate',            current: 4.35, vol: 0,    trend: 0,     unit: '%', targetHint: 'neutral ~2.5%' },
+  { key: 'gdp',      label: 'GDP Growth',          current: au.gdpAnnual,  vol: 0.3,  trend: -0.02, unit: '%', targetHint: 'RBA target 2-3%' },
+  { key: 'inflation',label: 'Inflation',            current: au.cpi, vol: 0.2, trend: 0, unit: '%', targetHint: 'RBA target 2-3%' },
+  { key: 'unemp',    label: 'Unemployment',         current: au.unemployment,  vol: 0.1,  trend: 0.01,  unit: '%', targetHint: 'full employment ~4%' },
+  { key: 'cashrate', label: 'Cash Rate',            current: rba.cashRate, vol: 0,    trend: 0,     unit: '%', targetHint: 'neutral ~2.5%' },
   { key: 'trade',    label: 'Trade Balance',        current: 5.2,  vol: 0.5,  trend: 0.02,  unit: 'B', targetHint: 'monthly surplus, A$' },
   { key: 'consconf', label: 'Consumer Confidence',  current: 84.3, vol: 2,    trend: -0.01, unit: '',  targetHint: '100 = neutral' },
   { key: 'busconf',  label: 'Business Confidence',  current: 6,    vol: 3,    trend: 0,     unit: '',  targetHint: 'NAB survey index' },

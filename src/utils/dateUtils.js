@@ -66,3 +66,17 @@ export function timeAgo(when, now = Date.now()) {
 export function getRelativeDate(daysOffset) {
   return new Date(Date.now() + daysOffset * 86400000).toISOString().split('T')[0]
 }
+
+// Sydney's UTC offset ("+10:00" / "+11:00") and abbreviation (AEST / AEDT) on
+// a given ISO date. Daylight saving runs October to April, so a hardcoded
+// +10:00 puts every summer event an hour late.
+export function sydneyOffset(iso) {
+  try {
+    const name = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', timeZoneName: 'longOffset' })
+      .formatToParts(new Date(`${iso}T12:00:00Z`)).find((p) => p.type === 'timeZoneName')?.value
+    const m = name?.match(/GMT([+-]\d{2}:\d{2})/)
+    return m ? m[1] : '+10:00'
+  } catch { return '+10:00' }
+}
+
+export const sydneyTzAbbr = (iso) => (sydneyOffset(iso) === '+11:00' ? 'AEDT' : 'AEST')

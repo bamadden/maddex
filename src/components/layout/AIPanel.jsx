@@ -67,7 +67,7 @@ const MODULE_LABELS = {
 // lastRbaLabel computed above, so its dynamic date/rate text is unchanged.
 const RBA_PROMPT = {
   label:  'RBA NEXT MOVE',
-  prompt: `What is the most likely RBA decision at the next board meeting on ${nextRbaLabel} and why? Current cash rate is 4.35% after the RBA ${LAST_DECISIONS.RBA.decision.toLowerCase()} at its ${lastRbaLabel} meeting (${LAST_DECISIONS.RBA.note}).`,
+  prompt: `What is the most likely RBA decision at the next board meeting on ${nextRbaLabel} and why? Current cash rate is ${LAST_DECISIONS.RBA.rate} after the RBA ${LAST_DECISIONS.RBA.decision.toLowerCase()} at its ${lastRbaLabel} meeting (${LAST_DECISIONS.RBA.note}).`,
   dataKeys: ['asx', 'aud'],
 }
 

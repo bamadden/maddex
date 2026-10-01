@@ -1,4 +1,5 @@
 import { VERIFIED_CONSTANTS } from './verifiedConstants'
+import { BOND_CURVES, BOND_CURVES_AS_OF } from './bondCurves'
 
 // ─── Recession risk monitor ─────────────────────────────────────────────────
 //
@@ -37,13 +38,12 @@ const round = (v) => Math.round(v * 10) / 10
 
 // ─── Yield curves ───────────────────────────────────────────────────────────
 //
-// Copied here from FXModule rather than imported, because importing a module's
-// private constant would make the Macro module depend on the Rates module's
-// internals. Both should ultimately read one source; until a live curve feed
-// exists, the as-of date says which snapshot this is.
+// Read from bondCurves.js, the single source for yields, so this factor and
+// the Bonds/Rates curves cannot disagree.
+const at = (key, m) => BOND_CURVES[key].find((r) => r.maturity === m)?.yield ?? null
 export const YIELD_CURVE_POINTS = {
-  AU: { twoYear: 3.65, tenYear: 4.20, asOf: 'Aug 2026', source: 'AOFM / RBA' },
-  US: { twoYear: 4.10, tenYear: 4.45, asOf: 'Aug 2026', source: 'US Treasury' },
+  AU: { twoYear: at('AU', '2Y'), tenYear: at('AU', '10Y'), asOf: BOND_CURVES_AS_OF.AU, source: 'Market close' },
+  US: { twoYear: at('US', '2Y'), tenYear: at('US', '10Y'), asOf: BOND_CURVES_AS_OF.US, source: 'US Treasury par curve' },
 }
 
 export const curveSpreadBp = (c) => Math.round((c.tenYear - c.twoYear) * 100)

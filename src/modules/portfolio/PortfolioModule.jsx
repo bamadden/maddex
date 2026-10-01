@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYFQuote, USING_MOCK_DATA } from '../../services/api'
@@ -265,7 +266,7 @@ function MockAnalysisPreview({ bySector, mktTotal }) {
         </div>
         <div>
           <div className="text-terminal-text-dim/60 tracking-widest mb-1">MACRO ALIGNMENT</div>
-          <div className="text-terminal-text-bright">RBA on hold at 4.35% with a cautious easing bias — rate-sensitive sectors (Financials, Real Estate) may benefit if cuts arrive in 2027; commodity-heavy portfolios stay exposed to China demand.</div>
+          <div className="text-terminal-text-bright">RBA at {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% after a {VERIFIED_CONSTANTS.rba.lastDecisionVerb.toLowerCase()} on {VERIFIED_CONSTANTS.rba.lastDecision}, with further increases still possible — rate-sensitive sectors (Real Estate, consumer discretionary) carry the most pressure; commodity-heavy portfolios stay exposed to China demand.</div>
         </div>
         <div>
           <div className="text-terminal-text-dim/60 tracking-widest mb-1">SUGGESTIONS</div>

@@ -529,7 +529,7 @@ export default function NotificationCenter() {
     if (!watchlist.length) return
     const check = () => {
       for (const sym of watchlist) {
-        const e = upcomingEarnings().find((ev) => ev.ticker === sym || ev.ticker === `${sym}.AX`)
+        const e = upcomingEarnings().find((ev) => ev.type !== 'AGM' && (ev.ticker === sym || ev.ticker === `${sym}.AX`))
         if (!e || daysUntil(e.date) !== 2) continue
         const key = todayKey(`madden_notif_earnings_${e.ticker}_${e.date}`)
         if (localStorage.getItem(key)) continue

@@ -1,4 +1,5 @@
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
+import { sydneyOffset } from '../utils/dateUtils'
 
 const ALERTS_KEY = 'maddex_alerts_engine_v1'
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
@@ -17,10 +18,10 @@ export const ALERT_TYPES = [
 // same illustrative-calendar pattern as morningBriefService's keyEvents,
 // not a live feed.
 export const UPCOMING_EVENTS = [
-  { label: 'RBA Cash Rate Decision', date: '2026-09-16', time: '14:30' },
-  { label: 'AU CPI Monthly',         date: '2026-09-25', time: '11:30' },
-  { label: 'AU Retail Sales',        date: '2026-09-10', time: '11:30' },
-  { label: 'US Core PCE',            date: '2026-08-29', time: '22:30' },
+  { label: 'US Non-Farm Payrolls',   date: '2026-10-02', time: '22:30' },
+  { label: 'AU Labour Force',        date: '2026-10-15', time: '11:30' },
+  { label: 'AU CPI',                 date: '2026-10-28', time: '11:30' },
+  { label: 'RBA Cash Rate Decision', date: '2026-11-03', time: '14:30' },
 ]
 
 export function loadAlerts() {
@@ -157,7 +158,7 @@ export function checkAlerts(alerts, { symbols = [], newsHeadlines = [] } = {}) {
     if (alert.type === 'ECONOMIC_EVENT') {
       const now = new Date()
       for (const ev of UPCOMING_EVENTS) {
-        const evTime = new Date(`${ev.date}T${ev.time}:00+10:00`)
+        const evTime = new Date(`${ev.date}T${ev.time}:00${sydneyOffset(ev.date)}`)
         const hoursUntil = (evTime - now) / 3_600_000
         if (hoursUntil > 0 && hoursUntil <= (alert.value || 1)) {
           fired = true
