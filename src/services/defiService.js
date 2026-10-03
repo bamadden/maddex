@@ -65,6 +65,16 @@ const json = async (url) => {
 const EXCLUDED_CATEGORIES = new Set(['CEX', 'Chain', 'Bridge'])
 
 export const defiService = {
+  // Same row shape as liveDataService.getDataStatus, for the settings panel.
+  getDataStatus() {
+    return [['protocols_25', 'DeFi TVL'], ['btc_onchain', 'BTC mempool'], ['btc_halving', 'BTC block height']].map(([key, label]) => {
+      let at = null
+      try { at = JSON.parse(localStorage.getItem(CACHE_PREFIX + key) ?? 'null')?.at ?? null } catch { /* unreadable */ }
+      const ageMins = at ? Math.round((Date.now() - at) / 60000) : null
+      return { key: `defi_${key}`, label, kind: 'live', ageMins, status: ageMins == null ? 'never' : ageMins < 1 ? 'fresh' : ageMins < 60 ? 'recent' : 'stale' }
+    })
+  },
+
   // Protocols by TVL, with category and 24h change.
   async getProtocols(limit = 25) {
     return withCache(`protocols_${limit}`, async () => {

@@ -25,6 +25,8 @@ import { getUsageSummary } from '../../services/aiUsageService'
 import { APP_VERSION } from '../layout/NavBar'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
+import { defiService } from '../../services/defiService'
+import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
 const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
@@ -849,7 +851,8 @@ function DataProvenancePanel() {
     return () => clearInterval(id)
   }, [])
 
-  const feeds = liveDataService.getDataStatus()
+  // DefiLlama and mempool.space cache through defiService, not liveDataService.
+  const feeds = [...liveDataService.getDataStatus(), ...defiService.getDataStatus()]
   const ai = aiContentService.getContentStatus()
   const constants = allVerifiedGroups()
   const staleConstants = constants.filter((c) => c.stale)
@@ -866,6 +869,9 @@ function DataProvenancePanel() {
       liveDataService.getFearGreed(),
       liveDataService.getEarthquakes(),
       liveDataService.getExchangeWeather(),
+      defiService.getProtocols(25),
+      defiService.getBitcoinOnChain(),
+      defiService.getHalvingInputs(),
     ])
     setBusy(null)
     setTick((n) => n + 1)
@@ -1593,7 +1599,7 @@ function SecuritySection({ onDeleteRequest }) {
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
-function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes }) {
+function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClearCache, onResetDashboard, onSignOut, signedIn }) {
   const [exporting, setExporting] = useState(false)
 
   const exportUserData = async () => {
@@ -1642,6 +1648,25 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes }) {
         >
           {exporting ? '...' : 'EXPORT MY DATA'}
         </button>
+      </div>
+
+      <div className="border border-terminal-border p-4 space-y-3">
+        <div className="text-xs font-bold text-terminal-gold tracking-widest">RESET</div>
+        <div className="text-2xs text-terminal-text-dim">Housekeeping that does not touch your watchlist, portfolio or notes.</div>
+        {[
+          ['Clear all cached data', onClearCache, 'Live feeds, AI content and briefs are re-fetched on next use'],
+          ['Reset dashboard', onResetDashboard, 'Back to the standard six-widget layout'],
+          ['Sign out', onSignOut, signedIn ? 'Ends this session' : 'Not signed in'],
+        ].map(([label, handler, note]) => (
+          <div key={label} className="flex items-center gap-3">
+            <button
+              onClick={handler}
+              disabled={label === 'Sign out' && !signedIn}
+              className="px-4 py-1.5 text-xs border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold/10 transition-colors disabled:opacity-30 w-52 text-left"
+            >{label.toUpperCase()}</button>
+            <span className="text-2xs text-terminal-text-dim">{note}</span>
+          </div>
+        ))}
       </div>
 
       <div className="border border-terminal-red/30 p-4 space-y-3">
@@ -1976,9 +2001,11 @@ const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
 const BUILD_DATE = BUILD_TIME ? BUILD_TIME.slice(0, 10) : '2026-08-25'
 const ENVIRONMENT = import.meta.env.DEV ? 'Development' : 'Production'
 const WHATS_NEW = [
-  { date: '2026-08-25', note: 'MaddenAI settings (auto-analyse, context awareness, disclaimer frequency), saved screens in the Screener, and a portfolio returns attribution waterfall chart.' },
-  { date: '2026-08-24', note: 'Skeleton loading screens, micro-animations, elite empty states, and a Web Audio sound-effects system.' },
-  { date: '2026-08-24', note: 'Markets sector breadth drill-down, Global AU Focus, and MaddenAI conversation history.' },
+  { date: '2026-10-02', note: 'Location search on the Global intel map — places, coordinates, fly-to and financial context cards.' },
+  { date: '2026-10-01', note: 'Replay: seven sourced market scenarios with a player, impact summary and quiz.' },
+  { date: '2026-09-07', note: 'Financial calculators — eleven tools across investment, super, property, tax and loans.' },
+  { date: '2026-09-07', note: 'ETF Explorer — 21 Australian ETFs with fee-drag calculator and side-by-side comparison.' },
+  { date: '2026-09-07', note: 'Bonds — full maturity spectrum, 1M to 50Y, across five sovereign markets.' },
 ]
 
 // ─── Data sources ────────────────────────────────────────────────────────────
@@ -2006,8 +2033,11 @@ const SOURCE_TIERS = [
       { name: 'Crypto prices', detail: 'CoinGecko', cacheKey: 'crypto_prices' },
       { name: 'Crypto Fear & Greed', detail: 'alternative.me', cacheKey: 'fear_greed' },
       { name: 'Gold', detail: 'PAXG proxy via CoinGecko', cacheKey: 'gold_price' },
-      { name: 'Earthquakes', detail: 'USGS', cacheKey: 'earthquakes' },
+      { name: 'Earthquakes', detail: 'USGS M4.5+ weekly', cacheKey: 'earthquakes_4.5' },
       { name: 'Exchange weather', detail: 'Open-Meteo', cacheKey: 'exchange_weather' },
+      { name: 'DeFi TVL', detail: 'DefiLlama', cacheKey: 'defi:protocols_25' },
+      { name: 'BTC mempool & fees', detail: 'mempool.space', cacheKey: 'defi:btc_onchain' },
+      { name: 'BTC halving countdown', detail: 'mempool.space block height', cacheKey: 'defi:btc_halving' },
       { name: 'News', detail: '18 RSS feeds via /api/rss', cacheKey: null },
     ],
   },
@@ -2020,6 +2050,7 @@ const SOURCE_TIERS = [
     rows: [
       { name: 'Macro themes', detail: 'Regenerated daily' },
       { name: 'Geopolitical commentary', detail: 'Regenerated daily' },
+      { name: 'Shipping chokepoints', detail: 'Regenerated daily' },
       { name: 'Intel ticker', detail: 'Regenerated daily' },
       { name: 'Morning brief', detail: 'Once per market day' },
       { name: 'Market sentiment score', detail: 'Hourly, from real headlines' },
@@ -2040,11 +2071,11 @@ const SOURCE_TIERS = [
     colour: '#637899',
     note: 'Shown as DEMO throughout the terminal until an equity data provider is connected.',
     rows: [
-      { name: 'ASX & US equity prices', detail: 'Every price under a DEMO badge' },
+      { name: 'ASX & US equity prices', detail: 'COMING SOON — awaiting a market-data key; DEMO until then' },
       { name: 'Company fundamentals', detail: 'PE, yield, market cap on mock rows' },
       { name: 'Intraday charts', detail: 'Generated series, not real ticks' },
       { name: 'Rate-futures pricing', detail: 'No hold/cut probability is shown anywhere' },
-      { name: 'Economic release actuals', detail: 'Calendar shows consensus only' },
+      { name: 'Economic release actuals', detail: 'Calendar lists dates and times, not results' },
     ],
   },
 ]
@@ -2068,9 +2099,13 @@ function DataSourcesSection() {
     const out = {}
     try {
       for (const key of Object.keys(localStorage)) {
-        if (!key.startsWith('maddex_live_')) continue
-        const parsed = JSON.parse(localStorage.getItem(key))
-        if (parsed?.timestamp) out[key.replace('maddex_live_', '')] = parsed.timestamp
+        if (key.startsWith('maddex_live_')) {
+          const parsed = JSON.parse(localStorage.getItem(key))
+          if (parsed?.timestamp) out[key.replace('maddex_live_', '')] = parsed.timestamp
+        } else if (key.startsWith('maddex_defi_')) {
+          const parsed = JSON.parse(localStorage.getItem(key))
+          if (parsed?.at) out[`defi:${key.replace('maddex_defi_', '')}`] = parsed.at
+        }
       }
     } catch { /* storage unavailable — rows just show no timestamp */ }
     return out
@@ -2091,7 +2126,7 @@ function DataSourcesSection() {
   const refreshLive = () => {
     try {
       for (const key of Object.keys(localStorage)) {
-        if (key.startsWith('maddex_live_')) localStorage.removeItem(key)
+        if (key.startsWith('maddex_live_') || key.startsWith('maddex_defi_')) localStorage.removeItem(key)
       }
     } catch { /* best effort */ }
     bump((n) => n + 1)
@@ -2208,6 +2243,10 @@ function AboutSection() {
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Financial Disclaimer</a>
       </div>
 
+      <div className="text-2xs text-terminal-text-dim">
+        Contact: <a href="mailto:ben@maddex.com.au" className="text-terminal-text-bright hover:text-terminal-gold">ben@maddex.com.au</a>
+      </div>
+
       <div className="pt-2 border-t border-terminal-border/30 flex gap-2">
         <a
           href="mailto:ben@maddex.com.au?subject=Maddex%20Feedback"
@@ -2280,9 +2319,40 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requ
 
 export default function SettingsPanel({ onClose, initialSection }) {
   const [active, setActive] = useState(initialSection && SECTIONS.includes(initialSection) ? initialSection : 'PROFILE')
-  const { deleteAccount } = useAuthStore()
+  const { deleteAccount, signOut, user } = useAuthStore()
   const { clearWatchlist } = useStore()
   const [confirm, setConfirm] = useState(null)
+  const [doneToast, setDoneToast] = useState(null)
+  const flashDone = (msg) => { setDoneToast(msg); setTimeout(() => setDoneToast(null), 2500) }
+
+  // Caches only — every key here is something the app re-fetches or
+  // regenerates. User data (watchlist, portfolio, transactions, alerts,
+  // settings, saved screens) is deliberately not in this list.
+  const CACHE_PREFIXES = [
+    'maddex_live_', 'maddex_ds_', 'maddex_defi_', 'maddex_ai_content_', 'maddex_cdb_',
+    'maddex_indicator_forecast_', 'maddex_scanner_pattern_', 'maddex_morning_brief_', 'madden_econ_calendar_v1',
+  ]
+  const handleClearCache = () => {
+    setConfirm(null)
+    let n = 0
+    try {
+      for (const k of Object.keys(localStorage)) {
+        if (CACHE_PREFIXES.some((p) => k.startsWith(p))) { localStorage.removeItem(k); n++ }
+      }
+      sessionStorage.removeItem('maddex_geocode_cache_v1')
+    } catch { /* storage unavailable */ }
+    flashDone(`Cleared ${n} cached item${n === 1 ? '' : 's'}`)
+  }
+  const handleResetDashboard = () => {
+    setConfirm(null)
+    dashboardService.applyPreset('standard')
+    flashDone('Dashboard reset to the standard layout')
+  }
+  const handleSignOut = async () => {
+    setConfirm(null)
+    await signOut()
+    onClose()
+  }
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -2360,6 +2430,10 @@ export default function SettingsPanel({ onClose, initialSection }) {
               onClearWatchlist={() => setConfirm('clear-watchlist')}
               onClearPortfolio={() => setConfirm('clear-portfolio')}
               onClearNotes={() => setConfirm('clear-notes')}
+              onClearCache={() => setConfirm('clear-cache')}
+              onResetDashboard={() => setConfirm('reset-dashboard')}
+              onSignOut={() => setConfirm('sign-out')}
+              signedIn={!!user}
             />
           )}
           {active === 'SUBSCRIPTION'  && <SubscriptionSection />}
@@ -2393,6 +2467,35 @@ export default function SettingsPanel({ onClose, initialSection }) {
           onConfirm={handleClearPortfolio}
           onCancel={() => setConfirm(null)}
         />
+      )}
+      {confirm === 'clear-cache' && (
+        <ConfirmDialog
+          title="CLEAR ALL CACHED DATA"
+          message="Cached live feeds, AI content and morning briefs will be cleared and re-fetched as you use the terminal. Your watchlist, portfolio and settings are not affected."
+          onConfirm={handleClearCache}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+      {confirm === 'reset-dashboard' && (
+        <ConfirmDialog
+          title="RESET DASHBOARD"
+          message="Your dashboard layout will be replaced with the standard six-widget layout."
+          onConfirm={handleResetDashboard}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+      {confirm === 'sign-out' && (
+        <ConfirmDialog
+          title="SIGN OUT"
+          message="You will be signed out of Maddex on this device."
+          onConfirm={handleSignOut}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+      {doneToast && (
+        <div className="fixed bottom-6 right-6 z-[200] font-mono text-2xs px-3 py-2 border border-terminal-gold/50 bg-terminal-panel text-terminal-gold shadow-2xl">
+          ✓ {doneToast}
+        </div>
       )}
       {confirm === 'clear-notes' && (
         <ConfirmDialog

@@ -2,7 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { fetchYahooQuote, toAUD } from './services/api'
+import { fetchYahooQuote, USING_MOCK_DATA } from './services/api'
+import { getMockFMPRow } from './services/mockData'
 
 // Clear stale stock-price cache on every load — only `madden_idx_*` keys hold
 // quote data; everything else under `madden_*` (portfolio, currency, alerts,
@@ -24,31 +25,31 @@ console.log('[MADDEN] ✓ COINGECKO: no key required — direct browser access')
 console.log('[MADDEN] ✓ FRANKFURTER: no key required — proxy ready (/api/frankfurter)')
 console.log('[MADDEN] ✓ ANTHROPIC: server-side only — proxied via /api/claude, key never in this bundle')
 
-// Startup price verification — runs 2s after load to let the dev server settle
+// Startup price verification — a guard against the wrong LISTING (BHP's US
+// ADR price shown as BHP.AX, a USD price shown as AUD), not a price forecast.
+//
+// The expected bands used to be typed-in ranges from an earlier year, so
+// they drifted into false alarms (CBA, AAPL, NVDA all "failing" on correct
+// data). Each band is now ±40% around the demo layer's reference price for
+// the same symbol — wide enough for any real market move, narrow enough to
+// catch a currency or listing mix-up, which is typically off by 30-60%.
+// Skipped entirely on demo data, where it would only be checking the demo
+// layer against itself.
 setTimeout(async () => {
-  const CHECKS = [
-    { sym: 'BHP.AX',  label: 'BHP',   minAUD: 55,  maxAUD: 80,  currency: 'AUD' },
-    { sym: 'CBA.AX',  label: 'CBA',   minAUD: 155, maxAUD: 190, currency: 'AUD' },
-    { sym: 'WOW.AX',  label: 'WOW',   minAUD: 32,  maxAUD: 46,  currency: 'AUD' },
-    { sym: 'RIO.AX',  label: 'RIO',   minAUD: 110, maxAUD: 145, currency: 'AUD' },
-    { sym: 'AAPL',    label: 'AAPL',  minAUD: 280, maxAUD: 380, currency: 'USD' },
-    { sym: 'NVDA',    label: 'NVDA',  minAUD: 160, maxAUD: 250, currency: 'USD' },
-  ]
+  if (USING_MOCK_DATA) return
+  const CHECKS = ['BHP.AX', 'CBA.AX', 'WOW.AX', 'RIO.AX', 'AAPL', 'NVDA']
   console.log('[MADDEN VERIFY] Running startup price checks...')
-  for (const c of CHECKS) {
+  for (const sym of CHECKS) {
     try {
-      const q = await fetchYahooQuote(c.sym)
-      if (!q) { console.warn(`[MADDEN VERIFY] ✕ ${c.label}: null response`); continue }
-      // For display, we need AUD rate — approximate 0.645 as sanity check only
-      const audUsd = 0.645
-      const audPrice = toAUD(q.price, q.currency, audUsd)
-      const ok = audPrice >= c.minAUD && audPrice <= c.maxAUD
-      const arrow = ok ? '✓' : '✕'
+      const ref = getMockFMPRow(sym)?.regularMarketPrice
+      const q = await fetchYahooQuote(sym)
+      if (!q || !ref) { console.warn(`[MADDEN VERIFY] ✕ ${sym}: no quote or no reference`); continue }
+      const ok = q.price >= ref * 0.6 && q.price <= ref * 1.4
       console[ok ? 'log' : 'warn'](
-        `[MADDEN VERIFY] ${arrow} ${c.label}: ${q.price} ${q.currency} → A$${audPrice?.toFixed(2)} (expected A$${c.minAUD}–${c.maxAUD})`
+        `[MADDEN VERIFY] ${ok ? '✓' : '✕'} ${sym}: ${q.price} ${q.currency} (reference ${ref.toFixed(2)}, ±40%)`
       )
     } catch (e) {
-      console.warn(`[MADDEN VERIFY] ✕ ${c.label}:`, e.message)
+      console.warn(`[MADDEN VERIFY] ✕ ${sym}:`, e.message)
     }
   }
 }, 2000)
