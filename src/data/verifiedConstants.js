@@ -337,12 +337,16 @@ export const VERIFIED_CONSTANTS = {
   // Indicative only. Live equity quotes come through dataService; these exist
   // so the intelligence map has something to label a marker with.
   indices: {
-    asx200: 8247.3, sp500: 5842.3, ftse100: 8624.1, nikkei225: 38420.5,
-    hangSeng: 18242.1, sseComposite: 3284.2, dax: 18842.3, sensex: 81242.4,
-    sti: 3412.8, tsx: 22847.6, nzx50: 12284.3, ta35: 2124.8,
-    source: 'Indicative — not a live feed',
-    asOf: '2026-06-30',
-    lastVerified: '2026-09-06',
+    // Real closes, re-checked 2026-10-03. ASX: 2 Oct 2026; the rest: 30 Sep
+    // 2026. The previous set (asx200 8247.3, sp500 5842.3, nikkei 38420.5…)
+    // was two years stale. STI, NZX 50 and TA-35 were dropped rather than
+    // carried forward — no current close was found, and nothing reads them.
+    asx200: 8682.1, sp500: 7651.54, nasdaq: 26861.06, dow: 50906.05,
+    ftse100: 10606.0, nikkei225: 66753.72, hangSeng: 24613.27,
+    sseComposite: 3842.19, dax: 25199.19, sensex: 72480.29, tsx: 35235.87,
+    source: 'Index closes via Motley Fool AU, AP, CNBC, BBN Times — indicative, not a live feed',
+    asOf: '2026-10-02',
+    lastVerified: '2026-10-03',
   },
 }
 

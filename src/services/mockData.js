@@ -51,7 +51,24 @@ function jitterFor(symbol) {
 // ─── ASX Top 20 ────────────────────────────────────────────────────────────
 // price/changePct are illustrative (ASX quotes are premium-gated on every
 // vendor tried this session — no live reference available). marketCap in AUD.
-export const MOCK_ASX_STOCKS = {
+//
+// REBASED 2026-10-03. These were drafted against an ASX 200 of ~9,650, about
+// 11% above the real index (8,682.1 at the 2 Oct 2026 close). Every price-
+// denominated field is scaled by the same factor so the stocks stay coherent
+// with the index they make up; ratios (P/E, yield, % change) are unchanged.
+const ASX_DRAFT_INDEX = 9650
+const ASX_REAL_INDEX = 8682.1
+const ASX_SCALE = ASX_REAL_INDEX / ASX_DRAFT_INDEX
+const rebaseAsx = (rows) => Object.fromEntries(Object.entries(rows).map(([sym, r]) => [sym, {
+  ...r,
+  price: round2(r.price * ASX_SCALE),
+  week52High: r.week52High != null ? round2(r.week52High * ASX_SCALE) : r.week52High,
+  week52Low: r.week52Low != null ? round2(r.week52Low * ASX_SCALE) : r.week52Low,
+  marketCap: r.marketCap != null ? Math.round(r.marketCap * ASX_SCALE) : r.marketCap,
+  eps: r.eps != null ? round2(r.eps * ASX_SCALE) : r.eps,
+}]))
+
+export const MOCK_ASX_STOCKS = rebaseAsx({
   'BHP.AX': { name: 'BHP Group',             price: 68.50,  changePct:  0.85, marketCap: 215_000_000_000, pe: 13.2, eps: 5.19,  divYield: 5.4, volume: 9_800_000,  week52High: 82.10,  week52Low: 52.30,  sector: 'Materials' },
   'CBA.AX': { name: 'Commonwealth Bank',     price: 172.00, changePct: -0.42, marketCap: 290_000_000_000, pe: 24.8, eps: 6.94,  divYield: 3.1, volume: 2_100_000,  week52High: 191.50, week52Low: 148.20, sector: 'Financials' },
   'CSL.AX': { name: 'CSL Limited',           price: 265.00, changePct:  1.30, marketCap: 145_000_000_000, pe: 33.4, eps: 7.93,  divYield: 1.3, volume: 780_000,    week52High: 302.40, week52Low: 218.60, sector: 'Health' },
@@ -80,7 +97,7 @@ export const MOCK_ASX_STOCKS = {
   'STO.AX': { name: 'Santos Limited',        price: 7.80,   changePct:  0.65, marketCap: 24_000_000_000,  pe: 11.2, eps: 0.70,  divYield: 5.9, volume: 8_400_000,  week52High: 8.60,   week52Low: 6.20,   sector: 'Energy' },
   'WDS.AX': { name: 'Woodside Energy',       price: 26.50,  changePct: -1.80, marketCap: 52_000_000_000,  pe: 12.1, eps: 2.19,  divYield: 7.8, volume: 5_100_000,  week52High: 32.40,  week52Low: 21.60,  sector: 'Energy' },
   'AGL.AX': { name: 'AGL Energy',            price: 11.20,  changePct:  0.95, marketCap: 12_000_000_000,  pe: 16.3, eps: 0.69,  divYield: 4.1, volume: 3_800_000,  week52High: 13.10,  week52Low: 8.90,   sector: 'Utilities' },
-}
+})
 
 // ─── US stocks ──────────────────────────────────────────────────────────────
 // price/change/volume/52w for AAPL/NVDA/MSFT/GOOG/AMZN/META/TSLA/JPM/V are
@@ -118,17 +135,21 @@ export const MOCK_US_STOCKS = {
 // ^AXJO/^AORD/^GDAXI/000001.SS/^NZ50 are premium-gated on every vendor tried
 // — approximated from known real-world levels with a plausible growth drift.
 export const MOCK_INDICES = {
-  '^AXJO':     { name: 'ASX 200',      price: 9650.0,  changePct: 0.42,  currency: 'AUD' },
-  '^AORD':     { name: 'All Ords',     price: 9950.0,  changePct: 0.38,  currency: 'AUD' },
-  '^GSPC':     { name: 'S&P 500',      price: 7489.72, changePct: 0.70,  currency: 'USD' },
-  '^IXIC':     { name: 'NASDAQ',       price: 25373.85, changePct: 1.00, currency: 'USD' },
-  '^DJI':      { name: 'Dow Jones',    price: 52485.03, changePct: 0.53, currency: 'USD' },
-  '^FTSE':     { name: 'FTSE 100',     price: 10868.05, changePct: -0.27, currency: 'GBP' },
-  '^GDAXI':    { name: 'DAX',          price: 26800.0, changePct: 0.31,  currency: 'EUR' },
-  '^N225':     { name: 'Nikkei 225',   price: 63754.9, changePct: -0.94, currency: 'JPY' },
-  '^HSI':      { name: 'Hang Seng',    price: 25931.39, changePct: 0.18, currency: 'HKD' },
-  '000001.SS': { name: 'Shanghai',     price: 3850.0,  changePct: -0.22, currency: 'CNY' },
-  '^NZ50':     { name: 'NZX 50',       price: 13400.0, changePct: 0.24,  currency: 'NZD' },
+  // Real closes. ASX: 2 Oct 2026 (Motley Fool AU). US, Europe and Asia:
+  // 30 Sep 2026 (AP / CNBC / BBN Times). All Ords and NZX 50 are not
+  // verified — the All Ords keeps its usual premium to the ASX 200 and the
+  // NZX 50 is unchanged from its earlier approximation.
+  '^AXJO':     { name: 'ASX 200',      price: 8682.1,   changePct: 0.79,  currency: 'AUD' },
+  '^AORD':     { name: 'All Ords',     price: 8952.0,   changePct: 0.75,  currency: 'AUD' },
+  '^GSPC':     { name: 'S&P 500',      price: 7651.54,  changePct: -0.25, currency: 'USD' },
+  '^IXIC':     { name: 'NASDAQ',       price: 26861.06, changePct: 0.24,  currency: 'USD' },
+  '^DJI':      { name: 'Dow Jones',    price: 50906.05, changePct: -0.86, currency: 'USD' },
+  '^FTSE':     { name: 'FTSE 100',     price: 10606.0,  changePct: -0.29, currency: 'GBP' },
+  '^GDAXI':    { name: 'DAX',          price: 25199.19, changePct: -0.79, currency: 'EUR' },
+  '^N225':     { name: 'Nikkei 225',   price: 66753.72, changePct: 1.94,  currency: 'JPY' },
+  '^HSI':      { name: 'Hang Seng',    price: 24613.27, changePct: 0.37,  currency: 'HKD' },
+  '000001.SS': { name: 'Shanghai',     price: 3842.19,  changePct: 0.31,  currency: 'CNY' },
+  '^NZ50':     { name: 'NZX 50',       price: 13400.0,  changePct: 0.24,  currency: 'NZD' },
 }
 
 // ─── Crypto Top 20 ──────────────────────────────────────────────────────────
