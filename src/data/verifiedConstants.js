@@ -354,8 +354,18 @@ export const VERIFIED_CONSTANTS = {
 
 // Whole days since a group was last confirmed correct. null when the key or
 // its date is missing, so callers can distinguish "unknown" from "fresh".
+// Groups whose figures an official feed confirmed this session (see
+// services/officialStats.js). A confirmation is as good as a human check on
+// that day, so it resets the staleness clock — but only for groups whose
+// every checked figure matched; one mismatch confirms nothing.
+const confirmedAt = {}
+export function markConfirmed(key, isoDate) { confirmedAt[key] = isoDate }
+export function confirmationFor(key) { return confirmedAt[key] ?? null }
+
 export function daysSinceVerified(key) {
-  const date = VERIFIED_CONSTANTS[key]?.lastVerified
+  const human = VERIFIED_CONSTANTS[key]?.lastVerified
+  const auto = confirmedAt[key]
+  const date = human && auto ? (auto > human ? auto : human) : (human ?? auto)
   if (!date) return null
   const t = new Date(`${date}T00:00:00`).getTime()
   if (Number.isNaN(t)) return null
@@ -475,7 +485,9 @@ export function verifiedFactsForAI() {
 
   if (!lines.length) return ''
 
-  const verified = [rba?.lastVerified, fed?.lastVerified, au?.lastVerified].filter(Boolean).sort()[0]
+  // A same-day confirmation against the RBA/ABS feeds counts as a check.
+  const checkedOn = (k, c) => { const a = confirmedAt[k]; return a && c?.lastVerified ? (a > c.lastVerified ? a : c.lastVerified) : (c?.lastVerified ?? a) }
+  const verified = [checkedOn('rba', rba), fed?.lastVerified, checkedOn('au', au)].filter(Boolean).sort()[0]
   return `[VERIFIED FACTS — human-checked, dated, safe to quote${verified ? `; oldest check ${verified}` : ''}]\n`
     + lines.map((l) => `- ${l}`).join('\n')
 }

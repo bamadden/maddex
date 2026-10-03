@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "check-stats": "node scripts/check-official-stats.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

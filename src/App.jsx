@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { runOfficialCheck } from './services/officialStats'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { autoGenerateBrief } from './services/morningBriefService'
 import { workspaceService } from './services/workspaceService'
@@ -320,6 +321,10 @@ function Terminal() {
   // Applies the persisted theme (or default) to :root on mount — independent
   // of whether the Settings panel (where the switcher lives) is open.
   useTheme()
+  // Reconcile the hand-maintained RBA/ABS figures against the agencies' own
+  // data once per six hours. Fire-and-forget: the terminal renders from the
+  // constants either way; this only confirms or flags them.
+  useEffect(() => { runOfficialCheck().catch(() => {}) }, [])
   const { layout, setLayout } = useLayoutMode()
   const [splitModuleId, setSplitModuleId] = useState('crypto')
   // Left pane's share of the split, 0.2–0.8. Held here rather than in the

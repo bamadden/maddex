@@ -26,6 +26,7 @@ import { APP_VERSION } from '../layout/NavBar'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 import { defiService } from '../../services/defiService'
+import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
@@ -2030,6 +2031,61 @@ function sinceLabel(ts) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+// The hand-maintained RBA/ABS figures beside the agencies' own published
+// data. A match confirms the constant today; a drift says exactly what to
+// change in verifiedConstants.js.
+function OfficialCheckPanel() {
+  const [check, setCheck] = useState(getOfficialCheck)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => subscribeOfficialCheck(setCheck), [])
+  const recheck = async () => {
+    setBusy(true)
+    try { await runOfficialCheck({ force: true }) } catch { /* rows show unavailable */ }
+    setBusy(false)
+  }
+  const rows = check?.rows ?? []
+  const drift = rows.filter((r) => r.status === 'drift')
+  const colour = (st) => (st === 'match' ? '#2D8A50' : st === 'drift' ? '#C9A84C' : '#4A6080')
+  return (
+    <div className="border border-terminal-border">
+      <div className="px-3 py-1.5 border-b border-terminal-border/50 bg-terminal-surface2/40 flex items-center gap-2">
+        <span style={{ color: '#2D8A50', fontSize: 10 }}>✓</span>
+        <span className="text-2xs font-bold tracking-widest text-terminal-text-bright">OFFICIAL FEED CHECK</span>
+        <span className="text-2xs text-terminal-text-dim ml-auto">
+          {check ? `checked ${sinceLabel(check.fetchedAt)}` : 'not run yet'}
+        </span>
+        <button onClick={recheck} disabled={busy}
+          className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40">
+          {busy ? 'CHECKING…' : 'CHECK NOW'}
+        </button>
+      </div>
+      <div className="px-3 pt-1.5 text-2xs text-terminal-text-dim/70 leading-snug">
+        The verified constants compared against the RBA (table A2) and the ABS Data API. A match confirms
+        the figure as current today; a drift means verifiedConstants.js needs updating.
+      </div>
+      {drift.length > 0 && (
+        <div className="mx-3 mt-2 text-2xs px-2 py-1.5" style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}>
+          ⚠ {drift.length} figure{drift.length === 1 ? '' : 's'} out of date: {drift.map((r) => `${r.label} ${r.constant} → ${r.official}`).join(' · ')}
+        </div>
+      )}
+      <div className="divide-y divide-terminal-border/30 mt-1">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline gap-3 px-3 py-1.5 text-2xs">
+            <span className="text-terminal-text-bright w-36 flex-shrink-0">{r.label}</span>
+            <span className="text-terminal-text-dim tabular-nums w-16">{r.constant}%</span>
+            <span className="tabular-nums w-16" style={{ color: colour(r.status) }}>{r.official != null ? `${r.official}%` : '—'}</span>
+            <span className="text-terminal-text-dim/70 flex-1 truncate">{r.period ?? ''}</span>
+            <span className="font-bold tracking-wider flex-shrink-0" style={{ color: colour(r.status) }}>
+              {r.status === 'match' ? '✓ MATCH' : r.status === 'drift' ? '⚠ DRIFT' : 'UNAVAILABLE'}
+            </span>
+          </div>
+        ))}
+        {!rows.length && <div className="px-3 py-2 text-2xs text-terminal-text-dim">Press CHECK NOW to compare against the agencies.</div>}
+      </div>
+    </div>
+  )
+}
+
 function DataSourcesSection() {
   const [, bump] = useState(0)
 
@@ -2081,6 +2137,8 @@ function DataSourcesSection() {
         a live rate and a generated series both render as a confident figure and there
         is otherwise no way to tell them apart.
       </div>
+
+      <OfficialCheckPanel />
 
       {SOURCE_TIERS.map((tier) => {
         const rows = tier.rows ?? verifiedRows

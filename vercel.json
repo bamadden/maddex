@@ -13,6 +13,10 @@
       "destination": "https://api.rba.gov.au/:path*"
     },
     {
+      "source": "/api/reservebank/:path*",
+      "destination": "https://www.rba.gov.au/:path*"
+    },
+    {
       "source": "/api/stooq/:path*",
       "destination": "https://stooq.com/:path*"
     },

@@ -114,6 +114,13 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/rba/, ''),
         },
+        // www.rba.gov.au statistical-table CSVs (no CORS). Named so it does
+        // not share a prefix with /api/rba, which would match first.
+        '/api/reservebank': {
+          target: 'https://www.rba.gov.au',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/reservebank/, ''),
+        },
         '/api/stooq': {
           target: 'https://stooq.com',
           changeOrigin: true,
