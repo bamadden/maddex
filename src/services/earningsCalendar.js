@@ -28,7 +28,12 @@ export const EARNINGS_2026 = [
 ]
 
 export function earningsFor(ticker) {
-  return EARNINGS_2026.find((e) => e.type !== 'AGM' && (e.ticker === ticker || e.ticker === `${ticker}.AX`)) ?? null
+  // The NEXT report on or after today, never a past one — a reporting date
+  // that has gone by is history, not "upcoming earnings".
+  const today = new Date().toLocaleDateString('en-CA')
+  return EARNINGS_2026
+    .filter((e) => e.type !== 'AGM' && e.date >= today && (e.ticker === ticker || e.ticker === `${ticker}.AX`))
+    .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null
 }
 
 export function upcomingEarnings(fromDate = new Date()) {

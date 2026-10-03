@@ -82,24 +82,26 @@ function smoothPath(xy) {
 }
 
 let sparkId = 0
+// Full card width: drawn in a fixed 100-unit viewBox stretched to the card,
+// with a non-scaling stroke so the line stays 1.4px however wide it is. At
+// ten cards across, a fixed-width sparkline beside the price spilled into
+// the next card.
 function Sparkline({ points, color }) {
   const [id] = useState(() => `spark-${++sparkId}`)
-  const w = 56, h = 24, pad = 2
-  if (!points || points.length < 2) {
-    return <svg width={w} height={h} aria-hidden="true" />
-  }
+  const w = 100, h = 22, pad = 2
+  if (!points || points.length < 2) return <div style={{ height: h }} aria-hidden="true" />
   const prices = points.map(p => p.price)
   const min = Math.min(...prices)
   const max = Math.max(...prices)
   const range = max - min || 1
   const xy = points.map((p, i) => [
-    (i / (points.length - 1)) * (w - pad * 2) + pad,
+    (i / (points.length - 1)) * w,
     h - pad - ((p.price - min) / range) * (h - pad * 2),
   ])
   const line = smoothPath(xy)
-  const area = `${line} L${xy[xy.length - 1][0].toFixed(1)},${h} L${xy[0][0].toFixed(1)},${h} Z`
+  const area = `${line} L${w},${h} L0,${h} Z`
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true" style={{ display: 'block' }}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.28" />
@@ -107,7 +109,7 @@ function Sparkline({ points, color }) {
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#${id})`} stroke="none" />
-      <path d={line} fill="none" stroke={color} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.4" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }
@@ -259,19 +261,17 @@ function LiveIndexPrice({ symbol, q, sparkPoints, isStale, dataDate }) {
   const livePct = quote ? quote.regularMarketChangePercent : q.pct
   const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
   return (
-    <div className="flex items-end justify-between gap-1.5 mt-0.5">
-      <div>
-        <div className={`text-[18px] font-mono font-semibold text-white leading-none whitespace-nowrap ${flashClass}`}>
-          {fmt.price(livePrice, 1)}
-        </div>
-        <div className="mt-1">
-          <PriceChange pct={livePct} size="text-[10px]" pill />
-        </div>
-        {isStale && (
-          <div className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</div>
-        )}
+    <div className="mt-0.5">
+      <div className={`text-[18px] font-mono font-semibold text-white leading-none whitespace-nowrap ${flashClass}`}>
+        {fmt.price(livePrice, 1)}
       </div>
-      <Sparkline points={sparkPoints} color={sparkColor(livePct)} />
+      <div className="mt-1 flex items-center gap-1.5">
+        <PriceChange pct={livePct} size="text-[10px]" pill />
+        {isStale && <span className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</span>}
+      </div>
+      <div className="mt-1.5">
+        <Sparkline points={sparkPoints} color={sparkColor(livePct)} />
+      </div>
     </div>
   )
 }

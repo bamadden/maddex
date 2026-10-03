@@ -7,6 +7,7 @@ import {
   fetchCoinOHLC, fetchCoinHistory, fetchYFHistory, transformYFHistory,
   transformCoinOHLC, transformCoinHistory, toYFRange, fetchNews, askClaude,
   fetchQuoteSummary, fetchYahooQuoteBatch,
+  USING_MOCK_DATA,
 } from '../../services/api'
 import { DataUnavailable } from './DataUnavailable'
 // lightweight-charts is a sizeable dependency only needed once a user
@@ -27,15 +28,6 @@ const CHART_TYPES = ['area', 'line', 'candle', 'pro']
 
 // Next scheduled earnings date — hardcoded for the app's top 20 most-viewed
 // ASX/US stocks (indicative reporting-season dates, not a live feed).
-const NEXT_EARNINGS = {
-  'BHP.AX': '17 Feb 2026', 'CBA.AX': '11 Feb 2026', 'CSL.AX': '11 Feb 2026',
-  'WBC.AX': '05 May 2026', 'NAB.AX': '07 May 2026', 'ANZ.AX': '14 May 2026',
-  'WES.AX': '26 Feb 2026', 'MQG.AX': '02 Nov 2026', 'WOW.AX': '26 Feb 2026',
-  'RIO.AX': '18 Feb 2026', 'FMG.AX': '30 Jan 2026', 'TLS.AX': '13 Feb 2026',
-  AAPL: '29 Jan 2026', NVDA: '25 Feb 2026', MSFT: '27 Jan 2026',
-  TSLA: '21 Jan 2026', AMZN: '05 Feb 2026', META: '28 Jan 2026',
-  GOOG: '03 Feb 2026', NFLX: '20 Jan 2026',
-}
 
 // ─── Crypto coin colour circle + descriptions ─────────────────────────────────
 // Same deterministic-hash approach as CryptoModule.jsx's CoinCircle — kept as
@@ -735,7 +727,8 @@ export default function DetailModal() {
       high:  d.high  != null ? usdToAud(d.high)  : null,
       low:   d.low   != null ? usdToAud(d.low)   : null,
     }))
-    isLiveChart  = true
+    // Demo-mode history is generated, so it must not wear the LIVE label.
+    isLiveChart  = !USING_MOCK_DATA
   }
 
   const latest  = chartData[chartData.length - 1] ?? {}
@@ -830,8 +823,10 @@ export default function DetailModal() {
         <DataRow label="Period Low"
           value={allLow && allLow !== Infinity ? fmt.aud(allLow) : display52Low ? fmt.aud(display52Low) : '—'}
           cls="text-terminal-red" />
-        {NEXT_EARNINGS[symbol] && (
-          <DataRow label="Next Earnings" value={NEXT_EARNINGS[symbol]} cls="text-terminal-gold" />
+        {/* From the earnings calendar, upcoming dates only. This was a
+            hand-typed table of early-2026 dates, all of them in the past. */}
+        {upcomingEarnings && (
+          <DataRow label="Next Earnings" value={new Date(`${upcomingEarnings.date}T00:00:00`).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })} cls="text-terminal-gold" />
         )}
       </Section>
 
@@ -1462,6 +1457,7 @@ export default function DetailModal() {
             <div className="flex items-center gap-2">
               <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} {sydneyTzNow()}</span>
               {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
+              {!isLiveChart && isStockOrIdx && USING_MOCK_DATA && <span className="text-2xs text-terminal-gold">● DEMO</span>}
             </div>
           </div>
         </div>

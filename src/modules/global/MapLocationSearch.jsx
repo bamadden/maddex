@@ -60,7 +60,7 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
   const choose = (r) => {
     if (!r) return
     setOpen(false)
-    setQuery(r.display_name.split(',').slice(0, 2).join(','))
+    setQuery(r.name || r.display_name.split(',')[0])
     const next = [query.trim(), ...history.filter((h) => h.toLowerCase() !== query.trim().toLowerCase())].filter(Boolean).slice(0, 5)
     setHistory(next); writeJson(localStorage, HISTORY_KEY, next)
     setCard(financialFor(query, r) ? { ...financialFor(query, r), place: r.display_name } : null)

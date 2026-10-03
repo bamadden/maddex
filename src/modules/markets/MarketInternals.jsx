@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ASX_SECTOR_STOCKS } from '../../data/sectorTaxonomy'
+import { useState } from 'react'
+import { SECTOR_ABBR } from '../../data/sectorTaxonomy'
+import { ASX_UNIVERSE, SECTOR_OF, useAsxUniverseQuotes } from './useAsxUniverse'
 import { getMockFMPHistory } from '../../services/mockData'
 import { fetchYFHistory, USING_MOCK_DATA } from '../../services/api'
 import { DemoBadge } from '../../components/ui/ModuleStates'
@@ -22,20 +24,33 @@ import { DemoBadge } from '../../components/ui/ModuleStates'
 // volatility, annualised, and says so. The bands use the conventional
 // read of a volatility index.
 
-const UNIVERSE = Object.values(ASX_SECTOR_STOCKS).flat().map(([sym]) => sym)
+const UNIVERSE = ASX_UNIVERSE
 
 const sma = (xs, n) => (xs.length >= n ? xs.slice(-n).reduce((s, v) => s + v, 0) / n : null)
 
+// Advance/decline comes from today's QUOTES — the same % change every tile
+// and table shows — so the count matches what the reader sees. Highs, lows
+// and moving averages come from the daily closes.
+function breadthFrom(quotes) {
+  let adv = 0, dec = 0, flat = 0
+  const bySector = {}
+  for (const [sym, q] of Object.entries(quotes ?? {})) {
+    const chg = q?.dayChangePct
+    if (!Number.isFinite(chg)) continue
+    const sec = (bySector[SECTOR_OF[sym]] ??= { adv: 0, dec: 0 })
+    if (Math.abs(chg) < 0.05) flat++
+    else if (chg > 0) { adv++; sec.adv++ }
+    else { dec++; sec.dec++ }
+  }
+  return { adv, dec, flat, bySector }
+}
+
 function internalsFrom(seriesBySymbol) {
-  let adv = 0, dec = 0, flat = 0, highs = 0, lows = 0
+  let highs = 0, lows = 0
   const above = { 20: [0, 0], 50: [0, 0], 200: [0, 0] }
   for (const closes of Object.values(seriesBySymbol)) {
     if (!closes || closes.length < 2) continue
-    const last = closes[closes.length - 1], prev = closes[closes.length - 2]
-    const chg = (last - prev) / prev
-    if (Math.abs(chg) < 0.0005) flat++
-    else if (chg > 0) adv++
-    else dec++
+    const last = closes[closes.length - 1]
     const year = closes.slice(-252)
     if (last >= Math.max(...year) * 0.995) highs++
     if (last <= Math.min(...year) * 1.005) lows++
@@ -47,7 +62,7 @@ function internalsFrom(seriesBySymbol) {
     }
   }
   const pct = ([a, t]) => (t ? (a / t) * 100 : null)
-  return { adv, dec, flat, highs, lows, above20: pct(above[20]), above50: pct(above[50]), above200: pct(above[200]) }
+  return { highs, lows, above20: pct(above[20]), above50: pct(above[50]), above200: pct(above[200]) }
 }
 
 function realisedVol(closes, n = 20) {
@@ -114,7 +129,10 @@ export default function MarketInternals() {
     staleTime: 15 * 60_000,
   })
 
-  const m = useMemo(() => (series ? internalsFrom(series) : null), [series])
+  const { data: quotesResult } = useAsxUniverseQuotes()
+  const [showSectors, setShowSectors] = useState(false)
+  const b = useMemo(() => breadthFrom(quotesResult?.data), [quotesResult])
+  const m = useMemo(() => (series ? { ...internalsFrom(series), ...b } : null), [series, b])
   const vol = useMemo(() => realisedVol(axjo), [axjo])
   const band = vol != null ? VOL_BANDS.find((b) => vol < b.max) : null
 
@@ -133,6 +151,9 @@ export default function MarketInternals() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-terminal-border/60">
         <Stat label="ADVANCE / DECLINE" sub={ratio != null ? `A/D ratio ${ratio.toFixed(2)} — ${ratio >= 1 ? 'more rising than falling' : 'more falling than rising'}` : null}>
+          <button onClick={() => setShowSectors((v) => !v)} className="float-right font-mono text-[8px] tracking-widest text-terminal-gold/70 hover:text-terminal-gold -mt-5">
+            {showSectors ? 'HIDE SECTORS' : 'BY SECTOR ▸'}
+          </button>
           <div className="flex items-baseline gap-2 font-mono text-[11px] tabular-nums">
             <span style={{ color: 'var(--color-gain)' }}>▲ {m.adv}</span>
             <span className="text-terminal-text-dim">— {m.flat}</span>
@@ -165,6 +186,23 @@ export default function MarketInternals() {
           <div className="font-mono text-[8px] text-terminal-text-dim/60 mt-0.5">Annualised · no implied-vol (A-VIX) feed connected</div>
         </Stat>
       </div>
+      {showSectors && (
+        <div className="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+          {Object.entries(m.bySector)
+            .map(([sector, v]) => ({ sector, ...v, pct: v.adv + v.dec ? (v.adv / (v.adv + v.dec)) * 100 : 0 }))
+            .sort((x, y) => y.pct - x.pct)
+            .map((s) => (
+              <div key={s.sector} className="flex items-center gap-2 font-mono text-[10px]">
+                <span className="w-28 truncate text-terminal-text-dim">{SECTOR_ABBR[s.sector] ?? s.sector}</span>
+                <div className="flex-1 h-1.5 rounded-full overflow-hidden flex" style={{ background: 'var(--color-loss)' }}>
+                  <div style={{ width: `${s.pct}%`, background: 'var(--color-gain)' }} />
+                </div>
+                <span className="w-8 text-right tabular-nums" style={{ color: 'var(--color-gain)' }}>▲{s.adv}</span>
+                <span className="w-8 text-right tabular-nums" style={{ color: 'var(--color-loss)' }}>▼{s.dec}</span>
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   )
 }

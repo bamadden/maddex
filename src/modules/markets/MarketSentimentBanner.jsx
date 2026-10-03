@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, LineChart, Line, XAxis, YAxis, ReferenceLine } from 'recharts'
 import {
   YF_INDICES, fetchFearGreed, transformFearGreed,
-  ASX_STOCKS,
 } from '../../services/api'
-import { fetchEquityQuotes, fetchIndexQuotesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
+import { fetchIndexQuotesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
+import { useAsxUniverseQuotes } from './useAsxUniverse'
 import { useStore } from '../../store/useStore'
 import SafeChart from '../../components/ui/SafeChart'
 import {
@@ -468,11 +468,9 @@ export default function MarketSentimentBanner() {
   const { currency } = useStore()
   const vsCurrency = currency.toLowerCase()
 
-  const { data: asxResult } = useQuery({
-    queryKey: ['yahooMoversBatch', 'asx'],
-    queryFn:  () => fetchEquityQuotes(ASX_STOCKS),
-    staleTime: 60_000, retry: 1,
-  })
+  // Breadth over the same 72-name universe as Market Internals, so the two
+  // A/D figures on this screen are one figure.
+  const { data: asxResult } = useAsxUniverseQuotes()
   const { data: indexResult } = useQuery({
     queryKey: ['yfBatch', 'indices'],
     queryFn:  () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS),

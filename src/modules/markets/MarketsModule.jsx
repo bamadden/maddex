@@ -5,7 +5,6 @@ import SectorStrengthRadar from './SectorStrengthRadar'
 import TopMovers from './TopMovers'
 import UnusualActivityTracker from './UnusualActivityTracker'
 import MarketSentimentBanner from './MarketSentimentBanner'
-import MarketBreadth from './MarketBreadth'
 import SectorRotation from './SectorRotation'
 import EarningsCalendar from './EarningsCalendar'
 import MarketInternals from './MarketInternals'
@@ -33,8 +32,6 @@ export default function MarketsModule() {
           <MarketSentimentBanner />
         </div>
 
-        {/* Market breadth — advances/declines/A-D ratio */}
-        <MarketBreadth />
 
         {/* Indices — scrollable horizontal */}
         <div data-tour="index-bar" className="flex-shrink-0 border-b border-terminal-border">
