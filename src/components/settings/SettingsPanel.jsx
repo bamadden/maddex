@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
 import { useSubscription } from '../../hooks/useSubscription'
 import { useProfile } from '../../hooks/useProfile'
-import { useTheme, THEMES, ACCENTS } from '../../hooks/useTheme'
+import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../services/sidebarPref'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { getQuietHours, setQuietHours } from '../../services/notificationPolicy'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
@@ -348,47 +348,10 @@ const DISPLAY_CURRENCIES = [
 // Takes the accent's variables separately so each preview reflects the
 // CURRENTLY SELECTED accent: picking BLUE should recolour all four theme
 // previews, because that is what picking it will do to the app.
-function ThemePreview({ vars, accentVars }) {
-  const v = { ...vars, ...(accentVars ?? {}) }
-  const rgb = (key, alpha) => {
-    const raw = v[key]
-    if (!raw) return 'transparent'
-    return alpha == null ? `rgb(${raw.split(' ').join(',')})` : `rgba(${raw.split(' ').join(',')},${alpha})`
-  }
-
-  return (
-    <span
-      className="w-full block border overflow-hidden"
-      style={{ height: 40, background: rgb('--t-bg'), borderColor: rgb('--t-border') }}
-      aria-hidden="true"
-    >
-      {/* header strip */}
-      <span className="block" style={{ height: 8, background: rgb('--t-header'), borderBottom: `1px solid ${rgb('--t-border')}` }}>
-        <span className="block" style={{ width: 12, height: 2, margin: '3px 0 0 3px', background: rgb('--t-gold') }} />
-      </span>
-      {/* body: a panel with two text lines and an accent bar */}
-      <span className="flex" style={{ height: 32 }}>
-        <span className="block" style={{ width: '34%', background: rgb('--t-panel'), borderRight: `1px solid ${rgb('--t-border')}`, padding: 3 }}>
-          <span className="block" style={{ height: 2, width: '80%', background: rgb('--t-text-dim', 0.5), marginBottom: 2 }} />
-          <span className="block" style={{ height: 2, width: '55%', background: rgb('--t-text-dim', 0.3) }} />
-        </span>
-        <span className="block flex-1" style={{ padding: 3 }}>
-          <span className="block" style={{ height: 3, width: '45%', background: rgb('--t-gold'), marginBottom: 3 }} />
-          <span className="block" style={{ height: 2, width: '85%', background: rgb('--t-text', 0.55), marginBottom: 2 }} />
-          <span className="flex" style={{ gap: 2 }}>
-            <span className="block" style={{ height: 2, width: '30%', background: rgb('--t-green') }} />
-            <span className="block" style={{ height: 2, width: '20%', background: rgb('--t-red') }} />
-          </span>
-        </span>
-      </span>
-    </span>
-  )
-}
 
 function PreferencesSection() {
   const { settings, updateSettings, profile, updateProfile } = useAuthStore()
   const { setCurrency: setStoreCurrency } = useStore()
-  const { theme, setTheme, accent, setAccent } = useTheme()
   const { layout, setLayout } = useLayoutMode()
   const [currency, setCurrency] = useState(settings?.currency || 'AUD')
   const [defaultModule, setDefaultModule] = useState(settings?.default_module || 'markets')
@@ -501,50 +464,9 @@ function PreferencesSection() {
       </FieldRow>
 
       <div className="pt-2 border-t border-terminal-border/30">
-        <div className="text-2xs text-terminal-text-dim mb-2">TERMINAL THEME</div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {Object.entries(THEMES).map(([key, t]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTheme(key)}
-              className={`flex flex-col items-center gap-1.5 px-2 py-2 border transition-colors ${
-                theme === key
-                  ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
-                  : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
-              }`}
-            >
-              <ThemePreview vars={t.vars} accentVars={ACCENTS[accent]?.vars} />
-              <span className="text-2xs font-bold">{t.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4">
-          <div className="text-2xs text-terminal-text-dim mb-2">ACCENT COLOUR</div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {Object.entries(ACCENTS).map(([key, a]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setAccent(key)}
-                className={`flex items-center gap-1.5 px-2 py-1.5 border transition-colors ${
-                  accent === key
-                    ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
-                    : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50'
-                }`}
-              >
-                <span
-                  className="w-3 h-3 rounded-sm flex-shrink-0 border border-black/30"
-                  style={{ background: a.swatch }}
-                />
-                <span className="text-2xs font-bold">{a.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="text-2xs text-terminal-text-dim/60 mt-1.5">
-            Applies live across the terminal — headings, active tabs, badges and primary buttons.
-          </div>
+        <div className="text-2xs text-terminal-text-dim mb-1">THEME</div>
+        <div className="text-2xs text-terminal-text-dim/70 leading-relaxed">
+          The Maddex terminal uses a fixed dark theme optimised for financial data readability.
         </div>
       </div>
 
@@ -581,6 +503,8 @@ function DisplaySection() {
   const [, forceUpdate] = useState(0)
   useEffect(() => displayService.subscribe(() => forceUpdate((n) => n + 1)), [])
   const prefs = displayService.prefs
+  const [sidebarWidth, setSidebarWidthState] = useState(getSidebarWidth)
+  useEffect(() => onSidebarWidthChange(setSidebarWidthState), [])
 
   return (
     <div className="space-y-5">
@@ -600,6 +524,22 @@ function DisplaySection() {
             >
               {s}%
             </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pt-2 border-t border-terminal-border/30">
+        <div className="text-xs text-terminal-text-bright">Sidebar</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">Compact shows icons and expands on hover; full keeps labels visible</div>
+        <div className="flex border border-terminal-border w-fit">
+          {[['compact', 'COMPACT'], ['full', 'FULL']].map(([v, label]) => (
+            <button
+              key={v}
+              onClick={() => setSidebarWidth(v)}
+              className={`px-3 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-r-0 ${
+                sidebarWidth === v ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+              }`}
+            >{label}</button>
           ))}
         </div>
       </div>

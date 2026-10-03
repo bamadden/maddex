@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 // Each theme sets every --t-x CSS custom property tailwind.config.js's
 // terminal-* colors resolve through (rgb(var(--t-x) / <alpha-value>)).
@@ -94,36 +94,18 @@ function applyTheme(name, accent) {
   if (acc) for (const [key, value] of Object.entries(acc.vars)) root.setProperty(key, value)
 }
 
+// FIXED THEME. The terminal ships one theme: DARK with the GOLD accent.
+//
+// Theme and accent selectors were removed from Settings (2026-10-03). They
+// rewrote the CSS variables, but most colour in the terminal is set inline —
+// over a thousand hex values across a hundred components — so switching
+// changed a fraction of the UI and left the rest, which read as broken. The
+// variables are still applied here so every rgb(var(--t-*)) resolves, and any
+// previously saved choice is cleared so nobody is left half-themed.
 export function useTheme() {
-  const [theme, setThemeState] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      return saved && THEMES[saved] ? saved : 'dark'
-    } catch { return 'dark' }
-  })
-
-  const [accent, setAccentState] = useState(() => {
-    try {
-      const saved = localStorage.getItem(ACCENT_KEY)
-      return saved && ACCENTS[saved] ? saved : 'gold'
-    } catch { return 'gold' }
-  })
-
   useEffect(() => {
-    applyTheme(theme, accent)
-  }, [theme, accent])
-
-  const setTheme = useCallback((name) => {
-    if (!THEMES[name]) return
-    try { localStorage.setItem(STORAGE_KEY, name) } catch { /* private mode */ }
-    setThemeState(name)
+    try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACCENT_KEY) } catch { /* private mode */ }
+    applyTheme('dark', 'gold')
   }, [])
-
-  const setAccent = useCallback((name) => {
-    if (!ACCENTS[name]) return
-    try { localStorage.setItem(ACCENT_KEY, name) } catch { /* private mode */ }
-    setAccentState(name)
-  }, [])
-
-  return { theme, setTheme, themes: THEMES, accent, setAccent, accents: ACCENTS }
+  return { theme: 'dark', accent: 'gold' }
 }

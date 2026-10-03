@@ -6,6 +6,7 @@ import {
 import { useStore } from '../../store/useStore'
 import NavContextMenu from '../ui/NavContextMenu'
 import { shortcutService } from '../../services/shortcutService'
+import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../services/sidebarPref'
 
 // Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
 // the one exception (its action is nav.rates — see App.jsx's
@@ -19,16 +20,16 @@ function shortcutHint(item) {
   return parts.length ? parts.join(' / ') : null
 }
 
-const PIN_KEY = 'maddex_sidebar_pinned'
-
+// FULL = pinned open with labels; COMPACT = icon rail that expands on hover.
+// Stored via sidebarPref so Settings → Display can set it too.
 function usePinnedSidebar() {
-  const [pinned, setPinned] = useState(() => {
-    try { return localStorage.getItem(PIN_KEY) === 'true' } catch { return false }
-  })
-  useEffect(() => {
-    try { localStorage.setItem(PIN_KEY, String(pinned)) } catch { /* ignore */ }
-  }, [pinned])
-  return [pinned, setPinned]
+  const [width, setWidth] = useState(getSidebarWidth)
+  useEffect(() => onSidebarWidthChange(setWidth), [])
+  const setPinned = (next) => {
+    const v = typeof next === 'function' ? next(width === 'full') : next
+    setSidebarWidth(v ? 'full' : 'compact')
+  }
+  return [width === 'full', setPinned]
 }
 
 // fkey is fixed to CommandBar.jsx's hardcoded F1–F8 handlers (independent of
