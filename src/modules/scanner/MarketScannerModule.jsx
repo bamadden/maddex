@@ -10,12 +10,41 @@ import { fmt } from '../../utils/format'
 import TabBar from '../../components/ui/TabBar'
 import {
   scanBreakouts, scanOversold, scanOverbought, scanVolume, scanGaps,
-  scanMomentum, scanDivergence, getPatternCandidates, detectPattern,
+  scanMomentum, scanDivergence, getPatternCandidates, detectPattern, signalContext,
 } from '../../services/scannerService'
 import {
   loadScanSettings, saveScanSettings, applyScanFilters,
-  SCAN_UNIVERSES, MIN_VOLUME_OPTIONS, MIN_MCAP_OPTIONS, INTERVAL_OPTIONS,
+  SCAN_UNIVERSES, MIN_VOLUME_OPTIONS, MIN_MCAP_OPTIONS, INTERVAL_OPTIONS, SIGNAL_TYPES, SECTORS,
 } from '../../services/scannerSettings'
+
+// Header strip per signal type — the colour says what kind of signal it is
+// before the eye reaches a word.
+const TYPE_STYLE = {
+  BREAKOUT:   { bg: 'rgba(45,138,80,0.8)',   fg: '#E8F5EC' },
+  OVERSOLD:   { bg: 'rgba(45,80,200,0.8)',   fg: '#E6ECFF' },
+  OVERBOUGHT: { bg: 'rgba(168,50,50,0.8)',   fg: '#FDECEC' },
+  VOLUME:     { bg: 'rgba(201,168,76,0.8)',  fg: '#1A1306' },
+  GAP:        { bg: 'rgba(123,45,138,0.8)',  fg: '#F5E8F8' },
+  PATTERN:    { bg: 'rgba(45,138,180,0.8)',  fg: '#E6F6FC' },
+}
+const typeOf = (badge) => (String(badge).startsWith('GAP') ? 'GAP' : String(badge).split(' ')[0])
+
+// The level an alert is pre-filled at, per signal. None of these is a chart
+// level — the scanner does not have real support or resistance — they are the
+// natural "tell me if this continues" thresholds from the price itself.
+function alertFor(type, price, up) {
+  if (price == null) return null
+  if (type === 'BREAKOUT') return { direction: 'above', level: price, why: 'continuation above the breakout price' }
+  if (type === 'OVERSOLD') return { direction: 'below', level: price * 0.98, why: 'a further 2% slide' }
+  if (type === 'OVERBOUGHT') return { direction: 'above', level: price * 1.02, why: 'a further 2% run' }
+  return up
+    ? { direction: 'above', level: price * 1.02, why: 'a further 2% move up' }
+    : { direction: 'below', level: price * 0.98, why: 'a further 2% move down' }
+}
+
+const HISTORY_KEY = 'maddex_scanner_history_v1'
+const readHistory = () => { try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? '[]') } catch { return [] } }
+const writeHistory = (h) => { try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(h)) } catch { /* quota */ } }
 
 const TABS = [
   { key: 'breakouts',   label: 'BREAKOUTS' },
@@ -97,6 +126,9 @@ function StrengthBars({ strength }) {
 }
 
 function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt, strength }) {
+  const type = typeOf(badge)
+  const head = TYPE_STYLE[type] ?? TYPE_STYLE.PATTERN
+  const ctx = useMemo(() => signalContext(symbol), [symbol])
   const { addToWatchlist, watchlist, addAlert } = useStore()
   const [flash, setFlash] = useState(null)
   const tone = toneFor(badge)
@@ -132,15 +164,20 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
 
   const act = (kind, fn) => { fn(); setFlash(kind); setTimeout(() => setFlash(null), 1600) }
 
+  const alert = alertFor(type, price, up)
   return (
+    <div className={`border-b border-terminal-border/50 ${veryFresh ? 'signal-fresh' : ''}`} style={{ opacity: stale ? 0.5 : ageing ? 0.72 : 1 }}>
+    <div className="flex items-center px-3 font-mono uppercase" style={{ height: 24, background: head.bg, color: head.fg, fontSize: 8, letterSpacing: '0.16em' }}>
+      <span className="font-bold">{badge}</span>
+      <span className="mx-1.5 opacity-70">·</span>
+      <span className="font-bold">{symbol}</span>
+      <span className="mx-1.5 opacity-70">·</span>
+      <span className="opacity-90">{detectedAt != null ? new Date(detectedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', timeZone: 'Australia/Sydney' }) : '—'}</span>
+    </div>
     <div
-      className={`group flex items-center gap-3 px-3 py-2.5 border-b border-terminal-border/50 hover:bg-terminal-accent/10 transition-colors ${veryFresh ? 'signal-fresh' : ''}`}
-      style={{ borderLeft: `3px solid ${tone}`, opacity: stale ? 0.5 : ageing ? 0.72 : 1 }}
+      className="group flex items-center gap-3 px-3 py-2.5 hover:bg-terminal-accent/10 transition-colors"
+      style={{ borderLeft: `3px solid ${tone}` }}
     >
-      <span
-        className="text-2xs font-bold tracking-widest px-1.5 py-0.5 flex-shrink-0 rounded-sm"
-        style={{ color: tone, background: `${tone}1F`, border: `1px solid ${tone}55` }}
-      >{badge}</span>
 
       <div className="min-w-0 w-28 flex-shrink-0">
         <div className="font-bold text-terminal-text-bright leading-tight" style={{ fontSize: 13 }}>
@@ -156,7 +193,10 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
           metricLabel is kept in the tooltip, where it still distinguishes
           "Signal" from "Volume" or "RSI" across tabs. */}
       <div className="flex-1 min-w-0 flex items-baseline gap-2" title={metricLabel}>
-        <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
+        <span className="min-w-0 flex flex-col">
+          <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
+          {ctx && <span className="text-[9px] text-terminal-text-dim/70 leading-tight truncate">{ctx.line1} · {ctx.line2}</span>}
+        </span>
         <StrengthBars strength={strength} />
         {stale && (
           <span className="badge flex-shrink-0" style={{ color: '#637899', border: '1px solid rgba(99,120,153,0.35)' }}>
@@ -196,9 +236,9 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
           }`}
         >{flash === 'wl' ? '✓ ADDED' : owned ? '✓ ON LIST' : '+ WATCH'}</button>
         <button
-          onClick={() => act('al', () => price != null && addAlert(symbol, price, up ? 'above' : 'below'))}
-          disabled={price == null}
-          title={price != null ? `Alert if ${tickerOf(symbol)} goes ${up ? 'above' : 'below'} ${priceStr(symbol, price)}` : 'No price for this signal'}
+          onClick={() => act('al', () => alert && addAlert(symbol, Math.round(alert.level * 100) / 100, alert.direction))}
+          disabled={!alert}
+          title={alert ? `Alert if ${tickerOf(symbol)} goes ${alert.direction} ${priceStr(symbol, alert.level)} — ${alert.why}` : 'No price for this signal'}
           className="text-2xs font-bold px-2 py-1 rounded-sm transition-colors text-terminal-text-dim border border-terminal-border hover:border-terminal-gold hover:text-terminal-gold disabled:opacity-40"
         >{flash === 'al' ? '✓ SET' : '⚡ ALERT'}</button>
         <button
@@ -207,6 +247,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
           style={{ color: tone, border: `1px solid ${tone}66` }}
         >ANALYSE</button>
       </div>
+    </div>
     </div>
   )
 }
@@ -257,7 +298,7 @@ function OversoldTab({ label, results, badge, badgeColor, verb, scanTime }) {
           key={r.symbol}
           badge={badge} badgeColor={badgeColor}
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
-          metricLabel="RSI (14)" metricValue={r.rsi.toFixed(1)}
+          metricLabel="RSI (14)" metricValue={`RSI(14) ${r.rsi.toFixed(1)}`}
           // How far past the 30/70 line, where 30 points of overshoot is the
           // top of the scale — RSI 15 or 85 is as extreme as this gets.
           strength={Math.min(1, Math.max(0, (r.rsi < 50 ? 30 - r.rsi : r.rsi - 70) / 30))}
@@ -547,7 +588,7 @@ function ScanSettings({ settings, onChange }) {
           <div className="fixed inset-0 z-[80]" onClick={() => setOpen(false)} />
           <div
             className="absolute right-0 top-full mt-1 z-[81] bg-terminal-panel border border-terminal-border p-3 text-left shadow-2xl"
-            style={{ width: 230 }}
+            style={{ width: 260 }}
           >
             <SettingGroup label="SCAN UNIVERSE" options={SCAN_UNIVERSES} value={settings.universe}
               onPick={(v) => onChange({ ...settings, universe: v })} />
@@ -557,6 +598,31 @@ function ScanSettings({ settings, onChange }) {
               onPick={(v) => onChange({ ...settings, minMarketCap: v })} />
             <SettingGroup label="AUTO-SCAN INTERVAL" options={INTERVAL_OPTIONS} value={settings.intervalMs}
               onPick={(v) => onChange({ ...settings, intervalMs: v })} />
+            <div className="mb-2.5">
+              <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1">SECTOR</div>
+              <select value={settings.sector ?? 'ALL'} onChange={(e) => onChange({ ...settings, sector: e.target.value })}
+                className="w-full bg-terminal-bg border border-terminal-border text-2xs text-terminal-text px-1.5 py-1">
+                {SECTORS.map((sec) => <option key={sec} value={sec}>{sec}</option>)}
+              </select>
+            </div>
+            <div className="mb-2.5">
+              <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1">SIGNAL TYPES</div>
+              <div className="flex flex-wrap gap-1">
+                {SIGNAL_TYPES.map((t) => {
+                  const on = (settings.signalTypes ?? []).includes(t.id)
+                  return (
+                    <button key={t.id}
+                      onClick={() => {
+                        const cur = settings.signalTypes ?? SIGNAL_TYPES.map((x) => x.id)
+                        const next = on ? cur.filter((x) => x !== t.id) : [...cur, t.id]
+                        if (next.length) onChange({ ...settings, signalTypes: next })
+                      }}
+                      className={`text-[9px] px-1.5 py-0.5 border ${on ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim'}`}
+                    >{t.label}</button>
+                  )
+                })}
+              </div>
+            </div>
             <div className="text-[9px] text-terminal-text-dim/60 leading-snug pt-1 border-t border-terminal-border/50">
               Filters apply to the tracked demo universe.
             </div>
@@ -656,10 +722,39 @@ export default function MarketScannerModule() {
 
   const totalSignals = Object.values(tabCounts).reduce((a, b) => a + b, 0)
 
+  const enabledTabs = settings.signalTypes ?? TABS.map((t) => t.key)
   const TABS_WITH_COUNTS = useMemo(
-    () => TABS.map((t) => ({ ...t, count: tabCounts[t.key] })),
-    [tabCounts],
+    () => TABS.filter((t) => enabledTabs.includes(t.key)).map((t) => ({ ...t, count: tabCounts[t.key] })),
+    [tabCounts, enabledTabs],
   )
+  const visibleTab = enabledTabs.includes(activeTab) ? activeTab : (TABS_WITH_COUNTS[0]?.key ?? 'breakouts')
+
+  // Session signal history: every scan appends what it found, newest first,
+  // capped at twenty, so a name that keeps reappearing stands out.
+  const [history, setHistory] = useState(readHistory)
+  const [loggedTick, setLoggedTick] = useState(null)
+  if (loggedTick !== tick) {
+    setLoggedTick(tick)
+    const at = lastScanAt
+    const fresh = [
+      ...applyScanFilters(scanBreakouts(tick), settings).map((r) => ({ symbol: r.symbol, type: 'BREAKOUT', at })),
+      ...oversold.map((r) => ({ symbol: r.symbol, type: 'OVERSOLD', at })),
+      ...overbought.map((r) => ({ symbol: r.symbol, type: 'OVERBOUGHT', at })),
+      ...applyScanFilters(scanVolume(tick), settings).map((r) => ({ symbol: r.symbol, type: 'VOLUME', at })),
+      ...applyScanFilters(scanGaps(tick), settings).map((r) => ({ symbol: r.symbol, type: 'GAP', at })),
+    ].filter((r) => enabledTabs.includes({ BREAKOUT: 'breakouts', OVERSOLD: 'oversold', OVERBOUGHT: 'overbought', VOLUME: 'volume', GAP: 'gaps' }[r.type]))
+    const next = [...fresh, ...history].slice(0, 20)
+    setHistory(next)
+    writeHistory(next)
+  }
+  const historyByTicker = useMemo(() => {
+    const m = new Map()
+    for (const h of history) {
+      const e = m.get(h.symbol) ?? { symbol: h.symbol, count: 0, types: new Set() }
+      e.count++; e.types.add(h.type); m.set(h.symbol, e)
+    }
+    return [...m.values()].sort((a, b) => b.count - a.count)
+  }, [history])
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -695,16 +790,38 @@ export default function MarketScannerModule() {
           nothing at all. */}
       {scanning && <div className="scan-sweep flex-shrink-0" />}
 
-      <TabBar tabs={TABS_WITH_COUNTS} activeKey={activeTab} onChange={setActiveTab} className="overflow-x-auto" />
+      <TabBar tabs={TABS_WITH_COUNTS} activeKey={visibleTab} onChange={setActiveTab} className="overflow-x-auto" />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {activeTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
-        {activeTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-blue-bright/50 text-terminal-blue-bright" verb="oversold" scanTime={lastScanAt} />}
-        {activeTab === 'overbought' && <OversoldTab label="overbought" results={overbought} badge="OVERBOUGHT" badgeColor="border-terminal-red/50 text-terminal-red" verb="overbought" scanTime={lastScanAt} />}
-        {activeTab === 'volume'     && <VolumeTab tick={tick} scanTime={lastScanAt} settings={settings} />}
-        {activeTab === 'gaps'       && <GapsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
-        {activeTab === 'momentum'   && <MomentumTab settings={settings} />}
-        {activeTab === 'patterns'   && <PatternsTab />}
+        {visibleTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {visibleTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-blue-bright/50 text-terminal-blue-bright" verb="oversold" scanTime={lastScanAt} />}
+        {visibleTab === 'overbought' && <OversoldTab label="overbought" results={overbought} badge="OVERBOUGHT" badgeColor="border-terminal-red/50 text-terminal-red" verb="overbought" scanTime={lastScanAt} />}
+        {visibleTab === 'volume'     && <VolumeTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {visibleTab === 'gaps'       && <GapsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {visibleTab === 'momentum'   && <MomentumTab settings={settings} />}
+        {visibleTab === 'patterns'   && <PatternsTab />}
+
+        {historyByTicker.length > 0 && (
+          <div className="border-t border-terminal-border px-3 py-3">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-2xs font-bold tracking-widest text-terminal-gold">RECENT SIGNALS</span>
+              <span className="text-[9px] text-terminal-text-dim">last {history.length} this session · grouped by ticker</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+              {historyByTicker.slice(0, 10).map((h) => (
+                <div key={h.symbol} className="flex items-center gap-2 text-2xs font-mono">
+                  <span className="w-20 font-bold text-terminal-text-bright">{h.symbol}</span>
+                  <span className="text-terminal-text-dim flex-1 truncate">
+                    appeared {h.count} time{h.count === 1 ? '' : 's'} · {[...h.types].join(', ').toLowerCase()}
+                  </span>
+                  <span className="flex gap-0.5">
+                    {[...h.types].map((t) => <span key={t} className="w-1.5 h-1.5 rounded-full" style={{ background: TYPE_STYLE[t]?.bg }} />)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -20,10 +20,29 @@ function mulberry32(seed) {
 
 // Symbol -> sector, for the context line on a breakout card. Both mock
 // universes carry a sector field already.
-const SECTOR_OF = Object.fromEntries([
+export const SECTOR_OF = Object.fromEntries([
   ...Object.entries(MOCK_ASX_STOCKS).map(([k, v]) => [k, v.sector]),
   ...Object.entries(MOCK_US_STOCKS).map(([k, v]) => [k, v.sector]),
 ])
+
+// Two lines of context for a signal card, computed from the same series the
+// scans read: what the stock is, and what it has done lately. Direction and
+// distance only — never a price level, which is the part a reader would act on
+// and the part this demo series cannot support.
+export function signalContext(symbol) {
+  const closes = getMockFMPHistory(symbol, 30).map((h) => h.close)
+  if (closes.length < 21) return null
+  const last = closes[closes.length - 1]
+  const fiveAgo = closes[closes.length - 6]
+  const ma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20
+  const fiveDay = ((last - fiveAgo) / fiveAgo) * 100
+  const vsMa = ((last - ma20) / ma20) * 100
+  const sector = SECTOR_OF[symbol]
+  return {
+    line1: `${sector ? `${sector} · ` : ''}${fiveDay >= 0 ? 'up' : 'down'} ${Math.abs(fiveDay).toFixed(1)}% over 5 sessions`,
+    line2: `${Math.abs(vsMa).toFixed(1)}% ${vsMa >= 0 ? 'above' : 'below'} its 20-day average${Math.abs(vsMa) > 5 ? ' — stretched' : ''}`,
+  }
+}
 
 export const SCAN_UNIVERSE = [
   ...Object.keys(MOCK_ASX_STOCKS),
@@ -105,11 +124,21 @@ export function scanBreakouts(tick = 0) {
   for (const symbol of SCAN_UNIVERSE) {
     const row = baseRow(symbol)
     if (!row) continue
-    const rng = mulberry32(hashStr(`${symbol}_breakout_${tick}`))
-    if (rng() > 0.82) {
-      const volumeRatio = 1.5 + rng() * 2.5
-      const hist = getMockFMPHistory(symbol, 30)
-      const closes = hist.map((h) => h.close)
+    // A breakout is a CONDITION on the price, not a dice roll: today's price
+    // at (or within 0.5% of) its 20-session high, and above its 20-day
+    // average. This used to pick ~18% of the universe at random each scan,
+    // which flagged stocks sitting below their averages as breaking out.
+    const hist = getMockFMPHistory(symbol, 30)
+    const closes = hist.map((h) => h.close)
+    const prior = closes.slice(-21, -1)
+    const high20 = prior.length ? Math.max(...prior) : null
+    const ma20Now = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20 : null
+    const isBreakout = high20 != null && ma20Now != null && row.price >= high20 * 0.995 && row.price > ma20Now
+    if (isBreakout) {
+      // Volume is the demo layer's, rolled per scan; it grades the signal,
+      // it does not create it.
+      const rng = mulberry32(hashStr(`${symbol}_breakout_${tick}`))
+      const volumeRatio = 1.2 + rng() * 2.8
 
       // Days spent consolidating before the break: how far back you can go
       // before the series leaves a tight band around its own recent mean. A
@@ -137,11 +166,9 @@ export function scanBreakouts(tick = 0) {
         ? Math.max(0, Math.min(100, ((row.price - lo) / (hi - lo)) * 100))
         : null
 
-      const descriptor = rangePct != null && rangePct >= 95
-        ? 'Near 52-week high'
-        : aboveMaPct != null && aboveMaPct > 0
-          ? `Breaking above 20-day average, +${aboveMaPct.toFixed(1)}% extended`
-          : 'Above recent resistance'
+      const descriptor = row.price >= high20
+        ? `New 20-session high, ${aboveMaPct.toFixed(1)}% above its 20-day average`
+        : `Within 0.5% of its 20-session high, ${aboveMaPct.toFixed(1)}% above its 20-day average`
 
       results.push({
         ...row, volumeRatio, aboveMaPct, rangePct, descriptor, consolidationDays,

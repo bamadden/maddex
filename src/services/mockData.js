@@ -294,8 +294,14 @@ export function getMockFMPHistory(symbol, days = 30) {
   const j = jitterFor(symbol)
   const endPrice = base.price * (1 + j)
 
+  // The final bar carries the SAME day change the quote reports
+  // (getMockFMPRow's changePct), so a stock showing +6.8% today does not
+  // also show an RSI of 10 from a series whose last day went down. Every bar
+  // before it is the seeded walk.
+  const quoteChangePct = round2(base.changePct + j * 100)
   const closes = [endPrice]
-  for (let i = 1; i < days; i++) {
+  if (days > 1) closes.push(endPrice / (1 + quoteChangePct / 100))
+  for (let i = 2; i < days; i++) {
     const dailyRet = (rng() - 0.5) * 0.024 // ~±1.2% typical daily move
     closes.push(closes[closes.length - 1] / (1 + dailyRet))
   }

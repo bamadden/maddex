@@ -11,7 +11,16 @@
 // the module is badged DEMO for exactly that reason. When a live equities
 // feed is wired in, these thresholds keep working unchanged.
 
+import { SECTOR_OF } from './scannerService'
+
 const KEY = 'maddex_scanner_settings_v1'
+
+export const SIGNAL_TYPES = [
+  { id: 'breakouts', label: 'BREAKOUT' }, { id: 'oversold', label: 'OVERSOLD' },
+  { id: 'overbought', label: 'OVERBOUGHT' }, { id: 'volume', label: 'VOLUME' },
+  { id: 'gaps', label: 'GAPS' }, { id: 'momentum', label: 'MOMENTUM' }, { id: 'patterns', label: 'PATTERNS' },
+]
+export const SECTORS = ['ALL', ...[...new Set(Object.values(SECTOR_OF).filter(Boolean))].sort()]
 
 export const SCAN_UNIVERSES = [
   { id: 'asx',  label: 'ASX',  test: (sym) => sym.endsWith('.AX') },
@@ -44,6 +53,8 @@ export const DEFAULT_SETTINGS = {
   minVolume: 0,
   minMarketCap: 0,
   intervalMs: 120_000,
+  sector: 'ALL',
+  signalTypes: SIGNAL_TYPES.map((t) => t.id),
 }
 
 export function loadScanSettings() {
@@ -72,6 +83,7 @@ export function applyScanFilters(rows, settings = loadScanSettings()) {
     if (settings.minVolume > 0 && (vol ?? 0) < settings.minVolume) return false
     const mcap = r.q?.marketCap ?? r.marketCap
     if (settings.minMarketCap > 0 && (mcap ?? 0) < settings.minMarketCap) return false
+    if (settings.sector && settings.sector !== 'ALL' && SECTOR_OF[r.symbol] !== settings.sector) return false
     return true
   })
 }
