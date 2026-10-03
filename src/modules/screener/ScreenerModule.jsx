@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { priceStream } from '../../services/priceStreamService'
 import { Search } from 'lucide-react'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { useStore } from '../../store/useStore'
@@ -453,9 +454,10 @@ function buildCsv(rows, { screenName, rankable }) {
   if (rankable) headers.push('Match %')
 
   const lines = [
-    `# Madden Terminal screen: ${screenName}`,
-    `# Exported ${new Date().toLocaleString('en-AU')}`,
-    '# DEMO DATASET — prices and fundamentals are illustrative, not live market data.',
+    '# INDICATIVE DATA — Not financial advice',
+    `# Maddex screen: ${screenName}`,
+    `# Exported ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })} (Sydney)`,
+    '# Demo dataset: prices are simulated and fundamentals illustrative — not live market data.',
     headers.map(csvCell).join(','),
   ]
 
@@ -483,6 +485,80 @@ function downloadCsv(text, filename) {
   // finished reading the blob by the time click() returns.
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+// Quality band on the match score. Only the top two bands get a badge; a
+// plain match is shown by the bar alone.
+function QualityBadge({ pct }) {
+  if (pct == null || pct < 80) return null
+  const strong = pct > 90
+  return (
+    <span className="font-mono font-bold tracking-wider px-1.5 py-px rounded-sm whitespace-nowrap"
+      style={{ fontSize: 8, color: strong ? '#C9A84C' : '#8BA3C4', border: `1px solid ${strong ? 'rgba(201,168,76,0.5)' : 'rgba(139,163,196,0.35)'}` }}>
+      {strong ? '★ STRONG MATCH' : 'GOOD MATCH'}
+    </span>
+  )
+}
+
+// One scan = the universe re-read from the simulated price stream. Price and
+// day change move; fundamentals do not, and P/E is re-derived from the moved
+// price against fixed earnings.
+function rescanUniverse(base) {
+  return base.map((s) => {
+    const q = priceStream.getSnapshot(s.symbol)
+    const price = q?.regularMarketPrice
+    if (!Number.isFinite(price)) return s
+    const eps = s.pe > 0 ? s.price / s.pe : null
+    return withDerived({
+      ...s,
+      price,
+      changePct: Number.isFinite(q.regularMarketChangePercent) ? q.regularMarketChangePercent : s.changePct,
+      pe: eps ? price / eps : s.pe,
+    })
+  })
+}
+
+function CompareModal({ rows, onClose }) {
+  const metrics = [
+    ['PRICE', (s) => `${s.exchange === 'ASX' ? 'A$' : 'US$'}${s.price.toFixed(2)}`],
+    ['CHANGE', (s) => `${s.changePct >= 0 ? '+' : ''}${s.changePct.toFixed(2)}%`, (s) => (s.changePct >= 0 ? '#2D8A50' : '#A83232')],
+    ['P/E', (s) => (s.pe > 0 ? s.pe.toFixed(1) : '—')],
+    ['DIV YIELD', (s) => (s.divYield > 0 ? `${s.divYield.toFixed(1)}%` : '—')],
+    ['MKT CAP', (s) => fmt.large(s.marketCap)],
+    ['52W POSITION', (s) => `${s.pos52.toFixed(0)}%`],
+    ['OFF 52W HIGH', (s) => `${s.offHigh.toFixed(1)}%`],
+    ['SECTOR', (s) => s.sector ?? '—'],
+    ['MATCH', (s) => (s.matchPct != null ? `${s.matchPct}%` : '—')],
+  ]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-terminal-panel border border-terminal-gold/40 p-4 w-[760px] max-w-[94vw] shadow-2xl font-mono" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-terminal-gold font-bold tracking-widest text-sm">COMPARE · {rows.length} STOCKS</span>
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
+        </div>
+        <table className="w-full text-2xs">
+          <thead>
+            <tr>
+              <th className="text-left py-1.5 text-terminal-text-dim font-normal" />
+              {rows.map((s) => <th key={s.symbol} className="text-right py-1.5 text-terminal-gold">{String(s.symbol).replace(/\.AX$/i, '')}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map(([label, get, tone]) => (
+              <tr key={label} className="border-t border-terminal-border/50">
+                <td className="py-1.5 text-terminal-text-dim tracking-wider">{label}</td>
+                {rows.map((s) => <td key={s.symbol} className="py-1.5 text-right tabular-nums" style={{ color: tone?.(s) }}>{get(s)}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="text-[9px] text-terminal-text-dim/60 mt-3">Demo dataset · simulated prices · general information only.</div>
+      </div>
+    </div>
+  )
+}
+
+const SCAN_MS = 2 * 60_000
 
 const SAVED_SCREENS_KEY = 'maddex_saved_screens'
 const MAX_SAVED_SCREENS = 10
@@ -538,6 +614,38 @@ export default function ScreenerModule() {
   const [saveNameInput, setSaveNameInput] = useState('')
   const [showSavedList, setShowSavedList] = useState(false)
   const [quickKeys, setQuickKeys] = useState([])
+  // Auto-scan: the universe is re-read from the simulated price stream every
+  // two minutes, so results can genuinely change between scans.
+  const [universe, setUniverse] = useState(ALL_STOCKS)
+  const [scanAt, setScanAt] = useState(() => Date.now())
+  const [scanning, setScanning] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+  const [picked, setPicked] = useState([])
+  const [comparing, setComparing] = useState(false)
+  const [shared, setShared] = useState(false)
+
+  // Subscribing keeps every universe symbol ticking in the price stream.
+  useEffect(() => {
+    const unsubs = ALL_STOCKS.map((s) => priceStream.subscribe(s.symbol, () => {}))
+    return () => unsubs.forEach((u) => u())
+  }, [])
+
+  const runScan = () => {
+    setScanning(true)
+    setTimeout(() => {
+      setUniverse(rescanUniverse(ALL_STOCKS))
+      setScanAt(Date.now())
+      setScanning(false)
+    }, 900)
+  }
+  useEffect(() => {
+    const id = setInterval(() => {
+      const t = Date.now()
+      setNow(t)
+      if (t - scanAt >= SCAN_MS) runScan()
+    }, 1000)
+    return () => clearInterval(id)
+  }, [scanAt])
   // Persisted: a reader who prefers cards prefers them tomorrow too, and the
   // choice is about how someone reads rather than about this particular screen.
   const [view, setView] = useState(() => {
@@ -611,9 +719,9 @@ export default function ScreenerModule() {
   }
 
   const manualFiltered = useMemo(() => {
-    if (!filtersActive) return ALL_STOCKS
+    if (!filtersActive) return universe
     const band = MKT_CAP_BANDS.find((b) => b.key === filters.mktCap)
-    return ALL_STOCKS.filter((s) => {
+    return universe.filter((s) => {
       if (filters.exchange !== 'ALL' && s.exchange !== filters.exchange) return false
       if (filters.sector !== 'ALL' && s.sector !== filters.sector) return false
       if (s.pe > 0 && s.pe > filters.peMax) return false
@@ -622,7 +730,7 @@ export default function ScreenerModule() {
       if (s.pos52 < filters.pos52Min) return false
       return true
     })
-  }, [filters, filtersActive])
+  }, [filters, filtersActive, universe])
 
   const results = useMemo(() => {
     let base = manualFiltered
@@ -708,6 +816,32 @@ export default function ScreenerModule() {
       `maddex-screen-${slug}-${new Date().toISOString().slice(0, 10)}.csv`,
     )
   }
+  const shareScreen = async () => {
+    if (!results.length) return
+    const yieldVals = results.map((r) => r.divYield).filter((v) => v > 0)
+    const avgYield = yieldVals.length ? yieldVals.reduce((a, b) => a + b, 0) / yieldVals.length : null
+    const text = [
+      `MADDEX SCREENER: ${screenName.toUpperCase()}`,
+      `${results.length} stock${results.length === 1 ? '' : 's'} match${avgYield != null ? ` · Avg yield ${avgYield.toFixed(1)}%` : ''}`,
+      '',
+      ...results.slice(0, 15).map((r) => [
+        r.symbol,
+        r.divYield > 0 ? `${r.divYield.toFixed(1)}% yield` : null,
+        r.matchPct != null ? `${r.matchPct}% match` : null,
+      ].filter(Boolean).join(' — ')),
+      ...(results.length > 15 ? [`…and ${results.length - 15} more`] : []),
+      '',
+      'Run this screen at maddex.com.au',
+      'Demo data · general information only.',
+    ].join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setShared(true)
+      setTimeout(() => setShared(false), 2000)
+    } catch { /* clipboard blocked */ }
+  }
+  const togglePick = (sym) => setPicked((p) => (p.includes(sym) ? p.filter((x) => x !== sym) : p.length >= 4 ? p : [...p, sym]))
+
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else { setSortKey(key); setSortDir('desc') }
@@ -716,7 +850,27 @@ export default function ScreenerModule() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <ModuleHeader title="STOCK SCREENER" subtitle="Natural language or preset filters" moduleId="screener" />
+      <ModuleHeader
+        title="MARKET SCREENER"
+        subtitle={`ASX + US universe · ${ALL_STOCKS.length} stocks tracked · Prices simulated`}
+        moduleId="screener"
+        right={<span className="flex items-center gap-1.5 text-2xs font-bold tracking-widest text-terminal-gold"><span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" />LIVE (SIMULATED)</span>}
+      />
+      {/* Auto-scan strip */}
+      <div className="flex items-center gap-3 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 font-mono" style={{ background: 'rgba(201,168,76,0.03)' }}>
+        <span className="text-[9px] font-bold tracking-widest text-terminal-gold">AUTO-SCAN</span>
+        <span className="text-[9px] text-terminal-text-dim">every 2 min</span>
+        <div className="relative flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(100,130,160,0.2)' }}>
+          {scanning
+            ? <div className="scan-sweep h-full w-full" />
+            : <div className="h-full bg-terminal-gold/70 transition-[width] duration-1000 ease-linear" style={{ width: `${Math.min(100, ((now - scanAt) / SCAN_MS) * 100)}%` }} />}
+        </div>
+        <span className="text-[9px] text-terminal-text-dim whitespace-nowrap tabular-nums">
+          {scanning ? <span className="text-terminal-gold animate-pulse">SCANNING…</span>
+            : `LAST SCAN: ${Math.floor((now - scanAt) / 60000) ? `${Math.floor((now - scanAt) / 60000)}m` : `${Math.floor((now - scanAt) / 1000)}s`} ago${hasSearched ? ` · ${results.length} result${results.length === 1 ? '' : 's'}` : ''}`}
+        </span>
+        <button onClick={runScan} disabled={scanning} className="text-[9px] font-bold tracking-widest text-terminal-text-dim hover:text-terminal-gold disabled:opacity-40">↻ SCAN NOW</button>
+      </div>
 
       <div className="p-3 border-b border-terminal-border flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -927,6 +1081,17 @@ export default function ScreenerModule() {
                 title="Download these results as CSV"
                 className="flex-shrink-0 text-2xs px-2.5 py-1 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors font-bold"
               >⤓ EXPORT CSV</button>
+              <button
+                onClick={shareScreen}
+                title="Copy a summary of this screen"
+                className="flex-shrink-0 text-2xs px-2.5 py-1 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold transition-colors font-bold"
+              >{shared ? '✓ COPIED' : '⧉ SHARE SCREEN'}</button>
+              <button
+                onClick={() => setComparing(true)}
+                disabled={picked.length < 2}
+                title={picked.length < 2 ? 'Tick 2–4 results to compare' : 'Compare the ticked results'}
+                className="flex-shrink-0 text-2xs px-2.5 py-1 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-terminal-gold"
+              >COMPARE SELECTED{picked.length ? ` (${picked.length})` : ''}</button>
               {/* TABLE is the default because a screener's job is comparison,
                   and a table is the only layout where the eye can run down one
                   column. CARDS is for reading a shortlist once it is short. */}
@@ -981,7 +1146,10 @@ export default function ScreenerModule() {
                     <div className="flex items-start justify-between gap-2">
                       <SectorPill sector={s2.sector} />
                       {s2.matchPct != null && (
-                        <span className="text-2xs font-bold tabular-nums text-terminal-gold flex-shrink-0">{s2.matchPct}%</span>
+                        <span className="flex items-center gap-1.5 flex-shrink-0">
+                          <QualityBadge pct={s2.matchPct} />
+                          <span className="text-2xs font-bold tabular-nums text-terminal-gold">{s2.matchPct}%</span>
+                        </span>
                       )}
                     </div>
                     <div className="font-mono font-bold text-terminal-gold mt-2" style={{ fontSize: 16 }}>
@@ -1012,6 +1180,7 @@ export default function ScreenerModule() {
             <table className="table-zebra w-full text-2xs">
               <thead className="sticky top-0 bg-terminal-header z-10">
                 <tr className="text-terminal-text-dim select-none">
+                  <th className="pl-3 py-1.5 w-6" title="Tick up to 4 to compare" />
                   <th onClick={() => toggleSort('symbol')} className="text-left px-3 py-1.5 cursor-pointer hover:text-terminal-gold">TICKER{sortArrow('symbol')}</th>
                   <th className="text-left px-3 py-1.5">COMPANY</th>
                   <th onClick={() => toggleSort('price')} className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold">PRICE{sortArrow('price')}</th>
@@ -1045,7 +1214,13 @@ export default function ScreenerModule() {
                       change: s.price * (s.changePct / 100), type: s.exchange === 'ASX' ? 'asx' : 'us',
                     })}
                   >
-                    <td className="px-3 py-1.5 font-bold text-terminal-gold">{s.symbol}</td>
+                    <td className="pl-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={picked.includes(s.symbol)} onChange={() => togglePick(s.symbol)}
+                        disabled={!picked.includes(s.symbol) && picked.length >= 4} className="accent-[#C9A84C] cursor-pointer" aria-label={`Compare ${s.symbol}`} />
+                    </td>
+                    <td className="px-3 py-1.5 font-bold text-terminal-gold">
+                      <span className="inline-flex items-center gap-1.5">{s.symbol}<QualityBadge pct={s.matchPct} /></span>
+                    </td>
                     <td className="px-3 py-1.5 text-terminal-text-bright truncate max-w-[200px]">{s.name}</td>
                     <td className="px-3 py-1.5 text-right tabular-nums">{s.exchange === 'ASX' ? 'A$' : 'US$'}{s.price.toFixed(2)}</td>
                     <td className={`px-3 py-1.5 text-right font-semibold tabular-nums ${s.changePct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
@@ -1082,6 +1257,9 @@ export default function ScreenerModule() {
           </div>
         </div>
       </div>
+      {comparing && (
+        <CompareModal rows={results.filter((r) => picked.includes(r.symbol))} onClose={() => setComparing(false)} />
+      )}
       {researchNoteAsset && (
         <ResearchNoteGenerator asset={researchNoteAsset} onClose={() => setResearchNoteAsset(null)} />
       )}
