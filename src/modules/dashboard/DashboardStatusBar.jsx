@@ -65,13 +65,15 @@ export default function DashboardStatusBar() {
       <span className="text-2xs tracking-widest text-terminal-gold font-bold truncate">
         {greeting}{name ? <span className="text-terminal-text-bright">{` ${name.toUpperCase()}`}</span> : ''}
       </span>
-      <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0">·</span>
-      <span className="text-2xs text-terminal-text-dim tracking-wider truncate">{dateStr}</span>
+      {/* At phone width the bar keeps the greeting, the session and the clock;
+          the date and the zone label go, or all five overprint each other. */}
+      <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0 hidden md:inline">·</span>
+      <span className="text-2xs text-terminal-text-dim tracking-wider truncate hidden md:inline">{dateStr}</span>
 
       {/* Session pill, centred. The dot pulses only while the market is
           actually trading — a pulsing dot beside "CLOSED" is a lie the eye
           believes before it reads the word. */}
-      <div className="flex-1 flex justify-center min-w-0">
+      <div className="flex-1 flex justify-center min-w-0 overflow-hidden">
         <span
           className="badge flex items-center gap-1.5 flex-shrink-0"
           style={{
@@ -84,12 +86,12 @@ export default function DashboardStatusBar() {
             className={`rounded-full flex-shrink-0 ${open ? 'pulse-gold' : ''}`}
             style={{ width: 5, height: 5, background: session.colour }}
           />
-          {session.label} · {session.detail}
+          {session.label}<span className="hidden sm:inline"> · {session.detail}</span>
         </span>
       </div>
 
       <span className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0">{timeStr}</span>
-      <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0">{tz}</span>
+      <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hidden sm:inline">{tz}</span>
     </div>
   )
 }

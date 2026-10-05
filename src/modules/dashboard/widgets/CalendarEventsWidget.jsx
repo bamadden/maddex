@@ -4,10 +4,11 @@ import {WidgetBody, WidgetEmpty} from './_shared'
 import { goModule } from './navigate'
 
 export default function CalendarEventsWidget() {
-  const { data } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
+  const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
   // Day window, then slice to three — see NextEventWidget.
   const events = pendingEvents(data?.events ?? [], 90).slice(0, 3)
 
+  if (isLoading) return <WidgetEmpty>Loading calendar…</WidgetEmpty>
   if (!events.length) return <WidgetEmpty action="OPEN CALENDAR" onAction={() => goModule('calendar')}>No upcoming events</WidgetEmpty>
 
   return (

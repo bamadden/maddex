@@ -321,7 +321,7 @@ function SectorPill({ sector }) {
   const c = sectorColour(sector)
   return (
     <span
-      className="inline-block px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+      className="inline-block px-1.5 py-0.5 rounded-sm whitespace-nowrap text-2xs leading-none"
       style={{ background: `${c}22`, color: c, border: `1px solid ${c}55` }}
     >{sector}</span>
   )
@@ -598,7 +598,7 @@ function LockedHint({ label }) {
 }
 
 export default function ScreenerModule() {
-  const { openModal } = useStore()
+  const { openModal, watchlist, addToWatchlist } = useStore()
   const { canAccess } = useSubscription()
   const advanced = canAccess('prime')
   const [query, setQuery] = useState('')
@@ -1132,7 +1132,7 @@ export default function ScreenerModule() {
               >ASK MADDENAI</button>
             </div>
           ) : view === 'cards' ? (
-            <div className="grid gap-2 p-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+            <div className="grid gap-2 p-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {results.map((s2) => {
                 const up = (s2.changePct ?? 0) >= 0
                 const cur = s2.exchange === 'ASX' ? 'A$' : 'US$'
@@ -1172,6 +1172,14 @@ export default function ScreenerModule() {
                         <div style={{ width: `${s2.matchPct}%`, height: '100%', background: '#C9A84C' }} />
                       </div>
                     )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (!watchlist?.includes(s2.symbol)) addToWatchlist(s2.symbol) }}
+                      disabled={watchlist?.includes(s2.symbol)}
+                      className="mt-3 w-full text-2xs font-bold tracking-widest py-1 border transition-colors disabled:cursor-default"
+                      style={watchlist?.includes(s2.symbol)
+                        ? { borderColor: 'rgba(45,138,80,0.4)', color: '#2D8A50' }
+                        : { borderColor: 'rgba(201,168,76,0.4)', color: '#C9A84C' }}
+                    >{watchlist?.includes(s2.symbol) ? '✓ ON WATCHLIST' : '+ WATCHLIST'}</button>
                   </div>
                 )
               })}

@@ -651,6 +651,10 @@ export default function NotificationCenter() {
   useEffect(() => {
     const check = async () => {
       if (!shouldSendDigest()) return
+      // Claimed before the await: two runs of this effect (StrictMode, a
+      // remount) both passed shouldSendDigest while the first was still
+      // fetching, and the digest went out twice.
+      markDigestSent()
       let close = null
       try {
         const { data } = await fetchIndexQuotesUnified(['^AXJO'])
@@ -659,7 +663,6 @@ export default function NotificationCenter() {
         // Digest still goes out — it just leads with the counts instead of
         // the close, rather than not arriving at all.
       }
-      markDigestSent()
       addNotification('DAILY_DIGEST', buildDigest({ close }).message)
     }
     check()

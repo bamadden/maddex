@@ -38,7 +38,7 @@ const Sep = () => (
 )
 
 export default function NextEventWidget() {
-  const { data } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
+  const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
   // 90-day window, then take the first — the second argument is a day
   // range, not a count, so asking for 1 means "events in the next day".
   const [now, setNow] = useState(() => Date.now())
@@ -56,6 +56,9 @@ export default function NextEventWidget() {
     return () => clearInterval(id)
   }, [])
 
+  // Loading is not "no events" — saying so while the calendar is still
+  // arriving told mobile users the week was empty.
+  if (isLoading) return <WidgetEmpty>Loading calendar…</WidgetEmpty>
   if (!next) return <WidgetEmpty action="OPEN CALENDAR" onAction={() => goModule('calendar')}>No upcoming events</WidgetEmpty>
 
   const at = eventTime(next)

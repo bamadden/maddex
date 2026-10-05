@@ -62,6 +62,8 @@ const KEYED_APIS = {
 }
 for (const [name, key] of Object.entries(KEYED_APIS)) {
   if (key) console.log(`[MADDEN] ✓ ${name}: configured (${key.slice(0, 8)}...)`)
+  // An absent equities key is the expected DEMO setup, not a fault.
+  else if (name === 'FMP' && USING_MOCK_DATA) console.info(`[MADDEN] ○ ${name}: not set — equities run on labelled DEMO data`)
   else     console.warn(`[MADDEN] ✕ ${name}: MISSING — set in .env`)
 }
 

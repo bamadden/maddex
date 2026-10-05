@@ -27,7 +27,11 @@ import { ResponsiveContainer } from 'recharts'
 // layout is stable from first paint.
 export default function SafeChart({ height = '100%', width = '100%', minHeight, children, ...rest }) {
   const ref = useRef(null)
-  const [ready, setReady] = useState(false)
+  // The measured box, handed to ResponsiveContainer as its starting size.
+  // Without it Recharts 3 renders its first frame at -1 x -1 — before its own
+  // observer reports — and logs the width(-1)/height(-1) warning even though
+  // this component has already waited for a real box.
+  const [ready, setReady] = useState(null)
 
   // A percentage height means the box takes its height from a parent that may
   // not have resolved one yet, so BOTH dimensions have to be real before the
@@ -49,14 +53,14 @@ export default function SafeChart({ height = '100%', width = '100%', minHeight, 
     // sized and there is no reason to wait a frame for the observer.
     const box = el.getBoundingClientRect()
     if (sized(box.width, box.height)) {
-      setReady(true)
+      setReady({ width: box.width, height: box.height })
       return
     }
 
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (sized(entry.contentRect.width, entry.contentRect.height)) {
-          setReady(true)
+          setReady({ width: entry.contentRect.width, height: entry.contentRect.height })
           // Disconnect on first real measurement — this hook only answers
           // "has it been laid out yet". ResponsiveContainer handles every
           // resize after that, and leaving the observer attached would mean
@@ -77,7 +81,7 @@ export default function SafeChart({ height = '100%', width = '100%', minHeight, 
   return (
     <div ref={ref} style={{ width: '100%', height: boxHeight, minHeight }}>
       {ready && (
-        <ResponsiveContainer width={width} height={height} {...rest}>
+        <ResponsiveContainer width={width} height={height} initialDimension={ready} {...rest}>
           {children}
         </ResponsiveContainer>
       )}

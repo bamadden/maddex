@@ -79,7 +79,12 @@ async function fetchLiveCalendar() {
   const from = getRelativeDate(0)
   const to   = getRelativeDate(60)
   const url  = `https://financialmodelingprep.com/api/v3/economic_calendar?from=${from}&to=${to}&apikey=${FMP_KEY}`
-  const res  = await fetch(url)
+  // Bounded: without a timeout a slow vendor holds the whole calendar —
+  // and every widget built on it — in "loading" instead of falling back.
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 6000)
+  let res
+  try { res = await fetch(url, { signal: ctrl.signal }) } finally { clearTimeout(timer) }
   if (!res.ok) throw new Error(`FMP calendar ${res.status}`)
   const raw = await res.json()
   if (!Array.isArray(raw) || !raw.length) throw new Error('FMP calendar empty')

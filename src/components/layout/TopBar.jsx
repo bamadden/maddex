@@ -467,7 +467,9 @@ export default function TopBar() {
           centred in the window. Centred text drifts as the right cluster
           changes width; anchored text does not move at all. */}
       <div className="flex items-center min-w-0 flex-1 overflow-hidden pl-5">
-        <ModuleCrumb />
+        {/* At phone width there is room for one clipped letter; the module
+            header below already names the page, so the crumb steps aside. */}
+        <span className="hidden sm:contents"><ModuleCrumb /></span>
       </div>
 
       {/* RIGHT — compact groups on one line. Dividers are interleaved between
