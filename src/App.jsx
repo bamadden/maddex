@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import NotificationPermissionPrompt from './components/ui/NotificationPermissionPrompt'
 import { runOfficialCheck } from './services/officialStats'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { autoGenerateBrief } from './services/morningBriefService'
@@ -325,6 +326,12 @@ function Terminal() {
   // data once per six hours. Fire-and-forget: the terminal renders from the
   // constants either way; this only confirms or flags them.
   useEffect(() => { runOfficialCheck().catch(() => {}) }, [])
+  // Clicking a system notification opens the module it is about.
+  useEffect(() => {
+    const onNav = (e) => { if (e.detail?.module) setActiveModule(e.detail.module) }
+    window.addEventListener('maddex:navigate', onNav)
+    return () => window.removeEventListener('maddex:navigate', onNav)
+  }, [setActiveModule])
   const { layout, setLayout } = useLayoutMode()
   const [splitModuleId, setSplitModuleId] = useState('crypto')
   // Left pane's share of the split, 0.2–0.8. Held here rather than in the
@@ -404,7 +411,7 @@ function Terminal() {
     briefAttempted.current = true
     autoGenerateBrief(watchlist)
       .then((brief) => {
-        if (brief && !brief.isWeekend) addNotification('SYSTEM', '☀ Your morning brief is ready')
+        if (brief && !brief.isWeekend) addNotification('MORNING_BRIEF', '☀ Your morning brief is ready', { browser: { title: '☀ Morning brief ready', body: brief.headline ?? 'Your morning brief is ready', module: 'brief' } })
       })
       .catch((err) => console.warn('[Brief] auto-generation skipped:', err.message))
   }, [watchlist, addNotification])
@@ -827,6 +834,7 @@ function Terminal() {
         )
       })}
       {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
+      <NotificationPermissionPrompt />
       {!showWelcome && showTour && <OnboardingTour onComplete={completeTour} />}
       {!showWelcome && !showTour && showWhatsNew && (
         <Suspense fallback={null}>

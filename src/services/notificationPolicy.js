@@ -53,6 +53,9 @@ const TYPE_PRIORITY = {
   BREAKING_NEWS: PRIORITY.HIGH,
 
   MORNING_BRIEF: PRIORITY.HIGH,
+  // Five minutes before a high-impact release — the user needs it in time
+  // to act, so it toasts; silent, because the calendar chose it, not them.
+  EVENT_WARNING: PRIORITY.HIGH,
   EARNINGS_WATCHLIST: PRIORITY.HIGH,
   RBA_DECISION: PRIORITY.HIGH,
   MARKET_OPEN: PRIORITY.HIGH,

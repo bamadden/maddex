@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
+import { maybeNotify, offerPrompt } from '../services/browserNotify'
 import { treatmentFor, recordHistory } from '../services/notificationPolicy'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
 import { notificationRateLimiter } from '../services/notificationRateLimiter'
@@ -138,6 +139,9 @@ export function StoreProvider({ children }) {
 
   const addAlert = useCallback((sym, price, direction = 'above') => {
     const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), direction, createdAt: new Date().toISOString() }
+    // First alert is the moment to ask for system notifications — the
+    // pre-prompt explains why before the browser's own dialog appears.
+    offerPrompt()
     setAlerts((prev) => {
       const next = [...prev, alert]
       try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
@@ -177,6 +181,8 @@ export function StoreProvider({ children }) {
       ...(meta?.link ? { link: meta.link } : null),
     }
     recordHistory(notification)
+    // OS notification when the tab is hidden — see browserNotify.js.
+    maybeNotify(notification, meta)
     setNotifications((prev) => {
       const next = [notification, ...prev].slice(0, 20)
       try { localStorage.setItem('madden_notifications', JSON.stringify(next)) } catch {

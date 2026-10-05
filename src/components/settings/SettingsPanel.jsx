@@ -26,6 +26,10 @@ import { APP_VERSION } from '../layout/NavBar'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 import { defiService } from '../../services/defiService'
+import {
+  CATEGORIES as NOTIFY_CATEGORIES, getPrefs as getNotifyPrefs, setPref as setNotifyPref,
+  permission as notifyPermission, requestPermission as requestNotifyPermission, fire as fireNotification,
+} from '../../services/browserNotify'
 import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
@@ -1141,6 +1145,63 @@ function UpcomingReminders() {
   )
 }
 
+// System notifications — the OS-level ones that reach someone in another
+// tab. Browser permission can only be granted from a user gesture and only
+// revoked from the browser itself, so DISABLE is the app's own switch.
+function BrowserNotificationsBlock() {
+  const [perm, setPerm] = useState(notifyPermission)
+  const [prefs, setPrefs] = useState(getNotifyPrefs)
+  const [tested, setTested] = useState(false)
+  useEffect(() => {
+    const onPrefs = (e) => setPrefs(e.detail)
+    const onPerm = () => setPerm(notifyPermission())
+    window.addEventListener('maddex:notify-prefs', onPrefs)
+    window.addEventListener('maddex:notify-permission', onPerm)
+    return () => { window.removeEventListener('maddex:notify-prefs', onPrefs); window.removeEventListener('maddex:notify-permission', onPerm) }
+  }, [])
+  const enabled = perm === 'granted' && prefs.enabled
+  const status = perm === 'unsupported' ? 'NOT SUPPORTED IN THIS BROWSER'
+    : perm === 'denied' ? 'BLOCKED IN BROWSER SETTINGS'
+    : enabled ? 'ENABLED' : 'DISABLED'
+  return (
+    <div className="border border-terminal-border p-3 mb-4">
+      <div className="flex items-center gap-2">
+        <span className="text-2xs font-bold tracking-widest text-terminal-gold">BROWSER NOTIFICATIONS</span>
+        <span className="text-2xs font-bold" style={{ color: enabled ? '#2D8A50' : perm === 'denied' ? '#C9A84C' : '#637899' }}>
+          {enabled ? '●' : '○'} {status}
+        </span>
+        <span className="ml-auto flex gap-1.5">
+          {perm !== 'unsupported' && perm !== 'denied' && (
+            enabled
+              ? <button onClick={() => setPrefs(setNotifyPref('enabled', false))} className="text-2xs font-bold px-2.5 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-text">DISABLE</button>
+              : <button onClick={async () => { if (await requestNotifyPermission()) setPrefs(setNotifyPref('enabled', true)); setPerm(notifyPermission()) }}
+                  className="text-2xs font-bold px-2.5 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg">ENABLE</button>
+          )}
+          <button
+            disabled={perm !== 'granted'}
+            onClick={() => { fireNotification({ title: '🔔 Test — Maddex notifications working', body: 'You will see alerts like this when Maddex is in the background.', tag: 'maddex-test' }); setTested(true); setTimeout(() => setTested(false), 2500) }}
+            className="text-2xs font-bold px-2.5 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold disabled:opacity-30"
+          >{tested ? '✓ SENT' : 'TEST NOTIFICATION'}</button>
+        </span>
+      </div>
+      <div className="text-2xs text-terminal-text-dim/70 mt-1">
+        {perm === 'denied'
+          ? 'Notifications are blocked for this site. Allow them from the padlock icon in your browser’s address bar, then return here.'
+          : 'Delivered by your operating system when Maddex is in a background tab. In the foreground the in-app toast shows instead.'}
+      </div>
+      <div className="mt-2.5 text-[9px] text-terminal-text-dim tracking-widest">NOTIFY ME FOR</div>
+      <div className="mt-1 space-y-1">
+        {NOTIFY_CATEGORIES.map((c) => (
+          <label key={c.id} className="flex items-center gap-2 text-2xs text-terminal-text cursor-pointer">
+            <input type="checkbox" checked={!!prefs[c.id]} onChange={(e) => setPrefs(setNotifyPref(c.id, e.target.checked))} className="accent-[#C9A84C]" />
+            {c.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function NotificationsSection() {
   const { settings, updateSettings } = useAuthStore()
   const [quiet, setQuiet] = useState(() => getQuietHours())
@@ -1176,6 +1237,7 @@ function NotificationsSection() {
   return (
     <div className="space-y-1">
       <SectionLabel>Notifications</SectionLabel>
+      <BrowserNotificationsBlock />
       {ROWS.map(([key, label, note]) => (
         <FieldRow key={key} label={label} note={note}>
           <Toggle value={vals[key]} onChange={() => toggle(key)} disabled={saving === key} />

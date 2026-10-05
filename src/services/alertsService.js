@@ -1,4 +1,5 @@
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
+import { offerPrompt } from './browserNotify'
 import { sydneyOffset } from '../utils/dateUtils'
 
 const ALERTS_KEY = 'maddex_alerts_engine_v1'
@@ -35,6 +36,7 @@ function saveAlerts(alerts) {
 
 // condition: 'above' | 'below' | 'crosses' (PRICE); ignored for other types.
 export function createAlert({ type, symbol, condition, value, label }) {
+  offerPrompt()
   const alert = {
     id: Date.now() + Math.random(),
     type, symbol: symbol ? symbol.toUpperCase() : null,

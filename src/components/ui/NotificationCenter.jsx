@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { getEconomicCalendar, eventInstant } from '../../services/calendarService'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { permission as notifyPermission } from '../../services/browserNotify'
 import { pendingReminders, dismissReminder } from '../../services/calendarExtras'
 import { sendAlertEmail } from '../../services/alertEmailService'
 import { timeAgo } from '../../utils/dateUtils'
@@ -170,11 +173,24 @@ function AlertsPane({ alerts, onRemove }) {
   )
 }
 
+// Alert ids already delivered this session. Module scope, so it outlives
+// effect re-runs.
+const firedAlertIds = new Set()
+
 export default function NotificationCenter() {
   const {
     notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
     alerts, removeAlert, watchlist,
   } = useStore()
+  // Browser permission, refreshed when the user changes it here or on focus
+  // (they may have changed it from the browser's own site settings).
+  const [notifyPerm, setNotifyPerm] = useState(notifyPermission)
+  useEffect(() => {
+    const sync = () => setNotifyPerm(notifyPermission())
+    window.addEventListener('maddex:notify-permission', sync)
+    window.addEventListener('focus', sync)
+    return () => { window.removeEventListener('maddex:notify-permission', sync); window.removeEventListener('focus', sync) }
+  }, [])
   const queryClient = useQueryClient()
 
   const [open, setOpen] = useState(false)
@@ -312,6 +328,48 @@ export default function NotificationCenter() {
     })
   }, [])
 
+  // ── HIGH-IMPACT EVENTS — a warning five minutes before each high-impact
+  // calendar release, and a "due now" for RBA decisions at the announcement.
+  // Event times are Sydney local; eventInstant resolves AEST/AEDT per date.
+  // Each warning fires once per event, remembered in localStorage so a reload
+  // inside the window does not repeat it.
+  useEffect(() => {
+    const SENT_KEY = 'maddex_event_warnings_v1'
+    const sent = () => { try { return new Set(JSON.parse(localStorage.getItem(SENT_KEY) ?? '[]')) } catch { return new Set() } }
+    const mark = (id) => {
+      const s2 = sent(); s2.add(id)
+      try { localStorage.setItem(SENT_KEY, JSON.stringify([...s2].slice(-200))) } catch { /* quota */ }
+    }
+    const check = async () => {
+      let events
+      try { events = (await getEconomicCalendar()).events ?? [] } catch { return }
+      const now = Date.now()
+      const done = sent()
+      for (const e of events) {
+        if (String(e.importance).toLowerCase() !== 'high') continue
+        const at = eventInstant(e)?.getTime()
+        if (!at) continue
+        const mins = (at - now) / 60000
+        const id = `${e.date}-${e.time}-${e.event}`
+        if (mins > 0 && mins <= 5 && !done.has(`warn:${id}`)) {
+          mark(`warn:${id}`)
+          addNotification('EVENT_WARNING', `⏰ ${e.event} in ${Math.ceil(mins)} min`, {
+            browser: { title: `⏰ ${e.event} in ${Math.ceil(mins)} minutes`, body: e.description || 'High-impact economic release', tag: `event-${id}`, module: 'calendar' },
+          })
+        }
+        if (/\bRBA\b/.test(e.event) && mins <= 0 && mins > -3 && !done.has(`now:${id}`)) {
+          mark(`now:${id}`)
+          addNotification('RBA_DECISION', '🏦 RBA cash rate decision due now', {
+            browser: { title: `🏦 RBA DECISION — ${e.time} ${sydneyTzAbbr(e.date)}`, body: 'Cash rate decision due now', tag: `rba-${e.date}`, module: 'fx' },
+          })
+        }
+      }
+    }
+    check()
+    const id = setInterval(check, 60_000)
+    return () => clearInterval(id)
+  }, [addNotification])
+
   // ── PRICE ALERT — poll watchlist-style quotes for any active alert ─────────
   // Alerts created via the CommandBar's ALERT {sym} {price} text command have
   // no `direction` field (defaults to 'above' in addAlert) — "reached your
@@ -330,7 +388,19 @@ export default function NotificationCenter() {
             ? q?.last != null && q.last <= alert.price
             : q?.last != null && q.last >= alert.price
           if (hit) {
-            addNotification('PRICE_ALERT', `${alert.sym} reached your target of A$${alert.price.toFixed(2)}`)
+            // Once per alert, however many checkers saw it hit — two runs of
+            // this effect (StrictMode, a re-render mid-fetch) both read the
+            // alert before either removed it, and fired it twice.
+            if (firedAlertIds.has(alert.id)) continue
+            firedAlertIds.add(alert.id)
+            addNotification('PRICE_ALERT', `${alert.sym} reached your target of A$${alert.price.toFixed(2)}`, {
+              browser: {
+                title: `⚡ ${alert.sym} alert triggered`,
+                body: `${alert.sym} is ${alert.direction === 'below' ? 'below' : 'above'} A$${alert.price.toFixed(2)} · current A$${q.last.toFixed(2)}`,
+                tag: `alert-${alert.id}`,
+                module: 'watchlist',
+              },
+            })
             // Second copy, for someone who is not looking at the tab. The
             // in-app notification above has already been delivered, so this is
             // deliberately not awaited and its failure is not surfaced.
@@ -628,6 +698,13 @@ export default function NotificationCenter() {
             className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-terminal-red"
             title={`${unreadCount} unread`}
           />
+        )}
+        {notifyPerm === 'denied' && (
+          <span
+            className="absolute -bottom-0.5 -right-1 min-w-[10px] h-[10px] rounded-full flex items-center justify-center font-bold"
+            style={{ background: '#C9A84C', color: '#040d1a', fontSize: 7 }}
+            title="Enable browser notifications for price alerts in Settings"
+          >!</span>
         )}
       </button>
 
