@@ -189,7 +189,19 @@ export default function NotificationCenter() {
     const sync = () => setNotifyPerm(notifyPermission())
     window.addEventListener('maddex:notify-permission', sync)
     window.addEventListener('focus', sync)
-    return () => { window.removeEventListener('maddex:notify-permission', sync); window.removeEventListener('focus', sync) }
+    // Where supported, the Permissions API reports a site-settings change
+    // directly, without waiting for the window to regain focus.
+    let status = null
+    let cancelled = false
+    navigator.permissions?.query({ name: 'notifications' })
+      .then((s) => { if (cancelled) return; status = s; s.addEventListener('change', sync) })
+      .catch(() => { /* unsupported — focus covers it */ })
+    return () => {
+      cancelled = true
+      window.removeEventListener('maddex:notify-permission', sync)
+      window.removeEventListener('focus', sync)
+      status?.removeEventListener('change', sync)
+    }
   }, [])
   const queryClient = useQueryClient()
 
@@ -706,7 +718,7 @@ export default function NotificationCenter() {
           <span
             className="absolute -bottom-0.5 -right-1 min-w-[10px] h-[10px] rounded-full flex items-center justify-center font-bold"
             style={{ background: '#C9A84C', color: '#040d1a', fontSize: 7 }}
-            title="Enable browser notifications for price alerts in Settings"
+            title="Notifications are blocked for this site — allow them in your browser's site settings to get price alerts"
           >!</span>
         )}
       </button>

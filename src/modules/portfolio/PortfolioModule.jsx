@@ -32,6 +32,10 @@ import { SECTOR_BY_SYMBOL } from './sectorMap'
 import WhatIf from './WhatIf'
 import Transactions from './Transactions'
 import SafeChart from '../../components/ui/SafeChart'
+import PortfolioImportModal from '../../components/portfolio/PortfolioImportModal'
+import {
+  detectType, cleanSymbol, mergeLots, holdingsToCsv, exportFilename, downloadText, logImport,
+} from '../../services/portfolioCsv'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -49,22 +53,8 @@ const Portfolio3D = lazy(() => import('../../components/visualisations/Portfolio
 
 const STORAGE_KEY = 'madden_portfolio_v2'
 
-const CRYPTO_SYMS = new Set(['BTC','ETH','SOL','BNB','XRP','ADA','AVAX','DOGE','DOT','MATIC','LINK','LTC','ATOM','OP','ARB','NEAR','APT','SUI'])
-const ASX_KNOWN   = new Set(['BHP','CBA','CSL','ANZ','WBC','NAB','WOW','RIO','MQG','TLS','FMG','MIN','PLS','WDS','ORG','REA','WTC','XRO','AGL','IAG','QBE','STO','WPL','ALL','GMG'])
-
-function detectType(sym) {
-  const s = sym.toUpperCase().replace(/\.AX$|:ASX$/, '').trim()
-  if (CRYPTO_SYMS.has(s)) return 'crypto'
-  const raw = sym.toUpperCase()
-  if (raw.endsWith('.AX') || raw.endsWith(':ASX') || ASX_KNOWN.has(s)) return 'asx'
-  return 'us'
-}
-
-function cleanSymbol(sym, type) {
-  const s = sym.toUpperCase().trim()
-  if (type === 'asx') return s.replace(/\.AX$|:ASX$/, '')
-  return s
-}
+// detectType / cleanSymbol live in portfolioCsv so the add form and the CSV
+// importer classify a ticker the same way.
 
 // Rotating palette for the per-stock donut — cycles once holdings outnumber
 // the palette, which is fine since colors only need to be locally distinct.
@@ -508,6 +498,7 @@ export default function PortfolioModule() {
   })
   const [showAddForm, setShowAddForm] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [allocView3D, setAllocView3D] = useState(false)
   const [dbSynced, setDbSynced] = useState(false)
   const [activeTab, setActiveTab] = useState('holdings')
@@ -581,6 +572,28 @@ export default function PortfolioModule() {
     setShowBuilder(false)
   }
 
+  // CSV import. One state update for the whole file — a row-by-row addHolding
+  // would replace by symbol, which is exactly what ADD AS NEW LOT must not do.
+  const importCsv = async ({ add, replaceKeys, skipped, replaced }) => {
+    const keyOf = (h) => `${h.type}:${h.symbol}`
+    const removed = holdings.filter((h) => replaceKeys.has(keyOf(h)))
+    setHoldings((prev) => [...prev.filter((h) => !replaceKeys.has(keyOf(h))), ...add])
+    logImport({ source: 'CSV', holdingsAdded: add.length, holdingsSkipped: skipped, holdingsReplaced: replaced })
+    logActivity('portfolio', `Imported ${add.length} holding${add.length === 1 ? '' : 's'} from CSV`)
+    setShowImport(false)
+    if (!user) return
+    if (removed.length) await supabase.from('portfolio_holdings').delete().in('id', removed.map((h) => h.id))
+    const { data, error } = await supabase.from('portfolio_holdings').insert(add.map((h) => ({
+      symbol: h.symbol, name: h.name, shares: h.shares, avg_buy_price: h.avgCost,
+      currency: h.costCurrency, added_at: h.addedAt,
+    }))).select()
+    // Same id swap as addHolding — rows come back in insert order.
+    if (!error && data?.length === add.length) {
+      const idMap = new Map(add.map((h, i) => [h.id, data[i].id]))
+      setHoldings((prev) => prev.map((p) => (idMap.has(p.id) ? { ...p, id: idMap.get(p.id) } : p)))
+    }
+  }
+
   const deleteHolding = async (id) => {
     setHoldings((prev) => prev.filter((h) => h.id !== id))
     if (user) {
@@ -597,6 +610,8 @@ export default function PortfolioModule() {
   // and on the Supabase load — so this should never fire in practice, which is
   // the point.
   const equityHoldings = holdings.filter((h) => h.type !== 'crypto')
+  // Several lots of one symbol are one position — for the tier limit too.
+  const positionCount = new Set(holdings.map((h) => `${h.type}:${h.symbol}`)).size
   const yfSymbols = [...new Set(equityHoldings.map(requireYFSym))]
 
   const { data: portfolioResult, isFetching, isError, refetch } = useQuery({
@@ -609,7 +624,10 @@ export default function PortfolioModule() {
   const batchQuotes = portfolioResult?.data
   const isDelayed    = portfolioResult?.stale === true
 
-  const computed = holdings.map((h) => {
+  // One entry per LOT (what the user entered, and what the holdings table and
+  // CSV export list); `computed` below merges lots into one position per
+  // symbol for every aggregate view, which key and weight by symbol.
+  const lots = holdings.map((h) => {
     const isCrypto = h.type === 'crypto'
     const isAsx    = h.type === 'asx'
     // Must key on the same symbol the batch was fetched with, or every lookup
@@ -644,6 +662,7 @@ export default function PortfolioModule() {
     return { ...h, last, dayPct, mktVal, totalCost, pnl, pnlPct, loadState, isOpen: q?.isOpen, nativePrice, currency, marketCap, pe, divYield }
   })
 
+  const computed  = mergeLots(lots)
   const live      = computed.filter((h) => h.mktVal != null)
   const mktTotal  = live.reduce((s, h) => s + h.mktVal, 0)
   const liveCost  = live.reduce((s, h) => s + h.totalCost, 0)
@@ -678,7 +697,13 @@ export default function PortfolioModule() {
   // Plain derivation rather than useMemo: `computed` is rebuilt on every
   // render anyway, so memoising on it would never hit — and the compiler
   // flags the dead memo rather than silently keeping it.
-  const sorted = sortHoldings(computed, sortKey, sortDir)
+  const sorted = sortHoldings(lots, sortKey, sortDir)
+  const lotCount = lots.reduce((m, h) => m.set(`${h.type}:${h.symbol}`, (m.get(`${h.type}:${h.symbol}`) ?? 0) + 1), new Map())
+
+  const exportCsv = () => {
+    downloadText(holdingsToCsv(lots, { sectorOf: (h) => (h.type === 'crypto' ? 'Crypto' : SECTOR_BY_SYMBOL[h.symbol] ?? 'Other') }), exportFilename())
+    logActivity('portfolio', `Exported ${lots.length} holding${lots.length === 1 ? '' : 's'} to CSV`)
+  }
 
   const bestPerformer = live.filter((h) => h.pnlPct != null).sort((a, b) => b.pnlPct - a.pnlPct)[0] ?? null
 
@@ -740,17 +765,28 @@ export default function PortfolioModule() {
           title="PORTFOLIO"
           subtitle="Track your holdings across ASX, US equities, and crypto"
           right={(
-            <button
-              onClick={() => setShowBuilder(true)}
-              className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
-            >BUILD WITH AI ▶</button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowImport(true)} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide">IMPORT CSV</button>
+              <button
+                onClick={() => setShowBuilder(true)}
+                className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
+              >BUILD WITH AI ▶</button>
+            </div>
           )}
         />
         {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
+        {showImport && (
+          <PortfolioImportModal
+            holdings={holdings}
+            positionLimit={canAccess('prime') ? null : PORTFOLIO_LIMIT}
+            onConfirm={importCsv}
+            onClose={() => setShowImport(false)}
+          />
+        )}
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 bg-terminal-bg">
         {showAddForm
           ? <div className="w-full max-w-sm">
-              <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
+              <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
             </div>
           : <>
               <span className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
@@ -774,6 +810,9 @@ export default function PortfolioModule() {
                 ))}
               </div>
               <div className="text-2xs text-terminal-text-dim/40">Supports ASX (BHP.AX), US equities, and major crypto</div>
+              <button onClick={() => setShowImport(true)} className="text-2xs text-terminal-text-dim hover:text-terminal-gold underline underline-offset-2">
+                or import holdings from a CSV file
+              </button>
             </>
         }
         </div>
@@ -787,12 +826,14 @@ export default function PortfolioModule() {
     <div className="h-full grid grid-rows-[auto_auto_auto_1fr] overflow-hidden">
       <ModuleHeader
         title="PORTFOLIO"
-        subtitle={`${holdings.length} positions · ${equityHoldings.length} equities tracked`}
+        subtitle={`${positionCount} positions${holdings.length > positionCount ? ` · ${holdings.length} lots` : ''} · ${equityHoldings.length} equities tracked`}
         moduleId="portfolio"
         isFetching={isFetching}
         onRefresh={yfSymbols.length > 0 ? refetch : undefined}
         right={(
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <button onClick={() => setShowImport(true)} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide">IMPORT CSV</button>
+            <button onClick={exportCsv} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide" title="One row per lot, in AUD">EXPORT CSV</button>
             <button
               onClick={() => setShowBuilder(true)}
               className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
@@ -813,6 +854,14 @@ export default function PortfolioModule() {
         )}
       />
       {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
+      {showImport && (
+        <PortfolioImportModal
+          holdings={holdings}
+          positionLimit={canAccess('prime') ? null : PORTFOLIO_LIMIT}
+          onConfirm={importCsv}
+          onClose={() => setShowImport(false)}
+        />
+      )}
       {showSnapshot && (
         <PortfolioSnapshot
           holdings={live}
@@ -844,7 +893,7 @@ export default function PortfolioModule() {
           value={live.length ? fmtCur(dayPnl) : '—'}
           color={dayPnl >= 0 ? 'text-terminal-green' : 'text-terminal-red'}
         />
-        <StatBox label="POSITIONS"   value={holdings.length} color="text-terminal-text-bright" />
+        <StatBox label="POSITIONS"   value={positionCount} color="text-terminal-text-bright" />
         <StatBox
           label="LIVE PRICES"
           value={isDelayed ? `${live.length}/${equityHoldings.length} ⏱` : `${live.length}/${equityHoldings.length}`}
@@ -882,7 +931,7 @@ export default function PortfolioModule() {
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {showAddForm && (
         <div className="border-b border-terminal-border px-3 py-2 bg-terminal-panel flex-shrink-0">
-          <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && holdings.length >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
+          <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
         </div>
       )}
 
@@ -994,7 +1043,12 @@ export default function PortfolioModule() {
                         extra:  { nativePrice: h.nativePrice, currency: h.currency },
                       })}
                     >
-                      <td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright">{dispSym}</td>
+                      <td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
+                        {dispSym}
+                        {lotCount.get(`${h.type}:${h.symbol}`) > 1 && (
+                          <span className="ml-1.5 text-[8px] font-normal tracking-wider text-terminal-gold/70 border border-terminal-gold/30 px-1" title={`Bought ${h.addedAt} — one of ${lotCount.get(`${h.type}:${h.symbol}`)} lots`}>LOT</span>
+                        )}
+                      </td>
                       <td className="px-1 py-0.5 text-2xs hidden md:table-cell">
                         <span className={h.type === 'asx' ? 'text-terminal-gold' : h.type === 'crypto' ? 'text-purple-400' : 'text-terminal-blue-bright'}>
                           {h.type === 'asx' ? 'ASX' : h.type === 'crypto' ? 'CRYPTO' : 'US'}

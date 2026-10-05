@@ -90,8 +90,8 @@ export default function DashboardStatusBar() {
         </span>
       </div>
 
-      <span className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0">{timeStr}</span>
-      <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hidden sm:inline">{tz}</span>
+      <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0 cursor-help">{timeStr}</span>
+      <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hidden sm:inline cursor-help">{tz}</span>
     </div>
   )
 }

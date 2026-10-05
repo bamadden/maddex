@@ -31,6 +31,7 @@ import {
   permission as notifyPermission, requestPermission as requestNotifyPermission, fire as fireNotification,
 } from '../../services/browserNotify'
 import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
+import { getImportHistory } from '../../services/portfolioCsv'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
@@ -1602,6 +1603,31 @@ function SecuritySection({ onDeleteRequest }) {
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
+// Log written by the portfolio CSV importer (portfolioCsv.logImport).
+function PortfolioImportsBlock() {
+  const [history] = useState(getImportHistory)
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-bold text-terminal-text-bright">PORTFOLIO IMPORTS</div>
+      {history.length === 0
+        ? <div className="text-2xs text-terminal-text-dim">No imports yet — use IMPORT CSV in the Portfolio module.</div>
+        : (
+          <ul className="space-y-1">
+            {history.slice(0, 8).map((h) => (
+              <li key={h.date} className="text-2xs text-terminal-text-dim">
+                <span className="text-terminal-text">{fmtDate(h.date)}</span>
+                {' — '}{h.holdingsAdded} holding{h.holdingsAdded === 1 ? '' : 's'} imported from {h.source}
+                {h.holdingsReplaced > 0 && ` · ${h.holdingsReplaced} replaced`}
+                {h.holdingsSkipped > 0 && ` · ${h.holdingsSkipped} skipped`}
+              </li>
+            ))}
+          </ul>
+        )}
+    </div>
+  )
+}
+
 function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClearCache, onResetDashboard, onSignOut, signedIn }) {
   const [exporting, setExporting] = useState(false)
 
@@ -1652,6 +1678,8 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClear
           {exporting ? '...' : 'EXPORT MY DATA'}
         </button>
       </div>
+
+      <PortfolioImportsBlock />
 
       <div className="border border-terminal-border p-4 space-y-3">
         <div className="text-xs font-bold text-terminal-gold tracking-widest">RESET</div>

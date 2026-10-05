@@ -69,7 +69,9 @@ export function DemoBadge({ className = '' }) {
       title="No live equities API key configured — showing realistic demo data until one is added"
       className={`inline-flex items-center gap-1 rounded-full bg-terminal-gold/15 border border-terminal-gold/40 px-2 py-0.5 text-2xs text-terminal-gold whitespace-nowrap normal-case ${className}`}
     >
-      ● DEMO <span className="text-terminal-gold/70">Live data connects on API setup</span>
+      {/* The explanation is the first thing cut at phone width — it lives in
+          the title too, and a clipped half-sentence reads worse than none. */}
+      ● DEMO <span className="text-terminal-gold/70 hidden sm:inline">Live data connects on API setup</span>
     </span>
   )
 }

@@ -360,6 +360,16 @@ function ModuleCrumb() {
   )
 }
 
+// The TopBar clock is the viewer's own time; the dashboard clock is Sydney
+// market time. Named in the tooltip so the hour between them reads as intent.
+const LOCAL_CLOCK_TITLE = (() => {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? ''
+    const city = zone.split('/').pop()?.replace(/_/g, ' ')
+    return city ? `Your local time (${city})` : 'Your local time'
+  } catch { return 'Your local time' }
+})()
+
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { user, supabaseOffline } = useAuthStore()
@@ -481,7 +491,7 @@ export default function TopBar() {
           <SentimentTick key="sentiment" sentiment={sentiment} status={sentimentStatus} />,
           <span
             key="clock"
-            title="Brisbane AEST"
+            title={LOCAL_CLOCK_TITLE}
             className="text-[10px] font-mono text-terminal-muted whitespace-nowrap flex-shrink-0"
           >
             {timeStr}
