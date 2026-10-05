@@ -2071,10 +2071,10 @@ function OfficialCheckPanel() {
       <div className="divide-y divide-terminal-border/30 mt-1">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3 px-3 py-1.5 text-2xs">
-            <span className="text-terminal-text-bright w-36 flex-shrink-0">{r.label}</span>
-            <span className="text-terminal-text-dim tabular-nums w-16">{r.constant}%</span>
-            <span className="tabular-nums w-16" style={{ color: colour(r.status) }}>{r.official != null ? `${r.official}%` : '—'}</span>
-            <span className="text-terminal-text-dim/70 flex-1 truncate">{r.period ?? ''}</span>
+            <span className="text-terminal-text-bright w-32 flex-shrink-0">{r.label}</span>
+            <span className="text-terminal-text-dim tabular-nums w-14">{Number(r.constant).toFixed(r.dp ?? 1)}%</span>
+            <span className="tabular-nums w-14" style={{ color: colour(r.status) }}>{r.official != null ? `${Number(r.official).toFixed(r.dp ?? 1)}%` : '—'}</span>
+            <span className="text-terminal-text-dim/70 flex-1 truncate" title={r.period ?? ''}>{(r.period ?? '').replace(/^effective /, 'eff. ')}</span>
             <span className="font-bold tracking-wider flex-shrink-0" style={{ color: colour(r.status) }}>
               {r.status === 'match' ? '✓ MATCH' : r.status === 'drift' ? '⚠ DRIFT' : 'UNAVAILABLE'}
             </span>

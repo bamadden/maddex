@@ -131,7 +131,7 @@ export async function fetchOfficialStats(opts = {}) {
 export function reconcile(constants, live) {
   const { rba, au } = constants
   const row = (label, group, field, constant, official, source) => ({
-    label, group, field, constant, source,
+    label, group, field, constant, source, dp: field === 'cashRate' ? 2 : 1,
     official: official?.value ?? null,
     period: official?.period ?? null,
     status: official?.value == null ? 'unavailable' : Math.abs(official.value - constant) < 0.05 ? 'match' : 'drift',
@@ -175,7 +175,15 @@ function applyConfirmations(result) {
 export function getOfficialCheck() { return latest }
 export function subscribeOfficialCheck(cb) { listeners.add(cb); return () => listeners.delete(cb) }
 
-export async function runOfficialCheck({ force = false } = {}) {
+// One request in flight at a time — StrictMode mounts effects twice in dev,
+// and a click on CHECK NOW during the startup check should join it.
+let inflight = null
+export function runOfficialCheck(opts = {}) {
+  if (!inflight) inflight = doOfficialCheck(opts).finally(() => { inflight = null })
+  return inflight
+}
+
+async function doOfficialCheck({ force = false } = {}) {
   if (!force) {
     try {
       const cached = JSON.parse(localStorage.getItem(CHECK_KEY) ?? 'null')
