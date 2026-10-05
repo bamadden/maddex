@@ -126,6 +126,16 @@ export async function fetchOfficialStats(opts = {}) {
   return { rba: ok(rba), cpi: ok(cpi), lf: ok(lf), gdp: ok(gdp), fetchedAt: Date.now() }
 }
 
+// Where a reader can see each figure at its source.
+export const SOURCE_URL = {
+  cashRate: 'https://www.rba.gov.au/statistics/cash-rate/',
+  cpi: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release',
+  cpiTrimmedMean: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release',
+  unemployment: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release',
+  gdpQoQ: 'https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/latest-release',
+  gdpAnnual: 'https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/latest-release',
+}
+
 // Each official figure beside the constant it should equal. `group` is the
 // verifiedConstants key whose staleness a match can clear.
 export function reconcile(constants, live) {

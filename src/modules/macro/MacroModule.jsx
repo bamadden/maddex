@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
+import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import { sydneyTzAbbr, sydneyTzNow, sydneyOffset } from '../../utils/dateUtils'
 import RecessionMonitor from './RecessionMonitor'
 import RegimeQuadrant from './RegimeQuadrant'
@@ -118,6 +119,12 @@ const nextRbaMeetingLabel = nextRbaMeetingDate
 // Next official release date per indicator — only populated where the release
 // calendar is well known; indicators without a confirmed next date are left
 // blank rather than guessed.
+// Indicators reconciled against the RBA/ABS feeds (services/officialStats).
+const LIVE_CHECK_FIELD = {
+  'RBA Cash Rate': 'cashRate', 'AU CPI YoY': 'cpi', 'AU CPI Trimmed Mean': 'cpiTrimmedMean',
+  'AU Unemployment': 'unemployment', 'AU GDP QoQ': 'gdpQoQ', 'AU GDP Annual': 'gdpAnnual',
+}
+
 const NEXT_RELEASE = {
   'RBA Cash Rate':       nextRbaMeetingLabel,
   'AU CPI YoY':          '28 October 2026 (Sep)',
@@ -1835,6 +1842,7 @@ export default function MacroModule() {
               <div className="flex items-center gap-1 mb-0.5">
                 <FreshnessDot date={ind.date} name={ind.name} />
                 <div className="text-2xs text-terminal-text-dim leading-tight">{ind.name}</div>
+                {LIVE_CHECK_FIELD[ind.name] && <LiveCheckBadge field={LIVE_CHECK_FIELD[ind.name]} className="ml-auto" />}
               </div>
               <div className="text-sm font-bold text-terminal-text-bright">
                 {ind.name === 'RBA Cash Rate' ? rbaRateStr : ind.value}

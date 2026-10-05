@@ -1,4 +1,5 @@
 import {useState, useEffect, useRef, useSyncExternalStore, lazy, Suspense } from 'react'
+import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { timeAgo } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
 import { useQueryClient } from '@tanstack/react-query'
@@ -197,6 +198,33 @@ const Divider = () => (
 // the 1s tick only ever forces a re-render, matching the same
 // interval-driven pattern the clock above already uses (lint-clean: no
 // setState called synchronously from an effect body).
+// Verified-constants status: green when every RBA/ABS figure matches the
+// agencies, amber when one has drifted, red when the check could not reach
+// them. Click opens Settings → Data Sources, where the table lives.
+function OfficialDataDot() {
+  const check = useOfficialCheck()
+  const rows = check?.rows ?? []
+  const drift = rows.filter((r) => r.status === 'drift').length
+  const reached = rows.filter((r) => r.status !== 'unavailable').length
+  const state = !check ? null : drift ? 'drift' : reached === 0 ? 'failed' : 'ok'
+  if (!state) return null
+  const colour = state === 'ok' ? '#2D8A50' : state === 'drift' ? '#C9A84C' : '#A83232'
+  const tip = state === 'ok' ? 'Verified constants status: all RBA/ABS figures match the official data'
+    : state === 'drift' ? `Verified constants status: ${drift} figure${drift === 1 ? '' : 's'} differ from the official data`
+    : 'Verified constants status: the RBA/ABS check could not reach the agencies'
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'DATA SOURCES' } }))}
+      title={tip}
+      className="flex items-center gap-1 font-mono text-terminal-muted hover:text-terminal-text-dim flex-shrink-0"
+      style={{ fontSize: 8, letterSpacing: '0.16em' }}
+    >
+      <span className="rounded-full" style={{ width: 5, height: 5, background: colour }} />
+      DATA
+    </button>
+  )
+}
+
 function DataFreshnessBadge() {
   const queryClient = useQueryClient()
   const REFRESH_INTERVAL = 60
@@ -456,6 +484,7 @@ export default function TopBar() {
           >
             {timeStr}
           </span>,
+          <OfficialDataDot key="official" />,
           USING_MOCK_DATA ? <DataFreshnessBadge key="data" /> : null,
           // Mounted for everyone, not just signed-in users.
           //

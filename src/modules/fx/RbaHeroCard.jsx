@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import VERIFIED_CONSTANTS, { provenance } from '../../data/verifiedConstants'
 import { sydneyOffset, sydneyTzAbbr } from '../../utils/dateUtils'
 
@@ -76,8 +77,8 @@ export default function RbaHeroCard({ onAskAI }) {
     >
       <div className="flex items-start gap-6 flex-wrap">
         <div className="min-w-0">
-          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 9, letterSpacing: '0.18em' }}>
-            RBA CASH RATE
+          <div className="font-mono text-terminal-text-dim flex items-center gap-2" style={{ fontSize: 9, letterSpacing: '0.18em' }}>
+            RBA CASH RATE <LiveCheckBadge field="cashRate" />
           </div>
           <div
             className="font-mono font-bold text-terminal-gold leading-none tabular-nums"
