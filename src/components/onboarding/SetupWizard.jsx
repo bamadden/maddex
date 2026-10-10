@@ -149,7 +149,7 @@ export default function SetupWizard({ onComplete }) {
   const setAlert = () => {
     const v = parseFloat(price)
     if (!Number.isFinite(v) || v <= 0) return
-    addAlert(sym4, v, direction)
+    if (!addAlert(sym4, v, direction)) return
     record('alert', `${sym4.replace('.AX', '')} ${direction} ${fmtAud(v)}`)
   }
 

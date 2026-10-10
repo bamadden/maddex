@@ -16,8 +16,6 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { RBA_MEETINGS_2026, getNextMeeting } from '../../services/centralBankSchedule'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
-import { useSubscription } from '../../hooks/useSubscription'
-import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts'
@@ -851,7 +849,6 @@ function CurrencyStrengthIndex() {
 
 export default function FXModule() {
   const { openModal } = useStore()
-  const { canAccess, tier } = useSubscription()
   const [historyPair, setHistoryPair] = useState(null)
   const [fxAttemptKey, setFxAttemptKey]   = useState(0)
   const [yieldView3D, setYieldView3D] = useState(false)
@@ -868,7 +865,6 @@ export default function FXModule() {
     queryFn:  () => fetchFxRatesUnified('AUD'),
     staleTime: 5 * 60_000,
     retry: false,
-    enabled: canAccess('prime'),
   })
   const rawRates  = fxResult?.data
   const fxDelayed = fxResult?.stale === true
@@ -881,7 +877,6 @@ export default function FXModule() {
     queryFn:  fetchMetalsRates,
     staleTime: 10 * 60_000,
     retry: 1,
-    enabled: canAccess('prime'),
   })
 
   const pairs      = rawRates ? transformFxRates(rawRates) : []
@@ -918,14 +913,8 @@ export default function FXModule() {
 
   const auCurveStats = getCurveStats('AU')
 
-  if (!canAccess('prime')) {
-    return (
-      <div className="h-full flex flex-col overflow-hidden relative">
-        <ModuleHeader title="RATES" subtitle="FX Pairs · Yield Curves · Metals" />
-        <UpgradePrompt feature="Rates & FX Module" requiredTier="prime" currentTier={tier} />
-      </div>
-    )
-  }
+  // Rates & FX is on every plan ("Live FX rates" is a Core feature) — the
+  // module-level Prime gate it used to have is gone. See services/plans.
 
   return (
     <>

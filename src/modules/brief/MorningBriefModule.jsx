@@ -3,6 +3,9 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
 import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey, getCachedBrief } from '../../services/morningBriefService'
 import { markMilestone } from '../../services/gettingStarted'
+import { canOpenBriefToday, recordBriefDay } from '../../services/usageService'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
@@ -281,7 +284,9 @@ export default function MorningBriefModule() {
   const { watchlist } = useStore()
   const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
   const [brief, setBrief] = useState(null)
-  const [status, setStatus] = useState('loading') // loading | empty | ready | error
+  const [status, setStatus] = useState('loading') // loading | empty | locked | ready | error
+  // Core reads the brief on three days a week; Prime and Apex every day.
+  const { limits } = useSubscription()
   const [error, setError] = useState(null)
 
   const [copied, setCopied] = useState(false)
@@ -303,9 +308,10 @@ export default function MorningBriefModule() {
     // Opening the module no longer generates. A brief is made at 7am by the
     // auto-generator, or on request below — not as a side effect of looking,
     // which spent a model call on every visit to a day with no brief yet.
+    if (!canOpenBriefToday(limits.briefsPerWeek)) { setStatus('locked'); return }
     if (!force) {
       const cached = getCachedBrief()
-      if (cached) { setBrief(cached); setStatus('ready'); markMilestone('brief') }
+      if (cached) { setBrief(cached); setStatus('ready'); markMilestone('brief'); recordBriefDay() }
       else setStatus('empty')
       return
     }
@@ -317,6 +323,7 @@ export default function MorningBriefModule() {
       setBrief(result)
       setStatus('ready')
       markMilestone('brief')
+      recordBriefDay()
     } catch (e) {
       setError(e.message)
       setStatus('error')
@@ -395,6 +402,13 @@ export default function MorningBriefModule() {
             <SkeletonText lines={5} />
           </div>
         )}
+        {status === 'locked' && (
+          <div className="relative h-full min-h-[420px]">
+            <UpgradePrompt featureKey="briefs" requiredTier="prime"
+              message={`You've read ${limits.briefsPerWeek} briefs this week — the Core allowance`} />
+          </div>
+        )}
+
         {status === 'empty' && (
           <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 26 }} aria-hidden="true">☀</span>

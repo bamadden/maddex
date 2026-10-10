@@ -1,5 +1,8 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import NotificationPermissionPrompt from './components/ui/NotificationPermissionPrompt'
+import PlanOverlays from './components/billing/PlanOverlays'
+import { gatedModule } from './components/billing/ModuleGate'
+import { MODULE_FEATURE, trialEndedSeen } from './services/plans'
 import { runOfficialCheck } from './services/officialStats'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { autoGenerateBrief } from './services/morningBriefService'
@@ -135,6 +138,14 @@ const MODULE_MAP = {
   etf:       ETFModule,
   futures:   FuturesModule,
 }
+
+// Module component for an id, wrapped in its plan gate when the module is not
+// on every plan (services/plans MODULE_FEATURE). Used for the main view, the
+// split pane and pop-out windows alike, so no route around a gate exists.
+// Built once at load, so render paths only look components up.
+const RENDER_MAP = Object.fromEntries(Object.entries(MODULE_MAP).map(([id, Module]) => (
+  [id, MODULE_FEATURE[id] ? gatedModule(Module, MODULE_FEATURE[id]) : Module]
+)))
 
 const MODULE_TITLES = {
   dashboard: 'Dashboard',
@@ -367,7 +378,7 @@ function Terminal() {
     handle.addEventListener('pointermove', onMove)
     handle.addEventListener('pointerup', onUp)
   }, [])
-  const SplitModule = MODULE_MAP[splitModuleId] || CryptoModule
+  const SplitModule = RENDER_MAP[splitModuleId] || CryptoModule
 
   // Custom multi-panel workspaces (see workspaceService.js / WorkspaceSwitcher).
   // 'single' is the default one-module workspace — the existing single/split
@@ -447,7 +458,7 @@ function Terminal() {
     }
   }, [bgNewsData, activeModule, clearNewsBadge, setNewsBadgeCount])
   const [showShortcuts, setShowShortcuts] = useState(false)
-  const ActiveModule = MODULE_MAP[activeModule] || MarketsModule
+  const ActiveModule = RENDER_MAP[activeModule] || MarketsModule
 
   // ── Multi-window mode — any module's ModuleHeader can pop itself out via
   // its "⊡" button, which dispatches this event rather than needing direct
@@ -822,7 +833,7 @@ function Terminal() {
         </Suspense>
       )}
       {floatingWindows.map((w) => {
-        const FloatingContent = MODULE_MAP[w.moduleId] || MarketsModule
+        const FloatingContent = RENDER_MAP[w.moduleId] || MarketsModule
         return (
           <FloatingWindow
             key={w.id}
@@ -843,6 +854,7 @@ function Terminal() {
       })}
       {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
       <NotificationPermissionPrompt suppressed={showWelcome || showTour} />
+      <PlanOverlays />
       {!showWelcome && showTour && <SetupWizard onComplete={completeTour} />}
       {!showWelcome && !showTour && showWhatsNew && (
         <Suspense fallback={null}>
@@ -865,6 +877,7 @@ function AuthGate() {
   const { isTrial, isTrialExpired } = useSubscription()
   const [appReady, setAppReady] = useState(false)
   const [onboardingDone, setOnboardingDone] = useState(false)
+  const [trialAck, setTrialAck] = useState(false)
 
   useEffect(() => {
     initialize().then(() => {
@@ -891,7 +904,10 @@ function AuthGate() {
   if (profile && !profile.onboarding_complete && !onboardingDone) {
     return <OnboardingFlow onComplete={() => setOnboardingDone(true)} />
   }
-  if (user && isTrial && isTrialExpired) return <Suspense fallback={<AppLoader />}><TrialExpiredModal /></Suspense>
+  // Once per account: after "continue on Core" the terminal opens on Core.
+  if (user && isTrial && isTrialExpired && !trialAck && !trialEndedSeen(user.id)) {
+    return <Suspense fallback={<AppLoader />}><TrialExpiredModal onContinue={() => setTrialAck(true)} /></Suspense>
+  }
   return <Terminal />
 }
 

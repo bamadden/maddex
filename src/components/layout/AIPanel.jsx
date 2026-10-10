@@ -21,26 +21,14 @@ import { formatInline, splitFollowUps, toShareText, findTickers } from '../../se
 import { getStarters } from '../../services/aiStarters'
 import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
 import { markMilestone } from '../../services/gettingStarted'
+import { aiQueriesToday, recordAiQuery } from '../../services/usageService'
+import { showLimitPrompt } from '../../services/plans'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 
-// ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
-// Tracked client-side in localStorage under a month-stamped key, so it
-// resets automatically on the 1st with no cron/server job needed.
-const AI_QUOTA_LIMIT = 50
-
-function aiQuotaKey() {
-  const d = new Date()
-  return `madden_ai_msgcount_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-function getAiMessageCount() {
-  try { return parseInt(localStorage.getItem(aiQuotaKey()) || '0', 10) } catch { return 0 }
-}
-function incrementAiMessageCount() {
-  try {
-    const next = getAiMessageCount() + 1
-    localStorage.setItem(aiQuotaKey(), String(next))
-  } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
-}
+// ── MaddenAI daily query limit ─────────────────────────────────────────────
+// Per plan (services/plans LIMITS.aiPerDay): 10 on Core, 50 on Prime,
+// unlimited on Apex. Counted per local day in usageService, which also feeds
+// the monthly usage shown in Settings → Plan & Billing.
 
 // ─── Quick prompts (base templates — live data injected at call time) ─────────
 
@@ -620,7 +608,7 @@ export default function AIPanel({ wide = false }) {
     setCurrentConvId((cur) => (cur === id ? null : cur))
   }, [])
   const { profile } = useAuthStore()
-  const { canAccess, isApex, tier } = useSubscription()
+  const { plan, limits, canUse } = useSubscription()
   const investorProfile = useInvestorProfile()
   const quickPrompts = getQuickPrompts(activeModule, modalAsset?.symbol, getProfilePrompts(investorProfile))
 
@@ -821,21 +809,24 @@ export default function AIPanel({ wide = false }) {
     const text = (textOverride ?? input).trim()
     if (!text || loading) return
 
-    if (!canAccess('prime') && getAiMessageCount() >= AI_QUOTA_LIMIT) {
+    const dailyLimit = limits.aiPerDay
+    if (aiQueriesToday() >= dailyLimit) {
+      const up = plan === 'core' ? 'prime' : 'apex'
       if (!silent) {
         addChatMessage({ role: 'user', content: text })
         addChatMessage({
           role: 'assistant',
-          content: `[LIMIT REACHED] You've used all ${AI_QUOTA_LIMIT} MaddenAI messages included in Core this month.\n\nUpgrade to Prime for unlimited MaddenAI access.`,
+          content: `[LIMIT REACHED] You've used today's ${dailyLimit} MaddenAI questions on ${plan === 'core' ? 'Core' : 'Prime'}. The count resets at midnight.\n\n${up === 'prime' ? 'Prime raises it to 50 a day.' : 'Apex has no daily limit.'}`,
         })
         setInput('')
       }
+      showLimitPrompt(up === 'apex' ? 'unlimitedMaddenAI' : 'moreMaddenAI', `You've used today's ${dailyLimit} MaddenAI questions`, up)
       return
     }
 
     setInput('')
     setLoading(true)
-    incrementAiMessageCount()
+    recordAiQuery()
     markMilestone('ai')
 
     // Displayed turn keeps the clean text; the wire turn carries the context
@@ -1011,7 +1002,7 @@ export default function AIPanel({ wide = false }) {
       const value = parseFloat(priceMatch[0].replace(/[A-Z$,]/g, ''))
       actions.push({
         key: 'alert', label: `⚡ Alert at ${priceMatch[0]}`, type: 'alert',
-        onClick: () => { createAlert({ type: 'PRICE', symbol: uniqueTickers[0], condition: 'above', value, label: `${uniqueTickers[0]} above ${priceMatch[0]}` }); addNotification('SYSTEM', `Alert set: ${uniqueTickers[0]} above ${priceMatch[0]}`) },
+        onClick: () => { if (createAlert({ type: 'PRICE', symbol: uniqueTickers[0], condition: 'above', value, label: `${uniqueTickers[0]} above ${priceMatch[0]}` })) addNotification('SYSTEM', `Alert set: ${uniqueTickers[0]} above ${priceMatch[0]}`) },
       })
     }
     return actions
@@ -1298,11 +1289,11 @@ export default function AIPanel({ wide = false }) {
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
             SAVED NOTES
           </div>
-          {isApex ? (
+          {canUse('researchNotes') ? (
             <NotesPanel notes={notes} onDelete={deleteNote} />
           ) : (
             <div className="relative" style={{ height: 200 }}>
-              <UpgradePrompt feature="Research Notes" requiredTier="apex" currentTier={tier} />
+              <UpgradePrompt featureKey="researchNotes" requiredTier="prime" />
             </div>
           )}
         </div>
@@ -1462,12 +1453,12 @@ export default function AIPanel({ wide = false }) {
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => isApex
+                        onClick={() => canUse('researchNotes')
                           ? saveNote(body)
-                          : window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'SUBSCRIPTION' } }))}
+                          : showLimitPrompt('researchNotes', undefined, 'prime')}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
-                        title={isApex ? 'Save to notes' : 'Research Notes requires Apex — upgrade to save'}
-                      >SAVE{!isApex ? ' ⊘' : ''}</button>
+                        title={canUse('researchNotes') ? 'Save to notes' : 'Research notes are on Prime — upgrade to save'}
+                      >SAVE{!canUse('researchNotes') ? ' ⊘' : ''}</button>
                       <button
                         onClick={() => copyMessage(body)}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"

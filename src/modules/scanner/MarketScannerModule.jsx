@@ -162,7 +162,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
   const ageing = ageMs != null && ageMs >= 15 * 60_000 && ageMs <= 30 * 60_000
   const stale = ageMs != null && ageMs > 30 * 60_000
 
-  const act = (kind, fn) => { fn(); setFlash(kind); setTimeout(() => setFlash(null), 1600) }
+  const act = (kind, fn) => { if (fn() === false) return; setFlash(kind); setTimeout(() => setFlash(null), 1600) }
 
   const alert = alertFor(type, price, up)
   return (

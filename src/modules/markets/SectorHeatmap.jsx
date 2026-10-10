@@ -9,8 +9,6 @@ import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
-import { useSubscription } from '../../hooks/useSubscription'
-import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Brush } from 'recharts'
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
@@ -605,7 +603,6 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   const [hovered, setHovered] = useState(null)
   const [view3D, setView3D] = useState(false)
   const [landscapeMode, setLandscapeMode] = useState('sectors') // 'sectors' | 'cityscape'
-  const { canAccess, tier } = useSubscription()
 
   // Per-stock rows for the cityscape — every ASX stock across all 11 GICS
   // sectors, priced via the shared mock quote generator (same source
@@ -1149,9 +1146,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               </button>
             </div>
 
-            {!canAccess('prime') ? (
-              <UpgradePrompt feature="Sector Detail View" requiredTier="prime" currentTier={tier} />
-            ) : (
+            {/* Sector detail is on every plan — see services/plans GATES. */}
             <>
             {/* Proxy summary */}
             {proxySym && proxyQuotes?.[proxySym] && (() => {
@@ -1320,7 +1315,6 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               <span>{composite != null ? `${secondaryMetric} sector composite` : `${secondaryMetric} proxy: ${proxySym?.replace(/\.(AX|L)$/i,'') ?? '—'}`}{USING_MOCK_DATA ? ' · DEMO' : ''}</span>
             </div>
             </>
-            )}
           </div>
         )}
       </div>

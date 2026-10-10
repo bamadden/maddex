@@ -1164,7 +1164,7 @@ export default function DetailModal() {
             <button
               onClick={() => {
                 if (!alertPrice || isNaN(parseFloat(alertPrice))) return
-                addAlert(symbol, alertPrice, alertDir)
+                if (!addAlert(symbol, alertPrice, alertDir)) return   // plan limit — prompt shown
                 // Echo back the alert that was set, not the fact that one was.
                 // "Alert saved" leaves the user checking whether they typed
                 // 44 or 4.4 — the confirmation should answer that.

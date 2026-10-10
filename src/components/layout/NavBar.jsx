@@ -8,6 +8,8 @@ import NavContextMenu from '../ui/NavContextMenu'
 import { shortcutService } from '../../services/shortcutService'
 import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../services/sidebarPref'
 import { MILESTONES, getProgress, subscribeProgress, shouldShowProgress, markCelebrated } from '../../services/gettingStarted'
+import { useSubscription } from '../../hooks/useSubscription'
+import { PRICES, openPricing, startUpgrade } from '../../services/plans'
 
 // Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
 // the one exception (its action is nav.rates — see App.jsx's
@@ -119,6 +121,8 @@ export default function NavBar() {
   const { activeModule, setActiveModule, chatOpen, setChatOpen } = useStore()
   const [pinned, setPinned] = usePinnedSidebar()
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
+
+  const { plan } = useSubscription()
 
   // Getting-started progress (first week only; see services/gettingStarted).
   const progress = useSyncExternalStore(subscribeProgress, getProgress)
@@ -306,6 +310,33 @@ export default function NavBar() {
           unreachable below the fold. Both remain available — sign out from
           the TopBar user menu, ideas from the command bar — so this trades
           nothing away and buys back two rows of navigation. */}
+      {/* Upgrade, above Settings. Core: a real call to action. Prime: one
+          quiet line. Apex (and a live trial, which is Apex): nothing. */}
+      {plan === 'core' && (
+        <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.12)' }}>
+          <button onClick={openPricing} title="Upgrade to Prime — unlock the full terminal"
+            className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3 w-full`} style={{ background: 'rgba(201,168,76,0.06)' }}>
+            <span className="flex-shrink-0 text-terminal-gold" style={{ width: 18, textAlign: 'center', fontSize: 15 }} aria-hidden="true">★</span>
+            <span className={`nav-label ${labelCls} flex-1 min-w-0 text-left leading-tight`}>
+              <span className="block text-terminal-gold font-bold tracking-wider" style={{ fontSize: 10 }}>UPGRADE TO PRIME</span>
+              <span className="block text-terminal-text-dim" style={{ fontSize: 9 }}>Unlock the full terminal · A${PRICES.prime.monthly}/month</span>
+            </span>
+            <span role="button" tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); startUpgrade('prime') }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startUpgrade('prime') } }}
+              className={`nav-label ${labelCls} flex-shrink-0 px-2 py-0.5 bg-terminal-gold text-terminal-bg font-bold tracking-wider hover:bg-terminal-gold-bright`}
+              style={{ fontSize: 9 }}>UPGRADE</span>
+          </button>
+        </div>
+      )}
+      {plan === 'prime' && (
+        <button onClick={openPricing} title="Apex: unlimited MaddenAI, unlimited alerts, API access"
+          className={`flex-shrink-0 nav-row ${ROW} ${GAP} ${iconPad} pr-3 text-terminal-text-dim/70 hover:text-terminal-gold`}
+          style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
+          <span className="flex-shrink-0" style={{ width: 18, textAlign: 'center', fontSize: 12 }} aria-hidden="true">✦</span>
+          <span className={`nav-label ${labelCls}`} style={{ fontSize: 9, letterSpacing: '0.06em' }}>Upgrade to Apex for unlimited AI</span>
+        </button>
+      )}
       <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))}

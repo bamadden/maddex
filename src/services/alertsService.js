@@ -1,4 +1,6 @@
 import { markMilestone } from './gettingStarted'
+import { requireFeature, limitFor, showLimitPrompt, nextTier, getCurrentTier } from './plans'
+import { recordAlertCreated } from './usageService'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { offerPrompt } from './browserNotify'
 import { sydneyOffset } from '../utils/dateUtils'
@@ -35,8 +37,33 @@ function saveAlerts(alerts) {
   return alerts
 }
 
+// Active alerts across both alert stores: the simple price alerts kept by
+// the app store ('madden_alerts') and the custom alerts here. The plan's
+// "N active alerts" limit counts both.
+export function activeAlertCount() {
+  let simple = 0
+  try { simple = (JSON.parse(localStorage.getItem('madden_alerts') ?? '[]') ?? []).length } catch { /* unreadable */ }
+  return simple + loadAlerts().filter((a) => !a.triggered).length
+}
+
+// Gate for creating an alert of either kind. Raises the right prompt and
+// returns false when the plan does not allow another one.
+export function canCreateAlert() {
+  const tier = getCurrentTier()
+  if (!requireFeature('alerts', tier)) return false
+  const limit = limitFor('alerts', tier)
+  if (activeAlertCount() >= limit) {
+    showLimitPrompt('alerts', `You have ${limit} active alerts — the most your plan allows`, nextTier(tier))
+    return false
+  }
+  return true
+}
+
 // condition: 'above' | 'below' | 'crosses' (PRICE); ignored for other types.
+// Returns the updated list, or null when the plan blocked it.
 export function createAlert({ type, symbol, condition, value, label }) {
+  if (!canCreateAlert()) return null
+  recordAlertCreated()
   offerPrompt()
   markMilestone('alert')
   const alert = {

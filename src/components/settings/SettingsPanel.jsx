@@ -32,6 +32,9 @@ import {
 } from '../../services/browserNotify'
 import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
 import { getImportHistory } from '../../services/portfolioCsv'
+import { TIER_LABEL, PRICES, openPricing } from '../../services/plans'
+import { getUsage, aiQueriesToday, subscribeUsage } from '../../services/usageService'
+import { activeAlertCount } from '../../services/alertsService'
 import {
   EXPERIENCE, FOCUS, SECTORS, HORIZONS, riskLabel, emptyProfile,
   getInvestorProfile, saveInvestorProfile, clearInvestorProfile,
@@ -40,7 +43,9 @@ import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
-const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
+const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
+// Older callers still ask for 'SUBSCRIPTION'.
+const SECTION_ALIASES = { SUBSCRIPTION: 'PLAN & BILLING' }
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -1832,196 +1837,147 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClear
   )
 }
 
-// ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
+// ─── PLAN & BILLING ───────────────────────────────────────────────────────────
+//
+// Plans, prices and limits come from services/plans — this section only
+// displays them. Payments are not live: MANAGE BILLING and CANCEL say so
+// plainly rather than pretending to do something.
 
-const TIER_BADGE_LABEL = { trial: 'TRIAL', core: 'CORE', prime: 'PRIME', apex: 'APEX' }
-const PLANS = [
-  { tier: 'core',  label: 'CORE',  price: 'A$29/mo',  features: ['Markets, Crypto, News, Global modules', 'Watchlist — up to 20 items', 'Portfolio — up to 10 holdings', 'MaddenAI — 50 messages/month'] },
-  { tier: 'prime', label: 'PRIME', price: 'A$79/mo',  features: ['Everything in Core', 'Rates/FX + Macro modules', 'Unlimited MaddenAI messages', 'Unlimited watchlist & portfolio', 'Sector heatmap detail view', 'Advanced screener — plain English & saved screens'] },
-  { tier: 'apex',  label: 'APEX',  price: 'A$149/mo', features: ['Everything in Prime', 'Research Notes', 'API access'] },
-]
-
-// Locked features require the SAME `requiredTier` gates the rest of the app
-// enforces (useSubscription's canAccess) — this list is descriptive of
-// those gates, not a separate source of truth for them.
-const FEATURE_CHECKLIST = [
-  { label: 'Markets module',        requiredTier: null },
-  { label: 'Crypto module',         requiredTier: null },
-  { label: 'MaddenAI (basic)',      requiredTier: null },
-  { label: 'MaddenAI (unlimited)',  requiredTier: 'prime' },
-  { label: 'Rates module',          requiredTier: 'prime' },
-  { label: 'Macro module',          requiredTier: 'prime' },
-  { label: 'Advanced screener',     requiredTier: 'prime' },
-  { label: 'Research Notes',        requiredTier: 'apex' },
-  { label: 'API access',            requiredTier: 'apex' },
-]
-
-function fmtExpiry(iso) {
+function fmtDate(iso) {
   if (!iso) return null
-  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-function openUpgrade() {
-  // Already inside Settings → Subscription — this just scrolls the plan
-  // cards into view rather than re-navigating anywhere.
-  document.getElementById('subscription-plans')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+function useMonthlyUsage() {
+  const [usage, setUsage] = useState(getUsage)
+  const [today, setToday] = useState(aiQueriesToday)
+  const [alerts, setAlerts] = useState(activeAlertCount)
+  useEffect(() => subscribeUsage(() => { setUsage(getUsage()); setToday(aiQueriesToday()); setAlerts(activeAlertCount()) }), [])
+  return { usage, today, alerts }
 }
 
-function manageBilling() {
-  // TODO: replace with a real Stripe customer-portal redirect once
-  // payments are live — for now this is a visual placeholder, same as
-  // the plan-card UPGRADE buttons below.
-  alert('Billing management is launching soon — contact support for changes to your plan.')
+function UsageRow({ label, used, limit, note }) {
+  const unlimited = limit === Infinity
+  const pct = unlimited || !limit ? 0 : Math.min(100, (used / limit) * 100)
+  return (
+    <div className="px-3 py-2.5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs text-terminal-text">{label}</span>
+        <span className="text-xs font-mono tabular-nums text-terminal-text-bright">
+          {used}{limit === undefined ? '' : `/${unlimited ? '∞' : limit}`}
+        </span>
+      </div>
+      {limit !== undefined && !unlimited && limit > 0 && (
+        <div className="mt-1.5 h-[3px] bg-terminal-border/50">
+          <div className="h-full" style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-loss)' : pct >= 80 ? '#E8A33D' : '#C9A84C' }} />
+        </div>
+      )}
+      {note && <div className="text-[10px] text-terminal-text-dim mt-1">{note}</div>}
+    </div>
+  )
 }
 
-function CurrentPlanCard() {
-  const { tier, isTrial, isTrialExpired } = useSubscription()
+function PlanBillingSection() {
+  const { plan, isTrial, isTrialExpired, limits } = useSubscription()
   const { profile, daysLeftInTrial } = useProfile()
+  const { user } = useAuthStore()
+  const { usage, today, alerts } = useMonthlyUsage()
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [notice, setNotice] = useState(null)
 
-  if (isTrial) {
-    const expired = isTrialExpired
-    return (
-      <div className="border border-terminal-gold/50 bg-terminal-gold/5 p-4 space-y-3">
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest">CURRENT PLAN</div>
-        <div className="flex items-start gap-3">
-          <span className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${expired ? 'bg-terminal-red' : 'bg-terminal-gold pulse-gold'}`} />
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-terminal-text-bright tracking-widest">TRIAL</span>
-              <span className="text-2xs text-terminal-text-dim">Full Apex access</span>
-            </div>
-            {profile?.trial_ends_at && (
-              <div className="text-2xs text-terminal-text-dim">Expires: {fmtExpiry(profile.trial_ends_at)}</div>
-            )}
-            <div className={`text-2xs font-bold ${expired ? 'text-terminal-red' : daysLeftInTrial <= 2 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
-              {expired ? 'Trial expired' : `${daysLeftInTrial} day${daysLeftInTrial === 1 ? '' : 's'} remaining`}
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={openUpgrade}
-          className="w-full btn-primary"
-        >UPGRADE NOW →</button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="border border-terminal-border p-4 space-y-3">
-      <div className="text-2xs text-terminal-gold font-bold tracking-widest">CURRENT PLAN</div>
-      <div className="flex items-center gap-3">
-        <span className="w-2 h-2 rounded-full bg-terminal-green flex-shrink-0" />
-        <div>
-          <div className="text-xs font-bold text-terminal-text-bright tracking-widest">{TIER_BADGE_LABEL[tier] ?? tier.toUpperCase()}</div>
-          <div className="text-2xs text-terminal-text-dim">Active subscription</div>
-        </div>
-      </div>
-      <button
-        onClick={manageBilling}
-        className="w-full py-2 text-2xs font-bold border border-terminal-gold text-terminal-gold tracking-widest hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-      >MANAGE BILLING</button>
-    </div>
-  )
-}
-
-function PlanFeatureChecklist({ canAccess, onLockedClick }) {
-  return (
-    <div className="border border-terminal-border divide-y divide-terminal-border">
-      {FEATURE_CHECKLIST.map((f) => {
-        const unlocked = !f.requiredTier || canAccess(f.requiredTier)
-        return (
-          <button
-            key={f.label}
-            type="button"
-            onClick={() => { if (!unlocked) onLockedClick(f) }}
-            className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors ${
-              unlocked ? 'cursor-default' : 'hover:bg-terminal-accent/10'
-            }`}
-          >
-            <span className="flex items-center gap-2 text-2xs">
-              <span className={unlocked ? 'text-terminal-green' : 'text-terminal-gold'}>{unlocked ? '✓' : '⚡'}</span>
-              <span className={unlocked ? 'text-terminal-text' : 'text-terminal-text-dim'}>{f.label}</span>
-            </span>
-            {!unlocked && (
-              <span className="text-2xs font-bold px-1.5 py-0.5 border border-terminal-gold/40 text-terminal-gold tracking-wider">
-                {f.requiredTier === 'apex' ? 'APEX' : 'PRIME+'}
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function SubscriptionSection() {
-  const { tier, isTrial, isApex, canAccess } = useSubscription()
-  const [lockedFeature, setLockedFeature] = useState(null)
-
-  // A genuinely-paid (non-trial) Apex user is already on the top plan —
-  // upgrade cards would have nothing to offer them.
-  const showUpgradeGrid = !(isApex && !isTrial)
+  const planName = TIER_LABEL[plan].toUpperCase()
+  const devAccount = import.meta.env.DEV && !user
+  const status = isTrial
+    ? (isTrialExpired ? 'Trial ended — on Core (free)'
+      : profile?.trial_ends_at ? `Free trial — ${daysLeftInTrial} day${daysLeftInTrial === 1 ? '' : 's'} left, full Apex access`
+      : 'Free trial — full Apex access')
+    : plan === 'core' ? 'Free plan' : 'Active'
+  const nextBilling = devAccount ? 'Not applicable — dev account'
+    : plan === 'core' ? 'Not applicable — free plan'
+    : 'Not applicable — payments not live yet'
+  const paid = !isTrial && plan !== 'core'
+  const monthLabel = new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
 
   return (
     <div className="space-y-5 relative">
-      <SectionLabel>Subscription</SectionLabel>
+      <SectionLabel>Plan &amp; Billing</SectionLabel>
 
-      <CurrentPlanCard />
-
-      {showUpgradeGrid ? (
-        <div id="subscription-plans" className="space-y-2">
-          <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Upgrade options</div>
-          <div className="grid grid-cols-3 gap-2">
-            {PLANS.map((p) => (
-              <div key={p.tier} className={`border p-3 space-y-2 ${tier === p.tier ? 'border-terminal-gold' : 'border-terminal-border'}`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-terminal-text-bright">{p.label}</span>
-                  {tier === p.tier && !isTrial && <span className="text-2xs text-terminal-gold">CURRENT</span>}
-                </div>
-                <div className="text-sm font-bold text-terminal-gold">{p.price}</div>
-                <ul className="space-y-1">
-                  {p.features.map((f) => (
-                    <li key={f} className="text-2xs text-terminal-text-dim leading-tight">· {f}</li>
-                  ))}
-                </ul>
-                {!canAccess(p.tier) && (
-                  <button
-                    // TODO: wire up Stripe checkout session for this plan once
-                    // payments are live — for now this is a visual placeholder.
-                    onClick={() => alert('Payments are launching soon — contact support to upgrade early.')}
-                    className="w-full py-1.5 text-2xs font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                  >
-                    UPGRADE
-                  </button>
-                )}
-              </div>
-            ))}
+      <div className="border border-terminal-gold/40 bg-terminal-gold/5">
+        <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[9px] text-terminal-gold tracking-[0.22em]">CURRENT PLAN</div>
+            <div className="text-2xl font-bold text-terminal-text-bright tracking-[0.18em] mt-1">{planName}</div>
           </div>
+          {plan !== 'core' && (
+            <div className="text-right text-xs text-terminal-text-dim">
+              {isTrial ? 'Trial' : `A$${PRICES[plan].monthly}/month`}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="border border-terminal-gold/30 px-3 py-2 text-2xs text-terminal-text-dim text-center">
-          You're on our top plan — thanks for being an Apex member.
+        <div className="border-t border-terminal-gold/20 divide-y divide-terminal-border/40">
+          {[
+            ['STATUS', status],
+            ['NEXT BILLING', nextBilling],
+            ['MEMBER SINCE', fmtDate(profile?.created_at ?? user?.created_at) ?? '—'],
+            ...(isTrial && profile?.trial_ends_at ? [['TRIAL ENDS', fmtDate(profile.trial_ends_at)]] : []),
+          ].map(([k, v]) => (
+            <div key={k} className="flex items-baseline gap-3 px-4 py-2">
+              <span className="w-28 flex-shrink-0 text-[10px] tracking-[0.14em] text-terminal-text-dim">{k}</span>
+              <span className="text-xs text-terminal-text-bright">{v}</span>
+            </div>
+          ))}
         </div>
-      )}
-
-      <div className="space-y-2">
-        <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Plan features</div>
-        <PlanFeatureChecklist canAccess={canAccess} onLockedClick={setLockedFeature} />
+        <div className="px-4 py-3 flex flex-wrap gap-2 border-t border-terminal-gold/20">
+          <button onClick={openPricing}
+            className="px-4 py-2 text-[10px] font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+          >CHANGE PLAN</button>
+          <button
+            // TODO(stripe): redirect to the Stripe customer portal.
+            onClick={() => setNotice('The billing portal opens when payments go live. No card is on file and nothing has been charged.')}
+            className="px-4 py-2 text-[10px] font-bold tracking-[0.16em] border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10 transition-colors"
+          >MANAGE BILLING</button>
+          {paid && (
+            <button onClick={() => setConfirmCancel(true)}
+              className="ml-auto px-3 py-2 text-[10px] tracking-[0.14em] text-terminal-text-dim hover:text-terminal-red transition-colors"
+            >CANCEL SUBSCRIPTION</button>
+          )}
+        </div>
+        {notice && <div className="px-4 pb-3 text-[11px] text-terminal-text-dim leading-relaxed">{notice}</div>}
       </div>
 
-      {lockedFeature && (
-        <div className="fixed inset-0 z-[250]" onClick={() => setLockedFeature(null)}>
-          <div className="absolute inset-0 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="relative w-full max-w-xs" style={{ minHeight: 260 }}>
-              <UpgradePrompt
-                feature={lockedFeature.label}
-                requiredTier={lockedFeature.requiredTier}
-                currentTier={tier}
-              />
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Usage this month</div>
+          <div className="text-[10px] text-terminal-text-dim">{monthLabel} · {planName}</div>
+        </div>
+        <div className="border border-terminal-border divide-y divide-terminal-border/60">
+          <UsageRow label="MaddenAI queries" used={usage.aiQueries} limit={limits.aiPerDay === Infinity ? Infinity : undefined}
+            note={limits.aiPerDay === Infinity ? null : `Today: ${today} of ${limits.aiPerDay} · the limit is per day and resets at midnight`} />
+          <UsageRow label="Research notes" used={usage.researchNotes} limit={limits.researchNotesPerMonth}
+            note={limits.researchNotesPerMonth === 0 ? 'Research notes are on Prime and Apex' : null} />
+          <UsageRow label="Price alerts (active)" used={alerts} limit={limits.alerts}
+            note={limits.alerts === 0 ? 'Price alerts are on Prime and Apex' : `${usage.alerts} created this month`} />
+        </div>
+        <div className="text-[10px] text-terminal-text-dim/60">Counted on this device. Resets on the 1st of each month.</div>
+      </div>
+
+      {confirmCancel && (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-black/70" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmCancel(false) }}>
+          <div className="w-full max-w-sm p-6 font-mono shadow-2xl" role="alertdialog" aria-label="Cancel subscription"
+            style={{ backgroundColor: '#0B1628', border: '1px solid rgba(201,168,76,0.45)' }}>
+            <div className="text-sm font-bold text-terminal-text-bright">Are you sure?</div>
+            <p className="text-xs text-terminal-text-dim leading-relaxed mt-2">
+              You'll lose access to {planName === 'APEX' ? 'Prime and Apex' : 'Prime'} features immediately.
+            </p>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setConfirmCancel(false)} autoFocus
+                className="flex-1 py-2 text-[10px] font-bold tracking-[0.14em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright"
+              >KEEP MY PLAN</button>
               <button
-                onClick={() => setLockedFeature(null)}
-                className="absolute -top-3 -right-3 z-30 w-6 h-6 flex items-center justify-center bg-terminal-panel border border-terminal-border text-terminal-text-dim hover:text-terminal-gold"
-              >✕</button>
+                // TODO(stripe): cancel the Stripe subscription.
+                onClick={() => { setConfirmCancel(false); setNotice('Nothing was cancelled: payments are not live yet, so there is no subscription to end and your plan is unchanged. Contact support if you need your plan changed.') }}
+                className="flex-1 py-2 text-[10px] font-bold tracking-[0.14em] border border-terminal-red/50 text-terminal-red hover:bg-terminal-red/10"
+              >CANCEL SUBSCRIPTION</button>
             </div>
           </div>
         </div>
@@ -2518,7 +2474,10 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requ
 // ─── Main Settings Panel ──────────────────────────────────────────────────────
 
 export default function SettingsPanel({ onClose, initialSection }) {
-  const [active, setActive] = useState(initialSection && SECTIONS.includes(initialSection) ? initialSection : 'PROFILE')
+  const [active, setActive] = useState(() => {
+    const want = SECTION_ALIASES[initialSection] ?? initialSection
+    return want && SECTIONS.includes(want) ? want : 'PROFILE'
+  })
   const { deleteAccount, signOut, user } = useAuthStore()
   const { clearWatchlist } = useStore()
   const [confirm, setConfirm] = useState(null)
@@ -2637,7 +2596,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
               signedIn={!!user}
             />
           )}
-          {active === 'SUBSCRIPTION'  && <SubscriptionSection />}
+          {active === 'PLAN & BILLING' && <PlanBillingSection />}
           {active === 'API ACCESS'    && <ApiAccessSection />}
           {active === 'ABOUT'         && <AboutSection />}
         </div>

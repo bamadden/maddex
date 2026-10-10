@@ -1,78 +1,69 @@
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
+import { PricingModal, ComingSoonModal } from '../billing/PlanOverlays'
+import { markTrialEndedSeen } from '../../services/plans'
 
-// Shown full-screen, un-dismissable, once a trial's 7 days are up and the
-// user hasn't upgraded. The only ways out are picking a plan (payments
-// aren't wired up yet — see the TODO below) or signing out.
-const PLANS = [
-  { tier: 'core',  label: 'CORE',  price: 'A$29', featured: true,
-    features: ['Markets, Crypto, News, Global modules', 'Watchlist — up to 20 items', 'Portfolio — up to 10 holdings', 'MaddenAI — 50 messages/month'] },
-  { tier: 'prime', label: 'PRIME', price: 'A$79', featured: false,
-    features: ['Everything in Core', 'Rates/FX + Macro modules', 'Unlimited MaddenAI messages', 'Unlimited watchlist & portfolio'] },
-  { tier: 'apex',  label: 'APEX',  price: 'A$149', featured: false,
-    features: ['Everything in Prime', 'Research Notes', 'API access'] },
-]
+// Shown once when a 7-day trial ends. Core is a free plan now, so this is a
+// choice rather than a lock: continue on Core, or pick a paid plan. The
+// choice is remembered per account (services/plans markTrialEndedSeen) and
+// the terminal opens on Core from then on — effectiveTier() already treats an
+// expired trial as Core.
+//
+// Rendered before the Terminal (and so before PlanOverlays) mounts, so it
+// hosts its own pricing and waitlist modals.
 
-function startCheckout(tier) {
-  // TODO: wire up a Stripe Checkout session for this tier once payments
-  // are live. Until then this is a visual placeholder only.
-  alert(`Payments are launching soon — contact support to start your ${tier.toUpperCase()} plan early.`)
-}
+export default function TrialExpiredModal({ onContinue }) {
+  const { user, signOut } = useAuthStore()
+  const [view, setView] = useState('intro')   // intro | plans
+  const [upgradeTier, setUpgradeTier] = useState(null)
 
-export default function TrialExpiredModal() {
-  const { signOut } = useAuthStore()
+  const continueOnCore = () => { markTrialEndedSeen(user?.id); onContinue?.() }
+
+  // PricingModal's upgrade buttons dispatch maddex:upgrade, which nothing
+  // listens for here — so catch it and show the waitlist directly.
+  if (view === 'plans') {
+    return (
+      <UpgradeListener onUpgrade={setUpgradeTier}>
+        <PricingModal onClose={() => setView('intro')} />
+        {upgradeTier && <ComingSoonModal tier={upgradeTier} onClose={() => setUpgradeTier(null)} />}
+      </UpgradeListener>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-[300] bg-terminal-bg flex items-center justify-center font-mono p-4"
-      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-    >
-      <div className="w-full max-w-2xl border border-terminal-gold bg-terminal-panel shadow-2xl">
-        <div className="py-6 px-6 text-center border-b border-terminal-border">
-          <div className="text-terminal-gold text-2xl font-bold tracking-[0.3em]">▲ MADDEX</div>
-          <div className="text-terminal-text-bright text-sm font-bold mt-3">Your 7-day free trial has ended</div>
-          <div className="text-terminal-text-dim text-2xs mt-1">Choose a plan to keep your full Maddex terminal access</div>
+      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+      <div className="w-full max-w-md shadow-2xl px-8 pt-9 pb-7 text-center"
+        style={{ backgroundColor: '#0B1628', backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0) 34%)', border: '1px solid rgba(201,168,76,0.45)' }}>
+        <img src="/icons/icon-mark-192.png" alt="" aria-hidden="true" className="mx-auto" style={{ width: 52, height: 52, objectFit: 'contain' }} />
+        <div className="text-terminal-text-bright text-lg font-bold mt-4">Your 7-day trial has ended</div>
+        <p className="text-xs text-terminal-text-dim leading-relaxed mt-2 font-sans" style={{ fontSize: 13 }}>
+          You can keep using Maddex on Core, free — live crypto and FX, a 5-stock watchlist, MaddenAI (10 questions a day)
+          and three morning briefs a week. Prime and Apex bring back portfolio tracking, alerts, the scanner and more.
+        </p>
+        <div className="flex flex-col gap-2 mt-6">
+          <button onClick={() => setView('plans')}
+            className="w-full py-2.5 text-xs font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+          >SEE PLANS</button>
+          <button onClick={continueOnCore} autoFocus
+            className="w-full py-2.5 text-xs font-bold tracking-[0.16em] border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10 transition-colors"
+          >CONTINUE ON CORE (FREE)</button>
         </div>
-
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-          {PLANS.map((p) => (
-            <div
-              key={p.tier}
-              className={`flex flex-col border p-4 space-y-3 ${p.featured ? 'border-terminal-gold' : 'border-terminal-border'}`}
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-terminal-text-bright">{p.label}</span>
-                  {p.featured && <span className="text-2xs text-terminal-gold">RECOMMENDED</span>}
-                </div>
-                <div className="text-lg font-bold text-terminal-gold mt-1">{p.price}<span className="text-2xs text-terminal-text-dim font-normal">/mo</span></div>
-              </div>
-              <ul className="space-y-1 flex-1">
-                {p.features.map((f) => (
-                  <li key={f} className="text-2xs text-terminal-text-dim leading-tight">· {f}</li>
-                ))}
-              </ul>
-              <button
-                onClick={() => startCheckout(p.tier)}
-                className={`w-full py-2 text-2xs font-bold tracking-widest transition-colors ${
-                  p.featured
-                    ? 'bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright'
-                    : 'border border-terminal-gold text-terminal-gold hover:bg-terminal-gold/10'
-                }`}
-              >
-                {p.featured ? `START WITH CORE ${p.price}/mo` : `CHOOSE ${p.label}`}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="px-6 pb-6 text-center">
-          <button
-            onClick={signOut}
-            className="text-2xs text-terminal-text-dim hover:text-terminal-red underline transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
+        <button onClick={signOut} className="mt-5 text-[10px] tracking-[0.14em] text-terminal-text-dim hover:text-terminal-text">SIGN OUT</button>
       </div>
     </div>
   )
+}
+
+function UpgradeListener({ onUpgrade, children }) {
+  useUpgradeEvent(onUpgrade)
+  return children
+}
+
+function useUpgradeEvent(fn) {
+  useEffect(() => {
+    const h = (e) => fn(e.detail?.tier ?? 'prime')
+    window.addEventListener('maddex:upgrade', h)
+    return () => window.removeEventListener('maddex:upgrade', h)
+  }, [fn])
 }

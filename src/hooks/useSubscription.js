@@ -1,24 +1,29 @@
 import { useProfile } from './useProfile'
+import { effectiveTier, devPlanOverride, canAccess as featureAllowed, LIMITS } from '../services/plans'
 
-const HIERARCHY = ['trial', 'core', 'prime', 'apex']
+const HIERARCHY = ['core', 'prime', 'apex']
 
-// A trial behaves like Apex for its 7 days, then drops back to no paid
-// access at all — so "effective tier" (what gates actually check against)
-// differs from the raw `subscription_tier` column once the trial expires.
+// The user's plan. `tier` is the raw subscription_tier ('trial' included, for
+// display); `plan` is what gates check against — a live trial is Apex, an
+// expired one is Core (free). See services/plans.js.
 export function useSubscription() {
   const { profile, isTrialExpired } = useProfile()
-
-  const tier = profile?.subscription_tier || 'trial'
-  const trialActive = tier === 'trial' && !isTrialExpired
-  const effectiveTier = trialActive ? 'apex' : tier
+  // A dev plan override is shown as that plan, not as a trial.
+  const tier = devPlanOverride() ?? (profile?.subscription_tier || 'trial')
+  const plan = effectiveTier(profile)
 
   return {
     tier,
+    plan,
     isTrialExpired,
     isTrial: tier === 'trial',
-    isCore:  HIERARCHY.indexOf(effectiveTier) >= HIERARCHY.indexOf('core'),
-    isPrime: HIERARCHY.indexOf(effectiveTier) >= HIERARCHY.indexOf('prime'),
-    isApex:  effectiveTier === 'apex',
-    canAccess: (requiredTier) => HIERARCHY.indexOf(effectiveTier) >= HIERARCHY.indexOf(requiredTier),
+    isCore:  plan === 'core',
+    isPrime: HIERARCHY.indexOf(plan) >= HIERARCHY.indexOf('prime'),
+    isApex:  plan === 'apex',
+    limits:  LIMITS[plan],
+    // Tier-level check, kept for existing callers: canAccess('prime').
+    canAccess: (requiredTier) => HIERARCHY.indexOf(plan) >= HIERARCHY.indexOf(requiredTier === 'trial' ? 'core' : requiredTier),
+    // Feature-level check against services/plans GATES: canUse('portfolio').
+    canUse: (feature) => featureAllowed(feature, plan),
   }
 }

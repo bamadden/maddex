@@ -1290,7 +1290,7 @@ export default function CommandBar() {
         flash('ALERT FORMAT: ALERT {SYMBOL} {PRICE}', 'text-terminal-red', 3000)
         return
       }
-      addAlert(alertSym, alertPrice)
+      if (!addAlert(alertSym, alertPrice)) return   // plan limit — prompt shown
       flash(`ALERT SET: ${alertSym} @ A$${alertPrice.toFixed(2)}`, 'text-terminal-green', 3000)
       return
     }
@@ -1311,7 +1311,7 @@ export default function CommandBar() {
           return
 
         case 'alert':
-          addAlert(nl.symbol, nl.price, nl.direction)
+          if (!addAlert(nl.symbol, nl.price, nl.direction)) return
           flash(`ALERT SET: ${nl.symbol} ${nl.direction.toUpperCase()} A$${nl.price.toFixed(2)} ✓`, 'text-terminal-green', 3000)
           return
 

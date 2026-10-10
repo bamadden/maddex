@@ -16,8 +16,6 @@ import { fetchFxHistory } from '../../services/api'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { IndicatorDeepDive, RbaSensitivityMatrix } from './MacroDeepDive'
-import { useSubscription } from '../../hooks/useSubscription'
-import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, LAST_DECISIONS, getNextMeeting,
@@ -1684,16 +1682,7 @@ export default function MacroModule() {
   // Which indicator card is expanded, or null. One at a time — the panel is
   // full-width and two open would push the charts below off the fold.
   const [openIndicator, setOpenIndicator] = useState(null)
-  const { canAccess, tier } = useSubscription()
-
-  if (!canAccess('prime')) {
-    return (
-      <div className="h-full overflow-hidden relative">
-        <ModuleHeader title="MACRO" subtitle="RBA Cash Rate · AU Indicators · Global Watch" />
-        <UpgradePrompt feature="Macro Module" requiredTier="prime" currentTier={tier} />
-      </div>
-    )
-  }
+  // Macro is on every plan — see services/plans GATES.
 
   const askAI = (fields) => dispatchAskAI(fields)
 

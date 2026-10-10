@@ -1,3 +1,5 @@
+import { getUsage, recordResearchNote } from '../../services/usageService'
+import { showLimitPrompt, nextTier } from '../../services/plans'
 import { useEffect, useRef, useState } from 'react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -53,7 +55,9 @@ async function downloadPDF(noteRef, symbol) {
 // ─── Main modal ─────────────────────────────────────────────────────────────
 
 export default function ResearchNoteGenerator({ asset, onClose }) {
-  const { isApex, tier } = useSubscription()
+  const { canUse, limits, plan } = useSubscription()
+  // Prime includes 5 notes a month, Apex unlimited (services/plans).
+  const notesLeft = limits.researchNotesPerMonth - getUsage().researchNotes
   const [status, setStatus] = useState('idle') // idle | generating | complete | error
   const [stepIndex, setStepIndex] = useState(0)
   const [note, setNote] = useState(null)
@@ -73,6 +77,10 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
   }, [onClose])
 
   const generate = async () => {
+    if (notesLeft <= 0) {
+      showLimitPrompt('researchNotes', `You've used this month's ${limits.researchNotesPerMonth} research notes`, nextTier(plan))
+      return
+    }
     setStatus('generating')
     setStepIndex(0)
     setError(null)
@@ -82,6 +90,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
     try {
       const result = await generateResearchNote(asset)
       clearInterval(stepTimerRef.current)
+      recordResearchNote()   // counted on success only — a failed call costs nothing
       setNote(result)
       setStatus('complete')
     } catch (e) {
@@ -146,9 +155,9 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
           <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
         </div>
 
-        {!isApex ? (
-          <div className="relative" style={{ minHeight: 320 }}>
-            <UpgradePrompt feature="MaddenAI Research Note Generator" requiredTier="apex" currentTier={tier} />
+        {!canUse('researchNotes') ? (
+          <div className="relative" style={{ minHeight: 360 }}>
+            <UpgradePrompt featureKey="researchNotes" requiredTier="prime" />
           </div>
         ) : (
           <div className="flex-1 overflow-auto">

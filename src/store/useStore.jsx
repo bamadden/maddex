@@ -1,6 +1,9 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { maybeNotify, offerPrompt } from '../services/browserNotify'
 import { markMilestone } from '../services/gettingStarted'
+import { canCreateAlert } from '../services/alertsService'
+import { recordAlertCreated } from '../services/usageService'
+import { getCurrentTier, limitFor, showLimitPrompt } from '../services/plans'
 import { treatmentFor, recordHistory } from '../services/notificationPolicy'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
 import { notificationRateLimiter } from '../services/notificationRateLimiter'
@@ -30,6 +33,10 @@ const getStoredWatchlist = () => {
 export function StoreProvider({ children }) {
   const [activeModule, setActiveModule] = useState('markets')
   const [watchlist, setWatchlist]       = useState(getStoredWatchlist)
+  // The live list, for synchronous checks in actions (the plan limit). Not
+  // localStorage: a fresh browser's starter list is only in memory until the
+  // first write, so storage would read as empty and let any add through.
+  const watchlistRef = useRef(watchlist)
   const [cmdHistory, setCmdHistory]     = useState([])
   const [chatOpen, setChatOpen]         = useState(false)
   // Sidebar (docked, ~320px) vs fullscreen (replaces the whole module
@@ -65,14 +72,26 @@ export function StoreProvider({ children }) {
   }, [])
 
   const persistWatchlist = useCallback((next) => {
+    watchlistRef.current = next
     try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
     return next
   }, [])
 
+  // Returns false when the plan's watchlist limit blocks the add (and the
+  // upgrade prompt has been raised); true otherwise.
   const addToWatchlist = useCallback((sym) => {
     const s = sym.toUpperCase().trim()
+    const current = watchlistRef.current
+    if (!current.includes(s)) {
+      const limit = limitFor('watchlist', getCurrentTier())
+      if (current.length >= limit) {
+        showLimitPrompt('watchlist', `Your watchlist is full — Core includes ${limit} stocks`, 'prime')
+        return false
+      }
+    }
     markMilestone('watchlist')
     setWatchlist((prev) => persistWatchlist(prev.includes(s) ? prev : [...prev, s]))
+    return true
   }, [persistWatchlist])
 
   const removeFromWatchlist = useCallback((sym) => {
@@ -139,7 +158,10 @@ export function StoreProvider({ children }) {
   const setNewsBadgeCount = useCallback((n) => setNewsBadgeCountState(n), [])
   const clearNewsBadge    = useCallback(() => setNewsBadgeCountState(0), [])
 
+  // Returns false when the plan blocks it (prompt raised), true when added.
   const addAlert = useCallback((sym, price, direction = 'above') => {
+    if (!canCreateAlert()) return false
+    recordAlertCreated()
     const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), direction, createdAt: new Date().toISOString() }
     // First alert is the moment to ask for system notifications — the
     // pre-prompt explains why before the browser's own dialog appears.
@@ -150,6 +172,7 @@ export function StoreProvider({ children }) {
       try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
       return next
     })
+    return true
   }, [])
 
   const removeAlert = useCallback((id) => {

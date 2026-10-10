@@ -30,6 +30,7 @@ import Tooltip from '../../components/ui/Tooltip'
 import StockContextMenu from '../../components/ui/StockContextMenu'
 import { useStockContextMenu } from '../../hooks/useStockContextMenu'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import { showLimitPrompt } from '../../services/plans'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -446,8 +447,9 @@ export default function WatchlistModule() {
   const { menu, openMenu, closeMenu } = useStockContextMenu()
   const { user, profile } = useAuthStore()
   const [shareLink, setShareLink] = useState(null)
-  const { canAccess } = useSubscription()
-  const WATCHLIST_LIMIT = 20 // Core tier — Prime+ is unlimited
+  const { limits } = useSubscription()
+  // From the plan (services/plans LIMITS): 5 on Core, unlimited above.
+  const WATCHLIST_LIMIT = limits.watchlist
   const { usdToAud, audToUsd } = useAudRates()
 
   const [searchInput, setSearchInput] = useState('')
@@ -737,8 +739,9 @@ export default function WatchlistModule() {
     const raw = searchInput.trim().toUpperCase()
     if (!raw) return
     if (watchlist.includes(raw)) { setAddError('ALREADY IN WATCHLIST'); return }
-    if (!canAccess('prime') && watchlist.length >= WATCHLIST_LIMIT) {
+    if (watchlist.length >= WATCHLIST_LIMIT) {
       setAddError(`WATCHLIST LIMIT REACHED (${WATCHLIST_LIMIT}) — upgrade to Prime for unlimited`)
+      showLimitPrompt('watchlist', `Your watchlist is full — Core includes ${WATCHLIST_LIMIT} stocks`, 'prime')
       return
     }
     setAddError(null)

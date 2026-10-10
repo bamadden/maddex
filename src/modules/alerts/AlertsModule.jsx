@@ -46,12 +46,13 @@ export default function AlertsModule({ onClose }) {
     e.preventDefault()
     if (value === '' || Number.isNaN(Number(value))) return
     if ((meta.needsSymbol === true) && !symbol.trim()) return
-    createAlert({
+    const saved = createAlert({
       type,
       symbol: symbol.trim() || null,
       condition: meta.needsCondition ? condition : null,
       value,
     })
+    if (!saved) return   // plan limit — prompt shown, keep the form filled
     refresh()
     setSymbol('')
     setValue('')
