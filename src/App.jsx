@@ -615,6 +615,9 @@ function Terminal() {
       // (the common case — "change M to something else") work fully.
       if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
         if (shortcutService.matches(e, shortcutService.shortcuts['ui.ai'])) {
+          // The panel focuses its input as it opens, inside this same event —
+          // without this the shortcut key itself is typed into the question.
+          e.preventDefault()
           setChatOpen((v) => !v)
           return
         }

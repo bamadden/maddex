@@ -11,7 +11,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { getQuietHours, setQuietHours } from '../../services/notificationPolicy'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
-import { getInitials, EXPERIENCE_LEVELS, getTimezoneFromCountry } from '../../lib/profileUtils'
+import { getInitials, getTimezoneFromCountry } from '../../lib/profileUtils'
 import { generateAPIKey } from '../../utils/apiKey'
 import APIDocsModal from './APIDocsModal'
 import { shortcutService, DEFAULT_SHORTCUTS, ACTION_LABELS } from '../../services/shortcutService'
@@ -32,10 +32,15 @@ import {
 } from '../../services/browserNotify'
 import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
 import { getImportHistory } from '../../services/portfolioCsv'
+import {
+  EXPERIENCE, FOCUS, SECTORS, HORIZONS, riskLabel, emptyProfile,
+  getInvestorProfile, saveInvestorProfile, clearInvestorProfile,
+} from '../../services/investorProfile'
+import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
-const SECTIONS = ['PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
+const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'SUBSCRIPTION', 'API ACCESS', 'ABOUT']
 
 const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
@@ -181,14 +186,131 @@ function CountryDropdown({ value, onChange }) {
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 
+// Experience is one setting with three controls (Investor Profile, the
+// MaddenAI tab's Analysis Depth, and profiles.experience_level). Every write
+// goes through here so they cannot disagree.
+function setExperience(value, { user, updateProfile }) {
+  const current = getInvestorProfile()
+  if (current) saveInvestorProfile({ ...current, experience: value })
+  if (user) updateProfile({ experience_level: value })
+}
+
+function Pill({ active, onClick, children, ...rest }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`px-3 py-1.5 text-2xs font-bold tracking-wider border rounded-full transition-colors ${
+        active
+          ? 'border-terminal-gold bg-terminal-gold text-terminal-bg'
+          : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/60 hover:text-terminal-text'
+      }`}
+      {...rest}
+    >{children}</button>
+  )
+}
+
+function Group({ label, hint, children }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xs text-terminal-text-dim tracking-widest">{label}</span>
+        {hint && <span className="text-2xs text-terminal-text-dim/50">{hint}</span>}
+      </div>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  )
+}
+
+function InvestorProfileSection() {
+  const saved = useInvestorProfile()
+  const { profile, user, updateProfile } = useAuthStore()
+  const [draft, setDraft] = useState(() => saved ?? emptyProfile(profile?.experience_level || 'INTERMEDIATE'))
+  const [toast, setToast] = useState(null)
+  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }))
+  const toggleSector = (sec) => set('sectors', draft.sectors.includes(sec) ? draft.sectors.filter((x) => x !== sec) : [...draft.sectors, sec])
+
+  const dirty = !saved || ['experience', 'focus', 'timeHorizon', 'riskTolerance'].some((k) => saved[k] !== draft[k])
+    || saved.sectors.join() !== draft.sectors.join()
+
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
+  const save = () => {
+    saveInvestorProfile(draft)
+    if (user && profile?.experience_level !== draft.experience) updateProfile({ experience_level: draft.experience })
+    flash('Investor profile saved — MaddenAI will use it from your next message')
+  }
+  const clear = () => {
+    clearInvestorProfile()
+    setDraft(emptyProfile(profile?.experience_level || 'INTERMEDIATE'))
+    flash('Investor profile cleared')
+  }
+
+  return (
+    <div className="space-y-5">
+      <SectionLabel>Investor Profile</SectionLabel>
+      <div className="text-xs text-terminal-text -mt-2">Help MaddenAI understand your situation.</div>
+
+      <Group label="EXPERIENCE LEVEL">
+        {EXPERIENCE.map((e) => <Pill key={e.value} active={draft.experience === e.value} onClick={() => set('experience', e.value)}>{e.label}</Pill>)}
+      </Group>
+
+      <Group label="INVESTMENT FOCUS">
+        {FOCUS.map((f) => <Pill key={f} active={draft.focus === f} onClick={() => set('focus', draft.focus === f ? null : f)}>{f}</Pill>)}
+      </Group>
+
+      <Group label="PREFERRED SECTORS" hint="any number">
+        {SECTORS.map((sec) => <Pill key={sec} active={draft.sectors.includes(sec)} onClick={() => toggleSector(sec)}>{sec}</Pill>)}
+      </Group>
+
+      <Group label="TIME HORIZON">
+        {HORIZONS.map((h) => <Pill key={h.value} active={draft.timeHorizon === h.value} onClick={() => set('timeHorizon', draft.timeHorizon === h.value ? null : h.value)}>{h.label}</Pill>)}
+      </Group>
+
+      <div className="space-y-2 max-w-md">
+        <div className="flex items-baseline justify-between">
+          <span className="text-2xs text-terminal-text-dim tracking-widest">RISK TOLERANCE</span>
+          <span className="text-2xs font-bold text-terminal-gold tabular-nums">{riskLabel(draft.riskTolerance)} · {draft.riskTolerance}/10</span>
+        </div>
+        <input
+          type="range" min={1} max={10} step={1}
+          value={draft.riskTolerance}
+          onChange={(e) => set('riskTolerance', Number(e.target.value))}
+          aria-label="Risk tolerance"
+          aria-valuetext={`${riskLabel(draft.riskTolerance)}, ${draft.riskTolerance} of 10`}
+          className="w-full accent-[#C9A84C]"
+        />
+        <div className="flex justify-between text-[9px] text-terminal-text-dim/60 tracking-widest">
+          <span>CONSERVATIVE</span><span>MODERATE</span><span>AGGRESSIVE</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={save}
+          disabled={!dirty}
+          className="px-4 py-1.5 text-xs font-bold bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-40"
+        >{saved && !dirty ? '✓ SAVED' : 'SAVE PROFILE'}</button>
+        {saved && <button onClick={clear} className="text-2xs text-terminal-text-dim hover:text-terminal-red">Clear profile</button>}
+      </div>
+
+      <div className="text-2xs text-terminal-text-dim/70 leading-relaxed border-t border-terminal-border pt-3">
+        Stored on this device. MaddenAI receives it with each message to pitch and frame its answers, and the morning brief
+        uses it from the next brief. It does not make MaddenAI's output personal financial advice.
+      </div>
+      {toast && <Toast message={toast} />}
+    </div>
+  )
+}
+
 function ProfileSection() {
   const { profile, updateProfile, loadProfile, user } = useAuthStore()
   const [form, setForm] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
     country: profile?.country || '',
-    experience_level: profile?.experience_level || 'INTERMEDIATE',
   })
+  const { tier, isTrialExpired } = useSubscription()
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(false)
   const [error, setError] = useState(null)
@@ -205,7 +327,6 @@ function ProfileSection() {
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
         country: profile.country || '',
-        experience_level: profile.experience_level || 'INTERMEDIATE',
       })
     }
   }, [profile?.id]) // only re-sync when the profile ID changes (initial load), not on every field update
@@ -215,9 +336,13 @@ function ProfileSection() {
     user
   )
 
-  const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })
+  const joined = profile?.created_at ?? user?.created_at
+  const memberSince = joined
+    ? new Date(joined).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
+  const planLabel = !user ? null
+    : tier === 'trial' ? (isTrialExpired ? 'TRIAL — EXPIRED' : 'TRIAL — FULL APEX ACCESS')
+    : tier.toUpperCase()
 
   const handleSave = async () => {
     setLoading(true); setError(null)
@@ -243,7 +368,7 @@ function ProfileSection() {
 
   return (
     <div className="space-y-4">
-      <SectionLabel>Profile</SectionLabel>
+      <SectionLabel>My Profile</SectionLabel>
 
       {/* Avatar + meta */}
       <div className="flex items-center gap-4 mb-5">
@@ -275,15 +400,19 @@ function ProfileSection() {
         ))}
       </div>
 
-      {/* Email (read-only) */}
-      <div className="space-y-1">
-        <div className="text-2xs text-terminal-text-dim">EMAIL</div>
-        <input
-          value={user?.email || ''}
-          disabled
-          className="w-full bg-terminal-bg border border-terminal-border px-3 py-1.5 text-xs text-terminal-text-dim outline-none font-mono opacity-60"
-        />
-        <div className="text-2xs text-terminal-text-dim/60">Changing email requires verification</div>
+      {/* Account facts — from the Supabase session, read-only here. */}
+      <div className="border border-terminal-border divide-y divide-terminal-border/60">
+        {[
+          ['EMAIL', user?.email ?? 'Not signed in', 'Changing email requires verification'],
+          ['PLAN', planLabel ?? '—', user ? 'Manage under Subscription' : null],
+          ['MEMBER SINCE', memberSince ?? '—', null],
+        ].map(([label, value, note]) => (
+          <div key={label} className="flex items-baseline gap-3 px-3 py-2">
+            <span className="text-2xs text-terminal-text-dim w-28 flex-shrink-0 tracking-wider">{label}</span>
+            <span className="text-xs text-terminal-text-bright font-mono truncate">{value}</span>
+            {note && <span className="ml-auto text-2xs text-terminal-text-dim/50 hidden sm:inline">{note}</span>}
+          </div>
+        ))}
       </div>
 
       {/* Country */}
@@ -295,26 +424,8 @@ function ProfileSection() {
         />
       </div>
 
-      {/* Experience Level */}
-      <div className="space-y-2">
-        <div className="text-2xs text-terminal-text-dim">INVESTMENT EXPERIENCE LEVEL</div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {EXPERIENCE_LEVELS.map(({ value, label, desc }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setForm(f => ({ ...f, experience_level: value }))}
-              className={`px-3 py-2 text-left border transition-colors ${
-                form.experience_level === value
-                  ? 'border-terminal-gold bg-terminal-gold/10 text-terminal-gold'
-                  : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-text'
-              }`}
-            >
-              <div className="text-2xs font-bold">{label}</div>
-              <div className="text-2xs opacity-70 mt-0.5 leading-tight">{desc}</div>
-            </button>
-          ))}
-        </div>
+      <div className="text-2xs text-terminal-text-dim">
+        Experience level, focus and risk tolerance live under <span className="text-terminal-gold">Investor Profile</span>.
       </div>
 
       {error && <div className="text-2xs text-terminal-red">{error}</div>}
@@ -1337,7 +1448,8 @@ async function checkCredits() {
 }
 
 function MaddenAISection() {
-  const { profile, updateProfile } = useAuthStore()
+  const { profile, user, updateProfile } = useAuthStore()
+  const investor = useInvestorProfile()
   const [prefs, setPrefs] = useState(() => getAiPreferences())
   const [historyCount, setHistoryCount] = useState(() => listConversations().length)
   const [clearConfirm, setClearConfirm] = useState(false)
@@ -1450,14 +1562,14 @@ function MaddenAISection() {
 
       <div>
         <div className="text-xs text-terminal-text-bright">Analysis Depth</div>
-        <div className="text-2xs text-terminal-text-dim mb-2">How detailed MaddenAI's responses should be — set via your experience level in Profile</div>
+        <div className="text-2xs text-terminal-text-dim mb-2">How detailed MaddenAI's responses should be — the same experience level as your Investor Profile</div>
         <div className="flex border border-terminal-border w-fit">
-          {EXPERIENCE_LEVELS.map(({ value, label }) => (
+          {EXPERIENCE.map(({ value, label }) => (
             <button
               key={value}
-              onClick={() => updateProfile({ experience_level: value })}
+              onClick={() => setExperience(value, { user, updateProfile })}
               className={`px-3 py-1.5 text-2xs font-bold transition-colors border-r border-terminal-border last:border-r-0 ${
-                (profile?.experience_level || 'INTERMEDIATE') === value ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+                (investor?.experience ?? profile?.experience_level ?? 'INTERMEDIATE') === value ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
               }`}
             >{label}</button>
           ))}
@@ -2504,6 +2616,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {active === 'PROFILE'       && <ProfileSection />}
+          {active === 'INVESTOR PROFILE' && <InvestorProfileSection />}
           {active === 'PREFERENCES'   && <PreferencesSection />}
           {active === 'DISPLAY'       && <DisplaySection />}
           {active === 'SHORTCUTS'     && <ShortcutsSection />}

@@ -3,6 +3,7 @@ import { liveDataService } from './liveDataService'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 import { getEconomicCalendar, upcomingEvents } from './calendarService'
 import { sydneyTzAbbr } from '../utils/dateUtils'
+import { briefProfileLines } from './investorProfile'
 
 // Stable instruction template — identical on every call, so it sits in the
 // cached system prefix. Everything that changes day to day goes in the user
@@ -221,6 +222,11 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
     fg?.value != null && `- Crypto Fear & Greed: ${fg.value} (${fg.classification})`,
   ].filter(Boolean).join('\n')
 
+  // In the user message, not BRIEF_SYSTEM, so the cached prefix is shared by
+  // every reader whatever their profile. A profile edit takes effect from the
+  // next brief (or a regenerate) — a brief already read is never swapped out.
+  const profileLines = briefProfileLines()
+
   const userContent = `
 Today: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 Time: 7:00 AM ${sydneyTzAbbr(new Date().toLocaleDateString('en-CA'))}
@@ -238,7 +244,7 @@ ${live ? `\nLIVE AS OF NOW:\n${live}` : ''}
 
 Investor's watchlist: ${watchlistSymbols || 'Not set'}
 Portfolio holdings: ${portfolioSummary || 'Not set'}
-
+${profileLines ? `\n${profileLines}\n` : ''}
 Generate the morning brief now. Do not state any figure not listed above.
   `.trim()
 

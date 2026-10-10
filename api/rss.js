@@ -20,6 +20,7 @@ const ALLOWED_HOSTS = [
   'feeds.marketwatch.com', 'finance.yahoo.com', 'yahoo.com', 'investing.com',
   'bbci.co.uk', 'feeds.bbci.co.uk', 'theguardian.com', 'economist.com',
   'cointelegraph.com', 'coindesk.com', 'oilprice.com', 'mining.com',
+  'nikkei.com',
 ]
 
 const hostAllowed = (host) =>

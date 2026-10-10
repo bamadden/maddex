@@ -6,7 +6,9 @@
 
 import { getRelativeDate, sydneyOffset } from '../utils/dateUtils'
 
-const FMP_KEY   = import.meta.env.VITE_FMP_API_KEY || 'demo'
+// No 'demo' fallback: FMP rejects it on this endpoint with a 401, so without
+// a real key the request is pure console noise before the fallback list.
+const FMP_KEY   = import.meta.env.VITE_FMP_API_KEY || null
 const CACHE_KEY = 'madden_econ_calendar_v1'
 const CACHE_MS  = 6 * 60 * 60 * 1000 // 6 hours — calendar doesn't change often
 
@@ -76,6 +78,7 @@ function writeCache(events) {
 }
 
 async function fetchLiveCalendar() {
+  if (!FMP_KEY) throw new Error('No FMP key — using the verified schedule')
   const from = getRelativeDate(0)
   const to   = getRelativeDate(60)
   const url  = `https://financialmodelingprep.com/api/v3/economic_calendar?from=${from}&to=${to}&apikey=${FMP_KEY}`

@@ -17,6 +17,8 @@ import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { logActivity } from '../../services/activityLogService'
 import { listConversations, saveConversation, deleteConversation } from '../../services/aiHistoryService'
 import { getAiPreferences } from '../../services/aiPreferencesService'
+import { getInvestorContext, getProfilePrompts } from '../../services/investorProfile'
+import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
 // Tracked client-side in localStorage under a month-stamped key, so it
@@ -161,9 +163,15 @@ const DEFAULT_PROMPTS = [
   { label: 'AUD/USD OUTLOOK', prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.', dataKeys: ['aud'] },
 ]
 
+// Modules whose own prompts are generic market openers. With an investor
+// profile saved, the personal set replaces them here; specialist modules
+// (bonds, FX, crypto, calculators…) keep prompts about their own subject.
+const PROFILE_PROMPT_MODULES = new Set(['dashboard', 'markets', 'news', 'portfolio', 'watchlist', 'screener'])
+
 // selectedSymbol: the ticker currently open in the stock detail modal, if
-// any — asset-specific prompts take priority over module-specific ones.
-function getQuickPrompts(activeModule, selectedSymbol) {
+// any — asset-specific prompts take priority over everything else, then the
+// investor-profile set on general modules, then module-specific ones.
+function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
   if (selectedSymbol) {
     const bare = selectedSymbol.replace('.AX', '')
     return [
@@ -173,6 +181,7 @@ function getQuickPrompts(activeModule, selectedSymbol) {
       { label: `${bare} RISK FACTORS`, prompt: `What are the key risk factors investors should watch for ${selectedSymbol}?`, dataKeys: [] },
     ]
   }
+  if (profilePrompts && (PROFILE_PROMPT_MODULES.has(activeModule) || !MODULE_PROMPTS[activeModule])) return profilePrompts
   return MODULE_PROMPTS[activeModule] ?? DEFAULT_PROMPTS
 }
 
@@ -610,7 +619,8 @@ export default function AIPanel({ wide = false }) {
   }, [])
   const { profile } = useAuthStore()
   const { canAccess, isApex, tier } = useSubscription()
-  const quickPrompts = getQuickPrompts(activeModule, modalAsset?.symbol)
+  const investorProfile = useInvestorProfile()
+  const quickPrompts = getQuickPrompts(activeModule, modalAsset?.symbol, getProfilePrompts(investorProfile))
 
   const queryClient = useQueryClient()
 
@@ -745,8 +755,12 @@ export default function AIPanel({ wide = false }) {
   // portfolio/date. This is prepended to the USER message, never to the
   // system prompt: it changes on almost every turn, and anything volatile
   // inside the cached system prefix invalidates the prompt cache each call.
+  //
+  // The investor profile rides along even with context awareness off: the
+  // user saved it for exactly this purpose, and clearing it is how to stop it.
   const buildDynamicContext = useCallback(() => {
-    if (!getAiPreferences().contextAwareness) return ''
+    const investor = getInvestorContext(investorProfile)
+    if (!getAiPreferences().contextAwareness) return investor ? `[CONTEXT]\n${investor}` : ''
     const moduleLabel = MODULE_LABELS[activeModule] ?? activeModule
     let holdingSymbols = []
     try {
@@ -770,8 +784,8 @@ export default function AIPanel({ wide = false }) {
     else lines.push('User has no portfolio holdings tracked yet.')
 
     const facts = verifiedFactsForAI()
-    return `[CONTEXT]\n${lines.join('\n')}\n\n${facts ? facts + '\n\n' : ''}`
-  }, [activeModule, modalAsset, watchlist])
+    return `[CONTEXT]\n${lines.join('\n')}\n\n${investor}${facts ? facts + '\n\n' : ''}`
+  }, [activeModule, modalAsset, watchlist, investorProfile])
 
   const send = async (textOverride, opts = {}) => {
     const { context, silent } = opts
@@ -810,7 +824,10 @@ export default function AIPanel({ wide = false }) {
       // different structures, and a model given none produces the same
       // flowing paragraphs for all three. See services/queryIntent.js.
       const intent = detectQueryIntent(text)
-      const systemPrompt = buildSystemPrompt(profile?.experience_level) + intentGuidance(intent)
+      // One experience setting: the investor profile's when saved, else the
+      // account's. It picks one of four fixed system-prompt variants, each of
+      // which caches on its own.
+      const systemPrompt = buildSystemPrompt(investorProfile?.experience ?? profile?.experience_level) + intentGuidance(intent)
 
       const result = await askClaude(
         [...history, userTurnWire],

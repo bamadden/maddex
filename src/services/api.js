@@ -1005,15 +1005,9 @@ export const transformFxRates = (rates) =>
     }
   }).filter(Boolean)
 
+// Frankfurter is not tried: it carries ECB fiat rates only, so XAU/XAG was a
+// guaranteed 404 on every load. Gold's live source is liveDataService.getGoldPrice.
 export const fetchMetalsRates = async () => {
-  try {
-    const { data } = await axios.get('/api/frankfurter/latest?from=USD&to=XAU,XAG')
-    if (data?.rates?.XAU) {
-      console.log('[MADDEN API] Frankfurter metals XAU/USD:', (1 / data.rates.XAU).toFixed(2))
-      return data.rates
-    }
-  } catch { /* Frankfurter is ECB fiat-only and carries no XAU — see liveDataService.getGoldPrice */ }
-
   const key = import.meta.env.VITE_EXCHANGERATE_API_KEY
   if (!key) return null
   try {
