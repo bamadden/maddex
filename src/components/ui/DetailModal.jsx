@@ -198,7 +198,7 @@ const ChartTooltip = ({ active, payload, label }) => {
 // someone actually acts on. It sits above the marker and moves with it,
 // clamped at the ends so it cannot run outside the bar.
 function RangeBar({ price, low, high }) {
-  if (low == null || high == null || low >= high) return null
+  if (price == null || !Number.isFinite(price) || low == null || high == null || low >= high) return null
   const pct = Math.max(0, Math.min(100, ((price - low) / (high - low)) * 100))
   return (
     <div className="w-full" style={{ paddingTop: 14 }}>
@@ -656,7 +656,12 @@ export default function DetailModal() {
 
   if (!modalAsset) return null
 
-  const { symbol, name, price, pct, change, type, extra = {} } = modalAsset
+  const { symbol, name, price, pct: passedPct, change, type, extra = {} } = modalAsset
+  // Callers that only know a symbol — a ticker pill in a MaddenAI reply, a
+  // search result — open the panel with no price. Fall back to the quote this
+  // panel fetches anyway, rather than a bare "—" header and a NaN% range bar.
+  const qvAud = (v) => (v == null || !Number.isFinite(v) ? null : qv?.currency === 'USD' ? usdToAud(v) : v)
+  const pct = passedPct ?? qv?.dayChangePct ?? null
   // The bare ticker, for confirmations that should read the way a person says
   // it out loud: "BHP above A$44.00", not "BHP.AX above A$44.00".
   const tickerLabel = String(symbol ?? '').replace(/\.AX$/i, '').replace(/^\^/, '')
@@ -674,8 +679,8 @@ export default function DetailModal() {
     ?? MOCK_US_STOCKS[String(symbol).toUpperCase()]?.sector
     ?? null
 
-  const displayPrice  = price
-  const displayChange = change
+  const displayPrice  = price ?? qvAud(qv?.price)
+  const displayChange = change ?? (qv?.price != null && qv?.prevClose != null ? qvAud(qv.price - qv.prevClose) : null)
   const display52High = extra.week52High ?? qv?.week52High
   const display52Low  = extra.week52Low  ?? qv?.week52Low
   const showUsdSub    = extra.currency === 'USD' && extra.nativePrice != null

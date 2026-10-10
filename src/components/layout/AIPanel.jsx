@@ -13,11 +13,13 @@ import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import VoiceInterface from '../voice/VoiceInterface'
 import { soundService } from '../../services/soundService'
 import { createAlert } from '../../services/alertsService'
-import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { logActivity } from '../../services/activityLogService'
 import { listConversations, saveConversation, deleteConversation } from '../../services/aiHistoryService'
 import { getAiPreferences } from '../../services/aiPreferencesService'
 import { getInvestorContext, getProfilePrompts } from '../../services/investorProfile'
+import { formatInline, splitFollowUps, toShareText, findTickers } from '../../services/aiResponseFormat'
+import { getStarters } from '../../services/aiStarters'
+import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
@@ -48,11 +50,6 @@ const nextRbaLabel = nextRbaMeeting
 const lastRbaLabel = new Date(`${LAST_DECISIONS.RBA.date}T00:00:00`)
   .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
 
-// Exactly 6, rendered 2 rows of 3 — row order matters (matches the grid flow).
-// Post-response ticker detection is checked against the real mock universe
-// rather than a bare regex, so it doesn't fire on capitalised acronyms like
-// RBA/CPI/GDP that a bare [A-Z]{2,5} match would catch.
-const VALID_TICKERS = new Set([...Object.keys(MOCK_ASX_STOCKS), ...Object.keys(MOCK_US_STOCKS)])
 
 // Readable labels for buildDynamicContext() — mirrors App.jsx's private
 // MODULE_TITLES (not exported, so duplicated here rather than touching a
@@ -145,16 +142,8 @@ const MODULE_PROMPTS = {
 }
 
 
-// Openers shown on a blank panel. Deliberately spans the four things the
-// terminal is actually for — a market read, a single name, the macro
-// backdrop, and the user's own holdings — so the empty state doubles as a
-// statement of scope.
-const EMPTY_STATE_CARDS = [
-  { icon: '⊞', title: 'Deep dive',       subtitle: 'Fundamentals, sector position, key risks', prompt: 'Analyse BHP.AX for me — the business, recent performance and its drivers, the metrics that matter for a miner, how it sits against its sector, the main risks, and what to watch next.' },
-  { icon: '◉', title: 'Macro read',      subtitle: 'RBA, inflation, growth outlook',           prompt: 'Where is the Australian economy heading? Cover the RBA cash rate path, inflation, growth and unemployment, and what each means for ASX sectors, the AUD and bonds.' },
-  { icon: '⚖️', title: 'Compare',         subtitle: 'BHP vs RIO — which suits whom, and why',   prompt: 'Compare BHP and RIO. How do the two businesses actually differ, on which axes do they genuinely diverge, and what kind of investor does each suit?' },
-  { icon: '▦', title: 'Portfolio health', subtitle: 'Concentration risk and sector gaps',      prompt: 'Review my portfolio holdings for concentration risk and sector gaps. Where am I over-exposed, what is missing, and what are the main risks I should be aware of?' },
-]
+// Openers shown on a blank panel live in services/aiStarters.js — the
+// generic set, or a set written for the saved investor profile.
 
 const DEFAULT_PROMPTS = [
   { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
@@ -185,78 +174,32 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
   return MODULE_PROMPTS[activeModule] ?? DEFAULT_PROMPTS
 }
 
-// ─── Inline text formatter (replaces markdown with styled HTML) ───────────────
+// ─── Inline text formatter ─────────────────────────────────────────────────────
+// formatInline (escape-first HTML for dangerouslySetInnerHTML), ticker pills,
+// percentage colouring and the FOLLOW_UPS parser live in
+// services/aiResponseFormat.js, where they can be tested without React.
 
-// Model output is injected with dangerouslySetInnerHTML, so it MUST be escaped
-// before any markup is added.
-//
-// This was missing. The model's reply went into innerHTML raw, and a user can
-// make the model emit whatever they like — "reply with exactly
-// <img src=x onerror=...>" is a two-line prompt injection, and the terminal
-// would have executed it. Nothing upstream sanitises: DOMPurify is in the
-// bundle only as a transitive dependency of jspdf and is not wired to this
-// path.
-//
-// Escaping FIRST and adding markup after is what makes the rest of this
-// function safe: every tag below is one this file wrote, and anything that
-// arrived in the text is now inert.
-function escapeHtml(text) {
-  return String(text ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+// Instruction appended to the chat system prompt. Constant, so it caches with
+// the rest of the prefix; the line it asks for is parsed off the reply by
+// splitFollowUps and rendered as chips rather than shown as text.
+const FOLLOW_UP_GUIDE = `
 
-// Tickers the terminal can open.
-//
-// MaddenAI writes both forms — "BHP.AX" in a data context and a bare "BHP" or
-// "CBA's" in prose — so both have to match, and the suffixed form must come
-// first or "BHP.AX" would link as "BHP" and leave a stray ".AX".
-//
-// The bare form is matched CASE-SENSITIVELY and a few codes are excluded from
-// it entirely. ALL, MIN, COL and REA are ordinary English words, and a reply
-// containing "all of the above" or "a min of" would otherwise sprout links
-// into unrelated stocks. Their .AX forms still match, which is how the model
-// writes them when it means the security.
-const LINKABLE = [
-  'BHP', 'CBA', 'CSL', 'WBC', 'ANZ', 'NAB', 'FMG', 'RIO', 'WES', 'WOW',
-  'MQG', 'WDS', 'STO', 'TLS', 'QAN', 'GMG', 'TCL', 'WTC', 'XRO', 'NEM',
-]
-const BARE_UNSAFE = new Set(['ALL', 'MIN', 'COL', 'REA'])
-const ALL_CODES = [...LINKABLE, ...BARE_UNSAFE]
+FOLLOW-UP SUGGESTIONS: End every reply with one final line in exactly this form, and nothing after it:
+FOLLOW_UPS: question one | question two | question three
+Two or three questions this user would plausibly ask next, each under 60 characters, specific to what you just said — not generic ("tell me more"). Phrase them as the user would type them.`
 
-const suffixed = ALL_CODES.map((t) => `${t}\\.AX`)
-const bare = LINKABLE.filter((t) => !BARE_UNSAFE.has(t))
-// Suffixed alternatives first so the longer match wins.
-const TICKER_RE = new RegExp(`\\b(${[...suffixed, ...bare].join('|')})\\b`, 'g')
+// RESEARCH mode instruction. Sent in the user turn, not the system prompt,
+// so switching modes never changes the cached prefix.
+const RESEARCH_INSTRUCTION = `[MODE]
+User is in RESEARCH mode. Provide comprehensive, structured analysis.
+Use clear section headers, each on its own line in capitals followed by a colon, in this order:
+OVERVIEW:
+ANALYSIS:
+RISKS:
+CONCLUSION:
+Be thorough — this is a deep dive, not a quick answer. The rules on figures still apply: quote only figures you were given.
 
-function formatInline(text) {
-  return escapeHtml(text)
-    .replace(/\*\*([^*]+)\*\*/g, '<span style="color:var(--mt-text);font-weight:700">$1</span>')
-    .replace(/\*([^*]+)\*/g,     '<span style="color:var(--mt-muted)">$1</span>')
-    .replace(/(\+[\d.]+%)/g,    '<span style="color:var(--color-gain)">$1</span>')
-    .replace(/(−[\d.]+%|-[\d.]+%)/g, '<span style="color:var(--color-loss)">$1</span>')
-    // Currency amounts render as chips rather than tinted text — a figure is
-    // the part of an answer people scan back for, so it gets an edge.
-    .replace(/US\$[\d,]+(?:\.[\d]+)?/g, '<span class="ai-chip">$&</span>')
-    .replace(/(?<!US)A?\$[\d,]+(?:\.[\d]+)?/g, '<span class="ai-chip">$&</span>')
-    // Unsigned rates and levels — "4.35%", "3.8%". Signed changes are already
-    // coloured above and are skipped by the lookbehind so they keep their
-    // green/red rather than being flattened to gold.
-    .replace(/(?<![+\-−>\d.])(\d{1,3}(?:\.\d{1,2})?%)/g, '<span style="color:var(--mt-gold)">$1</span>')
-    // Tickers become clickable. A delegated listener on the message container
-    // reads data-sym — an onClick cannot survive innerHTML.
-    // data-sym always carries the .AX form so the detail panel opens the ASX
-    // listing — a bare "BHP" passed to a quote API returns the US ADR at a USD
-    // price, which is the exact failure tickerGuard.js exists to prevent.
-    .replace(TICKER_RE, (m) => {
-      const sym = m.endsWith('.AX') ? m : `${m}.AX`
-      return `<span class="ai-ticker" data-sym="${sym}" role="link" tabindex="0">${m}</span>`
-    })
-    .replace(/^#+\s*/g, '')
-}
+`
 
 // ─── Sentiment score rendering ─────────────────────────────────────────────────
 
@@ -311,7 +254,10 @@ const SENTIMENT_FIELDS = new Set(['Overall', 'Momentum', 'Volume', 'Macro Alignm
 // browser. Keyed by a hash of the response so re-renders and reordering
 // don't lose or misattribute a rating.
 const AI_FEEDBACK_KEY = 'madden_ai_feedback'
-const FEEDBACK_REASONS = ['Incorrect data', 'Not helpful', 'Too generic']
+// FABRICATED FIGURE is its own reason, not a kind of "inaccurate": a number
+// the model was never given is the failure the whole verified-figures setup
+// exists to prevent, and it should be countable on its own.
+const FEEDBACK_REASONS = ['INACCURATE', 'UNHELPFUL', 'TOO LONG', 'TOO SHORT', 'FABRICATED FIGURE']
 
 function hashResponse(text) {
   let h = 2166136261
@@ -323,23 +269,38 @@ function readFeedback() {
   try { return JSON.parse(localStorage.getItem(AI_FEEDBACK_KEY) || '{}') } catch { return {} }
 }
 
-function ResponseFeedback({ text, onSaved }) {
+// `text` is the reply as displayed (follow-ups already stripped), so a
+// rating, a save and a share all refer to the same thing the user read.
+function ResponseFeedback({ text, question, onSaved }) {
   const id = useMemo(() => hashResponse(text), [text])
   const [rating, setRating] = useState(() => readFeedback()[id]?.rating ?? null)
   const [asking, setAsking] = useState(false)
+  const [note, setNote] = useState(null)
   const [saved, setSaved] = useState(() => isInsightSaved(text))
+  const [shared, setShared] = useState(false)
 
   const record = (next, reason) => {
     try {
       const all = readFeedback()
-      all[id] = { rating: next, reason: reason ?? all[id]?.reason ?? null, at: new Date().toISOString() }
+      all[id] = { rating: next, reason: reason ?? null, at: new Date().toISOString() }
       localStorage.setItem(AI_FEEDBACK_KEY, JSON.stringify(all))
     } catch { /* best-effort */ }
     setRating(next)
   }
 
+  const flash = (msg) => { setNote(msg); setTimeout(() => setNote(null), 3000) }
+  const save = () => { saveInsight({ content: text }); setSaved(true); onSaved?.() }
+  const share = () => {
+    navigator.clipboard?.writeText(toShareText(text, { question }))
+      .then(() => { setShared(true); setTimeout(() => setShared(false), 2000) })
+      .catch(() => flash('Copy blocked by the browser'))
+  }
+
+  const chip = 'text-[9px] font-mono tracking-wider px-1.5 py-0.5 border transition-colors'
+
   return (
     <div className="relative flex items-center gap-1.5">
+      {note && <span className="text-[9px] font-mono text-terminal-gold whitespace-nowrap">{note}</span>}
       <button
         onClick={() => { record('up'); setAsking(false) }}
         title="Helpful"
@@ -352,18 +313,30 @@ function ResponseFeedback({ text, onSaved }) {
         aria-label="Not helpful"
         className={`text-[12px] leading-none transition-opacity ${rating === 'down' ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
       >👎</button>
-      {/* Save sits with the rating controls because it is the same gesture —
-          "this reply was worth something" — expressed at a different strength. */}
-      <button
-        onClick={() => { saveInsight({ content: text }); setSaved(true); onSaved?.() }}
-        disabled={saved}
-        title={saved ? 'Saved to your insights' : 'Save this analysis'}
-        aria-label={saved ? 'Saved to your insights' : 'Save this analysis'}
-        className={`text-[12px] leading-none transition-opacity ${saved ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
-      >{saved ? '★' : '☆'}</button>
+      {/* After a 👍 the two things worth doing with a good answer appear as
+          labelled actions; before it, save stays one quiet icon. */}
+      {rating === 'up' ? (
+        <>
+          <button onClick={save} disabled={saved}
+            className={`${chip} ${saved ? 'border-terminal-gold/40 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold/60'}`}
+            title="Save to your insights">{saved ? '✓ SAVED' : '💾 SAVE'}</button>
+          <button onClick={share}
+            className={`${chip} ${shared ? 'border-terminal-gold/40 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold/60'}`}
+            title="Copy as formatted text to share">{shared ? '✓ COPIED' : 'SHARE'}</button>
+        </>
+      ) : (
+        <button
+          onClick={save}
+          disabled={saved}
+          title={saved ? 'Saved to your insights' : 'Save this analysis'}
+          aria-label={saved ? 'Saved to your insights' : 'Save this analysis'}
+          className={`text-[12px] leading-none transition-opacity ${saved ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+        >{saved ? '★' : '☆'}</button>
+      )}
 
       {asking && (
         <div
+          role="menu"
           className="absolute right-0 top-full mt-1 z-[100] bg-terminal-panel border border-terminal-border-gold shadow-2xl"
           onMouseLeave={() => setAsking(false)}
         >
@@ -373,8 +346,9 @@ function ResponseFeedback({ text, onSaved }) {
           {FEEDBACK_REASONS.map((r) => (
             <button
               key={r}
-              onClick={() => { record('down', r); setAsking(false) }}
-              className="block w-full text-left px-2 py-1.5 text-2xs text-terminal-text-dim hover:bg-terminal-surface2 hover:text-terminal-text whitespace-nowrap"
+              role="menuitem"
+              onClick={() => { record('down', r); setAsking(false); flash('Thanks — this helps improve MaddenAI') }}
+              className="block w-full text-left px-2 py-1.5 text-[10px] font-mono tracking-wider text-terminal-text-dim hover:bg-terminal-surface2 hover:text-terminal-text whitespace-nowrap"
             >{r}</button>
           ))}
         </div>
@@ -426,6 +400,33 @@ function FormattedResponse({ text }) {
                 <div style={{ color: 'var(--mt-text)' }}
                   dangerouslySetInnerHTML={{ __html: formatInline(rest) }} />
               )}
+            </div>
+          )
+        }
+
+        // A caps label alone on its line — "OVERVIEW:", "KEY RISKS:", also when
+        // the model bolds it — is a section header, not an inline label. The
+        // research-mode sections arrive in exactly this shape.
+        const header = trimmed.match(/^\**([A-Z][A-Z0-9 /&'’-]{1,40}[A-Z0-9)])\s*:\**$/)
+        if (header) {
+          return (
+            <div key={i} className="ai-section" style={{ marginTop: i > 0 ? '14px' : '0' }}>
+              {header[1]}
+            </div>
+          )
+        }
+
+        // Numbered list — "1. Item" / "2) Item". Gold numeral in a fixed
+        // column so multi-line items hang-indent under their own text.
+        const numbered = trimmed.match(/^(\d{1,2})[.)]\s+(.+)$/)
+        if (numbered) {
+          return (
+            <div key={i} style={{ display: 'flex', gap: '8px', padding: '2px 0 2px 8px', alignItems: 'flex-start' }}>
+              <span className="font-mono" style={{ color: 'var(--mt-gold)', flexShrink: 0, minWidth: '18px', fontSize: '11px', fontWeight: 700, paddingTop: '2px' }}>
+                {numbered[1]}.
+              </span>
+              <span style={{ color: '#FFFFFF' }}
+                dangerouslySetInnerHTML={{ __html: formatInline(numbered[2]) }} />
             </div>
           )
         }
@@ -564,7 +565,7 @@ export default function AIPanel({ wide = false }) {
     chatOpen, setChatOpen,
     aiMode, setAiMode,
     chatMessages, setChatMessages, addChatMessage, updateLastChatMessage, clearChatMessages,
-    addNotification, activeModule, modalAsset, watchlist, addToWatchlist, openModal,
+    addNotification, activeModule, setActiveModule, modalAsset, watchlist, addToWatchlist, openModal,
   } = useStore()
   const [showHistory, setShowHistory] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
@@ -626,6 +627,33 @@ export default function AIPanel({ wide = false }) {
 
   const [input,        setInput]        = useState('')
   const [loading,      setLoading]      = useState(false)
+
+  // CHAT: the conversational default. RESEARCH: long, sectioned deep dives.
+  // Remembered per browser — someone who works in research mode keeps it.
+  const [responseMode, setResponseModeState] = useState(() => {
+    try { return localStorage.getItem('maddex_ai_response_mode') === 'research' ? 'research' : 'chat' } catch { return 'chat' }
+  })
+  const setResponseMode = (m) => {
+    setResponseModeState(m)
+    try { localStorage.setItem('maddex_ai_response_mode', m) } catch { /* private mode */ }
+  }
+
+  // Save after every completed reply, not only on close — the fullscreen
+  // history rail lists the live conversation, and a crash or closed laptop
+  // mid-session should not lose it.
+  const wasLoadingRef = useRef(false)
+  useEffect(() => {
+    if (wasLoadingRef.current && !loading) persistConversation()
+    wasLoadingRef.current = loading
+  }, [loading, persistConversation])
+
+  // Tokens this tab has pulled through the model; see aiUsageService.
+  const [sessionTokens, setSessionTokens] = useState(getSessionTokens)
+  useEffect(() => {
+    const sync = () => setSessionTokens(getSessionTokens())
+    window.addEventListener('maddex:ai-usage', sync)
+    return () => window.removeEventListener('maddex:ai-usage', sync)
+  }, [])
   const [showNotes,    setShowNotes]    = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [notes, setNotes] = useState(() => {
@@ -810,10 +838,13 @@ export default function AIPanel({ wide = false }) {
 
     // Displayed turn keeps the clean text; the wire turn carries the context
     // prefix so the cached system prefix stays byte-identical between calls.
+    const research = responseMode === 'research'
     const userTurn     = { role: 'user', content: text }
-    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${text}` }
+    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${research ? RESEARCH_INSTRUCTION : ''}${text}` }
     if (!silent) addChatMessage(userTurn)
-    addChatMessage(silent ? { role: 'assistant', content: '', silent: true, context } : { role: 'assistant', content: '' })
+    addChatMessage(silent
+      ? { role: 'assistant', content: '', silent: true, context, mode: responseMode }
+      : { role: 'assistant', content: '', mode: responseMode })
 
     const history = windowedHistory(chatMessages.filter((m) => m.role !== 'system'))
       .map((m) => ({ role: m.role, content: m.content }))
@@ -827,12 +858,18 @@ export default function AIPanel({ wide = false }) {
       // One experience setting: the investor profile's when saved, else the
       // account's. It picks one of four fixed system-prompt variants, each of
       // which caches on its own.
-      const systemPrompt = buildSystemPrompt(investorProfile?.experience ?? profile?.experience_level) + intentGuidance(intent)
+      //
+      // Research mode drops the intent guidance: that asks for a structure
+      // chosen from the question's shape, and research mode has its own
+      // four-section structure — two competing layouts produce neither.
+      const systemPrompt = buildSystemPrompt(investorProfile?.experience ?? profile?.experience_level)
+        + (research ? '' : intentGuidance(intent))
+        + FOLLOW_UP_GUIDE
 
       const result = await askClaude(
         [...history, userTurnWire],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { systemPrompt }
+        { systemPrompt, maxTokens: research ? 3000 : 1200 }
       )
       updateLastChatMessage((prev) => ({
         ...prev,
@@ -915,8 +952,11 @@ export default function AIPanel({ wide = false }) {
   const openTickerFromEvent = useCallback((el) => {
     const sym = el?.dataset?.sym
     if (!sym) return
+    // The detail panel opens over Markets, where the stock's context (index,
+    // sector, movers) is one glance away.
+    setActiveModule?.('markets')
     openModal({ symbol: sym, name: sym, type: sym.endsWith('.AX') ? 'asx' : 'us' })
-  }, [openModal])
+  }, [openModal, setActiveModule])
 
   const handleTickerClick = useCallback((e) => {
     const el = e.target.closest?.('.ai-ticker')
@@ -946,16 +986,15 @@ export default function AIPanel({ wide = false }) {
   }
 
   const turnCount = chatMessages.filter((m) => m.role === 'user').length
+  const starters = getStarters(investorProfile)
 
   // Monogram + disclaimer each appear once per session, not per message.
   const detectResponseActions = useCallback((text) => {
     if (!text) return []
     const actions = []
-    const candidates = [...new Set(text.match(/\b[A-Z]{2,5}(?:\.AX)?\b/g) ?? [])]
-    const tickers = candidates
-      .map((t) => (VALID_TICKERS.has(t) ? t : VALID_TICKERS.has(`${t}.AX`) ? `${t}.AX` : null))
-      .filter(Boolean)
-    const uniqueTickers = [...new Set(tickers)]
+    // Same detection as the ticker pills, so an action never names a code
+    // the reply did not visibly link.
+    const uniqueTickers = findTickers(text)
 
     uniqueTickers.slice(0, 2).forEach((ticker) => {
       if (watchlist.includes(ticker)) return
@@ -1013,10 +1052,31 @@ export default function AIPanel({ wide = false }) {
         className="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
         style={{ borderBottom: '1px solid rgba(201,168,76,0.35)', background: 'var(--mt-header, #0A1F3D)', cursor: isPip ? 'grab' : undefined }}
       >
-        <div className="flex items-center gap-2" title="Model: Claude Sonnet">
-          <span className="text-2xs font-semibold text-terminal-gold tracking-widest font-mono">MADDENAI</span>
-          {turnCount > 0 && (
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-2xs font-semibold text-terminal-gold tracking-widest font-mono" title="Model: Claude Sonnet">MADDENAI</span>
+          {/* Response mode. Segmented rather than a dropdown — two states,
+              both always visible, one click to switch. */}
+          <div className="flex border border-terminal-border rounded-[2px] overflow-hidden flex-shrink-0" role="radiogroup" aria-label="Response mode"
+            onMouseDown={(e) => e.stopPropagation()}>
+            {[['chat', 'CHAT', 'Conversational — shorter answers, quick back-and-forth'],
+              ['research', 'RESEARCH', 'Deep dive — long, structured: overview, analysis, risks, conclusion']].map(([id, label, hint]) => (
+              <button key={id} role="radio" aria-checked={responseMode === id} title={hint}
+                onClick={() => setResponseMode(id)}
+                className={`px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-wider transition-colors ${
+                  responseMode === id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
+                }`}
+              >{label}</button>
+            ))}
+          </div>
+          {turnCount > 0 && isFullscreen && (
             <span className="text-2xs text-terminal-text-dim/50">Turn {turnCount}</span>
+          )}
+          {sessionTokens > HIGH_SESSION_TOKENS && (
+            <span data-usage-note
+              className="text-[9px] font-mono text-terminal-gold/60 whitespace-nowrap truncate"
+              title={`About ${Math.round(sessionTokens / 1000)}K tokens processed in this tab since it opened (including cached context). A session counter, not a bill — see Settings → MaddenAI for usage.`}
+              aria-label="High usage this session"
+            >●{isFullscreen && ' High usage this session'}</span>
           )}
           {confirmClear ? (
             <button onClick={handleClear} className="text-2xs text-terminal-red ml-1">CONFIRM CLEAR?</button>
@@ -1025,7 +1085,7 @@ export default function AIPanel({ wide = false }) {
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
+          {!isFullscreen && <button
             onClick={() => setShowHistory((v) => !v)}
             className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
               showHistory ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
@@ -1033,7 +1093,7 @@ export default function AIPanel({ wide = false }) {
             title={`Conversation history${historyList.length > 0 ? ` (${historyList.length})` : ''}`}
           >
             ◷
-          </button>
+          </button>}
           <button
             onClick={() => { setShowInsights((v) => !v); setShowHistory(false) }}
             className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
@@ -1169,7 +1229,7 @@ export default function AIPanel({ wide = false }) {
                     <div className="text-[9px] text-terminal-text-dim/60 font-mono">
                       {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                     </div>
-                    <div className="text-2xs text-terminal-text-bright truncate">{conv.preview || 'Untitled'}</div>
+                    <div className="text-2xs text-terminal-text-bright truncate">{conv.title || 'Untitled'}</div>
                   </div>
                   <span
                     onClick={(e) => removeConversation(conv.id, e)}
@@ -1183,6 +1243,54 @@ export default function AIPanel({ wide = false }) {
         </div>
       )}
 
+      {/* Body. In fullscreen a history rail sits on the left; elsewhere the
+          ◷ drawer above does the same job without taking width. */}
+      <div className="flex-1 min-h-0 flex">
+      {isFullscreen && (
+        <aside className="w-60 flex-shrink-0 border-r border-terminal-border flex flex-col bg-terminal-bg/40" aria-label="Conversation history">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border">
+            <span className="text-[9px] font-mono font-bold tracking-[0.18em] text-terminal-gold">CONVERSATIONS</span>
+            <span className="text-[9px] font-mono text-terminal-text-dim/50">{historyList.length}/10</span>
+          </div>
+          <button
+            onClick={startNewChat}
+            className="mx-3 mt-3 text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-2 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors tracking-wider"
+          >+ NEW CHAT</button>
+          <div className="flex-1 overflow-y-auto mt-3">
+            {historyList.length === 0 ? (
+              <div className="px-3 py-4 text-2xs text-terminal-text-dim/50">Conversations are saved here as you go — the last 10 are kept.</div>
+            ) : historyList.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => loadConversation(conv)}
+                className={`group flex items-start gap-1 w-full text-left px-3 py-2 border-l-2 transition-colors ${
+                  currentConvId === conv.id
+                    ? 'border-terminal-gold bg-terminal-gold/10'
+                    : 'border-transparent hover:bg-terminal-surface2'
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-terminal-text-bright leading-snug line-clamp-2">{conv.title || 'Untitled'}</div>
+                  <div className="text-[9px] text-terminal-text-dim/60 font-mono mt-0.5">
+                    {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                    {' · '}{new Date(conv.date).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    {' · '}{conv.messages.filter((m) => m.role === 'assistant' && m.content).length} repl{conv.messages.filter((m) => m.role === 'assistant' && m.content).length === 1 ? 'y' : 'ies'}
+                  </div>
+                </div>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => removeConversation(conv.id, e)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') removeConversation(conv.id, e) }}
+                  className="text-terminal-text-dim/40 hover:text-terminal-red text-2xs opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 px-0.5"
+                  title="Delete conversation"
+                >✕</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
+      <div className="flex-1 min-w-0 flex flex-col">
       {showNotes && (
         <div className="border-b border-terminal-border flex-shrink-0 relative">
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
@@ -1243,11 +1351,13 @@ export default function AIPanel({ wide = false }) {
               Financial intelligence at your command.
             </span>
 
-            {/* Four openers. These are the same prompts the quick-prompt row
-                sends, surfaced as cards so a blank panel suggests what it is
-                actually good at rather than just sitting there. */}
-            <div className="grid grid-cols-2 gap-2 mt-5 w-full">
-              {EMPTY_STATE_CARDS.map((c) => (
+            {/* Four openers — written for the saved investor profile when there
+                is one (services/aiStarters.js), otherwise the generic set. */}
+            {starters.label && (
+              <span className="mt-5 text-[9px] font-mono tracking-[0.16em] text-terminal-gold/70 text-center">{starters.label}</span>
+            )}
+            <div className={`grid grid-cols-2 gap-2 w-full ${starters.label ? 'mt-2' : 'mt-5'}`}>
+              {starters.cards.map((c) => (
                 <button
                   key={c.title}
                   onClick={() => send(c.prompt)}
@@ -1266,7 +1376,13 @@ export default function AIPanel({ wide = false }) {
             </div>
           </div>
         )}
-        {chatMessages.map((msg, i) => (
+        {chatMessages.map((msg, i) => {
+          const streaming = i === chatMessages.length - 1 && loading
+          const { body, followUps } = msg.role === 'assistant'
+            ? splitFollowUps(msg.content, { streaming })
+            : { body: msg.content, followUps: [] }
+          const question = msg.role === 'assistant' ? chatMessages[i - 1]?.role === 'user' ? chatMessages[i - 1].content : null : null
+          return (
           <div key={i} className={msg.role === 'user' ? 'text-right' : ''}>
             {msg.role === 'user' ? (
               <div
@@ -1332,6 +1448,9 @@ export default function AIPanel({ wide = false }) {
                       <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[9px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
                     )}
                     <span className="text-2xs text-terminal-gold font-mono">MADDENAI</span>
+                    {msg.mode === 'research' && (
+                      <span className="text-[8px] font-mono font-bold tracking-[0.16em] text-terminal-gold border border-terminal-gold/40 px-1 leading-[12px]">RESEARCH</span>
+                    )}
                     {msg.at && (
                       <span className="text-[9px] font-mono text-terminal-muted/60">
                         {new Date(msg.at).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -1342,25 +1461,37 @@ export default function AIPanel({ wide = false }) {
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => isApex
-                          ? saveNote(msg.content)
+                          ? saveNote(body)
                           : window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'SUBSCRIPTION' } }))}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
                         title={isApex ? 'Save to notes' : 'Research Notes requires Apex — upgrade to save'}
                       >SAVE{!isApex ? ' ⊘' : ''}</button>
                       <button
-                        onClick={() => copyMessage(msg.content)}
+                        onClick={() => copyMessage(body)}
                         className="text-terminal-text-dim hover:text-terminal-gold text-2xs"
                         title="Copy to clipboard"
                       >COPY</button>
-                      {!(i === chatMessages.length - 1 && loading) && <ResponseFeedback text={msg.content} onSaved={refreshInsights} />}
+                      {!streaming && <ResponseFeedback text={body} question={question} onSaved={refreshInsights} />}
                     </div>
                   )}
                 </div>
 
-                <FormattedResponse text={msg.content} />
+                <FormattedResponse text={body} />
 
-                {msg.content && !(i === chatMessages.length - 1 && loading) && (() => {
-                  const responseActions = detectResponseActions(msg.content)
+                {/* Suggested follow-ups — parsed off the reply's FOLLOW_UPS
+                    line. Only on the latest reply: on older ones they would
+                    answer a question the conversation has moved past. */}
+                {!streaming && followUps.length > 0 && i === chatMessages.length - 1 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3" aria-label="Suggested follow-up questions">
+                    {followUps.map((q) => (
+                      <button key={q} data-followup onClick={() => send(q)} disabled={loading}
+                        className="ai-followup text-left disabled:opacity-40">{q}</button>
+                    ))}
+                  </div>
+                )}
+
+                {msg.content && !streaming && (() => {
+                  const responseActions = detectResponseActions(body)
                   return responseActions.length > 0 && (
                     <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                       {responseActions.map((a) => (
@@ -1390,7 +1521,8 @@ export default function AIPanel({ wide = false }) {
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
         {hasAnyReply && (
           <div className="text-2xs text-terminal-text-dim/40 text-center pt-1 font-sans">
             MaddenAI can make mistakes. Not financial advice.
@@ -1419,6 +1551,8 @@ export default function AIPanel({ wide = false }) {
         >
           {loading ? '...' : 'SEND'}
         </button>
+      </div>
+      </div>
       </div>
     </div>
   )

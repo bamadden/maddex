@@ -53,6 +53,29 @@ export function recordUsage({ inputTokens = 0, outputTokens = 0, cacheRead = 0, 
 
     write(data)
   } catch { /* never let accounting break a request */ }
+  addSessionTokens(inputTokens + outputTokens + cacheRead + cacheCreated)
+}
+
+// ── This browser session ─────────────────────────────────────────────────────
+//
+// Every token the model processed for this tab since it opened — including
+// cache reads, which are cheap but still count toward what a session pulls
+// through the key. sessionStorage, so a new tab starts at zero. Not billing:
+// it exists so a runaway session (a loop, a very long research thread) is
+// visible in the panel before it is visible on the invoice.
+const SESSION_KEY = 'maddex_ai_session_tokens'
+export const HIGH_SESSION_TOKENS = 100_000
+
+export function getSessionTokens() {
+  try { return Number(sessionStorage.getItem(SESSION_KEY)) || 0 } catch { return 0 }
+}
+
+function addSessionTokens(n) {
+  if (!n) return
+  try {
+    sessionStorage.setItem(SESSION_KEY, String(getSessionTokens() + n))
+    window.dispatchEvent(new CustomEvent('maddex:ai-usage'))
+  } catch { /* never let accounting break a request */ }
 }
 
 function costUsd(day) {

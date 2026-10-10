@@ -1719,11 +1719,19 @@ export const askClaude = async (messages, onToken, options = {}) => {
   let outputTokens = 0
   let cacheRead    = 0
   let cacheCreated = 0
+  // Network chunks do not respect SSE line boundaries: an event can arrive
+  // split across two reads. Splitting each chunk on its own dropped both
+  // halves (neither parses alone), silently losing words from the reply. The
+  // unfinished last line is carried into the next read instead, and the
+  // decoder runs in stream mode so a multi-byte character (an em dash, a
+  // "—") split across reads is not mangled into replacement characters.
+  let pending = ''
   while (true) {
     const { done, value } = await reader.read()
-    if (done) break
-    const chunk = decoder.decode(value)
-    for (const line of chunk.split('\n')) {
+    const chunk = done ? decoder.decode() : decoder.decode(value, { stream: true })
+    const lines = (pending + chunk).split('\n')
+    pending = done ? '' : lines.pop()
+    for (const line of lines) {
       if (!line.startsWith('data: ')) continue
       const json = line.slice(6)
       if (json === '[DONE]') continue
@@ -1742,8 +1750,9 @@ export const askClaude = async (messages, onToken, options = {}) => {
           fullText += evt.delta.text
           onToken?.(evt.delta.text, fullText)
         }
-      } catch { /* partial SSE frame — the next chunk completes it */ }
+      } catch { /* a malformed event is skipped; partial lines never reach here */ }
     }
+    if (done) break
   }
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   // cached_read > 0 means the system prefix was served from cache. Staying at
