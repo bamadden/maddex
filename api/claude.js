@@ -142,7 +142,7 @@ export default async function handler(req, res) {
         const line  = chunk.split('\n').find((l) => l.startsWith('data: ') && l.includes('message_start'))
         if (line) {
           sniffed = true
-          try { logCacheStats(JSON.parse(line.slice(6)).message?.usage) } catch {}
+          try { logCacheStats(JSON.parse(line.slice(6)).message?.usage) } catch { /* stats are diagnostic only */ }
         }
       }
       res.write(value)
