@@ -1,3 +1,4 @@
+import { markMilestone } from './gettingStarted'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { offerPrompt } from './browserNotify'
 import { sydneyOffset } from '../utils/dateUtils'
@@ -37,6 +38,7 @@ function saveAlerts(alerts) {
 // condition: 'above' | 'below' | 'crosses' (PRICE); ignored for other types.
 export function createAlert({ type, symbol, condition, value, label }) {
   offerPrompt()
+  markMilestone('alert')
   const alert = {
     id: Date.now() + Math.random(),
     type, symbol: symbol ? symbol.toUpperCase() : null,

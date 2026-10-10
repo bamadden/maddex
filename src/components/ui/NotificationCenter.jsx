@@ -98,7 +98,7 @@ function alertProximity(alert, price) {
   return Math.max(0, Math.min(100, Math.round(ratio * 100)))
 }
 
-function AlertsPane({ alerts, onRemove }) {
+function AlertsPane({ alerts, onRemove, onGoWatchlist }) {
   const symbols = useMemo(
     () => [...new Set((alerts ?? []).map((a) => toYahooSymbol(a.sym, detectAssetType(a.sym))))],
     [alerts],
@@ -116,10 +116,15 @@ function AlertsPane({ alerts, onRemove }) {
 
   if (!alerts?.length) {
     return (
-      <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
-        <span className="text-2xl opacity-40">⚡</span>
-        <div className="text-2xs text-terminal-text-bright font-semibold">No alerts set</div>
-        <div className="text-2xs text-terminal-text-dim/60">Set one from the ⚡ on any watchlist row</div>
+      <div className="flex flex-col items-center gap-1.5 px-4 py-8 text-center">
+        <span className="w-11 h-11 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 18 }} aria-hidden="true">⚡</span>
+        <div className="text-xs text-terminal-text-bright font-semibold mt-1">No active alerts</div>
+        <div className="text-2xs text-terminal-text-dim leading-relaxed">Set price alerts on any stock in your watchlist</div>
+        {onGoWatchlist && (
+          <button onClick={onGoWatchlist}
+            className="mt-2 px-3 py-1.5 text-[10px] font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+          >GO TO WATCHLIST</button>
+        )}
       </div>
     )
   }
@@ -180,7 +185,7 @@ const firedAlertIds = new Set()
 export default function NotificationCenter() {
   const {
     notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
-    alerts, removeAlert, watchlist,
+    alerts, removeAlert, watchlist, setActiveModule,
   } = useStore()
   // Browser permission, refreshed when the user changes it here or on focus
   // (they may have changed it from the browser's own site settings).
@@ -706,6 +711,7 @@ export default function NotificationCenter() {
         }}
         className="relative flex items-center justify-center w-6 h-7 text-terminal-text-dim hover:text-terminal-gold transition-colors"
         title="Notifications"
+        data-tour="bell"
       >
         <span className="text-sm">◎</span>
         {unreadCount > 0 && (
@@ -749,7 +755,7 @@ export default function NotificationCenter() {
             </div>
           )}
 
-          {pane === 'alerts' && <AlertsPane alerts={alerts} onRemove={removeAlert} />}
+          {pane === 'alerts' && <AlertsPane alerts={alerts} onRemove={removeAlert} onGoWatchlist={() => { setOpen(false); setActiveModule('watchlist') }} />}
 
           {pane === 'history' && (
             <>

@@ -74,7 +74,7 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
   const list = showHistory ? history.map((h) => ({ history: h })) : results
 
   return (
-    <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 20, width: 320 }} className="font-mono">
+    <div data-tip="global-search" style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 20, width: 320 }} className="font-mono">
       <div className="flex items-center gap-2 px-2.5"
         style={{ height: 36, background: 'rgba(6,13,26,0.92)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 3, backdropFilter: 'blur(8px)' }}>
         <span className="text-terminal-gold/70" style={{ fontSize: 12 }}>⌕</span>

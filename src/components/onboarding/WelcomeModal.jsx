@@ -13,17 +13,17 @@
 
 const FEATURES = [
   {
-    glyph: '◪',
+    glyph: '01',
     title: 'Markets, live and labelled',
     body: 'Crypto, FX, commodities and global indices from live feeds. Equity prices run on demo data until a provider is connected — and every one of them says so.',
   },
   {
-    glyph: '▲',
+    glyph: '02',
     title: 'MaddenAI, for analysis not arithmetic',
     body: 'Ask about a stock, the macro picture, or your own portfolio. The model writes the reasoning; every figure it quotes is one the terminal handed it.',
   },
   {
-    glyph: '⬡',
+    glyph: '03',
     title: 'Global intelligence',
     body: 'Shipping chokepoints, trade flows, geopolitical risk scored against a published rubric, and a live intel map.',
   },
@@ -77,29 +77,27 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
           animation: 'maddex-welcome-in 340ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
-        <div className="px-8 pt-8 pb-6 text-center border-b border-terminal-border/40">
-          <div
-            className="mx-auto flex items-center justify-center border"
-            style={{ width: 48, height: 48, borderColor: 'rgba(201,168,76,0.5)', color: '#C9A84C', fontSize: 22 }}
-          >▲</div>
-          <div className="text-terminal-gold font-bold tracking-[0.3em] mt-4" style={{ fontSize: 15 }}>
+        <div className="px-8 pt-9 pb-7 text-center border-b border-terminal-border/40">
+          {/* The brand mark, not a placeholder glyph — this is the first
+              time anyone sees the product, and the mark is what they will
+              see in the corner of every screen after it. */}
+          <img src="/icons/icon-mark-192.png" alt="" aria-hidden="true" className="mx-auto" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+          <div className="text-terminal-gold font-bold mt-4" style={{ fontSize: 15, letterSpacing: '0.42em', paddingLeft: '0.42em' }}>
             WELCOME TO MADDEX
           </div>
-          <div className="text-2xs text-terminal-text-dim mt-1.5">
+          <div className="mx-auto mt-3 h-px w-12" style={{ background: 'rgba(201,168,76,0.5)' }} aria-hidden="true" />
+          <div className="text-xs text-terminal-text mt-3 font-sans" style={{ fontSize: 14 }}>
             Financial intelligence for Australian investors.
           </div>
         </div>
 
-        <div className="px-8 py-6 space-y-4">
+        <div className="px-8 py-6 space-y-5">
           {FEATURES.map((f) => (
-            <div key={f.title} className="flex gap-3.5">
-              <span
-                className="flex-shrink-0 flex items-center justify-center border"
-                style={{ width: 28, height: 28, borderColor: 'rgba(201,168,76,0.28)', color: '#C9A84C', fontSize: 13 }}
-              >{f.glyph}</span>
+            <div key={f.title} className="flex gap-4">
+              <span className="flex-shrink-0 font-bold tabular-nums pt-px" style={{ color: '#C9A84C', fontSize: 11, letterSpacing: '0.08em' }} aria-hidden="true">{f.glyph}</span>
               <div className="min-w-0">
-                <div className="text-2xs font-bold text-terminal-text-bright">{f.title}</div>
-                <div className="text-2xs text-terminal-text-dim leading-relaxed mt-0.5">{f.body}</div>
+                <div className="text-xs font-bold text-terminal-text-bright tracking-wide">{f.title}</div>
+                <div className="text-xs text-terminal-text-dim leading-relaxed mt-1 font-sans" style={{ fontSize: 13 }}>{f.body}</div>
               </div>
             </div>
           ))}
@@ -108,11 +106,12 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
         <div className="px-8 pb-7">
           <button
             onClick={onGetStarted}
-            className="w-full py-2.5 font-bold tracking-widest text-terminal-bg transition-colors"
+            autoFocus
+            className="w-full py-3 font-bold tracking-[0.24em] text-terminal-bg transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-gold"
             style={{ fontSize: 12, background: '#C9A84C' }}
           >GET STARTED →</button>
-          <div className="text-2xs text-terminal-text-dim/60 text-center mt-2">
-            Takes about two minutes to set up.
+          <div className="text-2xs text-terminal-text-dim/70 text-center mt-2.5">
+            Five quick steps — a watchlist, MaddenAI, an alert. About two minutes.
           </div>
 
           {onSignIn && (

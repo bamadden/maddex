@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
   Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package, CandlestickChart,
@@ -7,6 +7,7 @@ import { useStore } from '../../store/useStore'
 import NavContextMenu from '../ui/NavContextMenu'
 import { shortcutService } from '../../services/shortcutService'
 import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../services/sidebarPref'
+import { MILESTONES, getProgress, subscribeProgress, shouldShowProgress, markCelebrated } from '../../services/gettingStarted'
 
 // Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
 // the one exception (its action is nav.rates — see App.jsx's
@@ -79,7 +80,10 @@ function isBriefNotifyWindow(now) {
   return hour >= 7 && hour < 10
 }
 
-export const APP_VERSION = 'v0.1.0-beta'
+// From package.json via vite.config `define`. Bump the version there to ship
+// release notes: What's New shows once per distinct APP_VERSION.
+// eslint-disable-next-line no-undef
+export const APP_VERSION = `v${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}`
 
 // Labels are IBM Plex Mono at 10px, not sans at 13px. The sidebar is a
 // terminal chrome element sitting beside monospaced data; a 13px sans label
@@ -115,6 +119,17 @@ export default function NavBar() {
   const { activeModule, setActiveModule, chatOpen, setChatOpen } = useStore()
   const [pinned, setPinned] = usePinnedSidebar()
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
+
+  // Getting-started progress (first week only; see services/gettingStarted).
+  const progress = useSyncExternalStore(subscribeProgress, getProgress)
+  const showProgress = shouldShowProgress(progress)
+  // The completion line is shown once: it retires itself after ten seconds
+  // if not dismissed, and the progress row goes with it.
+  useEffect(() => {
+    if (!showProgress || !progress.complete) return undefined
+    const id = setTimeout(markCelebrated, 10_000)
+    return () => clearTimeout(id)
+  }, [showProgress, progress.complete])
   const iconPad = ICON_PAD(pinned)
   const ROW = `${ROW_BASE} ${rowH(pinned)}`
   const [now, setNow] = useState(() => new Date())
@@ -291,14 +306,32 @@ export default function NavBar() {
           unreachable below the fold. Both remain available — sign out from
           the TopBar user menu, ideas from the command bar — so this trades
           nothing away and buys back two rows of navigation. */}
-      <div className="flex-shrink-0" style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
+      <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: {} }))}
-          title="Settings"
+          title={showProgress
+            ? `Settings\n\nGetting started — ${progress.count}/${progress.total}\n${MILESTONES.map((m) => `${progress.done.includes(m.id) ? '✓' : '○'} ${m.label}`).join('\n')}`
+            : 'Settings'}
+          aria-label={showProgress ? `Settings — getting started, ${progress.count} of ${progress.total} complete` : 'Settings'}
           className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3`}
         >
-          <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0 nav-icon" />
-          <span className={`nav-label ${labelCls}`}>SETTINGS</span>
+          <span className="relative flex-shrink-0">
+            <SettingsIcon size={18} strokeWidth={1.75} className="flex-shrink-0 nav-icon" />
+            {/* First-week progress, under the icon so it reads in the compact
+                rail too. Five dots, one per milestone. */}
+            {showProgress && (
+              <span className="absolute left-1/2 -translate-x-1/2 flex gap-[2px]" style={{ bottom: -7 }} aria-hidden="true">
+                {MILESTONES.map((m) => (
+                  <span key={m.id} className="w-[3px] h-[3px] rounded-full"
+                    style={{ background: progress.done.includes(m.id) ? '#C9A84C' : 'rgba(99,120,153,0.45)' }} />
+                ))}
+              </span>
+            )}
+          </span>
+          <span className={`nav-label ${labelCls}`}>
+            SETTINGS
+            {showProgress && <span className="ml-2 font-mono text-[9px] text-terminal-gold/80 tracking-wider">{progress.count}/{progress.total}</span>}
+          </span>
           <span
             className="ml-auto pl-2 font-mono text-[9px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
             style={{ color: '#4A6080' }}
@@ -306,6 +339,15 @@ export default function NavBar() {
             {shortcutService.shortcuts['ui.settings']?.display ?? ''}
           </span>
         </button>
+        {showProgress && progress.complete && (
+          <div role="status"
+            className="fixed z-[150] font-mono shadow-2xl px-3 py-2.5 flex items-start gap-2.5"
+            style={{ left: 76, bottom: 64, width: 250, background: '#0E1E36', border: '1px solid rgba(201,168,76,0.6)', borderRadius: 3, animation: 'maddex-tip-in 260ms cubic-bezier(0.22, 1, 0.36, 1)' }}>
+            <span className="text-terminal-gold" aria-hidden="true">✓</span>
+            <div className="flex-1 text-[11.5px] leading-[17px] text-terminal-text">You've explored everything. Welcome aboard.</div>
+            <button onClick={markCelebrated} aria-label="Dismiss" className="text-terminal-text-dim hover:text-terminal-text text-xs leading-none">✕</button>
+          </div>
+        )}
       </div>
       <div
         className={`flex items-center ${GAP} ${iconPad} pr-3 h-8 border-l-2 border-l-transparent flex-shrink-0`}

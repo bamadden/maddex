@@ -654,6 +654,23 @@ export default function MarketScannerModule() {
   const [tick, setTick] = useState(0)
   const [lastScanAt, setLastScanAt] = useState(() => Date.now())
   const [scanning, setScanning] = useState(false)
+  // The first open of a session shows the scan happening — a centred
+  // "scanning markets" state, then the results — so a newcomer sees that the
+  // lists are produced by a sweep of the market, not a static page. Later
+  // visits in the same session go straight to results.
+  const [firstScan, setFirstScan] = useState(() => {
+    try { return sessionStorage.getItem('maddex_scanner_warm') !== '1' } catch { return false }
+  })
+  useEffect(() => {
+    if (!firstScan) return undefined
+    const id = setTimeout(() => {
+      try { sessionStorage.setItem('maddex_scanner_warm', '1') } catch { /* private mode */ }
+      setTick((t) => t + 1)
+      setLastScanAt(Date.now())
+      setFirstScan(false)
+    }, 1400)
+    return () => clearTimeout(id)
+  }, [firstScan])
   // Held for three seconds after a scan finishes, so the result is readable
   // rather than flashing past. Distinct from `scanning` because "done, here is
   // what I found" is a different state from "working".
@@ -769,14 +786,14 @@ export default function MarketScannerModule() {
                 are that series, so the module says so once, up here, rather
                 than the reader having to infer it. */}
             <DemoBadge />
-            {scanning
+            {scanning || firstScan
               ? <span className="text-terminal-gold animate-pulse">SCANNING…</span>
               : justScanned
                 ? <span className="text-terminal-green">✓ SCAN COMPLETE · {totalSignals} signals</span>
                 : <span>Last scan: {timeAgo(lastScanAt)}</span>}
             <button
               onClick={runScan}
-              disabled={scanning}
+              disabled={scanning || firstScan}
               className="text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
             >RESCAN</button>
             <ScanSettings settings={settings} onChange={updateSettings} />
@@ -788,10 +805,22 @@ export default function MarketScannerModule() {
           the one module where the work is invisible — nothing moves while it
           recomputes — so without this a RESCAN click reads as having done
           nothing at all. */}
-      {scanning && <div className="scan-sweep flex-shrink-0" />}
+      {(scanning || firstScan) && <div className="scan-sweep flex-shrink-0" />}
 
       <TabBar tabs={TABS_WITH_COUNTS} activeKey={visibleTab} onChange={setActiveTab} className="overflow-x-auto" />
 
+      {firstScan ? (
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 text-center px-6" role="status">
+          <span className="relative w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 24 }} aria-hidden="true">
+            ◎
+            <span className="absolute inset-0 rounded-full border border-terminal-gold/60 animate-ping" />
+          </span>
+          <div className="text-terminal-text-bright text-base font-semibold tracking-wide mt-1">Scanning markets…</div>
+          <div className="text-terminal-text-dim text-sm max-w-sm leading-relaxed">
+            Breakouts, RSI extremes, unusual volume and gaps across the tracked ASX and US universe.
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 overflow-y-auto">
         {visibleTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
         {visibleTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-blue-bright/50 text-terminal-blue-bright" verb="oversold" scanTime={lastScanAt} />}
@@ -823,6 +852,7 @@ export default function MarketScannerModule() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

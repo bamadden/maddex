@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
-import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey } from '../../services/morningBriefService'
+import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey, getCachedBrief } from '../../services/morningBriefService'
+import { markMilestone } from '../../services/gettingStarted'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
@@ -280,7 +281,7 @@ export default function MorningBriefModule() {
   const { watchlist } = useStore()
   const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
   const [brief, setBrief] = useState(null)
-  const [status, setStatus] = useState('loading') // loading | ready | error
+  const [status, setStatus] = useState('loading') // loading | empty | ready | error
   const [error, setError] = useState(null)
 
   const [copied, setCopied] = useState(false)
@@ -296,6 +297,16 @@ export default function MorningBriefModule() {
     if (!force && isAuWeekend()) {
       setBrief(getWeekendMessage())
       setStatus('ready')
+      markMilestone('brief')
+      return
+    }
+    // Opening the module no longer generates. A brief is made at 7am by the
+    // auto-generator, or on request below — not as a side effect of looking,
+    // which spent a model call on every visit to a day with no brief yet.
+    if (!force) {
+      const cached = getCachedBrief()
+      if (cached) { setBrief(cached); setStatus('ready'); markMilestone('brief') }
+      else setStatus('empty')
       return
     }
     setStatus('loading')
@@ -305,6 +316,7 @@ export default function MorningBriefModule() {
       const result = await generateMorningBrief(watchlist, null, { force })
       setBrief(result)
       setStatus('ready')
+      markMilestone('brief')
     } catch (e) {
       setError(e.message)
       setStatus('error')
@@ -383,6 +395,20 @@ export default function MorningBriefModule() {
             <SkeletonText lines={5} />
           </div>
         )}
+        {status === 'empty' && (
+          <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+            <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 26 }} aria-hidden="true">☀</span>
+            <div className="text-terminal-text-bright text-base font-semibold tracking-wide mt-1">Your brief isn't ready yet</div>
+            <div className="text-terminal-text-dim text-sm max-w-sm leading-relaxed">
+              Morning briefs generate automatically at 7am on weekdays. Or generate one now.
+            </div>
+            <button
+              onClick={() => load({ force: true })}
+              className="mt-2 px-5 py-2 text-xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+            >GENERATE BRIEF NOW</button>
+          </div>
+        )}
+
         {status === 'error' && (
           <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="text-2xl">{/credit balance/i.test(error ?? '') ? '🤖' : '⚠'}</span>
@@ -394,7 +420,7 @@ export default function MorningBriefModule() {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <button
-                onClick={load}
+                onClick={() => load({ force: true })}
                 className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
               >RETRY</button>
               {/credit balance/i.test(error ?? '') && (

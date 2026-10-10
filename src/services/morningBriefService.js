@@ -175,6 +175,16 @@ function factsStamp() {
 // watchlist: array of ticker strings (useStore's shape). portfolio: optional
 // override — defaults to reading the same localStorage key PortfolioModule
 // persists to, since holdings are not in the shared store.
+// Today's brief if one is already cached and still describes the current
+// verified figures; null otherwise. Never calls the model — this is what lets
+// the module show "not ready yet" rather than spending a call on every open.
+export function getCachedBrief() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY()) ?? 'null')
+    return parsed?.factsStamp === factsStamp() ? parsed : null
+  } catch { return null }
+}
+
 export async function generateMorningBrief(watchlist = [], portfolio = null, { force = false } = {}) {
   const cacheKey = BRIEF_CACHE_KEY()
   if (!force) {

@@ -4,14 +4,18 @@ import { requestPermission, dismissPrompt, shouldOfferPrompt } from '../../servi
 // Shown once, when the user sets their first alert, before the browser's own
 // permission dialog. A cold browser prompt with no context is the one most
 // people refuse — and a refusal can only be undone from browser settings.
-export default function NotificationPermissionPrompt() {
+//
+// `suppressed` while the welcome or setup owns the screen: an alert set in
+// setup offers this prompt, and it would land underneath the setup's scrim.
+// The offer is held and the prompt appears once the screen is free.
+export default function NotificationPermissionPrompt({ suppressed = false }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const onOffer = () => { if (shouldOfferPrompt()) setOpen(true) }
     window.addEventListener('maddex:notify-offer', onOffer)
     return () => window.removeEventListener('maddex:notify-offer', onOffer)
   }, [])
-  if (!open) return null
+  if (!open || suppressed) return null
   const close = () => { dismissPrompt(); setOpen(false) }
   return (
     <div className="fixed bottom-16 right-6 z-[160] w-[340px] font-mono shadow-2xl"

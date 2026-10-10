@@ -20,6 +20,7 @@ import { getInvestorContext, getProfilePrompts } from '../../services/investorPr
 import { formatInline, splitFollowUps, toShareText, findTickers } from '../../services/aiResponseFormat'
 import { getStarters } from '../../services/aiStarters'
 import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
+import { markMilestone } from '../../services/gettingStarted'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 
 // ── MaddenAI monthly message quota (Core tier only — Prime+ is unlimited) ──
@@ -835,6 +836,7 @@ export default function AIPanel({ wide = false }) {
     setInput('')
     setLoading(true)
     incrementAiMessageCount()
+    markMilestone('ai')
 
     // Displayed turn keeps the clean text; the wire turn carries the context
     // prefix so the cached system prefix stays byte-identical between calls.

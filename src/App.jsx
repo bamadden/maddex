@@ -17,7 +17,7 @@ import SharedResearchNotePage from './pages/SharedResearchNotePage'
 import NotFoundPage from './pages/NotFoundPage'
 import LegalPage from './pages/LegalPage'
 import { LEGAL_DOCS } from './data/legalDocs'
-import OnboardingTour from './components/onboarding/OnboardingFlow'
+import SetupWizard from './components/onboarding/SetupWizard'
 import WelcomeModal from './components/onboarding/WelcomeModal'
 import { APP_VERSION } from './components/layout/NavBar'
 import ContextualTip from './components/onboarding/ContextualTip'
@@ -801,6 +801,11 @@ function Terminal() {
               moduleId={activeModule}
               suppressed={showWelcome || showTour || showWhatsNew}
             />
+            {/* MaddenAI's tooltip teaches the shortcut the first time the
+                panel is opened — the moment someone has reached it the slow way. */}
+            {chatOpen && (
+              <ContextualTip key="tip-maddenai" moduleId="maddenai" suppressed={showWelcome || showTour || showWhatsNew} />
+            )}
           </div>
         )}
         {layout !== 'focus' && layout !== 'split' && <AIPanel wide={layout === 'research'} />}
@@ -837,13 +842,14 @@ function Terminal() {
         )
       })}
       {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
-      <NotificationPermissionPrompt />
-      {!showWelcome && showTour && <OnboardingTour onComplete={completeTour} />}
+      <NotificationPermissionPrompt suppressed={showWelcome || showTour} />
+      {!showWelcome && showTour && <SetupWizard onComplete={completeTour} />}
       {!showWelcome && !showTour && showWhatsNew && (
         <Suspense fallback={null}>
           <WhatsNewModal
             onDismiss={dismissWhatsNew}
-            onShowMe={() => { dismissWhatsNew(); setActiveModule('scanner') }}
+            onShowMe={() => { dismissWhatsNew(); setChatOpen(true) }}
+            version={APP_VERSION}
           />
         </Suspense>
       )}

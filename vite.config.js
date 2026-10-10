@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 
 // Needs the function form (not a plain object) so loadEnv can read
@@ -78,6 +79,9 @@ export default defineConfig(({ mode }) => {
 
     define: {
       __GIT_COMMIT__: JSON.stringify(gitCommit()),
+      // The release version, from package.json — the one place to bump it.
+      // What's New is keyed to this, so a bump is what shows release notes.
+      __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version),
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     },
 

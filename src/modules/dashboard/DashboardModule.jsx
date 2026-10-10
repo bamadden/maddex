@@ -116,6 +116,7 @@ export default function DashboardModule() {
             {!isNarrow && (
               <button
                 onClick={() => setEditMode((v) => !v)}
+                data-tip="dashboard-edit"
                 title="Toggle edit mode (⌘E)"
                 className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
                   editing ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'

@@ -8,7 +8,6 @@
 
 const WELCOMED_KEY = 'maddex_welcomed'
 const FIRST_SEEN_KEY = 'maddex_first_seen'
-const TIPS_KEY = 'maddex_tips_dismissed'
 const WHATS_NEW_VERSION_KEY = 'maddex_whats_new_version'
 
 const read = (key, fallback = null) => {
@@ -48,52 +47,61 @@ export function daysSinceFirstSeen(now = Date.now()) {
   return first ? Math.floor((now - first) / 86400000) : 0
 }
 
-// ─── Contextual tips ────────────────────────────────────────────────────────
+// ─── Contextual tooltips ────────────────────────────────────────────────────
+//
+// One tooltip per module, on the first visit during the first week, anchored
+// to the element it is about. Each says something you cannot see by looking —
+// a shortcut, a hidden interaction, how the data behaves — and every claim has
+// been checked against the code: a tooltip that is wrong teaches the user to
+// stop reading tooltips.
+//
+// Seen state: { [moduleId]: true } under 'maddex_tooltips_seen'. The previous
+// list-of-ids key is carried over once so nobody is re-shown a dismissed tip.
+const TOOLTIPS_KEY = 'maddex_tooltips_seen'
+const LEGACY_TIPS_KEY = 'maddex_tips_dismissed'
 
-function readTips() {
-  try {
-    const parsed = JSON.parse(read(TIPS_KEY, '[]'))
-    return Array.isArray(parsed) ? parsed : []
-  } catch { return [] }
+// target: CSS selector of the element the arrow points at. Without one (or if
+// it is not on screen) the tooltip sits in the module's corner, unanchored.
+export const TOOLTIPS = {
+  // Waits for the first-run layout picker to be dealt with — over the picker
+  // the EDIT button it points at is dimmed out of reach.
+  dashboard: { text: 'Press EDIT, then drag widgets to customise your layout.', target: '[data-tip="dashboard-edit"]',
+    ready: () => { try { return localStorage.getItem('maddex_dashboard_setup_done') === 'true' } catch { return true } } },
+  markets:   { text: 'Click any stock for a deep dive.', target: '[data-tip="markets-movers"]' },
+  global:    { text: 'Press F with the pointer over the map to search any location.', target: '[data-tip="global-search"]' },
+  fx:        { text: "RBA figures are checked against the RBA's own data — the LIVE CHECK badge flags any change after a decision.", target: '[data-tip="rba-hero"]' },
+  maddenai:  { text: 'Press A to open MaddenAI from anywhere.', target: '[data-tour="ai-panel"]', placement: 'left' },
+  screener:  { text: "MATCH % ranks results by how far past the screen's thresholds each stock sits — every column sorts." },
+  portfolio: { text: 'The TRANSACTIONS tab records buys, sells and dividends, and derives realised P&L.' },
+  news:      { text: 'Stories about your watchlist are marked in gold and float to the top.' },
+  calendar:  { text: 'Set a reminder on any event, or export the whole calendar as .ics.' },
+  crypto:    { text: 'Crypto is live data — CoinGecko, updated every few minutes.' },
+  scanner:   { text: 'Ask the command bar to "scan for oversold" to jump straight to a tab.' },
 }
 
-export const isTipDismissed = (id) => readTips().includes(id)
-
-export function dismissTip(id) {
-  const list = readTips()
-  if (list.includes(id)) return list
-  const next = [...list, id]
-  write(TIPS_KEY, JSON.stringify(next))
-  return next
+function readSeen() {
+  let seen
+  try { seen = JSON.parse(read(TOOLTIPS_KEY, '{}')) ?? {} } catch { seen = {} }
+  const legacy = read(LEGACY_TIPS_KEY)
+  if (legacy != null) {
+    try {
+      for (const id of JSON.parse(legacy)) if (typeof id === 'string') seen[id.replace(/^tip-/, '')] = true
+    } catch { /* unreadable legacy list is dropped */ }
+    write(TOOLTIPS_KEY, JSON.stringify(seen))
+    try { localStorage.removeItem(LEGACY_TIPS_KEY) } catch { /* private mode */ }
+  }
+  return seen && typeof seen === 'object' ? seen : {}
 }
 
-export function resetTips() {
-  write(TIPS_KEY, '[]')
+export const isTooltipSeen = (id) => Boolean(readSeen()[id])
+
+export function markTooltipSeen(id) {
+  const seen = readSeen()
+  if (seen[id]) return
+  write(TOOLTIPS_KEY, JSON.stringify({ ...seen, [id]: true }))
 }
 
-// One tip per module, shown on first visit only. Each says something a user
-// cannot discover by looking — a keyboard shortcut, a hidden interaction —
-// rather than narrating what is already on screen.
-export const MODULE_TIPS = {
-  markets:   { id: 'tip-markets',   text: 'Hover a sector tile and click ⛶ for the full sector deep dive.' },
-  // Deliberately NOT the plain-English hint: that is a Prime feature, and a
-  // first-run tip that teaches a Core user something they cannot do is an
-  // advertisement wearing a tip's clothes. The NL input's own placeholder
-  // already spells it out for the plans that have it. MATCH % is the hidden
-  // thing on every plan.
-  screener:  { id: 'tip-screener',  text: 'MATCH % ranks results by how far past the screen\'s thresholds each stock sits — every column sorts.' },
-  portfolio: { id: 'tip-portfolio', text: 'The TRANSACTIONS tab records buys, sells and dividends, and derives realised P&L.' },
-  news:      { id: 'tip-news',      text: 'Stories about your watchlist are marked in gold and float to the top.' },
-  calendar:  { id: 'tip-calendar',  text: 'Set a reminder on any event, or export the whole calendar as .ics.' },
-  global:    { id: 'tip-global',    text: 'Drag to spin the map; scroll to zoom. Layers toggle on the left rail.' },
-  crypto:    { id: 'tip-crypto',    text: 'Crypto is live data — CoinGecko, updated every few minutes.' },
-  scanner:   { id: 'tip-scanner',   text: 'Ask the command bar to "scan for oversold" to jump straight to a tab.' },
-}
-
-// Shown once, anywhere, on the very first session after the welcome.
-export const GLOBAL_TIPS = [
-  { id: 'tip-command', text: 'Press / or ⌘K to open the command bar from anywhere.' },
-]
+export const resetTooltips = () => write(TOOLTIPS_KEY, '{}')
 
 // ─── What's new ─────────────────────────────────────────────────────────────
 //

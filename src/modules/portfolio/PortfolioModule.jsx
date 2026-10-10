@@ -36,6 +36,7 @@ import PortfolioImportModal from '../../components/portfolio/PortfolioImportModa
 import {
   detectType, cleanSymbol, mergeLots, holdingsToCsv, exportFilename, downloadText, logImport,
 } from '../../services/portfolioCsv'
+import { markMilestone } from '../../services/gettingStarted'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -496,7 +497,16 @@ export default function PortfolioModule() {
   const [holdings, setHoldings] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
   })
-  const [showAddForm, setShowAddForm] = useState(false)
+  // Setup's "YES — ADD HOLDINGS" lands here with the form already open.
+  // Read in the initialiser, cleared in an effect: an initialiser must be
+  // pure (StrictMode calls it twice), and one that consumed the flag left the
+  // second call — the one React kept — seeing nothing.
+  const [showAddForm, setShowAddForm] = useState(() => {
+    try { return sessionStorage.getItem('maddex_open_add_holding') === '1' } catch { return false }
+  })
+  useEffect(() => {
+    try { sessionStorage.removeItem('maddex_open_add_holding') } catch { /* private mode */ }
+  }, [])
   const [showBuilder, setShowBuilder] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [allocView3D, setAllocView3D] = useState(false)
@@ -538,6 +548,7 @@ export default function PortfolioModule() {
   }, [user])
 
   const addHolding = async (h) => {
+    markMilestone('portfolio')
     setHoldings((prev) => {
       const idx = prev.findIndex((p) => p.symbol === h.symbol && p.type === h.type)
       if (idx >= 0) { const u = [...prev]; u[idx] = h; return u }
@@ -577,6 +588,7 @@ export default function PortfolioModule() {
   const importCsv = async ({ add, replaceKeys, skipped, replaced }) => {
     const keyOf = (h) => `${h.type}:${h.symbol}`
     const removed = holdings.filter((h) => replaceKeys.has(keyOf(h)))
+    markMilestone('portfolio')
     setHoldings((prev) => [...prev.filter((h) => !replaceKeys.has(keyOf(h))), ...add])
     logImport({ source: 'CSV', holdingsAdded: add.length, holdingsSkipped: skipped, holdingsReplaced: replaced })
     logActivity('portfolio', `Imported ${add.length} holding${add.length === 1 ? '' : 's'} from CSV`)
@@ -792,14 +804,20 @@ export default function PortfolioModule() {
               <span className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
                 <Briefcase size={22} strokeWidth={1.75} />
               </span>
-              <div className="text-terminal-text-bright text-base font-semibold tracking-wide">NO HOLDINGS YET</div>
+              <div className="text-terminal-text-bright text-base font-semibold tracking-wide">Start tracking your portfolio</div>
               <div className="text-terminal-text-dim text-sm text-center max-w-sm leading-relaxed -mt-2">
-                Add your first holding to track performance
+                Add holdings to see real-time P&amp;L, sector analysis, and dividend income
               </div>
-              <button onClick={() => setShowAddForm(true)}
-                className="px-6 py-2.5 text-sm font-bold border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors tracking-widest">
-                + ADD HOLDING
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowAddForm(true)}
+                  className="px-5 py-2 text-xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors">
+                  + ADD HOLDING
+                </button>
+                <button onClick={() => setShowImport(true)}
+                  className="px-5 py-2 text-xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors">
+                  IMPORT CSV
+                </button>
+              </div>
               <div className="flex items-center gap-2 flex-wrap justify-center">
                 <span className="text-2xs text-terminal-text-dim/60">QUICK ADD:</span>
                 {['BHP.AX', 'CBA.AX', 'AAPL', 'MSFT', 'BTC', 'ETH'].map((s) => (
@@ -810,9 +828,6 @@ export default function PortfolioModule() {
                 ))}
               </div>
               <div className="text-2xs text-terminal-text-dim/40">Supports ASX (BHP.AX), US equities, and major crypto</div>
-              <button onClick={() => setShowImport(true)} className="text-2xs text-terminal-text-dim hover:text-terminal-gold underline underline-offset-2">
-                or import holdings from a CSV file
-              </button>
             </>
         }
         </div>

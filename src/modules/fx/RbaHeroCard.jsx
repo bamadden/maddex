@@ -67,6 +67,7 @@ export default function RbaHeroCard({ onAskAI }) {
 
   return (
     <div
+      data-tip="rba-hero"
       className="flex-shrink-0"
       style={{
         borderLeft: `3px solid ${['HIKE', 'CUT'].includes((VERIFIED_CONSTANTS.rba?.lastDecisionVerb ?? '').toUpperCase()) ? '#E8A33D' : '#C9A84C'}`,

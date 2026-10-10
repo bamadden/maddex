@@ -321,7 +321,7 @@ export default function TopMovers() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 border-b border-terminal-border">
-      <div className="border-b md:border-b-0 md:border-r border-terminal-border">
+      <div data-tip="markets-movers" className="border-b md:border-b-0 md:border-r border-terminal-border">
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-gold whitespace-nowrap">ASX LEADERS</span>
           {asxFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}

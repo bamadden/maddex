@@ -5,7 +5,6 @@ import {
 import {
   loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder,
 } from '../../services/watchlistPrefs'
-import { Bookmark } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -1059,13 +1058,16 @@ export default function WatchlistModule() {
       <div className="flex-1 overflow-auto">
         {watchlist.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center overflow-y-auto py-8">
-            <span className="w-10 h-10 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
-              <Bookmark size={18} strokeWidth={1.75} />
-            </span>
-            <div className="text-terminal-text-bright text-sm font-semibold mt-1 tracking-wide">YOUR WATCHLIST IS EMPTY</div>
-            <div className="text-terminal-text-dim text-2xs max-w-xs leading-relaxed">
-              Start tracking what matters to you
+            <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" aria-hidden="true"
+              style={{ fontSize: 26, lineHeight: 1 }}>☆</span>
+            <div className="text-terminal-text-bright text-base font-semibold mt-2 tracking-wide">Your watchlist is empty</div>
+            <div className="text-terminal-text-dim text-sm max-w-sm leading-relaxed">
+              Add stocks to track prices, set alerts, and get news highlights
             </div>
+            <button
+              onClick={() => searchInputRef.current?.focus()}
+              className="mt-3 px-5 py-2 text-xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+            >ADD YOUR FIRST STOCK</button>
 
             {/* An empty watchlist is the one screen with nothing to look at,
                 so it offers a starting set rather than only a search box —
@@ -1089,12 +1091,6 @@ export default function WatchlistModule() {
               </div>
             </div>
 
-            <button
-              onClick={() => searchInputRef.current?.focus()}
-              className="mt-4 text-2xs font-bold text-terminal-gold border border-terminal-gold/40 rounded-full px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-            >
-              or search for a ticker
-            </button>
           </div>
         ) : isError && !batchQuotes && !Object.keys(cryptoQuotes).length ? (
           <ModuleError module="Watchlist prices" lastUpdated={dataUpdatedAt} onRetry={refetchAll} />

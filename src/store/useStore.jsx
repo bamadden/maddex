@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { maybeNotify, offerPrompt } from '../services/browserNotify'
+import { markMilestone } from '../services/gettingStarted'
 import { treatmentFor, recordHistory } from '../services/notificationPolicy'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
 import { notificationRateLimiter } from '../services/notificationRateLimiter'
@@ -70,6 +71,7 @@ export function StoreProvider({ children }) {
 
   const addToWatchlist = useCallback((sym) => {
     const s = sym.toUpperCase().trim()
+    markMilestone('watchlist')
     setWatchlist((prev) => persistWatchlist(prev.includes(s) ? prev : [...prev, s]))
   }, [persistWatchlist])
 
@@ -142,6 +144,7 @@ export function StoreProvider({ children }) {
     // First alert is the moment to ask for system notifications — the
     // pre-prompt explains why before the browser's own dialog appears.
     offerPrompt()
+    markMilestone('alert')
     setAlerts((prev) => {
       const next = [...prev, alert]
       try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
