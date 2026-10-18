@@ -13,16 +13,9 @@ import { viewStateService } from './services/viewStateService'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
-import DiagPage from './DiagPage'
 import AppLoader from './components/ui/AppLoader'
-import SharedWatchlistPage from './pages/SharedWatchlistPage'
-import SharedResearchNotePage from './pages/SharedResearchNotePage'
 import NotFoundPage from './pages/NotFoundPage'
-import LegalPage from './pages/LegalPage'
-import { LEGAL_DOCS } from './data/legalDocs'
-import SetupWizard from './components/onboarding/SetupWizard'
 import AlertSuggestion from './components/ui/AlertSuggestion'
-import WelcomeModal from './components/onboarding/WelcomeModal'
 import { APP_VERSION } from './components/layout/NavBar'
 import ContextualTip from './components/onboarding/ContextualTip'
 import {
@@ -87,10 +80,22 @@ const ComparisonView     = lazy(() => import('./components/markets/ComparisonVie
 const CorrelationExplorer = lazy(() => import('./modules/markets/CorrelationExplorer'))
 const WhatsNewModal      = lazy(() => import('./components/onboarding/WhatsNewModal'))
 const TrialExpiredModal  = lazy(() => import('./components/auth/TrialExpiredModal'))
+// Screens a signed-in returning user never sees on load — first-run
+// onboarding, sign-in, and the public routes — load on demand rather than
+// riding in the entry chunk.
+const SetupWizard        = lazy(() => import('./components/onboarding/SetupWizard'))
+const WelcomeModal       = lazy(() => import('./components/onboarding/WelcomeModal'))
+const AuthModal          = lazy(() => import('./components/auth/AuthModal'))
+const OnboardingFlow     = lazy(() => import('./components/auth/OnboardingFlow'))
+const DiagPage           = lazy(() => import('./DiagPage'))
+const SharedWatchlistPage    = lazy(() => import('./pages/SharedWatchlistPage'))
+const SharedResearchNotePage = lazy(() => import('./pages/SharedResearchNotePage'))
+const LegalPage          = lazy(() => import('./pages/LegalPage'))
+// The keys of data/legalDocs LEGAL_DOCS, kept here so routing does not pull
+// the documents' text into the entry chunk. LegalPage renders from the data.
+const LEGAL_SLUGS = new Set(['terms', 'privacy', 'disclaimer'])
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
-import AuthModal from './components/auth/AuthModal'
-import OnboardingFlow from './components/auth/OnboardingFlow'
 import { useSubscription } from './hooks/useSubscription'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
@@ -855,11 +860,11 @@ function Terminal() {
           </FloatingWindow>
         )
       })}
-      {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
+      {showWelcome && <Suspense fallback={null}><WelcomeModal onGetStarted={completeWelcome} /></Suspense>}
       <NotificationPermissionPrompt suppressed={showWelcome || showTour} />
       <PlanOverlays />
       <AlertSuggestion />
-      {!showWelcome && showTour && <SetupWizard onComplete={completeTour} />}
+      {!showWelcome && showTour && <Suspense fallback={null}><SetupWizard onComplete={completeTour} /></Suspense>}
       {!showWelcome && !showTour && showWhatsNew && (
         <Suspense fallback={null}>
           <WhatsNewModal
@@ -904,9 +909,9 @@ function AuthGate() {
   // is false in `vite build`, so production is unaffected. Remove once no
   // longer needed for local testing.
   const isDev = import.meta.env.DEV
-  if (!user && !isDev) return <AuthModal />
+  if (!user && !isDev) return <Suspense fallback={<AppLoader />}><AuthModal /></Suspense>
   if (profile && !profile.onboarding_complete && !onboardingDone) {
-    return <OnboardingFlow onComplete={() => setOnboardingDone(true)} />
+    return <Suspense fallback={<AppLoader />}><OnboardingFlow onComplete={() => setOnboardingDone(true)} /></Suspense>
   }
   // Once per account: after "continue on Core" the terminal opens on Core.
   if (user && isTrial && isTrialExpired && !trialAck && !trialEndedSeen(user.id)) {
@@ -916,16 +921,17 @@ function AuthGate() {
 }
 
 export default function App() {
-  if (window.location.search.includes('diag')) return <DiagPage />
+  const page = (el) => <Suspense fallback={<AppLoader />}>{el}</Suspense>
+  if (window.location.search.includes('diag')) return page(<DiagPage />)
   const watchlistShare = window.location.pathname.match(/^\/watchlist\/share\/([a-z0-9]+)$/i)
-  if (watchlistShare) return <SharedWatchlistPage id={watchlistShare[1]} />
+  if (watchlistShare) return page(<SharedWatchlistPage id={watchlistShare[1]} />)
   const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9]+)$/i)
-  if (researchShare) return <SharedResearchNotePage id={researchShare[1]} />
+  if (researchShare) return page(<SharedResearchNotePage id={researchShare[1]} />)
   // Legal pages are public and mount before the auth gate: someone has to be
   // able to read the terms they are being asked to agree to on the sign-in
   // screen, and that screen appears before they have an account.
   const legalSlug = window.location.pathname.replace(/^\/|\/$/g, '')
-  if (LEGAL_DOCS[legalSlug]) return <LegalPage slug={legalSlug} />
+  if (LEGAL_SLUGS.has(legalSlug)) return page(<LegalPage slug={legalSlug} />)
   if (window.location.pathname !== '/') return <NotFoundPage />
   return (
     <QueryClientProvider client={queryClient}>

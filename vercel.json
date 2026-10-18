@@ -21,6 +21,10 @@
       "destination": "https://stooq.com/:path*"
     },
     {
+      "source": "/api/imf/:path*",
+      "destination": "https://www.imf.org/external/datamapper/api/:path*"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

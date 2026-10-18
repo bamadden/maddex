@@ -106,6 +106,13 @@ export default defineConfig(({ mode }) => {
 
     server: {
       proxy: {
+        // IMF DataMapper sends no CORS headers, so the browser cannot call it
+        // directly. Same rewrite in vercel.json for production.
+        '/api/imf': {
+          target: 'https://www.imf.org',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/imf/, '/external/datamapper/api'),
+        },
         '/api/frankfurter': {
           // api.frankfurter.app 301-redirects to api.frankfurter.dev/v1 — point
           // at the new host directly to skip that hop.

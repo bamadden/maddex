@@ -9,6 +9,7 @@
 // provenance from that rather than guessing how fresh a number is — which is
 // the whole point of the exercise, since a plausible stale number is worse
 // than a visibly stale one.
+import { REST_COUNTRIES_AVAILABLE } from './countryApiService'
 
 const CACHE_PREFIX = 'maddex_live_'
 
@@ -202,6 +203,8 @@ export const liveDataService = {
   // ── Country reference — REST Countries ──────────────────────────────────
   async getCountryData(iso2) {
     return withCache(`country_${iso2}`, async () => {
+      // v3.1 is retired (see countryApiService REST_COUNTRIES_AVAILABLE).
+      if (!REST_COUNTRIES_AVAILABLE) throw new Error('REST Countries v3.1 retired — v5 needs an API key')
       const d = await json(`https://restcountries.com/v3.1/alpha/${iso2}`, 'REST Countries')
       const c = Array.isArray(d) ? d[0] : d
       if (!c) throw new Error('Country not found')

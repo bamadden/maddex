@@ -123,11 +123,22 @@ const LIVE_CHECK_FIELD = {
   'AU Unemployment': 'unemployment', 'AU GDP QoQ': 'gdpQoQ', 'AU GDP Annual': 'gdpAnnual',
 }
 
+// '2026-11-19' → '19 November 2026 (Oct)' — the data month is the one before
+// the release month for both monthly CPI and the labour force.
+function releaseLabel(iso) {
+  if (!iso) return '—'
+  const d = new Date(`${iso}T00:00:00`)
+  const prior = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+  return `${d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })} (${prior.toLocaleDateString('en-AU', { month: 'short' }).replace('Sept', 'Sep')})`
+}
+
 const NEXT_RELEASE = {
   'RBA Cash Rate':       nextRbaMeetingLabel,
-  'AU CPI YoY':          '28 October 2026 (Sep)',
-  'AU CPI Trimmed Mean': '28 October 2026 (Sep)',
-  'AU Unemployment':     '15 October 2026 (Sep)',
+  // From the constants, so the label moves on when the release does — a
+  // literal here still said "15 October" after that release had happened.
+  'AU CPI YoY':          releaseLabel(VERIFIED_CONSTANTS.au.cpiNextRelease),
+  'AU CPI Trimmed Mean': releaseLabel(VERIFIED_CONSTANTS.au.cpiNextRelease),
+  'AU Unemployment':     releaseLabel(VERIFIED_CONSTANTS.au.unemploymentNextRelease),
 }
 
 

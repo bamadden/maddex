@@ -1691,6 +1691,20 @@ function extractAnthropicErrorMessage(text) {
   return null
 }
 
+// What a user is shown when the AI call fails. Account-side problems — the
+// API credit running out, a bad or revoked key — are the operator's to fix,
+// and the vendor's wording ("Please go to Plans & Billing to purchase
+// credits") was reaching users verbatim, in the News brief and the panel,
+// telling them to pay for something they cannot. Those become one neutral
+// line; everything else keeps the vendor's message, which is usually useful
+// ("prompt is too long", "overloaded").
+const UNAVAILABLE = 'MaddenAI is temporarily unavailable — please try again later.'
+function userFacingAiError(status, message) {
+  if ([401, 402, 403].includes(status)) return UNAVAILABLE
+  if (/credit balance|billing|purchase credits|api key|x-api-key|authentication|permission/i.test(message ?? '')) return UNAVAILABLE
+  return message ?? 'AI service is currently unavailable — please try again shortly.'
+}
+
 export const askClaude = async (messages, onToken, options = {}) => {
   const startTime  = Date.now()
   const systemPrompt = options.systemPrompt ?? (options.experienceLevel ? buildSystemPrompt(options.experienceLevel) : MADDEX_SYSTEM_PROMPT)
@@ -1710,7 +1724,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
   if (!response.ok) {
     const errText = await response.text()
     console.error('[MADDEN API] Claude API error:', errText)
-    throw new Error(extractAnthropicErrorMessage(errText) ?? 'AI service is currently unavailable — please try again shortly.')
+    throw new Error(userFacingAiError(response.status, extractAnthropicErrorMessage(errText)))
   }
   const reader     = response.body.getReader()
   const decoder    = new TextDecoder()

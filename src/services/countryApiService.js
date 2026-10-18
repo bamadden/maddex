@@ -39,9 +39,17 @@ export function getCacheAge(key) {
 
 // ─── SOURCE 1: REST Countries ─────────────────────────────────────────────────
 
+// REST Countries retired v3.1 in 2026: the endpoint now redirects to a
+// "this API version has been deprecated" stub with no CORS headers, so every
+// call failed. Its replacement (v5) needs an API key and has a different
+// response shape. Until a key is chosen, the call is skipped and the country
+// panels use the built-in country database, as they already did on failure.
+export const REST_COUNTRIES_AVAILABLE = false
+
 async function fetchRestCountries() {
   const cached = getCountryCache('rest')
   if (cached) return cached
+  if (!REST_COUNTRIES_AVAILABLE) throw new Error('REST Countries v3.1 retired — v5 needs an API key')
 
   const res = await fetch(
     'https://restcountries.com/v3.1/all?fields=name,cca2,cca3,ccn3,capital,population,area,currencies,languages,region,subregion,flags,borders,timezones',
@@ -141,7 +149,9 @@ async function fetchWorldBank() {
 // ─── SOURCE 3: IMF DataMapper ─────────────────────────────────────────────────
 
 async function fetchImfSeries(seriesId) {
-  const url = `https://www.imf.org/external/datamapper/api/v1/${seriesId}`
+  // Through /api/imf (vite proxy in dev, vercel.json rewrite in production):
+  // the IMF sends no CORS headers, so a direct browser fetch always failed.
+  const url = `/api/imf/v1/${seriesId}`
   const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
   if (!res.ok) throw new Error(`IMF ${seriesId} HTTP ${res.status}`)
   const json = await res.json()
