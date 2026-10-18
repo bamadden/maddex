@@ -129,62 +129,41 @@ export const MACRO_INDICATORS = GLOBAL_MACRO
 // src/services/calendarService.js, which auto-drops past events instead of
 // needing this file hand-edited every session.
 
-// AU CPI History — ABS Quarterly CPI / Monthly Indicator (YoY %) — SOURCE: abs.gov.au/6401.0
-export const AU_CPI_HISTORY = [
-  { date: 'Jun-23', value: 5.4 },
-  { date: 'Sep-23', value: 5.4 },
-  { date: 'Dec-23', value: 4.1 },
-  { date: 'Mar-24', value: 3.6 },
-  { date: 'Jun-24', value: 3.8 },
-  { date: 'Sep-24', value: 2.8 },
-  { date: 'Dec-24', value: 2.4 },
-  { date: 'Mar-25', value: 2.4 },
-  { date: 'Jun-25', value: 2.7 },
-  { date: 'Sep-25', value: 2.5 },
-  { date: 'Dec-25', value: 3.8 },
-  { date: 'Mar-26', value: 4.6 },
-  { date: 'Jun-26', value: 3.8 },
-  // From Jul-26 the series is the ABS monthly CPI, now the headline measure.
-  { date: 'Jul-26', value: 3.5 },
-  { date: 'Aug-26', value: 4.0 },
-]
+// The three chart series are the ABS-sourced histories in verifiedConstants,
+// relabelled for the x-axis. They were hand-typed here until 2026-10-19 and
+// had drifted from the ABS by up to 0.8pp; see the note on au.cpiHistory.
+//
+// '2026-08' → 'Aug-26'; '2025-Q1' → 'Mar-25' (the quarter's last month, so a
+// quarterly point and the monthly series that follows it share one axis).
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export function chartLabel(period) {
+  const q = period.match(/^(\d{4})-Q(\d)$/)
+  if (q) return `${MON[q[2] * 3 - 1]}-${q[1].slice(2)}`
+  const m = period.match(/^(\d{4})-(\d{2})$/)
+  return m ? `${MON[m[2] - 1]}-${m[1].slice(2)}` : period
+}
+// `t` is a month index (year × 12 + month), so the charts can use a true
+// time axis: eight quarterly points then monthly ones would otherwise be
+// spaced evenly, squeezing two years of quarters into the width of eight
+// months.
+export function periodMonth(period) {
+  const q = period.match(/^(\d{4})-Q(\d)$/)
+  if (q) return +q[1] * 12 + q[2] * 3 - 1
+  const m = period.match(/^(\d{4})-(\d{2})$/)
+  return m ? +m[1] * 12 + (m[2] - 1) : null
+}
+export const monthLabel = (t) => `${MON[t % 12]}-${String(Math.floor(t / 12)).slice(2)}`
+const toChart = (rows) => rows.map((r) => ({ ...r, date: chartLabel(r.period), t: periodMonth(r.period) }))
 
-// AU Unemployment History — ABS Labour Force Survey (%) — SOURCE: abs.gov.au/6202.0
-export const AU_UNEMP_HISTORY = [
-  { date: 'Jun-23', value: 3.5 },
-  { date: 'Sep-23', value: 3.6 },
-  { date: 'Dec-23', value: 3.8 },
-  { date: 'Mar-24', value: 3.8 },
-  { date: 'Jun-24', value: 4.1 },
-  { date: 'Sep-24', value: 4.1 },
-  { date: 'Dec-24', value: 4.0 },
-  { date: 'Mar-25', value: 4.1 },
-  { date: 'Jun-25', value: 4.1 },
-  { date: 'Sep-25', value: 4.0 },
-  { date: 'Dec-25', value: 4.0 },
-  { date: 'Mar-26', value: 4.1 },
-  { date: 'Jul-26', value: 4.5 },
-  { date: 'Aug-26', value: 4.6 },
-  { date: 'Sep-26', value: 4.7 },
-]
+// AU CPI, annual % — quarterly to Mar 2025, monthly from Apr 2025 (`type`).
+export const AU_CPI_HISTORY = toChart(au.cpiHistory)
 
-// AU GDP History — ABS National Accounts (QoQ %) — SOURCE: abs.gov.au/5206.0
-// Annual Q4 2025: 1.3% (sum of 4 quarters ≈ 1.3%)
-export const AU_GDP_HISTORY = [
-  { date: 'Q1-23', value: 0.4 },
-  { date: 'Q2-23', value: 0.4 },
-  { date: 'Q3-23', value: 0.2 },
-  { date: 'Q4-23', value: 0.1 },
-  { date: 'Q1-24', value: 0.1 },
-  { date: 'Q2-24', value: 0.2 },
-  { date: 'Q3-24', value: 0.3 },
-  { date: 'Q4-24', value: 0.3 },
-  { date: 'Q1-25', value: 0.3 },
-  { date: 'Q2-25', value: 0.3 },
-  { date: 'Q3-25', value: 0.3 },
-  { date: 'Q4-25', value: 0.4 },
-  { date: 'Q2-26', value: 0.4 },
-]
+// AU unemployment rate, seasonally adjusted, monthly.
+export const AU_UNEMP_HISTORY = toChart(au.unemploymentHistory)
+
+// AU real GDP, % change on the previous quarter. Labelled Q2-26 style, which
+// is how quarterly national accounts are read.
+export const AU_GDP_HISTORY = au.gdpHistory.map((r) => ({ ...r, date: `Q${r.period.slice(6)}-${r.period.slice(2, 4)}`, t: periodMonth(r.period) }))
 
 export const BREAKING_NEWS_THRESHOLD_MINUTES = 30
 
@@ -194,18 +173,22 @@ export const DEMO_PORTFOLIO_HOLDINGS = []
 
 export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX', 'AAPL', 'NVDA', 'BTC-USD']
 
-// ─── RBA Rate History (Jan 2022 – Sep 2026) ─────────────────────────────────
-// SOURCE: rba.gov.au board decisions. One entry per decision date (not one
-// per month) — dates are exact board-meeting dates, values only change when
-// the Board actually moved; render as a step chart (rates don't interpolate
-// between decisions).
+// ─── RBA Rate History (May 2022 onwards) ────────────────────────────────────
+// SOURCE: rba.gov.au, statistical table A2. One entry per decision, on its
+// EFFECTIVE date (the day after the announcement, as A2 records it), so it
+// reads one day later than the decision. Render as a step chart: rates do not
+// interpolate between decisions.
 //
-// 2025 saw an easing cycle (Feb/May/Aug, -0.25 each, 4.35% → 3.60%). 2026
-// reversed that with three hikes (Feb/Mar/May, +0.25 each, 3.60% → 4.35%) in
-// response to the global energy shock from the Iran-Middle East conflict.
-// The Jun and Aug 2026 meetings held at 4.35%; the 29 Sep 2026 meeting hiked
-// a fourth time, to 4.60%. Dates are EFFECTIVE dates — the day after the
-// announcement — which is why they read one day later than the decisions.
+// The 2022–2023 hiking cycle and the first two 2025 cuts are fixed history
+// and stay literal. Everything from the Aug 2025 cut onwards is derived from
+// VERIFIED_CONSTANTS.rba.decisions, the one list that gets a row appended
+// after each meeting, so the chart cannot fall behind the cash-rate figure.
+// Holds are kept as points (the Tracker reads a repeated rate as a HOLD).
+const dayAfter = (iso) => {
+  const d = new Date(`${iso}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
 export const RBA_RATE_HISTORY = [
   { date: '2022-05-04', rate: 0.35 },
   { date: '2022-06-08', rate: 0.85 },
@@ -220,15 +203,9 @@ export const RBA_RATE_HISTORY = [
   { date: '2023-05-03', rate: 3.85 },
   { date: '2023-06-07', rate: 4.10 },
   { date: '2023-11-08', rate: 4.35 },
-  { date: '2025-02-19', rate: 4.10 },
-  { date: '2025-05-21', rate: 3.85 },
-  { date: '2025-08-13', rate: 3.60 },
-  { date: '2026-02-04', rate: 3.85 },
-  { date: '2026-03-18', rate: 4.10 },
-  { date: '2026-05-06', rate: 4.35 },
-  { date: '2026-06-17', rate: 4.35 },
-  { date: '2026-08-12', rate: 4.35 },
-  { date: '2026-09-30', rate: 4.60 },
+  { date: '2025-02-19', rate: 4.10, announced: '2025-02-18' },
+  { date: '2025-05-21', rate: 3.85, announced: '2025-05-20' },
+  ...rba.decisions.map((d) => ({ date: dayAfter(d.date), rate: d.rate, decision: d.decision, change: d.change, announced: d.date })),
 ]
 
 // Board composition — names, roles and appointment years, which are public

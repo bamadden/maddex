@@ -10,7 +10,7 @@ import {
   AU_CPI_HISTORY, AU_UNEMP_HISTORY, AU_GDP_HISTORY,
   RBA_RATE_HISTORY, RBA_BOARD_MEMBERS, RBA_RECENT_STATEMENTS,
   AU_CONSUMER_SENTIMENT, AU_BUSINESS_CONFIDENCE, AU_TRADE_BALANCE,
-  IRON_ORE_HISTORY, CHINA_WATCH, AU_BONDS, US_BONDS,
+  IRON_ORE_HISTORY, CHINA_WATCH, AU_BONDS, US_BONDS, monthLabel,
 } from '../../data/placeholders'
 import { fetchFxHistory } from '../../services/api'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
@@ -20,12 +20,15 @@ import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, LAST_DECISIONS, getNextMeeting,
 } from '../../services/centralBankSchedule'
-import { getEconomicCalendar, upcomingEvents, getPreviousEvents } from '../../services/calendarService'
+import { getEconomicCalendar, upcomingEvents, getPreviousEvents, pendingEvents, eventInstant } from '../../services/calendarService'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D view.
 const MacroDashboard3D = lazy(() => import('../../components/visualisations/MacroDashboard3D'))
+// The growth map pulls in d3-geo and two network fetches; nothing above the
+// fold needs it.
+const GlobalGrowthMap = lazy(() => import('./GlobalGrowthMap'))
 import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES } from '../../services/macroThemeService'
 import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
@@ -146,10 +149,32 @@ const ChartTooltip = ({ active, payload, label, unit, color }) => {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-terminal-panel border border-terminal-border px-2 py-1.5 text-2xs shadow-lg">
-      <div className="text-terminal-text-dim mb-0.5">{label}</div>
+      <div className="text-terminal-text-dim mb-0.5">{payload[0].payload?.date ?? label}{payload[0].payload?.type ? ` · ${payload[0].payload.type}` : ''}</div>
       <div className="font-semibold" style={{ color }}>{payload[0].value}{unit}</div>
+      {payload[0].payload?.trimmed != null && <div className="text-terminal-text-dim">Trimmed mean {payload[0].payload.trimmed}{unit}</div>}
     </div>
   )
+}
+
+// Time-axis props for a series that carries `t` (a month index — see
+// placeholders.periodMonth). Ticks fall on whole quarters, roughly six
+// across, so labels never collide however long the series grows.
+function timeAxis(data, approxTicks = 6) {
+  if (data?.[0]?.t == null) return { dataKey: 'date' }
+  const lo = data[0].t, hi = data[data.length - 1].t
+  const step = Math.max(3, Math.ceil((hi - lo) / approxTicks / 3) * 3)
+  const ticks = []
+  for (let t = hi; t >= lo; t -= step) ticks.unshift(t)
+  return { dataKey: 't', type: 'number', domain: [lo, hi], ticks, tickFormatter: monthLabel, interval: 0 }
+}
+
+// A quarterly point draws hollow, a monthly one solid. The CPI series
+// switches frequency in 2025 (see verifiedConstants au.cpiHistory) and the
+// dots are what keep that honest on the chart itself.
+const seriesDot = (color, r) => function SeriesDot({ cx, cy, payload, index }) {
+  if (cx == null || cy == null) return null
+  const hollow = payload?.type === 'quarterly'
+  return <circle key={index} cx={cx} cy={cy} r={r} fill={hollow ? 'var(--color-bg, #0B1628)' : color} stroke={color} strokeWidth={hollow ? 1.2 : 0} />
 }
 
 const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
@@ -164,9 +189,9 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
       </span>
     )}
     <SafeChart width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+      <LineChart data={data} margin={{ top: 4, right: 18, left: 0, bottom: 4 }}>
         <CartesianGrid stroke="#0F1E35" vertical={false} />
-        <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={1} />
+        <XAxis tick={{ fontSize: 8 }} interval={1} {...timeAxis(data, 4)} />
         <YAxis tick={{ fontSize: 8 }} tickFormatter={(v) => `${v}${unit}`} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTooltip unit={unit} color={color} />} />
         {refLine != null && <ReferenceLine y={refLine} stroke="#C9A84C" strokeDasharray="2 2" />}
@@ -175,7 +200,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
           dataKey={dataKey}
           stroke={color}
           strokeWidth={1.5}
-          dot={{ r: 2, fill: color }}
+          dot={seriesDot(color, 2)}
           activeDot={{ r: 4, fill: color, stroke: '#fff', strokeWidth: 1 }}
           isAnimationActive={false}
         />
@@ -194,11 +219,8 @@ const CHART_CONFIGS = {
     unit: '%',
     refLine: 2.5,
     refLabel: 'RBA midpoint 2.5%',
-    annotations: [
-      { date: 'Jun-22', label: 'RBA hiking cycle begins', y: 6.1 },
-      { date: 'Dec-22', label: 'CPI peak', y: 8.4 },
-      { date: 'Sep-23', label: 'RBA pauses', y: 5.4 },
-    ],
+    secondKey: 'trimmed', secondLabel: 'Trimmed mean', secondColor: '#8BA3C4',
+    legend: '○ quarterly CPI (to Mar-25) · ● monthly CPI (from Apr-25) · - - trimmed mean',
   },
   unemp: {
     title: 'AU Unemployment Rate (%)',
@@ -207,9 +229,7 @@ const CHART_CONFIGS = {
     unit: '%',
     refLine: 4.25,
     refLabel: 'NAIRU estimate 4.25%',
-    annotations: [
-      { date: 'Dec-22', label: '50yr low 3.4%', y: 3.4 },
-    ],
+    legend: 'Seasonally adjusted, monthly',
   },
   gdp: {
     title: 'AU GDP Growth QoQ (%)',
@@ -218,7 +238,7 @@ const CHART_CONFIGS = {
     unit: '%',
     refLine: 0,
     refLabel: 'Zero growth',
-    annotations: [],
+    legend: 'Real GDP, % change on previous quarter',
   },
 }
 
@@ -277,18 +297,22 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
   const latest = viewData[viewData.length - 1]
   const prev   = viewData[viewData.length - 2]
   const trend  = latest?.value > prev?.value ? 'UP' : latest?.value < prev?.value ? 'DOWN' : 'FLAT'
+  // Rising inflation and rising unemployment are both bad news; only GDP is
+  // good when it goes up.
+  const upIsBad = chartKey === 'unemp' || chartKey === 'cpi'
   const trendCls = trend === 'UP'
-    ? (chartKey === 'unemp' ? 'text-terminal-red' : 'text-terminal-green')
+    ? (upIsBad ? 'text-terminal-red' : 'text-terminal-green')
     : trend === 'DOWN'
-      ? (chartKey === 'unemp' ? 'text-terminal-green' : 'text-terminal-red')
+      ? (upIsBad ? 'text-terminal-green' : 'text-terminal-red')
       : 'text-terminal-text-dim'
 
   const handleMouseDown = (e) => { if (e?.activeLabel != null) setRefLeft(e.activeLabel) }
   const handleMouseMove = (e) => { if (refLeft != null && e?.activeLabel != null) setRefRight(e.activeLabel) }
   const handleMouseUp = () => {
     if (refLeft != null && refRight != null && refLeft !== refRight) {
-      const i1 = data.findIndex(d => d.date === refLeft)
-      const i2 = data.findIndex(d => d.date === refRight)
+      const key = data[0]?.t != null ? 't' : 'date'
+      const i1 = data.findIndex(d => d[key] === refLeft)
+      const i2 = data.findIndex(d => d[key] === refRight)
       if (i1 !== -1 && i2 !== -1) setZoomRange([Math.min(i1, i2), Math.max(i1, i2)])
     }
     setRefLeft(null)
@@ -311,9 +335,9 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
         <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
           <span className="text-sm font-bold text-terminal-gold tracking-wider">{cfg.title}</span>
           <span className={`text-2xs font-bold ${trendCls}`}>
-            {latest?.value}{cfg.unit} {trend === 'UP' ? '▲' : trend === 'DOWN' ? '▼' : '—'}
+            {latest?.value?.toFixed(1)}{cfg.unit} {trend === 'UP' ? '▲' : trend === 'DOWN' ? '▼' : '—'}
           </span>
-          <span className="text-2xs text-terminal-text-dim ml-2">PREV: {prev?.value}{cfg.unit}</span>
+          <span className="text-2xs text-terminal-text-dim ml-2">PREV: {prev?.value?.toFixed(1)}{cfg.unit} ({prev?.date})</span>
           {zoomRange && (
             <button onClick={resetZoom} className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">
               RESET ZOOM
@@ -340,7 +364,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               style={{ cursor: refLeft != null ? 'col-resize' : 'crosshair' }}
             >
               <CartesianGrid stroke="#0F1E35" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#4A6080' }} interval={1} allowDataOverflow />
+              <XAxis tick={{ fontSize: 10, fill: '#4A6080' }} interval={1} allowDataOverflow {...timeAxis(viewData, 10)} />
               <YAxis
                 tick={{ fontSize: 10, fill: '#4A6080' }}
                 tickFormatter={(v) => `${v}${cfg.unit}`}
@@ -362,10 +386,14 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
                 dataKey="value"
                 stroke={cfg.color}
                 strokeWidth={2}
-                dot={{ r: 3, fill: cfg.color }}
+                dot={seriesDot(cfg.color, 3)}
                 activeDot={{ r: 5, fill: cfg.color, stroke: '#fff', strokeWidth: 1.5 }}
                 isAnimationActive={false}
               />
+              {cfg.secondKey && viewData.some((d) => d[cfg.secondKey] != null) && (
+                <Line type="monotone" dataKey={cfg.secondKey} name={cfg.secondLabel} stroke={cfg.secondColor}
+                  strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls={false} isAnimationActive={false} />
+              )}
               {refLeft != null && refRight != null && (
                 <ReferenceArea x1={refLeft} x2={refRight} strokeOpacity={0.3} fill="#C9A84C" fillOpacity={0.15} />
               )}
@@ -376,10 +404,11 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
 
         {/* Footer stats */}
         <div className="border-t border-terminal-border px-4 py-2 flex items-center gap-6 text-2xs flex-shrink-0">
-          <span className="text-terminal-text-dim">LATEST: <span style={{ color: cfg.color }}>{latest?.value}{cfg.unit} ({latest?.date})</span></span>
+          <span className="text-terminal-text-dim">LATEST: <span style={{ color: cfg.color }}>{latest?.value?.toFixed(1)}{cfg.unit} ({latest?.date})</span></span>
           <span className="text-terminal-text-dim">{zoomRange ? 'RANGE' : 'PERIOD'} HIGH: <span className="text-terminal-green">{Math.max(...viewData.map(d => d.value)).toFixed(1)}{cfg.unit}</span></span>
           <span className="text-terminal-text-dim">{zoomRange ? 'RANGE' : 'PERIOD'} LOW: <span className="text-terminal-red">{Math.min(...viewData.map(d => d.value)).toFixed(1)}{cfg.unit}</span></span>
-          <span className="text-terminal-text-dim ml-auto">SOURCE: ABS · Drag to zoom · Double-click to reset</span>
+          {cfg.legend && <span className="text-terminal-text-dim">{cfg.legend}</span>}
+          <span className="text-terminal-text-dim ml-auto">SOURCE: ABS Data API · Drag to zoom · Double-click to reset</span>
         </div>
       </div>
     </div>
@@ -465,6 +494,16 @@ function getCountdown(isoDate, timeStr) {
   return days > 0 ? `${days}D ${hours}H` : `${hours}H`
 }
 
+// Read off the decision list, so the caption moves when a meeting is added.
+const RATE_HISTORY_END = new Date(`${RBA_RATE_HISTORY[RBA_RATE_HISTORY.length - 1].date}T00:00:00`)
+  .toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })
+const DECISIONS_THIS_YEAR = (() => {
+  const year = VERIFIED_CONSTANTS.rba.lastDecision.slice(0, 4)
+  const rows = VERIFIED_CONSTANTS.rba.decisions.filter((d) => d.date.startsWith(year))
+  const n = (k) => rows.filter((d) => d.decision === k).length
+  return `${year}: ${n('HIKE')} hikes, ${n('HOLD')} holds${n('CUT') ? `, ${n('CUT')} cuts` : ''}`
+})()
+
 // ─── Section 7: RBA Dashboard ─────────────────────────────────────────────────
 
 function RBADashboard({ askAI }) {
@@ -512,7 +551,7 @@ function RBADashboard({ askAI }) {
           each with no elaboration, so the whole section reads at a glance. */}
       <div className="grid grid-cols-[1fr_auto_auto] divide-x divide-terminal-border" style={{ height: 200 }}>
         <div className="p-2 flex flex-col h-full">
-          <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (Jan 2022 – Sep 2026)</div>
+          <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (May 2022 – {RATE_HISTORY_END}) · {DECISIONS_THIS_YEAR}</div>
           <div className="flex-1 min-h-0">
             <SafeChart width="100%" height="100%">
               <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
@@ -1130,6 +1169,58 @@ function EnhancedEvents() {
   )
 }
 
+// ─── Next key release ─────────────────────────────────────────────────────────
+// The single next HIGH-impact event, large, above the calendar. Read from the
+// same calendar query as the list below, so it rolls forward on its own the
+// moment an event's time passes — nothing here names a date.
+
+const dayStart = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime() }
+
+function NextKeyRelease() {
+  const now = useNow(60_000)
+  const { data: calResult } = useQuery({
+    queryKey:  ['econCalendar'],
+    queryFn:   getEconomicCalendar,
+    staleTime: 60 * 60_000,
+  })
+  const high = useMemo(
+    () => pendingEvents(calResult?.events ?? [], 90, now).filter((e) => e.importance === 'high'),
+    [calResult, now],
+  )
+  const next = high[0]
+  if (!next) return null
+  const at = eventInstant(next)
+  const days = Math.round((dayStart(at) - dayStart(now)) / 86400000)
+  const hours = Math.max(0, Math.floor((at - now) / 3600000))
+  const away = days <= 0 ? `TODAY · in ${hours}h` : days === 1 ? `TOMORROW · in ${hours}h` : `${days} days away`
+  const when = new Date(`${next.date}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
+  const after = high[1]
+
+  return (
+    <div className="border border-terminal-gold/50 bg-terminal-gold/[0.04] px-4 py-3 flex items-center gap-5 flex-wrap" style={{ borderLeftWidth: 3 }}>
+      <div className="min-w-0 flex-1">
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">NEXT KEY RELEASE</div>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-lg font-bold text-terminal-text-bright">{COUNTRY_FLAG[next.region] ?? '🌐'} {next.event}</span>
+        </div>
+        <div className="text-sm text-terminal-gold font-semibold mt-0.5 tracking-wide">
+          {when}{next.time && next.time !== '—' ? ` · ${next.time} ${sydneyTzAbbr(next.date)}` : ''}
+        </div>
+        {next.description && <div className="text-2xs text-terminal-text-dim mt-1 leading-relaxed">{next.description}</div>}
+      </div>
+      <div className="text-right flex-shrink-0">
+        <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{away}</div>
+        <div className="text-2xs font-bold tracking-widest text-terminal-red mt-0.5">● HIGH IMPACT</div>
+        {after && (
+          <div className="text-2xs text-terminal-text-dim mt-1.5">
+            Then: {after.event} · {new Date(`${after.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Previous 7 days — actual results vs forecast ─────────────────────────────
 
 function PreviousEventsPanel() {
@@ -1509,7 +1600,7 @@ function MacroThemesSection() {
         <button
           onClick={refresh}
           disabled={refreshing}
-          className="ml-auto text-2xs font-normal normal-case tracking-normal border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors disabled:opacity-50"
+          className="ml-auto mr-20 text-2xs font-normal normal-case tracking-normal border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors disabled:opacity-50"
         >
           {refreshing ? '⟳ Refreshing…' : '↻ REFRESH THEMES'}
         </button>
@@ -1640,6 +1731,15 @@ function CurrencyHeatmap() {
       </div>
     </div>
   )
+}
+
+// Change against the prior reading. An unchanged reading is flat, not a
+// green ▼ — the unemployment header showed "▼ 0.0" for 4.7 → 4.7.
+function ChangeTag({ now, prev, goodWhenUp }) {
+  const d = Math.round((now - prev) * 10) / 10
+  if (!d) return <span className="ml-1 text-2xs text-terminal-text-dim">— 0.0</span>
+  const good = d > 0 === goodWhenUp
+  return <span className={`ml-1 text-2xs ${good ? 'text-terminal-green' : 'text-terminal-red'}`}>{d > 0 ? '▲' : '▼'} {Math.abs(d).toFixed(1)}</span>
 }
 
 // ─── Main Module ──────────────────────────────────────────────────────────────
@@ -1896,10 +1996,8 @@ export default function MacroModule() {
             <div className="panel-header text-2xs cursor-pointer hover:text-terminal-gold transition-colors"
               onClick={() => setExpandedChart('cpi')}>
               AU CPI YoY ↗
-              <span className="text-terminal-text-bright ml-1">{latestCPI}%</span>
-              <span className={`ml-1 text-2xs ${latestCPI < prevCPI ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                {latestCPI < prevCPI ? '▼' : '▲'} {Math.abs(latestCPI - prevCPI).toFixed(1)}
-              </span>
+              <span className="text-terminal-text-bright ml-1">{latestCPI.toFixed(1)}%</span>
+              <ChangeTag now={latestCPI} prev={prevCPI} goodWhenUp={false} />
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
@@ -1916,10 +2014,8 @@ export default function MacroModule() {
             <div className="panel-header text-2xs cursor-pointer hover:text-terminal-gold transition-colors"
               onClick={() => setExpandedChart('unemp')}>
               AU UNEMPLOYMENT ↗
-              <span className="text-terminal-text-bright ml-1">{latestUnemp}%</span>
-              <span className={`ml-1 text-2xs ${latestUnemp > prevUnemp ? 'text-terminal-red' : 'text-terminal-green'}`}>
-                {latestUnemp > prevUnemp ? '▲' : '▼'} {Math.abs(latestUnemp - prevUnemp).toFixed(1)}
-              </span>
+              <span className="text-terminal-text-bright ml-1">{latestUnemp.toFixed(1)}%</span>
+              <ChangeTag now={latestUnemp} prev={prevUnemp} goodWhenUp={false} />
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
@@ -1934,10 +2030,8 @@ export default function MacroModule() {
             <div className="panel-header text-2xs cursor-pointer hover:text-terminal-gold transition-colors"
               onClick={() => setExpandedChart('gdp')}>
               AU GDP QoQ ↗
-              <span className="text-terminal-text-bright ml-1">{latestGDP}%</span>
-              <span className={`ml-1 text-2xs ${latestGDP >= prevGDP ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                {latestGDP >= prevGDP ? '▲' : '▼'} {Math.abs(latestGDP - prevGDP).toFixed(1)}
-              </span>
+              <span className="text-terminal-text-bright ml-1">{latestGDP.toFixed(1)}%</span>
+              <ChangeTag now={latestGDP} prev={prevGDP} goodWhenUp />
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
@@ -1969,13 +2063,21 @@ export default function MacroModule() {
 
       {/* ── Section 6: Market Moving Events / Calendar ── */}
       <div style={{ marginTop: 24 }}>
+        <div className="px-3 pb-3"><NextKeyRelease /></div>
         <EnhancedEvents />
         <div style={{ marginTop: 8 }}>
           <PreviousEventsPanel />
         </div>
       </div>
 
-      {/* ── Section 7: Global Context (collapsible) ── */}
+      {/* ── Section 7: Global growth map (IMF WEO) ── */}
+      <div style={{ marginTop: 24 }} className="px-3">
+        <Suspense fallback={<div className="border border-terminal-border h-40 flex items-center justify-center text-2xs text-terminal-text-dim">LOADING MAP…</div>}>
+          <GlobalGrowthMap />
+        </Suspense>
+      </div>
+
+      {/* ── Section 8: Global Context (collapsible) ── */}
       <div style={{ marginTop: 24, marginBottom: 24 }}>
         <button
           onClick={() => setGlobalExpanded((v) => !v)}

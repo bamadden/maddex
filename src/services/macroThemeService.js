@@ -8,6 +8,9 @@
 import { askClaude } from './api'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 
+const V = VERIFIED_CONSTANTS
+const releaseDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })
+
 const CACHE_PREFIX  = 'macro_themes_'
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000 // 24h safety net if the date key ever collides across a rollover
 
@@ -17,7 +20,8 @@ function todayKey() {
 
 // FALLBACK: shown only when AI unavailable
 // Contains NO specific figures by design
-// Last reviewed: 2026-09-06
+// Last reviewed: 2026-10-19 (rewritten for the September hike — the RBA and
+// Fed themes still described a hold and a patient Fed)
 //
 // Every number is gone from this block on purpose. These themes render when
 // the AI call fails, which is exactly when nobody is watching them, and a
@@ -34,15 +38,15 @@ function todayKey() {
 // VERIFIED_CONSTANTS — never type one in. The panel shows a DEFAULT badge
 // whenever this content is what the reader is seeing.
 export const FALLBACK_THEMES = [
-  { title: 'RBA HOLDING ABOVE NEUTRAL', category: 'RBA',
-    summary: 'The RBA is holding the cash rate above neutral with headline inflation still above its target band. The Board has signalled patience rather than a near-term move in either direction.',
-    analysis: 'The Board has paused after an extended tightening phase rather than declaring it finished. Inflation has moderated from its peak but has not yet settled inside the target band, so the hold reads as caution rather than a pivot, and the statement language has stayed deliberately non-committal about what comes next.\n\nThe drivers to watch are the quarterly CPI prints and the labour market. Unemployment drifting higher would strengthen the case for staying on hold and eventually easing; a reacceleration in services inflation or a fresh energy shock would reopen the question of further tightening. Wage growth sits between the two as the variable the Board watches most closely.\n\nFor Australian investors an extended hold is broadly neutral, and mildly supportive for the rate-sensitive parts of the market — REITs, retailers and the banks — that had been pricing further increases. The AUD should stay range-bound against the USD unless the Fed moves first, which would reopen the rate-differential trade.',
-    impact: 'NEUTRAL', impactNote: 'Neutral for equities, mildly supportive for rate-sensitives' , sectors: ["FINANCIALS", "PROPERTY", "CONSUMER"] },
+  { title: 'RBA STILL TIGHTENING', category: 'RBA',
+    summary: `The RBA hiked again in September, to ${V.rba.cashRate.toFixed(2)}%, its fourth increase this year, and the minutes left the door open to more. The ${releaseDay(V.au.cpiNextRelease)} CPI release is the last inflation read before the ${releaseDay(V.rba.nextMeeting)} decision.`,
+    analysis: `The Board reversed the 2025 easing cycle through the first half of the year, paused over winter, and moved again in September after inflation re-accelerated. The minutes describe a Board that briefly weighed a pause but judged that cost pressures were broad and that upside risks were already unfolding, and they keep further increases explicitly on the table. That is a tightening bias, not a peak.\n\nTwo releases decide the next step. The CPI on ${releaseDay(V.au.cpiNextRelease)} covers both September and the September quarter, and the trimmed mean matters more than the headline: it has edged up this year rather than fallen. The labour market is the counterweight — unemployment has risen to a five-year high, and a Board raising rates into a softening jobs market is weighing a real trade-off rather than a formality.\n\nFor Australian investors this keeps pressure on the rate-sensitive end of the market: property trusts, consumer discretionary and highly geared companies. Bank margins benefit from higher rates up to the point that arrears rise. A firm CPI print raises the odds of a move on ${releaseDay(V.rba.nextMeeting)}; a soft one, alongside rising unemployment, strengthens the case for a pause.`,
+    impact: 'BEARISH', impactNote: 'Headwind for rate-sensitives; banks mixed', sectors: ['FINANCIALS', 'PROPERTY', 'CONSUMER'] },
 
-  { title: 'FED PATIENT, MARKET IMPATIENT', category: 'FED',
-    summary: 'US policy remains restrictive while markets continue to price an easing cycle earlier than the Fed itself has guided. That gap between pricing and guidance is the live tension.',
-    analysis: 'The Fed has held policy in restrictive territory while describing the balance of risks between inflation and employment as more even than it was through the tightening cycle. Markets have consistently run ahead of that language, pricing cuts sooner and faster than the dot plot implies — a pattern that has repeated for several quarters and been repeatedly disappointed.\n\nPayrolls and CPI remain the two prints that move this. A soft employment report pulls expectations forward sharply; a firm inflation read pushes the Fed back toward higher-for-longer framing. Fed funds futures are the cleanest real-time read on where that balance sits.\n\nFor Australian investors, Fed easing tends to weaken the USD and support AUD/USD, and has historically been a tailwind for ASX growth names sensitive to global discount rates. It also narrows the policy gap between the RBA and the Fed, which matters for capital flows into Australian bonds.',
-    impact: 'MIXED', impactNote: 'Direction depends on which way the data breaks' , sectors: ["TECH", "MATERIALS"] },
+  { title: 'GLOBAL TIGHTENING RESUMES', category: 'FED',
+    summary: 'The Fed, the ECB and the Bank of Japan all raised rates in September, with the Fed moving for the first time since 2023. The easing cycle markets had priced through 2025 has turned.',
+    analysis: 'Through 2025 the major central banks were cutting and markets priced more of the same. September broke that pattern: the Fed hiked, unanimously, the ECB raised its deposit rate, and the Bank of Japan continued its slow normalisation. The common thread is inflation that stopped falling before it reached target, with energy prices doing much of the work.\n\nThe variables to watch are US payrolls and CPI ahead of each FOMC meeting, and whether the ECB follows through or treats September as insurance. A synchronised tightening cycle is a different environment from one bank moving alone: it lifts global discount rates together and removes the rate-differential cushion that usually steadies a currency.\n\nFor Australian investors, higher global yields weigh on long-duration growth stocks and on listed property, and they compete with dividend yields across the ASX. A Fed that keeps hiking supports the US dollar, which tends to pull AUD/USD lower even as the RBA tightens at home.',
+    impact: 'BEARISH', impactNote: 'Higher global discount rates weigh on growth and property', sectors: ['TECH', 'PROPERTY'] },
 
   { title: 'CHINA DEMAND SOFT', category: 'CHINA',
     summary: 'Chinese manufacturing activity has been subdued and the property sector remains under stress. Stimulus has been targeted rather than broad, which limits the read-across to bulk commodity demand.',
@@ -60,8 +64,8 @@ export const FALLBACK_THEMES = [
     impact: 'MIXED', impactNote: 'Supports Energy, pressures retail and rate-sensitives' , sectors: ["ENERGY", "CONSUMER"] },
 
   { title: 'AUD TIED TO CHINA AND THE FED', category: 'COMMODITIES',
-    summary: 'The Australian dollar continues to trade as a proxy for Chinese demand and the RBA-Fed policy gap. Neither driver has resolved decisively in either direction.',
-    analysis: 'The AUD has been caught between two forces that have largely offset each other: soft Chinese industrial demand weighing on the commodity complex, and expectations of Fed easing weighing on the USD. The result has been range-trading rather than a trend, with iron ore and rate-differential news the two things that reliably move it.\n\nA decisive break higher would likely need both a genuine Chinese demand recovery and a confirmed Fed easing cycle — stimulus announcements alone have not been enough. A break lower would most likely come from a deterioration in Chinese construction activity feeding through to bulk commodity prices.\n\nA stronger AUD is a headwind for the ASX\'s large cohort of offshore earners, whose foreign revenue translates into fewer Australian dollars, and for exporters generally. It supports importers and the purchasing power of Australians buying offshore. It also tends to correlate with, rather than cause, broader risk-on conditions in Australian equities.',
+    summary: 'The Australian dollar continues to trade as a proxy for Chinese demand and the RBA-Fed policy gap. With both banks now hiking, neither driver has resolved decisively in either direction.',
+    analysis: 'The AUD has been caught between forces that largely offset each other: soft Chinese industrial demand weighing on the commodity complex, and an RBA tightening faster than the Fed, which supports the rate differential. The result has been range-trading rather than a trend, with iron ore and rate-differential news the two things that reliably move it.\n\nA decisive break higher would likely need a genuine Chinese demand recovery on top of the RBA staying ahead of the Fed — stimulus announcements alone have not been enough. A break lower would most likely come from a deterioration in Chinese construction activity feeding through to bulk commodity prices.\n\nA stronger AUD is a headwind for the ASX\'s large cohort of offshore earners, whose foreign revenue translates into fewer Australian dollars, and for exporters generally. It supports importers and the purchasing power of Australians buying offshore. It also tends to correlate with, rather than cause, broader risk-on conditions in Australian equities.',
     impact: 'MIXED', impactNote: 'Good for importers, a drag on offshore earners' },
 ]
 
@@ -99,22 +103,41 @@ Return ONLY a JSON array of 6 theme objects.`
 //
 // This block is the whole user message and changes once a day, which also
 // keeps the cached system prefix above byte-identical between calls.
+const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+
+// The verified facts block on its own, without the date line. It doubles as
+// the cache fingerprint: themes cached under one set of facts are thrown
+// away when the facts change, even on the same day. Before this, themes
+// generated the morning of an RBA hike stayed on screen until midnight
+// describing the hold that preceded it.
+function factsBlock() {
+  const { rba, fed, ecb, boj, boe, au, us, cn, commodities } = VERIFIED_CONSTANTS
+  const year = rba.lastDecision.slice(0, 4)
+  const hikes = rba.decisions.filter((d) => d.date.startsWith(year) && d.decision === 'HIKE').length
+  return [
+    'VERIFIED FIGURES — you may quote these, and no others:',
+    `- RBA cash rate ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${fmtDay(rba.lastDecision)}, previously ${rba.previousRate.toFixed(2)}%; hike number ${hikes} of ${year}; ${rba.levelContext}); next meeting ${fmtDay(rba.nextMeeting)}`,
+    rba.minutes && `- RBA minutes of the ${fmtDay(rba.minutes.meeting)} meeting, released ${fmtDay(rba.minutes.released)}: ${rba.minutes.summary}`,
+    `- AU CPI ${au.cpi.toFixed(1)}% for ${au.cpiPeriod} (${au.cpiPrevious}% in ${au.cpiPreviousPeriod}), trimmed mean ${au.cpiTrimmedMean}%; RBA target band ${au.rbaTargetBand}`,
+    `- Next AU CPI release ${fmtDay(au.cpiNextRelease)} (September month and September quarter) — the last inflation read before the ${fmtDay(rba.nextMeeting)} RBA decision`,
+    `- AU unemployment ${au.unemployment}% (${au.unemploymentPeriod}), up from ${au.unemploymentPrevious}% and a five-year high; next release ${fmtDay(au.unemploymentNextRelease)}`,
+    `- AU GDP ${au.gdpAnnual}% annual, ${au.gdpQoQ}% quarter on quarter (${au.gdpPeriod})`,
+    `- US Fed funds ${fed.rateRange} (${fed.lastDecisionVerb} on ${fmtDay(fed.lastDecision)}${fed.note ? `; ${fed.note}` : ''}); next meeting ${fmtDay(fed.nextMeeting)}`,
+    `- Other central banks: ECB ${ecb.cashRate.toFixed(2)}% (${ecb.lastDecisionVerb} ${fmtDay(ecb.lastDecision)}), BOJ ${boj.cashRate.toFixed(2)}% (${boj.lastDecisionVerb} ${fmtDay(boj.lastDecision)}), BOE ${boe.cashRate.toFixed(2)}% (${boe.lastDecisionVerb} ${fmtDay(boe.lastDecision)})`,
+    `- US CPI ${us.cpi}% and unemployment ${us.unemployment}% — as at ${fmtDay(us.asOf)}, older than the figures above`,
+    `- China CPI ${cn.cpi}%, manufacturing PMI ${cn.pmiManufacturing} — as at ${fmtDay(cn.asOf)}`,
+    `- Iron ore US$${commodities.ironOreUSD}/t, Brent US$${commodities.brentUSD}/bbl, thermal coal US$${commodities.thermalCoalUSD}/t — indicative, as at ${fmtDay(commodities.asOf)}; describe commodity direction in words rather than leaning on these levels`,
+  ].filter(Boolean).join('\n')
+}
+
 function buildUserContent() {
   const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  const { rba, fed, au, us, cn, commodities } = VERIFIED_CONSTANTS
   return [
     `Today is ${today}.`,
     '',
-    'VERIFIED FIGURES — you may quote these, and no others:',
-    `- RBA cash rate ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}, previously ${rba.previousRate.toFixed(2)}%); next meeting ${rba.nextMeeting}`,
-    `- US Fed funds ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision}); next meeting ${fed.nextMeeting}`,
-    `- AU CPI ${au.cpi.toFixed(1)}% for the ${au.cpiPeriod}, trimmed mean ${au.cpiTrimmedMean}%; RBA target band ${au.rbaTargetBand}`,
-    `- AU unemployment ${au.unemployment}% (${au.unemploymentPeriod}); GDP ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
-    `- US CPI ${us.cpi}% (${us.cpiPeriod}); US unemployment ${us.unemployment}%`,
-    `- China CPI ${cn.cpi}%; manufacturing PMI ${cn.pmiManufacturing}`,
-    `- Iron ore US$${commodities.ironOreUSD}/t; Brent US$${commodities.brentUSD}/bbl; thermal coal US$${commodities.thermalCoalUSD}/t`,
+    factsBlock(),
     '',
-    'Do not state any other figure. Generate the macro themes now.',
+    'Where a figure is dated, say "as at" that date if you use it. Do not state any other figure. Generate the macro themes now.',
   ].join('\n')
 }
 
@@ -124,6 +147,7 @@ function readCache() {
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (Date.now() - parsed.cachedAt > CACHE_MAX_AGE) return null
+    if (parsed.facts !== factsBlock()) return null   // generated from different facts
     return parsed.themes
   } catch {
     return null
@@ -132,7 +156,7 @@ function readCache() {
 
 function writeCache(themes) {
   try {
-    localStorage.setItem(todayKey(), JSON.stringify({ cachedAt: Date.now(), themes }))
+    localStorage.setItem(todayKey(), JSON.stringify({ cachedAt: Date.now(), facts: factsBlock(), themes }))
   } catch {
     // localStorage unavailable/full — cache is a nice-to-have, not required
   }

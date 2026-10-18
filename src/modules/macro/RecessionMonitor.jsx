@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import {
   auRecessionRisk, usRecessionRisk, combinedRisk,
-  BAND_TONE, STATE_TONE, AU_RECESSIONS,
+  BAND_TONE, STATE_TONE, AU_RECESSIONS, RUBRIC,
 } from '../../data/recessionRisk'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 
@@ -115,15 +115,15 @@ export default function RecessionMonitor() {
 
         {/* THE PROVENANCE PARAGRAPH IS THE POINT OF THIS PANEL.
             A recession probability is the number someone moves to cash on. It
-            is stated here as a composite of five published inputs, with the
+            is stated here as a composite of six published inputs, with the
             rubric visible and every contribution shown, precisely so it cannot
             be mistaken for a forecast — which is what a model-generated
             percentage behind an AI badge would have been. */}
         <div className="text-2xs text-terminal-text-dim leading-relaxed">
           Maddex's own composite, not a third-party measure and not a forecast. Each score is
-          the sum of five factors below, computed from verified constants and the published
-          yield curve — every contribution is shown, so the number can be checked rather than
-          taken. It describes conditions that have historically preceded downturns; it does
+          the sum of the six factors below, computed from verified constants, the ABS
+          unemployment series, the dated rate decisions and the published yield curve — every
+          contribution is shown, so the number can be checked rather than taken. It describes conditions that have historically preceded downturns; it does
           not predict one.
         </div>
       </div>
@@ -138,13 +138,7 @@ export default function RecessionMonitor() {
           HOW THE SCORE IS BUILT
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-          {[
-            ['Yield curve inverted (2s10s)', 30],
-            ['GDP growth weak or negative', 25],
-            ['Unemployment above its trough', 20],
-            ['Real policy rate restrictive', 15],
-            ['Inflation outside target band', 10],
-          ].map(([label, w]) => (
+          {RUBRIC.map(([label, w]) => (
             <div key={label} className="flex items-baseline justify-between gap-2 text-2xs">
               <span className="text-terminal-text-dim truncate">{label}</span>
               <span className="text-terminal-text-bright tabular-nums flex-shrink-0">up to {w}</span>
@@ -152,9 +146,11 @@ export default function RecessionMonitor() {
           ))}
         </div>
         <div className="text-2xs text-terminal-text-dim/60 mt-2 leading-relaxed">
-          The curve carries the largest weight because it is the most-studied of the five,
+          The curve carries the largest weight because it is the most-studied of the six,
           not because this rubric claims it is decisive. Scores of 35+ read as MODERATE and
-          60+ as ELEVATED.
+          60+ as ELEVATED. Revised 19 Oct 2026: unemployment now uses the Sahm-rule
+          construction (3-month average against the prior year's low, 0.5pp = full weight)
+          instead of a fixed 2023 trough, and a factor for the pace of tightening was added.
         </div>
       </div>
 

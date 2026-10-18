@@ -156,6 +156,57 @@ export function reconcile(constants, live) {
   ]
 }
 
+// ── History series (script only) ─────────────────────────────────────────────
+// The chart series in verifiedConstants (au.cpiHistory, unemploymentHistory,
+// gdpHistory) and rba.decisions, point by point against the agencies.
+// Revisions are normal — the ABS revises labour force and national accounts
+// figures every release — so a mismatch here is a prompt to refresh the
+// series, not evidence it was wrong when written.
+
+export async function fetchRbaChanges({ base = '/api/reservebank', fetchImpl = fetch, since = '2025-01-01' } = {}) {
+  const r = await fetchImpl(`${base}/statistics/tables/csv/a2-data.csv`)
+  if (!r.ok) throw new Error(`RBA A2 HTTP ${r.status}`)
+  return (await r.text()).split(/\r?\n/).map((l) => l.split(','))
+    .filter((c) => /^\d{2}-[A-Za-z]{3}-\d{4}$/.test(c[0]) && Number.isFinite(parseFloat(c[2])))
+    .map((c) => ({ effective: new Date(`${c[0]} 00:00:00`).toLocaleDateString('en-CA'), change: Math.round(parseFloat(c[1]) * 100), rate: parseFloat(c[2]) }))
+    .filter((c) => c.effective >= since)
+}
+
+export async function checkHistories(constants, { base = '/api/reservebank', fetchImpl = fetch } = {}) {
+  const { au, rba } = constants
+  const out = []
+  const compare = (label, rows, official, key = 'value') => {
+    const byPeriod = new Map(official.map((o) => [o.period, o.value]))
+    const misses = rows.filter((r) => r[key] != null)
+      .map((r) => ({ period: r.period, ours: r[key], official: byPeriod.has(r.period) ? r1(byPeriod.get(r.period)) : null }))
+      .filter((m) => m.official == null || Math.abs(m.official - m.ours) >= 0.05)
+    out.push({ label, points: rows.filter((r) => r[key] != null).length, misses })
+  }
+  const settle = async (label, fn) => { try { await fn() } catch (e) { out.push({ label, error: e.message }) } }
+  const monthly = au.cpiHistory.filter((r) => r.type === 'monthly')
+  const quarterly = au.cpiHistory.filter((r) => r.type === 'quarterly')
+  await settle('CPI monthly', async () => compare('CPI monthly', monthly, await absSeries('ABS,CPI,2.0.0', '3.10001.10.50.M', monthly[0].period, fetchImpl)))
+  await settle('CPI trimmed mean', async () => compare('CPI trimmed mean', monthly, await absSeries('ABS,CPI,2.0.0', '3.999902.20.50.M', monthly[0].period, fetchImpl), 'trimmed'))
+  await settle('CPI quarterly', async () => compare('CPI quarterly', quarterly, await absSeries('ABS,CPI,1.1.0', '3.10001.10.50.Q', quarterly[0].period, fetchImpl)))
+  await settle('Unemployment', async () => compare('Unemployment', au.unemploymentHistory, await absSeries('ABS,LF,1.0.0', 'M13.3.1599.20.AUS.M', au.unemploymentHistory[0].period, fetchImpl)))
+  await settle('GDP QoQ', async () => compare('GDP QoQ', au.gdpHistory, await absSeries('ABS,ANA_AGG,1.0.0', 'M2.GPM.20.AUS.Q', au.gdpHistory[0].period, fetchImpl)))
+  await settle('RBA decisions', async () => {
+    // Every change in A2 must be a HIKE/CUT row the day before, and every
+    // HIKE/CUT row must have its A2 change. Holds have nothing to match.
+    const changes = await fetchRbaChanges({ base, fetchImpl, since: rba.decisions[0].date })
+    const moves = rba.decisions.filter((d) => d.change !== 0)
+    const nextDay = (iso) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10) }
+    const misses = []
+    for (const m of moves) {
+      const c = changes.find((x) => x.effective === nextDay(m.date))
+      if (!c || c.change !== m.change || Math.abs(c.rate - m.rate) > 0.001) misses.push({ period: m.date, ours: `${m.decision} ${m.rate}`, official: c ? `${c.change}bp ${c.rate}` : 'no A2 change' })
+    }
+    for (const c of changes) if (!moves.some((m) => nextDay(m.date) === c.effective)) misses.push({ period: c.effective, ours: 'missing', official: `${c.change}bp ${c.rate}` })
+    out.push({ label: 'RBA decisions', points: rba.decisions.length, misses })
+  })
+  return out
+}
+
 // ── In-app check ─────────────────────────────────────────────────────────────
 // Run once at startup and cached for six hours: the agencies publish monthly
 // or quarterly, and the RBA eight times a year.

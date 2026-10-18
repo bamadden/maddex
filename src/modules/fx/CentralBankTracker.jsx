@@ -39,7 +39,9 @@ function deriveDecisions(history, now, months = 18) {
     if (new Date(`${cur.date}T00:00:00`).getTime() < cutoff) continue
     const diff = +(cur.rate - prev.rate).toFixed(2)
     out.push({
-      date: cur.date,
+      // The day the Board announced it, where known — the series itself is
+      // keyed on A2's effective dates, a day later.
+      date: cur.announced ?? cur.date,
       rate: cur.rate,
       from: prev.rate,
       bp: Math.round(diff * 100),

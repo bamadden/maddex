@@ -25,7 +25,7 @@ export function useCountryData(alpha2) {
   // IMF is keyed by alpha3 — resolve via base record or REST data
   const alpha3 = base?.alpha3 ?? restData?.alpha3 ?? null
   const imfData = useMemo(
-    () => (alpha3 ? getCountryCache('imf')?.[alpha3] ?? null : null),
+    () => (alpha3 ? getCountryCache('imf_v2')?.[alpha3] ?? null : null),
     [alpha3],
   )
 
@@ -95,7 +95,7 @@ export function useCountryData(alpha2) {
         imf:       !!imfData,
         restStatus:      freshnessStatus('rest'),
         worldBankStatus: freshnessStatus('wb'),
-        imfStatus:       freshnessStatus('imf'),
+        imfStatus:       freshnessStatus('imf_v2'),
       },
     }
   }, [base, restData, wbData, imfData, alpha2, alpha3])

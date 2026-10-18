@@ -157,18 +157,22 @@ async function fetchImfSeries(seriesId) {
   const json = await res.json()
   const values = json?.values?.[seriesId] ?? {}
 
+  // This year's figure, not the series' last year. The WEO runs five years
+  // ahead, so "latest" was the 2031 projection, presented as current growth.
+  // Falls back to the most recent year not in the future.
+  const thisYear = String(new Date().getFullYear())
   const map = {}
   for (const [alpha3, years] of Object.entries(values)) {
-    const sortedYears = Object.keys(years).sort()
-    const latestYear  = sortedYears[sortedYears.length - 1]
-    const value = years[latestYear]
-    if (value != null) map[alpha3] = { value, year: latestYear }
+    const year = years[thisYear] != null
+      ? thisYear
+      : Object.keys(years).filter((y) => y <= thisYear && years[y] != null).sort().pop()
+    if (year) map[alpha3] = { value: years[year], year }
   }
   return map
 }
 
 async function fetchImf() {
-  const cached = getCountryCache('imf')
+  const cached = getCountryCache('imf_v2')
   if (cached) return cached
 
   const [gdpRes, infRes] = await Promise.allSettled([
@@ -192,7 +196,7 @@ async function fetchImf() {
     }
   }
 
-  setCountryCache('imf', merged, TTL_7D)
+  setCountryCache('imf_v2', merged, TTL_7D)
   console.log(`[CountryAPI] IMF DataMapper: cached ${Object.keys(merged).length} countries`)
   return merged
 }

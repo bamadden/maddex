@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { loadCountries } from '../../utils/naturalEarth'
 import DeckGL from '@deck.gl/react'
 import { MapView, FlyToInterpolator } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
@@ -209,24 +210,6 @@ const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2
 //
 // Fetched lazily, only when a layer that needs it is switched on, so the
 // common case of looking at trade arcs never pays for it.
-const NE_COUNTRIES_URL =
-  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson'
-
-let countriesPromise = null
-
-function loadCountries() {
-  if (!countriesPromise) {
-    countriesPromise = fetch(NE_COUNTRIES_URL)
-      .then((r) => { if (!r.ok) throw new Error(`Natural Earth HTTP ${r.status}`); return r.json() })
-      .catch((err) => {
-        console.warn('[DeckGLMap] country outlines unavailable:', err.message)
-        countriesPromise = null   // let a later toggle retry
-        return null
-      })
-  }
-  return countriesPromise
-}
-
 function useCountries(enabled) {
   const [countries, setCountries] = useState(null)
   useEffect(() => {

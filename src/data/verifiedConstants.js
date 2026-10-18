@@ -50,6 +50,23 @@ export const VERIFIED_CONSTANTS = {
       summary: 'Board briefly weighed a pause, but stronger July inflation, widespread cost pressures and upside risks already unfolding made the case to act promptly. Unanimous. Open to "increasing the cash rate target further if required".',
       source: 'rba.gov.au minutes (via commbank.com.au, fxstreet.com)',
     },
+    // Every decision since the last move of the 2025 easing cycle, by
+    // ANNOUNCEMENT date (day two of the meeting, 2:30pm Sydney). Meeting dates
+    // from rba.gov.au's 2026 board schedule; levels and changes checked
+    // against statistical table A2 on 2026-10-19, which records the same moves
+    // on their EFFECTIVE date, the day after. A2 lists only changes, so the
+    // Jun and Aug holds are confirmed by the absence of an A2 row between the
+    // 6 May and 30 Sep changes. `npm run check-stats` re-checks this list
+    // against A2. Append a row after each meeting.
+    decisions: [
+      { date: '2025-08-12', rate: 3.60, decision: 'CUT',  change: -25 },
+      { date: '2026-02-03', rate: 3.85, decision: 'HIKE', change: 25 },
+      { date: '2026-03-17', rate: 4.10, decision: 'HIKE', change: 25 },
+      { date: '2026-05-05', rate: 4.35, decision: 'HIKE', change: 25 },
+      { date: '2026-06-16', rate: 4.35, decision: 'HOLD', change: 0 },
+      { date: '2026-08-11', rate: 4.35, decision: 'HOLD', change: 0 },
+      { date: '2026-09-29', rate: 4.60, decision: 'HIKE', change: 25 },
+    ],
     source: 'rba.gov.au (mr-26-27)',
     asOf: '2026-09-29',
     lastVerified: '2026-10-18',
@@ -65,6 +82,16 @@ export const VERIFIED_CONSTANTS = {
     lastDecision: '2026-09-16',
     lastDecisionVerb: 'HIKE',
     nextMeeting: '2026-10-28',
+    // Top of the target range after each move since Sep 2025, from the FOMC
+    // statements on federalreserve.gov (the Dec 2025 cut re-checked
+    // 2026-10-19). Enough history for a 12-month change; the recession
+    // monitor reads it.
+    decisions: [
+      { date: '2025-09-17', rate: 4.25, decision: 'CUT',  change: -25 },
+      { date: '2025-10-29', rate: 4.00, decision: 'CUT',  change: -25 },
+      { date: '2025-12-10', rate: 3.75, decision: 'CUT',  change: -25 },
+      { date: '2026-09-16', rate: 4.00, decision: 'HIKE', change: 25 },
+    ],
     source: 'federalreserve.gov',
     asOf: '2026-09-16',
     lastVerified: '2026-10-18',
@@ -284,6 +311,78 @@ export const VERIFIED_CONSTANTS = {
     ],
     auQuarterlyPathSource: 'abs.gov.au — CPI releases and national accounts',
     auQuarterlyPathAsOf: '2026-06-30',
+
+    // ── History series for the Macro charts ─────────────────────────────────
+    //
+    // Pulled from the ABS Data API on 2026-10-19 and re-checked by
+    // `npm run check-stats`, which compares every point against the API.
+    // These replaced hand-typed chart series that had drifted badly: the
+    // old CPI chart had Sep 2025 at 2.5% (ABS: 3.2% for the quarter, 3.6% for
+    // the month), unemployment had Sep 2025 at 4.0% (ABS: 4.4%), and GDP had
+    // Q2 2025 at 0.3% (ABS: 0.8%).
+    //
+    // CPI changes frequency part-way. The ABS published the quarterly CPI as
+    // the headline until the Sep quarter 2025; the complete monthly CPI
+    // starts in Apr 2025 and is the headline now. The chart uses quarterly
+    // points up to Mar 2025 and monthly from Apr 2025, and each point says
+    // which it is. Quarterly: ABS,CPI,1.1.0 (series 3.10001.10.50.Q).
+    // Monthly: ABS,CPI,2.0.0 (3.10001.10.50.M headline, 3.999902.20.50.M
+    // trimmed mean). All annual % change, weighted average of eight capitals.
+    cpiHistory: [
+      { period: '2023-Q2', value: 6.0, type: 'quarterly' },
+      { period: '2023-Q3', value: 5.4, type: 'quarterly' },
+      { period: '2023-Q4', value: 4.1, type: 'quarterly' },
+      { period: '2024-Q1', value: 3.6, type: 'quarterly' },
+      { period: '2024-Q2', value: 3.8, type: 'quarterly' },
+      { period: '2024-Q3', value: 2.8, type: 'quarterly' },
+      { period: '2024-Q4', value: 2.4, type: 'quarterly' },
+      { period: '2025-Q1', value: 2.4, type: 'quarterly' },
+      { period: '2025-04', value: 2.4, trimmed: 3.2, type: 'monthly' },
+      { period: '2025-05', value: 2.1, trimmed: 3.0, type: 'monthly' },
+      { period: '2025-06', value: 1.9, trimmed: 2.8, type: 'monthly' },
+      { period: '2025-07', value: 3.0, trimmed: 3.1, type: 'monthly' },
+      { period: '2025-08', value: 3.2, trimmed: 3.1, type: 'monthly' },
+      { period: '2025-09', value: 3.6, trimmed: 3.2, type: 'monthly' },
+      { period: '2025-10', value: 3.8, trimmed: 3.3, type: 'monthly' },
+      { period: '2025-11', value: 3.4, trimmed: 3.2, type: 'monthly' },
+      { period: '2025-12', value: 3.8, trimmed: 3.3, type: 'monthly' },
+      { period: '2026-01', value: 3.8, trimmed: 3.3, type: 'monthly' },
+      { period: '2026-02', value: 3.7, trimmed: 3.3, type: 'monthly' },
+      { period: '2026-03', value: 4.6, trimmed: 3.3, type: 'monthly' },
+      { period: '2026-04', value: 4.2, trimmed: 3.4, type: 'monthly' },
+      { period: '2026-05', value: 4.0, trimmed: 3.5, type: 'monthly' },
+      { period: '2026-06', value: 3.8, trimmed: 3.6, type: 'monthly' },
+      { period: '2026-07', value: 3.5, trimmed: 3.6, type: 'monthly' },
+      { period: '2026-08', value: 4.0, trimmed: 3.6, type: 'monthly' },
+    ],
+
+    // Unemployment rate, seasonally adjusted (ABS,LF,1.0.0 M13.3.1599.20.AUS.M),
+    // rounded to one decimal as the ABS publishes it. These are the CURRENT
+    // vintage, so revised months can differ from the figure first published:
+    // August was released as 4.6% on 24 Sep and now sits at 4.65%, which
+    // rounds to 4.7. `unemploymentPrevious` above keeps the as-published 4.6.
+    unemploymentHistory: [
+      { period: '2024-10', value: 4.1 }, { period: '2024-11', value: 3.9 }, { period: '2024-12', value: 4.0 },
+      { period: '2025-01', value: 4.1 }, { period: '2025-02', value: 4.1 }, { period: '2025-03', value: 4.1 },
+      { period: '2025-04', value: 4.1 }, { period: '2025-05', value: 4.1 }, { period: '2025-06', value: 4.3 },
+      { period: '2025-07', value: 4.3 }, { period: '2025-08', value: 4.2 }, { period: '2025-09', value: 4.4 },
+      { period: '2025-10', value: 4.3 }, { period: '2025-11', value: 4.3 }, { period: '2025-12', value: 4.1 },
+      { period: '2026-01', value: 4.1 }, { period: '2026-02', value: 4.3 }, { period: '2026-03', value: 4.3 },
+      { period: '2026-04', value: 4.5 }, { period: '2026-05', value: 4.4 }, { period: '2026-06', value: 4.4 },
+      { period: '2026-07', value: 4.5 }, { period: '2026-08', value: 4.7 }, { period: '2026-09', value: 4.7 },
+    ],
+
+    // Real GDP, % change on the previous quarter, seasonally adjusted chain
+    // volume (ABS,ANA_AGG,1.0.0 M2.GPM.20.AUS.Q). Current vintage.
+    gdpHistory: [
+      { period: '2023-Q1', value: 0.6 }, { period: '2023-Q2', value: 0.3 }, { period: '2023-Q3', value: 0.4 },
+      { period: '2023-Q4', value: 0.0 }, { period: '2024-Q1', value: 0.3 }, { period: '2024-Q2', value: 0.2 },
+      { period: '2024-Q3', value: 0.3 }, { period: '2024-Q4', value: 0.4 }, { period: '2025-Q1', value: 0.4 },
+      { period: '2025-Q2', value: 0.8 }, { period: '2025-Q3', value: 0.5 }, { period: '2025-Q4', value: 0.9 },
+      { period: '2026-Q1', value: 0.3 }, { period: '2026-Q2', value: 0.4 },
+    ],
+    historySource: 'ABS Data API (data.api.abs.gov.au)',
+    historyAsOf: '2026-10-19',
 
     source: 'abs.gov.au',
     asOf: '2026-10-15',
