@@ -1107,7 +1107,11 @@ const RSS_PROXY = '/api/rss'
 // it never showed all-green regardless of what was actually wrong.
 export const NEWS_SOURCES = [
   // Australian — authoritative financial sources only
+  // Tested 18 Oct 2026. AFR's headline feed is open even though most articles
+  // are paywalled — the headline and standfirst are what the feed needs.
+  { url: 'https://www.afr.com/rss/feed.xml',                                 name: 'AFR',              category: 'AU'          },
   { url: 'https://www.smh.com.au/rss/business.xml',                          name: 'SMH Business',     category: 'AU'          },
+  { url: 'https://www.theguardian.com/au/business/rss',                      name: 'Guardian AU Business', category: 'AU'      },
   { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',                   name: 'ABC Business',     category: 'AU'          },
   { url: 'https://www.theguardian.com/australia-news/rss',                   name: 'Guardian AU',      category: 'AU'          },
   { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                   name: 'RBA Speeches',     category: 'AU'          },
@@ -1116,7 +1120,10 @@ export const NEWS_SOURCES = [
   { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',            name: 'CNBC Top News',    category: 'US'          },
   { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',             name: 'CNBC Markets',     category: 'US'          },
   { url: 'https://feeds.marketwatch.com/marketwatch/topstories',              name: 'MarketWatch',      category: 'US'          },
-  { url: 'https://finance.yahoo.com/news/rssindex',                           name: 'Yahoo Finance',    category: 'US'          },
+  // finance.yahoo.com/news/rssindex now 404s (Oct 2026); the per-symbol
+  // headline feed still works. ^AXJO = ASX 200 headlines.
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EAXJO&region=AU&lang=en-AU', name: 'Yahoo Finance AU', category: 'AU' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',        name: 'NYT Business',     category: 'US'          },
   { url: 'https://www.investing.com/rss/news.rss',                           name: 'Investing.com',    category: 'US'          },
   // Global
   { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                    name: 'BBC Business',     category: 'GLOBAL'      },
@@ -1151,6 +1158,11 @@ export const FINANCIAL_KEYWORDS = [
   'bhp', 'cba', 'csl', 'westpac', 'anz', 'nab', 'macquarie', 'rio tinto',
   'apple', 'nvidia', 'microsoft', 'tesla', 'amazon', 'meta', 'alphabet',
   'energy', 'mining', 'resources', 'real estate', 'reit', 'property',
+  // Added with the AFR / NYT / Guardian business feeds, whose deal and
+  // company coverage often names none of the terms above.
+  'capital raising', 'guidance', 'buyback', 'private equity', 'fund manager', 'valuation',
+  'consumer confidence', 'superannuation', 'super fund', 'wall street', 'm&a',
+  'wesfarmers', 'woolworths', 'telstra', 'fortescue', 'woodside', 'santos', 'qantas',
 ]
 
 function isFinanciallyRelevant(title, description = '') {

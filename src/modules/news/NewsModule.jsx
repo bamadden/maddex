@@ -9,12 +9,13 @@ import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
-import { annotateArticles, clusterStories, marketSession } from '../../services/newsIntelligence'
+import { annotateArticles, clusterStories, marketSession, impactOf } from '../../services/newsIntelligence'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import ContextPrompt from '../../components/ai/ContextPrompt'
+import { loadSavedArticles, toggleSavedArticle, removeSavedArticle, savedKey, SAVED_MAX } from '../../services/savedArticles'
 
 // MaddenAI's nudge on a HIGH-impact story that names a watchlist stock. At
 // most one NEW story every 30 minutes: the story already being offered stays
@@ -201,23 +202,50 @@ function extractTrending(items) {
   return Object.entries(counts).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 12)
 }
 
-// ─── Sentiment aggregation — reuses the per-article `.sentiment` field
-// already populated by inferSentiment() in api.js at fetch time ──────────────
+// ─── Sentiment aggregation ────────────────────────────────────────────────────
+//
+// Reuses the per-article `.sentiment` set by inferSentiment() in api.js, but
+// no longer counts every headline the same. A HIGH-impact story (impactOf)
+// weighs 3, MED 2, LOW 1, and each halves in weight every six hours — so this
+// morning's RBA story moves the bar and last night's minor wrap barely does.
+//
+// The trend compares the same calculation as it would have read two hours ago:
+// only the articles published by then, aged to then. Both reads come from the
+// feed on screen; nothing is stored between sessions.
+const IMPACT_WEIGHT = { HIGH: 3, MED: 2, LOW: 1 }
+const HALF_LIFE_H = 6
+const TREND_LOOKBACK_MS = 2 * 3_600_000
 
-function overallSentiment(items) {
-  let bull = 0, bear = 0, neutral = 0
+function weightedSentiment(items, at) {
+  let bull = 0, bear = 0, neutral = 0, n = 0
   for (const item of items) {
-    if (item.sentiment === 'BULLISH') bull++
-    else if (item.sentiment === 'BEARISH') bear++
-    else neutral++
+    if (!item.pubDate || item.pubDate > at) continue
+    const ageH = (at - item.pubDate) / 3_600_000
+    const w = (IMPACT_WEIGHT[impactOf(`${item.headline} ${item.summary ?? ''}`).level] ?? 1) * 0.5 ** (ageH / HALF_LIFE_H)
+    if (item.sentiment === 'BULLISH') bull += w
+    else if (item.sentiment === 'BEARISH') bear += w
+    else neutral += w
+    n++
   }
-  const total = bull + bear + neutral || 1
+  const total = bull + bear + neutral
+  return { bull, bear, neutral, total, n, net: total ? (bull - bear) / total : 0 }
+}
+
+function overallSentiment(items, now) {
+  const cur = weightedSentiment(items, now)
+  const prev = weightedSentiment(items, now - TREND_LOOKBACK_MS)
+  const t = cur.total || 1
+  const bullPct = Math.round((cur.bull / t) * 100)
+  const bearPct = Math.round((cur.bear / t) * 100)
+  const neutralPct = Math.max(0, 100 - bullPct - bearPct)
+  // A trend needs enough earlier stories to compare against.
+  const delta = cur.net - prev.net
+  const trend = prev.n < 10 ? null : delta > 0.03 ? 'improving' : delta < -0.03 ? 'declining' : 'steady'
   return {
-    bullPct: Math.round((bull / total) * 100),
-    bearPct: Math.round((bear / total) * 100),
-    neutralPct: Math.round((neutral / total) * 100),
-    total,
-    label: bull >= bear && bull >= neutral ? 'BULLISH' : bear >= bull && bear >= neutral ? 'BEARISH' : 'NEUTRAL',
+    bullPct, bearPct, neutralPct,
+    total: cur.n,
+    trend,
+    label: bullPct >= bearPct && bullPct >= neutralPct ? 'BULLISH' : bearPct >= bullPct && bearPct >= neutralPct ? 'BEARISH' : 'NEUTRAL',
   }
 }
 
@@ -344,8 +372,10 @@ function headlineForAsset(items, label) {
 
 // ─── SENTIMENT VISUALISER — full-width bar above the 3-column layout ────────
 
-function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
-  const s = useMemo(() => overallSentiment(items), [items])
+function SentimentVisualiser({ items, trending, searchTerm, onTagClick, now }) {
+  // Recomputed when the feed changes or once a minute — not on the 1s tick.
+  const minute = Math.floor(now / 60_000)
+  const s = useMemo(() => overallSentiment(items, minute * 60_000), [items, minute])
   const topTags = trending.slice(0, 6)
 
   return (
@@ -357,8 +387,15 @@ function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
         <span className="text-2xs font-bold" style={{ color: '#c9a84c' }}>{s.neutralPct}% NEUTRAL</span>
         <span className="text-2xs text-terminal-text-dim/50">·</span>
         <span className="text-2xs font-bold" style={{ color: '#cc4444' }}>{s.bearPct}% BEARISH</span>
-        <span className="text-2xs text-terminal-text-dim/40 ml-auto" title="Each article is scored by keyword at fetch time (inferSentiment in api.js) — no model is involved and nothing here is cached from an earlier session">
-          {s.total} articles · keyword-scored
+        {s.trend && (
+          <span className="text-2xs font-bold ml-2"
+            title="Against the same weighted read two hours ago, from the articles published by then"
+            style={{ color: s.trend === 'improving' ? '#3aaa63' : s.trend === 'declining' ? '#cc4444' : '#8BA3C4' }}>
+            SENTIMENT {s.trend === 'improving' ? '▲ improving' : s.trend === 'declining' ? '▼ declining' : '→ steady'}
+          </span>
+        )}
+        <span className="text-2xs text-terminal-text-dim/40 ml-auto" title="Each article is scored by keyword at fetch time (inferSentiment in api.js), then weighted by impact (HIGH 3×, MED 2×) and recency (half weight every 6 hours). No model is involved.">
+          {s.total} articles · keyword-scored, weighted by impact &amp; recency
         </span>
       </div>
 
@@ -378,7 +415,7 @@ function SentimentVisualiser({ items, trending, searchTerm, onTagClick }) {
           <div
             key={seg.label}
             style={{ width: `${seg.pct}%`, height: '100%', background: seg.colour, transition: 'width 300ms ease' }}
-            title={`${seg.label} ${seg.pct}% — from per-article keyword scoring across ${s.total} headlines`}
+            title={`${seg.label} ${seg.pct}% — keyword scoring across ${s.total} headlines, weighted by impact and recency`}
           />
         ))}
       </div>
@@ -518,7 +555,7 @@ function TickerBadgeRow({ tickers, onOpenTicker }) {
 // ─── TOP STORY — full-width card, with a mini sparkline (top-right) when the
 // headline mentions a tracked asset ──────────────────────────────────────────
 
-function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAskAI, onOpenTicker }) {
+function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAskAI, onOpenTicker, isSaved, onToggleSave }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   const asset      = useMemo(() => resolveStoryAsset(item), [item])
@@ -625,6 +662,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAsk
           onClick={() => onAskAI(item)}
           className={`text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1 ${item.link ? '' : 'ml-auto'}`}
         >ASK MADDENAI ▶</button>
+        <SaveButton saved={isSaved} onClick={() => onToggleSave(item)} />
       </div>
     </div>
   )
@@ -671,28 +709,84 @@ function CompanyPills({ companies, onOpenTicker }) {
 // A cluster of related stories: the lead rendered in full, the rest collapsed
 // behind a count. Single-story clusters render as a bare row, so the feed only
 // grows chrome where there is actually something to group.
-function StoryCluster({ cluster, ...rowProps }) {
+function StoryCluster({ cluster, savedKeys, onToggleSave, ...rowProps }) {
   const [open, setOpen] = useState(false)
-  if (cluster.count <= 1) return <StoryRow item={cluster.lead} {...rowProps} />
+  const row = (it, extra = {}) => (
+    <StoryRow item={it} {...rowProps} {...extra} isSaved={savedKeys.has(savedKey(it))} onToggleSave={onToggleSave} />
+  )
+  if (cluster.count <= 1) return row(cluster.lead)
+  const more = cluster.count - 1
 
   return (
     <div className="border-b border-terminal-border">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/5 hover:bg-terminal-gold/10 transition-colors text-left"
-      >
-        <span className="text-[8px] font-mono tracking-widest text-terminal-gold/70 truncate">
+      <div className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/5">
+        <span className="text-[8px] font-mono tracking-widest text-terminal-gold/80 truncate">
           {cluster.label}
         </span>
         <span className="text-[8px] font-mono text-terminal-text-dim flex-shrink-0">
           ({cluster.count} stories)
         </span>
-        <span className="ml-auto text-[9px] text-terminal-text-dim flex-shrink-0">{open ? '▾' : '▸'}</span>
-      </button>
-      <StoryRow item={cluster.lead} {...rowProps} />
+      </div>
+      {row(cluster.lead)}
       {open && cluster.items.slice(1).map((it) => (
         <div key={it.id ?? it.link} className="pl-3 border-l-2 border-terminal-gold/20">
-          <StoryRow item={it} {...rowProps} isExpanded={false} />
+          {row(it, { isExpanded: false })}
+        </div>
+      ))}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full text-left px-3 py-1 font-mono text-[9px] tracking-widest text-terminal-gold/80 hover:text-terminal-gold hover:bg-terminal-gold/5 transition-colors"
+      >{open ? '− SHOW LESS' : `+${more} MORE`}</button>
+    </div>
+  )
+}
+
+// 🔖 save for later — on the top story, every row and its expanded panel.
+function SaveButton({ saved, onClick, compact = false }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      aria-pressed={saved}
+      title={saved ? 'Saved — click to remove from your reading list' : `Save to read later (keeps up to ${SAVED_MAX})`}
+      className={compact
+        ? `text-[11px] leading-none flex-shrink-0 transition-opacity ${saved ? 'opacity-100' : 'opacity-30 hover:opacity-90'}`
+        : `text-2xs font-bold tracking-wide border rounded-full px-3 py-1 transition-colors ${saved ? 'border-terminal-gold bg-terminal-gold/15 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'}`}
+    >{compact ? '🔖' : saved ? '🔖 SAVED' : '🔖 SAVE'}</button>
+  )
+}
+
+// The SAVED tab: copies of saved stories, newest save first.
+function SavedArticles({ items, searchTerm, onRemove, onAskAI }) {
+  const lc = searchTerm.toLowerCase()
+  const shown = lc ? items.filter((a) => `${a.headline} ${a.summary ?? ''}`.toLowerCase().includes(lc)) : items
+  if (!items.length) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 text-center p-6">
+        <span className="text-2xl" aria-hidden="true">🔖</span>
+        <div className="text-xs text-terminal-text-bright font-semibold">Nothing saved yet</div>
+        <div className="text-2xs text-terminal-text-dim">Press 🔖 on any story to keep it here for later — up to {SAVED_MAX}.</div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="px-3 py-1.5 border-b border-terminal-border text-[9px] font-mono tracking-widest text-terminal-text-dim">
+        {items.length} / {SAVED_MAX} SAVED{lc ? ` · ${shown.length} matching` : ''}
+      </div>
+      {shown.map((a) => (
+        <div key={savedKey(a)} className="flex items-start gap-3 px-3 py-2.5 border-b border-terminal-border">
+          <SourceCircle source={a.source} size={14} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] text-terminal-text-bright leading-snug"><HighlightText text={a.headline} term={searchTerm} /></p>
+            {a.summary && <p className="text-2xs text-terminal-text-dim mt-1 line-clamp-2"><HighlightText text={a.summary} term={searchTerm} /></p>}
+            <div className="flex items-center gap-3 mt-1.5">
+              <span className="text-[9px] font-mono text-terminal-text-dim">{a.source} · {timeAgo(a.pubDate)} · saved {timeAgo(a.savedAt)}</span>
+              {a.link && <a href={a.link} target="_blank" rel="noopener noreferrer" className="text-2xs text-terminal-blue-bright hover:text-terminal-gold">READ →</a>}
+              <button onClick={() => onAskAI(a)} className="text-2xs text-terminal-gold hover:text-terminal-gold-bright">ASK MADDENAI ▶</button>
+              <button onClick={() => onRemove(a)} className="text-2xs font-bold tracking-wide text-terminal-text-dim hover:text-terminal-green ml-auto">✓ MARK AS READ</button>
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -709,7 +803,7 @@ function StoryCluster({ cluster, ...rowProps }) {
 // This only bites because the three handlers below are already useCallback —
 // a memo whose props are rebuilt every render is pure overhead, so it is worth
 // stating that the stability is load-bearing rather than incidental.
-const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI }) {
+const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI, searchTerm = '', isSaved = false, onToggleSave }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   // Not gated on isExpanded any more: the accordion panel stays mounted so it
@@ -736,7 +830,7 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded,
           <p className="text-[12px] text-terminal-text-bright leading-snug line-clamp-1">
             {isUnread && <span className="inline-block w-1 h-1 rounded-full bg-terminal-gold mr-1.5 align-middle" />}
             {isBreaking && <span className="text-[#a83232] font-bold mr-1">●</span>}
-            {item.headline}
+            <HighlightText text={item.headline} term={searchTerm} />
             {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[9px]">NEW</span>}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -759,6 +853,7 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded,
             )}
           </div>
         </div>
+        {onToggleSave && <SaveButton compact saved={isSaved} onClick={() => onToggleSave(item)} />}
         <span
           className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1"
           style={{ background: relevanceColor }}
@@ -797,7 +892,7 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded,
 
             <div className="flex items-start justify-between gap-3 mt-1.5">
               <p className="text-terminal-text-dim flex-1" style={{ fontSize: 12, lineHeight: 1.6 }}>
-                {item.summary || <span className="italic text-terminal-text-dim/60">No summary in the feed — full story at {item.source}.</span>}
+                {item.summary ? <HighlightText text={item.summary} term={searchTerm} /> : <span className="italic text-terminal-text-dim/60">No summary in the feed — full story at {item.source}.</span>}
               </p>
               {asset && (
                 <div className="flex-shrink-0 text-right">
@@ -827,6 +922,7 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded,
                 onClick={e => { e.stopPropagation(); onAskAI(item) }}
                 className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
               >Ask MaddenAI ▶</button>
+              {onToggleSave && <SaveButton saved={isSaved} onClick={() => onToggleSave(item)} />}
             </div>
           </div>
         </div>
@@ -1086,9 +1182,10 @@ function NewsNudge({ stories, watchlist, nowTs }) {
 export default function NewsModule() {
   const [activeCategory, setActiveCategory] = useState(() => {
     const saved = loadCategory()
-    return DISPLAY_CATEGORIES.some(c => c.key === saved) ? saved : 'ALL'
+    return saved === 'SAVED' || DISPLAY_CATEGORIES.some(c => c.key === saved) ? saved : 'ALL'
   })
   const [searchTerm, setSearchTerm]   = useState('')
+  const [saved, setSaved]             = useState(loadSavedArticles)
   const [readIds, setReadIds]         = useState(loadReadSet)
   const [allArticles, setAllArticles] = useState([])
   // headline -> arrivedAt ms, drives the 30s pulse fade. Keyed by headline
@@ -1205,9 +1302,13 @@ export default function NewsModule() {
   // one reordering the module does, and it is deliberate: a feed sorted purely
   // by recency buries the story about your own position under six about
   // someone else's.
+  //
+  // Within each group, stories are ranked by quality score (newsIntelligence
+  // scoreArticle — source, subject, watchlist matches and age), not by time.
   const prioritised = useMemo(() => {
-    const watched = annotated.filter((a) => a.inWatchlist)
-    const rest = annotated.filter((a) => !a.inWatchlist)
+    const byScore = (a, b) => b.score - a.score || b.pubDate - a.pubDate
+    const watched = annotated.filter((a) => a.inWatchlist).sort(byScore)
+    const rest = annotated.filter((a) => !a.inWatchlist).sort(byScore)
     return [...watched, ...rest]
   }, [annotated])
 
@@ -1270,6 +1371,9 @@ export default function NewsModule() {
   const handleOpenTicker = useCallback((badge) => {
     openModal({ symbol: badge.symbol, name: badge.symbol, type: badge.type })
   }, [openModal])
+
+  const savedKeys = useMemo(() => new Set(saved.map(savedKey)), [saved])
+  const handleToggleSave = useCallback((item) => setSaved(toggleSavedArticle(item)), [])
 
   const handleCategoryChange = useCallback((cat) => {
     setActiveCategory(cat); saveCategory(cat)
@@ -1338,7 +1442,7 @@ export default function NewsModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="NEWS"
-        subtitle="SMH · ABC · Guardian · CNBC · 18 sources"
+        subtitle={`AFR · SMH · ABC · Guardian · NYT · ${NEWS_SOURCES.length} sources`}
         moduleId="news"
         isFetching={isFetching}
         lastUpdated={lastUpdatedAt}
@@ -1429,6 +1533,15 @@ export default function NewsModule() {
             </button>
           )
         })}
+        <button
+          onClick={() => handleCategoryChange('SAVED')}
+          className={`font-mono uppercase flex-shrink-0 transition-colors flex items-center gap-1 border rounded-full ${
+            activeCategory === 'SAVED'
+              ? 'bg-terminal-gold border-terminal-gold text-terminal-bg font-bold'
+              : 'border-terminal-border text-terminal-muted hover:border-terminal-gold hover:text-terminal-gold'
+          }`}
+          style={{ fontSize: 9, height: 24, padding: '0 12px' }}
+        >🔖 SAVED{saved.length > 0 && <span className="opacity-70">({saved.length})</span>}</button>
 
         <div className="flex items-center gap-1 ml-auto flex-shrink-0">
           <span className="text-terminal-text-dim text-2xs">⌕</span>
@@ -1437,7 +1550,9 @@ export default function NewsModule() {
             style={{ width: 160 }}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Filter headlines..."
+            placeholder="Search news…"
+            title="Searches headlines and summaries as you type"
+            aria-label="Search news"
           />
           {searchTerm && (
             <button onClick={() => setSearchTerm('')} className="text-terminal-text-dim/40 hover:text-terminal-text-dim text-xs">✕</button>
@@ -1446,7 +1561,7 @@ export default function NewsModule() {
       </div>
 
       {/* Sentiment visualiser — full width, top of the news area */}
-      <SentimentVisualiser items={allArticles} trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} />
+      <SentimentVisualiser items={allArticles} trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} now={nowTs} />
 
       {/* New stories banner — slides down, click scrolls to top of the feed,
           auto-dismisses 10s after the most recent arrival either way */}
@@ -1465,7 +1580,9 @@ export default function NewsModule() {
 
       {/* 3-column layout: LEFT top story/sentiment context/market impact,
           CENTRE story list with accordion, RIGHT trending/topics/breaking */}
-      {byCategory.length === 0 ? (
+      {activeCategory === 'SAVED' ? (
+        <SavedArticles items={saved} searchTerm={searchTerm} onRemove={(a) => setSaved(removeSavedArticle(a))} onAskAI={askAI} />
+      ) : byCategory.length === 0 ? (
         <div className="p-4 text-2xs text-terminal-text-dim text-center flex-1">
           {searchTerm ? `No articles matching "${searchTerm}"` : 'No articles in this category'}
         </div>
@@ -1482,6 +1599,8 @@ export default function NewsModule() {
               onMarkRead={handleMarkRead}
               onAskAI={askAI}
               onOpenTicker={handleOpenTicker}
+              isSaved={savedKeys.has(savedKey(topStory))}
+              onToggleSave={handleToggleSave}
             />
             <MarketImpactRow />
           </div>
@@ -1505,7 +1624,7 @@ export default function NewsModule() {
                 {i > 0 && !cluster.lead.inWatchlist && listRest[i - 1].lead.inWatchlist && (
                   <div className="flex items-center gap-2 px-3 py-1 border-b border-terminal-border bg-terminal-surface2/40">
                     <span className="font-mono font-bold tracking-widest text-terminal-text-dim/70" style={{ fontSize: 8 }}>ALL STORIES</span>
-                    <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>newest first</span>
+                    <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>ranked by relevance</span>
                   </div>
                 )}
                 <StoryCluster
@@ -1516,6 +1635,9 @@ export default function NewsModule() {
                   onExpand={handleExpand}
                   onOpenTicker={handleOpenTicker}
                   onAskAI={askAI}
+                  searchTerm={searchTerm}
+                  savedKeys={savedKeys}
+                  onToggleSave={handleToggleSave}
                 />
                 {(i + 1) % 4 === 0 && (
                   <SponsoredDataRow asset={sponsoredAssets[(Math.floor(i / 4)) % sponsoredAssets.length]} />

@@ -112,6 +112,61 @@ export function impactOf(text) {
   return { level: 'LOW', colour: '#4A6080' }
 }
 
+// ─── Topics ──────────────────────────────────────────────────────────────────
+//
+// The handful of running stories that generate several articles at once.
+// A story can carry more than one. Used for clustering ("RBA (5 stories)")
+// and nothing else — they are labels, not a classification of importance.
+export const TOPICS = [
+  { key: 'rba',       label: 'RBA',           re: /\bRBA\b|reserve bank of australia|cash rate/i },
+  { key: 'fed',       label: 'THE FED',       re: /\bthe Fed\b|federal reserve|\bFOMC\b/i },
+  { key: 'china',     label: 'CHINA',         re: /\bchina\b|\bchinese\b|beijing/i },
+  { key: 'ironore',   label: 'IRON ORE',      re: /iron ore/i },
+  { key: 'oil',       label: 'OIL',           re: /\boil price|\bcrude\b|\bbrent\b|\bOPEC\b/i },
+  { key: 'gold',      label: 'GOLD',          re: /\bgold (price|miners?|futures)|\bgold\b.*\b(record|ounce)/i },
+  { key: 'crypto',    label: 'CRYPTO',        re: /bitcoin|\bcrypto|ethereum|stablecoin/i },
+  { key: 'inflation', label: 'INFLATION',     re: /inflation|\bCPI\b/i },
+  { key: 'jobs',      label: 'JOBS',          re: /unemployment|labour force|payrolls|jobless/i },
+  { key: 'housing',   label: 'HOUSING',       re: /house prices|home prices|housing market|property market/i },
+  { key: 'tariffs',   label: 'TARIFFS',       re: /tariff|trade war/i },
+  { key: 'ai',        label: 'AI',            re: /\bAI\b|artificial intelligence/i },
+  { key: 'deals',     label: 'M&A',           re: /takeover|merger|acquisition|\bbid for\b/i },
+]
+export const topicsOf = (text) => TOPICS.filter((t) => t.re.test(text)).map((t) => t.key)
+const TOPIC_LABEL = Object.fromEntries(TOPICS.map((t) => [t.key, t.label]))
+
+// ─── Quality score ───────────────────────────────────────────────────────────
+//
+// How the feed is ordered. A story about something you hold beats everything
+// (+50 per watchlist company); then the source, the subject and the age.
+// Recency is worth at most 24 points and decays an hour at a time, so a
+// strong story from this morning still beats a routine one from a minute ago.
+//
+// The source weights are editorial — a judgement that the AFR's markets
+// desk is a better first read for an Australian investor than a US wire. The
+// RBA's own releases are a primary source and rank with the AFR.
+const SOURCE_SCORES = [
+  ['afr.com', 30], ['rba.gov.au', 30], ['theaustralian.com.au', 25], ['smh.com.au', 20],
+  ['abc.net.au', 15], ['theguardian.com', 15], ['yahoo.com', 10],
+]
+const HIGH_IMPACT_TERMS = /\b(rba|rate decision|gdp|cpi|results|earnings|merger|acquisition|takeover)\b/gi
+
+export function sourceScore(link) {
+  let host = ''
+  try { host = new URL(link).hostname } catch { return 5 }
+  return SOURCE_SCORES.find(([d]) => host === d || host.endsWith(`.${d}`))?.[1] ?? 5
+}
+
+export function scoreArticle(a, now = Date.now()) {
+  const text = `${a.headline} ${a.summary ?? ''}`
+  let score = 50 * (a.watchedCompanies ?? 0)
+  score += sourceScore(a.link)
+  score += 20 * new Set((text.match(HIGH_IMPACT_TERMS) ?? []).map((m) => m.toLowerCase())).size
+  const ageHours = a.pubDate ? (now - a.pubDate) / 3_600_000 : 24
+  score += Math.max(0, 24 - ageHours)
+  return Math.round(score)
+}
+
 // ─── Clustering ──────────────────────────────────────────────────────────────
 //
 // Four outlets covering one iron ore move should read as one item with three
@@ -153,12 +208,17 @@ function overlap(a, b) {
 // Two stories also cluster when they share a company AND any meaningful term
 // overlap, which catches "Fortescue guidance cut" beside "FMG lowers outlook"
 // where wording differs but the subject does not.
-export function clusterStories(articles, { threshold = 0.42, maxClusterSpanHours = 36 } = {}) {
+//
+// Second rule, for running stories worded differently by each outlet: two
+// stories also group when they share at least two of — a company, a topic
+// (TOPICS), and publication within four hours of the cluster's lead.
+export function clusterStories(articles, { threshold = 0.42, maxClusterSpanHours = 36, closeHours = 4 } = {}) {
   const clusters = []
 
   for (const a of articles) {
     const t = terms(`${a.headline} ${a.summary ?? ''}`)
     const companies = new Set((a.companies ?? []).map((c) => c.ticker))
+    const topics = new Set(a.topics ?? [])
 
     let placed = false
     for (const c of clusters) {
@@ -169,7 +229,11 @@ export function clusterStories(articles, { threshold = 0.42, maxClusterSpanHours
 
       const sim = overlap(t, c.terms)
       const sharesCompany = [...companies].some((x) => c.companies.has(x))
-      if (sim >= threshold || (sharesCompany && sim >= threshold * 0.6)) {
+      // Against the LEAD's topics, not the cluster's running union, so a
+      // cluster cannot drift topic by topic into something else.
+      const sharesTopic = [...topics].some((x) => c.leadTopics.has(x))
+      const signals = Number(sharesCompany) + Number(sharesTopic) + Number(hours <= closeHours)
+      if (sim >= threshold || (sharesCompany && sim >= threshold * 0.6) || signals >= 2) {
         c.items.push(a)
         for (const x of t) c.terms.add(x)
         for (const x of companies) c.companies.add(x)
@@ -184,6 +248,7 @@ export function clusterStories(articles, { threshold = 0.42, maxClusterSpanHours
         items: [a],
         terms: t,
         companies,
+        leadTopics: topics,
         leadAt: a.pubDate ?? 0,
       })
     }
@@ -202,10 +267,15 @@ export function clusterStories(articles, { threshold = 0.42, maxClusterSpanHours
 }
 
 function clusterLabel(items) {
+  // A topic or company every story shares names the group best: "RBA".
+  const sharedTopic = (items[0].topics ?? []).find((k) => items.every((i) => i.topics?.includes(k)))
+  const sharedCo = (items[0].companies ?? []).map((c) => c.ticker).find((tk) => items.every((i) => i.companies?.some((c) => c.ticker === tk)))
+  const head = sharedTopic ? TOPIC_LABEL[sharedTopic] : sharedCo ? sharedCo.replace(/\.AX$/, '') : null
   const sets = items.map((i) => terms(i.headline))
   const [first, ...rest] = sets
   const common = [...first].filter((t) => rest.every((s) => s.has(t)))
-  const pick = common.filter((t) => /^[a-z]/i.test(t)).slice(0, 3)
+  const pick = common.filter((t) => /^[a-z]/i.test(t) && (!head || !head.toLowerCase().includes(t))).slice(0, 3)
+  if (head) return pick.length ? `${head} · ${pick.slice(0, 2).join(' ').toUpperCase()}` : head
   if (pick.length >= 2) return pick.join(' ').toUpperCase()
   return items[0].headline.split(/\s+/).slice(0, 4).join(' ').toUpperCase()
 }
@@ -281,7 +351,9 @@ export function annotateArticles(articles = [], watchlist = []) {
         seen.add(norm)
       }
     }
-    const inWatchlist = companies.some((c) => watched.has(c.ticker.replace(/\.AX$/, '')))
-    return { ...a, companies, impact: impactOf(text), inWatchlist }
+    const watchedCompanies = companies.filter((c) => watched.has(c.ticker.replace(/\.AX$/, ''))).length
+    const annotated = { ...a, companies, impact: impactOf(text), inWatchlist: watchedCompanies > 0, watchedCompanies, topics: topicsOf(text) }
+    annotated.score = scoreArticle(annotated)
+    return annotated
   })
 }
