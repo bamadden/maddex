@@ -28,7 +28,7 @@ const FALLBACK_EVENTS = [
   { date: '2026-10-14', time: '23:30', event: 'US CPI (Sep)',                        region: 'US', importance: 'high',
     description: 'Last CPI print before the 27–28 Oct FOMC.' },
   { date: '2026-10-15', time: '11:30', event: 'AU Labour Force (Sep)',               region: 'AU', importance: 'high',
-    description: 'Unemployment rose to 4.6% in August — a second rise would test the RBA\'s hiking bias.' },
+    description: 'Unemployment rose to 4.7% (seasonally adjusted), a five-year high. Trend 4.6%.' },
   { date: '2026-10-15', time: '23:30', event: 'US PPI (Sep)',                        region: 'US', importance: 'medium' },
   { date: '2026-10-23', time: '11:30', event: 'AU National Accounts (2025-26)',      region: 'AU', importance: 'low' },
   { date: '2026-10-28', time: '11:30', event: 'AU CPI (Sep, incl. Sep quarter)',     region: 'AU', importance: 'high',
@@ -44,6 +44,8 @@ const FALLBACK_EVENTS = [
   { date: '2026-11-04', time: '—',     event: 'US Midterm Election Results',         region: 'US', importance: 'high',
     description: 'Polls close on 3 Nov US time; results arrive through the AU day.' },
   { date: '2026-11-05', time: '23:00', event: 'Bank of England Rate Decision',       region: 'UK', importance: 'medium' },
+  { date: '2026-11-19', time: '11:30', event: 'AU Labour Force (Oct)',               region: 'AU', importance: 'high',
+    description: 'Unemployment was 4.7% in September, a five-year high.' },
   { date: '2026-12-08', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high' },
   { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high' },
 ]
@@ -55,6 +57,7 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-09-18', event: 'Bank of Japan Rate Decision',   region: 'JP', result: 'HIKE +25bp to 1.25%' },
   { date: '2026-09-24', event: 'AU Unemployment Rate (Aug)',    region: 'AU', result: '4.6%' },
   { date: '2026-09-29', event: 'RBA Rate Decision',             region: 'AU', result: 'HIKE +25bp to 4.60%' },
+  { date: '2026-10-15', event: 'AU Unemployment Rate (Sep)',    region: 'AU', result: '4.7%' },
 ]
 
 function readCache() {

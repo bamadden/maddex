@@ -38,9 +38,18 @@ export const VERIFIED_CONSTANTS = {
     lastChange: '+25bp',
     nextMeetingTime: '2:30pm AEDT',
     note: 'Fourth hike of 2026, unanimous. "Upside risks flagged in August are materialising."',
+    // Minutes of the 28–29 Sep meeting, released Tue 13 Oct 2026. Wording
+    // checked against the CommBank and FXStreet write-ups of the minutes; the
+    // quoted phrase is the minutes' own.
+    minutes: {
+      released: '2026-10-13',
+      meeting: '2026-09-29',
+      summary: 'Board briefly weighed a pause, but stronger July inflation, widespread cost pressures and upside risks already unfolding made the case to act promptly. Unanimous. Open to "increasing the cash rate target further if required".',
+      source: 'rba.gov.au minutes (via commbank.com.au, fxstreet.com)',
+    },
     source: 'rba.gov.au (mr-26-27)',
     asOf: '2026-09-29',
-    lastVerified: '2026-10-01',
+    lastVerified: '2026-10-18',
   },
   fed: {
     label: 'Fed',
@@ -55,7 +64,7 @@ export const VERIFIED_CONSTANTS = {
     nextMeeting: '2026-10-28',
     source: 'federalreserve.gov',
     asOf: '2026-09-16',
-    lastVerified: '2026-10-01',
+    lastVerified: '2026-10-18',
   },
   ecb: {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
@@ -185,10 +194,12 @@ export const VERIFIED_CONSTANTS = {
     cpiTrimmedMean: 3.6,
     rbaTargetBand: '2–3%',
 
-    unemployment: 4.6,
-    unemploymentPeriod: 'Aug 2026',
-    unemploymentLastRelease: '2026-09-24',
-    unemploymentNextRelease: '2026-10-15',
+    // UPDATED 2026-10-18 — Labour Force, September 2026 (released Thu 15 Oct):
+    // up 0.1pt to 4.7% seasonally adjusted, a five-year high. Trend 4.6%.
+    unemployment: 4.7,
+    unemploymentPeriod: 'Sep 2026',
+    unemploymentLastRelease: '2026-10-15',
+    unemploymentNextRelease: '2026-11-19',
 
 
     // UPDATED 2026-09-07 — this was two quarters stale, reading 1.3% as at
@@ -271,8 +282,8 @@ export const VERIFIED_CONSTANTS = {
     auQuarterlyPathAsOf: '2026-06-30',
 
     source: 'abs.gov.au',
-    asOf: '2026-09-30',
-    lastVerified: '2026-10-01',
+    asOf: '2026-10-15',
+    lastVerified: '2026-10-18',
   },
 
   // ── Other major economies ─────────────────────────────────────────────────
@@ -337,16 +348,16 @@ export const VERIFIED_CONSTANTS = {
   // Indicative only. Live equity quotes come through dataService; these exist
   // so the intelligence map has something to label a marker with.
   indices: {
-    // Real closes, re-checked 2026-10-03. ASX: 2 Oct 2026; the rest: 30 Sep
-    // 2026. The previous set (asx200 8247.3, sp500 5842.3, nikkei 38420.5…)
-    // was two years stale. STI, NZX 50 and TA-35 were dropped rather than
-    // carried forward — no current close was found, and nothing reads them.
-    asx200: 8682.1, sp500: 7651.54, nasdaq: 26861.06, dow: 50906.05,
+    // Real closes. ASX 200, S&P 500, Nasdaq and Dow re-checked 2026-10-18:
+    // Fri 16 Oct 2026 closes (ABC News / AP). The rest are still 30 Sep 2026
+    // closes from the 2026-10-03 check. STI, NZX 50 and TA-35 were dropped
+    // rather than carried forward — no current close was found.
+    asx200: 8806.7, sp500: 7659.44, nasdaq: 26140.03, dow: 52002.41,
     ftse100: 10606.0, nikkei225: 66753.72, hangSeng: 24613.27,
     sseComposite: 3842.19, dax: 25199.19, sensex: 72480.29, tsx: 35235.87,
-    source: 'Index closes via Motley Fool AU, AP, CNBC, BBN Times — indicative, not a live feed',
-    asOf: '2026-10-02',
-    lastVerified: '2026-10-03',
+    source: 'Index closes via ABC News, AP, Motley Fool AU, CNBC, BBN Times — indicative, not a live feed',
+    asOf: '2026-10-16',
+    lastVerified: '2026-10-18',
   },
 }
 
@@ -454,6 +465,7 @@ export function verifiedFactsForAI() {
       `${rba.nextMeeting ? `; next meeting ${rba.nextMeeting}` : ''}` +
       `${rba.note ? ` (${rba.note})` : ''}`,
     )
+    if (rba.minutes) lines.push(`RBA minutes of the ${rba.minutes.meeting} meeting (released ${rba.minutes.released}): ${rba.minutes.summary}`)
   }
   if (fed) {
     const fedHeld = (fed.lastDecisionVerb ?? '').toUpperCase() === 'HOLD'
