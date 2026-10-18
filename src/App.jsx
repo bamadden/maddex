@@ -29,6 +29,7 @@ import {
   hasBeenWelcomed, markWelcomed, shouldShowWhatsNew, markWhatsNewSeen,
 } from './services/onboardingState'
 import TopBar from './components/layout/TopBar'
+import EventWarningBar from './components/layout/EventWarningBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
 import CommandBar from './components/layout/CommandBar'
@@ -711,6 +712,7 @@ function Terminal() {
     <div className="flex flex-col h-screen w-screen overflow-hidden font-mono bg-terminal-bg">
       <div className="fixed inset-0 scanlines pointer-events-none z-50" />
       <TopBar />
+      <EventWarningBar />
       <TickerTape />
       {restorePrompt && (
         <div className="w-full px-3 py-1.5 bg-terminal-gold/10 border-b border-terminal-gold/40 text-2xs font-mono flex items-center justify-center gap-3 flex-shrink-0">

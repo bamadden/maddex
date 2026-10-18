@@ -19,6 +19,7 @@ import { getAiPreferences } from '../../services/aiPreferencesService'
 import { getInvestorContext, getProfilePrompts } from '../../services/investorProfile'
 import { formatInline, splitFollowUps, toShareText, findTickers } from '../../services/aiResponseFormat'
 import { getStarters } from '../../services/aiStarters'
+import { regimeForAI, regimePrompts } from '../../services/marketRegime'
 import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
 import { markMilestone } from '../../services/gettingStarted'
 import { aiQueriesToday, recordAiQuery } from '../../services/usageService'
@@ -159,6 +160,8 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
       { label: `${bare} RISK FACTORS`, prompt: `What are the key risk factors investors should watch for ${selectedSymbol}?`, dataKeys: [] },
     ]
   }
+  // The Dashboard leads with the policy backdrop while rates are moving.
+  if (activeModule === 'dashboard') { const regime = regimePrompts(); if (regime) return regime }
   if (profilePrompts && (PROFILE_PROMPT_MODULES.has(activeModule) || !MODULE_PROMPTS[activeModule])) return profilePrompts
   return MODULE_PROMPTS[activeModule] ?? DEFAULT_PROMPTS
 }
@@ -801,7 +804,7 @@ export default function AIPanel({ wide = false }) {
     else lines.push('User has no portfolio holdings tracked yet.')
 
     const facts = verifiedFactsForAI()
-    return `[CONTEXT]\n${lines.join('\n')}\n\n${investor}${facts ? facts + '\n\n' : ''}`
+    return `[CONTEXT]\n${lines.join('\n')}\n\n${investor}${facts ? facts + '\n\n' : ''}${regimeForAI()}\n\n`
   }, [activeModule, modalAsset, watchlist, investorProfile])
 
   const send = async (textOverride, opts = {}) => {

@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
+import RbaDecisionCard from './RbaDecisionCard'
 import { useQuery } from '@tanstack/react-query'
 import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
@@ -927,6 +928,9 @@ export default function FXModule() {
       lastUpdated={fxResult?.cachedAt}
       onRefresh={refetch}
     />
+
+    {/* After an RBA decision: what happened, for 14 days or until dismissed */}
+    <div className="pb-2 flex-shrink-0 empty:hidden"><RbaDecisionCard /></div>
 
     {/* SECTION 1 — global policy rates, expandable comparison cards */}
     <CentralBankCards />

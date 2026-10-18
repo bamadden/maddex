@@ -53,3 +53,9 @@ export function dispatchAskAI(fields, opts = {}) {
     },
   }))
 }
+
+// Asks MaddenAI a question in the user's name — shown as their message, so
+// they see what was asked on their behalf. For the context prompts.
+export function askMaddenAI(prompt) {
+  window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt, visible: true } }))
+}

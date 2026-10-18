@@ -14,6 +14,18 @@ import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import ContextPrompt from '../../components/ai/ContextPrompt'
+
+// MaddenAI's nudge on a HIGH-impact story that names a watchlist stock. At
+// most one NEW story every 30 minutes: the story already being offered stays
+// until dismissed, but a fresh one has to wait out the window.
+const NEWS_NUDGE_KEY = 'maddex_news_prompt_last'
+const NEWS_NUDGE_GAP = 30 * 60_000
+const readNudge = () => { try { return JSON.parse(localStorage.getItem(NEWS_NUDGE_KEY) ?? 'null') } catch { return null } }
+const nudgeId = (a) => a.id ?? a.headline
+function recordNudge(id) {
+  try { localStorage.setItem(NEWS_NUDGE_KEY, JSON.stringify({ id, at: Date.now() })) } catch { /* private mode */ }
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1046,6 +1058,31 @@ function MorningBriefing() {
 
 // ─── Main module ──────────────────────────────────────────────────────────────
 
+function NewsNudge({ stories, watchlist, nowTs }) {
+  const [dismissed, setDismissed] = useState(() => new Set())
+  const story = stories.find((a) => a.impact?.level === 'HIGH' && a.inWatchlist && !dismissed.has(nudgeId(a)))
+  const last = readNudge()
+  const show = !!story && (!last || last.id === nudgeId(story) || nowTs - last.at > NEWS_NUDGE_GAP)
+  const shownId = show ? nudgeId(story) : null
+  useEffect(() => {
+    if (!shownId || readNudge()?.id === shownId) return
+    recordNudge(shownId)
+  }, [shownId])
+  if (!show) return null
+  const watched = new Set((watchlist ?? []).map((w) => w.replace(/\.AX$/, '')))
+  const tickers = [...new Set(story.companies.map((c) => c.ticker.replace(/\.AX$/, '')).filter((t) => watched.has(t)))]
+  const names = tickers.join(' and ')
+  const many = tickers.length > 1
+  const headline = story.headline.length > 90 ? `${story.headline.slice(0, 88)}…` : story.headline
+  return (
+    <ContextPrompt className="m-2"
+      text={`${headline} — names ${names} on your watchlist.`}
+      prompt={`This high-impact story names ${names}, which ${many ? 'are' : 'is'} on my watchlist: "${story.headline}"${story.summary ? ` — ${story.summary.slice(0, 300)}` : ''}. What does it mean for ${many ? 'these stocks' : 'this stock'}, and what should I watch next? Use only what the story says; do not invent figures.`}
+      action="ASK MADDENAI"
+      onDismiss={() => setDismissed((d) => new Set(d).add(nudgeId(story)))} />
+  )
+}
+
 export default function NewsModule() {
   const [activeCategory, setActiveCategory] = useState(() => {
     const saved = loadCategory()
@@ -1290,6 +1327,7 @@ export default function NewsModule() {
   // story about something the reader owns wins over a HIGH story about
   // something they do not, without this needing to know that.
   const topStory = prioritised.find((a) => a.impact?.level === 'HIGH') ?? prioritised[0]
+
   // Whichever cluster leads with the featured story is dropped from the centre
   // feed. Slicing off clusters[0] only worked while the top story was
   // guaranteed to be the first one.
@@ -1435,6 +1473,7 @@ export default function NewsModule() {
         <div className="flex-1 flex overflow-hidden">
           {/* LEFT 35% */}
           <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '35%', scrollbarWidth: 'none' }}>
+            <NewsNudge stories={prioritised} watchlist={watchlist} nowTs={nowTs} />
             <TopStoryCard
               item={topStory}
               isUnread={!readIds.has(topStory.id) && !readIds.has(topStory.headline)}

@@ -29,6 +29,9 @@ import { SkeletonCard } from '../../components/ui/Skeleton'
 import AnimatedNumber from '../../components/ui/AnimatedNumber'
 import TabBar from '../../components/ui/TabBar'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
+import { marketSession } from '../../services/newsIntelligence'
+import { portfolioDayInsight } from '../../services/contextInsights'
+import ContextPrompt from '../../components/ai/ContextPrompt'
 import WhatIf from './WhatIf'
 import Transactions from './Transactions'
 import SafeChart from '../../components/ui/SafeChart'
@@ -698,6 +701,14 @@ export default function PortfolioModule() {
   const updatedAt = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
   const bySector   = groupByPct(live, (h) => SECTOR_BY_SYMBOL[h.symbol] ?? 'Other')
+
+  // MaddenAI's read on today's move, while today's move means something: in
+  // session, or after the close the same day. Not at the weekend or overnight,
+  // when the day change is yesterday's. Crypto has no day change here.
+  const sessionKey = marketSession().key
+  const dayInsight = (sessionKey === 'open' || sessionKey === 'after')
+    ? portfolioDayInsight(live.filter((h) => h.type !== 'crypto').map((h) => ({ mktVal: h.mktVal, dayPct: h.dayPct, sector: SECTOR_BY_SYMBOL[h.symbol] })))
+    : null
   const byCountry  = groupByPct(live, (h) => h.type === 'asx' ? 'Australia' : h.type === 'crypto' ? 'Crypto (borderless)' : 'United States')
   const byCurrency = groupByPct(live, (h) => h.type === 'us' ? 'USD' : 'AUD')
 
@@ -1134,6 +1145,9 @@ export default function PortfolioModule() {
               </tbody>
             </table>
           </div>
+          {dayInsight && (
+            <ContextPrompt className="m-2 flex-shrink-0" text={dayInsight.text} prompt={dayInsight.prompt} action="ASK MADDENAI WHY" />
+          )}
         </div>
 
         {/* Right panel */}

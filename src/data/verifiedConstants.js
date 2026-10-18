@@ -38,6 +38,9 @@ export const VERIFIED_CONSTANTS = {
     lastChange: '+25bp',
     nextMeetingTime: '2:30pm AEDT',
     note: 'Fourth hike of 2026, unanimous. "Upside risks flagged in August are materialising."',
+    // 4.60% is above every level since Nov 2011, when the rate was cut from
+    // 4.75% to 4.50% (and 4.50% to 4.25% that December). The 2023 peak was 4.35%.
+    levelContext: 'the highest since 2011',
     // Minutes of the 28–29 Sep meeting, released Tue 13 Oct 2026. Wording
     // checked against the CommBank and FXStreet write-ups of the minutes; the
     // quoted phrase is the minutes' own.
@@ -198,6 +201,7 @@ export const VERIFIED_CONSTANTS = {
     // up 0.1pt to 4.7% seasonally adjusted, a five-year high. Trend 4.6%.
     unemployment: 4.7,
     unemploymentPeriod: 'Sep 2026',
+    unemploymentPrevious: 4.6,          // Aug 2026, as published 24 Sep
     unemploymentLastRelease: '2026-10-15',
     unemploymentNextRelease: '2026-11-19',
 
