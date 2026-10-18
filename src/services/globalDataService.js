@@ -7,7 +7,7 @@
 // services/countryApiService.js (fetchRestCountries, merged into
 // useCountryData) — both are reused as-is rather than duplicated here.
 
-import axios from 'axios'
+import { httpGet } from '../utils/httpGet'
 
 const USGS_QUAKES_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson'
 const OPEN_METEO_URL   = 'https://api.open-meteo.com/v1/forecast'
@@ -15,7 +15,7 @@ const OPEN_METEO_URL   = 'https://api.open-meteo.com/v1/forecast'
 // ─── USGS significant earthquakes (last 7 days, M4.0+) ─────────────────────
 
 export async function fetchSignificantEarthquakes() {
-  const { data } = await axios.get(USGS_QUAKES_URL, { timeout: 15000 })
+  const { data } = await httpGet(USGS_QUAKES_URL, { timeout: 15000 })
   const quakes = (data?.features ?? []).map(f => ({
     id:        f.id,
     mag:       f.properties.mag,
@@ -33,7 +33,7 @@ export async function fetchSignificantEarthquakes() {
 // ─── Open-Meteo current weather for a single lat/lon ────────────────────────
 
 export async function fetchCurrentWeather(lat, lon) {
-  const { data } = await axios.get(OPEN_METEO_URL, {
+  const { data } = await httpGet(OPEN_METEO_URL, {
     params: { latitude: lat, longitude: lon, current_weather: true, timezone: 'auto' },
     timeout: 10000,
   })

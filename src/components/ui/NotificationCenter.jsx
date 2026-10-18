@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import { getEconomicCalendar, eventInstant } from '../../services/calendarService'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { permission as notifyPermission } from '../../services/browserNotify'
@@ -14,7 +14,6 @@ import { dispatchAskAI } from '../../utils/askAI'
 import { getAiPreferences } from '../../services/aiPreferencesService'
 import { loadAlerts, checkAlerts, markTriggered, recordAlertHistory } from '../../services/alertsService'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
-import AlertsModule from '../../modules/alerts/AlertsModule'
 import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
 import {
@@ -177,6 +176,9 @@ function AlertsPane({ alerts, onRemove, onGoWatchlist }) {
     </div>
   )
 }
+
+// The alert centre loads when first opened.
+const AlertsModule = lazy(() => import('../../modules/alerts/AlertsModule'))
 
 // Alert ids already delivered this session. Module scope, so it outlives
 // effect re-runs.
@@ -867,7 +869,7 @@ export default function NotificationCenter() {
         </div>
       )}
 
-      {manageOpen && <AlertsModule onClose={() => setManageOpen(false)} />}
+      {manageOpen && <Suspense fallback={null}><AlertsModule onClose={() => setManageOpen(false)} /></Suspense>}
 
       {/* Toasts — slide in from the right, stack downward. Several of a kind
           collapse into one card ("3 price alerts triggered") that expands on

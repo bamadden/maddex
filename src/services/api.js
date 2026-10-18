@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpGet } from '../utils/httpGet'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { recordUsage } from './aiUsageService'
 import { ASX_TICKERS } from '../utils/asxTickers'
@@ -786,7 +786,7 @@ export const COIN_IDS = {
 
 export const fetchCryptoMarkets = async (currency = 'aud', page = 1) => {
   await cgThrottle()
-  const { data } = await axios.get(`${COINGECKO_BASE}/coins/markets`, {
+  const { data } = await httpGet(`${COINGECKO_BASE}/coins/markets`, {
     params: {
       vs_currency: currency,
       order: 'market_cap_desc',
@@ -802,7 +802,7 @@ export const fetchCryptoMarkets = async (currency = 'aud', page = 1) => {
 
 export const fetchTrendingCoins = async () => {
   await cgThrottle()
-  const { data } = await axios.get(`${COINGECKO_BASE}/search/trending`)
+  const { data } = await httpGet(`${COINGECKO_BASE}/search/trending`)
   console.log('[MADDEN API] CoinGecko trending:', data?.coins?.length, 'coins')
   return data
 }
@@ -810,14 +810,14 @@ export const fetchTrendingCoins = async () => {
 export const fetchFxHistory = async (from = 'AUD', to = 'USD', days = 30) => {
   const end   = new Date().toISOString().split('T')[0]
   const start = new Date(Date.now() - days * 86400000).toISOString().split('T')[0]
-  const { data } = await axios.get(`/api/frankfurter/${start}..${end}?from=${from}&to=${to}`)
+  const { data } = await httpGet(`/api/frankfurter/${start}..${end}?from=${from}&to=${to}`)
   console.log('[MADDEN API] Frankfurter FX history', `${from}/${to}:`, Object.keys(data?.rates ?? {}).length, 'days')
   return data
 }
 
 export const fetchCoinHistory = async (coinId, currency = 'aud', days = 90) => {
   await cgThrottle()
-  const { data } = await axios.get(`${COINGECKO_BASE}/coins/${coinId}/market_chart`, {
+  const { data } = await httpGet(`${COINGECKO_BASE}/coins/${coinId}/market_chart`, {
     params: { vs_currency: currency, days },
   })
   console.log('[MADDEN API] CoinGecko /market_chart', coinId + ':', data?.prices?.length, 'points')
@@ -826,7 +826,7 @@ export const fetchCoinHistory = async (coinId, currency = 'aud', days = 90) => {
 
 export const fetchCoinOHLC = async (coinId, days = 30, currency = 'aud') => {
   await cgThrottle()
-  const { data } = await axios.get(`${COINGECKO_BASE}/coins/${coinId}/ohlc`, {
+  const { data } = await httpGet(`${COINGECKO_BASE}/coins/${coinId}/ohlc`, {
     params: { vs_currency: currency, days },
   })
   console.log('[MADDEN API] CoinGecko /ohlc', coinId + ':', data?.length, 'candles')
@@ -848,7 +848,7 @@ export const transformCoinOHLC = (data) => {
 
 export const fetchFearGreed = async () => {
   try {
-    const { data } = await axios.get('https://api.alternative.me/fng/?limit=30', { timeout: 8000 })
+    const { data } = await httpGet('https://api.alternative.me/fng/?limit=30', { timeout: 8000 })
     console.log('[MADDEN API] Alternative.me fear/greed:', data?.data?.[0]?.value)
     return data
   } catch (e) {
@@ -866,7 +866,7 @@ export const fetchFearGreed = async () => {
 
 export const fetchCryptoGlobal = async () => {
   await cgThrottle()
-  const { data } = await axios.get(`${COINGECKO_BASE}/global`)
+  const { data } = await httpGet(`${COINGECKO_BASE}/global`)
   console.log('[MADDEN API] CoinGecko /global: active_coins', data?.data?.active_cryptocurrencies)
   return data?.data
 }
@@ -935,7 +935,7 @@ const FRANKFURTER_RETRY_MS = 2000
 async function frankfurterAttempt(url, label) {
   const start = Date.now()
   try {
-    const { data } = await axios.get(url, { timeout: 8000 })
+    const { data } = await httpGet(url, { timeout: 8000 })
     const ms = Date.now() - start
     console.log(`[MADDEN API] Frankfurter [${label}] ${url} → 200 OK (${ms}ms)`)
     return data
@@ -1011,7 +1011,7 @@ export const fetchMetalsRates = async () => {
   const key = import.meta.env.VITE_EXCHANGERATE_API_KEY
   if (!key) return null
   try {
-    const { data } = await axios.get(`https://v6.exchangerate-api.com/v6/${key}/latest/AUD`)
+    const { data } = await httpGet(`https://v6.exchangerate-api.com/v6/${key}/latest/AUD`)
     if (data.result !== 'success') return null
     console.log('[MADDEN API] ExchangeRate-API metals XAU/AUD:', (1 / (data.conversion_rates?.XAU ?? 1)).toFixed(2))
     return data.conversion_rates
@@ -1029,7 +1029,7 @@ export const extractMetals = (rates) => {
 // ─── RBA Statistics API (via proxy → /api/rba) ───────────────────────────────
 
 export const fetchRBACashRate = async () => {
-  const { data } = await axios.get('/api/rba/statistics/tables/a2-1/latest')
+  const { data } = await httpGet('/api/rba/statistics/tables/a2-1/latest')
   console.log('[MADDEN API] RBA cash rate a2-1:', data)
   return data
 }
@@ -1051,7 +1051,7 @@ export const transformRBACashRate = (raw) => {
 }
 
 export const fetchRBABondYields = async () => {
-  const { data } = await axios.get('/api/rba/statistics/tables/f2-1/latest')
+  const { data } = await httpGet('/api/rba/statistics/tables/f2-1/latest')
   console.log('[MADDEN API] RBA bond yields f2-1:', data)
   return data
 }
@@ -1333,7 +1333,7 @@ export const fetchNews = async () => {
 
   const results = await Promise.allSettled(
     NEWS_SOURCES.map(({ url, name, category }) =>
-      axios.get(RSS_PROXY, { params: { url }, timeout: 10000 })
+      httpGet(RSS_PROXY, { params: { url }, timeout: 10000 })
         .then(({ data }) => ({ data, source: name, sourceCategory: category }))
     )
   )
@@ -1410,7 +1410,7 @@ export const fetchNews = async () => {
 // ─── OpenSky Network (via proxy → /api/opensky) ──────────────────────────────
 
 export const fetchFlightData = async () => {
-  const { data } = await axios.get('/api/opensky/api/states/all', {
+  const { data } = await httpGet('/api/opensky/api/states/all', {
     params:  { lamin: -45, lomin: 110, lamax: -10, lomax: 155 },
     timeout: 20000,
   })
@@ -1508,7 +1508,7 @@ export function filterFinanceRelevant(items) {
 export const fetchGeoNews = async () => {
   const results = await Promise.allSettled(
     GEO_RSS_FEEDS.map(({ url, source }) =>
-      axios.get(RSS_PROXY, { params: { url }, timeout: 10000 })
+      httpGet(RSS_PROXY, { params: { url }, timeout: 10000 })
         .then(({ data }) => ({ data, source }))
     )
   )
@@ -1698,7 +1698,7 @@ function extractAnthropicErrorMessage(text) {
 // telling them to pay for something they cannot. Those become one neutral
 // line; everything else keeps the vendor's message, which is usually useful
 // ("prompt is too long", "overloaded").
-const UNAVAILABLE = 'MaddenAI is temporarily unavailable — please try again later.'
+const UNAVAILABLE = 'MaddenAI is temporarily unavailable. Please try again later.'
 function userFacingAiError(status, message) {
   if ([401, 402, 403].includes(status)) return UNAVAILABLE
   if (/credit balance|billing|purchase credits|api key|x-api-key|authentication|permission/i.test(message ?? '')) return UNAVAILABLE

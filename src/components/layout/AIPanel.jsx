@@ -876,7 +876,11 @@ export default function AIPanel({ wide = false }) {
     } catch (err) {
       updateLastChatMessage({
         role: 'assistant',
-        content: `[ERROR] ${err.message}\n\nEnsure ANTHROPIC_API_KEY is set (server-side, in .env for dev or the Vercel dashboard for prod)`,
+        // The message is already user-facing (api.js userFacingAiError). The
+        // key hint is for whoever is running the dev server, not for users —
+        // it used to be appended in production too.
+        content: err.message + (import.meta.env.DEV ? '\n\n[dev] Check ANTHROPIC_API_KEY and the account\'s credit balance.' : ''),
+        error: true,
       })
       soundService.error()
     } finally {

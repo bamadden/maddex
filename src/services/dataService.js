@@ -15,7 +15,7 @@
 // fetchEquityQuotes([...])`; callers that want to show a "DELAYED" badge
 // check `.stale`.
 
-import axios from 'axios'
+import { httpGet } from '../utils/httpGet'
 import {
   fetchBatch, fetchYFBatch, fetchFxRates, fetchCryptoMarkets,
 } from './api'
@@ -138,7 +138,7 @@ const BINANCE_SYMBOL_MAP = {
 // so a consumer can convert or display it honestly.
 async function fetchBinanceMarkets() {
   const symbols = Object.values(BINANCE_SYMBOL_MAP)
-  const { data } = await axios.get(`${BINANCE_BASE}/ticker/24hr`, {
+  const { data } = await httpGet(`${BINANCE_BASE}/ticker/24hr`, {
     params: { symbols: JSON.stringify(symbols) },
     timeout: DEFAULT_TIMEOUT_MS,
   })

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
-import { PricingModal, ComingSoonModal } from '../billing/PlanOverlays'
+import { PricingModal, ComingSoonModal } from '../billing/PlanModals'
 import { markTrialEndedSeen } from '../../services/plans'
 
 // Shown once when a 7-day trial ends. Core is a free plan now, so this is a

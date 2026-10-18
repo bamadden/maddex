@@ -395,7 +395,7 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
     try {
       await askClaude([{ role: 'user', content: prompt }], (_, full) => setText(full))
     } catch (e) {
-      setText(`[ERROR] ${e.message}`)
+      setText(e.message)
     } finally {
       setLoading(false)
     }
