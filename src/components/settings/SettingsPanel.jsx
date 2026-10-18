@@ -34,7 +34,7 @@ import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../.
 import { getImportHistory } from '../../services/portfolioCsv'
 import { TIER_LABEL, PRICES, openPricing } from '../../services/plans'
 import { getUsage, aiQueriesToday, subscribeUsage } from '../../services/usageService'
-import { activeAlertCount } from '../../services/alertsService'
+import { activeAlertCount, loadAlerts, loadAlertHistory, alertSuggestionsEnabled, setAlertSuggestionsEnabled } from '../../services/alertsService'
 import {
   EXPERIENCE, FOCUS, SECTORS, HORIZONS, riskLabel, emptyProfile,
   getInvestorProfile, saveInvestorProfile, clearInvestorProfile,
@@ -43,7 +43,7 @@ import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
-const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
+const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
 // Older callers still ask for 'SUBSCRIPTION'.
 const SECTION_ALIASES = { SUBSCRIPTION: 'PLAN & BILLING' }
 
@@ -1319,6 +1319,36 @@ function BrowserNotificationsBlock() {
   )
 }
 
+// A summary and the way in to the alert centre, which does the managing.
+// Settings closes first: the centre is a modal and would open underneath it.
+function AlertsSettingsSection({ onOpenCentre }) {
+  const { alerts: simple } = useStore()
+  const engine = loadAlerts()
+  const history = loadAlertHistory()
+  const [suggest, setSuggest] = useState(() => alertSuggestionsEnabled())
+  const all = [...simple.map((a) => ({ paused: a.paused })), ...engine]
+  const paused = all.filter((a) => a.paused).length
+  const fired = engine.filter((a) => a.triggered).length
+  return (
+    <div className="space-y-1">
+      <SectionLabel>Alerts</SectionLabel>
+      <FieldRow label="Your alerts" note={`${all.length - paused} active${paused ? ` · ${paused} paused` : ''}${fired ? ` · ${fired} fired today or earlier` : ''} · ${history.length} in recent history`}>
+        <button onClick={onOpenCentre}
+          className="px-3 py-1.5 text-2xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+        >OPEN ALERT CENTRE</button>
+      </FieldRow>
+      <FieldRow label="Suggest alerts" note="After you add a stock to your watchlist, offer an alert 5% above and below its price.">
+        <Toggle value={suggest} onChange={(v) => { setAlertSuggestionsEnabled(v); setSuggest(v) }} />
+      </FieldRow>
+      <div className="text-2xs text-terminal-text-dim/70 pt-3 leading-relaxed">
+        Alert types: price above/below, a % move in a day (up, down or either), volume against the 20-day average,
+        52-week highs and lows, news mentions, RSI extremes, economic events and portfolio P&amp;L.
+        How alerts reach you — sound, pop-up, email, quiet hours — is under Notifications.
+      </div>
+    </div>
+  )
+}
+
 function NotificationsSection() {
   const { settings, updateSettings } = useAuthStore()
   const [quiet, setQuiet] = useState(() => getQuietHours())
@@ -2583,6 +2613,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
           {active === 'DATA & REFRESH' && <DataRefreshSection />}
           {active === 'DATA SOURCES'  && <DataSourcesSection />}
           {active === 'NOTIFICATIONS' && <NotificationsSection />}
+          {active === 'ALERTS'        && <AlertsSettingsSection onOpenCentre={() => { onClose(); window.dispatchEvent(new CustomEvent('maddex:manage-alerts')) }} />}
           {active === 'MADDENAI'      && <MaddenAISection />}
           {active === 'SECURITY'      && <SecuritySection onDeleteRequest={() => setConfirm('delete-account')} />}
           {active === 'DATA'          && (

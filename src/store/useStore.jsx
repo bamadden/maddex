@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { maybeNotify, offerPrompt } from '../services/browserNotify'
 import { markMilestone } from '../services/gettingStarted'
-import { canCreateAlert } from '../services/alertsService'
+import { canCreateAlert, ALERTS_CHANGED } from '../services/alertsService'
 import { recordAlertCreated } from '../services/usageService'
 import { getCurrentTier, limitFor, showLimitPrompt } from '../services/plans'
 import { treatmentFor, recordHistory } from '../services/notificationPolicy'
@@ -28,6 +28,12 @@ const getStoredWatchlist = () => {
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed) ? parsed : WATCHLIST_DEFAULT_SYMBOLS
   } catch { return WATCHLIST_DEFAULT_SYMBOLS }
+}
+
+function saveSimpleAlerts(next) {
+  try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
+  queueMicrotask(() => window.dispatchEvent(new CustomEvent(ALERTS_CHANGED)))
+  return next
 }
 
 export function StoreProvider({ children }) {
@@ -90,7 +96,10 @@ export function StoreProvider({ children }) {
       }
     }
     markMilestone('watchlist')
+    const isNew = !current.includes(s)
     setWatchlist((prev) => persistWatchlist(prev.includes(s) ? prev : [...prev, s]))
+    // AlertSuggestion offers a ±5% alert a moment after a genuinely new add.
+    if (isNew) window.dispatchEvent(new CustomEvent('maddex:watchlist-added', { detail: { symbol: s } }))
     return true
   }, [persistWatchlist])
 
@@ -167,20 +176,17 @@ export function StoreProvider({ children }) {
     // pre-prompt explains why before the browser's own dialog appears.
     offerPrompt()
     markMilestone('alert')
-    setAlerts((prev) => {
-      const next = [...prev, alert]
-      try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
-      return next
-    })
+    setAlerts((prev) => saveSimpleAlerts([...prev, alert]))
     return true
   }, [])
 
   const removeAlert = useCallback((id) => {
-    setAlerts((prev) => {
-      const next = prev.filter((a) => a.id !== id)
-      try { localStorage.setItem('madden_alerts', JSON.stringify(next)) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
-      return next
-    })
+    setAlerts((prev) => saveSimpleAlerts(prev.filter((a) => a.id !== id)))
+  }, [])
+
+  // patch: { price } to edit the level, { paused } to pause without deleting.
+  const updateAlert = useCallback((id, patch) => {
+    setAlerts((prev) => saveSimpleAlerts(prev.map((a) => (a.id === id ? { ...a, ...patch } : a))))
   }, [])
 
   // type: 'PRICE_ALERT' | 'MARKET_OPEN' | 'NEWS' | 'SYSTEM'
@@ -261,7 +267,7 @@ export function StoreProvider({ children }) {
         compareAssets, openCompare, closeCompare, addCompareAsset, removeCompareAsset,
         newsFilter, setNewsFilter,
         newsBadgeCount, setNewsBadgeCount, clearNewsBadge,
-        alerts, addAlert, removeAlert,
+        alerts, addAlert, removeAlert, updateAlert,
         notifications, addNotification, markNotificationRead, markAllNotificationsRead, clearAllNotifications,
       }}
     >

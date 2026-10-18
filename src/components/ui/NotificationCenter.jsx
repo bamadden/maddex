@@ -12,7 +12,7 @@ import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataS
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { getAiPreferences } from '../../services/aiPreferencesService'
-import { loadAlerts, checkAlerts, markTriggered } from '../../services/alertsService'
+import { loadAlerts, checkAlerts, markTriggered, recordAlertHistory } from '../../services/alertsService'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import AlertsModule from '../../modules/alerts/AlertsModule'
 import { logActivity } from '../../services/activityLogService'
@@ -212,6 +212,12 @@ export default function NotificationCenter() {
 
   const [open, setOpen] = useState(false)
   const [manageOpen, setManageOpen] = useState(false)
+  // Settings → Alerts and anywhere else can open the alert centre.
+  useEffect(() => {
+    const open = () => setManageOpen(true)
+    window.addEventListener('maddex:manage-alerts', open)
+    return () => window.removeEventListener('maddex:manage-alerts', open)
+  }, [])
   const [toasts, setToasts] = useState([])
   const ref = useRef(null)
   const seenToastIds  = useRef(null)
@@ -399,6 +405,7 @@ export default function NotificationCenter() {
       try {
         const { data } = await fetchEquityQuotes(symbols)
         for (const alert of alerts) {
+          if (alert.paused) continue
           const yfSym = toYahooSymbol(alert.sym, detectAssetType(alert.sym))
           const q = data?.[yfSym]
           const hit = alert.direction === 'below'
@@ -427,6 +434,7 @@ export default function NotificationCenter() {
               value: alert.price,
               currentPrice: q.last,
             })
+            recordAlertHistory({ symbol: alert.sym, type: alert.direction === 'below' ? 'PRICE_BELOW' : 'PRICE_ABOVE', level: alert.price, price: q.last })
             removeAlert(alert.id)
           }
         }
@@ -597,9 +605,10 @@ export default function NotificationCenter() {
       const articles = queryClient.getQueryData(['news'])?.articles ?? []
       const newsHeadlines = articles.map((a) => a.headline).filter(Boolean)
       const results = checkAlerts(engineAlerts, { symbols: watchlist, newsHeadlines })
-      for (const { alert, message } of results) {
+      for (const { alert, message, price } of results) {
         const n = addNotification('CUSTOM_ALERT', message)
         markTriggered(alert.id)
+        recordAlertHistory({ symbol: alert.symbol, type: alert.type, level: alert.type === 'RANGE_52W' ? (alert.condition === 'low' ? '52W low' : '52W high') : alert.value, price })
         logActivity('alert', message)
         if (n?.sound) soundService.priceAlert()
       }
@@ -848,7 +857,7 @@ export default function NotificationCenter() {
             <button
               onClick={() => { setManageOpen(true); setOpen(false) }}
               className="text-2xs text-terminal-gold hover:text-terminal-gold-bright transition-colors"
-            >⚙ MANAGE ALERTS</button>
+            >⚙ ALERT CENTRE</button>
             {inQuietHours() && (
               <span className="ml-2 text-2xs text-terminal-text-dim/60" title="Only price alerts interrupt during quiet hours">
                 · ◗ quiet hours

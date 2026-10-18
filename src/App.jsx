@@ -21,6 +21,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import LegalPage from './pages/LegalPage'
 import { LEGAL_DOCS } from './data/legalDocs'
 import SetupWizard from './components/onboarding/SetupWizard'
+import AlertSuggestion from './components/ui/AlertSuggestion'
 import WelcomeModal from './components/onboarding/WelcomeModal'
 import { APP_VERSION } from './components/layout/NavBar'
 import ContextualTip from './components/onboarding/ContextualTip'
@@ -855,6 +856,7 @@ function Terminal() {
       {showWelcome && <WelcomeModal onGetStarted={completeWelcome} />}
       <NotificationPermissionPrompt suppressed={showWelcome || showTour} />
       <PlanOverlays />
+      <AlertSuggestion />
       {!showWelcome && showTour && <SetupWizard onComplete={completeTour} />}
       {!showWelcome && !showTour && showWhatsNew && (
         <Suspense fallback={null}>
