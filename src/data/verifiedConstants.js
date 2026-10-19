@@ -57,15 +57,23 @@ export const VERIFIED_CONSTANTS = {
     // on their EFFECTIVE date, the day after. A2 lists only changes, so the
     // Jun and Aug holds are confirmed by the absence of an A2 row between the
     // 6 May and 30 Sep changes. `npm run check-stats` re-checks this list
-    // against A2. Append a row after each meeting.
+    // against A2. Votes and one-line reasons for 2026 are from each decision
+    // statement (mr-26-03, -08, -12, -15, -19, -27); the Board has published
+    // its vote since 2025. Append a row after each meeting.
     decisions: [
       { date: '2025-08-12', rate: 3.60, decision: 'CUT',  change: -25 },
-      { date: '2026-02-03', rate: 3.85, decision: 'HIKE', change: 25 },
-      { date: '2026-03-17', rate: 4.10, decision: 'HIKE', change: 25 },
-      { date: '2026-05-05', rate: 4.35, decision: 'HIKE', change: 25 },
-      { date: '2026-06-16', rate: 4.35, decision: 'HOLD', change: 0 },
-      { date: '2026-08-11', rate: 4.35, decision: 'HOLD', change: 0 },
-      { date: '2026-09-29', rate: 4.60, decision: 'HIKE', change: 25 },
+      { date: '2026-02-03', rate: 3.85, decision: 'HIKE', change: 25, vote: 'Unanimous',
+        reason: 'Inflation picked up materially in H2 2025; capacity pressures greater than assessed.' },
+      { date: '2026-03-17', rate: 4.10, decision: 'HIKE', change: 25, vote: '5–4 majority',
+        reason: 'Middle East conflict lifted fuel prices; material risk inflation stays above target longer.' },
+      { date: '2026-05-05', rate: 4.35, decision: 'HIKE', change: 25, vote: '8–1 majority',
+        reason: 'Fuel costs passing through to other prices; inflation risks tilted to the upside.' },
+      { date: '2026-06-16', rate: 4.35, decision: 'HOLD', change: 0, vote: 'Unanimous',
+        reason: 'Inflation still too high, but held to assess the response to three hikes.' },
+      { date: '2026-08-11', rate: 4.35, decision: 'HOLD', change: 0, vote: 'Unanimous',
+        reason: 'Oil shock smaller than feared so far; labour market easing a little faster than expected.' },
+      { date: '2026-09-29', rate: 4.60, decision: 'HIKE', change: 25, vote: 'Unanimous',
+        reason: 'Upside risks flagged in August are materialising; growth and inflation above forecast.' },
     ],
     source: 'rba.gov.au (mr-26-27)',
     asOf: '2026-09-29',
@@ -82,19 +90,49 @@ export const VERIFIED_CONSTANTS = {
     lastDecision: '2026-09-16',
     lastDecisionVerb: 'HIKE',
     nextMeeting: '2026-10-28',
-    // Top of the target range after each move since Sep 2025, from the FOMC
-    // statements on federalreserve.gov (the Dec 2025 cut re-checked
-    // 2026-10-19). Enough history for a 12-month change; the recession
-    // monitor reads it.
+    // Every FOMC rate move since the 2020 emergency cut, and every 2026
+    // meeting including holds, by ANNOUNCEMENT date. `rate` is the top of the
+    // target range. Moves checked 2026-10-19 against the Fed's own target
+    // series (DFEDTARU, which records each on its effective date, the day
+    // after); 2026 decisions and votes read from each FOMC statement on
+    // federalreserve.gov. Votes are for–against; `reason` paraphrases the
+    // statement or names the dissents. Append a row after each meeting.
+    // placeholders.js derives FED_RATE_HISTORY from this list.
     decisions: [
+      { date: '2020-03-15', rate: 0.25, decision: 'CUT',  change: -100 },
+      { date: '2022-03-16', rate: 0.50, decision: 'HIKE', change: 25 },
+      { date: '2022-05-04', rate: 1.00, decision: 'HIKE', change: 50 },
+      { date: '2022-06-15', rate: 1.75, decision: 'HIKE', change: 75 },
+      { date: '2022-07-27', rate: 2.50, decision: 'HIKE', change: 75 },
+      { date: '2022-09-21', rate: 3.25, decision: 'HIKE', change: 75 },
+      { date: '2022-11-02', rate: 4.00, decision: 'HIKE', change: 75 },
+      { date: '2022-12-14', rate: 4.50, decision: 'HIKE', change: 50 },
+      { date: '2023-02-01', rate: 4.75, decision: 'HIKE', change: 25 },
+      { date: '2023-03-22', rate: 5.00, decision: 'HIKE', change: 25 },
+      { date: '2023-05-03', rate: 5.25, decision: 'HIKE', change: 25 },
+      { date: '2023-07-26', rate: 5.50, decision: 'HIKE', change: 25 },
+      { date: '2024-09-18', rate: 5.00, decision: 'CUT',  change: -50 },
+      { date: '2024-11-07', rate: 4.75, decision: 'CUT',  change: -25 },
+      { date: '2024-12-18', rate: 4.50, decision: 'CUT',  change: -25 },
       { date: '2025-09-17', rate: 4.25, decision: 'CUT',  change: -25 },
       { date: '2025-10-29', rate: 4.00, decision: 'CUT',  change: -25 },
       { date: '2025-12-10', rate: 3.75, decision: 'CUT',  change: -25 },
-      { date: '2026-09-16', rate: 4.00, decision: 'HIKE', change: 25 },
+      { date: '2026-01-28', rate: 3.75, rateRange: '3.50–3.75', decision: 'HOLD', change: 0, vote: '10–2',
+        reason: 'Held. Miran and Waller dissented, preferring a 25bp cut.' },
+      { date: '2026-03-18', rate: 3.75, rateRange: '3.50–3.75', decision: 'HOLD', change: 0, vote: '11–1',
+        reason: 'Held. Miran dissented, preferring a 25bp cut.' },
+      { date: '2026-04-29', rate: 3.75, rateRange: '3.50–3.75', decision: 'HOLD', change: 0, vote: '8–4',
+        reason: 'Held. Miran wanted a cut; Hammack, Kashkari and Logan opposed the statement\'s easing bias.' },
+      { date: '2026-06-17', rate: 3.75, rateRange: '3.50–3.75', decision: 'HOLD', change: 0, vote: '12–0',
+        reason: 'Inflation elevated, partly from energy supply shocks tied to the Middle East conflict.' },
+      { date: '2026-07-29', rate: 3.75, rateRange: '3.50–3.75', decision: 'HOLD', change: 0, vote: '9–3',
+        reason: 'Held. Hammack, Kashkari and Logan dissented, preferring a 25bp hike.' },
+      { date: '2026-09-16', rate: 4.00, rateRange: '3.75–4.00', decision: 'HIKE', change: 25, vote: '12–0',
+        reason: 'Inflation remains elevated; the hike supports a timelier return to 2%.' },
     ],
     source: 'federalreserve.gov',
     asOf: '2026-09-16',
-    lastVerified: '2026-10-18',
+    lastVerified: '2026-10-19',
   },
   ecb: {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
@@ -390,13 +428,39 @@ export const VERIFIED_CONSTANTS = {
   },
 
   // ── Other major economies ─────────────────────────────────────────────────
+  // US figures refreshed 2026-10-19 from the agencies themselves: CPI and
+  // unemployment from the BLS public API (CUUR0000SA0, CUUR0000SA0L1E,
+  // LNS14000000, CES0000000001), GDP from BEA's Q2 third estimate. Year-on-year
+  // CPI is computed from the unadjusted index, as BLS headlines it:
+  // Sep 2026 336.940 / Sep 2025 324.800 = +3.7%; core 339.287 / 330.804 = +2.6%.
+  // The block this replaced said CPI 2.4% for May 2026; the same index puts
+  // May at +4.2%, so that figure was wrong as well as old.
   us: {
-    cpi: 2.4, cpiPeriod: 'May 2026', cpiRelease: '2026-05-13',
-    unemployment: 4.1, unemploymentRelease: '2026-06-05',
-    gdpQoQAnnualised: 1.8, gdpRelease: '2026-04-30',
-    nfpThousands: 142, nfpRelease: '2026-06-05',
-    fedFundsRelease: '2026-05-07',
-    source: 'bls.gov / bea.gov', asOf: '2026-06-05', lastVerified: '2026-09-06',
+    cpi: 3.7, cpiPrevious: 3.4, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-14',
+    cpiCore: 2.6, cpiCorePrevious: 2.4,
+    unemployment: 4.2, unemploymentPrevious: 4.1, unemploymentPeriod: 'Sep 2026', unemploymentRelease: '2026-10-02',
+    // Q2 2026, third estimate. Q1 was 2.5%. Q3 advance estimate due 29 Oct.
+    gdpQoQAnnualised: 2.2, gdpPrevious: 2.5, gdpPeriod: 'Q2 2026', gdpRelease: '2026-09-30', gdpNextRelease: '2026-10-29',
+    // Payroll change, thousands. Aug is the revised figure as of the Sep
+    // report (Jul and Aug were revised down a combined 60k).
+    nfpThousands: 29, nfpPrevious: 133, nfpRelease: '2026-10-02',
+    fedFundsRelease: '2026-09-16',
+    // Seasonally adjusted unemployment rate, monthly, for the Sahm-style
+    // factor in recessionRisk.js. October 2025 is null: the federal
+    // government shutdown meant the household survey was not collected that
+    // month, and BLS publishes no figure for it.
+    unemploymentHistory: [
+      { period: '2024-07', value: 4.2 }, { period: '2024-08', value: 4.2 }, { period: '2024-09', value: 4.1 },
+      { period: '2024-10', value: 4.1 }, { period: '2024-11', value: 4.2 }, { period: '2024-12', value: 4.1 },
+      { period: '2025-01', value: 4.0 }, { period: '2025-02', value: 4.2 }, { period: '2025-03', value: 4.2 },
+      { period: '2025-04', value: 4.2 }, { period: '2025-05', value: 4.3 }, { period: '2025-06', value: 4.1 },
+      { period: '2025-07', value: 4.3 }, { period: '2025-08', value: 4.3 }, { period: '2025-09', value: 4.4 },
+      { period: '2025-10', value: null }, { period: '2025-11', value: 4.5 }, { period: '2025-12', value: 4.4 },
+      { period: '2026-01', value: 4.3 }, { period: '2026-02', value: 4.4 }, { period: '2026-03', value: 4.3 },
+      { period: '2026-04', value: 4.3 }, { period: '2026-05', value: 4.3 }, { period: '2026-06', value: 4.2 },
+      { period: '2026-07', value: 4.1 }, { period: '2026-08', value: 4.1 }, { period: '2026-09', value: 4.2 },
+    ],
+    source: 'bls.gov / bea.gov', asOf: '2026-10-14', lastVerified: '2026-10-19',
   },
   cn: {
     cpi: 0.1, cpiRelease: '2026-05-14',

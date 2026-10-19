@@ -207,6 +207,100 @@ export async function checkHistories(constants, { base = '/api/reservebank', fet
   return out
 }
 
+// ── US figures and the FOMC path (script only) ───────────────────────────────
+// The BLS public API (v1, keyless; 25 requests a day, which a daily check
+// uses one of) and two series from FRED's keyless CSV download: the Fed's own
+// target upper bound (DFEDTARU) and BEA's real GDP growth, annualised
+// (A191RL1Q225SBEA). Neither BLS nor FRED sends CORS headers, so this runs
+// from scripts/check-official-stats.mjs only.
+
+const BLS = 'https://api.bls.gov/publicAPI/v1/timeseries/data/'
+const FRED = 'https://fred.stlouisfed.org/graph/fredgraph.csv'
+
+async function fredSeries(id, start, fetchImpl) {
+  const r = await fetchImpl(`${FRED}?id=${id}&cosd=${start}`)
+  if (!r.ok) throw new Error(`FRED ${id} HTTP ${r.status}`)
+  return (await r.text()).trim().split(/\r?\n/).slice(1).map((l) => l.split(','))
+    .map(([date, v]) => ({ date, value: parseFloat(v) })).filter((o) => Number.isFinite(o.value))
+}
+
+export async function checkUs(constants, { fetchImpl = fetch } = {}) {
+  const { us, fed } = constants
+  const out = []
+  const settle = async (label, fn) => { try { await fn() } catch (e) { out.push({ label, error: e.message }) } }
+  const toPeriod = (o) => `${o.year}-${o.period.slice(1)}`
+
+  await settle('US BLS', async () => {
+    const startyear = String(+us.unemploymentHistory[0].period.slice(0, 4))
+    const r = await fetchImpl(BLS, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seriesid: ['CUUR0000SA0', 'CUUR0000SA0L1E', 'LNS14000000', 'CES0000000001'], startyear, endyear: String(new Date().getFullYear()) }),
+    })
+    if (!r.ok) throw new Error(`BLS HTTP ${r.status}`)
+    const body = await r.json()
+    if (body.status !== 'REQUEST_SUCCEEDED') throw new Error(`BLS ${body.status}: ${body.message?.join(' ')}`)
+    const series = Object.fromEntries(body.Results.series.map((s) => [s.seriesID,
+      new Map(s.data.filter((o) => /^M\d\d$/.test(o.period)).map((o) => [toPeriod(o), o.value === '-' ? null : parseFloat(o.value)]))]))
+    const latest = (id) => [...series[id].entries()].filter(([, v]) => v != null).sort(([a], [b]) => b.localeCompare(a))[0]
+    const yoy = (id, period) => {
+      const prior = `${+period.slice(0, 4) - 1}${period.slice(4)}`
+      const a = series[id].get(period), b = series[id].get(prior)
+      return a != null && b != null ? r1((a / b - 1) * 100) : null
+    }
+    // Headline figures: the newest month BLS has must be the one the
+    // constants describe, at the same value.
+    const [cpiPeriod] = latest('CUUR0000SA0')
+    const [luPeriod, lu] = latest('LNS14000000')
+    const [nfpPeriod, nfpLevel] = latest('CES0000000001')
+    const prevMonth = (p) => { const d = new Date(`${p}-15T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7) }
+    const nfp = Math.round(nfpLevel - series.CES0000000001.get(prevMonth(nfpPeriod)))
+    const misses = []
+    const want = (label, period, official, ours) => { if (official == null || Math.abs(official - ours) >= 0.05) misses.push({ period: `${label} ${period}`, ours, official }) }
+    want('CPI', cpiPeriod, yoy('CUUR0000SA0', cpiPeriod), us.cpi)
+    want('core CPI', cpiPeriod, yoy('CUUR0000SA0L1E', cpiPeriod), us.cpiCore)
+    want('unemployment', luPeriod, lu, us.unemployment)
+    want('payrolls (k)', nfpPeriod, nfp, us.nfpThousands)
+    out.push({ label: 'US headline (BLS)', points: 4, misses })
+    // The monthly unemployment series behind the recession monitor.
+    const hm = us.unemploymentHistory
+      .map((h) => ({ period: h.period, ours: h.value, official: series.LNS14000000.get(h.period) ?? null }))
+      .filter((m) => m.ours !== m.official && !(m.ours != null && m.official != null && Math.abs(m.ours - m.official) < 0.05))
+    out.push({ label: 'US unemployment hist', points: hm.length + us.unemploymentHistory.length - hm.length, misses: hm })
+  })
+
+  await settle('US GDP (BEA)', async () => {
+    const rows = await fredSeries('A191RL1Q225SBEA', '2025-01-01', fetchImpl)
+    const last = rows[rows.length - 1]
+    const q = `${last.date.slice(0, 4)}-Q${Math.floor((+last.date.slice(5, 7) - 1) / 3) + 1}`
+    const ours = us.gdpPeriod.replace(/^Q(\d) (\d{4})$/, '$2-Q$1')
+    const misses = q !== ours || Math.abs(last.value - us.gdpQoQAnnualised) >= 0.05
+      ? [{ period: q, ours: `${us.gdpQoQAnnualised} (${us.gdpPeriod})`, official: last.value }] : []
+    out.push({ label: 'US GDP (BEA)', points: 1, misses })
+  })
+
+  await settle('FOMC decisions', async () => {
+    // Every change in the target upper bound must be a HIKE/CUT row the day
+    // before, and every HIKE/CUT row must have its change. As with A2, holds
+    // have nothing to match.
+    // From a month before the first decision, so that move shows as a change.
+    const start = new Date(`${fed.decisions[0].date}T12:00:00Z`); start.setUTCMonth(start.getUTCMonth() - 1)
+    const rows = await fredSeries('DFEDTARU', start.toISOString().slice(0, 10), fetchImpl)
+    const changes = []
+    for (let i = 1; i < rows.length; i++) if (rows[i].value !== rows[i - 1].value) changes.push({ effective: rows[i].date, rate: rows[i].value, change: Math.round((rows[i].value - rows[i - 1].value) * 100) })
+    const moves = fed.decisions.filter((d) => d.change !== 0)
+    const nextDay = (iso) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10) }
+    const misses = []
+    for (const m of moves) {
+      const c = changes.find((x) => x.effective === nextDay(m.date))
+      if (!c || c.change !== m.change || Math.abs(c.rate - m.rate) > 0.001) misses.push({ period: m.date, ours: `${m.decision} ${m.rate}`, official: c ? `${c.change}bp ${c.rate}` : 'no change' })
+    }
+    const listedFrom = nextDay(fed.decisions[0].date)
+    for (const c of changes) if (c.effective >= listedFrom && !moves.some((m) => nextDay(m.date) === c.effective)) misses.push({ period: c.effective, ours: 'missing', official: `${c.change}bp ${c.rate}` })
+    out.push({ label: 'FOMC decisions', points: fed.decisions.length, misses })
+  })
+  return out
+}
+
 // ── In-app check ─────────────────────────────────────────────────────────────
 // Run once at startup and cached for six hours: the agencies publish monthly
 // or quarterly, and the RBA eight times a year.

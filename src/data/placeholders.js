@@ -109,11 +109,15 @@ export const AU_MACRO = [
 
 // GLOBAL_MACRO — official statistical agency releases, derived as above.
 export const GLOBAL_MACRO = [
-  { name: 'US CPI YoY',      value: pct(us.cpi),               prev: '2.5%',  date: us.cpiRelease,          beat: true,  region: 'US', src: 'bls.gov',             vkey: 'us' },
-  { name: 'US GDP QoQ Ann',  value: pct(us.gdpQoQAnnualised),  prev: '2.4%',  date: us.gdpRelease,          beat: false, region: 'US', src: 'bea.gov',             vkey: 'us' },
-  { name: 'US Unemployment', value: pct(us.unemployment),      prev: '4.1%',  date: us.unemploymentRelease, beat: null,  region: 'US', src: 'bls.gov',             vkey: 'us' },
-  { name: 'US NFP',          value: `${us.nfpThousands}K`,     prev: '185K',  date: us.nfpRelease,          beat: false, region: 'US', src: 'bls.gov',             vkey: 'us' },
-  { name: 'US Fed Funds',    value: fed.rateRange,             prev: fed.rateRange, date: us.fedFundsRelease, beat: null, region: 'US', src: fed.source,           vkey: 'fed' },
+  // `beat` is null on the US rows: no consensus source is held for them, so
+  // no beat/miss arrow. NFP's miss (+29k against roughly +90k expected) was
+  // reported across the wires on 2 Oct.
+  { name: 'US CPI YoY',      value: pct(us.cpi),               prev: pct(us.cpiPrevious),  date: us.cpiRelease,          beat: null,  region: 'US', src: 'bls.gov',             vkey: 'us' },
+  { name: 'US Core CPI YoY', value: pct(us.cpiCore),           prev: pct(us.cpiCorePrevious), date: us.cpiRelease,       beat: null,  region: 'US', src: 'bls.gov',             vkey: 'us' },
+  { name: 'US GDP QoQ Ann',  value: pct(us.gdpQoQAnnualised),  prev: pct(us.gdpPrevious),  date: us.gdpRelease,          beat: null,  region: 'US', src: 'bea.gov',             vkey: 'us' },
+  { name: 'US Unemployment', value: pct(us.unemployment),      prev: pct(us.unemploymentPrevious), date: us.unemploymentRelease, beat: null, region: 'US', src: 'bls.gov',      vkey: 'us' },
+  { name: 'US NFP',          value: `${us.nfpThousands}K`,     prev: `${us.nfpPrevious}K`, date: us.nfpRelease,          beat: false, region: 'US', src: 'bls.gov',             vkey: 'us' },
+  { name: 'US Fed Funds',    value: fed.rateRange,             prev: `${fed.decisions.at(-2).rateRange}%`, date: us.fedFundsRelease, beat: null, region: 'US', src: fed.source,           vkey: 'fed' },
   { name: 'CN CPI YoY',      value: pct(cn.cpi),               prev: '-0.1%', date: cn.cpiRelease,          beat: true,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
   { name: 'CN GDP QoQ',      value: pct(cn.gdpQoQ),            prev: '1.2%',  date: cn.gdpRelease,          beat: true,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
   { name: 'CN PMI Mfg',      value: String(cn.pmiManufacturing), prev: '50.4', date: cn.pmiRelease,         beat: false, region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
@@ -207,6 +211,14 @@ export const RBA_RATE_HISTORY = [
   { date: '2025-05-21', rate: 3.85, announced: '2025-05-20' },
   ...rba.decisions.map((d) => ({ date: dayAfter(d.date), rate: d.rate, decision: d.decision, change: d.change, announced: d.date })),
 ]
+
+// FED_RATE_HISTORY — the Fed's path on EFFECTIVE dates (the day after each
+// announcement), the same convention as RBA_RATE_HISTORY so the two can be
+// compared day by day. `rate` is the top of the target range. Derived from
+// VERIFIED_CONSTANTS.fed.decisions; holds are kept as points.
+export const FED_RATE_HISTORY = fed.decisions.map((d) => ({
+  date: dayAfter(d.date), rate: d.rate, decision: d.decision, change: d.change, announced: d.date,
+}))
 
 // Board composition — names, roles and appointment years, which are public
 // record on rba.gov.au.

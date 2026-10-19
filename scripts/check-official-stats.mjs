@@ -1,7 +1,7 @@
 // Compares src/data/verifiedConstants.js against the agencies' own data.
 //   npm run check-stats
 // Exit code 1 when any figure has drifted, so it can run in CI or a cron.
-import { fetchOfficialStats, reconcile, checkHistories } from '../src/services/officialStats.js'
+import { fetchOfficialStats, reconcile, checkHistories, checkUs } from '../src/services/officialStats.js'
 import { VERIFIED_CONSTANTS } from '../src/data/verifiedConstants.js'
 
 // The agencies' endpoints time out now and then; one retry for whichever
@@ -24,7 +24,11 @@ const tail = unavailable ? ` ${unavailable} figure(s) could not be checked — f
 console.log(drift.length ? `\n${drift.length} figure(s) out of date.${tail}` : unavailable === rows.length ? '\nNothing could be checked — every feed was unreachable.' : `\nAll reachable figures match the constants.${tail}`)
 
 // The chart histories and the RBA decision list, point by point.
-const hist = await checkHistories(VERIFIED_CONSTANTS, { base: 'https://www.rba.gov.au' })
+const hist = [
+  ...await checkHistories(VERIFIED_CONSTANTS, { base: 'https://www.rba.gov.au' }),
+  // US figures and the FOMC path: BLS, BEA (via FRED) and the Fed's target series.
+  ...await checkUs(VERIFIED_CONSTANTS),
+]
 console.log('\nHISTORY SERIES')
 let histDrift = 0
 for (const h of hist) {

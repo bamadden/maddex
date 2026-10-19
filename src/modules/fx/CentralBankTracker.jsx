@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import { LAST_DECISIONS } from '../../services/centralBankSchedule'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import PolicySpreadMonitor from './PolicySpreadMonitor'
 
 // ─── Central bank tracker ──────────────────────────────────────────────────
 //
-// Three panels: a timeline of RBA decisions derived from the published rate
-// path, a board of every tracked bank's last decision, and the AU–US 10-year
-// spread.
+// Four panels: a timeline of RBA decisions derived from the published rate
+// path, a board of every tracked bank's last decision, the AU–US policy
+// spread and the AU–US 10-year spread.
 //
 // WHY THE TIMELINE IS RBA-ONLY
 //
@@ -20,6 +21,11 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 // decisions for two of them, which is precisely the class of thing this
 // terminal spent several commits removing. The other banks get a board of
 // what is actually known instead.
+//
+// Since 2026-10-19 the Fed does have one: VERIFIED_CONSTANTS.fed.decisions,
+// every move since 2020 and every 2026 meeting with its vote. It is drawn as
+// a step line beside the RBA's on the compact chart above, with clickable
+// decision dots, and feeds the policy spread monitor. The ECB still has none.
 
 const DECISION_STYLE = {
   HIKE: { colour: '#2D8A50', bg: 'rgba(45,138,80,0.15)', border: 'rgba(45,138,80,0.5)', mark: '▲' },
@@ -212,7 +218,12 @@ export default function CentralBankTracker({ curves }) {
           bordered box that is mostly empty. Its own height is the honest one. */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
         <DecisionsBoard />
-        <SpreadMonitor curves={curves} />
+        {/* The policy spread first: it is the one that moves on decision
+            days. The 10-year spread below it is the market's version. */}
+        <div className="flex flex-col gap-3">
+          <PolicySpreadMonitor />
+          <SpreadMonitor curves={curves} />
+        </div>
       </div>
     </div>
   )

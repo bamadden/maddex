@@ -124,7 +124,7 @@ function factsBlock() {
     `- AU GDP ${au.gdpAnnual}% annual, ${au.gdpQoQ}% quarter on quarter (${au.gdpPeriod})`,
     `- US Fed funds ${fed.rateRange} (${fed.lastDecisionVerb} on ${fmtDay(fed.lastDecision)}${fed.note ? `; ${fed.note}` : ''}); next meeting ${fmtDay(fed.nextMeeting)}`,
     `- Other central banks: ECB ${ecb.cashRate.toFixed(2)}% (${ecb.lastDecisionVerb} ${fmtDay(ecb.lastDecision)}), BOJ ${boj.cashRate.toFixed(2)}% (${boj.lastDecisionVerb} ${fmtDay(boj.lastDecision)}), BOE ${boe.cashRate.toFixed(2)}% (${boe.lastDecisionVerb} ${fmtDay(boe.lastDecision)})`,
-    `- US CPI ${us.cpi}% and unemployment ${us.unemployment}% — as at ${fmtDay(us.asOf)}, older than the figures above`,
+    `- US CPI ${us.cpi}% (${us.cpiPeriod}, up from ${us.cpiPrevious}%), core ${us.cpiCore}%; unemployment ${us.unemployment}% (${us.unemploymentPeriod}, from ${us.unemploymentPrevious}%); payrolls +${us.nfpThousands}k; GDP ${us.gdpQoQAnnualised}% annualised (${us.gdpPeriod})`,
     `- China CPI ${cn.cpi}%, manufacturing PMI ${cn.pmiManufacturing} — as at ${fmtDay(cn.asOf)}`,
     `- Iron ore US$${commodities.ironOreUSD}/t, Brent US$${commodities.brentUSD}/bbl, thermal coal US$${commodities.thermalCoalUSD}/t — indicative, as at ${fmtDay(commodities.asOf)}; describe commodity direction in words rather than leaning on these levels`,
   ].filter(Boolean).join('\n')

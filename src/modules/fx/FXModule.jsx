@@ -22,6 +22,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts'
 import YieldCurveAnimator from '../../components/charts/YieldCurveAnimator'
 import CentralBankTracker from './CentralBankTracker'
+import PolicyPathChart from './PolicyPathChart'
 import CentralBankCards from './CentralBankCards'
 import UpcomingDecisions from './UpcomingDecisions'
 import AudTwiCard from './AudTwiCard'
@@ -408,34 +409,14 @@ function RbaDecisionHistory() {
 
 const RBA_PERIODS = [['2Y', 2], ['5Y', 5], ['10Y', 10], ['ALL', Infinity]]
 
-function RbaStepTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
-  const prevRate = payload[0]?.payload?.__prev
-  const rate = payload[0].value
-  const decision = prevRate == null ? null : rate > prevRate ? 'HIKE' : rate < prevRate ? 'CUT' : 'HOLD'
-  return (
-    <div className="bg-terminal-panel border border-terminal-border px-2 py-1.5 text-2xs">
-      <div className="text-terminal-text-dim">{new Date(label + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-      <div className="text-terminal-gold font-semibold">{rate.toFixed(2)}%{decision ? ` · ${decision}` : ''}</div>
-    </div>
-  )
-}
-
 function CompactRbaDashboard({ askAI }) {
-  const [period, setPeriod] = useState('5Y')
+  // 2Y by default: wide enough for both cycles' turn, narrow enough that
+  // this year's decision dots sit apart and can be clicked.
+  const [period, setPeriod] = useState('2Y')
   const nextRbaDate = useMemo(() => getNextMeeting(RBA_MEETINGS_2026), [])
   const nextRbaLabel = nextRbaDate ? nextRbaDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'
 
-  const chartData = useMemo(() => {
-    const years = RBA_PERIODS.find(([k]) => k === period)?.[1] ?? Infinity
-    // Cutoff is relative to the data's own latest point, not the wall clock —
-    // this is a fixed historical series, so "5Y" means 5 years of history,
-    // not 5 years before whenever the page happens to render.
-    const latest = new Date(RBA_RATE_HISTORY[RBA_RATE_HISTORY.length - 1].date + 'T00:00:00')
-    const cutoff = years === Infinity ? null : new Date(latest.getTime() - years * 365 * 86400000)
-    const rows = cutoff ? RBA_RATE_HISTORY.filter(r => new Date(r.date + 'T00:00:00') >= cutoff) : RBA_RATE_HISTORY
-    return rows.map((r, i) => ({ ...r, __prev: i > 0 ? rows[i - 1].rate : null }))
-  }, [period])
+  const years = RBA_PERIODS.find(([k]) => k === period)?.[1] ?? Infinity
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -459,22 +440,9 @@ function CompactRbaDashboard({ askAI }) {
       </div>
 
       <div className="flex-shrink-0 px-2 py-2" style={{ height: 220 }}>
-        <SafeChart width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <defs>
-              <linearGradient id="rbaCompactGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd"
-              tickFormatter={d => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
-            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={30} />
-            <Tooltip content={<RbaStepTooltip />} />
-            <Area type="stepAfter" dataKey="rate" stroke="#C9A84C" strokeWidth={1.5} fill="url(#rbaCompactGrad)" dot={false} isAnimationActive={false} />
-          </AreaChart>
-        </SafeChart>
+        {/* RBA and Fed step lines on a time axis, with this year's decisions
+            as clickable dots — see PolicyPathChart. */}
+        <PolicyPathChart years={years} />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">

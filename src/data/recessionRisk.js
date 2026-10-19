@@ -86,15 +86,24 @@ function curveFactor(spreadBp) {
 
 // Sahm-style: the latest three-month average of the unemployment rate
 // against the lowest three-month average of the twelve months before it.
-// Needs fifteen monthly points; returns null without them.
+// Needs fifteen monthly points; returns null without them. A month with no
+// figure (the US has none for October 2025, the shutdown month) is skipped:
+// any three-month window that includes it is left out of the comparison,
+// rather than averaged over two months as though it were three.
 export function sahmGap(history) {
   const v = history.map((r) => r.value)
   if (v.length < 15) return null
-  const avg3 = (end) => (v[end] + v[end - 1] + v[end - 2]) / 3
+  const avg3 = (end) => (v[end] == null || v[end - 1] == null || v[end - 2] == null
+    ? null
+    : (v[end] + v[end - 1] + v[end - 2]) / 3)
   const last = v.length - 1
+  const current = avg3(last)
+  if (current == null) return null
   let low = Infinity
-  for (let i = last - 12; i < last; i++) low = Math.min(low, avg3(i))
-  return { current: avg3(last), low, gap: avg3(last) - low, period: history[last].period }
+  for (let i = last - 12; i < last; i++) { const a = avg3(i); if (a != null) low = Math.min(low, a) }
+  if (low === Infinity) return null
+  const missing = history.slice(-15).filter((r) => r.value == null).map((r) => r.period)
+  return { current, low, gap: current - low, period: history[last].period, missing }
 }
 
 function unemploymentFactor(current, { history, trough } = {}) {
@@ -106,9 +115,10 @@ function unemploymentFactor(current, { history, trough } = {}) {
       label: 'Unemployment turning (Sahm-style)',
       weight: 20,
       points: round(20 * t),
-      reading: `+${sahm.gap.toFixed(2)}pp`,
+      reading: `${sahm.gap >= 0 ? '+' : '−'}${Math.abs(sahm.gap).toFixed(2)}pp`,
       state: sahm.gap >= 0.5 ? 'RED' : sahm.gap >= 0.3 ? 'AMBER' : 'GREEN',
       note: `3-month average ${sahm.current.toFixed(2)}% vs a low of ${sahm.low.toFixed(2)}% in the prior year (latest ${current}%). `
+        + (sahm.missing.length ? `No figure for ${sahm.missing.map((p) => new Date(`${p}-15T00:00:00`).toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })).join(', ')}; averages spanning it are left out. ` : '')
         + (sahm.gap >= 0.5
           ? 'At or past the 0.5pp threshold the rule treats as a recession signal.'
           : sahm.gap >= 0.3
@@ -159,7 +169,7 @@ function tighteningFactor(decisions, now) {
     label: 'Policy tightening (12m)',
     weight: 15,
     points: round(15 * t),
-    reading: `${bp >= 0 ? '+' : ''}${bp}bp`,
+    reading: `${bp > 0 ? '+' : bp < 0 ? '−' : ''}${Math.abs(bp)}bp`,
     state: bp >= 100 ? 'RED' : bp > 0 ? 'AMBER' : 'GREEN',
     note: `${then.toFixed(2)}% a year ago, ${current.toFixed(2)}% now`
       + (hikes || cuts ? ` — ${[hikes && `${hikes} hike${hikes > 1 ? 's' : ''}`, cuts && `${cuts} cut${cuts > 1 ? 's' : ''}`].filter(Boolean).join(', ')} in twelve months.` : ' — no moves in twelve months.')
@@ -167,12 +177,12 @@ function tighteningFactor(decisions, now) {
   }
 }
 
-function growthFactor(annualPct) {
+function growthFactor(annualPct, label = 'GDP growth (annual)') {
   // Full weight at or below zero, none at 3%.
   const t = clamp((3 - annualPct) / 3)
   return {
     key: 'growth',
-    label: 'GDP growth (annual)',
+    label,
     weight: 20,
     points: round(20 * t),
     reading: `${annualPct}%`,
@@ -250,10 +260,14 @@ export function usRecessionRisk(now = Date.now()) {
     asOf: us.lastVerified,
     ...assemble([
       curveFactor(curveSpreadBp(YIELD_CURVE_POINTS.US)),
-      unemploymentFactor(us.unemployment, { trough: 3.4 }),
-      // The US publishes an annualised quarterly rate, which is the closest
-      // comparable to the annual figure the AU side uses.
-      growthFactor(us.gdpQoQAnnualised),
+      // BLS monthly series, so the US gets the same Sahm-style reading as AU
+      // (until 2026-10-19 it used the rise from a fixed 3.4% trough, which
+      // scored a three-year drift rather than a turn).
+      unemploymentFactor(us.unemployment, { history: us.unemploymentHistory }),
+      // The US publishes an annualised quarterly rate (BEA), the closest
+      // comparable to the annual figure the AU side uses. Q2 2026 third
+      // estimate; the Q3 advance estimate lands 29 Oct.
+      growthFactor(us.gdpQoQAnnualised, `GDP growth (${us.gdpPeriod}, annualised)`),
       tighteningFactor(fed.decisions, now),
       policyFactor(fed.cashRate, us.cpi),
       inflationFactor(us.cpi, 2),
