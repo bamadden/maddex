@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useMemo, Fragment } from 'react'
 import {
   rememberEntryPrice, sinceAdded, metaFor, setNote, watchlistToText, watchlistToCsv,
+  getMeta, setGroup, addGroup, removeGroup, setTarget, targetStatus, GROUP_COLOURS,
 } from '../../services/watchlistMeta'
 import {
   loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder,
 } from '../../services/watchlistPrefs'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
+import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets, fetchNews } from '../../services/api'
+import { annotateArticles } from '../../services/newsIntelligence'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
@@ -29,7 +31,8 @@ import { soundService } from '../../services/soundService'
 import Tooltip from '../../components/ui/Tooltip'
 import StockContextMenu from '../../components/ui/StockContextMenu'
 import { useStockContextMenu } from '../../hooks/useStockContextMenu'
-import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, todayVolumeRatio } from '../../services/mockData'
+import { RowActions, TargetRow, GroupBar } from './WatchlistRowParts'
 import { showLimitPrompt } from '../../services/plans'
 
 function displaySymbol(symbol) {
@@ -38,11 +41,13 @@ function displaySymbol(symbol) {
 
 // Compact 52-week range bar — shows low/high plus a dot marking where the
 // current price sits between them, instead of two bare numeric columns.
-function Week52Bar({ price, low, high }) {
+function Week52Bar({ price, low, high, target }) {
   if (price == null || low == null || high == null || high <= low) {
     return <span className="text-terminal-text-dim">—</span>
   }
   const pct = Math.min(100, Math.max(0, ((price - low) / (high - low)) * 100))
+  // A target outside the 52-week range pins to the end it is beyond.
+  const tPct = target?.price ? Math.min(100, Math.max(0, ((target.price - low) / (high - low)) * 100)) : null
   return (
     <Tooltip
       className="w-full min-w-0 justify-end"
@@ -50,7 +55,8 @@ function Week52Bar({ price, low, high }) {
         `52-week range\n` +
         `High:    ${fmt.aud(high)}\n` +
         `Current: ${fmt.aud(price)}  (${pct.toFixed(0)}% of range)\n` +
-        `Low:     ${fmt.aud(low)}`
+        `Low:     ${fmt.aud(low)}` +
+        (target?.price ? `\nTarget:  ${fmt.aud(target.price)}` : '')
       }
     >
       {/* The endpoints are AXIS LABELS, not signals.
@@ -59,16 +65,35 @@ function Week52Bar({ price, low, high }) {
           direction — so a stock up 0.7% displayed a red number in the next
           cell. It also asserted that the top of the range is the good end,
           which is a view, not a fact. The dot carries the reading; the
-          endpoints just say where the scale starts and stops. */}
-      <div className="flex items-center gap-1.5 w-full min-w-0">
-        <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(low)}</span>
-        <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[20px]">
-          <div
-            className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
-            style={{ left: `calc(${pct}% - 3px)` }}
-          />
+          endpoints just say where the scale starts and stops. The bar itself
+          is a neutral track with a gold dot, never a red/green fill: the
+          CHG% column is the only place colour means direction. */}
+      <div className="flex flex-col w-full min-w-0 gap-0.5">
+        <div className="flex items-center gap-1.5 w-full min-w-0">
+          <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(low)}</span>
+          <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[20px]">
+            {tPct != null && (
+              <div className="absolute top-1/2 -translate-y-1/2 w-px h-2.5" title="Price target"
+                style={{ left: `${tPct}%`, background: target.hit ? '#2D8A50' : '#8BA3C4' }} />
+            )}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
+              style={{ left: `calc(${pct}% - 3px)` }}
+            />
+          </div>
+          <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(high)}</span>
         </div>
-        <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(high)}</span>
+        {target?.price && (
+          <div className="text-[9px] text-right tabular-nums whitespace-nowrap">
+            {target.hit
+              ? <span className="text-terminal-green font-bold">TARGET HIT ✓</span>
+              : target.gap != null && (
+                <span className="text-terminal-text-dim/70">
+                  {fmt.aud(Math.abs(target.gap))} to target ({Math.abs(target.gapPct).toFixed(1)}%)
+                </span>
+              )}
+          </div>
+        )}
       </div>
     </Tooltip>
   )
@@ -260,7 +285,7 @@ function CryptoPriceCells({ price, pct, pct7d, audToUsd, show }) {
   )
 }
 
-function LivePriceCells({ symbol, price, change, pct, week52Low, week52High, show }) {
+function LivePriceCells({ symbol, price, change, pct, week52Low, week52High, target, show }) {
   const isAsx = symbol.endsWith('.AX')
   const { quote, flash } = useLivePrice(isAsx ? symbol : null)
   const livePrice = isAsx && quote ? quote.regularMarketPrice : price
@@ -288,7 +313,7 @@ function LivePriceCells({ symbol, price, change, pct, week52Low, week52High, sho
       )}
       {show('week52') && (
         <td className="px-2 py-1.5 text-right">
-          <Week52Bar price={livePrice} low={week52Low} high={week52High} />
+          <Week52Bar price={livePrice} low={week52Low} high={week52High} target={target} />
         </td>
       )}
     </>
@@ -367,14 +392,15 @@ const COLUMNS = [
   { key: 'price',      label: 'PRICE (A$)',  width: 90,   align: 'right', sort: 'price',     menu: 'Price' },
   { key: 'change',     label: 'CHG',         width: 72,   align: 'right',                    menu: 'Day $' },
   { key: 'pct',        label: 'CHG%',        width: 82,   align: 'right', sort: 'pct',       menu: 'Day %' },
-  { key: 'week52',     label: '52W RANGE',   width: 132,  align: 'right',                    menu: '52W Range' },
-  { key: 'volume',     label: 'VOLUME',      width: 70,   align: 'right',                    menu: 'Volume' },
+  { key: 'week52',     label: '52W RANGE',   width: 140,  align: 'right',                    menu: '52W Range' },
+  { key: 'offHigh',    label: 'OFF HIGH',    width: 70,   align: 'right', sort: 'offHigh',   menu: 'Off 52W High' },
+  { key: 'volume',     label: 'VOL',         width: 96,   align: 'right', sort: 'active',    menu: 'Volume' },
   { key: 'marketCap',  label: 'MKT CAP',     width: 82,   align: 'right', sort: 'marketCap', menu: 'Mkt Cap' },
   { key: 'pe',         label: 'P/E',         width: 58,   align: 'right', sort: 'pe',        menu: 'P/E' },
   { key: 'divYield',   label: 'DIV YIELD',   width: 76,   align: 'right', sort: 'divYield',  menu: 'Div Yield' },
   { key: 'sinceAdded', label: 'SINCE ADDED', width: 128,  align: 'right',                    menu: 'Since Added' },
   { key: 'alert',      label: '⚡',           width: 40,   align: 'center',                   menu: 'Alert' },
-  { key: 'remove',     label: '',            width: 32,   always: true },
+  { key: 'actions',    label: '',            width: 118,  always: true },
 ]
 
 // All on except SINCE ADDED, which is off until the user asks for it: an entry
@@ -390,7 +416,7 @@ const DEFAULT_COLUMNS = Object.fromEntries(
 const CRYPTO_LABEL = {
   price: 'Price (A$)', change: 'Price (US$)', pct: '24H%', week52: '7D%',
   volume: 'Volume', marketCap: 'Mkt Cap', pe: '—', divYield: '—',
-  sinceAdded: 'Since added', ticker: 'Ticker', name: 'Name',
+  sinceAdded: 'Since added', ticker: 'Ticker', name: 'Name', offHigh: '—',
 }
 
 const SORT_VALUE = {
@@ -400,8 +426,50 @@ const SORT_VALUE = {
   marketCap: (r) => r.marketCap,
   pe:        (r) => r.pe,
   divYield:  (r) => r.divYield,
+  offHigh:   (r) => r.offHigh,
+  // Smart sorts. MOST ACTIVE is today's volume against its own average, not
+  // raw volume — raw volume just ranks the biggest companies first every day.
+  active:    (r) => r.volRatio,
+  mover:     (r) => (r.pct != null ? Math.abs(r.pct) : null),
+  alerting:  (r) => r.alertCount,
+  news:      (r) => r.newsCount,
 }
-const SORT_LABEL = Object.fromEntries(COLUMNS.filter((c) => c.sort).map((c) => [c.sort, c.label]))
+
+// The sort dropdown. Column headers still sort too; this adds the sorts that
+// have no column of their own. Smart sorts default to descending — most
+// active first, biggest mover first.
+const SORT_OPTIONS = [
+  { key: '',          label: 'Manual order' },
+  { key: 'active',    label: 'Most active', dir: 'desc' },
+  { key: 'mover',     label: 'Biggest mover', dir: 'desc' },
+  { key: 'alerting',  label: 'Alerting', dir: 'desc' },
+  { key: 'news',      label: 'In news (24h)', dir: 'desc' },
+  { key: 'pct',       label: 'Day change', dir: 'desc' },
+  { key: 'offHigh',   label: 'Closest to 52W high', dir: 'desc' },
+  { key: 'name',      label: 'Name', dir: 'asc' },
+  { key: 'price',     label: 'Price', dir: 'desc' },
+  { key: 'marketCap', label: 'Market cap', dir: 'desc' },
+  { key: 'divYield',  label: 'Dividend yield', dir: 'desc' },
+]
+const SORT_LABEL = {
+  ...Object.fromEntries(COLUMNS.filter((c) => c.sort).map((c) => [c.sort, c.label])),
+  ...Object.fromEntries(SORT_OPTIONS.filter((o) => o.key).map((o) => [o.key, o.label.toUpperCase()])),
+}
+
+// Today's volume against its average, coloured by how unusual it is: below
+// average muted, above twice average gold, above four times pulsing.
+function VolumeCell({ volume, ratio }) {
+  if (volume == null) return <span className="text-terminal-text-dim">—</span>
+  const tone = ratio == null ? 'text-terminal-text-dim'
+    : ratio >= 4 ? 'text-terminal-gold font-bold animate-pulse'
+      : ratio >= 2 ? 'text-terminal-gold font-bold'
+        : ratio < 1 ? 'text-terminal-text-dim/60' : 'text-terminal-text-dim'
+  return (
+    <span className={`tabular-nums whitespace-nowrap ${tone}`} title={ratio != null ? `${ratio.toFixed(2)}× its average daily volume` : undefined}>
+      {fmt.large(volume)}{ratio != null && <span> ({ratio.toFixed(1)}×)</span>}
+    </span>
+  )
+}
 
 function sortRows(rows, sortKey, sortDir) {
   if (!sortKey) return rows
@@ -421,29 +489,8 @@ function toYahoo(raw) {
   return { type, yfSym: toYahooSymbol(raw, type) }
 }
 
-function exportCSV(rows) {
-  const headers = ['Ticker', 'Name', 'Price (AUD)', 'Day Change', 'Day Change %', '52W High', '52W Low', 'Volume', 'Market Cap']
-  const csvRows = rows.map((r) => [
-    r.displaySymbol,
-    r.name ?? '',
-    r.price != null ? r.price.toFixed(2) : '',
-    r.change != null ? r.change.toFixed(2) : '',
-    r.pct != null ? r.pct.toFixed(2) : '',
-    r.week52High != null ? r.week52High.toFixed(2) : '',
-    r.week52Low != null ? r.week52Low.toFixed(2) : '',
-    r.volume ?? '',
-    r.marketCap != null ? Math.round(r.marketCap) : '',
-  ])
-  const csv  = [headers, ...csvRows].map((r) => r.join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href = url; a.download = `watchlist_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
-  URL.revokeObjectURL(url)
-}
-
 export default function WatchlistModule() {
-  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal, alerts, addAlert, removeAlert } = useStore()
+  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal, alerts, addAlert, removeAlert, setActiveModule } = useStore()
   const { menu, openMenu, closeMenu } = useStockContextMenu()
   const { user, profile } = useAuthStore()
   const [shareLink, setShareLink] = useState(null)
@@ -562,6 +609,20 @@ export default function WatchlistModule() {
     ? Object.fromEntries(transformCryptoMarkets(cryptoResult.data, cryptoResult.currency).map((c) => [c.symbol, c]))
     : {}
 
+  // Same cached feed the News module reads. A ticker counts as "in the news"
+  // when a story from the last 24 hours names it.
+  const { data: news } = useQuery({ queryKey: ['news'], queryFn: fetchNews, staleTime: 15 * 60_000, retry: 1 })
+  const [openedAt] = useState(() => Date.now())
+  const newsCounts = useMemo(() => {
+    const out = {}
+    const cutoff = openedAt - 24 * 60 * 60_000
+    for (const a of annotateArticles(news?.articles ?? [])) {
+      if (!(new Date(a.pubDate).getTime() >= cutoff)) continue
+      for (const t of new Set((a.companies ?? []).map((c) => c.ticker.replace(/\.AX$/, '')))) out[t] = (out[t] ?? 0) + 1
+    }
+    return out
+  }, [news, openedAt])
+
   const anyFetching = isFetching || isFetchingCrypto
   const refetchAll = () => { refetch(); refetchCrypto() }
 
@@ -591,6 +652,8 @@ export default function WatchlistModule() {
         isLive:      true,
         nativePrice: null,
         currency:    'AUD',
+        volRatio:    null,
+        offHigh:     null,
       }
     }
 
@@ -617,8 +680,20 @@ export default function WatchlistModule() {
       isLive:      true,
       nativePrice: isAsx ? null : q.price,
       currency:    q.currency,
+      // Today's volume against its average. In demo mode, the same measure
+      // the scanner and the unusual-activity panel use (the 20-session
+      // average of the demo bars), so a stock is 2.1× here and there.
+      volRatio:    USING_MOCK_DATA
+        ? todayVolumeRatio(yfSym)
+        : (q.volume && q.avgVolume ? q.volume / q.avgVolume : null),
+      // Distance below the 52-week high, in percent (0 or above = at a high).
+      offHigh:     q.price != null && q.week52High ? ((q.price - q.week52High) / q.week52High) * 100 : null,
     }
-  })
+  }).map((r) => ({
+    ...r,
+    alertCount: (alerts ?? []).filter((a) => a.sym?.toUpperCase() === r.displaySymbol.toUpperCase()).length,
+    newsCount: newsCounts[r.displaySymbol.toUpperCase()] ?? 0,
+  }))
 
   // Entry prices are captured the first time a symbol is seen WITH a price.
   // Recording at add-time would store a null — the quote has not arrived yet —
@@ -644,6 +719,8 @@ export default function WatchlistModule() {
       best: sorted[0],
       worst: sorted[sorted.length - 1],
       total: priced.length,
+      // One unit of each, in A$ — a reference figure, not a holding.
+      unitValue: rows.reduce((s2, r) => s2 + (r.price ?? 0), 0),
     }
   }, [rows])
 
@@ -669,6 +746,27 @@ export default function WatchlistModule() {
   // save or delete. localStorage is not reactive; without a dependency on it
   // the 📝 marker would not appear until something unrelated re-rendered.
   const noteOf = (symbol) => (noteVersion, metaFor(symbol)?.note ?? '')
+  // Groups and targets live in the same sidecar, so the same counter makes
+  // them re-read after any change.
+  const meta = (noteVersion, getMeta())
+  const groupIds = new Set(meta.groups.map((g) => g.id))
+  const groupOf = (symbol) => {
+    const g = meta.bySymbol[symbol]?.group
+    return g && groupIds.has(g) ? g : null
+  }
+  const [targetFor, setTargetFor] = useState(null)
+  const moveToGroup = (symbol, groupId) => { setGroup(symbol, groupId); bumpNotes((n) => n + 1) }
+
+  // [+] on a row: open Portfolio with the add form showing and this ticker in
+  // it. Portfolio already opens its form from a session flag; the ticker
+  // rides alongside it.
+  const addToPortfolio = (symbol) => {
+    try {
+      sessionStorage.setItem('maddex_open_add_holding', '1')
+      sessionStorage.setItem('maddex_add_holding_symbol', symbol)
+    } catch { /* private mode — the module still opens */ }
+    setActiveModule?.('portfolio')
+  }
 
   const openNote = (symbol) => {
     setNoteDraft(metaFor(symbol)?.note ?? '')
@@ -686,18 +784,23 @@ export default function WatchlistModule() {
     bumpNotes((n) => n + 1)
   }
 
-  const exportRows = () => rows.map((r) => {
+  const exportRows = () => groupedRows.map(({ row: r }) => {
     const since = sinceAdded(r.symbol, r.price)
+    const g = meta.groups.find((x) => x.id === groupOf(r.symbol))
     return {
-      symbol: r.displaySymbol, name: r.name, price: r.price, pct: r.pct,
+      symbol: r.symbol.replace(/-USD$/, ''),
+      name: r.name, price: r.price, pct: r.pct,
+      week52Low: r.week52Low, week52High: r.week52High, offHigh: r.offHigh,
+      volume: r.volume, volRatio: r.volRatio, marketCap: r.marketCap,
+      target: metaFor(r.symbol)?.target?.price ?? null,
       sincePct: since?.pct ?? null, note: metaFor(r.symbol)?.note ?? '',
-      groupName: '',
+      groupName: g?.name ?? '',
     }
   })
 
   const copyWatchlist = async () => {
     try {
-      await navigator.clipboard.writeText(watchlistToText(exportRows()))
+      await navigator.clipboard.writeText(watchlistToText(exportRows(), { demo: USING_MOCK_DATA }))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { /* clipboard unavailable */ }
@@ -726,10 +829,29 @@ export default function WatchlistModule() {
   // render two visually separated sections while `i` still indexes into
   // `sortedRows` for onDragStart/onDrop, which reorder the underlying
   // watchlist array by that position.
+  //
+  // In manual order, equities are grouped by watchlist group, in the groups'
+  // own order, ungrouped last. Under a sort the list is ranked as one — "most
+  // active" means most active on the list, not within each group — and each
+  // row keeps its group's colour stripe instead of a header.
+  const groupRank = new Map(meta.groups.map((g, k) => [g.id, k]))
+  const rankOf = (row) => (row.type === 'crypto' ? Infinity : sortKey ? 0 : groupRank.get(groupOf(row.symbol)) ?? meta.groups.length)
   const groupedRows = sortedRows
     .map((row, i) => ({ row, i }))
-    .sort((a, b) => (a.row.type === 'crypto' ? 1 : 0) - (b.row.type === 'crypto' ? 1 : 0))
+    .sort((a, b) => rankOf(a.row) - rankOf(b.row))
   const firstCryptoIdx = groupedRows.findIndex(({ row }) => row.type === 'crypto')
+  const groupsInUse = !sortKey && groupedRows.some(({ row }) => row.type !== 'crypto' && groupOf(row.symbol))
+  // A header goes above the first row of each group — and, when no groups are
+  // in use, one STOCK WATCHLIST header as before (only if crypto follows).
+  const groupHeaderAt = (idx) => {
+    const { row } = groupedRows[idx]
+    if (row.type === 'crypto') return null
+    const g = groupOf(row.symbol)
+    const prev = idx > 0 ? groupedRows[idx - 1].row : null
+    if (prev && prev.type !== 'crypto' && groupOf(prev.symbol) === g) return null
+    if (!groupsInUse) return firstCryptoIdx > 0 && idx === 0 ? { id: null, name: 'STOCK WATCHLIST', colour: null } : null
+    return g ? meta.groups.find((x) => x.id === g) : { id: null, name: 'UNGROUPED', colour: null }
+  }
 
   // Instant results as the user types — no Enter needed to see candidates.
   const matches = searchTickers(searchInput)
@@ -814,6 +936,13 @@ export default function WatchlistModule() {
   const onDragOver  = (e) => e.preventDefault()
   const onDrop = (i) => {
     const from = dragIndexRef.current
+    // Dropping onto a row in another group moves the stock into that group
+    // as well as to that position. Crypto keeps its own section.
+    const moving = from != null ? sortedRows[from] : null
+    const target = sortedRows[i]
+    if (moving && target && moving.type !== 'crypto' && target.type !== 'crypto' && groupOf(moving.symbol) !== groupOf(target.symbol)) {
+      moveToGroup(moving.symbol, groupOf(target.symbol))
+    }
     if (from != null && from !== i) {
       reorderWatchlist(from, i)
       // Record the resulting arrangement per group. The store persists the
@@ -914,12 +1043,6 @@ export default function WatchlistModule() {
           </button>
         </form>
         <button
-          onClick={() => exportCSV(sortedRows)}
-          className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0"
-        >
-          EXPORT CSV
-        </button>
-        <button
           onClick={handleShare}
           disabled={sortedRows.length === 0}
           className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0 disabled:opacity-30"
@@ -1002,6 +1125,29 @@ export default function WatchlistModule() {
               <span className="text-terminal-red tabular-nums">{overview.worst.pct.toFixed(2)}%</span>
             </span>
           )}
+          <span className="text-terminal-text-dim/25">|</span>
+          <Tooltip content="One unit of every ticker, added up in A$. A reference figure for the list, not a portfolio value.">
+            <span className="text-2xs text-terminal-text-dim whitespace-nowrap">
+              1 unit each: <span className="text-terminal-text-bright tabular-nums">{fmt.aud(overview.unitValue)}</span>
+            </span>
+          </Tooltip>
+
+          <label className="flex items-center gap-1 text-2xs text-terminal-text-dim whitespace-nowrap">
+            SORT
+            <select
+              value={sortKey ?? ''}
+              onChange={(e) => {
+                const opt = SORT_OPTIONS.find((o) => o.key === e.target.value)
+                const key = opt?.key || null
+                const dir = opt?.dir ?? 'asc'
+                setSortKey(key); setSortDir(dir); saveSort(key, dir)
+              }}
+              className="bg-terminal-surface border border-terminal-border text-terminal-text-bright text-2xs px-1 py-0.5"
+            >
+              {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+              {sortKey && !SORT_OPTIONS.some((o) => o.key === sortKey) && <option value={sortKey}>{SORT_LABEL[sortKey]}</option>}
+            </select>
+          </label>
 
           <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
             <button
@@ -1056,6 +1202,24 @@ export default function WatchlistModule() {
             </div>
           </div>
         </div>
+      )}
+
+      {watchlist.length > 0 && (
+        <GroupBar
+          groups={meta.groups}
+          counts={rows.reduce((m, r) => { const g = groupOf(r.symbol); if (g) m[g] = (m[g] ?? 0) + 1; return m }, {})}
+          ungroupedCount={rows.filter((r) => r.type !== 'crypto' && !groupOf(r.symbol)).length}
+          dragging={draggingIdx != null}
+          onDropTo={(groupId) => {
+            const from = dragIndexRef.current
+            const row = from != null ? sortedRows[from] : null
+            if (row && row.type !== 'crypto') moveToGroup(row.symbol, groupId)
+            dragIndexRef.current = null
+            setDraggingIdx(null); setDragOverIdx(null)
+          }}
+          onCreate={(name, colour) => { addGroup(name, colour); bumpNotes((n) => n + 1) }}
+          onDelete={(id) => { removeGroup(id); bumpNotes((n) => n + 1) }}
+        />
       )}
 
       <div className="flex-1 overflow-auto">
@@ -1139,13 +1303,32 @@ export default function WatchlistModule() {
               </tr>
             </thead>
             <tbody>
-              {firstCryptoIdx > 0 && (
-                <tr className="pointer-events-none">
-                  <td colSpan={visibleColumns.length} className="px-2 py-1 text-2xs font-bold text-terminal-gold tracking-widest bg-terminal-header/60">STOCK WATCHLIST</td>
-                </tr>
-              )}
               {groupedRows.map(({ row, i }, idx) => (
                 <Fragment key={row.symbol}>
+                  {(() => {
+                    const h = groupHeaderAt(idx)
+                    if (!h) return null
+                    const c = h.colour ? GROUP_COLOURS[h.colour] ?? GROUP_COLOURS.gold : null
+                    const count = groupedRows.filter(({ row: r }) => r.type !== 'crypto' && groupOf(r.symbol) === h.id).length
+                    return (
+                      <tr
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => {
+                          const from = dragIndexRef.current
+                          const moving = from != null ? sortedRows[from] : null
+                          if (moving && moving.type !== 'crypto' && groupsInUse) moveToGroup(moving.symbol, h.id)
+                          dragIndexRef.current = null
+                          setDraggingIdx(null); setDragOverIdx(null)
+                        }}
+                      >
+                        <td colSpan={visibleColumns.length} className="px-2 py-1 text-2xs font-bold tracking-widest bg-terminal-header/60"
+                          style={{ color: c ?? '#C9A84C', borderLeft: c ? `3px solid ${c}` : undefined }}>
+                          {h.name}
+                          {groupsInUse && <span className="ml-2 font-normal text-terminal-text-dim tracking-normal">{count}</span>}
+                        </td>
+                      </tr>
+                    )
+                  })()}
                   {idx === firstCryptoIdx && (
                     <tr className="pointer-events-none">
                       <td
@@ -1216,7 +1399,8 @@ export default function WatchlistModule() {
                         )
                       case 'ticker':
                         return (
-                          <td key={c.key} className="px-2 py-1.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
+                          <td key={c.key} className="px-2 py-1.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap"
+                            style={(() => { const g = meta.groups.find((x) => x.id === groupOf(row.symbol)); return g ? { boxShadow: `inset 3px 0 0 ${GROUP_COLOURS[g.colour] ?? GROUP_COLOURS.gold}` } : undefined })()}>
                             {row.displaySymbol}
                             {row.isLive
                               ? <span className="text-2xs text-terminal-green ml-1">●</span>
@@ -1272,13 +1456,21 @@ export default function WatchlistModule() {
                           <Fragment key={c.key}>
                             {row.type === 'crypto'
                               ? <CryptoPriceCells price={row.price} pct={row.pct} pct7d={row.pct7d} audToUsd={audToUsd} show={isOn} />
-                              : <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} show={isOn} />}
+                              : <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} target={targetStatus(row.symbol, row.price)} show={isOn} />}
                           </Fragment>
                         )
                       case 'volume':
                         return (
-                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right text-terminal-text-dim">
-                            {row.volume != null ? fmt.large(row.volume) : '—'}
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right">
+                            <VolumeCell volume={row.volume} ratio={row.volRatio} />
+                          </td>
+                        )
+                      case 'offHigh':
+                        return (
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right tabular-nums">
+                            {row.offHigh == null ? <span className="text-terminal-text-dim">—</span>
+                              : row.offHigh >= 0 ? <span className="text-terminal-green font-bold" title="At or above its 52-week high">AT HIGH</span>
+                                : <span className="text-terminal-text-dim">−{Math.abs(row.offHigh).toFixed(1)}%</span>}
                           </td>
                         )
                       case 'marketCap':
@@ -1339,21 +1531,22 @@ export default function WatchlistModule() {
                             />
                           </td>
                         )
-                      case 'remove':
+                      case 'actions':
                         return (
-                          <td key={c.key} className="px-2 py-1.5 text-right" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => openNote(row.symbol)}
-                              title={noteOf(row.symbol) ? 'Edit note' : 'Add note'}
-                              className={`text-2xs px-0.5 transition-opacity ${
-                                noteOf(row.symbol) ? 'text-terminal-gold opacity-100' : 'text-terminal-text-dim opacity-0 group-hover:opacity-60 hover:!opacity-100'
-                              }`}
-                            >✎</button>
-                            <button
-                              onClick={() => handleRemove(row.symbol)}
-                              className="text-terminal-text-dim hover:text-terminal-red text-xs px-0.5"
-                              title="Remove from watchlist"
-                            >✕</button>
+                          <td key={c.key} className="px-1.5 py-1.5" onClick={(e) => e.stopPropagation()}>
+                            <RowActions
+                              row={row}
+                              hasNote={!!noteOf(row.symbol)}
+                              groups={meta.groups}
+                              groupId={groupOf(row.symbol)}
+                              onDetail={() => handleRowClick(row)}
+                              onAlert={() => setAlertPanelFor((cur) => (cur === row.displaySymbol ? null : row.displaySymbol))}
+                              onAddToPortfolio={() => addToPortfolio(row.symbol)}
+                              onRemove={() => handleRemove(row.symbol)}
+                              onNote={() => openNote(row.symbol)}
+                              onTarget={() => setTargetFor((cur) => (cur === row.symbol ? null : row.symbol))}
+                              onMoveGroup={(g) => moveToGroup(row.symbol, g)}
+                            />
                           </td>
                         )
                       default:
@@ -1416,6 +1609,18 @@ export default function WatchlistModule() {
                     addAlert={addAlert}
                     removeAlert={removeAlert}
                     onClose={() => setAlertPanelFor(null)}
+                  />
+                )}
+                {targetFor === row.symbol && (
+                  <TargetRow
+                    colSpan={visibleColumns.length}
+                    symbol={row.symbol}
+                    label={row.displaySymbol}
+                    price={row.price}
+                    current={metaFor(row.symbol)?.target ?? null}
+                    onSave={(t) => { setTarget(row.symbol, t, row.price); bumpNotes((n) => n + 1); setTargetFor(null) }}
+                    onClear={() => { setTarget(row.symbol, null); bumpNotes((n) => n + 1); setTargetFor(null) }}
+                    onClose={() => setTargetFor(null)}
                   />
                 )}
                 </Fragment>

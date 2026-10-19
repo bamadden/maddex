@@ -310,8 +310,8 @@ function groupByPct(live, keyFn, othersLabel = 'Other') {
 
 // ─── Add Holding Form ─────────────────────────────────────────────────────────
 
-function AddHoldingForm({ onAdd, onCancel, atLimit, limit }) {
-  const [sym,     setSym]     = useState('')
+function AddHoldingForm({ onAdd, onCancel, atLimit, limit, initialSymbol = '' }) {
+  const [sym,     setSym]     = useState(initialSymbol)
   const [shares,  setShares]  = useState('')
   const [avgCost, setAvgCost] = useState('')
   const [ccy,     setCcy]     = useState('AUD')
@@ -507,8 +507,15 @@ export default function PortfolioModule() {
   const [showAddForm, setShowAddForm] = useState(() => {
     try { return sessionStorage.getItem('maddex_open_add_holding') === '1' } catch { return false }
   })
+  // The watchlist's [+] action sends a ticker along with the flag.
+  const [prefillSymbol] = useState(() => {
+    try { return sessionStorage.getItem('maddex_add_holding_symbol') ?? '' } catch { return '' }
+  })
   useEffect(() => {
-    try { sessionStorage.removeItem('maddex_open_add_holding') } catch { /* private mode */ }
+    try {
+      sessionStorage.removeItem('maddex_open_add_holding')
+      sessionStorage.removeItem('maddex_add_holding_symbol')
+    } catch { /* private mode */ }
   }, [])
   const [showBuilder, setShowBuilder] = useState(false)
   const [showImport, setShowImport] = useState(false)
@@ -809,7 +816,7 @@ export default function PortfolioModule() {
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8 bg-terminal-bg">
         {showAddForm
           ? <div className="w-full max-w-sm">
-              <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
+              <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} initialSymbol={prefillSymbol} />
             </div>
           : <>
               <span className="w-12 h-12 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center">
@@ -957,7 +964,7 @@ export default function PortfolioModule() {
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {showAddForm && (
         <div className="border-b border-terminal-border px-3 py-2 bg-terminal-panel flex-shrink-0">
-          <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} />
+          <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} initialSymbol={prefillSymbol} />
         </div>
       )}
 
