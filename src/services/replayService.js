@@ -1,3 +1,5 @@
+import { RBA_RATE_HISTORY as SHARED_RBA_HISTORY } from '../data/placeholders'
+
 // Local seeded PRNG (mulberry32) + string hash — same technique mockData.js
 // uses, kept as an independent copy here since mockData doesn't export its
 // internals and replay's needs (date-keyed, not symbol-keyed) are different.
@@ -16,33 +18,23 @@ function mulberry32(seed) {
   }
 }
 
-// Real published RBA cash-rate decision dates/levels — the one part of this
-// module that's sourced rather than illustrative.
-export const RBA_RATE_HISTORY = [
+// Real published RBA cash-rate changes (effective dates) — the one part of
+// this module that's sourced rather than illustrative. From May 2022 on it is
+// the shared history in data/placeholders.js, itself derived from
+// VERIFIED_CONSTANTS.rba.decisions, so a new meeting reaches Replay without a
+// second edit. Only the 2019–20 easing, which predates that series, is here.
+const PRE_2022 = [
   { date: '2019-10-02', rate: 0.75 },
   { date: '2020-03-04', rate: 0.50 },
   { date: '2020-03-20', rate: 0.25 },
   { date: '2020-11-04', rate: 0.10 },
-  { date: '2022-05-04', rate: 0.35 },
-  { date: '2022-06-08', rate: 0.85 },
-  { date: '2022-07-06', rate: 1.35 },
-  { date: '2022-08-03', rate: 1.85 },
-  { date: '2022-09-07', rate: 2.35 },
-  { date: '2022-10-05', rate: 2.60 },
-  { date: '2022-11-02', rate: 2.85 },
-  { date: '2022-12-07', rate: 3.10 },
-  { date: '2023-02-08', rate: 3.35 },
-  { date: '2023-03-08', rate: 3.60 },
-  { date: '2023-05-03', rate: 3.85 },
-  { date: '2023-06-07', rate: 4.10 },
-  { date: '2023-11-08', rate: 4.35 },
-  { date: '2025-02-19', rate: 4.10 },
-  { date: '2025-05-21', rate: 3.85 },
-  { date: '2025-08-13', rate: 3.60 },
-  { date: '2026-02-04', rate: 3.85 },
-  { date: '2026-03-18', rate: 4.10 },
-  { date: '2026-05-06', rate: 4.35 },
-  { date: '2026-09-30', rate: 4.60 },
+]
+export const RBA_RATE_HISTORY = [
+  ...PRE_2022,
+  // Holds repeat the previous rate; Replay only needs the changes.
+  ...SHARED_RBA_HISTORY
+    .filter((r, i, a) => i === 0 || r.rate !== a[i - 1].rate)
+    .map(({ date, rate }) => ({ date, rate })),
 ]
 
 export function rbaRateOn(dateStr) {
