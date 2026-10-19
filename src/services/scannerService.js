@@ -1,22 +1,7 @@
-import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow, getMockFMPHistory } from './mockData'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow, getMockFMPHistory, todayVolumeRatio } from './mockData'
 import { askClaudeJSON } from './api'
 
 const CACHE_PREFIX = 'maddex_scanner_pattern_'
-
-function hashStr(s) {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-  return h >>> 0
-}
-function mulberry32(seed) {
-  let a = seed
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
 
 // Symbol -> sector, for the context line on a breakout card. Both mock
 // universes carry a sector field already.
@@ -119,7 +104,7 @@ export function scanOverbought() {
 // carries the same signal without ever printing something that can be mistaken
 // for a tradeable level. Both are computed from the same history the RSI scans
 // use, so they move with the data rather than being rolled.
-export function scanBreakouts(tick = 0) {
+export function scanBreakouts() {
   const results = []
   for (const symbol of SCAN_UNIVERSE) {
     const row = baseRow(symbol)
@@ -135,10 +120,9 @@ export function scanBreakouts(tick = 0) {
     const ma20Now = closes.length >= 20 ? closes.slice(-20).reduce((a, b) => a + b, 0) / 20 : null
     const isBreakout = high20 != null && ma20Now != null && row.price >= high20 * 0.995 && row.price > ma20Now
     if (isBreakout) {
-      // Volume is the demo layer's, rolled per scan; it grades the signal,
-      // it does not create it.
-      const rng = mulberry32(hashStr(`${symbol}_breakout_${tick}`))
-      const volumeRatio = 1.2 + rng() * 2.8
+      // Today's volume against its 20-session average, from the bars. It
+      // grades the signal; it does not create it.
+      const volumeRatio = todayVolumeRatio(symbol) ?? 1
 
       // Days spent consolidating before the break: how far back you can go
       // before the series leaves a tight band around its own recent mean. A
@@ -183,44 +167,50 @@ export function scanBreakouts(tick = 0) {
   return results.sort((a, b) => b.volumeRatio - a.volumeRatio)
 }
 
-export function scanVolume(tick = 0) {
+// Volume: today's volume at least twice its 20-session average, read from the
+// daily bars. This used to roll a random ratio per symbol per scan — about a
+// third of the universe "fired" each time regardless of what traded. In the
+// demo data, volume now scales with the size of the day's move, with a seeded
+// few names trading heavily on a quiet day; the scan just measures it.
+const VOLUME_MULTIPLE = 2
+
+export function scanVolume() {
   const results = []
   for (const symbol of SCAN_UNIVERSE) {
     const row = baseRow(symbol)
     if (!row) continue
-    const rng = mulberry32(hashStr(`${symbol}_volume_${tick}`))
-    const roll = rng()
-    let volumeRatio
-    if (roll < 0.12) volumeRatio = 3.0 + rng() * 2.5
-    else if (roll < 0.3) volumeRatio = 1.8 + rng() * 1.2
-    else volumeRatio = 0.5 + rng() * 1.2
-    if (volumeRatio < 1.8) continue
+    const volumeRatio = todayVolumeRatio(symbol)
+    if (volumeRatio == null || volumeRatio < VOLUME_MULTIPLE) continue
     const absChange = Math.abs(row.changePct)
-    const explanation = volumeRatio > 3
-      ? (absChange < 0.5
-        ? `High volume with flat price suggests possible institutional ${row.changePct >= 0 ? 'accumulation' : 'distribution'}`
-        : 'Unusually high volume — worth watching for follow-through')
-      : 'Elevated volume — above its recent average but not yet extreme'
+    const explanation = absChange < 0.5
+      ? `Heavy volume on a flat price — possible institutional ${row.changePct >= 0 ? 'accumulation' : 'distribution'}`
+      : volumeRatio > 3
+        ? 'Unusually high volume — worth watching for follow-through'
+        : `Volume confirming a ${absChange.toFixed(1)}% ${row.changePct >= 0 ? 'rise' : 'fall'}`
     results.push({ ...row, volumeRatio, explanation })
   }
   return results.sort((a, b) => b.volumeRatio - a.volumeRatio)
 }
 
-export function scanGaps(tick = 0) {
+// Gaps: today's open against yesterday's close, from the quote. This used to
+// pick a random 20% of the universe and give each a random direction and a
+// random 1.5-5% size, so a stock down on the day could show as gapping up.
+// Now the gap is measured, and a stock qualifies at 1% or more either way.
+const GAP_MIN_PCT = 1
+
+export function scanGaps() {
   const results = []
   for (const symbol of SCAN_UNIVERSE) {
     const row = baseRow(symbol)
     if (!row) continue
-    const rng = mulberry32(hashStr(`${symbol}_gap_${tick}`))
-    if (rng() > 0.8) {
-      const direction = rng() > 0.5 ? 1 : -1
-      // The gap percentage IS the signal and it is relative, so it stays. The
-      // prevClose/openPrice pair it used to carry alongside were absolute
-      // levels computed off a mock previous close — same problem as the
-      // breakout level, so they are gone.
-      const gapPct = direction * (1.5 + rng() * 3.5)
-      results.push({ ...row, gapPct, direction: direction > 0 ? 'UP' : 'DOWN' })
-    }
+    const { regularMarketOpen: open, regularMarketPreviousClose: prev } = row.q
+    if (!(open > 0) || !(prev > 0)) continue
+    const gapPct = ((open - prev) / prev) * 100
+    if (Math.abs(gapPct) < GAP_MIN_PCT) continue
+    // Whether the session added to the gap or gave some of it back — the
+    // part of a gap a trader actually reads.
+    const sinceOpenPct = ((row.price - open) / open) * 100
+    results.push({ ...row, gapPct, sinceOpenPct, direction: gapPct > 0 ? 'UP' : 'DOWN' })
   }
   return results.sort((a, b) => Math.abs(b.gapPct) - Math.abs(a.gapPct))
 }

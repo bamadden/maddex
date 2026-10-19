@@ -1,4 +1,5 @@
 import { AU_ETFS } from '../data/etfData'
+import { ASX_SECTOR_STOCKS } from '../data/sectorTaxonomy'
 // ─── Demo/mock data layer ──────────────────────────────────────────────────
 // Active only when no equities API key is configured (see USING_MOCK_DATA in
 // api.js). Every function here returns data shaped EXACTLY like the real
@@ -56,6 +57,18 @@ function jitterFor(symbol) {
 // 11% above the real index (8,682.1 at the 2 Oct 2026 close). Every price-
 // denominated field is scaled by the same factor so the stocks stay coherent
 // with the index they make up; ratios (P/E, yield, % change) are unchanged.
+// DAY MOVES RE-AUTHORED 2026-10-19. These are illustrative, not observed. Half
+// ran hard against their sector's demo tilt (Goodman +1.9% as the property
+// proxy, Woodside −1.8% as energy's, WiseTech +3.0% as IT's), so the heatmap
+// read as noise. Thirteen were redrawn closer to their sector; a few names
+// still cut against it (MIN, XRO, WOW), as some always do. QBE is up because
+// insurers earn more on their float when rates rise.
+// MARKET CAPS RE-CHECKED 2026-10-19. sharesOutstanding is derived as
+// marketCap / price, so a cap that disagrees with the price misstates the share
+// count everywhere it is shown. Six did: BHP was A$215B at a draft price that
+// implies ~A$347B on its ~5.07B shares; CSL, NAB, ALL, REA and AGL were off by
+// 15-60% against their approximate share counts (0.48B, 3.06B, 0.62B, 0.13B,
+// 0.67B). Each is now share count × draft price, before the rebase below.
 const ASX_DRAFT_INDEX = 9650
 const ASX_REAL_INDEX = 8682.1
 const ASX_SCALE = ASX_REAL_INDEX / ASX_DRAFT_INDEX
@@ -69,34 +82,34 @@ const rebaseAsx = (rows) => Object.fromEntries(Object.entries(rows).map(([sym, r
 }]))
 
 export const MOCK_ASX_STOCKS = rebaseAsx({
-  'BHP.AX': { name: 'BHP Group',             price: 68.50,  changePct:  0.85, marketCap: 215_000_000_000, pe: 13.2, eps: 5.19,  divYield: 5.4, volume: 9_800_000,  week52High: 82.10,  week52Low: 52.30,  sector: 'Materials' },
+  'BHP.AX': { name: 'BHP Group',             price: 68.50,  changePct:  0.85, marketCap: 347_000_000_000, pe: 13.2, eps: 5.19,  divYield: 5.4, volume: 9_800_000,  week52High: 82.10,  week52Low: 52.30,  sector: 'Materials' },
   'CBA.AX': { name: 'Commonwealth Bank',     price: 172.00, changePct: -0.42, marketCap: 290_000_000_000, pe: 24.8, eps: 6.94,  divYield: 3.1, volume: 2_100_000,  week52High: 191.50, week52Low: 148.20, sector: 'Financials' },
-  'CSL.AX': { name: 'CSL Limited',           price: 265.00, changePct:  1.30, marketCap: 145_000_000_000, pe: 33.4, eps: 7.93,  divYield: 1.3, volume: 780_000,    week52High: 302.40, week52Low: 218.60, sector: 'Health' },
+  'CSL.AX': { name: 'CSL Limited',           price: 265.00, changePct:  0.60, marketCap: 128_000_000_000, pe: 33.4, eps: 7.93,  divYield: 1.3, volume: 780_000,    week52High: 302.40, week52Low: 218.60, sector: 'Health' },
   'WBC.AX': { name: 'Westpac Banking Corp',  price: 36.20,  changePct: -0.90, marketCap: 115_000_000_000, pe: 15.9, eps: 2.28,  divYield: 4.6, volume: 6_400_000,  week52High: 40.80,  week52Low: 29.40,  sector: 'Financials' },
-  'NAB.AX': { name: 'National Australia Bank', price: 41.50, changePct: 0.55, marketCap: 110_000_000_000, pe: 15.1, eps: 2.75,  divYield: 4.4, volume: 4_200_000,  week52High: 45.20,  week52Low: 34.10,  sector: 'Financials' },
+  'NAB.AX': { name: 'National Australia Bank', price: 41.50, changePct: -0.35, marketCap: 127_000_000_000, pe: 15.1, eps: 2.75,  divYield: 4.4, volume: 4_200_000,  week52High: 45.20,  week52Low: 34.10,  sector: 'Financials' },
   'ANZ.AX': { name: 'ANZ Group Holdings',    price: 32.80,  changePct: -1.15, marketCap: 95_000_000_000,  pe: 12.6, eps: 2.60,  divYield: 5.8, volume: 5_100_000,  week52High: 36.90,  week52Low: 25.70,  sector: 'Financials' },
-  'WES.AX': { name: 'Wesfarmers',            price: 82.40,  changePct:  2.05, marketCap: 92_000_000_000,  pe: 28.9, eps: 2.85,  divYield: 2.9, volume: 1_900_000,  week52High: 88.60,  week52Low: 63.20,  sector: 'Cons Disc' },
-  'MQG.AX': { name: 'Macquarie Group',       price: 224.00, changePct:  1.65, marketCap: 90_000_000_000,  pe: 19.7, eps: 11.37, divYield: 3.2, volume: 620_000,    week52High: 248.00, week52Low: 172.50, sector: 'Financials' },
+  'WES.AX': { name: 'Wesfarmers',            price: 82.40,  changePct: -0.40, marketCap: 92_000_000_000,  pe: 28.9, eps: 2.85,  divYield: 2.9, volume: 1_900_000,  week52High: 88.60,  week52Low: 63.20,  sector: 'Cons Disc' },
+  'MQG.AX': { name: 'Macquarie Group',       price: 224.00, changePct: -0.25, marketCap: 90_000_000_000,  pe: 19.7, eps: 11.37, divYield: 3.2, volume: 620_000,    week52High: 248.00, week52Low: 172.50, sector: 'Financials' },
   'WOW.AX': { name: 'Woolworths Group',      price: 38.80,  changePct: -0.65, marketCap: 42_000_000_000,  pe: 26.3, eps: 1.47,  divYield: 3.0, volume: 3_600_000,  week52High: 44.90,  week52Low: 31.80,  sector: 'Staples' },
   'RIO.AX': { name: 'Rio Tinto',             price: 126.50, changePct:  1.05, marketCap: 45_000_000_000,  pe: 10.8, eps: 11.71, divYield: 6.1, volume: 2_800_000,  week52High: 142.30, week52Low: 105.60, sector: 'Materials' },
-  'FMG.AX': { name: 'Fortescue',             price: 20.60,  changePct: -2.35, marketCap: 68_000_000_000,  pe: 9.4,  eps: 2.19,  divYield: 7.2, volume: 8_900_000,  week52High: 26.40,  week52Low: 16.80,  sector: 'Materials' },
+  'FMG.AX': { name: 'Fortescue',             price: 20.60,  changePct:  0.45, marketCap: 68_000_000_000,  pe: 9.4,  eps: 2.19,  divYield: 7.2, volume: 8_900_000,  week52High: 26.40,  week52Low: 16.80,  sector: 'Materials' },
   'TLS.AX': { name: 'Telstra Group',         price: 4.15,   changePct:  0.48, marketCap: 50_000_000_000,  pe: 22.1, eps: 0.19,  divYield: 4.5, volume: 22_000_000, week52High: 4.45,   week52Low: 3.62,   sector: 'Comms' },
-  'GMG.AX': { name: 'Goodman Group',         price: 36.80,  changePct:  1.90, marketCap: 78_000_000_000,  pe: 31.5, eps: 1.17,  divYield: 1.0, volume: 4_100_000,  week52High: 42.90,  week52Low: 27.30,  sector: 'Real Est' },
-  'QBE.AX': { name: 'QBE Insurance Group',   price: 21.40,  changePct: -0.80, marketCap: 28_000_000_000,  pe: 13.9, eps: 1.54,  divYield: 4.9, volume: 2_700_000,  week52High: 24.10,  week52Low: 16.90,  sector: 'Financials' },
+  'GMG.AX': { name: 'Goodman Group',         price: 36.80,  changePct: -0.60, marketCap: 78_000_000_000,  pe: 31.5, eps: 1.17,  divYield: 1.0, volume: 4_100_000,  week52High: 42.90,  week52Low: 27.30,  sector: 'Real Est' },
+  'QBE.AX': { name: 'QBE Insurance Group',   price: 21.40,  changePct:  0.30, marketCap: 28_000_000_000,  pe: 13.9, eps: 1.54,  divYield: 4.9, volume: 2_700_000,  week52High: 24.10,  week52Low: 16.90,  sector: 'Financials' },
   'COL.AX': { name: 'Coles Group',           price: 18.20,  changePct:  0.30, marketCap: 24_000_000_000,  pe: 22.8, eps: 0.80,  divYield: 3.7, volume: 4_500_000,  week52High: 20.10,  week52Low: 15.40,  sector: 'Staples' },
-  'ALL.AX': { name: 'Aristocrat Leisure',    price: 58.90,  changePct:  2.70, marketCap: 48_000_000_000,  pe: 24.6, eps: 2.39,  divYield: 1.6, volume: 1_400_000,  week52High: 66.80,  week52Low: 42.50,  sector: 'Cons Disc' },
+  'ALL.AX': { name: 'Aristocrat Leisure',    price: 58.90,  changePct: -0.30, marketCap: 37_000_000_000,  pe: 24.6, eps: 2.39,  divYield: 1.6, volume: 1_400_000,  week52High: 66.80,  week52Low: 42.50,  sector: 'Cons Disc' },
   'TCL.AX': { name: 'Transurban Group',      price: 13.40,  changePct: -0.55, marketCap: 45_000_000_000,  pe: 44.7, eps: 0.30,  divYield: 4.2, volume: 6_800_000,  week52High: 14.80,  week52Low: 11.60,  sector: 'Industrials' },
-  'WTC.AX': { name: 'WiseTech Global',       price: 118.00, changePct:  3.00, marketCap: 38_000_000_000,  pe: 78.2, eps: 1.51,  divYield: 0.3, volume: 480_000,    week52High: 142.00, week52Low: 68.40,  sector: 'IT' },
+  'WTC.AX': { name: 'WiseTech Global',       price: 118.00, changePct: -0.80, marketCap: 38_000_000_000,  pe: 78.2, eps: 1.51,  divYield: 0.3, volume: 480_000,    week52High: 142.00, week52Low: 68.40,  sector: 'IT' },
   'XRO.AX': { name: 'Xero Limited',          price: 172.50, changePct: -1.20, marketCap: 28_000_000_000,  pe: 88.9, eps: 1.94,  divYield: 0.0, volume: 310_000,    week52High: 205.00, week52Low: 128.00, sector: 'IT' },
-  'REA.AX': { name: 'REA Group',             price: 228.00, changePct:  1.45, marketCap: 24_000_000_000,  pe: 47.6, eps: 4.79,  divYield: 1.1, volume: 190_000,    week52High: 262.00, week52Low: 172.00, sector: 'Comms' },
+  'REA.AX': { name: 'REA Group',             price: 228.00, changePct: -0.50, marketCap: 30_000_000_000,  pe: 47.6, eps: 4.79,  divYield: 1.1, volume: 190_000,    week52High: 262.00, week52Low: 172.00, sector: 'Comms' },
   // The rest of api.js's own ASX_STOCKS list (TopMovers/MarketSentimentBanner)
   // — missing these caused "All quotes unavailable" for any consumer whose
   // symbol set landed entirely outside the original 20-symbol mock list.
-  'MIN.AX': { name: 'Mineral Resources',     price: 45.30,  changePct: -2.10, marketCap: 8_600_000_000,   pe: 21.4, eps: 2.12,  divYield: 1.8, volume: 1_600_000,  week52High: 62.80,  week52Low: 28.90,  sector: 'Materials' },
+  'MIN.AX': { name: 'Mineral Resources',     price: 45.30,  changePct: -0.60, marketCap: 8_600_000_000,   pe: 21.4, eps: 2.12,  divYield: 1.8, volume: 1_600_000,  week52High: 62.80,  week52Low: 28.90,  sector: 'Materials' },
   'NEM.AX': { name: 'Newmont Corporation',   price: 78.40,  changePct:  1.55, marketCap: 92_000_000_000,  pe: 18.6, eps: 4.21,  divYield: 2.4, volume: 2_900_000,  week52High: 88.20,  week52Low: 58.30,  sector: 'Materials' },
   'STO.AX': { name: 'Santos Limited',        price: 7.80,   changePct:  0.65, marketCap: 24_000_000_000,  pe: 11.2, eps: 0.70,  divYield: 5.9, volume: 8_400_000,  week52High: 8.60,   week52Low: 6.20,   sector: 'Energy' },
-  'WDS.AX': { name: 'Woodside Energy',       price: 26.50,  changePct: -1.80, marketCap: 52_000_000_000,  pe: 12.1, eps: 2.19,  divYield: 7.8, volume: 5_100_000,  week52High: 32.40,  week52Low: 21.60,  sector: 'Energy' },
-  'AGL.AX': { name: 'AGL Energy',            price: 11.20,  changePct:  0.95, marketCap: 12_000_000_000,  pe: 16.3, eps: 0.69,  divYield: 4.1, volume: 3_800_000,  week52High: 13.10,  week52Low: 8.90,   sector: 'Utilities' },
+  'WDS.AX': { name: 'Woodside Energy',       price: 26.50,  changePct:  0.50, marketCap: 52_000_000_000,  pe: 12.1, eps: 2.19,  divYield: 7.8, volume: 5_100_000,  week52High: 32.40,  week52Low: 21.60,  sector: 'Energy' },
+  'AGL.AX': { name: 'AGL Energy',            price: 11.20,  changePct: -0.30, marketCap: 7_500_000_000,  pe: 16.3, eps: 0.69,  divYield: 4.1, volume: 3_800_000,  week52High: 13.10,  week52Low: 8.90,   sector: 'Utilities' },
 })
 
 // ─── US stocks ──────────────────────────────────────────────────────────────
@@ -202,7 +215,10 @@ function generateSyntheticBase(symbol) {
   return {
     name: symbol.replace(/\.AX$/i, ''),
     price,
-    changePct: hashToRange(symbol + ':chg', -3, 3),
+    // ±1.5%: a typical day for an ASX 200 name. It was ±3%, which made the
+    // generated names twice as volatile as the hand-authored ones and drowned
+    // the sector tilt below in noise.
+    changePct: hashToRange(symbol + ':chg', -1.5, 1.5),
     marketCap: Math.round(hashToRange(symbol + ':cap', 1, 80) * 1_000_000_000),
     pe: round2(hashToRange(symbol + ':pe', 8, 35)),
     eps: round2(price / hashToRange(symbol + ':epsdiv', 10, 30)),
@@ -244,6 +260,76 @@ function exchangeFor(symbol) {
   return /\.AX$/i.test(symbol) ? 'ASX' : 'NASDAQ'
 }
 
+// ─── Demo sector tilt ──────────────────────────────────────────────────────
+//
+// A fixed tilt, in percentage points, added to every ASX stock's demo day
+// change by sector, so the demo heatmap reads as the October 2026 rate
+// environment rather than as uniform noise: the RBA has hiked four times this
+// year (rate-sensitive financials, property, utilities and discretionary
+// lower), iron ore and oil are elevated (materials and energy higher).
+//
+// This is a SCRIPTED SCENARIO, not a measurement. Nothing here observed
+// financials falling; the tilt is an assumption about which way rate-
+// sensitive sectors lean, and every surface that shows these moves carries
+// the DEMO badge, with the heatmap and market internals naming the tilt. It
+// applies to ASX names only (the RBA story), and goes away with the rest of
+// this file the moment a live equities feed is connected.
+//
+// Keys are this file's sector labels and the GICS names in sectorTaxonomy;
+// sectors not listed (staples, comms) carry no tilt.
+export const SECTOR_MACRO_BIAS = {
+  Materials: 0.2,       // iron ore elevated
+  Financials: -0.15,    // RBA rate pressure on bank margins and credit growth
+  Health: 0.1,          // defensive
+  IT: -0.1,             // long-duration growth names re-rated by higher rates
+  Energy: 0.15,         // oil elevated (Middle East supply)
+  'Real Est': -0.25,    // REITs: the most rate-sensitive sector
+  'Cons Disc': -0.1,    // household spending squeezed by hikes
+  Utilities: -0.15,     // bond proxies
+  Industrials: -0.1,    // infrastructure (toll roads, airports) as bond proxies
+}
+const GICS_TO_LABEL = {
+  'Information Technology': 'IT', 'Health Care': 'Health', 'Real Estate': 'Real Est',
+  'Consumer Discretionary': 'Cons Disc', 'Consumer Staples': 'Staples', 'Communication Services': 'Comms',
+}
+const ASX_TAXONOMY_SECTOR = {}
+for (const [gics, rows] of Object.entries(ASX_SECTOR_STOCKS)) {
+  for (const [sym] of rows) ASX_TAXONOMY_SECTOR[sym] ??= GICS_TO_LABEL[gics] ?? gics
+}
+export function demoSectorOf(symbol) {
+  return MOCK_ASX_STOCKS[symbol]?.sector ?? ASX_TAXONOMY_SECTOR[symbol] ?? null
+}
+function sectorTilt(symbol) {
+  if (!/\.AX$/i.test(symbol)) return 0
+  return SECTOR_MACRO_BIAS[demoSectorOf(symbol)] ?? 0
+}
+
+// Today's day change for a symbol — the base move, the sector tilt and the
+// per-load jitter. The quote and the last bar of the history both use it, so
+// they agree.
+function dayChangePct(symbol, base) {
+  return round2(base.changePct + sectorTilt(symbol) + jitterFor(symbol) * 100)
+}
+
+// ─── Demo volume and opening gap ───────────────────────────────────────────
+//
+// Both used to be flat: every bar's volume sat within ±30% of the base, so
+// "volume twice its average" could never be true of the data, and the
+// scanner rolled dice for it instead. Now today's volume scales with the size
+// of today's move (a 3% day trades roughly twice normal, as large moves do),
+// plus a seeded subset of names with heavy volume on a quiet tape, which is
+// the accumulation case a volume scan exists to catch. The opening gap is a
+// seeded share of today's move. The scanner reads both from this data rather
+// than inventing its own.
+function todayVolumeFactor(symbol, changePct) {
+  const rng = mulberry32(hashStr(`${symbol}:volday`))
+  const spike = rng() < 0.1 ? 1.4 + rng() * 1.6 : 1
+  return (1 + 0.35 * Math.abs(changePct)) * spike * (0.9 + rng() * 0.2)
+}
+function gapShare(symbol) {
+  return 0.15 + mulberry32(hashStr(`${symbol}:gap`))() * 0.6
+}
+
 // Returns the same shape fetchFMPQuote/fetchFMPBatch return (pre-legacy-shape
 // reshaping) so it slots in as a drop-in replacement for a single row.
 export function getMockFMPRow(symbol) {
@@ -251,10 +337,10 @@ export function getMockFMPRow(symbol) {
   if (!base) return null
   const j = jitterFor(symbol)
   const price = round2(base.price * (1 + j))
-  const changePct = round2(base.changePct + j * 100)
+  const changePct = dayChangePct(symbol, base)
   const prevClose = round2(price / (1 + changePct / 100))
   const change = round2(price - prevClose)
-  const open = round2(prevClose + change * 0.3)
+  const open = round2(prevClose + change * gapShare(symbol))
   const dayLow = round2(Math.min(price, prevClose, open) - Math.abs(change) * 0.15)
   const dayHigh = round2(Math.max(price, prevClose, open) + Math.abs(change) * 0.15)
   return {
@@ -267,8 +353,10 @@ export function getMockFMPRow(symbol) {
     regularMarketOpen: open,
     regularMarketDayHigh: dayHigh,
     regularMarketDayLow: dayLow,
-    regularMarketVolume: base.volume ?? null,
-    averageVolume: base.volume ? Math.round(base.volume * 0.92) : null,
+    // Today's volume is the history's last bar; the average is the base,
+    // which is the mean of the earlier bars by construction.
+    regularMarketVolume: base.volume ? Math.round(base.volume * todayVolumeFactor(symbol, changePct)) : null,
+    averageVolume: base.volume ?? null,
     marketCap: base.marketCap ?? null,
     trailingPE: base.pe ?? null,
     epsTrailingTwelveMonths: base.eps ?? null,
@@ -298,7 +386,7 @@ export function getMockFMPHistory(symbol, days = 30) {
   // (getMockFMPRow's changePct), so a stock showing +6.8% today does not
   // also show an RSI of 10 from a series whose last day went down. Every bar
   // before it is the seeded walk.
-  const quoteChangePct = round2(base.changePct + j * 100)
+  const quoteChangePct = dayChangePct(symbol, base)
   const closes = [endPrice]
   if (days > 1) closes.push(endPrice / (1 + quoteChangePct / 100))
   for (let i = 2; i < days; i++) {
@@ -315,19 +403,38 @@ export function getMockFMPHistory(symbol, days = 30) {
     d = new Date(d.getTime() - 86400000)
   }
 
+  const last = days - 1
   return dates.map((dt, i) => {
     const close = closes[i]
     const prevC = i > 0 ? closes[i - 1] : close * 0.998
-    const open = prevC
+    // The last bar opens where the quote says it did — at its gap.
+    const open = i === last && i > 0 ? prevC + (close - prevC) * gapShare(symbol) : prevC
     const high = Math.max(open, close) * (1 + rng() * 0.006)
     const low = Math.min(open, close) * (1 - rng() * 0.006)
+    const volume = !base.volume ? 0
+      : i === last ? Math.round(base.volume * todayVolumeFactor(symbol, quoteChangePct))
+      : Math.round(base.volume * (0.7 + rng() * 0.6))
     return {
       date: dt.toISOString().slice(0, 10),
       open: round2(open),
       high: round2(high),
       low: round2(low),
       close: round2(close),
-      volume: base.volume ? Math.round(base.volume * (0.7 + rng() * 0.6)) : 0,
+      volume,
     }
   })
+}
+
+// Today's volume against the average of the twenty sessions before it, from
+// the daily bars above. The one definition of "volume vs average" in demo
+// mode: the scanner's volume tab and breakouts and the unusual-activity panel
+// all read it, so a stock cannot be 4.8x average on one screen and 1.2x on
+// the next.
+export function todayVolumeRatio(symbol) {
+  const hist = getMockFMPHistory(symbol, 30)
+  if (hist.length < 21) return null
+  const prior = hist.slice(-21, -1).map((h) => h.volume ?? 0)
+  const avg = prior.reduce((a, b) => a + b, 0) / prior.length
+  const today = hist[hist.length - 1].volume ?? 0
+  return avg > 0 ? today / avg : null
 }

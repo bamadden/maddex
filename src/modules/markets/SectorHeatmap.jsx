@@ -1038,7 +1038,10 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           </div>
           <div className="text-2xs text-terminal-text-dim/50 text-center" style={{ marginTop: 8 }}>
             {isLive
-              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO DATA' : `Live · ${updatedTime} ${sydneyTzNow()}`}`
+              // In demo mode ASX day moves carry a scripted sector tilt (mockData
+              // SECTOR_MACRO_BIAS) — say so, so a red Financials tile is not read
+              // as something the market did.
+              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO DATA — ASX moves include a scripted rate-environment tilt by sector, not market data' : `Live · ${updatedTime} ${sydneyTzNow()}`}`
               : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
           </div>
 

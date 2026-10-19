@@ -1,39 +1,14 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
-import { MOCK_ASX_STOCKS, getMockFMPRow } from '../../services/mockData'
+import { MOCK_ASX_STOCKS, getMockFMPRow, todayVolumeRatio } from '../../services/mockData'
 import PriceChange from '../../components/ui/PriceChange'
 import { dispatchAskAI } from '../../utils/askAI'
 
-// getMockFMPRow's own regularMarketVolume/averageVolume always land at a
-// fixed ~1.09x ratio (averageVolume is a flat 0.92x of regularMarketVolume
-// for every symbol — see mockData.js), which would never cross any of this
-// tracker's 2.0/2.5/3.0x thresholds. So volume ratio here is its own
-// date-seeded generator (skewed so a realistic minority of stocks spike),
-// while price change still comes from the real, per-stock-jittered
-// regularMarketChangePercent — a deliberate mock-design choice, not an
-// oversight.
-function hashStr(s) {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-  return h >>> 0
-}
-function mulberry32(seed) {
-  let a = seed
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-function seededVolumeRatio(symbol, refreshTick) {
-  const rng = mulberry32(hashStr(`${symbol}_volratio_${refreshTick}`))
-  const r = rng()
-  if (r < 0.15) return 3.0 + rng() * 2.5  // unusual volume band
-  if (r < 0.35) return 2.0 + rng() * 1.5  // accumulation / high-conviction band
-  return 0.5 + rng() * 1.3                 // normal
-}
-
+// Volume vs average comes from todayVolumeRatio — the same measure the
+// scanner's volume tab uses, read off the daily bars. This panel used to roll
+// its own random ratio per refresh (the demo bars had no volume variation for
+// it to read), so it and the scanner flagged different stocks at different
+// multiples. The demo bars now carry volume that scales with the day's move.
 const ASX_TOP_20 = Object.keys(MOCK_ASX_STOCKS).slice(0, 20)
 
 // Priority mirrors the brief's own examples: a >3.0x ratio is flagged as
@@ -84,21 +59,18 @@ const SIGNAL_BAR = {
 
 
 export default function UnusualActivityTracker() {
-  const [refreshTick, setRefreshTick] = useState(0)
   const [detectedAt] = useState(() => Date.now())
 
-  // Auto-refresh every 5 minutes, per the brief.
-  useEffect(() => {
-    const id = setInterval(() => setRefreshTick((t) => t + 1), 5 * 60_000)
-    return () => clearInterval(id)
-  }, [])
+  // No timed refresh: the demo bars are fixed for the page load, so a re-read
+  // every five minutes found the same thing and only reset "detected" times.
 
   const signals = useMemo(() => {
     const results = []
     for (const symbol of ASX_TOP_20) {
       const q = getMockFMPRow(symbol)
       if (!q) continue
-      const volumeRatio = seededVolumeRatio(symbol, refreshTick)
+      const volumeRatio = todayVolumeRatio(symbol)
+      if (volumeRatio == null) continue
       const priceChange = q.regularMarketChangePercent
       const flag = classify(volumeRatio, priceChange)
       if (!flag) continue
@@ -106,14 +78,14 @@ export default function UnusualActivityTracker() {
     }
     // Most unusual first.
     return results.sort((a, b) => b.volumeRatio - a.volumeRatio)
-  }, [refreshTick])
+  }, [])
 
   return (
     <div className="flex-shrink-0 border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2">
         <span>UNUSUAL ACTIVITY · DARK POOL SIGNALS</span>
         <span className="text-2xs text-terminal-text-dim/50 font-normal normal-case">
-          ASX top 20 · volume-vs-average · auto-refresh 5min
+          ASX top 20 · today's volume vs its 20-day average
         </span>
       </div>
 

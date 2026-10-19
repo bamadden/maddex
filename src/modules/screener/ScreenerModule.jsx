@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { priceStream } from '../../services/priceStreamService'
 import { Search } from 'lucide-react'
-import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow } from '../../services/mockData'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -28,9 +28,22 @@ function withDerived(s) {
   }
 }
 
+// Price and day change come from the same demo quote every other screen
+// reads (getMockFMPRow: base, sector tilt and the per-load jitter), so BHP's
+// change here matches its heatmap tile and its scanner card from the first
+// render. This used to read the base table directly, and the two disagreed
+// until the first auto-scan two minutes in. P/E is re-derived from the quoted
+// price against fixed earnings, as rescanUniverse does.
+function fromQuote(s) {
+  const q = getMockFMPRow(s.symbol)
+  if (!Number.isFinite(q?.regularMarketPrice)) return s
+  const eps = s.pe > 0 ? s.price / s.pe : null
+  return { ...s, price: q.regularMarketPrice, changePct: q.regularMarketChangePercent, pe: eps ? q.regularMarketPrice / eps : s.pe }
+}
+
 const ALL_STOCKS = [
-  ...Object.entries(MOCK_ASX_STOCKS).map(([symbol, s]) => withDerived({ symbol, exchange: 'ASX', ...s })),
-  ...Object.entries(MOCK_US_STOCKS).map(([symbol, s]) => withDerived({ symbol, exchange: 'US', ...s })),
+  ...Object.entries(MOCK_ASX_STOCKS).map(([symbol, s]) => withDerived(fromQuote({ symbol, exchange: 'ASX', ...s }))),
+  ...Object.entries(MOCK_US_STOCKS).map(([symbol, s]) => withDerived(fromQuote({ symbol, exchange: 'US', ...s }))),
 ]
 // Boolean filter, not truthiness — a few generated entries carry sector: null,
 // and an unlabelled "null" option in the sector dropdown selects nothing.
@@ -69,7 +82,7 @@ const sectorColour = (sec) => SECTOR_COLOUR[sec] ?? '#6A6A6A'
 // SMALL CAP MOMENTUM is the one preset whose threshold does not match its
 // name's usual meaning. A genuine small-cap floor (under A$500M) matches
 // nothing here: the tracked universe is 45 large caps and its smallest member
-// is A$8.6B. Rather than ship a preset that always returns an empty table, the
+// is about A$7B (AGL). Rather than ship a preset that always returns an empty table, the
 // floor is set at the bottom of the universe that actually exists and the
 // description says so.
 const B = 1_000_000_000

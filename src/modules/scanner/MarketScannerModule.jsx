@@ -267,8 +267,8 @@ function analyseSignal(symbol, name, instruction) {
   dispatchAskAI({ ticker: symbol, name, instruction }, { rawPrompt: true })
 }
 
-function BreakoutsTab({ tick, scanTime, settings }) {
-  const results = useMemo(() => applyScanFilters(scanBreakouts(tick), settings), [tick, settings])
+function BreakoutsTab({ scanTime, settings }) {
+  const results = useMemo(() => applyScanFilters(scanBreakouts(), settings), [settings])
   if (!results.length) return <EmptyState label="breakout" />
   return (
     <div>
@@ -407,8 +407,8 @@ function MomentumTab({ settings }) {
   )
 }
 
-function VolumeTab({ tick, scanTime, settings }) {
-  const results = useMemo(() => applyScanFilters(scanVolume(tick), settings), [tick, settings])
+function VolumeTab({ scanTime, settings }) {
+  const results = useMemo(() => applyScanFilters(scanVolume(), settings), [settings])
   if (!results.length) return <><EmptyState label="unusual volume" /><DivergenceSection settings={settings} /></>
   return (
     <div>
@@ -428,8 +428,8 @@ function VolumeTab({ tick, scanTime, settings }) {
   )
 }
 
-function GapsTab({ tick, scanTime, settings }) {
-  const results = useMemo(() => applyScanFilters(scanGaps(tick), settings), [tick, settings])
+function GapsTab({ scanTime, settings }) {
+  const results = useMemo(() => applyScanFilters(scanGaps(), settings), [settings])
   if (!results.length) return <EmptyState label="gap" />
   return (
     <div>
@@ -438,7 +438,7 @@ function GapsTab({ tick, scanTime, settings }) {
           key={r.symbol}
           badge={`GAP ${r.direction === 'UP' ? '▲' : '▼'}`} badgeColor="border-purple-400/50 text-purple-400"
           symbol={r.symbol} name={r.name} detectedAt={scanTime}
-          metricLabel="Gap on open" metricValue={`${r.direction === 'UP' ? '+' : '−'}${Math.abs(r.gapPct).toFixed(1)}% vs prior close`}
+          metricLabel="Gap on open" metricValue={`${r.direction === 'UP' ? '+' : '−'}${Math.abs(r.gapPct).toFixed(1)}% vs prior close · ${Math.abs(r.sinceOpenPct) < 0.1 ? 'flat' : r.sinceOpenPct > 0 ? `+${r.sinceOpenPct.toFixed(1)}%` : `−${Math.abs(r.sinceOpenPct).toFixed(1)}%`} since the open`}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
             `${tickerOf(r.symbol)} gapped ${r.direction.toLowerCase()} ${Math.abs(r.gapPct).toFixed(1)}% on the open. What typically drives a gap of that size, and is it likely to fill? Do not state a price or a price target.`)}
@@ -717,9 +717,9 @@ export default function MarketScannerModule() {
     return () => clearInterval(id)
   }, [])
 
-  // scanOversold/scanOverbought read real RSI off the shared (page-load-stable)
-  // mock history, so they don't vary with `tick` — cheap enough to just call
-  // directly rather than memoize.
+  // Every scan reads the shared (page-load-stable) demo series, so none of
+  // them vary with `tick` — the refresh only moves the scan time. Breakouts,
+  // volume and gaps used to roll dice per tick; they are measured now.
   const oversold = applyScanFilters(scanOversold(), settings)
   const overbought = applyScanFilters(scanOverbought(), settings)
 
@@ -729,13 +729,13 @@ export default function MarketScannerModule() {
   // tab reads shapes through MaddenAI on demand, so there is no count to know
   // before the user opens it, and a zero would be a lie rather than a count.
   const tabCounts = useMemo(() => ({
-    breakouts:  applyScanFilters(scanBreakouts(tick), settings).length,
+    breakouts:  applyScanFilters(scanBreakouts(), settings).length,
     oversold:   oversold.length,
     overbought: overbought.length,
-    volume:     applyScanFilters(scanVolume(tick), settings).length,
-    gaps:       applyScanFilters(scanGaps(tick), settings).length,
+    volume:     applyScanFilters(scanVolume(), settings).length,
+    gaps:       applyScanFilters(scanGaps(), settings).length,
     momentum:   applyScanFilters(scanMomentum(), settings).length,
-  }), [tick, settings, oversold.length, overbought.length])
+  }), [settings, oversold.length, overbought.length])
 
   const totalSignals = Object.values(tabCounts).reduce((a, b) => a + b, 0)
 
@@ -754,11 +754,11 @@ export default function MarketScannerModule() {
     setLoggedTick(tick)
     const at = lastScanAt
     const fresh = [
-      ...applyScanFilters(scanBreakouts(tick), settings).map((r) => ({ symbol: r.symbol, type: 'BREAKOUT', at })),
+      ...applyScanFilters(scanBreakouts(), settings).map((r) => ({ symbol: r.symbol, type: 'BREAKOUT', at })),
       ...oversold.map((r) => ({ symbol: r.symbol, type: 'OVERSOLD', at })),
       ...overbought.map((r) => ({ symbol: r.symbol, type: 'OVERBOUGHT', at })),
-      ...applyScanFilters(scanVolume(tick), settings).map((r) => ({ symbol: r.symbol, type: 'VOLUME', at })),
-      ...applyScanFilters(scanGaps(tick), settings).map((r) => ({ symbol: r.symbol, type: 'GAP', at })),
+      ...applyScanFilters(scanVolume(), settings).map((r) => ({ symbol: r.symbol, type: 'VOLUME', at })),
+      ...applyScanFilters(scanGaps(), settings).map((r) => ({ symbol: r.symbol, type: 'GAP', at })),
     ].filter((r) => enabledTabs.includes({ BREAKOUT: 'breakouts', OVERSOLD: 'oversold', OVERBOUGHT: 'overbought', VOLUME: 'volume', GAP: 'gaps' }[r.type]))
     const next = [...fresh, ...history].slice(0, 20)
     setHistory(next)
@@ -822,11 +822,11 @@ export default function MarketScannerModule() {
         </div>
       ) : (
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {visibleTab === 'breakouts'  && <BreakoutsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {visibleTab === 'breakouts'  && <BreakoutsTab scanTime={lastScanAt} settings={settings} />}
         {visibleTab === 'oversold'   && <OversoldTab label="oversold" results={oversold} badge="OVERSOLD" badgeColor="border-terminal-blue-bright/50 text-terminal-blue-bright" verb="oversold" scanTime={lastScanAt} />}
         {visibleTab === 'overbought' && <OversoldTab label="overbought" results={overbought} badge="OVERBOUGHT" badgeColor="border-terminal-red/50 text-terminal-red" verb="overbought" scanTime={lastScanAt} />}
-        {visibleTab === 'volume'     && <VolumeTab tick={tick} scanTime={lastScanAt} settings={settings} />}
-        {visibleTab === 'gaps'       && <GapsTab tick={tick} scanTime={lastScanAt} settings={settings} />}
+        {visibleTab === 'volume'     && <VolumeTab scanTime={lastScanAt} settings={settings} />}
+        {visibleTab === 'gaps'       && <GapsTab scanTime={lastScanAt} settings={settings} />}
         {visibleTab === 'momentum'   && <MomentumTab settings={settings} />}
         {visibleTab === 'patterns'   && <PatternsTab />}
 
