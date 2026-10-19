@@ -963,7 +963,7 @@ export default function PortfolioModule() {
 
       {activeTab === 'performance' && (
         <div className="flex-1 overflow-y-auto">
-          <PerformanceTab holdings={computed} mktTotal={mktTotal} fmtCur={fmtCur} />
+          <PerformanceTab holdings={computed} lots={lots} mktTotal={mktTotal} fmtCur={fmtCur} toAud={usdToAud} />
         </div>
       )}
 

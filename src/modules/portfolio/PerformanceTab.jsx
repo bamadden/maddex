@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { getMockFMPHistory, getMockFMPRow } from '../../services/mockData'
+import { fetchAu10y } from '../../services/bondHistory'
+import { cashGrowth, bondGrowth, MEDICARE_LEVY } from '../../services/performanceMath'
+import { getTransactions } from '../../services/transactionService'
+import { downloadText } from '../../services/portfolioCsv'
+import { buildReturns, performanceCsv, taxNoteFor } from './performanceModel'
+import { PerformanceSummary, ReturnsTable, TaxControls } from './PerformanceReturns'
+import { getMockFMPHistory } from '../../services/mockData'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { computeRisk } from './portfolioRisk'
 import Tooltip from '../../components/ui/Tooltip'
@@ -20,7 +27,10 @@ import Tooltip from '../../components/ui/Tooltip'
 //   ASX 200, S&P 500 and Gold lines: SEEDED SYNTHETIC. There is no index
 //     history in this build. They are stable across renders and periods rather
 //     than random, but they describe nothing, and the legend marks each one.
-//   Cash: genuinely computed, at the verified RBA cash rate.
+//   Cash: computed, compounding daily at the RBA cash rate in force on each
+//     day (3.60% → 4.60% across 2026), from the verified decision list.
+//   AU 10Y bond: computed from the RBA's published daily 10-year yields
+//     (table F2) — carry plus duration × yield change. See performanceMath.
 //   ASX 200 sector weights: three verified from a published factsheet; the
 //     rest absent rather than guessed.
 
@@ -62,11 +72,12 @@ const SERIES = [
   { key: 'spx',  label: 'S&P 500',      colour: '#637899', width: 1, seed: 2211, ret: 4.4 },
   { key: 'gold', label: 'Gold',         colour: '#D69E2E', width: 1, seed: 9182, ret: 2.2, wobble: 1.4 },
   { key: 'cash', label: 'Cash',         colour: '#2D8A50', width: 1, computed: true },
+  { key: 'bond', label: 'AU 10Y Bond',  colour: '#9A7AB5', width: 1, computed: true },
 ]
 
 // ─── 1. Benchmark comparison ────────────────────────────────────────────────
 
-function BenchmarkComparison({ holdings }) {
+function BenchmarkComparison({ holdings, yields }) {
   const [period, setPeriod] = useState('3M')
   // My Portfolio is always on — it is the subject of the chart, and a chart of
   // four benchmarks with the portfolio switched off answers nobody's question.
@@ -75,6 +86,7 @@ function BenchmarkComparison({ holdings }) {
 
   const calDays = PERIODS[period]
   const cashRate = VERIFIED_CONSTANTS.rba.cashRate
+  const bondSeries = yields?.yields ?? null
 
   const model = useMemo(() => {
     const n = tradingDays(calDays)
@@ -85,10 +97,12 @@ function BenchmarkComparison({ holdings }) {
     // 1W window would make the 1W number a fiction.
     const totals = Array.from({ length: n }, () => 0)
     let covered = 0
+    let dates = null
     for (const h of holdings) {
       const hist = getMockFMPHistory(h.type === 'asx' ? `${h.symbol}.AX` : h.symbol, n)
       if (hist.length !== n) continue
       covered++
+      dates ??= hist.map((d) => d.date)
       hist.forEach((d, i) => { totals[i] += d.close * h.shares })
     }
     const base = totals[0] || 0
@@ -98,12 +112,17 @@ function BenchmarkComparison({ holdings }) {
     if (port) series.port = port
     for (const s of SERIES) {
       if (s.key === 'port') continue
-      if (s.computed) {
-        // The only line here that is arithmetic rather than illustration.
-        series.cash = Array.from({ length: n }, (_, i) => {
-          const elapsed = (i / Math.max(1, n - 1)) * calDays
-          return 100 * (1 + cashRate / 100 / 365) ** elapsed
-        })
+      if (s.key === 'cash') {
+        // Daily compounding at the rate in force each day, on the same dates
+        // as the portfolio line.
+        if (dates) series.cash = dates.map((d) => 100 * (cashGrowth(dates[0], d) ?? 1))
+        continue
+      }
+      if (s.key === 'bond') {
+        if (dates && bondSeries) {
+          const line = dates.map((d) => bondGrowth(bondSeries, dates[0], d))
+          if (line.every((g) => g != null)) series.bond = line.map((g) => 100 * g)
+        }
         continue
       }
       // Scale the illustrative return with the window, so a 1Y view does not
@@ -125,9 +144,9 @@ function BenchmarkComparison({ holdings }) {
     }
 
     return { rows, returns, n, covered, hasPortfolio: !!port }
-  }, [holdings, calDays, cashRate])
+  }, [holdings, calDays, bondSeries])
 
-  const active = SERIES.filter((s) => on.has(s.key) && (s.key !== 'port' || model.hasPortfolio))
+  const active = SERIES.filter((s) => on.has(s.key) && model.rows[0]?.[s.key] != null)
   const toggle = (key) => {
     if (key === 'port') return
     setOn((prev) => {
@@ -267,9 +286,14 @@ function BenchmarkComparison({ holdings }) {
             )}
           </div>
 
+          {!bondSeries && (
+            <div className="px-3 font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>
+              AU 10Y bond line unavailable — the RBA&apos;s yield table (F2) did not load.
+            </div>
+          )}
           {/* Legend: dot, name, period return — and what each line actually is. */}
           <div className="flex flex-wrap gap-x-5 gap-y-1 px-3 pb-2">
-            {SERIES.filter((s) => s.key !== 'port' || model.hasPortfolio).map((s) => {
+            {SERIES.filter((s) => model.returns[s.key] != null).map((s) => {
               const ret = model.returns[s.key]
               const isOn = on.has(s.key)
               return (
@@ -282,7 +306,8 @@ function BenchmarkComparison({ holdings }) {
                   >{ret >= 0 ? '+' : ''}{ret.toFixed(1)}%</span>
                   <Tooltip content={
                     s.real ? 'Built from your actual units against each holding’s own price history. Those prices are DEMO data in this build.'
-                      : s.computed ? `Arithmetic: 100 × (1 + ${cashRate}%/365)^days, at the verified RBA cash rate.`
+                      : s.key === 'cash' ? `Computed: compounded daily at the RBA cash rate in force each day (${cashRate.toFixed(2)}% now), from the verified decision history.`
+                      : s.key === 'bond' ? `Computed from the RBA's daily 10-year Commonwealth bond yields (table F2${yields?.lastDate ? `, to ${yields.lastDate}` : ''}): a constant-maturity 10-year bond earning its yield, less modified duration × each change in yield. Convexity is left out.`
                       : 'ILLUSTRATIVE. No index history is wired into this build, so this line is a seeded synthetic walk. It is stable across renders, and it describes nothing.'
                   }>
                     <span
@@ -302,38 +327,36 @@ function BenchmarkComparison({ holdings }) {
 
 // ─── 2. Return attribution waterfall ────────────────────────────────────────
 
-function AttributionWaterfall({ holdings, mktTotal, fmtCur }) {
+function AttributionWaterfall({ returns, fmtCur }) {
   const [hover, setHover] = useState(null)
 
   const model = useMemo(() => {
-    const rows = holdings
-      .filter((h) => h.mktVal != null && h.pnl != null)
-      .map((h) => ({ label: h.symbol.replace(/\.AX$/, ''), delta: h.pnl, kind: 'stock' }))
+    if (!returns) return null
+    const value = returns.portfolio.value
+    const rows = returns.positions
+      .map((p) => ({
+        label: p.symbol.replace(/\.AX$/, ''), delta: p.pnl, kind: 'stock', position: p,
+        // Contribution to the portfolio: (price − average cost of all lots)
+        // × units, over the portfolio's current value.
+        contribution: value ? p.pnl / value : null,
+      }))
       .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
 
-    // Dividends: one year's income at each holding's own yield. Not "dividends
-    // received" — this module has no transaction history behind it, and the
-    // note under the chart says so.
-    //
-    // h.divYield is null for every holding: api.js's quote shape declares the
-    // field and never populates it. The demo rows DO carry a yield per symbol
-    // (BHP 5.4%, CBA 3.1%), and the dividend panel in the Analytics tab
-    // already reads it that way — so this falls back to the same source rather
-    // than silently dropping the bar, which is what it did on first render.
-    const yieldOf = (h) =>
-      h.divYield ?? getMockFMPRow(h.type === 'asx' ? `${h.symbol}.AX` : h.symbol)?.dividendYield ?? 0
-    const divs = holdings.reduce((s, h) => s + (h.mktVal ?? 0) * (yieldOf(h) / 100), 0)
-    if (divs > 0) rows.push({ label: 'Dividends', delta: divs, kind: 'dividend' })
+    // Dividends since each purchase: recorded where the ledger has them,
+    // otherwise the current yield accrued over the days held — the same
+    // figure the total return uses.
+    const divs = returns.portfolio.divs
+    if (divs > 0) rows.push({ label: 'Dividends', delta: divs, kind: 'dividend', contribution: value ? divs / value : null })
 
     const totalDelta = rows.reduce((s, r) => s + r.delta, 0)
-    const opening = (mktTotal ?? 0) - rows.filter((r) => r.kind === 'stock').reduce((s, r) => s + r.delta, 0)
+    const opening = returns.portfolio.cost
     return { rows, totalDelta, opening, closing: opening + totalDelta }
-  }, [holdings, mktTotal])
+  }, [returns])
 
-  if (!holdings.length) {
+  if (!model) {
     return (
       <div className="text-2xs text-terminal-text-dim/60 text-center py-8 border border-terminal-border">
-        Add holdings to see return attribution.
+        Add priced holdings to see return attribution.
       </div>
     )
   }
@@ -342,7 +365,9 @@ function AttributionWaterfall({ holdings, mktTotal, fmtCur }) {
   const steps = [
     { label: 'Cost', kind: 'anchor', running: model.opening },
     ...model.rows,
-    { label: 'Value', kind: 'anchor', running: model.closing },
+    // Cost + price gains + dividends: the value plus the income it paid, so
+    // it is labelled as such rather than as the portfolio value it exceeds.
+    { label: model.rows.some((r) => r.kind === 'dividend') ? 'Value + divs' : 'Value', kind: 'anchor', running: model.closing },
   ]
 
   // Running totals, so each bar starts where the last one finished.
@@ -421,11 +446,31 @@ function AttributionWaterfall({ holdings, mktTotal, fmtCur }) {
           )
         })}
       </svg>
+      {/* Hover detail: the lots behind a bar, so a two-lot position shows
+          both purchases and the average they combine to. */}
+      <div className="px-1 font-mono text-[9px] text-terminal-text-dim" style={{ minHeight: 30 }}>
+        {(() => {
+          const s = hover != null ? laid[hover] : null
+          if (!s || s.kind === 'anchor') return <span className="text-terminal-text-dim/40">Hover a bar for its lots and its contribution</span>
+          if (s.kind === 'dividend') {
+            return <span>Dividends: {fmtCur(s.delta)} · {(s.contribution * 100).toFixed(2)}% of portfolio value · recorded {fmtCur(returns.portfolio.divRecorded)}, estimated {fmtCur(returns.portfolio.divEstimated)}</span>
+          }
+          const p = s.position
+          return (
+            <div className="leading-relaxed">
+              {p.lots.map((l, i) => (
+                <div key={i}>LOT {i + 1}: {l.units} units @ {l.currency === 'USD' ? 'US$' : 'A$'}{Number(l.price).toFixed(2)} ({new Date(`${l.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })})</div>
+              ))}
+              {p.lots.length > 1 && <div>Combined: {p.units} units @ {fmtCur(p.avgCostAud)} avg</div>}
+              <div className="text-terminal-gold">Contribution {s.contribution >= 0 ? '+' : '−'}{Math.abs(s.contribution * 100).toFixed(2)}% of portfolio value</div>
+            </div>
+          )
+        })()}
+      </div>
       <div className="text-terminal-text-dim/50 px-1 leading-snug" style={{ fontSize: 8 }}>
-        Cost is what you paid; each bar is that holding&apos;s unrealised gain or loss
-        (units × [price − average cost]). Dividends are one year&apos;s income at each
-        holding&apos;s current yield, not payments received — this build has no
-        transaction history behind it. Hover a bar for its share of the total.
+        Cost is what you paid across every lot; each bar is that holding&apos;s unrealised gain or loss,
+        units × (price − average cost of all lots). Dividends are recorded payments where the Transactions
+        ledger has them, otherwise the current yield accrued since purchase.
       </div>
     </div>
   )
@@ -671,8 +716,44 @@ function RiskMetrics({ holdings, mktTotal }) {
 
 // ─── The tab ────────────────────────────────────────────────────────────────
 
-export default function PerformanceTab({ holdings, mktTotal, fmtCur }) {
+const PREFS_KEY = 'maddex_tax_prefs'
+function readPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? 'null')
+    return { afterTax: !!p?.afterTax, rate: Number.isFinite(p?.rate) ? p.rate : 37, medicare: p?.medicare ?? true }
+  } catch { return { afterTax: false, rate: 37, medicare: true } }
+}
+
+export default function PerformanceTab({ holdings, lots = [], mktTotal, fmtCur, toAud }) {
   const priced = useMemo(() => holdings.filter((h) => h.mktVal != null), [holdings])
+  const [prefs, setPrefs] = useState(readPrefs)
+  const update = (patch) => setPrefs((p) => {
+    const next = { ...p, ...patch }
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)) } catch { /* per-viewer convenience */ }
+    return next
+  })
+  const [today] = useState(() => new Date().toLocaleDateString('en-CA'))
+  const [transactions] = useState(() => getTransactions())
+  const { data: yields } = useQuery({
+    queryKey: ['au10yF2'],
+    queryFn: () => fetchAu10y(),
+    staleTime: 12 * 60 * 60_000,
+    retry: 1,
+  })
+  const taxRate = prefs.rate + (prefs.medicare && prefs.rate > 0 ? MEDICARE_LEVY : 0)
+
+  const returns = useMemo(
+    () => buildReturns({ holdings: priced, lots, transactions, toAud, today, taxRate, yields: yields?.yields ?? null }),
+    [priced, lots, transactions, toAud, today, taxRate, yields],
+  )
+
+  const exportReport = () => {
+    if (!returns) return
+    downloadText(
+      performanceCsv(returns, { today, taxRate, taxNote: taxNoteFor(taxRate), bondAsOf: yields?.lastDate }),
+      `maddex-performance-report-${today}.csv`,
+    )
+  }
 
   if (!holdings.length) {
     return (
@@ -684,12 +765,39 @@ export default function PerformanceTab({ holdings, mktTotal, fmtCur }) {
 
   return (
     <div>
-      <BenchmarkComparison holdings={priced} />
+      <div className="panel-header flex items-center gap-2 flex-wrap">
+        <span>PERFORMANCE SUMMARY</span>
+        <div className="ml-auto flex items-center gap-2 flex-wrap normal-case font-normal">
+          <TaxControls
+            afterTax={prefs.afterTax} setAfterTax={(v) => update({ afterTax: v })}
+            rate={prefs.rate} setRate={(v) => update({ rate: v })}
+            medicare={prefs.medicare} setMedicare={(v) => update({ medicare: v })}
+          />
+          <button onClick={exportReport} disabled={!returns}
+            className="text-2xs px-2.5 py-0.5 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10 font-bold disabled:opacity-40">
+            ↓ EXPORT REPORT
+          </button>
+        </div>
+      </div>
+      {returns ? (
+        <PerformanceSummary model={returns} afterTax={prefs.afterTax} fmtCur={fmtCur} taxRate={taxRate} />
+      ) : (
+        <div className="text-2xs text-terminal-text-dim/60 px-3 py-3 border-b border-terminal-border">Waiting for prices before returns can be computed.</div>
+      )}
+
+      <BenchmarkComparison holdings={priced} yields={yields} />
+
+      {returns && (
+        <div className="p-3 border-b border-terminal-border">
+          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">RETURNS BY HOLDING</div>
+          <ReturnsTable model={returns} afterTax={prefs.afterTax} fmtCur={fmtCur} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-3 border-b border-terminal-border">
         <div>
           <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">WHAT DROVE YOUR RETURN</div>
-          <AttributionWaterfall holdings={priced} mktTotal={mktTotal} fmtCur={fmtCur} />
+          <AttributionWaterfall returns={returns} fmtCur={fmtCur} />
         </div>
         <div>
           <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">SECTOR ALLOCATION</div>
