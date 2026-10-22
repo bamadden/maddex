@@ -477,18 +477,46 @@ export const VERIFIED_CONSTANTS = {
 
   // ── Commodities and freight ───────────────────────────────────────────────
   // Gold is deliberately absent: it comes live from liveDataService via PAXG.
+  // Refreshed 2026-10-22. The June levels were far out of date: the Hormuz
+  // tanker attacks had lifted LNG from ~US$12 to ~US$30 and Brent from ~US$78
+  // to ~US$109, and iron ore had fallen to a two-year low. Each figure now
+  // carries its own date and source, and the 30 Jun levels are kept as
+  // `previous` so the panel can show a real change between two dated
+  // observations instead of an invented daily move. Lithium is quoted as the
+  // source quotes it (CNY), not converted at a guessed rate.
   commodities: {
-    ironOreUSD: 98.40,
-    thermalCoalUSD: 124.20,
-    lngUSDPerMMBtu: 12.40,
-    copperUSDPerLb: 4.12,
-    wheatUSDPerBu: 5.84,
-    lithiumUSDPerTonne: 14200,
-    brentUSD: 78.40,
-    source: 'Indicative — trading economics / SGX iron ore',
-    asOf: '2026-06-30',
-    lastVerified: '2026-09-06',
+    ironOreUSD: 90.90,        // SGX 62% Fe, close 16 Oct (Bloomberg: under $90 intraday 15 Oct)
+    thermalCoalUSD: 150.40,   // globalCOAL Newcastle, 16 Oct
+    lngUSDPerMMBtu: 30.40,    // JKM spot, 20 Oct (Bloomberg)
+    copperUSDPerLb: 6.64,     // LME 3-month US$14,635/t, 14 Oct
+    copperUSDPerTonne: 14635,
+    wheatUSDPerBu: 5.84,      // not refreshed — still the 30 Jun level
+    lithiumCNYPerTonne: 104740, // GFEX most-active lithium carbonate, 12 Oct
+    lithiumUSDPerTonne: 14200,  // 30 Jun level, kept for older readers
+    brentUSD: 108.79,         // ICE Brent settle, 20 Oct
+    asOfBy: {
+      ironOreUSD: '2026-10-16', thermalCoalUSD: '2026-10-16', lngUSDPerMMBtu: '2026-10-20',
+      copperUSDPerLb: '2026-10-14', lithiumCNYPerTonne: '2026-10-12', brentUSD: '2026-10-20',
+      wheatUSDPerBu: '2026-06-30',
+    },
+    sourceBy: {
+      ironOreUSD: 'SGX iron ore futures (via Bloomberg, Investing.com)',
+      thermalCoalUSD: 'globalCOAL Newcastle (via Kalkine)',
+      lngUSDPerMMBtu: 'Platts JKM (via Bloomberg)',
+      copperUSDPerLb: 'LME 3-month',
+      lithiumCNYPerTonne: 'GFEX lithium carbonate',
+      brentUSD: 'ICE Brent (via Fortune / oilprice.com)',
+    },
+    previous: {
+      asOf: '2026-06-30',
+      ironOreUSD: 98.40, thermalCoalUSD: 124.20, lngUSDPerMMBtu: 12.40,
+      copperUSDPerLb: 4.12, brentUSD: 78.40,
+    },
+    source: 'Indicative — exchange settlements via news and data sites; see sourceBy',
+    asOf: '2026-10-20',
+    lastVerified: '2026-10-22',
   },
+
   freight: {
     balticDryIndex: 1847,
     balticDryChangePct: 2.1,

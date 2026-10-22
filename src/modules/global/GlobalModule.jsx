@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
-import { SeismicSection, MarketSessionSection } from './IntelSections'
+import { SeismicSection } from './IntelSections'
+import { IntelTicker, IntelFilterBar, MarketHoursCompact, CommodityIntel, GeoRiskCards } from './IntelPanel'
+import { readIntelFilter, saveIntelFilter } from './intelFilter'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
-import { GEO_RISK_INDEX, riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
+import { riskBand, avgGeoRisk } from '../../data/geopoliticalRisk'
 import { fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
@@ -16,10 +18,9 @@ import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 import TabBar from '../../components/ui/TabBar'
-import VerifiedBadge, { LiveBadge } from '../../components/ui/VerifiedBadge'
+import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { aiContentService } from '../../services/aiContentService'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -2025,8 +2026,6 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
 
 // ─── LEFT: Live Intelligence Feed ──────────────────────────────────────────
 
-const FEED_EXCHANGE_IDS = ['ASX', 'TSE', 'HKEX', 'LSE', 'NYSE', 'NASDAQ']
-
 // Mock — no live shipping-rate feed wired up yet, same DEMO convention.
 // 7D trend values are illustrative; sparkline just needs relative shape.
 // Levels and changes come from VERIFIED_CONSTANTS.freight, not from a second
@@ -2066,51 +2065,6 @@ function Sparkline({ points, positive }) {
     </svg>
   )
 }
-
-// Mock — no live commodities feed wired up yet; matches the DEMO-badge
-// convention used across Markets/Rates until a real source is connected.
-// Commodity pulse. Three things were wrong with the hardcoded version and
-// all three are worth naming, because they are the failure modes this whole
-// pass is about:
-//
-//  1. The change percentages had no source at all. A daily move is the most
-//     perishable number on the panel and these were fixed forever — GOLD had
-//     been up 0.34% every day since the row was written. A figure with no
-//     source is worse than a missing one, because it invites a decision.
-//
-//  2. The prices disagreed with VERIFIED_CONSTANTS.commodities, which held
-//     copper at 4.12 against 4.31 here.
-//
-//  3. The units were silently mixed. Gold's 4,821 was AUD while iron ore's
-//     98.40 was USD, on adjacent rows, with no currency shown on either.
-//
-// Now: gold is genuinely live (with a real 24h change), everything else
-// comes from the verified constants and shows its publication date instead
-// of a change it cannot know, and every figure is explicitly US$.
-//
-// WTI became BRENT. The constants carry a verified Brent price and no WTI
-// one, and relabelling the benchmark to match the number is honest where
-// printing Brent under a WTI heading is not.
-const C = VERIFIED_CONSTANTS.commodities
-
-// "Jun '26" from '2026-06-30'. Formatted by hand rather than through
-// toLocaleDateString: en-AU renders June's short month as "June", giving
-// "June 26", which reads as the 26th of June rather than a month and year.
-const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-function monthAbbr(iso) {
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return '—'
-  return `${MONTH_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`
-}
-
-const COMMODITY_PULSE = [
-  { name: 'BRENT',    unit: '/bbl', price: C.brentUSD },
-  { name: 'IRON ORE', unit: '/t',   price: C.ironOreUSD },
-  { name: 'COPPER',   unit: '/lb',  price: C.copperUSDPerLb },
-  { name: 'WHEAT',    unit: '/bu',  price: C.wheatUSDPerBu },
-  { name: 'COAL',     unit: '/t',   price: C.thermalCoalUSD },
-]
 
 // Gold comes from liveDataService, which proxies spot via PAXG — an ERC-20
 // token redeemable for one LBMA-vaulted ounce. It tracks spot closely and is
@@ -2165,100 +2119,12 @@ const FX_CROSS_PAIRS = [
 // US is nearly as risky as an active war. What it actually measured was how
 // often a place name appears in severe-sounding coverage.
 
-function FeedHeader({ children, badge }) {
-  return (
-    <div className="panel-header flex items-center justify-between flex-shrink-0">
-      <span>{children}</span>
-      {badge && <span className="text-[8px] text-terminal-gold/70 font-normal normal-case tracking-normal">{badge}</span>}
-    </div>
-  )
-}
-
 // ─── Left panel building blocks ─────────────────────────────────────────────
-
-// Scrolling intelligence ticker.
-//
-// Duplicated content, translated by exactly -50%: the loop is seamless
-// because the second copy is in the first copy's place when the animation
-// resets. Animating a single copy pops back to the start visibly.
-//
-// Pauses on hover — a line you want to read should not walk away from you.
-function IntelTicker() {
-  const [lines, setLines] = useState(null)
-  const [regenerating, setRegenerating] = useState(false)
-
-  const load = useCallback(async () => {
-    const { data } = await aiContentService.getIntelTicker()
-    if (Array.isArray(data) && data.length) setLines(data)
-  }, [])
-
-  useEffect(() => {
-    let alive = true
-    aiContentService.getIntelTicker().then(({ data }) => {
-      if (alive && Array.isArray(data) && data.length) setLines(data)
-    }).catch(() => { /* strip stays hidden */ })
-    return () => { alive = false }
-  }, [])
-
-  // The ticker is generated once per market day and cached, so a prompt change
-  // would otherwise not show until tomorrow. This drops the cached entry and
-  // asks for a fresh one.
-  const regenerate = useCallback(async () => {
-    setRegenerating(true)
-    aiContentService.clearKey('intel_ticker')
-    try { await load() } catch { /* keep the existing strip on failure */ }
-    finally { setRegenerating(false) }
-  }, [load])
-
-  if (!lines) return null
-  const run = [...lines, ...lines]
-
-  return (
-    <div
-      className="intel-ticker flex-shrink-0 overflow-hidden relative group"
-      style={{
-        height: 32,
-        background: '#020609',
-        borderBottom: '1px solid rgba(201,168,76,0.08)',
-      }}
-    >
-      {/* Regenerate. Sits over the right edge on its own gradient so the
-          scrolling text passes behind it rather than colliding with it, and
-          stays faint until the strip is hovered — this is maintenance, not a
-          control anyone needs to see while reading. */}
-      <button
-        onClick={regenerate}
-        disabled={regenerating}
-        title="Regenerate intelligence ticker — clears today's cached generation"
-        aria-label="Regenerate intelligence ticker"
-        className="absolute right-0 top-0 h-full z-10 flex items-center pr-2 pl-6 opacity-30 hover:opacity-100 transition-opacity disabled:opacity-40"
-        style={{
-          background: 'linear-gradient(to right, transparent, #020609 45%)',
-          color: '#C9A84C', fontSize: 11, lineHeight: 1, cursor: 'pointer', border: 'none',
-        }}
-      >
-        <span className={regenerating ? 'animate-spin inline-block' : 'inline-block'}>↻</span>
-      </button>
-
-      <div className="intel-ticker-track flex items-center h-full whitespace-nowrap">
-        {run.map((line, i) => (
-          <span
-            key={i}
-            className="font-mono flex-shrink-0"
-            style={{ fontSize: 9, letterSpacing: '0.08em', color: '#C9A84C', paddingLeft: 14, paddingRight: 14 }}
-          >
-            {line}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // Section wrapper. Every section in this panel collapses, and which ones are
 // collapsed persists — the panel is 300px against a full-height map, so what
 // a given person wants visible varies more than any default can capture.
-function CollapsibleSection({ id, title, badge, defaultOpen = true, children }) {
+function CollapsibleSection({ id, title, badge, defaultOpen = true, hidden = false, children }) {
   const [open, setOpen] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('maddex_intel_sections') ?? '{}')
@@ -2277,6 +2143,7 @@ function CollapsibleSection({ id, title, badge, defaultOpen = true, children }) 
     })
   }
 
+  if (hidden) return null
   return (
     <div className="flex-shrink-0 border-b border-terminal-border">
       {/* Scoped to this panel rather than reusing .panel-header, which every
@@ -2360,8 +2227,19 @@ function PortfolioExposure({ watchlist }) {
   )
 }
 
-function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist, earthquakes, onFocusQuake }) {
-  const { gold, source: goldSource, ageMins: goldAge } = useGoldPrice()
+// Layout, top to bottom: the ticker, the filter bar, three compact sections
+// (market hours, commodities, geopolitical risk), then the feed. Every section
+// collapses and remembers it; the filter hides the sections and ticker items
+// outside the chosen category, and remembers too.
+//
+// Each section names the filters it belongs to. LIVE keeps the sections whose
+// figures update in real time (market hours, gold, seismic, FX).
+function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQuake, onFocusPoint }) {
+  const { gold } = useGoldPrice()
+  const [filter, setFilter] = useState(readIntelFilter)
+  const pickFilter = (f) => { setFilter(f); saveIntelFilter(f) }
+  const show = (...cats) => filter === 'ALL' || cats.includes(filter)
+
   const alerts = useMemo(() => {
     if (!newsItems?.length) return []
     return newsItems
@@ -2371,184 +2249,91 @@ function IntelFeedPanel({ newsItems, audRates, onSelectExchange, watchlist, eart
       .slice(0, 4)
   }, [newsItems])
 
-  const feedExchanges = useMemo(
-    () => FEED_EXCHANGE_IDS.map(id => EXCHANGES.find(e => e.id === id)).filter(Boolean),
-    []
-  )
-
   return (
-    <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden hide-scrollbar">
-      <SeismicSection earthquakes={earthquakes} onFocus={onFocusQuake} />
-      <MarketSessionSection />
-      <IntelTicker />
+    <div className="flex flex-col h-full overflow-hidden">
+      <IntelTicker earthquakes={earthquakes} filter={filter} />
+      <IntelFilterBar value={filter} onChange={pickFilter} />
 
-      <CollapsibleSection id="markets" title="MARKET STATUS">
-        <div className="px-2 py-1">
-          {feedExchanges.map(ex => {
-            const st = getStatus(ex)
-            const cd = countdown(ex)
-            return (
-              <button
-                key={ex.id}
-                onClick={() => onSelectExchange(ex.id)}
-                className="w-full flex items-center justify-between py-1 px-1 -mx-1 rounded-[2px] hover:bg-terminal-accent/10 transition-colors"
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden hide-scrollbar">
+        <CollapsibleSection id="hours" title="MARKET HOURS" hidden={!show('MARKETS', 'LIVE')}>
+          <MarketHoursCompact onFocus={onFocusPoint} />
+        </CollapsibleSection>
+
+        <CollapsibleSection id="commodity-intel" title="COMMODITY INTELLIGENCE" hidden={!show('MACRO', 'MARKETS', 'LIVE')}
+          badge={<VerifiedBadge dataKey="commodities" alwaysShow />}>
+          <CommodityIntel gold={gold} onFocus={onFocusPoint} />
+        </CollapsibleSection>
+
+        <CollapsibleSection id="geo-risk" title="GEOPOLITICAL RISK" hidden={!show('GEO')}>
+          <GeoRiskCards onFocus={onFocusPoint} />
+        </CollapsibleSection>
+
+        <CollapsibleSection id="alerts" title="ACTIVE INTELLIGENCE" hidden={!show('GEO')}>
+          <div className="flex flex-col gap-1.5">
+            {alerts.length === 0 && (
+              <div className="text-2xs text-terminal-text-dim/60 py-1">No active disruptions</div>
+            )}
+            {alerts.map((a, i) => (
+              <div
+                key={a.id ?? i}
+                onClick={() => a.link && window.open(a.link, '_blank', 'noopener')}
+                className={`px-2 py-1.5 border-l-2 text-2xs leading-snug cursor-pointer text-terminal-text-bright ${
+                  a.severity === 'CRITICAL' ? 'border-l-terminal-red bg-terminal-red/10' : 'border-l-orange-500 bg-orange-500/10'
+                }`}
               >
-                <span className="flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT_CLS[st]}`} />
-                  <span className="text-2xs text-terminal-text-bright font-semibold">{ex.abbr}</span>
-                </span>
-                <span className="text-right">
-                  <div className={`text-2xs font-semibold ${STATUS_CLS[st]}`}>{STATUS_LABEL[st]}</div>
-                  {cd && <div className="text-[9px] text-terminal-text-dim">{cd}</div>}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="alerts" title="ACTIVE INTELLIGENCE">
-        <div className="px-2 py-1.5 flex flex-col gap-1.5">
-          {alerts.length === 0 && (
-            <div className="text-2xs text-terminal-text-dim/60 py-1">No active disruptions</div>
-          )}
-          {alerts.map((a, i) => (
-            <div
-              key={a.id ?? i}
-              onClick={() => a.link && window.open(a.link, '_blank', 'noopener')}
-              className={`px-2 py-1.5 border-l-2 text-2xs leading-snug cursor-pointer text-terminal-text-bright ${
-                a.severity === 'CRITICAL' ? 'border-l-terminal-red bg-terminal-red/10' : 'border-l-orange-500 bg-orange-500/10'
-              }`}
-            >
-              <div>{a.headline}</div>
-              {/* Source badge. These items come from three different general
-                  news wires, and which one carried a story is part of reading
-                  it — an ABC line and a Guardian line are not interchangeable
-                  provenance. */}
-              {a.source && (
-                <div className="mt-1">
-                  <span
-                    style={{
-                      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
-                      letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
-                      background: 'rgba(99,120,153,0.14)',
-                      border: '1px solid rgba(99,120,153,0.28)',
-                      color: '#8BA3C4', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {String(a.source).toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="exposure" title="PORTFOLIO EXPOSURE">
-        <PortfolioExposure watchlist={watchlist} />
-      </CollapsibleSection>
-
-      <CollapsibleSection id="freight" title="FREIGHT" badge={<VerifiedBadge dataKey="freight" alwaysShow />}>
-        <div className="px-2 py-1">
-          {SHIPPING_INDEX.map((s) => (
-            <div key={s.name} className="flex items-center justify-between py-1 gap-2">
-              <span className="text-2xs text-terminal-text-dim flex-shrink-0">{s.name}</span>
-              <Sparkline points={s.trend} positive={s.chg >= 0} />
-              <span className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-2xs text-terminal-text-bright tabular-nums">{s.value.toLocaleString()}</span>
-                <span className={`text-2xs tabular-nums w-11 text-right ${s.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {s.chg >= 0 ? '▲' : '▼'}{Math.abs(s.chg).toFixed(1)}%
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="commodities" title="COMMODITIES" badge={<VerifiedBadge dataKey="commodities" alwaysShow />}>
-        <div className="px-2 py-1">
-          {gold && (
-            <div className="flex items-center justify-between py-1">
-              <span className="text-2xs text-terminal-text-dim flex items-center gap-1.5">
-                GOLD
-                <LiveBadge label="Gold — PAXG proxy for spot, via CoinGecko" source={goldSource} ageMins={goldAge} />
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="text-2xs text-terminal-text-bright tabular-nums">US${gold.USD.toLocaleString()}/oz</span>
-                <span className={`text-2xs tabular-nums w-12 text-right ${(gold.change24h ?? 0) >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {gold.change24h == null ? '—' : `${gold.change24h >= 0 ? '▲' : '▼'}${Math.abs(gold.change24h).toFixed(2)}%`}
-                </span>
-              </span>
-            </div>
-          )}
-          {COMMODITY_PULSE.map(c => (
-            <div key={c.name} className="flex items-center justify-between py-1">
-              <span className="text-2xs text-terminal-text-dim">{c.name}</span>
-              <span className="flex items-center gap-2">
-                <span className="text-2xs text-terminal-text-bright tabular-nums">US${c.price.toLocaleString()}{c.unit}</span>
-                {/* The publication date, not a change percentage. These are
-                    verified levels, not a feed, so there is no daily move to
-                    report and inventing one is the thing we just removed. */}
-                <span className="text-2xs text-terminal-text-dim tabular-nums w-12 text-right">{monthAbbr(C.asOf)}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="fx" title="CURRENCY CROSS">
-        <div className="px-2 py-1">
-          {FX_CROSS_PAIRS.map(p => {
-            const v = audRates?.[p.key]
-            return (
-              <div key={p.key} className="flex items-center justify-between py-1">
-                <span className="text-2xs text-terminal-text-dim">{p.label}</span>
-                <span className="text-2xs text-terminal-text-bright tabular-nums">{v != null ? v.toFixed(p.dp) : '—'}</span>
-              </div>
-            )
-          })}
-        </div>
-      </CollapsibleSection>
-
-      <div className="flex-shrink-0">
-        <FeedHeader badge={`REVIEWED ${RISK_LAST_REVIEWED}`}>GEO RISK INDEX</FeedHeader>
-        <div className="px-2 py-1.5 flex flex-col gap-2">
-          {GEO_RISK_INDEX.map(region => {
-            const band = riskBand(region.score)
-            return (
-              <div key={region.id} title={`${region.summary}\n\nAU IMPACT ${region.auImpact}/100 — ${region.auImpactNote}`}>
-                <div className="flex items-center justify-between mb-0.5 gap-2">
-                  <span className="text-2xs text-terminal-text-dim uppercase truncate">{region.label}</span>
-                  <span className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className={`text-[9px] font-bold tracking-wider ${band.tw}`}>{band.label}</span>
-                    <span className="text-2xs text-terminal-text-bright tabular-nums w-5 text-right">{region.score}</span>
-                  </span>
-                </div>
-                {/* Two bars, not one. Global severity and Australian
-                    consequence answer different questions, and for this
-                    audience the second is the more useful — China is the
-                    clearest case, low-to-mid severity and the highest AU
-                    impact on the board. A single blended score would hide
-                    exactly that. */}
-                <div className="w-full h-1 bg-terminal-surface2 rounded-full overflow-hidden">
-                  <div className={`h-full ${band.bar}`} style={{ width: `${region.score}%` }} />
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[8px] text-terminal-text-dim/70 tracking-wider flex-shrink-0">AU</span>
-                  <div className="flex-1 h-[3px] bg-terminal-surface2 rounded-full overflow-hidden">
-                    <div className="h-full bg-terminal-blue-bright/70" style={{ width: `${region.auImpact}%` }} />
+                <div>{a.headline}</div>
+                {a.source && (
+                  <div className="mt-1">
+                    <span style={{
+                      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
+                      background: 'rgba(99,120,153,0.14)', border: '1px solid rgba(99,120,153,0.28)', color: '#8BA3C4', whiteSpace: 'nowrap',
+                    }}>{String(a.source).toUpperCase()}</span>
                   </div>
-                  <span className="text-[8px] text-terminal-text-dim tabular-nums w-5 text-right">{region.auImpact}</span>
-                </div>
+                )}
               </div>
-            )
-          })}
-          <div className="text-[8px] text-terminal-text-dim/60 leading-snug pt-0.5">
-            Maddex internal assessment · scored by documented rubric · AU bar is Australian
-            trade, security and investment exposure, not global severity.
+            ))}
           </div>
-        </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection id="seismic" title="SEISMIC ACTIVITY" hidden={!show('SEISMIC', 'LIVE')}
+          badge={<span className="text-[8px] text-terminal-text-dim/50 font-mono">USGS · M4.5+ · 7D</span>}>
+          <SeismicSection earthquakes={earthquakes} onFocus={onFocusQuake} bare />
+        </CollapsibleSection>
+
+        <CollapsibleSection id="exposure" title="PORTFOLIO EXPOSURE" hidden={!show('GEO')}>
+          <PortfolioExposure watchlist={watchlist} />
+        </CollapsibleSection>
+
+        <CollapsibleSection id="freight" title="FREIGHT" hidden={!show('MACRO', 'MARKETS')} badge={<VerifiedBadge dataKey="freight" alwaysShow />}>
+          <div>
+            {SHIPPING_INDEX.map((s) => (
+              <div key={s.name} className="flex items-center justify-between py-1 gap-2">
+                <span className="text-2xs text-terminal-text-dim flex-shrink-0">{s.name}</span>
+                <Sparkline points={s.trend} positive={s.chg >= 0} />
+                <span className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-2xs text-terminal-text-bright tabular-nums">{s.value.toLocaleString()}</span>
+                  <span className={`text-2xs tabular-nums w-11 text-right ${s.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                    {s.chg >= 0 ? '▲' : '▼'}{Math.abs(s.chg).toFixed(1)}%
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection id="fx" title="CURRENCY CROSS" hidden={!show('MARKETS', 'MACRO', 'LIVE')}>
+          <div>
+            {FX_CROSS_PAIRS.map(p => {
+              const v = audRates?.[p.key]
+              return (
+                <div key={p.key} className="flex items-center justify-between py-1">
+                  <span className="text-2xs text-terminal-text-dim">{p.label}</span>
+                  <span className="text-2xs text-terminal-text-bright tabular-nums">{v != null ? v.toFixed(p.dp) : '—'}</span>
+                </div>
+              )
+            })}
+          </div>
+        </CollapsibleSection>
       </div>
     </div>
   )
@@ -2864,12 +2649,10 @@ export default function GlobalModule() {
     setMapFocus({ longitude: q.coordinates[0], latitude: q.coordinates[1], zoom: 5, pitch: 40, at: Date.now() })
   }, [])
 
-  const handleSelectExchange = useCallback((exchangeId) => {
-    setSelectedCountry(null)
-    setSelectedExchange(exchangeId)
-    setActiveTab('exchange')
-    setRightOpen(true)
-    setLeftOpen(false)
+  // Fly the map to a point — a commodity region, a risk region, an exchange.
+  const handleFocusPoint = useCallback((p) => {
+    if (p?.longitude == null || p?.latitude == null) return
+    setMapFocus({ longitude: p.longitude, latitude: p.latitude, zoom: p.zoom ?? 4, pitch: 35, at: Date.now() })
   }, [])
 
   // Short labels, because six tabs share a 340px overlay and anything longer
@@ -2896,7 +2679,7 @@ export default function GlobalModule() {
     <IntelFeedPanel
       newsItems={allNewsItems}
       audRates={rates}
-      onSelectExchange={handleSelectExchange}
+      onFocusPoint={handleFocusPoint}
       watchlist={watchlist}
       earthquakes={earthquakes}
       onFocusQuake={handleFocusQuake}

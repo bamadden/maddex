@@ -23,7 +23,7 @@ function distanceKm([lon1, lat1], [lon2, lat2]) {
 const magTone = (m) => (m >= 6.5 ? '#A83232' : m >= 5.5 ? '#C9A84C' : '#8BA3C4')
 
 
-export function SeismicSection({ earthquakes, onFocus }) {
+export function SeismicSection({ earthquakes, onFocus, bare = false }) {
   const [now] = useState(() => Date.now())
 
   const top = useMemo(() => {
@@ -45,12 +45,16 @@ export function SeismicSection({ earthquakes, onFocus }) {
       .slice(0, 5)
   }, [earthquakes])
 
+  // `bare` drops the section's own header and border, for a host that
+  // supplies its own (the Global panel's collapsible sections).
   return (
-    <div className="border-b border-terminal-border">
-      <div className="flex items-center justify-between px-3 py-1.5">
-        <span className="text-2xs text-terminal-gold font-bold tracking-widest">SEISMIC ACTIVITY</span>
-        <span className="text-2xs text-terminal-text-dim/50">USGS · M4.5+ · 7 days</span>
-      </div>
+    <div className={bare ? '-mx-4' : 'border-b border-terminal-border'}>
+      {!bare && (
+        <div className="flex items-center justify-between px-3 py-1.5">
+          <span className="text-2xs text-terminal-gold font-bold tracking-widest">SEISMIC ACTIVITY</span>
+          <span className="text-2xs text-terminal-text-dim/50">USGS · M4.5+ · 7 days</span>
+        </div>
+      )}
 
       {top.length === 0 ? (
         <div className="px-3 pb-2 text-2xs text-terminal-text-dim/60">

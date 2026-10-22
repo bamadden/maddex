@@ -69,6 +69,8 @@ export const RISK_LAST_REVIEWED = '2026-09-06'
 const REGIONS = [
   {
     id: 'russia',
+    centre: [37.6, 55.8],  // map focus, [lon, lat]
+    affects: ['Energy', 'Wheat', 'Fertiliser'],
     label: 'Russia',
     factors: {
       armedConflict: 'Full-scale war in Ukraine, ongoing',
@@ -82,6 +84,8 @@ const REGIONS = [
   },
   {
     id: 'middle-east',
+    centre: [51.5, 26.5],  // map focus, [lon, lat]
+    affects: ['Oil & LNG prices', 'Freight', 'Energy stocks'],
     label: 'Middle East',
     factors: {
       armedConflict: { weight: 35, note: 'Several active conflicts, none a state-on-state war of the scale in Ukraine' },
@@ -95,6 +99,8 @@ const REGIONS = [
   },
   {
     id: 'china',
+    centre: [116.4, 39.9],  // map focus, [lon, lat]
+    affects: ['Iron ore', 'LNG', 'Coal', 'Materials', 'Education'],
     label: 'China',
     factors: {
       territorialDispute: { weight: 28, note: 'Taiwan Strait and South China Sea claims combined — well above the base weight, as the Strait is the single largest tail risk in the region' },
@@ -108,6 +114,8 @@ const REGIONS = [
   },
   {
     id: 'taiwan',
+    centre: [121.5, 25.0],  // map focus, [lon, lat]
+    affects: ['Semiconductors', 'Shipping lanes', 'Tech supply chain'],
     label: 'Taiwan',
     factors: {
       armedConflict: { weight: 35, note: 'No active conflict; sustained military pressure and blockade rehearsal short of it' },
@@ -119,6 +127,8 @@ const REGIONS = [
   },
   {
     id: 'iran',
+    centre: [51.4, 35.7],  // map focus, [lon, lat]
+    affects: ['Oil', 'Strait of Hormuz', 'Energy'],
     label: 'Iran',
     factors: {
       nuclearThreat: 'Enrichment programme beyond civilian thresholds',
@@ -131,6 +141,8 @@ const REGIONS = [
   },
   {
     id: 'ukraine',
+    centre: [30.5, 50.4],  // map focus, [lon, lat]
+    affects: ['Wheat', 'Energy'],
     label: 'Ukraine',
     factors: {
       armedConflict: 'Active defensive war on its own territory',
@@ -142,6 +154,8 @@ const REGIONS = [
   },
   {
     id: 'north-korea',
+    centre: [125.8, 39.0],  // map focus, [lon, lat]
+    affects: ['Regional security', 'Defence'],
     label: 'North Korea',
     factors: {
       nuclearThreat: 'Declared arsenal and continued testing',
@@ -155,6 +169,8 @@ const REGIONS = [
   },
   {
     id: 'united-states',
+    centre: [-77.0, 38.9],  // map focus, [lon, lat]
+    affects: ['Rates', 'AUD', 'Tech', 'Tariffs'],
     label: 'United States',
     factors: {
       politicalInstability: { weight: 8, note: 'Deep polarisation within stable, functioning institutions' },
@@ -193,6 +209,10 @@ export const GEO_RISK_INDEX = REGIONS.map((r) => ({
   auImpact: r.auImpact,
   auImpactNote: r.auImpactNote,
   summary: r.summary,
+  centre: r.centre,
+  // What the AU exposure runs through — sectors and commodities named in the
+  // AU-impact note, for the card's "Affects" line.
+  affects: r.affects ?? [],
 })).sort((a, b) => b.score - a.score)
 
 export const GEO_RISK_BY_ID = Object.fromEntries(GEO_RISK_INDEX.map((r) => [r.id, r]))
