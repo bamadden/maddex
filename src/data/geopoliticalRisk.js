@@ -40,10 +40,11 @@
 // something.
 //
 // Where a factor carries an explicit { weight, note }, the weight departs
-// from the rubric's base value and the note says why. Russia is the one
-// region scoring a straight sum of full weights (40+20+15+5 = 80).
+// from the rubric's base value and the note says why. Russia scores a
+// straight sum of full weights (40+20+15+5 = 80).
 //
-// LAST REVIEWED: 2026-09-06
+// LAST REVIEWED: 2026-10-22 (Middle East and Iran rescored for the Iran war
+// and Hormuz closure; other regions last reviewed 2026-09-06)
 
 export const RISK_RUBRIC = {
   armedConflict:        40,
@@ -56,7 +57,7 @@ export const RISK_RUBRIC = {
   socialUnrest:          5,
 }
 
-export const RISK_LAST_REVIEWED = '2026-09-06'
+export const RISK_LAST_REVIEWED = '2026-10-22'
 
 // AU IMPACT is a separate axis and the more useful of the two here.
 //
@@ -84,18 +85,19 @@ const REGIONS = [
   },
   {
     id: 'middle-east',
-    centre: [51.5, 26.5],  // map focus, [lon, lat]
-    affects: ['Oil & LNG prices', 'Freight', 'Energy stocks'],
+    centre: [56.3, 26.6],  // map focus, [lon, lat] — the Strait of Hormuz
+    affects: ['Fuel & CPI', 'Oil & LNG prices', 'Freight', 'Energy stocks', 'RBA path'],
     label: 'Middle East',
+    // Rescored 2026-10-22, was 70 (35 + 15 + 12 + 8). Now 40 + 15 + 15 + 10 = 80.
     factors: {
-      armedConflict: { weight: 35, note: 'Several active conflicts, none a state-on-state war of the scale in Ukraine' },
-      nuclearThreat: { weight: 15, note: 'Iranian programme unresolved — regional rather than region-wide' },
-      territorialDispute: { weight: 12, note: 'Red Sea shipping attacks — scored above the territorial weight because it disrupts a primary trade lane rather than a border' },
-      economicCrisis: { weight: 8, note: 'Oil supply risk concentrated in one waterway' },
+      armedConflict: 'A multi-state war since 28 Feb: the US and Israel against Iran, Gulf states striking Iran, Israel in southern Lebanon, and the Houthis reopening the Red Sea front in September',
+      nuclearThreat: { weight: 15, note: 'Iran’s programme, now under wartime conditions with IAEA access curtailed — scored in full on the Iran entry; regional here' },
+      territorialDispute: { weight: 15, note: 'Both energy chokepoints contested at once: Iran claims sovereignty over Hormuz and has mined it, and the Houthis are attacking shipping at Bab al-Mandab. Above the base weight because these are trade lanes, not borders' },
+      economicCrisis: { weight: 10, note: 'The largest oil supply disruption on record — Hormuz carried about a quarter of seaborne oil and a fifth of LNG before the war. Above the base weight because the crisis is under way, not a risk of one' },
     },
-    auImpact: 55,
-    auImpactNote: 'Oil price transmission plus Red Sea routing. Australian importers wear longer Asia-Europe transit times and higher freight rates when carriers divert via the Cape.',
-    summary: 'Regional conflict with a direct freight consequence. The shipping disruption is the part that reaches Australian costs fastest.',
+    auImpact: 85,
+    auImpactNote: 'The largest external shock to Australia this year after China. Australia imports most of its liquid fuel, so the oil price lands directly in petrol, freight and CPI — the RBA cited Middle East energy prices in its 2026 hikes. It cuts both ways: with Qatari LNG trapped behind Hormuz, Asian LNG and Newcastle coal prices have surged, lifting Woodside, Santos, Whitehaven and New Hope. Australian LNG ships to North Asia and does not transit the Red Sea; the Bab al-Mandab attacks reach Australia through Europe-bound freight costs.',
+    summary: 'Eight months into the Iran war, Hormuz is still largely closed: October has seen near-daily strikes on tankers, and the Houthis have reopened the Red Sea front. For Australia this is an inflation shock and an energy-exporter windfall at the same time.',
   },
   {
     id: 'china',
@@ -128,16 +130,21 @@ const REGIONS = [
   {
     id: 'iran',
     centre: [51.4, 35.7],  // map focus, [lon, lat]
-    affects: ['Oil', 'Strait of Hormuz', 'Energy'],
+    affects: ['Oil', 'Strait of Hormuz', 'LNG', 'Fertiliser'],
     label: 'Iran',
+    // Rescored 2026-10-22, was 47 (20 + 12 + 15). Now 40 + 20 + 15 + 15 + 10 + 5
+    // = 105, capped at 100: the one entry the cap binds on, and noted as such.
     factors: {
-      nuclearThreat: 'Enrichment programme beyond civilian thresholds',
-      sanctions: { weight: 12, note: 'Long-standing sanctions, already largely priced by counterparties' },
-      territorialDispute: { weight: 15, note: 'Proxy conflicts across several states — above the territorial weight because it is regional force projection, not a border claim' },
+      armedConflict: 'At war with the US and Israel since 28 Feb, with its own territory under air strikes',
+      nuclearThreat: 'Enrichment unresolved and central to the talks; IAEA verification curtailed since the war began',
+      sanctions: 'Comprehensive sanctions, plus a US naval blockade of its ports from 13 April to 29 May',
+      territorialDispute: { weight: 15, note: 'Claims sovereignty over the Strait of Hormuz, has mined it, and attacks ships on routes it calls unauthorised — above the territorial weight because it closes a global trade lane' },
+      politicalInstability: 'Supreme Leader killed in the opening strikes; wartime succession',
+      socialUnrest: 'Mass killing of anti-government protesters in early 2026',
     },
-    auImpact: 45,
-    auImpactNote: 'Hormuz and Red Sea exposure. Australia buys little from Iran directly; the channel is oil and shipping insurance.',
-    summary: 'Nuclear programme and proxy conflicts, transmitted to Australia almost entirely through energy prices and freight risk.',
+    auImpact: 75,
+    auImpactNote: 'Tehran decides whether Hormuz reopens, and that decision moves the oil price Australians pay at the bowser. Little direct trade; the channel is energy prices, shipping insurance and fertiliser, with the LNG-exporter upside noted on the Middle East entry.',
+    summary: 'A belligerent rather than a risk of one. Kpler counted 10 tankers struck between 28 Sep and 4 Oct alone. A nuclear settlement is the main path to reopening the strait, and the June memorandum to end the war has not held.',
   },
   {
     id: 'ukraine',

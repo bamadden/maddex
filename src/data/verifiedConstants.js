@@ -493,10 +493,11 @@ export const VERIFIED_CONSTANTS = {
     wheatUSDPerBu: 5.84,      // not refreshed — still the 30 Jun level
     lithiumCNYPerTonne: 104740, // GFEX most-active lithium carbonate, 12 Oct
     lithiumUSDPerTonne: 14200,  // 30 Jun level, kept for older readers
-    brentUSD: 108.79,         // ICE Brent settle, 20 Oct
+    brentUSD: 108.82,         // ICE Brent Dec settle, Tue 20 Oct (CNBC; FRED Dated Brent spot 115.22 same day)
+    wtiUSD: 97.15,            // NYMEX WTI Dec settle, Tue 20 Oct (CNBC). Nov expired that day; FRED Cushing spot 107.89
     asOfBy: {
       ironOreUSD: '2026-10-16', thermalCoalUSD: '2026-10-16', lngUSDPerMMBtu: '2026-10-20',
-      copperUSDPerLb: '2026-10-14', lithiumCNYPerTonne: '2026-10-12', brentUSD: '2026-10-20',
+      copperUSDPerLb: '2026-10-14', lithiumCNYPerTonne: '2026-10-12', brentUSD: '2026-10-20', wtiUSD: '2026-10-20',
       wheatUSDPerBu: '2026-06-30',
     },
     sourceBy: {
@@ -505,7 +506,8 @@ export const VERIFIED_CONSTANTS = {
       lngUSDPerMMBtu: 'Platts JKM (via Bloomberg)',
       copperUSDPerLb: 'LME 3-month',
       lithiumCNYPerTonne: 'GFEX lithium carbonate',
-      brentUSD: 'ICE Brent (via Fortune / oilprice.com)',
+      brentUSD: 'ICE Brent futures (via CNBC)',
+      wtiUSD: 'NYMEX WTI futures (via CNBC); spot cross-checked on FRED DCOILWTICO',
     },
     previous: {
       asOf: '2026-06-30',

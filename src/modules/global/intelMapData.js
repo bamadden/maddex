@@ -54,6 +54,14 @@ export const TRADE_ROUTES = [
 export const AU_TRADE_ROUTES = TRADE_ROUTES.filter((r) => r.id.startsWith('AU-'))
 
 export const SHIPPING_DISRUPTIONS = [
+  { id: 'hormuz', name: 'Strait of Hormuz', coordinates: [56.3, 26.6], radius: 300000, severity: 'CRITICAL', severityScore: 98,
+    title: 'Hormuz Closure — Iran War',
+    detail: 'Largely closed since the US–Israel war on Iran began on 28 Feb. Iran has mined the strait and claims sovereignty over it; October has seen near-daily strikes on tankers. Before the war it carried about a quarter of seaborne oil and a fifth of LNG.',
+    impact: 'Largest oil supply disruption on record. Brent above US$100; Asian LNG at its highest since 2022.',
+    affectedRoutes: ['Gulf crude', 'Qatar LNG', 'Oil tankers'],
+    commodities: ['Crude Oil', 'LNG', 'Fertiliser'],
+    asxImpact: [{ ticker: 'WDS', why: 'LNG price windfall as Qatari supply is cut off' }, { ticker: 'WHC', why: 'Coal demand as Asian buyers substitute for gas' }, { ticker: 'QAN', why: 'Jet fuel cost' }],
+    startDate: '2026-02-28' },
   { id: 'red-sea', name: 'Red Sea', coordinates: [43.0, 13.5], radius: 450000, severity: 'CRITICAL', severityScore: 92,
     title: 'Houthi Attacks — Red Sea',
     detail: 'Ongoing attacks on commercial shipping. Major carriers diverting around the Cape of Good Hope. Adds roughly 14 days and about US$1M in fuel to EU-Asia routes.',

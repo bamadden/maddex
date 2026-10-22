@@ -30,10 +30,11 @@ export default defineConfig([
     },
   },
   {
-    // Node.js context: Vite's own config file and Vercel serverless
-    // functions under api/ — neither runs in the browser, so `process` etc.
-    // are real globals here, not the browser-only set above.
-    files: ['vite.config.js', 'api/**/*.js'],
+    // Node.js context: Vite's own config file, Vercel serverless functions
+    // under api/ and the build/maintenance scripts under scripts/ — none runs
+    // in the browser, so `process`, `Buffer` etc. are real globals here, not
+    // the browser-only set above.
+    files: ['vite.config.js', 'api/**/*.js', 'scripts/**/*.{js,mjs}'],
     languageOptions: {
       globals: globals.node,
     },
