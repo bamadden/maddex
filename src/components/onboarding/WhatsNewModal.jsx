@@ -1,12 +1,9 @@
+import { LATEST_RELEASE } from '../../data/releaseNotes'
+
 // Release notes, shown once per version (APP_VERSION, from package.json) to
-// returning users. Update this list when the version is bumped — it should
-// name things that genuinely shipped in the release, in plain words.
-const RECENT_FEATURES = [
-  { title: 'MaddenAI, upgraded', desc: 'Research mode for structured deep dives, suggested follow-up questions, clickable ticker pills, and a conversation history in fullscreen.' },
-  { title: 'Investor profile', desc: 'Tell MaddenAI your experience, focus and risk tolerance in Settings — answers, starters and the morning brief are pitched to you.' },
-  { title: 'Portfolio CSV import & export', desc: 'Bring holdings in from a broker export with a row-by-row preview, keep separate purchase lots, and export with P&L.' },
-  { title: 'Official data checks', desc: "RBA cash rate, CPI and unemployment are checked against the RBA's and ABS's own data, with a LIVE CHECK badge on each." },
-]
+// returning users. The list lives in data/releaseNotes.js, shared with
+// Settings → About; the modal shows the first six and points to the rest.
+const SHOWN = 6
 
 export default function WhatsNewModal({ onDismiss, onShowMe, version }) {
   return (
@@ -24,13 +21,18 @@ export default function WhatsNewModal({ onDismiss, onShowMe, version }) {
           <div className="text-xs text-terminal-text-dim mt-1">Shipped since you were last here.</div>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
-          {RECENT_FEATURES.map((f) => (
+        <div className="px-6 py-5 space-y-3.5 max-h-[60vh] overflow-y-auto">
+          {LATEST_RELEASE.items.slice(0, SHOWN).map((f) => (
             <div key={f.title} className="border-l-2 border-terminal-gold/50 pl-3">
               <div className="text-xs font-bold text-terminal-text-bright">{f.title}</div>
               <div className="text-xs text-terminal-text-dim leading-relaxed mt-0.5">{f.desc}</div>
             </div>
           ))}
+          {LATEST_RELEASE.items.length > SHOWN && (
+            <div className="text-[10px] text-terminal-text-dim tracking-wider">
+              + {LATEST_RELEASE.items.length - SHOWN} more in Settings → About
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 px-6 pb-6">

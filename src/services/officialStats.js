@@ -119,11 +119,40 @@ export async function fetchAuGdp({ fetchImpl = fetch } = {}) {
 // Fetches everything, settling each independently so one slow agency never
 // blanks the others.
 export async function fetchOfficialStats(opts = {}) {
-  const [rba, cpi, lf, gdp] = await Promise.allSettled([
-    fetchRbaCashRate(opts), fetchAuCpi(opts), fetchAuUnemployment(opts), fetchAuGdp(opts),
+  const [rba, cpi, lf, gdp, us] = await Promise.allSettled([
+    fetchRbaCashRate(opts), fetchAuCpi(opts), fetchAuUnemployment(opts), fetchAuGdp(opts), fetchUsOfficial(opts),
   ])
   const ok = (r) => (r.status === 'fulfilled' ? r.value : null)
-  return { rba: ok(rba), cpi: ok(cpi), lf: ok(lf), gdp: ok(gdp), fetchedAt: Date.now() }
+  return { rba: ok(rba), cpi: ok(cpi), lf: ok(lf), gdp: ok(gdp), us: ok(us), fetchedAt: Date.now() }
+}
+
+// US headline figures, all from FRED: one keyless CSV source for the BLS,
+// BEA and Federal Reserve series alike. Proxied as /api/fred in the browser
+// (FRED sends no CORS headers). Not BLS's own API, which publishes first but
+// allows about 25 keyless queries a day per IP — in production every reader
+// shares Vercel's IP, so the startup check would exhaust it before lunch.
+export async function fetchUsOfficial({ fredBase = '/api/fred', fetchImpl = fetch } = {}) {
+  const start = `${new Date().getFullYear() - 2}-01-01`
+  const get = (id) => fredSeries(id, start, fetchImpl, `${fredBase}/graph/fredgraph.csv`)
+  const settled = await Promise.allSettled(['CPIAUCNS', 'CPILFENS', 'UNRATE', 'A191RL1Q225SBEA', 'DFEDTARU'].map(get))
+  const [cpi, core, ur, gdp, tgt] = settled.map((r) => (r.status === 'fulfilled' && r.value.length ? r.value : null))
+  if (![cpi, core, ur, gdp, tgt].some(Boolean)) throw new Error('FRED unreachable')
+  // CPI year on year from the unadjusted index, as BLS headlines it.
+  const yoy = (rows) => {
+    if (!rows) return null
+    const last = rows[rows.length - 1]
+    const prior = rows.find((o) => o.date === `${+last.date.slice(0, 4) - 1}${last.date.slice(4)}`)
+    return prior ? { value: r1((last.value / prior.value - 1) * 100), period: periodLabel(last.date.slice(0, 7)) } : null
+  }
+  const last = (rows, period) => (rows ? { value: rows[rows.length - 1].value, period: period(rows[rows.length - 1].date) } : null)
+  return {
+    cpi: yoy(cpi),
+    cpiCore: yoy(core),
+    unemployment: last(ur, (d) => periodLabel(d.slice(0, 7))),
+    gdp: last(gdp, (d) => `Q${Math.floor((+d.slice(5, 7) - 1) / 3) + 1} ${d.slice(0, 4)}`),
+    fedUpper: last(tgt, (d) => `target as at ${d}`),
+    source: 'FRED (BLS, BEA, Federal Reserve)',
+  }
 }
 
 // Where a reader can see each figure at its source.
@@ -139,9 +168,9 @@ export const SOURCE_URL = {
 // Each official figure beside the constant it should equal. `group` is the
 // verifiedConstants key whose staleness a match can clear.
 export function reconcile(constants, live) {
-  const { rba, au } = constants
+  const { rba, au, us, fed } = constants
   const row = (label, group, field, constant, official, source) => ({
-    label, group, field, constant, source, dp: field === 'cashRate' ? 2 : 1,
+    label, group, field, constant, source, dp: field === 'cashRate' || field === 'fedUpper' ? 2 : 1,
     official: official?.value ?? null,
     period: official?.period ?? null,
     status: official?.value == null ? 'unavailable' : Math.abs(official.value - constant) < 0.05 ? 'match' : 'drift',
@@ -153,6 +182,11 @@ export function reconcile(constants, live) {
     row('Unemployment rate', 'au', 'unemployment', au.unemployment, live.lf, live.lf?.source),
     row('GDP growth (QoQ)', 'au', 'gdpQoQ', au.gdpQoQ, live.gdp?.qoq, live.gdp?.source),
     row('GDP growth (annual)', 'au', 'gdpAnnual', au.gdpAnnual, live.gdp?.annual, live.gdp?.source),
+    row('Fed funds (upper)', 'fed', 'fedUpper', fed.cashRate, live.us?.fedUpper, live.us?.source),
+    row('US CPI (annual)', 'us', 'cpi', us.cpi, live.us?.cpi, live.us?.source),
+    row('US core CPI', 'us', 'cpiCore', us.cpiCore, live.us?.cpiCore, live.us?.source),
+    row('US unemployment', 'us', 'unemployment', us.unemployment, live.us?.unemployment, live.us?.source),
+    row('US GDP (annualised)', 'us', 'gdpQoQAnnualised', us.gdpQoQAnnualised, live.us?.gdp, live.us?.source),
   ]
 }
 
@@ -212,13 +246,14 @@ export async function checkHistories(constants, { base = '/api/reservebank', fet
 // uses one of) and two series from FRED's keyless CSV download: the Fed's own
 // target upper bound (DFEDTARU) and BEA's real GDP growth, annualised
 // (A191RL1Q225SBEA). Neither BLS nor FRED sends CORS headers, so this runs
-// from scripts/check-official-stats.mjs only.
+// from scripts/check-official-stats.mjs only; the in-app headline check is
+// fetchUsOfficial above, through the /api/fred proxy.
 
 const BLS = 'https://api.bls.gov/publicAPI/v1/timeseries/data/'
 const FRED = 'https://fred.stlouisfed.org/graph/fredgraph.csv'
 
-async function fredSeries(id, start, fetchImpl) {
-  const r = await fetchImpl(`${FRED}?id=${id}&cosd=${start}`)
+async function fredSeries(id, start, fetchImpl, base = FRED) {
+  const r = await fetchImpl(`${base}?id=${id}&cosd=${start}`)
   if (!r.ok) throw new Error(`FRED ${id} HTTP ${r.status}`)
   return (await r.text()).trim().split(/\r?\n/).slice(1).map((l) => l.split(','))
     .map(([date, v]) => ({ date, value: parseFloat(v) })).filter((o) => Number.isFinite(o.value))
@@ -305,7 +340,7 @@ export async function checkUs(constants, { fetchImpl = fetch } = {}) {
 // Run once at startup and cached for six hours: the agencies publish monthly
 // or quarterly, and the RBA eight times a year.
 
-const CHECK_KEY = 'maddex_official_stats_v1'
+const CHECK_KEY = 'maddex_official_stats_v2' // v2 adds the US figures
 const CHECK_TTL = 6 * 60 * 60 * 1000
 const listeners = new Set()
 let latest = null
@@ -315,6 +350,8 @@ function applyConfirmations(result) {
   const rows = result.rows
   const au = rows.filter((r) => r.group === 'au')
   if (au.length && au.every((r) => r.status === 'match')) markConfirmed('au', today)
+  const usRows = rows.filter((r) => r.group === 'us')
+  if (usRows.length && usRows.every((r) => r.status === 'match')) markConfirmed('us', today)
   // The RBA row confirms the group only if the cash rate matches AND table A2
   // shows no change newer than the decision the constants record. A2 lists
   // changes, not holds, so a hold can never be confirmed this way.

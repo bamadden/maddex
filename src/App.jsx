@@ -198,6 +198,8 @@ const NAV_ACTION_MODULE = {
   'nav.etfs':      'etf',
   'nav.futures':   'futures',
   'nav.options':   'futures',
+  'nav.replay':    'replay',
+  'nav.screener':  'screener',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────
@@ -219,11 +221,13 @@ const SHORTCUT_GROUPS = [
       { keys: ['K'], desc: 'Calendar' },
       { keys: ['S'], desc: 'Scanner' },
       { keys: ['D'], desc: 'Dashboard' },
-      { keys: ['O'], desc: 'Bonds' },
+      { keys: ['T'], desc: 'Bonds' },
       { keys: ['E'], desc: 'ETFs' },
       { keys: ['U'], desc: 'Futures & options' },
       { keys: ['L'], desc: 'Calculators' },
-      { keys: ['/', 'type'], desc: 'Screener, Replay & any module by name' },
+      { keys: ['I'], desc: 'Screener' },
+      { keys: ['H'], desc: 'Market Replay' },
+      { keys: ['/', 'type'], desc: 'Any module by name' },
     ],
   },
   {

@@ -6,16 +6,16 @@ import { VERIFIED_CONSTANTS } from '../src/data/verifiedConstants.js'
 
 // The agencies' endpoints time out now and then; one retry for whichever
 // feeds came back empty clears most of it.
-const live = await fetchOfficialStats({ base: 'https://www.rba.gov.au' })
-if (['rba', 'cpi', 'lf', 'gdp'].some((k) => !live[k])) {
-  const again = await fetchOfficialStats({ base: 'https://www.rba.gov.au' })
-  for (const k of ['rba', 'cpi', 'lf', 'gdp']) live[k] ??= again[k]
+const live = await fetchOfficialStats({ base: 'https://www.rba.gov.au', fredBase: 'https://fred.stlouisfed.org' })
+if (['rba', 'cpi', 'lf', 'gdp', 'us'].some((k) => !live[k])) {
+  const again = await fetchOfficialStats({ base: 'https://www.rba.gov.au', fredBase: 'https://fred.stlouisfed.org' })
+  for (const k of ['rba', 'cpi', 'lf', 'gdp', 'us']) live[k] ??= again[k]
 }
 const rows = reconcile(VERIFIED_CONSTANTS, live)
 const pad = (s, n) => String(s ?? '—').padEnd(n)
 console.log(`\n${pad('FIGURE', 22)}${pad('CONSTANT', 11)}${pad('OFFICIAL', 11)}${pad('PERIOD', 26)}STATUS`)
 for (const r of rows) {
-  const mark = r.status === 'match' ? '✓ match' : r.status === 'drift' ? '⚠ DRIFT — update verifiedConstants.au/rba' : '✕ unavailable'
+  const mark = r.status === 'match' ? '✓ match' : r.status === 'drift' ? `⚠ DRIFT — update verifiedConstants.${r.group}` : '✕ unavailable'
   console.log(`${pad(r.label, 22)}${pad(r.constant, 11)}${pad(r.official, 11)}${pad(r.period, 26)}${mark}`)
 }
 const drift = rows.filter((r) => r.status === 'drift')

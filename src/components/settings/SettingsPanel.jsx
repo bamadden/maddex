@@ -11,6 +11,8 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { getQuietHours, setQuietHours } from '../../services/notificationPolicy'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
 import UpgradePrompt from '../ui/UpgradePrompt'
+import Tooltip from '../ui/Tooltip'
+import { RELEASES } from '../../data/releaseNotes'
 import { getInitials, getTimezoneFromCountry } from '../../lib/profileUtils'
 import { generateAPIKey } from '../../utils/apiKey'
 import APIDocsModal from './APIDocsModal'
@@ -32,7 +34,7 @@ import {
 } from '../../services/browserNotify'
 import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
 import { getImportHistory } from '../../services/portfolioCsv'
-import { TIER_LABEL, PRICES, openPricing } from '../../services/plans'
+import { TIER_LABEL, PRICES, openPricing, GATES, LIMITS, canAccess as planAllows, devPlanOverride, effectiveTier } from '../../services/plans'
 import { getUsage, aiQueriesToday, subscribeUsage } from '../../services/usageService'
 import { activeAlertCount, loadAlerts, loadAlertHistory, alertSuggestionsEnabled, setAlertSuggestionsEnabled } from '../../services/alertsService'
 import {
@@ -1722,7 +1724,7 @@ function SecuritySection({ onDeleteRequest }) {
           <div className="text-2xs text-terminal-text-dim">Active now</div>
         </div>
         <button
-          onClick={() => signOut()}
+          onClick={() => signOut({ scope: 'global' })}
           className="px-4 py-1.5 text-xs font-bold border border-terminal-red/50 text-terminal-red hover:bg-terminal-red/10 transition-colors"
         >
           SIGN OUT ALL DEVICES
@@ -1907,6 +1909,73 @@ function UsageRow({ label, used, limit, note }) {
   )
 }
 
+// Reads the account straight from Supabase — the live session and a fresh
+// profile row, not the copy the app cached at sign-in — and shows what the
+// plan resolves to. For checking an account without opening the dashboard.
+function AccountDiagnostic() {
+  const [report, setReport] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    setBusy(true)
+    const lines = []
+    let profileRow = null
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) throw error
+      if (!session) {
+        lines.push(['Session', 'none — not signed in'])
+      } else {
+        lines.push(['User ID', session.user.id], ['Email', session.user.email ?? '—'])
+        const { data: row, error: pErr } = await supabase.from('profiles')
+          .select('subscription_tier, trial_ends_at, created_at').eq('id', session.user.id).maybeSingle()
+        if (pErr) lines.push(['Plan from profile', `could not read: ${pErr.message}`])
+        else if (!row) lines.push(['Plan from profile', 'no profile row'])
+        else {
+          lines.push(['Plan from profile', `${row.subscription_tier ?? '(empty — treated as trial)'}${row.trial_ends_at ? ` · trial ends ${fmtDate(row.trial_ends_at)}` : ''}`])
+          profileRow = row
+        }
+      }
+      const override = devPlanOverride()
+      lines.push(['Plan override (dev)', override ?? 'none'])
+      const plan = effectiveTier(profileRow)
+      lines.push(['Effective plan', TIER_LABEL[plan]])
+      const unlocked = Object.keys(GATES).filter((f) => planAllows(f, plan))
+      const locked = Object.keys(GATES).filter((f) => !planAllows(f, plan))
+      lines.push(['Features unlocked', unlocked.length ? unlocked.join(', ') : 'none beyond the free plan'])
+      if (locked.length) lines.push(['Features locked', locked.join(', ')])
+      const L = LIMITS[plan]
+      const n = (v) => (v === Infinity ? 'unlimited' : v)
+      lines.push(['Limits', `MaddenAI ${n(L.aiPerDay)}/day · alerts ${n(L.alerts)} · research notes ${n(L.researchNotesPerMonth)}/month · watchlist ${n(L.watchlist)}`])
+    } catch (e) {
+      lines.push(['Error', e.message])
+    }
+    setReport({ lines, at: new Date() })
+    setBusy(false)
+  }
+  return (
+    <div className="border border-terminal-border">
+      <div className="px-3 py-2 flex items-center gap-2">
+        <span className="text-2xs text-terminal-text-dim tracking-widest">ACCOUNT DIAGNOSTIC</span>
+        {report && <span className="text-[10px] text-terminal-text-dim/60">read {report.at.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>}
+        <button onClick={run} disabled={busy}
+          className="ml-auto text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40">
+          {busy ? 'CHECKING…' : 'VERIFY ACCOUNT STATUS'}
+        </button>
+      </div>
+      {report && (
+        <div className="border-t border-terminal-border/50 divide-y divide-terminal-border/30">
+          {report.lines.map(([k, v]) => (
+            <div key={k} className="flex gap-3 px-3 py-1.5 text-2xs">
+              <span className="w-36 flex-shrink-0 text-terminal-text-dim">{k}</span>
+              <span className="text-terminal-text-bright font-mono break-all select-all">{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlanBillingSection() {
   const { plan, isTrial, isTrialExpired, limits } = useSubscription()
   const { profile, daysLeftInTrial } = useProfile()
@@ -1990,6 +2059,8 @@ function PlanBillingSection() {
         </div>
         <div className="text-[10px] text-terminal-text-dim/60">Counted on this device. Resets on the 1st of each month.</div>
       </div>
+
+      <AccountDiagnostic />
 
       {confirmCancel && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-black/70" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmCancel(false) }}>
@@ -2129,12 +2200,10 @@ const GIT_COMMIT = typeof __GIT_COMMIT__ !== 'undefined' ? __GIT_COMMIT__ : 'unk
 const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null
 const BUILD_DATE = BUILD_TIME ? BUILD_TIME.slice(0, 10) : '2026-08-25'
 const ENVIRONMENT = import.meta.env.DEV ? 'Development' : 'Production'
-const WHATS_NEW = [
+// Before 0.2.0, kept as dated notes; releases since live in releaseNotes.js.
+const EARLIER_NOTES = [
   { date: '2026-10-02', note: 'Location search on the Global intel map — places, coordinates, fly-to and financial context cards.' },
   { date: '2026-10-01', note: 'Replay: seven sourced market scenarios with a player, impact summary and quiz.' },
-  { date: '2026-09-07', note: 'Financial calculators — eleven tools across investment, super, property, tax and loans.' },
-  { date: '2026-09-07', note: 'ETF Explorer — 21 Australian ETFs with fee-drag calculator and side-by-side comparison.' },
-  { date: '2026-09-07', note: 'Bonds — full maturity spectrum, 1M to 50Y, across five sovereign markets.' },
 ]
 
 // ─── Data sources ────────────────────────────────────────────────────────────
@@ -2195,13 +2264,14 @@ const SOURCE_TIERS = [
   },
   {
     key: 'pending',
-    label: 'NOT CONNECTED',
+    label: 'COMING SOON — NOT CONNECTED',
     glyph: '◌',
     colour: '#637899',
     note: 'Shown as DEMO throughout the terminal until an equity data provider is connected.',
     rows: [
-      { name: 'ASX & US equity prices', detail: 'COMING SOON — awaiting a market-data key; DEMO until then' },
-      { name: 'Company fundamentals', detail: 'PE, yield, market cap on mock rows' },
+      { name: 'EODHD live ASX prices', detail: 'Connect with an API key — DEMO prices until then', connect: true },
+      { name: 'Real-time index feeds', detail: 'ASX 200, S&P 500 and peers — scripted levels until then', connect: true },
+      { name: 'Fundamental data', detail: 'P/E, yield and EPS live — mock rows until then', connect: true },
       { name: 'Intraday charts', detail: 'Generated series, not real ticks' },
       { name: 'Rate-futures pricing', detail: 'No hold/cut probability is shown anywhere' },
       { name: 'Economic release actuals', detail: 'Calendar lists dates and times, not results' },
@@ -2222,10 +2292,15 @@ function sinceLabel(ts) {
 // The hand-maintained RBA/ABS figures beside the agencies' own published
 // data. A match confirms the constant today; a drift says exactly what to
 // change in verifiedConstants.js.
-function OfficialCheckPanel() {
+function useOfficialCheck() {
   const [check, setCheck] = useState(getOfficialCheck)
-  const [busy, setBusy] = useState(false)
   useEffect(() => subscribeOfficialCheck(setCheck), [])
+  return check
+}
+
+function OfficialCheckPanel() {
+  const check = useOfficialCheck()
+  const [busy, setBusy] = useState(false)
   const recheck = async () => {
     setBusy(true)
     try { await runOfficialCheck({ force: true }) } catch { /* rows show unavailable */ }
@@ -2240,7 +2315,7 @@ function OfficialCheckPanel() {
         <span style={{ color: '#2D8A50', fontSize: 10 }}>✓</span>
         <span className="text-2xs font-bold tracking-widest text-terminal-text-bright">OFFICIAL FEED CHECK</span>
         <span className="text-2xs text-terminal-text-dim ml-auto">
-          {check ? `checked ${sinceLabel(check.fetchedAt)}` : 'not run yet'}
+          {check ? `Last checked: ${sinceLabel(check.fetchedAt)}` : 'not run yet'}
         </span>
         <button onClick={recheck} disabled={busy}
           className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40">
@@ -2248,8 +2323,9 @@ function OfficialCheckPanel() {
         </button>
       </div>
       <div className="px-3 pt-1.5 text-2xs text-terminal-text-dim/70 leading-snug">
-        The verified constants compared against the RBA (table A2) and the ABS Data API. A match confirms
-        the figure as current today; a drift means verifiedConstants.js needs updating.
+        The verified constants compared against the RBA (table A2), the ABS Data API and FRED (BLS, BEA and
+        Federal Reserve series). A match confirms the figure as current today; a drift means
+        verifiedConstants.js needs updating.
       </div>
       {drift.length > 0 && (
         <div className="mx-3 mt-2 text-2xs px-2 py-1.5" style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}>
@@ -2295,17 +2371,37 @@ function DataSourcesSection() {
     return out
   }, [])
 
+  // Every hand-maintained figure, with the date it was published and — for
+  // the ones the official check covers — whether that check agrees with it.
+  const check = useOfficialCheck()
   const verifiedRows = useMemo(() => {
     const c = VERIFIED_CONSTANTS
+    const C = c.commodities
+    const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
+    const status = (group, field) => check?.rows?.find((r) => r.group === group && r.field === field)?.status ?? null
+    const commodity = (label, key, fmt) => C[key] != null && { name: `${label} ${fmt(C[key])}`, detail: `settlement ${day(C.asOfBy?.[key] ?? C.asOf)} · ${C.sourceBy?.[key] ?? C.source}` }
     return [
-      { name: `RBA cash rate ${c.rba.cashRate.toFixed(2)}%`, detail: `verified ${c.rba.lastVerified} · ${c.rba.source}` },
-      { name: `US Fed funds ${c.fed.rateRange}`, detail: `verified ${c.fed.lastVerified} · ${c.fed.source}` },
-      { name: `AU CPI ${c.au.cpi.toFixed(1)}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
-      { name: `AU unemployment ${c.au.unemployment}%`, detail: `verified ${c.au.lastVerified} · ${c.au.source}` },
-      { name: `Iron ore US$${c.commodities.ironOreUSD}/t`, detail: `as at ${c.commodities.asOf} · ${c.commodities.source}` },
-      { name: `Brent US$${c.commodities.brentUSD}/bbl`, detail: `as at ${c.commodities.asOf} · ${c.commodities.source}` },
-    ]
-  }, [])
+      { name: `RBA cash rate ${c.rba.cashRate.toFixed(2)}%`, detail: `decision ${day(c.rba.lastDecision)} · ${c.rba.source}`, status: status('rba', 'cashRate') },
+      { name: `AU CPI ${c.au.cpi.toFixed(1)}% (${c.au.cpiPeriod})`, detail: `released ${day(c.au.cpiLastRelease)} · ABS`, status: status('au', 'cpi') },
+      { name: `AU trimmed mean ${c.au.cpiTrimmedMean}% (${c.au.cpiPeriod})`, detail: `released ${day(c.au.cpiLastRelease)} · ABS`, status: status('au', 'cpiTrimmedMean') },
+      { name: `AU unemployment ${c.au.unemployment}% (${c.au.unemploymentPeriod})`, detail: `released ${day(c.au.unemploymentLastRelease)} · ABS`, status: status('au', 'unemployment') },
+      { name: `AU GDP ${c.au.gdpAnnual}% annual, ${c.au.gdpQoQ}% QoQ (${c.au.gdpPeriod})`, detail: `released ${day(c.au.gdpLastRelease)} · ABS`, status: status('au', 'gdpAnnual') },
+      { name: `US Fed funds ${c.fed.rateRange}`, detail: `decision ${day(c.fed.lastDecision)} · ${c.fed.source}`, status: status('fed', 'fedUpper') },
+      { name: `US CPI ${c.us.cpi}%, core ${c.us.cpiCore}% (${c.us.cpiPeriod})`, detail: `released ${day(c.us.cpiRelease)} · BLS`, status: status('us', 'cpi') },
+      { name: `US unemployment ${c.us.unemployment}% (${c.us.unemploymentPeriod})`, detail: `released ${day(c.us.unemploymentRelease)} · BLS`, status: status('us', 'unemployment') },
+      { name: `US GDP ${c.us.gdpQoQAnnualised}% annualised (${c.us.gdpPeriod})`, detail: `released ${day(c.us.gdpRelease)} · BEA`, status: status('us', 'gdpQoQAnnualised') },
+      { name: `US payrolls ${c.us.nfpThousands >= 0 ? '+' : ''}${c.us.nfpThousands}k (${c.us.unemploymentPeriod})`, detail: `released ${day(c.us.nfpRelease)} · BLS` },
+      c.bonds && { name: `AU 10Y ${c.bonds.au10y.toFixed(2)}%`, detail: `as at ${day(c.bonds.au10yAsOf)} · RBA F2` },
+      c.bonds && { name: `US 10Y ${c.bonds.us10y.toFixed(2)}%`, detail: `as at ${day(c.bonds.us10yAsOf)}` },
+      commodity('Iron ore', 'ironOreUSD', (v) => `US$${v.toFixed(2)}/t`),
+      commodity('Thermal coal', 'thermalCoalUSD', (v) => `US$${v.toFixed(2)}/t`),
+      commodity('LNG JKM', 'lngUSDPerMMBtu', (v) => `US$${v.toFixed(2)}/MMBtu`),
+      commodity('Brent', 'brentUSD', (v) => `US$${v.toFixed(2)}/bbl`),
+      commodity('WTI', 'wtiUSD', (v) => `US$${v.toFixed(2)}/bbl`),
+      commodity('Copper', 'copperUSDPerLb', (v) => `US$${v.toFixed(2)}/lb`),
+      C.lithiumCNYPerTonne && { name: `Lithium carbonate CNY${C.lithiumCNYPerTonne.toLocaleString('en-AU')}/t`, detail: `settlement ${day(C.asOfBy?.lithiumCNYPerTonne)} · ${C.sourceBy?.lithiumCNYPerTonne}` },
+    ].filter(Boolean)
+  }, [check])
 
   const refreshLive = () => {
     try {
@@ -2351,6 +2447,21 @@ function DataSourcesSection() {
                       <span className="text-2xs flex-shrink-0 w-20 text-right" style={{ color: ts ? tier.colour : '#4A6080' }}>
                         {ts ? sinceLabel(ts) : 'not cached'}
                       </span>
+                    )}
+                    {tier.key === 'verified' && (
+                      <span className="text-2xs font-bold tracking-wider flex-shrink-0 w-16 text-right"
+                        title={r.status ? 'From the official feed check above' : 'Not covered by the automatic check — verified by hand'}
+                        style={{ color: r.status === 'match' ? '#2D8A50' : r.status === 'drift' ? '#C9A84C' : '#4A6080' }}>
+                        {r.status === 'match' ? '✓ MATCH' : r.status === 'drift' ? '⚠ DRIFT' : r.status === 'unavailable' ? '—' : 'BY HAND'}
+                      </span>
+                    )}
+                    {r.connect && (
+                      <Tooltip content="Contact ben@maddex.com.au to enable">
+                        <a href={`mailto:ben@maddex.com.au?subject=${encodeURIComponent(`Enable ${r.name}`)}`}
+                          className="text-2xs font-bold tracking-wider flex-shrink-0 px-2 py-0.5 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors">
+                          CONNECT
+                        </a>
+                      </Tooltip>
                     )}
                   </div>
                 )
@@ -2410,8 +2521,24 @@ function AboutSection() {
 
       <div className="pt-2 border-t border-terminal-border/30">
         <div className="text-xs text-terminal-text-bright mb-2">What's New</div>
-        <div className="space-y-2.5">
-          {WHATS_NEW.map((entry, i) => (
+        {RELEASES.map((rel) => (
+          <div key={rel.version} className="mb-3">
+            <div className="text-2xs font-bold text-terminal-gold tracking-widest mb-1.5">
+              v{rel.version} <span className="text-terminal-text-dim/60 font-normal tracking-normal">· {rel.date}</span>
+            </div>
+            <div className="space-y-1.5">
+              {rel.items.map((it) => (
+                <div key={it.title} className="text-2xs flex gap-2">
+                  <span className="text-terminal-gold flex-shrink-0">●</span>
+                  <span><span className="text-terminal-text-bright">{it.title}</span><span className="text-terminal-text-dim"> — {it.desc}</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="text-2xs text-terminal-text-dim/60 tracking-widest mb-1.5 mt-3">EARLIER</div>
+        <div className="space-y-2">
+          {EARLIER_NOTES.map((entry, i) => (
             <div key={i} className="text-2xs">
               <span className="text-terminal-text-dim/60">{entry.date}</span>
               <span className="text-terminal-text-dim"> — {entry.note}</span>
@@ -2449,7 +2576,7 @@ function AboutSection() {
 
 // ─── Confirmation Dialog ──────────────────────────────────────────────────────
 
-function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requiresPassword }) {
+function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requiresPassword, confirmLabel = 'CONFIRM', children }) {
   const [typed, setTyped] = useState('')
   const [password, setPassword] = useState('')
   const canConfirm = (!requiresType || typed === requiresType) && (!requiresPassword || password.length > 0)
@@ -2459,6 +2586,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requ
       <div className="w-full max-w-sm bg-terminal-panel border border-terminal-border p-5 mx-4 space-y-4 font-mono">
         <div className="text-xs font-bold text-terminal-red tracking-widest">{title}</div>
         <div className="text-2xs text-terminal-text-dim">{message}</div>
+        {children}
         {requiresType && (
           <div className="space-y-1">
             <div className="text-2xs text-terminal-text-dim">Type <span className="text-terminal-red font-bold">{requiresType}</span> to confirm:</div>
@@ -2493,7 +2621,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel, requiresType, requ
             disabled={!canConfirm}
             className="flex-1 py-1.5 text-2xs font-bold border border-terminal-red text-terminal-red hover:bg-terminal-red/10 transition-colors disabled:opacity-30"
           >
-            CONFIRM DELETE
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -2537,9 +2665,21 @@ export default function SettingsPanel({ onClose, initialSection }) {
     dashboardService.applyPreset('standard')
     flashDone('Dashboard reset to the standard layout')
   }
+  // Signing out leaves this device's watchlist, portfolio and settings in
+  // place unless the reader ticks the box: the common case is signing back in
+  // on the same machine, and they should find their terminal as they left it.
+  const [wipeOnSignOut, setWipeOnSignOut] = useState(false)
   const handleSignOut = async () => {
     setConfirm(null)
     await signOut()
+    if (wipeOnSignOut) {
+      try {
+        Object.keys(localStorage).filter((k) => /^madd(ex|en)[_-]/.test(k)).forEach((k) => localStorage.removeItem(k))
+        sessionStorage.clear()
+      } catch { /* storage unavailable */ }
+      window.location.reload()
+      return
+    }
     onClose()
   }
 
@@ -2636,6 +2776,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'delete-account' && (
         <ConfirmDialog
           title="DELETE ACCOUNT"
+          confirmLabel="DELETE ACCOUNT"
           message="This will permanently delete your Maddex account and all associated data. This action cannot be undone."
           requiresType="DELETE"
           requiresPassword
@@ -2646,6 +2787,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'clear-watchlist' && (
         <ConfirmDialog
           title="CLEAR WATCHLIST"
+          confirmLabel="CLEAR"
           message="This will remove all symbols from your watchlist. This cannot be undone."
           onConfirm={handleClearWatchlist}
           onCancel={() => setConfirm(null)}
@@ -2654,6 +2796,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'clear-portfolio' && (
         <ConfirmDialog
           title="CLEAR PORTFOLIO"
+          confirmLabel="CLEAR"
           message="This will remove all holdings from your portfolio. This cannot be undone."
           onConfirm={handleClearPortfolio}
           onCancel={() => setConfirm(null)}
@@ -2662,6 +2805,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'clear-cache' && (
         <ConfirmDialog
           title="CLEAR ALL CACHED DATA"
+          confirmLabel="CLEAR"
           message="Cached live feeds, AI content and morning briefs will be cleared and re-fetched as you use the terminal. Your watchlist, portfolio and settings are not affected."
           onConfirm={handleClearCache}
           onCancel={() => setConfirm(null)}
@@ -2670,6 +2814,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'reset-dashboard' && (
         <ConfirmDialog
           title="RESET DASHBOARD"
+          confirmLabel="RESET"
           message="Your dashboard layout will be replaced with the standard six-widget layout."
           onConfirm={handleResetDashboard}
           onCancel={() => setConfirm(null)}
@@ -2678,10 +2823,16 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'sign-out' && (
         <ConfirmDialog
           title="SIGN OUT"
-          message="You will be signed out of Maddex on this device."
+          message="You will be signed out of Maddex on this device. Your watchlist, portfolio and settings stay on it."
+          confirmLabel="SIGN OUT"
           onConfirm={handleSignOut}
-          onCancel={() => setConfirm(null)}
-        />
+          onCancel={() => { setConfirm(null); setWipeOnSignOut(false) }}
+        >
+          <label className="flex items-start gap-2 text-2xs text-terminal-text-dim cursor-pointer">
+            <input type="checkbox" checked={wipeOnSignOut} onChange={(e) => setWipeOnSignOut(e.target.checked)} className="mt-0.5 accent-[#C9A84C]" />
+            <span>Also clear this device&apos;s data — watchlist, portfolio, alerts, notes and preferences. Use this on a shared computer.</span>
+          </label>
+        </ConfirmDialog>
       )}
       {doneToast && (
         <div className="fixed bottom-6 right-6 z-[200] font-mono text-2xs px-3 py-2 border border-terminal-gold/50 bg-terminal-panel text-terminal-gold shadow-2xl">
@@ -2691,6 +2842,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
       {confirm === 'clear-notes' && (
         <ConfirmDialog
           title="CLEAR AI NOTES"
+          confirmLabel="DELETE NOTES"
           message="This will delete all your saved AI notes. This cannot be undone."
           onConfirm={handleClearNotes}
           onCancel={() => setConfirm(null)}

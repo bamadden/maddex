@@ -132,6 +132,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/reservebank/, ''),
         },
+        // FRED graph CSVs (no CORS), for the US figures in the official check.
+        '/api/fred': {
+          target: 'https://fred.stlouisfed.org',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/fred/, ''),
+        },
         '/api/stooq': {
           target: 'https://stooq.com',
           changeOrigin: true,

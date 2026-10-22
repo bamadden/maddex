@@ -152,8 +152,13 @@ export const useAuthStore = create((set, get) => ({
     return { data, error }
   },
 
-  signOut: async () => {
-    await supabase.auth.signOut()
+  // 'local' ends this browser's session only; 'global' revokes every session
+  // for the account (Settings → Security → SIGN OUT ALL DEVICES). Supabase's
+  // own default is global, which made every "sign out" a sign-out everywhere.
+  // Callers that pass the handler straight to onClick hand in an event, which
+  // has no `scope`, so they get the local default.
+  signOut: async ({ scope } = {}) => {
+    await supabase.auth.signOut({ scope: scope === 'global' ? 'global' : 'local' })
     set({ user: null, profile: null, session: null, settings: null })
   },
 

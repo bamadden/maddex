@@ -22,10 +22,14 @@ export const DEFAULT_SHORTCUTS = {
   'nav.calendar':  { key: 'k', display: 'K' },
   'nav.scanner':   { key: 's', display: 'S' },
   'nav.dashboard': { key: 'd', display: 'D' },
-  'nav.bonds':     { key: 'o', display: 'O' },
+  // T for fixed income. Was O until 0.2.0; every letter of "bonds" was
+  // taken, and T (Treasuries) is the more guessable of the free ones.
+  'nav.bonds':     { key: 't', display: 'T' },
   'nav.etf':       { key: 'e', display: 'E' },
   'nav.futures':   { key: 'u', display: 'U' },
   'nav.calculators': { key: 'l', display: 'L' },
+  'nav.replay':    { key: 'h', display: 'H' },   // H for history
+  'nav.screener':  { key: 'i', display: 'I' },   // I for fIlter — S is the scanner
 
   'ui.command':        { key: '/', display: '/' },
   'ui.shortcuts':      { key: '?', display: '?' },
@@ -59,6 +63,8 @@ export const ACTION_LABELS = {
   'nav.etf':       'Go to ETFs',
   'nav.futures':   'Go to Futures',
   'nav.calculators': 'Go to Calculators',
+  'nav.replay':    'Go to Market Replay',
+  'nav.screener':  'Go to Screener',
   'ui.command':      'Focus command bar',
   'ui.shortcuts':    'Show shortcuts reference',
   'ui.ai':           'Toggle AI panel',

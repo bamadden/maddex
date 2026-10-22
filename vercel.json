@@ -17,6 +17,10 @@
       "destination": "https://www.rba.gov.au/:path*"
     },
     {
+      "source": "/api/fred/:path*",
+      "destination": "https://fred.stlouisfed.org/:path*"
+    },
+    {
       "source": "/api/stooq/:path*",
       "destination": "https://stooq.com/:path*"
     },
