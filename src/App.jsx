@@ -6,6 +6,7 @@ import { MODULE_FEATURE, trialEndedSeen } from './services/plans'
 import { runOfficialCheck } from './services/officialStats'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { autoGenerateBrief } from './services/morningBriefService'
+import { autoGenerateWeeklyReview } from './services/weeklyReviewService'
 import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { shortcutService } from './services/shortcutService'
@@ -433,6 +434,28 @@ function Terminal() {
       })
       .catch((err) => console.warn('[Brief] auto-generation skipped:', err.message))
   }, [watchlist, addNotification])
+
+  // Weekly review, after the Friday close. Checked at startup and every 15
+  // minutes, because unlike the 7am brief the trigger time falls while the
+  // terminal is likely already open. autoGenerateWeeklyReview holds the guards
+  // (before the close, already cached), so most ticks return at once. The
+  // in-flight ref stops a slow generation being started twice.
+  const weeklyInFlight = useRef(false)
+  useEffect(() => {
+    const tick = () => {
+      if (weeklyInFlight.current) return
+      weeklyInFlight.current = true
+      autoGenerateWeeklyReview()
+        .then((review) => {
+          if (review) addNotification('MORNING_BRIEF', '📰 Your weekly market review is ready', { browser: { title: '📰 Weekly review ready', body: review.headline ?? 'This week in markets', module: 'brief' } })
+        })
+        .catch((err) => console.warn('[Weekly review] auto-generation skipped:', err.message))
+        .finally(() => { weeklyInFlight.current = false })
+    }
+    tick()
+    const id = setInterval(tick, 15 * 60_000)
+    return () => clearInterval(id)
+  }, [addNotification])
 
   // Freshness clock for the status strip. React Query fires this whenever any
   // query resolves, so the strip reports real data age rather than a timer

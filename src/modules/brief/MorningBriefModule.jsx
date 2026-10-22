@@ -16,6 +16,11 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { useSentiment } from '../../hooks/useSentiment'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { clean } from './briefText'
+import { SectionText, BriefSection } from './BriefParts'
+import TabBar from '../../components/ui/TabBar'
+import WeeklyReviewTab, { WeeklyReviewBody } from './WeeklyReview'
+import { getCachedWeeklyReview, listWeeklyHistory, reviewWeek } from '../../services/weeklyReviewService'
 
 // The weekend state.
 //
@@ -28,7 +33,12 @@ import { sydneyTzAbbr } from '../../utils/dateUtils'
 // the economic calendar, the policy settings from verifiedConstants, and the
 // last brief from the local history the module already keeps. Nothing is
 // generated to fill the space.
-function WeekendBrief({ currentDay }) {
+//
+// When the week's review exists it leads: the weekend is when a review gets
+// read, and it is the one piece of new writing the weekend has.
+function WeekendBrief({ currentDay, onOpenWeekly }) {
+  const [week] = useState(() => reviewWeek())
+  const [review] = useState(() => getCachedWeeklyReview(week.key))
   const { data: cal } = useQuery({
     queryKey: ['econCalendar'],
     queryFn: getEconomicCalendar,
@@ -49,13 +59,27 @@ function WeekendBrief({ currentDay }) {
 
   return (
     <div className="space-y-4">
+      {review ? (
+        <div className="max-w-[920px]">
+          <WeeklyReviewBody review={review} kicker="THIS WEEK IN MARKETS" />
+        </div>
+      ) : (
+        <button onClick={onOpenWeekly}
+          className="w-full text-left border border-terminal-gold/40 bg-terminal-gold/[0.04] px-4 py-3 hover:bg-terminal-gold/10 transition-colors">
+          <div className="font-mono text-terminal-gold font-bold tracking-widest" style={{ fontSize: 9 }}>THIS WEEK IN MARKETS</div>
+          <div className="text-2xs text-terminal-text-dim mt-1">
+            No review for {week.label} yet. Open the weekly review to write it →
+          </div>
+        </button>
+      )}
+
       <div className="border border-terminal-border p-4">
         <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
           <span className="text-sm font-bold text-terminal-text-bright">Markets are closed for the weekend.</span>
           <span className="text-2xs text-terminal-text-dim">Next brief Monday, 7am Sydney time</span>
         </div>
         <div className="text-2xs text-terminal-text-dim leading-relaxed">
-          No brief is generated on non-trading days. What follows is the week ahead and
+          No daily brief on non-trading days. What follows is the week ahead and
           where policy stands — everything below is published data, not a forecast.
         </div>
       </div>
@@ -127,7 +151,7 @@ function WeekendBrief({ currentDay }) {
         )}
       </div>
 
-      <PreviousBriefs currentDay={currentDay} />
+      <PreviousBriefs currentDay={currentDay} excludeWeek={review ? week.key : null} />
     </div>
   )
 }
@@ -186,99 +210,83 @@ function ScoreGauge({ score, label }) {
 
 const IMPACT_COLOR = { HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', LOW: 'text-terminal-text-dim' }
 
-// Model prose arrives as plain text that sometimes carries markdown. Strip the
-// markup rather than render it — a stray "**" reads as a glitch — and turn
-// line breaks into paragraphs, or list items where the line is a
-// "Name — reason" pair.
-const clean = (t) => String(t ?? '').replace(/\*\*|__|^#+\s*/gm, '').replace(/^\s*[-*•]\s+/gm, '')
-function SectionText({ text }) {
-  const lines = clean(text).split(/\n+/).map((l) => l.trim()).filter(Boolean)
-  const isList = lines.length > 1 && lines.every((l) => / [—–-] /.test(l) || l.length < 160)
-  if (isList) {
-    return (
-      <ul className="space-y-2">
-        {lines.map((l, i) => {
-          const m = l.match(/^(.{2,48}?)\s+[—–-]\s+(.+)$/)
-          return (
-            <li key={i} className="flex gap-2.5">
-              <span className="text-terminal-gold flex-shrink-0 mt-[1px]">›</span>
-              <span>{m ? <><b className="text-terminal-text-bright font-semibold">{m[1]}</b> — {m[2]}</> : l}</span>
-            </li>
-          )
-        })}
-      </ul>
-    )
-  }
-  return <div className="space-y-2.5">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>
-}
-
-function BriefSection({ title, content }) {
-  return (
-    <section className="relative pl-5 py-4 pr-4" style={{ background: 'rgba(7,20,40,0.55)', border: '1px solid rgba(201,168,76,0.08)' }}>
-      <span className="absolute left-0 top-0 bottom-0" style={{ width: 3, background: '#C9A84C' }} />
-      <h3 className="font-mono text-terminal-gold uppercase mb-2" style={{ fontSize: 8, letterSpacing: '0.22em' }}>{title}</h3>
-      <div className="font-sans text-terminal-text" style={{ fontSize: 14, lineHeight: 1.7 }}>
-        <SectionText text={content} />
-      </div>
-    </section>
-  )
-}
-
 const scoreColour = (score) => BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? '#8BA3C4'
 
-// Previous briefs, collapsed by default.
+// Previous briefs and weekly reviews, collapsed by default.
 //
 // The value of a daily brief compounds — Monday's beside Thursday's shows how
-// the narrative moved, which no single day can. Collapsed because that is a
-// deliberate act of looking back, not something to push in front of someone
-// reading today's.
-function PreviousBriefs({ currentDay }) {
+// the narrative moved, which no single day can. Weekly reviews sit in the same
+// list, after their Friday, as larger cards: they are the summary of the five
+// above them. Collapsed because looking back is a deliberate act, not
+// something to push in front of someone reading today's.
+function PreviousBriefs({ currentDay, excludeWeek }) {
   const [open, setOpen] = useState(null)
-  const history = useMemo(
-    () => listBriefHistory(6).filter((h) => h.day !== currentDay).slice(0, 5),
-    [currentDay],
-  )
-  if (!history.length) return null
+  const items = useMemo(() => {
+    const daily = listBriefHistory(6)
+      .filter((h) => h.day !== currentDay)
+      .map(({ day, brief }) => ({ id: `d:${day}`, kind: 'daily', sort: day, day, brief }))
+    const weekly = listWeeklyHistory(4)
+      .filter((h) => h.week !== excludeWeek)
+      .map(({ week, review }) => ({ id: `w:${week}`, kind: 'weekly', sort: `${review.friday ?? ''}~`, brief: review }))
+    return [...daily, ...weekly].sort((x, y) => (x.sort < y.sort ? 1 : -1)).slice(0, 7)
+  }, [currentDay, excludeWeek])
+  if (!items.length) return null
 
   const label = (day) =>
     new Date(`${day}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
     <div className="border-t border-terminal-border pt-3">
-      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">PREVIOUS BRIEFS</div>
+      <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">PREVIOUS BRIEFS &amp; REVIEWS</div>
       <div className="flex flex-col gap-1">
-        {history.map(({ day, brief }) => (
-          <div key={day} className="border border-terminal-border">
-            <button
-              onClick={() => setOpen((cur) => (cur === day ? null : day))}
-              aria-expanded={open === day}
-              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-terminal-accent/10 transition-colors"
-            >
-              <span className="text-2xs text-terminal-text-bright font-semibold">{label(day)}</span>
-              {brief.maddenAIScore != null && (
-                <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 9, color: scoreColour(brief.maddenAIScore), border: `1px solid ${scoreColour(brief.maddenAIScore)}55` }}>
-                  {brief.maddenAIScore} · {brief.scoreLabel}
+        {items.map(({ id, kind, day, brief }) => {
+          const weekly = kind === 'weekly'
+          return (
+            <div key={id} className={weekly ? 'border border-terminal-gold/45 bg-terminal-gold/[0.04]' : 'border border-terminal-border'}>
+              <button
+                onClick={() => setOpen((cur) => (cur === id ? null : id))}
+                aria-expanded={open === id}
+                className={`w-full flex items-center gap-2 text-left hover:bg-terminal-accent/10 transition-colors ${weekly ? 'px-3 py-2.5' : 'px-2.5 py-1.5'}`}
+              >
+                {weekly && (
+                  <span className="font-mono font-bold tracking-widest text-terminal-bg bg-terminal-gold px-1.5 py-px" style={{ fontSize: 8 }}>WEEKLY</span>
+                )}
+                <span className={`text-terminal-text-bright font-semibold ${weekly ? 'text-xs' : 'text-2xs'}`}>
+                  {weekly ? `Week of ${brief.label}` : label(day)}
                 </span>
+                {!weekly && brief.maddenAIScore != null && (
+                  <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 9, color: scoreColour(brief.maddenAIScore), border: `1px solid ${scoreColour(brief.maddenAIScore)}55` }}>
+                    {brief.maddenAIScore} · {brief.scoreLabel}
+                  </span>
+                )}
+                <span className="ml-auto text-2xs text-terminal-text-dim">{open === id ? '▲' : '▼'}</span>
+              </button>
+              {weekly && open !== id && brief.headline && (
+                <div className="px-3 pb-2.5 -mt-1 text-2xs text-terminal-text-dim leading-relaxed">{brief.headline}</div>
               )}
-              <span className="ml-auto text-2xs text-terminal-text-dim">{open === day ? '▲' : '▼'}</span>
-            </button>
-            {open === day && (
-              <div className="px-2.5 pb-2.5 border-t border-terminal-border/40 pt-2">
-                <div className="text-2xs text-terminal-text-bright font-semibold mb-1.5">{brief.headline}</div>
-                {(brief.sections ?? []).map((sec) => (
-                  <div key={sec.title} className="mb-2.5">
-                    <div className="text-[9px] text-terminal-gold font-bold tracking-widest mb-0.5">{sec.title}</div>
-                    <div className="text-xs text-terminal-text-dim leading-relaxed"><SectionText text={sec.content} /></div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+              {open === id && (
+                <div className="px-2.5 pb-2.5 border-t border-terminal-border/40 pt-2">
+                  <div className="text-2xs text-terminal-text-bright font-semibold mb-1.5">{brief.headline}</div>
+                  {(brief.sections ?? []).map((sec) => (
+                    <div key={sec.title} className="mb-2.5">
+                      <div className="text-[9px] text-terminal-gold font-bold tracking-widest mb-0.5">{sec.title}</div>
+                      <div className="text-xs text-terminal-text-dim leading-relaxed"><SectionText text={sec.content} /></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
+
+const TABS = [
+  { key: 'daily', label: 'DAILY BRIEF' },
+  { key: 'weekly', label: 'WEEKLY REVIEW' },
+]
 
 export default function MorningBriefModule() {
   const { watchlist } = useStore()
@@ -290,6 +298,9 @@ export default function MorningBriefModule() {
   const [error, setError] = useState(null)
 
   const [copied, setCopied] = useState(false)
+  // Weekly is a second tab rather than a second module: same reader, same
+  // ritual, a different time scale.
+  const [tab, setTab] = useState('daily')
 
   const load = async ({ force = false } = {}) => {
     // Weekends short-circuit before the network call. getWeekendMessage()
@@ -366,7 +377,7 @@ export default function MorningBriefModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="MORNING BRIEF"
-        subtitle="Your personalised market brief · generated 7am Sydney time, weekdays"
+        subtitle="Daily brief 7am Sydney time, weekdays · weekly review after the Friday close"
         moduleId="brief"
         isFetching={status === 'loading'}
         // Was deleting a UTC-keyed entry by hand. The cache key is now the
@@ -375,7 +386,7 @@ export default function MorningBriefModule() {
         // clearBriefCache owns the key format instead of this file guessing.
         onRefresh={() => load({ force: true })}
         right={
-          brief && !brief.isWeekend ? (
+          tab === 'daily' && brief && !brief.isWeekend ? (
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => load({ force: true })}
@@ -393,6 +404,15 @@ export default function MorningBriefModule() {
         }
       />
 
+      <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
+
+      {tab === 'weekly' && (
+        <div className="flex-1 overflow-y-auto">
+          <WeeklyReviewTab history={<PreviousBriefs currentDay={briefDayKey()} excludeWeek={reviewWeek().key} />} />
+        </div>
+      )}
+
+      {tab === 'daily' && (
       <div className="flex-1 overflow-y-auto">
         {status === 'loading' && (
           <div className="p-6 space-y-5">
@@ -451,7 +471,7 @@ export default function MorningBriefModule() {
 
         {status === 'ready' && brief && brief.isWeekend && (
           <div className="p-4 space-y-4">
-            <WeekendBrief currentDay={briefDayKey()} />
+            <WeekendBrief currentDay={briefDayKey()} onOpenWeekly={() => setTab('weekly')} />
           </div>
         )}
 
@@ -528,6 +548,7 @@ export default function MorningBriefModule() {
           </article>
         )}
       </div>
+      )}
     </div>
   )
 }
