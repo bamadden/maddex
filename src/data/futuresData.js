@@ -33,6 +33,21 @@ const BBSW = VERIFIED_CONSTANTS.rba.cashRate + 0.15
 const FF_EFFECTIVE = VERIFIED_CONSTANTS.fed.cashRate - 0.12
 const strip = (rate) => +(100 - rate).toFixed(2)
 
+// Commodity rows anchor to the dated settlements in verifiedConstants, the
+// same figures the Global panel and MaddenAI read, so a contract here cannot
+// quote iron ore at a level the rest of the app has already moved past. The
+// row carries the settlement date, and its change starts at zero: there is no
+// daily-move feed, so any change shown is the simulated drift since load, not
+// a claimed session move. Rows with no verified constant say so.
+const CMD = VERIFIED_CONSTANTS.commodities
+const SHORT_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const settleLabel = (key) => {
+  const [, m, d] = (CMD.asOfBy?.[key] ?? CMD.asOf).split('-')
+  return `SETTLE ${Number(d)} ${SHORT_MONTHS[Number(m) - 1]}`
+}
+const anchored = (key, dp = 2) => ({ price: +CMD[key].toFixed(dp), change: 0, anchor: settleLabel(key) })
+const NO_ANCHOR = 'INDICATIVE — no verified price'
+
 export const FUTURES = [
   // ── Equity index ──
   f({ id: 'SPI-Dec26', group: 'equity', name: 'ASX SPI 200', expiry: 'Dec-26', price: idx('^AXJO', 0.3), change: -45, volume: 12847,
@@ -62,34 +77,35 @@ export const FUTURES = [
     exchange: 'HKFE', size: 'HK$50 × index', tick: 1, tickValue: 50, margin: 14200, currency: 'HKD' }),
 
   // ── Commodity ──
-  f({ id: 'IO-Oct26', group: 'commodity', name: 'Iron Ore 62% Fe', expiry: 'Oct-26', price: 98.40, change: 2.20, volume: 84241,
+  f({ id: 'IO-Oct26', group: 'commodity', name: 'Iron Ore 62% Fe', expiry: 'Oct-26', ...anchored('ironOreUSD'), volume: 84241,
     exchange: 'SGX', size: '100 tonnes', tick: 0.05, tickValue: 5.00, margin: 1400, currency: 'USD', unit: 'US$/t',
     context: 'The single most important commodity price for the ASX. It drives revenue at BHP, RIO and FMG, and it is quoted in USD — so an Australian holder is exposed to the iron ore price and the currency at once.' }),
-  f({ id: 'COAL-Oct26', group: 'commodity', name: 'Newcastle Thermal Coal', expiry: 'Oct-26', price: 124.20, change: -0.80, volume: 12841,
+  f({ id: 'COAL-Oct26', group: 'commodity', name: 'Newcastle Thermal Coal', expiry: 'Oct-26', ...anchored('thermalCoalUSD'), volume: 12841,
     exchange: 'ICE', size: '1,000 tonnes', tick: 0.05, tickValue: 50, margin: 8400, currency: 'USD', unit: 'US$/t',
     context: 'Priced at the Port of Newcastle — an Australian benchmark traded globally, and a direct read on export revenue.' }),
-  f({ id: 'CC-Oct26', group: 'commodity', name: 'Coking Coal', expiry: 'Oct-26', price: 212.40, change: -1.20, volume: 8241,
+  f({ id: 'CC-Oct26', group: 'commodity', name: 'Coking Coal', expiry: 'Oct-26', price: 212.40, change: -1.20, unanchored: NO_ANCHOR, volume: 8241,
     exchange: 'SGX', size: '100 tonnes', tick: 0.10, tickValue: 10, margin: 6800, currency: 'USD', unit: 'US$/t' }),
-  f({ id: 'GC-Dec26', group: 'commodity', name: 'Gold', expiry: 'Dec-26', price: 4452, change: 18, volume: 284241,
+  f({ id: 'GC-Dec26', group: 'commodity', name: 'Gold', expiry: 'Dec-26', price: 4452, change: 18, unanchored: NO_ANCHOR, volume: 284241,
     exchange: 'COMEX', size: '100 troy oz', tick: 0.10, tickValue: 10, margin: 12400, currency: 'USD', unit: 'US$/oz',
     settlement: 'Physical' }),
-  f({ id: 'SI-Dec26', group: 'commodity', name: 'Silver', expiry: 'Dec-26', price: 52.40, change: 0.84, volume: 84124,
+  f({ id: 'SI-Dec26', group: 'commodity', name: 'Silver', expiry: 'Dec-26', price: 52.40, change: 0.84, unanchored: NO_ANCHOR, volume: 84124,
     exchange: 'COMEX', size: '5,000 troy oz', tick: 0.005, tickValue: 25, margin: 16800, currency: 'USD', unit: 'US$/oz', settlement: 'Physical' }),
-  f({ id: 'HG-Dec26', group: 'commodity', name: 'Copper', expiry: 'Dec-26', price: 4.18, change: 0.04, volume: 124841,
+  f({ id: 'HG-Dec26', group: 'commodity', name: 'Copper', expiry: 'Dec-26', ...anchored('copperUSDPerLb'), volume: 124841,
     exchange: 'COMEX', size: '25,000 lb', tick: 0.0005, tickValue: 12.50, margin: 8200, currency: 'USD', unit: 'US$/lb', settlement: 'Physical' }),
-  f({ id: 'CL-Nov26', group: 'commodity', name: 'WTI Crude', expiry: 'Nov-26', price: 78.40, change: 0.60, volume: 684241,
+  f({ id: 'CL-Nov26', group: 'commodity', name: 'WTI Crude', expiry: 'Nov-26', price: 78.40, change: 0.60, unanchored: NO_ANCHOR, volume: 684241,
+    context: 'Not anchored: there is no verified WTI settlement in this build, so this price is a stale placeholder. WTI normally trades a few dollars under Brent, which is anchored above — read the Brent row for the oil price.',
     exchange: 'NYMEX', size: '1,000 barrels', tick: 0.01, tickValue: 10, margin: 6400, currency: 'USD', unit: 'US$/bbl', settlement: 'Physical' }),
-  f({ id: 'BRN-Dec26', group: 'commodity', name: 'Brent Crude', expiry: 'Dec-26', price: 82.10, change: 0.70, volume: 424841,
+  f({ id: 'BRN-Dec26', group: 'commodity', name: 'Brent Crude', expiry: 'Dec-26', ...anchored('brentUSD'), volume: 424841,
     exchange: 'ICE', size: '1,000 barrels', tick: 0.01, tickValue: 10, margin: 6200, currency: 'USD', unit: 'US$/bbl' }),
-  f({ id: 'NG-Nov26', group: 'commodity', name: 'Natural Gas', expiry: 'Nov-26', price: 2.84, change: -0.08, volume: 284124,
+  f({ id: 'NG-Nov26', group: 'commodity', name: 'Natural Gas', expiry: 'Nov-26', price: 2.84, change: -0.08, unanchored: NO_ANCHOR, volume: 284124,
     exchange: 'NYMEX', size: '10,000 MMBtu', tick: 0.001, tickValue: 10, margin: 4800, currency: 'USD', unit: 'US$/MMBtu', settlement: 'Physical' }),
-  f({ id: 'ZW-Dec26', group: 'commodity', name: 'Wheat', expiry: 'Dec-26', price: 5.92, change: -0.12, volume: 84241,
+  f({ id: 'ZW-Dec26', group: 'commodity', name: 'Wheat', expiry: 'Dec-26', ...anchored('wheatUSDPerBu'), volume: 84241,
     exchange: 'CBOT', size: '5,000 bushels', tick: 0.0025, tickValue: 12.50, margin: 2400, currency: 'USD', unit: 'US$/bu', settlement: 'Physical' }),
-  f({ id: 'ZC-Dec26', group: 'commodity', name: 'Corn', expiry: 'Dec-26', price: 4.84, change: 0.08, volume: 184241,
+  f({ id: 'ZC-Dec26', group: 'commodity', name: 'Corn', expiry: 'Dec-26', price: 4.84, change: 0.08, unanchored: NO_ANCHOR, volume: 184241,
     exchange: 'CBOT', size: '5,000 bushels', tick: 0.0025, tickValue: 12.50, margin: 1800, currency: 'USD', unit: 'US$/bu', settlement: 'Physical' }),
-  f({ id: 'ZS-Nov26', group: 'commodity', name: 'Soybeans', expiry: 'Nov-26', price: 11.24, change: 0.18, volume: 124841,
+  f({ id: 'ZS-Nov26', group: 'commodity', name: 'Soybeans', expiry: 'Nov-26', price: 11.24, change: 0.18, unanchored: NO_ANCHOR, volume: 124841,
     exchange: 'CBOT', size: '5,000 bushels', tick: 0.0025, tickValue: 12.50, margin: 3200, currency: 'USD', unit: 'US$/bu', settlement: 'Physical' }),
-  f({ id: 'LI-Dec26', group: 'commodity', name: 'Lithium Carbonate', expiry: 'Dec-26', price: 14200, change: -284, volume: 2841,
+  f({ id: 'LI-Dec26', group: 'commodity', name: 'Lithium Carbonate', expiry: 'Dec-26', price: 14200, change: -284, unanchored: NO_ANCHOR, volume: 2841,
     exchange: 'CME', size: '1 tonne', tick: 1, tickValue: 1, margin: 2800, currency: 'USD', unit: 'US$/t',
     context: 'Thinly traded compared with the bulks, and a direct read on PLS, MIN and IGO. Small volume means wide spreads.' }),
 

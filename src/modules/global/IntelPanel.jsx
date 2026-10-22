@@ -183,8 +183,8 @@ export function MarketHoursCompact({ onFocus }) {
 // and the region that produces it. Gold is live (PAXG, with a real 24h move).
 // The rest are dated settlements from verifiedConstants with the change since
 // the previous dated level (30 Jun) — not a daily move, which this build has
-// no feed for. The Futures module's commodity rows are illustrative and are
-// not used here for that reason.
+// no feed for. The Futures module anchors its commodity rows to the same
+// constants, so the two agree.
 
 const C = VERIFIED_CONSTANTS.commodities
 const changeSince = (now, prev) => (now != null && prev ? ((now - prev) / prev) * 100 : null)

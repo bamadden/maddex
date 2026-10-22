@@ -158,6 +158,12 @@ function FuturesTab() {
                     style={picked === c.id ? { background: 'rgba(201,168,76,0.08)' } : undefined}>
                     <td className="px-3 py-1.5 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>
                       {c.name}
+                      {c.anchor && (
+                        <span className="ml-2 font-normal text-terminal-text-dim tracking-wider" style={{ fontSize: 8 }}
+                          title="Anchored to the dated settlement in verifiedConstants; movement since is simulated">
+                          {c.anchor}
+                        </span>
+                      )}
                       {c.unanchored && (
                         <span className="ml-2 font-normal text-terminal-gold/70 tracking-wider" style={{ fontSize: 8 }} title={c.context}>
                           {c.unanchored}
