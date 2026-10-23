@@ -5,7 +5,6 @@ import { displayService } from '../../services/displayService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import IdeasBoard from '../ideas/IdeasBoard'
 import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
@@ -15,6 +14,7 @@ import { WORKSPACE_MODULE_LIST, NAV_ONLY_MODULES } from '../../config/workspaceM
 
 // 2,336 lines for a screen most sessions never open.
 const SettingsPanel = lazy(() => import('../settings/SettingsPanel'))
+const IdeasBoard = lazy(() => import('../ideas/IdeasBoard'))
 
 // ─── Exchange market hours ─────────────────────────────────────────────────────
 
@@ -517,7 +517,7 @@ export default function TopBar() {
           <SettingsPanel onClose={() => setShowSettings(false)} initialSection={settingsSection} />
         </Suspense>
       )}
-      {showIdeas && <IdeasBoard onClose={() => setShowIdeas(false)} />}
+      {showIdeas && <Suspense fallback={null}><IdeasBoard onClose={() => setShowIdeas(false)} /></Suspense>}
     </div>
     {!isOnline ? (
       <div className="w-full px-3 py-1 bg-amber-500/15 border-b border-amber-500/40 text-amber-400 text-2xs font-mono font-bold tracking-wide text-center flex-shrink-0">

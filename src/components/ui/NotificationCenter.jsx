@@ -9,6 +9,7 @@ import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
+import { USING_MOCK_DATA } from '../../services/api'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { getAiPreferences } from '../../services/aiPreferencesService'
@@ -671,8 +672,9 @@ export default function NotificationCenter() {
   // ── DAILY DIGEST — one summary per market day, after 4:30pm AEST ──────────
   //
   // Composed from the notification history this app actually recorded today
-  // plus the live ASX 200 close, so every clause in it is a count of something
-  // that happened rather than a written-up view of the day. shouldSendDigest
+  // plus the ASX 200 close when prices are live, so every clause in it is a
+  // count of something that happened rather than a written-up view of the
+  // day. shouldSendDigest
   // owns the once-per-day guard; it is checked on mount and on the same 60s
   // tick as everything else, so both "opens the app at 9pm" and "leaves it
   // open through the close" get exactly one.
@@ -684,12 +686,16 @@ export default function NotificationCenter() {
       // fetching, and the digest went out twice.
       markDigestSent()
       let close = null
-      try {
-        const { data } = await fetchIndexQuotesUnified(['^AXJO'])
-        close = data?.['^AXJO'] ?? null
-      } catch {
-        // Digest still goes out — it just leads with the counts instead of
-        // the close, rather than not arriving at all.
+      // While index prices are demonstration data the close is not a fact,
+      // and a digest is kept in history, so it leads with the counts alone.
+      if (!USING_MOCK_DATA) {
+        try {
+          const { data } = await fetchIndexQuotesUnified(['^AXJO'])
+          close = data?.['^AXJO'] ?? null
+        } catch {
+          // Digest still goes out — it just leads with the counts instead of
+          // the close, rather than not arriving at all.
+        }
       }
       addNotification('DAILY_DIGEST', buildDigest({ close }).message)
     }

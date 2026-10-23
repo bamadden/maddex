@@ -552,7 +552,7 @@ function windowedHistory(msgs) {
   return msgs.slice(start)
 }
 
-export default function AIPanel({ wide = false }) {
+export default function AIPanel({ wide = false, onListening }) {
   const {
     chatOpen, setChatOpen,
     aiMode, setAiMode,
@@ -928,6 +928,11 @@ export default function AIPanel({ wide = false }) {
     window.addEventListener('madden:ask-ai', handler)
     return () => window.removeEventListener('madden:ask-ai', handler)
   }, [send, setChatOpen, setAiMode])
+
+  // Declared after the listener above, so it runs after it in the mount
+  // commit: AIPanelGate replays a request that arrived before the panel
+  // loaded, and needs the listener attached first.
+  useEffect(() => { onListening?.() }, [onListening])
 
   // Auto-analyse — when enabled in Settings, opening an asset's detail view
   // while the AI panel is already open auto-sends the ANALYSE quick prompt

@@ -138,7 +138,7 @@ Build warning: chunks over 500 KB (expected — the 3D and map modules).
 | 5 | Advanced screener ungated — Core got Apex value | 🟠 revenue | ✅ fixed `40c5a53` |
 | 6 | **Auth flow's three write paths untested** (account creation, plan display, sign-out/in). Requires a real account. | 🟠 must-do | needs Ben |
 | 7 | `maddex.com.au` serves nothing (connection fails). Domain must point at the deployment before launch. | 🟠 must-do | open |
-| 8 | Entry chunk 449 KB gzip — 77% of first paint | 🟡 should | open |
+| 8 | Entry chunk 449 KB gzip — 77% of first paint | 🟡 should | 23 Oct: entry 153 KB, first paint 271 KB gzip (MaddenAI panel and Ideas board now load on first use) |
 | 9 | 20 lint errors: 11 `set-state-in-effect`, 7 `only-export-components`, 1 `no-useless-escape`, 1 `purity`. Concentrated in `SectorHeatmap.jsx` (7). None are known bugs; the `set-state-in-effect` ones are cascading-render risks. | 🟡 should | open |
 | 10 | Email alert delivery advertised as "coming soon" in `AlertsModule.jsx:156` — alerts are in-app only | 🟢 minor | open |
 

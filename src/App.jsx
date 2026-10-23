@@ -27,7 +27,7 @@ import EventWarningBar from './components/layout/EventWarningBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
 import CommandBar from './components/layout/CommandBar'
-import AIPanel from './components/layout/AIPanel'
+import AIPanelGate from './components/layout/AIPanelGate'
 // Every routable module is lazy.
 //
 // They were statically imported here while ModuleRenderer imported the same
@@ -854,7 +854,7 @@ function Terminal() {
             )}
           </div>
         )}
-        {layout !== 'focus' && layout !== 'split' && <AIPanel wide={layout === 'research'} />}
+        {layout !== 'focus' && layout !== 'split' && <AIPanelGate wide={layout === 'research'} />}
       </div>
       <CommandBar />
       <StatusBar lastUpdated={statusUpdatedAt} />
