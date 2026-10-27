@@ -23,6 +23,8 @@
 // staleness badge in the UI, so a forgotten update becomes visible rather
 // than silently wrong.
 
+import { sydneyOffset } from '../utils/dateUtils.js'
+
 export const VERIFY_WARN_DAYS = 7
 
 // ── Central bank policy ─────────────────────────────────────────────────────
@@ -541,6 +543,62 @@ export const VERIFIED_CONSTANTS = {
     lastVerified: '2026-10-01',
   },
 
+  // ── September quarter CPI preview ─────────────────────────────────────────
+  // Released Wed 28 Oct 2026, 11:30 AEDT, with the September monthly CPI (the
+  // ABS adds the quarter's measures to tables 17 and 18 of that release).
+  // Per-bank forecasts as published in the previews: CBA's own note (22 Oct)
+  // and savings.com.au's big-four round-up (23 Oct). Trimmed mean q/q is the
+  // RBA's focus; the RBA's own August forecast for it was 0.8%.
+  // After the release this group is history, not a forecast: the release
+  // watch stops showing it 72 hours after the print.
+  cpiPreview: {
+    label: 'Sep quarter CPI preview',
+    releaseDate: '2026-10-28',
+    releaseTime: '11:30',
+    banks: [
+      { bank: 'CBA',     headlineQoQ: 1.3, headlineYoY: 3.9, trimmedQoQ: 1.0, trimmedYoY: 3.6, rbaCall: 'HOLD' },
+      { bank: 'NAB',     headlineQoQ: 1.2, headlineYoY: 3.9, trimmedQoQ: 1.0, trimmedYoY: 3.6, rbaCall: 'HOLD' },
+      { bank: 'Westpac', headlineQoQ: 1.3, headlineYoY: 3.9, trimmedQoQ: 0.9, trimmedYoY: 3.5, rbaCall: 'HIKE' },
+      { bank: 'ANZ',     headlineQoQ: 1.3, headlineYoY: 3.9, trimmedQoQ: 1.0, trimmedYoY: 3.6, rbaCall: 'HIKE' },
+    ],
+    rbaTrimmedQoQ: 0.8,
+    rbaForecastSource: 'RBA August 2026 Statement on Monetary Policy',
+    // From the ABS Data API (ABS,CPI,2.0.0 2.10001.10.50.Q), checked 27 Oct.
+    previousHeadlineQoQ: 0.6,
+    previousPeriod: 'Jun 2026 quarter',   // officialStats periodLabel format — compared as a string
+    // CBA preview: fuel ~+10% in September after nearly +15% in August.
+    driverNote: 'CBA expects fuel up about 10% in September after nearly 15% in August.',
+    absUrl: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release',
+    source: 'CommBank preview (22 Oct); savings.com.au big-four round-up (23 Oct)',
+    asOf: '2026-10-23',
+    lastVerified: '2026-10-27',
+  },
+
+  // ── Next RBA decision ─────────────────────────────────────────────────────
+  // Market pricing is a dated reading, not a feed. ASX 30-day interbank cash
+  // rate futures implied 4.75% for 3 Nov on 27 Oct (rbawatch.com.au), which
+  // is 60% of a 25bp hike; Bloomberg data put it at 51% on 21 Oct (ABC News).
+  // The quote is the 29 Sep statement's own final paragraph (mr-26-27).
+  rbaNextDecision: {
+    label: 'RBA 3 Nov preview',
+    date: '2026-11-03',
+    time: '14:30',
+    currentRate: 4.60,
+    hikeRate: 4.85,
+    marketHikePct: 60,
+    marketImpliedRate: 4.75,
+    marketSource: 'ASX 30-day interbank cash rate futures, via rbawatch.com.au',
+    marketAsOf: '2026-10-27',
+    marketContext: 'Bloomberg pricing showed 51% on 21 Oct (ABC News), the day Deputy Governor Hauser warned the inflation outlook was "materially worse".',
+    keyFactor: 'Sep quarter CPI, 28 Oct',
+    statementQuote: 'The Board will continue to do what it considers necessary to bring inflation sustainably back to target, including increasing the cash rate target further if needed.',
+    statementSource: 'RBA media release mr-26-27, 29 Sep 2026',
+    statementUrl: 'https://www.rba.gov.au/media-releases/2026/mr-26-27.html',
+    source: 'rbawatch.com.au (ASX futures); rba.gov.au',
+    asOf: '2026-10-27',
+    lastVerified: '2026-10-27',
+  },
+
   // ── Benchmark index levels ────────────────────────────────────────────────
   // Indicative only. Live equity quotes come through dataService; these exist
   // so the intelligence map has something to label a marker with.
@@ -678,6 +736,19 @@ export function verifiedFactsForAI() {
     if (au.unemployment != null) lines.push(`AU unemployment ${au.unemployment}% (${au.unemploymentPeriod})`)
     if (au.gdpAnnual != null) lines.push(`AU GDP ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`)
   }
+  // The coming RBA decision and the CPI print before it, while they are still
+  // ahead. Each carries its date and source so the model can attribute it.
+  const now = Date.now()
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  if (nd && now < new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()) {
+    lines.push(`RBA ${nd.date} decision: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (implied ${nd.marketImpliedRate.toFixed(2)}%; ${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext} 29 Sep statement: "${nd.statementQuote}"`)
+  }
+  const cp = VERIFIED_CONSTANTS.cpiPreview
+  if (cp && now < new Date(`${cp.releaseDate}T${cp.releaseTime}:00${sydneyOffset(cp.releaseDate)}`).getTime()) {
+    const banks = cp.banks.map((b) => `${b.bank} headline ${b.headlineQoQ.toFixed(1)}% q/q, trimmed mean ${b.trimmedQoQ.toFixed(1)}% q/q, expects RBA ${b.rbaCall}`).join('; ')
+    lines.push(`Sep quarter CPI due ${cp.releaseDate} ${cp.releaseTime} Sydney — forecasts (${cp.source}): ${banks}. RBA's own forecast: ${cp.rbaTrimmedQoQ.toFixed(1)}% q/q trimmed mean. Previous: headline ${cp.previousHeadlineQoQ.toFixed(1)}% q/q (${cp.previousPeriod}).`)
+  }
+
   // Office holders. Same principle as the rates: verified by a person, dated,
   // and sent per turn so an appointment change lands on the next message rather
   // than waiting for a cached prompt to expire.

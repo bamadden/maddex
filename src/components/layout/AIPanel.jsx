@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { marketSession } from '../../services/newsIntelligence'
+import { sydneyOffset } from '../../utils/dateUtils'
 import VERIFIED_CONSTANTS, { verifiedFactsForAI } from '../../data/verifiedConstants'
 import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights, INSIGHT_LIMIT } from '../../services/savedInsights'
 import { useQueryClient } from '@tanstack/react-query'
@@ -85,7 +86,7 @@ const MODULE_PROMPTS = {
   fx: [
     { label: RBA_MOVE_LABEL, prompt: `The RBA ${RBA_VERB_PAST} the cash rate to ${RBA_RATE} at its ${lastRbaLabel} meeting. What does that mean for Australian borrowers, savers and investors?`, dataKeys: ['asx', 'aud'] },
     { label: `${RBA_RATE} & ASX SECTORS`, prompt: `How does a ${RBA_RATE} cash rate affect ASX sectors — banks, REITs, consumer discretionary, miners and growth stocks?`, dataKeys: ['asx'] },
-    { label: 'WHEN WILL THE RBA CUT?', prompt: `What would need to happen for the RBA to start cutting from ${RBA_RATE}? Describe the conditions in words — you have no market-implied pricing, so do not state a probability or a date.`, dataKeys: ['aud'] },
+    { label: 'WHEN WILL THE RBA CUT?', prompt: `What would need to happen for the RBA to start cutting from ${RBA_RATE}? Describe the conditions in words. State a probability only if dated market pricing is in your context, and give its date and source.`, dataKeys: ['aud'] },
     { label: 'AUD IMPACT', prompt: `How does the RBA's latest decision (${RBA_VERB_PAST} to ${RBA_RATE}) bear on the AUD, given the Fed is at ${FED_RANGE}?`, dataKeys: ['aud'] },
   ],
   macro: [
@@ -107,7 +108,7 @@ const MODULE_PROMPTS = {
     { label: 'ETFS VS STOCKS', prompt: 'Should an Australian investor use ETFs or individual stocks? Cover cost, diversification, tax and effort.', dataKeys: [] },
   ],
   futures: [
-    { label: 'RATE FUTURES & THE RBA', prompt: 'How do ASX 30-day interbank cash rate futures imply an expected RBA decision? Explain the mechanics — you have no live futures pricing, so do not state an implied probability.', dataKeys: [] },
+    { label: 'RATE FUTURES & THE RBA', prompt: 'How do ASX 30-day interbank cash rate futures imply an expected RBA decision? Explain the mechanics, and if a dated futures reading is in your context, work through it as the example.', dataKeys: [] },
     { label: 'SPI 200 FUTURES', prompt: 'Explain the SPI 200 futures contract — what it tracks, contract size, trading hours, and how investors use it.', dataKeys: ['asx'] },
     { label: 'SHORT INTEREST SIGNALS', prompt: 'What is short interest, how is it reported on the ASX, and what can high short interest tell us (and not tell us)?', dataKeys: [] },
     { label: 'OPTIONS ON ASX STOCKS', prompt: 'How do exchange-traded options work for ASX stocks — calls, puts, premiums, expiry and the main risks?', dataKeys: [] },
@@ -148,6 +149,28 @@ const DEFAULT_PROMPTS = [
 // (bonds, FX, crypto, calculators…) keep prompts about their own subject.
 const PROFILE_PROMPT_MODULES = new Set(['dashboard', 'markets', 'news', 'portfolio', 'watchlist', 'screener'])
 
+// The week before an RBA decision, while the pricing and CPI forecasts in
+// verifiedConstants are current. Worded as general information: "should I be
+// positioned" is a personal-advice question, so the prompt asks how investors
+// generally think about it.
+function decisionWeekPrompts(now = Date.now()) {
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const cp = VERIFIED_CONSTANTS.cpiPreview
+  if (!nd) return null
+  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
+  if (now >= at || now < at - 7 * 86400_000) return null
+  const cpiOut = cp && now >= new Date(`${cp.releaseDate}T${cp.releaseTime}:00${sydneyOffset(cp.releaseDate)}`).getTime()
+  const day = new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return [
+    cpiOut
+      ? { label: 'CPI OUT — WHAT NOW FOR RATES?', prompt: `The September quarter CPI has been released. Using only the figures in your context, what does it mean for the RBA's ${day} decision?`, dataKeys: ['aud'] }
+      : { label: "TOMORROW'S CPI & RATES", prompt: `What does the September quarter CPI mean for the RBA's ${day} decision? Use the bank forecasts and market pricing you were given.`, dataKeys: ['aud'] },
+    { label: 'POSITIONING BEFORE THE RBA?', prompt: `How do investors generally think about positioning ahead of a live RBA meeting like ${day}? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
+    { label: 'SECTORS IF THE RBA HIKES', prompt: 'Which ASX sectors have tended to hold up or struggle when the RBA raises rates, and why?', dataKeys: ['asx'] },
+    { label: `${day.toUpperCase()} MARKET PRICING`, prompt: `What is the market pricing for the RBA's ${day} decision, where does that reading come from, and how much should anyone lean on it?`, dataKeys: [] },
+  ]
+}
+
 // selectedSymbol: the ticker currently open in the stock detail modal, if
 // any — asset-specific prompts take priority over everything else, then the
 // investor-profile set on general modules, then module-specific ones.
@@ -161,8 +184,13 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
       { label: `${bare} RISK FACTORS`, prompt: `What are the key risk factors investors should watch for ${selectedSymbol}?`, dataKeys: [] },
     ]
   }
-  // The Dashboard leads with the policy backdrop while rates are moving.
-  if (activeModule === 'dashboard') { const regime = regimePrompts(); if (regime) return regime }
+  // The Dashboard leads with the coming RBA decision in the week before it,
+  // then with the policy backdrop while rates are moving.
+  if (activeModule === 'dashboard') {
+    const ev = decisionWeekPrompts()
+    if (ev) return ev
+    const regime = regimePrompts(); if (regime) return regime
+  }
   if (profilePrompts && (PROFILE_PROMPT_MODULES.has(activeModule) || !MODULE_PROMPTS[activeModule])) return profilePrompts
   return MODULE_PROMPTS[activeModule] ?? DEFAULT_PROMPTS
 }

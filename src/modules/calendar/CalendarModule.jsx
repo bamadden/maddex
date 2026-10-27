@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import {
   eventStars, starString, earningsSeason, buildIcs, eventInstant,
   REMINDER_OFFSETS, addReminder, removeReminder, dismissReminder,
@@ -9,6 +10,9 @@ import {
 } from '../../services/calendarExtras'
 import { getEconomicCalendar, upcomingEvents } from '../../services/calendarService'
 import { LAST_DECISIONS } from '../../services/centralBankSchedule'
+import { useReleaseWatch } from '../../hooks/useReleaseWatch'
+import { releaseKey } from '../../services/releaseWatch'
+import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
 import { upcomingEarnings } from '../../services/earningsCalendar'
 import { dispatchAskAI } from '../../utils/askAI'
 import { logActivity } from '../../services/activityLogService'
@@ -36,6 +40,8 @@ function isCentralBank(eventName) {
 function toDateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 function useCountdown(target) {
   const [now, setNow] = useState(() => Date.now())
@@ -200,13 +206,48 @@ function SensitivityBar({ label, dots }) {
   )
 }
 
+// What to read in the September quarter CPI, beside the forecasts for it.
+// Every figure comes from verifiedConstants.cpiPreview.
+function CpiWatchBlock() {
+  const p = VERIFIED_CONSTANTS.cpiPreview
+  if (!p) return null
+  const fmt = (v) => `${v.toFixed(1)}%`
+  return (
+    <div className="text-2xs mb-2 pb-2 border-b border-terminal-border/30 space-y-2">
+      <div>
+        <div className="text-[9px] text-terminal-text-dim/60 tracking-widest mb-1">WHAT TO WATCH</div>
+        <ul className="space-y-0.5 text-terminal-text-bright">
+          <li>◆ Trimmed mean q/q — the RBA&apos;s focus (its own forecast: {fmt(p.rbaTrimmedQoQ)})</li>
+          <li>◆ Headline CPI y/y (Aug: {fmt(VERIFIED_CONSTANTS.au.cpi)}) and q/q (Jun qtr: {fmt(p.previousHeadlineQoQ)})</li>
+          <li>◆ Services inflation — the stickier component</li>
+          <li>◆ Fuel — {p.driverNote}</li>
+        </ul>
+      </div>
+      <div>
+        <div className="text-[9px] text-terminal-text-dim/60 tracking-widest mb-1">BANK FORECASTS · TRIMMED MEAN Q/Q · HEADLINE Q/Q · 3 NOV CALL</div>
+        {p.banks.map((b) => (
+          <div key={b.bank} className="flex gap-3 tabular-nums">
+            <span className="text-terminal-text-bright font-bold w-14">{b.bank}</span>
+            <span className="text-terminal-gold w-10">{fmt(b.trimmedQoQ)}</span>
+            <span className="text-terminal-text-dim w-10">{fmt(b.headlineQoQ)}</span>
+            <span style={{ color: b.rbaCall === 'HIKE' ? '#A83232' : '#8BA3C4' }}>{b.rbaCall}</span>
+          </div>
+        ))}
+        <div className="text-terminal-text-dim/60 mt-1">{p.source}</div>
+      </div>
+      <div className="text-terminal-text-bright">This release will weigh heavily on whether the RBA hikes on 3 November.</div>
+    </div>
+  )
+}
+
 function EconomicEventCard({ event, onReminderChange }) {
   const rbaMatch = event.event.includes('RBA') ? LAST_DECISIONS.RBA : null
   const sensitivity = event.importance === 'high' ? 3 : event.importance === 'medium' ? 2 : 1
+  const released = useReleaseWatch().some((r) => r.key === releaseKey(event))
 
   return (
     <div
-      className={`border border-terminal-border border-l-[3px] ${IMPORTANCE_BORDER[event.importance] ?? 'border-l-terminal-muted'}`}
+      className={`border border-terminal-border border-l-[3px] ${IMPORTANCE_BORDER[event.importance] ?? 'border-l-terminal-muted'} ${released ? 'ring-1 ring-terminal-gold' : ''}`}
       style={{
         // Depth rather than a flat panel: a top-lit gradient plus a soft drop
         // shadow. These cards sit in a scrolling column against the same
@@ -225,7 +266,10 @@ function EconomicEventCard({ event, onReminderChange }) {
       </div>
       <div className="px-3 py-2">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="text-sm font-bold text-white uppercase">{event.event}</div>
+          <div className="text-sm font-bold text-white uppercase">
+            {event.event}
+            {released && <span className="ml-2 text-2xs font-bold text-terminal-gold border border-terminal-gold/60 px-1 align-middle">RELEASED</span>}
+          </div>
           <ReminderPicker event={event} onChange={onReminderChange} />
         </div>
         <div className="mb-2"><ConsensusRow event={event} /></div>
@@ -257,6 +301,8 @@ function EconomicEventCard({ event, onReminderChange }) {
           <div className="text-2xs text-terminal-text-dim italic mb-2 pb-2 border-b border-terminal-border/30">{event.description}</div>
         )}
 
+        {event.watch?.includes('cpi') && <CpiWatchBlock />}
+
         <div className="space-y-1 mb-2">
           <div className="text-[9px] text-terminal-text-dim/60 tracking-widest">MARKET SENSITIVITY</div>
           <SensitivityBar label={event.region === 'AU' ? 'AUD/USD' : 'USD Index'} dots={sensitivity} />
@@ -274,6 +320,12 @@ function EconomicEventCard({ event, onReminderChange }) {
         >
           ASK MADDENAI ABOUT THIS EVENT →
         </button>
+        {event.sourceUrl && (
+          <a
+            href={event.sourceUrl} target="_blank" rel="noopener noreferrer"
+            className="ml-2 inline-block text-2xs font-bold text-terminal-text-bright border border-terminal-border px-2 py-1 hover:border-terminal-gold transition-colors"
+          >VIEW ON {event.sourceLabel} ↗</a>
+        )}
       </div>
     </div>
   )
@@ -603,8 +655,8 @@ export default function CalendarModule() {
   const selectedDateObj = new Date(`${selectedKey}T00:00:00`)
   const isFuture = selectedDateObj > new Date(new Date().setHours(0, 0, 0, 0))
   const relLabel = selectedKey === todayKey ? 'Today'
-    : isFuture ? `In ${Math.ceil((selectedDateObj - new Date()) / 86400000)} days`
-    : `${Math.ceil((new Date() - selectedDateObj) / 86400000)} days ago`
+    : isFuture ? `In ${plural(Math.ceil((selectedDateObj - new Date()) / 86400000), 'day')}`
+    : `${plural(Math.ceil((new Date() - selectedDateObj) / 86400000), 'day')} ago`
 
   return (
     <div className="h-full flex flex-col">
@@ -615,6 +667,7 @@ export default function CalendarModule() {
         isFetching={isFetching}
         lastUpdated={dataUpdatedAt}
       />
+      <ReleaseWatchBanner className="px-3 pt-2" />
       {season.active && (
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-terminal-gold/40 bg-terminal-gold/10 flex-shrink-0">
           <span className="text-2xs font-bold tracking-widest text-terminal-gold">EARNINGS SEASON</span>
@@ -705,7 +758,7 @@ export default function CalendarModule() {
               <div className="text-xs text-terminal-text-dim mb-1">No major scheduled events</div>
               {nextFutureEvent && (
                 <div className="text-2xs text-terminal-text-dim/60">
-                  The next event is in {Math.ceil((nextFutureEvent.dateObj - new Date()) / 86400000)} days: {nextFutureEvent.label}
+                  The next event is in {plural(Math.ceil((nextFutureEvent.dateObj - new Date()) / 86400000), 'day')}: {nextFutureEvent.label}
                 </div>
               )}
             </div>

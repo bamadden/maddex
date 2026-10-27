@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getEconomicCalendar, pendingEvents, eventInstant } from '../../../services/calendarService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
+import ReleaseWatchBanner from '../../../components/ui/ReleaseWatchBanner'
 
 const IMPACT = {
   high:   { label: 'HIGH',   colour: '#A83232' },
@@ -80,6 +81,7 @@ export default function NextEventWidget() {
 
   return (
     <WidgetBody>
+      <ReleaseWatchBanner compact />
       <div className="flex items-center gap-1">
         <Segment value={d} unit="DAY" />
         <Sep />

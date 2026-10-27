@@ -21,6 +21,8 @@ import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, LAST_DECISIONS, getNextMeeting,
 } from '../../services/centralBankSchedule'
 import { getEconomicCalendar, upcomingEvents, getPreviousEvents, pendingEvents, eventInstant } from '../../services/calendarService'
+import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
+import CpiPreviewPanel from './CpiPreviewPanel'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
@@ -624,8 +626,8 @@ function RBADashboard({ askAI }) {
           </div>
 
           <div className="pt-1 border-t border-terminal-border/40 text-terminal-text-dim/50 leading-snug">
-            No rate-futures feed connected — no market-implied hold/cut
-            probability is shown.
+            No live rate-futures feed. Before a decision, the CPI and
+            RBA previews carry one dated, sourced futures reading.
           </div>
         </div>
 
@@ -1859,6 +1861,8 @@ export default function MacroModule() {
         }
       />
 
+      <ReleaseWatchBanner className="px-3 pt-2" />
+
       {showRecession && <RecessionMonitor />}
 
       {view3D && (
@@ -1900,6 +1904,8 @@ export default function MacroModule() {
         </SectionExpandOverlay>
       )}
 
+
+      <CpiPreviewPanel />
 
       {/* ── Section 1: RBA Dashboard ── */}
       <div className="relative">

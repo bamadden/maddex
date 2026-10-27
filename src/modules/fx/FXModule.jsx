@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
+import RbaDecisionPreview from './RbaDecisionPreview'
+import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
 import RbaDecisionCard from './RbaDecisionCard'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -426,6 +428,8 @@ function CompactRbaDashboard({ askAI }) {
           instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%.`,
         })}
       />
+      <RbaDecisionPreview />
+      <ReleaseWatchBanner compact className="px-3 py-1.5 border-b border-terminal-border flex-shrink-0" />
 
       <div className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border flex-shrink-0">
         {RBA_PERIODS.map(([k]) => (

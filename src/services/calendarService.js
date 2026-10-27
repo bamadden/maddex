@@ -5,6 +5,13 @@
 // computed from today rather than hand-maintained.
 
 import { getRelativeDate, sydneyOffset } from '../utils/dateUtils'
+import VERIFIED_CONSTANTS from '../data/verifiedConstants'
+
+const CPI_CONSENSUS = (() => {
+  const b = VERIFIED_CONSTANTS.cpiPreview.banks
+  const range = (k) => { const v = b.map((x) => x[k]); const lo = Math.min(...v), hi = Math.max(...v); return lo === hi ? lo.toFixed(1) : `${lo.toFixed(1)}–${hi.toFixed(1)}` }
+  return `Trimmed mean ${range('trimmedQoQ')}% q/q, ${range('trimmedYoY')}% y/y · headline ${range('headlineQoQ')}% q/q, ${range('headlineYoY')}% y/y`
+})()
 
 // No 'demo' fallback: FMP rejects it on this endpoint with a 401, so without
 // a real key the request is pure console noise before the fallback list.
@@ -31,25 +38,28 @@ const FALLBACK_EVENTS = [
     description: 'Unemployment rose to 4.7% (seasonally adjusted), a five-year high. Trend 4.6%.' },
   { date: '2026-10-15', time: '23:30', event: 'US PPI (Sep)',                        region: 'US', importance: 'medium' },
   { date: '2026-10-23', time: '11:30', event: 'AU National Accounts (2025-26)',      region: 'AU', importance: 'low' },
-  // Consensus from the big-four previews (CBA 22 Oct; NAB, Westpac, ANZ via
-  // savings.com.au 23 Oct). Previous = ABS monthly CPI for Aug, which
-  // `npm run check-stats` reconciles against verifiedConstants.
+  // Consensus derived from verifiedConstants.cpiPreview (the per-bank
+  // figures live there, once). Previous = the August monthly CPI.
   { date: '2026-10-28', time: '11:30', event: 'AU CPI (Sep, incl. Sep quarter)',     region: 'AU', importance: 'high',
-    forecast: 'Trimmed mean 1.0% q/q (Westpac 0.9%), 3.5–3.6% y/y · headline 1.2–1.3% q/q, 3.9% y/y',
-    prev: 'Aug: 4.0% y/y, trimmed mean 3.6%',
-    description: 'The last inflation read before the 3 Nov RBA decision. The RBA\'s August forecast was 0.8% q/q trimmed mean. CBA expects fuel up about 10% in September after nearly 15% in August. ANZ and Westpac call a November hike; CBA and NAB a hold. Consensus per big-four bank previews, 22–23 Oct.' },
+    forecast: CPI_CONSENSUS,
+    prev: `Aug: ${VERIFIED_CONSTANTS.au.cpi.toFixed(1)}% y/y, trimmed mean ${VERIFIED_CONSTANTS.au.cpiTrimmedMean.toFixed(1)}%`,
+    sourceUrl: VERIFIED_CONSTANTS.cpiPreview.absUrl, sourceLabel: 'ABS.GOV.AU', watch: ['cpi', 'cpiTrimmedMean'],
+    description: `The last inflation read before the 3 Nov RBA decision. The RBA's August forecast was ${VERIFIED_CONSTANTS.cpiPreview.rbaTrimmedQoQ.toFixed(1)}% q/q trimmed mean. ${VERIFIED_CONSTANTS.cpiPreview.driverNote} ANZ and Westpac call a November hike; CBA and NAB a hold. Consensus per ${VERIFIED_CONSTANTS.cpiPreview.source}.` },
   { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium' },
   { date: '2026-10-29', time: '05:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
+    sourceUrl: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', sourceLabel: 'FEDERALRESERVE.GOV', watch: ['fedUpper'],
     description: 'First meeting after the September hike to 3.75–4.00%.' },
   { date: '2026-10-30', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium' },
   { date: '2026-10-30', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium' },
   { date: '2026-10-30', time: '11:30', event: 'AU Producer Price Index (Sep)',       region: 'AU', importance: 'low' },
   { date: '2026-11-03', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.rba.gov.au/media-releases/', sourceLabel: 'RBA.GOV.AU', watch: ['cashRate'],
     description: 'Cash rate 4.60% after the 29 Sep hike, the fourth of 2026.' },
   { date: '2026-11-04', time: '—',     event: 'US Midterm Election Results',         region: 'US', importance: 'high',
     description: 'Polls close on 3 Nov US time; results arrive through the AU day.' },
   { date: '2026-11-05', time: '23:00', event: 'Bank of England Rate Decision',       region: 'UK', importance: 'medium' },
   { date: '2026-11-19', time: '11:30', event: 'AU Labour Force (Oct)',               region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['unemployment'],
     description: 'Unemployment was 4.7% in September, a five-year high.' },
   { date: '2026-12-08', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high' },
   { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high' },
@@ -154,6 +164,12 @@ export function eventsForAI(days = 7) {
     return `- ${parts.join('; ')}`
   })
   return `[SCHEDULED EVENTS — next ${days} days; consensus figures are forecasts, not results]\n${lines.join('\n')}`
+}
+
+// The curated schedule, synchronously — for the release watch, which must know
+// release times without waiting on the calendar fetch.
+export function scheduledEvents() {
+  return FALLBACK_EVENTS
 }
 
 export function getPreviousEvents() {

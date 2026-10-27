@@ -78,16 +78,24 @@ export async function fetchRbaCashRate({ base = '/api/reservebank', fetchImpl = 
 }
 
 export async function fetchAuCpi({ fetchImpl = fetch } = {}) {
-  const [headline, trimmed] = await Promise.all([
+  const qStart = new Date(); qStart.setMonth(qStart.getMonth() - 9)
+  const [headline, trimmed, quarterly] = await Promise.all([
     absSeries('ABS,CPI,2.0.0', '3.10001.10.50.M', monthsAgo(6), fetchImpl),
     absSeries('ABS,CPI,2.0.0', '3.999902.20.50.M', monthsAgo(6), fetchImpl),
+    // Headline q/q, original — the figure the banks' quarterly forecasts are
+    // made in. The quarterly trimmed mean is not on the Data API (Oct 2026);
+    // it is in tables 17–18 of the release itself. Optional: a failure here
+    // must not cost the monthly figures.
+    absSeries('ABS,CPI,2.0.0', '2.10001.10.50.Q', quarterOf(qStart), fetchImpl).catch(() => []),
   ])
   const h = headline[headline.length - 1], hp = headline[headline.length - 2]
   const t = trimmed[trimmed.length - 1]
+  const q = quarterly[quarterly.length - 1]
   return {
     cpi: h && { value: r1(h.value), period: periodLabel(h.period), raw: h.period },
     cpiPrevious: hp && { value: r1(hp.value), period: periodLabel(hp.period) },
     trimmedMean: t && { value: r1(t.value), period: periodLabel(t.period) },
+    quarterlyQoQ: q && { value: r1(q.value), period: periodLabel(q.period), raw: q.period },
     source: 'ABS Data API — CPI',
   }
 }

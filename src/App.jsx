@@ -4,6 +4,7 @@ import PlanOverlays from './components/billing/PlanOverlays'
 import { gatedModule } from './components/billing/ModuleGate'
 import { MODULE_FEATURE, trialEndedSeen } from './services/plans'
 import { runOfficialCheck } from './services/officialStats'
+import { startReleaseWatch } from './services/releaseWatch'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { autoGenerateBrief } from './services/morningBriefService'
 import { autoGenerateWeeklyReview } from './services/weeklyReviewService'
@@ -348,7 +349,7 @@ function Terminal() {
   // Reconcile the hand-maintained RBA/ABS figures against the agencies' own
   // data once per six hours. Fire-and-forget: the terminal renders from the
   // constants either way; this only confirms or flags them.
-  useEffect(() => { runOfficialCheck().catch(() => {}) }, [])
+  useEffect(() => { runOfficialCheck().catch(() => {}).finally(startReleaseWatch) }, [])
   // Clicking a system notification opens the module it is about.
   useEffect(() => {
     const onNav = (e) => { if (e.detail?.module) setActiveModule(e.detail.module) }

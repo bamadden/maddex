@@ -23,6 +23,10 @@ const PAST_TENSE = { HIKE: 'HIKED', CUT: 'CUT', HOLD: 'HELD' }
 //
 // So the space says what is actually true. It reads as less impressive and it
 // is worth considerably more: everything else on this card is checkable.
+//
+// In the week before a decision RbaDecisionPreview (below this card) shows one
+// futures reading a person took, with its source and date — a measured number,
+// labelled as not live, which is a different thing from the typed-in bars.
 
 function useCountdown(target) {
   const [now, setNow] = useState(() => Date.now())
@@ -154,8 +158,8 @@ export default function RbaHeroCard({ onAskAI }) {
             className="font-mono text-right text-terminal-text-dim/45 leading-snug"
             style={{ fontSize: 8, maxWidth: 210 }}
           >
-            No rate-futures feed connected — no market-implied hold/cut
-            probability is shown.
+            No live rate-futures feed. Before a decision, the preview
+            below carries one dated, sourced futures reading.
           </div>
         </div>
       </div>
