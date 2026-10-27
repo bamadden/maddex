@@ -153,6 +153,11 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/api\/claude/, '/v1/messages'),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
+              // The browser sends its Supabase token and a purpose tag for
+              // the deployed function's guard (api/_aiGuard.js); neither is
+              // Anthropic's business.
+              proxyReq.removeHeader('authorization')
+              proxyReq.removeHeader('x-maddex-purpose')
               proxyReq.setHeader('x-api-key', env.ANTHROPIC_API_KEY || '')
               proxyReq.setHeader('anthropic-version', '2023-06-01')
               // Vite's dev proxy forwards the browser's original Origin

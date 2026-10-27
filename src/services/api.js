@@ -2,6 +2,7 @@ import { httpGet } from '../utils/httpGet'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { recordUsage } from './aiUsageService'
 import { ASX_TICKERS } from '../utils/asxTickers'
+import { supabase } from '../lib/supabase'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
 
@@ -1721,13 +1722,31 @@ function userFacingAiError(status, message) {
   return message ?? 'AI service is currently unavailable — please try again shortly.'
 }
 
+// /api/claude requires the signed-in user's Supabase token and enforces the
+// plan's daily limits server-side (api/_aiGuard.js). Its refusals come back as
+// AiAccessError so the UI can offer SIGN IN or an upgrade instead of a
+// generic failure: code AUTH_REQUIRED / AUTH_INVALID (401) or DAILY_LIMIT
+// (429, with the tier and limit).
+export class AiAccessError extends Error {
+  constructor(message, info) { super(message); this.name = 'AiAccessError'; Object.assign(this, info) }
+}
+
+async function sessionToken() {
+  try { return (await supabase.auth.getSession()).data?.session?.access_token ?? null } catch { return null }
+}
+
 export const askClaude = async (messages, onToken, options = {}) => {
   const startTime  = Date.now()
   const systemPrompt = options.systemPrompt ?? (options.experienceLevel ? buildSystemPrompt(options.experienceLevel) : MADDEX_SYSTEM_PROMPT)
+  const token = await sessionToken()
   const response = await fetch('/api/claude', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      // 'chat' counts against the plan's MaddenAI questions; everything else
+      // against the daily ceiling only.
+      'x-maddex-purpose': options.purpose ?? 'feature',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       model:      'claude-sonnet-4-6',
@@ -1739,6 +1758,16 @@ export const askClaude = async (messages, onToken, options = {}) => {
   })
   if (!response.ok) {
     const errText = await response.text()
+    let info = null
+    try { info = JSON.parse(errText) } catch { /* not JSON */ }
+    if (response.status === 401 && /^AUTH_/.test(info?.code ?? '')) {
+      throw new AiAccessError('Please sign in to use MaddenAI.', { code: info.code, status: 401 })
+    }
+    if (response.status === 429 && info?.code === 'DAILY_LIMIT') {
+      throw new AiAccessError(`Daily limit reached — ${info.limit} ${info.purpose === 'chat' ? 'MaddenAI questions' : 'AI requests'} a day on your plan.`, {
+        code: info.code, status: 429, tier: info.tier, limit: info.limit, purpose: info.purpose, upgradeRequired: info.upgradeRequired,
+      })
+    }
     console.error('[MADDEN API] Claude API error:', errText)
     throw new Error(userFacingAiError(response.status, extractAnthropicErrorMessage(errText)))
   }

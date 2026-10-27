@@ -18,6 +18,8 @@
 // (dates, watchlists, prices) must live in the messages array, after this
 // breakpoint — anything that changes byte-for-byte inside the cached prefix
 // invalidates the entry on every call.
+import { guard, recordTokens } from './_aiGuard.js'
+
 function buildSystem(system) {
   if (!system) return undefined
   if (Array.isArray(system)) return system
@@ -78,18 +80,19 @@ function logCacheStats(usage) {
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-    return res.status(200).end()
-  }
-
+  // Same-origin only: the terminal calls this from its own pages, so no CORS
+  // headers are sent and a browser on another site cannot read a response.
+  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { messages, system, max_tokens, model, stream } = req.body
+  const body = req.body ?? {}
+  const { messages, system, stream } = body
+
+  // Sign-in, model allowlist, token cap and daily limits — see _aiGuard.js.
+  const g = await guard(req, body)
+  if (!g.ok) return res.status(g.status).json(g.body)
 
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -100,15 +103,13 @@ export default async function handler(req, res) {
         'anthropic-version':  '2023-06-01',
       },
       body: JSON.stringify({
-        model:      model || 'claude-sonnet-4-6',
-        max_tokens: max_tokens || 1024,
+        model:      g.model,
+        max_tokens: g.maxTokens,
         system:     buildSystem(system),
         messages:   withHistoryCache(messages),
         stream:     stream !== false,
       }),
     })
-
-    res.setHeader('Access-Control-Allow-Origin', '*')
 
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text()
@@ -119,6 +120,7 @@ export default async function handler(req, res) {
     if (stream === false) {
       const data = await anthropicRes.json()
       logCacheStats(data.usage)
+      await recordTokens(g, data.usage)
       return res.status(200).json(data)
     }
 
@@ -131,25 +133,33 @@ export default async function handler(req, res) {
 
     const reader  = anthropicRes.body.getReader()
     const decoder = new TextDecoder()
-    let sniffed   = false
+    const usage   = { input_tokens: 0, output_tokens: 0 }
+    let pending   = ''
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      // Forward bytes untouched; decode a copy only to surface cache stats,
-      // which ride on the message_start event at the head of the stream.
-      if (!sniffed) {
-        const chunk = decoder.decode(value, { stream: true })
-        const line  = chunk.split('\n').find((l) => l.startsWith('data: ') && l.includes('message_start'))
-        if (line) {
-          sniffed = true
-          try { logCacheStats(JSON.parse(line.slice(6)).message?.usage) } catch { /* stats are diagnostic only */ }
-        }
+      // Forward bytes untouched; decode a copy to read usage — input tokens
+      // ride on message_start, output tokens on the final message_delta.
+      const lines = (pending + decoder.decode(value, { stream: true })).split('\n')
+      pending = lines.pop()
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        if (!line.includes('message_start') && !line.includes('message_delta')) continue
+        try {
+          const evt = JSON.parse(line.slice(6))
+          if (evt.type === 'message_start') {
+            logCacheStats(evt.message?.usage)
+            usage.input_tokens = evt.message?.usage?.input_tokens ?? 0
+          }
+          if (evt.type === 'message_delta' && evt.usage) usage.output_tokens = evt.usage.output_tokens ?? 0
+        } catch { /* stats are diagnostic only */ }
       }
       res.write(value)
     }
-    return res.end()
+    res.end()
+    await recordTokens(g, usage)
   } catch (err) {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    return res.status(500).json({ error: err.message })
+    if (!res.headersSent) return res.status(500).json({ error: err.message })
+    res.end()
   }
 }

@@ -6,7 +6,7 @@ import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import { askClaude, buildSystemPrompt } from '../../services/api'
+import { askClaude, buildSystemPrompt, AiAccessError } from '../../services/api'
 import { detectQueryIntent, intentGuidance } from '../../services/queryIntent'
 import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
 import { useSubscription } from '../../hooks/useSubscription'
@@ -25,7 +25,7 @@ import { eventsForAI } from '../../services/calendarService'
 import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
 import { markMilestone } from '../../services/gettingStarted'
 import { aiQueriesToday, recordAiQuery } from '../../services/usageService'
-import { showLimitPrompt } from '../../services/plans'
+import { showLimitPrompt, startUpgrade } from '../../services/plans'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import SavedResearch from '../researchNote/SavedResearch'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
@@ -273,6 +273,21 @@ function earningsSeasonPrompts(now = new Date()) {
     { label: 'WHICH REPORTERS MATTER MOST?', prompt: `Of ${who}, which results matter most for the ASX over the next two weeks, and why?`, dataKeys: [] },
     { label: 'POSITIONING AROUND EARNINGS', prompt: 'How do investors typically think about positioning around company results — the risks of holding through a report and the questions to ask beforehand? General information only.', dataKeys: [] },
   ]
+}
+
+// What to do about a refusal from /api/claude's guard: sign in again (the
+// session is missing or expired — signing out returns to the sign-in screen),
+// or move up a plan after the daily limit.
+function AccessActions({ access }) {
+  const cls = 'text-[9px] font-mono font-bold bg-terminal-gold text-terminal-bg px-1.5 hover:bg-terminal-gold-bright transition-colors'
+  if (/^AUTH_/.test(access.code ?? '')) {
+    return <button className={cls} onClick={() => useAuthStore.getState().signOut()}>SIGN IN</button>
+  }
+  if (access.code === 'DAILY_LIMIT' && access.tier !== 'apex') {
+    const next = access.tier === 'prime' ? 'apex' : 'prime'
+    return <button className={cls} onClick={() => startUpgrade(next)}>UPGRADE TO {next.toUpperCase()}</button>
+  }
+  return null
 }
 
 // ─── Sentiment score rendering ─────────────────────────────────────────────────
@@ -963,7 +978,7 @@ export default function AIPanel({ wide = false, onListening }) {
       const result = await askClaude(
         [...history, userTurnWire],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { systemPrompt, maxTokens: deepDive ? 3600 : research ? 3000 : 1200 }
+        { systemPrompt, maxTokens: deepDive ? 3600 : research ? 3000 : 1200, purpose: 'chat' }
       )
       const autoSaved = !!(save?.auto && result.text)
       if (autoSaved) saveProseNote({ kind: save.kind, asset: save.asset, body: result.text })
@@ -975,13 +990,17 @@ export default function AIPanel({ wide = false, onListening }) {
       addNotification('SYSTEM', 'MaddenAI analysis ready')
       soundService.aiComplete()
     } catch (err) {
+      // Sign-in and daily-limit refusals from the server's guard carry an
+      // action (SIGN IN / UPGRADE), not a dev hint.
+      const access = err instanceof AiAccessError ? { code: err.code, tier: err.tier } : null
       updateLastChatMessage({
         role: 'assistant',
         // The message is already user-facing (api.js userFacingAiError). The
         // key hint is for whoever is running the dev server, not for users —
         // it used to be appended in production too.
-        content: err.message + (import.meta.env.DEV ? '\n\n[dev] Check ANTHROPIC_API_KEY and the account\'s credit balance.' : ''),
+        content: err.message + (import.meta.env.DEV && !access ? '\n\n[dev] Check ANTHROPIC_API_KEY and the account\'s credit balance.' : ''),
         error: true,
+        access,
       })
       soundService.error()
     } finally {
@@ -1590,6 +1609,7 @@ export default function AIPanel({ wide = false, onListening }) {
                       </span>
                     )}
                   </span>
+                  {msg.access && <AccessActions access={msg.access} />}
                   {msg.content && msg.researchSave && !loading && (
                     msg.savedResearch
                       ? <span className="text-[9px] font-mono text-terminal-green">✓ IN SAVED RESEARCH</span>
