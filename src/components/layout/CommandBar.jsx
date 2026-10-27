@@ -197,8 +197,8 @@ function assetIn(phrase) {
   const p = String(phrase ?? '').trim().replace(/[?.!]$/, '')
   if (!p || moduleIdFor(p)) return null
   const hit = resolveAsset(p)
-  if (hit) return { sym: hit.sym, label: hit.label }
-  return /^[A-Z^][A-Z0-9.^/-]{0,11}$/.test(p) ? { sym: p, label: p } : null
+  if (hit) return { sym: hit.sym, label: hit.label, name: hit.desc.split(' · ')[0] }
+  return /^[A-Z^][A-Z0-9.^/-]{0,11}$/.test(p) ? { sym: p, label: p, name: null } : null
 }
 
 // Returns { kind, ...args, say } or null. `say` is the preview line, and is
@@ -268,12 +268,29 @@ function parseNaturalLanguage(raw) {
     return { kind: 'bond', market: b.market, maturity: b.maturity, say: `Open BONDS · ${b.label}` }
   }
 
-  // "analyse BHP" / "analyze BHP" / "tell me about CSL" / "research westpac" /
-  // "BHP analysis" / "analysis of BHP" / "what is CSL"
+  // "what is CSL" / "what's westpac" — an overview of the company.
   //
-  // "what is X" only when X names an asset. "what is inflation" is a real
-  // question and reaches MaddenAI as written, not as an analysis of INFLATION.
-  hit = m(/^(?:analys[ez]e?|research|tell me about|deep dive(?: on| into)?|analysis of|what(?:'s| is| are))(?: the)? (.+?)\??$/i)
+  // Only when the catalogue knows the name. "what is inflation", "what is a
+  // P/E ratio" and "what is CPI" are questions, and reach MaddenAI as typed —
+  // a capitalised acronym is not evidence of a ticker here the way it is in
+  // "add NVDA", because finance terms are written in capitals too.
+  hit = m(/^what(?:'s| is| are)(?: the)? (.+?)\??$/i)
+  if (hit) {
+    const known = resolveAsset(hit[1])
+    if (known && !moduleIdFor(hit[1])) {
+      const name = known.desc.split(' · ')[0]
+      return {
+        kind: 'ai', symbol: known.label,
+        query: `What is ${name} (${known.label})? Give me an overview of what they do, their key metrics, and what drives their share price.`,
+        say: `Ask MaddenAI: what is ${name} (${known.label})`,
+      }
+    }
+    return null
+  }
+
+  // "analyse BHP" / "analyze BHP" / "tell me about CSL" / "research westpac" /
+  // "BHP analysis" / "analysis of BHP"
+  hit = m(/^(?:analys[ez]e?|research|tell me about|deep dive(?: on| into)?|analysis of)(?: the)? (.+?)\??$/i)
     ?? m(/^(.+?) (?:analysis|research|deep dive)$/i)
   if (hit) {
     const a = assetIn(hit[1])
@@ -427,6 +444,15 @@ const MATCH_LIMIT = 9
 
 const isHelpQuery = (raw) => /^(\?|help|commands)$/i.test(raw.trim())
 
+// A half-typed command or module name ("compa", "calen") is not a ticker, and
+// offering "Add COMPA to watchlist" for it is noise in the middle of typing.
+const isCommandPrefix = (q) => {
+  const Q = q.toUpperCase()
+  return CMD_SUGGESTIONS.some((c) => c.sym.startsWith(Q))
+    || MODULE_LIST.some((m) => m.label.startsWith(Q) || m.key.toUpperCase().startsWith(Q))
+    || Object.values(NAV_MAP).flat().some((a) => a.toUpperCase().startsWith(Q))
+}
+
 function buildActionSuggestions(rawInput, nl) {
   const q = rawInput.trim()
   if (nl) {
@@ -438,7 +464,7 @@ function buildActionSuggestions(rawInput, nl) {
   // to be offered for any first word, so "rba" offered "Add RBA to watchlist".
   if (q.includes(' ') && !resolveAsset(q)) return []
   const asset = resolveAsset(q)
-  if (!asset && (moduleIdFor(q) || !/^[a-z0-9.^-]{1,6}$/i.test(q))) return []
+  if (!asset && (moduleIdFor(q) || !/^[a-z0-9.^-]{1,6}$/i.test(q) || isCommandPrefix(q))) return []
   if (asset?.type === 'fx' || asset?.type === 'index') return []
   const sym = asset?.sym ?? q.toUpperCase()
   return [
@@ -630,7 +656,7 @@ function MoversPanel({ title, items, onClose, onSelect }) {
           </table>
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">
-          Click any row to open full asset profile · {USING_MOCK_DATA ? 'DEMO data — live data connects on API setup' : 'Source: Stooq / CoinGecko'}
+          Click any row to open full asset profile · {USING_MOCK_DATA ? '● DEMO DATA — prices simulated' : 'Source: Stooq / CoinGecko'}
         </div>
       </div>
     </div>
@@ -693,7 +719,7 @@ function CompareModal({ assets, onClose }) {
           ))}
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">
-          {USING_MOCK_DATA ? 'DEMO data — live data connects on API setup' : 'Source: Stooq / CoinGecko'} · Prices in AUD
+          {USING_MOCK_DATA ? '● DEMO DATA — prices simulated' : 'Source: Stooq / CoinGecko'} · Prices in AUD
         </div>
       </div>
     </div>

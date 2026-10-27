@@ -1,5 +1,5 @@
-import { AU_ETFS } from '../data/etfData'
-import { ASX_SECTOR_STOCKS } from '../data/sectorTaxonomy'
+import { AU_ETFS } from '../data/etfData.js'
+import { ASX_SECTOR_STOCKS } from '../data/sectorTaxonomy.js'
 // ─── Demo/mock data layer ──────────────────────────────────────────────────
 // Active only when no equities API key is configured (see USING_MOCK_DATA in
 // api.js). Every function here returns data shaped EXACTLY like the real

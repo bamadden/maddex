@@ -146,8 +146,10 @@ function scoreEntry(e, q) {
   }
   if (ok && hard > 0) return e._names.some((n) => n === words.join(' ')) ? 96 : 80
 
+  // Typos are forgiven from six letters: at five, "compa" (half of COMPARE)
+  // is one edit from "compu(tershare)".
   const compact = words.join('')
-  if (compact.length < 5) return 0
+  if (compact.length < 6) return 0
   const budget = compact.length >= 8 ? 2 : 1
   let best = Infinity
   for (const c of e._compact) {
