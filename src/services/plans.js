@@ -32,9 +32,9 @@ export const PRICE_IDS = {
 
 // Infinity = unlimited. 0 = not included.
 export const LIMITS = {
-  core:  { watchlist: 5,        aiPerDay: 10,       alerts: 0,        researchNotesPerMonth: 0,        briefsPerWeek: 3 },
-  prime: { watchlist: Infinity, aiPerDay: 50,       alerts: 10,       researchNotesPerMonth: 5,        briefsPerWeek: Infinity },
-  apex:  { watchlist: Infinity, aiPerDay: Infinity, alerts: Infinity, researchNotesPerMonth: Infinity, briefsPerWeek: Infinity },
+  core:  { watchlist: 5,        watchlistGroups: 0,        aiPerDay: 10,       alerts: 0,        researchNotesPerMonth: 0,        briefsPerWeek: 3 },
+  prime: { watchlist: Infinity, watchlistGroups: 5,        aiPerDay: 50,       alerts: 10,       researchNotesPerMonth: 5,        briefsPerWeek: Infinity },
+  apex:  { watchlist: Infinity, watchlistGroups: Infinity, aiPerDay: Infinity, alerts: Infinity, researchNotesPerMonth: Infinity, briefsPerWeek: Infinity },
 }
 
 // Feature → plans that include it. A feature not listed is open to all.
@@ -50,6 +50,10 @@ export const GATES = {
   researchNotes:     ['prime', 'apex'],
   unlimitedMaddenAI: ['apex'],
   apiAccess:         ['apex'],
+  shareWatchlist:    ['apex'],
+  sharePortfolio:    ['apex'],
+  exportAll:         ['apex'],
+  priorityRefresh:   ['apex'],
 }
 
 export const canAccess = (feature, tier) => GATES[feature]?.includes(tier) ?? true
@@ -75,6 +79,11 @@ export const FEATURE_COPY = {
   unlimitedMaddenAI: { name: 'Unlimited MaddenAI', why: 'Ask as many questions as you like, every day — no daily cap on your analyst.' },
   moreMaddenAI:      { name: 'More MaddenAI', why: 'Prime gives you 50 MaddenAI questions a day, plus portfolio tracking, alerts and the scanner.' },
   apiAccess:         { name: 'API access', why: 'Pull Maddex data into your own spreadsheets and tools.' },
+  shareWatchlist:    { name: 'Watchlist sharing', why: 'Send anyone a read-only link to your watchlist — tickers, prices and moves, never your alerts, notes or targets.' },
+  sharePortfolio:    { name: 'Portfolio snapshot sharing', why: 'Share how your portfolio is allocated and performing in percentages — no dollar amounts, no holdings.' },
+  exportAll:         { name: 'Export everything', why: 'One ZIP with your portfolio, transactions, watchlist, alerts, research notes as PDFs and settings.' },
+  priorityRefresh:   { name: 'On-demand refresh', why: 'Refresh every live feed and the official statistics check whenever you want, not on the schedule.' },
+  watchlistGroups:   { name: 'More watchlist groups', why: 'Organise your watchlist into groups — five on Prime, unlimited on Apex.' },
   watchlist:         { name: 'A bigger watchlist', why: 'Track as many stocks as you like, with prices, alerts and news highlights on each.' },
   briefs:            { name: 'The daily morning brief', why: 'A fresh brief every weekday morning, written for your watchlist and your profile.' },
 }

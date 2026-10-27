@@ -1,4 +1,6 @@
 import {useState, useEffect, useRef, useSyncExternalStore, lazy, Suspense } from 'react'
+import { useSubscription } from '../../hooks/useSubscription'
+import RefreshAllButton from './RefreshAllButton'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { timeAgo } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
@@ -373,6 +375,7 @@ const LOCAL_CLOCK_TITLE = (() => {
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { user, supabaseOffline } = useAuthStore()
+  const { canUse } = useSubscription()
   const { sentiment, status: sentimentStatus } = useSentiment()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsSection, setSettingsSection] = useState(undefined)
@@ -497,6 +500,7 @@ export default function TopBar() {
             {timeStr}
           </span>,
           <OfficialDataDot key="official" />,
+          canUse('priorityRefresh') ? <RefreshAllButton key="refresh" /> : null,
           USING_MOCK_DATA ? <DataFreshnessBadge key="data" /> : null,
           // Mounted for everyone, not just signed-in users.
           //

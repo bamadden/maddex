@@ -1,4 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createShareLink } from '../../services/sharingService'
+import { useSubscription } from '../../hooks/useSubscription'
+import { showLimitPrompt } from '../../services/plans'
+import { SECTOR_BY_SYMBOL } from '../../modules/portfolio/sectorMap'
+import { USING_MOCK_DATA } from '../../services/api'
+import ShareLinkModal from '../ui/ShareLinkModal'
 
 const W = 900
 const H = 1200
@@ -160,8 +166,34 @@ function draw(ctx, { holdings, totalPnl, pnlPct, mktTotal, currency, ownerName }
   ctx.fillText('General information only — not financial advice.', 60, H - 45)
 }
 
+// The shared snapshot page (Apex) is privacy-first: percentages only. Return
+// since purchase, the asset-class and sector mix — no dollar amounts, no
+// individual holdings, no purchase prices. The PNG above is the owner's own
+// download and keeps its detail.
+function sharePayload({ holdings, pnlPct, ownerName }) {
+  const total = holdings.reduce((s, h) => s + (h.mktVal > 0 ? h.mktVal : 0), 0) || 1
+  const mix = (keyFn) => {
+    const m = {}
+    for (const h of holdings) if (h.mktVal > 0) m[keyFn(h)] = (m[keyFn(h)] ?? 0) + h.mktVal
+    return Object.entries(m).map(([label, v]) => ({ label, pct: Math.round((v / total) * 1000) / 10 })).sort((a, b) => b.pct - a.pct)
+  }
+  return {
+    ownerName,
+    returnPct: Math.round(pnlPct * 10) / 10,
+    assetClasses: mix((h) => (h.type === 'crypto' ? 'Crypto' : h.type === 'us' ? 'US equities' : 'ASX equities')),
+    sectors: mix((h) => (h.type === 'crypto' ? 'Crypto' : SECTOR_BY_SYMBOL[h.symbol] ?? 'Other')),
+    demoPrices: USING_MOCK_DATA,
+  }
+}
+
 export default function PortfolioSnapshot({ holdings, totalPnl, pnlPct, mktTotal, currency, ownerName, onClose }) {
   const canvasRef = useRef(null)
+  const { canUse } = useSubscription()
+  const [link, setLink] = useState(null)
+  const share = () => {
+    if (!canUse('sharePortfolio')) { showLimitPrompt('sharePortfolio', 'Snapshot sharing is an Apex feature', 'apex'); return }
+    setLink(createShareLink('portfolio', sharePayload({ holdings, pnlPct, ownerName })))
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -190,12 +222,23 @@ export default function PortfolioSnapshot({ holdings, totalPnl, pnlPct, mktTotal
         </div>
         <div className="p-4 overflow-auto flex-1 flex flex-col items-center gap-3">
           <canvas ref={canvasRef} width={W} height={H} style={{ width: 340, height: (340 * H) / W }} className="border border-terminal-border" />
-          <button
-            onClick={download}
-            className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-          >DOWNLOAD PNG</button>
+          <div className="flex gap-2">
+            <button
+              onClick={download}
+              className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+            >DOWNLOAD PNG</button>
+            <button
+              onClick={share}
+              title="A read-only page with percentages only — no dollar amounts or holdings"
+              className="text-2xs font-bold bg-terminal-gold text-terminal-bg px-5 py-2 hover:bg-terminal-gold-bright transition-colors"
+            >SHARE SNAPSHOT{!canUse('sharePortfolio') && ' ⊘'}</button>
+          </div>
+          <div className="text-[9px] text-terminal-text-dim/70 max-w-[340px] text-center">
+            The PNG is for you. The shared page shows only percentages — return, asset mix and sectors — never amounts or holdings.
+          </div>
         </div>
       </div>
+      {link && <ShareLinkModal title="SHARE PORTFOLIO SNAPSHOT" resolvableUrl={link.resolvableUrl} stored={link.stored} onClose={() => setLink(null)} />}
     </div>
   )
 }

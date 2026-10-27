@@ -1,4 +1,4 @@
-import { getSharedRecord } from '../services/sharingService'
+import { useSharedRecord } from '../services/sharingService'
 
 function priceStr(symbol, price) {
   if (price == null) return '—'
@@ -9,7 +9,7 @@ function priceStr(symbol, price) {
 // maddex.com.au/watchlist/share/[hash] (App.jsx routes the path here before
 // the authenticated app mounts, so no sign-in is required to view one).
 export default function SharedWatchlistPage({ id }) {
-  const record = getSharedRecord('watchlist', id)
+  const record = useSharedRecord('watchlist', id)
 
   return (
     <div className="h-screen overflow-y-auto bg-terminal-bg text-terminal-text font-mono flex flex-col items-center px-4 py-10">
@@ -19,11 +19,13 @@ export default function SharedWatchlistPage({ id }) {
           <span className="text-terminal-gold font-bold tracking-widest">MADDEX</span>
         </div>
 
-        {!record ? (
+        {record === undefined ? (
+          <div className="text-2xs text-terminal-text-dim">Loading…</div>
+        ) : !record ? (
           <div className="border border-terminal-border p-6 text-center">
             <div className="text-terminal-text-bright font-bold mb-2">This link isn't available</div>
             <div className="text-2xs text-terminal-text-dim">
-              Shared watchlists currently only resolve in the browser that created them (this feature's backend isn't live yet).
+              It may have been removed, or it was shared from a browser that could not save it to Maddex — ask the sender for a new link.
             </div>
           </div>
         ) : (

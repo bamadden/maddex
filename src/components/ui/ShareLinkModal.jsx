@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 // Small shared "here's your link" modal used by both Watchlist and Research
 // Note sharing — same copy-to-clipboard shape, different title/copy line.
-export default function ShareLinkModal({ title, brandedUrl, resolvableUrl, onClose }) {
+// `stored` (from createShareLink) resolves to 'server' or 'local'; a link that
+// only this browser can open says so rather than being handed out as public.
+export default function ShareLinkModal({ title, resolvableUrl, stored, onClose }) {
   useEscapeKey(onClose)
+  const [where, setWhere] = useState(stored ? 'saving' : 'server')
+  useEffect(() => {
+    let live = true
+    stored?.then((w) => { if (live) setWhere(w) })
+    return () => { live = false }
+  }, [stored])
 
   const [copied, setCopied] = useState(false)
 
@@ -27,10 +35,14 @@ export default function ShareLinkModal({ title, brandedUrl, resolvableUrl, onClo
           <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
         </div>
         <div className="p-4 space-y-3">
-          <div className="text-2xs text-terminal-text-dim">Anyone with this link gets a read-only view.</div>
+          <div className="text-2xs text-terminal-text-dim">
+            {where === 'saving' ? 'Saving the link…'
+              : where === 'server' ? 'Anyone with this link gets a read-only view — no sign-in needed.'
+              : <span className="text-terminal-gold">This link only opens in this browser — sign in to share it with anyone else.</span>}
+          </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0 px-2 py-1.5 border border-terminal-border text-2xs text-terminal-text-bright truncate">
-              {brandedUrl}
+              {resolvableUrl}
             </div>
             <button
               onClick={copy}

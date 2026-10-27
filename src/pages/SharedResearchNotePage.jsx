@@ -1,4 +1,4 @@
-import { getSharedRecord } from '../services/sharingService'
+import { useSharedRecord } from '../services/sharingService'
 
 // Stance, not rating.
 //
@@ -33,7 +33,7 @@ const STANCE_COLOR = {
 // before the authenticated app mounts. A lighter web rendering of the note
 // than the PDF export, not a pixel copy of it.
 export default function SharedResearchNotePage({ id }) {
-  const record = getSharedRecord('research', id)
+  const record = useSharedRecord('research', id)
 
   return (
     <div className="h-screen overflow-y-auto bg-terminal-bg text-terminal-text font-mono flex flex-col items-center px-4 py-10">
@@ -44,11 +44,13 @@ export default function SharedResearchNotePage({ id }) {
           <span className="text-2xs text-terminal-text-dim ml-2 tracking-widest">EQUITY RESEARCH</span>
         </div>
 
-        {!record ? (
+        {record === undefined ? (
+          <div className="text-2xs text-terminal-text-dim">Loading…</div>
+        ) : !record ? (
           <div className="border border-terminal-border p-6 text-center">
             <div className="text-terminal-text-bright font-bold mb-2">This link isn't available</div>
             <div className="text-2xs text-terminal-text-dim">
-              Shared research notes currently only resolve in the browser that created them (this feature's backend isn't live yet).
+              It may have been removed, or it was shared from a browser that could not save it to Maddex — ask the sender for a new link.
             </div>
           </div>
         ) : (

@@ -92,6 +92,7 @@ const OnboardingFlow     = lazy(() => import('./components/auth/OnboardingFlow')
 const DiagPage           = lazy(() => import('./DiagPage'))
 const SharedWatchlistPage    = lazy(() => import('./pages/SharedWatchlistPage'))
 const SharedResearchNotePage = lazy(() => import('./pages/SharedResearchNotePage'))
+const SharedPortfolioPage    = lazy(() => import('./pages/SharedPortfolioPage'))
 const LegalPage          = lazy(() => import('./pages/LegalPage'))
 // The keys of data/legalDocs LEGAL_DOCS, kept here so routing does not pull
 // the documents' text into the entry chunk. LegalPage renders from the data.
@@ -956,10 +957,12 @@ const focusCommandBar = () => document.querySelector('[data-command-bar]')?.focu
 export default function App() {
   const page = (el) => <Suspense fallback={<AppLoader />}>{el}</Suspense>
   if (window.location.search.includes('diag')) return page(<DiagPage />)
-  const watchlistShare = window.location.pathname.match(/^\/watchlist\/share\/([a-z0-9]+)$/i)
+  const watchlistShare = window.location.pathname.match(/^\/watchlist\/share\/([a-z0-9-]+)$/i)
   if (watchlistShare) return page(<SharedWatchlistPage id={watchlistShare[1]} />)
-  const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9]+)$/i)
+  const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9-]+)$/i)
   if (researchShare) return page(<SharedResearchNotePage id={researchShare[1]} />)
+  const portfolioShare = window.location.pathname.match(/^\/portfolio\/share\/([a-z0-9-]+)$/i)
+  if (portfolioShare) return page(<SharedPortfolioPage id={portfolioShare[1]} />)
   // Legal pages are public and mount before the auth gate: someone has to be
   // able to read the terms they are being asked to agree to on the sign-in
   // screen, and that screen appears before they have an account.

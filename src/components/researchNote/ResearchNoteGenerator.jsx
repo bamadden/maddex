@@ -221,6 +221,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
           title="SHARE RESEARCH NOTE"
           brandedUrl={shareLink.brandedUrl}
           resolvableUrl={shareLink.resolvableUrl}
+          stored={shareLink.stored}
           onClose={() => setShareLink(null)}
         />
       )}

@@ -494,7 +494,7 @@ export default function WatchlistModule() {
   const { menu, openMenu, closeMenu } = useStockContextMenu()
   const { user, profile } = useAuthStore()
   const [shareLink, setShareLink] = useState(null)
-  const { limits } = useSubscription()
+  const { limits, canUse } = useSubscription()
   // From the plan (services/plans LIMITS): 5 on Core, unlimited above.
   const WATCHLIST_LIMIT = limits.watchlist
   const { usdToAud, audToUsd } = useAudRates()
@@ -925,6 +925,7 @@ export default function WatchlistModule() {
   }
 
   const handleShare = () => {
+    if (!canUse('shareWatchlist')) { showLimitPrompt('shareWatchlist', 'Sharing a watchlist is an Apex feature', 'apex'); return }
     const ownerName = profile?.first_name || user?.email?.split('@')[0] || 'A Maddex user'
     const stocks = sortedRows
       .filter((r) => r.price != null)
@@ -1047,7 +1048,7 @@ export default function WatchlistModule() {
           disabled={sortedRows.length === 0}
           className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0 disabled:opacity-30"
         >
-          SHARE
+          SHARE{!canUse('shareWatchlist') && ' ⊘'}
         </button>
         <button
           onClick={handleClearAll}
@@ -1217,7 +1218,13 @@ export default function WatchlistModule() {
             dragIndexRef.current = null
             setDraggingIdx(null); setDragOverIdx(null)
           }}
-          onCreate={(name, colour) => { addGroup(name, colour); bumpNotes((n) => n + 1) }}
+          onCreate={(name, colour) => {
+            if (meta.groups.length >= limits.watchlistGroups) {
+              showLimitPrompt('watchlistGroups', limits.watchlistGroups ? `Your plan includes ${limits.watchlistGroups} watchlist groups` : 'Watchlist groups are on Prime and Apex', limits.watchlistGroups ? 'apex' : 'prime')
+              return
+            }
+            addGroup(name, colour); bumpNotes((n) => n + 1)
+          }}
           onDelete={(id) => { removeGroup(id); bumpNotes((n) => n + 1) }}
         />
       )}
@@ -1643,6 +1650,7 @@ export default function WatchlistModule() {
           title="SHARE WATCHLIST"
           brandedUrl={shareLink.brandedUrl}
           resolvableUrl={shareLink.resolvableUrl}
+          stored={shareLink.stored}
           onClose={() => setShareLink(null)}
         />
       )}

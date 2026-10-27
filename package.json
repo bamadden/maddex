@@ -27,6 +27,7 @@
     "d3": "^7.9.0",
     "date-fns": "^4.4.0",
     "deck.gl": "^9.3.11",
+    "fflate": "^0.8.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lightweight-charts": "^5.2.1",

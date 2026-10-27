@@ -35,7 +35,7 @@ import {
 } from '../../services/browserNotify'
 import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
 import { getImportHistory } from '../../services/portfolioCsv'
-import { TIER_LABEL, PRICES, openPricing, GATES, LIMITS, canAccess as planAllows, devPlanOverride, effectiveTier } from '../../services/plans'
+import { TIER_LABEL, PRICES, openPricing, GATES, LIMITS, canAccess as planAllows, devPlanOverride, effectiveTier, showLimitPrompt } from '../../services/plans'
 import { getUsage, aiQueriesToday, subscribeUsage } from '../../services/usageService'
 import { activeAlertCount, loadAlerts, loadAlertHistory, alertSuggestionsEnabled, setAlertSuggestionsEnabled } from '../../services/alertsService'
 import {
@@ -1778,6 +1778,35 @@ function PortfolioImportsBlock() {
   )
 }
 
+// EXPORT ALL DATA — Apex. One ZIP of everything this browser holds; see
+// services/exportAllService. Loaded on click so fflate stays off the settings
+// chunk.
+function ExportAllBlock() {
+  const { canUse } = useSubscription()
+  const [state, setState] = useState(null) // null | 'working' | { notes, files } | 'error'
+  const run = async () => {
+    if (!canUse('exportAll')) { showLimitPrompt('exportAll', 'Export everything is an Apex feature', 'apex'); return }
+    setState('working')
+    try { setState(await (await import('../../services/exportAllService')).downloadExportZip()) } catch { setState('error') }
+  }
+  return (
+    <div className="space-y-3 border border-terminal-gold/30 p-3">
+      <div className="flex items-center gap-2">
+        <div className="text-xs font-bold text-terminal-text-bright">EXPORT ALL DATA</div>
+        <span className="text-[9px] font-bold px-1 border border-terminal-gold/50 text-terminal-gold">APEX</span>
+      </div>
+      <div className="text-2xs text-terminal-text-dim">
+        One ZIP: portfolio.csv (every lot), watchlist.csv, alerts.csv, transactions.csv, research-notes/ (each saved note as a PDF) and settings.json.
+      </div>
+      <button onClick={run} disabled={state === 'working'}
+        className="px-4 py-1.5 text-xs font-bold bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-50"
+      >{state === 'working' ? 'BUILDING ZIP…' : `EXPORT ALL DATA${canUse('exportAll') ? '' : ' ⊘'}`}</button>
+      {state && typeof state === 'object' && <div className="text-2xs text-terminal-green">✓ Downloaded — {state.files} files, {state.notes} research note{state.notes === 1 ? '' : 's'}.</div>}
+      {state === 'error' && <div className="text-2xs text-terminal-red">The export could not be built. Try again.</div>}
+    </div>
+  )
+}
+
 function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClearCache, onResetDashboard, onSignOut, signedIn }) {
   const [exporting, setExporting] = useState(false)
 
@@ -1828,6 +1857,8 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClear
           {exporting ? '...' : 'EXPORT MY DATA'}
         </button>
       </div>
+
+      <ExportAllBlock />
 
       <PortfolioImportsBlock />
 
