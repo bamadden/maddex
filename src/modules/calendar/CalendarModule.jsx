@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
+import CorporateActions from './CorporateActions'
+import EventImpact from './EventImpact'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -302,6 +304,8 @@ function EconomicEventCard({ event, onReminderChange }) {
         )}
 
         {event.watch?.includes('cpi') && <CpiWatchBlock />}
+
+        {event.importance === 'high' && <EventImpact event={event} />}
 
         <div className="space-y-1 mb-2">
           <div className="text-[9px] text-terminal-text-dim/60 tracking-widest">MARKET SENSITIVITY</div>
@@ -774,6 +778,8 @@ export default function CalendarModule() {
               ))}
             </div>
           )}
+
+          <CorporateActions />
         </div>
       </div>
     </div>

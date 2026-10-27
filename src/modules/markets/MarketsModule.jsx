@@ -7,6 +7,7 @@ import UnusualActivityTracker from './UnusualActivityTracker'
 import MarketSentimentBanner from './MarketSentimentBanner'
 import SectorRotation from './SectorRotation'
 import EarningsCalendar from './EarningsCalendar'
+import UpcomingListings from './UpcomingListings'
 import MarketInternals from './MarketInternals'
 import VolatilityBanner from './VolatilityBanner'
 import { useStore } from '../../store/useStore'
@@ -71,6 +72,9 @@ export default function MarketsModule() {
 
         {/* Upcoming ASX earnings */}
         <EarningsCalendar />
+
+        {/* ASX floats, from the ASX's own upcoming listings page */}
+        <UpcomingListings />
       </div>
     </div>
   )

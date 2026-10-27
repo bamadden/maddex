@@ -20,6 +20,7 @@ import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetU
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
+import AnalystCoverage from '../markets/AnalystCoverage'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
 import SafeChart from './SafeChart'
 
@@ -902,6 +903,11 @@ export default function DetailModal() {
         <DataRow label="Avg Vol (10D)"  value={qs?.avgVolume10d ? fmt.large(qs.avgVolume10d) : '—'} />
       </Section>
 
+      {qs?.recMean == null && (
+        <Section title="ANALYST COVERAGE" noCols>
+          <AnalystCoverage symbol={symbol} name={name ?? symbol} />
+        </Section>
+      )}
       {qs?.recMean != null && (
         <Section title="ANALYST CONSENSUS" noCols>
           <AnalystBar recMean={qs.recMean} analystCount={qs.analystCount} />
