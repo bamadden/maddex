@@ -106,13 +106,17 @@ const num = (v, fallback = 0) => {
 
 // ─── INVESTMENT ─────────────────────────────────────────────────────────────
 
-function CompoundCalc() {
-  const [initial, setInitial] = useState('10000')
-  const [contribution, setContribution] = useState('500')
+// `prefill` comes from the command bar ("compound 10000 8% 20 years"): a lump
+// sum compounded annually with no contributions, which is what that sentence
+// says and the figure the bar previewed. The module keys this component on the
+// prefill, so a second command remounts it with the new values.
+function CompoundCalc({ prefill }) {
+  const [initial, setInitial] = useState(prefill ? String(prefill.initial) : '10000')
+  const [contribution, setContribution] = useState(prefill ? '0' : '500')
   const [freq, setFreq] = useState('12')
-  const [rate, setRate] = useState('8')
-  const [years, setYears] = useState('20')
-  const [compounds, setCompounds] = useState('12')
+  const [rate, setRate] = useState(prefill ? String(prefill.rate) : '8')
+  const [years, setYears] = useState(prefill ? String(prefill.years) : '20')
+  const [compounds, setCompounds] = useState(prefill ? '1' : '12')
 
   const r = useMemo(() => compound({
     initial: num(initial), contribution: num(contribution),
@@ -123,7 +127,7 @@ function CompoundCalc() {
   return (
     <Calc
       title="COMPOUND GROWTH"
-      note="updates as you type"
+      note={prefill ? 'filled from command bar · updates as you type' : 'updates as you type'}
       inputs={
         <>
           <Field label="INITIAL INVESTMENT" value={initial} onChange={setInitial} suffix="A$" />
@@ -826,6 +830,7 @@ const DISCLAIMER = `These calculators are for educational purposes and general i
 
 export default function CalculatorsModule() {
   const [tab, setTab] = useIntentState('calculators', 'tab', 'investment')
+  const [compoundPrefill] = useIntentState('calculators', 'compound', null)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -838,7 +843,7 @@ export default function CalculatorsModule() {
       <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
 
       <div className="flex-1 overflow-y-auto p-3">
-        {tab === 'investment' && <><CompoundCalc /><DrpCalc /><BrokerageCalc /></>}
+        {tab === 'investment' && <><CompoundCalc key={compoundPrefill?.id ?? 'default'} prefill={compoundPrefill} /><DrpCalc /><BrokerageCalc /></>}
         {tab === 'super' && <><SuperCalc /><SuperTrackCalc /></>}
         {tab === 'property' && <><MortgageCalc /><StampDutyCalc /></>}
         {tab === 'tax' && <><IncomeTaxCalc /><CgtCalc /></>}

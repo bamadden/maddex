@@ -2,76 +2,16 @@ import { useState, useRef, useEffect, useCallback, memo, Fragment } from 'react'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
-import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets } from '../../services/api'
+import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, USING_MOCK_DATA } from '../../services/api'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
 import Tooltip from '../ui/Tooltip'
 import { shortcutService } from '../../services/shortcutService'
 import { setModuleIntent, sendModuleIntent } from '../../services/moduleIntent'
-
-// ─── Autocomplete symbol catalogue ────────────────────────────────────────────
-
-const KNOWN_SYMBOLS = [
-  // ASX — blue chips
-  { sym:'BHP.AX',  label:'BHP',    type:'asx',   desc:'BHP Group · Mining' },
-  { sym:'CBA.AX',  label:'CBA',    type:'asx',   desc:'Commonwealth Bank · Finance' },
-  { sym:'CSL.AX',  label:'CSL',    type:'asx',   desc:'CSL Limited · Healthcare' },
-  { sym:'ANZ.AX',  label:'ANZ',    type:'asx',   desc:'ANZ Banking Group · Finance' },
-  { sym:'WBC.AX',  label:'WBC',    type:'asx',   desc:'Westpac Banking · Finance' },
-  { sym:'NAB.AX',  label:'NAB',    type:'asx',   desc:'National Australia Bank · Finance' },
-  { sym:'WOW.AX',  label:'WOW',    type:'asx',   desc:'Woolworths Group · Consumer' },
-  { sym:'WES.AX',  label:'WES',    type:'asx',   desc:'Wesfarmers · Conglomerate' },
-  { sym:'RIO.AX',  label:'RIO',    type:'asx',   desc:'Rio Tinto · Mining' },
-  { sym:'FMG.AX',  label:'FMG',    type:'asx',   desc:'Fortescue · Iron Ore' },
-  { sym:'MQG.AX',  label:'MQG',    type:'asx',   desc:'Macquarie Group · Finance' },
-  { sym:'TLS.AX',  label:'TLS',    type:'asx',   desc:'Telstra · Telecoms' },
-  { sym:'WDS.AX',  label:'WDS',    type:'asx',   desc:'Woodside Energy · Energy' },
-  { sym:'STO.AX',  label:'STO',    type:'asx',   desc:'Santos · Energy' },
-  { sym:'MIN.AX',  label:'MIN',    type:'asx',   desc:'Mineral Resources · Mining' },
-  { sym:'PLS.AX',  label:'PLS',    type:'asx',   desc:'Pilbara Minerals · Lithium' },
-  { sym:'NXT.AX',  label:'NXT',    type:'asx',   desc:'NextDC · Data Centres' },
-  { sym:'QAN.AX',  label:'QAN',    type:'asx',   desc:'Qantas Airways · Transport' },
-  { sym:'AMC.AX',  label:'AMC',    type:'asx',   desc:'Amcor · Packaging' },
-  { sym:'GMG.AX',  label:'GMG',    type:'asx',   desc:'Goodman Group · REITs' },
-  // US mega-caps
-  { sym:'AAPL',    label:'AAPL',   type:'us',    desc:'Apple Inc · NASDAQ' },
-  { sym:'MSFT',    label:'MSFT',   type:'us',    desc:'Microsoft · NASDAQ' },
-  { sym:'GOOGL',   label:'GOOGL',  type:'us',    desc:'Alphabet · NASDAQ' },
-  { sym:'AMZN',    label:'AMZN',   type:'us',    desc:'Amazon · NASDAQ' },
-  { sym:'META',    label:'META',   type:'us',    desc:'Meta Platforms · NASDAQ' },
-  { sym:'NVDA',    label:'NVDA',   type:'us',    desc:'NVIDIA · NASDAQ' },
-  { sym:'TSLA',    label:'TSLA',   type:'us',    desc:'Tesla · NASDAQ' },
-  { sym:'BRK-B',   label:'BRK-B',  type:'us',    desc:'Berkshire Hathaway · NYSE' },
-  { sym:'JPM',     label:'JPM',    type:'us',    desc:'JPMorgan Chase · NYSE' },
-  { sym:'BAC',     label:'BAC',    type:'us',    desc:'Bank of America · NYSE' },
-  { sym:'XOM',     label:'XOM',    type:'us',    desc:'ExxonMobil · NYSE' },
-  { sym:'V',       label:'V',      type:'us',    desc:'Visa · NYSE' },
-  // Indices
-  { sym:'^AXJO',   label:'^AXJO',  type:'index', desc:'ASX 200 · Index' },
-  { sym:'^GSPC',   label:'^GSPC',  type:'index', desc:'S&P 500 · Index' },
-  { sym:'^IXIC',   label:'^IXIC',  type:'index', desc:'NASDAQ Composite · Index' },
-  { sym:'^DJI',    label:'^DJI',   type:'index', desc:'Dow Jones Industrial · Index' },
-  { sym:'^FTSE',   label:'^FTSE',  type:'index', desc:'FTSE 100 · Index' },
-  { sym:'^N225',   label:'^N225',  type:'index', desc:'Nikkei 225 · Index' },
-  { sym:'^HSI',    label:'^HSI',   type:'index', desc:'Hang Seng · Index' },
-  { sym:'^VIX',    label:'^VIX',   type:'index', desc:'CBOE Volatility · Index' },
-  // Crypto
-  { sym:'BTC',     label:'BTC',    type:'crypto', desc:'Bitcoin · Crypto' },
-  { sym:'ETH',     label:'ETH',    type:'crypto', desc:'Ethereum · Crypto' },
-  { sym:'SOL',     label:'SOL',    type:'crypto', desc:'Solana · Crypto' },
-  { sym:'BNB',     label:'BNB',    type:'crypto', desc:'BNB · Crypto' },
-  { sym:'XRP',     label:'XRP',    type:'crypto', desc:'XRP · Crypto' },
-  { sym:'ADA',     label:'ADA',    type:'crypto', desc:'Cardano · Crypto' },
-  { sym:'DOGE',    label:'DOGE',   type:'crypto', desc:'Dogecoin · Crypto' },
-  { sym:'AVAX',    label:'AVAX',   type:'crypto', desc:'Avalanche · Crypto' },
-  // FX
-  { sym:'AUD/USD', label:'AUD/USD', type:'fx',  desc:'Australian Dollar vs USD' },
-  { sym:'AUD/EUR', label:'AUD/EUR', type:'fx',  desc:'Australian Dollar vs EUR' },
-  { sym:'AUD/JPY', label:'AUD/JPY', type:'fx',  desc:'Australian Dollar vs JPY' },
-  { sym:'AUD/GBP', label:'AUD/GBP', type:'fx',  desc:'Australian Dollar vs GBP' },
-  { sym:'USD/JPY', label:'USD/JPY', type:'fx',  desc:'US Dollar vs Japanese Yen' },
-  { sym:'EUR/USD', label:'EUR/USD', type:'fx',  desc:'Euro vs US Dollar' },
-]
+import {
+  resolveAsset, searchCatalogue, parseSectorQuery, calcMatches, parseCompound,
+  parseBondQuery, timeSuggestions, sydneyClock,
+} from './commandSearch'
 
 // Module nav now has its own MODULES category (below) — these are the
 // remaining power-user commands that aren't just "go to a module".
@@ -147,6 +87,9 @@ const HELP_SECTIONS = [
   ]},
   { title:'TICKER LOOKUP', items:[
     { cmd:'BHP / CBA / AAPL ...', desc:'Any symbol → full asset profile' },
+    { cmd:'westpac / rio tinto', desc:'Company names, typos forgiven' },
+    { cmd:'materials / banks', desc:'An ASX sector\'s stocks' },
+    { cmd:'au 10y / 30y gilt', desc:'Bonds at that maturity' },
     { cmd:'^AXJO / ^GSPC', desc:'Indices — prefix with ^' },
     { cmd:'BTC / ETH / SOL', desc:'Crypto assets' },
     { cmd:'AUD/USD', desc:'FX pairs' },
@@ -161,6 +104,10 @@ const HELP_SECTIONS = [
     { cmd:'NEWS {keyword}', desc:'Filter news — e.g. NEWS RBA, NEWS CHINA' },
     { cmd:'COMPARE {s1} {s2}', desc:'Side-by-side asset comparison' },
     { cmd:'ALERT {sym} {price}', desc:'Set price alert — e.g. ALERT BHP 50' },
+    { cmd:'alert BHP above 48', desc:'Alerts in words — also "notify me when BHP hits 48"' },
+    { cmd:'add BHP / watch CSL', desc:'Add to watchlist' },
+    { cmd:'analyse CSL', desc:'MaddenAI analysis — also "what is CSL", "tell me about BHP"' },
+    { cmd:'compound 10000 8% 20 years', desc:'Opens the calculator filled in' },
     { cmd:'CORRELATE {s1} {s2}', desc:'Open Correlation Explorer — e.g. CORRELATE BHP AUD' },
     { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
     { cmd:'AI {question}', desc:'Ask MaddenAI directly' },
@@ -169,11 +116,11 @@ const HELP_SECTIONS = [
   ]},
   { title:'KEYBOARD', items:[
     { cmd:'/', desc:'Focus command bar from anywhere' },
-    { cmd:'↑ / ↓', desc:'Cycle command history' },
+    { cmd:'↑ / ↓', desc:'Move through results, or history when none' },
+    { cmd:'Tab / Shift+Tab', desc:'Next / previous result group' },
     { cmd:'ESC', desc:'Close modal or AI panel' },
     { cmd:'M / C / F / N / G / P / W / X', desc:'Module hotkeys' },
     { cmd:'F1–F8', desc:'Module function keys' },
-    { cmd:'Tab', desc:'Accept autocomplete suggestion' },
   ]},
 ]
 
@@ -204,39 +151,31 @@ const TICKER_RE = '[A-Za-z0-9.^/-]{1,12}'
 //
 // "add BHP to watchlist" must add BHP.AX, not BHP: a bare ASX ticker resolves
 // to the US listing at a USD price, silently — the failure tickerGuard.js
-// exists to catch. Known symbols resolve through the catalogue; anything else
-// is passed through untouched rather than guessed at.
+// exists to catch. Known symbols and company names resolve through the
+// catalogue ("westpac" → WBC.AX); anything else is passed through untouched
+// rather than guessed at.
 function resolveSymbol(raw) {
-  const q = String(raw ?? '').trim().toUpperCase()
-  if (!q) return null
-  const known = KNOWN_SYMBOLS.find((k) => k.label.toUpperCase() === q || k.sym.toUpperCase() === q)
-  return known ? known.sym : q
-}
-
-// Whether a token is plausibly a symbol rather than an English word.
-function looksLikeTicker(raw) {
   const q = String(raw ?? '').trim()
-  if (!q) return false
-  if (KNOWN_SYMBOLS.some((k) => k.label.toUpperCase() === q.toUpperCase() || k.sym.toUpperCase() === q.toUpperCase())) return true
-  return /^[A-Z^][A-Z0-9.^/-]*$/.test(q)
+  if (!q) return null
+  return resolveAsset(q)?.sym ?? q.toUpperCase()
 }
 
 // The display form — BHP rather than BHP.AX, for confirmations.
 function displaySymbol(raw) {
-  const q = String(raw ?? '').trim().toUpperCase()
-  const known = KNOWN_SYMBOLS.find((k) => k.label.toUpperCase() === q || k.sym.toUpperCase() === q)
-  return known ? known.label : q
+  const q = String(raw ?? '').trim()
+  return resolveAsset(q)?.label ?? q.toUpperCase()
 }
 
 // Module names as a person would say them, mapped to module ids. Checked
 // against NAV_MAP's aliases first, so this only has to carry the names that
 // are not already aliases.
 const SPOKEN_MODULES = {
-  brief: 'brief', 'morning brief': 'brief', 'my brief': 'brief',
+  brief: 'brief', 'morning brief': 'brief', 'my brief': 'brief', 'weekly review': 'brief',
   scanner: 'scanner', scan: 'scanner', screener: 'screener', screen: 'screener',
   dashboard: 'dashboard', home: 'dashboard',
   calendar: 'calendar', settings: 'settings', replay: 'replay',
   'ai analyst': 'ai', 'maddenai': 'ai',
+  calculators: 'calculators', etfs: 'etf', rates: 'fx', markets: 'markets',
 }
 
 function moduleIdFor(name) {
@@ -249,6 +188,19 @@ function moduleIdFor(name) {
   return null
 }
 
+const analysisQuery = (sym) =>
+  `Give me a full analysis of ${sym}: what the business does, what is driving the share price, the main risks, and what an Australian investor should be watching. General information only, not advice.`
+
+// An asset named in a phrase — a ticker or a company name the catalogue can
+// pin to one listing. Prose ("inflation", "the RBA") returns null.
+function assetIn(phrase) {
+  const p = String(phrase ?? '').trim().replace(/[?.!]$/, '')
+  if (!p || moduleIdFor(p)) return null
+  const hit = resolveAsset(p)
+  if (hit) return { sym: hit.sym, label: hit.label }
+  return /^[A-Z^][A-Z0-9.^/-]{0,11}$/.test(p) ? { sym: p, label: p } : null
+}
+
 // Returns { kind, ...args, say } or null. `say` is the preview line, and is
 // also what the confirmation flash is built from, so the two always agree.
 function parseNaturalLanguage(raw) {
@@ -258,66 +210,92 @@ function parseNaturalLanguage(raw) {
 
   const m = (re) => t.match(re)
 
-  // "add BHP to watchlist" / "add BHP to my watchlist"
-  let hit = m(new RegExp(`^add (${TICKER_RE}) to (?:my )?watch ?list$`, 'i'))
-  if (hit) {
-    const sym = resolveSymbol(hit[1])
-    return { kind: 'watchlist', symbol: sym, say: `Add ${sym} to watchlist` }
+  // "add BHP to watchlist" / "add westpac" / "watch BHP"
+  let hit = m(/^(?:add|watch|track|follow) (.+?)(?: to (?:my |the )?watch ?list)?$/i)
+  if (hit && !/ to (?:my |the )?portfolio$/i.test(t)) {
+    const a = assetIn(hit[1])
+    if (a) return { kind: 'watchlist', symbol: a.sym, say: `Add ${a.sym} to watchlist` }
   }
 
-  // "set alert BHP above 50" / "alert me when CBA goes below 170"
-  hit = m(new RegExp(`^(?:set )?alert (?:me )?(?:for |on |when )?(${TICKER_RE}) (?:goes |gets |is )?(above|below|over|under) \\$?([0-9]+(?:\\.[0-9]+)?)$`, 'i'))
+  // "add BHP to portfolio" — the Portfolio module owns position entry.
+  hit = m(/^add (.+?) to (?:my |the )?portfolio$/i)
   if (hit) {
-    const sym = resolveSymbol(hit[1])
-    const direction = /above|over/i.test(hit[2]) ? 'above' : 'below'
-    const price = parseFloat(hit[3])
-    return {
-      kind: 'alert', symbol: sym, direction, price,
-      say: `Set alert: ${sym} ${direction} A$${price.toFixed(2)}`,
+    const a = assetIn(hit[1])
+    if (a) return { kind: 'nav', module: 'portfolio', say: `Open Portfolio to add ${a.label}` }
+  }
+
+  // "alert BHP above 48" / "set alert BHP below 40" / "alert me when CBA goes above 170"
+  // "set alert BHP 48" / "notify me when BHP hits 48" — no direction: the
+  // execute step reads the price and picks the side the target is on.
+  //
+  // The name group is lazy so "BHP above 48" does not read "BHP above" as the
+  // name; a two-word name ("rio tinto") still matches when one word cannot.
+  hit = m(new RegExp(`^(?:set (?:an? )?)?(?:price )?alert(?: me)?(?: for| on| when)? (${TICKER_RE}(?: [a-z]+)??) (?:goes |gets |is |hits |reaches |crosses )?(?:(above|below|over|under|at) )?(?:A?\\$)?([0-9]+(?:\\.[0-9]+)?)$`, 'i'))
+    ?? m(new RegExp(`^(?:notify|tell|ping) me (?:when|if) (${TICKER_RE}(?: [a-z]+)??) (?:goes |gets |is |trades )?(?:(above|below|over|under) )?(?:hits |reaches |crosses |touches )?(?:A?\\$)?([0-9]+(?:\\.[0-9]+)?)$`, 'i'))
+  if (hit) {
+    const a = assetIn(hit[1])
+    if (a) {
+      const direction = !hit[2] || /at/i.test(hit[2]) ? null : /above|over/i.test(hit[2]) ? 'above' : 'below'
+      const price = parseFloat(hit[3])
+      return {
+        kind: 'alert', symbol: a.sym, direction, price,
+        say: `Set alert: ${a.sym} ${direction ?? 'at'} A$${price.toFixed(2)}`,
+      }
     }
   }
 
-  // "compare BHP and RIO" / "compare BHP vs RIO" / "compare BHP with RIO"
-  hit = m(new RegExp(`^compare (${TICKER_RE}) (?:and|vs\\.?|versus|with|to) (${TICKER_RE})$`, 'i'))
+  // "compare BHP and RIO" / "compare BHP vs RIO" / "compare westpac with anz"
+  hit = m(/^compare (.+?) (?:and|vs\.?|versus|with|to) (.+)$/i)
+    ?? m(/^compare (\S+) (\S+)$/i)
   if (hit) {
-    const [a, b] = [displaySymbol(hit[1]), displaySymbol(hit[2])]
-    return { kind: 'compare', a: hit[1], b: hit[2], say: `Compare ${a} vs ${b}` }
+    const [a, b] = [assetIn(hit[1]), assetIn(hit[2])]
+    if (a && b) return { kind: 'compare', a: a.sym, b: b.sym, say: `Compare ${a.label} vs ${b.label}` }
   }
 
-  // "analyse BHP" / "analyze BHP"
-  hit = m(new RegExp(`^analys[ez]e? (${TICKER_RE})$`, 'i'))
-  if (hit) {
-    const sym = displaySymbol(hit[1])
+  // "calculate compound 10000 8% 20 years"
+  const calc = parseCompound(t)
+  if (calc) {
     return {
-      kind: 'ai', symbol: sym,
-      query: `Give me a full analysis of ${sym}: what the business does, what is driving the share price, the main risks, and what an Australian investor should be watching. General information only, not advice.`,
-      say: `Ask MaddenAI to analyse ${sym}`,
+      kind: 'calc', tab: 'investment', compound: calc,
+      say: `Compound A$${Math.round(calc.initial).toLocaleString('en-AU')} at ${calc.rate}% for ${calc.years} years → A$${Math.round(calc.final).toLocaleString('en-AU')}`,
     }
+  }
+
+  // "au 10y" / "10 year treasury" → that maturity on the Bonds module.
+  const bond = parseBondQuery(t)
+  if (bond.length && !/^(bonds?|yields?)$/i.test(lower)) {
+    const b = bond[0]
+    return { kind: 'bond', market: b.market, maturity: b.maturity, say: `Open BONDS · ${b.label}` }
+  }
+
+  // "analyse BHP" / "analyze BHP" / "tell me about CSL" / "research westpac" /
+  // "BHP analysis" / "analysis of BHP" / "what is CSL"
+  //
+  // "what is X" only when X names an asset. "what is inflation" is a real
+  // question and reaches MaddenAI as written, not as an analysis of INFLATION.
+  hit = m(/^(?:analys[ez]e?|research|tell me about|deep dive(?: on| into)?|analysis of|what(?:'s| is| are))(?: the)? (.+?)\??$/i)
+    ?? m(/^(.+?) (?:analysis|research|deep dive)$/i)
+  if (hit) {
+    const a = assetIn(hit[1])
+    if (a) return { kind: 'ai', symbol: a.label, query: analysisQuery(a.label), say: `Ask MaddenAI to analyse ${a.label}` }
   }
 
   // "how is BHP doing" / "how's BHP doing" / "how is BHP performing"
-  hit = m(new RegExp(`^how(?:'s| is| has) (${TICKER_RE}) (?:been )?(?:doing|performing|going|performed)\\??$`, 'i'))
-  if (hit) {
-    const sym = displaySymbol(hit[1])
-    return {
-      kind: 'ai', symbol: sym,
-      query: `How has ${sym} been performing recently, and what has been driving it? Describe direction and condition rather than quoting prices you were not given. General information only, not advice.`,
-      say: `Ask MaddenAI how ${sym} is performing`,
+  hit = m(/^how(?:'s| is| has) (.+?) (?:been )?(?:doing|performing|going|performed)\??$/i)
+  if (hit && !/^(?:my |the )?portfolio$/i.test(hit[1])) {
+    const a = assetIn(hit[1])
+    if (a) {
+      return {
+        kind: 'ai', symbol: a.label,
+        query: `How has ${a.label} been performing recently, and what has been driving it? Describe direction and condition rather than quoting prices you were not given. General information only, not advice.`,
+        say: `Ask MaddenAI how ${a.label} is performing`,
+      }
     }
   }
 
-  // "what is BHP" / "what's BHP" — a lookup, not a question for the model.
-  //
-  // Guarded on the token actually looking like a ticker. Without the guard
-  // "what is inflation" parses as a lookup of INFLATION, fails, and only then
-  // falls through to MaddenAI — a slower, worse answer to a real question. A
-  // token counts as a ticker if the catalogue knows it, or if the user typed
-  // it in capitals, which is how people write tickers and not how they write
-  // nouns.
-  hit = m(new RegExp(`^what(?:'s| is) (${TICKER_RE})\\??$`, 'i'))
-  if (hit && looksLikeTicker(hit[1])) {
-    const sym = displaySymbol(hit[1])
-    return { kind: 'lookup', symbol: hit[1], say: `Look up ${sym}` }
+  // "how is my portfolio" / "how's my portfolio doing" / "portfolio summary"
+  if (/^(?:how(?:'s| is| has)? (?:my |the )?portfolio(?: been)?(?: doing| going| performing| looking)?|(?:my )?portfolio (?:summary|overview|performance|update))\??$/i.test(t)) {
+    return { kind: 'nav', module: 'portfolio', say: 'Navigate to PORTFOLIO' }
   }
 
   // "scan for breakouts" / "scan for oversold stocks"
@@ -372,9 +350,25 @@ function parseNaturalLanguage(raw) {
     if (id) return { kind: 'nav', module: id, say: `Navigate to ${id.toUpperCase()}` }
   }
 
+  // A module named on its own — "scanner", "brief", "etfs".
+  const bare = moduleIdFor(lower)
+  if (bare) return { kind: 'nav', module: bare, say: `Navigate to ${bare.toUpperCase()}` }
+
   // Everything else is prose, and prose goes to the model — unchanged.
-  return lower === '' ? null : null
+  return null
 }
+
+// The terse terminal forms, "ALERT BHP 48" and "COMPARE BHP RIO". Shared by
+// the preview and execute() so both stand aside for the same sentences.
+//
+// The guards are not cosmetic. "alert BHP above 48" used to be caught as the
+// terse form, read "above" as the price and failed with a format error; the
+// sentence never reached the parser that understands it. "compare BHP and
+// RIO" fetched a quote for AND (a real NASDAQ listing) and drew "BHP vs AND".
+const isTerseAlert = (parts) =>
+  parts.length === 3 && parts[0].toLowerCase() === 'alert' && /^\$?\d+(\.\d+)?$/.test(parts[2])
+const isTerseCompare = (parts) =>
+  parts.length === 3 && parts[0].toLowerCase() === 'compare'
 
 // ─── Command interpretation preview ────────────────────────────────────────────
 // A pure, side-effect-free mirror of execute()'s branching — shown live below
@@ -396,18 +390,19 @@ function interpretCommand(raw) {
   if (cmd === 'losers') return 'Show top 10 losers today'
   if (cmd === 'asx top') return 'Show top ASX 200 movers'
   if (cmd === 'crypto top') return 'Navigate to CRYPTO module'
-  if (parts[0].toLowerCase() === 'wl' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Adding ${parts[2].toUpperCase()} to watchlist...`
+  if (parts[0].toLowerCase() === 'wl' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Add ${resolveSymbol(parts[2])} to watchlist`
   if (parts[0].toLowerCase() === 'port' && parts[1]?.toLowerCase() === 'add' && parts[2]) return `Open Portfolio to add ${parts[2].toUpperCase()}`
-  if (parts[0].toLowerCase() === 'compare' && parts.length >= 3 && !/^(and|vs|vs\.|versus|with|to)$/i.test(parts[2])) return `Compare ${parts[1].toUpperCase()} vs ${parts[2].toUpperCase()}`
-  if (parts[0].toLowerCase() === 'alert' && parts.length >= 3) {
-    const p = parseFloat(parts[2])
-    return isNaN(p) ? 'Alert format: ALERT {symbol} {price}' : `Set alert: ${parts[1].toUpperCase()} @ A$${p.toFixed(2)}`
-  }
+  if (isTerseCompare(parts)) return `Compare ${displaySymbol(parts[1])} vs ${displaySymbol(parts[2])}`
+  if (isTerseAlert(parts)) return `Set alert: ${resolveSymbol(parts[1])} at A$${parseFloat(parts[2].replace('$', '')).toFixed(2)}`
+  const sector = parseSectorQuery(trimmed)
+  if (sector) return `${sector.sector} · ${sector.stocks.length} ASX stocks — ↵ or ↓ to pick one`
   // Natural language, checked before the two catch-alls below so the preview
   // says "Add BHP.AX to watchlist" rather than "Ask MaddenAI: …".
   const nl = parseNaturalLanguage(trimmed)
   if (nl) return nl.say
 
+  const named = resolveAsset(trimmed)
+  if (named) return `Look up ${named.label} · ${named.desc.split(' · ')[0]}`
   if (!trimmed.includes(' ')) return `Look up ${trimmed.toUpperCase()}`
   return `Ask MaddenAI: "${trimmed.length > 50 ? trimmed.slice(0, 50) + '…' : trimmed}"`
 }
@@ -422,57 +417,124 @@ const writeHistory = (hist) => {
   try { localStorage.setItem(LS_KEY, JSON.stringify(hist.slice(0, 50))) } catch { /* quota, private mode, or blocked site data — persistence is best-effort */ }
 }
 
-// ─── Autocomplete filter ───────────────────────────────────────────────────────
-// Categorised results: STOCKS, CRYPTO, FX, MODULES, COMMANDS, then ACTIONS —
-// the last always present once there's a query, since "ask AI about this" /
-// "add this to watchlist" / "add this to portfolio" apply to any input.
+// ─── Autocomplete ──────────────────────────────────────────────────────────────
+// Categorised results. A parsed command leads, because that is what the user
+// typed; then assets, bonds, modules, calculators and terminal commands; and
+// last, always, the offer to ask MaddenAI.
 
-function buildActionSuggestions(rawInput) {
+const PER_CATEGORY = 5
+const MATCH_LIMIT = 9
+
+const isHelpQuery = (raw) => /^(\?|help|commands)$/i.test(raw.trim())
+
+function buildActionSuggestions(rawInput, nl) {
   const q = rawInput.trim()
-  if (!q) return []
-
-  // When the input already parses as a command, offer that command instead of
-  // the three generic ones. The generic list takes the first token as a ticker,
-  // which for "add BHP to watchlist" produced "Add ADD to watchlist" — an
-  // action that would run, and do the wrong thing.
-  const nl = parseNaturalLanguage(q)
   if (nl) {
-    return [{
-      sym: `nl:${q}`, label: nl.say, type: 'action', category: 'ACTIONS',
-      desc: 'Press Enter to run', action: 'command', payload: q,
-    }]
+    const category = nl.kind === 'ai' ? 'MADDENAI' : nl.kind === 'calc' ? 'CALC' : nl.kind === 'bond' ? 'BONDS' : 'ACTIONS'
+    const type = nl.kind === 'ai' ? 'ai' : nl.kind === 'calc' ? 'calc' : nl.kind === 'bond' ? 'bond' : 'action'
+    return [{ sym: `nl:${q}`, label: nl.say, type, category, desc: 'Press Enter to run', action: 'command', payload: q }]
   }
-
-  const ticker = q.toUpperCase().split(/\s+/)[0]
+  // Watchlist/portfolio adds only for something that names an asset. They used
+  // to be offered for any first word, so "rba" offered "Add RBA to watchlist".
+  if (q.includes(' ') && !resolveAsset(q)) return []
+  const asset = resolveAsset(q)
+  if (!asset && (moduleIdFor(q) || !/^[a-z0-9.^-]{1,6}$/i.test(q))) return []
+  if (asset?.type === 'fx' || asset?.type === 'index') return []
+  const sym = asset?.sym ?? q.toUpperCase()
   return [
-    { sym:`ai:${q}`,   label:`Ask MaddenAI about "${q}"`,   type:'action', category:'ACTIONS', desc:'Route this query to MaddenAI',       action:'ai',        payload:q },
-    { sym:`wl:${ticker}`,   label:`Add ${ticker} to watchlist`,  type:'action', category:'ACTIONS', desc:'Quick add to your watchlist',        action:'watchlist', payload:ticker },
-    { sym:`port:${ticker}`, label:`Add ${ticker} to portfolio`,  type:'action', category:'ACTIONS', desc:'Opens Portfolio to add a position',  action:'portfolio', payload:ticker },
+    { sym:`wl:${sym}`,   label:`Add ${sym} to watchlist`,  type:'action', category:'ACTIONS', desc:'Quick add to your watchlist',       action:'watchlist', payload:sym },
+    { sym:`port:${sym}`, label:`Add ${sym} to portfolio`,  type:'action', category:'ACTIONS', desc:'Opens Portfolio to add a position', action:'portfolio', payload:sym },
   ]
 }
 
 function getSuggestions(input) {
-  if (!input.trim()) return []
-  const q = input.trim().toUpperCase()
+  const raw = input.trim()
+  if (!raw || isHelpQuery(raw)) return []
+  const Q = raw.toUpperCase()
+  const lower = raw.toLowerCase()
+  const nl = parseNaturalLanguage(raw)
 
-  const stocks = KNOWN_SYMBOLS
-    .filter((s) => (s.type === 'asx' || s.type === 'us' || s.type === 'index') && (s.label.startsWith(q) || s.sym.startsWith(q)))
-    .map((s) => ({ ...s, category:'STOCKS' }))
-  const crypto = KNOWN_SYMBOLS
-    .filter((s) => s.type === 'crypto' && s.label.startsWith(q))
-    .map((s) => ({ ...s, category:'CRYPTO' }))
-  const fx = KNOWN_SYMBOLS
-    .filter((s) => s.type === 'fx' && s.label.startsWith(q))
-    .map((s) => ({ ...s, category:'FX' }))
+  const sector = parseSectorQuery(raw)
+  const found = sector
+    ? sector.stocks.map((s) => ({ ...s, category: 'STOCKS', desc: s.desc }))
+    : searchCatalogue(raw).map((s) => ({
+        ...s,
+        category: s.type === 'crypto' ? 'CRYPTO' : s.type === 'fx' ? 'FX' : 'STOCKS',
+      }))
+
+  const bonds = parseBondQuery(raw).map((b) => ({
+    sym: `bond:${b.market}:${b.maturity}`, label: b.label, desc: b.desc, type: 'bond', category: 'BONDS',
+    market: b.market, maturity: b.maturity,
+  }))
+
   const modules = MODULE_LIST
-    .filter((m) => m.label.startsWith(q))
+    .filter((m) => m.label.startsWith(Q) || m.key.startsWith(lower) || (lower.length >= 2 && NAV_MAP[m.key]?.some((a) => a === lower)))
     .map((m) => ({ sym:m.key, label:m.label, desc:m.desc, type:'module', category:'MODULES' }))
+
+  const calcs = nl?.kind === 'calc' ? [] : calcMatches(raw).map((c) => ({
+    sym: `calc:${c.key}`, label: c.label, desc: c.desc, type: 'calc', category: 'CALC', tab: c.tab,
+  }))
+
   const commands = CMD_SUGGESTIONS
-    .filter((c) => c.sym.startsWith(q))
+    .filter((c) => c.sym.startsWith(Q))
     .map((c) => ({ ...c, category:'COMMANDS' }))
 
-  const matched = [...stocks, ...crypto, ...fx, ...modules, ...commands].slice(0, 7)
-  return [...matched, ...buildActionSuggestions(input)]
+  const perCat = (items) => items.slice(0, sector ? 8 : PER_CATEGORY)
+  const matched = [
+    ...perCat(found.filter((s) => s.category === 'STOCKS')),
+    ...perCat(found.filter((s) => s.category === 'CRYPTO')),
+    ...perCat(found.filter((s) => s.category === 'FX')),
+    ...bonds, ...modules, ...calcs, ...commands,
+  ].slice(0, sector ? 8 : MATCH_LIMIT)
+
+  // "bonds" parses as navigation and also lists the BONDS module, and "10y"
+  // parses as a bond and also lists AU 10Y and US 10Y — one row each, not two.
+  const duplicate = (nl?.kind === 'nav' && modules.some((x) => x.sym === nl.module)) || (nl?.kind === 'bond' && bonds.length)
+  const actions = duplicate ? [] : buildActionSuggestions(raw, nl)
+  const ask = nl?.kind === 'ai' ? [] : [{
+    sym: `ai:${raw}`, label: `Ask MaddenAI about "${raw.length > 40 ? raw.slice(0, 40) + '…' : raw}"`,
+    type: 'ai', category: 'MADDENAI', desc: 'Route this query to MaddenAI', action: 'ai', payload: raw,
+  }]
+  // A parsed command leads: it is what Enter will do.
+  return flattenGroups(nl ? [...actions, ...matched, ...ask] : [...matched, ...actions, ...ask])
+}
+
+// ─── Help card — "?" or "help" typed into the bar ─────────────────────────────
+
+const QUICK_HELP = [
+  { tag: 'SEARCH',    text: 'any ticker, company, sector or module', eg: 'westpac' },
+  { tag: 'ACTIONS',   text: '"add BHP" · "alert BHP above 48"',      eg: 'alert BHP above 48' },
+  { tag: 'NAVIGATE',  text: '"go to bonds" · "open calc" · "au 10y"', eg: 'go to bonds' },
+  { tag: 'ANALYSE',   text: '"analyse CSL" · "compare BHP RIO"',     eg: 'analyse CSL' },
+  { tag: 'CALCULATE', text: '"compound 10000 8% 20 years"',          eg: 'compound 10000 8% 20 years' },
+]
+
+function HelpCard({ onPick, onFull }) {
+  return (
+    <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
+      <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest">
+        COMMAND BAR HELP
+      </div>
+      {QUICK_HELP.map((h) => (
+        <div
+          key={h.tag}
+          className="flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs hover:bg-terminal-accent/20 border-l-2 border-transparent"
+          onMouseDown={(e) => { e.preventDefault(); onPick(h.eg) }}
+        >
+          <span className="font-mono font-bold text-terminal-gold w-24 flex-shrink-0">[{h.tag}]</span>
+          <span className="text-terminal-text-dim flex-1 truncate">{h.text}</span>
+          <span className="text-terminal-text-dim/40 flex-shrink-0">try →</span>
+        </div>
+      ))}
+      <div className="px-3 py-1 border-t border-terminal-border/40 flex items-center bg-terminal-panel gap-3">
+        <KeyHints context="help" />
+        <button
+          className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold"
+          onMouseDown={(e) => { e.preventDefault(); onFull() }}
+        >FULL REFERENCE ↵</button>
+      </div>
+    </div>
+  )
 }
 
 // ─── Help Overlay ──────────────────────────────────────────────────────────────
@@ -568,7 +630,7 @@ function MoversPanel({ title, items, onClose, onSelect }) {
           </table>
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">
-          Click any row to open full asset profile · Source: Stooq / CoinGecko
+          Click any row to open full asset profile · {USING_MOCK_DATA ? 'DEMO data — live data connects on API setup' : 'Source: Stooq / CoinGecko'}
         </div>
       </div>
     </div>
@@ -631,7 +693,7 @@ function CompareModal({ assets, onClose }) {
           ))}
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">
-          Source: Stooq / CoinGecko · Prices in AUD
+          {USING_MOCK_DATA ? 'DEMO data — live data connects on API setup' : 'Source: Stooq / CoinGecko'} · Prices in AUD
         </div>
       </div>
     </div>
@@ -693,13 +755,14 @@ function AlertBadge({ alerts }) {
 //
 // The hints change with what is on screen, because a fixed row is wrong most
 // of the time: ENTER means "select this suggestion" with a list open and
-// "execute what I typed" without one, and TAB fills a suggestion only when
-// there is a suggestion to fill from. A row that says the same thing in both
+// "execute what I typed" without one, and TAB moves between groups only when
+// there are groups to move between. A row that says the same thing in both
 // states teaches the wrong model of the bar.
 function KeyHints({ context = 'idle', className = '' }) {
   const HINTS = {
-    suggestions: [['↑↓', 'navigate'], ['↵', 'select'], ['Tab', 'fill'], ['Esc', 'close']],
-    recent:      [['↑↓', 'navigate'], ['↵', 'run'], ['Esc', 'close']],
+    suggestions: [['↑↓', 'navigate'], ['Tab', 'next group'], ['↵', 'select'], ['Esc', 'close']],
+    recent:      [['↑↓', 'navigate'], ['Tab', 'next group'], ['↵', 'run'], ['Esc', 'close']],
+    help:        [['click', 'try it'], ['↵', 'full reference'], ['Esc', 'close']],
     typing:      [['↵', 'execute'], ['Esc', 'clear'], ['⌘K', 'focus']],
     idle:        [['↑↓', 'history'], ['↵', 'execute'], ['⌘K', 'open anywhere']],
   }
@@ -721,24 +784,50 @@ function KeyHints({ context = 'idle', className = '' }) {
   )
 }
 
-// ─── Suggestions dropdown (memoised to avoid re-renders on every keystroke) ──
-// Grouped by category (STOCKS/CRYPTO/FX/MODULES/COMMANDS/ACTIONS) in the
-// order categories first appear. `quotes` maps symbol -> { price, pct } for
-// live STOCKS/CRYPTO rows — absent entries just show no price yet.
-
-// Must match the concatenation order in getSuggestions() — keyboard nav
-// (suggestIdx) indexes the flat `suggestions` array, and the sequential
-// row index assigned during grouped rendering below only lines up with
-// that flat index because both orders agree.
-const CATEGORY_ORDER = ['STOCKS', 'CRYPTO', 'FX', 'MODULES', 'COMMANDS', 'ACTIONS']
+// ─── Grouping ─────────────────────────────────────────────────────────────────
+//
+// Keyboard nav (suggestIdx) indexes the flat array, and the dropdown renders
+// it grouped. Those only agree if every group is contiguous in the flat array,
+// so getSuggestions passes its list through flattenGroups: groups keep the
+// order they first appear in, items keep their order within a group.
 
 function groupByCategory(items) {
-  const groups = {}
-  for (const item of items) (groups[item.category] ??= []).push(item)
-  return CATEGORY_ORDER.filter((c) => groups[c]?.length).map((c) => ({ category: c, items: groups[c] }))
+  const groups = new Map()
+  for (const item of items) {
+    if (!groups.has(item.category)) groups.set(item.category, [])
+    groups.get(item.category).push(item)
+  }
+  return [...groups].map(([category, list]) => ({ category, items: list }))
 }
 
+function flattenGroups(items) {
+  return groupByCategory(items).flatMap((g) => g.items)
+}
+
+// Index of the first item of the next (dir 1) or previous (dir -1) group.
+function nextGroupStart(items, idx, dir) {
+  const starts = []
+  items.forEach((it, i) => { if (i === 0 || items[i - 1].category !== it.category) starts.push(i) })
+  if (!starts.length) return -1
+  const cur = starts.filter((s) => s <= idx).length - 1
+  const next = idx < 0 ? (dir > 0 ? 0 : starts.length - 1) : (cur + dir + starts.length) % starts.length
+  return starts[next]
+}
+
+const TYPE_ICON = {
+  asx: '📈', us: '📈', index: '📈', crypto: '₿', fx: '💱', bond: '🏛',
+  module: '▶', action: '⚡', cmd: '⚡', ai: '🤖', calc: '🔢',
+}
+
+const CATEGORY_LABEL = { MADDENAI: 'MADDENAI', CALC: 'CALCULATORS' }
+
+// ─── Suggestions dropdown (memoised to avoid re-renders on every keystroke) ──
+// `quotes` maps symbol -> { price, pct } for live STOCKS/CRYPTO rows — absent
+// entries just show no price yet.
+
 const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx, onSelect, quotes }) {
+  const activeRef = useRef(null)
+  useEffect(() => { activeRef.current?.scrollIntoView({ block: 'nearest' }) }, [suggestIdx])
   if (!suggestions.length) return null
   const grouped = groupByCategory(suggestions)
   return (
@@ -746,17 +835,15 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
       {grouped.map(({ category, items }) => (
         <div key={category}>
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest sticky top-0">
-            {category}
+            {CATEGORY_LABEL[category] ?? category}
           </div>
           {items.map((s) => {
-            // Grouped rendering preserves the flat array's order (see the
-            // CATEGORY_ORDER comment above), so indexOf recovers the same
-            // index handleKeyDown uses — without a mutable render-time counter.
             const i = suggestions.indexOf(s)
             const q = quotes?.[s.sym] ?? quotes?.[s.label]
             return (
               <div
                 key={s.sym}
+                ref={i === suggestIdx ? activeRef : null}
                 className={`flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
                   i === suggestIdx
                     ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
@@ -764,10 +851,14 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
                 }`}
                 onMouseDown={(e) => { e.preventDefault(); onSelect(s) }}
               >
-                <span className={`font-bold font-mono w-28 flex-shrink-0 truncate ${
+                <span className="w-4 flex-shrink-0 text-center" aria-hidden="true">{TYPE_ICON[s.type] ?? '·'}</span>
+                <span className={`font-bold font-mono flex-shrink-0 truncate ${s.category === 'ACTIONS' || s.category === 'MADDENAI' ? 'max-w-[60%]' : 'w-28'} ${
                   s.type === 'cmd'    ? 'text-terminal-gold' :
                   s.type === 'action' ? 'text-terminal-blue-bright' :
+                  s.type === 'ai'     ? 'text-terminal-blue-bright' :
                   s.type === 'module' ? 'text-terminal-gold' :
+                  s.type === 'calc'   ? 'text-terminal-gold' :
+                  s.type === 'bond'   ? 'text-terminal-gold' :
                   s.type === 'asx'    ? 'text-terminal-text-bright' :
                   s.type === 'crypto' ? 'text-terminal-green' :
                   s.type === 'index'  ? 'text-terminal-blue-bright' :
@@ -777,6 +868,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
                 <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
                 {q && (
                   <span className="flex items-center gap-2 flex-shrink-0">
+                    {q.demo && <span className="text-terminal-gold/70 font-bold" style={{ fontSize: 8 }}>DEMO</span>}
                     <span className="text-terminal-text-bright font-semibold">
                       {q.price != null ? `A$${fmt.price(q.price)}` : '—'}
                     </span>
@@ -797,27 +889,35 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
   )
 })
 
-// ─── Recent searches — shown under an empty, focused command bar ─────────────
+// ─── Empty bar — recent commands and time-of-day suggestions ─────────────────
 
-const RecentSearchesList = memo(function RecentSearchesList({ recents, activeIdx, onSelect }) {
-  if (!recents.length) return null
+const IdleList = memo(function IdleList({ items, activeIdx, onSelect }) {
+  if (!items.length) return null
+  const grouped = groupByCategory(items)
   return (
     <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
-      <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest">
-        RECENT SEARCHES
-      </div>
-      {recents.map((r, i) => (
-        <div
-          key={r}
-          className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
-            i === activeIdx
-              ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
-              : 'hover:bg-terminal-accent/20 border-l-2 border-transparent'
-          }`}
-          onMouseDown={(e) => { e.preventDefault(); onSelect(r) }}
-        >
-          <span className="text-terminal-text-dim/60">↺</span>
-          <span className="text-terminal-text-bright font-mono">{r}</span>
+      {grouped.map(({ category, items: rows }) => (
+        <div key={category}>
+          <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest">
+            {category}
+          </div>
+          {rows.map((r) => {
+            const i = items.indexOf(r)
+            return (
+              <div
+                key={r.sym}
+                className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
+                  i === activeIdx
+                    ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
+                    : 'hover:bg-terminal-accent/20 border-l-2 border-transparent'
+                }`}
+                onMouseDown={(e) => { e.preventDefault(); onSelect(r) }}
+              >
+                <span className="w-4 text-center text-terminal-text-dim/60" aria-hidden="true">{r.icon ?? '↺'}</span>
+                <span className={r.type === 'recent' ? 'text-terminal-text-bright font-mono' : 'text-terminal-text'}>{r.label}</span>
+              </div>
+            )
+          })}
         </div>
       ))}
       <div className="px-3 py-1 border-t border-terminal-border/40 flex items-center bg-terminal-panel">
@@ -837,6 +937,7 @@ export default function CommandBar() {
     openModal,
     setNewsFilter,
     alerts, addAlert,
+    watchlist,
   } = useStore()
 
   const { audUsd } = useAudRates()
@@ -851,6 +952,7 @@ export default function CommandBar() {
   const [compareAssets, setCompareAssets] = useState(null)
   const [showRecent,  setShowRecent]  = useState(false)
   const [suggestionQuotes, setSuggestionQuotes] = useState({})
+  const [watchMover,  setWatchMover]  = useState(null)
 
   const debouncedValue = useDebounce(inputValue, 150)
 
@@ -878,6 +980,28 @@ export default function CommandBar() {
     return () => document.removeEventListener('mousedown', h)
   }, [showRecent])
 
+  // ── Biggest watchlist move, for the market-hours suggestion ─────────────────
+  // Fetched when the empty bar opens during ASX hours, and only the name is
+  // shown: the suggestion points at the stock, it does not quote it. ASX names
+  // only — at 1pm in Sydney a US stock's "today" is last night's session.
+  useEffect(() => {
+    if (!showRecent) return
+    const { hour, weekend } = sydneyClock()
+    if (weekend || hour < 10 || hour >= 16) return
+    const syms = watchlist.filter((s) => /\.AX$/.test(s)).slice(0, 12)
+    if (!syms.length) return
+    let cancelled = false
+    fetchYahooBatch(syms)
+      .then((q) => {
+        const top = Object.entries(q)
+          .filter(([, v]) => v?.pct != null)
+          .sort((a, b) => Math.abs(b[1].pct) - Math.abs(a[1].pct))[0]
+        if (!cancelled && top) setWatchMover(top[0].replace(/\.AX$/, ''))
+      })
+      .catch(() => { /* the suggestion falls back to the watchlist module */ })
+    return () => { cancelled = true }
+  }, [showRecent, watchlist])
+
   // ── Live price/change% for STOCKS + CRYPTO suggestion rows ──────────────────
   // Only fires once there are actual matches to price, and only after 2+
   // characters — keeps this from firing a full CoinGecko/batch fetch on
@@ -900,7 +1024,7 @@ export default function CommandBar() {
         try {
           const q = await fetchYahooBatch(stockSyms)
           for (const [sym, v] of Object.entries(q)) {
-            next[sym] = { price: v.currency === 'USD' ? v.last * audUsd : v.last, pct: v.pct }
+            next[sym] = { price: v.currency === 'USD' ? v.last / audUsd : v.last, pct: v.pct, demo: USING_MOCK_DATA }
           }
         } catch {
           // Live price is a nice-to-have in the dropdown — fall back to no price
@@ -965,10 +1089,16 @@ export default function CommandBar() {
     setSuggestions(debouncedValue.trim() ? getSuggestions(debouncedValue) : [])
   }
 
-  // Recent-search entries treated as a navigable list, same shape as a
-  // suggestion item, so keyboard nav can be shared between both dropdowns.
-  const recentItems = recentSearches.map((r) => ({ sym: r, label: r, type: 'recent' }))
-  const activeList  = suggestions.length ? suggestions : (showRecent ? recentItems : [])
+  // Recent commands and time-of-day suggestions, as one navigable list with
+  // the same shape as suggestion items, so keyboard nav is shared.
+  const idleItems = [
+    ...recentSearches.map((r) => ({ sym: `recent:${r}`, label: r, type: 'recent', category: 'RECENT', command: r })),
+    ...timeSuggestions({ mover: watchMover, alertCount: alerts.length }).map((t) => ({
+      ...t, sym: `sugg:${t.label}`, type: 'suggested', category: 'SUGGESTED FOR YOU',
+    })),
+  ]
+  const helpMode   = isHelpQuery(inputValue)
+  const activeList = suggestions.length ? suggestions : (showRecent && !inputValue.trim() ? idleItems : [])
 
   // ── Key handling — only navigation keys, no processing on regular keystrokes ─
   const handleKeyDown = (e) => {
@@ -996,18 +1126,26 @@ export default function CommandBar() {
       }
       return
     }
-    if (e.key === 'Tab' && suggestions.length > 0) {
+    // Tab jumps to the first result of the next group; Shift+Tab the previous.
+    if (e.key === 'Tab' && activeList.length > 0) {
       e.preventDefault()
-      const sel = suggestIdx >= 0 ? suggestions[suggestIdx] : suggestions[0]
-      if (sel) { setInputValue(sel.label); setSuggestions([]); setSuggestIdx(-1) }
+      setSuggestIdx(nextGroupStart(activeList, suggestIdx, e.shiftKey ? -1 : 1))
       return
     }
     if (e.key === 'Escape') {
-      setSuggestions([]); setSuggestIdx(-1); setShowRecent(false); return
+      setSuggestions([]); setSuggestIdx(-1); setShowRecent(false)
+      if (helpMode) setInputValue('')
+      return
     }
     if (e.key === 'Enter') {
       if (suggestIdx >= 0 && activeList[suggestIdx]) {
         selectSuggestion(activeList[suggestIdx])
+        return
+      }
+      // A sector is a list, not a command: Enter moves into it. Without this
+      // "healthcare" resolved to Sonic Healthcare by name and opened that.
+      if (suggestions.length && parseSectorQuery(inputValue)) {
+        setSuggestIdx(0)
         return
       }
       execute(inputValue)
@@ -1107,7 +1245,7 @@ export default function CommandBar() {
     }
 
     // YF lookup: try the symbol directly, then with .AX suffix
-    const knownEntry = KNOWN_SYMBOLS.find((s) => s.label === sym || s.sym === sym)
+    const knownEntry = resolveAsset(sym)
     const yfSym      = knownEntry?.sym ?? sym
 
     const tryLookup = async (s, type) => {
@@ -1144,7 +1282,7 @@ export default function CommandBar() {
         .map(([sym, q]) => ({
           symbol: sym,
           name:   q.name,
-          price:  q.currency === 'USD' ? q.last * audUsd : q.last,
+          price:  q.currency === 'USD' ? q.last / audUsd : q.last,
           pct:    q.pct,
           type:   detectAssetType(sym),
           q,
@@ -1157,6 +1295,61 @@ export default function CommandBar() {
     } catch {
       flash('FETCH ERROR', 'text-terminal-red', 3000)
     }
+  }
+
+  // ── Shared actions — one implementation per thing the bar can do ────────────
+
+  // Returns true when the symbol is on the watchlist afterwards. Crypto is
+  // stored in its -USD form (BTC-USD), as the watchlist's defaults are.
+  const addWatch = (raw) => {
+    const sym = detectAssetType(raw) === 'crypto' && !/-USD$/.test(raw) ? `${raw}-USD` : raw
+    if (watchlist.includes(sym)) {
+      flash(`${sym} IS ALREADY ON YOUR WATCHLIST`, 'text-terminal-text-dim', 2500)
+      return true
+    }
+    if (!addToWatchlist(sym)) return false   // plan limit — prompt shown
+    flash(`ADDED ${sym} TO WATCHLIST ✓`, 'text-terminal-green', 2500)
+    return true
+  }
+
+  // A target with no direction ("set alert BHP 48") takes the side of the
+  // price it sits on. And a target already behind the price ("above 48" on a
+  // stock at 61) fires on the next check — the bar says so now rather than
+  // leaving the user to wonder why an alert went off the moment it was set.
+  const createAlert = async (sym, price, direction) => {
+    let last = null
+    try { last = (await fetchYFQuote(toYahooSymbol(sym, detectAssetType(sym))))?.last ?? null } catch { /* no quote — direction defaults below */ }
+    const dir = direction ?? (last != null && price < last ? 'below' : 'above')
+    if (!addAlert(sym, price, dir)) return   // plan limit — prompt shown
+    const crossed = last != null && (dir === 'above' ? last >= price : last <= price)
+    flash(
+      `ALERT SET: ${sym} ${dir.toUpperCase()} A$${price.toFixed(2)} ✓${crossed ? ` · ALREADY ${dir.toUpperCase()} — FIRES ON NEXT CHECK` : ''}`,
+      crossed ? 'text-terminal-gold' : 'text-terminal-green',
+      crossed ? 6000 : 3000,
+    )
+  }
+
+  const runCompare = async (a, b) => {
+    flash('LOADING COMPARISON...', 'text-terminal-gold', 0)
+    try {
+      const [q1, q2] = await Promise.all([
+        fetchYFQuote(toYahooSymbol(a, detectAssetType(a))),
+        fetchYFQuote(toYahooSymbol(b, detectAssetType(b))),
+      ])
+      setCompareAssets([
+        buildModalAsset(q1, detectAssetType(a), displaySymbol(a)),
+        buildModalAsset(q2, detectAssetType(b), displaySymbol(b)),
+      ])
+      flash('READY')
+    } catch {
+      flash('COMPARE FAILED — CHECK SYMBOLS', 'text-terminal-red', 3000)
+    }
+  }
+
+  const openBond = (market, maturity) => {
+    sendModuleIntent('bonds', { market, maturity })
+    setActiveModule('bonds')
+    flash(`→ BONDS · ${market} ${maturity}`, 'text-terminal-green', 2000)
   }
 
   // ── Command executor ──────────────────────────────────────────────────────────
@@ -1231,10 +1424,7 @@ export default function CommandBar() {
 
     // ── WL ADD {symbol} ──
     if (parts[0].toLowerCase() === 'wl' && parts[1]?.toLowerCase() === 'add' && parts[2]) {
-      const sym = parts[2].toUpperCase()
-      addToWatchlist(sym)
-      flash(`WATCHLIST: ${sym} ADDED`, 'text-terminal-green', 2500)
-      setActiveModule('watchlist')
+      if (addWatch(resolveSymbol(parts[2]))) setActiveModule('watchlist')
       return
     }
 
@@ -1245,29 +1435,9 @@ export default function CommandBar() {
       return
     }
 
-    // ── COMPARE {sym1} {sym2} ──
-    //
-    // The joining-word guard is not cosmetic. Without it "compare BHP and RIO"
-    // was caught here, took "and" as the second symbol, and fetched a quote for
-    // AND — a real NASDAQ listing (The Andersons) — then drew a comparison
-    // table headed "BHP vs AND" with genuine prices in it. Nothing errored.
-    // The natural-language branch further down handles that phrasing properly.
-    const JOINERS = /^(and|vs|vs\.|versus|with|to)$/i
-    if (parts[0].toLowerCase() === 'compare' && parts.length >= 3 && !JOINERS.test(parts[2])) {
-      const [, s1raw, s2raw] = parts
-      flash(`LOADING COMPARISON...`, 'text-terminal-gold', 0)
-      try {
-        const [q1, q2] = await Promise.all([
-          fetchYFQuote(toYahooSymbol(s1raw, detectAssetType(s1raw))),
-          fetchYFQuote(toYahooSymbol(s2raw, detectAssetType(s2raw))),
-        ])
-        const a1 = buildModalAsset(q1, detectAssetType(s1raw), s1raw.toUpperCase())
-        const a2 = buildModalAsset(q2, detectAssetType(s2raw), s2raw.toUpperCase())
-        setCompareAssets([a1, a2])
-        flash('READY')
-      } catch {
-        flash('COMPARE FAILED — CHECK SYMBOLS', 'text-terminal-red', 3000)
-      }
+    // ── COMPARE {sym1} {sym2} ── (see isTerseCompare for the joining-word guard)
+    if (isTerseCompare(parts) && !/^(and|vs|vs\.|versus|with|to)$/i.test(parts[2])) {
+      await runCompare(resolveSymbol(parts[1]), resolveSymbol(parts[2]))
       return
     }
 
@@ -1282,16 +1452,9 @@ export default function CommandBar() {
       return
     }
 
-    // ── ALERT {sym} {price} ──
-    if (parts[0].toLowerCase() === 'alert' && parts.length >= 3) {
-      const alertSym   = parts[1].toUpperCase()
-      const alertPrice = parseFloat(parts[2])
-      if (isNaN(alertPrice)) {
-        flash('ALERT FORMAT: ALERT {SYMBOL} {PRICE}', 'text-terminal-red', 3000)
-        return
-      }
-      if (!addAlert(alertSym, alertPrice)) return   // plan limit — prompt shown
-      flash(`ALERT SET: ${alertSym} @ A$${alertPrice.toFixed(2)}`, 'text-terminal-green', 3000)
+    // ── ALERT {sym} {price} ── (direction taken from where the price is)
+    if (isTerseAlert(parts)) {
+      await createAlert(resolveSymbol(parts[1]), parseFloat(parts[2].replace('$', '')), null)
       return
     }
 
@@ -1306,13 +1469,23 @@ export default function CommandBar() {
     if (nl) {
       switch (nl.kind) {
         case 'watchlist':
-          addToWatchlist(nl.symbol)
-          flash(`ADDED ${nl.symbol} ✓`, 'text-terminal-green', 2500)
+          addWatch(nl.symbol)
           return
 
         case 'alert':
-          if (!addAlert(nl.symbol, nl.price, nl.direction)) return
-          flash(`ALERT SET: ${nl.symbol} ${nl.direction.toUpperCase()} A$${nl.price.toFixed(2)} ✓`, 'text-terminal-green', 3000)
+          await createAlert(nl.symbol, nl.price, nl.direction)
+          return
+
+        case 'calc':
+          // A fresh id per command, so the calculator remounts with these
+          // values even when it is already showing a previous fill.
+          sendModuleIntent('calculators', { tab: nl.tab, compound: { ...nl.compound, id: Date.now() } })
+          setActiveModule('calculators')
+          flash(`CALC · ${nl.say.replace(/^Compound /, '')}`, 'text-terminal-green', 5000)
+          return
+
+        case 'bond':
+          openBond(nl.market, nl.maturity)
           return
 
         case 'nav':
@@ -1338,35 +1511,24 @@ export default function CommandBar() {
           flash(`→ SCANNER · ${nl.tab.toUpperCase()}`, 'text-terminal-green', 2000)
           return
 
-        case 'lookup':
-          await lookupTicker(nl.symbol)
-          return
-
         case 'ai':
           await routeToAI(nl.query)
           return
 
-        case 'compare': {
-          flash('LOADING COMPARISON...', 'text-terminal-gold', 0)
-          try {
-            const [q1, q2] = await Promise.all([
-              fetchYFQuote(toYahooSymbol(nl.a, detectAssetType(nl.a))),
-              fetchYFQuote(toYahooSymbol(nl.b, detectAssetType(nl.b))),
-            ])
-            setCompareAssets([
-              buildModalAsset(q1, detectAssetType(nl.a), nl.a.toUpperCase()),
-              buildModalAsset(q2, detectAssetType(nl.b), nl.b.toUpperCase()),
-            ])
-            flash('READY')
-          } catch {
-            flash('COMPARE FAILED — CHECK SYMBOLS', 'text-terminal-red', 3000)
-          }
+        case 'compare':
+          await runCompare(nl.a, nl.b)
           return
-        }
 
         default:
           break
       }
+    }
+
+    // ── A company or ticker the catalogue can name — "rio tinto", "commonweatlh" ──
+    const named = resolveAsset(trimmed)
+    if (named) {
+      await lookupTicker(named.sym)
+      return
     }
 
     // ── Ticker lookup (no spaces = likely a symbol) ──
@@ -1377,7 +1539,7 @@ export default function CommandBar() {
 
     // ── Unknown → AI ──
     await routeToAI(trimmed)
-  }, [addAlert, addToWatchlist, audUsd, pushHistory, setActiveModule, setNewsFilter, openModal, setChatOpen, addChatMessage, updateLastChatMessage])
+  }, [addAlert, addToWatchlist, watchlist, audUsd, pushHistory, setActiveModule, setNewsFilter, openModal, setChatOpen, addChatMessage, updateLastChatMessage])
 
   // ── Unified suggestion/recent-search selection — click and Enter both land ──
   // here, so "select" always means the same thing regardless of input method.
@@ -1390,16 +1552,24 @@ export default function CommandBar() {
         flash(`→ ${item.sym.toUpperCase()}`, 'text-terminal-green', 1500)
         return
       case 'action':
+      case 'ai':
+      case 'calc':
+      case 'bond':
         setInputValue('')
         // A parsed natural-language command routes straight back through
         // execute(), so clicking the suggestion and pressing Enter on the same
         // text do exactly the same thing.
         if (item.action === 'command') { execute(item.payload); return }
         if (item.action === 'ai') { routeToAI(item.payload); return }
+        if (item.type === 'calc') {
+          sendModuleIntent('calculators', { tab: item.tab })
+          setActiveModule('calculators')
+          flash(`→ CALC · ${item.label}`, 'text-terminal-green', 1500)
+          return
+        }
+        if (item.type === 'bond') { openBond(item.market, item.maturity); return }
         if (item.action === 'watchlist') {
-          addToWatchlist(item.payload)
-          flash(`WATCHLIST: ${item.payload} ADDED`, 'text-terminal-green', 2500)
-          setActiveModule('watchlist')
+          if (addWatch(item.payload)) setActiveModule('watchlist')
           return
         }
         if (item.action === 'portfolio') {
@@ -1413,8 +1583,10 @@ export default function CommandBar() {
         execute(item.label)
         return
       case 'recent':
+      case 'suggested':
         setInputValue('')
-        execute(item.label)
+        if (item.action === 'alerts') { window.dispatchEvent(new CustomEvent('maddex:manage-alerts')); return }
+        execute(item.command)
         return
       default: // asx/us/index/crypto/fx — a matched ticker
         setInputValue('')
@@ -1446,11 +1618,13 @@ export default function CommandBar() {
           onSelect={selectSuggestion}
           quotes={suggestionQuotes}
         />
-        {!suggestions.length && showRecent && (
-          <RecentSearchesList
-            recents={recentSearches}
-            activeIdx={suggestIdx}
-            onSelect={(r) => selectSuggestion({ sym: r, label: r, type: 'recent' })}
+        {!suggestions.length && showRecent && !inputValue.trim() && (
+          <IdleList items={idleItems} activeIdx={suggestIdx} onSelect={selectSuggestion} />
+        )}
+        {helpMode && (
+          <HelpCard
+            onPick={(eg) => { setInputValue(eg); inputRef.current?.focus() }}
+            onFull={() => { setInputValue(''); setHelpOpen(true) }}
           />
         )}
 
@@ -1468,7 +1642,7 @@ export default function CommandBar() {
             onKeyDown={handleKeyDown}
             onFocus={() => {
               if (inputValue.trim()) setSuggestions(getSuggestions(inputValue))
-              else if (recentSearches.length) setShowRecent(true)
+              else setShowRecent(true)
             }}
             placeholder="Ticker · Command · Question — type HELP or ? for all commands"
             inputMode="text"

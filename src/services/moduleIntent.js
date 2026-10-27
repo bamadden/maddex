@@ -27,6 +27,13 @@ export function setModuleIntent(module, intent) {
   intents.set(module, intent)
 }
 
+// Reads without clearing, for a module that takes more than one field from the
+// same intent (a tab and the values to fill it with). useIntentState peeks in
+// each field's initialiser and clears once the module has mounted.
+export function peekModuleIntent(module) {
+  return intents.get(module) ?? null
+}
+
 // Reads and clears. Returns null when there is nothing waiting.
 export function takeModuleIntent(module) {
   if (!intents.has(module)) return null

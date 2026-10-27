@@ -291,10 +291,14 @@ export default function BondsModule() {
   const [marketKey, setMarketKey] = useIntentState('bonds', 'market', 'AU')
   const [showAll, setShowAll] = useState(false)
   const [hover, setHover] = useState(null)
-  const [picked, setPicked] = useState(null)
+  // Held as a maturity rather than a row so the command bar can open the
+  // module on one ("au 10y"), and so a re-render of the yields keeps it.
+  const [pickedMaturity, setPickedMaturity] = useIntentState('bonds', 'maturity', null)
 
   const market = BOND_MARKETS.find((m) => m.key === marketKey) ?? BOND_MARKETS[0]
   const rows = useBondYields(marketKey)
+  const picked = rows.find((r) => r.maturity === pickedMaturity) ?? null
+  const setPicked = (r) => setPickedMaturity(r?.maturity ?? null)
   const stats = useMemo(() => curveStats(rows), [rows])
   const cpi = VERIFIED_CONSTANTS.au.cpi
 
