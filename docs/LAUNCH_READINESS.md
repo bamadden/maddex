@@ -21,7 +21,11 @@ tested *as a signed-in user on maddex.vercel.app*. Instead:
 
 ## 🔴 Two security findings — fix before any public launch
 
-### 1. `/api/claude` is an open, unauthenticated proxy to the Anthropic key
+### 1. `/api/claude` was an open, unauthenticated proxy to the Anthropic key — ✅ FIXED 27 Oct (`bf2606e`)
+
+**Update:** the endpoint now requires a valid Supabase session token, allowlists models (Opus Apex-only), caps `max_tokens` by plan, sends no CORS headers, and enforces daily limits from `ai_usage` (chat: Core 10 / Prime 50 / Apex 9999 / trial 200; all calls: 60 / 150 / 500 / 300). Verified on production: no token → 401, forged token → 401, anon key → 401. **Daily limits switch on when migration 009 is applied**; until then the guard logs that limits are off. A signed-in request (tests 3–5) still needs Ben's session.
+
+Original finding:
 `api/claude.js` accepts any POST from any origin (`Access-Control-Allow-Origin: *`),
 takes `model` and `max_tokens` from the request body, and calls Anthropic with
 `ANTHROPIC_API_KEY`. Verified tonight: an anonymous `curl` to
@@ -104,6 +108,7 @@ as cut off.
   | 006 newsletter unique (email, source) | ⚠️ can't be seen read-only — assume pending |
   | 007 shared_links | ❌ table and `get_shared_link` missing (404) |
   | 008 protect plan columns | ❌ written tonight |
+  | 009 ai_usage (server-side AI limits) | ❌ written 27 Oct — needed for daily limits |
 
 - ⚠️ **All env vars set in Vercel** — ✅ `ANTHROPIC_API_KEY` (live call works), Supabase URL/anon key, ExchangeRate key. ❌ `RESEND_API_KEY` (`/api/alert-email` returns 503). Equity data key unset (DEMO by design, see Data)
 - ⏳ **Custom domain maddex.com.au** — PENDING; `maddex.com.au` and `www.` both fail to connect
@@ -168,7 +173,7 @@ as cut off.
 - Legal pages exist and say the right things for a general-information product; honesty labels (DEMO, AI-ESTIMATE, INDICATIVE) are consistent.
 
 ### Blocking launch
-1. **`/api/claude` open proxy** — anyone can spend the Anthropic balance. Must fix before the URL is shared publicly.
+1. ~~`/api/claude` open proxy~~ — fixed and verified on production (`bf2606e`); apply migration 009 to switch on the daily limits.
 2. **Self-service Apex** — apply migration 008.
 3. **Payments** — no Stripe, so nobody can pay; and once Stripe exists, its webhook must be what sets `subscription_tier` (service role), which 008 now enforces.
 4. **Live ASX equity data** — still DEMO. Acceptable for a free beta if labelled (it is); not for a paid ASX terminal.
