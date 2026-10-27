@@ -9,6 +9,7 @@ import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { NewsletterBanner } from '../../components/newsletter/Newsletter'
 import { annotateArticles, clusterStories, marketSession, impactOf } from '../../services/newsIntelligence'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
@@ -1477,6 +1478,8 @@ export default function NewsModule() {
       </div>
 
       <MorningBriefing />
+
+      <NewsletterBanner />
 
       <div className="px-2 pt-2 flex-shrink-0">
         <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />

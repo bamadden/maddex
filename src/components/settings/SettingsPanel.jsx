@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { NewsletterCard } from '../newsletter/Newsletter'
 import { getReminders, removeReminder } from '../../services/calendarExtras'
 import { emailAlertsEnabled, setEmailAlertsEnabled } from '../../services/alertEmailService'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -2488,6 +2489,8 @@ function AboutSection() {
   return (
     <div className="space-y-5">
       <SectionLabel>About</SectionLabel>
+
+      <NewsletterCard />
 
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 border border-terminal-gold/50 flex items-center justify-center text-terminal-gold text-lg font-bold flex-shrink-0">M</div>
