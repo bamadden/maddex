@@ -31,8 +31,13 @@ const FALLBACK_EVENTS = [
     description: 'Unemployment rose to 4.7% (seasonally adjusted), a five-year high. Trend 4.6%.' },
   { date: '2026-10-15', time: '23:30', event: 'US PPI (Sep)',                        region: 'US', importance: 'medium' },
   { date: '2026-10-23', time: '11:30', event: 'AU National Accounts (2025-26)',      region: 'AU', importance: 'low' },
+  // Consensus from the big-four previews (CBA 22 Oct; NAB, Westpac, ANZ via
+  // savings.com.au 23 Oct). Previous = ABS monthly CPI for Aug, which
+  // `npm run check-stats` reconciles against verifiedConstants.
   { date: '2026-10-28', time: '11:30', event: 'AU CPI (Sep, incl. Sep quarter)',     region: 'AU', importance: 'high',
-    description: 'The last inflation read before the 3 Nov RBA decision.' },
+    forecast: 'Trimmed mean 1.0% q/q (Westpac 0.9%), 3.5–3.6% y/y · headline 1.2–1.3% q/q, 3.9% y/y',
+    prev: 'Aug: 4.0% y/y, trimmed mean 3.6%',
+    description: 'The last inflation read before the 3 Nov RBA decision. The RBA\'s August forecast was 0.8% q/q trimmed mean. CBA expects fuel up about 10% in September after nearly 15% in August. ANZ and Westpac call a November hike; CBA and NAB a hold. Consensus per big-four bank previews, 22–23 Oct.' },
   { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium' },
   { date: '2026-10-29', time: '05:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
     description: 'First meeting after the September hike to 3.75–4.00%.' },
@@ -130,6 +135,25 @@ export function upcomingEvents(events, days = 30) {
     .map((e) => ({ ...e, dateObj: new Date(`${e.date}T00:00:00`) }))
     .filter((e) => !isNaN(e.dateObj) && e.dateObj >= today && e.dateObj <= horizon)
     .sort((a, b) => a.dateObj - b.dateObj)
+}
+
+// The coming week's high-impact events for MaddenAI's per-turn context, with
+// the consensus and previous print where this list holds a sourced one. Without
+// it the model previews a release from memory — asked about the September CPI
+// it named services as the pressure, when the bank previews it had never seen
+// put fuel at the centre.
+export function eventsForAI(days = 7) {
+  const rows = upcomingEvents(FALLBACK_EVENTS, days).filter((e) => e.importance === 'high')
+  if (!rows.length) return ''
+  const lines = rows.map((e) => {
+    const when = e.dateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+    const parts = [`${when}${e.time && e.time !== '—' ? ` ${e.time}` : ''} Sydney — ${e.event}`]
+    if (e.forecast) parts.push(`consensus: ${e.forecast}`)
+    if (e.prev) parts.push(`previous: ${e.prev}`)
+    if (e.description) parts.push(e.description)
+    return `- ${parts.join('; ')}`
+  })
+  return `[SCHEDULED EVENTS — next ${days} days; consensus figures are forecasts, not results]\n${lines.join('\n')}`
 }
 
 export function getPreviousEvents() {

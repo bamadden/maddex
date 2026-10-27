@@ -545,16 +545,17 @@ export const VERIFIED_CONSTANTS = {
   // Indicative only. Live equity quotes come through dataService; these exist
   // so the intelligence map has something to label a marker with.
   indices: {
-    // Real closes. ASX 200, S&P 500, Nasdaq and Dow re-checked 2026-10-18:
-    // Fri 16 Oct 2026 closes (ABC News / AP). The rest are still 30 Sep 2026
-    // closes from the 2026-10-03 check. STI, NZX 50 and TA-35 were dropped
-    // rather than carried forward — no current close was found.
-    asx200: 8806.7, sp500: 7659.44, nasdaq: 26140.03, dow: 52002.41,
+    // Real closes. Re-checked 2026-10-27: ASX 200 is the Tue 27 Oct close
+    // (ABC News, MSN); S&P 500, Nasdaq Composite and Dow are the Mon 26 Oct
+    // US closes (CNBC). The rest are still 30 Sep 2026 closes from the
+    // 2026-10-03 check. STI, NZX 50 and TA-35 were dropped rather than
+    // carried forward — no current close was found.
+    asx200: 8850.1, sp500: 7676.77, nasdaq: 26169.38, dow: 52361.58,
     ftse100: 10606.0, nikkei225: 66753.72, hangSeng: 24613.27,
     sseComposite: 3842.19, dax: 25199.19, sensex: 72480.29, tsx: 35235.87,
     source: 'Index closes via ABC News, AP, Motley Fool AU, CNBC, BBN Times — indicative, not a live feed',
-    asOf: '2026-10-16',
-    lastVerified: '2026-10-18',
+    asOf: '2026-10-27',
+    lastVerified: '2026-10-27',
   },
 }
 

@@ -102,7 +102,11 @@ const WB_INDICATORS = {
 }
 
 async function fetchWbIndicator(fieldName, indicatorCode) {
-  const url = `https://api.worldbank.org/v2/country/all/indicator/${indicatorCode}?format=json&mrv=1&per_page=300`
+  // source=2 names the World Development Indicators database explicitly. For
+  // FP.CPI.TOTL.ZG the bare query is served a stale variant (Oct 2026) that
+  // ignores mrv=1 — 18 pages of every year — and carries no CORS header, so
+  // the browser blocked it; with source=2 it returns one row per country.
+  const url = `https://api.worldbank.org/v2/country/all/indicator/${indicatorCode}?format=json&source=2&mrv=1&per_page=300`
   const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
   if (!res.ok) throw new Error(`WB ${indicatorCode} HTTP ${res.status}`)
   const [, data] = await res.json()

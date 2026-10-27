@@ -1412,7 +1412,10 @@ export default function CommandBar() {
 
     // ── Navigation ──
     for (const [module, aliases] of Object.entries(NAV_MAP)) {
-      if (aliases.includes(cmd) || (cmd === 'news' && parts.length === 1)) {
+      // `news` is one of NEWS's own aliases. It used to be an extra `|| cmd ===
+      // 'news'` here, which is true on the loop's first pass — MARKETS — so
+      // typing "news" opened Markets.
+      if (aliases.includes(cmd)) {
         setActiveModule(module)
         if (module === 'news') setNewsFilter('')
         flash(`→ ${module.toUpperCase()}`, 'text-terminal-green', 1500)
@@ -1662,6 +1665,7 @@ export default function CommandBar() {
 
           <input
             ref={inputRef}
+            data-command-bar
             className="cmd-input input-terminal flex-1 text-xs"
             value={inputValue}
             onChange={handleChange}

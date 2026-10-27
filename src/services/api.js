@@ -1589,6 +1589,8 @@ IMPORTANT RULES:
 
    [VERIFIED FACTS] is a short list of human-checked figures — policy rates, CPI, unemployment, GDP — each carrying the date it was published. These are the ONE exception to rule 2: they were verified by a person, not recalled by you, so you may quote them. Quote them WITH their date ("the RBA [held/raised/cut] the rate to [rate] at its [date] meeting"), never as though they were this morning's print. If a figure is not in that block and was not passed to you as a live price, rule 2 still applies in full and you do not have it.
 
+   [SCHEDULED EVENTS] lists the coming week's high-impact releases and decisions, with economist consensus and the previous print where one was sourced. You may quote that consensus, always as a forecast and never as a result ("banks expect trimmed mean of about 1.0% q/q"). An event listed without consensus has none on file: say so rather than supplying one.
+
    Live prices, when present, arrive separately in the message itself. Absence of a block means absence of the data, never permission to fill the gap.
 
 4. RESPONSE FORMAT

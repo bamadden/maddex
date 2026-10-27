@@ -15,6 +15,8 @@
 // UI shows what the feed actually carries and says plainly when a release
 // result is not connected.
 
+import { eventInstant as sydneyInstant } from './calendarService'
+
 const REMINDER_KEY = 'maddex_event_reminders'
 
 // ─── Importance, 1-5 ─────────────────────────────────────────────────────────
@@ -92,15 +94,16 @@ function writeReminders(list) {
   return list
 }
 
-// The instant an event actually occurs. A bare 'YYYY-MM-DD' parses as UTC
-// midnight, which in Sydney is 10am the same day — an 11:30 release would fire
-// its reminder ninety minutes late and a 22:30 US print half a day early. The
-// time field is used whenever it is present and parseable.
+// The instant an event actually occurs. Event times are Sydney local, so this
+// defers to calendarService's Sydney-offset parse. It used to build the Date
+// in the MACHINE's zone, which is only right inside NSW/VIC/ACT/TAS: in
+// Brisbane every countdown, reminder and .ics entry ran an hour late through
+// daylight saving (the RBA's 2:30pm decision as 3:30pm AEDT), three in Perth.
+// Untimed events keep their 9am Sydney placeholder.
 export function eventInstant(event) {
   if (!event?.date) return null
   const hasTime = /^\d{1,2}:\d{2}$/.test(event.time ?? '')
-  const d = new Date(`${event.date}T${hasTime ? event.time : '09:00'}:00`)
-  return isNaN(d) ? null : d
+  return sydneyInstant({ ...event, time: hasTime ? event.time : '09:00' })
 }
 
 export function reminderFireTime(event, offsetKey) {

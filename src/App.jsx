@@ -621,7 +621,7 @@ function Terminal() {
       // the command bar — same target as plain "/". Fixed, not customisable.
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'f')) {
         e.preventDefault()
-        document.querySelector('.cmd-input')?.focus()
+        focusCommandBar()
         return
       }
 
@@ -643,13 +643,13 @@ function Terminal() {
       // default '/' binding still works and is still customisable.
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        document.querySelector('.cmd-input')?.focus()
+        focusCommandBar()
         return
       }
 
       if (shortcutService.matches(e, shortcutService.shortcuts['ui.command'])) {
         e.preventDefault()
-        document.querySelector('.cmd-input')?.focus()
+        focusCommandBar()
         return
       }
 
@@ -946,6 +946,11 @@ function AuthGate() {
   }
   return <Terminal />
 }
+
+// The command bar by its own attribute, not by `.cmd-input`: that class is
+// the shared input style, and Watchlist and News render an input with it above
+// the bar in the DOM, so "/" and ⌘K focused their add/search box instead.
+const focusCommandBar = () => document.querySelector('[data-command-bar]')?.focus()
 
 export default function App() {
   const page = (el) => <Suspense fallback={<AppLoader />}>{el}</Suspense>

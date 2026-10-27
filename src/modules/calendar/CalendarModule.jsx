@@ -167,7 +167,11 @@ function UpcomingList({ events, onSelect, selectedKey }) {
 // ─── Right panel: countdown widget ───────────────────────────────────────────
 
 function CountdownWidget({ event }) {
-  const countdown = useCountdown(event?.dateObj ?? null)
+  // To the release itself in Sydney time, not to local midnight on its date:
+  // dateObj is the start of the day, so the RBA's 2:30pm decision counted down
+  // to 00:00 and read 13½ hours short of the Rates module's countdown.
+  const target = useMemo(() => (event ? eventInstant(event) ?? event.dateObj : null), [event])
+  const countdown = useCountdown(target)
   if (!event || !countdown) return null
   const total = 30 * 86400000
   const remaining = ((countdown.d * 24 + countdown.h) * 60 + countdown.m) * 60000 + countdown.s * 1000

@@ -865,8 +865,11 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     { label: 'Exchange sessions',   ok: true },
     { label: 'Trade routes',        ok: TRADE_ROUTES.length > 0 },
     { label: 'Intel narrative (AI)', ok: narrativeSource === 'live' || narrativeSource === 'cache' },
-    { label: 'Country outlines',    ok: Boolean(countries) },
-  ], [quakeState, mapStyle, narrativeSource, countries])
+    // Outlines are fetched only when a layer needs them (see useCountries), so
+    // they count only then. Listed always, they read as a failed feed — "4/6
+    // SOURCES ACTIVE" — on every visit that never asked for them.
+    ...(layerOn.countries || layerOn.density ? [{ label: 'Country outlines', ok: Boolean(countries) }] : []),
+  ], [quakeState, mapStyle, narrativeSource, countries, layerOn.countries, layerOn.density])
 
   const shell = fullscreen
     ? { position: 'fixed', inset: 0, zIndex: 9999 }

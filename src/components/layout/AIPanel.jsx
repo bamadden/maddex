@@ -20,6 +20,7 @@ import { getInvestorContext, getProfilePrompts } from '../../services/investorPr
 import { formatInline, splitFollowUps, toShareText, findTickers } from '../../services/aiResponseFormat'
 import { getStarters } from '../../services/aiStarters'
 import { regimeForAI, regimePrompts } from '../../services/marketRegime'
+import { eventsForAI } from '../../services/calendarService'
 import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
 import { markMilestone } from '../../services/gettingStarted'
 import { aiQueriesToday, recordAiQuery } from '../../services/usageService'
@@ -804,7 +805,8 @@ export default function AIPanel({ wide = false, onListening }) {
     else lines.push('User has no portfolio holdings tracked yet.')
 
     const facts = verifiedFactsForAI()
-    return `[CONTEXT]\n${lines.join('\n')}\n\n${investor}${facts ? facts + '\n\n' : ''}${regimeForAI()}\n\n`
+    const events = eventsForAI()
+    return `[CONTEXT]\n${lines.join('\n')}\n\n${investor}${facts ? facts + '\n\n' : ''}${events ? events + '\n\n' : ''}${regimeForAI()}\n\n`
   }, [activeModule, modalAsset, watchlist, investorProfile])
 
   const send = async (textOverride, opts = {}) => {

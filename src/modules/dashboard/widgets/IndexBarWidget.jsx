@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchIndexQuotesUnified } from '../../../services/dataService'
+import { USING_MOCK_DATA } from '../../../services/api'
 import {WidgetBody, WidgetRows, WidgetRow} from './_shared'
 import { goModule } from './navigate'
 
@@ -33,6 +34,7 @@ export default function IndexBarWidget() {
           )
         })}
       </WidgetRows>
+      {USING_MOCK_DATA && <span className="font-mono text-[8px]" style={{ color: '#4A6080' }}>DEMO · simulated index levels</span>}
     </WidgetBody>
   )
 }
