@@ -77,7 +77,7 @@ For each theme return JSON:
 {
   "title": "THEME TITLE IN CAPS",
   "summary": "2-3 sentence summary of the current situation",
-  "analysis": "3-4 paragraph deep-dive (separated by \\n\\n): context and how we got here, key drivers to watch, and the outlook/implications for Australian investors",
+  "analysis": "3 short paragraphs, 120-180 words in total (separated by \\n\\n): context and how we got here, key drivers to watch, and the outlook/implications for Australian investors",
   "impact": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
   "impactNote": "Impact on ASX/AUD in one line",
   "category": "RBA" | "FED" | "CHINA" | "GLOBAL" | "COMMODITIES" | "GEOPOLITICAL",
@@ -185,7 +185,11 @@ export async function getMacroThemes() {
     const { text } = await askClaude(
       [{ role: 'user', content: buildUserContent() }],
       null,
-      { systemPrompt: MACRO_SYSTEM },
+      // Six themes of JSON ran past askClaude's 1,024-token default (and past
+      // 3,000 with uncapped analysis); cut off, the array never closed,
+      // parsing failed, and every load showed FALLBACK_THEMES. Found in the
+      // 27 Oct launch audit. The analysis is now capped at ~180 words.
+      { systemPrompt: MACRO_SYSTEM, maxTokens: 6000 },
     )
     const themes = parseThemes(text)
     writeCache(themes)
