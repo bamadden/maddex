@@ -97,6 +97,12 @@ export function sydneyDayStart(now = new Date()) {
 // → { ok: true, user, tier, model, maxTokens, purpose, logId, db }
 //   or { ok: false, status, body }
 export async function guard(req, body, { fetchImpl = fetch, now = new Date() } = {}) {
+  // Misconfiguration must not look like a bad token: without these every
+  // signed-in user would get AUTH_INVALID, indistinguishable from an attack.
+  if (!supabaseUrl() || !anonKey()) {
+    console.error('[ai-guard] SUPABASE_URL / SUPABASE_ANON_KEY not set — refusing all AI calls')
+    return { ok: false, status: 503, body: { error: 'MaddenAI is not configured', code: 'NOT_CONFIGURED' } }
+  }
   const token = bearer(req)
   if (!token) return { ok: false, status: 401, body: { error: 'Authentication required', code: 'AUTH_REQUIRED' } }
   const user = await verifyUser(token, fetchImpl)
