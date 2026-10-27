@@ -1,10 +1,9 @@
 import { getUsage, recordResearchNote } from '../../services/usageService'
 import { showLimitPrompt, nextTier } from '../../services/plans'
 import { useEffect, useRef, useState } from 'react'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { generateResearchNote, RESEARCH_NOTE_STEPS, noteToShareText } from '../../services/researchNoteService'
 import PrintableNote from './PrintableNote'
+import { downloadNotePdf } from './notePdf'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../ui/UpgradePrompt'
 import ShareLinkModal from '../ui/ShareLinkModal'
@@ -13,59 +12,26 @@ import { createShareLink } from '../../services/sharingService'
 // Stance, not rating. BUY/HOLD/SELL is a recommendation, and the note has no
 // valuation behind it to support one — see researchNoteService.
 
-
-// ─── Printable note — mounted off-screen at a fixed A4-proportioned width so
-// html2canvas captures consistent, print-quality output regardless of the
-// viewer's actual browser width. Inline styles throughout (not Tailwind
-// classes) — html2canvas renders most reliably against explicit computed
-// styles rather than relying on the app's CSS pipeline for an off-screen node.
-
-
-
-
-
 // A4 at 96dpi, and the width the preview is shrunk to inside the modal.
 const PAGE_W = 794
 const PREVIEW_W = 640
 
-async function downloadPDF(noteRef, symbol) {
-  const canvas = await html2canvas(noteRef, {
-    scale: 2,
-    backgroundColor: '#FFFFFF',
-    useCORS: true,
-  })
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  const imgWidth = 210
-  const imgHeight = (canvas.height * imgWidth) / canvas.width
-  const pageHeight = 297
-  const imgData = canvas.toDataURL('image/png')
-
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
-  let heightLeft = imgHeight - pageHeight
-  let position = -pageHeight
-  while (heightLeft > 0) {
-    pdf.addPage()
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
-    position -= pageHeight
-  }
-  pdf.save(`Maddex_${symbol}_Research_Note_${new Date().toISOString().split('T')[0]}.pdf`)
-}
-
 // ─── Main modal ─────────────────────────────────────────────────────────────
 
-export default function ResearchNoteGenerator({ asset, onClose }) {
+// initialNote reopens a saved note (MaddenAI → SAVED RESEARCH) without a
+// model call; asset then defaults to the note's own.
+export default function ResearchNoteGenerator({ asset: assetProp, initialNote = null, onClose }) {
+  const asset = assetProp ?? initialNote?.asset ?? {}
   const { canUse, limits, plan } = useSubscription()
   // Prime includes 5 notes a month, Apex unlimited (services/plans).
   const notesLeft = limits.researchNotesPerMonth - getUsage().researchNotes
-  const [status, setStatus] = useState('idle') // idle | generating | complete | error
+  const [status, setStatus] = useState(initialNote ? 'complete' : 'idle') // idle | generating | complete | error
   const [stepIndex, setStepIndex] = useState(0)
-  const [note, setNote] = useState(null)
+  const [note, setNote] = useState(initialNote)
   const [error, setError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [shareLink, setShareLink] = useState(null)
   const [copied, setCopied] = useState(false)
-  const printableRef = useRef(null)
   const stepTimerRef = useRef(null)
 
   useEffect(() => () => clearInterval(stepTimerRef.current), [])
@@ -100,13 +66,10 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
     }
   }
 
-  // Clipboard text, for pasting into a message.
-  //
-  // Deliberately the summary and the considerations rather than the whole
-  // note: a full paste is unreadable in a chat window, and an EXCERPT of a
-  // long argument is the easiest thing in the world to misquote. What goes on
-  // the clipboard carries the stance, the reasoning behind it, and the
-  // disclaimer — the three things that must never travel separately.
+  // SHARE: clipboard text, for pasting into a message — the stance, the
+  // executive summary and the general-information line, which must never
+  // travel separately. Not the whole note: a full paste is unreadable in a
+  // chat window and an excerpt of it is easy to misquote.
   const handleCopy = async () => {
     if (!note) return
     try {
@@ -118,7 +81,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
     }
   }
 
-  const handleShare = () => {
+  const handleLink = () => {
     if (!note) return
     setShareLink(createShareLink('research', {
       assetName: asset.name,
@@ -133,10 +96,9 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
   }
 
   const handleDownload = async () => {
-    if (!printableRef.current) return
     setDownloading(true)
     try {
-      await downloadPDF(printableRef.current, asset.symbol)
+      downloadNotePdf({ ...note, asset })
     } catch (e) {
       setError(`PDF export failed: ${e.message}`)
     } finally {
@@ -166,8 +128,9 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                 <div className="text-3xl">📄</div>
                 <div className="text-terminal-text-bright text-sm font-semibold">Generate an institutional-quality research note</div>
                 <div className="text-terminal-text-dim text-2xs max-w-sm leading-relaxed">
-                  MaddenAI will produce a full investment thesis, financial analysis,
-                  valuation, catalysts, risks, and technicals for {asset.name} ({asset.symbol}) — exportable as a PDF.
+                  MaddenAI writes a six-section note on {asset.name} ({asset.symbol}): executive summary, business
+                  overview, investment considerations, sector and macro context, key risks and catalysts to watch.
+                  No price targets, no ratings. Exportable as a PDF.
                 </div>
                 <button
                   onClick={generate}
@@ -211,29 +174,24 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                     >REGENERATE</button>
                     <button
                       onClick={handleCopy}
-                      title="Copy a short text version to the clipboard"
+                      title="Copy the stance and executive summary to share"
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
-                    >{copied ? '✓ COPIED' : '⧉ COPY'}</button>
+                    >{copied ? '✓ COPIED' : 'SHARE'}</button>
                     <button
-                      onClick={handleShare}
+                      onClick={handleLink}
+                      title="Create a link to a summary of this note"
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
-                    >SHARE ▾</button>
+                    >LINK ▾</button>
                     <button
                       onClick={handleDownload}
                       disabled={downloading}
                       className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-50"
-                    >{downloading ? 'BUILDING PDF...' : 'DOWNLOAD PDF ▾'}</button>
+                    >{downloading ? 'BUILDING PDF...' : 'DOWNLOAD PDF'}</button>
                   </div>
                 </div>
-                {/* Live preview of the exact node captured for the PDF.
-                    The page is a true 794px wide — A4 at 96dpi — which is
-                    wider than this modal, so it was clipping on the right and
-                    reading as a broken layout.
-                    The SCALE LIVES ON A WRAPPER, never on the captured node.
-                    html2canvas clones its target and renders it standalone, so
-                    an ancestor transform is not inherited into the capture:
-                    the preview shrinks to fit, the PDF is still generated from
-                    a full-size, unscaled page. */}
+                {/* Preview of the note at A4 width (794px at 96dpi), scaled
+                    to fit the modal. The PDF is laid out separately by
+                    notePdf.js in the same design. */}
                 <div
                   className="border border-terminal-border overflow-auto bg-white/5"
                   style={{ maxHeight: '58vh' }}
@@ -249,7 +207,7 @@ export default function ResearchNoteGenerator({ asset, onClose }) {
                         marginBottom: `calc(${PREVIEW_W / PAGE_W - 1} * 100%)`,
                       }}
                     >
-                      <PrintableNote note={note} forwardRef={printableRef} />
+                      <PrintableNote note={{ ...note, asset }} />
                     </div>
                   </div>
                 </div>

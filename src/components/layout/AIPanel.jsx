@@ -27,6 +27,8 @@ import { markMilestone } from '../../services/gettingStarted'
 import { aiQueriesToday, recordAiQuery } from '../../services/usageService'
 import { showLimitPrompt } from '../../services/plans'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
+import SavedResearch from '../researchNote/SavedResearch'
+import { useResearchHistory } from '../../hooks/useResearchHistory'
 
 // ── MaddenAI daily query limit ─────────────────────────────────────────────
 // Per plan (services/plans LIMITS.aiPerDay): 10 on Core, 50 on Prime,
@@ -676,6 +678,8 @@ export default function AIPanel({ wide = false, onListening }) {
     return () => window.removeEventListener('maddex:ai-usage', sync)
   }, [])
   const [showNotes,    setShowNotes]    = useState(false)
+  const [showResearch, setShowResearch] = useState(false)
+  const researchHistory = useResearchHistory()
   const [confirmClear, setConfirmClear] = useState(false)
   const [notes, setNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('madden_ai_notes') ?? '[]') } catch { return [] }
@@ -1119,10 +1123,10 @@ export default function AIPanel({ wide = false, onListening }) {
             <button onClick={handleClear} className="text-2xs text-terminal-text-dim/40 hover:text-terminal-red ml-1" title="Clear conversation">CLR</button>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center flex-shrink-0">
           {!isFullscreen && <button
             onClick={() => setShowHistory((v) => !v)}
-            className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+            className={`w-5 h-6 flex items-center justify-center text-xs transition-colors ${
               showHistory ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
             }`}
             title={`Conversation history${historyList.length > 0 ? ` (${historyList.length})` : ''}`}
@@ -1131,7 +1135,7 @@ export default function AIPanel({ wide = false, onListening }) {
           </button>}
           <button
             onClick={() => { setShowInsights((v) => !v); setShowHistory(false) }}
-            className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+            className={`w-5 h-6 flex items-center justify-center text-xs transition-colors ${
               showInsights ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
             }`}
             title={`Saved insights${insights.length > 0 ? ` (${insights.length})` : ''}`}
@@ -1140,18 +1144,27 @@ export default function AIPanel({ wide = false, onListening }) {
           </button>
           <button
             onClick={() => setShowNotes((v) => !v)}
-            className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+            className={`w-5 h-6 flex items-center justify-center text-xs transition-colors ${
               showNotes ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
             }`}
             title={`Saved notes${notes.length > 0 ? ` (${notes.length})` : ''}`}
           >
             ≡
           </button>
+          <button
+            onClick={() => setShowResearch((v) => !v)}
+            className={`w-5 h-6 flex items-center justify-center text-xs transition-colors ${
+              showResearch ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
+            }`}
+            title={`Saved research${researchHistory.length > 0 ? ` (${researchHistory.length})` : ''}`}
+          >
+            ▤
+          </button>
           {!isFullscreen && (
             <button
               onMouseDown={(e) => e.stopPropagation()}
               onClick={() => setAiMode(isPip ? 'sidebar' : 'pip')}
-              className={`w-6 h-6 flex items-center justify-center text-xs transition-colors ${
+              className={`w-5 h-6 flex items-center justify-center text-xs transition-colors ${
                 isPip ? 'text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
               }`}
               title={isPip ? 'Exit picture-in-picture' : 'Picture-in-picture (⌘⇧A)'}
@@ -1162,14 +1175,14 @@ export default function AIPanel({ wide = false, onListening }) {
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={toggleMode}
-            className="w-6 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
+            className="w-5 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-gold transition-colors"
             title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
           >
             {isFullscreen ? '⤡' : '⤢'}
           </button>
           <button
             onClick={() => setChatOpen(false)}
-            className="w-6 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-text transition-colors"
+            className="w-5 h-6 flex items-center justify-center text-xs text-terminal-text-dim hover:text-terminal-text transition-colors"
             title="Close"
           >
             ✕
@@ -1326,6 +1339,14 @@ export default function AIPanel({ wide = false, onListening }) {
         </aside>
       )}
       <div className="flex-1 min-w-0 flex flex-col">
+      {showResearch && (
+        <div className="border-b border-terminal-border flex-shrink-0 relative">
+          <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
+            SAVED RESEARCH <span className="text-terminal-text-dim font-normal">· last 10 notes</span>
+          </div>
+          <SavedResearch />
+        </div>
+      )}
       {showNotes && (
         <div className="border-b border-terminal-border flex-shrink-0 relative">
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">

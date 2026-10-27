@@ -1,9 +1,8 @@
 import { askClaudeJSON } from './api'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
+import { COMPANY } from '../data/legalDocs'
+import { eventsForAI } from './calendarService'
 
-// Stable instruction template — the section list and JSON schema never vary,
-// so they live in the cached system prefix; the per-stock figures go in the
-// user message.
 // Stable instruction template — the section list and JSON schema never vary,
 // so they live in the cached system prefix; the per-stock context goes in the
 // user message.
@@ -23,48 +22,46 @@ import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 // everything a model can legitimately do — the business, the thesis, the
 // catalysts, the risks, the qualitative valuation read — and states none of
 // the figures it cannot know.
-const RESEARCH_SYSTEM = `You are MaddenAI, an institutional-grade financial analyst. Generate a comprehensive research note for the asset the user names.
+// THE STRUCTURE (2026-10-27): six sections, in sell-side order, with fixed
+// counts — exactly three risks and three catalysts, three to five
+// considerations — so every note reads the same way and a reader learns where
+// to look. The long-form thesis, financial-analysis, valuation and technical
+// sections are gone: with no figures to work from they were the padding
+// that made notes run past 1,500 words. The disclaimer is no longer
+// model-written; it is NOTE_DISCLAIMER below, identical on every note.
+const RESEARCH_SYSTEM = `You are MaddenAI producing a professional research note for an experienced Australian investor. You MUST follow this exact structure.
 
 ABSOLUTE CONSTRAINT — NO INVENTED FIGURES
-You have not been given this asset's price, market cap, P/E, earnings or estimates, and you cannot recall them. Therefore:
-- Do NOT state a price target, a fair value, a support or resistance level, a percentage upside or downside, a multiple, a margin, a growth rate, or any other number describing this security.
-- Do NOT give a BUY, HOLD, SELL, ACCUMULATE, REDUCE or equivalent rating. You are writing analysis, not a recommendation.
-- Where you would reach for a figure, write the judgement instead: "trading at a premium to its historical range", "cheap relative to domestic peers on most measures", "margins have been compressing for several halves". These are assessments a reader can weigh. A fabricated number is not.
-- This applies to the technical section too. Describe the trend and what would confirm or invalidate it in words. Do not name levels.
+You have not been given this security's price, market cap, multiples, earnings, segment revenue or estimates, and you cannot recall them reliably. Therefore:
+- No price targets, fair values, support or resistance levels, upside or downside percentages, multiples, margins, growth rates, segment revenue shares or any other number describing this security.
+- No BUY, HOLD, SELL, ACCUMULATE, REDUCE or equivalent rating. The stance is an assessment of the balance of considerations, not a recommendation.
+- Where you would reach for a figure, write the judgement instead: "the larger of its two segments", "a premium to domestic peers", "margins under pressure for several halves".
+- You MAY quote the figures under VERIFIED MACRO FIGURES in the user message, and only those. They describe the environment, not this security.
+- Widely-known, stable facts about the business are fine: what it sells, its segments, where it operates, who it competes with.
 
-You may reference widely-known, stable facts about the business — what it sells, which markets it operates in, its major segments, its competitive position. You may not attach current figures to them.
-
-Generate a professional research note with these EXACT sections in this order. Return as JSON:
+SECTIONS — return JSON with exactly these keys:
 
 {
-  "stance": "CONSTRUCTIVE" | "BALANCED" | "CAUTIOUS" | "UNDER REVIEW",
-  "stanceRationale": "one sentence on why the analysis lands there — no figures, and not a recommendation to trade",
-  "timeHorizon": "3 months" | "6 months" | "12 months",
-  "riskRating": "LOW" | "MEDIUM" | "HIGH" | "SPECULATIVE",
-  "executiveSummary": "2-3 sentence summary — what a reader should know in 30 seconds",
-  "investmentConsiderations": ["3-5 short bullets, a deliberate mix of supportive and cautionary — each one clause, no figures"],
-  "investmentThesis": "3-4 paragraphs on the core argument, positive and negative",
-  "businessOverview": "2-3 paragraphs on what the company does",
-  "financialAnalysis": {
-    "revenueOutlook": "paragraph — direction and drivers, no figures",
-    "marginAnalysis": "paragraph — direction and drivers, no figures",
-    "balanceSheet": "paragraph — condition and flexibility, no figures",
-    "cashFlow": "paragraph — quality and conversion, no figures"
-  },
-  "macroContext": "2 paragraphs placing this business in the CURRENT Australian macro environment. You MAY quote the figures listed under VERIFIED MACRO FIGURES in the user message, and only those. Name the mechanism — how the cash rate reaches this company's earnings, how the AUD reaches its revenue — rather than restating the number.",
-  "valuationAnalysis": "2-3 paragraphs assessing valuation qualitatively — premium or discount, to what, and why. No multiples, no target.",
-  "catalysts": ["what to watch 1 — a dated or scheduled event where possible", "what to watch 2", "what to watch 3"],
-  "risks": ["risk 1", "risk 2", "risk 3", "risk 4"],
-  "technicalAnalysis": {
-    "trend": "UPTREND" | "DOWNTREND" | "SIDEWAYS",
-    "momentum": "paragraph describing momentum and what would change it — no price levels"
-  },
-  "conclusion": "2-3 sentence conclusion",
-  "disclaimer": "This research note is general information only and does not constitute financial advice. It contains no price targets or valuations — every figure relevant to a decision should be taken from live market data, not from this note. Past performance is not indicative of future results. Maddex and its affiliates may hold positions in securities mentioned. Always consider your personal financial situation before making investment decisions."
+  "sector": "GICS sector, e.g. Financials, Materials, Health Care",
+  "exchange": "primary listing, e.g. ASX, NYSE, NASDAQ",
+  "stance": "CONSTRUCTIVE" | "BALANCED" | "CAUTIOUS",
+  "stanceRationale": "one sentence on why the considerations land there — no figures",
+  "executiveSummary": "3-4 sentences, 60-85 words. The essential consideration; what an investor needs to know in 30 seconds.",
+  "businessOverview": "80-110 words: what the company does, its key segments (by name and relative importance, no figures), its competitive position in plain English, and its geographic exposure.",
+  "investmentConsiderations": ["3 to 5 bullets of at most 30 words each, a deliberate mix of supportive and cautionary, each specific to this company"],
+  "macroContext": "90-120 words on how the current environment reaches THIS company's earnings. Banks: the cash rate and net interest margins. Miners: iron ore and Chinese demand. Offshore earners such as healthcare: the AUD/USD translation. Quote the verified figures that matter and name the mechanism.",
+  "risks": ["exactly 3, at most 30 words each, specific and material to this company, not boilerplate"],
+  "catalysts": ["exactly 3, at most 30 words each, specific upcoming events: results dates or reporting periods, commodity or data releases, RBA decisions. Use the scheduled dates in the user message where they apply."]
 }
 
-Be substantive, professional, and Australian-investor-focused. A note that reasons carefully about three things beats one that gestures at ten.
-If you find yourself typing a digit that describes this security, stop and write the judgement in words instead.
+Rules:
+- The section names (EXECUTIVE SUMMARY, BUSINESS OVERVIEW, INVESTMENT CONSIDERATIONS, SECTOR & MACRO CONTEXT, KEY RISKS, CATALYSTS TO WATCH) are added by the layout. Do not write them inside the values.
+- Be specific to this company. If a sentence would be true of any company in its sector, cut it.
+- Investment considerations: 3-5. Key risks: exactly 3. Catalysts: exactly 3.
+- Total length across all sections: 400-600 words. Keep to each section's budget; a note that runs long gets cut by the reader, not finished.
+- Do not state what the RBA or any central bank will do as settled ("would almost certainly seal a hike"). Say which way a result would push and leave the decision open.
+- Australian English. Plain, precise prose; no hype.
+- If you find yourself typing a digit that describes this security, stop and write the judgement in words.
 Return ONLY valid JSON, no markdown.`
 
 // getAssetQuote and getAssetHistory are gone with the figures they fed.
@@ -74,6 +71,39 @@ Return ONLY valid JSON, no markdown.`
 // price * 1.6 and price * 0.45. Passing that into a prompt as "Current data"
 // gave the model a false anchor and made every conclusion drawn from it read
 // as though it described the real security.
+
+export const NOTE_DISCLAIMER = `This research note is general information only and does not constitute financial advice, a personal recommendation, or an offer to buy or sell any security. Past performance is not indicative of future results. The author may hold positions in securities mentioned. Always seek licensed financial advice before investing. ${COMPANY} does not hold an AFSL.`
+
+export const STANCES = ['CONSTRUCTIVE', 'BALANCED', 'CAUTIOUS']
+
+// Holds the model to the counts the prompt asks for, and fills the header
+// fields the model should not be trusted with. The exchange comes from the
+// symbol where the symbol says it; the counts are trimmed, never padded — a
+// missing third risk is shown as two, not invented.
+const SECTION_LABEL = /^\s*(EXECUTIVE SUMMARY|BUSINESS OVERVIEW|INVESTMENT CONSIDERATIONS|SECTOR & MACRO CONTEXT|KEY RISKS|CATALYSTS TO WATCH)\s*[—:-]\s*/i
+const unlabel = (v) => (typeof v === 'string' ? v.replace(SECTION_LABEL, '') : v)
+
+export function normaliseNote(note) {
+  const a = note.asset ?? {}
+  return {
+    ...note,
+    executiveSummary: unlabel(note.executiveSummary),
+    businessOverview: unlabel(note.businessOverview),
+    macroContext: unlabel(note.macroContext),
+    stance: STANCES.includes(note.stance) ? note.stance : (note.stance ? 'BALANCED' : note.stance),
+    exchange: /\.AX$/i.test(a.symbol ?? '') ? 'ASX' : note.exchange,
+    investmentConsiderations: note.investmentConsiderations?.slice(0, 5).map(unlabel),
+    risks: note.risks?.slice(0, 3).map(unlabel),
+    catalysts: note.catalysts?.slice(0, 3).map(unlabel),
+    disclaimer: NOTE_DISCLAIMER,
+  }
+}
+
+// "ASX: BHP" — the ticker without its Yahoo-style suffix.
+export const displayTicker = (a = {}) => {
+  const t = String(a.symbol ?? '').replace(/\.AX$/i, '')
+  return /\.AX$/i.test(a.symbol ?? '') ? `ASX: ${t}` : t
+}
 
 export const RESEARCH_NOTE_STEPS = [
   'Reviewing the business...',
@@ -95,7 +125,7 @@ export async function generateResearchNote(asset) {
   //
   // The two rules are therefore different and the prompt says so explicitly:
   // quote these, invent nothing else.
-  const { rba, fed, au, commodities } = VERIFIED_CONSTANTS
+  const { rba, fed, au, commodities, rbaNextDecision: nd } = VERIFIED_CONSTANTS
   const macroBlock = [
     `- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
     `- US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})`,
@@ -105,6 +135,9 @@ export async function generateResearchNote(asset) {
     `- Iron ore: US$${commodities.ironOreUSD}/t (as at ${commodities.asOf})`,
     `- Brent crude: US$${commodities.brentUSD}/bbl (as at ${commodities.asOf})`,
     `- ASX 200 market P/E ${au.asx200PE}, dividend yield ${au.asx200DivYield}% (as at ${au.asxMetricsRelease})`,
+    `- AU household spending: ${au.householdSpendingMoM.toFixed(1)}% m/m, ${au.householdSpendingYoY}% y/y (${au.householdSpendingPeriod}, ABS)`,
+    `- NAB business confidence: ${au.nabConfidence} (${au.nabPeriod}); conditions ${au.nabConditions}`,
+    ...(nd ? [`- Next RBA decision ${nd.date}: ASX 30-day futures priced ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (as at ${nd.marketAsOf})`] : []),
   ].join('\n')
 
   const userContent = `
@@ -123,11 +156,13 @@ You have been given no price, market cap, multiple or estimate for ${asset.symbo
 and none is available to you. Write the rest of the note within that
 constraint — qualitative judgements only, no figures describing the security.
 
-Generate the full research note now.
+${eventsForAI(45)}
+
+Generate the research note now.
   `.trim()
 
-  const note = await askClaudeJSON(userContent, { maxTokens: 4500, systemPrompt: RESEARCH_SYSTEM })
-  const stamped = { ...note, asset, generatedAt: new Date().toISOString() }
+  const note = await askClaudeJSON(userContent, { maxTokens: 2200, systemPrompt: RESEARCH_SYSTEM })
+  const stamped = normaliseNote({ ...note, asset, generatedAt: new Date().toISOString() })
   saveNoteToHistory(stamped)
   return stamped
 }
@@ -144,6 +179,10 @@ Generate the full research note now.
 // regenerated into something subtly different.
 const HISTORY_KEY = 'maddex_research_notes'
 const HISTORY_KEEP = 10
+// Fired on every save or delete, so MaddenAI's SAVED RESEARCH list follows
+// along while it is open.
+export const NOTES_CHANGED_EVENT = 'maddex:research-notes-changed'
+const announce = () => { try { window.dispatchEvent(new Event(NOTES_CHANGED_EVENT)) } catch { /* non-browser */ } }
 
 export function listNoteHistory() {
   try {
@@ -160,6 +199,7 @@ export function saveNoteToHistory(note) {
     const rest = listNoteHistory().filter((n) => n.asset?.symbol !== note.asset.symbol)
     const next = [note, ...rest].slice(0, HISTORY_KEEP)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+    announce()
     return next
   } catch {
     // Quota is a real risk here: ten full notes is a lot of prose. Failing to
@@ -172,6 +212,7 @@ export function deleteNoteFromHistory(symbol) {
   try {
     const next = listNoteHistory().filter((n) => n.asset?.symbol !== symbol)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+    announce()
     return next
   } catch { return listNoteHistory() }
 }
@@ -179,23 +220,20 @@ export function deleteNoteFromHistory(symbol) {
 // ─── Shareable text ──────────────────────────────────────────────────────────
 //
 // Plain text, for pasting into a message or an email. Carries the stance, the
-// summary and the disclaimer — and deliberately not the full note, which is
+// summary and the general-information line — and deliberately not the full note, which is
 // long enough that a paste would be unreadable and short enough on context to
 // be misquoted.
 export function noteToShareText(note) {
   if (!note) return ''
   const a = note.asset ?? {}
+  const date = new Date(note.generatedAt ?? Date.now()).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
   return [
-    `MADDEX RESEARCH NOTE — ${(a.name ?? '').toUpperCase()} (${a.symbol ?? ''})`,
-    `Generated: ${new Date(note.generatedAt ?? Date.now()).toLocaleString('en-AU')}`,
-    `Stance: ${note.stance ?? 'UNDER REVIEW'}${note.riskRating ? ` · Risk: ${note.riskRating}` : ''}`,
+    `MADDEX RESEARCH — ${(a.name ?? '').toUpperCase()} (${String(a.symbol ?? '').replace(/\.AX$/i, '')})`,
+    `${date} · Stance: ${note.stance ?? 'BALANCED'}`,
     '',
     note.executiveSummary ?? '',
     '',
-    ...(note.investmentConsiderations?.length
-      ? ['Key considerations:', ...note.investmentConsiderations.map((c) => `  - ${c}`), '']
-      : []),
-    'General information only — not financial advice. Contains no price targets.',
-    'Generated by MaddenAI via maddex.com.au',
+    'Full note available at maddex.com.au',
+    'General information only — not financial advice.',
   ].join('\n')
 }
