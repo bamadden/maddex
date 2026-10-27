@@ -20,7 +20,7 @@ function mulberry32(seed) {
   }
 }
 
-// Seeds for the four headline series come from verifiedConstants.
+// Seeds come from verifiedConstants wherever a verified figure is held.
 const { au, rba } = VERIFIED_CONSTANTS
 
 export const INDICATORS = [
@@ -28,12 +28,12 @@ export const INDICATORS = [
   { key: 'inflation',label: 'Inflation',            current: au.cpi, vol: 0.2, trend: 0, unit: '%', targetHint: 'RBA target 2-3%' },
   { key: 'unemp',    label: 'Unemployment',         current: au.unemployment,  vol: 0.1,  trend: 0.01,  unit: '%', targetHint: 'full employment ~4%' },
   { key: 'cashrate', label: 'Cash Rate',            current: rba.cashRate, vol: 0,    trend: 0,     unit: '%', targetHint: 'neutral ~2.5%' },
-  { key: 'trade',    label: 'Trade Balance',        current: 5.2,  vol: 0.5,  trend: 0.02,  unit: 'B', targetHint: 'monthly surplus, A$' },
+  { key: 'trade',    label: 'Goods Trade Balance',  current: au.tradeBalanceBn,  vol: 0.5,  trend: 0.02,  unit: 'B', targetHint: 'monthly surplus, A$' },
   { key: 'consconf', label: 'Consumer Confidence',  current: 84.3, vol: 2,    trend: -0.01, unit: '',  targetHint: '100 = neutral' },
-  { key: 'busconf',  label: 'Business Confidence',  current: 6,    vol: 3,    trend: 0,     unit: '',  targetHint: 'NAB survey index' },
+  { key: 'busconf',  label: 'Business Confidence',  current: au.nabConfidence,   vol: 3,    trend: 0,     unit: '',  targetHint: 'NAB survey index' },
   { key: 'house',    label: 'House Prices',         current: 3.2,  vol: 0.4,  trend: 0.01,  unit: '%', targetHint: 'YoY, national' },
   { key: 'wage',     label: 'Wage Growth',          current: 3.4,  vol: 0.15, trend: -0.02, unit: '%', targetHint: 'YoY, WPI' },
-  { key: 'retail',   label: 'Retail Sales',         current: 0.3,  vol: 0.3,  trend: 0,     unit: '%', targetHint: 'MoM' },
+  { key: 'retail',   label: 'Household Spending',   current: au.householdSpendingMoM, vol: 0.3, trend: 0, unit: '%', targetHint: 'MoM, ABS HSI' },
   { key: 'pmi',      label: 'PMI',                  current: 48.2, vol: 1.5,  trend: -0.01, unit: '',  targetHint: '<50 = contraction' },
   { key: 'curracct', label: 'Current Account',      current: 2.1,  vol: 0.8,  trend: 0.01,  unit: 'B', targetHint: 'quarterly, A$' },
 ]

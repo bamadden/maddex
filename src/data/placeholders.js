@@ -23,6 +23,7 @@ const { rba, fed, au, us, cn, eu, uk } = VERIFIED_CONSTANTS
 
 const pct = (n) => `${Number(n).toFixed(1)}%`
 const pct2 = (n) => `${Number(n).toFixed(2)}%`
+const audM = (bn) => `${bn < 0 ? '-' : ''}A$${Math.abs(bn) < 1 ? `${Math.round(Math.abs(bn) * 1000)}M` : `${Math.abs(bn).toFixed(1)}B`}`
 
 // ASX 200 Sector Heatmap — mktCapWeight is % of ASX 200
 export const ASX_SECTOR_HEATMAP = [
@@ -100,8 +101,9 @@ export const AU_MACRO = [
   { name: 'AU Unemployment',     value: pct(au.unemployment), prev: pct(au.unemploymentPrevious),             date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },
   { name: 'AU GDP QoQ',          value: pct(au.gdpQoQ),      prev: '0.3%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
   { name: 'AU GDP Annual',       value: pct(au.gdpAnnual),   prev: '1.0%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
-  { name: 'AU Trade Balance',    value: `A$${au.tradeBalanceBn}B`, prev: 'A$6.1B',        date: au.tradeBalanceRelease, beat: true, src: 'abs.gov.au/5368.0',  vkey: 'au' },
-  { name: 'AU Retail Sales MoM', value: pct(au.retailSalesMoM), prev: '0.5%',             date: au.retailSalesRelease, beat: false, src: 'abs.gov.au/8501.0',  vkey: 'au' },
+  { name: 'AU Goods Trade Bal',  value: audM(au.tradeBalanceBn), prev: audM(au.tradeBalancePrevBn), date: au.tradeBalanceRelease, beat: null, src: 'abs.gov.au/statistics/economy/international-trade/international-trade-goods/latest-release', vkey: 'au' },
+  { name: 'NAB Business Conf',   value: String(au.nabConfidence), prev: String(au.nabConfidencePrev), date: au.nabRelease, beat: null, src: 'nab.com.au', vkey: 'au' },
+  { name: 'AU Household Spend MoM', value: pct(au.householdSpendingMoM), prev: pct(au.householdSpendingPrevMoM), date: au.householdSpendingRelease, beat: null, src: 'abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/latest-release', vkey: 'au' },
   { name: 'CoreLogic HPI MoM',   value: `+${au.corelogicHpiMoM}%`, prev: '+0.4%',         date: au.corelogicRelease,   beat: null,  src: 'corelogic.com.au',   vkey: 'au' },
   { name: 'ASX200 P/E',          value: String(au.asx200PE), prev: '18.8',                date: au.asxMetricsRelease,  beat: null,  src: 'asx.com.au',         vkey: 'au' },
   { name: 'ASX200 Div Yield',    value: pct(au.asx200DivYield), prev: '3.9%',             date: au.asxMetricsRelease,  beat: null,  src: 'asx.com.au',         vkey: 'au' },
@@ -289,8 +291,11 @@ export const AU_CONSUMER_SENTIMENT = [
   { date: 'May-26', value: 82.0 }, { date: 'Jun-26', value: 82.4 },
 ]
 
-// NAB Monthly Business Confidence Survey (Jan 2024 – Jun 2026)
-// Positive = above average confidence · SOURCE: NAB Business Survey, released monthly
+// NAB Monthly Business Confidence Survey (Jan 2024 – Sep 2026)
+// Aug and Sep 2026 are from NAB's 13 Oct release ("fell 4 points to -13",
+// verifiedConstants.au.nabConfidence). Jun and Jul are not held, so they
+// are gaps rather than guesses.
+// Net balance; NAB puts the long-run average about +5 · SOURCE: NAB Business Survey, released monthly
 export const AU_BUSINESS_CONFIDENCE = [
   { date: 'Jan-24', value: 2  }, { date: 'Feb-24', value: 5  },
   { date: 'Mar-24', value: 0  }, { date: 'Apr-24', value: -2 },
@@ -306,26 +311,33 @@ export const AU_BUSINESS_CONFIDENCE = [
   { date: 'Nov-25', value: 4  }, { date: 'Dec-25', value: 4  },
   { date: 'Jan-26', value: 3  }, { date: 'Feb-26', value: 5  },
   { date: 'Mar-26', value: 4  }, { date: 'Apr-26', value: 2  },
-  { date: 'May-26', value: 4  },
+  { date: 'May-26', value: 4  }, { date: 'Jun-26', value: null },
+  { date: 'Jul-26', value: null }, { date: 'Aug-26', value: -9 },
+  { date: 'Sep-26', value: -13 },
 ]
 
-// ABS International Trade Balance (Jan 2024 – May 2026, AUD billions)
-// Positive = surplus · SOURCE: ABS Cat. 5368.0, released monthly
+// ABS balance on goods, seasonally adjusted (Jan 2024 – Aug 2026, A$ billions)
+// Positive = surplus · SOURCE: ABS Data API, ITGS M1.170.20.AUS.M, fetched
+// 2026-10-27. Replaced a goods-and-services series that did not match the
+// ABS (it showed a A$6.9B surplus for Mar 2026, a month the goods balance
+// was a A$2.1B deficit). The monthly release is goods only now.
 export const AU_TRADE_BALANCE = [
-  { date: 'Jan-24', value: 10.9 }, { date: 'Feb-24', value: 8.1  },
-  { date: 'Mar-24', value: 5.0  }, { date: 'Apr-24', value: 6.5  },
-  { date: 'May-24', value: 7.7  }, { date: 'Jun-24', value: 5.1  },
-  { date: 'Jul-24', value: 6.0  }, { date: 'Aug-24', value: 5.6  },
-  { date: 'Sep-24', value: 4.6  }, { date: 'Oct-24', value: 5.2  },
-  { date: 'Nov-24', value: 5.5  }, { date: 'Dec-24', value: 5.0  },
-  { date: 'Jan-25', value: 5.6  }, { date: 'Feb-25', value: 2.9  },
-  { date: 'Mar-25', value: 6.9  }, { date: 'Apr-25', value: 6.3  },
-  { date: 'May-25', value: 6.0  }, { date: 'Jun-25', value: 6.5  },
-  { date: 'Jul-25', value: 7.0  }, { date: 'Aug-25', value: 6.8  },
-  { date: 'Sep-25', value: 7.1  }, { date: 'Oct-25', value: 7.2  },
-  { date: 'Nov-25', value: 6.9  }, { date: 'Dec-25', value: 7.0  },
-  { date: 'Jan-26', value: 6.5  }, { date: 'Feb-26', value: 6.8  },
-  { date: 'Mar-26', value: 6.9  },
+  { date: 'Jan-24', value: 9.5 }, { date: 'Feb-24', value: 8.2 },
+  { date: 'Mar-24', value: 4.5 }, { date: 'Apr-24', value: 5.9 },
+  { date: 'May-24', value: 5.4 }, { date: 'Jun-24', value: 5.6 },
+  { date: 'Jul-24', value: 5.3 }, { date: 'Aug-24', value: 5.7 },
+  { date: 'Sep-24', value: 3.9 }, { date: 'Oct-24', value: 4.8 },
+  { date: 'Nov-24', value: 6.0 }, { date: 'Dec-24', value: 4.0 },
+  { date: 'Jan-25', value: 4.4 }, { date: 'Feb-25', value: 3.3 },
+  { date: 'Mar-25', value: 6.9 }, { date: 'Apr-25', value: 4.5 },
+  { date: 'May-25', value: 2.1 }, { date: 'Jun-25', value: 4.5 },
+  { date: 'Jul-25', value: 6.3 }, { date: 'Aug-25', value: 0.9 },
+  { date: 'Sep-25', value: 3.5 }, { date: 'Oct-25', value: 4.3 },
+  { date: 'Nov-25', value: 2.3 }, { date: 'Dec-25', value: 3.2 },
+  { date: 'Jan-26', value: 2.5 }, { date: 'Feb-26', value: 5.2 },
+  { date: 'Mar-26', value: -2.1 }, { date: 'Apr-26', value: 1.3 },
+  { date: 'May-26', value: -2.8 }, { date: 'Jun-26', value: 2.0 },
+  { date: 'Jul-26', value: 1.4 }, { date: 'Aug-26', value: 0.5 },
 ]
 
 // Iron Ore Spot Price (USD/tonne) — last 12 months

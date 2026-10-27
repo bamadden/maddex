@@ -144,6 +144,8 @@ const NEXT_RELEASE = {
   'AU CPI YoY':          releaseLabel(VERIFIED_CONSTANTS.au.cpiNextRelease),
   'AU CPI Trimmed Mean': releaseLabel(VERIFIED_CONSTANTS.au.cpiNextRelease),
   'AU Unemployment':     releaseLabel(VERIFIED_CONSTANTS.au.unemploymentNextRelease),
+  'AU Goods Trade Bal':  releaseLabel(VERIFIED_CONSTANTS.au.tradeBalanceNextRelease),
+  'AU Household Spend MoM': releaseLabel(VERIFIED_CONSTANTS.au.householdSpendingNextRelease),
 }
 
 
@@ -753,15 +755,15 @@ function LeadingIndicators() {
     {
       title: 'AU BUSINESS CONFIDENCE',
       subtitle: 'NAB Monthly Survey',
-      current: '+4',
-      note: 'May 2026',
+      current: `${VERIFIED_CONSTANTS.au.nabConfidence > 0 ? '+' : ''}${VERIFIED_CONSTANTS.au.nabConfidence}`,
+      note: `${VERIFIED_CONSTANTS.au.nabPeriod} — conditions ${VERIFIED_CONSTANTS.au.nabConditions}`,
       source: 'NAB Survey',
       chart: (
         <SafeChart width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
-            <YAxis tick={{ fontSize: 8 }} domain={[-5, 12]} width={28} />
+            <YAxis tick={{ fontSize: 8 }} domain={[-15, 12]} width={28} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="3 3" />
             <Bar dataKey="value" isAnimationActive={false} radius={[1,1,0,0]}>
@@ -775,11 +777,11 @@ function LeadingIndicators() {
       ),
     },
     {
-      title: 'AU TRADE BALANCE',
-      subtitle: 'ABS International Trade',
-      current: '+A$6.9B',
-      note: 'Mar 2026 — SURPLUS',
-      source: 'ABS 5368.0',
+      title: 'AU GOODS TRADE BALANCE',
+      subtitle: 'ABS International Trade in Goods · SA',
+      current: `${VERIFIED_CONSTANTS.au.tradeBalanceBn >= 0 ? '+' : '−'}A$${Math.round(Math.abs(VERIFIED_CONSTANTS.au.tradeBalanceBn) * 1000)}M`,
+      note: `${VERIFIED_CONSTANTS.au.tradeBalancePeriod} — ${VERIFIED_CONSTANTS.au.tradeBalanceBn >= 0 ? 'SURPLUS' : 'DEFICIT'}`,
+      source: 'ABS ITGS',
       chart: (
         <SafeChart width="100%" height="100%">
           <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
@@ -791,7 +793,7 @@ function LeadingIndicators() {
             </defs>
             <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 8 }} interval={4} />
-            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}B`} domain={[0, 14]} width={32} />
+            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v}B`} domain={[-4, 12]} width={32} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="2 2" />
             <Area type="monotone" dataKey="value" stroke="#3AAA63" strokeWidth={1.5}

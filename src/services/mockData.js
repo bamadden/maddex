@@ -53,10 +53,11 @@ function jitterFor(symbol) {
 // price/changePct are illustrative (ASX quotes are premium-gated on every
 // vendor tried this session — no live reference available). marketCap in AUD.
 //
-// REBASED 2026-10-03. These were drafted against an ASX 200 of ~9,650, about
-// 11% above the real index (8,682.1 at the 2 Oct 2026 close). Every price-
-// denominated field is scaled by the same factor so the stocks stay coherent
-// with the index they make up; ratios (P/E, yield, % change) are unchanged.
+// REBASED 2026-10-03, RE-ANCHORED 2026-10-27. These were drafted against an
+// ASX 200 of ~9,650; they are scaled to the real index (8,850.1 at the 27 Oct
+// 2026 close, up from 8,682.1 on 2 Oct). Every price-denominated field is
+// scaled by the same factor so the stocks stay coherent with the index they
+// make up; ratios (P/E, yield, % change) are unchanged.
 // DAY MOVES RE-AUTHORED 2026-10-19. These are illustrative, not observed. Half
 // ran hard against their sector's demo tilt (Goodman +1.9% as the property
 // proxy, Woodside −1.8% as energy's, WiseTech +3.0% as IT's), so the heatmap
@@ -70,7 +71,7 @@ function jitterFor(symbol) {
 // 15-60% against their approximate share counts (0.48B, 3.06B, 0.62B, 0.13B,
 // 0.67B). Each is now share count × draft price, before the rebase below.
 const ASX_DRAFT_INDEX = 9650
-const ASX_REAL_INDEX = 8682.1
+const ASX_REAL_INDEX = 8850.1
 const ASX_SCALE = ASX_REAL_INDEX / ASX_DRAFT_INDEX
 const rebaseAsx = (rows) => Object.fromEntries(Object.entries(rows).map(([sym, r]) => [sym, {
   ...r,
@@ -148,12 +149,13 @@ export const MOCK_US_STOCKS = {
 // ^AXJO/^AORD/^GDAXI/000001.SS/^NZ50 are premium-gated on every vendor tried
 // — approximated from known real-world levels with a plausible growth drift.
 export const MOCK_INDICES = {
-  // Real closes. ASX: 2 Oct 2026 (Motley Fool AU). US, Europe and Asia:
-  // 30 Sep 2026 (AP / CNBC / BBN Times). All Ords and NZX 50 are not
-  // verified — the All Ords keeps its usual premium to the ASX 200 and the
-  // NZX 50 is unchanged from its earlier approximation.
-  '^AXJO':     { name: 'ASX 200',      price: 8682.1,   changePct: 0.79,  currency: 'AUD' },
-  '^AORD':     { name: 'All Ords',     price: 8952.0,   changePct: 0.75,  currency: 'AUD' },
+  // Real closes. ASX: 27 Oct 2026 (ABC News, as verifiedConstants.indices).
+  // US, Europe and Asia: 30 Sep 2026 (AP / CNBC / BBN Times). All Ords and
+  // NZX 50 are not verified — the All Ords is scaled with the ASX 200 to keep
+  // its usual premium, and the NZX 50 is unchanged from its earlier
+  // approximation. Day changes are illustrative.
+  '^AXJO':     { name: 'ASX 200',      price: 8850.1,   changePct: 0.79,  currency: 'AUD' },
+  '^AORD':     { name: 'All Ords',     price: 9125.2,   changePct: 0.75,  currency: 'AUD' },
   '^GSPC':     { name: 'S&P 500',      price: 7651.54,  changePct: -0.25, currency: 'USD' },
   '^IXIC':     { name: 'NASDAQ',       price: 26861.06, changePct: 0.24,  currency: 'USD' },
   '^DJI':      { name: 'Dow Jones',    price: 50906.05, changePct: -0.86, currency: 'USD' },

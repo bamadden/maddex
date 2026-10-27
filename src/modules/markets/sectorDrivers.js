@@ -189,8 +189,8 @@ export function sectorDrivers(sectorName, ctx = {}) {
         note: 'Westpac-Melbourne Institute index; no feed connected.',
       },
       {
-        name: 'Retail sales',
-        reading: { value: `${au.retailSalesMoM >= 0 ? '+' : ''}${au.retailSalesMoM}% MoM`, asOf: au.retailSalesRelease, source: au.source },
+        name: 'Household spending',
+        reading: { value: `${au.householdSpendingMoM >= 0 ? '+' : ''}${au.householdSpendingMoM.toFixed(1)}% MoM`, asOf: au.householdSpendingRelease, source: 'ABS Monthly Household Spending Indicator' },
         impact: 'The direct read on the sector\'s top line.',
       },
       {
@@ -222,8 +222,8 @@ export function sectorDrivers(sectorName, ctx = {}) {
         impact: 'Staples retailers pass input costs through with a lag, so inflation shows up in margin before price.',
       },
       {
-        name: 'Retail sales',
-        reading: { value: `${au.retailSalesMoM >= 0 ? '+' : ''}${au.retailSalesMoM}% MoM`, asOf: au.retailSalesRelease, source: au.source },
+        name: 'Household spending',
+        reading: { value: `${au.householdSpendingMoM >= 0 ? '+' : ''}${au.householdSpendingMoM.toFixed(1)}% MoM`, asOf: au.householdSpendingRelease, source: 'ABS Monthly Household Spending Indicator' },
         impact: 'Food and grocery volumes are defensive but not immune to trading-down behaviour.',
       },
       {

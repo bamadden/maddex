@@ -140,35 +140,43 @@ export const VERIFIED_CONSTANTS = {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
     lastDecision: '2026-09-10', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-29',
     note: 'Deposit facility rate',
-    source: 'ecb.europa.eu', asOf: '2026-09-10', lastVerified: '2026-10-01',
+    // Re-checked 2026-10-27: no decision since 10 Sep. The 28–29 Oct meeting
+    // announces Thu 29 Oct, 14:15 CET.
+    source: 'ecb.europa.eu', asOf: '2026-09-10', lastVerified: '2026-10-27',
   },
   boe: {
     label: 'BOE', country: 'United Kingdom', cashRate: 3.75,
     lastDecision: '2026-09-17', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-05',
-    source: 'bankofengland.co.uk', asOf: '2026-09-17', lastVerified: '2026-10-01',
+    // Re-checked 2026-10-27: held 6–3 on 17 Sep (Greene, Mann, Pill for 4.00%).
+    source: 'bankofengland.co.uk', asOf: '2026-09-17', lastVerified: '2026-10-27',
   },
   boj: {
     label: 'BOJ', country: 'Japan', cashRate: 1.25,
     lastDecision: '2026-09-18', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-30',
-    source: 'boj.or.jp', asOf: '2026-09-18', lastVerified: '2026-10-01',
+    // Re-checked 2026-10-27: hiked 1.00 → 1.25% on 18 Sep, 7–2 (Asada, Sato
+    // dissenting). The 29–30 Oct meeting announces Fri 30 Oct.
+    source: 'boj.or.jp', asOf: '2026-09-18', lastVerified: '2026-10-27',
   },
   pboc: {
     label: 'PBOC', country: 'China', cashRate: 3.00,
-    lastDecision: '2026-09-21', lastDecisionVerb: 'HOLD', nextMeeting: '2026-10-20',
+    lastDecision: '2026-10-20', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-20',
     // Was 3.10% with a Feb 2026 CUT — wrong on both counts. The 1Y LPR has
-    // been 3.00% since the May 2025 cut; September was the 16th straight hold.
+    // been 3.00% since the May 2025 cut; 20 Oct was the 17th straight hold.
     note: '1Y Loan Prime Rate (5Y LPR 3.50%)',
-    source: 'pbc.gov.cn (via FXStreet, 21 Sep 2026)', asOf: '2026-09-21', lastVerified: '2026-10-01',
+    source: 'pbc.gov.cn (via Trading Economics, 20 Oct 2026)', asOf: '2026-10-20', lastVerified: '2026-10-27',
   },
   rbnz: {
     label: 'RBNZ', country: 'New Zealand', cashRate: 2.75,
     lastDecision: '2026-09-02', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-28',
-    source: 'rbnz.govt.nz', asOf: '2026-09-02', lastVerified: '2026-10-01',
+    // Re-checked 2026-10-27: no decision since the 2 Sep hike; next Wed 28 Oct.
+    source: 'rbnz.govt.nz', asOf: '2026-09-02', lastVerified: '2026-10-27',
   },
   boc: {
     label: 'BOC', country: 'Canada', cashRate: 2.25,
     lastDecision: '2026-09-02', lastDecisionVerb: 'HOLD', nextMeeting: '2026-10-28',
-    source: 'bankofcanada.ca', asOf: '2026-09-02', lastVerified: '2026-10-01',
+    // Re-checked 2026-10-27: 2.25% since the 29 Oct 2025 cut; next Wed 28 Oct
+    // (9:45 ET, with the MPR).
+    source: 'bankofcanada.ca', asOf: '2026-09-02', lastVerified: '2026-10-27',
   },
   snb: {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,
@@ -287,10 +295,40 @@ export const VERIFIED_CONSTANTS = {
     // confirm at next verification.
     gdpLastRelease: '2026-09-03',
 
-    tradeBalanceBn: 7.2,
-    tradeBalanceRelease: '2026-04-02',
-    retailSalesMoM: 0.3,
-    retailSalesRelease: '2026-05-28',
+    // UPDATED 2026-10-27 — this read A$7.2B as at an April release. The ABS
+    // monthly trade release is now goods only ("International Trade in
+    // Goods"); services are quarterly, in the balance of payments. August
+    // 2026, released 1 Oct: the seasonally adjusted balance on goods "decreased
+    // $856m" to A$495m, from A$1,351m in July. ABS Data API: ITGS
+    // M1.170.20.AUS.M.
+    tradeBalanceBn: 0.495,
+    tradeBalancePrevBn: 1.351,
+    tradeBalancePeriod: 'Aug 2026',
+    tradeBalanceRelease: '2026-10-01',
+    tradeBalanceNextRelease: '2026-11-05',
+
+    // Retail Trade ended in 2025; the ABS's monthly read on consumer demand is
+    // now the Monthly Household Spending Indicator. August 2026, released
+    // 29 Sep: "Remained flat at 0.0% month-on-month" (current price, SA), up
+    // 6.8% on August 2025. July was +1.1%. ABS Data API: HSI_M
+    // 8.TOT.CUR.20.AUS.M (m/m) and 9.TOT.CUR.20.AUS.M (y/y).
+    householdSpendingMoM: 0.0,
+    householdSpendingPrevMoM: 1.1,
+    householdSpendingYoY: 6.8,
+    householdSpendingPeriod: 'Aug 2026',
+    householdSpendingRelease: '2026-09-29',
+    householdSpendingNextRelease: '2026-11-04',
+
+    // NAB Monthly Business Survey, September 2026, released 13 Oct:
+    // "confidence fell 4 points to -13 index points", 18 points below its
+    // long-run average, a third straight monthly fall. "Business conditions
+    // were unchanged at -1 index point." Not on an API — check nab.com.au.
+    nabConfidence: -13,
+    nabConfidencePrev: -9,
+    nabConditions: -1,
+    nabConditionsPrev: -1,
+    nabPeriod: 'Sep 2026',
+    nabRelease: '2026-10-13',
     corelogicHpiMoM: 0.5,
     corelogicRelease: '2026-06-02',
     asx200PE: 19.2,
