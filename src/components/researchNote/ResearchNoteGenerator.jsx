@@ -113,7 +113,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
-          <span className="text-terminal-gold font-bold tracking-widest text-sm">RESEARCH NOTE GENERATOR</span>
+          <span className="text-terminal-gold font-bold tracking-widest text-sm">{note?.body ? 'SAVED RESEARCH' : 'RESEARCH NOTE GENERATOR'}</span>
           <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
         </div>
 
@@ -168,10 +168,10 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-2xs text-terminal-green font-bold">✓ RESEARCH NOTE READY</span>
                   <div className="flex gap-2">
-                    <button
+                    {!note.body && <button
                       onClick={generate}
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
-                    >REGENERATE</button>
+                    >REGENERATE</button>}
                     <button
                       onClick={handleCopy}
                       title="Copy the stance and executive summary to share"

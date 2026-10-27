@@ -56,6 +56,20 @@ export function dispatchAskAI(fields, opts = {}) {
 
 // Asks MaddenAI a question in the user's name — shown as their message, so
 // they see what was asked on their behalf. For the context prompts.
-export function askMaddenAI(prompt) {
-  window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt, visible: true } }))
+// opts: mode ('research' | 'deepdive'), save ({ kind, asset, auto }),
+// fullscreen — see AIPanel's send().
+export function askMaddenAI(prompt, opts = {}) {
+  window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt, visible: true, ...opts } }))
+}
+
+// DEEP DIVE on one security: the six-part long-form analysis, kept in SAVED
+// RESEARCH when it completes.
+export function deepDive({ symbol, name, type }) {
+  const bare = String(symbol).replace(/\.AX$/i, '')
+  const sym = type === 'asx' || /\.AX$/i.test(symbol) ? `${bare}.AX` : symbol
+  askMaddenAI(`Deep dive: ${name ?? bare} (${bare}).`, {
+    mode: 'deepdive',
+    fullscreen: true,
+    save: { kind: 'deepdive', asset: { symbol: sym, name: name ?? bare, type }, auto: true },
+  })
 }

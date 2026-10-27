@@ -29,6 +29,9 @@ import { showLimitPrompt } from '../../services/plans'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import SavedResearch from '../researchNote/SavedResearch'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
+import { saveProseNote } from '../../services/researchNoteService'
+import { CORPORATE_ACTIONS } from '../../data/corporateActions'
+import { EARNINGS_2026 } from '../../services/earningsCalendar'
 
 // ── MaddenAI daily query limit ─────────────────────────────────────────────
 // Per plan (services/plans LIMITS.aiPerDay): 10 on Core, 50 on Prime,
@@ -191,7 +194,11 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
   if (activeModule === 'dashboard') {
     const ev = decisionWeekPrompts()
     if (ev) return ev
+    const season = earningsSeasonPrompts(); if (season) return season
     const regime = regimePrompts(); if (regime) return regime
+  }
+  if (activeModule === 'markets' || activeModule === 'calendar') {
+    const season = earningsSeasonPrompts(); if (season) return season
   }
   if (profilePrompts && (PROFILE_PROMPT_MODULES.has(activeModule) || !MODULE_PROMPTS[activeModule])) return profilePrompts
   return MODULE_PROMPTS[activeModule] ?? DEFAULT_PROMPTS
@@ -223,6 +230,50 @@ CONCLUSION:
 Be thorough — this is a deep dive, not a quick answer. The rules on figures still apply: quote only figures you were given.
 
 `
+
+// DEEP DIVE — "deep dive BHP" in the command bar or DEEP DIVE on a stock's
+// detail panel. Research mode with a fixed six-part structure and a longer
+// budget; the answer is kept in SAVED RESEARCH automatically.
+const DEEP_DIVE_INSTRUCTION = `[MODE]
+User asked for a DEEP DIVE. Write 900-1100 words in total — 1,200 is a hard ceiling, whatever the persona — with exactly these section headers, each on its own line in capitals followed by a colon, in this order:
+BUSINESS MODEL:
+FINANCIAL QUALITY:
+COMPETITIVE POSITION:
+MACRO TAILWINDS AND HEADWINDS:
+RISK MATRIX:
+INVESTMENT CONSIDERATIONS:
+Under RISK MATRIX, list the main risks as "- Risk — likelihood (low/medium/high), impact (low/medium/high): one line why". Under INVESTMENT CONSIDERATIONS, 3-5 bullets mixing supportive and cautionary points. The rules on figures still apply: quote only figures you were given, and describe the company's own financials in words — no price targets, no ratings. Skip the FOLLOW_UPS line for this answer.
+
+`
+
+// Personas — tone and depth, sent in the user turn like the response mode, so
+// switching never changes the cached system prefix.
+const PERSONAS = [
+  ['analyst', 'ANALYST', 'Direct and expert. Assumes market knowledge; leads with the conclusion and the mechanism, no definitions.'],
+  ['educator', 'EDUCATOR', 'Patient and accessible. Explains each concept and term the first time it appears, and what it means for an everyday investor.'],
+  ['strategist', 'STRATEGIST', 'Big picture and portfolio-focused. Frames the answer as themes across asset classes and what they mean for positioning — as general information, never personal advice.'],
+]
+const personaLine = (id) => {
+  const p = PERSONAS.find(([k]) => k === id) ?? PERSONAS[0]
+  return `[PERSONA]\nYou are in ${p[1]} mode. ${p[2]} Adjust your tone and depth accordingly.\n\n`
+}
+
+// Earnings-season prompts, offered when three or more tracked companies
+// report in the next fortnight.
+function earningsSeasonPrompts(now = new Date()) {
+  const today = now.toLocaleDateString('en-CA')
+  const horizon = new Date(now.getTime() + 14 * 86400_000).toLocaleDateString('en-CA')
+  const reporting = [...CORPORATE_ACTIONS.filter((a) => a.type === 'results'), ...EARNINGS_2026.filter((e) => e.type !== 'AGM')]
+    .filter((e) => e.date >= today && e.date <= horizon)
+  const names = [...new Set(reporting.map((e) => e.company))]
+  if (names.length < 3) return null
+  const who = names.join(', ')
+  return [
+    { label: 'EARNINGS SEASON PREVIEW', prompt: `Reporting in the next two weeks: ${who}. Give me an earnings season preview — what to watch in these results, given the current rate and macro backdrop.`, dataKeys: [] },
+    { label: 'WHICH REPORTERS MATTER MOST?', prompt: `Of ${who}, which results matter most for the ASX over the next two weeks, and why?`, dataKeys: [] },
+    { label: 'POSITIONING AROUND EARNINGS', prompt: 'How do investors typically think about positioning around company results — the risks of holding through a report and the questions to ask beforehand? General information only.', dataKeys: [] },
+  ]
+}
 
 // ─── Sentiment score rendering ─────────────────────────────────────────────────
 
@@ -661,6 +712,14 @@ export default function AIPanel({ wide = false, onListening }) {
     try { localStorage.setItem('maddex_ai_response_mode', m) } catch { /* private mode */ }
   }
 
+  const [persona, setPersonaState] = useState(() => {
+    try { return localStorage.getItem('maddex_ai_persona') ?? 'analyst' } catch { return 'analyst' }
+  })
+  const setPersona = (p) => {
+    setPersonaState(p)
+    try { localStorage.setItem('maddex_ai_persona', p) } catch { /* private mode */ }
+  }
+
   // Save after every completed reply, not only on close — the fullscreen
   // history rail lists the live conversation, and a crash or closed laptop
   // mid-session should not lose it.
@@ -842,7 +901,10 @@ export default function AIPanel({ wide = false, onListening }) {
   }, [activeModule, modalAsset, watchlist, investorProfile])
 
   const send = async (textOverride, opts = {}) => {
-    const { context, silent } = opts
+    // mode: 'research' or 'deepdive' for this one message, whatever the
+    // toggle says. save: { kind, asset, auto } keeps the answer in SAVED
+    // RESEARCH — at once when auto, else behind a SAVE AS NOTE button.
+    const { context, silent, mode: modeOverride, save } = opts
     const text = (textOverride ?? input).trim()
     if (!text || loading) return
 
@@ -868,13 +930,15 @@ export default function AIPanel({ wide = false, onListening }) {
 
     // Displayed turn keeps the clean text; the wire turn carries the context
     // prefix so the cached system prefix stays byte-identical between calls.
-    const research = responseMode === 'research'
+    const deepDive = modeOverride === 'deepdive'
+    const research = deepDive || modeOverride === 'research' || responseMode === 'research'
+    const msgMode = research ? 'research' : 'chat'
     const userTurn     = { role: 'user', content: text }
-    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${research ? RESEARCH_INSTRUCTION : ''}${text}` }
+    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${personaLine(persona)}${deepDive ? DEEP_DIVE_INSTRUCTION : research ? RESEARCH_INSTRUCTION : ''}${text}` }
     if (!silent) addChatMessage(userTurn)
     addChatMessage(silent
-      ? { role: 'assistant', content: '', silent: true, context, mode: responseMode }
-      : { role: 'assistant', content: '', mode: responseMode })
+      ? { role: 'assistant', content: '', silent: true, context, mode: msgMode, researchSave: save ?? null }
+      : { role: 'assistant', content: '', mode: msgMode, researchSave: save ?? null })
 
     const history = windowedHistory(chatMessages.filter((m) => m.role !== 'system'))
       .map((m) => ({ role: m.role, content: m.content }))
@@ -899,11 +963,14 @@ export default function AIPanel({ wide = false, onListening }) {
       const result = await askClaude(
         [...history, userTurnWire],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { systemPrompt, maxTokens: research ? 3000 : 1200 }
+        { systemPrompt, maxTokens: deepDive ? 3600 : research ? 3000 : 1200 }
       )
+      const autoSaved = !!(save?.auto && result.text)
+      if (autoSaved) saveProseNote({ kind: save.kind, asset: save.asset, body: result.text })
       updateLastChatMessage((prev) => ({
         ...prev,
         stats: { elapsed: result.elapsed, outputTokens: result.outputTokens },
+        savedResearch: autoSaved,
       }))
       addNotification('SYSTEM', 'MaddenAI analysis ready')
       soundService.aiComplete()
@@ -950,14 +1017,14 @@ export default function AIPanel({ wide = false, onListening }) {
   // from two sides.
   useEffect(() => {
     const handler = (e) => {
-      const { prompt, context, fullscreen: wantFullscreen, visible } = e.detail ?? {}
+      const { prompt, context, fullscreen: wantFullscreen, visible, mode, save } = e.detail ?? {}
       if (!prompt) return
       setChatOpen(true)
       if (wantFullscreen) setAiMode('fullscreen')
       // `visible` is for prompts the user typed themselves — the command bar.
       // Those should appear as a user bubble; an ASK AI button's generated
       // prompt should not, because the user never wrote it.
-      setTimeout(() => send(prompt, { context, silent: !visible }), 100)
+      setTimeout(() => send(prompt, { context, silent: !visible, mode, save }), 100)
     }
     window.addEventListener('madden:ask-ai', handler)
     return () => window.removeEventListener('madden:ask-ai', handler)
@@ -1339,6 +1406,16 @@ export default function AIPanel({ wide = false, onListening }) {
         </aside>
       )}
       <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex items-center gap-1 px-3 py-1 border-b border-terminal-border/50 flex-shrink-0" role="radiogroup" aria-label="MaddenAI persona">
+        <span className="text-[9px] font-mono text-terminal-text-dim/60 tracking-widest mr-1">VOICE</span>
+        {PERSONAS.map(([id, label, hint]) => (
+          <button key={id} role="radio" aria-checked={persona === id} title={hint} onClick={() => setPersona(id)}
+            className={`px-1.5 py-px text-[9px] font-mono font-bold tracking-wider border transition-colors ${
+              persona === id ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10' : 'border-transparent text-terminal-text-dim hover:text-terminal-gold'
+            }`}
+          >{label}</button>
+        ))}
+      </div>
       {showResearch && (
         <div className="border-b border-terminal-border flex-shrink-0 relative">
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
@@ -1513,6 +1590,17 @@ export default function AIPanel({ wide = false, onListening }) {
                       </span>
                     )}
                   </span>
+                  {msg.content && msg.researchSave && !loading && (
+                    msg.savedResearch
+                      ? <span className="text-[9px] font-mono text-terminal-green">✓ IN SAVED RESEARCH</span>
+                      : <button
+                          onClick={() => {
+                            saveProseNote({ kind: msg.researchSave.kind, asset: msg.researchSave.asset, body: msg.content })
+                            setChatMessages((all) => all.map((m) => (m === msg ? { ...m, savedResearch: true } : m)))
+                          }}
+                          className="text-[9px] font-mono font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                        >SAVE AS NOTE</button>
+                  )}
                   {msg.content && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button

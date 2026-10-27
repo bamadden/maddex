@@ -1,4 +1,4 @@
-import { displayTicker, NOTE_DISCLAIMER } from '../../services/researchNoteService'
+import { displayTicker, NOTE_DISCLAIMER, NOTE_KIND_LABEL, parseProse } from '../../services/researchNoteService'
 
 // The on-screen preview of the research note, in document colours.
 //
@@ -58,7 +58,8 @@ function List({ items, numbered }) {
 export default function PrintableNote({ note, forwardRef }) {
   if (!note) return null
   const a = note.asset ?? {}
-  const stance = note.stance ?? 'BALANCED'
+  const stance = note.stance ?? NOTE_KIND_LABEL[note.kind] ?? 'BALANCED'
+  const rationale = note.stanceRationale ?? (note.body ? 'Long-form MaddenAI analysis, kept from the chat panel.' : null)
   const tone = STANCE_TONE[stance] ?? MUTED
   // The note's own timestamp, not the clock — the same note always shows the
   // same date.
@@ -85,14 +86,20 @@ export default function PrintableNote({ note, forwardRef }) {
             <div style={{ display: 'inline-block', marginTop: 6, background: tone, color: '#FFFFFF', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999 }}>
               {stance}
             </div>
-            {note.stanceRationale && (
-              <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11.5, lineHeight: 1.45, color: MUTED, marginTop: 7 }}>{note.stanceRationale}</div>
+            {rationale && (
+              <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11.5, lineHeight: 1.45, color: MUTED, marginTop: 7 }}>{rationale}</div>
             )}
             <div style={{ fontSize: 8, color: MUTED, marginTop: 7 }}>Not a recommendation — general information only</div>
           </div>
         </div>
 
-        <Section title="Executive Summary"><Prose text={note.executiveSummary} /></Section>
+        {note.body ? parseProse(note.body).map((sec, i) => (
+          <Section key={i} title={sec.title ?? 'Analysis'}>
+            {sec.blocks.map((b, j) => b.type === 'li'
+              ? <ul key={j} style={{ margin: 0, paddingLeft: 20 }}><li style={{ ...bodyStyle, marginBottom: 6 }}>{b.text}</li></ul>
+              : <p key={j} style={{ ...bodyStyle, margin: '0 0 9px 0' }}>{b.text}</p>)}
+          </Section>
+        )) : <Section title="Executive Summary"><Prose text={note.executiveSummary} /></Section>}
         {note.businessOverview && <Section title="Business Overview"><Prose text={note.businessOverview} /></Section>}
         {note.investmentConsiderations?.length > 0 && <Section title="Investment Considerations"><List items={note.investmentConsiderations} /></Section>}
         {note.macroContext && <Section title="Sector & Macro Context"><Prose text={note.macroContext} /></Section>}

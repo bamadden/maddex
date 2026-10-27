@@ -18,7 +18,7 @@ const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Australi
 const readCache = () => { try { return JSON.parse(localStorage.getItem(KEY) ?? '{}') } catch { return {} } }
 
 export function cachedStance(symbol) {
-  const note = listNoteHistory().find((n) => n.asset?.symbol?.replace(/\.AX$/i, '') === symbol.replace(/\.AX$/i, ''))
+  const note = listNoteHistory().find((n) => n.stance && n.asset?.symbol?.replace(/\.AX$/i, '') === symbol.replace(/\.AX$/i, ''))
   if (note?.stance && Date.now() - Date.parse(note.generatedAt) < NOTE_MAX_AGE_MS) {
     return { stance: note.stance, rationale: note.stanceRationale, generatedAt: note.generatedAt, from: 'research note' }
   }

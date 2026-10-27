@@ -191,12 +191,17 @@ export function listNoteHistory() {
   } catch { return [] }
 }
 
+// A history entry's identity: its kind and its subject. A second note on
+// the same stock replaces the first rather than filling the list with
+// near-duplicates, but a deep dive does not replace a structured note.
+export const noteId = (n) => `${n?.kind ?? 'note'}:${n?.asset?.symbol ?? ''}`
+
+export const NOTE_KIND_LABEL = { note: 'RESEARCH NOTE', deepdive: 'DEEP DIVE', strategy: 'STRATEGY SESSION' }
+
 export function saveNoteToHistory(note) {
   if (!note?.asset?.symbol) return listNoteHistory()
   try {
-    // One entry per symbol — a second note on the same stock replaces the
-    // first rather than filling the list with near-duplicates.
-    const rest = listNoteHistory().filter((n) => n.asset?.symbol !== note.asset.symbol)
+    const rest = listNoteHistory().filter((n) => noteId(n) !== noteId(note))
     const next = [note, ...rest].slice(0, HISTORY_KEEP)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
     announce()
@@ -208,13 +213,44 @@ export function saveNoteToHistory(note) {
   }
 }
 
-export function deleteNoteFromHistory(symbol) {
+export function deleteNoteFromHistory(id) {
   try {
-    const next = listNoteHistory().filter((n) => n.asset?.symbol !== symbol)
+    const next = listNoteHistory().filter((n) => noteId(n) !== id)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
     announce()
     return next
   } catch { return listNoteHistory() }
+}
+
+// A MaddenAI answer kept as research — a deep dive or a portfolio strategy
+// session. Prose with section headers rather than the six structured fields;
+// PrintableNote and notePdf lay out `body` when it is present. The first
+// paragraph stands in as the summary for SHARE and the history list.
+export function saveProseNote({ kind, asset, body }) {
+  const text = String(body ?? '').replace(/\n?FOLLOW_UPS:.*$/s, '').trim()
+  const firstPara = text.split(/\n\s*\n/).map((p) => p.replace(/^[#*\s]*[A-Z][A-Z &/—:-]{3,}:?\**\s*$/m, '').trim()).find((p) => p.length > 60 && !/^⚠|not financial advice/i.test(p)) ?? ''
+  return saveNoteToHistory({ kind, asset, body: text, executiveSummary: firstPara.replace(/\*\*/g, ''), generatedAt: new Date().toISOString(), disclaimer: NOTE_DISCLAIMER })
+}
+
+// Splits a prose note into titled sections for layout. A header is a line on
+// its own that is a markdown heading, wholly bold, or capitals ending in a
+// colon ("OVERVIEW:"); "- " and "1. " lines are list items. Bold markers are
+// dropped — the layout carries the emphasis.
+export function parseProse(body) {
+  const sections = []
+  let cur = { title: null, blocks: [] }
+  const push = () => { if (cur.title || cur.blocks.length) sections.push(cur) }
+  for (const raw of String(body ?? '').split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    const heading = line.match(/^#{1,4}\s+(.+)$/) ?? line.match(/^\*\*([^*]+)\*\*:?$/) ?? line.match(/^([A-Z0-9][A-Z0-9 &/,'’—-]{2,60}):\s*$/)
+    if (heading) { push(); cur = { title: heading[1].replace(/[*:]+$/g, '').trim(), blocks: [] }; continue }
+    const item = line.match(/^(?:[-•*]|\d+[.)])\s+(.+)$/)
+    const text = (item ? item[1] : line).replace(/\*\*/g, '')
+    cur.blocks.push({ type: item ? 'li' : 'p', text })
+  }
+  push()
+  return sections
 }
 
 // ─── Shareable text ──────────────────────────────────────────────────────────

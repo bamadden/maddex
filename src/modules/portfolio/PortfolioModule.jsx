@@ -17,7 +17,7 @@ import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { toYahooSymbol } from '../../utils/assetUtils'
 import { requireYFSym } from '../../utils/tickerGuard'
-import { dispatchAskAI } from '../../utils/askAI'
+import { dispatchAskAI, askMaddenAI } from '../../utils/askAI'
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from 'recharts'
 import StressTest from './StressTest'
 import PerformanceTab from './PerformanceTab'
@@ -775,6 +775,27 @@ export default function PortfolioModule() {
       'Format in professional markdown. Australian investor perspective. General information only, not advice.',
   }, { fullscreen: true, rawPrompt: true })
 
+  // PORTFOLIO STRATEGY SESSION — the whole book in one prompt: each holding's
+  // weight and P&L, sector and currency mix, totals. The investor profile
+  // rides along in MaddenAI's per-turn context. Prices are the terminal's
+  // (demo for equities), so the prompt says so and asks for no new figures.
+  const runStrategySession = () => {
+    const holdingsLines = live
+      .slice().sort((a, b) => b.mktVal - a.mktVal)
+      .map((h) => `- ${h.symbol} (${h.type === 'crypto' ? 'Crypto' : SECTOR_BY_SYMBOL[h.symbol] ?? 'Other'}): ${((h.mktVal / mktTotal) * 100).toFixed(1)}% of portfolio, P&L ${h.pnlPct != null ? `${h.pnlPct >= 0 ? '+' : ''}${h.pnlPct.toFixed(1)}%` : 'n/a'}`)
+      .join('\n')
+    const mix = (rows) => rows.map((r) => `${r.label} ${Number(r.pct).toFixed(1)}%`).join(', ')
+    askMaddenAI(
+      'PORTFOLIO STRATEGY SESSION. Review my portfolio holistically. Cover:\n'
+      + '1. Concentration risks\n2. Macro alignment\n3. Income vs growth balance\n4. Suggested rebalancing considerations\n5. Key risks in the current environment\n\n'
+      + `Holdings by weight:\n${holdingsLines}\n\n`
+      + `Sector allocation: ${mix(bySector)}\nCurrency: ${mix(byCurrency)}\n`
+      + `Total P&L since purchase: ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%\n\n`
+      + 'Equity prices in this terminal are demo data, so treat P&L as illustrative. Use only the figures above and in your context. General information, not personal advice.',
+      { mode: 'research', fullscreen: true, save: { kind: 'strategy', asset: { symbol: 'PORTFOLIO', name: 'Portfolio strategy session' } } },
+    )
+  }
+
   // ─── EMPTY STATE ───────────────────────────────────────────────────────────
 
   if (holdings.length > 0 && isFetching && !portfolioResult && yfSymbols.length > 0) {
@@ -876,6 +897,13 @@ export default function PortfolioModule() {
                 onClick={runAiAnalysis}
                 className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
               >AI ANALYSIS ▶</button>
+            )}
+            {live.length > 0 && (
+              <button
+                onClick={runStrategySession}
+                title="A holistic MaddenAI review of the whole portfolio — save it to research afterwards"
+                className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
+              >STRATEGY SESSION ▶</button>
             )}
             {live.length > 0 && (
               <button

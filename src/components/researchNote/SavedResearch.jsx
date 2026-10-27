@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { deleteNoteFromHistory } from '../../services/researchNoteService'
+import { deleteNoteFromHistory, noteId, NOTE_KIND_LABEL } from '../../services/researchNoteService'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
 
 // SAVED RESEARCH — the last ten research notes, in the MaddenAI panel.
@@ -18,7 +18,7 @@ export default function SavedResearch() {
   const [busy, setBusy] = useState(null)
 
   const exportPdf = async (n) => {
-    setBusy(n.asset.symbol)
+    setBusy(noteId(n))
     try { (await import('./notePdf')).downloadNotePdf(n) } finally { setBusy(null) }
   }
 
@@ -34,13 +34,13 @@ export default function SavedResearch() {
     <>
       <div className="overflow-auto max-h-56">
         {notes.map((n) => {
-          const stance = n.stance ?? 'BALANCED'
+          const stance = n.stance ?? NOTE_KIND_LABEL[n.kind] ?? 'BALANCED'
           const tone = STANCE_TONE[stance] ?? '#8BA3C4'
           return (
-            <div key={n.asset.symbol} className="group flex items-center gap-2 border-b border-terminal-border/40 last:border-0 px-3 py-1.5 hover:bg-terminal-surface2">
+            <div key={noteId(n)} className="group flex items-center gap-2 border-b border-terminal-border/40 last:border-0 px-3 py-1.5 hover:bg-terminal-surface2">
               <button onClick={() => setOpen(n)} className="flex-1 min-w-0 text-left" title="Open this note">
                 <div className="text-xs text-terminal-text-bright truncate">
-                  {n.asset.name ?? n.asset.symbol} <span className="text-terminal-text-dim font-mono">{String(n.asset.symbol).replace(/\.AX$/i, '')}</span>
+                  {n.asset.name ?? n.asset.symbol} {n.asset.symbol !== 'PORTFOLIO' && <span className="text-terminal-text-dim font-mono">{String(n.asset.symbol).replace(/\.AX$/i, '')}</span>}
                 </div>
                 <div className="text-[9px] text-terminal-text-dim/60 font-mono">
                   {new Date(n.generatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -49,11 +49,11 @@ export default function SavedResearch() {
               <span className="text-[9px] font-bold font-mono px-1.5 py-px flex-shrink-0" style={{ color: tone, border: `1px solid ${tone}66` }}>{stance}</span>
               <button
                 onClick={() => exportPdf(n)}
-                disabled={busy === n.asset.symbol}
+                disabled={busy === noteId(n)}
                 className="text-[9px] font-bold font-mono text-terminal-gold/80 hover:text-terminal-gold border border-terminal-border px-1.5 py-px disabled:opacity-50"
               >PDF</button>
               <button
-                onClick={() => deleteNoteFromHistory(n.asset.symbol)}
+                onClick={() => deleteNoteFromHistory(noteId(n))}
                 className="text-[9px] font-bold font-mono text-terminal-text-dim/60 hover:text-terminal-red px-1"
                 title="Delete from history"
               >DELETE</button>

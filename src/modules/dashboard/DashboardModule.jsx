@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
+import MorningCallButton from './MorningCallButton'
 import DashboardStatusBar from './DashboardStatusBar'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -98,6 +99,7 @@ export default function DashboardModule() {
         subtitle="Your terminal at a glance"
         right={
           <div className="flex items-center gap-1.5">
+            <MorningCallButton />
             {/* Layout picker and edit mode are both hidden when narrow.
                 Choosing between 1x3, 2x2, 3x2, 3x3 and 4x3 grids is
                 meaningless when the grid renders as a single column

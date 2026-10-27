@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, memo, Fragment } from 'react'
+import { deepDive } from '../../utils/askAI'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -107,6 +108,7 @@ const HELP_SECTIONS = [
     { cmd:'alert BHP above 48', desc:'Alerts in words — also "notify me when BHP hits 48"' },
     { cmd:'add BHP / watch CSL', desc:'Add to watchlist' },
     { cmd:'analyse CSL', desc:'MaddenAI analysis — also "what is CSL", "tell me about BHP"' },
+    { cmd:'deep dive BHP', desc:'Six-part MaddenAI deep dive, saved to research' },
     { cmd:'compound 10000 8% 20 years', desc:'Opens the calculator filled in' },
     { cmd:'CORRELATE {s1} {s2}', desc:'Open Correlation Explorer — e.g. CORRELATE BHP AUD' },
     { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
@@ -288,10 +290,18 @@ function parseNaturalLanguage(raw) {
     return null
   }
 
+  // "deep dive BHP" / "deep dive into CSL" / "BHP deep dive" — the six-part
+  // long-form analysis, kept in SAVED RESEARCH.
+  hit = m(/^deep ?dive(?: on| into)?(?: the)? (.+?)\??$/i) ?? m(/^(.+?) deep ?dive$/i)
+  if (hit) {
+    const a = assetIn(hit[1])
+    if (a) return { kind: 'deepdive', sym: a.sym, name: a.name ?? a.label, say: `MaddenAI deep dive: ${a.label}` }
+  }
+
   // "analyse BHP" / "analyze BHP" / "tell me about CSL" / "research westpac" /
   // "BHP analysis" / "analysis of BHP"
-  hit = m(/^(?:analys[ez]e?|research|tell me about|deep dive(?: on| into)?|analysis of)(?: the)? (.+?)\??$/i)
-    ?? m(/^(.+?) (?:analysis|research|deep dive)$/i)
+  hit = m(/^(?:analys[ez]e?|research|tell me about|analysis of)(?: the)? (.+?)\??$/i)
+    ?? m(/^(.+?) (?:analysis|research)$/i)
   if (hit) {
     const a = assetIn(hit[1])
     if (a) return { kind: 'ai', symbol: a.label, query: analysisQuery(a.label), say: `Ask MaddenAI to analyse ${a.label}` }
@@ -456,8 +466,9 @@ const isCommandPrefix = (q) => {
 function buildActionSuggestions(rawInput, nl) {
   const q = rawInput.trim()
   if (nl) {
-    const category = nl.kind === 'ai' ? 'MADDENAI' : nl.kind === 'calc' ? 'CALC' : nl.kind === 'bond' ? 'BONDS' : 'ACTIONS'
-    const type = nl.kind === 'ai' ? 'ai' : nl.kind === 'calc' ? 'calc' : nl.kind === 'bond' ? 'bond' : 'action'
+    const ai = nl.kind === 'ai' || nl.kind === 'deepdive'
+    const category = ai ? 'MADDENAI' : nl.kind === 'calc' ? 'CALC' : nl.kind === 'bond' ? 'BONDS' : 'ACTIONS'
+    const type = ai ? 'ai' : nl.kind === 'calc' ? 'calc' : nl.kind === 'bond' ? 'bond' : 'action'
     return [{ sym: `nl:${q}`, label: nl.say, type, category, desc: 'Press Enter to run', action: 'command', payload: q }]
   }
   // Watchlist/portfolio adds only for something that names an asset. They used
@@ -1542,6 +1553,11 @@ export default function CommandBar() {
 
         case 'ai':
           await routeToAI(nl.query)
+          return
+
+        case 'deepdive':
+          deepDive({ symbol: nl.sym, name: nl.name })
+          flash(`→ MADDENAI DEEP DIVE · ${nl.sym.replace(/\.AX$/i, '')}`, 'text-terminal-green', 2000)
           return
 
         case 'compare':

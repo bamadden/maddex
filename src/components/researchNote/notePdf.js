@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf'
-import { displayTicker, NOTE_DISCLAIMER } from '../../services/researchNoteService'
+import { displayTicker, NOTE_DISCLAIMER, NOTE_KIND_LABEL, parseProse } from '../../services/researchNoteService'
 
 // The research note as a real PDF document.
 //
@@ -97,10 +97,10 @@ export function buildNotePdf(note) {
 
   // ── Stance box (top right) ──
   const boxW = 62, boxX = PAGE_W - M - boxW, boxY = 21
-  const stance = note.stance ?? 'BALANCED'
+  const stance = note.stance ?? NOTE_KIND_LABEL[note.kind] ?? 'BALANCED'
   const tone = STANCE_TONE[stance] ?? MUTED
   font('times', 'italic', 8.5, MUTED)
-  const rationale = pdf.splitTextToSize(clean(note.stanceRationale), boxW - 8)
+  const rationale = pdf.splitTextToSize(clean(note.stanceRationale ?? (note.body ? 'Long-form MaddenAI analysis, kept from the chat panel.' : '')), boxW - 8)
   const boxH = 17 + rationale.length * lineH(8.5, 1.35) + 6
   pdf.setFillColor(...PANEL); pdf.setDrawColor(...RULE); pdf.setLineWidth(0.3)
   pdf.rect(boxX, boxY, boxW, boxH, 'FD')
@@ -131,8 +131,21 @@ export function buildNotePdf(note) {
   y += 2
 
   // ── Body ──
-  section('Executive Summary')
-  para(note.executiveSummary, { size: 10.5 })
+  if (note.body) {
+    for (const sec of parseProse(note.body)) {
+      section(sec.title ?? 'Analysis')
+      const items = []
+      const flush = () => { if (items.length) { list(items.splice(0), false) } }
+      for (const b of sec.blocks) {
+        if (b.type === 'li') items.push(b.text)
+        else { flush(); para(b.text) }
+      }
+      flush()
+    }
+  } else {
+    section('Executive Summary')
+    para(note.executiveSummary, { size: 10.5 })
+  }
 
   if (note.businessOverview) { section('Business Overview'); para(note.businessOverview) }
   if (note.investmentConsiderations?.length) { section('Investment Considerations'); list(note.investmentConsiderations, false) }

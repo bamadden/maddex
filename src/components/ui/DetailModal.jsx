@@ -18,7 +18,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, colorClass } from '../../utils/format'
 import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetUtils'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
-import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { dispatchAskAI, todayAEST, deepDive } from '../../utils/askAI'
 import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
 import AnalystCoverage from '../markets/AnalystCoverage'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
@@ -1396,6 +1396,15 @@ export default function DetailModal() {
               className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
             >
               📄 GENERATE RESEARCH NOTE
+            </button>
+          )}
+          {isStockOrIdx && type !== 'index' && (
+            <button
+              onClick={() => deepDive({ symbol, name, type })}
+              title="Six-part long-form MaddenAI analysis, kept in SAVED RESEARCH"
+              className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
+            >
+              ◆ DEEP DIVE
             </button>
           )}
           {(isStockOrIdx || isCryptoModal) && (
