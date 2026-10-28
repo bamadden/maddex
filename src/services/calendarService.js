@@ -7,12 +7,6 @@
 import { getRelativeDate, sydneyOffset } from '../utils/dateUtils'
 import VERIFIED_CONSTANTS from '../data/verifiedConstants'
 
-const CPI_CONSENSUS = (() => {
-  const b = VERIFIED_CONSTANTS.cpiPreview.banks
-  const range = (k) => { const v = b.map((x) => x[k]); const lo = Math.min(...v), hi = Math.max(...v); return lo === hi ? lo.toFixed(1) : `${lo.toFixed(1)}–${hi.toFixed(1)}` }
-  return `Trimmed mean ${range('trimmedQoQ')}% q/q, ${range('trimmedYoY')}% y/y · headline ${range('headlineQoQ')}% q/q, ${range('headlineYoY')}% y/y`
-})()
-
 // No 'demo' fallback: FMP rejects it on this endpoint with a 401, so without
 // a real key the request is pure console noise before the fallback list.
 const FMP_KEY   = import.meta.env.VITE_FMP_API_KEY || null
@@ -38,13 +32,16 @@ const FALLBACK_EVENTS = [
     description: 'Unemployment rose to 4.7% (seasonally adjusted), a five-year high. Trend 4.6%.' },
   { date: '2026-10-15', time: '23:30', event: 'US PPI (Sep)',                        region: 'US', importance: 'medium' },
   { date: '2026-10-23', time: '11:30', event: 'AU National Accounts (2025-26)',      region: 'AU', importance: 'low' },
-  // Consensus derived from verifiedConstants.cpiPreview (the per-bank
-  // figures live there, once). Previous = the August monthly CPI.
+  // Released. The result and the forecasts it was measured against are in
+  // verifiedConstants.au (cpiQuarter*), once.
   { date: '2026-10-28', time: '11:30', event: 'AU CPI (Sep, incl. Sep quarter)',     region: 'AU', importance: 'high',
-    forecast: CPI_CONSENSUS,
-    prev: `Aug: ${VERIFIED_CONSTANTS.au.cpi.toFixed(1)}% y/y, trimmed mean ${VERIFIED_CONSTANTS.au.cpiTrimmedMean.toFixed(1)}%`,
-    sourceUrl: VERIFIED_CONSTANTS.cpiPreview.absUrl, sourceLabel: 'ABS.GOV.AU', watch: ['cpi', 'cpiTrimmedMean'],
-    description: `The last inflation read before the 3 Nov RBA decision. The RBA's August forecast was ${VERIFIED_CONSTANTS.cpiPreview.rbaTrimmedQoQ.toFixed(1)}% q/q trimmed mean. ${VERIFIED_CONSTANTS.cpiPreview.driverNote} ANZ and Westpac call a November hike; CBA and NAB a hold. Consensus per ${VERIFIED_CONSTANTS.cpiPreview.source}.` },
+    forecast: VERIFIED_CONSTANTS.au.cpiQuarterForecasts,
+    prev: `Aug: ${VERIFIED_CONSTANTS.au.cpiPrevious.toFixed(1)}% y/y, trimmed mean ${VERIFIED_CONSTANTS.au.cpiTrimmedMeanPrevious.toFixed(1)}% (revised)`,
+    sourceUrl: VERIFIED_CONSTANTS.au.cpiQuarterUrl, sourceLabel: 'ABS.GOV.AU', watch: ['cpi', 'cpiTrimmedMean'],
+    description: (() => {
+      const a = VERIFIED_CONSTANTS.au
+      return `Released: September ${a.cpi.toFixed(1)}% y/y, trimmed mean ${a.cpiTrimmedMean.toFixed(1)}%. ${a.cpiQuarterPeriod}: trimmed mean ${a.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q (${a.cpiQuarterTrimmedYoY.toFixed(1)}% y/y), headline ${a.cpiQuarterQoQ.toFixed(1)}% q/q (${a.cpiQuarterYoY.toFixed(1)}% y/y). The last inflation read before the 3 Nov RBA decision.`
+    })() },
   { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium' },
   { date: '2026-10-29', time: '05:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
     sourceUrl: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', sourceLabel: 'FEDERALRESERVE.GOV', watch: ['fedUpper'],

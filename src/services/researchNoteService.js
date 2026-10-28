@@ -130,6 +130,7 @@ export async function generateResearchNote(asset) {
     `- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
     `- US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})`,
     `- AU CPI: ${au.cpi.toFixed(1)}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}`,
+    `- AU CPI ${au.cpiQuarterPeriod}: trimmed mean ${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q, ${au.cpiQuarterTrimmedYoY.toFixed(1)}% y/y; headline ${au.cpiQuarterQoQ.toFixed(1)}% q/q (ABS, ${au.cpiLastRelease})`,
     `- AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})`,
     `- AU GDP: ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
     `- Iron ore: US$${commodities.ironOreUSD}/t (as at ${commodities.asOf})`,
@@ -137,7 +138,7 @@ export async function generateResearchNote(asset) {
     `- ASX 200 market P/E ${au.asx200PE}, dividend yield ${au.asx200DivYield}% (as at ${au.asxMetricsRelease})`,
     `- AU household spending: ${au.householdSpendingMoM.toFixed(1)}% m/m, ${au.householdSpendingYoY}% y/y (${au.householdSpendingPeriod}, ABS)`,
     `- NAB business confidence: ${au.nabConfidence} (${au.nabPeriod}); conditions ${au.nabConditions}`,
-    ...(nd ? [`- Next RBA decision ${nd.date}: ASX 30-day futures priced ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (as at ${nd.marketAsOf})`] : []),
+    ...(nd ? [`- Next RBA decision ${nd.date}: market pricing ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, as at ${nd.marketAsOf})`] : []),
   ].join('\n')
 
   const userContent = `

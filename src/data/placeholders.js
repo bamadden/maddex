@@ -97,7 +97,7 @@ export const CENTRAL_BANK_RATES = CB_ORDER.map(([key, bank, country]) => {
 export const AU_MACRO = [
   { name: 'RBA Cash Rate',       value: pct2(rba.cashRate),  prev: pct2(rba.previousRate), date: rba.lastDecision,      beat: null,  src: rba.source,           vkey: 'rba' },
   { name: 'AU CPI YoY',          value: pct(au.cpi),         prev: pct(au.cpiPrevious),   date: au.cpiLastRelease,     beat: false, src: 'abs.gov.au/6401.0',  vkey: 'au' },
-  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: '3.6%',             date: au.cpiLastRelease,          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
+  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: pct(au.cpiTrimmedMeanPrevious), date: au.cpiLastRelease,          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
   { name: 'AU Unemployment',     value: pct(au.unemployment), prev: pct(au.unemploymentPrevious),             date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },
   { name: 'AU GDP QoQ',          value: pct(au.gdpQoQ),      prev: '0.3%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
   { name: 'AU GDP Annual',       value: pct(au.gdpAnnual),   prev: '1.0%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },

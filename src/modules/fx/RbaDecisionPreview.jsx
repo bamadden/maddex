@@ -24,14 +24,11 @@ const dayLabel = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU'
 
 export default function RbaDecisionPreview() {
   const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  const cp = VERIFIED_CONSTANTS.cpiPreview
   const now = useNow()
   if (!nd) return null
   const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
   if (now >= at || now < at - SHOW_BEFORE_MS) return null
 
-  const cpiAt = cp ? new Date(`${cp.releaseDate}T${cp.releaseTime}:00${sydneyOffset(cp.releaseDate)}`).getTime() : null
-  const cpiOut = cpiAt != null && now >= cpiAt
   const hold = 100 - nd.marketHikePct
 
   const scenario = (label, rate, p, tone) => (
@@ -59,15 +56,13 @@ export default function RbaDecisionPreview() {
           {scenario('HIKE ▲25bp', nd.hikeRate, nd.marketHikePct, '#A83232')}
           {scenario('HOLD', nd.currentRate, hold, '#8BA3C4')}
           <div className="font-mono text-terminal-text-dim/60 leading-snug mt-0.5" style={{ fontSize: 8 }}>
-            Market-implied estimate as at {nd.marketAsOf}: {nd.marketSource} implied {nd.marketImpliedRate.toFixed(2)}%.
+            Market-implied estimate as at {nd.marketAsOf}: {nd.marketSource}{nd.marketImpliedRate != null && <> implied {nd.marketImpliedRate.toFixed(2)}%</>}.
             A dated reading, not a live feed. {nd.marketContext}
           </div>
         </div>
         <div className="mt-2 md:mt-0">
           <div className="font-mono text-terminal-text-bright leading-snug" style={{ fontSize: 10 }}>
-            {cpiOut
-              ? 'The September quarter CPI is out — the market reading at left predates it.'
-              : `The last major data point before the decision: ${nd.keyFactor}, ${cp?.releaseTime ?? ''} ${cp ? sydneyTzAbbr(cp.releaseDate) : ''}.`}
+            {nd.keyFactor}
           </div>
           <blockquote className="font-mono text-terminal-text-dim italic leading-snug mt-1.5 pl-2" style={{ fontSize: 9, borderLeft: '2px solid rgba(201,168,76,0.4)' }}>
             “{nd.statementQuote}”

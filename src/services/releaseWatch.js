@@ -72,8 +72,7 @@ export function newDataFor(e, check = getOfficialCheck()) {
   if (w.includes('cpi')) {
     push('AU CPI (annual)', live.cpi?.cpi, C.au.cpi, C.au.cpiPeriod)
     push('Trimmed mean (annual)', live.cpi?.trimmedMean, C.au.cpiTrimmedMean, C.au.cpiPeriod)
-    const p = C.cpiPreview
-    if (p) push('Headline CPI (q/q)', live.cpi?.quarterlyQoQ, p.previousHeadlineQoQ, p.previousPeriod)
+    if (C.au.cpiQuarterQoQ != null) push('Headline CPI (q/q)', live.cpi?.quarterlyQoQ, C.au.cpiQuarterQoQ, C.au.cpiQuarterPeriod)
   }
   if (w.includes('unemployment')) push('Unemployment', live.lf, C.au.unemployment, C.au.unemploymentPeriod)
   if (w.includes('cashRate') && live.rba?.value != null && Math.abs(live.rba.value - C.rba.cashRate) >= 0.005) {

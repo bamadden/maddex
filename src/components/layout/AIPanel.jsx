@@ -160,16 +160,12 @@ const PROFILE_PROMPT_MODULES = new Set(['dashboard', 'markets', 'news', 'portfol
 // generally think about it.
 function decisionWeekPrompts(now = Date.now()) {
   const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  const cp = VERIFIED_CONSTANTS.cpiPreview
   if (!nd) return null
   const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
   if (now >= at || now < at - 7 * 86400_000) return null
-  const cpiOut = cp && now >= new Date(`${cp.releaseDate}T${cp.releaseTime}:00${sydneyOffset(cp.releaseDate)}`).getTime()
   const day = new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   return [
-    cpiOut
-      ? { label: 'CPI OUT — WHAT NOW FOR RATES?', prompt: `The September quarter CPI has been released. Using only the figures in your context, what does it mean for the RBA's ${day} decision?`, dataKeys: ['aud'] }
-      : { label: "TOMORROW'S CPI & RATES", prompt: `What does the September quarter CPI mean for the RBA's ${day} decision? Use the bank forecasts and market pricing you were given.`, dataKeys: ['aud'] },
+    { label: 'LATEST CPI — WHAT NOW FOR RATES?', prompt: `Using only the CPI figures and market pricing in your context, what does the latest inflation data mean for the RBA's ${day} decision?`, dataKeys: ['aud'] },
     { label: 'POSITIONING BEFORE THE RBA?', prompt: `How do investors generally think about positioning ahead of a live RBA meeting like ${day}? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
     { label: 'SECTORS IF THE RBA HIKES', prompt: 'Which ASX sectors have tended to hold up or struggle when the RBA raises rates, and why?', dataKeys: ['asx'] },
     { label: `${day.toUpperCase()} MARKET PRICING`, prompt: `What is the market pricing for the RBA's ${day} decision, where does that reading come from, and how much should anyone lean on it?`, dataKeys: [] },
