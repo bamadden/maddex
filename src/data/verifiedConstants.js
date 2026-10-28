@@ -195,9 +195,14 @@ export const VERIFIED_CONSTANTS = {
   },
   rbnz: {
     label: 'RBNZ', country: 'New Zealand', cashRate: 2.75,
-    lastDecision: '2026-09-02', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-28',
-    // Re-checked 2026-10-27: no decision since the 2 Sep hike; next Wed 28 Oct.
-    source: 'rbnz.govt.nz', asOf: '2026-09-02', lastVerified: '2026-10-27',
+    lastDecision: '2026-10-28', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-09',
+    note: 'Held 4–3 against a priced hike; Governor says further increases highly likely',
+    // UPDATED 2026-10-28: Monetary Policy Review held the OCR at 2.75% by a
+    // 4–3 vote; markets had priced ~90% for a hike to 3.00% (RNZ, Newsquawk,
+    // Babypips). Previous move: +25bp on 2 Sep. Next: Monetary Policy
+    // Statement 9 Dec (RBNZ calendar via squirrel.co.nz — the 25 Nov this
+    // schedule carried was wrong).
+    source: 'rbnz.govt.nz (via RNZ, Newsquawk)', asOf: '2026-10-28', lastVerified: '2026-10-28',
   },
   boc: {
     label: 'BOC', country: 'Canada', cashRate: 2.25,

@@ -21,7 +21,7 @@ export const BOE_MEETINGS_2026  = ['2026-09-17', '2026-11-05', '2026-12-17']
 // approximately" rather than exact.
 export const BOJ_MEETINGS_2026      = ['2026-09-18', '2026-10-30', '2026-12-18']
 export const PBOC_MEETINGS_2026     = ['2026-09-21', '2026-10-20', '2026-11-20']
-export const RBNZ_MEETINGS_2026     = ['2026-10-28', '2026-11-25']
+export const RBNZ_MEETINGS_2026     = ['2026-10-28', '2026-12-09']
 export const BOC_MEETINGS_2026      = ['2026-09-02', '2026-10-28', '2026-12-09']
 export const SNB_MEETINGS_2026      = ['2026-09-24', '2026-12-17']
 export const RIKSBANK_MEETINGS_2026 = ['2026-09-24', '2026-11-19']

@@ -20,7 +20,7 @@ import { logActivity } from '../../services/activityLogService'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
 
-const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿' }
+const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿', CA: '🇨🇦' }
 const IMPORTANCE_COLOR = { high: 'text-terminal-red', medium: 'text-terminal-gold', low: 'text-terminal-muted' }
 const IMPORTANCE_BORDER = { high: 'border-l-terminal-red', medium: 'border-l-terminal-gold', low: 'border-l-terminal-muted' }
 

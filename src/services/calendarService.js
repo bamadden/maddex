@@ -42,12 +42,17 @@ const FALLBACK_EVENTS = [
       const a = VERIFIED_CONSTANTS.au
       return `Released: September ${a.cpi.toFixed(1)}% y/y, trimmed mean ${a.cpiTrimmedMean.toFixed(1)}%. ${a.cpiQuarterPeriod}: trimmed mean ${a.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q (${a.cpiQuarterTrimmedYoY.toFixed(1)}% y/y), headline ${a.cpiQuarterQoQ.toFixed(1)}% q/q (${a.cpiQuarterYoY.toFixed(1)}% y/y). The last inflation read before the 3 Nov RBA decision.`
     })() },
-  { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium' },
+  { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium',
+    description: 'RESULT: HOLD at 2.75% (4–3 vote) — markets had priced a hike to 3.00%. Next decision 9 Dec.' },
   { date: '2026-10-29', time: '05:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
     sourceUrl: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', sourceLabel: 'FEDERALRESERVE.GOV', watch: ['fedUpper'],
-    description: 'First meeting after the September hike to 3.75–4.00%.' },
-  { date: '2026-10-30', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium' },
-  { date: '2026-10-30', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium' },
+    description: 'First meeting after the September hike to 3.75–4.00%. CME FedWatch had ~90% priced for a hold (28 Oct); no new projections until December.' },
+  { date: '2026-10-29', time: '00:45', event: 'Bank of Canada Rate Decision',        region: 'CA', importance: 'medium',
+    description: 'Policy rate 2.25%. 9:45am Ottawa, Wed 28 Oct.' },
+  { date: '2026-10-30', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium',
+    description: 'Deposit rate 2.50% after the 10 Sep hike. A hold is the consensus; December carries new projections.' },
+  { date: '2026-10-30', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium',
+    description: 'Policy rate 1.25% after the 18 Sep hike; Outlook Report released with the decision.' },
   { date: '2026-10-30', time: '11:30', event: 'AU Producer Price Index (Sep)',       region: 'AU', importance: 'low' },
   { date: '2026-11-03', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high',
     sourceUrl: 'https://www.rba.gov.au/media-releases/', sourceLabel: 'RBA.GOV.AU', watch: ['cashRate'],
@@ -70,6 +75,8 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-09-24', event: 'AU Unemployment Rate (Aug)',    region: 'AU', result: '4.6%' },
   { date: '2026-09-29', event: 'RBA Rate Decision',             region: 'AU', result: 'HIKE +25bp to 4.60%' },
   { date: '2026-10-15', event: 'AU Unemployment Rate (Sep)',    region: 'AU', result: '4.7%' },
+  { date: '2026-10-28', event: 'AU CPI (Sep, incl. Sep quarter)', region: 'AU', result: '4.3% y/y · trimmed mean 1.0% q/q' },
+  { date: '2026-10-28', event: 'RBNZ OCR Decision',             region: 'NZ', result: 'HOLD at 2.75% (4–3; hike was priced)' },
 ]
 
 function readCache() {
