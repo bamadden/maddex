@@ -312,8 +312,18 @@ export function marketSession(now = new Date()) {
     return h > 0 ? `${h}h ${r}m` : `${r}m`
   }
 
+  // Minutes until the next 10:00 open — weekdays only; public holidays are
+  // not modelled.
+  const DAY = 24 * 60
+  const toOpen = () => {
+    if (weekday === 'Sat') return 2 * DAY - mins + OPEN_MIN
+    if (weekday === 'Sun') return DAY - mins + OPEN_MIN
+    if (mins < OPEN_MIN) return OPEN_MIN - mins
+    return (weekday === 'Fri' ? 3 * DAY : DAY) - mins + OPEN_MIN
+  }
+
   if (weekend) {
-    return { key: 'weekend', label: 'WEEKEND', detail: 'ASX opens 10:00am Monday', colour: '#4A6080' }
+    return { key: 'weekend', label: 'WEEKEND', detail: `ASX opens in ${fmtGap(toOpen())}`, colour: '#4A6080' }
   }
   if (mins >= 5 * 60 && mins < OPEN_MIN) {
     return { key: 'pre', label: 'PRE-MARKET', detail: `ASX opens in ${fmtGap(OPEN_MIN - mins)}`, colour: '#C9A84C' }
@@ -323,9 +333,9 @@ export function marketSession(now = new Date()) {
   }
   if (mins >= CLOSE_MIN) {
     // Public holidays are not modelled; Friday evening points at Monday.
-    return { key: 'after', label: 'ASX CLOSED', detail: `Opens 10:00am ${weekday === 'Fri' ? 'Monday' : 'tomorrow'}`, colour: '#4A6080' }
+    return { key: 'after', label: 'ASX CLOSED', detail: `Opens in ${fmtGap(toOpen())}`, colour: '#4A6080' }
   }
-  return { key: 'overnight', label: 'OVERNIGHT', detail: 'US markets active', colour: '#7C6BC4' }
+  return { key: 'overnight', label: 'OVERNIGHT', detail: `ASX opens in ${fmtGap(toOpen())}`, colour: '#7C6BC4' }
 }
 
 // ─── Annotation ──────────────────────────────────────────────────────────────

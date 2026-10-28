@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { BRIEF_BANDS, scoreColour } from '../../utils/briefScore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
 import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey, getCachedBrief } from '../../services/morningBriefService'
@@ -161,13 +162,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
 // Score bands per spec — angular width is proportional to each band's share
 // of the 0-100 range, not evenly split, so the gauge's colour transitions
 // land at the same score thresholds the label logic uses.
-const BANDS = [
-  { from: 0,  to: 30,  color: '#A83232' }, // BEARISH
-  { from: 30, to: 50,  color: '#C9A84C' }, // CAUTIOUS (amber-ish gold)
-  { from: 50, to: 70,  color: '#E8C96A' }, // NEUTRAL
-  { from: 70, to: 85,  color: '#6FCB8F' }, // BULLISH (light green)
-  { from: 85, to: 100, color: '#2D8A50' }, // STRONGLY BULLISH
-]
+const BANDS = BRIEF_BANDS
 
 function polar(cx, cy, r, angleDeg) {
   const rad = (angleDeg * Math.PI) / 180
@@ -212,7 +207,6 @@ function ScoreGauge({ score, label }) {
 
 const IMPACT_COLOR = { HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', LOW: 'text-terminal-text-dim' }
 
-const scoreColour = (score) => BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? '#8BA3C4'
 
 // Previous briefs and weekly reviews, collapsed by default.
 //

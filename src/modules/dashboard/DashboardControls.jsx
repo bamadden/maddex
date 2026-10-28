@@ -84,6 +84,9 @@ export default function DashboardControls({ layout, onChange }) {
                     {p.description ?? `${p.widgets.length} widgets`}
                   </span>
                 </div>
+                {p.audience && (
+                  <div className="font-mono mt-1.5 leading-snug" style={{ fontSize: 8, color: '#8BA3C4', letterSpacing: '0.04em' }}>{p.audience}</div>
+                )}
               </button>
             )
           })}

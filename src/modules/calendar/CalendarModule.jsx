@@ -18,6 +18,7 @@ import { upcomingEarnings } from '../../services/earningsCalendar'
 import { dispatchAskAI } from '../../utils/askAI'
 import { logActivity } from '../../services/activityLogService'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
 
 const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿' }
 const IMPORTANCE_COLOR = { high: 'text-terminal-red', medium: 'text-terminal-gold', low: 'text-terminal-muted' }
@@ -560,8 +561,13 @@ function WeekView({ anchorDate, events, selectedKey, onSelect }) {
 }
 
 export default function CalendarModule() {
-  const [month, setMonth] = useState(() => new Date())
-  const [selectedKey, setSelectedKey] = useState(() => toDateKey(new Date()))
+  // A dashboard event can open the calendar at its date ({ date: 'YYYY-MM-DD' }).
+  const [month, setMonth] = useState(() => {
+    const d = peekModuleIntent('calendar')?.date
+    return d ? new Date(`${d}T00:00:00`) : new Date()
+  })
+  const [selectedKey, setSelectedKey] = useState(() => peekModuleIntent('calendar')?.date ?? toDateKey(new Date()))
+  useEffect(() => { takeModuleIntent('calendar') }, [])
   const [filter, setFilter] = useState('all')
   const [view, setView] = useState('month')
   // Bumped whenever a reminder is added or removed, so components reading the

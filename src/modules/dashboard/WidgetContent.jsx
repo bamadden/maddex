@@ -23,6 +23,12 @@ const WIDGET_COMPONENTS = {
   'bond-yield-widget':     lazy(() => import('./widgets/BondYieldWidget')),
   'etf-mover-widget':      lazy(() => import('./widgets/ETFMoverWidget')),
   'calc-quick-widget':     lazy(() => import('./widgets/CalcQuickWidget')),
+  'market-pulse':          lazy(() => import('./widgets/MarketPulseWidget')),
+  'events-timeline':       lazy(() => import('./widgets/EventsTimelineWidget')),
+  'scanner-signals':       lazy(() => import('./widgets/ScannerSignalsWidget')),
+  'market-internals':      lazy(() => import('./widgets/MarketInternalsWidget')),
+  'dividend-schedule':     lazy(() => import('./widgets/DividendScheduleWidget')),
+  'high-yield-screen':     lazy(() => import('./widgets/HighYieldWidget')),
 }
 
 // Staggered so a six-widget dashboard does not shimmer in lockstep, which
@@ -70,6 +76,14 @@ export default function WidgetContent({ widgetId, index = 0 }) {
         >
           {meta?.name ?? widgetId}
         </span>
+        {/* Only on widgets fed by a live source (catalogue `live`), so the
+            pulse means something — never on the demo-priced ones. */}
+        {meta?.live && (
+          <span className="flex items-center gap-1 flex-shrink-0 font-mono" style={{ fontSize: 7, letterSpacing: '0.14em', color: '#2D8A50' }} title="Live feed — refreshes on its own">
+            <span className="rounded-full pulse-gold" style={{ width: 4, height: 4, background: '#2D8A50' }} />
+            FEED
+          </span>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">

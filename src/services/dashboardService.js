@@ -16,14 +16,22 @@ const WIDGET_CATALOGUE = [
   { id: 'calendar-events',       name: 'Upcoming Events',    category: 'Calendar',  minW: 1, minH: 1, description: 'Next 3 scheduled events' },
   { id: 'quick-actions',         name: 'Quick Actions',      category: 'Tools',     minW: 1, minH: 1, description: '6 action shortcuts' },
   { id: 'activity-feed',         name: 'Activity Feed',      category: 'Portfolio', minW: 1, minH: 1, description: 'Recent terminal activity' },
-  { id: 'fx-rates',              name: 'FX Rates',           category: 'Markets',   minW: 1, minH: 1, description: 'Live AUD pairs' },
-  { id: 'crypto-overview',       name: 'Crypto Overview',    category: 'Crypto',    minW: 1, minH: 1, description: 'Top crypto prices' },
+  { id: 'fx-rates',              name: 'FX Rates',           category: 'Markets',   minW: 1, minH: 1, live: true, description: 'Live AUD pairs' },
+  { id: 'crypto-overview',       name: 'Crypto Overview',    category: 'Crypto',    minW: 1, minH: 1, live: true, description: 'Top crypto prices' },
   { id: 'rba-status',            name: 'RBA Status',         category: 'Macro',     minW: 1, minH: 1, description: 'Rate, next meeting, outlook' },
   { id: 'commodity-pulse',       name: 'Commodities',        category: 'Global',    minW: 1, minH: 1, description: 'Iron ore, gold, LNG prices' },
-  { id: 'morning-brief-preview', name: 'Morning Brief',      category: 'AI',        minW: 2, minH: 1, description: 'Daily AI market brief' },
+  { id: 'morning-brief-preview', name: 'Morning Brief',      category: 'AI',        minW: 1, minH: 1, description: 'Today\'s brief: score gauge and opening lines' },
   { id: 'bond-yield-widget',     name: 'Bond Yields',        category: 'Bonds',     minW: 1, minH: 1, description: 'AU 10Y and US 10Y yields and spread' },
   { id: 'etf-mover-widget',      name: 'ETF Movers',         category: 'ETFs',      minW: 1, minH: 1, description: 'Top moving ETFs today' },
   { id: 'calc-quick-widget',     name: 'Quick Calculator',   category: 'Tools',     minW: 1, minH: 1, description: 'Compound interest calculator' },
+  // `live`: the widget's numbers come from a live feed and refresh on their
+  // own — the header shows a pulse for these and for nothing else.
+  { id: 'market-pulse',          name: 'Market Pulse',       category: 'Markets',   minW: 1, minH: 1, live: true, description: 'RBA, CPI, AUD, BTC and the ASX 200 in five lines' },
+  { id: 'events-timeline',       name: 'Events Timeline',    category: 'Calendar',  minW: 2, minH: 1, description: 'High-impact events over the next 7 days' },
+  { id: 'scanner-signals',       name: 'Scanner Signals',    category: 'Markets',   minW: 1, minH: 1, description: 'Strongest breakout, volume and RSI signals' },
+  { id: 'market-internals',      name: 'Market Internals',   category: 'Markets',   minW: 1, minH: 1, description: 'ASX advance/decline and 50-day breadth' },
+  { id: 'dividend-schedule',     name: 'Dividend Schedule',  category: 'Portfolio', minW: 1, minH: 1, description: 'Your income by month, with franking' },
+  { id: 'high-yield-screen',     name: 'High Yield Screen',  category: 'Markets',   minW: 1, minH: 1, description: 'ASX yield >5%, PE <20, against the cash rate' },
 ]
 
 // Presets are templates. applyPreset deep-copies them — see the note there.
@@ -84,6 +92,51 @@ const PRESET_LAYOUTS = [
     ],
   },
 ]
+
+// Purpose-built layouts. `audience` says who each is for; the layout picker
+// shows it under the name.
+PRESET_LAYOUTS.push(
+  {
+    id: 'rate-watch', name: 'Rate Watch', icon: '◉', columns: 3,
+    description: 'Decision week: the RBA, the data and the calendar up front',
+    audience: 'For an RBA week — pulse, events, policy and yields first',
+    widgets: [
+      { widgetId: 'market-pulse',          col: 0, row: 0, w: 1, h: 1 },
+      { widgetId: 'events-timeline',       col: 1, row: 0, w: 2, h: 1 },
+      { widgetId: 'rba-status',            col: 0, row: 1, w: 1, h: 1 },
+      { widgetId: 'bond-yield-widget',     col: 1, row: 1, w: 1, h: 1 },
+      { widgetId: 'morning-brief-preview', col: 2, row: 1, w: 1, h: 1 },
+      { widgetId: 'watchlist-preview',     col: 0, row: 2, w: 1, h: 1 },
+      { widgetId: 'portfolio-snapshot',    col: 1, row: 2, w: 2, h: 1 },
+    ],
+  },
+  {
+    id: 'income', name: 'Income Investor', icon: '❖', columns: 2,
+    description: 'Dividends, yield against cash, and the rate outlook',
+    audience: 'For income investors — when the dividends land and what cash pays',
+    widgets: [
+      { widgetId: 'portfolio-snapshot',    col: 0, row: 0, w: 1, h: 1 },
+      { widgetId: 'dividend-schedule',     col: 1, row: 0, w: 1, h: 1 },
+      { widgetId: 'rba-status',            col: 0, row: 1, w: 1, h: 1 },
+      { widgetId: 'high-yield-screen',     col: 1, row: 1, w: 1, h: 1 },
+      { widgetId: 'news-feed',             col: 0, row: 2, w: 1, h: 1 },
+      { widgetId: 'morning-brief-preview', col: 1, row: 2, w: 1, h: 1 },
+    ],
+  },
+  {
+    id: 'trader', name: 'Trader', icon: '⌁', columns: 3,
+    description: 'Indices, signals, breadth and the session calendar',
+    audience: 'For active traders — what is moving and what is scheduled',
+    widgets: [
+      { widgetId: 'index-bar',             col: 0, row: 0, w: 2, h: 1 },
+      { widgetId: 'scanner-signals',       col: 2, row: 0, w: 1, h: 1 },
+      { widgetId: 'watchlist-preview',     col: 0, row: 1, w: 1, h: 1 },
+      { widgetId: 'market-internals',      col: 1, row: 1, w: 2, h: 1 },
+      { widgetId: 'news-feed',             col: 0, row: 2, w: 1, h: 1 },
+      { widgetId: 'calendar-events',       col: 1, row: 2, w: 2, h: 1 },
+    ],
+  },
+)
 
 const LAYOUT_KEY = 'maddex_dashboard_layout'
 const CUSTOM_KEY = 'maddex_dashboard_custom'

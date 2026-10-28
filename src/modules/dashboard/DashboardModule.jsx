@@ -8,6 +8,7 @@ import { dashboardService } from '../../services/dashboardService'
 import DashboardGrid from './DashboardGrid'
 import DashboardControls from './DashboardControls'
 import WidgetPicker from './WidgetPicker'
+import TrialWelcomeBanner from './TrialWelcomeBanner'
 
 // The dashboard is now a layout host, not a fixed page.
 //
@@ -133,6 +134,7 @@ export default function DashboardModule() {
       {showPicker && <DashboardControls layout={layout} onChange={() => {}} />}
 
       <DashboardStatusBar />
+      <TrialWelcomeBanner />
 
       {editing && (
         <div

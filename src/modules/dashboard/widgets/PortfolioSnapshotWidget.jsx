@@ -6,6 +6,7 @@ import { useAudRates } from '../../../hooks/useAudRates'
 import { recordPortfolioValue, getPortfolioHistory, marketDayKey } from '../../../services/portfolioHistory'
 import { WidgetBody, WidgetEmpty, Sparkline, ChangePill } from './_shared'
 import { goModule } from './navigate'
+import { SECTOR_BY_SYMBOL } from '../../portfolio/sectorMap'
 
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
 
@@ -60,6 +61,9 @@ export default function PortfolioSnapshotWidget() {
     if (!priceable.length) return null
     const rows = data?.data ?? {}
     let value = 0, cost = 0, dayPnl = 0, dayBase = 0, priced = 0, best = null, worst = null
+    // The day's move by sector, value-weighted from the same prev-close base
+    // as the total, with the tickers that make it up.
+    const sectors = new Map()
 
     for (const h of priceable) {
       const q = rows[requireYFSym(h)]
@@ -82,6 +86,10 @@ export default function PortfolioSnapshotWidget() {
       if (prev != null) {
         dayPnl += (last - prev) * h.shares
         dayBase += prev * h.shares
+        const sec = SECTOR_BY_SYMBOL[h.symbol] ?? (h.type === 'us' ? 'US' : 'Other')
+        const e = sectors.get(sec) ?? { sector: sec, move: 0, base: 0, syms: [] }
+        e.move += (last - prev) * h.shares; e.base += prev * h.shares; e.syms.push(h.symbol)
+        sectors.set(sec, e)
       }
 
       const pct = q?.pct
@@ -101,6 +109,9 @@ export default function PortfolioSnapshotWidget() {
       best,
       worst,
       priced,
+      sectors: [...sectors.values()]
+        .map((e) => ({ ...e, pct: e.base ? (e.move / e.base) * 100 : 0 }))
+        .sort((a, b) => b.base - a.base),
     }
   }, [priceable, data, usdToAud])
 
@@ -172,18 +183,19 @@ export default function PortfolioSnapshotWidget() {
             {up ? '+' : '−'}A${Math.abs(Math.round(stats.pnl)).toLocaleString()} ({stats.pnlPct.toFixed(2)}%)
           </span>
         </div>
-        {stats.best && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-[9px] truncate" style={{ color: '#4A6080' }}>BEST · {stats.best.sym}</span>
-            <ChangePill value={stats.best.pct} suffix="%" />
+        {/* Today by sector, largest holding first — three rows fit the tile;
+            the tickers say what each line is made of. */}
+        {stats.sectors.slice(0, 3).map((s) => (
+          <div key={s.sector} className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[9px] truncate min-w-0" style={{ color: '#8BA3C4' }}>
+              <span style={{ color: s.pct >= 0 ? '#2D8A50' : '#A83232' }}>{s.pct >= 0 ? '▲' : '▼'}</span> {s.sector}
+              <span style={{ color: '#4A6080' }}> ({s.syms.slice(0, 3).join(', ')}{s.syms.length > 3 ? '…' : ''})</span>
+            </span>
+            <span className="font-mono text-[9px] tabular-nums flex-shrink-0" style={{ color: s.pct >= 0 ? '#2D8A50' : '#A83232' }}>
+              {s.pct >= 0 ? '+' : ''}{s.pct.toFixed(2)}%
+            </span>
           </div>
-        )}
-        {stats.worst && stats.worst.sym !== stats.best?.sym && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-[9px] truncate" style={{ color: '#4A6080' }}>WORST · {stats.worst.sym}</span>
-            <ChangePill value={stats.worst.pct} suffix="%" />
-          </div>
-        )}
+        ))}
       </div>
     </WidgetBody>
   )
