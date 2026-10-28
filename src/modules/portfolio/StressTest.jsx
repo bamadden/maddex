@@ -1,13 +1,17 @@
 import { useMemo, useState, useCallback } from 'react'
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { dispatchAskAI } from '../../utils/askAI'
-import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import SafeChart from '../../components/ui/SafeChart'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { SECTOR_BY_SYMBOL } from './sectorMap'
+import { holdingRate } from './rateSensitivity'
 
-const SECTOR_BY_SYMBOL = Object.fromEntries([
-  ...Object.entries(MOCK_ASX_STOCKS).map(([sym, s]) => [sym.replace(/\.AX$/, ''), s.sector]),
-  ...Object.entries(MOCK_US_STOCKS).map(([sym, s]) => [sym, s.sector]),
-])
+// The coming RBA decision, for the hike scenario's label: "RBA HIKES TO
+// 4.85% (3 NOV)". Falls back to a generic label once no decision is pending.
+const ND = VERIFIED_CONSTANTS.rbaNextDecision
+const RBA_HIKE_LABEL = ND?.hikeRate != null
+  ? `RBA HIKES TO ${ND.hikeRate.toFixed(2)}% (${new Date(`${ND.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()})`
+  : 'RBA HIKES 25BP'
 
 // Illustrative beta estimates by sector, used only by the MARKET CRASH
 // scenario (a uniform shock scaled by each holding's assumed sensitivity) —
@@ -15,7 +19,7 @@ const SECTOR_BY_SYMBOL = Object.fromEntries([
 // approximations, not sourced betas.
 const BETA_BY_SECTOR = {
   IT: 1.35, 'Cons Disc': 1.2, Materials: 1.15, Financials: 1.1, Energy: 1.1,
-  Health: 0.9, 'Cons Staples': 0.7, Utilities: 0.65, Comms: 1.0,
+  Health: 0.9, Staples: 0.7, Utilities: 0.65, Comms: 1.0,
 }
 function betaFor(h) {
   if (h.type === 'crypto') return 1.6
@@ -33,6 +37,7 @@ const SCENARIO_META = {
   ironOre:       { icon: '⛏',  severity: 'high' },
   audUsd:        { icon: '💱', severity: 'medium' },
   rateHike:      { icon: '📈', severity: 'medium' },
+  rbaHike:       { icon: '🏦', severity: 'medium' },
   chinaSlowdown: { icon: '🇨🇳', severity: 'high' },
   globalRecession: { icon: '🌍', severity: 'high' },
   techSelloff:   { icon: '💻', severity: 'medium' },
@@ -57,6 +62,15 @@ const SCENARIOS = [
     shock: (h) => h.type === 'us' || h.type === 'crypto' ? 0.10 : sectorShockPct(h, { 'Cons Disc': -0.03 }, 0),
   },
   {
+    // Shares its sector assumptions with the Analytics tab's rate analysis
+    // (sectorTaxonomy.RATE_SENSITIVITY): REITs −8%, Cons Disc −5%, Utilities
+    // −4%, IT −3%, Materials −2%, Health −1%, Financials +2%. Broad AU ETFs
+    // take the ASX 200 mix; offshore holdings are left flat (currency only).
+    key: 'rbaHike', label: RBA_HIKE_LABEL, borderColor: 'border-orange-500/50 hover:border-orange-500',
+    describe: `${RBA_HIKE_LABEL} — REITs −8%, Consumer Disc −5%, Utilities −4%, Tech −3%, Materials −2%, Healthcare −1%, Financials +2% (NIM). Scenario assumptions by sector.`,
+    shock: (h) => holdingRate(h).shock / 100,
+  },
+  {
     key: 'rateHike', label: 'RATE HIKE +50BP', borderColor: 'border-orange-500/50 hover:border-orange-500',
     describe: 'RBA +50bp — Banks up ~2%, REITs down ~5%, growth/IT down ~8%.',
     shock: (h) => sectorShockPct(h, { Financials: 0.02, IT: -0.08, 'Cons Disc': -0.03 }, 0),
@@ -64,7 +78,7 @@ const SCENARIOS = [
   {
     key: 'chinaSlowdown', label: 'CHINA SLOWDOWN', borderColor: 'border-red-500/50 hover:border-red-500',
     describe: 'China slowdown — Materials down ~20%, Energy down ~12%, Consumer down ~5%.',
-    shock: (h) => sectorShockPct(h, { Materials: -0.20, Energy: -0.12, 'Cons Disc': -0.05, 'Cons Staples': -0.02 }, 0),
+    shock: (h) => sectorShockPct(h, { Materials: -0.20, Energy: -0.12, 'Cons Disc': -0.05, Staples: -0.02 }, 0),
   },
   {
     key: 'crash', label: 'MARKET CRASH -30%', borderColor: 'border-red-800 hover:border-red-700',

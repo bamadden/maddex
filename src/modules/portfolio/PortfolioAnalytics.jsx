@@ -7,6 +7,9 @@ import { getMockFMPRow } from '../../services/mockData'
 // One sector map, not three — sectorMap.js already exported this and this
 // file kept its own byte-identical copy.
 import { SECTOR_BY_SYMBOL } from './sectorMap'
+import { portfolioRate } from './rateSensitivity'
+import { RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
+import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import Tooltip from '../../components/ui/Tooltip'
 
 function hashStr(s) {
@@ -554,6 +557,93 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
         </div>
       </div>
 
+      <RateSensitivitySection holdings={holdings} fmtCur={fmtCur} />
+
+    </div>
+  )
+}
+
+// ── Rate sensitivity ─────────────────────────────────────────────────────────
+//
+// Each holding's sensitivity to rising rates and its estimated move if the RBA
+// hikes 25bp, from the shared sector table (sectorTaxonomy.RATE_SENSITIVITY,
+// via ./rateSensitivity) — the same assumptions the stress test's RBA
+// scenario and the Markets heatmap use. Sector-level ESTIMATES: the table
+// header says so, and the dollar column is the estimate applied to the
+// holding's value, nothing more.
+function RateSensitivitySection({ holdings, fmtCur }) {
+  const pr = useMemo(() => portfolioRate(holdings), [holdings])
+  if (!pr) return null
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const hikeTo = nd?.hikeRate != null ? `${nd.hikeRate.toFixed(2)}%` : null
+  const tone = RATE_LEVEL_STYLE[pr.rating]?.colour ?? '#8BA3C4'
+  const topText = pr.top.map(([s, w]) => `${s} (${Math.round(w * 100)}%)`).join(' and ')
+  const verdict = {
+    POSITIVE: 'tends to benefit from rising rates — banks\' margins outweigh the pressure elsewhere',
+    LOW: 'has LOW rate sensitivity — little of it is in the sectors a hike hits hardest',
+    MEDIUM: 'has MEDIUM rate sensitivity — a meaningful share sits in rate-exposed sectors',
+    HIGH: 'has HIGH rate sensitivity — rate-exposed sectors dominate it',
+  }[pr.rating]
+  const sorted = [...pr.rows].sort((a, b) => b.h.mktVal - a.h.mktVal)
+  const fmtShock = (v) => (Math.abs(v) < 0.05 ? 'Minimal' : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`)
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 mb-2">
+        <span className="text-2xs text-terminal-gold font-bold tracking-widest">RATE SENSITIVITY ANALYSIS</span>
+        <AIContentBadge source="fallback" label="ESTIMATE" />
+      </div>
+      <div className="border border-terminal-border p-3 space-y-3">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-2xs text-terminal-text-dim">Overall:</span>
+          <span className="text-xs font-bold" style={{ color: tone }}>{pr.rating}</span>
+          <span className="text-2xs text-terminal-text-dim">
+            · est. {pr.shock >= 0 ? '+' : ''}{pr.shock.toFixed(1)}% ({pr.shock >= 0 ? '+' : '−'}{fmtCur(Math.abs(pr.total * pr.shock / 100))}) if the RBA hikes 25bp
+          </span>
+        </div>
+        <div className="text-2xs text-terminal-text leading-relaxed">
+          Your portfolio {verdict}. {topText ? `${topText} carry the most weight.` : ''}
+        </div>
+
+        <div>
+          <div className="text-2xs text-terminal-text-dim tracking-widest mb-1">
+            SIMULATED IMPACT: {hikeTo ? `RBA HIKES TO ${hikeTo}` : 'A 25BP RBA HIKE'}
+          </div>
+          <table className="w-full text-2xs">
+            <thead>
+              <tr className="text-terminal-text-dim/70 text-left">
+                <th className="font-normal py-1">HOLDING</th>
+                <th className="font-normal">SECTOR</th>
+                <th className="font-normal">RATE SENSITIVITY</th>
+                <th className="font-normal text-right">EST. IMPACT</th>
+                <th className="font-normal text-right hidden sm:table-cell">VALUE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(({ h, r }) => {
+                const st = RATE_LEVEL_STYLE[r.level]
+                return (
+                  <tr key={h.id ?? h.symbol} className="border-t border-terminal-border/30" title={r.why}>
+                    <td className="py-1 font-bold text-terminal-text-bright">{h.symbol}</td>
+                    <td className="text-terminal-text-dim">{r.sector}</td>
+                    <td className="font-bold" style={{ color: st?.colour ?? '#637899' }}>{st?.label ?? '—'}</td>
+                    <td className="text-right tabular-nums" style={{ color: r.shock > 0.05 ? 'var(--color-gain)' : r.shock < -0.05 ? 'var(--color-loss)' : undefined }}>{fmtShock(r.shock)}</td>
+                    <td className="text-right tabular-nums text-terminal-text-dim hidden sm:table-cell">
+                      {Math.abs(r.shock) < 0.05 ? '—' : `${r.shock > 0 ? '+' : '−'}${fmtCur(Math.abs(h.mktVal * r.shock / 100))}`}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="text-2xs text-terminal-text-dim/60 pt-2 border-t border-terminal-border/30 leading-relaxed">
+          Estimates only, from each holding&apos;s sector: the typical direction of the relationship with an assumed size,
+          not a forecast or a backtest. Broad Australian ETFs are treated as the ASX 200&apos;s sector mix (approximate);
+          offshore holdings are affected mainly through the AUD. Hover a row for the mechanism. General information, not advice.
+        </div>
+      </div>
     </div>
   )
 }

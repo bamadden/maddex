@@ -10,7 +10,8 @@ import {
   TAX_YEAR, TAX_BRACKETS, TAX_SOURCE, SUPER, ASFA, STAMP_DUTY,
   fullTaxPosition, stampDuty, marginalRate,
 } from '../../data/auTaxRates'
-import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN } from './calcMath'
+import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, repaymentChange } from './calcMath'
+import { sydneyOffset } from '../../utils/dateUtils'
 
 // ─── Financial calculators ──────────────────────────────────────────────────
 //
@@ -416,6 +417,68 @@ function SuperTrackCalc() {
 // literal 6.2% did. The note under the field says so.
 const defaultMortgageRate = () => (VERIFIED_CONSTANTS.rba.cashRate + MORTGAGE_MARGIN).toFixed(2)
 
+// The coming RBA decision, while it is pending: presets that set the loan
+// rate to what it would be on hold or after a hike (cash rate + the same
+// assumed margin as the default), and the repayment difference.
+function pendingRbaDecision() {
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  if (!nd?.hikeRate) return null
+  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
+  return Date.now() < at ? nd : null
+}
+const dayShort = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+
+function RbaPresets({ rate, setRate }) {
+  const nd = pendingRbaDecision()
+  if (!nd) return null
+  const hold = (nd.currentRate + MORTGAGE_MARGIN).toFixed(2)
+  const hike = (nd.hikeRate + MORTGAGE_MARGIN).toFixed(2)
+  const btn = (label, value) => (
+    <button
+      key={label}
+      type="button"
+      onClick={() => setRate(value)}
+      className={`font-mono px-2 py-1 border transition-colors ${String(rate) === value ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10 font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'}`}
+      style={{ fontSize: 9, letterSpacing: '0.08em' }}
+      title={`Sets the loan rate to ${value}% — cash rate + ${MORTGAGE_MARGIN.toFixed(2)}% assumed margin`}
+    >{label}</button>
+  )
+  return (
+    <div className="mb-2">
+      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 8, letterSpacing: '0.14em' }}>RBA {dayShort(nd.date).toUpperCase()} PRESETS</span>
+      <div className="flex flex-wrap gap-1 mt-1">
+        {btn(`CURRENT / IF HOLD ${nd.currentRate.toFixed(2)}%`, hold)}
+        {btn(`IF HIKE ${nd.hikeRate.toFixed(2)}%`, hike)}
+      </div>
+    </div>
+  )
+}
+
+function RbaHikeNote({ loan, rate, term, per, label }) {
+  const nd = pendingRbaDecision()
+  if (!nd || !(loan > 0) || !(rate > 0)) return null
+  const d = nd.hikeRate - nd.currentRate
+  const onHike = Math.abs(rate - (nd.hikeRate + MORTGAGE_MARGIN)) < 0.005
+  // From the rate before the hike, whichever preset is showing.
+  const base = onHike ? rate - d : rate
+  const yours = repaymentChange(loan, base, d, term, per)
+  const ref = [600_000, 800_000].map((p) => `${money(p)}: +${money(repaymentChange(p, nd.currentRate + MORTGAGE_MARGIN, d), 0)}/month`)
+  return (
+    <div className="mb-3 border px-3 py-2 font-mono leading-snug" style={{ borderColor: 'rgba(232,163,61,0.4)', background: 'rgba(232,163,61,0.06)', fontSize: 10 }}>
+      <div className="font-bold" style={{ color: '#E8A33D' }}>
+        If the RBA hikes to {nd.hikeRate.toFixed(2)}% on {dayShort(nd.date)} and lenders pass it on in full:
+      </div>
+      <div className="text-terminal-text-bright mt-1">
+        Your {money(loan)} loan: +{money(yours, 2)} {label.toLowerCase()} ({base.toFixed(2)}% → {(base + d).toFixed(2)}%)
+      </div>
+      <div className="text-terminal-text-dim mt-0.5">{ref.join(' · ')} (30-year, at {(nd.currentRate + MORTGAGE_MARGIN).toFixed(2)}%)</div>
+      <div className="text-terminal-text-dim/60 mt-1" style={{ fontSize: 8 }}>
+        Calculated. Market pricing ~{nd.marketHikePct}% for a hike ({nd.marketSource}, {dayShort(nd.marketAsOf)}). Lenders set their own rates and timing.
+      </div>
+    </div>
+  )
+}
+
 function MortgageCalc() {
   const [price, setPrice] = useState('800000')
   const [depositPct, setDepositPct] = useState('20')
@@ -448,6 +511,7 @@ function MortgageCalc() {
               {money(r.loan)} <span className="text-terminal-text-dim/50" style={{ fontSize: 10 }}>· deposit {money(r.deposit)}</span>
             </div>
           </div>
+          <RbaPresets rate={rate} setRate={setRate} />
           <Field label="INTEREST RATE" value={rate} onChange={setRate} suffix="%" step="0.05" />
           <div className="font-mono text-terminal-text-dim/60 -mt-1.5 mb-2.5 leading-snug" style={{ fontSize: 9 }}>
             RBA cash rate: {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% ({VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'HIKE' ? 'hiked' : VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'CUT' ? 'cut' : 'held'}{' '}
@@ -468,6 +532,8 @@ function MortgageCalc() {
         <Metric label="PRINCIPAL EXCEEDS INTEREST" value={r.crossover ? `Year ${Math.ceil(r.crossover / r.per)}` : '—'}
           tip="Until this point more of every repayment goes to the bank than to the loan. On a 30-year loan it is usually well past halfway." />
       </div>
+
+      <RbaHikeNote loan={r.loan} rate={num(rate)} term={num(term)} per={r.per} label={label} />
 
       <div className="font-mono text-terminal-gold/70 mb-1" style={{ fontSize: 8, letterSpacing: '0.14em' }}>WHAT IF RATES CHANGE?</div>
       <table className="terminal-table w-full">
