@@ -1,7 +1,13 @@
 import { useEffect, useState, useMemo } from 'react'
 import { defiService, ONCHAIN_EXPLAINERS } from '../../services/defiService'
+import Donut from '../../components/charts/Donut'
 
-const CATEGORIES = ['ALL', 'Dexes', 'Lending', 'Liquid Staking', 'Restaking', 'Yield', 'CDP', 'Bridge']
+// 'Bridge' was here, but defiService excludes bridges from the list (with CEXs
+// and chains), so its pill could only ever show an empty table.
+const CATEGORIES = ['ALL', 'Dexes', 'Lending', 'Liquid Staking', 'Restaking', 'Yield', 'CDP']
+const CAT_COLOURS = ['#C9A84C', '#2D7DD2', '#2D8A50', '#9945FF', '#E8A33D', '#14b8a6', '#4A6080']
+const CAT_LABEL = { Dexes: 'DEX', Lending: 'LENDING', 'Liquid Staking': 'LIQUID STAKING', Restaking: 'RESTAKING', 'Liquid Restaking': 'LIQUID RESTAKING', CDP: 'CDP', Yield: 'YIELD', Derivatives: 'DERIVATIVES', RWA: 'REAL-WORLD ASSETS', 'Basis Trading': 'BASIS TRADING', Other: 'OTHER' }
+const gweiFmt = (g) => (g == null ? '—' : g < 1 ? `${g.toFixed(3)} gwei` : `${g.toFixed(1)} gwei`)
 
 const usd = (n, dp = 2) => {
   if (n == null || !Number.isFinite(n)) return '—'
@@ -51,6 +57,8 @@ export default function DefiPanel() {
   const [chains, setChains] = useState({ data: null, source: null, at: null })
   const [btc, setBtc] = useState({ data: null, source: null, at: null })
   const [stables, setStables] = useState({ data: null, source: null, at: null })
+  const [cats, setCats] = useState({ data: null, source: null, at: null })
+  const [eth, setEth] = useState({ data: null, source: null, at: null })
   const [category, setCategory] = useState('ALL')
   const [tab, setTab] = useState('defi')
   const [now] = useState(() => Date.now())
@@ -63,6 +71,8 @@ export default function DefiPanel() {
     defiService.getChains(8).then((r) => { if (alive) setChains(r) })
     defiService.getBitcoinOnChain().then((r) => { if (alive) setBtc(r) })
     defiService.getStablecoins().then((r) => { if (alive) setStables(r) })
+    defiService.getCategories(6).then((r) => { if (alive) setCats(r) })
+    defiService.getEthGas().then((r) => { if (alive) setEth(r) })
     return () => { alive = false }
   }, [])
 
@@ -125,6 +135,36 @@ export default function DefiPanel() {
               sub="top by TVL, CEXs excluded"
             />
           </div>
+
+          {cats.data?.rows?.length > 0 && (
+            <div className="border border-terminal-border p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-2xs text-terminal-gold font-bold tracking-widest">TVL BY CATEGORY</span>
+                <SourceBadge source={cats.source} at={cats.at} now={now} />
+              </div>
+              <div className="flex items-center gap-5 flex-wrap">
+                <Donut
+                  size={132} thickness={20} label="DeFi TVL by category"
+                  slices={cats.data.rows.map((r, i) => ({ label: r.name, value: r.tvl, color: CAT_COLOURS[i % CAT_COLOURS.length] }))}
+                  centre={<><span className="text-2xs text-terminal-text-dim">CATEGORY SUM</span><span className="text-xs font-bold text-terminal-text-bright tabular-nums">{usd(cats.data.total, 1)}</span></>}
+                />
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  {cats.data.rows.map((r, i) => (
+                    <div key={r.name} className="flex items-center gap-2 text-2xs">
+                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: CAT_COLOURS[i % CAT_COLOURS.length] }} />
+                      <span className="text-terminal-text-bright font-bold">{CAT_LABEL[r.name] ?? r.name.toUpperCase()}</span>
+                      <span className="ml-auto tabular-nums text-terminal-text-bright">{usd(r.tvl, 1)}</span>
+                      <span className="tabular-nums text-terminal-text-dim w-12 text-right">{((r.tvl / cats.data.total) * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="text-2xs text-terminal-text-dim/60 mt-2 leading-snug">
+                Summed across every protocol DefiLlama tracks (exchanges, chains and bridges excluded). Protocols that deposit into
+                other protocols count in each category, so this sum runs above the headline TVL — read it as where activity sits.
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-1.5 flex-wrap">
             {CATEGORIES.map((c) => (
@@ -232,16 +272,17 @@ export default function DefiPanel() {
               title={ONCHAIN_EXPLAINERS.mempool}
             />
             <Metric
-              label="FEE · FAST"
-              value={btc.data?.feeFastest != null ? `${btc.data.feeFastest} sat/vB` : '—'}
-              sub="next block"
+              label="FEES · FAST / MED / SLOW"
+              value={btc.data?.feeFastest != null ? `${btc.data.feeFastest} / ${btc.data.feeHalfHour ?? '—'} / ${btc.data.feeHour ?? '—'}` : '—'}
+              sub="sat/vB · next block / 30 min / 1 hour"
               title={ONCHAIN_EXPLAINERS.fees}
             />
             <Metric
-              label="FEE · 1 HOUR"
-              value={btc.data?.feeHour != null ? `${btc.data.feeHour} sat/vB` : '—'}
-              sub="within the hour"
-              title={ONCHAIN_EXPLAINERS.fees}
+              label="NEXT DIFFICULTY ADJUSTMENT"
+              value={btc.data?.retargetChangePct != null ? `${btc.data.retargetChangePct >= 0 ? '+' : ''}${btc.data.retargetChangePct.toFixed(2)}%` : '—'}
+              tone={btc.data?.retargetChangePct == null ? undefined : btc.data.retargetChangePct >= 0 ? '#E8A33D' : '#2D8A50'}
+              sub={btc.data?.retargetAt ? `in ~${Math.max(0, (btc.data.retargetAt - now) / 86_400_000).toFixed(1)} days · ${btc.data.retargetBlocks?.toLocaleString() ?? '—'} blocks · projected` : '—'}
+              title={ONCHAIN_EXPLAINERS.retarget}
             />
             <Metric
               label="STABLECOIN SUPPLY"
@@ -252,13 +293,40 @@ export default function DefiPanel() {
             />
           </div>
 
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <span className="text-2xs font-bold tracking-widest" style={{ color: '#627EEA' }}>ETHEREUM NETWORK</span>
+            <SourceBadge source={eth.source} at={eth.at} now={now} />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+            <Metric
+              label="GAS · FAST / STD / SLOW"
+              value={eth.data ? `${gweiFmt(eth.data.fastGwei).replace(' gwei', '')} / ${gweiFmt(eth.data.standardGwei).replace(' gwei', '')} / ${gweiFmt(eth.data.slowGwei)}` : '—'}
+              sub={eth.data ? `base fee ${gweiFmt(eth.data.baseGwei)} · last 20 blocks` : 'unavailable'}
+              title={ONCHAIN_EXPLAINERS.ethGas}
+            />
+            <Metric
+              label="ETH BURNED · EST. PER DAY"
+              value={eth.data ? `${eth.data.burnEthPerDay >= 100 ? eth.data.burnEthPerDay.toFixed(0) : eth.data.burnEthPerDay.toFixed(1)} ETH` : '—'}
+              sub="base fee × gas used, last 20 blocks × 7,200"
+              title={ONCHAIN_EXPLAINERS.ethBurn}
+            />
+            <Metric
+              label="BLOCK SPACE USED"
+              value={eth.data ? `${eth.data.utilisationPct.toFixed(0)}%` : '—'}
+              sub={eth.data ? `of the gas limit · block ${eth.data.block.toLocaleString()}` : '—'}
+            />
+          </div>
+
           <div className="border border-terminal-border p-3 space-y-2.5">
             <div className="text-2xs text-terminal-gold font-bold tracking-widest">WHAT THESE MEAN</div>
             {[
               ['Hash rate', ONCHAIN_EXPLAINERS.hashrate],
               ['Difficulty', ONCHAIN_EXPLAINERS.difficulty],
+              ['Difficulty adjustment', ONCHAIN_EXPLAINERS.retarget],
               ['Mempool', ONCHAIN_EXPLAINERS.mempool],
               ['Fees', ONCHAIN_EXPLAINERS.fees],
+              ['Ethereum gas', ONCHAIN_EXPLAINERS.ethGas],
+              ['ETH burn', ONCHAIN_EXPLAINERS.ethBurn],
             ].map(([label, text]) => (
               <div key={label}>
                 <div className="text-2xs font-bold text-terminal-text-bright">{label}</div>
@@ -271,7 +339,8 @@ export default function DefiPanel() {
             <div className="text-2xs text-terminal-text-dim/50 pt-1 border-t border-terminal-border/30 leading-relaxed">
               These describe how the network works, not what any current level implies for
               price. Stablecoin supply from DefiLlama; Bitcoin network data from
-              mempool.space.
+              mempool.space; Ethereum from a public node (PublicNode). The ETH staking rate is not
+              shown — no free source publishes it reliably.
             </div>
           </div>
 

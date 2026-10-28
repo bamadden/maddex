@@ -12,13 +12,13 @@ import { calculateCryptoMomentumIndex, scoreToColor } from '../../services/madde
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt } from '../../utils/format'
-import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { dispatchAskAI, askMaddenAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import { SkeletonCoinRow } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
-import { AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
+import { Area, Bar, ComposedChart, Tooltip, XAxis, YAxis } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
@@ -31,7 +31,7 @@ const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '
 // Real (approximate) brand colours for the coins that actually show up in
 // the top-20 list — hash-based colour is only a fallback for the long tail.
 const COIN_COLORS = {
-  BTC: '#f7931a', ETH: '#627eea', XRP: '#0d3b66', SOL: '#9945ff', BNB: '#f0b90b',
+  BTC: '#F7931A', ETH: '#627EEA', XRP: '#00AAE4', SOL: '#9945FF', BNB: '#F3BA2F',
   ADA: '#0033ad', AVAX: '#e84142', DOGE: '#c2a633', DOT: '#e6007a', LINK: '#2a5ada',
   MATIC: '#8247e5', POL: '#8247e5', LTC: '#345d9d', TRX: '#ff060a', TON: '#0098ea',
   USDT: '#26a17b', USDC: '#2775ca', SHIB: '#ffa409', ATOM: '#2e3148', UNI: '#ff007a',
@@ -61,7 +61,7 @@ function CoinCircle({ symbol, size = 22 }) {
 
 // ── Sparkline ──────────────────────────────────────────────────────────────────
 
-function Sparkline({ prices, pct, w = 60, h = 28 }) {
+function Sparkline({ prices, w = 60, h = 28 }) {
   if (!prices?.length) return <span style={{ display: 'inline-block', width: w }} />
   const sampled = prices.filter((_, i) => i % 4 === 0)
   const min = Math.min(...sampled), max = Math.max(...sampled)
@@ -69,7 +69,10 @@ function Sparkline({ prices, pct, w = 60, h = 28 }) {
   const pts = sampled.map((p, i) =>
     `${(i / (sampled.length - 1)) * w},${h - ((p - min) / range) * (h - 2) - 1}`
   ).join(' ')
-  const color = (pct ?? 0) >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+  // Gold when the price is above where it started the window, red below —
+  // read off the series itself, so it always agrees with the line's shape.
+  const up = sampled.at(-1) >= sampled[0]
+  const color = up ? '#C9A84C' : 'var(--color-loss)'
   return (
     <span style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'middle', width: w, height: h }}>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', opacity: 0.8 }}>
@@ -83,7 +86,8 @@ function Sparkline({ prices, pct, w = 60, h = 28 }) {
 
 function ChartTooltip({ active, payload, label, currency }) {
   if (!active || !payload?.length) return null
-  const val = payload[0].value
+  // The detail chart carries volume bars too; the tooltip reports the price.
+  const val = (payload.find((p) => p.dataKey === 'price') ?? payload[0]).value
   const formatted = currency === 'AUD'
     ? fmt.aud(val)
     : `US$${val.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
@@ -217,73 +221,96 @@ function MaddenAIPanel({ momentum }) {
 }
 
 function FearGreedPanel({ data }) {
-  const getColor = (v) =>
-    v >= 75 ? 'var(--color-gain-bright)' : v >= 55 ? 'var(--color-neutral)' :
-    v >= 45 ? '#f0c040' : v >= 25 ? '#ff8c00' : 'var(--color-loss-bright)'
   if (!data) return <div style={P.wrap}><div style={P.title}>FEAR &amp; GREED</div><div style={P.empty}>LOADING...</div></div>
-  const { value, label, prev, weekAgo } = data
-  const color = getColor(value)
+  const { value, label, prev, weekAgo, monthAgo } = data
+  // The arc runs red → amber → gold → green across 0–100. The five zone NAMES
+  // sit along it in order; alternative.me publishes no numeric cut-offs, so
+  // none are drawn — the reading's own label (from the API) is the one shown
+  // large, which is why 51 reads NEUTRAL rather than a guessed band.
+  const colourAt = (v) => (v >= 75 ? '#2D8A50' : v >= 55 ? '#7BC47F' : v > 45 ? '#C9A84C' : v >= 25 ? '#E8A33D' : '#C0504D')
+  const color = colourAt(value)
+  const cx = 100, cy = 84, r = 64
+  const pt = (v, rr = r) => { const a = Math.PI * (1 - v / 100); return [cx + rr * Math.cos(a), cy - rr * Math.sin(a)] }
+  const [nx, ny] = pt(value, r - 4)
+  const zones = [['EXTREME FEAR', 6], ['FEAR', 28], ['NEUTRAL', 50], ['GREED', 72], ['EXTREME GREED', 94]]
   return (
-    <div style={{ ...P.wrap, minHeight: 110 }}>
+    <div style={{ ...P.wrap, minHeight: 190 }}>
       <div style={P.title}>FEAR &amp; GREED</div>
-      <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-        <svg viewBox="0 0 100 66" style={{ width: '100%', maxWidth: 120, height: 'auto', flexShrink: 0 }}>
-          <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke="#0F1E35" strokeWidth="9" />
-          <path d="M 8 54 A 42 42 0 0 1 92 54" fill="none" stroke={color} strokeWidth="9"
-            strokeDasharray={`${(value / 100) * 131.9} 131.9`} strokeLinecap="butt" />
-          <text x="50" y="48" textAnchor="middle" fill={color} fontSize="26" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
-          <text x="10" y="64" textAnchor="start" fill="var(--color-loss)" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">FEAR</text>
-          <text x="50" y="64" textAnchor="middle" fill="#C9A84C" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">NEUTRAL</text>
-          <text x="90" y="64" textAnchor="end" fill="var(--color-gain)" fontSize="6" fontFamily="IBM Plex Mono" letterSpacing="0.05em">GREED</text>
-        </svg>
-        <div style={{ fontSize:9 }}>
-          <div style={{ fontSize:12, fontWeight:700, color, marginBottom:4 }}>{label.toUpperCase()}</div>
-          <div style={{ color:'rgba(100,130,160,0.5)', marginBottom:2 }}>PREV: <span style={{ color:getColor(prev) }}>{prev}</span></div>
-          <div style={{ color:'rgba(100,130,160,0.5)' }}>7D: <span style={{ color:getColor(weekAgo) }}>{weekAgo}</span></div>
-        </div>
+      <svg viewBox="-30 0 260 132" style={{ width: '100%', maxWidth: 280, alignSelf: 'center' }} role="img" aria-label={`Fear and Greed ${value}, ${label}`}>
+        <defs>
+          <linearGradient id="fgArc" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="#C0504D" /><stop offset="30%" stopColor="#E8A33D" />
+            <stop offset="50%" stopColor="#C9A84C" /><stop offset="72%" stopColor="#7BC47F" /><stop offset="100%" stopColor="#2D8A50" />
+          </linearGradient>
+        </defs>
+        <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#fgArc)" strokeWidth="12" opacity="0.85" />
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#E8EDF5" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r="4" fill="#E8EDF5" />
+        {zones.map(([z, v]) => {
+          const [x, y] = pt(v, r + 14)
+          return <text key={z} x={x} y={y + 2} textAnchor={v < 20 ? 'end' : v > 80 ? 'start' : 'middle'} fill={colourAt(v)} fontSize="6.5" fontFamily="IBM Plex Mono" letterSpacing="0.04em">{z}</text>
+        })}
+        {/* The reading sits under the pivot, clear of the needle. */}
+        <text x={cx} y={cy + 30} textAnchor="middle" fill={color} fontSize="28" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
+        <text x={cx} y={cy + 44} textAnchor="middle" fill={color} fontSize="9" fontFamily="IBM Plex Mono" fontWeight="700" letterSpacing="0.12em">{label.toUpperCase()}</text>
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: 9, marginTop: 4 }}>
+        {[['YESTERDAY', prev], ['7D AGO', weekAgo], ['30D AGO', monthAgo]].map(([k, v]) => (
+          <div key={k} style={{ textAlign: 'center' }}>
+            <div style={{ color: 'rgba(100,130,160,0.55)', fontSize: 8 }}>{k}</div>
+            <div style={{ color: colourAt(v), fontWeight: 700 }}>{v}</div>
+          </div>
+        ))}
       </div>
+      <div style={{ fontSize: 8, color: 'rgba(100,130,160,0.5)', marginTop: 4, textAlign: 'center' }}>alternative.me · classification is the index&apos;s own</div>
     </div>
   )
 }
 
-function MarketPulsePanel({ globalData, currency, capSparkline }) {
-  if (!globalData) return <div style={P.wrap}><div style={P.title}>TOTAL MARKET CAP</div><div style={P.empty}>LOADING...</div></div>
+// ── Market metrics — the four numbers that frame the market, full width ────
+//
+// Total market cap, BTC dominance, Fear & Greed and 24h volume, from
+// CoinGecko /global and alternative.me — the feeds the sidebar used to show
+// them from, stacked one under another where they could not be compared.
+function MetricCard({ label, value, sub, subTone, children, title }) {
+  return (
+    <div className="px-4 py-2.5 min-w-0 border-r border-terminal-border last:border-r-0" title={title}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-[9px] tracking-widest text-terminal-gold font-bold">{label}</span>
+        {children}
+      </div>
+      <div className="font-mono font-bold tabular-nums text-terminal-text-bright mt-1" style={{ fontSize: 20 }}>{value}</div>
+      <div className="font-mono text-[10px] mt-0.5" style={{ color: subTone ?? 'var(--color-text-dim)' }}>{sub}</div>
+    </div>
+  )
+}
+
+function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
   const ccy = currency === 'AUD' ? 'aud' : 'usd'
   const sym = currency === 'AUD' ? 'A$' : 'US$'
-  const cap = globalData.total_market_cap?.[ccy]
-  const vol = globalData.total_volume?.[ccy]
-  const chg = globalData.market_cap_change_percentage_24h_usd
-  const coins = globalData.active_cryptocurrencies
-  const fmtB = (v) => {
-    if (!v) return '—'
-    if (v >= 1e12) return `${sym}${(v/1e12).toFixed(2)}T`
-    if (v >= 1e9)  return `${sym}${(v/1e9).toFixed(1)}B`
-    return `${sym}${v.toFixed(0)}`
-  }
-  const chgColor = chg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)'
+  const big = (v) => (v == null ? '—' : v >= 1e12 ? `${sym}${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `${sym}${(v / 1e9).toFixed(1)}B` : `${sym}${Math.round(v).toLocaleString()}`)
+  const chg = globalData?.market_cap_change_percentage_24h_usd
+  const btc = globalData?.market_cap_percentage?.btc
+  const yday = btcDomYesterday()
+  const dDom = btc != null && yday != null ? btc - yday : null
+  const fg = fearGreed
+  const fgTone = fg == null ? undefined : fg.value >= 55 ? 'var(--color-gain)' : fg.value <= 45 ? 'var(--color-loss)' : '#C9A84C'
+  const up = (v) => (v >= 0 ? 'var(--color-gain)' : 'var(--color-loss)')
   return (
-    <div style={P.wrap}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={P.title}>TOTAL MARKET CAP</div>
-        {capSparkline?.length > 1 && <Sparkline prices={capSparkline} pct={chg} />}
-      </div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: '#e8ecf0', fontFamily: 'IBM Plex Mono', marginBottom: 2 }}>
-        {fmtB(cap)}
-      </div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: chgColor, marginBottom: 6 }}>
-        {chg != null ? `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}% (24h)` : '—'}
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px 10px', fontSize:9 }}>
-        {[
-          { label:'VOLUME', value: fmtB(vol), color:'#d4dce8' },
-          { label:'COINS', value: coins?.toLocaleString() ?? '—', color:'#d4dce8' },
-        ].map(({ label, value, color }) => (
-          <div key={label}>
-            <div style={{ color:'rgba(100,130,160,0.55)', fontSize:8 }}>{label}</div>
-            <div style={{ color, fontWeight:600 }}>{value}</div>
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(201,168,76,0.03)' }}>
+      <MetricCard label="TOTAL CRYPTO MARKET CAP" value={big(globalData?.total_market_cap?.[ccy])}
+        sub={chg != null ? `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}% 24h` : 'CoinGecko'} subTone={chg != null ? up(chg) : undefined}
+        title="CoinGecko /global">
+        {capSparkline?.length > 1 && <Sparkline prices={capSparkline} w={70} h={20} />}
+      </MetricCard>
+      <MetricCard label="BTC DOMINANCE" value={btc != null ? `${btc.toFixed(1)}%` : '—'}
+        sub={dDom != null ? `${dDom >= 0 ? '▲' : '▼'} ${Math.abs(dDom).toFixed(2)}pp vs yesterday` : 'share of total market cap'} subTone={dDom != null ? up(dDom) : undefined}
+        title="Bitcoin's share of total crypto market cap (CoinGecko). Yesterday's reading is the one this browser last saw." />
+      <MetricCard label="FEAR & GREED" value={fg ? fg.value : '—'}
+        sub={fg ? `${fg.label.toUpperCase()} · yesterday ${fg.prev}` : 'alternative.me'} subTone={fgTone}
+        title="alternative.me Crypto Fear & Greed Index, 0–100, with its own classification" />
+      <MetricCard label="24H VOLUME" value={big(globalData?.total_volume?.[ccy])}
+        sub={globalData?.active_cryptocurrencies ? `${globalData.active_cryptocurrencies.toLocaleString()} coins tracked` : 'CoinGecko'} />
     </div>
   )
 }
@@ -310,72 +337,42 @@ function btcDomYesterday() {
   return hist.length ? hist[hist.length - 1].pct : null
 }
 
-function DominanceArc({ pct, color, size = 56 }) {
-  const r = size / 2 - 5
-  const c = 2 * Math.PI * r
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#0F1E35" strokeWidth="6" />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="6"
-        strokeDasharray={`${(pct / 100) * c} ${c}`}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fill={color} fontSize={size * 0.22} fontFamily="IBM Plex Mono" fontWeight="700">
-        {pct.toFixed(0)}%
-      </text>
-    </svg>
-  )
-}
-
 function DominancePanel({ globalData }) {
-  const btcYesterday = btcDomYesterday()
-
+  // Bars grow from zero on first paint — one frame at 0%, then the real
+  // width, so the CSS transition animates them in.
+  const [ready, setReady] = useState(false)
+  useEffect(() => { const id = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(id) }, [])
   useEffect(() => {
     const btc = globalData?.market_cap_percentage?.btc
     if (btc != null) writeBtcDomHistory(btc)
   }, [globalData])
 
-  if (!globalData) return <div style={P.wrap}><div style={P.title}>BTC DOMINANCE</div><div style={P.empty}>LOADING...</div></div>
+  if (!globalData) return <div style={P.wrap}><div style={P.title}>MARKET SHARE</div><div style={P.empty}>LOADING...</div></div>
   const pct = globalData.market_cap_percentage ?? {}
   const btc = pct.btc ?? 0
   const eth = pct.eth ?? 0
-  const sol = pct.sol ?? 0
-  const others = Math.max(0, 100 - btc - eth - sol)
   const bars = [
-    { label:'BTC', pct:btc,    color:'#f7931a' },
-    { label:'ETH', pct:eth,    color:'#627eea' },
-    { label:'SOL', pct:sol,    color:'#9945ff' },
-    { label:'OTHERS', pct:others, color:'rgba(100,130,160,0.35)' },
+    { label: 'BTC', pct: btc, color: '#F7931A' },
+    { label: 'ETH', pct: eth, color: '#627EEA' },
+    { label: 'OTHERS', pct: Math.max(0, 100 - btc - eth), color: 'rgba(139,163,196,0.55)' },
   ]
-  const delta = btcYesterday != null ? btc - btcYesterday : null
   return (
     <div style={P.wrap}>
-      <div style={P.title}>BTC DOMINANCE</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <DominanceArc pct={btc} color="#f7931a" />
-        <div>
-          <div style={{ fontSize: 9, color: 'rgba(100,130,160,0.6)' }}>of total mkt cap</div>
-          {delta != null && (
-            <div style={{ fontSize: 10, fontWeight: 600, color: delta >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
-              {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(2)}pp vs yday
+      <div style={P.title}>MARKET SHARE</div>
+      <div className="space-y-2">
+        {bars.map((b) => (
+          <div key={b.label}>
+            <div className="flex items-center justify-between font-mono" style={{ fontSize: 9 }}>
+              <span style={{ color: b.color, fontWeight: 700 }}>{b.label}</span>
+              <span className="tabular-nums" style={{ color: '#d4dce8', fontWeight: 600 }}>{b.pct.toFixed(1)}%</span>
             </div>
-          )}
-        </div>
-      </div>
-      <div style={{ height:6, display:'flex', borderRadius:2, overflow:'hidden', marginBottom:5 }}>
-        {bars.map(b => <div key={b.label} style={{ width:`${b.pct}%`, background:b.color, transition:'width 0.5s' }} />)}
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2px 8px' }}>
-        {bars.map(b => (
-          <div key={b.label} style={{ display:'flex', alignItems:'center', gap:4, fontSize:9 }}>
-            <span style={{ width:6, height:6, borderRadius:1, background:b.color, flexShrink:0 }} />
-            <span style={{ color:'rgba(100,130,160,0.6)', fontSize:8 }}>{b.label}</span>
-            <span style={{ color:'#d4dce8', fontWeight:600, marginLeft:'auto' }}>{b.pct.toFixed(1)}%</span>
+            <div className="h-2 rounded-sm overflow-hidden mt-0.5" style={{ background: 'rgba(100,130,160,0.15)' }}>
+              <div className="h-full rounded-sm" style={{ width: ready ? `${b.pct}%` : '0%', background: b.color, transition: 'width 900ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
+            </div>
           </div>
         ))}
       </div>
+      <div className="font-mono mt-1.5" style={{ fontSize: 8, color: 'rgba(100,130,160,0.6)' }}>Share of total crypto market cap · CoinGecko</div>
     </div>
   )
 }
@@ -422,11 +419,12 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
   const statRows = [
     ['MCap',        `${currPrefix}${coin.mktCap}`],
     ['Vol 24H',     `${currPrefix}${coin.vol24h}`],
-    ['ATH',         money(coin.ath)],
-    ['Below ATH',   coin.athPct != null ? `${coin.athPct.toFixed(1)}%` : '—'],
     ['ATL',         money(coin.atl)],
     ['Above ATL',   coin.atlPct != null ? `+${Math.round(coin.atlPct).toLocaleString('en-AU')}%` : '—'],
   ]
+  // Where the price sits between its all-time low and high, linearly.
+  const recovery = coin.ath != null && coin.atl != null && coin.ath > coin.atl
+    ? Math.min(100, Math.max(0, ((coin.price - coin.atl) / (coin.ath - coin.atl)) * 100)) : null
   return (
     <div className="flex flex-col h-full overflow-y-auto hide-scrollbar panel-slide-in">
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-terminal-border flex-shrink-0">
@@ -457,6 +455,26 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
         )}
       </div>
 
+      {coin.ath != null && (
+        <div className="px-3 py-2.5 border-b border-terminal-border/50">
+          <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide">All-time high</div>
+          <div className="text-2xs text-terminal-text-bright font-semibold mt-0.5 tabular-nums">
+            {money(coin.ath)}{coin.athPct != null && <span className="text-terminal-red"> — {Math.abs(coin.athPct).toFixed(1)}% below ATH</span>}
+          </div>
+          {recovery != null && (
+            <>
+              <div className="relative h-1.5 rounded-full mt-2" style={{ background: 'rgba(100,130,160,0.2)' }}>
+                <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${recovery}%`, background: 'linear-gradient(90deg, rgba(168,50,50,0.6), #C9A84C)' }} />
+                <span className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full" style={{ left: `calc(${recovery}% - 4px)`, background: '#E8EDF5' }} />
+              </div>
+              <div className="flex justify-between text-[9px] text-terminal-text-dim mt-1">
+                <span>ATL</span><span>{recovery.toFixed(0)}% of the way from ATL to ATH</span><span>ATH</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="px-3 py-2.5 border-b border-terminal-border/50 grid grid-cols-2 gap-x-3 gap-y-2">
         {statRows.map(([label, value]) => (
           <div key={label}>
@@ -478,7 +496,12 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
             </div>
           </>
         ) : (
-          <div className="text-2xs text-terminal-text tabular-nums">{compact(coin.circulatingSupply)} {coin.symbol} circulating <span className="text-terminal-text-dim">· no max supply</span></div>
+          <>
+            <div className="h-1.5 rounded-full" style={{ background: 'repeating-linear-gradient(90deg, rgba(168,50,50,0.55) 0 6px, rgba(168,50,50,0.2) 6px 10px)' }} title="No maximum supply — new coins can keep being issued" />
+            <div className="text-2xs text-terminal-text tabular-nums mt-1">
+              {compact(coin.circulatingSupply)} {coin.symbol} circulating <span className="text-terminal-red">· no max supply (inflationary)</span>
+            </div>
+          </>
         )}
         {coin.id && (
           <a href={`https://www.coingecko.com/en/coins/${coin.id}`} target="_blank" rel="noopener noreferrer"
@@ -505,7 +528,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING...</div>
           ) : chartData?.length > 1 ? (
             <SafeChart width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.25} />
@@ -513,11 +536,15 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
-                <YAxis hide domain={['auto', 'auto']} />
-                <Tooltip content={<ChartTooltip currency="USD" />} />
-                <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5}
+                <YAxis yAxisId="p" hide domain={['auto', 'auto']} />
+                {/* Volume on its own axis, scaled so the tallest bar reaches a
+                    quarter of the chart and sits under the price line. */}
+                <YAxis yAxisId="v" hide domain={[0, (max) => (max || 1) * 4]} />
+                <Tooltip content={<ChartTooltip currency={isAud ? 'AUD' : 'USD'} />} />
+                <Bar yAxisId="v" dataKey="volume" fill="rgba(99,120,153,0.35)" isAnimationActive={false} />
+                <Area yAxisId="p" type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5}
                   fill="url(#detailGrad)" dot={false} isAnimationActive={false} connectNulls />
-              </AreaChart>
+              </ComposedChart>
             </SafeChart>
           ) : (
             <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim">NO DATA</div>
@@ -624,9 +651,45 @@ const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#C9A84C', letterSpac
 
 // ── Main Module ────────────────────────────────────────────────────────────────
 
+// ── Crypto in Australia ──────────────────────────────────────────────────────
+//
+// Four facts, each with its source, checked 28 Oct 2026. The brief offered
+// "~25% own crypto" and "ASIC regulates exchanges since 2024"; the latest
+// survey says about 31%, and exchanges have registered with AUSTRAC since 2018
+// while ASIC licensing arrives under the 2026 Digital Assets Framework.
+const AU_CRYPTO_FACTS = [
+  ['About 3 in 10 Australian adults own or have owned crypto', 'Independent Reserve Cryptocurrency Index 2025 (31%)'],
+  ['Exchanges must register with AUSTRAC (since 2018); the Digital Assets Framework passed in April 2026 brings platforms that hold crypto for customers under ASIC financial services licensing', 'AUSTRAC; Corporations Amendment (Digital Assets Framework) Act 2026'],
+  ['Crypto is a CGT asset: disposing of it — selling, swapping or spending — can trigger capital gains tax', 'ATO'],
+  ['Capital losses on crypto offset capital gains (this year or carried forward) — not salary or other income', 'ATO'],
+]
+
+function AuCryptoContext() {
+  return (
+    <div style={P.wrap}>
+      <div style={P.title}>CRYPTO IN AUSTRALIA</div>
+      <ul className="space-y-2">
+        {AU_CRYPTO_FACTS.map(([fact, src]) => (
+          <li key={fact} className="text-[10px] leading-snug text-terminal-text">
+            {fact}
+            <div className="text-[8px] text-terminal-text-dim/60 mt-0.5">{src}</div>
+          </li>
+        ))}
+      </ul>
+      <button
+        onClick={() => askMaddenAI('What do Australian investors need to know about crypto tax and regulation? Cover capital gains tax and losses, record-keeping, AUSTRAC registration of exchanges and the 2026 Digital Assets Framework. General information, not personal tax advice.')}
+        className="mt-2.5 text-2xs font-bold tracking-wide border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-1.5"
+      >ASK MADDENAI ▶</button>
+      <div className="text-[8px] text-terminal-text-dim/50 mt-1.5">General information only — not tax or financial advice.</div>
+    </div>
+  )
+}
+
 export default function CryptoModule() {
   const [selectedCoin, setSelectedCoin] = useState('BTC')
-  const [timeframe, setTimeframe]       = useState('3M')
+  // 7D by default: the detail chart pairs price with daily-ish volume bars,
+  // and a week is the window the table's sparkline and 7D% already describe.
+  const [timeframe, setTimeframe]       = useState('7D')
   const [titleBarHeight, setTitleBarHeight] = useState(28)
   // Mobile only (<768px) — the overview/table/detail columns stack instead
   // of sitting side by side, so a small screen needs an explicit switcher.
@@ -788,6 +851,8 @@ export default function CryptoModule() {
         ))}
       </div>
 
+      <CryptoMetricRow globalData={globalData} fearGreed={fearGreed} currency={currency} capSparkline={capSparkline} />
+
       <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* ── LEFT: market overview sidebar, resizable (drag right edge),
             scrolls independently of the coin table ── */}
@@ -799,11 +864,11 @@ export default function CryptoModule() {
         >
           <MaddenAIPanel momentum={momentum} />
           <HalvingCard />
-          <MarketPulsePanel globalData={globalData} currency={currency} capSparkline={capSparkline} />
           <FearGreedPanel data={fearGreed} />
           <DominancePanel globalData={globalData} />
           <TopVolumeList markets={markets} currPrefix={currPrefix} selectedCoin={selectedCoin} onSelect={(s) => { setSelectedCoin(s); setMobilePanel('detail') }} />
           <SectorPerformanceList markets={markets} />
+          <AuCryptoContext />
         </ResizablePanel>
 
         {/* ── CENTRE: elite coin table ── */}
@@ -842,7 +907,7 @@ export default function CryptoModule() {
 
           {showMine ? (
             <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
-              <MyCryptoPanel markets={markets} currPrefix={currPrefix} />
+              <MyCryptoPanel markets={markets} currPrefix={currPrefix} colorFor={coinColor} />
             </div>
           ) : showDefi ? (
             // Absolutely positioned for the same reason the 3D canvas is —
@@ -1041,11 +1106,15 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
           const isSelected = coin.symbol === selectedCoin
           return (
             <tr key={coin.symbol}
+              // At (within 0.1% of) its 24h high: one green pulse on render.
+              className={coin.high24h != null && coin.price >= coin.high24h * 0.999 ? 'high-pulse-once' : undefined}
+              title={coin.high24h != null && coin.price >= coin.high24h * 0.999 ? 'Trading at its 24h high' : undefined}
               style={{
                 height: 36, borderBottom: '1px solid rgba(13,34,68,0.4)', cursor: 'pointer',
                 background: isSelected ? 'rgba(201,168,76,0.08)' : 'transparent',
+                boxShadow: isSelected ? 'inset 3px 0 0 #C9A84C' : 'none',
               }}
-              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(26,127,232,0.08)' }}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(201,168,76,0.05)' }}
               onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(201,168,76,0.08)' : 'transparent' }}
               onClick={() => onRowClick(coin)}>
               <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }}>{coin.rank}</td>
@@ -1101,7 +1170,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
               )}
               {show('sparkline') && (
                 <td style={{ ...CELL, textAlign: 'right' }} className="hidden xl:table-cell">
-                  <Sparkline prices={coin.sparkline} pct={coin.pct7d} w={80} />
+                  <Sparkline prices={coin.sparkline} pct={coin.pct7d} w={60} h={24} />
                 </td>
               )}
               <td style={{ ...CELL, width: 28 }} />

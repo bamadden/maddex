@@ -903,13 +903,18 @@ export const transformCryptoMarkets = (items, currency = 'aud') =>
     image:     c.image ?? null,
   }))
 
-export const transformCoinHistory = ({ prices }) => {
+// Volume rides along with price (CoinGecko's total_volumes is aligned to the
+// same timestamps). Prices keep 4 significant figures below $1 — rounding to
+// cents flattened DOGE at 0.114 to 0.11 and drew it as a staircase.
+export const transformCoinHistory = ({ prices, total_volumes: vols = [] }) => {
   const step = prices.length > 200 ? Math.ceil(prices.length / 90) : 1
   return prices
+    .map((p, i) => [p, vols[i]?.[1] ?? null])
     .filter((_, i) => i % step === 0)
-    .map(([ts, price]) => ({
-      date:  new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      price: parseFloat(price.toFixed(2)),
+    .map(([[ts, price], volume]) => ({
+      date:  new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }),
+      price: price >= 1 ? parseFloat(price.toFixed(2)) : parseFloat(price.toPrecision(4)),
+      volume,
     }))
 }
 

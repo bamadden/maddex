@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { defiService } from '../../services/defiService'
+import Donut from '../../components/charts/Donut'
 
 // ─── Bitcoin halving countdown ──────────────────────────────────────────────
 //
@@ -36,14 +37,15 @@ export function HalvingCard() {
   const subsidyNow = 50 / 2 ** Math.floor(d.height / HALVING_INTERVAL)
 
   return (
-    <div className="px-3 py-3" style={{ background: 'linear-gradient(180deg, rgba(247,147,26,0.08), transparent)' }}>
+    <div className="px-3 py-3.5" style={{ background: 'linear-gradient(180deg, rgba(247,147,26,0.14), rgba(247,147,26,0.02))', borderLeft: '3px solid #F7931A' }}>
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold tracking-widest" style={{ color: '#f7931a' }}>NEXT BTC HALVING</span>
+        <span className="text-[10px] font-bold tracking-widest" style={{ color: '#f7931a' }}>NEXT BTC HALVING</span>
         <span className="text-[9px] text-terminal-text-dim">block {nextHeight.toLocaleString()}</span>
       </div>
+      <div className="text-2xs text-terminal-text-dim mt-0.5">Estimated: <span className="text-terminal-text-bright font-bold">{eta.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}</span></div>
       <div className="flex items-baseline gap-2 mt-1">
-        <span className="font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 24 }}>{days.toLocaleString()}</span>
-        <span className="text-2xs text-terminal-text-dim">days · est. {eta.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })}</span>
+        <span className="font-mono font-bold tabular-nums" style={{ fontSize: 40, lineHeight: 1, color: '#F7931A', textShadow: '0 0 18px rgba(247,147,26,0.35)' }}>{days.toLocaleString()}</span>
+        <span className="font-mono text-xs text-terminal-text-dim tracking-widest">DAYS</span>
       </div>
       <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(100,130,160,0.2)' }}>
         <div className="h-full" style={{ width: `${epochPct}%`, background: '#f7931a' }} />
@@ -52,9 +54,12 @@ export function HalvingCard() {
         <span>{remaining.toLocaleString()} blocks to go</span>
         <span>{epochPct.toFixed(1)}% of epoch</span>
       </div>
-      <div className="text-[9px] text-terminal-text-dim/80 mt-1.5 leading-snug">
-        Block reward falls from {subsidyNow} to {subsidyNow / 2} BTC. Past halvings have preceded strong rallies, but four
-        cycles is a small sample. Estimate from the live block height and recent block times · general information only.
+      <div className="text-[10px] text-terminal-text-bright mt-2 leading-snug">
+        Block rewards halve from {subsidyNow} to {subsidyNow / 2} BTC.
+      </div>
+      <div className="text-[9px] text-terminal-text-dim/80 mt-1 leading-snug">
+        Past halvings have preceded strong rallies, but four cycles is a small sample. Date estimated from the live block
+        height and recent block times. General information only — past performance is not indicative of future performance.
       </div>
     </div>
   )
@@ -71,7 +76,12 @@ const save = (rows) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(ro
 
 const money = (v, prefix) => `${v < 0 ? '−' : ''}${prefix}${Math.abs(v).toLocaleString('en-AU', { maximumFractionDigits: Math.abs(v) < 10 ? 4 : 2, minimumFractionDigits: 2 })}`
 
-export function MyCryptoPanel({ markets, currPrefix }) {
+export function MyCryptoPanel({ markets, currPrefix, colorFor = () => '#C9A84C' }) {
+  // A cost entered in AUD is only comparable with an AUD price. Rows record
+  // the currency they were entered in (legacy rows, from before this, were
+  // AUD — the module's default); a row in the other currency is valued but
+  // shows no gain/loss rather than subtracting dollars from dollars.
+  const ccy = currPrefix === 'A$' ? 'AUD' : 'USD'
   const [rows, setRows] = useState(load)
   const [coin, setCoin] = useState(markets?.[0]?.symbol ?? 'BTC')
   const [units, setUnits] = useState('')
@@ -84,10 +94,10 @@ export function MyCryptoPanel({ markets, currPrefix }) {
     if (!(u > 0) || !(c >= 0) || !coin) return
     // Same coin twice merges into one line at a weighted average cost —
     // two BTC rows would make the totals harder to read, not easier.
-    const existing = rows.find((r) => r.symbol === coin)
+    const existing = rows.find((r) => r.symbol === coin && (r.ccy ?? 'AUD') === ccy)
     const next = existing
-      ? rows.map((r) => r.symbol === coin ? { ...r, units: r.units + u, avgCost: (r.units * r.avgCost + u * c) / (r.units + u) } : r)
-      : [...rows, { symbol: coin, units: u, avgCost: c, addedAt: new Date().toISOString() }]
+      ? rows.map((r) => r === existing ? { ...r, units: r.units + u, avgCost: (r.units * r.avgCost + u * c) / (r.units + u) } : r)
+      : [...rows, { symbol: coin, units: u, avgCost: c, ccy, addedAt: new Date().toISOString() }]
     update(next)
     setUnits(''); setCost('')
   }
@@ -95,13 +105,18 @@ export function MyCryptoPanel({ markets, currPrefix }) {
   const priced = rows.map((r) => {
     const m = bySym[r.symbol]
     const value = m ? m.price * r.units : null
+    const sameCcy = (r.ccy ?? 'AUD') === ccy
     const costBasis = r.avgCost * r.units
-    const gain = value != null ? value - costBasis : null
-    return { ...r, price: m?.price ?? null, value, gain, pct: gain != null && costBasis > 0 ? (gain / costBasis) * 100 : null }
+    const gain = value != null && sameCcy ? value - costBasis : null
+    return { ...r, sameCcy, price: m?.price ?? null, value, gain, pct: gain != null && costBasis > 0 ? (gain / costBasis) * 100 : null }
   })
   const total = priced.reduce((s, r) => s + (r.value ?? 0), 0)
-  const totalCost = priced.reduce((s, r) => s + r.avgCost * r.units, 0)
-  const totalGain = total - totalCost
+  const comparable = priced.filter((r) => r.sameCcy)
+  const totalCost = comparable.reduce((s, r) => s + r.avgCost * r.units, 0)
+  const otherCcy = priced.length - comparable.length
+  const totalGain = comparable.reduce((s, r) => s + (r.value ?? 0), 0) - totalCost
+  const slices = priced.filter((r) => r.value > 0).sort((a, b) => b.value - a.value)
+    .map((r) => ({ label: r.symbol, value: r.value, color: colorFor(r.symbol) }))
   const tone = (v) => (v == null ? '#8BA3C4' : v >= 0 ? 'var(--color-gain)' : 'var(--color-loss)')
   const input = 'bg-terminal-bg border border-terminal-border text-2xs text-terminal-text px-2 py-1.5 font-mono outline-none focus:border-terminal-gold'
 
@@ -119,6 +134,25 @@ export function MyCryptoPanel({ markets, currPrefix }) {
           </div>
         ))}
       </div>
+
+      {slices.length > 0 && (
+        <div className="flex items-center gap-5 border border-terminal-border p-3 flex-wrap">
+          <Donut
+            size={150} thickness={24} label="Crypto holdings by value" slices={slices}
+            centre={<><span className="text-[9px] text-terminal-text-dim tracking-widest">TOTAL</span><span className="text-xs font-bold text-terminal-text-bright tabular-nums">{money(total, currPrefix)}</span></>}
+          />
+          <div className="flex-1 min-w-[160px] space-y-1">
+            {slices.map((s) => (
+              <div key={s.label} className="flex items-center gap-2 text-2xs font-mono">
+                <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: s.color }} />
+                <span className="font-bold text-terminal-text-bright">{s.label}</span>
+                <span className="ml-auto tabular-nums text-terminal-text">{money(s.value, currPrefix)}</span>
+                <span className="tabular-nums text-terminal-text-dim w-12 text-right">{((s.value / total) * 100).toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 flex-wrap border border-terminal-border p-2">
         <span className="text-[9px] text-terminal-gold font-bold tracking-widest mr-1">ADD HOLDING</span>
@@ -145,8 +179,8 @@ export function MyCryptoPanel({ markets, currPrefix }) {
           </thead>
           <tbody>
             {priced.map((r) => (
-              <tr key={r.symbol} className="border-b border-terminal-border/40">
-                <td className="py-1.5 px-2 font-bold text-terminal-text-bright">{r.symbol}</td>
+              <tr key={`${r.symbol}-${r.ccy ?? 'AUD'}`} className="border-b border-terminal-border/40">
+                <td className="py-1.5 px-2 font-bold text-terminal-text-bright">{r.symbol}{!r.sameCcy && <span className="text-terminal-text-dim font-normal"> ({r.ccy})</span>}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums">{r.units.toLocaleString('en-AU', { maximumFractionDigits: 8 })}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums">{money(r.avgCost, currPrefix)}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums">{r.price != null ? money(r.price, currPrefix) : '—'}</td>
@@ -154,7 +188,7 @@ export function MyCryptoPanel({ markets, currPrefix }) {
                 <td className="py-1.5 px-2 text-right tabular-nums" style={{ color: tone(r.gain) }}>{r.gain != null ? `${r.gain >= 0 ? '+' : ''}${money(r.gain, currPrefix)}` : '—'}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums" style={{ color: tone(r.pct) }}>{r.pct != null ? `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(1)}%` : '—'}</td>
                 <td className="py-1.5 px-2 text-right">
-                  <button onClick={() => update(rows.filter((x) => x.symbol !== r.symbol))} className="text-terminal-text-dim hover:text-terminal-red" title="Remove">✕</button>
+                  <button onClick={() => update(rows.filter((x) => !(x.symbol === r.symbol && (x.ccy ?? 'AUD') === (r.ccy ?? 'AUD'))))} className="text-terminal-text-dim hover:text-terminal-red" title="Remove">✕</button>
                 </td>
               </tr>
             ))}
@@ -162,7 +196,7 @@ export function MyCryptoPanel({ markets, currPrefix }) {
         </table>
       )}
       <div className="text-[9px] text-terminal-text-dim/60">
-        Priced live from CoinGecko in {currPrefix === 'A$' ? 'AUD' : 'USD'}. Stored in this browser only. Not financial advice.
+        Priced live from CoinGecko in {ccy}. Costs are kept in the currency they were entered in{otherCcy > 0 ? ` — ${otherCcy} holding${otherCcy === 1 ? ' was' : 's were'} entered in ${ccy === 'AUD' ? 'USD' : 'AUD'}; switch currency to see ${otherCcy === 1 ? 'its' : 'their'} gain/loss` : ''}. Stored in this browser only. Not financial advice.
       </div>
     </div>
   )

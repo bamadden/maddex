@@ -12,10 +12,14 @@
 // So every number here is fetched. What cannot be fetched is absent, not
 // estimated — the on-chain panel shows what these endpoints actually publish
 // and says nothing about ETH staking rates or exchange reserves, which they
-// do not.
+// do not. Ethereum gas and burn (added Oct 2026) come from a public JSON-RPC
+// node's eth_feeHistory — live chain data, not a quoted average.
 
 const DEFILLAMA = 'https://api.llama.fi'
 const MEMPOOL = 'https://mempool.space/api'
+// Public Ethereum JSON-RPC (PublicNode): free, no key, sends CORS headers —
+// checked from the browser origin before use.
+const ETH_RPC = 'https://ethereum-rpc.publicnode.com'
 
 const CACHE_PREFIX = 'maddex_defi_'
 const TTL_MS = 10 * 60_000
@@ -67,7 +71,7 @@ const EXCLUDED_CATEGORIES = new Set(['CEX', 'Chain', 'Bridge'])
 export const defiService = {
   // Same row shape as liveDataService.getDataStatus, for the settings panel.
   getDataStatus() {
-    return [['protocols_25', 'DeFi TVL'], ['btc_onchain', 'BTC mempool'], ['btc_halving', 'BTC block height']].map(([key, label]) => {
+    return [['protocols_25', 'DeFi TVL'], ['btc_onchain_v2', 'BTC mempool'], ['eth_gas', 'ETH gas'], ['btc_halving', 'BTC block height']].map(([key, label]) => {
       let at = null
       try { at = JSON.parse(localStorage.getItem(CACHE_PREFIX + key) ?? 'null')?.at ?? null } catch { /* unreadable */ }
       const ageMins = at ? Math.round((Date.now() - at) / 60000) : null
@@ -76,6 +80,27 @@ export const defiService = {
   },
 
   // Protocols by TVL, with category and 24h change.
+  // TVL by category, from the same /protocols list (DefiLlama's /categories
+  // endpoint is paid). Summed over every protocol with TVL, CEXs, chains and
+  // bridges excluded as above. Protocols that deposit into other protocols
+  // are counted in each, so this is a breakdown of activity, not a total that
+  // reconciles to DefiLlama's headline TVL.
+  async getCategories(top = 6) {
+    return withCache(`categories_${top}`, async () => {
+      const raw = await json(`${DEFILLAMA}/protocols`)
+      const by = new Map()
+      for (const p of raw) {
+        if (!(p.tvl > 0) || EXCLUDED_CATEGORIES.has(p.category) || !p.category) continue
+        by.set(p.category, (by.get(p.category) ?? 0) + p.tvl)
+      }
+      const rows = [...by.entries()].map(([name, tvl]) => ({ name, tvl })).sort((a, b) => b.tvl - a.tvl)
+      const total = rows.reduce((s, r) => s + r.tvl, 0)
+      const head = rows.slice(0, top)
+      const rest = rows.slice(top).reduce((s, r) => s + r.tvl, 0)
+      return { total, rows: rest > 0 ? [...head, { name: 'Other', tvl: rest }] : head }
+    })
+  },
+
   async getProtocols(limit = 25) {
     return withCache(`protocols_${limit}`, async () => {
       const raw = await json(`${DEFILLAMA}/protocols`)
@@ -114,15 +139,23 @@ export const defiService = {
   // Bitcoin network state. Three separate endpoints, settled individually so
   // one slow call does not cost the whole panel.
   async getBitcoinOnChain() {
-    return withCache('btc_onchain', async () => {
-      const [hash, mem, fees] = await Promise.allSettled([
+    return withCache('btc_onchain_v2', async () => {
+      const [hash, mem, fees, adj] = await Promise.allSettled([
         json(`${MEMPOOL}/v1/mining/hashrate/3d`),
         json(`${MEMPOOL}/mempool`),
         json(`${MEMPOOL}/v1/fees/recommended`),
+        json(`${MEMPOOL}/v1/difficulty-adjustment`),
       ])
       const ok = (r) => (r.status === 'fulfilled' ? r.value : null)
-      const h = ok(hash), m = ok(mem), f = ok(fees)
+      const h = ok(hash), m = ok(mem), f = ok(fees), a = ok(adj)
       return {
+        feeHalfHour: f?.halfHourFee ?? null,
+        feeEconomy: f?.economyFee ?? null,
+        // Next difficulty retarget, as mempool.space projects it from the
+        // blocks so far this epoch.
+        retargetChangePct: a?.difficultyChange ?? null,
+        retargetAt: a?.estimatedRetargetDate ?? null,
+        retargetBlocks: a?.remainingBlocks ?? null,
         // Hashrate arrives in H/s; EH/s is the unit the network is discussed in.
         hashrateEH: h?.currentHashrate != null ? h.currentHashrate / 1e18 : null,
         difficulty: h?.currentDifficulty ?? null,
@@ -147,6 +180,44 @@ export const defiService = {
       const avgMs = adj.status === 'fulfilled' ? Number(adj.value?.timeAvg) : null
       if (!Number.isFinite(height)) throw new Error('mempool tip unavailable')
       return { height, avgBlockMs: Number.isFinite(avgMs) && avgMs > 0 ? avgMs : 600000 }
+    })
+  },
+
+  // Ethereum fees and burn from the last 20 blocks (eth_feeHistory with the
+  // 10th/50th/90th percentile priority fees). gwei = base fee + tip. Burn is
+  // base fee × gas used, averaged over those blocks and scaled to a day of
+  // 12-second slots (7,200) — an estimate from a 4-minute sample, labelled so.
+  async getEthGas() {
+    return withCache('eth_gas', async () => {
+      const rpc = async (method, params) => {
+        const r = await fetch(ETH_RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) })
+        if (!r.ok) throw new Error(`eth rpc HTTP ${r.status}`)
+        const j = await r.json()
+        if (j.error) throw new Error(j.error.message)
+        return j.result
+      }
+      const [hist, block] = await Promise.all([
+        rpc('eth_feeHistory', ['0x14', 'latest', [10, 50, 90]]),
+        rpc('eth_getBlockByNumber', ['latest', false]),
+      ])
+      const hex = (x) => Number(BigInt(x))
+      const base = hist.baseFeePerGas.slice(0, -1).map(hex)          // per block, wei
+      const nextBase = hex(hist.baseFeePerGas.at(-1))
+      const tips = hist.reward.map((r) => r.map(hex))                  // [p10, p50, p90]
+      const avg = (xs) => xs.reduce((s, v) => s + v, 0) / xs.length
+      const tip = (i) => avg(tips.map((t) => t[i]))
+      const gwei = (wei) => wei / 1e9
+      const gasLimit = hex(block.gasLimit)
+      const burnPerBlockWei = avg(base.map((b, i) => b * hist.gasUsedRatio[i] * gasLimit))
+      return {
+        baseGwei: gwei(nextBase),
+        slowGwei: gwei(nextBase + tip(0)),
+        standardGwei: gwei(nextBase + tip(1)),
+        fastGwei: gwei(nextBase + tip(2)),
+        burnEthPerDay: (burnPerBlockWei / 1e18) * 7200,
+        block: hex(block.number),
+        utilisationPct: avg(hist.gasUsedRatio) * 100,
+      }
     })
   },
 
@@ -184,6 +255,9 @@ export const ONCHAIN_EXPLAINERS = {
   difficulty: 'How hard it is to mine a block. Adjusts roughly every two weeks to keep blocks near ten minutes apart as hashrate changes.',
   mempool: 'Transactions waiting to be confirmed. A large backlog means the network is busy and fees are being bid up.',
   fees: 'What it currently costs to get a transaction confirmed quickly, in satoshis per virtual byte.',
+  retarget: 'Every 2,016 blocks the network resets difficulty so blocks keep arriving about ten minutes apart. A positive change means blocks have been coming faster — more miners have joined.',
+  ethGas: 'What it costs to have an Ethereum transaction included, in gwei (a billionth of an ETH) per unit of gas: the protocol\'s base fee plus a tip to the validator.',
+  ethBurn: 'Since 2021 Ethereum burns the base fee of every transaction, removing that ETH from supply. More activity, more burn.',
   tvl: 'Total value locked — the assets deposited in a protocol\'s smart contracts. It measures usage, not revenue, and can move purely because token prices did.',
   stablecoins: 'Total stablecoin supply in circulation. Often read as dry powder available inside crypto markets.',
 }
