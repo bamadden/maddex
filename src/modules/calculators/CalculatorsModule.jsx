@@ -10,7 +10,7 @@ import {
   TAX_YEAR, TAX_BRACKETS, TAX_SOURCE, SUPER, ASFA, STAMP_DUTY,
   fullTaxPosition, stampDuty, marginalRate,
 } from '../../data/auTaxRates'
-import { compound, drp, loanPayment, amortise, superProjection, cgt } from './calcMath'
+import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN } from './calcMath'
 
 // ─── Financial calculators ──────────────────────────────────────────────────
 //
@@ -414,7 +414,6 @@ function SuperTrackCalc() {
 // The margin is an estimate, not a sourced average — it exists so the default
 // moves with the RBA instead of going stale after every decision, as the old
 // literal 6.2% did. The note under the field says so.
-const MORTGAGE_MARGIN = 2.14
 const defaultMortgageRate = () => (VERIFIED_CONSTANTS.rba.cashRate + MORTGAGE_MARGIN).toFixed(2)
 
 function MortgageCalc() {

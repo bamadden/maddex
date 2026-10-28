@@ -84,6 +84,42 @@ function rbaLastThree() {
   return out
 }
 
+// Where each bank sits in its hiking cycle: basis points above the low of the
+// last easing cycle. For the RBA and the Fed the low is read off their
+// recorded decision lists (the lowest rate before the most recent run of
+// hikes began); for the others it is a dated `cycleLow` in verifiedConstants,
+// added only where it was checked. A bank without one says so — the cycle
+// view never infers a low it was not given.
+function cycleFor(c) {
+  if (c.cycleLow) return c.cycleLow
+  const d = c.decisions
+  if (!d?.length) return null
+  let i = d.length - 1
+  while (i >= 0 && d[i].decision !== 'CUT') i--          // last cut
+  if (i < 0) return null
+  return { rate: d[i].rate, date: d[i].date }
+}
+
+function CycleLine({ c }) {
+  const low = cycleFor(c)
+  if (!low) {
+    return <div className="font-mono text-terminal-text-dim/50 mt-1" style={{ fontSize: 8 }}>cycle low not recorded</div>
+  }
+  const bp = Math.round((c.cashRate - low.rate) * 100)
+  const tone = bp > 0 ? '#E8A33D' : bp < 0 ? '#2D8A50' : '#8BA3C4'
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-1.5">
+        <span className="font-mono font-bold tabular-nums" style={{ fontSize: 11, color: tone }}>{bp > 0 ? '+' : ''}{bp}bp</span>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8 }}>from {low.rate.toFixed(2)}% ({monthYear(low.date)})</span>
+      </div>
+      <div className="h-1 mt-1 rounded-full overflow-hidden" style={{ background: 'rgba(74,96,128,0.18)' }}>
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, bp) / 1.5)}%`, background: tone }} />
+      </div>
+    </div>
+  )
+}
+
 function DecisionDots({ rows }) {
   return (
     <div className="flex flex-col gap-1">
@@ -167,6 +203,7 @@ function CardBody({ bank, c, now, bias, biasSource }) {
 
 export default function CentralBankCards() {
   const [open, setOpen] = useState(null)
+  const [cycle, setCycle] = useState(false)
   // Captured once. A clock read during render makes "9 days away" change on
   // any unrelated re-render and makes this component non-idempotent.
   const [now] = useState(() => Date.now())
@@ -210,6 +247,12 @@ export default function CentralBankCards() {
         {/* Every bank in this grid shares one verification date, so the badge
             belongs on the header rather than repeated ten times. */}
         <VerifiedBadge dataKey="rba" alwaysShow />
+        <button
+          onClick={() => setCycle((v) => !v)}
+          aria-pressed={cycle}
+          title="Basis points each bank has hiked from the low of its last easing cycle"
+          className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${cycle ? 'border-[#E8A33D] text-[#E8A33D] font-bold bg-[#E8A33D]/10' : 'border-terminal-border text-terminal-text-dim hover:border-[#E8A33D]'}`}
+        >HIKE CYCLE</button>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case ml-auto">
           10 banks · highest rate first · click a card for detail
         </span>
@@ -260,10 +303,12 @@ export default function CentralBankCards() {
                 >{st.label}</span>
               </div>
 
-              {c.rateRange && (
+              {cycle && <CycleLine c={c} />}
+
+              {!cycle && c.rateRange && (
                 <div className="font-mono text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 7 }}>Target range {c.rateRange}</div>
               )}
-              {c.note && !c.rateRange && (
+              {!cycle && c.note && !c.rateRange && (
                 <div className="font-mono text-terminal-text-dim/50 mt-0.5 truncate" style={{ fontSize: 7 }}>{c.note}</div>
               )}
 

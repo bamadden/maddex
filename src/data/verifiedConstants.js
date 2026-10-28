@@ -145,6 +145,10 @@ export const VERIFIED_CONSTANTS = {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
     lastDecision: '2026-09-10', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-29',
     note: 'Deposit facility rate',
+    // Low of the last easing cycle, for the Rates "hike cycle" view: 2.00%
+    // from June 2025; hiked to 2.25% (effective 17 Jun 2026) and 2.50%
+    // (effective 16 Sep 2026) — euronews, 10 Sep 2026. Checked 2026-10-28.
+    cycleLow: { rate: 2.00, date: '2025-06-11' },
     // Re-checked 2026-10-27: no decision since 10 Sep. The 28–29 Oct meeting
     // announces Thu 29 Oct, 14:15 CET.
     source: 'ecb.europa.eu', asOf: '2026-09-10', lastVerified: '2026-10-27',
@@ -158,6 +162,9 @@ export const VERIFIED_CONSTANTS = {
   boj: {
     label: 'BOJ', country: 'Japan', cashRate: 1.25,
     lastDecision: '2026-09-18', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-30',
+    // Low for the "hike cycle" view: −0.10%, the negative rate the BOJ ended on
+    // 19 Mar 2024. 1.25% is the highest since 1995 (CNBC, 18 Sep 2026).
+    cycleLow: { rate: -0.10, date: '2024-03-19' },
     // Re-checked 2026-10-27: hiked 1.00 → 1.25% on 18 Sep, 7–2 (Asada, Sato
     // dissenting). The 29–30 Oct meeting announces Fri 30 Oct.
     source: 'boj.or.jp', asOf: '2026-09-18', lastVerified: '2026-10-27',
@@ -298,6 +305,7 @@ export const VERIFIED_CONSTANTS = {
     // What the print was measured against, from the retired preview: the
     // RBA's August SMP forecast for trimmed mean q/q, and the big four's
     // published previews (CBA note 22 Oct; savings.com.au round-up 23 Oct).
+    cpiQuarterRbaForecast: 0.8,         // trimmed mean q/q, RBA August SMP
     cpiQuarterForecasts: 'Trimmed mean q/q: RBA (Aug SMP) 0.8%; big four 0.9–1.0%. Headline q/q: big four 1.2–1.3%.',
     cpiQuarterUrl: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release',
 

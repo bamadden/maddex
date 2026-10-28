@@ -27,9 +27,32 @@ const PAST_TENSE = { HIKE: 'HIKED', CUT: 'CUT', HOLD: 'HELD' }
 // In the week before a decision RbaDecisionPreview (below this card) shows one
 // futures reading a person took, with its source and date — a measured number,
 // labelled as not live, which is a different thing from the typed-in bars.
-// That same reading is surfaced here under the countdown, as one figure with
-// its source and date beside it, and only while it is the reading for the
-// meeting being counted down to.
+// That same reading is surfaced here, as HIKE / HOLD bars with the source and
+// date under them, and only while it is the reading for the meeting being
+// counted down to. Bars are acceptable for it where they were not for the
+// typed-in literals: it is one measured, dated, attributed figure, and HOLD
+// is its complement (the futures price no cut), not a second measurement.
+//
+// When the market prices a hike above 60%, a banner above the card says so.
+// The threshold is this terminal's, not a market convention — it is the
+// point where a hike is clearly the expected outcome rather than a coin toss.
+
+const URGENT_PCT = 60
+const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
+
+// HIKE / HOLD as a row: label, bar, percentage, the rate it leads to.
+function ScenarioBar({ label, pct, rate, tone, strong }) {
+  return (
+    <div className="flex items-center gap-2 font-mono" style={{ fontSize: 10 }}>
+      <span className="font-bold w-9" style={{ color: tone, letterSpacing: '0.12em' }}>{label}</span>
+      <div className="flex-1 h-2 rounded-sm overflow-hidden" style={{ background: 'rgba(74,96,128,0.18)', minWidth: 120 }}>
+        <div className="h-full rounded-sm" style={{ width: `${pct}%`, background: tone, opacity: strong ? 0.9 : 0.45 }} />
+      </div>
+      <span className="tabular-nums font-bold w-9 text-right" style={{ color: strong ? tone : '#8BA3C4' }}>{pct}%</span>
+      <span className="tabular-nums text-terminal-text-dim w-14">→ {rate.toFixed(2)}%</span>
+    </div>
+  )
+}
 
 function useCountdown(target) {
   const [now, setNow] = useState(() => Date.now())
@@ -73,9 +96,26 @@ export default function RbaHeroCard({ onAskAI }) {
   const moved = verb === 'HIKE' || verb === 'CUT'
   const nd = VERIFIED_CONSTANTS.rbaNextDecision
   const pricing = cd && nd?.date === rba?.nextMeeting && nd.marketHikePct != null ? nd : null
-  const hikeLeads = pricing && pricing.marketHikePct >= 50
+  const urgent = pricing && pricing.marketHikePct > URGENT_PCT
+  const au = VERIFIED_CONSTANTS.au
+  // Hikes so far in the year of the coming meeting, from the decision list.
+  const year = rba?.nextMeeting?.slice(0, 4)
+  const hikesThisYear = (rba?.decisions ?? []).filter((d) => d.decision === 'HIKE' && d.date.startsWith(year)).length
+  const nextOrdinal = ORDINAL[hikesThisYear]
 
   return (
+    <>
+    {urgent && (
+      <div
+        className="font-mono text-terminal-gold flex items-center gap-2 flex-wrap flex-shrink-0"
+        style={{ background: 'rgba(201,168,76,0.12)', borderLeft: '3px solid #C9A84C', padding: '7px 14px', fontSize: 11, letterSpacing: '0.08em' }}
+        role="status"
+      >
+        <span className="font-bold">⚠ HIGH HIKE PROBABILITY</span>
+        <span>— RBA MEETING IN {cd.d} {cd.d === 1 ? 'DAY' : 'DAYS'} · ~{pricing.marketHikePct}% MARKET PRICING</span>
+        <span className="text-terminal-text-dim/70 ml-auto" style={{ fontSize: 9 }}>{pricing.marketSource}, {fmtDate(pricing.marketAsOf)}</span>
+      </div>
+    )}
     <div
       data-tip="rba-hero"
       className="flex-shrink-0"
@@ -123,6 +163,11 @@ export default function RbaHeroCard({ onAskAI }) {
               than from anyone's memory. It belongs on this card because a rate
               decision is a person's decision — "the Board" is the formal
               answer and "who is running it" is the useful one. */}
+          {urgent && nextOrdinal && (
+            <div className="font-mono font-bold mt-1.5" style={{ fontSize: 10, color: '#E8A33D', letterSpacing: '0.14em' }}>
+              {nextOrdinal.toUpperCase()} HIKE OF {year} PRICED IN
+            </div>
+          )}
           {gov?.name && (
             <div className="font-mono text-terminal-text-dim/70 italic mt-1" style={{ fontSize: 10 }}>
               {gov.name}, Governor
@@ -149,28 +194,40 @@ export default function RbaHeroCard({ onAskAI }) {
           ) : (
             <div className="font-mono text-terminal-text-dim mt-2" style={{ fontSize: 11 }}>Decision day</div>
           )}
-          {pricing && (
-            <div className="flex items-center gap-2 mt-2 font-mono flex-wrap" style={{ fontSize: 10 }}>
-              <span
-                className="font-bold"
-                style={{
-                  color: hikeLeads ? '#E8A33D' : '#8BA3C4',
-                  border: `1px solid ${hikeLeads ? 'rgba(232,163,61,0.45)' : 'rgba(139,163,196,0.4)'}`,
-                  background: hikeLeads ? 'rgba(232,163,61,0.10)' : 'transparent',
-                  padding: '2px 6px', borderRadius: 2, letterSpacing: '0.14em',
-                }}
-              >
-                ~{pricing.marketHikePct}% HIKE PRICED · {pricing.hikeRate.toFixed(2)}%
-              </span>
-              <span className="text-terminal-text-dim/70" style={{ fontSize: 8 }}>
-                {pricing.marketSource}, {fmtDate(pricing.marketAsOf)} · not live
-              </span>
-            </div>
-          )}
-          <div className="font-mono text-terminal-text-dim/50 mt-2" style={{ fontSize: 8 }}>
-            2:30PM {sydneyTzAbbr(rba?.nextMeeting)} · {provenance('rba')}
+          <div className="font-mono text-terminal-gold/80 mt-2" style={{ fontSize: 9, letterSpacing: '0.12em' }}>
+            {fmtDate(rba?.nextMeeting).replace(/ \d{4}$/, '')} · 2:30PM {sydneyTzAbbr(rba?.nextMeeting)}
+          </div>
+          <div className="font-mono text-terminal-text-dim/50 mt-1" style={{ fontSize: 8 }}>
+            {provenance('rba')}
           </div>
         </div>
+
+        {pricing && (
+          <>
+            <div className="w-px self-stretch" style={{ background: 'rgba(201,168,76,0.12)' }} />
+            <div className="min-w-0 flex-1" style={{ maxWidth: 380 }}>
+              <div className="font-mono text-terminal-text-dim" style={{ fontSize: 9, letterSpacing: '0.18em' }}>
+                MARKET PRICING · {fmtDate(rba?.nextMeeting).replace(/ \d{4}$/, '')}
+              </div>
+              <div className="flex flex-col gap-1.5 mt-2.5">
+                <ScenarioBar label="HIKE" pct={pricing.marketHikePct} rate={pricing.hikeRate} tone="#E8A33D" strong={pricing.marketHikePct >= 50} />
+                <ScenarioBar label="HOLD" pct={100 - pricing.marketHikePct} rate={pricing.currentRate} tone="#8BA3C4" strong={pricing.marketHikePct < 50} />
+              </div>
+              <div className="font-mono text-terminal-text-dim/60 mt-1.5" style={{ fontSize: 8 }}>
+                {pricing.marketSource} · {fmtDate(pricing.marketAsOf)} · a dated reading, not live
+              </div>
+              {au?.cpiQuarterTrimmedQoQ != null && au.cpiLastRelease <= pricing.marketAsOf && (
+                <div className="font-mono text-terminal-gold mt-2.5 leading-snug" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
+                  <div>
+                    {au.cpiQuarterPeriod.replace(/^(\w+) (\d{4}) quarter$/, (_, m, y) => `${m.toUpperCase()} QTR ${y}`)} TRIMMED MEAN {au.cpiQuarterTrimmedQoQ.toFixed(1)}% Q/Q
+                    {au.cpiQuarterRbaForecast != null && au.cpiQuarterTrimmedQoQ > au.cpiQuarterRbaForecast ? ` · ABOVE RBA FORECAST (${au.cpiQuarterRbaForecast.toFixed(1)}%)` : ''}
+                  </div>
+                  <div className="text-terminal-gold/60">KEY DRIVER OF HIKE PRICING</div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="ml-auto flex flex-col items-end gap-2">
           <button
@@ -188,5 +245,6 @@ export default function RbaHeroCard({ onAskAI }) {
         </div>
       </div>
     </div>
+    </>
   )
 }

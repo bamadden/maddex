@@ -51,6 +51,21 @@ export function drp({ shares, price, yieldPct, participation, years, growthPct =
   return { finalShares: held, finalPrice: px, drpValue, cashValue, advantage: drpValue - cashValue, cashTaken }
 }
 
+// Assumed lender margin over the cash rate for a standard variable home loan.
+// An estimate, not a sourced average — it exists so default rates move with
+// the RBA instead of going stale after every decision. Every screen that
+// shows a mortgage figure (the calculator, the Rates hike-impact card) uses
+// this one number and says it is an assumption.
+export const MORTGAGE_MARGIN = 2.14
+
+// Change in the regular repayment when the rate moves by `deltaPct`, for a
+// principal-and-interest loan. Repayments are recalculated over the full term,
+// as a new loan would be — a simplification lenders broadly follow on
+// variable loans, stated wherever this is shown.
+export function repaymentChange(principal, fromRatePct, deltaPct, years = 30, paymentsPerYear = 12) {
+  return loanPayment(principal, fromRatePct + deltaPct, years, paymentsPerYear) - loanPayment(principal, fromRatePct, years, paymentsPerYear)
+}
+
 // Standard amortising loan payment.
 export function loanPayment(principal, annualRatePct, years, paymentsPerYear = 12) {
   const r = annualRatePct / 100 / paymentsPerYear

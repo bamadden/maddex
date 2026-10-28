@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
-import { sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyOffset, sydneyTzNow } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
+import RbaHikeImpact from './RbaHikeImpact'
 import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
 import RbaDecisionCard from './RbaDecisionCard'
 import { useQuery } from '@tanstack/react-query'
@@ -314,6 +315,15 @@ function YieldTooltip({ active, payload, label }) {
       <div className="text-terminal-text-dim font-bold">{label}</div>
       {payload.map(p => {
         const key = p.dataKey
+        if (key === 'AUscenario') {
+          return (
+            <div key={key} className="flex items-center gap-2">
+              <span style={{ color: '#E8A33D' }} className="font-bold">{p.name}</span>
+              <span className="text-terminal-text-bright font-semibold">{p.value.toFixed(2)}%</span>
+              <span className="text-terminal-text-dim">illustrative</span>
+            </div>
+          )
+        }
         const curve = YIELD_CURVES[key]
         if (!curve) return null
         const prev = curve.prev[label]
@@ -411,17 +421,15 @@ function RbaDecisionHistory() {
 
 const RBA_PERIODS = [['2Y', 2], ['5Y', 5], ['10Y', 10], ['ALL', Infinity]]
 
-function CompactRbaDashboard({ askAI }) {
-  // 2Y by default: wide enough for both cycles' turn, narrow enough that
-  // this year's decision dots sit apart and can be clicked.
-  const [period, setPeriod] = useState('2Y')
+// The RBA block that leads the module, full width: the hike banner and hero
+// card, the decision preview, what a hike would mean, and any release banner.
+// It sat inside SECTION 2's fixed-height column until the decision-week cards
+// were added under it, which left them clipped.
+function RbaLead({ askAI }) {
   const nextRbaDate = useMemo(() => getNextMeeting(RBA_MEETINGS_2026), [])
   const nextRbaLabel = nextRbaDate ? nextRbaDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'
-
-  const years = RBA_PERIODS.find(([k]) => k === period)?.[1] ?? Infinity
-
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col flex-shrink-0 border-b border-terminal-border">
       <RbaHeroCard
         onAskAI={() => askAI({
           name: 'RBA Cash Rate', price: `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% p.a.`, sector: 'Interest Rates', date: todayAEST(),
@@ -429,8 +437,20 @@ function CompactRbaDashboard({ askAI }) {
         })}
       />
       <RbaDecisionPreview />
+      <RbaHikeImpact />
       <ReleaseWatchBanner compact className="px-3 py-1.5 border-b border-terminal-border flex-shrink-0" />
+    </div>
+  )
+}
 
+function CompactRbaDashboard() {
+  // 2Y by default: wide enough for both cycles' turn, narrow enough that
+  // this year's decision dots sit apart and can be clicked.
+  const [period, setPeriod] = useState('2Y')
+  const years = RBA_PERIODS.find(([k]) => k === period)?.[1] ?? Infinity
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border flex-shrink-0">
         {RBA_PERIODS.map(([k]) => (
           <button
@@ -554,8 +574,9 @@ function MarketPricingPanel() {
 
       <div className="mt-2 pt-2 border-t border-terminal-border/50">
         <div className="text-2xs text-terminal-text-dim/60 leading-snug">
-          No rate-futures feed is connected, so no market-implied probability of a
-          hold or cut is shown. Figures above are the published settings.
+          No live rate-futures feed is connected. Figures above are the published
+          settings; before an RBA decision, the card at the top carries one dated,
+          sourced market reading.
         </div>
       </div>
     </div>
@@ -581,9 +602,45 @@ function MarketPricingPanel() {
 // and by the spread monitor. So the toggle offers the comparison that is real,
 // and says plainly that the others are not available rather than drawing them.
 
+// ─── RBA scenario curves ─────────────────────────────────────────────────────
+//
+// What the AU curve might do on the day if the RBA hikes or holds, drawn as a
+// dotted line over today's curve. ILLUSTRATIVE, and built only from the one
+// measured input there is — the dated market pricing in rbaNextDecision:
+//
+//   a hike moves the front end by the UNPRICED share of the move
+//     (1 − p) × 25bp — at ~85% priced, about +4bp;
+//   a hold moves it by the PRICED share, unwound
+//     −p × 25bp — about −21bp.
+//
+// The shift fades with tenor (TENOR_WEIGHT): the cash rate anchors the front
+// end and barely reaches 10 years out. The weights are a simple assumption,
+// not an estimate fitted to past decisions, and the chart says so. This is
+// the honest version of "the curve shifts up if they hike": with a hike mostly
+// priced, the hold is the scenario that moves the curve.
+const TENOR_WEIGHT = { '3M': 1, '6M': 0.9, '1Y': 0.75, '2Y': 0.5, '3Y': 0.35, '5Y': 0.2, '10Y': 0.05, '30Y': 0 }
+const SCENARIOS = [['current', 'CURRENT'], ['hike', 'HIKE SCENARIO'], ['hold', 'HOLD SCENARIO']]
+
+function scenarioShift(kind) {
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  if (!nd || nd.marketHikePct == null) return null
+  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
+  if (Date.now() >= at) return null
+  const move = nd.hikeRate - nd.currentRate
+  const p = nd.marketHikePct / 100
+  return kind === 'hike' ? (1 - p) * move : kind === 'hold' ? -p * move : null
+}
+
 function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
   const { shape } = primaryStats
   const [ghost, setGhost] = useState(false)
+  const [scenario, setScenario] = useState('current')
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const scenariosAvailable = scenarioShift('hike') != null
+  const shift = scenariosAvailable ? scenarioShift(scenario) : null
+  const data = shift == null ? chartData : chartData.map((r) => ({
+    ...r, AUscenario: r.AU == null ? null : +(r.AU + shift * (TENOR_WEIGHT[r.tenor] ?? 0)).toFixed(3),
+  }))
   const hasPrev = Object.keys(YIELD_CURVES.AU.prev ?? {}).length > 0 || Object.keys(YIELD_CURVES.US.prev ?? {}).length > 0
   // Both curves' 2s10s, in basis points. The shape word alone says which side
   // of zero the curve is on; the number says how far, and "+15bp" versus
@@ -657,9 +714,31 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
         )}
       </div>
 
+      {scenariosAvailable && (
+        <div className="flex items-center gap-1 px-2 py-1 flex-shrink-0 flex-wrap" style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
+          <span className="text-terminal-text-dim/60 tracking-wider mr-1" style={{ fontSize: 8 }}>RBA {new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()}</span>
+          {SCENARIOS.map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setScenario(k)}
+              className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${
+                scenario === k ? 'border-[#E8A33D] text-[#E8A33D] font-bold bg-[#E8A33D]/10' : 'border-terminal-border text-terminal-text-dim hover:border-[#E8A33D]'
+              }`}
+            >{label}</button>
+          ))}
+          {shift != null && (
+            <span className="ml-auto text-terminal-text-dim/60 font-mono" style={{ fontSize: 8 }}
+              title="Illustrative. The front end moves by the share of a 25bp hike the market had not priced (hike) or had priced (hold), fading with tenor. Assumed weights, not a fitted model.">
+              <span style={{ display: 'inline-block', width: 12, borderTop: '2px dotted #E8A33D', verticalAlign: 'middle', marginRight: 4 }} />
+              ILLUSTRATIVE · 3M {shift >= 0 ? '+' : ''}{Math.round(shift * 100)}bp, fading to 0 at 30Y · from ~{nd.marketHikePct}% priced
+            </span>
+          )}
+        </div>
+      )}
+
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+          <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke="#0F1E35" vertical={false} />
             <XAxis dataKey="tenor" tick={{ fontSize: 8 }} />
             <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
@@ -675,6 +754,10 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
             )}
             <Line type="monotone" dataKey="AU" stroke={YIELD_CURVES.AU.color} strokeWidth={2} dot={{ fill: YIELD_CURVES.AU.color, r: 2.5 }} connectNulls isAnimationActive={false} />
             <Line type="monotone" dataKey="US" stroke={YIELD_CURVES.US.color} strokeWidth={2} strokeDasharray="5 3" dot={{ fill: YIELD_CURVES.US.color, r: 2.5 }} connectNulls isAnimationActive={false} />
+            {shift != null && (
+              <Line type="monotone" dataKey="AUscenario" name={scenario === 'hike' ? 'AU if RBA hikes' : 'AU if RBA holds'} stroke="#E8A33D"
+                strokeWidth={1.75} strokeDasharray="2 3" dot={false} connectNulls isAnimationActive={false} />
+            )}
           </LineChart>
         </SafeChart>
       </div>
@@ -907,10 +990,12 @@ export default function FXModule() {
     {/* SECTION 1 — global policy rates, expandable comparison cards */}
     <CentralBankCards />
 
-    {/* SECTION 2 — RBA (left 55%) vs yield curve + market pricing (right 45%) */}
+    <RbaLead askAI={askAI} />
+
+    {/* SECTION 2 — RBA path (left 55%) vs yield curve + market pricing (right 45%) */}
     <div className="flex border-b border-terminal-border flex-shrink-0" style={{ height: 480 }}>
       <div className="h-full border-r border-terminal-border" style={{ width: '55%' }}>
-        <CompactRbaDashboard askAI={askAI} />
+        <CompactRbaDashboard />
       </div>
       <div className="h-full" style={{ width: '45%' }}>
         <YieldCurveDualPanel chartData={chartData} yMin={yMin} yMax={yMax} primaryStats={auCurveStats} />

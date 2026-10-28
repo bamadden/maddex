@@ -8,9 +8,10 @@ import { sydneyOffset, sydneyTzAbbr } from '../../utils/dateUtils'
 // The market figure is one dated reading of ASX 30-day cash rate futures,
 // typed in by a person with its source — see RbaHeroCard's note on why this
 // card had no probability block before. It is shown as exactly that: a
-// number with a date and a source, labelled not-live, never a bar that
-// implies it moves. Hold is the complement of the hike reading (the futures
-// price no cut), not a second measurement.
+// number with a date and a source, labelled not-live. The HIKE / HOLD bars
+// for it are on RbaHeroCard; this card carries the context and the statement.
+// Hold is the complement of the hike reading (the futures price no cut), not
+// a second measurement.
 
 const SHOW_BEFORE_MS = 8 * 86400_000
 
@@ -29,16 +30,6 @@ export default function RbaDecisionPreview() {
   const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
   if (now >= at || now < at - SHOW_BEFORE_MS) return null
 
-  const hold = 100 - nd.marketHikePct
-
-  const scenario = (label, rate, p, tone) => (
-    <div className="flex items-baseline gap-3 py-1">
-      <span className="font-mono font-bold w-24" style={{ color: tone, fontSize: 11 }}>{label}</span>
-      <span className="font-mono text-terminal-text-bright tabular-nums" style={{ fontSize: 13 }}>{rate.toFixed(2)}%</span>
-      <span className="font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 11 }}>~{p}% market-implied</span>
-    </div>
-  )
-
   return (
     <div className="px-4 py-2.5 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(15,30,53,0.5)' }}>
       <div className="flex items-center gap-2 flex-wrap">
@@ -53,9 +44,11 @@ export default function RbaDecisionPreview() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 mt-1.5">
         <div>
-          {scenario('HIKE ▲25bp', nd.hikeRate, nd.marketHikePct, '#A83232')}
-          {scenario('HOLD', nd.currentRate, hold, '#8BA3C4')}
-          <div className="font-mono text-terminal-text-dim/60 leading-snug mt-0.5" style={{ fontSize: 8 }}>
+          {/* The HIKE / HOLD bars themselves are on the hero card above. */}
+          <div className="font-mono text-terminal-text-bright leading-snug" style={{ fontSize: 10 }}>
+            ~{nd.marketHikePct}% priced for {nd.hikeRate.toFixed(2)}%, ~{100 - nd.marketHikePct}% for a hold at {nd.currentRate.toFixed(2)}%.
+          </div>
+          <div className="font-mono text-terminal-text-dim/60 leading-snug mt-1" style={{ fontSize: 8 }}>
             Market-implied estimate as at {nd.marketAsOf}: {nd.marketSource}{nd.marketImpliedRate != null && <> implied {nd.marketImpliedRate.toFixed(2)}%</>}.
             A dated reading, not a live feed. {nd.marketContext}
           </div>
