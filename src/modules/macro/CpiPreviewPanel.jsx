@@ -74,7 +74,8 @@ export default function CpiPreviewPanel() {
             </tbody>
           </table>
           <div className="text-2xs text-terminal-text-dim/70 mt-1.5 leading-snug">
-            Forecasts: {a.cpiQuarterForecasts} Monthly: September {pct(a.cpi)} y/y, trimmed mean {pct(a.cpiTrimmedMean)}.
+            Forecasts: {a.cpiQuarterForecasts} Monthly: September {pct(a.cpi)} y/y ({a.cpiMoM >= 0 ? '+' : ''}{pct(a.cpiMoM)} m/m), trimmed mean {pct(a.cpiTrimmedMean)}.
+            {a.cpiDrivers && <> Drivers: {a.cpiDrivers}</>}
           </div>
         </div>
 

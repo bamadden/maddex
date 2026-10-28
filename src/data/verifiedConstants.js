@@ -40,6 +40,11 @@ export const VERIFIED_CONSTANTS = {
     lastChange: '+25bp',
     nextMeetingTime: '2:30pm AEDT',
     note: 'Fourth hike of 2026, unanimous. "Upside risks flagged in August are materialising."',
+    // Added 2026-10-28 after the Sep-quarter CPI. The RBA's 0.8% is its August
+    // SMP forecast (there is no October SMP; the next is with the 3 Nov
+    // decision). The ~85% is Bloomberg data as reported by ABC News — see
+    // rbaNextDecision for the reading itself.
+    nextMeetingNote: 'Sep quarter trimmed mean CPI 1.0% q/q, above the RBA\'s August forecast of 0.8%. Market pricing ~85% for a fifth hike of 2026, to 4.85% (Bloomberg via ABC News, 28 Oct).',
     // 4.60% is above every level since Nov 2011, when the rate was cut from
     // 4.75% to 4.50% (and 4.50% to 4.25% that December). The 2023 peak was 4.35%.
     levelContext: 'the highest since 2011',
@@ -272,6 +277,9 @@ export const VERIFIED_CONSTANTS = {
     cpiNextRelease: '2026-11-25',       // October CPI, per the ABS release page
     cpiTrimmedMean: 3.6,
     cpiTrimmedMeanPrevious: 3.5,        // Aug 2026, revised
+    cpiMoM: 0.8,                        // Sep, original (0.6% seasonally adjusted)
+    // Main annual contributors, September 2026, as the release words them.
+    cpiDrivers: 'Housing +5.2% y/y (new dwellings +4.7%, electricity +12.8% as Commonwealth rebates ended, rents +3.6%); automotive fuel +23.6% y/y (+9.4% in September).',
     rbaTargetBand: '2–3%',
 
     // September quarter 2026, published in the same release (tables 17–18
@@ -767,7 +775,7 @@ export function verifiedFactsForAI() {
     if (au.cpi != null) lines.push(`AU CPI ${au.cpi.toFixed(1)}% YoY (${au.cpiPeriod}; ${au.cpiPrevious}% in ${au.cpiPreviousPeriod}), trimmed mean ${au.cpiTrimmedMean}%, RBA target band ${au.rbaTargetBand}`)
     if (au.cpiQuarterTrimmedQoQ != null) {
       const pq = au.cpiQuarterPrevious
-      lines.push(`AU CPI ${au.cpiQuarterPeriod} (ABS, released ${au.cpiLastRelease}): headline ${au.cpiQuarterQoQ.toFixed(1)}% q/q, ${au.cpiQuarterYoY.toFixed(1)}% y/y; trimmed mean ${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q, ${au.cpiQuarterTrimmedYoY.toFixed(1)}% y/y${pq ? ` (${pq.period}: headline ${pq.qoq.toFixed(1)}% q/q, trimmed mean ${pq.trimmedQoQ.toFixed(1)}% q/q)` : ''}. Forecasts it was measured against — ${au.cpiQuarterForecasts}`)
+      lines.push(`AU CPI ${au.cpiQuarterPeriod} (ABS, released ${au.cpiLastRelease}): headline ${au.cpiQuarterQoQ.toFixed(1)}% q/q, ${au.cpiQuarterYoY.toFixed(1)}% y/y; trimmed mean ${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q, ${au.cpiQuarterTrimmedYoY.toFixed(1)}% y/y${pq ? ` (${pq.period}: headline ${pq.qoq.toFixed(1)}% q/q, trimmed mean ${pq.trimmedQoQ.toFixed(1)}% q/q)` : ''}. Forecasts it was measured against — ${au.cpiQuarterForecasts}${au.cpiDrivers ? ` Drivers (${au.cpiPeriod}): ${au.cpiDrivers}` : ''}`)
     }
     if (au.unemployment != null) lines.push(`AU unemployment ${au.unemployment}% (${au.unemploymentPeriod})`)
     if (au.gdpAnnual != null) lines.push(`AU GDP ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`)

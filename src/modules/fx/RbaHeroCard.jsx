@@ -27,6 +27,9 @@ const PAST_TENSE = { HIKE: 'HIKED', CUT: 'CUT', HOLD: 'HELD' }
 // In the week before a decision RbaDecisionPreview (below this card) shows one
 // futures reading a person took, with its source and date — a measured number,
 // labelled as not live, which is a different thing from the typed-in bars.
+// That same reading is surfaced here under the countdown, as one figure with
+// its source and date beside it, and only while it is the reading for the
+// meeting being counted down to.
 
 function useCountdown(target) {
   const [now, setNow] = useState(() => Date.now())
@@ -68,6 +71,9 @@ export default function RbaHeroCard({ onAskAI }) {
   const gov = VERIFIED_CONSTANTS.centralBankOfficials?.rba
   const verb = (rba?.lastDecisionVerb ?? '').toUpperCase()
   const moved = verb === 'HIKE' || verb === 'CUT'
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const pricing = cd && nd?.date === rba?.nextMeeting && nd.marketHikePct != null ? nd : null
+  const hikeLeads = pricing && pricing.marketHikePct >= 50
 
   return (
     <div
@@ -143,6 +149,24 @@ export default function RbaHeroCard({ onAskAI }) {
           ) : (
             <div className="font-mono text-terminal-text-dim mt-2" style={{ fontSize: 11 }}>Decision day</div>
           )}
+          {pricing && (
+            <div className="flex items-center gap-2 mt-2 font-mono flex-wrap" style={{ fontSize: 10 }}>
+              <span
+                className="font-bold"
+                style={{
+                  color: hikeLeads ? '#E8A33D' : '#8BA3C4',
+                  border: `1px solid ${hikeLeads ? 'rgba(232,163,61,0.45)' : 'rgba(139,163,196,0.4)'}`,
+                  background: hikeLeads ? 'rgba(232,163,61,0.10)' : 'transparent',
+                  padding: '2px 6px', borderRadius: 2, letterSpacing: '0.14em',
+                }}
+              >
+                ~{pricing.marketHikePct}% HIKE PRICED · {pricing.hikeRate.toFixed(2)}%
+              </span>
+              <span className="text-terminal-text-dim/70" style={{ fontSize: 8 }}>
+                {pricing.marketSource}, {fmtDate(pricing.marketAsOf)} · not live
+              </span>
+            </div>
+          )}
           <div className="font-mono text-terminal-text-dim/50 mt-2" style={{ fontSize: 8 }}>
             2:30PM {sydneyTzAbbr(rba?.nextMeeting)} · {provenance('rba')}
           </div>
@@ -158,8 +182,8 @@ export default function RbaHeroCard({ onAskAI }) {
             className="font-mono text-right text-terminal-text-dim/45 leading-snug"
             style={{ fontSize: 8, maxWidth: 210 }}
           >
-            No live rate-futures feed. Before a decision, the preview
-            below carries one dated, sourced futures reading.
+            No live rate-futures feed. Before a decision, the pricing
+            shown is one dated, sourced reading, detailed in the preview below.
           </div>
         </div>
       </div>
