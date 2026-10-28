@@ -332,6 +332,9 @@ export const VERIFIED_CONSTANTS = {
     // published previews (CBA note 22 Oct; savings.com.au round-up 23 Oct).
     cpiQuarterRbaForecast: 0.8,         // trimmed mean q/q, RBA August SMP
     cpiQuarterForecasts: 'Trimmed mean q/q: RBA (Aug SMP) 0.8%; big four 0.9–1.0%. Headline q/q: big four 1.2–1.3%.',
+    // Stated outright for MaddenAI, which otherwise read "0.9–1.0%" and wrote
+    // that a 1.0% print "beat every big four forecast".
+    cpiQuarterVsForecast: 'Trimmed mean 1.0% q/q was AT THE TOP of the big four\'s 0.9–1.0% range (in line with CBA, NAB and ANZ, 0.1pt above Westpac) and 0.2pt above the RBA\'s 0.8%. Headline 1.3% q/q was at the top of the 1.2–1.3% range.',
     cpiQuarterUrl: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release',
 
     // UPDATED 2026-10-18 — Labour Force, September 2026 (released Thu 15 Oct):
@@ -845,7 +848,7 @@ export function verifiedFactsForAI() {
     if (au.cpi != null) lines.push(`AU CPI ${au.cpi.toFixed(1)}% YoY (${au.cpiPeriod}; ${au.cpiPrevious}% in ${au.cpiPreviousPeriod}), trimmed mean ${au.cpiTrimmedMean}%, RBA target band ${au.rbaTargetBand}`)
     if (au.cpiQuarterTrimmedQoQ != null) {
       const pq = au.cpiQuarterPrevious
-      lines.push(`AU CPI ${au.cpiQuarterPeriod} (ABS, released ${au.cpiLastRelease}): headline ${au.cpiQuarterQoQ.toFixed(1)}% q/q, ${au.cpiQuarterYoY.toFixed(1)}% y/y; trimmed mean ${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q, ${au.cpiQuarterTrimmedYoY.toFixed(1)}% y/y${pq ? ` (${pq.period}: headline ${pq.qoq.toFixed(1)}% q/q, trimmed mean ${pq.trimmedQoQ.toFixed(1)}% q/q)` : ''}. Forecasts it was measured against — ${au.cpiQuarterForecasts}${au.cpiDrivers ? ` Drivers (${au.cpiPeriod}): ${au.cpiDrivers}` : ''}`)
+      lines.push(`AU CPI ${au.cpiQuarterPeriod} (ABS, released ${au.cpiLastRelease}): headline ${au.cpiQuarterQoQ.toFixed(1)}% q/q, ${au.cpiQuarterYoY.toFixed(1)}% y/y; trimmed mean ${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q, ${au.cpiQuarterTrimmedYoY.toFixed(1)}% y/y${pq ? ` (${pq.period}: headline ${pq.qoq.toFixed(1)}% q/q, trimmed mean ${pq.trimmedQoQ.toFixed(1)}% q/q)` : ''}. Forecasts it was measured against — ${au.cpiQuarterForecasts}${au.cpiQuarterVsForecast ? ` ${au.cpiQuarterVsForecast}` : ''}${au.cpiDrivers ? ` Drivers (${au.cpiPeriod}): ${au.cpiDrivers}` : ''}`)
     }
     if (au.unemployment != null) lines.push(`AU unemployment ${au.unemployment}% (${au.unemploymentPeriod})`)
     if (au.gdpAnnual != null) lines.push(`AU GDP ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`)
@@ -856,7 +859,8 @@ export function verifiedFactsForAI() {
   const nd = VERIFIED_CONSTANTS.rbaNextDecision
   if (nd && now < new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()) {
     const implied = nd.marketImpliedRate != null ? `implied ${nd.marketImpliedRate.toFixed(2)}%; ` : ''
-    lines.push(`RBA ${nd.date} decision: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${implied}${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext} 29 Sep statement: "${nd.statementQuote}"`)
+    const wd = new Date(`${nd.date}T12:00:00Z`).toLocaleDateString('en-AU', { weekday: 'long', timeZone: 'UTC' })
+    lines.push(`RBA decision ${wd} ${nd.date}, ${nd.time} Sydney: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${implied}${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext} 29 Sep statement: "${nd.statementQuote}"`)
     // Arithmetic, not a model guess: the same calculation as the Rates
     // hike-impact card, with its assumptions stated.
     const from = nd.currentRate + MORTGAGE_MARGIN, d = nd.hikeRate - nd.currentRate

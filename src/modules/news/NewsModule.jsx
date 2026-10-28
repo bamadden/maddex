@@ -1,9 +1,13 @@
 import { memo, useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { timeAgo as sharedTimeAgo } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
-import { fetchNews, NEWS_SOURCES, FINANCIAL_KEYWORDS, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
+import { fetchNews, NEWS_SOURCES, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
 import { MOCK_ASX_STOCKS, MOCK_CRYPTO, MOCK_INDICES } from '../../services/mockData'
-import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { dispatchAskAI, askMaddenAI, todayAEST } from '../../utils/askAI'
+import { fetchIndexQuotesUnified } from '../../services/dataService'
+import { USING_MOCK_DATA } from '../../services/api'
+import { getEconomicCalendar, pendingEvents } from '../../services/calendarService'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { useStore } from '../../store/useStore'
 import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
@@ -11,7 +15,6 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { NewsletterBanner } from '../../components/newsletter/Newsletter'
 import { annotateArticles, clusterStories, marketSession, impactOf } from '../../services/newsIntelligence'
-import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useSentiment } from '../../hooks/useSentiment'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
@@ -114,7 +117,52 @@ const DISPLAY_CATEGORIES = [
   { key: 'RATES',        label: 'RATES',        test: (n) => n.tag === 'RATES' || n.categories?.includes('FX') },
   { key: 'GEOPOLITICAL', label: 'GEOPOLITICAL', test: (n) => n.categories?.includes('GEOPOLITICAL') },
   { key: 'TECH',         label: 'TECH',         test: (n) => n.categories?.includes('TECH') },
+  { key: 'COMPANIES',    label: 'COMPANIES',    test: (n) => n.tickers?.length > 0 },
 ]
+
+// ─── Topics, for TRENDING TOPICS ─────────────────────────────────────────────
+//
+// Counted as ARTICLES that mention the topic (headline or summary), not word
+// occurrences — "RBA · 12" means twelve stories. A fixed list of the subjects
+// an Australian investor tracks, plus any company the feed's own matcher
+// detected. Clicking one filters the feed by the same pattern that counted it.
+const TOPICS = [
+  ['RBA',       /\bRBA\b|reserve bank/i],
+  ['Rates',     /interest rates?|cash rate|rate (rise|hike|cut)s?/i],
+  ['Inflation', /inflation|\bCPI\b/i],
+  ['Iron ore',  /iron ore/i],
+  ['Banks',     /\bbanks?\b|westpac|\bNAB\b|\bANZ\b|commonwealth bank/i],
+  ['Housing',   /housing|property|home loans?|mortgage/i],
+  ['Oil',       /\boil\b|crude|brent|opec/i],
+  ['China',     /china|beijing|chinese/i],
+  ['Fed',       /\bfed\b|federal reserve|powell/i],
+  ['Crypto',    /bitcoin|crypto|ethereum/i],
+  ['AI',        /\bAI\b|artificial intelligence|nvidia/i],
+  ['Gold',      /\bgold\b/i],
+  ['Jobs',      /unemployment|jobs|labour market|wages/i],
+  ['Tariffs',   /tariffs?|trade war/i],
+  ['Earnings',  /\bprofit|earnings|results|guidance/i],
+]
+const topicText = (a) => `${a.headline} ${a.summary ?? ''}`
+
+function trendingTopics(items) {
+  const rows = TOPICS.map(([label, re]) => ({ key: label, label, test: (a) => re.test(topicText(a)) }))
+  const companies = new Map()
+  for (const a of items) for (const c of a.companies ?? []) companies.set(c.ticker, (companies.get(c.ticker) ?? 0) + 1)
+  for (const [ticker] of companies) {
+    const bare = ticker.replace(/\.AX$/, '')
+    rows.push({ key: `co:${ticker}`, label: bare, test: (a) => (a.companies ?? []).some((c) => c.ticker === ticker) })
+  }
+  return rows
+    .map((r) => ({ ...r, count: items.filter(r.test).length }))
+    .filter((r) => r.count >= 2)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+}
+
+// Sydney calendar day of an article, for the TODAY filter.
+const sydneyDay = (ms) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+const TIME_FILTERS = [['ALL', 'ALL TIME'], ['TODAY', 'TODAY'], ['WEEK', 'THIS WEEK']]
 
 // ─── Ticker badges — only for symbols in the app's tracked stock lists,
 // clicking one opens that stock's DetailModal ────────────────────────────────
@@ -180,28 +228,6 @@ function HighlightText({ text, term }) {
 }
 
 // ─── Overall stats ────────────────────────────────────────────────────────────
-
-// Trending: count which financial keywords appear most across current articles
-const TREND_DISPLAY = {
-  'interest rate': 'INTEREST RATES', 'rate cut': 'RATE CUT', 'rate hike': 'RATE HIKE',
-  'iron ore': 'IRON ORE', 'federal reserve': 'FED', 'central bank': 'CENTRAL BANK',
-  'reserve bank': 'RBA', 'trade war': 'TRADE WAR', 'real estate': 'PROPERTY',
-  'monetary policy': 'MONETARY POLICY', 'jobs data': 'JOBS',
-}
-
-function extractTrending(items) {
-  const counts = {}
-  for (const item of items) {
-    const text = `${item.headline} ${item.summary ?? ''}`.toLowerCase()
-    for (const kw of FINANCIAL_KEYWORDS) {
-      if (text.includes(kw)) {
-        const display = TREND_DISPLAY[kw] ?? kw.toUpperCase()
-        counts[display] = (counts[display] ?? 0) + 1
-      }
-    }
-  }
-  return Object.entries(counts).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 12)
-}
 
 // ─── Sentiment aggregation ────────────────────────────────────────────────────
 //
@@ -371,163 +397,6 @@ function headlineForAsset(items, label) {
   return hit?.headline ?? null
 }
 
-// ─── SENTIMENT VISUALISER — full-width bar above the 3-column layout ────────
-
-function SentimentVisualiser({ items, trending, searchTerm, onTagClick, now }) {
-  // Recomputed when the feed changes or once a minute — not on the 1s tick.
-  const minute = Math.floor(now / 60_000)
-  const s = useMemo(() => overallSentiment(items, minute * 60_000), [items, minute])
-  const topTags = trending.slice(0, 6)
-
-  return (
-    <div className="px-3 py-2 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(201,168,76,0.03)' }}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase">MARKET SENTIMENT:</span>
-        <span className="text-2xs font-bold" style={{ color: '#3aaa63' }}>{s.bullPct}% BULLISH</span>
-        <span className="text-2xs text-terminal-text-dim/50">·</span>
-        <span className="text-2xs font-bold" style={{ color: '#c9a84c' }}>{s.neutralPct}% NEUTRAL</span>
-        <span className="text-2xs text-terminal-text-dim/50">·</span>
-        <span className="text-2xs font-bold" style={{ color: '#cc4444' }}>{s.bearPct}% BEARISH</span>
-        {s.trend && (
-          <span className="text-2xs font-bold ml-2"
-            title="Against the same weighted read two hours ago, from the articles published by then"
-            style={{ color: s.trend === 'improving' ? '#3aaa63' : s.trend === 'declining' ? '#cc4444' : '#8BA3C4' }}>
-            SENTIMENT {s.trend === 'improving' ? '▲ improving' : s.trend === 'declining' ? '▼ declining' : '→ steady'}
-          </span>
-        )}
-        <span className="text-2xs text-terminal-text-dim/40 ml-auto" title="Each article is scored by keyword at fetch time (inferSentiment in api.js), then weighted by impact (HIGH 3×, MED 2×) and recency (half weight every 6 hours). No model is involved.">
-          {s.total} articles · keyword-scored, weighted by impact &amp; recency
-        </span>
-      </div>
-
-      {/* SEGMENTED, and it was not.
-          The row above has said "25% BULLISH · 67% NEUTRAL · 8% BEARISH" for a
-          while; the bar under it drew a single gold segment at the bullish
-          width and left the other 75% empty track. So the one graphic in the
-          module carried a third of the number beside it and coloured it gold,
-          which is this terminal's neutral. Three segments, three colours,
-          full width, adding to 100. */}
-      <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        {[
-          { pct: s.bullPct, colour: '#3aaa63', label: 'Bullish' },
-          { pct: s.neutralPct, colour: '#c9a84c', label: 'Neutral' },
-          { pct: s.bearPct, colour: '#cc4444', label: 'Bearish' },
-        ].map((seg) => (
-          <div
-            key={seg.label}
-            style={{ width: `${seg.pct}%`, height: '100%', background: seg.colour, transition: 'width 300ms ease' }}
-            title={`${seg.label} ${seg.pct}% — keyword scoring across ${s.total} headlines, weighted by impact and recency`}
-          />
-        ))}
-      </div>
-
-      {topTags.length > 0 && (
-        <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          {topTags.map(([word]) => {
-            const isActive = searchTerm.toLowerCase() === word.toLowerCase()
-            return (
-              <button
-                key={word}
-                onClick={() => onTagClick(isActive ? '' : word)}
-                className={`text-[9px] font-mono px-2 py-0.5 rounded-full border flex-shrink-0 transition-colors ${
-                  isActive
-                    ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/15'
-                    : 'border-terminal-gold/30 text-terminal-gold/80 hover:border-terminal-gold hover:bg-terminal-gold/10'
-                }`}
-              >
-                #{word.replace(/\s+/g, '')}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── FEED STATUS — live dot, article count, refresh countdown ──────────────
-//
-// The countdown was already computed and rendered as eight muted grey words
-// inside the panel header, beside the source count and the article count and
-// the LIVE label — five facts sharing one line, none of them findable. This is
-// the same information given its own 28px band, which is what makes "when does
-// this next update" answerable at a glance.
-//
-// The clock is the module's existing one-second tick; react-query's
-// refetchInterval owns the actual refresh, so the countdown reports the
-// schedule rather than driving it and the two cannot drift apart.
-
-function FeedStatusBar({ isLive, isFetching, articleCount, lastUpdatedAt, nowTs, onRefresh }) {
-  const sinceRefresh = lastUpdatedAt == null ? null : nowTs - lastUpdatedAt
-  const secsLeft = sinceRefresh == null ? null : Math.max(0, Math.round((REFRESH_MS - sinceRefresh) / 1000))
-  const countdown = secsLeft == null ? '—'
-    : secsLeft >= 60 ? `${Math.floor(secsLeft / 60)}m`
-    : `${secsLeft}s`
-
-  return (
-    <div
-      className="flex items-center gap-2 px-3 border-b border-terminal-border flex-shrink-0"
-      style={{ height: 28, background: 'rgba(201,168,76,0.025)' }}
-    >
-      <span className="flex items-center gap-1.5 flex-shrink-0" style={{ width: 90 }}>
-        <span
-          className={`rounded-full ${isLive ? 'animate-pulse' : ''}`}
-          style={{ width: 6, height: 6, background: isLive ? '#2D8A50' : '#a83232' }}
-        />
-        <span
-          className="font-mono font-bold tracking-widest"
-          style={{ fontSize: 9, color: isLive ? '#2D8A50' : '#a83232' }}
-        >{isLive ? 'LIVE' : 'OFFLINE'}</span>
-      </span>
-
-      <span className="font-mono text-terminal-text-dim mx-auto text-center" style={{ fontSize: 9 }}>
-        {articleCount} articles
-        {lastUpdatedAt != null && <> · updated {sharedTimeAgo(lastUpdatedAt) ?? 'just now'}</>}
-      </span>
-
-      <span className="flex items-center gap-2 flex-shrink-0 justify-end" style={{ width: 130 }}>
-        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
-          {isFetching ? 'refreshing…' : `refresh in ${countdown}`}
-        </span>
-        <button
-          onClick={onRefresh}
-          title="Refresh now"
-          className="text-terminal-text-dim hover:text-terminal-gold transition-colors leading-none"
-          style={{ fontSize: 12 }}
-        >↻</button>
-      </span>
-    </div>
-  )
-}
-
-// ─── MARKET IMPACT — ticker | %change | mini bar, below the top story ───────
-
-function MarketImpactRow() {
-  const assets = useMemo(() => marketImpactAssets(), [])
-  const maxAbs = Math.max(...assets.map(a => Math.abs(a.changePct)), 0.1)
-
-  return (
-    <div className="px-3 py-2 border-t border-terminal-border flex-shrink-0">
-      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">MARKET IMPACT</div>
-      <div className="flex flex-col gap-1">
-        {assets.map(a => {
-          const up = a.changePct >= 0
-          const widthPct = (Math.abs(a.changePct) / maxAbs) * 100
-          return (
-            <div key={a.label} className="flex items-center gap-2 text-[10px] font-mono">
-              <span className="text-terminal-text-bright w-14 flex-shrink-0">{a.label}</span>
-              <span className={`w-12 flex-shrink-0 text-right ${up ? 'pos' : 'neg'}`}>{up ? '+' : ''}{a.changePct.toFixed(2)}%</span>
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ width: `${widthPct}%`, height: '100%', background: up ? '#3aaa63' : '#a83232' }} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 // ─── Article card ─────────────────────────────────────────────────────────────
 
 function primaryDisplayCategory(item) {
@@ -556,7 +425,7 @@ function TickerBadgeRow({ tickers, onOpenTicker }) {
 // ─── TOP STORY — full-width card, with a mini sparkline (top-right) when the
 // headline mentions a tracked asset ──────────────────────────────────────────
 
-function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAskAI, onOpenTicker, isSaved, onToggleSave }) {
+function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkRead, onAskAI, onOpenTicker, isSaved, onToggleSave, onOpen }) {
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   const asset      = useMemo(() => resolveStoryAsset(item), [item])
@@ -577,7 +446,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAsk
         <span
           className="font-mono font-bold tracking-widest flex-shrink-0"
           style={{ fontSize: 8, color: '#C9A84C', background: 'rgba(201,168,76,0.12)', padding: '2px 6px', borderRadius: 2 }}
-        >TOP STORY</span>
+        >{rank === 1 ? 'TOP STORY' : rank}</span>
         <span
           className="font-mono font-bold tracking-wider flex-shrink-0"
           style={{
@@ -613,16 +482,18 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAsk
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p
-            className="font-semibold text-terminal-text-bright line-clamp-2"
+            className="font-semibold text-terminal-text-bright line-clamp-3 cursor-pointer hover:text-terminal-gold transition-colors"
             style={{ fontSize: 16, lineHeight: 1.35 }}
+            onClick={() => onOpen?.(item)}
+            title="Open in the article panel"
           >
             {isUnread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold mr-1.5" />}
             <HighlightText text={item.headline} term={searchTerm} />
           </p>
           {item.summary && (
             <p
-              className="text-terminal-text-dim line-clamp-2 mt-1.5"
-              style={{ fontSize: 12, lineHeight: 1.6, color: '#8BA3C4' }}
+              className="text-terminal-text-dim line-clamp-3 mt-1.5"
+              style={{ fontSize: 11, lineHeight: 1.6, color: '#8BA3C4' }}
             >{item.summary}</p>
           )}
         </div>
@@ -657,7 +528,7 @@ function TopStoryCard({ item, isUnread, searchTerm, isPulsing, onMarkRead, onAsk
             rel="noopener noreferrer"
             onClick={() => onMarkRead(item)}
             className="text-2xs font-bold tracking-wide text-terminal-blue-bright border border-terminal-blue-bright/30 rounded-full hover:bg-terminal-blue-bright hover:text-terminal-bg transition-colors px-3 py-1 ml-auto"
-          >READ FULL ARTICLE →</a>
+          >READ →</a>
         )}
         <button
           onClick={() => onAskAI(item)}
@@ -731,7 +602,7 @@ function StoryCluster({ cluster, savedKeys, onToggleSave, ...rowProps }) {
       {row(cluster.lead)}
       {open && cluster.items.slice(1).map((it) => (
         <div key={it.id ?? it.link} className="pl-3 border-l-2 border-terminal-gold/20">
-          {row(it, { isExpanded: false })}
+          {row(it)}
         </div>
       ))}
       <button
@@ -794,161 +665,55 @@ function SavedArticles({ items, searchTerm, onRemove, onAskAI }) {
   )
 }
 
-// Memoised because the feed re-renders every second.
-//
-// NewsModule keeps a one-second clock so relative timestamps stay honest
-// ("3m ago"). That tick re-rendered all ~73 rows every second, each one
-// re-running its ticker-badge and asset lookups, for a change that affects at
-// most a handful of them.
-//
-// This only bites because the three handlers below are already useCallback —
-// a memo whose props are rebuilt every render is pure overhead, so it is worth
-// stating that the stability is load-bearing rather than incidental.
-const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, isExpanded, onExpand, onOpenTicker, onAskAI, searchTerm = '', isSaved = false, onToggleSave }) {
-  const isNew      = isNewArticle(item)
+// One line per story, 40px: source dot and name, headline, age. Hovering
+// reveals the summary and the actions beneath it; clicking opens the article
+// panel. Memoised because the module re-renders every second for its clocks,
+// and the handlers it receives are stable (useCallback).
+const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, onOpen, onOpenTicker, onAskAI, searchTerm = '', isSaved = false, onToggleSave }) {
   const isBreaking = isBreakingArticle(item)
-  // Not gated on isExpanded any more: the accordion panel stays mounted so it
-  // can animate closed. Memoised per item, and StoryRow itself is memo'd, so
-  // this runs once per article rather than on every one-second tick.
-  const asset       = useMemo(() => resolveStoryAsset(item), [item])
-  const relevanceColor = isBreaking ? '#a83232' : item.sentiment === 'BULLISH' ? '#3aaa63' : item.sentiment === 'BEARISH' ? '#a83232' : '#4A6080'
-
+  const isNew = isNewArticle(item)
   return (
-    <div className="border-b border-terminal-border">
-      <div
-        className={`news-row ${isPulsing ? 'news-pulse' : ''} flex items-start gap-2.5 px-3 py-2 cursor-pointer hover:bg-terminal-surface2 transition-colors`}
-        style={{
-          minHeight: 48,
-          // A story about something the reader owns gets a gold edge. 3px, on
-          // the left, so it is unmistakable while scanning without competing
-          // with the sentiment dot on the right.
-          ...(item.inWatchlist ? { borderLeft: '3px solid #C9A84C', background: 'rgba(201,168,76,0.04)' } : null),
-        }}
-        onClick={() => onExpand(item)}
-      >
-        <SourceCircle source={item.source} size={12} />
-        <div className="flex-1 min-w-0">
-          <p className="text-[12px] text-terminal-text-bright leading-snug line-clamp-1">
-            {isUnread && <span className="inline-block w-1 h-1 rounded-full bg-terminal-gold mr-1.5 align-middle" />}
-            {isBreaking && <span className="text-[#a83232] font-bold mr-1">●</span>}
-            <HighlightText text={item.headline} term={searchTerm} />
-            {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[9px]">NEW</span>}
-          </p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[9px] font-mono text-terminal-text-dim">{item.source} · {timeAgo(item.pubDate)}</span>
-            <span
-              className="px-1 rounded-full leading-none py-0.5"
-              style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`, color: TAG_COLOR[item.tag] ?? '#8BA3C4' }}
-            >
-              {primaryDisplayCategory(item)}
-            </span>
-            <ImpactDot impact={item.impact} />
-            {item.companies?.length
-              ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
-              : <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />}
-            {item.inWatchlist && (
-              <span
-                className="text-[8px] font-mono tracking-widest text-terminal-gold flex-shrink-0"
-                title="You hold or track one of the companies in this story"
-              >IN YOUR WATCHLIST</span>
-            )}
-          </div>
-        </div>
-        {onToggleSave && <SaveButton compact saved={isSaved} onClick={() => onToggleSave(item)} />}
-        <span
-          className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1"
-          style={{ background: relevanceColor }}
-        />
+    <div
+      className={`news-row group border-b border-terminal-border cursor-pointer hover:bg-terminal-surface2 transition-colors ${isPulsing ? 'news-pulse' : ''}`}
+      style={item.inWatchlist ? { borderLeft: '3px solid #C9A84C', background: 'rgba(201,168,76,0.04)' } : { borderLeft: '3px solid transparent' }}
+      onClick={() => onOpen(item)}
+    >
+      <div className="flex items-center gap-2 px-3" style={{ height: 40 }}>
+        <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: sourceColor(item.source) }} />
+        <span className="font-mono font-bold flex-shrink-0 truncate" style={{ fontSize: 9, width: 92, color: sourceColor(item.source), letterSpacing: '0.04em' }} title={item.source}>
+          {item.source.toUpperCase()}
+        </span>
+        <span className="flex-1 min-w-0 truncate text-terminal-text-bright" style={{ fontSize: 12 }}>
+          {isUnread && <span className="inline-block w-1 h-1 rounded-full bg-terminal-gold mr-1.5 align-middle" />}
+          {isBreaking && <span className="text-[#a83232] font-bold mr-1">●</span>}
+          <HighlightText text={item.headline} term={searchTerm} />
+          {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[9px]">NEW</span>}
+        </span>
+        {item.inWatchlist && <span className="font-mono text-terminal-gold flex-shrink-0" style={{ fontSize: 8 }} title="Mentions a stock on your watchlist">★</span>}
+        <span className="font-mono text-terminal-text-dim/70 flex-shrink-0 tabular-nums" style={{ fontSize: 9 }}>{timeAgo(item.pubDate)}</span>
       </div>
-
-      {/* 0fr → 1fr on a grid row animates height without measuring anything,
-          so the accordion opens and CLOSES smoothly. The panel content stays
-          mounted through the collapse — unmounting it on the first frame
-          leaves an empty box to animate, which reads as an instant snap. */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: isExpanded ? '1fr' : '0fr',
-          transition: 'grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
-        <div style={{ overflow: 'hidden' }}>
-          <div className="px-3 pb-3 pl-8">
-            {/* The full headline, unclamped. The row above truncates to one
-                line, and the whole point of opening a row is to read the part
-                that was cut off. */}
-            <p className="text-terminal-text-bright leading-snug" style={{ fontSize: 14 }}>{item.headline}</p>
-
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
-                {item.source}
-                {item.author ? ` · ${item.author}` : ''}
-                {' · '}{timeAgo(item.pubDate)}
-              </span>
-              <ImpactDot impact={item.impact} />
-              {item.inWatchlist && (
-                <span className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>IN YOUR WATCHLIST</span>
-              )}
-            </div>
-
-            <div className="flex items-start justify-between gap-3 mt-1.5">
-              <p className="text-terminal-text-dim flex-1" style={{ fontSize: 12, lineHeight: 1.6 }}>
-                {item.summary ? <HighlightText text={item.summary} term={searchTerm} /> : <span className="italic text-terminal-text-dim/60">No summary in the feed — full story at {item.source}.</span>}
-              </p>
-              {asset && (
-                <div className="flex-shrink-0 text-right">
-                  <MiniSparkline values={asset.values} up={asset.up} />
-                  <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
-                </div>
-              )}
-            </div>
-
-            {item.companies?.length > 0 && (
-              <div className="flex items-center gap-1 mt-2 flex-wrap">
-                <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
-              </div>
+      {/* Hover reveal — summary and actions. Hidden on touch, where the tap
+          opens the article panel instead. */}
+      <div className="hidden group-hover:block px-3 pb-2.5" style={{ paddingLeft: 27 }}>
+        {item.summary && <p className="text-terminal-text-dim line-clamp-2" style={{ fontSize: 11, lineHeight: 1.55 }}><HighlightText text={item.summary} term={searchTerm} /></p>}
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <span className="px-1 rounded-full leading-none py-0.5" style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`, color: TAG_COLOR[item.tag] ?? '#8BA3C4' }}>{primaryDisplayCategory(item)}</span>
+          <ImpactDot impact={item.impact} />
+          {item.companies?.length
+            ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
+            : <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />}
+          <span className="ml-auto flex items-center gap-2">
+            {item.link && (
+              <a href={item.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors">READ →</a>
             )}
-
-            <div className="flex items-center gap-3 mt-2">
-              {item.link && (
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  className="text-2xs text-terminal-blue-bright hover:text-terminal-gold transition-colors"
-                >READ →</a>
-              )}
-              <button
-                onClick={e => { e.stopPropagation(); onAskAI(item) }}
-                className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
-              >Ask MaddenAI ▶</button>
-              {onToggleSave && <SaveButton saved={isSaved} onClick={() => onToggleSave(item)} />}
-            </div>
-          </div>
+            <button onClick={(e) => { e.stopPropagation(); onAskAI(item) }} className="text-2xs font-bold text-terminal-gold hover:underline">ASK MADDENAI ▶</button>
+            {onToggleSave && <SaveButton compact saved={isSaved} onClick={() => onToggleSave(item)} />}
+          </span>
         </div>
       </div>
     </div>
   )
 })
-
-// ─── SPONSORED DATA row — visual break inserted every 4th feed row, showing
-// the mini sparkline for one of the app's tracked market-impact assets. ────
-
-function SponsoredDataRow({ asset }) {
-  const values = useMemo(() => generateSparkline(asset.label, asset.price, asset.changePct), [asset])
-  const up = asset.changePct >= 0
-  return (
-    <div className="flex items-center gap-2.5 px-3 py-2 border-b border-terminal-border bg-terminal-gold/5">
-      <span className="text-[8px] font-mono tracking-widest text-terminal-gold/50 flex-shrink-0">DATA</span>
-      <MiniSparkline values={values} up={up} width={44} height={20} />
-      <span className="text-[11px] font-bold text-terminal-text-bright flex-shrink-0">{asset.label}</span>
-      <span className={`text-[10px] font-mono ml-auto flex-shrink-0 ${up ? 'pos' : 'neg'}`}>
-        {up ? '+' : ''}{asset.changePct.toFixed(2)}% 24H
-      </span>
-    </div>
-  )
-}
 
 // ─── RIGHT SIDEBAR — trending movers, topic word-cloud, breaking feed ───────
 
@@ -977,53 +742,6 @@ function MovingOnNews({ items }) {
             </div>
           )
         })}
-      </div>
-    </div>
-  )
-}
-
-function TopTopicsCloud({ trending, searchTerm, onTagClick }) {
-  if (trending.length === 0) return null
-  const maxCount = Math.max(...trending.map(([, c]) => c))
-  const minCount = Math.min(...trending.map(([, c]) => c))
-  const range = maxCount - minCount || 1
-  const sizeFor = (c) => 9 + Math.round(((c - minCount) / range) * 7) // 9px .. 16px
-
-  return (
-    <div className="px-3 py-2 border-b border-terminal-border">
-      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">TOP TOPICS</div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {trending.slice(0, 12).map(([word, count]) => {
-          const isActive = searchTerm.toLowerCase() === word.toLowerCase()
-          return (
-            <button
-              key={word}
-              onClick={() => onTagClick(isActive ? '' : word)}
-              className={`font-mono leading-none transition-colors ${isActive ? 'text-terminal-gold font-bold' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
-              style={{ fontSize: sizeFor(count) }}
-            >
-              {word}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function BreakingFeed({ items }) {
-  const top3 = items.slice(0, 3)
-  if (top3.length === 0) return null
-  return (
-    <div className="px-3 py-2">
-      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">BREAKING</div>
-      <div className="flex flex-col gap-1.5">
-        {top3.map(item => (
-          <div key={item.id} className="text-[10px] leading-snug text-terminal-text-dim">
-            <span className="text-[#a83232] font-bold mr-1">●</span>
-            {item.headline}
-          </div>
-        ))}
       </div>
     </div>
   )
@@ -1060,7 +778,15 @@ function MorningBriefing() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [expanded, setExpanded] = useState(true)
+  // Collapsed by default since the three-column redesign: open, the brief
+  // filled most of the screen and pushed the feed below the fold. The reader's
+  // choice is remembered.
+  const [expanded, setExpandedRaw] = useState(() => { try { return localStorage.getItem('maddex_news_brief_open') === '1' } catch { return false } })
+  const setExpanded = (fn) => setExpandedRaw((v) => {
+    const next = typeof fn === 'function' ? fn(v) : fn
+    try { localStorage.setItem('maddex_news_brief_open', next ? '1' : '0') } catch { /* private mode */ }
+    return next
+  })
 
   // The prompt is built from gathered data, never from the instruction to be
   // "specific" that this used to carry. See services/briefContext.js for why
@@ -1118,6 +844,9 @@ function MorningBriefing() {
           title="Regenerate"
           className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-1"
         >↻</button>
+        {!expanded && text && (
+          <span className="text-2xs text-terminal-text-dim truncate min-w-0 flex-1" style={{ maxWidth: '60%' }}>{text.replace(/[#*]/g, '').split(/(?<=\.)\s/).slice(1, 2).join(' ') || text.slice(0, 140)}</span>
+        )}
         <span className="ml-auto text-terminal-text-dim text-2xs">{expanded ? '▲' : '▼'}</span>
       </div>
       {expanded && (
@@ -1149,6 +878,304 @@ function MorningBriefing() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── SESSION CONTEXT — one line on what markets are doing right now ────────
+//
+// Built from the clock, the ASX 200 quote (DEMO-labelled when it is) and the
+// calendar. The after-hours / overnight split follows whether the NYSE is
+// actually trading, not a fixed 10pm, so it stays right across both
+// daylight-saving changes.
+function nyseState(now) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now).map((x) => [x.type, x.value]))
+  const mins = (Number(p.hour) % 24) * 60 + Number(p.minute)
+  const wk = !['Sat', 'Sun'].includes(p.weekday)
+  const OPEN = 9 * 60 + 30, CLOSE = 16 * 60
+  if (wk && mins >= OPEN && mins < CLOSE) return { open: true }
+  // Minutes to the next 9:30 ET open.
+  const DAY = 1440
+  let to = mins < OPEN && wk ? OPEN - mins : DAY - mins + OPEN
+  if (p.weekday === 'Fri' && mins >= OPEN) to += 2 * DAY
+  if (p.weekday === 'Sat') to += DAY
+  return { open: false, minsToOpen: to }
+}
+const gap = (m) => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`)
+
+function SessionContext({ nowTs, session, watchlistCount }) {
+  const { data: idx } = useQuery({ queryKey: ['pulse', 'axjo'], queryFn: () => fetchIndexQuotesUnified(['^AXJO']), staleTime: 60_000, refetchInterval: 60_000, retry: 1 })
+  const { data: cal } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 3_600_000 })
+  const asx = idx?.data?.['^AXJO']?.pct
+  const asxText = asx != null ? `ASX ${asx >= 0 ? '+' : ''}${asx.toFixed(1)}%${USING_MOCK_DATA ? ' (demo)' : ''}` : null
+  const now = new Date(nowTs)
+  const today = sydneyDay(nowTs)
+  const nextToday = pendingEvents(cal?.events ?? [], 1, nowTs).find((e) => e.date === today && e.importance === 'high')
+  const ny = nyseState(now)
+
+  let label, parts, colour = session.colour
+  if (session.key === 'pre') {
+    label = 'PRE-MARKET'; parts = [session.detail, nextToday && `${nextToday.event}${/^\d/.test(nextToday.time ?? '') ? ` ${nextToday.time} ${sydneyTzAbbr(today)}` : ''}`]
+  } else if (session.key === 'open') {
+    label = '● MARKET OPEN'; parts = [session.detail, asxText]
+  } else if (ny.open) {
+    label = 'OVERNIGHT'; colour = '#7C6BC4'; parts = ['US markets active', `Next: ASX opens in ${session.detail.replace(/^(ASX )?opens in /i, '')}`]
+  } else if (session.key === 'weekend') {
+    label = 'WEEKEND'; parts = [session.detail]
+  } else {
+    label = 'AFTER HOURS'; parts = [asxText ? `ASX closed ${asxText.replace(/^ASX /, '')}` : 'ASX closed', `US markets open in ${gap(ny.minsToOpen)}`]
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ borderColor: `${colour}44`, background: `${colour}0F` }}>
+      <span className="text-[9px] font-mono font-bold tracking-widest" style={{ color: colour }}>{label}</span>
+      {parts.filter(Boolean).map((t) => (
+        <span key={t} className="text-[9px] font-mono text-terminal-text-dim">· {t}</span>
+      ))}
+      {watchlistCount > 0 && (
+        <span className="text-[9px] font-mono text-terminal-gold ml-auto">{watchlistCount} {watchlistCount === 1 ? 'story' : 'stories'} on your watchlist</span>
+      )}
+    </div>
+  )
+}
+
+// ─── TOOLBAR — the MaddenAI news brief, and the feed's live status ──────────
+//
+// "Refreshing in" reports react-query's refetchInterval rather than driving
+// it, so the two cannot drift. The "✓ N NEW" flash reads the arrival time the
+// merge effect already records.
+function NewsToolbar({ isLive, isFetching, articleCount, sourcesOk, sourcesTotal, lastUpdatedAt, nowTs, onRefresh, newCount, lastArrivalAt, onBrief }) {
+  const since = lastUpdatedAt == null ? null : nowTs - lastUpdatedAt
+  const secsLeft = since == null ? null : Math.max(0, Math.round((REFRESH_MS - since) / 1000))
+  const countdown = secsLeft == null ? '—' : secsLeft >= 60 ? `${Math.floor(secsLeft / 60)}m ${String(secsLeft % 60).padStart(2, '0')}s` : `${secsLeft}s`
+  const flash = lastArrivalAt != null && nowTs - lastArrivalAt < 5000 && newCount > 0
+  return (
+    <div className="flex items-center gap-3 px-3 border-b border-terminal-border flex-shrink-0 flex-wrap" style={{ minHeight: 34, background: 'rgba(201,168,76,0.025)' }}>
+      <button
+        onClick={onBrief}
+        className="font-mono font-bold tracking-wider text-terminal-gold border border-terminal-gold/50 hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-2.5 py-1"
+        style={{ fontSize: 9 }}
+        title="A three-paragraph briefing on today's top stories, from the headlines on screen"
+      >ASK MADDENAI ABOUT TODAY&apos;S NEWS ▶</button>
+      <span className="group flex items-center gap-2 ml-auto font-mono" style={{ fontSize: 9 }}>
+        {isFetching ? (
+          <span className="text-terminal-gold animate-pulse">↻ CHECKING FOR NEW ARTICLES…</span>
+        ) : flash ? (
+          <span className="text-terminal-green font-bold panel-fade">✓ {newCount} NEW ARTICLE{newCount === 1 ? '' : 'S'}</span>
+        ) : (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className={`rounded-full ${isLive ? 'animate-pulse' : ''}`} style={{ width: 6, height: 6, background: isLive ? '#2D8A50' : '#a83232' }} />
+              <span className="font-bold tracking-widest" style={{ color: isLive ? '#2D8A50' : '#a83232' }}>{isLive ? 'LIVE' : 'OFFLINE'}</span>
+            </span>
+            <span className="text-terminal-text-dim">
+              · {articleCount} articles · {sourcesOk}/{sourcesTotal} sources{lastUpdatedAt != null && <> · {sharedTimeAgo(lastUpdatedAt) ?? 'just now'}</>}
+            </span>
+            <span className="text-terminal-text-dim/70 tabular-nums">· refreshing in {countdown}</span>
+          </>
+        )}
+        <button onClick={onRefresh} disabled={isFetching} className="text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40" title="Refresh now">
+          <span className="group-hover:hidden">↻</span><span className="hidden group-hover:inline">↻ REFRESH NOW</span>
+        </button>
+      </span>
+    </div>
+  )
+}
+
+// ─── SEARCH + FILTER ────────────────────────────────────────────────────────
+function FilterBar({ searchTerm, setSearchTerm, activeCategory, onCategory, catCount, savedCount, sources, source, setSource, time, setTime, topic, setTopic }) {
+  const active = [
+    searchTerm && { k: 'q', label: `"${searchTerm}"`, clear: () => setSearchTerm('') },
+    activeCategory !== 'ALL' && activeCategory !== 'SAVED' && { k: 'c', label: activeCategory, clear: () => onCategory('ALL') },
+    source !== 'ALL' && { k: 's', label: source, clear: () => setSource('ALL') },
+    time !== 'ALL' && { k: 't', label: time === 'TODAY' ? 'TODAY' : 'THIS WEEK', clear: () => setTime('ALL') },
+    topic && { k: 'p', label: `TOPIC: ${topic.label}`, clear: () => setTopic(null) },
+  ].filter(Boolean)
+  const pill = (isActive) => `font-mono uppercase flex-shrink-0 transition-colors flex items-center gap-1 border rounded-full ${isActive ? 'bg-terminal-gold border-terminal-gold text-terminal-bg font-bold' : 'border-terminal-border text-terminal-muted hover:border-terminal-gold hover:text-terminal-gold'}`
+  const select = 'bg-terminal-bg border border-terminal-border text-terminal-text-dim font-mono focus:border-terminal-gold outline-none'
+  return (
+    <div className="border-b border-terminal-border flex-shrink-0">
+      <div className="flex items-center gap-2 px-2 pt-1.5 flex-wrap">
+        <div className="flex items-center gap-1 border border-terminal-border px-2" style={{ height: 24 }}>
+          <span className="text-terminal-text-dim text-2xs">⌕</span>
+          <input
+            className="bg-transparent outline-none text-2xs font-mono text-terminal-text-bright"
+            style={{ width: 180 }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search headlines…"
+            aria-label="Search news"
+          />
+        </div>
+        <select className={select} style={{ fontSize: 9, height: 24 }} value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source">
+          <option value="ALL">ALL SOURCES</option>
+          {sources.map((s) => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+        </select>
+        <select className={select} style={{ fontSize: 9, height: 24 }} value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time">
+          {TIME_FILTERS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        {active.length > 0 && (
+          <span className="flex items-center gap-1 flex-wrap">
+            {active.map((f) => (
+              <button key={f.k} onClick={f.clear} className="font-mono text-terminal-gold border border-terminal-gold/40 rounded-full px-2 hover:bg-terminal-gold/10" style={{ fontSize: 9, height: 20 }} title="Remove filter">{f.label} ✕</button>
+            ))}
+            <button
+              onClick={() => { setSearchTerm(''); onCategory('ALL'); setSource('ALL'); setTime('ALL'); setTopic(null) }}
+              className="font-mono text-terminal-text-dim hover:text-terminal-red ml-1" style={{ fontSize: 9 }}
+            >CLEAR ALL</button>
+          </span>
+        )}
+      </div>
+      <div className="flex flex-nowrap items-center overflow-x-auto gap-1.5 px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
+        {DISPLAY_CATEGORIES.map(({ key, label }) => {
+          const count = catCount(key)
+          return (
+            <button key={key} onClick={() => onCategory(key)} className={pill(activeCategory === key)} style={{ fontSize: 9, height: 22, padding: '0 10px' }}>
+              {label}{count > 0 && <span className="opacity-70">({count})</span>}
+            </button>
+          )
+        })}
+        <button onClick={() => onCategory('SAVED')} className={pill(activeCategory === 'SAVED')} style={{ fontSize: 9, height: 22, padding: '0 10px' }}>
+          🔖 SAVED{savedCount > 0 && <span className="opacity-70">({savedCount})</span>}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── INTELLIGENCE — the right column ────────────────────────────────────────
+function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, sentiment }) {
+  // Recomputed once a minute, not on every one-second tick of nowTs.
+  const minute = Math.floor(nowTs / 60_000)
+  const s = useMemo(() => overallSentiment(items, minute * 60_000), [items, minute])
+  const topics = useMemo(() => trendingTopics(annotatedAll), [annotatedAll])
+  const watch = useMemo(() => annotatedAll.filter((a) => a.inWatchlist).sort((a, b) => b.pubDate - a.pubDate).slice(0, 5), [annotatedAll])
+  const breaking = items.filter(isBreakingArticle).slice(0, 3)
+  const head = (t, extra) => <div className="flex items-center gap-2 mb-1.5"><span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/70 uppercase">{t}</span>{extra}</div>
+  const trend = s.trend === 'improving' ? { t: '▲ improving from 2h ago', c: '#2D8A50' } : s.trend === 'declining' ? { t: '▼ weakening from 2h ago', c: '#a83232' } : s.trend === 'steady' ? { t: '— steady vs 2h ago', c: '#8BA3C4' } : null
+
+  return (
+    <>
+      {breaking.length > 0 && (
+        <div className="px-3 py-2 border-b border-[#a83232]/40" style={{ background: 'rgba(168,50,50,0.12)' }}>
+          <div className="font-mono font-bold tracking-widest text-[#e05c5c] mb-1" style={{ fontSize: 9 }}>🔴 BREAKING</div>
+          {breaking.map((b) => (
+            <button key={b.id ?? b.headline} onClick={() => onOpen(b)} className="block text-left text-[11px] leading-snug text-terminal-text-bright hover:text-terminal-gold mb-1">{b.headline}</button>
+          ))}
+        </div>
+      )}
+
+      <div className="px-3 py-2 border-b border-terminal-border">
+        {head('Market sentiment', <span className="ml-auto font-mono font-bold" style={{ fontSize: 9, color: s.label === 'BULLISH' ? '#2D8A50' : s.label === 'BEARISH' ? '#a83232' : '#C9A84C' }}>{s.label}</span>)}
+        <div className="flex h-2 rounded-sm overflow-hidden" title={`${s.total} articles, keyword-scored, weighted by impact and recency`}>
+          <div style={{ width: `${s.bullPct}%`, background: '#2D8A50' }} />
+          <div style={{ width: `${s.neutralPct}%`, background: '#C9A84C' }} />
+          <div style={{ width: `${s.bearPct}%`, background: '#a83232' }} />
+        </div>
+        <div className="flex justify-between font-mono mt-1" style={{ fontSize: 8 }}>
+          <span style={{ color: '#2D8A50' }}>BULL {s.bullPct}%</span><span style={{ color: '#C9A84C' }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: '#a83232' }}>BEAR {s.bearPct}%</span>
+        </div>
+        {trend && <div className="font-mono mt-1" style={{ fontSize: 9, color: trend.c }}>{trend.t}</div>}
+        {sentiment?.score != null && (
+          <div className="font-mono mt-1 text-terminal-text-dim/70" style={{ fontSize: 8 }} title={sentiment.summary}>MaddenAI read: {sentiment.score} · {String(sentiment.label ?? '').toUpperCase()}</div>
+        )}
+      </div>
+
+      <div className="px-3 py-2 border-b border-terminal-border">
+        {head('Trending topics', <span className="ml-auto font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>stories</span>)}
+        {topics.length === 0 ? <div className="text-[10px] text-terminal-text-dim/60">Not enough stories yet</div> : topics.map((t, i) => {
+          const on = topic?.key === t.key
+          return (
+            <button key={t.key} onClick={() => setTopic(on ? null : t)} className={`w-full flex items-center gap-2 py-0.5 font-mono text-left transition-colors ${on ? 'text-terminal-gold' : 'text-terminal-text-bright hover:text-terminal-gold'}`} style={{ fontSize: 10 }}>
+              <span className="text-terminal-text-dim/50 w-3">{i + 1}.</span>
+              <span className={on ? 'font-bold' : ''}>{t.label}</span>
+              <span className="ml-auto text-terminal-text-dim tabular-nums">{t.count}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="px-3 py-2 border-b border-terminal-border">
+        <div className="text-[9px] font-mono tracking-widest text-terminal-gold font-bold mb-1.5">IN YOUR WATCHLIST</div>
+        {watch.length === 0 ? (
+          <div className="text-[10px] text-terminal-text-dim/60">No watchlist mentions today</div>
+        ) : watch.map((a) => (
+          <button key={a.id ?? a.headline} onClick={() => onOpen(a)} className="block w-full text-left mb-1.5 hover:text-terminal-gold">
+            <div className="text-[11px] leading-snug text-terminal-text-bright line-clamp-2">{a.headline}</div>
+            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8 }}>{(a.companies ?? []).map((c) => c.ticker.replace('.AX', '')).join(', ')} · {a.source} · {timeAgo(a.pubDate)}</div>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
+// ─── ARTICLE PANEL — reading a story without leaving the terminal ───────────
+//
+// A 400px panel over the right of the module. Esc closes it; ← and → step
+// through the stories in the order they are listed on screen.
+function ArticlePanel({ item, index, total, onClose, onStep, onAskAI, onOpenTicker, isSaved, onToggleSave }) {
+  const [shared, setShared] = useState(false)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) return
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowRight') onStep(1)
+      else if (e.key === 'ArrowLeft') onStep(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, onStep])
+  const share = async () => {
+    const text = `${item.headline} — ${item.source}${item.link ? `\n${item.link}` : ''}`
+    try {
+      if (navigator.share && item.link) await navigator.share({ title: item.headline, text: item.source, url: item.link })
+      else await navigator.clipboard.writeText(text)
+      setShared(true); setTimeout(() => setShared(false), 2000)
+    } catch { /* cancelled or blocked */ }
+  }
+  const impact = item.impact ?? { level: 'LOW', colour: '#4A6080' }
+  return (
+    <div className="absolute top-0 right-0 bottom-0 z-30 flex flex-col border-l border-terminal-border-gold panel-fade" style={{ width: 400, maxWidth: '100%', background: 'rgb(var(--t-panel))', boxShadow: 'var(--shadow-floating)' }} role="dialog" aria-label="Article">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-terminal-border flex-shrink-0">
+        <span className="rounded-full" style={{ width: 7, height: 7, background: sourceColor(item.source) }} />
+        <span className="font-mono font-bold" style={{ fontSize: 9, color: sourceColor(item.source) }}>{item.source.toUpperCase()}</span>
+        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>· {timeAgo(item.pubDate)}</span>
+        <span className="px-1.5 rounded-full leading-none py-0.5" style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`, color: TAG_COLOR[item.tag] ?? '#8BA3C4' }}>{primaryDisplayCategory(item)}</span>
+        <span className="ml-auto flex items-center gap-1 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
+          <button onClick={() => onStep(-1)} className="px-1 hover:text-terminal-gold" title="Previous (←)">←</button>
+          {index + 1}/{total}
+          <button onClick={() => onStep(1)} className="px-1 hover:text-terminal-gold" title="Next (→)">→</button>
+          <button onClick={onClose} className="px-1 ml-1 hover:text-terminal-text-bright" title="Close (Esc)" aria-label="Close">✕</button>
+        </span>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <h2 className="font-bold text-terminal-text-bright" style={{ fontSize: 20, lineHeight: 1.3 }}>{item.headline}</h2>
+        {item.author && <div className="font-mono text-terminal-text-dim/70 mt-1" style={{ fontSize: 9 }}>{item.author}</div>}
+        <p className="text-terminal-text mt-3" style={{ fontSize: 14, lineHeight: 1.7, color: '#B8C7DC' }}>
+          {item.summary || <span className="italic text-terminal-text-dim/60">No summary in the feed — the full story is at {item.source}.</span>}
+        </p>
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <span className="font-mono font-bold" style={{ fontSize: 9, color: impact.colour }} title="Estimated from keywords in the headline, not a market forecast">● {impact.level} IMPACT</span>
+          {item.inWatchlist && <span className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>IN YOUR WATCHLIST</span>}
+        </div>
+        {(item.companies?.length > 0 || knownTickerBadges(item.tickers).length > 0) && (
+          <div className="flex items-center gap-1 mt-3 flex-wrap">
+            {item.companies?.length ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} /> : <TickerBadgeRow tickers={item.tickers} onOpenTicker={onOpenTicker} />}
+          </div>
+        )}
+        <div className="flex flex-col gap-2 mt-5">
+          {item.link && (
+            <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-center text-2xs font-bold tracking-wide text-terminal-blue-bright border border-terminal-blue-bright/40 hover:bg-terminal-blue-bright hover:text-terminal-bg transition-colors py-2">READ FULL ARTICLE →</a>
+          )}
+          <button onClick={() => onAskAI(item)} className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/50 hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-2">ASK MADDENAI ABOUT THIS ▶</button>
+          <div className="flex gap-2">
+            <span className="flex-1 flex"><SaveButton saved={isSaved} onClick={() => onToggleSave(item)} /></span>
+            <button onClick={share} className="flex-1 text-2xs font-bold tracking-wide border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold rounded-full px-3 py-1">{shared ? '✓ COPIED' : '⧉ SHARE'}</button>
+          </div>
+        </div>
+        <div className="font-mono text-terminal-text-dim/40 mt-4" style={{ fontSize: 8 }}>Esc to close · ← → to move between stories</div>
+      </div>
     </div>
   )
 }
@@ -1186,6 +1213,12 @@ export default function NewsModule() {
     return saved === 'SAVED' || DISPLAY_CATEGORIES.some(c => c.key === saved) ? saved : 'ALL'
   })
   const [searchTerm, setSearchTerm]   = useState('')
+  const [sourceFilter, setSourceFilter] = useState('ALL')
+  const [timeFilter, setTimeFilter]   = useState('ALL')
+  const [topic, setTopic]             = useState(null)
+  // The story open in the article panel, by headline (ids are not stable
+  // across refetches — see newIds below).
+  const [openHeadline, setOpenHeadline] = useState(null)
   const [saved, setSaved]             = useState(loadSavedArticles)
   const [readIds, setReadIds]         = useState(loadReadSet)
   const [allArticles, setAllArticles] = useState([])
@@ -1194,9 +1227,7 @@ export default function NewsModule() {
   // every call, so ids aren't stable across refetches — headline is.
   const [newIds, setNewIds]           = useState(new Map())
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
-  const [isFlashing, setIsFlashing]   = useState(false)
   const [nowTs, setNowTs]             = useState(() => Date.now())
-  const [expandedId, setExpandedId]   = useState(null)
   // Timestamp of the most recent new-story arrival — the banner reads this
   // against the existing 1s `nowTs` ticker to auto-dismiss 10s later.
   // Set alongside setNewIds inside the merge effect below (not its own
@@ -1206,7 +1237,7 @@ export default function NewsModule() {
   const listTopRef                    = useRef(null)
 
   const { newsFilter, setNewsFilter, clearNewsBadge, openModal, watchlist } = useStore()
-  const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
+  const { sentiment, status: sentimentStatus } = useSentiment()
 
   // Clear nav badge and tick clock
   useEffect(() => { clearNewsBadge() }, [clearNewsBadge])
@@ -1269,8 +1300,6 @@ export default function NewsModule() {
     })
 
     setLastUpdatedAt(Date.now())
-    setIsFlashing(true)
-    setTimeout(() => setIsFlashing(false), 800)
   }, [queryData])
 
 
@@ -1278,13 +1307,19 @@ export default function NewsModule() {
   const isLive = allArticles.length > 0 && !isError
 
   // Filtering
+  // Search, source and time compose; category is applied after (so its pill
+  // counts reflect the other filters) and topic after annotation (company
+  // topics need the detected companies).
+  const today = sydneyDay(nowTs)
   const searchFiltered = useMemo(() => {
-    if (!searchTerm) return allArticles
     const lc = searchTerm.toLowerCase()
-    return allArticles.filter(n =>
-      n.headline.toLowerCase().includes(lc) || n.summary?.toLowerCase().includes(lc)
-    )
-  }, [allArticles, searchTerm])
+    const weekAgo = new Date(`${today}T00:00:00`).getTime() - 6 * 86_400_000
+    return allArticles.filter((n) =>
+      (!searchTerm || n.headline.toLowerCase().includes(lc) || n.summary?.toLowerCase().includes(lc)) &&
+      (sourceFilter === 'ALL' || n.source === sourceFilter) &&
+      (timeFilter === 'ALL' || (timeFilter === 'TODAY' ? sydneyDay(n.pubDate) === today : n.pubDate >= weekAgo)))
+  }, [allArticles, searchTerm, sourceFilter, timeFilter, today])
+  const sources = useMemo(() => [...new Set(allArticles.map((a) => a.source))].sort(), [allArticles])
 
   const byCategory = useMemo(() => {
     const def = DISPLAY_CATEGORIES.find(c => c.key === activeCategory)
@@ -1295,9 +1330,12 @@ export default function NewsModule() {
   // Companies, impact and watchlist matches, attached once per feed pass.
   // Purely lexical — see newsIntelligence.js for why none of this is generated.
   const annotated = useMemo(
-    () => annotateArticles(byCategory, watchlist ?? []),
-    [byCategory, watchlist],
+    () => annotateArticles(byCategory, watchlist ?? []).filter((a) => !topic || topic.test(a)),
+    [byCategory, watchlist, topic],
   )
+  // Every article, annotated — for the intelligence column, which describes
+  // the whole wire rather than the filtered view.
+  const annotatedAll = useMemo(() => annotateArticles(allArticles, watchlist ?? []), [allArticles, watchlist])
 
   // Stories the user actually holds or tracks float to the top. This is the
   // one reordering the module does, and it is deliberate: a feed sorted purely
@@ -1325,17 +1363,6 @@ export default function NewsModule() {
     return searchFiltered.filter(def.test).length
   }, [searchFiltered])
 
-  const breakingItems = useMemo(() =>
-    allArticles.filter(a => isBreakingArticle(a) || isNewArticle(a)).slice(0, 10)
-  // nowTs is load-bearing: isBreakingArticle and isNewArticle both compare
-  // against Date.now() internally, so an article stops being "breaking" purely
-  // with the passage of time. Drop the ticking dependency and this list is
-  // computed once — a two-hour-old story stays flagged as breaking forever.
-  , [allArticles, nowTs])  // eslint-disable-line react-hooks/exhaustive-deps
-
-  const trending = useMemo(() => extractTrending(allArticles), [allArticles])
-  const sponsoredAssets = useMemo(() => marketImpactAssets(), [])
-
   const askAI = useCallback((item) => {
     dispatchAskAI({
       name:        item.headline,
@@ -1358,16 +1385,22 @@ export default function NewsModule() {
     }
   }, [readIds])
 
-  // Story rows: click expands an inline accordion (only one open at a time)
-  // and marks read, but does NOT navigate away — "Read full story" inside
-  // the accordion is the explicit action for that.
-  const handleExpand = useCallback((item) => {
+  // Opening a story marks it read and shows it in the article panel.
+  const handleOpen = useCallback((item) => {
     if (!readIds.has(item.id)) {
       const next = new Set(readIds); next.add(item.id); next.add(item.headline)
       setReadIds(next); saveReadSet(next)
     }
-    setExpandedId(prev => (prev === item.id ? null : item.id))
+    setOpenHeadline(item.headline)
   }, [readIds])
+
+  // MaddenAI on today's news: the top five stories on screen, as listed, with
+  // their sources and summaries. Nothing else is passed, so the briefing can
+  // only work from what the wire actually says.
+  const askNewsBrief = useCallback((stories) => {
+    const top = stories.slice(0, 5).map((a, i) => `${i + 1}. ${a.headline} (${a.source}, ${timeAgo(a.pubDate)})${a.summary ? `\n   ${a.summary.slice(0, 300)}` : ''}`).join('\n')
+    askMaddenAI(`Based on today's top financial news stories, give me a 3-paragraph briefing on what matters most for Australian investors right now. Today is ${todayAEST()}. Work only from these stories and the verified figures in your context — no other figures.\n\nTOP STORIES:\n${top}`)
+  }, [])
 
   const handleOpenTicker = useCallback((badge) => {
     openModal({ symbol: badge.symbol, name: badge.symbol, type: badge.type })
@@ -1432,15 +1465,25 @@ export default function NewsModule() {
   // story about something the reader owns wins over a HIGH story about
   // something they do not, without this needing to know that.
   const topStory = prioritised.find((a) => a.impact?.level === 'HIGH') ?? prioritised[0]
-
-  // Whichever cluster leads with the featured story is dropped from the centre
-  // feed. Slicing off clusters[0] only worked while the top story was
-  // guaranteed to be the first one.
-  const listRest = clusters.filter((c) => c.lead !== topStory)
+  // The left column carries the three most important stories: the featured
+  // one, then the next two by the feed's own ranking (watchlist first, then
+  // score). The centre feed carries everything else.
+  const topThree = topStory ? [topStory, ...prioritised.filter((a) => a !== topStory).slice(0, 2)] : []
+  const listRest = clusters.filter((c) => !topThree.includes(c.lead))
+  // The order ← and → step through in the article panel: as listed.
+  const ordered = [...topThree, ...listRest.flatMap((c) => c.items ?? [c.lead])]
+  const openIndex = openHeadline ? ordered.findIndex((a) => a.headline === openHeadline) : -1
+  const openItem = openIndex >= 0 ? ordered[openIndex] : (openHeadline ? annotatedAll.find((a) => a.headline === openHeadline) : null)
+  const stepOpen = (d) => {
+    if (!ordered.length) return
+    const next = ordered[((openIndex < 0 ? 0 : openIndex) + d + ordered.length) % ordered.length]
+    handleOpen(next)
+  }
+  const sourcesOk = Object.values(sourceHealth).filter((v) => v === 'ok').length
   const bannerVisible = lastArrivalAt != null && (nowTs - lastArrivalAt < 10_000)
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden relative">
       <ModuleHeader
         title="NEWS"
         subtitle={`AFR · SMH · ABC · Guardian · NYT · ${NEWS_SOURCES.length} sources`}
@@ -1450,174 +1493,79 @@ export default function NewsModule() {
         onRefresh={refetch}
       />
 
-      {/* Market session — what the ASX is doing as you read. Recomputed from
-          `nowTs`, the ticker the module already runs, so it stays live without
-          a second interval. Pinned to Australian time: reading the browser's
-          clock would tell someone in London the ASX was open at 3am. */}
-      <div
-        className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0"
-        style={{
-          borderColor: `${session.colour}44`,
-          background: `${session.colour}0F`,
-        }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-          style={{ background: session.colour }}
-        />
-        <span
-          className="text-[9px] font-mono font-bold tracking-widest"
-          style={{ color: session.colour }}
-        >{session.label}</span>
-        <span className="text-[9px] font-mono text-terminal-text-dim">· {session.detail}</span>
-        {watchlistCount > 0 && (
-          <span className="text-[9px] font-mono text-terminal-gold ml-auto">
-            {watchlistCount} {watchlistCount === 1 ? 'story' : 'stories'} on your watchlist
-          </span>
-        )}
-      </div>
+      <SessionContext nowTs={nowTs} session={session} watchlistCount={watchlistCount} />
+
+      <NewsToolbar
+        isLive={isLive}
+        isFetching={isFetching}
+        articleCount={allArticles.length}
+        sourcesOk={sourcesOk}
+        sourcesTotal={NEWS_SOURCES.length}
+        lastUpdatedAt={lastUpdatedAt}
+        nowTs={nowTs}
+        onRefresh={refetch}
+        newCount={newIds.size}
+        lastArrivalAt={lastArrivalAt}
+        onBrief={() => askNewsBrief([...topThree, ...listRest.map((c) => c.lead)])}
+      />
 
       <MorningBriefing />
 
       <NewsletterBanner />
 
-      <div className="px-2 pt-2 flex-shrink-0">
-        <SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} />
-      </div>
-
-      {/* Header. The live dot, the article count and the countdown moved down
-          into FeedStatusBar — this line had five facts on it and was where
-          none of them could be found. What stays is the title and the one
-          thing the status bar does not carry: how many of the eighteen
-          sources actually answered. */}
-      <div className="panel-header flex items-center gap-2 flex-shrink-0">
-        <span>LIVE NEWS FEED</span>
-        <span
-          className="w-2 h-2 rounded-full flex-shrink-0"
-          style={{
-            background: isLive ? (isFlashing ? '#fff' : '#2d8a50') : '#a83232',
-            boxShadow: isLive ? '0 0 4px #2d8a50' : 'none',
-            transition: 'background 0.2s',
-          }}
-        />
-        <span className="text-2xs text-terminal-text-dim/40 font-normal normal-case ml-auto">
-          {Object.values(sourceHealth).filter(v => v === 'ok').length}/{NEWS_SOURCES.length} sources responding
-        </span>
-      </div>
-
-      <FeedStatusBar
-        isLive={isLive}
-        isFetching={isFetching}
-        articleCount={allArticles.length}
-        lastUpdatedAt={lastUpdatedAt}
-        nowTs={nowTs}
-        onRefresh={refetch}
+      <FilterBar
+        searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+        activeCategory={activeCategory} onCategory={handleCategoryChange} catCount={catCount} savedCount={saved.length}
+        sources={sources} source={sourceFilter} setSource={setSourceFilter}
+        time={timeFilter} setTime={setTimeFilter}
+        topic={topic} setTopic={setTopic}
       />
 
-      {/* Category pills — moved to the very top of the interactive area,
-          above search, per the redesign */}
-      <div className="flex flex-nowrap items-center overflow-x-auto gap-1.5 px-2 py-1.5 border-b border-terminal-border flex-shrink-0" style={{ scrollbarWidth: 'none' }}>
-        {DISPLAY_CATEGORIES.map(({ key, label }) => {
-          const count = catCount(key)
-          const isActive = activeCategory === key
-          return (
-            <button
-              key={key}
-              onClick={() => handleCategoryChange(key)}
-              className={`font-mono uppercase flex-shrink-0 transition-colors flex items-center gap-1 border rounded-full ${
-                isActive
-                  ? 'bg-terminal-gold border-terminal-gold text-terminal-bg font-bold'
-                  : 'border-terminal-border text-terminal-muted hover:border-terminal-gold hover:text-terminal-gold'
-              }`}
-              style={{ fontSize: 9, height: 24, padding: '0 12px' }}
-            >
-              {label}
-              {count > 0 && <span className="opacity-70">({count})</span>}
-            </button>
-          )
-        })}
-        <button
-          onClick={() => handleCategoryChange('SAVED')}
-          className={`font-mono uppercase flex-shrink-0 transition-colors flex items-center gap-1 border rounded-full ${
-            activeCategory === 'SAVED'
-              ? 'bg-terminal-gold border-terminal-gold text-terminal-bg font-bold'
-              : 'border-terminal-border text-terminal-muted hover:border-terminal-gold hover:text-terminal-gold'
-          }`}
-          style={{ fontSize: 9, height: 24, padding: '0 12px' }}
-        >🔖 SAVED{saved.length > 0 && <span className="opacity-70">({saved.length})</span>}</button>
-
-        <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-          <span className="text-terminal-text-dim text-2xs">⌕</span>
-          <input
-            className="cmd-input text-2xs py-0"
-            style={{ width: 160 }}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search news…"
-            title="Searches headlines and summaries as you type"
-            aria-label="Search news"
-          />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="text-terminal-text-dim/40 hover:text-terminal-text-dim text-xs">✕</button>
-          )}
-        </div>
-      </div>
-
-      {/* Sentiment visualiser — full width, top of the news area */}
-      <SentimentVisualiser items={allArticles} trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} now={nowTs} />
-
-      {/* New stories banner — slides down, click scrolls to top of the feed,
-          auto-dismisses 10s after the most recent arrival either way */}
       {newIds.size > 0 && bannerVisible && (
         <button
           onClick={() => { setLastArrivalAt(null); setNewIds(new Map()); listTopRef.current?.scrollTo({ top: 0, behavior: 'smooth' }) }}
           className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/30 text-left hover:bg-terminal-gold/15 transition-colors flex-shrink-0 panel-fade"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold flex-shrink-0" />
-          {/* the dot is the span above — don't repeat it in the label */}
           <span className="text-2xs text-terminal-gold font-bold tracking-wide uppercase">
-            {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'} — tap to refresh
+            {newIds.size} new {newIds.size === 1 ? 'story' : 'stories'} — tap to jump to the top
           </span>
         </button>
       )}
 
-      {/* 3-column layout: LEFT top story/sentiment context/market impact,
-          CENTRE story list with accordion, RIGHT trending/topics/breaking */}
       {activeCategory === 'SAVED' ? (
         <SavedArticles items={saved} searchTerm={searchTerm} onRemove={(a) => setSaved(removeSavedArticle(a))} onAskAI={askAI} />
-      ) : byCategory.length === 0 ? (
+      ) : annotated.length === 0 ? (
         <div className="p-4 text-2xs text-terminal-text-dim text-center flex-1">
-          {searchTerm ? `No articles matching "${searchTerm}"` : 'No articles in this category'}
+          No articles match these filters.
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden">
-          {/* LEFT 35% */}
-          <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '35%', scrollbarWidth: 'none' }}>
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          {/* LEFT 30% — the three most important stories */}
+          <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '30%', scrollbarWidth: 'none' }}>
             <NewsNudge stories={prioritised} watchlist={watchlist} nowTs={nowTs} />
-            <TopStoryCard
-              item={topStory}
-              isUnread={!readIds.has(topStory.id) && !readIds.has(topStory.headline)}
-              searchTerm={searchTerm}
-              isPulsing={newIds.has(topStory.headline) && (nowTs - newIds.get(topStory.headline) < PULSE_MS)}
-              onMarkRead={handleMarkRead}
-              onAskAI={askAI}
-              onOpenTicker={handleOpenTicker}
-              isSaved={savedKeys.has(savedKey(topStory))}
-              onToggleSave={handleToggleSave}
-            />
-            <MarketImpactRow />
+            {topThree.map((item, i) => (
+              <TopStoryCard
+                key={item.headline}
+                item={item}
+                rank={i + 1}
+                isUnread={!readIds.has(item.id) && !readIds.has(item.headline)}
+                searchTerm={searchTerm}
+                isPulsing={newIds.has(item.headline) && (nowTs - newIds.get(item.headline) < PULSE_MS)}
+                onMarkRead={handleMarkRead}
+                onAskAI={askAI}
+                onOpenTicker={handleOpenTicker}
+                isSaved={savedKeys.has(savedKey(item))}
+                onToggleSave={handleToggleSave}
+                onOpen={handleOpen}
+              />
+            ))}
           </div>
 
-          {/* CENTRE 40% — a "SPONSORED DATA" sparkline row breaks up the feed
-              every 4th story, cycling through the tracked market-impact assets */}
-          <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '40%' }} ref={listTopRef}>
+          {/* CENTRE 45% — the live feed */}
+          <div className="flex flex-col overflow-y-auto border-r border-terminal-border" style={{ width: '45%' }} ref={listTopRef}>
             {listRest.map((cluster, i) => (
               <div key={cluster.id}>
-                {/* The feed already floats watchlist stories to the front. It
-                    did it silently, so the reordering read as the wire simply
-                    being out of order. Two dividers make the promotion legible
-                    — and make the boundary visible, which is the part a reader
-                    needs to know they are back in ordinary recency. */}
                 {i === 0 && cluster.lead.inWatchlist && (
                   <div className="flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/25">
                     <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>WATCHLIST MENTIONS</span>
@@ -1634,34 +1582,42 @@ export default function NewsModule() {
                   cluster={cluster}
                   isUnread={!readIds.has(cluster.lead.id) && !readIds.has(cluster.lead.headline)}
                   isPulsing={newIds.has(cluster.lead.headline) && (nowTs - newIds.get(cluster.lead.headline) < PULSE_MS)}
-                  isExpanded={expandedId === cluster.lead.id}
-                  onExpand={handleExpand}
+                  onOpen={handleOpen}
                   onOpenTicker={handleOpenTicker}
                   onAskAI={askAI}
                   searchTerm={searchTerm}
                   savedKeys={savedKeys}
                   onToggleSave={handleToggleSave}
                 />
-                {(i + 1) % 4 === 0 && (
-                  <SponsoredDataRow asset={sponsoredAssets[(Math.floor(i / 4)) % sponsoredAssets.length]} />
-                )}
               </div>
             ))}
           </div>
 
-          {/* RIGHT 25% */}
+          {/* RIGHT 25% — intelligence */}
           <div className="flex flex-col overflow-y-auto" style={{ width: '25%', scrollbarWidth: 'none' }}>
+            <IntelColumn items={allArticles} annotatedAll={annotatedAll} nowTs={nowTs} topic={topic} setTopic={setTopic} onOpen={handleOpen} sentiment={sentimentStatus === 'ready' ? sentiment : null} />
             <MovingOnNews items={allArticles} />
-            <TopTopicsCloud trending={trending} searchTerm={searchTerm} onTagClick={setSearchTerm} />
-            <BreakingFeed items={breakingItems} />
           </div>
         </div>
       )}
 
-      {/* Footer */}
+      {openItem && (
+        <ArticlePanel
+          item={openItem}
+          index={openIndex < 0 ? 0 : openIndex}
+          total={ordered.length}
+          onClose={() => setOpenHeadline(null)}
+          onStep={stepOpen}
+          onAskAI={askAI}
+          onOpenTicker={handleOpenTicker}
+          isSaved={savedKeys.has(savedKey(openItem))}
+          onToggleSave={handleToggleSave}
+        />
+      )}
+
       <div className="border-t border-terminal-border px-3 py-1 flex-shrink-0">
         <span className="text-2xs text-terminal-text-dim/40">
-          {byCategory.length} articles · auto-refresh {REFRESH_MS / 60_000}min · {NEWS_SOURCES.length} sources
+          {annotated.length} of {allArticles.length} articles shown · auto-refresh {REFRESH_MS / 60_000}min · {NEWS_SOURCES.length} sources
         </span>
       </div>
     </div>
