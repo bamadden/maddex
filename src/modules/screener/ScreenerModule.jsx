@@ -3,7 +3,9 @@ import { priceStream } from '../../services/priceStreamService'
 import { Search } from 'lucide-react'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow } from '../../services/mockData'
 import { useStore } from '../../store/useStore'
-import { dispatchAskAI } from '../../utils/askAI'
+import { dispatchAskAI, askMaddenAI } from '../../utils/askAI'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { sydneyOffset } from '../../utils/dateUtils'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
@@ -149,6 +151,38 @@ const PRESETS = [
     filter: (s) => s.exchange === 'ASX',
     criteria: {},
   },
+
+  // ── Rate environment ──────────────────────────────────────────────────────
+  // Screens for a tightening cycle, shown on their own row. Each desc names
+  // the actual thresholds and then the idea behind them; the universe has no
+  // debt figures, so "debt-sensitive" is screened through the sectors that
+  // carry it (property, utilities) rather than claimed per stock.
+  // INFRASTRUCTURE has no GICS sector of its own; toll roads and airports
+  // sit in Industrials, so that is what DEFENSIVE QUALITY screens.
+  {
+    key: 'rateWinners', label: 'RATE HIKE WINNERS', group: 'rates',
+    desc: 'ASX Financials · yield > 3% · PE < 18 — banks and financials that benefit from higher net interest margins',
+    filter: (s) => s.exchange === 'ASX' && s.sector === 'Financials' && s.divYield > 3 && s.pe > 0 && s.pe < 18,
+    criteria: { divMin: 3, peMax: 18 },
+  },
+  {
+    key: 'rateVictims', label: 'RATE HIKE VICTIMS', group: 'rates',
+    desc: 'ASX property, utilities or consumer discretionary — or any ASX name on PE > 30 — rate-sensitive and high-multiple names under pressure in a tightening cycle',
+    filter: (s) => s.exchange === 'ASX' && (/^(Real Est|Utilities|Cons Disc)$/.test(s.sector ?? '') || s.pe > 30),
+    criteria: {},
+  },
+  {
+    key: 'defensiveQuality', label: 'DEFENSIVE QUALITY', group: 'rates',
+    desc: 'ASX Health, Materials or Industrials (incl. infrastructure) · yield > 2% · mkt cap > A$10B — large companies with pricing power and defensive characteristics',
+    filter: (s) => s.exchange === 'ASX' && /^(Health|Materials|Industrials)$/.test(s.sector ?? '') && s.divYield > 2 && s.marketCap > 10 * B,
+    criteria: { divMin: 2 },
+  },
+  {
+    key: 'highYieldIncome', label: 'HIGH YIELD INCOME', group: 'rates',
+    desc: 'ASX · yield > 5% · PE < 20 (payout more likely sustainable) — Australian dividends can carry franking credits; compare with the cash rate',
+    filter: (s) => s.exchange === 'ASX' && s.divYield > 5 && s.pe > 0 && s.pe < 20,
+    criteria: { divMin: 5, peMax: 20 },
+  },
 ]
 
 // Saved screens store a preset key, and preset keys change as the list is
@@ -171,6 +205,75 @@ const QUICK_FILTERS = [
 ]
 
 const findPreset = (key) => PRESETS.find((p) => p.key === key) ?? null
+
+// ── Yield vs cash ───────────────────────────────────────────────────────────
+//
+// Is the screen's income worth the equity risk against simply holding cash?
+// The cash rate and term-deposit rate are verified constants (RBA, and RBA
+// table F4); the screen's yield is the average across EVERY result, with
+// non-payers counted at zero — averaging only the payers would flatter the
+// screen. Yields are the demo dataset's, and the bar says so. Not grossed up
+// for franking: that depends on each company's franking level and the
+// investor's tax position, which this terminal does not know.
+function pendingHike() {
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  if (!nd?.hikeRate) return null
+  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
+  return Date.now() < at ? nd : null
+}
+
+function YieldContextBar({ results, insights, screenName }) {
+  const { rba, au } = VERIFIED_CONSTANTS
+  const cash = rba.cashRate
+  const yields = results.map((s) => (Number.isFinite(s.divYield) && s.divYield > 0 ? s.divYield : 0))
+  const payers = yields.filter((y) => y > 0).length
+  const avgYield = yields.reduce((a, b) => a + b, 0) / yields.length
+  const premium = avgYield - cash
+  const above = premium >= 0
+  const nd = pendingHike()
+  const day = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })
+
+  const ask = () => {
+    const pe = insights?.pe != null ? `${insights.pe.toFixed(1)}` : 'not available'
+    const names = results.slice(0, 12).map((s) => String(s.symbol).replace(/\.AX$/i, '')).join(', ')
+    const env = nd
+      ? `the RBA cash rate at ${cash.toFixed(2)}% and market pricing of ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% on ${day(nd.date)} (${nd.marketSource}, ${nd.marketAsOf})`
+      : `the RBA cash rate at ${cash.toFixed(2)}%`
+    askMaddenAI(
+      `I've screened for ${screenName}. The results show ${results.length} match${results.length === 1 ? '' : 'es'} (${names}${results.length > 12 ? ', …' : ''}) ` +
+      `with an average dividend yield of ${avgYield.toFixed(1)}% (${payers} of ${results.length} pay a dividend; demo fundamentals) and an average P/E of ${pe}. ` +
+      `In the current environment, with ${env}, and a 3-year term deposit at ${au.termDeposit3y?.toFixed(2)}% (${au.termDepositSource}), what should I consider about these results? General information, not personal advice.`,
+      { mode: 'research' },
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-x-4 gap-y-1 flex-wrap px-3 py-1.5 border-b border-terminal-border flex-shrink-0 text-2xs font-mono" style={{ background: 'rgba(15,30,53,0.45)' }}>
+      <span className="text-terminal-text-dim">
+        RBA CASH RATE <b className="text-terminal-text-bright">{cash.toFixed(2)}%</b>
+        {au.termDeposit3y != null && <> · 3-YEAR TERM DEPOSIT <b className="text-terminal-text-bright">{au.termDeposit3y.toFixed(2)}%</b>
+          <span className="text-terminal-text-dim/50" title={au.termDepositSource}> ({au.termDepositPeriod}, RBA F4)</span></>}
+      </span>
+      <span className="text-terminal-text-dim">
+        This screen yields <b className="text-terminal-text-bright tabular-nums">{avgYield.toFixed(1)}%</b> avg
+        <span className="text-terminal-text-dim/50"> ({payers}/{results.length} payers · demo data)</span>
+      </span>
+      <span className="text-terminal-text-dim">
+        vs cash <b className="tabular-nums" style={{ color: above ? '#2D8A50' : '#E8A33D' }}>{premium >= 0 ? '+' : '−'}{Math.abs(premium).toFixed(1)}pp</b>
+      </span>
+      <span
+        className="font-bold px-1.5 py-0.5"
+        style={{ fontSize: 9, letterSpacing: '0.12em', color: above ? '#2D8A50' : '#E8A33D', border: `1px solid ${above ? 'rgba(45,138,80,0.5)' : 'rgba(232,163,61,0.5)'}` }}
+        title="Average cash dividend yield against the RBA cash rate — before franking credits, which vary by company and investor."
+      >{above ? 'YIELD PREMIUM' : 'BELOW CASH RATE'}</span>
+      <button
+        onClick={ask}
+        className="ml-auto text-2xs font-bold px-2.5 py-0.5 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors tracking-wider"
+        title="Asks MaddenAI with this screen's own numbers"
+      >ASK MADDENAI ABOUT THIS SCREEN ▶</button>
+    </div>
+  )
+}
 
 // Lightweight local NL parser — handles the common patterns without needing
 // a live AI call: "PE under 15", "dividend yield over 4%", a sector name,
@@ -1029,13 +1132,31 @@ export default function ScreenerModule() {
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
-          {PRESETS.map((p) => (
+          {PRESETS.filter((p) => !p.group).map((p) => (
             <button
               key={p.key}
               onClick={() => runPreset(p.key)}
               className={`text-2xs px-2.5 py-0.5 rounded-full border transition-colors ${
                 activePreset === p.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'
               }`}
+              title={p.desc}
+            >{p.label}</button>
+          ))}
+        </div>
+
+        {/* Rate-environment screens, on their own row so they read as a set. */}
+        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+          <span className="text-2xs font-bold tracking-widest mr-1" style={{ color: '#E8A33D' }}>RATE ENVIRONMENT</span>
+          {PRESETS.filter((p) => p.group === 'rates').map((p) => (
+            <button
+              key={p.key}
+              onClick={() => runPreset(p.key)}
+              className={`text-2xs px-2.5 py-0.5 rounded-full border transition-colors ${
+                activePreset === p.key ? 'font-bold' : 'text-terminal-text-dim hover:text-[#E8A33D]'
+              }`}
+              style={activePreset === p.key
+                ? { background: '#E8A33D', color: '#0A1220', borderColor: '#E8A33D' }
+                : { borderColor: 'rgba(232,163,61,0.4)' }}
               title={p.desc}
             >{p.label}</button>
           ))}
@@ -1121,6 +1242,10 @@ export default function ScreenerModule() {
                 ))}
               </div>
             </div>
+          )}
+
+          {hasSearched && results.length > 0 && (
+            <YieldContextBar results={results} insights={insights} screenName={screenName} />
           )}
 
           <div className="flex-1 overflow-auto">

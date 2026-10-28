@@ -11,7 +11,9 @@ import TabBar from '../../components/ui/TabBar'
 import {
   scanBreakouts, scanOversold, scanOverbought, scanVolume, scanGaps,
   scanMomentum, scanDivergence, getPatternCandidates, detectPattern, signalContext,
+  scanRateSensitive, sectorOf,
 } from '../../services/scannerService'
+import { macroContext, rateEventToday, nextRateEvent } from '../../services/macroContext'
 import {
   loadScanSettings, saveScanSettings, applyScanFilters,
   SCAN_UNIVERSES, MIN_VOLUME_OPTIONS, MIN_MCAP_OPTIONS, INTERVAL_OPTIONS, SIGNAL_TYPES, SECTORS,
@@ -26,6 +28,7 @@ const TYPE_STYLE = {
   VOLUME:     { bg: 'rgba(201,168,76,0.8)',  fg: '#1A1306' },
   GAP:        { bg: 'rgba(123,45,138,0.8)',  fg: '#F5E8F8' },
   PATTERN:    { bg: 'rgba(45,138,180,0.8)',  fg: '#E6F6FC' },
+  RATE:       { bg: 'rgba(232,163,61,0.85)', fg: '#1A1306' },
 }
 const typeOf = (badge) => (String(badge).startsWith('GAP') ? 'GAP' : String(badge).split(' ')[0])
 
@@ -54,6 +57,7 @@ const TABS = [
   { key: 'gaps',        label: 'GAPS' },
   { key: 'momentum',    label: 'MOMENTUM' },
   { key: 'patterns',    label: 'PATTERNS' },
+  { key: 'rates',       label: 'RATE SENSITIVE' },
 ]
 
 function tickerOf(symbol) { return symbol.replace('.AX', '') }
@@ -125,10 +129,16 @@ function StrengthBars({ strength }) {
   )
 }
 
-function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt, strength }) {
+function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel, metricValue, price, changePct, onAnalyse, detectedAt, strength, tag, extraLine }) {
   const type = typeOf(badge)
   const head = TYPE_STYLE[type] ?? TYPE_STYLE.PATTERN
   const ctx = useMemo(() => signalContext(symbol), [symbol])
+  // MACRO CONTEXT: from sector + signal type, out of verifiedConstants — no
+  // model call (services/macroContext.js).
+  const macro = useMemo(
+    () => macroContext(symbol, { sector: sectorOf(symbol), type: String(badge).startsWith('GAP') ? 'GAP' : type, up: changePct >= 0 }),
+    [symbol, badge, type, changePct],
+  )
   const { addToWatchlist, watchlist, addAlert } = useStore()
   const [flash, setFlash] = useState(null)
   const tone = toneFor(badge)
@@ -173,6 +183,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
       <span className="font-bold">{symbol}</span>
       <span className="mx-1.5 opacity-70">·</span>
       <span className="opacity-90">{detectedAt != null ? new Date(detectedAt).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', timeZone: 'Australia/Sydney' }) : '—'}</span>
+      {tag && <span className="ml-auto font-bold px-1.5" style={{ border: `1px solid ${head.fg}66`, borderRadius: 2 }}>{tag}</span>}
     </div>
     <div
       className="group flex items-center gap-3 px-3 py-2.5 hover:bg-terminal-accent/10 transition-colors"
@@ -195,7 +206,13 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
       <div className="flex-1 min-w-0 flex items-baseline gap-2" title={metricLabel}>
         <span className="min-w-0 flex flex-col">
           <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
+          {extraLine && <span className="text-[9px] text-terminal-text leading-tight truncate">{extraLine}</span>}
           {ctx && <span className="text-[9px] text-terminal-text-dim/70 leading-tight truncate">{ctx.line1} · {ctx.line2}</span>}
+          {macro && (
+            <span className="text-[9px] text-terminal-text-dim/55 leading-tight truncate" title={macro}>
+              <span className="tracking-widest text-terminal-gold/50">MACRO </span>{macro}
+            </span>
+          )}
         </span>
         <StrengthBars strength={strength} />
         {stale && (
@@ -248,6 +265,50 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
         >ANALYSE</button>
       </div>
     </div>
+    </div>
+  )
+}
+
+// RATE SENSITIVE — on RBA decision and CPI release days, rate-sensitive ASX
+// names that moved more than 1%. Outside those days it says when the next one
+// is rather than showing an empty list with no explanation.
+function RateSensitiveTab({ scanTime, settings }) {
+  const event = rateEventToday()
+  // Forty names — cheap enough to scan on every render.
+  const results = applyScanFilters(scanRateSensitive(event), settings)
+  const next = nextRateEvent()
+  if (!event) {
+    return (
+      <SharedEmptyState
+        icon="◎"
+        title="No rate event today"
+        subtitle={`Rate-sensitive signals run on RBA decision and CPI release days.${next ? ` Next: ${next.label}, ${new Date(`${next.date}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.` : ''}`}
+        className="min-h-0 py-8"
+      />
+    )
+  }
+  return (
+    <div>
+      <div className="px-3 py-2 border-b border-terminal-border/60 text-2xs font-mono" style={{ background: 'rgba(232,163,61,0.06)' }}>
+        <span className="font-bold tracking-widest" style={{ color: '#E8A33D' }}>{event.kind}</span>
+        <span className="text-terminal-text-dim"> · {event.label} · ASX names in rate-sensitive sectors (property, banks, consumer, utilities, tech) moving more than 1%.</span>
+        <div className="text-terminal-text-dim/60 mt-0.5" style={{ fontSize: 9 }}>
+          DEMO prices — the day&apos;s ASX moves carry a scripted rate-environment tilt, so this shows how the signal works, not what the market did today.
+        </div>
+      </div>
+      {!results.length ? <EmptyState label="rate-sensitive" /> : results.map((r) => (
+        <ResultCard
+          key={r.symbol}
+          badge="RATE SENSITIVE" tag={event.kind}
+          symbol={r.symbol} name={r.name} detectedAt={scanTime}
+          metricLabel="Rate-day move" metricValue={r.descriptor}
+          extraLine={r.sectorLine}
+          strength={r.strength}
+          price={r.price} changePct={r.changePct}
+          onAnalyse={() => analyseSignal(r.symbol, r.name,
+            `${tickerOf(r.symbol)} (${r.sector}) is ${r.changePct >= 0 ? 'up' : 'down'} ${Math.abs(r.changePct).toFixed(2)}% today, a ${event.kind === 'CPI DAY' ? 'CPI release' : 'RBA decision'} day (${event.label}). ${r.sectorLine}. How does this kind of business usually respond to rate expectations, and what would make this move more or less than a rate reaction? Do not state a price or a price target.`)}
+        />
+      ))}
     </div>
   )
 }
@@ -735,6 +796,7 @@ export default function MarketScannerModule() {
     volume:     applyScanFilters(scanVolume(), settings).length,
     gaps:       applyScanFilters(scanGaps(), settings).length,
     momentum:   applyScanFilters(scanMomentum(), settings).length,
+    rates:      applyScanFilters(scanRateSensitive(rateEventToday()), settings).length,
   }), [settings, oversold.length, overbought.length])
 
   const totalSignals = Object.values(tabCounts).reduce((a, b) => a + b, 0)
@@ -829,6 +891,7 @@ export default function MarketScannerModule() {
         {visibleTab === 'gaps'       && <GapsTab scanTime={lastScanAt} settings={settings} />}
         {visibleTab === 'momentum'   && <MomentumTab settings={settings} />}
         {visibleTab === 'patterns'   && <PatternsTab />}
+        {visibleTab === 'rates'      && <RateSensitiveTab scanTime={lastScanAt} settings={settings} />}
 
         {historyByTicker.length > 0 && (
           <div className="border-t border-terminal-border px-3 py-3">

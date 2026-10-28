@@ -14,6 +14,8 @@ export const SECTOR_OF = Object.fromEntries([
 // scans read: what the stock is, and what it has done lately. Direction and
 // distance only — never a price level, which is the part a reader would act on
 // and the part this demo series cannot support.
+export const sectorOf = (symbol) => SECTOR_OF[symbol] ?? null
+
 export function signalContext(symbol) {
   const closes = getMockFMPHistory(symbol, 30).map((h) => h.close)
   if (closes.length < 21) return null
@@ -367,4 +369,50 @@ Return JSON only:
   const pattern = await askClaudeJSON(prompt, { maxTokens: 400 })
   try { localStorage.setItem(cacheKey, JSON.stringify(pattern)) } catch { /* best-effort */ }
   return pattern
+}
+
+// ── RATE SENSITIVE ──────────────────────────────────────────────────────────
+//
+// On an RBA decision day or a CPI release day (macroContext.rateEventToday),
+// ASX names in rate-sensitive sectors that moved more than 1%. The move is
+// measured from the same price series as every other tab — DEMO data, whose
+// ASX day moves carry a scripted rate-environment tilt, which the tab says.
+// Each row is compared with its sector's average move, so "moving with its
+// sector" is a measured statement, not a caption.
+const RATE_SECTORS = {
+  'Real Est':  { kind: 'REIT',          down: 'REIT under pressure', up: 'REIT firmer despite the rate backdrop' },
+  Financials:  { kind: 'Bank',          down: 'Lower — credit worries outweighing the margin benefit', up: 'Firmer — wider margins priced on hike expectations' },
+  'Cons Disc': { kind: 'Consumer name', down: 'Under pressure — rate-sensitive household spending', up: 'Firmer despite pressure on household budgets' },
+  Utilities:   { kind: 'Utility',       down: 'Bond-like income losing appeal as yields rise', up: 'Firmer despite rising yields' },
+  IT:          { kind: 'Growth name',   down: 'Long-duration earnings re-rating on higher rates', up: 'Firmer despite higher discount rates' },
+}
+
+export function scanRateSensitive(event) {
+  if (!event) return []
+  const asx = Object.keys(MOCK_ASX_STOCKS).map(baseRow).filter(Boolean)
+  const bySector = new Map()
+  for (const r of asx) {
+    const s = SECTOR_OF[r.symbol]
+    if (!s) continue
+    const e = bySector.get(s) ?? { sum: 0, n: 0 }
+    e.sum += r.changePct; e.n++; bySector.set(s, e)
+  }
+  const on = event.kind === 'CPI DAY' ? (event.hot ? 'on a hotter-than-forecast CPI' : 'on the CPI release') : 'on the RBA decision'
+  return asx
+    .filter((r) => RATE_SECTORS[SECTOR_OF[r.symbol]] && Math.abs(r.changePct) > 1)
+    .map((r) => {
+      const sector = SECTOR_OF[r.symbol]
+      const meta = RATE_SECTORS[sector]
+      const avg = bySector.get(sector).sum / bySector.get(sector).n
+      const withSector = Math.sign(avg) === Math.sign(r.changePct) && Math.abs(avg) >= 0.2
+      return {
+        ...r, sector,
+        descriptor: `${r.changePct < 0 ? meta.down : meta.up} ${on}`,
+        sectorLine: withSector
+          ? `Moving with its sector (${sector} avg ${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%)`
+          : `Moving against its sector (${sector} avg ${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%) — stock-specific`,
+        strength: Math.min(1, Math.abs(r.changePct) / 4),
+      }
+    })
+    .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
 }

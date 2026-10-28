@@ -305,6 +305,15 @@ export const VERIFIED_CONSTANTS = {
     cpiDrivers: 'Housing +5.2% y/y (new dwellings +4.7%, electricity +12.8% as Commonwealth rebates ended, rents +3.6%); automotive fuel +23.6% y/y (+9.4% in September).',
     rbaTargetBand: '2–3%',
 
+    // Banks' term deposit rates ($10,000), RBA statistical table F4 (CANSTAR
+    // data), September 2026, published 8 Oct 2026 — series FRDIRBTD10K3Y (3
+    // years). For the screener's "yield vs cash" context. A brief offered
+    // "~4.8%" for the 3-year rate; F4 says 4.20%.
+    termDeposit1y: 5.00,
+    termDeposit3y: 4.20,
+    termDepositPeriod: 'Sep 2026',
+    termDepositSource: 'RBA table F4 (CANSTAR), published 8 Oct 2026',
+
     // September quarter 2026, published in the same release (tables 17–18
     // and Appendix 1a). Headline from Table 17 / the Data API (ABS,CPI,2.0.0
     // 2.10001.10.50.Q = 1.3); its annual change is computed from the Table 17

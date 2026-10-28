@@ -19,6 +19,7 @@ export const SIGNAL_TYPES = [
   { id: 'breakouts', label: 'BREAKOUT' }, { id: 'oversold', label: 'OVERSOLD' },
   { id: 'overbought', label: 'OVERBOUGHT' }, { id: 'volume', label: 'VOLUME' },
   { id: 'gaps', label: 'GAPS' }, { id: 'momentum', label: 'MOMENTUM' }, { id: 'patterns', label: 'PATTERNS' },
+  { id: 'rates', label: 'RATE SENSITIVE' },
 ]
 export const SECTORS = ['ALL', ...[...new Set(Object.values(SECTOR_OF).filter(Boolean))].sort()]
 
@@ -60,12 +61,21 @@ export const DEFAULT_SETTINGS = {
 export function loadScanSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    return saved ? { ...DEFAULT_SETTINGS, ...saved } : { ...DEFAULT_SETTINGS }
+    if (!saved) return { ...DEFAULT_SETTINGS }
+    // A signal type added after the settings were saved is switched ON: the
+    // saved list records what the user turned off among the types that
+    // existed then, not a choice about one they never saw. `knownTypes` is
+    // what existed at the last save.
+    const all = SIGNAL_TYPES.map((t) => t.id)
+    const known = saved.knownTypes ?? ['breakouts', 'oversold', 'overbought', 'volume', 'gaps', 'momentum', 'patterns']
+    const added = all.filter((id) => !known.includes(id))
+    const signalTypes = saved.signalTypes ? [...new Set([...saved.signalTypes, ...added])] : DEFAULT_SETTINGS.signalTypes
+    return { ...DEFAULT_SETTINGS, ...saved, signalTypes, knownTypes: all }
   } catch { return { ...DEFAULT_SETTINGS } }
 }
 
 export function saveScanSettings(settings) {
-  try { localStorage.setItem(KEY, JSON.stringify(settings)) } catch { /* best-effort */ }
+  try { localStorage.setItem(KEY, JSON.stringify({ ...settings, knownTypes: SIGNAL_TYPES.map((t) => t.id) })) } catch { /* best-effort */ }
   return settings
 }
 
