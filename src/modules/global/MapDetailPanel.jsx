@@ -112,7 +112,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
         padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 10, color: '#C9A84C', letterSpacing: '0.15em' }}>
-            {type.toUpperCase()} DETAIL
+            {type === 'ausite' ? 'RESOURCE REGION' : `${type.toUpperCase()} DETAIL`}
           </span>
           {/* Only where the words on this card were actually rewritten by
               MaddenAI. A row the overlay did not match keeps its editorial
@@ -240,6 +240,22 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
 
             <button onClick={() => askAI(`Explain the current state of "${data.title}" and what it means for Australian investors — which ASX sectors and stocks are most exposed, and what would change the picture.`)}
               className="btn-secondary btn-sm" style={{ width: '100%' }}>
+              ASK MADDENAI
+            </button>
+          </>
+        )}
+
+        {type === 'ausite' && (
+          <>
+            <div style={{ ...S.gold, fontFamily: '"IBM Plex Mono", monospace', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+              {data.name}
+            </div>
+            <div style={{ ...S.muted, marginBottom: 12 }}>{data.commodity} · {data.region}</div>
+            <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, color: '#E6EDF6', lineHeight: 1.55, marginBottom: 12 }}>{data.note}</div>
+            <div style={S.label}>ASX-listed producers</div>
+            <TickerPills tickers={data.asx} watchlist={watchlist} />
+            <button onClick={() => askAI(`How exposed are Australia's ${data.commodity.toLowerCase()} exports from ${data.name} to the current global picture, and which ASX-listed producers have the most leverage to it?`)}
+              className="btn-secondary btn-sm" style={{ marginTop: 12, width: '100%' }}>
               ASK MADDENAI
             </button>
           </>

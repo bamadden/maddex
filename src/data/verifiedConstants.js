@@ -663,6 +663,43 @@ export const VERIFIED_CONSTANTS = {
     lastVerified: '2026-10-28',
   },
 
+  // ── Australia's top trading partners ──────────────────────────────────────
+  // ABS, International Trade: Supplementary Information, Financial Year,
+  // 2024-25 — goods and services, A$ billion, read 2026-10-28. Shares are
+  // computed against the release's totals (exports A$646.6b, imports
+  // A$629.9b); the ABS notes country data is on a merchandise-trade basis and
+  // the totals on a balance-of-payments basis, so shares are approximate. Its
+  // own figures: the top five export markets were 60.2% of exports, the top
+  // five import sources 48.9% of imports. `main` is an editorial summary of
+  // what moves on each route, not an ABS figure. `to` is a map anchor.
+  //
+  // The map arcs this replaced (China A$296b, Japan 89, Korea 67…) had no
+  // recorded source.
+  auTrade: {
+    label: 'AU trade partners',
+    period: '2024-25',
+    totalExportsBn: 646.6,
+    totalImportsBn: 629.9,
+    exports: [
+      { country: 'China',          bn: 188.7, main: 'Iron ore, LNG, coal',     to: [116.4, 39.9] },
+      { country: 'Japan',          bn: 69.7,  main: 'LNG, coal, beef',         to: [139.7, 35.7] },
+      { country: 'United States',  bn: 54.6,  main: 'Gold, beef, services',    to: [-77.0, 38.9] },
+      { country: 'South Korea',    bn: 41.3,  main: 'Iron ore, coal, LNG',     to: [126.9, 37.6] },
+      { country: 'India',          bn: 35.0,  main: 'Coal, gold, education',   to: [77.2, 28.6] },
+    ],
+    imports: [
+      { country: 'China',          bn: 120.0, main: 'Electronics, machinery',  to: [121.5, 31.2] },
+      { country: 'United States',  bn: 96.8,  main: 'Machinery, services',     to: [-74.0, 40.7] },
+      { country: 'Japan',          bn: 32.4,  main: 'Vehicles',                to: [135.5, 34.7] },
+      { country: 'Singapore',      bn: 26.4,  main: 'Refined fuel',            to: [103.8, 1.35] },
+      { country: 'Thailand',       bn: 23.5,  main: 'Vehicles',                to: [100.5, 13.75] },
+    ],
+    source: 'ABS, International Trade: Supplementary Information, Financial Year, 2024-25',
+    sourceUrl: 'https://www.abs.gov.au/statistics/economy/international-trade/international-trade-supplementary-information-financial-year/latest-release',
+    asOf: '2025-06-30',
+    lastVerified: '2026-10-28',
+  },
+
   // ── Benchmark index levels ────────────────────────────────────────────────
   // Indicative only. Live equity quotes come through dataService; these exist
   // so the intelligence map has something to label a marker with.

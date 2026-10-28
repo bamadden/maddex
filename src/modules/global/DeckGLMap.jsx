@@ -12,7 +12,9 @@ import {
   GEOPOLITICAL_EVENTS, UNDERSEA_CABLES, MILITARY_BASES, MAJOR_CITIES,
   SEVERITY_COLOUR, isExchangeOpen,
   overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS,
+  AU_KEY_SITES, AU_IMPACT,
 } from './intelMapData'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import MapDetailPanel from './MapDetailPanel'
 import MapLocationSearch from './MapLocationSearch'
 import { liveDataService } from '../../services/liveDataService'
@@ -88,6 +90,19 @@ const LAYER_CATALOGUE = [
   // than every overlay at once competing for the same pixels.
   { id: 'citylights',   label: 'City Lights',       dot: '#FFE4B5', on: false },
 ]
+
+// AU FOCUS trade arcs, from verifiedConstants.auTrade (ABS 2024-25). Exports
+// leave from the centre of the continent's export coast; imports land at
+// Sydney. Width scales with A$ value against the largest flow.
+const AU_TRADE = VERIFIED_CONSTANTS.auTrade
+const auTradeArcs = AU_TRADE ? (() => {
+  const max = Math.max(...AU_TRADE.exports.map((e) => e.bn), ...AU_TRADE.imports.map((e) => e.bn))
+  const w = (bn) => 1.5 + (bn / max) * 9
+  return [
+    ...AU_TRADE.exports.map((e) => ({ ...e, dir: 'export', from: [128.0, -22.0], to: e.to, width: w(e.bn), share: (e.bn / AU_TRADE.totalExportsBn) * 100 })),
+    ...AU_TRADE.imports.map((e) => ({ ...e, dir: 'import', from: e.to, to: [151.2, -33.9], width: w(e.bn), share: (e.bn / AU_TRADE.totalImportsBn) * 100 })),
+  ]
+})() : []
 
 // Natural Earth's NAME field for each country an exchange sits in. Written
 // out rather than matched fuzzily because these names have exact forms —
@@ -315,6 +330,9 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   const [majorQuakes, setMajorQuakes] = useState([])
   const [quakeState, setQuakeState] = useState('loading')
   const [auFocus, setAuFocus] = useState(false)
+  // GLOBAL RISK (the geopolitical layer as it is) or AU IMPACT (countries
+  // shaded by how much they matter to Australia).
+  const [riskView, setRiskView] = useState('global')
   const [pulse, setPulse] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
   const [mapWidth, setMapWidth] = useState(null)
@@ -324,7 +342,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
 
   // Country outlines drive both the market-performance fill and the density
   // hexagons, so one fetch serves both.
-  const countries = useCountries(layerOn.countries || layerOn.density)
+  const countries = useCountries(layerOn.countries || layerOn.density || riskView === 'au')
 
   // The overlays size themselves against the map, not the viewport: the map
   // is one of three columns, so a 1440px window can still leave it under
@@ -474,6 +492,37 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     const all = []
     const show = (id) => !!layerOn[id]
 
+    // ── AU IMPACT: countries shaded by how much they matter to Australia ──
+    // Drawn first so every point and arc layer sits above the fill.
+    if (riskView === 'au' && countries) {
+      all.push(new GeoJsonLayer({
+        id: 'au-impact',
+        data: countries,
+        stroked: true,
+        filled: true,
+        getFillColor: (f) => {
+          const s = AU_IMPACT[f.properties?.NAME]?.score ?? 0
+          if (f.properties?.NAME === 'Australia') return [201, 168, 76, 70]
+          // White-ish → deep gold with the score; unscored countries stay dark.
+          return s === 0 ? [10, 15, 26, 170]
+            : s === 1 ? [205, 196, 170, 95]
+            : s === 2 ? [214, 174, 82, 150]
+            : [201, 150, 30, 215]
+        },
+        getLineColor: [201, 168, 76, 50],
+        lineWidthMinPixels: 0.5,
+        pickable: true,
+        onHover: (info, event) => {
+          const name = info.object?.properties?.NAME
+          const row = name && AU_IMPACT[name]
+          if (!row) return setTooltip(null)
+          const src = event?.srcEvent
+          setTooltip({ object: { name, ...row }, type: 'auimpact', x: src?.clientX ?? info.x, y: src?.clientY ?? info.y })
+        },
+        updateTriggers: { getFillColor: [countries] },
+      }))
+    }
+
     // Searched-location pin. Pixel-sized so it stays a pin at every zoom
     // rather than becoming a disc over a city; pushed first so it is never
     // skipped by a layer toggle returning early below.
@@ -596,8 +645,27 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     }
 
     // ── Trade routes ──────────────────────────────────────────────────────
-    if (show('trade')) {
-      const routes = auFocus ? TRADE_ROUTES.filter((r) => r.id.startsWith('AU-')) : TRADE_ROUTES
+    if (show('trade') && auFocus && auTradeArcs.length) {
+      // AU FOCUS: the ABS 2024-25 top five export markets (gold, out of
+      // Australia) and import sources (blue, into it), width by A$ value.
+      all.push(new ArcLayer({
+        id: 'au-trade-arcs',
+        data: auTradeArcs,
+        getSourcePosition: (d) => d.from,
+        getTargetPosition: (d) => d.to,
+        getSourceColor: (d) => (d.dir === 'export' ? [201, 168, 76, 230] : [74, 158, 219, 60]),
+        getTargetColor: (d) => (d.dir === 'export' ? [201, 168, 76, 60] : [74, 158, 219, 230]),
+        getWidth: (d) => d.width,
+        getHeight: (d) => (d.dir === 'export' ? 0.45 : 0.25),
+        greatCircle: true,
+        numSegments: 100,
+        opacity: 0.8 + Math.sin(pulse / 9) * 0.12,
+        updateTriggers: { opacity: pulse },
+        pickable: true,
+        onHover: hover('autrade'),
+      }))
+    } else if (show('trade')) {
+      const routes = TRADE_ROUTES
       all.push(new ArcLayer({
         id: 'trade-arcs',
         data: routes,
@@ -651,6 +719,37 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         getColor: (d) => (d.severity === 'CRITICAL' ? [255, 90, 90, 255] : [201, 168, 76, 220]),
         getTextAnchor: 'middle',
         fontFamily: '"IBM Plex Mono", monospace',
+        characterSet: 'auto',
+      }))
+    }
+
+    // ── AU FOCUS: where the export earnings come from ─────────────────────
+    if (auFocus) {
+      all.push(new ScatterplotLayer({
+        id: 'au-sites',
+        data: AU_KEY_SITES,
+        getPosition: (d) => [d.lon, d.lat],
+        getRadius: 7,
+        radiusUnits: 'pixels',
+        getFillColor: [201, 168, 76, 235],
+        getLineColor: [255, 236, 180, 255],
+        lineWidthMinPixels: 1.5,
+        stroked: true,
+        pickable: true,
+        onHover: hover('ausite'),
+        onClick: ({ object }) => object && setSelected({ type: 'ausite', data: object }),
+      }))
+      all.push(new TextLayer({
+        id: 'au-site-labels',
+        data: AU_KEY_SITES,
+        getPosition: (d) => [d.lon, d.lat],
+        getText: (d) => d.name.toUpperCase(),
+        getSize: 10,
+        getPixelOffset: [0, -16],
+        getColor: [232, 214, 160, 235],
+        getTextAnchor: 'middle',
+        fontFamily: '"IBM Plex Mono", monospace',
+        fontWeight: 700,
         characterSet: 'auto',
       }))
     }
@@ -853,7 +952,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     }))
 
     return all
-  }, [layerOn, quakes, majorQuakes, auFocus, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries, searchPin])
+  }, [layerOn, quakes, majorQuakes, auFocus, riskView, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries, searchPin])
 
   // What the status line reports. Every entry is read from actual state — the
   // seismic fetch's own result, the narrative service's source field, whether
@@ -982,6 +1081,16 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         onGlobal={() => { setAuFocus(false); flyTo(GLOBAL_VIEW) }}
         insetL={insetL}
       />
+
+      {(auFocus || layerOn.geopolitical) && (
+        <RiskViewToggle value={riskView} onChange={setRiskView} />
+      )}
+      {auFocus && (
+        <AuIntelPanel
+          insetR={(selected ? panelWidth + 16 : 0) + insetR}
+          onSite={(site) => { setSelected({ type: 'ausite', data: site }); flyTo({ longitude: site.lon, latitude: site.lat, zoom: 5, pitch: 40, bearing: 0 }) }}
+        />
+      )}
 
       {/* Fullscreen toggle */}
       <button
@@ -1175,11 +1284,36 @@ function MapTooltip({ tooltip }) {
         </div>
       </>
     ),
+    autrade: () => (
+      <>
+        <div style={{ ...gold, color: object.dir === 'export' ? '#C9A84C' : '#4A9EDB' }}>
+          {object.dir === 'export' ? `AU EXPORTS → ${object.country.toUpperCase()}` : `AU IMPORTS ← ${object.country.toUpperCase()}`}
+        </div>
+        <div style={{ marginBottom: 2 }}>A${object.bn.toFixed(1)}b · {object.share.toFixed(1)}% of {object.dir === 'export' ? 'exports' : 'imports'}</div>
+        <div style={dim}>{object.main}</div>
+        <div style={{ fontSize: 9, color: '#4A6080', marginTop: 3 }}>ABS, {AU_TRADE?.period}</div>
+      </>
+    ),
+    ausite: () => (
+      <>
+        <div style={gold}>{object.name.toUpperCase()}</div>
+        <div style={{ marginBottom: 2 }}>{object.commodity} · {object.region}</div>
+        <div style={{ fontSize: 10, color: '#4A6080', marginTop: 2 }}>{object.asx.join(', ')} · click for detail</div>
+      </>
+    ),
+    auimpact: () => (
+      <>
+        <div style={gold}>{object.name} — {['', 'LOW', 'MEDIUM', 'HIGH'][object.score]} AU IMPACT</div>
+        <div style={dim}>{object.why}</div>
+      </>
+    ),
     trade: () => (
       <>
         <div style={gold}>TRADE ROUTE</div>
         <div style={{ marginBottom: 2 }}>{object.exports}</div>
-        <div style={dim}>A${object.value}B annually</div>
+        {object.value != null && (
+          <div style={dim}>{object.id?.startsWith('AU-') ? `A$${object.value}b AU exports (ABS 2024-25)` : `A$${object.value}B annually (illustrative)`}</div>
+        )}
         {object.disrupted && <div style={{ color: '#A83232', marginTop: 4, fontSize: 10 }}>⚠ DISRUPTED</div>}
       </>
     ),
@@ -1406,5 +1540,90 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
         </div>
       )}
     </>
+  )
+}
+
+// ── AU FOCUS panel ──────────────────────────────────────────────────────────
+//
+// Australia's trade position beside the map while AU FOCUS is on: the top
+// export markets and import sources (verifiedConstants.auTrade, ABS 2024-25)
+// as bars by share, and the key resource regions, each a button that flies
+// to it. Sits on the map's right edge, clear of the layer panel.
+function AuIntelPanel({ onSite, insetR = 0 }) {
+  const t = VERIFIED_CONSTANTS.auTrade
+  const [side, setSide] = useState('exports')
+  if (!t) return null
+  const rows = t[side]
+  const total = side === 'exports' ? t.totalExportsBn : t.totalImportsBn
+  const max = Math.max(...rows.map((r) => r.bn))
+  const tone = side === 'exports' ? '#C9A84C' : '#4A9EDB'
+  const mono = { fontFamily: '"IBM Plex Mono", monospace' }
+  return (
+    <div style={{ position: 'absolute', top: 52, right: 12 + insetR, width: 252, zIndex: Z.CONTROL, background: 'rgba(6,13,26,0.92)',
+      border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2, padding: '10px 12px', backdropFilter: 'blur(8px)', ...mono }}>
+      <div style={{ fontSize: 9, letterSpacing: '0.16em', color: '#C9A84C', fontWeight: 700 }}>AUSTRALIA ECONOMIC INTELLIGENCE</div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+        <span style={{ fontSize: 8, letterSpacing: '0.14em', color: '#8BA3C4' }}>TRADE PARTNERS</span>
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
+          {['exports', 'imports'].map((k) => (
+            <button key={k} onClick={() => setSide(k)} style={{ ...mono, fontSize: 8, padding: '1px 5px', cursor: 'pointer', borderRadius: 2,
+              border: `1px solid ${side === k ? (k === 'exports' ? '#C9A84C' : '#4A9EDB') : 'rgba(99,120,153,0.35)'}`,
+              color: side === k ? (k === 'exports' ? '#C9A84C' : '#4A9EDB') : '#637899', background: 'transparent' }}>{k.toUpperCase()}</button>
+          ))}
+        </span>
+      </div>
+      <div style={{ marginTop: 6 }}>
+        {rows.map((r) => (
+          <div key={r.country} style={{ marginBottom: 6 }} title={r.main}>
+            <div style={{ display: 'flex', fontSize: 10, color: '#E6EDF6' }}>
+              <span>{r.country}</span>
+              <span style={{ marginLeft: 'auto', color: tone, fontWeight: 700 }}>{((r.bn / total) * 100).toFixed(1)}%</span>
+            </div>
+            <div style={{ height: 4, background: 'rgba(99,120,153,0.2)', borderRadius: 2, overflow: 'hidden', margin: '2px 0' }}>
+              <div style={{ width: `${(r.bn / max) * 100}%`, height: '100%', background: tone }} />
+            </div>
+            <div style={{ fontSize: 8, color: '#637899' }}>A${r.bn.toFixed(1)}b · {r.main}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 7.5, color: '#4A6080', lineHeight: 1.4 }}>
+        Share of A${total.toFixed(1)}b total {side}, {t.period}. ABS (goods and services). Shares approximate — see source notes.
+      </div>
+
+      <div style={{ fontSize: 8, letterSpacing: '0.14em', color: '#8BA3C4', marginTop: 10 }}>KEY RESOURCE REGIONS</div>
+      <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {AU_KEY_SITES.map((s) => (
+          <button key={s.id} onClick={() => onSite(s)} style={{ ...mono, display: 'flex', gap: 6, alignItems: 'baseline', background: 'transparent', border: 'none',
+            padding: '2px 0', cursor: 'pointer', textAlign: 'left', color: '#E6EDF6', fontSize: 9 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C9A84C', flexShrink: 0, display: 'inline-block' }} />
+            <span style={{ fontWeight: 700 }}>{s.name}</span>
+            <span style={{ color: '#637899', marginLeft: 'auto', fontSize: 8 }}>{s.commodity.split(' (')[0]}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// GLOBAL RISK / AU IMPACT. AU IMPACT shades each country by how much it
+// matters to Australia (intelMapData.AU_IMPACT) — trade weight from the ABS,
+// the rest editorial and said so in each country's hover.
+function RiskViewToggle({ value, onChange }) {
+  const mono = { fontFamily: '"IBM Plex Mono", monospace' }
+  return (
+    <div style={{ position: 'absolute', bottom: 34, left: '50%', transform: 'translateX(-50%)', zIndex: Z.CONTROL, display: 'flex', alignItems: 'center', gap: 4,
+      background: 'rgba(6,13,26,0.9)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2, padding: '4px 6px', ...mono }}>
+      {[['global', 'GLOBAL RISK'], ['au', 'AU IMPACT']].map(([k, label]) => (
+        <button key={k} onClick={() => onChange(k)} style={{ ...mono, fontSize: 9, letterSpacing: '0.1em', padding: '2px 8px', cursor: 'pointer', borderRadius: 2,
+          border: `1px solid ${value === k ? '#C9A84C' : 'rgba(99,120,153,0.35)'}`, color: value === k ? '#C9A84C' : '#8BA3C4',
+          background: value === k ? 'rgba(201,168,76,0.12)' : 'transparent', fontWeight: value === k ? 700 : 400 }}>{label}</button>
+      ))}
+      {value === 'au' && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 4, fontSize: 8, color: '#8BA3C4' }}>
+          LOW <span style={{ width: 50, height: 5, background: 'linear-gradient(90deg, rgb(205,196,170), rgb(214,174,82), rgb(201,150,30))', display: 'inline-block' }} /> HIGH
+        </span>
+      )}
+    </div>
   )
 }

@@ -36,14 +36,17 @@ export const EXCHANGES = [
     topStocks: ['TEVA', 'NICE', 'ESLT', 'POLI', 'LUMI'] },
 ]
 
+// AU routes: `value` is A$b of AU EXPORTS to that market, ABS 2024-25 (see
+// verifiedConstants.auTrade); null where no sourced figure is held. The
+// non-AU routes are illustrative.
 export const TRADE_ROUTES = [
-  { id: 'AU-CN',   from: [151.2, -33.9], to: [121.5, 31.2],  value: 296, exports: 'Iron Ore, Coal, LNG, Gold',  color: [201, 168, 76], thickness: 6 },
-  { id: 'AU-JP',   from: [151.2, -33.9], to: [139.7, 35.7],  value: 89,  exports: 'LNG, Coal, Beef',            color: [201, 168, 76], thickness: 3 },
-  { id: 'AU-KR',   from: [151.2, -33.9], to: [126.9, 37.6],  value: 67,  exports: 'Iron Ore, LNG, Coal',        color: [201, 168, 76], thickness: 2.5 },
-  { id: 'AU-IN',   from: [151.2, -33.9], to: [72.9, 19.1],   value: 42,  exports: 'Coal, Gold, Education',      color: [201, 168, 76], thickness: 2 },
-  { id: 'AU-US',   from: [151.2, -33.9], to: [-74.0, 40.7],  value: 45,  exports: 'Beef, Wine, Tourism',        color: [45, 138, 80],  thickness: 2 },
-  { id: 'AU-UK',   from: [151.2, -33.9], to: [-0.1, 51.5],   value: 38,  exports: 'Resources, Finance',         color: [45, 138, 80],  thickness: 1.5 },
-  { id: 'AU-SG',   from: [151.2, -33.9], to: [103.8, 1.4],   value: 28,  exports: 'LNG, Education',             color: [201, 168, 76], thickness: 1.5 },
+  { id: 'AU-CN',   from: [151.2, -33.9], to: [121.5, 31.2],  value: 188.7, exports: 'Iron Ore, Coal, LNG, Gold',  color: [201, 168, 76], thickness: 6 },
+  { id: 'AU-JP',   from: [151.2, -33.9], to: [139.7, 35.7],  value: 69.7, exports: 'LNG, Coal, Beef',            color: [201, 168, 76], thickness: 3 },
+  { id: 'AU-KR',   from: [151.2, -33.9], to: [126.9, 37.6],  value: 41.3, exports: 'Iron Ore, LNG, Coal',        color: [201, 168, 76], thickness: 2.5 },
+  { id: 'AU-IN',   from: [151.2, -33.9], to: [72.9, 19.1],   value: 35.0, exports: 'Coal, Gold, Education',      color: [201, 168, 76], thickness: 2 },
+  { id: 'AU-US',   from: [151.2, -33.9], to: [-74.0, 40.7],  value: 54.6, exports: 'Beef, Wine, Tourism',        color: [45, 138, 80],  thickness: 2 },
+  { id: 'AU-UK',   from: [151.2, -33.9], to: [-0.1, 51.5],   value: null, exports: 'Resources, Finance',         color: [45, 138, 80],  thickness: 1.5 },
+  { id: 'AU-SG',   from: [151.2, -33.9], to: [103.8, 1.4],   value: null, exports: 'LNG, Education',             color: [201, 168, 76], thickness: 1.5 },
   { id: 'US-CN',   from: [-74.0, 40.7],  to: [121.5, 31.2],  value: 690, exports: 'Tech, Agriculture',          color: [100, 140, 200], thickness: 5 },
   { id: 'EU-CN',   from: [8.7, 50.1],    to: [121.5, 31.2],  value: 480, exports: 'Machinery, Vehicles',        color: [100, 140, 200], thickness: 4 },
   { id: 'RED-SEA', from: [8.7, 50.1],    to: [72.9, 19.1],   value: 200, exports: 'EU-Asia shipping',           color: [168, 50, 50],  thickness: 3, disrupted: true },
@@ -285,3 +288,50 @@ export function overlayNarrative(rows, aiRows, fields) {
 
 export const SHIPPING_NARRATIVE_FIELDS = ['title', 'detail', 'impact', 'auExports', 'trend']
 export const GEO_NARRATIVE_FIELDS = ['summary', 'marketImpact', 'asxExposure', 'trend']
+
+// ─── Australia focus ────────────────────────────────────────────────────────
+//
+// Where Australia's export earnings come out of the ground, for AU FOCUS. The
+// one dollar figure is sourced (Resources and Energy Quarterly); the rest is
+// location, commodity and the ASX-listed producers — reference facts, not
+// estimates. Browse Basin is deliberately absent: it is undeveloped; the
+// producing LNG hub in the north-west is the North West Shelf at Karratha.
+export const AU_KEY_SITES = [
+  { id: 'au-pilbara', name: 'Pilbara', region: 'WA', commodity: 'Iron ore', lon: 118.6, lat: -22.3,
+    asx: ['BHP', 'RIO', 'FMG'], note: 'Iron ore export earnings A$116b in 2024-25 — Australia\'s largest export (Resources and Energy Quarterly).' },
+  { id: 'au-bowen', name: 'Bowen Basin', region: 'QLD', commodity: 'Coal (mostly metallurgical)', lon: 148.2, lat: -22.5,
+    asx: ['BHP', 'WHC'], note: 'Steelmaking coal for Japan, India, Korea and China.' },
+  { id: 'au-nws', name: 'North West Shelf', region: 'WA (Karratha)', commodity: 'LNG', lon: 116.8, lat: -20.7,
+    asx: ['WDS'], note: 'Australia\'s original LNG export hub, on the Carnarvon Basin.' },
+  { id: 'au-curtis', name: 'Curtis Island', region: 'QLD (Gladstone)', commodity: 'LNG (coal-seam gas)', lon: 151.25, lat: -23.8,
+    asx: ['STO', 'ORG'], note: 'Three export LNG plants fed by Surat and Bowen coal-seam gas.' },
+  { id: 'au-cooper', name: 'Cooper Basin', region: 'SA / QLD', commodity: 'Gas and oil', lon: 140.6, lat: -27.9,
+    asx: ['STO', 'BPT'], note: 'Onshore gas supplying the east-coast market.' },
+  { id: 'au-kalgoorlie', name: 'Kalgoorlie goldfields', region: 'WA', commodity: 'Gold', lon: 121.5, lat: -30.75,
+    asx: ['NST', 'EVN'], note: 'Home of the Super Pit; WA produces most of Australia\'s gold.' },
+]
+
+// How much each country matters to AUSTRALIA, for the map's AU IMPACT view —
+// 3 high, 2 medium, 1 low. Trade weights follow verifiedConstants.auTrade
+// (ABS 2024-25); the rest is editorial judgement on the channel, stated in
+// `why`. Keys are Natural Earth NAME values (exact forms).
+export const AU_IMPACT = {
+  'China':                    { score: 3, why: 'Largest trade partner — biggest export market and import source' },
+  'United States of America': { score: 3, why: 'Alliance, capital flows; #2 import source, #3 export market' },
+  'Japan':                    { score: 3, why: '#2 export market — LNG and coal' },
+  'South Korea':              { score: 2, why: '#4 export market — iron ore, coal, LNG' },
+  'India':                    { score: 2, why: '#5 export market — coal and gold' },
+  'Singapore':                { score: 2, why: 'Main refined-fuel supplier; #4 import source' },
+  'Taiwan':                   { score: 2, why: 'Sits on the shipping lanes for North Asian trade' },
+  'Saudi Arabia':             { score: 2, why: 'Oil prices and Gulf shipping' },
+  'Iran':                     { score: 2, why: 'Strait of Hormuz — oil and LNG prices' },
+  'United Arab Emirates':     { score: 2, why: 'Oil prices and Gulf shipping' },
+  'Qatar':                    { score: 2, why: 'LNG competitor and Gulf shipping' },
+  'Russia':                   { score: 2, why: 'Energy and grain markets' },
+  'Indonesia':                { score: 1, why: 'Nearest large neighbour; regional stability' },
+  'New Zealand':              { score: 1, why: 'Closest economic partner (CER)' },
+  'Thailand':                 { score: 1, why: '#5 import source — vehicles' },
+  'United Kingdom':           { score: 1, why: 'Investment and financial ties' },
+  'Malaysia':                 { score: 1, why: 'Fuel and regional trade' },
+  'Vietnam':                  { score: 1, why: 'Growing export market' },
+}
