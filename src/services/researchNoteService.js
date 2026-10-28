@@ -197,7 +197,7 @@ export function listNoteHistory() {
 // near-duplicates, but a deep dive does not replace a structured note.
 export const noteId = (n) => `${n?.kind ?? 'note'}:${n?.asset?.symbol ?? ''}`
 
-export const NOTE_KIND_LABEL = { note: 'RESEARCH NOTE', deepdive: 'DEEP DIVE', strategy: 'STRATEGY SESSION' }
+export const NOTE_KIND_LABEL = { note: 'RESEARCH NOTE', deepdive: 'DEEP DIVE', strategy: 'STRATEGY SESSION', rbapreview: 'RBA PREVIEW' }
 
 export function saveNoteToHistory(note) {
   if (!note?.asset?.symbol) return listNoteHistory()

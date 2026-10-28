@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, memo, Fragment } from 'react'
-import { deepDive } from '../../utils/askAI'
+import { deepDive, rbaPreview } from '../../utils/askAI'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -109,6 +110,7 @@ const HELP_SECTIONS = [
     { cmd:'add BHP / watch CSL', desc:'Add to watchlist' },
     { cmd:'analyse CSL', desc:'MaddenAI analysis — also "what is CSL", "tell me about BHP"' },
     { cmd:'deep dive BHP', desc:'Six-part MaddenAI deep dive, saved to research' },
+    { cmd:'rba preview', desc:'Pre-decision brief on the next RBA meeting, saved to research' },
     { cmd:'compound 10000 8% 20 years', desc:'Opens the calculator filled in' },
     { cmd:'CORRELATE {s1} {s2}', desc:'Open Correlation Explorer — e.g. CORRELATE BHP AUD' },
     { cmd:'WL ADD {sym}', desc:'Quick add to watchlist — e.g. WL ADD NVDA' },
@@ -289,6 +291,10 @@ function parseNaturalLanguage(raw) {
     }
     return null
   }
+
+  // "rba preview" / "rba analysis" — the pre-decision brief for the next
+  // RBA meeting, kept in SAVED RESEARCH.
+  if (/^(?:rba (?:preview|analysis|decision preview)|preview (?:the )?rba)\??$/i.test(t)) return { kind: 'rbapreview', say: 'MaddenAI RBA decision preview' }
 
   // "deep dive BHP" / "deep dive into CSL" / "BHP deep dive" — the six-part
   // long-form analysis, kept in SAVED RESEARCH.
@@ -1553,6 +1559,11 @@ export default function CommandBar() {
 
         case 'ai':
           await routeToAI(nl.query)
+          return
+
+        case 'rbapreview':
+          rbaPreview(VERIFIED_CONSTANTS.rba.nextMeeting)
+          flash('→ MADDENAI RBA DECISION PREVIEW', 'text-terminal-green', 2000)
           return
 
         case 'deepdive':

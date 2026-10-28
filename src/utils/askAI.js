@@ -73,3 +73,16 @@ export function deepDive({ symbol, name, type }) {
     save: { kind: 'deepdive', asset: { symbol: sym, name: name ?? bare, type }, auto: true },
   })
 }
+
+// RBA PREVIEW: the six-part pre-decision brief for the next RBA meeting, kept
+// in SAVED RESEARCH as "RBA <Month> <Year> Decision Preview". One note per
+// meeting — a second run for the same meeting replaces the first.
+export function rbaPreview(meetingIso) {
+  const d = new Date(`${meetingIso}T00:00:00`)
+  const title = `RBA ${d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })} Decision Preview`
+  askMaddenAI(`${title}: the RBA meeting on ${d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}.`, {
+    mode: 'rbapreview',
+    fullscreen: true,
+    save: { kind: 'rbapreview', asset: { symbol: `RBA-${meetingIso.slice(0, 7)}`, name: title, type: 'macro' }, auto: true },
+  })
+}

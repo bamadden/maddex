@@ -164,13 +164,39 @@ function decisionWeekPrompts(now = Date.now()) {
   const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
   if (now >= at || now < at - 7 * 86400_000) return null
   const day = new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  const pct = nd.marketHikePct
   return [
-    { label: 'LATEST CPI — WHAT NOW FOR RATES?', prompt: `Using only the CPI figures and market pricing in your context, what does the latest inflation data mean for the RBA's ${day} decision?`, dataKeys: ['aud'] },
-    { label: 'POSITIONING BEFORE THE RBA?', prompt: `How do investors generally think about positioning ahead of a live RBA meeting like ${day}? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
-    { label: 'SECTORS IF THE RBA HIKES', prompt: 'Which ASX sectors have tended to hold up or struggle when the RBA raises rates, and why?', dataKeys: ['asx'] },
-    { label: `${day.toUpperCase()} MARKET PRICING`, prompt: `What is the market pricing for the RBA's ${day} decision, where does that reading come from, and how much should anyone lean on it?`, dataKeys: [] },
+    { label: pct != null ? `WHAT DOES ${pct}% HIKE PRICING MEAN?` : `${day.toUpperCase()} MARKET PRICING`, prompt: `What does ${pct != null ? `~${pct}% ` : ''}market pricing for a hike at the RBA's ${day} meeting actually mean — where does the reading come from, what drove it, and how much should anyone lean on it?`, dataKeys: ['aud'] },
+    // "How should I position" is a personal-advice question; the prompt asks
+    // how investors generally approach it.
+    { label: 'HOW TO POSITION FOR A HIKE?', prompt: `How do investors generally think about positioning ahead of a live RBA meeting like ${day}, with a hike largely priced? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
+    { label: 'WHO BENEFITS FROM HIGHER RATES?', prompt: 'Which kinds of ASX companies and sectors have tended to benefit from higher interest rates, which have tended to struggle, and why? Speak to sectors and business models, not specific buy recommendations.', dataKeys: ['asx'] },
+    { label: 'MY MORTGAGE IF THEY HIKE?', prompt: `What happens to a typical variable mortgage if the RBA hikes 25bp on ${day}? Use the mortgage figures in your context, and explain how and when lenders usually pass a move on.`, dataKeys: [] },
   ]
 }
+
+// The week after an RBA decision, once verifiedConstants records it: the
+// prompts switch from "what will they do" to "what did they do". Keyed on
+// rba.lastDecision, so they activate the moment a person updates the
+// constants after the announcement — never on a guess about the outcome.
+function postDecisionPrompts(now = Date.now()) {
+  const rba = VERIFIED_CONSTANTS.rba
+  if (!rba?.lastDecision) return null
+  const at = new Date(`${rba.lastDecision}T14:30:00${sydneyOffset(rba.lastDecision)}`).getTime()
+  if (now < at || now >= at + 7 * 86400_000) return null
+  const day = new Date(`${rba.lastDecision}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return [
+    { label: 'WHAT DID THE RBA JUST DECIDE?', prompt: `Using only the decision and statement details in your context, what did the RBA decide on ${day}, and what did its statement say?`, dataKeys: ['aud'] },
+    { label: 'HOW DO INVESTORS REACT TO THIS?', prompt: `How do investors generally respond to a decision like the RBA's on ${day}? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
+    { label: 'WHICH SECTORS NOW?', prompt: `After the RBA's ${day} decision, which ASX sectors are most exposed to it, in which direction, and why?`, dataKeys: ['asx'] },
+    { label: "WHAT'S NEXT FOR AU RATES?", prompt: "What comes next for Australian interest rates after this decision — the next meeting, the data that matters before it, and what the statement signalled?", dataKeys: [] },
+  ]
+}
+
+// Decision week, then the week after — for the modules where rates are the
+// story. null outside those windows.
+const rbaPrompts = () => decisionWeekPrompts() ?? postDecisionPrompts()
+const RBA_PROMPT_MODULES = new Set(['dashboard', 'fx', 'macro'])
 
 // selectedSymbol: the ticker currently open in the stock detail modal, if
 // any — asset-specific prompts take priority over everything else, then the
@@ -187,9 +213,11 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
   }
   // The Dashboard leads with the coming RBA decision in the week before it,
   // then with the policy backdrop while rates are moving.
-  if (activeModule === 'dashboard') {
-    const ev = decisionWeekPrompts()
+  if (RBA_PROMPT_MODULES.has(activeModule)) {
+    const ev = rbaPrompts()
     if (ev) return ev
+  }
+  if (activeModule === 'dashboard') {
     const season = earningsSeasonPrompts(); if (season) return season
     const regime = regimePrompts(); if (regime) return regime
   }
@@ -241,6 +269,23 @@ INVESTMENT CONSIDERATIONS:
 Under RISK MATRIX, list the main risks as "- Risk — likelihood (low/medium/high), impact (low/medium/high): one line why". Under INVESTMENT CONSIDERATIONS, 3-5 bullets mixing supportive and cautionary points. The rules on figures still apply: quote only figures you were given, and describe the company's own financials in words — no price targets, no ratings. Skip the FOLLOW_UPS line for this answer.
 
 `
+
+// RBA PREVIEW — "rba preview" in the command bar or RBA PREVIEW on the Rates
+// module. The pre-decision brief: research mode, six fixed sections, kept in
+// SAVED RESEARCH. The word budget follows the plan's output cap (the server's
+// MAX_TOKENS.chat) so the brief is never cut off mid-section.
+const rbaPreviewInstruction = (words) => `[MODE]
+User asked for the RBA DECISION PREVIEW. Write ${words} words in total, with exactly these section headers, each on its own line in capitals followed by a colon, in this order:
+CURRENT RATE ENVIRONMENT:
+WHAT THE CPI SHOWED:
+MARKET PRICING AND WHY:
+IF THE RBA HIKES — SECTOR BY SECTOR:
+IF THE RBA HOLDS — THE SURPRISE SCENARIO:
+WHAT TO WATCH IN THE STATEMENT:
+Use the RBA, CPI, market-pricing, mortgage and statement figures in your context and attribute each (ABS, RBA, the named pricing source and its date). Under the sector section cover banks, REITs, consumer discretionary, utilities, materials and the AUD, each as direction and mechanism — never price targets. Treat a hold as a genuine scenario, not a footnote. End with a one-line reminder that this is general information, not advice. Skip the FOLLOW_UPS line for this answer.
+
+`
+const RBA_PREVIEW_WORDS = { core: '900-1100', prime: '2000-2500', apex: '2000-2500' }
 
 // Personas — tone and depth, sent in the user turn like the response mode, so
 // switching never changes the cached system prefix.
@@ -942,10 +987,11 @@ export default function AIPanel({ wide = false, onListening }) {
     // Displayed turn keeps the clean text; the wire turn carries the context
     // prefix so the cached system prefix stays byte-identical between calls.
     const deepDive = modeOverride === 'deepdive'
-    const research = deepDive || modeOverride === 'research' || responseMode === 'research'
+    const rbaPreview = modeOverride === 'rbapreview'
+    const research = deepDive || rbaPreview || modeOverride === 'research' || responseMode === 'research'
     const msgMode = research ? 'research' : 'chat'
     const userTurn     = { role: 'user', content: text }
-    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${personaLine(persona)}${deepDive ? DEEP_DIVE_INSTRUCTION : research ? RESEARCH_INSTRUCTION : ''}${text}` }
+    const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${personaLine(persona)}${rbaPreview ? rbaPreviewInstruction(RBA_PREVIEW_WORDS[plan] ?? RBA_PREVIEW_WORDS.core) : deepDive ? DEEP_DIVE_INSTRUCTION : research ? RESEARCH_INSTRUCTION : ''}${text}` }
     if (!silent) addChatMessage(userTurn)
     addChatMessage(silent
       ? { role: 'assistant', content: '', silent: true, context, mode: msgMode, researchSave: save ?? null }
@@ -974,7 +1020,7 @@ export default function AIPanel({ wide = false, onListening }) {
       const result = await askClaude(
         [...history, userTurnWire],
         (_, full) => updateLastChatMessage({ role: 'assistant', content: full }),
-        { systemPrompt, maxTokens: deepDive ? 3600 : research ? 3000 : 1200, purpose: 'chat' }
+        { systemPrompt, maxTokens: rbaPreview ? 4000 : deepDive ? 3600 : research ? 3000 : 1200, purpose: 'chat' }
       )
       const autoSaved = !!(save?.auto && result.text)
       if (autoSaved) saveProseNote({ kind: save.kind, asset: save.asset, body: result.text })

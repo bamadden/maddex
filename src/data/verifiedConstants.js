@@ -24,6 +24,7 @@
 // than silently wrong.
 
 import { sydneyOffset } from '../utils/dateUtils.js'
+import { MORTGAGE_MARGIN, repaymentChange } from '../modules/calculators/calcMath.js'
 
 export const VERIFY_WARN_DAYS = 7
 
@@ -45,6 +46,21 @@ export const VERIFIED_CONSTANTS = {
     // decision). The ~85% is Bloomberg data as reported by ABC News — see
     // rbaNextDecision for the reading itself.
     nextMeetingNote: 'Sep quarter trimmed mean CPI 1.0% q/q, above the RBA\'s August forecast of 0.8%. Market pricing ~85% for a fifth hike of 2026, to 4.85% (Bloomberg via ABC News, 28 Oct).',
+    // AFTER EACH DECISION, fill this in as well as lastDecision / cashRate /
+    // decisions. It is what MaddenAI's post-decision prompts read for the week
+    // after (they switch on when lastDecision moves). keyPoints: three to five
+    // short lines in the statement's own terms; marketReaction: one dated,
+    // sourced sentence (AUD, ASX 200, 3-year yield) or null until there is one.
+    latestStatement: {
+      date: '2026-09-29',
+      keyPoints: [
+        'Hiked 25bp to 4.60%, the fourth increase of 2026, unanimously',
+        'Upside inflation risks flagged in August are materialising',
+        'The Board will do what is necessary to return inflation to target, including further increases if needed',
+      ],
+      marketReaction: null,
+      url: 'https://www.rba.gov.au/media-releases/2026/mr-26-27.html',
+    },
     // 4.60% is above every level since Nov 2011, when the rate was cut from
     // 4.75% to 4.50% (and 4.50% to 4.25% that December). The 2023 peak was 4.35%.
     levelContext: 'the highest since 2011',
@@ -795,6 +811,26 @@ export function verifiedFactsForAI() {
   if (nd && now < new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()) {
     const implied = nd.marketImpliedRate != null ? `implied ${nd.marketImpliedRate.toFixed(2)}%; ` : ''
     lines.push(`RBA ${nd.date} decision: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${implied}${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext} 29 Sep statement: "${nd.statementQuote}"`)
+    // Arithmetic, not a model guess: the same calculation as the Rates
+    // hike-impact card, with its assumptions stated.
+    const from = nd.currentRate + MORTGAGE_MARGIN, d = nd.hikeRate - nd.currentRate
+    const m = [600_000, 800_000].map((p) => `A$${p / 1000}K +A$${Math.round(repaymentChange(p, from, d))}/month`).join(', ')
+    lines.push(`Maddex's own mortgage arithmetic (not an RBA or lender figure) if the RBA hikes ${Math.round(d * 100)}bp and lenders pass it on in full (30-year P&I at an assumed variable rate of cash + ${MORTGAGE_MARGIN}% = ${from.toFixed(2)}% → ${(from + d).toFixed(2)}%): ${m}`)
+  }
+  // The week after an RBA decision: what was decided and said, from the
+  // decision list and rba.latestStatement — filled in by a person after the
+  // announcement (see the template on rba). Nothing here is inferred.
+  const rbaC = VERIFIED_CONSTANTS.rba
+  if (rbaC?.lastDecision) {
+    const at = new Date(`${rbaC.lastDecision}T14:30:00${sydneyOffset(rbaC.lastDecision)}`).getTime()
+    if (now >= at && now < at + 7 * 86400_000) {
+      const d = rbaC.decisions?.find((x) => x.date === rbaC.lastDecision)
+      const st = rbaC.latestStatement?.date === rbaC.lastDecision ? rbaC.latestStatement : null
+      lines.push(`RBA decision ${rbaC.lastDecision}: ${rbaC.lastDecisionVerb}${rbaC.lastChange && rbaC.lastDecisionVerb !== 'HOLD' ? ` ${rbaC.lastChange}` : ''} to ${rbaC.cashRate.toFixed(2)}%${d?.vote ? `, vote ${d.vote}` : ''}.${d?.reason ? ` ${d.reason}` : ''}`
+        + (st?.keyPoints?.length ? ` Statement key points: ${st.keyPoints.join('; ')}.` : '')
+        + (st?.marketReaction ? ` Market reaction: ${st.marketReaction}` : '')
+        + (st?.url ? ` (${st.url})` : ''))
+    }
   }
 
   // Office holders. Same principle as the rates: verified by a person, dated,

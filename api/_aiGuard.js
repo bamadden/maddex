@@ -36,10 +36,12 @@ export const CHAT_LIMITS = { core: 10, prime: 50, apex: 9999, trial: 200 }
 // Every model call per day, chat and features together.
 export const DAILY_CEILING = { core: 60, prime: 150, apex: 500, trial: 300 }
 // Output tokens per call. Chat sends 1,200 (3,000 in research mode, 3,600 for
-// a deep dive); the long-form features (research notes 2,200, macro themes
-// 6,000) need more than any chat answer.
+// a deep dive, 4,000 for the RBA preview); the long-form features (research
+// notes 2,200, macro themes 6,000) need more than any chat answer. Prime
+// matches Apex here — at 3,000 a Prime deep dive was cut off mid-section; the
+// plans differ in how many questions a day, not how complete an answer is.
 export const MAX_TOKENS = {
-  chat: { core: 1500, prime: 3000, apex: 4000, trial: 4000 },
+  chat: { core: 1500, prime: 4000, apex: 4000, trial: 4000 },
   feature: { core: 6000, prime: 6000, apex: 6000, trial: 6000 },
 }
 

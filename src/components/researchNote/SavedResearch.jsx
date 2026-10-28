@@ -40,7 +40,7 @@ export default function SavedResearch() {
             <div key={noteId(n)} className="group flex items-center gap-2 border-b border-terminal-border/40 last:border-0 px-3 py-1.5 hover:bg-terminal-surface2">
               <button onClick={() => setOpen(n)} className="flex-1 min-w-0 text-left" title="Open this note">
                 <div className="text-xs text-terminal-text-bright truncate">
-                  {n.asset.name ?? n.asset.symbol} {n.asset.symbol !== 'PORTFOLIO' && <span className="text-terminal-text-dim font-mono">{String(n.asset.symbol).replace(/\.AX$/i, '')}</span>}
+                  {n.asset.name ?? n.asset.symbol} {!/^(PORTFOLIO$|RBA-)/.test(n.asset.symbol) && <span className="text-terminal-text-dim font-mono">{String(n.asset.symbol).replace(/\.AX$/i, '')}</span>}
                 </div>
                 <div className="text-[9px] text-terminal-text-dim/60 font-mono">
                   {new Date(n.generatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
