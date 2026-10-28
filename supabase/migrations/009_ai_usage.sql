@@ -33,3 +33,10 @@ CREATE POLICY "Users record own usage" ON public.ai_usage
 
 CREATE POLICY "Users update own usage tokens" ON public.ai_usage
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- The policy above limits which ROWS a user may update, not which columns.
+-- Left at Supabase's default grants, a user could move created_at back a day
+-- (or relabel 'chat' as 'feature') and reset their own count from the
+-- browser console. Only the token counts are writable after insert.
+REVOKE UPDATE ON public.ai_usage FROM anon, authenticated;
+GRANT UPDATE (input_tokens, output_tokens) ON public.ai_usage TO authenticated;
