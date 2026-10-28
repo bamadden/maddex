@@ -11,6 +11,7 @@ import { SkeletonIndexBar } from '../../components/ui/Skeleton'
 import PriceChange from '../../components/ui/PriceChange'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
+import { INDEX_DRIVERS } from '../../data/sectorTaxonomy'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -389,6 +390,11 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                   onClick={(e) => e.stopPropagation()}
                 >
                   <SparklineLarge points={sparkPoints} color={sparkColor(q?.pct)} label={label} />
+                  {INDEX_DRIVERS[symbol] && (
+                    <div className="font-mono text-terminal-text-dim mt-1.5 pt-1.5 border-t border-terminal-border/50 leading-snug" style={{ fontSize: 9, maxWidth: 220 }}>
+                      <span className="text-terminal-gold/80 tracking-wider">SENSITIVE TO </span>{INDEX_DRIVERS[symbol]}
+                    </div>
+                  )}
                 </div>
               )}
               {/* Name is the only thing allowed to ellipsis — the level and

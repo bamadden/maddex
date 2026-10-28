@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import {
-  GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS, ASX_SECTOR_STOCKS, INDEX_LABELS, INDEX_METADATA,
+  GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS, ASX_SECTOR_STOCKS, INDEX_LABELS, INDEX_METADATA, RATE_SENSITIVITY,
 } from '../../data/sectorTaxonomy'
+import { rbaRateEnvironment } from '../../services/rateEnvironment'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA } from '../../services/api'
 import { fmt } from '../../utils/format'
@@ -479,6 +480,34 @@ function nativeToAud(price, currency, rates) {
   return price / rate
 }
 
+// The RBA rate environment, derived from the recorded decisions — see
+// services/rateEnvironment.js for the rule.
+function RateEnvironmentChip() {
+  const env = rbaRateEnvironment()
+  return (
+    <span
+      className="flex items-center gap-1.5 text-2xs font-mono tracking-wider text-terminal-text-dim"
+      title={`RBA: ${env.hikes} hike${env.hikes === 1 ? '' : 's'} and ${env.cuts} cut${env.cuts === 1 ? '' : 's'} in the last 12 months (${env.bp >= 0 ? '+' : ''}${env.bp}bp), cash rate ${env.rate?.toFixed(2)}%. More than two hikes in a year reads as aggressive tightening.`}
+    >
+      RATE ENVIRONMENT: <span className="font-bold" style={{ color: env.colour }}>{env.label}</span>
+      <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: env.colour }} />
+    </span>
+  )
+}
+
+// How a sector has tended to respond to rising rates — the small pill on each
+// tile. The full sentence is the tooltip.
+function RatePill({ s, sector }) {
+  const tone = s.level === 'POSITIVE' ? '#2D8A50' : s.level === 'HIGH' ? '#CC4444' : s.level === 'MEDIUM' ? '#E8A33D' : '#8BA3C4'
+  return (
+    <span
+      className="text-[7px] font-mono font-bold leading-none flex-shrink-0 px-1 py-0.5 rounded-sm"
+      style={{ color: tone, border: `1px solid ${tone}55`, background: 'rgba(0,0,0,0.25)', letterSpacing: '0.06em' }}
+      title={`${sector} and rising rates — ${s.level === 'POSITIVE' ? 'tends to benefit' : `${s.level.toLowerCase()} sensitivity`}: ${s.why}. Typical relationship (estimate), not a forecast.`}
+    >{s.pill}</span>
+  )
+}
+
 function SortIcon({ col, current, dir }) {
   if (col !== current) return <span className="text-terminal-border ml-1">↕</span>
   return <span className="text-terminal-gold ml-1">{dir === 'asc' ? '▲' : '▼'}</span>
@@ -817,6 +846,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
         {isError && !isFetching && (
           <button onClick={refetch} className="text-2xs text-terminal-red hover:text-terminal-gold">⚠ RETRY</button>
         )}
+        {isASX && <RateEnvironmentChip />}
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center border border-terminal-border rounded-full overflow-hidden">
             <button
@@ -1009,6 +1039,9 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                         : `— ${secondaryMetric}`
                       }
                     </span>
+                    {RATE_SENSITIVITY[sector] && (
+                      <RatePill s={RATE_SENSITIVITY[sector]} sector={sector} />
+                    )}
                     {breadth && (
                       <span className="text-[8px] font-mono leading-tight flex-shrink-0">
                         <span style={{ color: 'var(--color-gain)' }}>▲{breadth.up}</span>

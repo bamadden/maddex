@@ -237,3 +237,53 @@ export const INDEX_METADATA = {
   '^NZ50': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'NZX',             sourceUrl:'https://www.nzx.com' },
   '000001.SS': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'SSE',         sourceUrl:'https://www.sse.com.cn' },
 }
+
+// ─── Rate sensitivity by sector ─────────────────────────────────────────────
+//
+// How each GICS sector has TENDED to respond to rising interest rates — the
+// textbook direction and mechanism, written by a person. Not measured from
+// this terminal's data, not a forecast, and labelled ESTIMATE wherever it is
+// shown. One table, read by the Markets heatmap, the Portfolio rate analysis
+// and the Portfolio stress test, so the three can never disagree.
+//
+// level: how a rate RISE tends to land — 'POSITIVE' (tends to benefit),
+//   'HIGH' / 'MEDIUM' / 'LOW' (degree of pressure).
+// hikeShock: the stress test's assumed % move for the sector in a 25bp-hike
+//   scenario. Scenario assumptions, chosen to be directionally consistent with
+//   `level` — not estimates from past decisions.
+export const RATE_SENSITIVITY = {
+  'Financials':             { level: 'POSITIVE', pill: 'NIM ▲',   why: 'Banks earn a wider net interest margin as rates rise, partly offset by rising credit risk', hikeShock: 2 },
+  'Real Estate':            { level: 'HIGH',     pill: 'RATES ▼', why: 'Higher funding costs and discount rates weigh on property values and REIT yields', hikeShock: -8 },
+  'Consumer Discretionary': { level: 'HIGH',     pill: 'RATES ▼', why: 'Mortgaged households have less to spend on non-essentials', hikeShock: -5 },
+  'Utilities':              { level: 'HIGH',     pill: 'RATES ▼', why: 'Bond-like income loses appeal as yields rise; capital-heavy and debt-funded', hikeShock: -4 },
+  'Information Technology': { level: 'MEDIUM',   pill: 'RATES ▼', why: 'Long-dated growth earnings are worth less at higher discount rates', hikeShock: -3 },
+  'Communication Services': { level: 'MEDIUM',   pill: 'RATES ▼', why: 'Mix of steady telco income (bond-like) and growth names', hikeShock: -2 },
+  'Industrials':            { level: 'MEDIUM',   pill: 'RATES ▼', why: 'Financing costs and slower activity; varies widely by business', hikeShock: -2 },
+  'Materials':              { level: 'LOW',      pill: 'NEUTRAL', why: 'Driven more by China demand and commodity prices than by local rates', hikeShock: -2 },
+  'Energy':                 { level: 'LOW',      pill: 'NEUTRAL', why: 'Driven by oil and gas prices more than by local rates', hikeShock: -1 },
+  'Health Care':            { level: 'LOW',      pill: 'NEUTRAL', why: 'Defensive demand; limited direct rate sensitivity', hikeShock: -1 },
+  'Consumer Staples':       { level: 'LOW',      pill: 'NEUTRAL', why: 'Essential spending holds up; defensive', hikeShock: -1 },
+}
+
+export const RATE_LEVEL_STYLE = {
+  POSITIVE: { colour: '#2D8A50', label: 'POSITIVE' },
+  HIGH:     { colour: '#CC4444', label: 'HIGH' },
+  MEDIUM:   { colour: '#E8A33D', label: 'MEDIUM' },
+  LOW:      { colour: '#8BA3C4', label: 'LOW' },
+}
+
+// What each benchmark index is most sensitive to — one line each, for the
+// index bar's hover. Editorial, like the table above.
+export const INDEX_DRIVERS = {
+  '^AXJO':     'RBA decisions, China demand, iron ore and bank earnings',
+  '^AORD':     'RBA decisions, China demand, iron ore and bank earnings',
+  '^GSPC':     'Fed decisions, US earnings and the US dollar',
+  '^IXIC':     'Fed decisions, bond yields and big-tech earnings',
+  '^DJI':      'Fed decisions, industrial and financial earnings',
+  '^FTSE':     'BOE decisions, energy and mining prices, financials, sterling',
+  '^GDAXI':    'ECB decisions, exports, energy prices and the euro',
+  '^N225':     'BOJ policy, USD/JPY and exporters\' earnings',
+  '^HSI':      'China policy, the property sector and tech regulation',
+  '000001.SS': 'Beijing policy support, credit growth and property',
+  '^NZ50':     'RBNZ decisions, dairy prices and the NZ dollar',
+}
