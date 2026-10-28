@@ -261,7 +261,9 @@ export default function CentralBankCards() {
       {/* Cells stretch to the tallest in the row, so an expanded card takes
           its whole row rather than leaving a ragged edge — the button inside
           pins its own content to the top so the short cards do not float. */}
-      <div className="grid grid-cols-5">
+      {/* Two columns on a phone, five from lg — five fixed columns at 390px
+          laid the cards over each other. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         {cards.map((b) => {
           const c = b.c
           const verb = (c.lastDecisionVerb ?? 'HOLD').toUpperCase()
@@ -276,7 +278,7 @@ export default function CentralBankCards() {
               className={`flex flex-col justify-start text-left border-r border-b border-terminal-border p-2 transition-colors hover:bg-terminal-accent/10 ${
                 b.home ? 'bg-terminal-gold/[0.07] border-l-2 border-l-terminal-gold' : ''
               } ${isOpen ? 'bg-terminal-accent/15' : ''}`}
-              style={{ minWidth: 180 }}
+              style={{ minWidth: 0 }}
             >
               <div className={`flex items-center gap-1 font-mono uppercase tracking-wide ${
                 b.home ? 'text-terminal-gold font-bold' : 'text-terminal-text-dim'
