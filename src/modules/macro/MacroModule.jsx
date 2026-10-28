@@ -2,7 +2,6 @@ import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import { sydneyTzAbbr, sydneyTzNow, sydneyOffset } from '../../utils/dateUtils'
 import RecessionMonitor from './RecessionMonitor'
-import RegimeQuadrant from './RegimeQuadrant'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
@@ -31,12 +30,13 @@ const MacroDashboard3D = lazy(() => import('../../components/visualisations/Macr
 // The growth map pulls in d3-geo and two network fetches; nothing above the
 // fold needs it.
 const GlobalGrowthMap = lazy(() => import('./GlobalGrowthMap'))
-import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES } from '../../services/macroThemeService'
+import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES, FALLBACK_IMPLICATIONS } from '../../services/macroThemeService'
 import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
+import GlobalComparison from './GlobalComparison'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 
@@ -1384,11 +1384,8 @@ function MacroRegimeGauge() {
         <AIContentBadge source={source} className="ml-auto" />
       </div>
 
-      {/* The needle that used to sit here ran one axis — restrictive to
-          accommodative — which describes POLICY, not the economy policy is
-          responding to. A stagflationary economy and a cooling one can carry
-          the same cash rate and rendered identically on it. */}
-      <RegimeQuadrant />
+      {/* The growth/inflation quadrant chart moved up into the GROWTH /
+          INFLATION POSITION panel (MacroDeepDive), where it is the matrix. */}
 
       <div className="text-2xs text-terminal-text-dim leading-relaxed mt-3">{regime.reason}</div>
 
@@ -1457,7 +1454,9 @@ const SECTOR_TONE = {
   INDUSTRIALS: '#6A6A8A', COMMS: '#5A7D9A',
 }
 
-function MacroThemeCard({ theme, expanded, onToggle }) {
+const HORIZON_TONE = { IMMEDIATE: '#E8A33D', 'SHORT-TERM': '#C9A84C', 'MEDIUM-TERM': '#8BA3C4' }
+
+function MacroThemeCard({ theme, expanded, onToggle, source }) {
   const color = THEME_IMPACT_COLOR[theme.impact] ?? 'var(--color-text-dim)'
   const analysis = theme.analysis ?? theme.impactNote ?? theme.note
   const chartCfg = THEME_CHART_MAP[theme.category]
@@ -1480,13 +1479,16 @@ function MacroThemeCard({ theme, expanded, onToggle }) {
         <div className="flex items-center gap-2">
           <span className="text-sm flex-shrink-0">{CATEGORY_ICON[theme.category] ?? '📌'}</span>
           <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-1 min-w-0 truncate">{theme.title}</span>
+          {theme.horizon && (
+            <span className="font-mono font-bold flex-shrink-0" style={{ fontSize: 8, letterSpacing: '0.1em', color: HORIZON_TONE[theme.horizon] }} title="When this theme bites">{theme.horizon}</span>
+          )}
           <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0" style={{ color, borderColor: color }}>
             {theme.impact}
           </span>
           <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0">{expanded ? '▲' : '▼'}</span>
         </div>
-        <div className={`text-2xs text-terminal-text-dim leading-relaxed mt-1 ${expanded ? '' : 'line-clamp-1'}`}>
-          {theme.summary}
+        <div className={`text-2xs leading-relaxed mt-1 ${expanded ? 'text-terminal-text-bright italic' : 'text-terminal-text-dim line-clamp-1'}`}>
+          {theme.keyQuote ?? theme.summary}
         </div>
       </button>
 
@@ -1502,6 +1504,7 @@ function MacroThemeCard({ theme, expanded, onToggle }) {
           <div className="px-2.5 pb-2.5 pt-1.5 border-t border-terminal-border/40">
             {analysis && (
               <div className="text-2xs text-terminal-text-dim leading-relaxed mb-2 whitespace-pre-line">
+                <span className="mr-1.5 align-middle"><AIContentBadge source={source} label="ESTIMATE" /></span>
                 {analysis}
               </div>
             )}
@@ -1574,6 +1577,8 @@ function MacroThemesSection() {
     staleTime: 60 * 60_000,
   })
   const themes     = themeResult?.themes ?? FALLBACK_THEMES
+  const implications = themeResult?.implications ?? FALLBACK_IMPLICATIONS
+  const badgeSource = themeResult?.source ?? 'fallback'
   const isLive     = themeResult?.source === 'live'
   const isFallback = themeResult?.source === 'fallback'
 
@@ -1611,16 +1616,33 @@ function MacroThemesSection() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {isLoading || refreshing
-          ? Array.from({ length: 6 }).map((_, i) => <ThemeCardSkeleton key={i} />)
+          ? Array.from({ length: 4 }).map((_, i) => <ThemeCardSkeleton key={i} />)
           : themes.map((t) => (
             <MacroThemeCard
               key={t.title}
               theme={t}
+              source={badgeSource}
               expanded={openTitle === t.title}
               onToggle={() => setOpenTitle((cur) => (cur === t.title ? null : t.title))}
             />
           ))}
       </div>
+
+      {/* What the themes mean, by kind of investor — qualitative only. */}
+      {!isLoading && !refreshing && implications && (
+        <div className="mt-2 border border-terminal-border p-2.5" style={{ background: 'rgba(201,168,76,0.03)' }}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">PORTFOLIO IMPLICATIONS</span>
+            <AIContentBadge source={badgeSource} label="ESTIMATE" />
+          </div>
+          {[['Materials', implications.materials], ['Financials', implications.financials], ['defensive', implications.defensive]].map(([k, v]) => (
+            <div key={k} className="text-2xs leading-relaxed text-terminal-text">
+              <span className="text-terminal-text-bright font-bold">For {k} investors:</span> <span className="text-terminal-text-dim">{v}</span>
+            </div>
+          ))}
+          <div className="text-[9px] text-terminal-text-dim/50 mt-1">Direction and mechanism only — no price levels or recommendations. General information, not advice.</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -2076,6 +2098,11 @@ export default function MacroModule() {
         <div style={{ marginTop: 8 }}>
           <PreviousEventsPanel />
         </div>
+      </div>
+
+      {/* ── Section 7a: Australia against the major economies ── */}
+      <div style={{ marginTop: 24 }} className="px-3">
+        <GlobalComparison />
       </div>
 
       {/* ── Section 7: Global growth map (IMF WEO) ── */}

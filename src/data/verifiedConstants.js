@@ -568,17 +568,38 @@ export const VERIFIED_CONSTANTS = {
     ],
     source: 'bls.gov / bea.gov', asOf: '2026-10-14', lastVerified: '2026-10-19',
   },
+  // UPDATED 2026-10-28 for the Macro global comparison — CPI, EU, UK and
+  // China had sat at May/June readings. Each from the statistics office's own
+  // release (via its press page or the wires reporting it):
+  //   China  NBS: CPI Sep +0.9% y/y (Aug 0.8), 15 Oct; GDP Q3 +4.5% y/y
+  //          (Q2 4.3), +1.2% q/q, 19 Oct. PMI still the May reading.
+  //   Euro   Eurostat: HICP Sep 3.8% (Aug 3.2; energy ~18.9%), final 16 Oct;
+  //          GDP Q2 +1.2% y/y, +0.6% q/q (7 Sep estimate). Q3 flash 30 Oct.
+  //   UK     ONS: CPI Sep 3.5% (Aug 3.1), 21 Oct, next 18 Nov; GDP Q2
+  //          +0.4% q/q (Q1 0.6), +1.2% y/y. Q3 first estimate 12 Nov.
+  //   Japan  Statistics Bureau: CPI Sep 2.1% (Aug 1.9), 23 Oct JST; Cabinet
+  //          Office GDP Q2 revised +0.4% q/q, 1.4% annualised (Sep).
+  // A brief offered EU ~2.8%, UK ~2.5%, China ~0.5% CPI and ~4.8% growth.
   cn: {
-    cpi: 0.1, cpiRelease: '2026-05-14',
-    gdpQoQ: 1.5, gdpRelease: '2026-04-16',
+    cpi: 0.9, cpiPrevious: 0.8, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-15',
+    gdpYoY: 4.5, gdpYoYPrevious: 4.3, gdpQoQ: 1.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-19',
     pmiManufacturing: 50.3, pmiRelease: '2026-05-31',
-    source: 'stats.gov.cn', asOf: '2026-05-31', lastVerified: '2026-09-06',
+    source: 'stats.gov.cn', asOf: '2026-10-19', lastVerified: '2026-10-28',
   },
-  eu: { cpi: 2.0, cpiRelease: '2026-06-03', source: 'ec.europa.eu', asOf: '2026-06-03', lastVerified: '2026-09-06' },
+  eu: {
+    cpi: 3.8, cpiPrevious: 3.2, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-16',
+    gdpYoY: 1.2, gdpQoQ: 0.6, gdpPeriod: 'Q2 2026', gdpRelease: '2026-09-07', gdpNextRelease: '2026-10-30',
+    source: 'ec.europa.eu (Eurostat)', asOf: '2026-10-16', lastVerified: '2026-10-28',
+  },
   uk: {
-    cpi: 2.8, cpiRelease: '2026-05-20',
-    gdpQoQ: 0.4, gdpRelease: '2026-05-15',
-    source: 'ons.gov.uk', asOf: '2026-05-20', lastVerified: '2026-09-06',
+    cpi: 3.5, cpiPrevious: 3.1, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-21', cpiNextRelease: '2026-11-18',
+    gdpQoQ: 0.4, gdpQoQPrevious: 0.6, gdpYoY: 1.2, gdpPeriod: 'Q2 2026', gdpRelease: null, gdpNextRelease: '2026-11-12',
+    source: 'ons.gov.uk', asOf: '2026-10-21', lastVerified: '2026-10-28',
+  },
+  jp: {
+    cpi: 2.1, cpiPrevious: 1.9, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-23',
+    gdpQoQ: 0.4, gdpQoQAnnualised: 1.4, gdpPeriod: 'Q2 2026', gdpRelease: '2026-09-08',
+    source: 'stat.go.jp / esri.cao.go.jp', asOf: '2026-10-23', lastVerified: '2026-10-28',
   },
 
   // ── Commodities and freight ───────────────────────────────────────────────

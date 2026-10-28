@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { askClaude } from '../../services/api'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import RegimeQuadrant from './RegimeQuadrant'
 
 // ─── Macro indicator deep dive ─────────────────────────────────────────────
 //
@@ -176,91 +177,89 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
   )
 }
 
-// ─── RBA sensitivity matrix ────────────────────────────────────────────────
+// ─── Growth / inflation position — the RBA sensitivity matrix ─────────────
 //
-// Where the current readings put policy on the two axes the RBA actually
-// trades off. The quadrant is located from verified constants — CPI against
-// the target band, annual GDP against a trend rate — so the highlight moves
-// when those figures are updated rather than being hardcoded.
+// Where current readings put Australia on the two axes the RBA trades off,
+// drawn as the quadrant chart (RegimeQuadrant: gold dot now, the published
+// quarterly path behind it) beside what each quadrant means for policy.
 //
-// The lean in each cell is the textbook response, not a forecast. It says what
-// the framework implies, which is a different claim from what the RBA will do,
-// and the footnote says so.
+// The narrative is assembled from verifiedConstants — the quadrant, the
+// readings, the decisions this year and the dated market pricing — not
+// generated, so it cannot state a figure the constants do not hold.
+//
+// The stagflation lean used to read HOLD, while the RBA was hiking. With
+// inflation outside the target band the textbook trade-off resolves toward
+// inflation, which is what the Board has done; the cell now says so.
 const TREND_GDP = 2.25 // Australia's approximate trend growth, the usual dividing line
 
+const QUADRANT_GUIDE = [
+  { key: 'stag', label: 'STAGFLATION RISK', growth: false, infl: true, lean: 'HIKE / HOLD', tone: '#CC4444',
+    note: 'The hardest case — growth below trend, inflation above target. Inflation outside the band usually wins: the RBA tightens despite the slowdown.' },
+  { key: 'over', label: 'OVERHEATING', growth: true, infl: true, lean: 'HIKE', tone: '#E8A33D',
+    note: 'Demand running ahead of capacity — the textbook case for tightening.' },
+  { key: 'rec', label: 'CONTRACTION', growth: false, infl: false, lean: 'CUT', tone: '#4A9EDB',
+    note: 'Weak growth and inflation in or below the band — room to support activity.' },
+  { key: 'gold', label: 'GOLDILOCKS', growth: true, infl: false, lean: 'HOLD', tone: '#2D8A50',
+    note: 'Growth at trend without price pressure — policy can sit still.' },
+]
+
 export function RbaSensitivityMatrix() {
-  const { au, rba } = VERIFIED_CONSTANTS
+  const { au, rba, rbaNextDecision: nd } = VERIFIED_CONSTANTS
   const inflationHigh = au.cpi > 3
   const growthHigh = au.gdpAnnual >= TREND_GDP
-
-  const cells = [
-    { growth: true,  infl: true,  lean: 'HIKE',      note: 'Demand running ahead of capacity' },
-    { growth: true,  infl: false, lean: 'HOLD',      note: 'Growth without price pressure' },
-    { growth: false, infl: true,  lean: 'HOLD',      note: 'Stagflationary — the hard quadrant' },
-    { growth: false, infl: false, lean: 'CUT',       note: 'Room to support activity' },
-  ]
-
-  const LEAN_COLOUR = { HIKE: '#2D8A50', HOLD: '#C9A84C', CUT: '#CC4444' }
+  const here = QUADRANT_GUIDE.find((q) => q.growth === growthHigh && q.infl === inflationHigh)
+  const year = rba.lastDecision.slice(0, 4)
+  const hikes = (rba.decisions ?? []).filter((d) => d.date.startsWith(year) && d.decision === 'HIKE').length
+  const pricing = nd?.marketHikePct != null && new Date(`${nd.date}T23:59:59`) > new Date()
+    ? ` Markets price ~${nd.marketHikePct}% for a further hike to ${nd.hikeRate.toFixed(2)}% on ${new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${nd.marketSource}, ${nd.marketAsOf}).`
+    : ''
+  const narrative = here.key === 'stag'
+    ? `Australia sits in the stagflation-risk quadrant. Annual GDP growth of ${au.gdpAnnual}% (${au.gdpPeriod}) is below the ~${TREND_GDP}% trend, while CPI at ${au.cpi.toFixed(1)}% (${au.cpiPeriod}) is above the ${au.rbaTargetBand} target band. With inflation outside the band the RBA has put it ahead of growth: ${hikes} hike${hikes === 1 ? '' : 's'} in ${year}, to ${rba.cashRate.toFixed(2)}%.${pricing}`
+    : `Australia sits in the ${here.label.toLowerCase()} quadrant: annual GDP growth ${au.gdpAnnual}% (${au.gdpPeriod}) against a ~${TREND_GDP}% trend, CPI ${au.cpi.toFixed(1)}% (${au.cpiPeriod}) against the ${au.rbaTargetBand} band, cash rate ${rba.cashRate.toFixed(2)}%.${pricing}`
 
   return (
     <div className="border border-terminal-border">
-      <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest">RBA SENSITIVITY MATRIX</span>
+      <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border flex-wrap gap-2">
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest">GROWTH / INFLATION POSITION · RBA SENSITIVITY</span>
         <span className="text-[9px] text-terminal-text-dim">
           CPI {au.cpi.toFixed(1)}% · GDP {au.gdpAnnual}% · cash rate {rba.cashRate.toFixed(2)}%
         </span>
       </div>
 
-      <div className="p-3">
-        <div className="grid" style={{ gridTemplateColumns: 'auto 1fr 1fr', gap: 4 }}>
-          <div />
-          <div className="text-[9px] text-terminal-text-dim tracking-widest text-center pb-1">INFLATION HIGH</div>
-          <div className="text-[9px] text-terminal-text-dim tracking-widest text-center pb-1">INFLATION LOW</div>
+      <div className="p-3 grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-4">
+        <RegimeQuadrant />
 
-          {[true, false].map((g) => (
-            <Row key={String(g)} growthHigh={g} cells={cells} current={{ growthHigh, inflationHigh }} leanColour={LEAN_COLOUR} />
-          ))}
+        <div className="space-y-1.5 min-w-0">
+          {QUADRANT_GUIDE.map((q) => {
+            const active = q.key === here.key
+            return (
+              <div key={q.key} className="px-2.5 py-1.5" style={{
+                border: active ? `1px solid ${q.tone}AA` : '1px solid rgba(99,120,153,0.2)',
+                background: active ? `${q.tone}14` : 'transparent',
+              }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xs font-bold tracking-widest" style={{ color: active ? q.tone : '#637899' }}>{q.label}</span>
+                  <span className="text-[9px] font-mono" style={{ color: active ? '#E8EDF5' : '#4A6080' }}>→ {q.lean}</span>
+                  {active && <span className="ml-auto text-[8px] text-terminal-gold tracking-widest font-bold">YOU ARE HERE</span>}
+                </div>
+                <div className="text-[9px] mt-0.5 leading-snug" style={{ color: active ? '#8BA3C4' : 'rgba(99,120,153,0.6)' }}>{q.note}</div>
+              </div>
+            )
+          })}
         </div>
+      </div>
 
-        <div className="text-[9px] text-terminal-text-dim/70 leading-snug mt-2.5">
-          Current readings place Australia in the highlighted quadrant: inflation {au.cpi.toFixed(1)}%
-          {inflationHigh ? ' above' : ' within or below'} the {au.rbaTargetBand} band, annual growth {au.gdpAnnual}%
-          {growthHigh ? ' at or above' : ' below'} a ~{TREND_GDP}% trend. The lean shown is what the framework
-          implies, not a forecast of what the board will decide.
+      <div className="px-3 pb-3">
+        <div className="border-t border-terminal-border/50 pt-2.5 flex items-start gap-2">
+          <span className="font-mono font-bold flex-shrink-0 px-1.5" style={{ fontSize: 8, letterSpacing: '0.1em', color: '#8BA3C4', border: '1px solid rgba(139,163,196,0.35)' }}
+            title="Assembled from verified figures, not generated by MaddenAI">FROM VERIFIED FIGURES</span>
+          <p className="text-2xs text-terminal-text leading-relaxed">{narrative}</p>
+        </div>
+        <div className="text-[9px] text-terminal-text-dim/60 leading-snug mt-1.5">
+          Quadrant boundaries: ~{TREND_GDP}% trend growth; inflation above the top of the band counts as high. The lean is
+          what the framework implies, not a forecast of the Board&apos;s decision.
         </div>
       </div>
     </div>
-  )
-}
-
-function Row({ growthHigh, cells, current, leanColour }) {
-  const row = cells.filter((c) => c.growth === growthHigh)
-  return (
-    <>
-      <div className="text-[9px] text-terminal-text-dim tracking-widest flex items-center pr-2 whitespace-nowrap">
-        GROWTH {growthHigh ? 'HIGH' : 'LOW'}
-      </div>
-      {row.map((c) => {
-        const active = c.growth === current.growthHigh && c.infl === current.inflationHigh
-        return (
-          <div
-            key={`${c.growth}-${c.infl}`}
-            className="p-2 text-center"
-            style={{
-              border: active ? '1px solid rgba(201,168,76,0.7)' : '1px solid rgba(99,120,153,0.2)',
-              background: active ? 'rgba(201,168,76,0.10)' : 'transparent',
-            }}
-          >
-            <div className="text-2xs font-bold" style={{ color: active ? leanColour[c.lean] : '#637899' }}>
-              → {c.lean}
-            </div>
-            <div className="text-[9px] mt-0.5" style={{ color: active ? '#8BA3C4' : 'rgba(99,120,153,0.6)' }}>
-              {c.note}
-            </div>
-            {active && <div className="text-[8px] text-terminal-gold tracking-widest mt-1">YOU ARE HERE</div>}
-          </div>
-        )
-      })}
-    </>
   )
 }

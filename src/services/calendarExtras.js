@@ -10,8 +10,9 @@
 // releases as they land.
 //
 // A track record is exactly the kind of figure someone leans on — "this print
-// usually beats" is a position, not a decoration — so it is not generated from
-// the synthetic series in economicForecastService and not invented here. The
+// usually beats" is a position, not a decoration — so it is not generated
+// (the synthetic series that once existed for this were removed) and not
+// invented here. The
 // UI shows what the feed actually carries and says plainly when a release
 // result is not connected.
 

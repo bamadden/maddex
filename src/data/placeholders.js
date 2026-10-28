@@ -19,7 +19,7 @@
 import { VERIFIED_CONSTANTS } from './verifiedConstants'
 import { curveForRates } from './bondCurves'
 
-const { rba, fed, au, us, cn, eu, uk } = VERIFIED_CONSTANTS
+const { rba, fed, au, us, cn, eu, uk, jp } = VERIFIED_CONSTANTS
 
 const pct = (n) => `${Number(n).toFixed(1)}%`
 const pct2 = (n) => `${Number(n).toFixed(2)}%`
@@ -120,12 +120,13 @@ export const GLOBAL_MACRO = [
   { name: 'US Unemployment', value: pct(us.unemployment),      prev: pct(us.unemploymentPrevious), date: us.unemploymentRelease, beat: null, region: 'US', src: 'bls.gov',      vkey: 'us' },
   { name: 'US NFP',          value: `${us.nfpThousands}K`,     prev: `${us.nfpPrevious}K`, date: us.nfpRelease,          beat: false, region: 'US', src: 'bls.gov',             vkey: 'us' },
   { name: 'US Fed Funds',    value: fed.rateRange,             prev: `${fed.decisions.at(-2).rateRange}%`, date: us.fedFundsRelease, beat: null, region: 'US', src: fed.source,           vkey: 'fed' },
-  { name: 'CN CPI YoY',      value: pct(cn.cpi),               prev: '-0.1%', date: cn.cpiRelease,          beat: true,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
-  { name: 'CN GDP QoQ',      value: pct(cn.gdpQoQ),            prev: '1.2%',  date: cn.gdpRelease,          beat: true,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
+  { name: 'CN CPI YoY',      value: pct(cn.cpi),               prev: pct(cn.cpiPrevious), date: cn.cpiRelease,  beat: null,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
+  { name: 'CN GDP YoY',      value: pct(cn.gdpYoY),            prev: pct(cn.gdpYoYPrevious), date: cn.gdpRelease, beat: null, region: 'CN', src: 'stats.gov.cn',       vkey: 'cn' },
   { name: 'CN PMI Mfg',      value: String(cn.pmiManufacturing), prev: '50.4', date: cn.pmiRelease,         beat: false, region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
-  { name: 'EZ CPI YoY',      value: pct(eu.cpi),               prev: '2.2%',  date: eu.cpiRelease,          beat: true,  region: 'EU', src: 'ec.europa.eu',        vkey: 'eu' },
-  { name: 'UK CPI YoY',      value: pct(uk.cpi),               prev: '3.0%',  date: uk.cpiRelease,          beat: true,  region: 'UK', src: 'ons.gov.uk',          vkey: 'uk' },
-  { name: 'UK GDP QoQ',      value: pct(uk.gdpQoQ),            prev: '0.3%',  date: uk.gdpRelease,          beat: true,  region: 'UK', src: 'ons.gov.uk',          vkey: 'uk' },
+  { name: 'EZ CPI YoY',      value: pct(eu.cpi),               prev: pct(eu.cpiPrevious), date: eu.cpiRelease,  beat: null,  region: 'EU', src: 'ec.europa.eu',        vkey: 'eu' },
+  { name: 'UK CPI YoY',      value: pct(uk.cpi),               prev: pct(uk.cpiPrevious), date: uk.cpiRelease,  beat: null,  region: 'UK', src: 'ons.gov.uk',          vkey: 'uk' },
+  { name: 'UK GDP QoQ',      value: pct(uk.gdpQoQ),            prev: pct(uk.gdpQoQPrevious), date: uk.gdpRelease ?? uk.asOf, beat: null, region: 'UK', src: 'ons.gov.uk', vkey: 'uk' },
+  { name: 'JP CPI YoY',      value: pct(jp.cpi),               prev: pct(jp.cpiPrevious), date: jp.cpiRelease,  beat: null,  region: 'JP', src: 'stat.go.jp',          vkey: 'jp' },
 ]
 
 export const MACRO_INDICATORS = GLOBAL_MACRO
