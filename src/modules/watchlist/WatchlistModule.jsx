@@ -4,7 +4,7 @@ import {
   getMeta, setGroup, addGroup, removeGroup, setTarget, targetStatus, GROUP_COLOURS,
 } from '../../services/watchlistMeta'
 import {
-  loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder,
+  loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder, isKnownTicker,
 } from '../../services/watchlistPrefs'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets, fetchNews } from '../../services/api'
@@ -34,6 +34,9 @@ import { useStockContextMenu } from '../../hooks/useStockContextMenu'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, todayVolumeRatio } from '../../services/mockData'
 import { RowActions, TargetRow, GroupBar } from './WatchlistRowParts'
 import { showLimitPrompt } from '../../services/plans'
+import { HoverPreview, BulkBar, ImportModal } from './WatchlistExtras'
+import { SECTOR_BY_SYMBOL } from '../portfolio/sectorMap'
+import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -490,7 +493,7 @@ function toYahoo(raw) {
 }
 
 export default function WatchlistModule() {
-  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal, alerts, addAlert, removeAlert, setActiveModule } = useStore()
+  const { watchlist, addToWatchlist, removeFromWatchlist, reorderWatchlist, clearWatchlist, openModal, modalAsset, alerts, addAlert, removeAlert, setActiveModule } = useStore()
   const { menu, openMenu, closeMenu } = useStockContextMenu()
   const { user, profile } = useAuthStore()
   const [shareLink, setShareLink] = useState(null)
@@ -522,6 +525,14 @@ export default function WatchlistModule() {
   const [alertPanelFor, setAlertPanelFor] = useState(null)
   const dragIndexRef  = useRef(null)
   const clearTimerRef = useRef(null)
+  // Bulk selection, the keyboard-focused row, the hover quick view, import.
+  const [selected, setSelected] = useState(() => new Set())
+  const [focusSym, setFocusSym] = useState(null)
+  const [hover, setHover] = useState(null)         // { symbol, x, y }
+  const hoverTimer = useRef(null)
+  const hoverClose = useRef(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState(null)
 
   // asc → desc → off. The third click matters: without it, sorting once locks
   // the table out of drag-to-reorder for good, because reordering is only
@@ -721,6 +732,11 @@ export default function WatchlistModule() {
       total: priced.length,
       // One unit of each, in A$ — a reference figure, not a holding.
       unitValue: rows.reduce((s2, r) => s2 + (r.price ?? 0), 0),
+      // Since added: only rows with a recorded entry price.
+      since: (() => {
+        const s = rows.map((r) => ({ r, s: sinceAdded(r.symbol, r.price) })).filter((x) => x.s).sort((a, b) => b.s.pct - a.s.pct)
+        return s.length ? { best: s[0], worst: s.length > 1 ? s[s.length - 1] : null, n: s.length } : null
+      })(),
     }
   }, [rows])
 
@@ -870,8 +886,8 @@ export default function WatchlistModule() {
     setValidating(true)
     try {
       const { yfSym } = toYahoo(raw)
+      if (!(await isKnownTicker(raw))) { setAddError(USING_MOCK_DATA ? 'TICKER NOT IN THE DEMO UNIVERSE — live data connects on API setup' : 'TICKER NOT FOUND — check symbol and try again'); return }
       const q = await fetchYahooQuote(yfSym)
-      if (!q) { setAddError('TICKER NOT FOUND — check symbol and try again'); return }
       addToWatchlist(raw)
       logActivity('watchlist', `Added ${raw} to watchlist`)
       soundService.actionSuccess()
@@ -932,6 +948,97 @@ export default function WatchlistModule() {
       .map((r) => ({ symbol: r.symbol, name: r.name, price: r.price, changePct: r.pct }))
     setShareLink(createShareLink('watchlist', { ownerName, stocks }))
   }
+
+  // ── Hover quick view: two seconds on a row, kept open while the pointer is
+  // on the panel itself so its buttons can be reached. ───────────────────────
+  const startHover = (symbol, e) => {
+    clearTimeout(hoverTimer.current); clearTimeout(hoverClose.current)
+    const at = { x: e.clientX, y: e.clientY }
+    hoverTimer.current = setTimeout(() => setHover({ symbol, ...at }), 2000)
+  }
+  const endHover = () => {
+    clearTimeout(hoverTimer.current)
+    hoverClose.current = setTimeout(() => setHover(null), 180)
+  }
+  useEffect(() => () => { clearTimeout(hoverTimer.current); clearTimeout(hoverClose.current) }, [])
+
+  // ── Bulk actions ────────────────────────────────────────────────────────────
+  const toggleSelect = (symbol) => setSelected((prev) => {
+    const next = new Set(prev); if (next.has(symbol)) next.delete(symbol); else next.add(symbol); return next
+  })
+  const selectedRows = rows.filter((r) => selected.has(r.symbol))
+  const bulkGroup = (groupId) => {
+    for (const r of selectedRows) if (r.type !== 'crypto') setGroup(r.symbol, groupId)
+    bumpNotes((n) => n + 1)
+  }
+  // ±X% from the current price, both directions, for every selected stock
+  // that has a price.
+  const bulkAlert = (pct) => {
+    let n = 0
+    for (const r of selectedRows) {
+      if (r.price == null) continue
+      addAlert(r.displaySymbol, Math.round(r.price * (1 + pct / 100) * 100) / 100, 'above')
+      addAlert(r.displaySymbol, Math.round(r.price * (1 - pct / 100) * 100) / 100, 'below')
+      n++
+    }
+    logActivity('alerts', `Set ±${pct}% alerts on ${n} watchlist stock${n === 1 ? '' : 's'}`)
+    soundService.actionSuccess()
+  }
+  const bulkRemove = async () => {
+    for (const r of selectedRows) await handleRemove(r.symbol)
+    setSelected(new Set())
+  }
+
+  // ── Import ──────────────────────────────────────────────────────────────────
+  const importSymbols = async (symbols) => {
+    for (const sym of symbols) {
+      addToWatchlist(sym)
+      if (user) await supabase.from('watchlist').upsert({ symbol: sym, name: sym, position: watchlist.length }, { onConflict: 'user_id,symbol' })
+    }
+    logActivity('watchlist', `Imported ${symbols.length} ticker${symbols.length === 1 ? '' : 's'}`)
+    setImportOpen(false)
+  }
+
+  // ── Keyboard: the focused row is the one last clicked or moved to ─────────
+  // Ignored while typing, and while any dialog or the detail modal is open
+  // (those own the keyboard). A, N and D are also global shortcuts (MaddenAI,
+  // News, Dashboard); while a row is focused this handler runs first, in the
+  // capture phase, and stops the event so the row action wins. Esc releases
+  // the row, and the global shortcuts work again.
+  const visibleOrder = groupedRows.map(({ row }) => row)
+  useEffect(() => {
+    const onKey = (e) => {
+      const t = e.target
+      if (t?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      if (modalAsset || document.querySelector('[role="dialog"]') || e.metaKey || e.ctrlKey || e.altKey) return
+      if (!visibleOrder.length) return
+      const idx = visibleOrder.findIndex((r) => r.symbol === focusSym)
+      const row = idx >= 0 ? visibleOrder[idx] : null
+      const key = e.key
+      const handled = ['ArrowDown', 'ArrowUp', 'Enter', 'a', 'A', 'n', 'N', 'd', 'D', 'Delete', 'Backspace', 'Escape']
+      if (!focusSym && key !== 'ArrowDown' && key !== 'ArrowUp') return
+      if (handled.includes(key)) e.stopImmediatePropagation()
+      if (key === 'ArrowDown' || key === 'ArrowUp') {
+        e.preventDefault()
+        const next = idx < 0 ? 0 : Math.min(visibleOrder.length - 1, Math.max(0, idx + (key === 'ArrowDown' ? 1 : -1)))
+        setFocusSym(visibleOrder[next].symbol); setPendingDelete(null)
+        document.querySelector(`[data-wl-row="${visibleOrder[next].symbol}"]`)?.scrollIntoView({ block: 'nearest' })
+        return
+      }
+      if (!row) return
+      if (key === 'Enter') { e.preventDefault(); handleRowClick(row) }
+      else if (key === 'a' || key === 'A') { e.preventDefault(); setAlertPanelFor(row.displaySymbol) }
+      else if (key === 'n' || key === 'N') { e.preventDefault(); openNote(row.symbol) }
+      else if (key === 'd' || key === 'D') { e.preventDefault(); setActiveModule?.('markets'); handleRowClick(row) }
+      else if (key === 'Delete' || key === 'Backspace') {
+        e.preventDefault()
+        if (pendingDelete === row.symbol) { handleRemove(row.symbol); setPendingDelete(null); setFocusSym(visibleOrder[idx + 1]?.symbol ?? visibleOrder[idx - 1]?.symbol ?? null) }
+        else setPendingDelete(row.symbol)
+      } else if (key === 'Escape') { setPendingDelete(null); setSelected(new Set()); setFocusSym(null) }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  })
 
   const onDragStart = (i) => { dragIndexRef.current = i }
   const onDragOver  = (e) => e.preventDefault()
@@ -1043,6 +1150,11 @@ export default function WatchlistModule() {
             {validating ? 'CHECKING...' : 'ADD'}
           </button>
         </form>
+        <button
+          onClick={() => setImportOpen(true)}
+          title="Import a list of tickers or a CSV"
+          className="px-2 py-1.5 text-2xs text-terminal-text-dim hover:text-terminal-gold border-l border-terminal-border transition-colors flex-shrink-0"
+        >IMPORT</button>
         <button
           onClick={handleShare}
           disabled={sortedRows.length === 0}
@@ -1203,6 +1315,33 @@ export default function WatchlistModule() {
             </div>
           </div>
         </div>
+      )}
+
+      {overview?.since && (
+        <div className="flex items-center gap-3 flex-shrink-0 font-mono text-2xs" style={{ padding: '3px 16px', background: '#030912', borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
+          <span className="text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 9 }}>SINCE ADDED</span>
+          <span className="text-terminal-text-dim">▲ Best: <b className="text-terminal-text-bright">{overview.since.best.r.displaySymbol}</b>{' '}
+            <span style={{ color: overview.since.best.s.pct >= 0 ? '#2D8A50' : '#A83232' }}>{overview.since.best.s.pct >= 0 ? '+' : ''}{overview.since.best.s.pct.toFixed(1)}%</span></span>
+          {overview.since.worst && (
+            <span className="text-terminal-text-dim">▼ Worst: <b className="text-terminal-text-bright">{overview.since.worst.r.displaySymbol}</b>{' '}
+              <span style={{ color: overview.since.worst.s.pct >= 0 ? '#2D8A50' : '#A83232' }}>{overview.since.worst.s.pct >= 0 ? '+' : ''}{overview.since.worst.s.pct.toFixed(1)}%</span></span>
+          )}
+          <span className="text-terminal-text-dim/40" style={{ fontSize: 9 }}>{overview.since.n} of {rows.length} with a recorded add price</span>
+          <button onClick={() => setSelected(new Set(rows.map((r) => r.symbol)))} className="ml-auto text-terminal-text-dim hover:text-terminal-gold" style={{ fontSize: 9 }}>☐ SELECT ALL</button>
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          total={rows.length}
+          groups={meta.groups}
+          onSelectAll={() => setSelected(new Set(rows.map((r) => r.symbol)))}
+          onClear={() => setSelected(new Set())}
+          onGroup={bulkGroup}
+          onAlert={bulkAlert}
+          onRemove={bulkRemove}
+        />
       )}
 
       {watchlist.length > 0 && (
@@ -1376,14 +1515,20 @@ export default function WatchlistModule() {
                     // indication of what is moving or where it will land.
                     opacity: draggingIdx === i ? 0.5 : 1,
                     borderTop: dragOverIdx === i && draggingIdx !== i ? '2px solid #C9A84C' : undefined,
+                    // Keyboard focus and bulk selection.
+                    boxShadow: focusSym === row.symbol ? 'inset 0 0 0 1px rgba(201,168,76,0.55)' : undefined,
+                    background: selected.has(row.symbol) ? 'rgba(201,168,76,0.07)' : undefined,
                   }}
                   draggable={!sortKey}
                   onDragStart={() => { onDragStart(i); setDraggingIdx(i) }}
                   onDragOver={(e) => { onDragOver(e); if (dragOverIdx !== i) setDragOverIdx(i) }}
                   onDragEnd={() => { setDraggingIdx(null); setDragOverIdx(null) }}
                   onDrop={() => { onDrop(i); setDraggingIdx(null); setDragOverIdx(null) }}
+                  data-wl-row={row.symbol}
                   className="group cursor-pointer hover:bg-terminal-accent/20 transition-colors border-b border-terminal-border/40"
-                  onClick={() => handleRowClick(row)}
+                  onClick={() => { setFocusSym(row.symbol); setPendingDelete(null); handleRowClick(row) }}
+                  onMouseEnter={(e) => startHover(row.symbol, e)}
+                  onMouseLeave={endHover}
                   onContextMenu={(e) => openMenu(e, { symbol: row.displaySymbol, name: row.name, price: row.price })}
                 >
                   {/* Cells are emitted in visibleColumns order, so a hidden
@@ -1393,16 +1538,23 @@ export default function WatchlistModule() {
                     switch (c.key) {
                       case 'drag':
                         return (
-                          <td
-                            key={c.key}
-                            className={`px-2 py-1.5 select-none transition-opacity ${
-                              sortKey
-                                ? 'text-terminal-text-dim/15'
-                                : 'cursor-grab opacity-0 group-hover:opacity-100'
-                            }`}
-                            style={sortKey ? undefined : { color: '#4A6080' }}
-                            title={sortKey ? 'Clear sort to reorder — click the sorted header again' : 'Drag to reorder'}
-                          >⠿</td>
+                          <td key={c.key} className="px-1 py-1.5 select-none whitespace-nowrap">
+                            {/* Selection checkbox: shown on hover, and on every
+                                row once anything is selected. */}
+                            <input
+                              type="checkbox"
+                              checked={selected.has(row.symbol)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => toggleSelect(row.symbol)}
+                              aria-label={`Select ${row.displaySymbol}`}
+                              className={`align-middle mr-1 accent-[#C9A84C] transition-opacity ${selected.size ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            />
+                            <span
+                              className={`transition-opacity ${sortKey ? 'text-terminal-text-dim/15' : 'cursor-grab opacity-0 group-hover:opacity-100'}`}
+                              style={sortKey ? undefined : { color: '#4A6080' }}
+                              title={sortKey ? 'Clear sort to reorder — click the sorted header again' : 'Drag to reorder'}
+                            >⠿</span>
+                          </td>
                         )
                       case 'ticker':
                         return (
@@ -1636,6 +1788,36 @@ export default function WatchlistModule() {
           </table>
         )}
       </div>
+
+      {watchlist.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-1 border-t border-terminal-border/50 flex-shrink-0 font-mono text-terminal-text-dim/50" style={{ fontSize: 9 }}>
+          {pendingDelete
+            ? <span className="text-terminal-red font-bold">Press Delete again to remove {pendingDelete.replace(/\.AX$/, '')} · Esc to cancel</span>
+            : <span>↑↓ navigate · Enter detail · A alert · N note · D open in Markets · Del remove · hover 2s for a quick view</span>}
+          {focusSym && !pendingDelete && <span className="ml-auto text-terminal-gold/60">{focusSym.replace(/\.AX$/, '')} selected</span>}
+        </div>
+      )}
+
+      {hover && (() => {
+        const r = rows.find((x) => x.symbol === hover.symbol)
+        if (!r) return null
+        return (
+          <HoverPreview
+            row={r}
+            sector={SECTOR_BY_SYMBOL[r.displaySymbol] ?? null}
+            x={hover.x} y={hover.y}
+            onEnter={() => clearTimeout(hoverClose.current)}
+            onLeave={endHover}
+            onAnalyse={() => { setHover(null); dispatchAskAI({ name: r.name, ticker: r.symbol, price: r.price != null ? `A$${r.price.toFixed(2)}` : null, change: r.pct != null ? `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(2)}%` : null, date: todayAEST() }) }}
+            onAlert={() => { setHover(null); setAlertPanelFor(r.displaySymbol) }}
+            onChart={() => { setHover(null); handleRowClick(r) }}
+          />
+        )
+      })()}
+
+      {importOpen && (
+        <ImportModal watchlist={watchlist} limit={WATCHLIST_LIMIT} onImport={importSymbols} onClose={() => setImportOpen(false)} />
+      )}
 
       {earningsPreview && (
         <EarningsPreviewPanel

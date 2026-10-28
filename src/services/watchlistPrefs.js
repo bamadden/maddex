@@ -6,6 +6,10 @@
 // watchlistMeta.js next door — read/write helpers, every access wrapped,
 // nothing throws into a render.
 
+import { fetchYahooQuote, USING_MOCK_DATA } from './api'
+import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from './mockData'
+import { detectAssetType, toYahooSymbol } from '../utils/assetUtils'
+
 const SORT_KEY    = 'maddex_watchlist_sort'
 const COLUMNS_KEY = 'maddex_watchlist_columns'
 const ORDER_KEY   = 'maddex_watchlist_order'
@@ -84,4 +88,20 @@ export function applyOrder(symbols, order) {
   if (!order?.length) return symbols
   const rank = new Map(order.map((s, i) => [s, i]))
   return [...symbols].sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity))
+}
+
+// ─── Is this a real ticker? ──────────────────────────────────────────────────
+//
+// In demo mode the quote service synthesises a price for ANY symbol — it
+// returned A$91.63 for "XYZQQ.AX" — so "a quote came back" proves nothing.
+// There, a symbol is real if it is in the demo universe (or is crypto, which
+// the CoinGecko path prices live). With a live feed, a quote with a price is
+// the test.
+
+export async function isKnownTicker(raw) {
+  const type = detectAssetType(raw)
+  if (type === 'crypto') return true
+  const yf = toYahooSymbol(raw, type)
+  if (USING_MOCK_DATA) return !!(MOCK_ASX_STOCKS[yf] || MOCK_US_STOCKS[yf])
+  try { return (await fetchYahooQuote(yf))?.price != null } catch { return false }
 }

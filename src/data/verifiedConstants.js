@@ -692,6 +692,11 @@ export const VERIFIED_CONSTANTS = {
     marketSource: 'Bloomberg data, as reported by ABC News',
     marketAsOf: '2026-10-28',
     marketContext: 'Up from 60% on ASX 30-day futures on 27 Oct (rbawatch.com.au), before the September quarter CPI.',
+    // A peer central bank going against its own market pricing the same week —
+    // context for how much weight an ~85% reading can bear. Markets had about
+    // 90% priced for an RBNZ hike (Babypips, Newsquawk), so roughly 10% for
+    // the hold that came, not zero.
+    peerContext: 'RBNZ surprised markets on 28 Oct, holding the OCR at 2.75% by a 4–3 vote when ~90% was priced for a hike — a reminder that a central bank can diverge from heavy market pricing.',
     keyFactor: 'Sep quarter CPI (28 Oct): trimmed mean 1.0% q/q, 3.7% y/y — above the RBA\'s own 0.8% forecast. Headline 1.3% q/q, 3.9% y/y.',
     statementQuote: 'The Board will continue to do what it considers necessary to bring inflation sustainably back to target, including increasing the cash rate target further if needed.',
     statementSource: 'RBA media release mr-26-27, 29 Sep 2026',
@@ -886,7 +891,7 @@ export function verifiedFactsForAI() {
   if (nd && now < new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()) {
     const implied = nd.marketImpliedRate != null ? `implied ${nd.marketImpliedRate.toFixed(2)}%; ` : ''
     const wd = new Date(`${nd.date}T12:00:00Z`).toLocaleDateString('en-AU', { weekday: 'long', timeZone: 'UTC' })
-    lines.push(`RBA decision ${wd} ${nd.date}, ${nd.time} Sydney: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${implied}${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext} 29 Sep statement: "${nd.statementQuote}"`)
+    lines.push(`RBA decision ${wd} ${nd.date}, ${nd.time} Sydney: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${implied}${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext}${nd.peerContext ? ` ${nd.peerContext}` : ''} 29 Sep statement: "${nd.statementQuote}"`)
     // Arithmetic, not a model guess: the same calculation as the Rates
     // hike-impact card, with its assumptions stated.
     const from = nd.currentRate + MORTGAGE_MARGIN, d = nd.hikeRate - nd.currentRate

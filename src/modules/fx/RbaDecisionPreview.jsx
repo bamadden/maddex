@@ -58,6 +58,9 @@ export default function RbaDecisionPreview() {
             Market-implied estimate as at {nd.marketAsOf}: {nd.marketSource}{nd.marketImpliedRate != null && <> implied {nd.marketImpliedRate.toFixed(2)}%</>}.
             A dated reading, not a live feed. {nd.marketContext}
           </div>
+          {nd.peerContext && (
+            <div className="font-mono leading-snug mt-1.5" style={{ fontSize: 9, color: '#E8A33D' }}>⚑ {nd.peerContext}</div>
+          )}
         </div>
         <div className="mt-2 md:mt-0">
           <div className="font-mono text-terminal-text-bright leading-snug" style={{ fontSize: 10 }}>
