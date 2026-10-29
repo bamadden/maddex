@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSentiment } from '../../../hooks/useSentiment'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
+import { currentRegime } from '../../../services/marketRegime'
 
 // Five bands rather than three. The old widget coloured everything above 60
 // the same green, which put "cautiously bullish" and "strongly bullish" in one
@@ -81,6 +82,7 @@ export default function MarketScoreWidget() {
   // service returned neither drivers nor a theme, the line is simply absent.
   const driver = sentiment?.keyTheme ?? sentiment?.drivers?.[0] ?? sentiment?.summary ?? null
   const stamp = freshness(sentiment?.generatedAt, now)
+  const [regime] = useState(() => currentRegime())
 
   return (
     <WidgetBody>
@@ -135,11 +137,24 @@ export default function MarketScoreWidget() {
             empty panel under the hero once dashboard cells started stretching,
             which read as the widget having failed to finish loading. */}
       <div className="flex-1 min-h-0 flex flex-col justify-between gap-2">
-        {driver && (
-          <div className="font-sans text-[10px] leading-snug line-clamp-2" style={{ color: '#8BA3C4' }}>
-            {driver}
+        <div className="min-w-0">
+          {driver && (
+            <div className="font-sans text-[10px] leading-snug line-clamp-2" style={{ color: '#8BA3C4' }}>
+              {driver}
+            </div>
+          )}
+          {/* The other drivers the model named — from the same read of the
+              headlines, never synthesised here. */}
+          {(sentiment?.drivers ?? []).filter((d) => d && d !== driver).slice(0, 3).map((d) => (
+            <div key={d} className="font-sans text-[10px] leading-snug mt-1 flex gap-1.5 min-w-0" style={{ color: '#8BA3C4' }}>
+              <span style={{ color: band?.colour ?? '#4A6080' }}>•</span><span className="line-clamp-1">{d}</span>
+            </div>
+          ))}
+          <div className="mt-2 flex items-center gap-1.5 font-mono" style={{ fontSize: 8 }}>
+            <span style={{ color: '#4A6080', letterSpacing: '0.14em' }}>REGIME</span>
+            <span className="font-bold" style={{ color: regime.colour, letterSpacing: '0.1em' }}>{regime.regime}</span>
           </div>
-        )}
+        </div>
         <div className="flex items-center justify-between gap-2">
           <button onClick={() => goModule('markets')} className="font-mono text-[9px] tracking-widest" style={{ color: '#4A6080' }}>
             MARKETS →

@@ -1,6 +1,6 @@
 import { markMilestone } from './gettingStarted'
 import { requireFeature, limitFor, showLimitPrompt, nextTier, getCurrentTier } from './plans'
-import { recordAlertCreated } from './usageService'
+import { recordAlertCreated, nudgeAlertCount } from './usageService'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { offerPrompt } from './browserNotify'
 import { sydneyOffset } from '../utils/dateUtils'
@@ -122,6 +122,7 @@ export function canCreateAlert() {
 export function createAlert({ type, symbol, condition, value, label }) {
   if (!canCreateAlert()) return null
   recordAlertCreated()
+  nudgeAlertCount(activeAlertCount() + 1)
   offerPrompt()
   markMilestone('alert')
   const alert = {

@@ -463,9 +463,12 @@ export function MobileNavBar() {
       ))}
       <button
         onClick={() => setChatOpen((v) => !v)}
-        className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 flex-shrink-0 min-w-[56px] ml-auto border-l border-terminal-border ${
+        // Pinned to the right edge: it sat after eighteen module tabs in a
+        // scrolling bar, so on a phone MaddenAI was off-screen.
+        className={`sticky right-0 bg-terminal-header flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 flex-shrink-0 min-w-[56px] ml-auto border-l border-terminal-border ${
           chatOpen ? 'text-terminal-gold' : 'text-terminal-gold/70'
         }`}
+        aria-label="MaddenAI"
       >
         <span className="text-sm leading-none">▲</span>
         <span className="text-[8px] tracking-wide leading-none">AI</span>

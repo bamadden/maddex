@@ -735,6 +735,9 @@ export default function WatchlistModule() {
       // Since added: only rows with a recorded entry price.
       since: (() => {
         const s = rows.map((r) => ({ r, s: sinceAdded(r.symbol, r.price) })).filter((x) => x.s).sort((a, b) => b.s.pct - a.s.pct)
+        // Hidden until something has actually moved since it was added — on
+        // the day a list is built every entry reads 0.0%, which says nothing.
+        if (!s.some((x) => Math.abs(x.s.pct) >= 0.05)) return null
         return s.length ? { best: s[0], worst: s.length > 1 ? s[s.length - 1] : null, n: s.length } : null
       })(),
     }

@@ -191,3 +191,46 @@ export function startUpgrade(tier, billing = 'monthly') {
   // Until then: the "payments coming soon" waitlist modal.
   window.dispatchEvent(new CustomEvent('maddex:upgrade', { detail: { tier, billing } }))
 }
+
+// ─── Trial state ─────────────────────────────────────────────────────────────
+//
+// Where an account is in its trial: day N of length, days left, ended. Read
+// from the account (trial_ends_at, created_at) — the length is not assumed.
+// In dev, `maddex_dev_trial_day` (a number, or 'expired') previews any day
+// without a real trial account; it is ignored in production builds.
+const DAY_MS = 86_400_000
+export function devTrialDay() {
+  if (!import.meta.env.DEV) return null
+  try { const v = localStorage.getItem('maddex_dev_trial_day'); return v == null ? null : v } catch { return null }
+}
+export function trialState(profile, now = Date.now()) {
+  const dev = devTrialDay()
+  if (dev != null) {
+    const length = 7
+    if (dev === 'expired') return { active: false, expired: true, day: length + 1, length, daysLeft: 0 }
+    const day = Math.max(1, Math.min(length, Number(dev) || 1))
+    return { active: true, expired: false, day, length, daysLeft: length - day + 1 }
+  }
+  if (profile?.subscription_tier !== 'trial' || !profile?.trial_ends_at) return { active: false, expired: false }
+  const ends = new Date(profile.trial_ends_at).getTime()
+  const start = profile.created_at ? new Date(profile.created_at).getTime() : ends - 7 * DAY_MS
+  const length = Math.max(1, Math.round((ends - start) / DAY_MS))
+  if (ends < now) return { active: false, expired: true, day: length + 1, length, daysLeft: 0 }
+  const day = Math.min(length, Math.max(1, Math.floor((now - start) / DAY_MS) + 1))
+  return { active: true, expired: false, day, length, daysLeft: Math.max(0, Math.ceil((ends - now) / DAY_MS)) }
+}
+
+// What Core does not include, in reader's terms — the "you'll lose" list,
+// derived from GATES and LIMITS so it cannot disagree with them.
+export function lostOnCore() {
+  const L = LIMITS.core
+  return [
+    `MaddenAI drops to ${L.aiPerDay} questions a day`,
+    ...(L.researchNotesPerMonth === 0 ? ['Research notes'] : []),
+    ...(!GATES.alerts.includes('core') ? ['Price alerts'] : []),
+    ...(!GATES.scanner.includes('core') ? ['Scanner signals'] : []),
+    ...(!GATES.portfolio.includes('core') ? ['Portfolio tracking and analysis'] : []),
+    ...(!GATES.global.includes('core') ? ['The Global intelligence map'] : []),
+    `Morning brief limited to ${L.briefsPerWeek} days a week`,
+  ]
+}

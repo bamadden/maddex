@@ -8,6 +8,8 @@
 // device and shows the user their usage. Server-side metering arrives with
 // billing.
 
+import { getCurrentTier, LIMITS, TIER_LABEL, PRICES } from './plans'
+
 const EVENT = 'maddex:usage'
 const localDay = (d = new Date()) => d.toLocaleDateString('en-CA')
 export const monthKey = (d = new Date()) => `maddex_usage_${d.getFullYear()}_${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -35,12 +37,69 @@ function update(fn) {
 export const subscribeUsage = (cb) => { window.addEventListener(EVENT, cb); return () => window.removeEventListener(EVENT, cb) }
 
 export const aiQueriesToday = () => getUsage().aiByDay[localDay()] ?? 0
-export const recordAiQuery = () => update((u) => ({
-  ...u, aiQueries: u.aiQueries + 1, aiByDay: { ...u.aiByDay, [localDay()]: (u.aiByDay[localDay()] ?? 0) + 1 },
-}))
+export const recordAiQuery = () => {
+  const u = update((x) => ({
+    ...x, aiQueries: x.aiQueries + 1, aiByDay: { ...x.aiByDay, [localDay()]: (x.aiByDay[localDay()] ?? 0) + 1 },
+  }))
+  nudgeAiQuestions(u.aiByDay[localDay()])
+  return u
+}
 
-export const recordResearchNote = () => update((u) => ({ ...u, researchNotes: u.researchNotes + 1 }))
+export const recordResearchNote = () => {
+  const u = update((x) => ({ ...x, researchNotes: x.researchNotes + 1 }))
+  if (u.researchNotes === 1) nudgeOnce('first-note', noteNudge())
+  return u
+}
 export const recordAlertCreated = () => update((u) => ({ ...u, alerts: u.alerts + 1 }))
+
+// ─── Upgrade moments ─────────────────────────────────────────────────────────
+//
+// A short prompt at the moment a plan limit becomes relevant — the first
+// research note, the tenth MaddenAI question in a day, the third alert — once
+// each, ever. Every number in the wording is read from services/plans, so a
+// prompt cannot promise more than a plan gives. Shown by TrialNudges.
+export const NUDGE_EVENT = 'maddex:nudge'
+const NUDGE_SEEN = 'maddex_nudges_seen'
+const lim = (v) => (v === Infinity ? 'unlimited' : String(v))
+
+function nudgeOnce(id, card) {
+  if (!card) return
+  let seen = []
+  try { seen = JSON.parse(localStorage.getItem(NUDGE_SEEN) ?? '[]') } catch { /* fresh */ }
+  if (seen.includes(id)) return
+  try { localStorage.setItem(NUDGE_SEEN, JSON.stringify([...seen, id])) } catch { /* quota */ }
+  window.dispatchEvent(new CustomEvent(NUDGE_EVENT, { detail: card }))
+}
+
+function noteNudge() {
+  const tier = getCurrentTier()
+  if (tier === 'apex' || tier === 'core') {
+    // A live trial is Apex: say what happens after it, in plan terms.
+    return { title: 'Your first research note', body: `Saved to your research. Research notes come with Prime (${lim(LIMITS.prime.researchNotesPerMonth)} a month, A$${PRICES.prime.monthly}/mo) and Apex (${lim(LIMITS.apex.researchNotesPerMonth)}); Core does not include them.`, upgrade: 'prime' }
+  }
+  return { title: 'Your first research note', body: `That's 1 of ${lim(LIMITS[tier].researchNotesPerMonth)} this month on ${TIER_LABEL[tier]}. Apex has no monthly limit.`, upgrade: 'apex' }
+}
+
+export function nudgeAiQuestions(countToday) {
+  if (countToday !== 10) return
+  const tier = getCurrentTier()
+  if (tier === 'core') return // Core stops at 10 with its own limit prompt
+  nudgeOnce(`ai-10-${new Date().toLocaleDateString('en-CA')}`, {
+    title: `${countToday} MaddenAI questions today`,
+    body: `Core allows ${lim(LIMITS.core.aiPerDay)} a day, Prime ${lim(LIMITS.prime.aiPerDay)}, Apex ${lim(LIMITS.apex.aiPerDay)}.${tier === 'prime' ? ' You are on Prime.' : ''}`,
+    upgrade: tier === 'prime' ? 'apex' : 'prime',
+  })
+}
+
+export function nudgeAlertCount(active) {
+  if (active !== 3) return
+  const tier = getCurrentTier()
+  nudgeOnce('alerts-3', {
+    title: `${active} price alerts set`,
+    body: `${active} of ${lim(LIMITS[tier].alerts)} alert slots on ${tier === 'apex' ? 'Apex (and your trial)' : TIER_LABEL[tier]}. Prime allows ${lim(LIMITS.prime.alerts)} active alerts; Core does not include alerts.`,
+    upgrade: tier === 'prime' ? 'apex' : 'prime',
+  })
+}
 
 // Morning brief: Core gets three distinct days a week (Mon–Sun). A day once
 // opened stays open — re-reading today's brief never costs a second "use".

@@ -63,6 +63,9 @@ export default function NextEventWidget() {
   if (!next) return <WidgetEmpty action="OPEN CALENDAR" onAction={() => goModule('calendar')}>No upcoming events</WidgetEmpty>
 
   const at = eventTime(next)
+  const timed = /^\d{1,2}:\d{2}$/.test(next.time ?? '')
+  const todayIso = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  const untimedDays = Math.round((Date.parse(`${next.date}T00:00:00Z`) - Date.parse(`${todayIso}T00:00:00Z`)) / 86400000)
   const ms = Math.max(0, (at?.getTime() ?? now) - now)
   const d = Math.floor(ms / 86400000)
   const h = Math.floor((ms % 86400000) / 3600000)
@@ -82,15 +85,25 @@ export default function NextEventWidget() {
   return (
     <WidgetBody>
       <ReleaseWatchBanner compact />
-      <div className="flex items-center gap-1">
-        <Segment value={d} unit="DAY" />
-        <Sep />
-        <Segment value={h} unit="HR" />
-        <Sep />
-        <Segment value={m} unit="MIN" />
-        <Sep />
-        <Segment value={sec} unit="SEC" />
-      </div>
+      {/* An event with no published time (the BOJ announces "around midday")
+          has nothing to count down to — counting to midnight showed
+          00·00·00·00 on the day itself. It reads as a day instead. */}
+      {timed ? (
+        <div className="flex items-center gap-1">
+          <Segment value={d} unit="DAY" />
+          <Sep />
+          <Segment value={h} unit="HR" />
+          <Sep />
+          <Segment value={m} unit="MIN" />
+          <Sep />
+          <Segment value={sec} unit="SEC" />
+        </div>
+      ) : (
+        <div className="font-mono leading-none" style={{ fontSize: 18, color: '#E8EDF5' }}>
+          {untimedDays === 0 ? 'TODAY' : untimedDays === 1 ? 'TOMORROW' : `IN ${untimedDays} DAYS`}
+          <span className="block mt-1" style={{ fontSize: 7, color: '#4A6080', letterSpacing: '0.14em' }}>TIME NOT PUBLISHED</span>
+        </div>
+      )}
 
         {/* justify-between, not justify-end: the body belongs directly under
             the hero it describes, and only the footer meta belongs at the
@@ -98,6 +111,7 @@ export default function NextEventWidget() {
             empty panel under the hero once dashboard cells started stretching,
             which read as the widget having failed to finish loading. */}
       <div className="flex-1 min-h-0 flex flex-col justify-between gap-2">
+        <div>
         <div className="flex items-start gap-1.5">
           {impact && (
             <span
@@ -112,6 +126,25 @@ export default function NextEventWidget() {
           <span className="font-sans text-[11px] leading-snug line-clamp-2 min-w-0" style={{ color: '#E8EDF5' }}>
             {next.title ?? next.event}
           </span>
+        </div>
+        {/* What follows it — the rest of the card was empty space under one
+            event, when the reader's next question is "and after that?" */}
+        {events.slice(1, 4).length > 0 && (
+          <div className="mt-2 pt-1.5 space-y-1" style={{ borderTop: '1px solid rgba(201,168,76,0.08)' }}>
+            {events.slice(1, 4).map((e) => {
+              const t = eventTime(e)
+              const im = IMPACT[String(e.importance ?? '').toLowerCase()]
+              return (
+                <div key={`${e.date}-${e.event}`} className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-mono flex-shrink-0" style={{ fontSize: 8, color: '#4A6080', width: 64 }}>
+                    {t?.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </span>
+                  <span className="font-sans text-[10px] truncate" style={{ color: im?.label === 'HIGH' ? '#E8EDF5' : '#8BA3C4' }}>{e.title ?? e.event}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-[8px]" style={{ color: '#4A6080' }}>

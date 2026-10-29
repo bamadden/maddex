@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { maybeNotify, offerPrompt } from '../services/browserNotify'
 import { markMilestone } from '../services/gettingStarted'
-import { canCreateAlert, ALERTS_CHANGED } from '../services/alertsService'
-import { recordAlertCreated } from '../services/usageService'
+import { canCreateAlert, ALERTS_CHANGED, activeAlertCount } from '../services/alertsService'
+import { recordAlertCreated, nudgeAlertCount } from '../services/usageService'
 import { getCurrentTier, limitFor, showLimitPrompt } from '../services/plans'
 import { treatmentFor, recordHistory } from '../services/notificationPolicy'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
@@ -174,6 +174,7 @@ export function StoreProvider({ children }) {
   const addAlert = useCallback((sym, price, direction = 'above') => {
     if (!canCreateAlert()) return false
     recordAlertCreated()
+    nudgeAlertCount(activeAlertCount() + 1)
     const alert = { id: Date.now(), sym: sym.toUpperCase(), price: parseFloat(price), direction, createdAt: new Date().toISOString() }
     // First alert is the moment to ask for system notifications — the
     // pre-prompt explains why before the browser's own dialog appears.

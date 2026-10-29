@@ -34,7 +34,6 @@ import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import SavedResearch from '../researchNote/SavedResearch'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { saveProseNote } from '../../services/researchNoteService'
-import { CORPORATE_ACTIONS } from '../../data/corporateActions'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
 
 // ── MaddenAI daily query limit ─────────────────────────────────────────────
@@ -311,13 +310,15 @@ const personaLine = (id) => {
 function earningsSeasonPrompts(now = new Date()) {
   const today = now.toLocaleDateString('en-CA')
   const horizon = new Date(now.getTime() + 14 * 86400_000).toLocaleDateString('en-CA')
-  const reporting = [...CORPORATE_ACTIONS.filter((a) => a.type === 'results'), ...EARNINGS_2026.filter((e) => e.type !== 'AGM')]
-    .filter((e) => e.date >= today && e.date <= horizon)
+  // EARNINGS_2026 already carries the sourced bank dates from corporateActions.
+  const reporting = EARNINGS_2026.filter((e) => e.type !== 'AGM' && e.date >= today && e.date <= horizon)
   const names = [...new Set(reporting.map((e) => e.company))]
   if (names.length < 3) return null
   const who = names.join(', ')
+  // November is the banks' season (September year-ends), not the August one.
+  const banks = reporting.every((e) => /^(WBC|NAB|ANZ|CBA|MQG|BOQ|BEN)\.AX$/.test(e.ticker))
   return [
-    { label: 'EARNINGS SEASON PREVIEW', prompt: `Reporting in the next two weeks: ${who}. Give me an earnings season preview — what to watch in these results, given the current rate and macro backdrop.`, dataKeys: [] },
+    { label: banks ? 'BANK RESULTS PREVIEW' : 'EARNINGS SEASON PREVIEW', prompt: `Reporting in the next two weeks: ${who}. Give me an earnings season preview — what to watch in these results, given the current rate and macro backdrop.`, dataKeys: [] },
     { label: 'WHICH REPORTERS MATTER MOST?', prompt: `Of ${who}, which results matter most for the ASX over the next two weeks, and why?`, dataKeys: [] },
     { label: 'POSITIONING AROUND EARNINGS', prompt: 'How do investors typically think about positioning around company results — the risks of holding through a report and the questions to ask beforehand? General information only.', dataKeys: [] },
   ]

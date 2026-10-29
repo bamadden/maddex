@@ -659,7 +659,7 @@ export default function FuturesModule() {
         title="FUTURES & DERIVATIVES"
         subtitle="Futures · Options · Market structure — intelligence, not a trading interface"
         moduleId="futures"
-        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● LIVE (SIMULATED)</span>}
+        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● DEMO · SIMULATED TICKS</span>}
       />
       <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
       <div className="flex-1 overflow-y-auto">

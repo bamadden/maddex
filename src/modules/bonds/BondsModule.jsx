@@ -323,7 +323,7 @@ export default function BondsModule() {
         title="BONDS"
         subtitle="Sovereign debt · full maturity spectrum · 1M to 50Y"
         moduleId="bonds"
-        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● LIVE (SIMULATED)</span>}
+        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● DEMO · SIMULATED TICKS</span>}
       />
 
       {/* Provenance first, not buried in a footer. Every yield below is

@@ -982,7 +982,7 @@ export default function ScreenerModule() {
         title="MARKET SCREENER"
         subtitle={`ASX + US universe · ${ALL_STOCKS.length} stocks tracked · Prices simulated`}
         moduleId="screener"
-        right={<span className="flex items-center gap-1.5 text-2xs font-bold tracking-widest text-terminal-gold"><span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" />LIVE (SIMULATED)</span>}
+        right={<span className="flex items-center gap-1.5 text-2xs font-bold tracking-widest text-terminal-gold"><span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" />DEMO · SIMULATED TICKS</span>}
       />
       {/* Auto-scan strip */}
       <div className="flex items-center gap-3 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 font-mono" style={{ background: 'rgba(201,168,76,0.03)' }}>

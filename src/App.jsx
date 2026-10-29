@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import NotificationPermissionPrompt from './components/ui/NotificationPermissionPrompt'
 import PlanOverlays from './components/billing/PlanOverlays'
 import { gatedModule } from './components/billing/ModuleGate'
-import { MODULE_FEATURE, trialEndedSeen } from './services/plans'
+import { MODULE_FEATURE, trialEndedSeen, devTrialDay } from './services/plans'
 import { runOfficialCheck } from './services/officialStats'
 import { startReleaseWatch } from './services/releaseWatch'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
@@ -99,6 +99,7 @@ import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { installErrorCapture, recordTiming, setDiagnosticsModule, takeModuleSwitch } from './services/diagnostics'
 import OfflineBanner from './components/layout/OfflineBanner'
+import TrialNudges from './components/ui/TrialNudges'
 
 installErrorCapture()
 
@@ -935,6 +936,7 @@ function Terminal() {
       <MobileNavBar />
       <Suspense fallback={null}>{modalAsset && <DetailModal />}</Suspense>
       <OfflineBanner />
+      <TrialNudges />
       <Suspense fallback={null}>{compareAssets != null && <ComparisonView />}</Suspense>
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
       {correlationAssets && (
@@ -1016,7 +1018,8 @@ function AuthGate() {
     return <Suspense fallback={<AppLoader />}><OnboardingFlow onComplete={() => setOnboardingDone(true)} /></Suspense>
   }
   // Once per account: after "continue on Core" the terminal opens on Core.
-  if (user && isTrial && isTrialExpired && !trialAck && !trialEndedSeen(user.id)) {
+  // devTrialDay() === 'expired' previews this screen in dev builds only.
+  if ((user && isTrial && isTrialExpired && !trialEndedSeen(user.id) || devTrialDay() === 'expired') && !trialAck) {
     return <Suspense fallback={<AppLoader />}><TrialExpiredModal onContinue={() => setTrialAck(true)} /></Suspense>
   }
   return <Terminal />

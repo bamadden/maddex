@@ -1024,7 +1024,9 @@ export default function PortfolioModule() {
       )}
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 xl:grid-cols-9 border-b border-terminal-border flex-shrink-0">
+      {/* auto-fit: eleven boxes on a fixed nine-column grid left a second row
+          of two boxes and seven empty slots. */}
+      <div className="grid border-b border-terminal-border flex-shrink-0" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))' }}>
         <StatBox
           label="PORTFOLIO VALUE"
           value={mktTotal > 0 ? <AnimatedNumber value={mktTotal} format={fmtCur} /> : '—'}

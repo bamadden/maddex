@@ -138,7 +138,18 @@ export default function PortfolioSnapshotWidget() {
   }, [value])
 
   if (!stats) {
-    return <WidgetEmpty action="ADD HOLDINGS" onAction={() => goModule('portfolio')}>No holdings yet</WidgetEmpty>
+    // An empty tile that says what a portfolio unlocks, not just that there
+    // is none — this is the first screen a new user sees.
+    return (
+      <WidgetEmpty action="ADD HOLDINGS" onAction={() => goModule('portfolio')}>
+        <span className="block" style={{ color: '#8BA3C4' }}>No holdings yet</span>
+        <span className="block mt-1.5 leading-relaxed" style={{ fontSize: 10 }}>
+          Track P&amp;L in A$, see how an RBA hike hits each holding,<br />
+          your dividend income by month, and a daily digest written around them.
+          <br />Add them one by one or import a broker CSV.
+        </span>
+      </WidgetEmpty>
+    )
   }
 
   const up = stats.pnl >= 0

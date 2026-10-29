@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { dispatchAskAI, askMaddenAI, todayAEST } from '../../utils/askAI'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { getMockFMPRow } from '../../services/mockData'
+import { useStore } from '../../store/useStore'
+import { screenSector } from '../markets/screenSector'
 import { searchLocation, zoomFor, readJson, writeJson } from '../../services/geocodeService'
 
 // Location search for the intel map. Geocoding (and the Nominatim usage
@@ -8,14 +12,33 @@ const HISTORY_KEY = 'maddex_map_searches'
 
 // Places with a financial story. Matched on the query and on the geocoder's
 // answer, so "cupertino" and "Apple Park" both land here.
+//
+// Each carries its OWN coordinates. The geocoder ranks by its own idea of
+// relevance: "Apple Park" came back first as a suburb of Krugersdorp, South
+// Africa, and the map flew there under a card reading "Cupertino". A known
+// place now goes to the top of the list at the right spot, ahead of
+// whatever the geocoder found.
+const C = VERIFIED_CONSTANTS
+const PILBARA_ORE = C.commodities?.ironOreUSD
+const BHP_CAP = getMockFMPRow('BHP.AX')?.marketCap
 const FINANCIAL_PLACES = [
-  { test: /\bapple\b|cupertino/i, title: 'APPLE INC HQ', context: 'NASDAQ: AAPL · Cupertino, California' },
-  { test: /\basx\b|sydney exchange|martin place|bridge street,? sydney/i, title: 'ASX', context: 'Australian Securities Exchange · Sydney' },
-  { test: /wall street|\bnyse\b|new york stock exchange/i, title: 'NYSE', context: 'New York Stock Exchange · Wall Street' },
-  { test: /london stock exchange|paternoster|canary wharf/i, title: 'LSE', context: 'London Stock Exchange · City of London' },
-  { test: /tokyo stock exchange|kabutocho|nihonbashi/i, title: 'TSE', context: 'Tokyo Stock Exchange · Nihonbashi, Tokyo' },
-  { test: /iron ore|pilbara|port hedland|newman/i, title: 'PILBARA IRON ORE REGION', context: 'BHP, Rio Tinto and Fortescue operations · Western Australia' },
+  { test: /\bapple\b|cupertino/i, title: 'APPLE INC HQ', context: 'NASDAQ: AAPL · Cupertino, California', lat: 37.3349, lon: -122.0090, zoom: 15,
+    ask: 'What is the financial significance of Apple Inc for an Australian investor holding US tech?' },
+  { test: /reserve bank|\brba\b|martin place/i, title: 'RESERVE BANK OF AUSTRALIA · MARTIN PLACE', lat: -33.8678, lon: 151.2107, zoom: 16,
+    context: `Cash rate ${C.rba.cashRate.toFixed(2)}% · next decision ${new Date(`${C.rba.nextMeeting}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`,
+    ask: 'Tell me about the RBA and its current policy stance.' },
+  { test: /\bbhp\b|171 collins/i, title: 'BHP MELBOURNE HQ · 171 COLLINS ST', lat: -37.8152, lon: 144.9690, zoom: 16,
+    context: `ASX: BHP.AX · Materials${BHP_CAP ? ` · ~A$${Math.round(BHP_CAP / 1e9)}B market cap (demo data)` : ''}`,
+    ask: 'Analyse BHP Group.' },
+  { test: /\basx\b|sydney exchange|bridge street,? sydney|australian securities exchange/i, title: 'ASX', context: 'Australian Securities Exchange · 20 Bridge St, Sydney', lat: -33.8636, lon: 151.2106, zoom: 16 },
+  { test: /wall street|\bnyse\b|new york stock exchange/i, title: 'NYSE', context: 'New York Stock Exchange · Wall Street', lat: 40.7069, lon: -74.0113, zoom: 16 },
+  { test: /london stock exchange|paternoster/i, title: 'LSE', context: 'London Stock Exchange · City of London', lat: 51.5150, lon: -0.0992, zoom: 16 },
+  { test: /tokyo stock exchange|kabutocho|nihonbashi/i, title: 'TSE', context: 'Tokyo Stock Exchange · Nihonbashi, Tokyo', lat: 35.6828, lon: 139.7790, zoom: 16 },
+  { test: /iron ore|pilbara|port hedland|newman/i, title: 'PILBARA IRON ORE REGION · WESTERN AUSTRALIA', lat: -22.3, lon: 118.6, zoom: 6,
+    context: `BHP, Rio Tinto and Fortescue operations · iron ore export earnings A$116b in 2024-25 (Resources and Energy Quarterly)${PILBARA_ORE ? ` · iron ore US$${PILBARA_ORE.toFixed(2)}/t (${C.commodities.asOfBy?.ironOreUSD})` : ''}`,
+    ask: 'How is the Pilbara iron ore industry placed right now, and which ASX producers have the most leverage to the iron ore price?', sector: 'Materials' },
 ]
+const placeFor = (query) => FINANCIAL_PLACES.find((p) => p.test.test(query)) ?? null
 const financialFor = (query, result) =>
   FINANCIAL_PLACES.find((p) => p.test.test(query) || p.test.test(result?.display_name ?? '')) ?? null
 
@@ -28,6 +51,7 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
   const [card, setCard] = useState(null)
   const [history, setHistory] = useState(() => readJson(localStorage, HISTORY_KEY, []))
   const inputRef = useRef(null)
+  const { setActiveModule } = useStore()
 
   // F focuses the search — but only while the pointer is over the map. Plain
   // F is the app-wide shortcut for Rates; captured here first, and only in
@@ -50,7 +74,9 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
     setStatus('searching'); setOpen(true); setActive(0)
     try {
       const rows = await searchLocation(q)
-      setResults(rows)
+      // A known financial place leads the list at its own coordinates.
+      const known = placeFor(q)
+      setResults(known ? [{ lat: known.lat, lon: known.lon, name: known.title, display_name: `${known.title} — ${known.context}`, addresstype: 'financial', known }, ...rows] : rows)
       setStatus(rows.length ? 'idle' : 'empty')
     } catch {
       setResults([]); setStatus('error')
@@ -63,8 +89,9 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
     setQuery(r.name || r.display_name.split(',')[0])
     const next = [query.trim(), ...history.filter((h) => h.toLowerCase() !== query.trim().toLowerCase())].filter(Boolean).slice(0, 5)
     setHistory(next); writeJson(localStorage, HISTORY_KEY, next)
-    setCard(financialFor(query, r) ? { ...financialFor(query, r), place: r.display_name } : null)
-    onSelect?.({ longitude: r.lon, latitude: r.lat, zoom: zoomFor(r), label: r.display_name })
+    const fin = r.known ?? financialFor(query, r)
+    setCard(fin ? { ...fin, place: r.known ? '' : r.display_name } : null)
+    onSelect?.({ longitude: r.lon, latitude: r.lat, zoom: r.known?.zoom ?? zoomFor(r), label: r.display_name })
     inputRef.current?.blur()
   }
 
@@ -135,13 +162,22 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
           <div className="text-terminal-gold font-bold tracking-widest" style={{ fontSize: 10 }}>{card.title}</div>
           <div className="text-terminal-text mt-0.5" style={{ fontSize: 10 }}>{card.context}</div>
           <div className="text-terminal-text-dim/60 truncate mt-0.5" style={{ fontSize: 8 }}>{card.place}</div>
-          <button
-            onClick={() => dispatchAskAI({
-              name: card.title, sector: 'Location intelligence', date: todayAEST(),
-              instruction: `What is the financial significance of ${card.title} (${card.context}) for an Australian investor? Describe it in words; do not state prices or figures you have not been given.`,
-            })}
-            className="mt-1.5 text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.12em' }}
-          >ASK MADDENAI ▶</button>
+          <div className="flex items-center gap-3 mt-1.5">
+            <button
+              onClick={() => (card.ask
+                ? askMaddenAI(card.ask)
+                : dispatchAskAI({
+                  name: card.title, sector: 'Location intelligence', date: todayAEST(),
+                  instruction: `What is the financial significance of ${card.title} (${card.context}) for an Australian investor? Describe it in words; do not state prices or figures you have not been given.`,
+                }))}
+              className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.12em' }}
+            >ASK MADDENAI ▶</button>
+            {card.sector && (
+              <button onClick={() => screenSector(card.sector, setActiveModule)}
+                className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.12em' }}
+              >SEE RELATED STOCKS ▶</button>
+            )}
+          </div>
         </div>
       )}
     </div>

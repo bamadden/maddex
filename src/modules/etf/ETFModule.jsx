@@ -300,7 +300,7 @@ export default function ETFModule() {
         title="ETF EXPLORER"
         subtitle="21 Australian ETFs · fees, returns and what they actually cost"
         moduleId="etf"
-        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● LIVE (SIMULATED)</span>}
+        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● DEMO · SIMULATED TICKS</span>}
       />
 
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0"

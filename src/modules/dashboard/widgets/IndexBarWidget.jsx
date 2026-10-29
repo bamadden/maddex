@@ -4,9 +4,13 @@ import { USING_MOCK_DATA } from '../../../services/api'
 import {WidgetBody, WidgetRows, WidgetRow} from './_shared'
 import { goModule } from './navigate'
 
+// The Asian session first after the ASX and Wall St — it is what an
+// Australian investor reads next. Ten rows fill a standard tile; five left
+// half of it blank.
 const INDICES = [
-  ['^AXJO', 'ASX 200'], ['^GSPC', 'S&P 500'], ['^IXIC', 'NASDAQ'],
-  ['^FTSE', 'FTSE 100'], ['^N225', 'NIKKEI 225'],
+  ['^AXJO', 'ASX 200'], ['^AORD', 'ALL ORDS'], ['^GSPC', 'S&P 500'], ['^IXIC', 'NASDAQ'],
+  ['^DJI', 'DOW JONES'], ['^N225', 'NIKKEI 225'], ['^HSI', 'HANG SENG'], ['000001.SS', 'SHANGHAI'],
+  ['^FTSE', 'FTSE 100'], ['^GDAXI', 'DAX'],
 ]
 
 export default function IndexBarWidget() {

@@ -590,8 +590,10 @@ export const VERIFIED_CONSTANTS = {
     cpi: 3.7, cpiPrevious: 3.4, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-14',
     cpiCore: 2.6, cpiCorePrevious: 2.4,
     unemployment: 4.2, unemploymentPrevious: 4.1, unemploymentPeriod: 'Sep 2026', unemploymentRelease: '2026-10-02',
-    // Q2 2026, third estimate. Q1 was 2.5%. Q3 advance estimate due 29 Oct.
-    gdpQoQAnnualised: 2.2, gdpPrevious: 2.5, gdpPeriod: 'Q2 2026', gdpRelease: '2026-09-30', gdpNextRelease: '2026-10-29',
+    // Q3 2026 ADVANCE estimate, 3.4% annualised (BEA, 29 Oct 2026 — the
+    // agency's API via check-stats and bea.gov). Q2's third estimate was 2.2%.
+    // The second estimate's date is not recorded here; BEA's schedule has it.
+    gdpQoQAnnualised: 3.4, gdpPrevious: 2.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-29', gdpNextRelease: null,
     // Payroll change, thousands. Aug is the revised figure as of the Sep
     // report (Jul and Aug were revised down a combined 60k).
     nfpThousands: 29, nfpPrevious: 133, nfpRelease: '2026-10-02',
