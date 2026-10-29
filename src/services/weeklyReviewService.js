@@ -1,5 +1,4 @@
 import { askClaudeJSON, fetchNews } from './api'
-import { topStories } from './newsIntelligence'
 import { liveDataService } from './liveDataService'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 import { GEO_RISK_INDEX } from '../data/geopoliticalRisk'
@@ -182,6 +181,7 @@ export async function buildWeeklyContext(week, now = new Date()) {
   // The week's top stories: real headlines from the news feed, one per story.
   const weekStart = Date.parse(`${monday}T00:00:00+10:00`)
   const weekEnd = Date.parse(`${addDays(friday, 2)}T23:59:59+10:00`)
+  const { topStories } = await import('./newsIntelligence')
   const stories = news.status === 'fulfilled'
     ? topStories(news.value?.articles ?? [], { n: 3, sinceMs: weekStart, untilMs: weekEnd })
       .map((a) => `- "${a.headline}" (${a.source}${a.pubDate ? `, ${dayName(new Date(a.pubDate).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))}` : ''})`)

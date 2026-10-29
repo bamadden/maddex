@@ -1,6 +1,6 @@
 import { askClaudeJSON } from './api'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
-import { COMPANY } from '../data/legalDocs'
+import { COMPANY } from '../data/company'
 import { eventsForAI } from './calendarService'
 
 // Stable instruction template — the section list and JSON schema never vary,

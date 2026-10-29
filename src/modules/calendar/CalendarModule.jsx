@@ -300,6 +300,7 @@ function EconomicEventCard({ event, onReminderChange }) {
 }
 
 function EarningsEventCard({ event, onReminderChange }) {
+  const isAgm = event.reportType === 'AGM'
   const { watchlist, addToWatchlist } = useStore()
   const bareTicker = event.ticker.replace('.AX', '')
   const inWatchlist = watchlist.includes(event.ticker)
@@ -322,7 +323,8 @@ function EarningsEventCard({ event, onReminderChange }) {
       }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border/50">
-        <span className="text-2xs text-terminal-text-dim">📊 AFTER MARKET</span>
+        {/* Release timing is not held for any of these, so none is claimed. */}
+        <span className="text-2xs text-terminal-text-dim">{isAgm ? '🗳 ANNUAL GENERAL MEETING' : '📊 RESULTS'}{event.source ? ' · SOURCED' : ''}</span>
         <div className="flex items-center gap-2">
           <Stars event={event} />
           <span className="text-2xs font-bold text-terminal-gold">●MEDIUM</span>
@@ -332,13 +334,15 @@ function EarningsEventCard({ event, onReminderChange }) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="text-sm font-bold text-white uppercase">{event.company} ({event.ticker})</div>
-            <div className="text-2xs text-terminal-text-dim">{event.type} — FY2026</div>
+            <div className="text-2xs text-terminal-text-dim" title={event.source ? `Source: ${event.source}` : 'Date approximate'}>
+              {isAgm ? 'AGM — shareholder votes and the chair\'s address' : `${event.reportType ?? 'Results'} results`}
+            </div>
           </div>
           <ReminderPicker event={{ ...event, event: `${event.company} earnings` }} onChange={onReminderChange} />
         </div>
         <div className="mb-2 pb-2 border-b border-terminal-border/30" />
 
-        <div className="grid grid-cols-2 gap-2 text-2xs mb-2 pb-2 border-b border-terminal-border/30">
+        {!isAgm && <div className="grid grid-cols-2 gap-2 text-2xs mb-2 pb-2 border-b border-terminal-border/30">
           <div>
             <div className="text-terminal-text-dim/60">EPS ESTIMATE</div>
             <div className="text-terminal-text-bright font-semibold">{event.epsEst != null ? `A$${event.epsEst.toFixed(2)}/share` : '—'}</div>
@@ -347,17 +351,19 @@ function EarningsEventCard({ event, onReminderChange }) {
             <div className="text-terminal-text-dim/60">REVENUE ESTIMATE</div>
             <div className="text-terminal-text-bright font-semibold">{event.revEst != null ? `A$${(event.revEst / 1000).toFixed(1)}B` : '—'}</div>
           </div>
-        </div>
+        </div>}
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => dispatchAskAI({
               name: event.company, ticker: bareTicker, date: event.date,
-              instruction: `Give an earnings preview for ${event.company} (${event.ticker})'s upcoming ${event.type} report: what to watch for, bull case, and bear case.`,
+              instruction: isAgm
+                ? `${event.company} (${event.ticker}) holds its AGM on ${event.date}. What do shareholders typically watch at its AGM — trading update, remuneration vote, strategy — and what matters most this year?`
+                : `Give an earnings preview for ${event.company} (${event.ticker})'s upcoming ${event.reportType ?? ''} results: what to watch for, bull case, and bear case.`,
             })}
             className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
           >
-            FULL EARNINGS PREVIEW →
+            {isAgm ? 'AGM PREVIEW →' : 'FULL EARNINGS PREVIEW →'}
           </button>
           <button
             onClick={setReminder}
@@ -585,7 +591,7 @@ export default function CalendarModule() {
       ...e, type: 'economic', label: e.event,
     })) : []
     const earnings = upcomingEarnings().map((e) => ({
-      ...e, type: 'earnings', label: `${e.company} ${e.type === 'AGM' ? 'AGM' : 'earnings'}`, importance: 'medium', region: 'AU',
+      ...e, type: 'earnings', reportType: e.type, label: `${e.company} ${e.type === 'AGM' ? 'AGM' : 'earnings'}`, importance: 'medium', region: 'AU',
       dateObj: new Date(`${e.date}T00:00:00`),
     }))
     return [...econ, ...earnings].sort((a, b) => a.dateObj - b.dateObj)

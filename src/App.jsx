@@ -6,8 +6,6 @@ import { MODULE_FEATURE, trialEndedSeen } from './services/plans'
 import { runOfficialCheck } from './services/officialStats'
 import { startReleaseWatch } from './services/releaseWatch'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
-import { autoGenerateBrief } from './services/morningBriefService'
-import { autoGenerateWeeklyReview } from './services/weeklyReviewService'
 import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { shortcutService } from './services/shortcutService'
@@ -100,8 +98,6 @@ const LEGAL_SLUGS = new Set(['terms', 'privacy', 'disclaimer'])
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { installErrorCapture, recordTiming, setDiagnosticsModule, takeModuleSwitch } from './services/diagnostics'
-import { refreshAllData } from './services/refreshAll'
-import { aiContentService } from './services/aiContentService'
 import OfflineBanner from './components/layout/OfflineBanner'
 
 installErrorCapture()
@@ -118,7 +114,6 @@ function ModuleTimer({ id }) {
   return null
 }
 import { useSubscription } from './hooks/useSubscription'
-import { runWeeklyNotes } from './services/noteScheduler'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
 import { initGlobalRipples } from './hooks/useRipple'
@@ -457,7 +452,11 @@ function Terminal() {
   useEffect(() => {
     if (briefAttempted.current) return
     briefAttempted.current = true
-    autoGenerateBrief(watchlist)
+    // Imported on use: both services (and the geopolitics table the weekly
+    // review reads) would otherwise sit in the first-paint bundle only to
+    // start a background job.
+    import('./services/morningBriefService')
+      .then((m) => m.autoGenerateBrief(watchlist))
       .then((brief) => {
         if (brief && !brief.isWeekend) addNotification('MORNING_BRIEF', '☀ Your morning brief is ready', { browser: { title: '☀ Morning brief ready', body: brief.headline ?? 'Your morning brief is ready', module: 'brief' } })
       })
@@ -472,7 +471,8 @@ function Terminal() {
     if (notesAttempted.current || !watchlist?.length) return
     const id = setTimeout(() => {
       notesAttempted.current = true
-      runWeeklyNotes(watchlist)
+      import('./services/noteScheduler')
+        .then((m) => m.runWeeklyNotes(watchlist))
         .then((r) => {
           if (r) addNotification('SYSTEM', `📋 Weekly research notes ready: ${r.symbols.map((x) => x.replace(/\.AX$/i, '')).join(', ')}`, { browser: { title: '📋 Weekly research notes ready', body: r.symbols.join(', '), module: 'dashboard' } })
         })
@@ -491,7 +491,8 @@ function Terminal() {
     const tick = () => {
       if (weeklyInFlight.current) return
       weeklyInFlight.current = true
-      autoGenerateWeeklyReview()
+      import('./services/weeklyReviewService')
+        .then((m) => m.autoGenerateWeeklyReview())
         .then((review) => {
           if (review) addNotification('MORNING_BRIEF', '📰 Your weekly market review is ready', { browser: { title: '📰 Weekly review ready', body: review.headline ?? 'This week in markets', module: 'brief' } })
         })
@@ -666,10 +667,14 @@ function Terminal() {
         e.preventDefault()
         if (chord === 'cmd.brief') setActiveModule('brief')
         else if (chord === 'cmd.portfolio') setActiveModule('portfolio')
-        else if (chord === 'cmd.refresh') { refreshAllData(queryClient).catch(() => {}); addNotification('SYSTEM', '↻ Refreshing all live data') }
-        else if (chord === 'cmd.regenerate') {
-          aiContentService.clearCache()
-          refreshAllData(queryClient).catch(() => {})
+        // Loaded on use, to keep both services out of the first-paint bundle.
+        else if (chord === 'cmd.refresh') {
+          import('./services/refreshAll').then((m) => m.refreshAllData(queryClient)).catch(() => {})
+          addNotification('SYSTEM', '↻ Refreshing all live data')
+        } else if (chord === 'cmd.regenerate') {
+          Promise.all([import('./services/aiContentService'), import('./services/refreshAll')])
+            .then(([ai, rf]) => { ai.aiContentService.clearCache(); return rf.refreshAllData(queryClient) })
+            .catch(() => {})
           addNotification('SYSTEM', '✦ AI content cleared — it regenerates as each panel loads')
         }
         return

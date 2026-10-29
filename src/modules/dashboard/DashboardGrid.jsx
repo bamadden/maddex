@@ -40,7 +40,12 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
         // here keeps the narrow view coherent while the saved layout is
         // untouched.
         gridColumn: `${Math.min(widget.col, columns - 1) + 1} / span ${Math.min(widget.w, columns)}`,
-        gridRow: `${widget.row + 1} / span ${widget.h}`,
+        // One column: stack in layout order. Keeping the saved row put every
+        // widget from one desktop row into the same phone cell, on top of one
+        // another — the portfolio and market score sat hidden under Next Event.
+        gridRow: columns === 1 ? 'auto' : `${widget.row + 1} / span ${widget.h}`,
+        // …in reading order (row, then column), whatever order they were saved in.
+        order: columns === 1 ? widget.row * 100 + widget.col : undefined,
         background: '#060D1A',
         position: 'relative',
         // 140 in a single column: a phone shows one widget per row, so each gets

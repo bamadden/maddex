@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { refreshAllData } from '../../services/refreshAll'
 
 // "● OFFLINE — showing cached data" while the browser reports no connection;
 // "✓ RECONNECTED — refreshing data" for a few seconds after it returns, while
@@ -16,7 +15,7 @@ export default function OfflineBanner() {
     const off = () => { clearTimeout(timer); setState('offline') }
     const on = () => {
       setState('back')
-      refreshAllData(queryClient).catch(() => {})
+      import('../../services/refreshAll').then((m) => m.refreshAllData(queryClient)).catch(() => {})
       clearTimeout(timer)
       timer = setTimeout(() => setState('online'), 4000)
     }

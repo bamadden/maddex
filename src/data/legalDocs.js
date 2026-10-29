@@ -11,8 +11,8 @@
 // company's ABN/ACN is not stated because it is not recorded anywhere in this
 // codebase and inventing one would be worse than omitting it. Both need doing.
 
-export const COMPANY = 'Madden Group Holdings Pty Ltd'
-export const CONTACT = 'ben@maddex.com.au'
+import { COMPANY, CONTACT } from './company'
+export { COMPANY, CONTACT }
 export const EFFECTIVE = '7 September 2026'
 
 // ─── Documents ───────────────────────────────────────────────────────────────

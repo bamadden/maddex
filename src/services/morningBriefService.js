@@ -5,8 +5,6 @@ import { getEconomicCalendar, upcomingEvents } from './calendarService'
 import { sydneyTzAbbr } from '../utils/dateUtils'
 import { briefProfileLines } from './investorProfile'
 import { fetchNews, USING_MOCK_DATA } from './api'
-import { fetchEquityQuotes } from './dataService'
-import { topStories } from './newsIntelligence'
 import { sydneyOffset } from '../utils/dateUtils'
 
 // Stable instruction template — identical on every call, so it sits in the
@@ -137,6 +135,10 @@ async function gatherContext() {
 // TODAY line shows the demo moves, labelled, outside the model's prose.
 async function gatherPersonal(watchlist = [], holdings = []) {
   const out = { headlines: '', movers: '', pnl: '' }
+  // Loaded here rather than at the top: this service is imported at app start
+  // for the 7am auto-brief, and these two would otherwise ride along into the
+  // first-paint bundle.
+  const [{ fetchEquityQuotes }, { topStories }] = await Promise.all([import('./dataService'), import('./newsIntelligence')])
   const [news, quotes] = await Promise.allSettled([
     fetchNews(),
     (() => {

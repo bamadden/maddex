@@ -146,7 +146,7 @@ export default function MarketInternals() {
     <div className="border-b border-terminal-border bg-terminal-panel">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pt-2">
         <span className="font-mono text-[10px] font-bold tracking-widest text-terminal-gold whitespace-nowrap">MARKET INTERNALS</span>
-        <span className="font-mono text-[9px] text-terminal-text-dim whitespace-nowrap">{UNIVERSE.length} ASX stocks · computed from daily closes{USING_MOCK_DATA ? ' · demo moves carry a scripted sector tilt' : ''}</span>
+        <span className="font-mono text-[9px] text-terminal-text-dim min-w-0">{UNIVERSE.length} ASX stocks · computed from daily closes{USING_MOCK_DATA ? ' · demo moves carry a scripted sector tilt' : ''}</span>
         {USING_MOCK_DATA && <span className="ml-auto"><DemoBadge /></span>}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-terminal-border/60">
