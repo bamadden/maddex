@@ -23,6 +23,8 @@ import TabBar from '../../components/ui/TabBar'
 import WeeklyReviewTab, { WeeklyReviewBody } from './WeeklyReview'
 import { NewsletterEditions, NewsletterInline } from '../../components/newsletter/Newsletter'
 import { getCachedWeeklyReview, listWeeklyHistory, reviewWeek } from '../../services/weeklyReviewService'
+import { WatchlistToday, ScoreBreakdown } from './BriefExtras'
+import { downloadBriefImage } from './briefImage'
 
 // The weekend state.
 //
@@ -294,6 +296,14 @@ export default function MorningBriefModule() {
   const [error, setError] = useState(null)
 
   const [copied, setCopied] = useState(false)
+  const [imaging, setImaging] = useState(false)
+  const shareImage = async () => {
+    if (!brief || imaging) return
+    setImaging(true)
+    try {
+      await downloadBriefImage(brief, new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase())
+    } catch (e) { console.warn('[Brief] image export failed:', e.message) } finally { setImaging(false) }
+  }
   // Weekly is a second tab rather than a second module: same reader, same
   // ritual, a different time scale.
   const [tab, setTab] = useState('daily')
@@ -395,6 +405,13 @@ export default function MorningBriefModule() {
                 className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
                 style={{ border: '1px solid rgba(201,168,76,0.2)' }}
               >{copied ? '✓ COPIED' : '⧉ SHARE'}</button>
+              <button
+                onClick={shareImage}
+                disabled={imaging}
+                title="Download the brief as a 1200×630 image card"
+                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
+                style={{ border: '1px solid rgba(201,168,76,0.45)' }}
+              >{imaging ? 'RENDERING…' : '⬇ SHARE AS IMAGE'}</button>
             </div>
           ) : null
         }
@@ -495,6 +512,7 @@ export default function MorningBriefModule() {
               {(brief.scoreDriver || brief.scoreRationale) && (
                 <div className="font-sans text-terminal-text-dim mt-2 max-w-lg" style={{ fontSize: 13 }}>{brief.scoreDriver ?? brief.scoreRationale}</div>
               )}
+              <ScoreBreakdown brief={brief} />
               <div className="font-sans text-terminal-text-bright font-semibold mt-4 max-w-2xl leading-snug" style={{ fontSize: 18 }}>{brief.headline}</div>
               <button
                 onClick={() => dispatchAskAI({ instruction: `Elaborate on today's market brief: "${brief.headline}". Give more detail on what's driving this.` }, { rawPrompt: true })}
@@ -505,6 +523,8 @@ export default function MorningBriefModule() {
             <div className="my-5" style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.55), transparent)' }} />
 
             <div className="mb-4"><SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} /></div>
+
+            <div className="mb-3"><WatchlistToday watchlist={watchlist} /></div>
 
             {/* Sections */}
             <div className="flex flex-col gap-3">

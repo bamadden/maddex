@@ -4,6 +4,10 @@ import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 import { getEconomicCalendar, upcomingEvents } from './calendarService'
 import { sydneyTzAbbr } from '../utils/dateUtils'
 import { briefProfileLines } from './investorProfile'
+import { fetchNews, USING_MOCK_DATA } from './api'
+import { fetchEquityQuotes } from './dataService'
+import { topStories } from './newsIntelligence'
+import { sydneyOffset } from '../utils/dateUtils'
 
 // Stable instruction template — identical on every call, so it sits in the
 // cached system prefix. Everything that changes day to day goes in the user
@@ -35,6 +39,11 @@ Generate a JSON object:
   "scoreLabel": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH",
   "scoreRationale": "One sentence justifying that score specifically",
   "scoreDriver": "One short line naming what is driving the score, e.g. 'Materials leading; the rate hike weighing on property'",
+  "scoreBreakdown": [
+    { "name": "MACRO ENVIRONMENT", "score": number 0-100, "note": "One line, e.g. 'High inflation, moderate growth'" },
+    { "name": "MARKET MOMENTUM", "score": number 0-100, "note": "One line on breadth, trend and flows as far as the supplied figures allow" },
+    { "name": "RISK SENTIMENT", "score": number 0-100, "note": "One line on risk appetite — central banks, the AUD, credit, geopolitics" }
+  ],
   "sections": [
     { "title": "MARKET OVERVIEW", "content": "3-4 sentences: the state of play going into today's session — overnight offshore action and how it feeds into the Sydney open" },
     { "title": "AUSTRALIAN ECONOMY", "content": "3-4 sentences: RBA policy, inflation, jobs and growth using only the verified figures supplied, and what they mean for Australian investors and borrowers" },
@@ -118,6 +127,50 @@ async function gatherContext() {
   return { fx: ok(fx), gold: ok(gold), fg: ok(fg), crypto: ok(crypto) }
 }
 
+// The personal layer: today's top real headlines, the watchlist's biggest
+// moves and the portfolio's day, each optional.
+//
+// Moves are left out entirely while equity prices are demo data. Telling the
+// model "these are demo, mention direction only" was tried: it wrote "Apple's
+// sharp fall is a meaningful drag" off a scripted −7% — a fabricated market
+// event in a brief that promises verified figures. The brief's own WATCHLIST
+// TODAY line shows the demo moves, labelled, outside the model's prose.
+async function gatherPersonal(watchlist = [], holdings = []) {
+  const out = { headlines: '', movers: '', pnl: '' }
+  const [news, quotes] = await Promise.allSettled([
+    fetchNews(),
+    (() => {
+      const syms = [...new Set([
+        ...watchlist,
+        ...holdings.filter((h) => h.type !== 'crypto').map((h) => h.yfSym ?? (h.type === 'asx' ? `${h.symbol}.AX` : h.symbol)),
+      ])].filter(Boolean)
+      return syms.length ? fetchEquityQuotes(syms) : Promise.resolve(null)
+    })(),
+  ])
+  const articles = news.status === 'fulfilled' ? news.value?.articles ?? [] : []
+  const top = topStories(articles, { watchlist, n: 3, sinceMs: Date.now() - 36 * 3_600_000 })
+  if (top.length) out.headlines = top.map((a) => `- "${a.headline}" (${a.source})`).join('\n')
+  const q = quotes.status === 'fulfilled' ? quotes.value?.data ?? null : null
+  if (USING_MOCK_DATA) return out
+  if (q && watchlist.length) {
+    const moves = watchlist.map((s) => ({ s, pct: q[s]?.pct })).filter((m) => Number.isFinite(m.pct))
+      .sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct)).slice(0, 5)
+    if (moves.length) out.movers = moves.map((m) => `- ${m.s.replace(/\.AX$/, '')} ${m.pct >= 0 ? '+' : ''}${m.pct.toFixed(2)}%`).join('\n')
+  }
+  if (q && holdings.length) {
+    let value = 0, day = 0
+    for (const h of holdings) {
+      const sym = h.yfSym ?? (h.type === 'asx' ? `${h.symbol}.AX` : h.symbol)
+      const row = q[sym]
+      if (!row?.last || h.type !== 'asx') continue
+      value += row.last * h.shares
+      day += row.last * h.shares * ((row.pct ?? 0) / 100)
+    }
+    if (value > 0) out.pnl = `ASX holdings ${day >= 0 ? 'up' : 'down'} ${Math.abs((day / value) * 100).toFixed(2)}% on the day`
+  }
+  return out
+}
+
 // ── Brief history ──────────────────────────────────────────────────────────
 //
 // The last few briefs, newest first. Worth keeping because the value of a
@@ -169,7 +222,7 @@ export function clearBriefCache() {
 function factsStamp() {
   const { rba, fed, au, bonds } = VERIFIED_CONSTANTS
   // 'v2' is the brief schema: bumping it retires briefs in the old layout.
-  return ['v2', rba.cashRate, rba.lastDecision, fed.rateRange, au.cpi, au.cpiPeriod, au.unemployment, au.unemploymentPeriod, bonds?.asOf].join('|')
+  return ['v3', rba.cashRate, rba.lastDecision, fed.rateRange, au.cpi, au.cpiPeriod, au.unemployment, au.unemploymentPeriod, bonds?.asOf].join('|')
 }
 
 // watchlist: array of ticker strings (useStore's shape). portfolio: optional
@@ -206,8 +259,11 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   const watchlistSymbols = watchlist.join(', ')
   const portfolioSummary = holdings.map((p) => `${p.symbol}: ${p.shares} units @ A$${p.avgCost}`).join(', ')
 
-  const { fx, gold, fg, crypto } = await gatherContext()
-  const { rba, fed, au, bonds } = VERIFIED_CONSTANTS
+  const [{ fx, gold, fg, crypto }, personal] = await Promise.all([gatherContext(), gatherPersonal(watchlist, holdings)])
+  const { rba, fed, au, bonds, rbaNextDecision: nd } = VERIFIED_CONSTANTS
+  const fedLast = fed.decisions?.at(-1)
+  const ndAt = nd ? Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`) : null
+  const ndDays = ndAt && ndAt > Date.now() ? Math.ceil((ndAt - Date.now()) / 86_400_000) : null
 
   // The next fortnight of scheduled events, so the brief names what is
   // actually coming rather than recalling a calendar from training data.
@@ -248,12 +304,17 @@ VERIFIED FIGURES — you may quote these, and no others:
 - AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})
 - AU GDP: ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})
 - Fed next meeting: ${fed.nextMeeting}; RBA–Fed policy spread ${Math.round((rba.cashRate - fed.cashRate) * 100)}bp
+${fedLast ? `- Latest Fed decision ${fedLast.date}: ${fedLast.decision}${fedLast.vote ? `, vote ${fedLast.vote}` : ''}${fedLast.reason ? ` — ${fedLast.reason}` : ''}` : ''}
+${nd && ndDays != null ? `- Next RBA decision: ${new Date(`${nd.date}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })} (${nd.date}) at ${nd.time} AEDT, ${ndDays} day${ndDays === 1 ? '' : 's'} away — use this weekday, do not work one out; market pricing ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, as at ${nd.marketAsOf})` : ''}
 ${bonds ? `- Bond yields: AU 10Y ${bonds.au10y.toFixed(2)}% (${bonds.au10yAsOf}), US 10Y ${bonds.us10y.toFixed(2)}% (${bonds.us10yAsOf}); spread ${spreadBp >= 0 ? '+' : ''}${spreadBp}bp (${spreadBp >= 0 ? 'AU premium' : 'US premium'})` : ''}
 ${upcoming ? `\nSCHEDULED EVENTS — next 14 days (dates are fixed; use these, not any you recall):\n${upcoming}` : ''}
 ${live ? `\nLIVE AS OF NOW:\n${live}` : ''}
 
+${personal.headlines ? `\nTODAY'S TOP HEADLINES — real, from the terminal's news feed; refer to them, do not invent others:\n${personal.headlines}\n` : ''}
 Investor's watchlist: ${watchlistSymbols || 'Not set'}
+${personal.movers ? `Watchlist moves:\n${personal.movers}` : ''}
 Portfolio holdings: ${portfolioSummary || 'Not set'}
+${personal.pnl ? `Portfolio today: ${personal.pnl}` : ''}
 ${profileLines ? `\n${profileLines}\n` : ''}
 Generate the morning brief now. Do not state any figure not listed above.
   `.trim()

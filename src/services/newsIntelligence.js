@@ -367,3 +367,13 @@ export function annotateArticles(articles = [], watchlist = []) {
     return annotated
   })
 }
+
+// The few stories that matter most from a feed — real headlines, ranked by
+// scoreArticle, one per story (clusterStories folds outlets covering the same
+// event), optionally within a time window. For prompts that must quote
+// actual headlines rather than let a model recall or invent them.
+export function topStories(articles = [], { watchlist = [], n = 3, sinceMs = null, untilMs = null } = {}) {
+  const pool = annotateArticles(articles, watchlist).filter((a) => a.headline && (sinceMs == null || (a.pubDate ?? 0) >= sinceMs) && (untilMs == null || (a.pubDate ?? 0) <= untilMs))
+  const leads = clusterStories(pool).map((c) => c.lead).filter((a) => a?.headline)
+  return leads.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, n)
+}

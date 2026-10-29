@@ -1,4 +1,5 @@
-import { askClaudeJSON } from './api'
+import { askClaudeJSON, fetchNews } from './api'
+import { topStories } from './newsIntelligence'
 import { liveDataService } from './liveDataService'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 import { GEO_RISK_INDEX } from '../data/geopoliticalRisk'
@@ -115,6 +116,8 @@ function trimWeeklyHistory() {
 // ── Context ────────────────────────────────────────────────────────────────
 
 const inRange = (ymd, from, to) => ymd >= from && ymd <= to
+// Names for the verified-figure blocks that carry no label of their own.
+const CONSTANT_LABEL = { au: 'Australian macro', us: 'US macro', cn: 'China macro', uk: 'UK macro', eu: 'Euro area macro', jp: 'Japan macro', commodities: 'Commodity prices', bonds: 'Bond yields', indices: 'Index levels' }
 const dayName = (ymd) => new Date(toMs(ymd)).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 // AUD/USD over the week from the ECB reference fixings: the last fixing before
@@ -137,11 +140,12 @@ export async function buildWeeklyContext(week, now = new Date()) {
   const nextFriday = addDays(friday, 7)
   const { rba, fed, au, us, bonds, commodities: C } = VERIFIED_CONSTANTS
 
-  const [cal, fx, fg, gold] = await Promise.allSettled([
+  const [cal, fx, fg, gold, news] = await Promise.allSettled([
     getEconomicCalendar(),
     audWeek(week),
     liveDataService.getFearGreed(),
     liveDataService.getGoldPrice(),
+    fetchNews(),
   ])
   const ok = (r) => (r.status === 'fulfilled' ? r.value : null)
   const events = ok(cal)?.events ?? []
@@ -166,6 +170,30 @@ export async function buildWeeklyContext(week, now = new Date()) {
     .filter((d) => inRange(d.date, monday, friday))
     .map((d) => `- ${who} ${dayName(d.date)}: ${d.decision}${d.change ? ` ${d.change > 0 ? '+' : ''}${d.change}bp` : ''} to ${d.rateRange ?? `${d.rate.toFixed(2)}%`}${d.vote ? `, vote ${d.vote}` : ''}${d.reason ? ` — ${d.reason}` : ''}`)
   const decisions = [...decisionsIn(rba.decisions, 'RBA'), ...decisionsIn(fed.decisions, 'Fed')]
+  // The other banks hold their latest decision only (no history list), which
+  // is enough for a week: was it this week, and what was it.
+  for (const k of ['ecb', 'boj', 'boe', 'boc', 'rbnz', 'pboc', 'snb', 'riksbank']) {
+    const b = VERIFIED_CONSTANTS[k]
+    if (b?.lastDecision && inRange(b.lastDecision, monday, friday)) {
+      decisions.push(`- ${b.label === 'BOC' ? 'BoC' : b.label} ${dayName(b.lastDecision)}: ${b.lastDecisionVerb}${b.lastChange && b.lastChange !== '0bp' ? ` ${b.lastChange}` : ''} — rate ${b.cashRate.toFixed(2)}%${b.note ? ` (${b.note})` : ''}`)
+    }
+  }
+
+  // The week's top stories: real headlines from the news feed, one per story.
+  const weekStart = Date.parse(`${monday}T00:00:00+10:00`)
+  const weekEnd = Date.parse(`${addDays(friday, 2)}T23:59:59+10:00`)
+  const stories = news.status === 'fulfilled'
+    ? topStories(news.value?.articles ?? [], { n: 3, sinceMs: weekStart, untilMs: weekEnd })
+      .map((a) => `- "${a.headline}" (${a.source}${a.pubDate ? `, ${dayName(new Date(a.pubDate).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))}` : ''})`)
+    : []
+
+  // What changed in the terminal's verified figures this week: every block
+  // whose as-of or last-decision date falls inside it.
+  const changed = Object.entries(VERIFIED_CONSTANTS)
+    .filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v))
+    .map(([key, v]) => ({ key, label: v.label ?? CONSTANT_LABEL[key] ?? key, date: [v.asOf, v.lastDecision, v.cpiLastRelease, v.release].filter((d) => typeof d === 'string' && inRange(d, monday, friday)).sort().pop() }))
+    .filter((x) => x.date)
+    .map((x) => `- ${x.label} — updated ${dayName(x.date)}`)
 
   const commodity = (label, key, unit, dp = 2) =>
     C[key] != null && `- ${label}: US$${C[key].toFixed(dp)}${unit} (settlement ${C.asOfBy?.[key] ?? C.asOf}${C.previous?.[key] ? `; ${C.previous[key] < C[key] ? 'up' : 'down'} ${Math.abs(((C[key] - C.previous[key]) / C.previous[key]) * 100).toFixed(0)}% since ${C.previous.asOf}` : ''})`
@@ -212,9 +240,9 @@ ${us ? `- US CPI: ${us.cpi}% YoY, core ${us.cpiCore}%; US unemployment ${us.unem
 ${bonds ? `- 10Y yields: AU ${bonds.au10y.toFixed(2)}% (${bonds.au10yAsOf}), US ${bonds.us10y.toFixed(2)}% (${bonds.us10yAsOf}); spread ${spreadBp >= 0 ? '+' : ''}${spreadBp}bp` : ''}
 
 CENTRAL BANK DECISIONS THIS WEEK:
-${decisions.length ? decisions.join('\n') : '- None. Neither the RBA nor the Fed met this week.'}
+${decisions.length ? decisions.join('\n') : '- None of the tracked central banks decided this week.'}
 
-RELEASES THIS WEEK (names and dates; a result is given only where confirmed — do not supply one yourself):
+${stories.length ? `TOP STORIES THIS WEEK — real headlines from the news feed; refer to them, do not invent others:\n${stories.join('\n')}\n\n` : ''}${changed.length ? `VERIFIED FIGURES UPDATED THIS WEEK (the terminal's own record of what changed):\n${changed.join('\n')}\n\n` : ''}RELEASES THIS WEEK (names and dates; a result is given only where confirmed — do not supply one yourself):
 ${released.length ? released.join('\n') : '- No major scheduled releases this week.'}
 
 COMMODITIES — dated settlements, quote with their dates:
