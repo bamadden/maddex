@@ -210,11 +210,17 @@ export const VERIFIED_CONSTANTS = {
     source: 'rbnz.govt.nz (via RNZ, Newsquawk)', asOf: '2026-10-28', lastVerified: '2026-10-28',
   },
   boc: {
-    label: 'BOC', country: 'Canada', cashRate: 2.25,
-    lastDecision: '2026-09-02', lastDecisionVerb: 'HOLD', nextMeeting: '2026-10-28',
-    // Re-checked 2026-10-27: 2.25% since the 29 Oct 2025 cut; next Wed 28 Oct
-    // (9:45 ET, with the MPR).
-    source: 'bankofcanada.ca', asOf: '2026-09-02', lastVerified: '2026-10-27',
+    label: 'BOC', country: 'Canada', cashRate: 2.50,
+    previousRate: 2.25, lastChange: '+25bp',
+    lastDecision: '2026-10-28', lastDecisionVerb: 'HIKE', nextMeeting: '2026-12-09',
+    note: 'First hike since July 2023; inflation higher and more persistent than expected',
+    // UPDATED 2026-10-29: raised the overnight target 25bp to 2.50% on 28 Oct
+    // (Bank Rate 2.75%, deposit rate 2.45%) — bankofcanada.ca press release,
+    // confirmed by TD Economics and MoneySense. The release gives no vote; the
+    // Governing Council decides by consensus. Next announcement 9 Dec.
+    // Cycle low: 2.25% from the 29 Oct 2025 cut, held until this hike.
+    cycleLow: { rate: 2.25, date: '2025-10-29' },
+    source: 'bankofcanada.ca', asOf: '2026-10-28', lastVerified: '2026-10-29',
   },
   snb: {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,

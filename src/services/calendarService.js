@@ -44,8 +44,6 @@ const FALLBACK_EVENTS = [
     })() },
   { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium',
     description: 'RESULT: HOLD at 2.75% (4–3 vote) — markets had priced a hike to 3.00%. Next decision 9 Dec.' },
-  { date: '2026-10-29', time: '00:45', event: 'Bank of Canada Rate Decision',        region: 'CA', importance: 'medium',
-    description: 'Policy rate 2.25%. 9:45am Ottawa, Wed 28 Oct.' },
   { date: '2026-10-30', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium',
     description: 'Deposit rate 2.50% after the 10 Sep hike. A hold is the consensus; December carries new projections.' },
   { date: '2026-10-30', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium',
@@ -75,6 +73,7 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-10-15', event: 'AU Unemployment Rate (Sep)',    region: 'AU', result: '4.7%' },
   { date: '2026-10-28', event: 'AU CPI (Sep, incl. Sep quarter)', region: 'AU', result: '4.3% y/y · trimmed mean 1.0% q/q' },
   { date: '2026-10-28', event: 'RBNZ OCR Decision',             region: 'NZ', result: 'HOLD at 2.75% (4–3; hike was priced)' },
+  { date: '2026-10-28', event: 'Bank of Canada Rate Decision',  region: 'CA', result: 'HIKE +25bp to 2.50% (first since 2023)' },
   { date: '2026-10-28', event: 'FOMC Rate Decision',            region: 'US', result: 'HOLD at 3.75–4.00% (10–2; two dissents for a hike)' },
 ]
 
