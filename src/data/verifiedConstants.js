@@ -107,12 +107,15 @@ export const VERIFIED_CONSTANTS = {
     country: 'United States',
     cashRate: 4.00,
     rateRange: '3.75–4.00%',
-    previousRate: 3.75,
-    lastChange: '+25bp',
-    note: 'Unanimous 12-0 vote; first hike since 2023',
-    lastDecision: '2026-09-16',
-    lastDecisionVerb: 'HIKE',
-    nextMeeting: '2026-10-28',
+    // UPDATED 2026-10-29: held 28 Oct (FOMC statement, federalreserve.gov;
+    // CNBC, Yahoo Finance). Previous move: +25bp on 16 Sep. Next: 8–9 Dec,
+    // with projections (Fed FOMC calendar).
+    previousRate: 4.00,
+    lastChange: '0bp',
+    note: 'Held 10–2; Cook and Hammack dissented for a 25bp hike',
+    lastDecision: '2026-10-28',
+    lastDecisionVerb: 'HOLD',
+    nextMeeting: '2026-12-09',
     // Every FOMC rate move since the 2020 emergency cut, and every 2026
     // meeting including holds, by ANNOUNCEMENT date. `rate` is the top of the
     // target range. Moves checked 2026-10-19 against the Fed's own target
@@ -152,10 +155,12 @@ export const VERIFIED_CONSTANTS = {
         reason: 'Held. Hammack, Kashkari and Logan dissented, preferring a 25bp hike.' },
       { date: '2026-09-16', rate: 4.00, rateRange: '3.75–4.00', decision: 'HIKE', change: 25, vote: '12–0',
         reason: 'Inflation remains elevated; the hike supports a timelier return to 2%.' },
+      { date: '2026-10-28', rate: 4.00, rateRange: '3.75–4.00', decision: 'HOLD', change: 0, vote: '10–2',
+        reason: 'Held; inflation still elevated. Cook and Hammack dissented, preferring a 25bp hike.' },
     ],
     source: 'federalreserve.gov',
-    asOf: '2026-09-16',
-    lastVerified: '2026-10-19',
+    asOf: '2026-10-28',
+    lastVerified: '2026-10-29',
   },
   ecb: {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
@@ -555,7 +560,7 @@ export const VERIFIED_CONSTANTS = {
     // Payroll change, thousands. Aug is the revised figure as of the Sep
     // report (Jul and Aug were revised down a combined 60k).
     nfpThousands: 29, nfpPrevious: 133, nfpRelease: '2026-10-02',
-    fedFundsRelease: '2026-09-16',
+    fedFundsRelease: '2026-10-28',
     // Seasonally adjusted unemployment rate, monthly, for the Sahm-style
     // factor in recessionRisk.js. October 2025 is null: the federal
     // government shutdown meant the household survey was not collected that

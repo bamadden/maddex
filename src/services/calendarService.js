@@ -44,9 +44,6 @@ const FALLBACK_EVENTS = [
     })() },
   { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium',
     description: 'RESULT: HOLD at 2.75% (4–3 vote) — markets had priced a hike to 3.00%. Next decision 9 Dec.' },
-  { date: '2026-10-29', time: '05:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
-    sourceUrl: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', sourceLabel: 'FEDERALRESERVE.GOV', watch: ['fedUpper'],
-    description: 'First meeting after the September hike to 3.75–4.00%. CME FedWatch had ~90% priced for a hold (28 Oct); no new projections until December.' },
   { date: '2026-10-29', time: '00:45', event: 'Bank of Canada Rate Decision',        region: 'CA', importance: 'medium',
     description: 'Policy rate 2.25%. 9:45am Ottawa, Wed 28 Oct.' },
   { date: '2026-10-30', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium',
@@ -64,7 +61,8 @@ const FALLBACK_EVENTS = [
     sourceUrl: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['unemployment'],
     description: 'Unemployment was 4.7% in September, a five-year high.' },
   { date: '2026-12-08', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high' },
-  { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high' },
+  { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
+    description: 'Range 3.75–4.00% after the 28 Oct hold (10–2; Cook and Hammack wanted a hike). New projections.' },
 ]
 
 // Recent confirmed results. Kept separate from the forward calendar since
@@ -77,6 +75,7 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-10-15', event: 'AU Unemployment Rate (Sep)',    region: 'AU', result: '4.7%' },
   { date: '2026-10-28', event: 'AU CPI (Sep, incl. Sep quarter)', region: 'AU', result: '4.3% y/y · trimmed mean 1.0% q/q' },
   { date: '2026-10-28', event: 'RBNZ OCR Decision',             region: 'NZ', result: 'HOLD at 2.75% (4–3; hike was priced)' },
+  { date: '2026-10-28', event: 'FOMC Rate Decision',            region: 'US', result: 'HOLD at 3.75–4.00% (10–2; two dissents for a hike)' },
 ]
 
 function readCache() {
