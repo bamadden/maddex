@@ -164,15 +164,19 @@ export const VERIFIED_CONSTANTS = {
   },
   ecb: {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
-    lastDecision: '2026-09-10', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-29',
-    note: 'Deposit facility rate',
+    lastDecision: '2026-10-29', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-17',
+    previousRate: 2.50, lastChange: '0bp',
+    note: 'Deposit facility rate; held, meeting-by-meeting — Lagarde to step down 7 Feb 2027',
     // Low of the last easing cycle, for the Rates "hike cycle" view: 2.00%
     // from June 2025; hiked to 2.25% (effective 17 Jun 2026) and 2.50%
     // (effective 16 Sep 2026) — euronews, 10 Sep 2026. Checked 2026-10-28.
     cycleLow: { rate: 2.00, date: '2025-06-11' },
-    // Re-checked 2026-10-27: no decision since 10 Sep. The 28–29 Oct meeting
-    // announces Thu 29 Oct, 14:15 CET.
-    source: 'ecb.europa.eu', asOf: '2026-09-10', lastVerified: '2026-10-27',
+    // UPDATED 2026-10-30: held all three key rates on 29 Oct — deposit 2.50%,
+    // MRO 2.65%, marginal lending 2.90% (ECB press release ecb.mp261029;
+    // key-rates page unchanged since 16 Sep; FX.co). "Data-dependent and
+    // meeting-by-meeting", energy prices an upside risk to inflation. No vote
+    // published. Last move: +25bp on 10 Sep. Next: 17 Dec (ECB calendar).
+    source: 'ecb.europa.eu', asOf: '2026-10-29', lastVerified: '2026-10-30',
   },
   boe: {
     label: 'BOE', country: 'United Kingdom', cashRate: 3.75,
@@ -277,12 +281,14 @@ export const VERIFIED_CONSTANTS = {
       role: 'President of the European Central Bank',
       name: 'Christine Lagarde',
       since: '2019-11-01',
-      // Derived from the fixed eight-year non-renewable term rather than
-      // quoted from a source, so it is marked as such.
-      termEnds: '2027-10-31',
-      termEndsDerived: true,
-      source: 'ecb.europa.eu',
-      lastVerified: '2026-09-07',
+      // Stepping down early: the ECB announced on 29 Oct 2026 that she leaves
+      // on 7 Feb 2027, about nine months before her term's 31 Oct 2027 end. No
+      // reason given; the European Council began the appointment process the
+      // same day (Euronews, CNN, FXStreet). No successor named yet.
+      termEnds: '2027-02-07',
+      note: 'Stepping down 7 Feb 2027 (announced 29 Oct 2026); successor not yet named',
+      source: 'ecb.europa.eu (via Euronews, 29 Oct 2026)',
+      lastVerified: '2026-10-30',
     },
     boe: {
       role: 'Governor of the Bank of England',

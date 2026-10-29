@@ -44,8 +44,6 @@ const FALLBACK_EVENTS = [
     })() },
   { date: '2026-10-28', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium',
     description: 'RESULT: HOLD at 2.75% (4–3 vote) — markets had priced a hike to 3.00%. Next decision 9 Dec.' },
-  { date: '2026-10-30', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium',
-    description: 'Deposit rate 2.50% after the 10 Sep hike. A hold is the consensus; December carries new projections.' },
   { date: '2026-10-30', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium',
     description: 'Policy rate 1.25% after the 18 Sep hike; Outlook Report released with the decision.' },
   { date: '2026-10-30', time: '11:30', event: 'AU Producer Price Index (Sep)',       region: 'AU', importance: 'low' },
@@ -61,6 +59,8 @@ const FALLBACK_EVENTS = [
   { date: '2026-12-08', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high' },
   { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
     description: 'Range 3.75–4.00% after the 28 Oct hold (10–2; Cook and Hammack wanted a hike). New projections.' },
+  { date: '2026-12-18', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium',
+    description: 'Deposit rate 2.50% after the 29 Oct hold; new staff projections. Lagarde\'s last meetings before she steps down on 7 Feb 2027.' },
 ]
 
 // Recent confirmed results. Kept separate from the forward calendar since
@@ -75,6 +75,7 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-10-28', event: 'RBNZ OCR Decision',             region: 'NZ', result: 'HOLD at 2.75% (4–3; hike was priced)' },
   { date: '2026-10-28', event: 'Bank of Canada Rate Decision',  region: 'CA', result: 'HIKE +25bp to 2.50% (first since 2023)' },
   { date: '2026-10-28', event: 'FOMC Rate Decision',            region: 'US', result: 'HOLD at 3.75–4.00% (10–2; two dissents for a hike)' },
+  { date: '2026-10-29', event: 'ECB Rate Decision',             region: 'EU', result: 'HOLD at 2.50% deposit rate (Lagarde to step down 7 Feb 2027)' },
 ]
 
 function readCache() {
