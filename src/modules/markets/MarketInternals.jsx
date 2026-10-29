@@ -167,23 +167,23 @@ export default function MarketInternals() {
         </Stat>
         <Stat label="52-WEEK HIGHS / LOWS" sub="Within 0.5% of the 52-week extreme">
           <div className="flex items-baseline gap-4 font-mono tabular-nums">
-            <span><b className="text-lg" style={{ color: 'var(--color-gain)' }}>{m.highs}</b> <span className="text-[9px] text-terminal-text-dim">HIGHS</span></span>
-            <span><b className="text-lg" style={{ color: 'var(--color-loss)' }}>{m.lows}</b> <span className="text-[9px] text-terminal-text-dim">LOWS</span></span>
+            <span><b className="text-lg" style={{ color: 'var(--color-gain)' }}>{m.highs}</b> <span className="text-[9px] text-terminal-text-dim">NEW HIGHS</span></span>
+            <span><b className="text-lg" style={{ color: 'var(--color-loss)' }}>{m.lows}</b> <span className="text-[9px] text-terminal-text-dim">NEW LOWS</span></span>
           </div>
         </Stat>
-        <Stat label="ABOVE MOVING AVERAGE">
+        <Stat label="ABOVE MOVING AVERAGE" sub={m.above200 != null ? `Below 200-day: ${(100 - m.above200).toFixed(0)}% of stocks — ${m.above200 >= 50 ? 'the long-term trend is still up for most' : 'most are in long-term downtrends'}` : null}>
           <div className="space-y-1">
             <MaRow n={200} pct={m.above200} />
             <MaRow n={50} pct={m.above50} />
             <MaRow n={20} pct={m.above20} />
           </div>
         </Stat>
-        <Stat label="ASX 200 REALISED VOL (20D)" sub={band ? `${band.note} · 0–20 low · 20–30 normal · 30+ elevated` : 'Not enough history'}>
+        <Stat label="VIX EQUIVALENT · ASX 200 20D VOL" sub={band ? `${band.note} · 0–20 low · 20–30 normal · 30+ elevated` : 'Not enough history'}>
           <div className="flex items-baseline gap-2 font-mono">
             <b className="text-lg tabular-nums" style={{ color: band?.colour ?? '#8BA3C4' }}>{vol != null ? vol.toFixed(1) : '—'}</b>
             {band && <span className="text-[9px] font-bold tracking-widest" style={{ color: band.colour }}>{band.label}</span>}
           </div>
-          <div className="font-mono text-[8px] text-terminal-text-dim/60 mt-0.5">Annualised · no implied-vol (A-VIX) feed connected</div>
+          <div className="font-mono text-[8px] text-terminal-text-dim/60 mt-0.5">Realised (measured), annualised — read like the VIX; no implied-vol (A-VIX) feed connected</div>
         </Stat>
       </div>
       {showSectors && (

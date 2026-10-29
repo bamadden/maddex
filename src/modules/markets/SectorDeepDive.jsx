@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS } from '../../data/sectorTaxonomy'
+import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS, RATE_SENSITIVITY, RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
+import { useStore } from '../../store/useStore'
+import { screenSector } from './screenSector'
 import { getMockFMPRow, getMockFMPHistory } from '../../services/mockData'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI } from '../../utils/askAI'
@@ -209,6 +211,9 @@ function Range52({ pos }) {
 
 export default function SectorDeepDive({ sectorName, indexId, openModal, onClose }) {
   const [tab, setTab] = useState('OVERVIEW')
+  const { setActiveModule } = useStore()
+  const isAsx = indexId === '^AXJO' || indexId === '^AORD'
+  const rate = isAsx ? RATE_SENSITIVITY[sectorName] : null
   const [sortCol, setSortCol] = useState('mcap')
   const [sortDir, setSortDir] = useState('desc')
   const [perfPeriod, setPerfPeriod] = useState('m3')
@@ -401,8 +406,23 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
           <span className="text-2xs text-terminal-text-dim">MCAP {fmt.large(totalMcap)}</span>
           <span className="text-2xs text-terminal-text-dim">A/D {advances}:{declines}</span>
           <DemoBadge />
+          {rate && (
+            <span
+              className="text-2xs font-mono font-bold px-1.5 py-0.5"
+              style={{ color: RATE_LEVEL_STYLE[rate.level].colour, border: `1px solid ${RATE_LEVEL_STYLE[rate.level].colour}66` }}
+              title={`${rate.why}. Typical relationship (estimate), not a forecast.`}
+            >RATES: {rate.level === 'POSITIVE' ? 'BENEFITS FROM HIKES' : `${rate.level} SENSITIVITY`}</span>
+          )}
         </div>
-        <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
+        <div className="flex items-center gap-2">
+          {isAsx && (
+            <button
+              onClick={() => { screenSector(sectorName, setActiveModule); onClose() }}
+              className="text-2xs font-bold border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 transition-colors"
+            >SCREEN THIS SECTOR ▶</button>
+          )}
+          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
+        </div>
       </div>
 
       {/* Tabs — shared sliding-underline bar */}

@@ -10,6 +10,7 @@ import EarningsCalendar from './EarningsCalendar'
 import UpcomingListings from './UpcomingListings'
 import MarketInternals from './MarketInternals'
 import VolatilityBanner from './VolatilityBanner'
+import MarketRelationships from './MarketRelationships'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 
@@ -69,6 +70,9 @@ export default function MarketsModule() {
 
         {/* Sector rotation snapshot */}
         <SectorRotation />
+
+        {/* Measured cross-asset correlations, real daily series only */}
+        <MarketRelationships />
 
         {/* Upcoming ASX earnings */}
         <EarningsCalendar />

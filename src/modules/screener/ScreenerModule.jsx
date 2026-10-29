@@ -10,6 +10,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
 import { useSubscription } from '../../hooks/useSubscription'
+import { takeModuleIntent } from '../../services/moduleIntent'
 
 // Two derived fields the raw data does not carry, computed once here rather
 // than at every filter, sort and render:
@@ -550,6 +551,10 @@ function manualCriteria(f) {
   return out
 }
 
+const GICS_TO_SHORT = {
+  'Information Technology': 'IT', 'Health Care': 'Health', 'Consumer Discretionary': 'Cons Disc',
+  'Consumer Staples': 'Staples', 'Real Estate': 'Real Est', 'Communication Services': 'Comms',
+}
 const DEFAULT_FILTERS = { exchange: 'ALL', sector: 'ALL', peMax: Math.ceil(MAX_PE), mktCap: 'all', divMin: 0, pos52Min: 0 }
 
 // ── CSV export ─────────────────────────────────────────────────────────────
@@ -721,7 +726,14 @@ export default function ScreenerModule() {
   const [activePreset, setActivePreset] = useState(null)
   const [parsed, setParsed] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [filters, setFilters] = useState(DEFAULT_FILTERS)
+  // SCREEN THIS SECTOR (Markets heatmap and sector deep dive) arrives as a
+  // module intent carrying a GICS sector name; the screener's rows use the
+  // demo layer's short names, so the name is mapped across.
+  const [filters, setFilters] = useState(() => {
+    const intent = takeModuleIntent('screener')
+    const want = intent?.sector ? (GICS_TO_SHORT[intent.sector] ?? intent.sector) : null
+    return want && SECTORS.includes(want) ? { ...DEFAULT_FILTERS, sector: want } : DEFAULT_FILTERS
+  })
   const [sortKey, setSortKey] = useState('matchPct')
   const [sortDir, setSortDir] = useState('desc')
   const [researchNoteAsset, setResearchNoteAsset] = useState(null)

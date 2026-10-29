@@ -14,6 +14,7 @@ import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Brush } from 'recharts'
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix'
 import SectorDeepDive from './SectorDeepDive'
+import { screenSector } from './screenSector'
 import { getMockFMPRow } from '../../services/mockData'
 import SafeChart from '../../components/ui/SafeChart'
 
@@ -629,6 +630,7 @@ function MetricToggle({ metric, setMetric }) {
 
 function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal, onOpenDeepDive }) {
   const [selected, setSelected] = useState(null)
+  const { setActiveModule } = useStore()
   const [hovered, setHovered] = useState(null)
   const [view3D, setView3D] = useState(false)
   const [landscapeMode, setLandscapeMode] = useState('sectors') // 'sectors' | 'cityscape'
@@ -1174,12 +1176,25 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
               {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <span className="text-terminal-green text-2xs font-normal">● LIVE</span>)}
+              {isASX && RATE_SENSITIVITY[selected] && <RatePill s={RATE_SENSITIVITY[selected]} sector={selected} />}
               <button
                 onClick={askAISector}
                 className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
               >
                 AI ▶
               </button>
+              <button
+                onClick={() => onOpenDeepDive?.(selected)}
+                title={`${selected} deep dive — constituents, P/E and yield vs market, performance`}
+                className="text-2xs border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
+              >DEEP DIVE ⛶</button>
+              {isASX && (
+                <button
+                  onClick={() => screenSector(selected, setActiveModule)}
+                  title={`Open the Screener filtered to ${selected}`}
+                  className="text-2xs border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
+                >SCREEN ▶</button>
+              )}
             </div>
 
             {/* Sector detail is on every plan — see services/plans GATES. */}

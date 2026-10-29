@@ -112,6 +112,14 @@ export default function EarningsCalendar() {
 
   const dayList = selectedDate ? (byDate.get(selectedDate) ?? []) : []
 
+  // This week, Monday to Sunday, tinted on the grid.
+  const [{ weekStart, weekEnd }] = useState(() => {
+    const d = new Date()
+    const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7))
+    const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
+    return { weekStart: toKey(mon), weekEnd: toKey(sun) }
+  })
+
   return (
     <div className="flex-shrink-0 border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2">
@@ -150,6 +158,7 @@ export default function EarningsCalendar() {
               const key = toKey(d)
               const list = byDate.get(key) ?? []
               const anyWatched = list.some((e) => isWatched(e.ticker))
+              const inWeek = key >= weekStart && key <= weekEnd
               return (
                 <button
                   key={key}
@@ -160,7 +169,7 @@ export default function EarningsCalendar() {
                       : key === todayKey ? 'border border-terminal-gold/40'
                       : list.length ? 'hover:bg-terminal-accent/20 border border-transparent'
                       : 'border border-transparent'
-                  }`}
+                  } ${inWeek && key !== selectedDate ? 'bg-terminal-gold/[0.06]' : ''}`}
                 >
                   <span className={`text-2xs tabular-nums ${list.length ? 'text-terminal-text-bright' : 'text-terminal-text-dim/40'}`}>
                     {d.getDate()}
@@ -204,6 +213,7 @@ export default function EarningsCalendar() {
                   </span>
                   <span className="text-2xs text-terminal-text-dim truncate flex-1">{e.company}</span>
                   <span className="text-2xs text-terminal-text-dim/60 flex-shrink-0">{e.type}</span>
+                  {e.source && <span className="text-[8px] font-bold tracking-wider text-terminal-green/80 border border-terminal-green/40 px-1 flex-shrink-0" title={e.source}>SOURCED</span>}
                 </button>
               ))}
             </div>
@@ -237,7 +247,7 @@ export default function EarningsCalendar() {
                       {e.company}
                       {isWatched(e.ticker) && <span className="text-terminal-gold ml-1" title="In your watchlist">★</span>}
                     </span>
-                    <span className="text-2xs text-terminal-text-dim/60 w-20 flex-shrink-0 truncate">{e.type}</span>
+                    <span className="text-2xs text-terminal-text-dim/60 w-20 flex-shrink-0 truncate" title={e.source ? `Source: ${e.source}` : 'Approximate date'}>{e.type}{e.source ? ' ✓' : ''}</span>
                     <span className="text-2xs text-terminal-text-dim w-14 flex-shrink-0 text-right tabular-nums">
                       {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days}d`}
                     </span>
@@ -263,7 +273,9 @@ export default function EarningsCalendar() {
               unsourced figures beside them would make the panel look researched
               when it is not. */}
           <div className="text-2xs text-terminal-text-dim/50 mt-2 leading-relaxed">
-            Reporting dates are real. EPS and revenue estimates are illustrative placeholders,
+            Upcoming dates marked ✓ are from each company&apos;s own financial calendar; the
+            August-season dates are approximate. Companies move dates — confirm on the ASX
+            announcements platform. EPS and revenue estimates are illustrative placeholders,
             not broker consensus. No historical beat rate or implied move is shown — neither
             has a data source connected.
           </div>

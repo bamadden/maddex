@@ -263,6 +263,15 @@ function LiveIndexPrice({ symbol, q, sparkPoints, isStale, dataDate }) {
   const flashClass = flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
   return (
     <div className="mt-0.5">
+      {/* Card-level glow on a tick. Positioned against the card (the nearest
+          relative ancestor), keyed on the price so each tick restarts it. */}
+      {flash && (
+        <span
+          key={`${flash}-${livePrice}`}
+          aria-hidden="true"
+          className={`absolute inset-0 pointer-events-none ${flash === 'up' ? 'card-glow-up' : 'card-glow-down'}`}
+        />
+      )}
       <div className={`text-[18px] font-mono font-semibold text-white leading-none whitespace-nowrap ${flashClass}`}>
         {fmt.price(livePrice, 1)}
       </div>

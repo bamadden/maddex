@@ -12,6 +12,8 @@ import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useLivePrice } from '../../hooks/useLivePrice'
+import { avgVolume20 } from '../../services/alertsService'
+import { askMaddenAI } from '../../utils/askAI'
 
 // Live-ticking price + change cells for one mover row (ASX symbols only —
 // their mock quote is already AUD-native, unlike US symbols which need the
@@ -129,7 +131,19 @@ const COLUMNS = [
   { key: 'vol',        label: 'VOLUME',   align: 'right', cell: 'xl', width: 70 },
 ]
 
+// Volume against its 20-day average. Live quotes carry an average; in demo
+// mode it is measured from the same daily bars the charts draw (the quote's
+// own average field is a fixed fraction of volume there, so it would always
+// read the same ratio).
+function volRatio(q) {
+  if (q.vol == null) return null
+  const avg = USING_MOCK_DATA ? avgVolume20(q.symbol) : q.avgVolume
+  return avg > 0 ? q.vol / avg : null
+}
+
 function SortableTable({ items, audUsd, onRowClick, newsBy }) {
+  const { watchlist } = useStore()
+  const watched = new Set((watchlist ?? []).map((w) => String(w).toUpperCase()))
   const [sortKey, setSortKey] = useState(null)
   const [sortDir, setSortDir] = useState('desc')
 
@@ -193,7 +207,15 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
             style={{ animationDelay: `${i * 35}ms` }}
             onClick={() => onRowClick(q)}>
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim" style={{ width: 24, minWidth: 24 }}>{i + 1}</td>
-            <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold" style={{ width: 60, minWidth: 60 }}>{displaySym(q.symbol)}</td>
+            <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold whitespace-nowrap group" style={{ width: 60, minWidth: 60 }}>
+              {displaySym(q.symbol)}
+              {watched.has(q.symbol.toUpperCase()) && <span className="ml-1 text-[8px] text-terminal-gold" title="In your watchlist">★</span>}
+              <button
+                onClick={(e) => { e.stopPropagation(); askMaddenAI(`Analyse ${q.name ?? displaySym(q.symbol)} (${q.symbol}) — it is among today's ${q.dayChangePct >= 0 ? 'top gainers' : 'biggest losers'}${newsBy?.[displaySym(q.symbol)] ? `, and the latest headline naming it is "${newsBy[displaySym(q.symbol)].headline}"` : ', with no recent headline naming it'}. What could be driving the move and what should I watch?${USING_MOCK_DATA ? ' Prices here are demo data, so do not treat the size of the move as real.' : ''}`) }}
+                title={`Analyse ${displaySym(q.symbol)} with MaddenAI`}
+                className="ml-1 text-[8px] font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold px-1 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-terminal-gold hover:text-terminal-bg transition-opacity"
+              >ANALYSE</button>
+            </td>
             <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
             <td className="px-1.5 py-0.5 hidden lg:table-cell align-middle" style={{ width: 58, minWidth: 58 }}>
               <IntradaySpark symbol={q.symbol} price={audPrice} pct={q.dayChangePct} />
@@ -208,10 +230,8 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
             </td>
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell" style={{ width: 70, minWidth: 70 }}>
               {q.vol != null ? fmt.large(q.vol) : '—'}
-              {/* vs average only on live data — the demo layer's average
-                  volume is a fixed fraction of volume, so the ratio is noise */}
-              {!USING_MOCK_DATA && q.vol != null && q.avgVolume > 0 && (
-                <div className="text-[8px]" style={{ color: q.vol / q.avgVolume >= 1.5 ? '#C9A84C' : undefined }}>{(q.vol / q.avgVolume).toFixed(1)}× avg</div>
+              {volRatio(q) != null && (
+                <div className="text-[8px]" style={{ color: volRatio(q) >= 1.5 ? '#C9A84C' : undefined }} title="Today's volume vs its 20-day average">{volRatio(q).toFixed(1)}× avg</div>
               )}
             </td>
           </tr>
