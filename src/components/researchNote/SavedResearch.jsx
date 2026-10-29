@@ -1,6 +1,8 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { deleteNoteFromHistory, noteId, NOTE_KIND_LABEL } from '../../services/researchNoteService'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
+import { useStore } from '../../store/useStore'
+import { getWeeklyNotes, setWeeklyNotesEnabled, weeklyNoteSymbols, WEEKLY_NOTES_CHANGED, WEEKLY_NOTE_COUNT } from '../../services/noteScheduler'
 
 // SAVED RESEARCH — the last ten research notes, in the MaddenAI panel.
 //
@@ -11,6 +13,35 @@ import { useResearchHistory } from '../../hooks/useResearchHistory'
 const ResearchNoteGenerator = lazy(() => import('./ResearchNoteGenerator'))
 
 const STANCE_TONE = { CONSTRUCTIVE: '#2D8A50', BALANCED: '#C9A84C', CAUTIOUS: '#A83232' }
+
+// [SCHEDULE WEEKLY NOTE] — fresh notes on the top watchlist stocks each
+// Monday (services/noteScheduler).
+function WeeklyNotesBar() {
+  const { watchlist } = useStore()
+  const [s, setS] = useState(getWeeklyNotes)
+  useEffect(() => {
+    const on = () => setS(getWeeklyNotes())
+    window.addEventListener(WEEKLY_NOTES_CHANGED, on)
+    return () => window.removeEventListener(WEEKLY_NOTES_CHANGED, on)
+  }, [])
+  const syms = weeklyNoteSymbols(watchlist ?? []).map((x) => x.replace(/\.AX$/i, ''))
+  return (
+    <div className="px-3 py-1.5 border-b border-terminal-border/40 flex items-center gap-2 flex-wrap">
+      <button
+        onClick={() => setWeeklyNotesEnabled(!s.enabled)}
+        aria-pressed={s.enabled}
+        className={`text-[9px] font-bold font-mono tracking-wider border px-2 py-0.5 transition-colors ${s.enabled ? 'border-terminal-green/60 text-terminal-green bg-terminal-green/10' : 'border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg'}`}
+      >{s.enabled ? '✓ WEEKLY NOTES ON' : '⏱ SCHEDULE WEEKLY NOTE'}</button>
+      <span className="text-[9px] font-mono text-terminal-text-dim/70 leading-snug flex-1 min-w-0">
+        {s.enabled
+          ? (syms.length
+              ? <>Every Monday before the open: {syms.join(', ')}.{s.lastRunAt && <> Last run {new Date(s.lastRunAt).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.</>}</>
+              : 'Add stocks to your watchlist — the top three get a note each Monday.')
+          : `Fresh notes on your top ${WEEKLY_NOTE_COUNT} watchlist stocks every Monday, kept here. Uses your monthly note allowance.`}
+      </span>
+    </div>
+  )
+}
 
 export default function SavedResearch() {
   const notes = useResearchHistory()
@@ -24,14 +55,18 @@ export default function SavedResearch() {
 
   if (!notes.length) {
     return (
-      <div className="p-3 text-2xs text-terminal-text-dim/50 italic">
-        No research notes yet — generate one from any stock's detail panel or the Screener.
-      </div>
+      <>
+        <WeeklyNotesBar />
+        <div className="p-3 text-2xs text-terminal-text-dim/50 italic">
+          No research notes yet — generate one from any stock's detail panel or the Screener.
+        </div>
+      </>
     )
   }
 
   return (
     <>
+      <WeeklyNotesBar />
       <div className="overflow-auto max-h-56">
         {notes.map((n) => {
           const stance = n.stance ?? NOTE_KIND_LABEL[n.kind] ?? 'BALANCED'

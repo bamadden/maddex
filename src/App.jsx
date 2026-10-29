@@ -100,6 +100,7 @@ const LEGAL_SLUGS = new Set(['terms', 'privacy', 'disclaimer'])
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { useSubscription } from './hooks/useSubscription'
+import { runWeeklyNotes } from './services/noteScheduler'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
 import { initGlobalRipples } from './hooks/useRipple'
@@ -439,6 +440,23 @@ function Terminal() {
         if (brief && !brief.isWeekend) addNotification('MORNING_BRIEF', '☀ Your morning brief is ready', { browser: { title: '☀ Morning brief ready', body: brief.headline ?? 'Your morning brief is ready', module: 'brief' } })
       })
       .catch((err) => console.warn('[Brief] auto-generation skipped:', err.message))
+  }, [watchlist, addNotification])
+
+  // Weekly research notes (services/noteScheduler): on the first load of
+  // each week, when the user has switched them on. The scheduler holds every
+  // guard — off, already run this week, plan, allowance — so this is one call.
+  const notesAttempted = useRef(false)
+  useEffect(() => {
+    if (notesAttempted.current || !watchlist?.length) return
+    const id = setTimeout(() => {
+      notesAttempted.current = true
+      runWeeklyNotes(watchlist)
+        .then((r) => {
+          if (r) addNotification('SYSTEM', `📋 Weekly research notes ready: ${r.symbols.map((x) => x.replace(/\.AX$/i, '')).join(', ')}`, { browser: { title: '📋 Weekly research notes ready', body: r.symbols.join(', '), module: 'dashboard' } })
+        })
+        .catch((err) => console.warn('[Weekly notes] skipped:', err.message))
+    }, 15_000)
+    return () => clearTimeout(id)
   }, [watchlist, addNotification])
 
   // Weekly review, after the Friday close. Checked at startup and every 15

@@ -12,6 +12,9 @@ import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../service
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import VoiceInterface from '../voice/VoiceInterface'
+import { SECTOR_BY_SYMBOL } from '../../modules/portfolio/sectorMap'
+import { rateImpact } from '../../modules/portfolio/rateSensitivity'
+import { intelligenceFeed } from '../../services/intelligenceFeed'
 import { soundService } from '../../services/soundService'
 import { createAlert } from '../../services/alertsService'
 import { logActivity } from '../../services/activityLogService'
@@ -240,7 +243,9 @@ const FOLLOW_UP_GUIDE = `
 
 FOLLOW-UP SUGGESTIONS: End every reply with one final line in exactly this form, and nothing after it:
 FOLLOW_UPS: question one | question two | question three
-Two or three questions this user would plausibly ask next, each under 60 characters, specific to what you just said — not generic ("tell me more"). Phrase them as the user would type them.`
+Three questions this user would plausibly ask next, each under 60 characters, phrased as the user would type them. Each must name the specific company, asset, indicator or event you discussed and go one step further than your answer: a driver, a comparison with a named peer, or a scenario. Make the three different in kind (for example one on a driver, one a comparison, one a risk scenario).
+Good, after a BHP answer: How does iron ore affect BHP's dividend? | Compare BHP vs RIO on valuation | What if China's steel output falls further?
+Never generic: "Tell me more", "What else?", "Any other risks?", "Can you explain further?" are not acceptable.`
 
 // RESEARCH mode instruction. Sent in the user turn, not the system prompt,
 // so switching modes never changes the cached prefix.
@@ -293,6 +298,7 @@ const PERSONAS = [
   ['analyst', 'ANALYST', 'Direct and expert. Assumes market knowledge; leads with the conclusion and the mechanism, no definitions.'],
   ['educator', 'EDUCATOR', 'Patient and accessible. Explains each concept and term the first time it appears, and what it means for an everyday investor.'],
   ['strategist', 'STRATEGIST', 'Big picture and portfolio-focused. Frames the answer as themes across asset classes and what they mean for positioning — as general information, never personal advice.'],
+  ['brief', 'BRIEF', 'Ultra-concise, for quick checks during market hours. Answer in at most three short bullet points (one sentence each), no preamble, no headers, no pleasantries, no closing summary. Lead with the answer. Still attribute figures and keep the one-line general-information note only if the answer touches on whether to buy or sell.'],
 ]
 const personaLine = (id) => {
   const p = PERSONAS.find(([k]) => k === id) ?? PERSONAS[0]
@@ -684,6 +690,93 @@ const HISTORY_MAX   = 20                              // grow to here…
 const HISTORY_KEEP  = 12                              // …then cut back to here
 const HISTORY_CHUNK = HISTORY_MAX - HISTORY_KEEP      // 8 messages ≈ 4 exchanges
 
+// The user's holdings for the per-turn context: each position with its share
+// of the money put in (cost, since this panel has no live prices to hand),
+// its sector and which way it tends to move when rates rise. With that the
+// model can answer "how does the RBA hike affect me" by naming CBA and GMG
+// rather than asking the user to list their own portfolio.
+function describeHoldings(rows, usdToAud = 1) {
+  if (!rows.length) return ''
+  const pos = new Map()
+  for (const h of rows) {
+    const k = `${h.type}:${h.symbol}`
+    const cost = (Number(h.shares) || 0) * (Number(h.avgCost) || 0) * (h.costCurrency === 'USD' ? usdToAud : 1)
+    const p = pos.get(k) ?? { h, cost: 0, shares: 0 }
+    p.cost += cost; p.shares += Number(h.shares) || 0
+    pos.set(k, p)
+  }
+  const total = [...pos.values()].reduce((s, p) => s + p.cost, 0) || 1
+  const items = [...pos.values()].sort((a, b) => b.cost - a.cost).slice(0, 15).map(({ h, cost }) => {
+    const sym = h.type === 'asx' ? `${h.symbol}.AX` : h.symbol
+    const sector = h.type === 'crypto' ? 'Crypto' : SECTOR_BY_SYMBOL[h.symbol] ?? 'Unclassified'
+    const { impact } = rateImpact(h)
+    return `${sym}${h.name && h.name !== h.symbol ? ` (${h.name})` : ''} ~${Math.round((cost / total) * 100)}% — ${sector}${impact ? `, rate impact ${impact}` : ''}`
+  })
+  return `User's portfolio holdings (share of cost, approximate; sector; how each tends to move if rates rise): ${items.join('; ')}. When a question touches rates, sectors, markets or "me/my portfolio", refer to these holdings by name.`
+}
+
+const FEED_TONE = { gold: '#C9A84C', red: '#CC4444', green: '#2D8A50', blue: '#4A9EDB' }
+
+function IntelligenceFeed({ feed, onRead, disabled }) {
+  if (!feed?.cards?.length) return null
+  return (
+    <div className="w-full mt-5">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold animate-pulse" aria-hidden="true" />
+        <span className="text-[9px] font-mono tracking-[0.16em] text-terminal-gold font-bold">INTELLIGENCE UPDATE — {feed.date}</span>
+        <span className="ml-auto text-[8px] font-mono text-terminal-text-dim/50 tracking-wider">FROM VERIFIED FIGURES</span>
+      </div>
+      <div className="space-y-1.5">
+        {feed.cards.map((c) => (
+          <div key={c.id} className="border border-terminal-border bg-terminal-bg/40 px-2.5 py-2" style={{ borderLeft: `2px solid ${FEED_TONE[c.tone] ?? FEED_TONE.gold}` }}>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono font-bold tracking-widest flex-shrink-0" style={{ fontSize: 8, color: FEED_TONE[c.tone] ?? FEED_TONE.gold }}>{c.tag}</span>
+              <span className="font-mono font-bold text-terminal-text-bright leading-snug" style={{ fontSize: 11 }}>{c.title}</span>
+            </div>
+            <p className="mt-1 font-sans text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>{c.body}</p>
+            <div className="flex items-center mt-1">
+              <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>{c.source}</span>
+              <button onClick={() => onRead(c)} disabled={disabled}
+                className="ml-auto font-mono font-bold tracking-wider text-terminal-gold hover:underline disabled:opacity-40" style={{ fontSize: 9 }}>
+                READ MORE ▶
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// The conversation as the model sees it: strict user/assistant pairs.
+//
+// Three kinds of message used to go on the wire as they were, and each one
+// weakened the next answer's memory of the thread:
+//   - an error reply ("Please sign in…") was sent back as if MaddenAI had
+//     said it; it is dropped, with the question that failed;
+//   - an empty reply (a stream that died) is an invalid message; dropped;
+//   - an ASK AI button's answer had no user turn before it, because its
+//     prompt is never shown — so "what's its biggest risk?" after one had
+//     nothing to resolve "its" against. The hidden prompt now goes back in.
+function wireHistory(msgs) {
+  const out = []
+  for (const m of msgs) {
+    if (m.role === 'assistant') {
+      if (m.error || !String(m.content ?? '').trim()) {
+        if (out.at(-1)?.role === 'user') out.pop()
+        continue
+      }
+      if (out.at(-1)?.role !== 'user') out.push({ role: 'user', content: m.hiddenPrompt ?? '(Asked from a terminal panel.)' })
+      out.push({ role: 'assistant', content: m.content })
+    } else if (m.role === 'user') {
+      if (out.at(-1)?.role === 'user') out.pop()
+      out.push({ role: 'user', content: m.content })
+    }
+  }
+  if (out.at(-1)?.role === 'user') out.pop()
+  return out
+}
+
 function windowedHistory(msgs) {
   if (msgs.length <= HISTORY_MAX) return msgs
   const start = Math.floor((msgs.length - HISTORY_KEEP) / HISTORY_CHUNK) * HISTORY_CHUNK
@@ -930,11 +1023,12 @@ export default function AIPanel({ wide = false, onListening }) {
     const investor = getInvestorContext(investorProfile)
     if (!getAiPreferences().contextAwareness) return investor ? `[CONTEXT]\n${investor}` : ''
     const moduleLabel = MODULE_LABELS[activeModule] ?? activeModule
-    let holdingSymbols = []
+    let holdingRows = []
     try {
-      holdingSymbols = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]'))
-        .map((h) => h?.symbol).filter(Boolean)
+      holdingRows = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]')).filter((h) => h?.symbol)
     } catch { /* best-effort */ }
+    const audUsd = queryClient.getQueryData(['fxRates'])?.data?.USD
+    const holdingsLine = describeHoldings(holdingRows, audUsd > 0 ? 1 / audUsd : 1)
     const lines = [
       `Today's date: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
       `User is currently viewing: ${moduleLabel}`,
@@ -948,13 +1042,13 @@ export default function AIPanel({ wide = false, onListening }) {
     // Symbols, not just a count. "User has 6 holdings" tells the model nothing
     // it can use; the tickers let it answer "am I exposed to iron ore" without
     // asking the user to retype their own portfolio.
-    if (holdingSymbols.length) lines.push(`User's portfolio holdings: ${holdingSymbols.slice(0, 12).join(', ')}`)
+    if (holdingsLine) lines.push(holdingsLine)
     else lines.push('User has no portfolio holdings tracked yet.')
 
     const facts = verifiedFactsForAI()
     const events = eventsForAI()
     return `[CONTEXT]\n${lines.join('\n')}\n\n${investor}${facts ? facts + '\n\n' : ''}${events ? events + '\n\n' : ''}${regimeForAI()}\n\n`
-  }, [activeModule, modalAsset, watchlist, investorProfile])
+  }, [activeModule, modalAsset, watchlist, investorProfile, queryClient])
 
   const send = async (textOverride, opts = {}) => {
     // mode: 'research' or 'deepdive' for this one message, whatever the
@@ -994,11 +1088,10 @@ export default function AIPanel({ wide = false, onListening }) {
     const userTurnWire = { role: 'user', content: `${buildDynamicContext()}${personaLine(persona)}${rbaPreview ? rbaPreviewInstruction(RBA_PREVIEW_WORDS[plan] ?? RBA_PREVIEW_WORDS.core) : deepDive ? DEEP_DIVE_INSTRUCTION : research ? RESEARCH_INSTRUCTION : ''}${text}` }
     if (!silent) addChatMessage(userTurn)
     addChatMessage(silent
-      ? { role: 'assistant', content: '', silent: true, context, mode: msgMode, researchSave: save ?? null }
+      ? { role: 'assistant', content: '', silent: true, hiddenPrompt: text, context, mode: msgMode, researchSave: save ?? null }
       : { role: 'assistant', content: '', mode: msgMode, researchSave: save ?? null })
 
-    const history = windowedHistory(chatMessages.filter((m) => m.role !== 'system'))
-      .map((m) => ({ role: m.role, content: m.content }))
+    const history = wireHistory(windowedHistory(chatMessages.filter((m) => m.role !== 'system')))
 
     try {
       // The shape of the answer is chosen from the shape of the question.
@@ -1109,7 +1202,6 @@ export default function AIPanel({ wide = false, onListening }) {
     if (lastAutoAnalysedRef.current === modalAsset.symbol) return
     lastAutoAnalysedRef.current = modalAsset.symbol
     const prompt = getQuickPrompts(activeModule, modalAsset.symbol)[0]?.prompt
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (prompt) send(prompt)
   }, [modalAsset, chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1154,6 +1246,15 @@ export default function AIPanel({ wide = false, onListening }) {
 
   const turnCount = chatMessages.filter((m) => m.role === 'user').length
   const starters = getStarters(investorProfile)
+  // INTELLIGENCE UPDATE cards — rebuilt when the panel empties (a new chat),
+  // so a panel left open overnight shows the next day's cards on its next
+  // fresh conversation.
+  const feed = useMemo(() => {
+    let holdings = []
+    try { holdings = JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]') } catch { /* best-effort */ }
+    return intelligenceFeed({ now: Date.now(), holdings })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatMessages.length === 0])
 
   // Monogram + disclaimer each appear once per session, not per message.
   const detectResponseActions = useCallback((text) => {
@@ -1544,6 +1645,8 @@ export default function AIPanel({ wide = false, onListening }) {
             <span className="mt-1 text-terminal-text-dim italic font-sans text-center" style={{ fontSize: 13 }}>
               Financial intelligence at your command.
             </span>
+
+            <IntelligenceFeed feed={feed} onRead={(c) => send(c.prompt)} disabled={loading} />
 
             {/* Four openers — written for the saved investor profile when there
                 is one (services/aiStarters.js), otherwise the generic set. */}
