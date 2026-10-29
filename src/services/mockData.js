@@ -150,7 +150,9 @@ export const MOCK_US_STOCKS = {
 // — approximated from known real-world levels with a plausible growth drift.
 export const MOCK_INDICES = {
   // Real closes. ASX: 27 Oct 2026 (ABC News, as verifiedConstants.indices).
-  // US, Europe and Asia: 30 Sep 2026 (AP / CNBC / BBN Times). All Ords and
+  // US, Europe and Asia: 30 Sep 2026 (AP / CNBC / BBN Times), except the
+  // Nikkei, Hang Seng and DAX, re-anchored 28–29 Oct to match
+  // verifiedConstants.indices (each had drifted more than 2%). All Ords and
   // NZX 50 are not verified — the All Ords is scaled with the ASX 200 to keep
   // its usual premium, and the NZX 50 is unchanged from its earlier
   // approximation. Day changes are illustrative.
@@ -160,9 +162,9 @@ export const MOCK_INDICES = {
   '^IXIC':     { name: 'NASDAQ',       price: 26861.06, changePct: 0.24,  currency: 'USD' },
   '^DJI':      { name: 'Dow Jones',    price: 50906.05, changePct: -0.86, currency: 'USD' },
   '^FTSE':     { name: 'FTSE 100',     price: 10606.0,  changePct: -0.29, currency: 'GBP' },
-  '^GDAXI':    { name: 'DAX',          price: 25199.19, changePct: -0.79, currency: 'EUR' },
-  '^N225':     { name: 'Nikkei 225',   price: 66753.72, changePct: 1.94,  currency: 'JPY' },
-  '^HSI':      { name: 'Hang Seng',    price: 24613.27, changePct: 0.37,  currency: 'HKD' },
+  '^GDAXI':    { name: 'DAX',          price: 25704.02, changePct: 0.44,  currency: 'EUR' },
+  '^N225':     { name: 'Nikkei 225',   price: 64659.47, changePct: 1.10,  currency: 'JPY' },
+  '^HSI':      { name: 'Hang Seng',    price: 23094.0,  changePct: -0.03, currency: 'HKD' },
   '000001.SS': { name: 'Shanghai',     price: 3842.19,  changePct: 0.31,  currency: 'CNY' },
   '^NZ50':     { name: 'NZX 50',       price: 13400.0,  changePct: 0.24,  currency: 'NZD' },
 }

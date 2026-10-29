@@ -34,25 +34,28 @@ export const YEARS = {
 const b = (maturity, coupon, yieldPct, type, indicative = false) =>
   ({ maturity, coupon, yield: yieldPct, type, years: YEARS[maturity], indicative })
 
-export const BOND_CURVES_AS_OF = { AU: '2026-10-01', US: '2026-09-30', UK: null, DE: null, JP: null }
+export const BOND_CURVES_AS_OF = { AU: '2026-10-21', US: '2026-10-28', UK: null, DE: null, JP: null }
 
 export const BOND_CURVES = {
-  // AU 2Y/3Y/5Y/10Y/30Y and every US tenor are sourced points, as at the
-  // date in BOND_CURVES_AS_OF (US: Treasury daily par curve; AU: market close
-  // via tradingeconomics). The AU bills and in-between bonds are interpolated.
+  // AU 2Y/3Y/5Y/10Y and every US tenor are sourced points, as at the date in
+  // BOND_CURVES_AS_OF (US: Treasury daily par curve, 28 Oct; AU: RBA table F2,
+  // 21 Oct, its latest published day). Updated 2026-10-29: the other AU
+  // tenors — bills, in-between bonds and 30Y, which F2 does not carry — were
+  // moved by the change in the nearest sourced tenor since 1 Oct and are
+  // marked indicative.
   AU: [
-    b('1M', 0, 4.64, 'TBill', true), b('2M', 0, 4.68, 'TBill', true), b('3M', 0, 4.72, 'TBill', true), b('6M', 0, 4.84, 'TBill', true),
-    b('1Y', 4.10, 4.96, 'TNote', true), b('2Y', 4.00, 5.05, 'TNote'), b('3Y', 4.00, 5.04, 'TNote'),
-    b('4Y', 4.25, 5.05, 'TNote', true), b('5Y', 4.25, 5.06, 'TNote'), b('7Y', 4.50, 5.22, 'TNote', true),
-    b('10Y', 4.50, 5.45, 'TBond'), b('12Y', 4.75, 5.53, 'TBond', true), b('15Y', 4.75, 5.62, 'TBond', true),
-    b('20Y', 4.75, 5.72, 'TBond', true), b('25Y', 5.00, 5.79, 'TBond', true), b('30Y', 5.00, 5.84, 'TBond'),
-    b('40Y', 5.25, 5.90, 'TBond', true), b('50Y', 5.25, 5.94, 'TBond', true),
+    b('1M', 0, 4.51, 'TBill', true), b('2M', 0, 4.55, 'TBill', true), b('3M', 0, 4.59, 'TBill', true), b('6M', 0, 4.71, 'TBill', true),
+    b('1Y', 4.10, 4.83, 'TNote', true), b('2Y', 4.00, 4.92, 'TNote'), b('3Y', 4.00, 4.91, 'TNote'),
+    b('4Y', 4.25, 4.93, 'TNote', true), b('5Y', 4.25, 4.96, 'TNote'), b('7Y', 4.50, 5.08, 'TNote', true),
+    b('10Y', 4.50, 5.28, 'TBond'), b('12Y', 4.75, 5.36, 'TBond', true), b('15Y', 4.75, 5.45, 'TBond', true),
+    b('20Y', 4.75, 5.55, 'TBond', true), b('25Y', 5.00, 5.62, 'TBond', true), b('30Y', 5.00, 5.67, 'TBond', true),
+    b('40Y', 5.25, 5.73, 'TBond', true), b('50Y', 5.25, 5.77, 'TBond', true),
   ],
   US: [
-    b('1M', 0, 4.02, 'TBill'), b('2M', 0, 4.13, 'TBill'), b('3M', 0, 4.16, 'TBill'), b('6M', 0, 4.29, 'TBill'),
-    b('1Y', 4.10, 4.33, 'TNote'), b('2Y', 4.00, 4.54, 'TNote'), b('3Y', 4.00, 4.88, 'TNote'),
-    b('5Y', 4.13, 5.00, 'TNote'), b('7Y', 4.25, 5.09, 'TNote'),
-    b('10Y', 4.25, 5.19, 'TBond'), b('20Y', 4.75, 5.29, 'TBond'), b('30Y', 4.50, 5.68, 'TBond'),
+    b('1M', 0, 4.07, 'TBill'), b('2M', 0, 4.16, 'TBill'), b('3M', 0, 4.18, 'TBill'), b('6M', 0, 4.32, 'TBill'),
+    b('1Y', 4.10, 4.47, 'TNote'), b('2Y', 4.00, 4.67, 'TNote'), b('3Y', 4.00, 4.80, 'TNote'),
+    b('5Y', 4.13, 4.85, 'TNote'), b('7Y', 4.25, 4.95, 'TNote'),
+    b('10Y', 4.25, 5.05, 'TBond'), b('20Y', 4.75, 5.41, 'TBond'), b('30Y', 4.50, 5.37, 'TBond'),
   ],
   UK: [
     b('1M', 0, 4.52, 'TBill'), b('3M', 0, 4.48, 'TBill'), b('6M', 0, 4.40, 'TBill'),

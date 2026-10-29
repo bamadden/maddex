@@ -261,7 +261,7 @@ export const VERIFIED_CONSTANTS = {
       termEnds: '2030-05-21',
       note: 'Confirmed 13 May 2026, succeeded Jerome Powell',
       source: 'federalreserve.gov',
-      lastVerified: '2026-10-01',
+      lastVerified: '2026-10-29', // chaired the 27–28 Oct FOMC press conference
     },
     rba: {
       role: 'Governor of the Reserve Bank of Australia',
@@ -291,6 +291,35 @@ export const VERIFIED_CONSTANTS = {
       termEnds: '2028-03-15',
       source: 'bankofengland.co.uk',
       lastVerified: '2026-09-07',
+    },
+    // Added 2026-10-29, so every bank on the Rates cards has its head on
+    // record. Each confirmed current from coverage this month (Bloomberg,
+    // FXStreet, BNN Bloomberg, the banks' own speech pages). Terms are given
+    // only where the statute fixes one; otherwise left out rather than guessed.
+    boj: {
+      role: 'Governor of the Bank of Japan', name: 'Kazuo Ueda', since: '2023-04-09', termEnds: '2028-04-08', termEndsDerived: true,
+      source: 'boj.or.jp (Bloomberg, 6 Oct 2026)', lastVerified: '2026-10-29',
+    },
+    pboc: {
+      role: 'Governor of the People\'s Bank of China', name: 'Pan Gongsheng', since: '2023-07-25',
+      source: 'pbc.gov.cn', lastVerified: '2026-10-29',
+    },
+    rbnz: {
+      role: 'Governor of the Reserve Bank of New Zealand', name: 'Anna Breman', since: '2025-12-01', termEnds: '2030-11-30', termEndsDerived: true,
+      note: 'Succeeded Adrian Orr (resigned March 2025)',
+      source: 'rbnz.govt.nz (Bloomberg, 28 Oct 2026)', lastVerified: '2026-10-29',
+    },
+    boc: {
+      role: 'Governor of the Bank of Canada', name: 'Tiff Macklem', since: '2020-06-03', termEnds: '2027-06-02', termEndsDerived: true,
+      source: 'bankofcanada.ca (BNN Bloomberg, 28 Oct 2026)', lastVerified: '2026-10-29',
+    },
+    snb: {
+      role: 'Chairman of the Swiss National Bank Governing Board', name: 'Martin Schlegel', since: '2024-10-01',
+      source: 'snb.ch', lastVerified: '2026-10-29',
+    },
+    riksbank: {
+      role: 'Governor of Sveriges Riksbank', name: 'Erik Thedéen', since: '2023-01-01', termEnds: '2028-12-31', termEndsDerived: true,
+      source: 'riksbank.se', lastVerified: '2026-10-29',
     },
     au: {
       treasurer: 'Jim Chalmers',
@@ -677,11 +706,14 @@ export const VERIFIED_CONSTANTS = {
   // The full curves live in bondCurves.js and agree with these.
   bonds: {
     label: 'Bonds',
-    au10y: 5.45, au10yAsOf: '2026-10-01',
-    us10y: 5.19, us10yAsOf: '2026-09-30',
-    source: 'home.treasury.gov (US par curve) / tradingeconomics.com (AU)',
-    asOf: '2026-10-01',
-    lastVerified: '2026-10-01',
+    // UPDATED 2026-10-29. AU: RBA table F2 (FCMYGBAG10D), latest published
+    // day 21 Oct — 5.277%; Trading Economics had 5.19% on 28 Oct, so yields
+    // have eased further since. US: Treasury daily par curve, 28 Oct 5.05%.
+    au10y: 5.28, au10yAsOf: '2026-10-21',
+    us10y: 5.05, us10yAsOf: '2026-10-28',
+    source: 'home.treasury.gov (US par curve) / RBA table F2 (AU)',
+    asOf: '2026-10-28',
+    lastVerified: '2026-10-29',
   },
 
   // ── Next RBA decision ─────────────────────────────────────────────────────
@@ -763,12 +795,19 @@ export const VERIFIED_CONSTANTS = {
     // US closes (CNBC). The rest are still 30 Sep 2026 closes from the
     // 2026-10-03 check. STI, NZX 50 and TA-35 were dropped rather than
     // carried forward — no current close was found.
+    //
+    // Re-checked 2026-10-29, updating those more than 2% off: Nikkei 225
+    // 64,659.47 (Thu 29 Oct close, Bloomberg); Hang Seng 23,094 (Wed 28 Oct
+    // close — Dim Sum Daily reported the 29 Oct open at 23,088, down 6); DAX
+    // 25,704.02 (Wed 28 Oct close). Within 2% and left as they were: ASX 200
+    // (~8,890 on 29 Oct, AP), S&P 500 (7,743.98), Nasdaq (26,549.85), Dow
+    // (52,475.10) and FTSE 100 (10,672–10,694, sources disagree), 28 Oct.
     asx200: 8850.1, sp500: 7676.77, nasdaq: 26169.38, dow: 52361.58,
-    ftse100: 10606.0, nikkei225: 66753.72, hangSeng: 24613.27,
-    sseComposite: 3842.19, dax: 25199.19, sensex: 72480.29, tsx: 35235.87,
-    source: 'Index closes via ABC News, AP, Motley Fool AU, CNBC, BBN Times — indicative, not a live feed',
-    asOf: '2026-10-27',
-    lastVerified: '2026-10-27',
+    ftse100: 10606.0, nikkei225: 64659.47, hangSeng: 23094.0,
+    sseComposite: 3842.19, dax: 25704.02, sensex: 72480.29, tsx: 35235.87,
+    source: 'Index closes via ABC News, AP, Motley Fool AU, CNBC, BBN Times, Bloomberg — indicative, not a live feed',
+    asOf: '2026-10-29',
+    lastVerified: '2026-10-29',
   },
 }
 
