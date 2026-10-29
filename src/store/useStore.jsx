@@ -7,6 +7,7 @@ import { getCurrentTier, limitFor, showLimitPrompt } from '../services/plans'
 import { treatmentFor, recordHistory } from '../services/notificationPolicy'
 import { WATCHLIST_DEFAULT_SYMBOLS } from '../data/placeholders'
 import { notificationRateLimiter } from '../services/notificationRateLimiter'
+import { markModuleSwitch } from '../services/diagnostics'
 
 const StoreContext = createContext(null)
 
@@ -37,7 +38,9 @@ function saveSimpleAlerts(next) {
 }
 
 export function StoreProvider({ children }) {
-  const [activeModule, setActiveModule] = useState('markets')
+  const [activeModule, setActiveModuleRaw] = useState('markets')
+  // Stamps the switch for Settings → About's module load times.
+  const setActiveModule = useCallback((m) => { markModuleSwitch(m); setActiveModuleRaw(m) }, [])
   const [watchlist, setWatchlist]       = useState(getStoredWatchlist)
   // The live list, for synchronous checks in actions (the plan limit). Not
   // localStorage: a fresh browser's starter list is only in memory until the

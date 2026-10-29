@@ -45,6 +45,7 @@ import {
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
+import DiagnosticsPanel from './DiagnosticsPanel'
 
 const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
 // Older callers still ask for 'SUBSCRIPTION'.
@@ -2522,6 +2523,8 @@ function AboutSection() {
       <SectionLabel>About</SectionLabel>
 
       <NewsletterCard />
+
+      <DiagnosticsPanel />
 
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 border border-terminal-gold/50 flex items-center justify-center text-terminal-gold text-lg font-bold flex-shrink-0">M</div>

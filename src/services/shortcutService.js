@@ -38,6 +38,10 @@ export const DEFAULT_SHORTCUTS = {
   'ui.pause-ticker':   { key: ' ', display: 'SPACE' },
 
   'ui.ai-pip': { mac: 'Meta+Shift+A', win: 'Ctrl+Shift+A', display: '⌘⇧A' },
+  'cmd.brief':      { mac: 'Meta+B', win: 'Ctrl+B', display: '⌘B' },
+  'cmd.refresh':    { mac: 'Meta+R', win: 'Ctrl+R', display: '⌘R' },
+  'cmd.regenerate': { mac: 'Meta+Shift+R', win: 'Ctrl+Shift+R', display: '⌘⇧R' },
+  'cmd.portfolio':  { mac: 'Meta+P', win: 'Ctrl+P', display: '⌘P' },
 
   'ws.1':   { mac: 'Meta+Shift+1', win: 'Ctrl+Shift+1', display: '⌘⇧1' },
   'ws.2':   { mac: 'Meta+Shift+2', win: 'Ctrl+Shift+2', display: '⌘⇧2' },
@@ -71,6 +75,10 @@ export const ACTION_LABELS = {
   'ui.refresh':      'Refresh all live data',
   'ui.pause-ticker': 'Pause/resume ticker tape',
   'ui.ai-pip':       'Toggle AI picture-in-picture',
+  'cmd.brief':       'Open the morning brief (works while typing)',
+  'cmd.refresh':     'Refresh all live data (replaces browser reload)',
+  'cmd.regenerate':  'Regenerate AI content',
+  'cmd.portfolio':   'Open portfolio (replaces print)',
   'ws.1':   'Switch to workspace 1',
   'ws.2':   'Switch to workspace 2',
   'ws.3':   'Switch to workspace 3',

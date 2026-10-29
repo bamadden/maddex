@@ -72,3 +72,11 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Offline shell (public/sw.js). Production only: in dev a service worker
+// would serve cached modules over Vite's hot reload.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('[MADDEN] service worker not registered:', e.message))
+  })
+}

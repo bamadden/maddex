@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { recordError } from '../../services/diagnostics'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -12,6 +13,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error(`[ErrorBoundary${this.props.label ? `:${this.props.label}` : ''}]`, error, info)
+    recordError(error, this.props.label ?? undefined)
   }
 
   render() {

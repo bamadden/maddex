@@ -99,6 +99,24 @@ const LegalPage          = lazy(() => import('./pages/LegalPage'))
 const LEGAL_SLUGS = new Set(['terms', 'privacy', 'disclaimer'])
 import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import { installErrorCapture, recordTiming, setDiagnosticsModule, takeModuleSwitch } from './services/diagnostics'
+import { refreshAllData } from './services/refreshAll'
+import { aiContentService } from './services/aiContentService'
+import OfflineBanner from './components/layout/OfflineBanner'
+
+installErrorCapture()
+
+// Records how long a module took from being chosen (stamped in the store's
+// setActiveModule) to its first committed render, lazy chunk included —
+// Settings → About. Rendered beside the module inside its Suspense boundary,
+// so its effect runs only once the module has actually mounted.
+function ModuleTimer({ id }) {
+  useEffect(() => {
+    const ms = takeModuleSwitch(id)
+    if (ms != null) recordTiming('module', id, ms)
+  }, [id])
+  return null
+}
 import { useSubscription } from './hooks/useSubscription'
 import { runWeeklyNotes } from './services/noteScheduler'
 import { useTheme } from './hooks/useTheme'
@@ -257,6 +275,10 @@ const SHORTCUT_GROUPS = [
     items: [
       { keys: ['⌘', 'K'], desc: 'Focus the command bar' },
       { keys: ['⌘', 'F'], desc: 'Focus the command bar (alt)' },
+      { keys: ['⌘', 'B'], desc: 'Morning brief (works while typing)' },
+      { keys: ['⌘', 'P'], desc: 'Portfolio' },
+      { keys: ['⌘', 'R'], desc: 'Refresh all live data (not a page reload)' },
+      { keys: ['⌘', '⇧', 'R'], desc: 'Regenerate AI content' },
       { keys: ['⊡'], desc: 'Pop out into a floating window' },
       { keys: ['⤢'], desc: 'Toggle fullscreen' },
     ],
@@ -603,6 +625,9 @@ function Terminal() {
     document.title = label ? `${label} — Maddex` : 'Maddex — Financial Intelligence'
   }, [activeModule])
 
+  // The error log's "which module" label.
+  useEffect(() => { setDiagnosticsModule(activeModule) }, [activeModule])
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -625,6 +650,27 @@ function Terminal() {
         // just gets typed into the command input instead of switching modules.
         if (document.activeElement?.classList?.contains('cmd-input')) {
           document.activeElement.blur()
+        }
+        return
+      }
+
+      // ⌘/Ctrl chords — work from inside text fields too, where the single
+      // letters cannot. ⌘R and ⌘⇧R take over the browser's reload: in a
+      // terminal, "refresh" means the data, and a full reload is one click on
+      // the browser's own button. ⌘W is not offered: browsers reserve it for
+      // closing the tab and do not let a page intercept it (W still opens the
+      // watchlist).
+      const chord = ['cmd.brief', 'cmd.refresh', 'cmd.regenerate', 'cmd.portfolio']
+        .find((a) => shortcutService.matches(e, shortcutService.shortcuts[a]))
+      if (chord) {
+        e.preventDefault()
+        if (chord === 'cmd.brief') setActiveModule('brief')
+        else if (chord === 'cmd.portfolio') setActiveModule('portfolio')
+        else if (chord === 'cmd.refresh') { refreshAllData(queryClient).catch(() => {}); addNotification('SYSTEM', '↻ Refreshing all live data') }
+        else if (chord === 'cmd.regenerate') {
+          aiContentService.clearCache()
+          refreshAllData(queryClient).catch(() => {})
+          addNotification('SYSTEM', '✦ AI content cleared — it regenerates as each panel loads')
         }
         return
       }
@@ -702,7 +748,7 @@ function Terminal() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, showShortcuts, setActiveModule])
+  }, [modalAsset, closeModal, chatOpen, setChatOpen, aiMode, setAiMode, showShortcuts, setActiveModule, addNotification])
 
   // Workspace-switching shortcuts (ws.1-4, ws.new) — registered as live
   // handlers since, unlike nav.*/ui.*, they aren't hardcoded module ids.
@@ -799,6 +845,7 @@ function Terminal() {
               <ErrorBoundary label={MODULE_TITLES[activeModule]}>
                 <Suspense fallback={<ModuleSuspenseFallback />}>
                   <ActiveModule />
+                  <ModuleTimer id={activeModule} />
                 </Suspense>
               </ErrorBoundary>
             </div>
@@ -856,6 +903,7 @@ function Terminal() {
             <ErrorBoundary label={MODULE_TITLES[activeModule]}>
               <Suspense fallback={<ModuleSuspenseFallback />}>
                 <ActiveModule />
+                <ModuleTimer id={activeModule} />
               </Suspense>
             </ErrorBoundary>
             {/* Keyed on the module so switching modules mounts a fresh tip
@@ -880,6 +928,7 @@ function Terminal() {
       <StatusBar lastUpdated={statusUpdatedAt} />
       <MobileNavBar />
       <Suspense fallback={null}>{modalAsset && <DetailModal />}</Suspense>
+      <OfflineBanner />
       <Suspense fallback={null}>{compareAssets != null && <ComparisonView />}</Suspense>
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
       {correlationAssets && (
