@@ -1,6 +1,15 @@
 import { dispatchAskAI } from '../../utils/askAI'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { sessionCountdown, formatCountdown, SEVERITY_COLOUR } from './intelMapData'
+import { sessionCountdown, formatCountdown, SEVERITY_COLOUR, ROUTE_NOTES, SITE_EXTRAS, greatCircleKm } from './intelMapData'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { useStore } from '../../store/useStore'
+import { screenSector } from '../markets/screenSector'
+
+const RISK_TONE = { LOW: '#2D8A50', MEDIUM: '#C9A84C', ELEVATED: '#D9773B', HIGH: '#CC4444' }
+// Main WA export port, for the route distance (the arcs start from a map anchor).
+const PORT_HEDLAND = [118.6, -20.3]
+const SYDNEY = [151.2, -33.9]
+const KNOTS_14_KM_PER_DAY = 14 * 1.852 * 24
 
 // Slide-in detail panel for whatever is selected on the intelligence map.
 //
@@ -85,6 +94,7 @@ function TickerPills({ tickers, watchlist = [] }) {
 // wide window does not imply a wide map.
 export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300, insetRight = 0, narrativeSource = 'fallback' }) {
   const { type, data } = object
+  const { setActiveModule } = useStore()
   const askAI = (instruction) => dispatchAskAI({ instruction }, { rawPrompt: true })
 
   return (
@@ -112,7 +122,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
         padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 10, color: '#C9A84C', letterSpacing: '0.15em' }}>
-            {type === 'ausite' ? 'RESOURCE REGION' : `${type.toUpperCase()} DETAIL`}
+            {type === 'ausite' ? 'RESOURCE REGION' : type === 'route' ? 'TRADE ROUTE' : type === 'cbevent' ? 'RATE DECISION' : `${type.toUpperCase()} DETAIL`}
           </span>
           {/* Only where the words on this card were actually rewritten by
               MaddenAI. A row the overlay did not match keeps its editorial
@@ -130,10 +140,17 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.city} · {data.index}</div>
 
             <div style={S.label}>Level</div>
-            <div style={{ ...S.value, ...S.gold, fontSize: 22, marginBottom: 4 }}>{data.value.toLocaleString()}</div>
-            <div style={{ ...S.value, fontSize: 14, color: data.change >= 0 ? '#2D8A50' : '#A83232' }}>
-              {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change)}%
-            </div>
+            {data.value != null ? (
+              <>
+                <div style={{ ...S.value, ...S.gold, fontSize: 22, marginBottom: 4 }}>{data.value.toLocaleString('en-AU', { maximumFractionDigits: 1 })}</div>
+                <div style={{ ...S.value, fontSize: 14, color: data.change >= 0 ? '#2D8A50' : '#A83232' }}>
+                  {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change).toFixed(2)}%
+                  {data.demo && <span style={{ ...S.muted, fontSize: 9, marginLeft: 8 }}>DEMO</span>}
+                </div>
+              </>
+            ) : (
+              <div style={{ ...S.muted, marginBottom: 4 }}>No index feed for {data.index} in this build.</div>
+            )}
 
             <SessionTimeline exchange={data} />
 
@@ -245,6 +262,73 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
           </>
         )}
 
+        {type === 'route' && (() => {
+          const partner = data.country
+          const exp = data.dir === 'export'
+          const note = ROUTE_NOTES[partner]
+          const origin = exp ? PORT_HEDLAND : data.from
+          const dest = exp ? data.to : SYDNEY
+          const km = greatCircleKm(origin, dest)
+          return (
+            <>
+              <div style={{ ...S.gold, fontFamily: '"IBM Plex Mono", monospace', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+                {exp ? `AUSTRALIA → ${partner.toUpperCase()}` : `${partner.toUpperCase()} → AUSTRALIA`}
+              </div>
+              <div style={{ ...S.muted, marginBottom: 12 }}>{exp ? 'Exports' : 'Imports'} · {data.main}</div>
+              <div style={S.label}>Value, {VERIFIED_CONSTANTS.auTrade?.period}</div>
+              <div style={{ ...S.value, marginBottom: 2 }}>
+                <span style={{ ...S.gold, fontSize: 20 }}>A${data.bn.toFixed(1)}b</span>
+                <span style={{ ...S.muted, fontSize: 10 }}> · {data.share.toFixed(1)}% of {exp ? 'exports' : 'imports'}</span>
+              </div>
+              <div style={{ ...S.muted, fontSize: 9, marginBottom: 12 }}>ABS International Trade, goods and services</div>
+              <div style={S.label}>Distance and transit</div>
+              <div style={{ ...S.value, fontSize: 12, marginBottom: 2 }}>~{(Math.round(km / 100) * 100).toLocaleString('en-AU')} km · ~{Math.max(1, Math.round(km / KNOTS_14_KM_PER_DAY))} days at sea</div>
+              <div style={{ ...S.muted, fontSize: 9, marginBottom: 12 }}>Estimate: great-circle {exp ? 'from Port Hedland' : 'to Sydney'} at 14 knots; real routes are longer.</div>
+              {note && (
+                <>
+                  <div style={S.label}>Sea lanes</div>
+                  <div style={{ ...S.muted, fontSize: 10, marginBottom: 12 }}>{note.lanes}</div>
+                  <div style={{ ...S.label, display: 'flex', justifyContent: 'space-between' }}><span>Risk factors</span><span style={{ color: '#637899' }}>EDITORIAL</span></div>
+                  {note.risks.map(([k, level, why]) => (
+                    <div key={k} style={{ marginBottom: 7 }} title={why}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: '"IBM Plex Mono", monospace', fontSize: 10 }}>
+                        <span style={{ color: '#C8D3E0' }}>● {k}</span>
+                        <span style={{ color: RISK_TONE[level], fontWeight: 700 }}>{level}</span>
+                      </div>
+                      <div style={{ ...S.muted, fontSize: 9, lineHeight: 1.4 }}>{why}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+              <button onClick={() => askAI(`Tell me about Australia's ${exp ? 'export' : 'import'} trade ${exp ? 'with' : 'from'} ${partner}: A$${data.bn.toFixed(1)}b in ${VERIFIED_CONSTANTS.auTrade?.period} (ABS), mainly ${data.main}. What are the main risks to this route right now, and which ASX-listed companies are most exposed?`)}
+                className="btn-secondary btn-sm" style={{ marginTop: 6, width: '100%' }}>
+                ASK MADDENAI ABOUT THIS ROUTE
+              </button>
+            </>
+          )
+        })()}
+
+        {type === 'cbevent' && (
+          <>
+            <div style={{ ...S.gold, fontFamily: '"IBM Plex Mono", monospace', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{data.event}</div>
+            <div style={{ ...S.muted, marginBottom: 12 }}>{data.site.bank} · {data.site.city}</div>
+            <div style={S.label}>When (Sydney time)</div>
+            <div style={{ ...S.value, fontSize: 12 }}>
+              {new Date(`${data.date}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}{data.time && data.time !== '—' ? ` · ${data.time}` : ''}
+            </div>
+            {data.description && (
+              <>
+                <div style={S.label}>Context</div>
+                <div style={{ ...S.muted, fontSize: 10, marginBottom: 12 }}>{data.description}</div>
+              </>
+            )}
+            <button onClick={() => askAI(`The ${data.event} is due ${data.date}. Using the central-bank figures in your context, what is expected, and what would a surprise mean for the AUD and ASX?`)}
+              className="btn-secondary btn-sm" style={{ width: '100%' }}>
+              ASK MADDENAI
+            </button>
+          </>
+        )}
+
         {type === 'ausite' && (
           <>
             <div style={{ ...S.gold, fontFamily: '"IBM Plex Mono", monospace', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
@@ -252,8 +336,39 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             </div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.commodity} · {data.region}</div>
             <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, color: '#E6EDF6', lineHeight: 1.55, marginBottom: 12 }}>{data.note}</div>
+            {(() => {
+              const x = SITE_EXTRAS[data.id]
+              if (!x) return null
+              const c = VERIFIED_CONSTANTS.commodities
+              const price = x.price ? c?.[x.price] : null
+              return (
+                <>
+                  <div style={S.label}>{x.priceLabel}</div>
+                  {price != null ? (
+                    <div style={{ ...S.value, marginBottom: 2 }}>
+                      <span style={S.gold}>{price.toLocaleString('en-AU', { maximumFractionDigits: 2 })}</span> <span style={{ ...S.muted, fontSize: 10 }}>{x.unit}</span>
+                    </div>
+                  ) : (
+                    <div style={{ ...S.muted, marginBottom: 2 }}>No verified price held for this product.</div>
+                  )}
+                  {price != null && <div style={{ ...S.muted, fontSize: 9, marginBottom: 12 }}>{c.sourceBy?.[x.price]} · as at {c.asOfBy?.[x.price]}</div>}
+                  <div style={S.label}>Production</div>
+                  <div style={{ ...S.muted, fontSize: 10, marginBottom: 12 }}>{data.id === 'au-pilbara' ? 'See export earnings above (Resources and Energy Quarterly).' : 'Regional production volume not yet sourced in this build.'}</div>
+                  <div style={S.label}>Operational risks</div>
+                  <ul style={{ margin: '0 0 12px', paddingLeft: 14 }}>
+                    {x.risks.map((rk) => <li key={rk} style={{ ...S.muted, fontSize: 10, lineHeight: 1.5 }}>{rk}</li>)}
+                  </ul>
+                </>
+              )
+            })()}
             <div style={S.label}>ASX-listed producers</div>
             <TickerPills tickers={data.asx} watchlist={watchlist} />
+            {SITE_EXTRAS[data.id]?.sector && (
+              <button onClick={() => screenSector(SITE_EXTRAS[data.id].sector, setActiveModule)}
+                className="btn-secondary btn-sm" style={{ marginTop: 10, width: '100%' }}>
+                SEE RELATED STOCKS ▶ ({SITE_EXTRAS[data.id].sector.toUpperCase()})
+              </button>
+            )}
             <button onClick={() => askAI(`How exposed are Australia's ${data.commodity.toLowerCase()} exports from ${data.name} to the current global picture, and which ASX-listed producers have the most leverage to it?`)}
               className="btn-secondary btn-sm" style={{ marginTop: 12, width: '100%' }}>
               ASK MADDENAI

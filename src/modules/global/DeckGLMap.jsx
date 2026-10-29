@@ -12,8 +12,10 @@ import {
   GEOPOLITICAL_EVENTS, UNDERSEA_CABLES, MILITARY_BASES, MAJOR_CITIES,
   SEVERITY_COLOUR, isExchangeOpen,
   overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS,
-  AU_KEY_SITES, AU_IMPACT,
+  AU_KEY_SITES, AU_IMPACT, FINANCIAL_DISTRICTS, CENTRAL_BANK_SITES,
 } from './intelMapData'
+import { pendingEvents, scheduledEvents } from '../../services/calendarService'
+import { DistrictCard } from './MapOverlays'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import MapDetailPanel from './MapDetailPanel'
 import MapLocationSearch from './MapLocationSearch'
@@ -51,10 +53,21 @@ const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
 
 const MAP_STYLES = {
   dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  satellite: rasterStyle(
-    `${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
-    'Imagery © Esri, Maxar, Earthstar Geographics',
-  ),
+  // Imagery, a faint hillshade for relief, and Esri's reference labels on
+  // top so place names stay readable over photography.
+  satellite: {
+    version: 8,
+    sources: {
+      base: { type: 'raster', tiles: [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' },
+      shade: { type: 'raster', tiles: [`${ESRI}/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 16 },
+      labels: { type: 'raster', tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19 },
+    },
+    layers: [
+      { id: 'base', type: 'raster', source: 'base', paint: { 'raster-contrast': 0.08, 'raster-saturation': 0.05, 'raster-resampling': 'linear', 'raster-fade-duration': 150 } },
+      { id: 'shade', type: 'raster', source: 'shade', paint: { 'raster-opacity': 0.18 } },
+      { id: 'labels', type: 'raster', source: 'labels', paint: { 'raster-opacity': 0.9 } },
+    ],
+  },
   terrain: rasterStyle(
     `${ESRI}/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}`,
     'Relief © Esri',
@@ -76,6 +89,8 @@ const STYLE_OPTIONS = [
 const LAYER_CATALOGUE = [
   { id: 'exchanges',    label: 'Exchange Markets',  dot: '#C9A84C', on: true },
   { id: 'trade',        label: 'Trade Flows',       dot: '#4A9EDB', on: true },
+  { id: 'events',       label: 'Rate Decisions',    dot: '#E8C766', on: true },
+  { id: 'districts',    label: 'Financial Districts', dot: '#C9A84C', on: true },
   { id: 'shipping',     label: 'Shipping Risk',     dot: '#CC4444', on: false },
   { id: 'commodities',  label: 'Commodity Sites',   dot: '#D9A441', on: false },
   { id: 'seismic',      label: 'Seismic Activity',  dot: '#A83232', on: false },
@@ -95,6 +110,7 @@ const LAYER_CATALOGUE = [
 // leave from the centre of the continent's export coast; imports land at
 // Sydney. Width scales with A$ value against the largest flow.
 const AU_TRADE = VERIFIED_CONSTANTS.auTrade
+const ROUTE_COUNTRY = { 'AU-CN': 'China', 'AU-JP': 'Japan', 'AU-KR': 'South Korea', 'AU-IN': 'India', 'AU-US': 'United States' }
 const auTradeArcs = AU_TRADE ? (() => {
   const max = Math.max(...AU_TRADE.exports.map((e) => e.bn), ...AU_TRADE.imports.map((e) => e.bn))
   const w = (bn) => 1.5 + (bn / max) * 9
@@ -295,6 +311,14 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   const insetL = chromeInset.left ?? 0
   const insetR = chromeInset.right ?? 0
   const [viewState, setViewState] = useState(INITIAL_VIEW)
+  // Central-bank decisions in the next eight days, placed on each bank's city.
+  const [cbEvents] = useState(() => pendingEvents(scheduledEvents(), 8)
+    .filter((e) => /Rate Decision|OCR Decision/.test(e.event) && CENTRAL_BANK_SITES[e.region])
+    .map((e) => ({ ...e, site: CENTRAL_BANK_SITES[e.region], position: [CENTRAL_BANK_SITES[e.region].lon, CENTRAL_BANK_SITES[e.region].lat] })))
+  const zoomBand = viewState.zoom >= 13 ? 'district' : viewState.zoom >= 4.5 ? 'city' : 'world'
+  const district = zoomBand === 'district'
+    ? FINANCIAL_DISTRICTS.find((d) => Math.abs(d.lat - viewState.latitude) < 0.12 && Math.abs(((d.lon - viewState.longitude + 540) % 360) - 180) < 0.15) ?? null
+    : null
   // Location search: the pin it leaves, and whether the pointer is over the
   // map (the F-to-search shortcut only applies there).
   const [searchPin, setSearchPin] = useState(null)
@@ -564,7 +588,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         filled: true,
         getFillColor: (f) => {
           const ex = EXCHANGES.find((e) => e.id === EXCHANGE_COUNTRY[f.properties?.NAME])
-          if (!ex) return [10, 15, 26, 190]
+          if (!ex || ex.change == null) return [10, 15, 26, 190]
           // Saturation scales with the size of the move, capped at 2% so one
           // outlier does not flatten every other country to the same shade.
           const t = Math.min(Math.abs(ex.change) / 2, 1)
@@ -620,7 +644,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         elevationScale: 1,
         getPosition: (d) => [d.lon, d.lat],
         getElevation: (d) => Math.cbrt(d.marketCap) * 900,
-        getFillColor: (d) => (d.change >= 0 ? [45, 138, 80, 205] : [168, 50, 50, 205]),
+        getFillColor: (d) => (d.change == null ? [99, 120, 153, 180] : d.change >= 0 ? [45, 138, 80, 205] : [168, 50, 50, 205]),
         getLineColor: [201, 168, 76, 120],
         pickable: true,
         onHover: hover('exchange'),
@@ -663,6 +687,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         updateTriggers: { opacity: pulse },
         pickable: true,
         onHover: hover('autrade'),
+        onClick: ({ object }) => object && setSelected({ type: 'route', data: object }),
       }))
     } else if (show('trade')) {
       const routes = TRADE_ROUTES
@@ -692,6 +717,13 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         updateTriggers: { opacity: pulse },
         pickable: true,
         onHover: hover('trade'),
+        // Australian routes open the same card as the AU FOCUS arcs, built
+        // on the ABS export figure for that partner.
+        onClick: ({ object }) => {
+          const country = object && ROUTE_COUNTRY[object.id]
+          const arc = country && auTradeArcs.find((a) => a.dir === 'export' && a.country === country)
+          if (arc) setSelected({ type: 'route', data: arc })
+        },
       }))
     }
 
@@ -893,6 +925,76 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     // ── Exchanges — the spine of the view, but still toggleable ──────────
     if (!show('exchanges')) return all
 
+    // ── Rate decisions this week: pulsing gold on each bank's city ─────────
+    if (show('events') && cbEvents.length) {
+      all.push(new ScatterplotLayer({
+        id: 'cb-event-pulse',
+        data: cbEvents,
+        getPosition: (d) => d.position,
+        getRadius: 9 + (Math.sin(pulse / 5) + 1) * 7,
+        radiusUnits: 'pixels',
+        getFillColor: [232, 199, 102, 40],
+        getLineColor: [232, 199, 102, 200],
+        stroked: true,
+        lineWidthUnits: 'pixels',
+        getLineWidth: 1.5,
+        updateTriggers: { getRadius: pulse },
+      }))
+      all.push(new ScatterplotLayer({
+        id: 'cb-events',
+        data: cbEvents,
+        getPosition: (d) => d.position,
+        getRadius: 5,
+        radiusUnits: 'pixels',
+        getFillColor: [232, 199, 102, 255],
+        pickable: true,
+        onClick: ({ object }) => object && setSelected({ type: 'cbevent', data: object }),
+      }))
+      all.push(new TextLayer({
+        id: 'cb-event-labels',
+        data: cbEvents,
+        getPosition: (d) => d.position,
+        getText: (d) => `${d.site.bank} · ${new Date(`${d.date}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()}`,
+        getSize: 10,
+        getColor: [232, 199, 102, 255],
+        getTextAnchor: 'start',
+        getAlignmentBaseline: 'center',
+        getPixelOffset: [12, 0],
+        background: true,
+        getBackgroundColor: [6, 13, 26, 200],
+        backgroundPadding: [3, 1],
+        fontFamily: '"IBM Plex Mono", monospace',
+        fontWeight: 700,
+        characterSet: 'auto',
+        pickable: true,
+        onClick: ({ object }) => object && setSelected({ type: 'cbevent', data: object }),
+      }))
+    }
+
+    // ── Financial districts: labels from city zoom; click to zoom in ──────
+    if (show('districts') && zoomBand !== 'world') {
+      all.push(new TextLayer({
+        id: 'district-labels',
+        data: FINANCIAL_DISTRICTS,
+        getPosition: (d) => [d.lon, d.lat],
+        getText: (d) => `◆ ${d.name}`,
+        getSize: zoomBand === 'district' ? 13 : 10,
+        getColor: [201, 168, 76, 240],
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'top',
+        getPixelOffset: [0, 14],
+        background: true,
+        getBackgroundColor: [6, 13, 26, 210],
+        backgroundPadding: [4, 2],
+        fontFamily: '"IBM Plex Mono", monospace',
+        fontWeight: 700,
+        characterSet: 'auto',
+        pickable: true,
+        updateTriggers: { getSize: zoomBand },
+        onClick: ({ object }) => object && flyTo({ longitude: object.lon, latitude: object.lat, zoom: 14.6, pitch: 55, bearing: -15 }),
+      }))
+    }
+
     all.push(new ScatterplotLayer({
       id: 'exchange-glow',
       data: openExchanges,
@@ -939,7 +1041,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     }))
     all.push(new TextLayer({
       id: 'exchange-change',
-      data: EXCHANGES,
+      data: EXCHANGES.filter((e) => e.change != null),
       getPosition: (d) => [d.lon, d.lat],
       getText: (d) => `${d.change >= 0 ? '▲' : '▼'} ${Math.abs(d.change).toFixed(2)}%`,
       getSize: 9,
@@ -952,7 +1054,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     }))
 
     return all
-  }, [layerOn, quakes, majorQuakes, auFocus, riskView, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries, searchPin])
+  }, [layerOn, quakes, majorQuakes, auFocus, riskView, pulse, pulseAlpha, hover, flyTo, onExchangeSelect, shippingRows, geoRows, countries, searchPin, cbEvents, zoomBand])
 
   // What the status line reports. Every entry is read from actual state — the
   // seismic fetch's own result, the narrative service's source field, whether
@@ -1072,6 +1174,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
       )}
 
       {tooltip && <MapTooltip tooltip={tooltip} />}
+      {district && layerOn.districts && <DistrictCard district={district} insetL={insetL} />}
 
       <LayerPanel
         layerOn={layerOn} onToggleLayer={toggleLayer}
@@ -1089,6 +1192,10 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         <AuIntelPanel
           insetR={(selected ? panelWidth + 16 : 0) + insetR}
           onSite={(site) => { setSelected({ type: 'ausite', data: site }); flyTo({ longitude: site.lon, latitude: site.lat, zoom: 5, pitch: 40, bearing: 0 }) }}
+          onRoute={(country, side) => {
+            const arc = auTradeArcs.find((a) => a.country === country && a.dir === (side === 'exports' ? 'export' : 'import'))
+            if (arc) setSelected({ type: 'route', data: arc })
+          }}
         />
       )}
 
@@ -1275,10 +1382,14 @@ function MapTooltip({ tooltip }) {
       <>
         <div style={gold}>{object.flag} {object.id} — {object.city}</div>
         <div style={{ marginBottom: 3 }}>{object.index}</div>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{object.value.toLocaleString()}</div>
-        <div style={{ color: object.change >= 0 ? '#2D8A50' : '#A83232', marginBottom: 5 }}>
-          {object.change >= 0 ? '▲' : '▼'} {Math.abs(object.change)}%
-        </div>
+        {object.value != null ? (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{object.value.toLocaleString('en-AU', { maximumFractionDigits: 1 })}</div>
+            <div style={{ color: object.change >= 0 ? '#2D8A50' : '#A83232', marginBottom: 5 }}>
+              {object.change >= 0 ? '▲' : '▼'} {Math.abs(object.change).toFixed(2)}% <span style={{ color: '#637899', fontSize: 9 }}>DEMO</span>
+            </div>
+          </>
+        ) : <div style={{ color: '#637899', marginBottom: 5 }}>no index feed</div>}
         <div style={{ fontSize: 10, color: isExchangeOpen(object) ? '#2D8A50' : '#637899' }}>
           {isExchangeOpen(object) ? '● OPEN NOW' : '○ CLOSED'}
         </div>
@@ -1549,7 +1660,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
 // export markets and import sources (verifiedConstants.auTrade, ABS 2024-25)
 // as bars by share, and the key resource regions, each a button that flies
 // to it. Sits on the map's right edge, clear of the layer panel.
-function AuIntelPanel({ onSite, insetR = 0 }) {
+function AuIntelPanel({ onSite, onRoute, insetR = 0 }) {
   const t = VERIFIED_CONSTANTS.auTrade
   const [side, setSide] = useState('exports')
   if (!t) return null
@@ -1575,7 +1686,9 @@ function AuIntelPanel({ onSite, insetR = 0 }) {
       </div>
       <div style={{ marginTop: 6 }}>
         {rows.map((r) => (
-          <div key={r.country} style={{ marginBottom: 6 }} title={r.main}>
+          <div key={r.country} role="button" tabIndex={0} style={{ marginBottom: 6, cursor: 'pointer' }} title={`${r.main} — click for the route card`}
+            onClick={() => onRoute?.(r.country, side)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onRoute?.(r.country, side) }}>
             <div style={{ display: 'flex', fontSize: 10, color: '#E6EDF6' }}>
               <span>{r.country}</span>
               <span style={{ marginLeft: 'auto', color: tone, fontWeight: 700 }}>{((r.bn / total) * 100).toFixed(1)}%</span>

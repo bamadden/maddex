@@ -9,7 +9,9 @@
 // live feed — the live layers (earthquakes, weather, flights) come from the
 // public APIs wired up in the component itself.
 
-export const EXCHANGES = [
+import { getMockFMPRow } from '../../services/mockData'
+
+const EXCHANGE_BASE = [
   { id: 'ASX',  city: 'Sydney',    flag: '🇦🇺', lon: 151.2093, lat: -33.8688, index: 'ASX 200',        value: 8247.3,  change: 0.42,  openHour: 10,   closeHour: 16,   tz: 'Australia/Sydney',  volume: 4.2e9,  marketCap: 2.1e12,
     topStocks: ['BHP', 'CBA', 'CSL', 'WES', 'ANZ'] },
   { id: 'NYSE', city: 'New York',  flag: '🇺🇸', lon: -74.0060, lat: 40.7128,  index: 'S&P 500',        value: 5842.3,  change: 0.32,  openHour: 9.5,  closeHour: 16,   tz: 'America/New_York',  volume: 24.8e9, marketCap: 45.2e12,
@@ -35,6 +37,26 @@ export const EXCHANGES = [
   { id: 'TASE', city: 'Tel Aviv',  flag: '🇮🇱', lon: 34.7818,  lat: 32.0853,  index: 'TA-35',          value: 2124.8,  change: -0.32, openHour: 9.5,  closeHour: 17.5, tz: 'Asia/Jerusalem',    volume: 0.8e9,  marketCap: 0.2e12,
     topStocks: ['TEVA', 'NICE', 'ESLT', 'POLI', 'LUMI'] },
 ]
+
+// Index level and day change come from the terminal's quote layer, not from
+// the numbers typed into the table above. Those were written early and never
+// updated — the map showed the ASX 200 at 8,247 and the Nikkei at 38,420 with
+// the rest of the terminal at 8,850 and 66,754. Exchanges whose index the
+// quote layer does not carry (SENSEX, STI, TSX, TA-35) show no level rather
+// than a stale one. `demo` marks the source; the panel labels it.
+const EXCHANGE_INDEX = { ASX: '^AXJO', NYSE: '^GSPC', LSE: '^FTSE', TSE: '^N225', HKEX: '^HSI', SSE: '000001.SS', FSE: '^GDAXI', NZX: '^NZ50' }
+
+export const EXCHANGES = EXCHANGE_BASE.map((e) => {
+  const sym = EXCHANGE_INDEX[e.id]
+  const q = sym ? getMockFMPRow(sym) : null
+  return {
+    ...e,
+    indexSymbol: sym ?? null,
+    value: q?.regularMarketPrice ?? null,
+    change: q ? Math.round(q.regularMarketChangePercent * 100) / 100 : null,
+    demo: true,
+  }
+})
 
 // AU routes: `value` is A$b of AU EXPORTS to that market, ABS 2024-25 (see
 // verifiedConstants.auTrade); null where no sourced figure is held. The
@@ -334,4 +356,100 @@ export const AU_IMPACT = {
   'United Kingdom':           { score: 1, why: 'Investment and financial ties' },
   'Malaysia':                 { score: 1, why: 'Fuel and regional trade' },
   'Vietnam':                  { score: 1, why: 'Growing export market' },
+}
+
+// ─── Financial districts ────────────────────────────────────────────────────
+//
+// The card shown when the map is zoomed into a financial centre. Institutions
+// are reference facts (who is headquartered or sits in the city), not
+// addresses — a street-level claim is one more thing to go stale. `exchange`
+// is the EXCHANGES id whose hours give the session status; `index` is the
+// symbol the card reads today's move from (demo data in this build, labelled).
+// Note ANZ and NAB are Melbourne-headquartered, not Sydney.
+export const FINANCIAL_DISTRICTS = [
+  { id: 'syd', name: 'SYDNEY CBD', lon: 151.2093, lat: -33.8679, exchange: 'ASX', index: '^AXJO', indexLabel: 'ASX 200', tz: 'Australia/Sydney',
+    institutions: ['ASX — Australian Securities Exchange', 'Reserve Bank of Australia', 'Commonwealth Bank HQ', 'Westpac HQ', 'Macquarie Group HQ', 'AMP and the major fund managers'] },
+  { id: 'mel', name: 'MELBOURNE CBD', lon: 144.9631, lat: -37.8150, exchange: 'ASX', index: '^AXJO', indexLabel: 'ASX 200', tz: 'Australia/Melbourne',
+    institutions: ['BHP global HQ', 'NAB HQ (Docklands)', 'ANZ HQ (Docklands)', 'Telstra HQ', 'AustralianSuper and the large industry funds'] },
+  { id: 'per', name: 'PERTH CBD', lon: 115.8575, lat: -31.9545, exchange: 'ASX', index: '^AXJO', indexLabel: 'ASX 200', tz: 'Australia/Perth',
+    institutions: ['Woodside Energy HQ', 'Wesfarmers HQ', 'Fortescue HQ', 'Northern Star Resources HQ', 'Mineral Resources HQ — the mining services hub'] },
+  { id: 'nyc', name: 'LOWER MANHATTAN', lon: -74.0113, lat: 40.7069, exchange: 'NYSE', index: '^GSPC', indexLabel: 'S&P 500', tz: 'America/New_York',
+    institutions: ['New York Stock Exchange', 'Federal Reserve Bank of New York', 'Goldman Sachs HQ', 'JPMorgan Chase HQ (Midtown)', 'Nasdaq (Times Square)'] },
+  { id: 'ldn', name: 'CITY OF LONDON', lon: -0.0886, lat: 51.5142, exchange: 'LSE', index: '^FTSE', indexLabel: 'FTSE 100', tz: 'Europe/London',
+    institutions: ['London Stock Exchange', 'Bank of England', 'Lloyd\'s of London', 'HSBC and Barclays HQs (Canary Wharf)'] },
+  { id: 'tyo', name: 'NIHONBASHI / MARUNOUCHI', lon: 139.7745, lat: 35.6845, exchange: 'TSE', index: '^N225', indexLabel: 'Nikkei 225', tz: 'Asia/Tokyo',
+    institutions: ['Tokyo Stock Exchange (Kabutocho)', 'Bank of Japan', 'MUFG, SMFG and Mizuho HQs'] },
+  { id: 'hkg', name: 'CENTRAL, HONG KONG', lon: 114.1588, lat: 22.2823, exchange: 'HKEX', index: '^HSI', indexLabel: 'Hang Seng', tz: 'Asia/Hong_Kong',
+    institutions: ['Hong Kong Exchanges and Clearing', 'Hong Kong Monetary Authority', 'HSBC Asia-Pacific HQ', 'Bank of China Tower'] },
+  { id: 'sin', name: 'RAFFLES PLACE, SINGAPORE', lon: 103.8514, lat: 1.2840, exchange: 'SGX', index: null, indexLabel: null, tz: 'Asia/Singapore',
+    institutions: ['Singapore Exchange (SGX)', 'Monetary Authority of Singapore', 'DBS, OCBC and UOB HQs'] },
+]
+
+// ─── Trade-route notes (AU FOCUS arcs) ──────────────────────────────────────
+//
+// The ABS value on each arc is sourced (verifiedConstants.auTrade). These are
+// the editorial parts of the route card: the sea lanes most of the trade
+// uses, and a three-line risk read. The ratings are judgement, labelled
+// EDITORIAL on the card, and say why.
+export const ROUTE_NOTES = {
+  'China': {
+    lanes: 'From WA ports through the Lombok and Makassar straits, then the South China Sea; east-coast cargoes via the Coral Sea and Philippine waters.',
+    risks: [
+      ['Geopolitical tension', 'ELEVATED', 'China restricted Australian coal, barley and wine in 2020–24; the trade has normalised but the precedent stands.'],
+      ['Shipping disruption', 'LOW', 'No chokepoint on the route is currently disrupted.'],
+      ['Tariff / trade-measure risk', 'MEDIUM', 'Iron ore has never been targeted — China lacks a substitute at scale — but other goods have.'],
+    ] },
+  'Japan': {
+    lanes: 'North through the Lombok/Makassar straits or east of the Philippines; LNG from the North West Shelf and Gladstone.',
+    risks: [['Geopolitical tension', 'LOW', 'Treaty-level partner (Reciprocal Access Agreement, 2023).'], ['Shipping disruption', 'LOW', 'Open sea lanes.'], ['Tariff / trade-measure risk', 'LOW', 'JAEPA free-trade agreement in force since 2015.']] },
+  'United States': {
+    lanes: 'Across the Pacific; much of the value is gold and services, which move by air and wire rather than ship.',
+    risks: [['Geopolitical tension', 'LOW', 'Alliance partner.'], ['Shipping disruption', 'LOW', 'Open ocean.'], ['Tariff / trade-measure risk', 'MEDIUM', 'US tariff policy has been volatile since 2025.']] },
+  'South Korea': {
+    lanes: 'North via the Lombok/Makassar straits; iron ore, coal and LNG to the steel and power sectors.',
+    risks: [['Geopolitical tension', 'LOW', 'KAFTA in force since 2014.'], ['Shipping disruption', 'LOW', 'Open sea lanes.'], ['Tariff / trade-measure risk', 'LOW', 'Free-trade agreement.']] },
+  'India': {
+    lanes: 'West across the Indian Ocean, often through the Sunda Strait or around Sumatra.',
+    risks: [['Geopolitical tension', 'LOW', 'ECTA interim agreement in force since 2022.'], ['Shipping disruption', 'LOW', 'Open sea lanes.'], ['Tariff / trade-measure risk', 'MEDIUM', 'Tariff cuts are being phased in; coal and gold flows depend on Indian policy.']] },
+}
+
+// Two coordinates to a great-circle distance in km.
+export function greatCircleKm([lon1, lat1], [lon2, lat2]) {
+  const R = 6371, rad = (d) => (d * Math.PI) / 180
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1)
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
+// ─── Resource regions: the extra card lines ─────────────────────────────────
+//
+// `price` names a verifiedConstants.commodities key (dated, sourced); null
+// where the terminal holds no price for what the region produces (Bowen is
+// mostly METALLURGICAL coal and only a thermal price is held, so none is
+// shown rather than the wrong one). `risks` are operational facts of the
+// place, not ratings. `sector` is the Screener sector for SEE RELATED STOCKS.
+export const SITE_EXTRAS = {
+  'au-pilbara':    { price: 'ironOreUSD', priceLabel: 'Iron ore 62% Fe', unit: 'US$/t', sector: 'Materials',
+    risks: ['Cyclone season Nov–Apr can close Port Hedland and Dampier', 'Rail and port capacity sets the export ceiling', 'Price set by Chinese steel demand'] },
+  'au-bowen':      { price: null, priceLabel: 'Metallurgical coal', sector: 'Materials',
+    risks: ['Wet-season flooding (Dec–Mar) disrupts pits and rail', 'Underground mine safety incidents', 'Demand tied to Asian steelmaking'] },
+  'au-nws':        { price: 'lngUSDPerMMBtu', priceLabel: 'LNG (JKM spot)', unit: 'US$/MMBtu', sector: 'Energy',
+    risks: ['Ageing fields — output declining toward end of life', 'Cyclone season shut-ins', 'Environmental approvals for life extension'] },
+  'au-curtis':     { price: 'lngUSDPerMMBtu', priceLabel: 'LNG (JKM spot)', unit: 'US$/MMBtu', sector: 'Energy',
+    risks: ['East-coast gas reservation and price-cap policy', 'Coal-seam gas well decline needs constant drilling', 'Cyclone and flood exposure at Gladstone'] },
+  'au-cooper':     { price: 'brentUSD', priceLabel: 'Brent crude (oil reference)', unit: 'US$/bbl', sector: 'Energy',
+    risks: ['Channel Country flooding cuts road access', 'Mature basin — high cost per well', 'East-coast gas market regulation'] },
+  'au-kalgoorlie': { price: null, priceLabel: 'Gold', sector: 'Materials',
+    risks: ['Labour and cost inflation across WA mining', 'Grade decline in older pits', 'Water supply in a semi-arid region'] },
+}
+
+// Where each central bank sits, for the map's decision markers.
+export const CENTRAL_BANK_SITES = {
+  AU: { bank: 'RBA', city: 'Sydney', lon: 151.2115, lat: -33.8675 },
+  US: { bank: 'Fed', city: 'Washington', lon: -77.0465, lat: 38.8928 },
+  EU: { bank: 'ECB', city: 'Frankfurt', lon: 8.7047, lat: 50.1096 },
+  JP: { bank: 'BOJ', city: 'Tokyo', lon: 139.7712, lat: 35.6862 },
+  UK: { bank: 'BoE', city: 'London', lon: -0.0886, lat: 51.5142 },
+  NZ: { bank: 'RBNZ', city: 'Wellington', lon: 174.7787, lat: -41.2865 },
+  CA: { bank: 'BoC', city: 'Ottawa', lon: -75.7009, lat: 45.4208 },
 }
