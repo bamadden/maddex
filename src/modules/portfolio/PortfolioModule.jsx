@@ -43,6 +43,7 @@ import { markMilestone } from '../../services/gettingStarted'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
 import { RateImpactPill, RowMenu, PortfolioNotes } from './PortfolioExtras'
 import { portfolioTotals, heldFor } from './portfolioTotals'
+import { PortfolioBanners } from './PortfolioBanners'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -1129,6 +1130,8 @@ export default function PortfolioModule() {
           <PortfolioAnalytics holdings={live} mktTotal={mktTotal} fmtCur={fmtCur} />
         </div>
       )}
+
+      {activeTab === 'holdings' && <PortfolioBanners holdings={holdings} />}
 
       {/* Holdings table + allocation */}
       {activeTab === 'holdings' && (

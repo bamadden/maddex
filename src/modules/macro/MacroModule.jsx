@@ -39,6 +39,7 @@ import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import GlobalComparison from './GlobalComparison'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
+import { RegimePanel } from '../../components/ui/RegimeBadge'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
 // Every macro indicator carries its official release `date` (ISO) and `src`
@@ -1928,6 +1929,8 @@ export default function MacroModule() {
         </SectionExpandOverlay>
       )}
 
+
+      <RegimePanel />
 
       <CpiPreviewPanel />
 

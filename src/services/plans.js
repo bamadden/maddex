@@ -32,9 +32,9 @@ export const PRICE_IDS = {
 
 // Infinity = unlimited. 0 = not included.
 export const LIMITS = {
-  core:  { watchlist: 5,        watchlistGroups: 0,        aiPerDay: 10,       alerts: 0,        researchNotesPerMonth: 0,        briefsPerWeek: 3 },
-  prime: { watchlist: Infinity, watchlistGroups: 5,        aiPerDay: 50,       alerts: 10,       researchNotesPerMonth: 5,        briefsPerWeek: Infinity },
-  apex:  { watchlist: Infinity, watchlistGroups: Infinity, aiPerDay: Infinity, alerts: Infinity, researchNotesPerMonth: Infinity, briefsPerWeek: Infinity },
+  core:  { watchlist: 5,        watchlistGroups: 0,        aiPerDay: 10,       alerts: 0,        researchNotesPerMonth: 0,        briefsPerWeek: 3,        smartAlertsPerDay: 3 },
+  prime: { watchlist: Infinity, watchlistGroups: 5,        aiPerDay: 50,       alerts: 10,       researchNotesPerMonth: 5,        briefsPerWeek: Infinity, smartAlertsPerDay: 10 },
+  apex:  { watchlist: Infinity, watchlistGroups: Infinity, aiPerDay: Infinity, alerts: Infinity, researchNotesPerMonth: Infinity, briefsPerWeek: Infinity, smartAlertsPerDay: Infinity },
 }
 
 // Feature → plans that include it. A feature not listed is open to all.

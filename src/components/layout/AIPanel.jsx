@@ -15,6 +15,7 @@ import VoiceInterface from '../voice/VoiceInterface'
 import { SECTOR_BY_SYMBOL } from '../../modules/portfolio/sectorMap'
 import { rateImpact } from '../../modules/portfolio/rateSensitivity'
 import { intelligenceFeed } from '../../services/intelligenceFeed'
+import DigestCard from '../ai/DigestCard'
 import { soundService } from '../../services/soundService'
 import { createAlert } from '../../services/alertsService'
 import { logActivity } from '../../services/activityLogService'
@@ -1646,6 +1647,7 @@ export default function AIPanel({ wide = false, onListening }) {
               Financial intelligence at your command.
             </span>
 
+            <DigestCard watchlist={watchlist} onAsk={(q) => send(q)} />
             <IntelligenceFeed feed={feed} onRead={(c) => send(c.prompt)} disabled={loading} />
 
             {/* Four openers — written for the saved investor profile when there

@@ -17,6 +17,8 @@ import { loadAlerts, checkAlerts, markTriggered, recordAlertHistory } from '../.
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import { logActivity } from '../../services/activityLogService'
 import { soundService } from '../../services/soundService'
+// Loaded on use — the engine carries sector tables the bell does not need at first paint.
+const smartEngine = () => import('../../services/smartNotifications')
 import {
   getHistory, groupHistoryByDay, removeHistory, clearHistory,
   shouldSendDigest, markDigestSent, buildDigest, inQuietHours,
@@ -396,6 +398,22 @@ export default function NotificationCenter() {
     return () => clearInterval(id)
   }, [addNotification])
 
+  // ── SMART NOTIFICATIONS — RBA proximity, release days, news surges, the
+  // Friday week-in-review, scanner signals on watchlist stocks and the
+  // portfolio read after an RBA decision. Every 15 minutes; the service holds
+  // the once-only memory, the plan's daily cap and the user's settings.
+  useEffect(() => {
+    let alive = true
+    const check = () => {
+      let holdings = []
+      try { holdings = JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]') } catch { /* none */ }
+      smartEngine().then((m) => m.runSmartChecks({ watchlist, holdings, notify: (...a) => alive && addNotification(...a) })).catch(() => {})
+    }
+    const first = setTimeout(check, 20_000)
+    const id = setInterval(check, 15 * 60_000)
+    return () => { alive = false; clearTimeout(first); clearInterval(id) }
+  }, [watchlist, addNotification])
+
   // ── PRICE ALERT — poll watchlist-style quotes for any active alert ─────────
   // Alerts created via the CommandBar's ALERT {sym} {price} text command have
   // no `direction` field (defaults to 'above' in addAlert) — "reached your
@@ -460,7 +478,7 @@ export default function NotificationCenter() {
     const check = async () => {
       const symbols = watchlist.map((s) => toYahooSymbol(s, detectAssetType(s)))
       try {
-        const { data } = await fetchEquityQuotes(symbols)
+        const [{ data }, { takeSmartSlot, typicalDailyMove }] = await Promise.all([fetchEquityQuotes(symbols), smartEngine()])
         for (const sym of watchlist) {
           const yfSym = toYahooSymbol(sym, detectAssetType(sym))
           const q = data?.[yfSym]
@@ -468,8 +486,16 @@ export default function NotificationCenter() {
           if (pct == null || Math.abs(pct) < 2) continue
           const key = todayKey(`madden_notif_mover_${sym}`)
           if (alertedMoversToday.current.has(key)) continue
+          // Only a move outside the stock's own typical range: 2% is routine
+          // for a miner and unusual for a supermarket.
+          const typical = typicalDailyMove(yfSym)
+          if (typical != null && Math.abs(pct) < typical * 1.5) continue
+          // An app-raised alert — it counts against the plan's daily cap.
+          if (!takeSmartSlot(`move:${key}`)) continue
           alertedMoversToday.current.add(key)
           const dir = pct >= 0 ? 'up' : 'down'
+          const range = typical != null ? ` — above its typical daily range (±${typical.toFixed(1)}%)` : ''
+          const demo = USING_MOCK_DATA ? ' (DEMO prices)' : ''
 
           // The auto-analysis honours the Auto-Analyse preference, which
           // defaults OFF. It previously fired regardless — so a setting that
@@ -479,11 +505,11 @@ export default function NotificationCenter() {
           // A notification is a notification; opening a panel over whatever
           // someone was reading is not.
           if (!getAiPreferences().autoAnalyse) {
-            addNotification('WATCHLIST_MOVE', `${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today`)
+            addNotification('WATCHLIST_MOVE', `📊 ${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today${range}${demo}`)
             continue
           }
 
-          addNotification('WATCHLIST_MOVE', `${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today — asking MaddenAI why`)
+          addNotification('WATCHLIST_MOVE', `📊 ${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today${range}${demo} — asking MaddenAI why`)
           dispatchAskAI({
             name: q.name ?? sym, ticker: sym,
             price: q.price != null ? q.price.toFixed(2) : undefined,

@@ -685,6 +685,7 @@ function Terminal() {
       if (shortcutService.matches(e, shortcutService.shortcuts['ui.shortcuts']) || (e.shiftKey && e.key === '/')) {
         e.preventDefault()
         setShowShortcuts(v => !v)
+        try { localStorage.setItem('maddex_shortcuts_seen', '1') } catch { /* private mode */ }
         return
       }
 

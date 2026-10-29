@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { marketSession } from '../../services/newsIntelligence'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { RegimeBadge } from '../../components/ui/RegimeBadge'
+import IntelligenceScore from './IntelligenceScore'
+import { useStore } from '../../store/useStore'
 
 // The first line of the first screen.
 //
@@ -41,6 +44,7 @@ export default function DashboardStatusBar() {
     return () => clearInterval(id)
   }, [])
 
+  const { setActiveModule } = useStore()
   const name = profile?.first_name?.trim()
   const greeting = greetingFor(auHour(now))
   const session = marketSession(now)
@@ -88,7 +92,10 @@ export default function DashboardStatusBar() {
           />
           {session.label}<span className="hidden sm:inline"> · {session.detail}</span>
         </span>
+        <span className="hidden lg:inline-flex ml-2"><RegimeBadge onClick={() => setActiveModule?.('macro')} /></span>
       </div>
+
+      <span className="hidden md:inline-flex flex-shrink-0"><IntelligenceScore /></span>
 
       <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0 cursor-help">{timeStr}</span>
       <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hidden sm:inline cursor-help">{tz}</span>

@@ -65,8 +65,10 @@ const TYPE_PRIORITY = {
   DAILY_DIGEST: PRIORITY.HIGH,
 
   WATCHLIST_MOVE: PRIORITY.MEDIUM,
+  // A scanner signal on a stock the user watches: toasts, silently — the
+  // user chose the stock, the scanner chose the moment.
+  SCANNER_WATCHLIST: PRIORITY.HIGH,
   UNUSUAL_ACTIVITY: PRIORITY.MEDIUM,
-  SCANNER_WATCHLIST: PRIORITY.MEDIUM,
   WEEKLY_SUMMARY: PRIORITY.MEDIUM,
 
   MARKET_UPDATE: PRIORITY.LOW,

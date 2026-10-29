@@ -6,6 +6,7 @@ import { sydneyTzAbbr } from '../utils/dateUtils'
 import { briefProfileLines } from './investorProfile'
 import { fetchNews, USING_MOCK_DATA } from './api'
 import { sydneyOffset } from '../utils/dateUtils'
+import { currentRegime } from './marketRegime'
 
 // Stable instruction template — identical on every call, so it sits in the
 // cached system prefix. Everything that changes day to day goes in the user
@@ -264,6 +265,8 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   const [{ fx, gold, fg, crypto }, personal] = await Promise.all([gatherContext(), gatherPersonal(watchlist, holdings)])
   const { rba, fed, au, bonds, rbaNextDecision: nd } = VERIFIED_CONSTANTS
   const fedLast = fed.decisions?.at(-1)
+  const reg = currentRegime()
+  const regimeLine = `- Market regime (Maddex's classification from the figures above): ${reg.regime} — RBA ${reg.inputs.rba}; CPI ${reg.inputs.cpi}; GDP ${reg.inputs.gdp}; unemployment ${reg.inputs.unemployment}`
   const ndAt = nd ? Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`) : null
   const ndDays = ndAt && ndAt > Date.now() ? Math.ceil((ndAt - Date.now()) / 86_400_000) : null
 
@@ -307,6 +310,7 @@ VERIFIED FIGURES — you may quote these, and no others:
 - AU GDP: ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})
 - Fed next meeting: ${fed.nextMeeting}; RBA–Fed policy spread ${Math.round((rba.cashRate - fed.cashRate) * 100)}bp
 ${fedLast ? `- Latest Fed decision ${fedLast.date}: ${fedLast.decision}${fedLast.vote ? `, vote ${fedLast.vote}` : ''}${fedLast.reason ? ` — ${fedLast.reason}` : ''}` : ''}
+${regimeLine}
 ${nd && ndDays != null ? `- Next RBA decision: ${new Date(`${nd.date}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })} (${nd.date}) at ${nd.time} AEDT, ${ndDays} day${ndDays === 1 ? '' : 's'} away — use this weekday, do not work one out; market pricing ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, as at ${nd.marketAsOf})` : ''}
 ${bonds ? `- Bond yields: AU 10Y ${bonds.au10y.toFixed(2)}% (${bonds.au10yAsOf}), US 10Y ${bonds.us10y.toFixed(2)}% (${bonds.us10yAsOf}); spread ${spreadBp >= 0 ? '+' : ''}${spreadBp}bp (${spreadBp >= 0 ? 'AU premium' : 'US premium'})` : ''}
 ${upcoming ? `\nSCHEDULED EVENTS — next 14 days (dates are fixed; use these, not any you recall):\n${upcoming}` : ''}

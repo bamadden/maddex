@@ -46,6 +46,7 @@ import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 import DiagnosticsPanel from './DiagnosticsPanel'
+import DataHealthPanel from './DataHealthPanel'
 
 const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
 // Older callers still ask for 'SUBSCRIPTION'.
@@ -2449,6 +2450,7 @@ function DataSourcesSection() {
   return (
     <div className="space-y-5">
       <SectionLabel>Data Sources</SectionLabel>
+      <DataHealthPanel />
       <div className="text-2xs text-terminal-text-dim leading-relaxed">
         Where every number in the terminal comes from. Grouped by provenance, because
         a live rate and a generated series both render as a confident figure and there

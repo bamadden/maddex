@@ -4,6 +4,7 @@ import {
   Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package, CandlestickChart,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
+import { SCANNER_BADGE_KEY, SCANNER_BADGE_EVENT } from '../../services/scannerBadge'
 import NavContextMenu from '../ui/NavContextMenu'
 import { shortcutService } from '../../services/shortcutService'
 import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../services/sidebarPref'
@@ -117,8 +118,31 @@ const GAP = 'gap-[14px]'
 // labels on hover, or pins open at 220px via the toggle at the top. Hidden
 // below the md breakpoint in favour of MobileNavBar, a bottom tab bar that's
 // a better fit for touch navigation.
+// Scanner signals on watchlist stocks today, not yet seen — written by
+// services/smartNotifications, cleared by opening the Scanner.
+function useScannerBadge(activeModule) {
+  const [state, setState] = useState(() => readScannerBadge())
+  useEffect(() => {
+    const on = () => setState(readScannerBadge())
+    window.addEventListener(SCANNER_BADGE_EVENT, on)
+    return () => window.removeEventListener(SCANNER_BADGE_EVENT, on)
+  }, [])
+  useEffect(() => {
+    if (activeModule !== 'scanner') return
+    const cur = readScannerBadge()
+    try { localStorage.setItem(SCANNER_BADGE_KEY, JSON.stringify({ ...cur, seen: cur.count })) } catch { /* quota */ }
+    window.dispatchEvent(new Event(SCANNER_BADGE_EVENT))
+  }, [activeModule, state.count])
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  return state.day === today ? Math.max(0, (state.count ?? 0) - (state.seen ?? 0)) : 0
+}
+function readScannerBadge() {
+  try { return JSON.parse(localStorage.getItem(SCANNER_BADGE_KEY) ?? 'null') ?? { count: 0, seen: 0 } } catch { return { count: 0, seen: 0 } }
+}
+
 export default function NavBar() {
   const { activeModule, setActiveModule, chatOpen, setChatOpen } = useStore()
+  const scannerBadge = useScannerBadge(activeModule)
   const [pinned, setPinned] = usePinnedSidebar()
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
 
@@ -268,6 +292,10 @@ export default function NavBar() {
                   <item.Icon size={18} strokeWidth={1.75} />
                   {item.id === 'brief' && showBriefDot && !isActive && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-terminal-gold pulse-gold" title="New brief available" />
+                  )}
+                  {item.id === 'scanner' && scannerBadge > 0 && !isActive && (
+                    <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-terminal-gold text-terminal-bg font-mono font-bold flex items-center justify-center"
+                      style={{ fontSize: 8 }} title={`${scannerBadge} scanner signal${scannerBadge === 1 ? '' : 's'} on your watchlist today`}>{scannerBadge}</span>
                   )}
                 </span>
                 <span className={`nav-label ${labelCls}`}>{item.label}</span>

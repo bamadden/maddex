@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import CorporateActions from './CorporateActions'
+import { PredictedEvents, EventImpactHistory } from './PredictiveCalendar'
 import EventImpact from './EventImpact'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -755,6 +756,8 @@ export default function CalendarModule() {
           )}
 
           <CorporateActions />
+          <PredictedEvents events={allEvents} />
+          <EventImpactHistory />
         </div>
       </div>
     </div>
