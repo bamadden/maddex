@@ -52,9 +52,9 @@ const SEVERITY_BORDER = {
 
 const SCENARIOS = [
   {
-    key: 'ironOre', label: 'IRON ORE -20%', borderColor: 'border-red-500/50 hover:border-red-500',
-    describe: 'Iron ore -20% — Materials down ~15%, Energy down ~8%, Financials flat.',
-    shock: (h) => sectorShockPct(h, { Materials: -0.15, Energy: -0.08, Financials: 0 }, 0),
+    key: 'ironOre', label: 'IRON ORE DROPS 20%', borderColor: 'border-red-500/50 hover:border-red-500',
+    describe: 'Iron ore −20% — Materials −15%, Energy −5%, everything else −2% (the knock-on to the AUD and the broader market).',
+    shock: (h) => sectorShockPct(h, { Materials: -0.15, Energy: -0.05 }, -0.02),
   },
   {
     key: 'audUsd', label: 'AUD/USD -10%', borderColor: 'border-amber-500/50 hover:border-amber-500',
@@ -77,8 +77,23 @@ const SCENARIOS = [
   },
   {
     key: 'chinaSlowdown', label: 'CHINA SLOWDOWN', borderColor: 'border-red-500/50 hover:border-red-500',
-    describe: 'China slowdown — Materials down ~20%, Energy down ~12%, Consumer down ~5%.',
-    shock: (h) => sectorShockPct(h, { Materials: -0.20, Energy: -0.12, 'Cons Disc': -0.05, Staples: -0.02 }, 0),
+    describe: 'China slowdown — Materials −20%, Energy −8%, Financials −5% (credit exposure to a weaker economy), everything else −3%.',
+    shock: (h) => sectorShockPct(h, { Materials: -0.20, Energy: -0.08, Financials: -0.05 }, -0.03),
+  },
+  {
+    // Defensives at the shallow end of the range, cyclicals at the deep end.
+    key: 'globalRecession', label: 'GLOBAL RECESSION', borderColor: 'border-red-700/60 hover:border-red-700',
+    describe: 'Global recession — every sector falls 15–25%: Staples, Health and Utilities −15%, Comms −18%, Financials and Industrials −20%, Energy −22%, Materials, Tech and Consumer Disc −25%. Crypto −25%.',
+    shock: (h) => (h.type === 'crypto' ? -0.25 : sectorShockPct(h, {
+      Staples: -0.15, Health: -0.15, Utilities: -0.15, Comms: -0.18,
+      Financials: -0.20, Industrials: -0.20, 'Real Est': -0.20, Energy: -0.22,
+      Materials: -0.25, IT: -0.25, 'Cons Disc': -0.25,
+    }, -0.20)),
+  },
+  {
+    key: 'techSelloff', label: 'TECH SELLOFF', borderColor: 'border-amber-500/50 hover:border-amber-500',
+    describe: 'Tech selloff — Technology −30%, Healthcare −5%, other sectors unchanged.',
+    shock: (h) => sectorShockPct(h, { IT: -0.30, Health: -0.05 }, 0),
   },
   {
     key: 'crash', label: 'MARKET CRASH -30%', borderColor: 'border-red-800 hover:border-red-700',
@@ -220,8 +235,8 @@ export default function StressTest({ holdings, fmtCur }) {
                     {s.label}
                   </span>
                 </span>
-                <span className={`text-2xs font-mono ${est == null ? 'text-terminal-text-dim' : est >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {est == null ? '—' : `${est >= 0 ? '+' : ''}${est.toFixed(1)}% est`}
+                <span className={`text-2xs font-mono tabular-nums ${est == null ? 'text-terminal-text-dim' : est >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {est == null ? '—' : `${est >= 0 ? '+' : ''}${est.toFixed(1)}% · ${est >= 0 ? '+' : '−'}${fmtCur(Math.abs((est / 100) * totalCurrent))}`}
                 </span>
               </button>
             )

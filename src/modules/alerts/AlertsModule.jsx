@@ -192,9 +192,9 @@ function AlertRow({ a, price, onDelete, onToggle, onEdit }) {
 
 // The add form. Price alerts go to the simple store (checked against the
 // same quote path as the watchlist, with email); everything else to the engine.
-function AddAlertForm({ watchlist, addAlert, onDone }) {
+function AddAlertForm({ watchlist, addAlert, onDone, initialSymbol = '' }) {
   const [type, setType] = useState('PRICE')
-  const [symbol, setSymbol] = useState(watchlist[0] ?? '')
+  const [symbol, setSymbol] = useState(initialSymbol || (watchlist[0] ?? ''))
   const [condition, setCondition] = useState('above')
   const [value, setValue] = useState('')
   const meta = ALERT_TYPES.find((t) => t.key === type)
@@ -278,11 +278,13 @@ function AddAlertForm({ watchlist, addAlert, onDone }) {
   )
 }
 
-export default function AlertsModule({ onClose }) {
+// `initialSymbol` opens the add form with that ticker filled in (the
+// portfolio's ⋯ SET ALERT).
+export default function AlertsModule({ onClose, initialSymbol = '' }) {
   const { alerts: simpleAlerts, addAlert, removeAlert, updateAlert: updateSimple, watchlist } = useStore()
   const [engineAlerts, setEngineAlerts] = useState(() => loadAlerts())
   const [history, setHistory] = useState(() => loadAlertHistory())
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState(!!initialSymbol)
   useEscapeKey(onClose)
 
   useEffect(() => {
@@ -338,7 +340,7 @@ export default function AlertsModule({ onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {adding && <AddAlertForm watchlist={watchlist} addAlert={addAlert} onDone={() => setAdding(false)} />}
+          {adding && <AddAlertForm watchlist={watchlist} addAlert={addAlert} initialSymbol={initialSymbol} onDone={() => setAdding(false)} />}
 
           {groups.length === 0 ? (
             <div className="flex flex-col items-center gap-1.5 py-8 text-center">

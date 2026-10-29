@@ -69,3 +69,23 @@ export function portfolioRate(holdings) {
   const top = [...bySector.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2)
   return { rows, shock, rating, total, top }
 }
+
+// The holdings table's RATE IMPACT pill: the same sector table collapsed to
+// three words a reader can scan down a column. HIGH and MEDIUM sensitivity
+// both read NEGATIVE (they differ in degree, not direction); LOW reads
+// NEUTRAL. A broad ASX ETF is NEUTRAL: banks gain, property and consumer
+// lose, and the mix roughly offsets. Offshore holdings are NEUTRAL too,
+// since the RBA reaches them only through the currency.
+export const RATE_IMPACT_STYLE = {
+  POSITIVE: { colour: '#2D8A50' },
+  NEUTRAL:  { colour: '#C9A84C' },
+  NEGATIVE: { colour: '#D9773B' },
+}
+
+export function rateImpact(h) {
+  const r = holdingRate(h)
+  if (r.level == null) return { impact: null, why: r.why }
+  if (r.sector === 'Broad AU market' || r.basis === 'offshore — currency only') return { impact: 'NEUTRAL', why: r.why }
+  const impact = r.level === 'POSITIVE' ? 'POSITIVE' : r.level === 'LOW' ? 'NEUTRAL' : 'NEGATIVE'
+  return { impact, why: r.why }
+}

@@ -40,6 +40,9 @@ import {
   detectType, cleanSymbol, mergeLots, holdingsToCsv, exportFilename, downloadText, logImport,
 } from '../../services/portfolioCsv'
 import { markMilestone } from '../../services/gettingStarted'
+import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
+import { RateImpactPill, RowMenu, PortfolioNotes } from './PortfolioExtras'
+import { portfolioTotals, heldFor } from './portfolioTotals'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -54,6 +57,8 @@ const TABS = [
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
 const Portfolio3D = lazy(() => import('../../components/visualisations/Portfolio3D'))
+const AlertsModule = lazy(() => import('../alerts/AlertsModule'))
+const RATE_COL_KEY = 'maddex_portfolio_rate_col'
 
 const STORAGE_KEY = 'madden_portfolio_v2'
 
@@ -477,6 +482,45 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit, initialSymbol = '' })
   )
 }
 
+// ─── Total row ────────────────────────────────────────────────────────────────
+// Five figures from lot data (portfolioTotals): what went in, what it is worth,
+// the gain in dollars and percent, and the money-weighted annual rate once
+// there is a year of history to annualise.
+
+function TotalsRow({ totals: t, fmtCur }) {
+  const up = t.ret >= 0
+  const tone = up ? 'text-terminal-green' : 'text-terminal-red'
+  const since = t.earliest ? new Date(`${t.earliest}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+  const cell = (label, value, cls = 'text-terminal-text-bright', title) => (
+    <div className="px-3 py-1.5 min-w-0" title={title}>
+      <div className="font-mono text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 8 }}>{label}</div>
+      <div className={`font-mono font-bold tabular-nums text-xs ${cls}`}>{value}</div>
+    </div>
+  )
+  return (
+    <div className="border-t-2 border-terminal-gold/40 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 items-end">
+      {cell('TOTAL INVESTED', fmtCur(t.invested))}
+      {cell('CURRENT VALUE', fmtCur(t.value))}
+      {cell('TOTAL RETURN', `${up ? '▲' : '▼'} ${fmtCur(Math.abs(t.ret))}`, tone)}
+      {cell('RETURN %', t.retPct != null ? `${up ? '+' : ''}${t.retPct.toFixed(1)}%` : '—', tone)}
+      {cell(
+        'ANNUALISED',
+        t.annualised != null ? `${t.annualised >= 0 ? '+' : ''}${t.annualised.toFixed(1)}% p.a.` : 'n/a',
+        t.annualised == null ? 'text-terminal-text-dim' : t.annualised >= 0 ? 'text-terminal-green' : 'text-terminal-red',
+        t.annualised != null
+          ? 'Money-weighted (XIRR): each lot counted from the day it was bought'
+          : 'Shown once the earliest lot is a year old — annualising a shorter period would overstate it',
+      )}
+      <div className="col-span-full px-3 pb-1 font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>
+        {since && <>Since {since}{t.heldDays != null ? ` (${t.heldDays} days)` : ''} · </>}
+        price return from your lots at today&apos;s prices, before dividends (PERFORMANCE adds estimated dividends)
+        {t.unpriced > 0 && <> · excludes {t.unpriced} unpriced lot{t.unpriced === 1 ? '' : 's'}</>}
+        {USING_MOCK_DATA && <> · equity prices are DEMO</>}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
 const PORTFOLIO_LIMIT = 10 // Core tier — Prime+ is unlimited
@@ -523,6 +567,15 @@ export default function PortfolioModule() {
   const [dbSynced, setDbSynced] = useState(false)
   const [activeTab, setActiveTab] = useState('holdings')
   const [sortKey, setSortKey] = useState(null)
+  // ⋯ menu targets: a research note being generated, an alert being set.
+  const [noteAsset, setNoteAsset] = useState(null)
+  const [alertSymbol, setAlertSymbol] = useState(null)
+  const [showRateCol, setShowRateCol] = useState(() => { try { return localStorage.getItem(RATE_COL_KEY) !== 'off' } catch { return true } })
+  const toggleRateCol = () => setShowRateCol((v) => {
+    try { localStorage.setItem(RATE_COL_KEY, v ? 'off' : 'on') } catch { /* private mode */ }
+    return !v
+  })
+  const [now] = useState(() => Date.now())
   const [sortDir, setSortDir] = useState('desc')
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
@@ -729,6 +782,34 @@ export default function PortfolioModule() {
   // flags the dead memo rather than silently keeping it.
   const sorted = sortHoldings(lots, sortKey, sortDir)
   const lotCount = lots.reduce((m, h) => m.set(`${h.type}:${h.symbol}`, (m.get(`${h.type}:${h.symbol}`) ?? 0) + 1), new Map())
+  // Lot number within its symbol, oldest purchase first.
+  const lotNo = new Map()
+  {
+    const seen = new Map()
+    for (const h of [...lots].sort((a, b) => String(a.addedAt ?? '').localeCompare(String(b.addedAt ?? '')))) {
+      const k = `${h.type}:${h.symbol}`
+      seen.set(k, (seen.get(k) ?? 0) + 1)
+      lotNo.set(h.id, seen.get(k))
+    }
+  }
+  const totals = portfolioTotals(lots, now)
+
+  // ⋯ ANALYSE WITH MADDENAI — the holding's own numbers in the question, so
+  // the answer starts from the position rather than from the company.
+  const analyseHolding = (h) => {
+    const dispSym = h.type === 'asx' ? `${h.symbol}.AX` : h.symbol
+    const costCcy = h.costCurrency === 'USD' ? 'US$' : 'A$'
+    const parts = [
+      `Analyse ${h.name && h.name !== h.symbol ? h.name : h.symbol} (${dispSym}).`,
+      `I hold ${h.shares.toLocaleString('en-AU')} units at an average cost of ${costCcy}${h.avgCost.toFixed(2)}${h.addedAt ? `, bought ${h.addedAt}` : ''}.`,
+      h.last != null ? `Current price: A$${h.last.toFixed(2)}.` : null,
+      h.pnl != null ? `P&L: ${h.pnl >= 0 ? '+' : '-'}A$${Math.abs(h.pnl).toLocaleString('en-AU', { maximumFractionDigits: 0 })} (${h.pnlPct >= 0 ? '+' : ''}${h.pnlPct.toFixed(1)}%).` : null,
+      mktTotal && h.mktVal ? `It is ${((h.mktVal / mktTotal) * 100).toFixed(1)}% of my portfolio.` : null,
+      'What should I consider about this holding?',
+      USING_MOCK_DATA ? 'Equity prices in this terminal are demo data, so treat the P&L as illustrative.' : null,
+    ]
+    askMaddenAI(parts.filter(Boolean).join(' '))
+  }
 
   const exportCsv = () => {
     downloadText(holdingsToCsv(lots, { sectorOf: (h) => (h.type === 'crypto' ? 'Crypto' : SECTOR_BY_SYMBOL[h.symbol] ?? 'Other') }), exportFilename())
@@ -923,6 +1004,12 @@ export default function PortfolioModule() {
           onClose={() => setShowImport(false)}
         />
       )}
+      {noteAsset && <ResearchNoteGenerator asset={noteAsset} onClose={() => setNoteAsset(null)} />}
+      {alertSymbol && (
+        <Suspense fallback={null}>
+          <AlertsModule initialSymbol={alertSymbol} onClose={() => setAlertSymbol(null)} />
+        </Suspense>
+      )}
       {showSnapshot && (
         <PortfolioSnapshot
           holdings={live}
@@ -1056,6 +1143,11 @@ export default function PortfolioModule() {
             >
               + ADD
             </button>
+            <button
+              onClick={toggleRateCol}
+              title="Show or hide the RATE IMPACT column"
+              className={`px-2 py-0.5 text-2xs border transition-colors hidden lg:inline-block ${showRateCol ? 'border-terminal-gold/50 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold'}`}
+            >RATE IMPACT {showRateCol ? '✓' : '+'}</button>
             {isFetching
               ? <span className="text-2xs text-terminal-text-dim font-normal animate-pulse ml-auto">FETCHING PRICES...</span>
               : isError
@@ -1073,8 +1165,10 @@ export default function PortfolioModule() {
               <thead className="sticky top-0 bg-terminal-header">
                 <tr>
                   <SortableTh label="SYMBOL"   sortKey="symbol"  align="left"  className="px-2" {...sortProps} />
-                  <th className="px-1 text-left hidden md:table-cell">TYPE</th>
+                  <th className="px-1 text-left hidden 2xl:table-cell">TYPE</th>
                   <th className="px-1 text-left hidden lg:table-cell">SECTOR</th>
+                  {showRateCol && <th className="px-1 text-left hidden lg:table-cell" title="Direction each holding tends to move when the RBA raises rates — by sector">RATE IMPACT</th>}
+                  <th className="px-1 text-left hidden xl:table-cell" title="How long held — hover a cell for the purchase date">SINCE ADDED</th>
                   <SortableTh label="SHARES"   sortKey="shares"  {...sortProps} />
                   <SortableTh label="AVG COST" sortKey="avgCost" {...sortProps} />
                   <SortableTh label="LAST"     sortKey="last"    {...sortProps} />
@@ -1084,6 +1178,7 @@ export default function PortfolioModule() {
                   <SortableTh label="DAY%"     sortKey="dayPct"  {...sortProps} />
                   <th className="px-1 text-right hidden xl:table-cell">WT%</th>
                   <SortableTh label="MKT CAP"  sortKey="marketCap" className="px-1 hidden 2xl:table-cell" {...sortProps} />
+                  <th className="px-1 text-center" aria-label="Actions"></th>
                   <th className="px-1 text-center">✕</th>
                 </tr>
               </thead>
@@ -1107,16 +1202,22 @@ export default function PortfolioModule() {
                       <td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
                         {dispSym}
                         {lotCount.get(`${h.type}:${h.symbol}`) > 1 && (
-                          <span className="ml-1.5 text-[8px] font-normal tracking-wider text-terminal-gold/70 border border-terminal-gold/30 px-1" title={`Bought ${h.addedAt} — one of ${lotCount.get(`${h.type}:${h.symbol}`)} lots`}>LOT</span>
+                          <span className="ml-1.5 text-[8px] font-normal tracking-wider text-terminal-gold/70 border border-terminal-gold/30 px-1" title={`Bought ${h.addedAt} — one of ${lotCount.get(`${h.type}:${h.symbol}`)} lots`}>LOT {lotNo.get(h.id) ?? 1}/{lotCount.get(`${h.type}:${h.symbol}`)}</span>
                         )}
                       </td>
-                      <td className="px-1 py-0.5 text-2xs hidden md:table-cell">
+                      <td className="px-1 py-0.5 text-2xs hidden 2xl:table-cell">
                         <span className={h.type === 'asx' ? 'text-terminal-gold' : h.type === 'crypto' ? 'text-purple-400' : 'text-terminal-blue-bright'}>
                           {h.type === 'asx' ? 'ASX' : h.type === 'crypto' ? 'CRYPTO' : 'US'}
                         </span>
                       </td>
                       <td className="px-1 py-0.5 hidden lg:table-cell">
                         <SectorPill symbol={h.symbol} type={h.type} />
+                      </td>
+                      {showRateCol && (
+                        <td className="px-1 py-0.5 hidden lg:table-cell"><RateImpactPill holding={h} /></td>
+                      )}
+                      <td className="px-1 py-0.5 text-2xs text-terminal-text-dim whitespace-nowrap hidden xl:table-cell tabular-nums" title={h.addedAt ? `Bought ${h.addedAt}` : undefined}>
+                        {h.addedAt ? heldFor(h.addedAt, now) : '—'}
                       </td>
                       <td className="px-1 py-0.5 text-2xs text-right">{h.shares}</td>
                       <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim">
@@ -1168,6 +1269,13 @@ export default function PortfolioModule() {
                       <td className="px-1 py-0.5 text-2xs text-right text-terminal-text-dim hidden 2xl:table-cell">
                         {formatMarketCap(h.marketCap)}
                       </td>
+                      <td className="px-0 py-0.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <RowMenu items={[
+                          { icon: '📊', label: 'ANALYSE WITH MADDENAI', onClick: () => analyseHolding(h) },
+                          ...(h.type !== 'crypto' ? [{ icon: '📋', label: 'RESEARCH NOTE', onClick: () => setNoteAsset({ symbol: dispSym, name: h.name || h.symbol, type: h.type }) }] : []),
+                          { icon: '⚡', label: 'SET ALERT', onClick: () => setAlertSymbol(dispSym) },
+                        ]} />
+                      </td>
                       <td className="px-1 py-0.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => deleteHolding(h.id)}
                           className="text-terminal-text-dim/40 hover:text-terminal-red transition-colors px-1 text-2xs"
@@ -1178,8 +1286,16 @@ export default function PortfolioModule() {
                   )
                 })}
               </tbody>
+              {totals && (
+                <tfoot className="sticky bottom-0 bg-terminal-header">
+                  <tr><td colSpan={99} className="p-0">
+                    <TotalsRow totals={totals} fmtCur={fmtCur} />
+                  </td></tr>
+                </tfoot>
+              )}
             </table>
           </div>
+          <PortfolioNotes />
           {dayInsight && (
             <ContextPrompt className="m-2 flex-shrink-0" text={dayInsight.text} prompt={dayInsight.prompt} action="ASK MADDENAI WHY" />
           )}

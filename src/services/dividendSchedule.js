@@ -125,7 +125,9 @@ export function buildSchedule(holdings, now = new Date()) {
     totalValue += h.mktVal ?? ((h.qty ?? 0) * (h.price ?? 0))
     // Holdings from the portfolio carry shares/avgCost, not qty/avgPrice;
     // reading only the latter left cost at zero and yield-on-cost blank.
-    totalCost += h.costBasis ?? ((h.qty ?? h.shares ?? 0) * (h.avgPrice ?? h.avgCost ?? h.price ?? 0))
+    // totalCost first: the portfolio's figure is already in AUD, where
+    // shares × avgCost is in the lot's own currency (US$ for a USD-cost lot).
+    totalCost += h.costBasis ?? h.totalCost ?? ((h.qty ?? h.shares ?? 0) * (h.avgPrice ?? h.avgCost ?? h.price ?? 0))
     if (!inc) continue
     totalAnnual += inc.annual
     totalCredits += inc.frankingCredits

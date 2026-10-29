@@ -24,9 +24,12 @@ import Tooltip from '../../components/ui/Tooltip'
 //   Your portfolio's shape over time: derived from each holding's own demo
 //     price history, so it is exactly as real as the DEMO prices this module
 //     labels everywhere else.
-//   ASX 200, S&P 500 and Gold lines: SEEDED SYNTHETIC. There is no index
-//     history in this build. They are stable across renders and periods rather
-//     than random, but they describe nothing, and the legend marks each one.
+//   ASX 200 and S&P 500 lines: the demo layer's index histories — the same
+//     footing as the portfolio line, which is built from demo stock prices.
+//   Gold: SEEDED SYNTHETIC. Stable across renders, describes nothing, and the
+//     legend says so.
+//   Balanced fund: a stated composite, not a real fund — 35% ASX 200, 35%
+//     S&P 500, 15% AU 10Y bond, 15% cash, rebalanced daily.
 //   Cash: computed, compounding daily at the RBA cash rate in force on each
 //     day (3.60% → 4.60% across 2026), from the verified decision list.
 //   AU 10Y bond: computed from the RBA's published daily 10-year yields
@@ -68,12 +71,24 @@ function syntheticSeries(points, totalReturnPct, seed, wobble = 0.9) {
 
 const SERIES = [
   { key: 'port', label: 'My Portfolio', colour: '#C9A84C', width: 2, real: true },
-  { key: 'asx',  label: 'ASX 200',      colour: '#4A7FB5', width: 1, seed: 7331, ret: 3.1 },
-  { key: 'spx',  label: 'S&P 500',      colour: '#637899', width: 1, seed: 2211, ret: 4.4 },
+  { key: 'asx',  label: 'ASX 200',      colour: '#4A7FB5', width: 1, index: '^AXJO', demo: true },
+  { key: 'spx',  label: 'S&P 500',      colour: '#637899', width: 1, index: '^GSPC', demo: true },
   { key: 'gold', label: 'Gold',         colour: '#D69E2E', width: 1, seed: 9182, ret: 2.2, wobble: 1.4 },
   { key: 'cash', label: 'Cash',         colour: '#2D8A50', width: 1, computed: true },
   { key: 'bond', label: 'AU 10Y Bond',  colour: '#9A7AB5', width: 1, computed: true },
+  { key: 'bal',  label: 'Balanced Fund', colour: '#B58C6A', width: 1, computed: true },
 ]
+
+// The VS BENCHMARK picker: which line the headline sentence compares against.
+const PICKS = [
+  { key: 'asx',  label: 'ASX 200' },
+  { key: 'spx',  label: 'S&P 500' },
+  { key: 'cash', label: () => `CASH ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%` },
+  { key: 'bal',  label: 'BALANCED FUND' },
+]
+const PROSE = { asx: 'the ASX 200', spx: 'the S&P 500', cash: 'cash at the RBA rate', bal: 'a balanced fund' }
+const PICK_KEY = 'maddex_perf_benchmark'
+const BAL_WEIGHTS = { asx: 0.35, spx: 0.35, bond: 0.15, cash: 0.15 }
 
 // ─── 1. Benchmark comparison ────────────────────────────────────────────────
 
@@ -125,6 +140,26 @@ function BenchmarkComparison({ holdings, yields }) {
         }
         continue
       }
+      if (s.index) {
+        const hist = getMockFMPHistory(s.index, n)
+        if (hist.length === n) series[s.key] = hist.map((d) => (d.close / hist[0].close) * 100)
+        continue
+      }
+      if (s.key === 'bal') {
+        // Daily-rebalanced composite of the lines above. Without the bond
+        // line its 15% goes to cash, and the tooltip says so.
+        const w = series.bond ? BAL_WEIGHTS : { ...BAL_WEIGHTS, bond: 0, cash: BAL_WEIGHTS.cash + BAL_WEIGHTS.bond }
+        const parts = Object.keys(w).filter((k) => w[k] > 0)
+        if (parts.every((k) => series[k])) {
+          const line = [100]
+          for (let i = 1; i < n; i++) {
+            const r = parts.reduce((acc, k) => acc + w[k] * (series[k][i] / series[k][i - 1] - 1), 0)
+            line.push(line[i - 1] * (1 + r))
+          }
+          series.bal = line
+        }
+        continue
+      }
       // Scale the illustrative return with the window, so a 1Y view does not
       // show the same move as a 1W one.
       const scaled = s.ret * (calDays / 90)
@@ -146,6 +181,12 @@ function BenchmarkComparison({ holdings, yields }) {
     return { rows, returns, n, covered, hasPortfolio: !!port }
   }, [holdings, calDays, bondSeries])
 
+  const [pick, setPick] = useState(() => { try { return localStorage.getItem(PICK_KEY) || 'asx' } catch { return 'asx' } })
+  const choose = (k) => {
+    setPick(k)
+    setOn((prev) => new Set(prev).add(k))
+    try { localStorage.setItem(PICK_KEY, k) } catch { /* private mode */ }
+  }
   const active = SERIES.filter((s) => on.has(s.key) && model.rows[0]?.[s.key] != null)
   const toggle = (key) => {
     if (key === 'port') return
@@ -291,6 +332,7 @@ function BenchmarkComparison({ holdings, yields }) {
               AU 10Y bond line unavailable — the RBA&apos;s yield table (F2) did not load.
             </div>
           )}
+          <BenchmarkVerdict model={model} pick={pick} onPick={choose} period={period} />
           {/* Legend: dot, name, period return — and what each line actually is. */}
           <div className="flex flex-wrap gap-x-5 gap-y-1 px-3 pb-2">
             {SERIES.filter((s) => model.returns[s.key] != null).map((s) => {
@@ -307,13 +349,15 @@ function BenchmarkComparison({ holdings, yields }) {
                   <Tooltip content={
                     s.real ? 'Built from your actual units against each holding’s own price history. Those prices are DEMO data in this build.'
                       : s.key === 'cash' ? `Computed: compounded daily at the RBA cash rate in force each day (${cashRate.toFixed(2)}% now), from the verified decision history.`
+                      : s.key === 'bal' ? `A stated composite, not a real fund: 35% ASX 200, 35% S&P 500, ${bondSeries ? '15% AU 10Y bond, 15% cash' : '30% cash (bond line unavailable)'}, rebalanced daily.`
+                      : s.demo ? 'The demo data layer\u2019s index history — the same footing as the portfolio line, which is built from demo stock prices.'
                       : s.key === 'bond' ? `Computed from the RBA's daily 10-year Commonwealth bond yields (table F2${yields?.lastDate ? `, to ${yields.lastDate}` : ''}): a constant-maturity 10-year bond earning its yield, less modified duration × each change in yield. Convexity is left out.`
                       : 'ILLUSTRATIVE. No index history is wired into this build, so this line is a seeded synthetic walk. It is stable across renders, and it describes nothing.'
                   }>
                     <span
                       className="font-mono tracking-wider"
-                      style={{ fontSize: 7, color: s.real ? '#2D8A50' : s.computed ? '#637899' : '#C9A84C' }}
-                    >{s.real ? 'YOUR DATA' : s.computed ? 'COMPUTED' : 'ILLUSTRATIVE'}</span>
+                      style={{ fontSize: 7, color: s.real ? '#2D8A50' : s.computed ? '#637899' : s.demo ? '#8BA3C4' : '#C9A84C' }}
+                    >{s.real ? 'YOUR DATA' : s.computed ? 'COMPUTED' : s.demo ? 'DEMO' : 'ILLUSTRATIVE'}</span>
                   </Tooltip>
                 </span>
               )
@@ -321,6 +365,44 @@ function BenchmarkComparison({ holdings, yields }) {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+// VS BENCHMARK — the one comparison a reader asks for, in a sentence: ahead
+// or behind the chosen line over the selected period, in percentage points.
+function BenchmarkVerdict({ model, pick, onPick, period }) {
+  const port = model.returns.port
+  const bench = model.returns[pick]
+  const def = PICKS.find((p) => p.key === pick) ?? PICKS[0]
+  const name = typeof def.label === 'function' ? def.label() : def.label
+  const gap = port != null && bench != null ? port - bench : null
+  const ahead = gap != null && gap >= 0
+  return (
+    <div className="mx-3 my-1.5 border border-terminal-border px-3 py-2 flex items-center gap-3 flex-wrap">
+      <span className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 8 }}>VS BENCHMARK</span>
+      <div className="flex gap-1 flex-wrap">
+        {PICKS.map((p) => {
+          const label = typeof p.label === 'function' ? p.label() : p.label
+          const on = p.key === pick
+          return (
+            <button key={p.key} onClick={() => onPick(p.key)}
+              className={`font-mono font-bold tracking-wider px-2 py-0.5 border transition-colors ${on ? 'border-terminal-gold bg-terminal-gold/15 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold'}`}
+              style={{ fontSize: 9 }}>{label}</button>
+          )
+        })}
+      </div>
+      <span className="text-xs leading-snug min-w-0 flex-1" style={{ minWidth: 220 }}>
+        {gap == null ? (
+          <span className="text-terminal-text-dim">{name} is unavailable for this period.</span>
+        ) : (
+          <>
+            You are <b className={ahead ? 'text-terminal-green' : 'text-terminal-red'}>{ahead ? '+' : '−'}{Math.abs(gap).toFixed(1)} pts {ahead ? 'ahead of' : 'behind'}</b>{' '}
+            {PROSE[pick]} over {period}
+            <span className="text-terminal-text-dim"> (portfolio {port >= 0 ? '+' : ''}{port.toFixed(1)}%, benchmark {bench >= 0 ? '+' : ''}{bench.toFixed(1)}%)</span>
+          </>
+        )}
+      </span>
     </div>
   )
 }

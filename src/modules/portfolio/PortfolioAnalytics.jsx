@@ -1,64 +1,26 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip } from 'recharts'
+import SafeChart from '../../components/ui/SafeChart'
 import { buildSchedule } from '../../services/dividendSchedule'
 import { fmt } from '../../utils/format'
 import { auRecessionRisk } from '../../data/recessionRisk'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { getMockFMPRow } from '../../services/mockData'
 // One sector map, not three — sectorMap.js already exported this and this
 // file kept its own byte-identical copy.
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { portfolioRate } from './rateSensitivity'
 import { RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import Tooltip from '../../components/ui/Tooltip'
 
-function hashStr(s) {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-  return h >>> 0
-}
-function mulberry32(seed) {
-  let a = seed
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-// Verdict tints for the badge. A metric card's number means nothing to most
-// readers without a judgement attached — 1.24 beta is only "high" if you
-// already know what typical is — so each card states its own reading.
-const BADGE_TONE = {
-  good:    { bg: 'rgba(45,138,80,0.15)',  fg: '#2D8A50' },
-  neutral: { bg: 'rgba(201,168,76,0.15)', fg: '#C9A84C' },
-  warn:    { bg: 'rgba(214,158,46,0.15)', fg: '#D69E2E' },
-  bad:     { bg: 'rgba(168,50,50,0.15)',  fg: '#A83232' },
-}
-
-function MetricCard({ label, value, valueColor, sub, badge, badgeTone = 'neutral', children }) {
-  const tone = BADGE_TONE[badgeTone] ?? BADGE_TONE.neutral
-  return (
-    <div className="border border-terminal-border p-3 flex flex-col">
-      <div className="text-2xs text-terminal-text-dim tracking-wide">{label}</div>
-      <div className={`text-lg font-bold mt-0.5 ${valueColor ?? 'text-terminal-text-bright'}`}>{value}</div>
-      {sub && <div className="text-2xs text-terminal-text-dim mt-0.5">{sub}</div>}
-      {badge && (
-        <span
-          className="mt-2 self-start text-[9px] font-mono font-bold tracking-widest uppercase"
-          style={{ background: tone.bg, color: tone.fg, borderRadius: 2, padding: '2px 6px' }}
-        >
-          {badge}
-        </span>
-      )}
-      {children}
-    </div>
-  )
-}
-
+// DIVIDEND INCOME — a calendar year of estimated payments, Jan to Dec, with
+// the four figures that matter under it. Every amount is arithmetic on each
+// holding's trailing yield, placed in the months that company has paid in for
+// years (dividendSchedule.js); nothing here is a declared dividend.
 function DividendSection({ holdings, fmtCur }) {
   const sched = useMemo(() => buildSchedule(holdings), [holdings])
+  const [nowMonth] = useState(() => new Date().getMonth())
   if (!sched.rows.length) {
     return (
       <div className="text-2xs text-terminal-text-dim/60 px-3 py-6 text-center">
@@ -66,43 +28,60 @@ function DividendSection({ holdings, fmtCur }) {
       </div>
     )
   }
-  const maxMonth = Math.max(...sched.calendar.map((c) => c.total), 1)
+  const year = MONTHS.map((label, i) => {
+    const payers = sched.rows.filter((r) => r.months?.includes(i + 1))
+    return { label, total: payers.reduce((s, r) => s + r.perPayment, 0), payers }
+  })
+  const unplaced = sched.rows.filter((r) => !r.months)
+  const td = VERIFIED_CONSTANTS.au?.termDeposit1y
 
   return (
     <div className="space-y-3">
-      {/* Four numbers, because they answer four different questions: how much,
-          how often, how it compares to what you paid, and how it compares to
-          what it is worth now. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ background: 'rgba(201,168,76,0.12)' }}>
-        {[
-          ['EST. ANNUAL INCOME', fmtCur(sched.totalAnnual), '#C9A84C'],
-          ['MONTHLY AVERAGE', fmtCur(sched.monthlyAverage), null],
-          ['YIELD ON VALUE', sched.yieldOnValue != null ? `${sched.yieldOnValue.toFixed(2)}%` : '—', null],
-          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', '#2D8A50'],
-        ].map(([label, value, tone]) => (
-          <div key={label} style={{ background: '#0B1628', padding: '10px 12px' }}>
-            <div className="text-2xs text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 8 }}>{label}</div>
-            <div className="font-mono font-bold tabular-nums mt-0.5" style={{ fontSize: 16, color: tone ?? '#E8EDF5' }}>{value}</div>
-          </div>
-        ))}
+      <div style={{ height: 150 }}>
+        <SafeChart width="100%" height="100%">
+          <BarChart data={year} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="#0F1E35" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#637899' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 8, fill: '#4A6080' }} axisLine={false} tickLine={false} width={44}
+              tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v))} />
+            <RTooltip
+              cursor={{ fill: 'rgba(201,168,76,0.06)' }}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null
+                const m = payload[0].payload
+                return (
+                  <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
+                    <div className="text-terminal-gold font-bold">{m.label} · {fmtCur(m.total)}</div>
+                    {m.payers.length
+                      ? m.payers.map((p) => <div key={p.symbol} className="text-terminal-text-dim">{p.symbol.replace(/\.AX$/i, '')} {fmtCur(p.perPayment)}</div>)
+                      : <div className="text-terminal-text-dim">No scheduled payments</div>}
+                  </div>
+                )
+              }}
+            />
+            <Bar dataKey="total" isAnimationActive={false} radius={[2, 2, 0, 0]}>
+              {year.map((m, i) => (
+                <Cell key={m.label} fill={i === nowMonth ? '#E8C766' : m.total > 0 ? 'rgba(201,168,76,0.6)' : 'rgba(201,168,76,0.1)'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </SafeChart>
       </div>
 
-      {/* Twelve months forward from this one, not from January — the question
-          is "what is coming", not "what does a calendar year look like". */}
-      <div>
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">NEXT 12 MONTHS</div>
-        <div className="flex items-end gap-1" style={{ height: 72 }}>
-          {sched.calendar.map((c, i) => (
-            <div key={`${c.month}-${i}`} className="flex-1 flex flex-col items-center justify-end min-w-0"
-              title={c.payers.length ? `${c.label}: ${c.payers.map((p) => p.symbol.replace(/\.AX$/i, '')).join(', ')} — ${fmtCur(c.total)}` : `${c.label}: no scheduled payments`}>
-              <div className="w-full" style={{
-                height: `${Math.max(c.total > 0 ? 6 : 2, (c.total / maxMonth) * 52)}px`,
-                background: c.total > 0 ? 'rgba(201,168,76,0.55)' : 'rgba(201,168,76,0.08)',
-              }} />
-              <div className="text-2xs text-terminal-text-dim/50 mt-1" style={{ fontSize: 8 }}>{c.label}</div>
-            </div>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ background: 'rgba(201,168,76,0.12)' }}>
+        {[
+          ['ESTIMATED ANNUAL INCOME', fmtCur(sched.totalAnnual), '#C9A84C', `${fmtCur(sched.monthlyAverage)} a month on average`],
+          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', '#2D8A50', 'Income ÷ what you paid'],
+          ['YIELD ON VALUE', sched.yieldOnValue != null ? `${sched.yieldOnValue.toFixed(2)}%` : '—', null,
+            sched.yieldOnValue != null && td != null ? `vs 1-yr term deposit ${td.toFixed(2)}% (RBA F4)` : 'Income ÷ value today'],
+          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), '#2D8A50', 'Per year, at the 30% company rate'],
+        ].map(([label, value, tone, sub]) => (
+          <div key={label} style={{ background: '#0B1628', padding: '10px 12px' }}>
+            <div className="text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 8 }}>{label}</div>
+            <div className="font-mono font-bold tabular-nums mt-0.5" style={{ fontSize: 16, color: tone ?? '#E8EDF5' }}>{value}</div>
+            <div className="text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 8 }}>{sub}</div>
+          </div>
+        ))}
       </div>
 
       {/* Per-holding, biggest contributor first. */}
@@ -112,7 +91,7 @@ function DividendSection({ holdings, fmtCur }) {
             <span className="text-2xs font-bold text-terminal-text-bright w-14 flex-shrink-0">
               {r.symbol.replace(/\.AX$/i, '')}
             </span>
-            <span className="text-2xs text-terminal-text-dim truncate flex-1 min-w-0">{r.note ?? '—'}</span>
+            <span className="text-2xs text-terminal-text-dim truncate flex-1 min-w-0">{r.note ?? 'Payment months not recorded'}</span>
             {r.franking != null && (
               <span className="badge flex-shrink-0" style={{
                 color: r.franking >= 100 ? '#2D8A50' : r.franking > 0 ? '#C9A84C' : '#637899',
@@ -126,20 +105,16 @@ function DividendSection({ holdings, fmtCur }) {
         ))}
       </div>
 
-      {sched.totalCredits > 0 && (
-        <div className="text-2xs text-terminal-text-dim leading-relaxed px-1">
-          <span className="text-terminal-green font-bold">Est. franking credits: {fmtCur(sched.totalCredits)}/year.</span>
-          {' '}Franking credits attach to dividends already taxed at the company rate and may be claimable
-          as a tax offset. Figures here are arithmetic on each holding&rsquo;s trailing yield, not a forecast
-          of future dividends — general information only, not tax advice.
-        </div>
-      )}
+      <div className="text-2xs text-terminal-text-dim/70 leading-relaxed px-1">
+        Based on current holdings and published dividend yields. Actual dividends depend on company decisions and ex-dates.
+        {unplaced.length > 0 && <> {unplaced.map((r) => r.symbol.replace(/\.AX$/i, '')).join(', ')} {unplaced.length === 1 ? 'is' : 'are'} counted in the annual total but not placed on the chart: {unplaced.length === 1 ? 'its' : 'their'} payment months are not recorded here.</>}
+        {' '}Franking credits may be claimable as a tax offset — general information only, not tax advice.
+      </div>
     </div>
   )
 }
 
 export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
-  const asxHoldings = useMemo(() => holdings.filter((h) => h.type === 'asx' && h.mktVal != null), [holdings])
 
   // ── Regime alignment ─────────────────────────────────────────────────────
   //
@@ -292,39 +267,6 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
     return { hhi, top, topPct }
   }, [holdings, mktTotal])
 
-  // ── 3. Dividends ─────────────────────────────────────────────────────────
-  const dividends = useMemo(() => {
-    const rows = asxHoldings.map((h) => {
-      const q = getMockFMPRow(`${h.symbol}.AX`)
-      const yieldPct = q?.dividendYield ?? 0
-      const annualIncome = (h.mktVal ?? 0) * (yieldPct / 100)
-      const rng = mulberry32(hashStr(`div_${h.symbol}`))
-      // Most ASX blue chips pay semi-annually — assign a deterministic pair
-      // of payment months per stock rather than a single real calendar.
-      const m1 = Math.floor(rng() * 12)
-      const m2 = (m1 + 6) % 12
-      return { symbol: h.symbol, yieldPct, annualIncome, months: [m1, m2], price: h.last }
-    }).filter((r) => r.yieldPct > 0)
-
-    const totalIncome = rows.reduce((s, r) => s + r.annualIncome, 0)
-    const portfolioYield = mktTotal ? (totalIncome / mktTotal) * 100 : 0
-
-    const now = new Date()
-    let next = null
-    for (let offset = 0; offset < 12; offset++) {
-      const month = (now.getMonth() + offset) % 12
-      const hit = rows.find((r) => r.months.includes(month) && (offset > 0 || month !== now.getMonth()))
-      if (hit) {
-        const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, 15)
-        const days = Math.max(0, Math.round((targetDate - now) / 86400000))
-        next = { ...hit, days, estPerShare: hit.price ? (hit.price * (hit.yieldPct / 100)) / 2 : null }
-        break
-      }
-    }
-
-    return { rows, totalIncome, portfolioYield, next }
-  }, [asxHoldings, mktTotal])
-
   if (!holdings.length) {
     return <div className="text-2xs text-terminal-text-dim/60 text-center py-10">Add holdings to see portfolio analytics.</div>
   }
@@ -373,74 +315,8 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
              existing yield analysis because "when do I get paid" is the
              question people open this tab with. */}
       <div>
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">DIVIDEND SCHEDULE</div>
+        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">DIVIDEND INCOME</div>
         <DividendSection holdings={holdings} fmtCur={fmtCur} />
-      </div>
-
-      {/* 3b. Dividends */}
-      <div>
-        <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">DIVIDEND ANALYSIS</div>
-        {dividends.rows.length === 0 ? (
-          <div className="text-2xs text-terminal-text-dim/60 border border-terminal-border p-2.5">No dividend-paying ASX holdings.</div>
-        ) : (
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-              <MetricCard label="ANNUAL DIVIDEND INCOME" value={fmtCur(dividends.totalIncome)} />
-              <MetricCard
-                label="PORTFOLIO YIELD"
-                value={`${dividends.portfolioYield.toFixed(2)}%`}
-                valueColor={dividends.portfolioYield > 4.5 ? 'text-terminal-green' : 'text-terminal-gold'}
-                sub={`vs term deposit 4.5% (${dividends.portfolioYield > 4.5 ? 'higher' : 'lower'})`}
-              />
-              {dividends.next && (
-                <MetricCard
-                  label="NEXT DIVIDEND"
-                  value={dividends.next.symbol}
-                  sub={`~${fmtCur(dividends.next.estPerShare)}/share · in ${dividends.next.days} days`}
-                />
-              )}
-            </div>
-            <div className="border border-terminal-border p-2.5">
-              <div className="text-2xs text-terminal-text-dim mb-1.5">DIVIDEND CALENDAR</div>
-              {/* One dot per payer rather than a comma-joined ticker list: the
-                  shape of the year — which months are heavy, which are empty —
-                  is the thing worth seeing at a glance, and a row of dots
-                  carries that where run-together text does not. Detail moves
-                  to the hover. */}
-              <div className="grid grid-cols-6 xl:grid-cols-12 gap-1">
-                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
-                  const payers = dividends.rows.filter((r) => r.months.includes(i))
-                  const isCurrent = i === new Date().getMonth()
-                  return (
-                    <div
-                      key={m}
-                      className="text-center rounded-[2px] py-1"
-                      style={isCurrent ? { background: 'rgba(201,168,76,0.07)' } : undefined}
-                    >
-                      <div className={`text-[9px] font-mono ${isCurrent ? 'text-terminal-gold' : 'text-terminal-text-dim/70'}`}>{m}</div>
-                      <div className="flex items-center justify-center gap-1 flex-wrap mt-1 min-h-[10px]">
-                        {payers.length === 0 && <span className="text-terminal-text-dim/25 text-[9px]">·</span>}
-                        {payers.map((p) => (
-                          <Tooltip
-                            key={p.symbol}
-                            content={
-                              `${p.symbol}\n` +
-                              `Yield:      ${p.yieldPct.toFixed(2)}%\n` +
-                              `Est. payout: ${fmtCur(p.annualIncome / 2)}\n` +
-                              `Month:      ${m}`
-                            }
-                          >
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-terminal-gold cursor-default" />
-                          </Tooltip>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 4. Factor tilts — MEASURED, not asserted */}
