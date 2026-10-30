@@ -84,7 +84,7 @@ export default function GlobalComparison() {
       </div>
       <div className="px-3 py-1.5 text-[9px] text-terminal-text-dim/60 leading-snug">
         Growth: the US and Japan headline annualised quarterly growth; the others year-on-year — not directly comparable. Inflation is each
-        economy&apos;s headline CPI (HICP for the euro area). Several decisions are due this week (Fed, ECB, BoJ) — stances update when the constants do.
+        economy&apos;s headline CPI (HICP for the euro area). Policy stances are each bank's latest decision, updated as the constants are.
       </div>
     </div>
   )

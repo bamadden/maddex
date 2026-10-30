@@ -186,13 +186,20 @@ export const VERIFIED_CONSTANTS = {
   },
   boj: {
     label: 'BOJ', country: 'Japan', cashRate: 1.25,
-    lastDecision: '2026-09-18', lastDecisionVerb: 'HIKE', nextMeeting: '2026-10-30',
+    lastDecision: '2026-10-30', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-18',
+    previousRate: 1.25, lastChange: '0bp',
+    note: 'Held 8–1 (Takata for a hike to 1.5%); ETF sales to ¥860b a year from Jan 2027',
     // Low for the "hike cycle" view: −0.10%, the negative rate the BOJ ended on
     // 19 Mar 2024. 1.25% is the highest since 1995 (CNBC, 18 Sep 2026).
     cycleLow: { rate: -0.10, date: '2024-03-19' },
-    // Re-checked 2026-10-27: hiked 1.00 → 1.25% on 18 Sep, 7–2 (Asada, Sato
-    // dissenting). The 29–30 Oct meeting announces Fri 30 Oct.
-    source: 'boj.or.jp', asOf: '2026-09-18', lastVerified: '2026-10-27',
+    // UPDATED 2026-10-30: held at 1.25% on 30 Oct, 8–1 — Hajime Takata
+    // proposed 1.5%, saying underlying inflation has reached 2%. Outlook Report:
+    // underlying inflation "generally consistent with the 2% target"; further
+    // hikes if projections hold, no timetable. ETF sales more than doubled to
+    // about ¥860b a year from Jan 2027 (unanimous). Sources: investinglive,
+    // ActionForex, FXStreet. Previous move: 1.00 → 1.25% on 18 Sep (7–2).
+    // Next meeting 17–18 Dec (boj.or.jp schedule).
+    source: 'boj.or.jp', asOf: '2026-10-30', lastVerified: '2026-10-30',
   },
   pboc: {
     label: 'PBOC', country: 'China', cashRate: 3.00,
