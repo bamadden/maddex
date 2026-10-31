@@ -6,17 +6,14 @@
 // ASX names only: these are Australian-macro lines (RBA, iron ore, the AUD),
 // and attaching "RBA hike pricing" to Apple would be noise.
 
-import VERIFIED_CONSTANTS from '../data/verifiedConstants'
-import { sydneyOffset } from '../utils/dateUtils'
+import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../data/verifiedConstants'
 
 const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '')
 
 // The pending RBA decision's pricing, while it is pending.
 function hikePricing(now = Date.now()) {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  if (!nd?.marketHikePct) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  return now < at ? `~${nd.marketHikePct}% hike pricing for ${day(nd.date)}` : null
+  const nd = pendingRbaDecision(now)
+  return nd?.marketHikePct ? `~${nd.marketHikePct}% hike pricing for ${day(nd.date)}` : null
 }
 
 const BULLISH = new Set(['BREAKOUT', 'OVERSOLD', 'GAP ▲', 'MOMENTUM'])

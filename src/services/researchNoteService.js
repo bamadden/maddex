@@ -1,5 +1,5 @@
 import { askClaudeJSON } from './api'
-import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../data/verifiedConstants'
 import { COMPANY } from '../data/company'
 import { eventsForAI } from './calendarService'
 
@@ -125,7 +125,8 @@ export async function generateResearchNote(asset) {
   //
   // The two rules are therefore different and the prompt says so explicitly:
   // quote these, invent nothing else.
-  const { rba, fed, au, commodities, rbaNextDecision: nd } = VERIFIED_CONSTANTS
+  const { rba, fed, au, commodities } = VERIFIED_CONSTANTS
+  const nd = pendingRbaDecision()
   const macroBlock = [
     `- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
     `- US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})`,

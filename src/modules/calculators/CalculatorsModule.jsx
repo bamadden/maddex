@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ReferenceLine } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
@@ -11,7 +11,6 @@ import {
   fullTaxPosition, stampDuty, marginalRate,
 } from '../../data/auTaxRates'
 import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, repaymentChange } from './calcMath'
-import { sydneyOffset } from '../../utils/dateUtils'
 
 // ─── Financial calculators ──────────────────────────────────────────────────
 //
@@ -420,16 +419,14 @@ const defaultMortgageRate = () => (VERIFIED_CONSTANTS.rba.cashRate + MORTGAGE_MA
 // The coming RBA decision, while it is pending: presets that set the loan
 // rate to what it would be on hold or after a hike (cash rate + the same
 // assumed margin as the default), and the repayment difference.
-function pendingRbaDecision() {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  if (!nd?.hikeRate) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  return Date.now() < at ? nd : null
+function pendingHike() {
+  const nd = pendingRbaDecision()
+  return nd?.hikeRate ? nd : null
 }
 const dayShort = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 
 function RbaPresets({ rate, setRate }) {
-  const nd = pendingRbaDecision()
+  const nd = pendingHike()
   if (!nd) return null
   const hold = (nd.currentRate + MORTGAGE_MARGIN).toFixed(2)
   const hike = (nd.hikeRate + MORTGAGE_MARGIN).toFixed(2)
@@ -455,7 +452,7 @@ function RbaPresets({ rate, setRate }) {
 }
 
 function RbaHikeNote({ loan, rate, term, per, label }) {
-  const nd = pendingRbaDecision()
+  const nd = pendingHike()
   if (!nd || !(loan > 0) || !(rate > 0)) return null
   const d = nd.hikeRate - nd.currentRate
   const onHike = Math.abs(rate - (nd.hikeRate + MORTGAGE_MARGIN)) < 0.005

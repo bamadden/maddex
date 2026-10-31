@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { marketSession } from '../../services/newsIntelligence'
 import { sydneyOffset } from '../../utils/dateUtils'
-import VERIFIED_CONSTANTS, { verifiedFactsForAI } from '../../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { verifiedFactsForAI, pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights, INSIGHT_LIMIT } from '../../services/savedInsights'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -162,10 +162,8 @@ const PROFILE_PROMPT_MODULES = new Set(['dashboard', 'markets', 'news', 'portfol
 // positioned" is a personal-advice question, so the prompt asks how investors
 // generally think about it.
 function decisionWeekPrompts(now = Date.now()) {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  if (!nd) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  if (now >= at || now < at - 7 * 86400_000) return null
+  const nd = pendingRbaDecision(now)
+  if (!nd || now < rbaDecisionAt(nd.date, nd.time) - 7 * 86400_000) return null
   const day = new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   const pct = nd.marketHikePct
   return [

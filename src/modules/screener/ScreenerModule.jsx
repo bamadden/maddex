@@ -4,8 +4,7 @@ import { Search } from 'lucide-react'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow } from '../../services/mockData'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI, askMaddenAI } from '../../utils/askAI'
-import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
-import { sydneyOffset } from '../../utils/dateUtils'
+import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../../data/verifiedConstants'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
@@ -217,10 +216,8 @@ const findPreset = (key) => PRESETS.find((p) => p.key === key) ?? null
 // for franking: that depends on each company's franking level and the
 // investor's tax position, which this terminal does not know.
 function pendingHike() {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  if (!nd?.hikeRate) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  return Date.now() < at ? nd : null
+  const nd = pendingRbaDecision()
+  return nd?.hikeRate ? nd : null
 }
 
 function YieldContextBar({ results, insights, screenName }) {

@@ -1,11 +1,10 @@
 import { askClaudeJSON } from './api'
 import { liveDataService } from './liveDataService'
-import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision, rbaDecisionAt } from '../data/verifiedConstants'
 import { getEconomicCalendar, upcomingEvents } from './calendarService'
 import { sydneyTzAbbr } from '../utils/dateUtils'
 import { briefProfileLines } from './investorProfile'
 import { fetchNews, USING_MOCK_DATA } from './api'
-import { sydneyOffset } from '../utils/dateUtils'
 import { currentRegime } from './marketRegime'
 
 // Stable instruction template — identical on every call, so it sits in the
@@ -263,12 +262,13 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   const portfolioSummary = holdings.map((p) => `${p.symbol}: ${p.shares} units @ A$${p.avgCost}`).join(', ')
 
   const [{ fx, gold, fg, crypto }, personal] = await Promise.all([gatherContext(), gatherPersonal(watchlist, holdings)])
-  const { rba, fed, au, bonds, rbaNextDecision: nd } = VERIFIED_CONSTANTS
+  const { rba, fed, au, bonds } = VERIFIED_CONSTANTS
+  const nd = pendingRbaDecision()
   const fedLast = fed.decisions?.at(-1)
   const reg = currentRegime()
   const regimeLine = `- Market regime (Maddex's classification from the figures above): ${reg.regime} — RBA ${reg.inputs.rba}; CPI ${reg.inputs.cpi}; GDP ${reg.inputs.gdp}; unemployment ${reg.inputs.unemployment}`
-  const ndAt = nd ? Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`) : null
-  const ndDays = ndAt && ndAt > Date.now() ? Math.ceil((ndAt - Date.now()) / 86_400_000) : null
+  const ndAt = nd ? rbaDecisionAt(nd.date, nd.time) : null
+  const ndDays = ndAt ? Math.ceil((ndAt - Date.now()) / 86_400_000) : null
 
   // The next fortnight of scheduled events, so the brief names what is
   // actually coming rather than recalling a calendar from training data.

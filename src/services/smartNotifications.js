@@ -13,7 +13,7 @@
 // Wording rule: every figure in a message is a verified figure with its
 // source, a count the app made itself, or a demo price labelled DEMO.
 
-import VERIFIED_CONSTANTS from '../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { pendingRbaDecision, rbaDecisionAt } from '../data/verifiedConstants'
 import { getCurrentTier, limitFor } from './plans'
 import { sydneyOffset } from '../utils/dateUtils'
 import { useAuthStore } from '../store/useAuthStore'
@@ -71,9 +71,9 @@ const day = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { w
 // ── Triggers ────────────────────────────────────────────────────────────────
 
 function rbaProximity(now, events) {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const nd = pendingRbaDecision(now.getTime())
   if (!nd) return null
-  const at = Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`)
+  const at = rbaDecisionAt(nd.date, nd.time)
   const hours = (at - now.getTime()) / 3_600_000
   if (!(hours > 0 && hours < 72)) return null
   const before = events

@@ -10,11 +10,10 @@
 //
 // Stored per Sydney day, separately from the morning brief.
 
-import VERIFIED_CONSTANTS from '../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { pendingRbaDecision, rbaDecisionAt } from '../data/verifiedConstants'
 import { SECTOR_BY_SYMBOL } from '../modules/portfolio/sectorMap'
 import { rateImpact } from '../modules/portfolio/rateSensitivity'
 import { currentRegime } from './marketRegime'
-import { sydneyOffset } from '../utils/dateUtils'
 import { getInvestorProfile } from './investorProfile'
 
 const KEY = (day) => `maddex_digest_${day}`
@@ -50,9 +49,9 @@ function sectorLine(sector, ctx) {
 
 export async function buildDigest({ holdings = [], watchlist = [], now = new Date() } = {}) {
   const c = VERIFIED_CONSTANTS
-  const nd = c.rbaNextDecision
-  const ndAt = nd ? Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`) : null
-  const ndDays = ndAt && ndAt > now.getTime() ? Math.ceil((ndAt - now.getTime()) / 86_400_000) : null
+  const nd = pendingRbaDecision(now.getTime())
+  const ndAt = nd ? rbaDecisionAt(nd.date, nd.time) : null
+  const ndDays = ndAt ? Math.ceil((ndAt - now.getTime()) / 86_400_000) : null
   const regime = currentRegime(c, now)
   const ctx = { c, nd, ndDays, regime }
   const today = sydDay(now)
@@ -102,8 +101,12 @@ export async function buildDigest({ holdings = [], watchlist = [], now = new Dat
   let cal = []
   try { cal = (await getEconomicCalendar()).events ?? [] } catch { /* optional */ }
   const mine = new Set([...watchlist.map(bare), ...holdings.map((h) => bare(h.symbol))])
+  // Today's timed events drop off once their Sydney time has passed — "Today
+  // 14:30: RBA Rate Decision" read at 4pm is no longer something to watch.
+  const hhmm = now.toLocaleTimeString('en-GB', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false })
+  const ahead = (e) => e.date !== today || !/^\d{1,2}:\d{2}/.test(e.time ?? '') || e.time.padStart(5, '0') > hhmm
   const watchToday = [
-    ...cal.filter((e) => (e.date === today || e.date === tomorrow) && String(e.importance).toLowerCase() === 'high')
+    ...cal.filter((e) => (e.date === today || e.date === tomorrow) && ahead(e) && String(e.importance).toLowerCase() === 'high')
       .map((e) => `${e.date === today ? 'Today' : 'Tomorrow'}${/^\d/.test(e.time ?? '') ? ` ${e.time}` : ''}: ${e.event}`),
     ...events.filter((e) => (e.date === today || e.date === tomorrow) && mine.has(bare(e.ticker)))
       .map((e) => `${e.date === today ? 'Today' : 'Tomorrow'}: ${bare(e.ticker)} ${e.what}`),

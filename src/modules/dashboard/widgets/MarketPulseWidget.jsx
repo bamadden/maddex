@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import VERIFIED_CONSTANTS from '../../../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../../../data/verifiedConstants'
 import { liveDataService } from '../../../services/liveDataService'
 import { fetchIndexQuotesUnified } from '../../../services/dataService'
 import { USING_MOCK_DATA } from '../../../services/api'
@@ -44,7 +44,8 @@ function Line({ label, children, change, onClick, title }) {
 
 export default function MarketPulseWidget() {
   const now = useTick(3000)
-  const { rba, au, rbaNextDecision: nd } = VERIFIED_CONSTANTS
+  const { rba, au } = VERIFIED_CONSTANTS
+  const nd = pendingRbaDecision(now)
 
   const [fx, setFx] = useState(null)
   const [btc, setBtc] = useState(null)

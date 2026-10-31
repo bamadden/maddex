@@ -9,8 +9,7 @@
 // Rebuilt on each day's first open of the panel; the inputs only change when
 // the constants are updated, so there is nothing to cache beyond that.
 
-import VERIFIED_CONSTANTS from '../data/verifiedConstants'
-import { sydneyOffset } from '../utils/dateUtils'
+import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../data/verifiedConstants'
 import { rateImpact } from '../modules/portfolio/rateSensitivity'
 
 const DAY = 86_400_000
@@ -23,11 +22,9 @@ const daysBetween = (fromIso, toIso) => Math.round((Date.parse(`${toIso}T12:00:0
 
 function rbaCard(now) {
   const C = VERIFIED_CONSTANTS
-  const nd = C.rbaNextDecision
+  const nd = pendingRbaDecision(now)
   const a = C.au
   if (!nd) return null
-  const at = Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`)
-  if (!Number.isFinite(at) || now >= at) return null
   const days = daysBetween(sydDate(now), nd.date)
   const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
   const priced = nd.marketHikePct != null

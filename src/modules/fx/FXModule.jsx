@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
-import { sydneyOffset, sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyTzNow } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
 import RbaHikeImpact from './RbaHikeImpact'
@@ -11,7 +11,7 @@ import {
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { curveForRates, BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 // The full ten-bank schedule now lives in UpcomingDecisions, which owns the
@@ -622,10 +622,8 @@ const TENOR_WEIGHT = { '3M': 1, '6M': 0.9, '1Y': 0.75, '2Y': 0.5, '3Y': 0.35, '5
 const SCENARIOS = [['current', 'CURRENT'], ['hike', 'HIKE SCENARIO'], ['hold', 'HOLD SCENARIO']]
 
 function scenarioShift(kind) {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const nd = pendingRbaDecision()
   if (!nd || nd.marketHikePct == null) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  if (Date.now() >= at) return null
   const move = nd.hikeRate - nd.currentRate
   const p = nd.marketHikePct / 100
   return kind === 'hike' ? (1 - p) * move : kind === 'hold' ? -p * move : null

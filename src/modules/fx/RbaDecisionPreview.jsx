@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
-import { sydneyOffset, sydneyTzAbbr } from '../../utils/dateUtils'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { rbaPreview } from '../../utils/askAI'
 
 // The next RBA decision, for the week before it.
@@ -25,11 +25,9 @@ function useNow(ms = 60_000) {
 const dayLabel = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' }).toUpperCase()
 
 export default function RbaDecisionPreview() {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
   const now = useNow()
-  if (!nd) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  if (now >= at || now < at - SHOW_BEFORE_MS) return null
+  const nd = pendingRbaDecision(now)
+  if (!nd || now < rbaDecisionAt(nd.date, nd.time) - SHOW_BEFORE_MS) return null
 
   return (
     <div className="px-4 py-2.5 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(15,30,53,0.5)' }}>

@@ -2,13 +2,13 @@ import { useMemo, useState, useCallback } from 'react'
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { dispatchAskAI } from '../../utils/askAI'
 import SafeChart from '../../components/ui/SafeChart'
-import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { holdingRate } from './rateSensitivity'
 
 // The coming RBA decision, for the hike scenario's label: "RBA HIKES TO
 // 4.85% (3 NOV)". Falls back to a generic label once no decision is pending.
-const ND = VERIFIED_CONSTANTS.rbaNextDecision
+const ND = pendingRbaDecision()
 const RBA_HIKE_LABEL = ND?.hikeRate != null
   ? `RBA HIKES TO ${ND.hikeRate.toFixed(2)}% (${new Date(`${ND.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()})`
   : 'RBA HIKES 25BP'

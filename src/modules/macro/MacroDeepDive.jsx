@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { askClaude } from '../../services/api'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import RegimeQuadrant from './RegimeQuadrant'
@@ -204,13 +204,14 @@ const QUADRANT_GUIDE = [
 ]
 
 export function RbaSensitivityMatrix() {
-  const { au, rba, rbaNextDecision: nd } = VERIFIED_CONSTANTS
+  const { au, rba } = VERIFIED_CONSTANTS
+  const nd = pendingRbaDecision()
   const inflationHigh = au.cpi > 3
   const growthHigh = au.gdpAnnual >= TREND_GDP
   const here = QUADRANT_GUIDE.find((q) => q.growth === growthHigh && q.infl === inflationHigh)
   const year = rba.lastDecision.slice(0, 4)
   const hikes = (rba.decisions ?? []).filter((d) => d.date.startsWith(year) && d.decision === 'HIKE').length
-  const pricing = nd?.marketHikePct != null && new Date(`${nd.date}T23:59:59`) > new Date()
+  const pricing = nd?.marketHikePct != null
     ? ` Markets price ~${nd.marketHikePct}% for a further hike to ${nd.hikeRate.toFixed(2)}% on ${new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${nd.marketSource}, ${nd.marketAsOf}).`
     : ''
   const narrative = here.key === 'stag'

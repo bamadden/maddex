@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
+import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { sydneyOffset } from '../../utils/dateUtils'
 import { MORTGAGE_MARGIN, repaymentChange } from '../calculators/calcMath'
 
 // "If the RBA hikes" — what a 25bp move means, under the decision preview.
@@ -32,11 +31,9 @@ const SECTORS = [
 const money = (v) => `$${Math.round(v).toLocaleString('en-AU')}`
 
 export default function RbaHikeImpact() {
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
   const [now] = useState(() => Date.now())
+  const nd = pendingRbaDecision(now)
   if (!nd || nd.marketHikePct == null || nd.marketHikePct < 50) return null
-  const at = new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()
-  if (now >= at) return null
 
   const delta = nd.hikeRate - nd.currentRate
   const fromRate = nd.currentRate + MORTGAGE_MARGIN

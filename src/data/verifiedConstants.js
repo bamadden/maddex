@@ -835,6 +835,23 @@ export const VERIFIED_CONSTANTS = {
 // that day, so it resets the staleness clock — but only for groups whose
 // every checked figure matched; one mismatch confirms nothing.
 const confirmedAt = {}
+
+// The coming RBA decision while it is still pending, else null. Every
+// pre-decision element (pricing, countdown banners, the preview, hike
+// scenarios) reads it through here. Two signals retire it: the 2:30pm
+// announcement passing, or rba.lastDecision being updated to that meeting —
+// whichever comes first, so a stale "~85% priced" never outlives the decision
+// even if rbaNextDecision is left in place. See docs/RBA_DECISION_DAY.md.
+export function rbaDecisionAt(iso, time = '14:30') {
+  return iso ? new Date(`${iso}T${time}:00${sydneyOffset(iso)}`).getTime() : null
+}
+export function pendingRbaDecision(now = Date.now()) {
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  if (!nd?.date) return null
+  if ((VERIFIED_CONSTANTS.rba?.lastDecision ?? '') >= nd.date) return null
+  return now < rbaDecisionAt(nd.date, nd.time) ? nd : null
+}
+
 export function markConfirmed(key, isoDate) { confirmedAt[key] = isoDate }
 export function confirmationFor(key) { return confirmedAt[key] ?? null }
 
@@ -952,8 +969,8 @@ export function verifiedFactsForAI() {
   // The coming RBA decision, while it is still ahead. It carries its date and
   // source so the model can attribute it.
   const now = Date.now()
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  if (nd && now < new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime()) {
+  const nd = pendingRbaDecision(now)
+  if (nd) {
     const implied = nd.marketImpliedRate != null ? `implied ${nd.marketImpliedRate.toFixed(2)}%; ` : ''
     const wd = new Date(`${nd.date}T12:00:00Z`).toLocaleDateString('en-AU', { weekday: 'long', timeZone: 'UTC' })
     lines.push(`RBA decision ${wd} ${nd.date}, ${nd.time} Sydney: market pricing ${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${implied}${nd.marketSource}, as at ${nd.marketAsOf}). ${nd.marketContext}${nd.peerContext ? ` ${nd.peerContext}` : ''} 29 Sep statement: "${nd.statementQuote}"`)

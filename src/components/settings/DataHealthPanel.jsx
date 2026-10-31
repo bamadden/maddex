@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import VERIFIED_CONSTANTS, { daysSinceVerified } from '../../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { daysSinceVerified, pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { runOfficialCheck } from '../../services/officialStats'
-import { sydneyOffset } from '../../utils/dateUtils'
 
 // DATA HEALTH — the top of Settings → Data Sources: every feed's age, the
 // official-statistics check, today's AI content, what is due next, and the
@@ -73,8 +72,8 @@ export default function DataHealthPanel() {
   }, [tick])
 
   const c = VERIFIED_CONSTANTS
-  const nd = c.rbaNextDecision
-  const ndDays = nd ? Math.ceil((Date.parse(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`) - now) / 86_400_000) : null
+  const nd = pendingRbaDecision(now)
+  const ndDays = nd ? Math.ceil((rbaDecisionAt(nd.date, nd.time) - now) / 86_400_000) : null
 
   const stale = useMemo(() => Object.entries(c)
     .filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v) && v.lastVerified)

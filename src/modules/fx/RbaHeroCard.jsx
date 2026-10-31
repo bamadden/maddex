@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
-import VERIFIED_CONSTANTS, { provenance } from '../../data/verifiedConstants'
+import VERIFIED_CONSTANTS, { provenance, pendingRbaDecision } from '../../data/verifiedConstants'
 import { sydneyOffset, sydneyTzAbbr } from '../../utils/dateUtils'
 
 const PAST_TENSE = { HIKE: 'HIKED', CUT: 'CUT', HOLD: 'HELD' }
@@ -94,7 +94,7 @@ export default function RbaHeroCard({ onAskAI }) {
   const gov = VERIFIED_CONSTANTS.centralBankOfficials?.rba
   const verb = (rba?.lastDecisionVerb ?? '').toUpperCase()
   const moved = verb === 'HIKE' || verb === 'CUT'
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const nd = pendingRbaDecision()
   const pricing = cd && nd?.date === rba?.nextMeeting && nd.marketHikePct != null ? nd : null
   const urgent = pricing && pricing.marketHikePct > URGENT_PCT
   const au = VERIFIED_CONSTANTS.au
@@ -192,7 +192,12 @@ export default function RbaHeroCard({ onAskAI }) {
               <Seg value={cd.s} unit="SEC" />
             </div>
           ) : (
-            <div className="font-mono text-terminal-text-dim mt-2" style={{ fontSize: 11 }}>Decision day</div>
+            // Past 2:30pm but rba is not yet updated: say so rather than
+            // count down to nothing or guess the outcome.
+            <div className="font-mono text-terminal-text-dim mt-2 leading-snug" style={{ fontSize: 11 }}>
+              Announced 2:30pm<br />
+              <span style={{ fontSize: 9 }}>Result shown here once verified</span>
+            </div>
           )}
           <div className="font-mono text-terminal-gold/80 mt-2" style={{ fontSize: 9, letterSpacing: '0.12em' }}>
             {fmtDate(rba?.nextMeeting).replace(/ \d{4}$/, '')} · 2:30PM {sydneyTzAbbr(rba?.nextMeeting)}

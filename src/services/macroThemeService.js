@@ -6,7 +6,7 @@
 // subsequent module open that day is instant.
 
 import { askClaude } from './api'
-import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../data/verifiedConstants'
 
 const V = VERIFIED_CONSTANTS
 const releaseDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })
@@ -123,7 +123,7 @@ function factsBlock() {
     rba.minutes && `- RBA minutes of the ${fmtDay(rba.minutes.meeting)} meeting, released ${fmtDay(rba.minutes.released)}: ${rba.minutes.summary}`,
     `- AU CPI ${au.cpi.toFixed(1)}% for ${au.cpiPeriod} (${au.cpiPrevious}% in ${au.cpiPreviousPeriod}), trimmed mean ${au.cpiTrimmedMean}%; RBA target band ${au.rbaTargetBand}`,
     au.cpiQuarterTrimmedQoQ != null && `- AU CPI ${au.cpiQuarterPeriod}, released ${fmtDay(au.cpiLastRelease)}: trimmed mean ${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q (${au.cpiQuarterTrimmedYoY.toFixed(1)}% y/y), headline ${au.cpiQuarterQoQ.toFixed(1)}% q/q. ${au.cpiQuarterVsForecast ?? ''}`,
-    V.rbaNextDecision?.marketHikePct != null && `- Market pricing for the ${fmtDay(V.rbaNextDecision.date)} RBA decision: ~${V.rbaNextDecision.marketHikePct}% for a hike to ${V.rbaNextDecision.hikeRate.toFixed(2)}% (${V.rbaNextDecision.marketSource}, ${fmtDay(V.rbaNextDecision.marketAsOf)})`,
+    pendingRbaDecision()?.marketHikePct != null && `- Market pricing for the ${fmtDay(V.rbaNextDecision.date)} RBA decision: ~${V.rbaNextDecision.marketHikePct}% for a hike to ${V.rbaNextDecision.hikeRate.toFixed(2)}% (${V.rbaNextDecision.marketSource}, ${fmtDay(V.rbaNextDecision.marketAsOf)})`,
     `- Next AU CPI release ${fmtDay(au.cpiNextRelease)}${au.cpiNextRelease < rba.nextMeeting ? ` — before the ${fmtDay(rba.nextMeeting)} RBA decision` : ` — after the ${fmtDay(rba.nextMeeting)} RBA decision`}`,
     `- AU unemployment ${au.unemployment}% (${au.unemploymentPeriod}), up from ${au.unemploymentPrevious}% and a five-year high; recent path ${au.unemploymentHistory.slice(-4).map((r) => `${r.value}%`).join(' → ')}; next release ${fmtDay(au.unemploymentNextRelease)}`,
     `- AU GDP ${au.gdpAnnual}% annual, ${au.gdpQoQ}% quarter on quarter (${au.gdpPeriod})`,

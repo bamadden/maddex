@@ -4,7 +4,7 @@ import SafeChart from '../../components/ui/SafeChart'
 import { buildSchedule } from '../../services/dividendSchedule'
 import { fmt } from '../../utils/format'
 import { auRecessionRisk } from '../../data/recessionRisk'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 // One sector map, not three — sectorMap.js already exported this and this
 // file kept its own byte-identical copy.
 import { SECTOR_BY_SYMBOL } from './sectorMap'
@@ -450,7 +450,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
 function RateSensitivitySection({ holdings, fmtCur }) {
   const pr = useMemo(() => portfolioRate(holdings), [holdings])
   if (!pr) return null
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const nd = pendingRbaDecision()
   const hikeTo = nd?.hikeRate != null ? `${nd.hikeRate.toFixed(2)}%` : null
   const tone = RATE_LEVEL_STYLE[pr.rating]?.colour ?? '#8BA3C4'
   const topText = pr.top.map(([s, w]) => `${s} (${Math.round(w * 100)}%)`).join(' and ')
