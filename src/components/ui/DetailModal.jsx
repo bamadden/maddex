@@ -20,6 +20,8 @@ import { toYahooSymbol, timeframeToDays, COIN_IDS_MAP } from '../../utils/assetU
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { dispatchAskAI, todayAEST, deepDive } from '../../utils/askAI'
 import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
+import { graphNodeForTicker } from '../../data/graph/nodes'
+import { openInRelationships } from '../../utils/openRelationships'
 import AnalystCoverage from '../markets/AnalystCoverage'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
 import SafeChart from './SafeChart'
@@ -1396,6 +1398,15 @@ export default function DetailModal() {
               className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
             >
               📄 GENERATE RESEARCH NOTE
+            </button>
+          )}
+          {isStockOrIdx && graphNodeForTicker(symbol) && (
+            <button
+              onClick={() => { openInRelationships(setActiveModule, graphNodeForTicker(symbol)); closeModal() }}
+              title="Ownership, commodity and index exposure, peers and directors — every relationship sourced"
+              className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-gold transition-colors cursor-pointer"
+            >
+              ⊶ OPEN IN RELATIONSHIPS
             </button>
           )}
           {isStockOrIdx && type !== 'index' && (

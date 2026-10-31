@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package, CandlestickChart,
+  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package, CandlestickChart, Network,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { SCANNER_BADGE_KEY, SCANNER_BADGE_EVENT } from '../../services/scannerBadge'
@@ -60,6 +60,7 @@ const NAV_ITEMS = [
   { id: 'scanner',   label: 'SCANNER',   short: 'SCN',  fkey: null, Icon: Radar,      group: 'ANALYSIS' },
   { id: 'screener',  label: 'SCREENER',  short: 'SCR',  fkey: null, Icon: Search,     group: 'ANALYSIS' },
   { id: 'replay',    label: 'REPLAY',    short: 'RPL',  fkey: null, Icon: Rewind,     group: 'ANALYSIS' },
+  { id: 'relationships', label: 'RELATIONSHIPS', short: 'REL', fkey: null, Icon: Network, group: 'ANALYSIS' },
 
   // INSTRUMENTS — asset classes the terminal covers beyond equities.
   { id: 'bonds',     label: 'BONDS',     short: 'BND',  fkey: null, Icon: Landmark,   group: 'INSTRUMENTS' },

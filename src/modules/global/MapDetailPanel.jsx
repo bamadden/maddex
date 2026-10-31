@@ -1,4 +1,6 @@
 import { dispatchAskAI } from '../../utils/askAI'
+import { graphNodeForTicker, graphNodeForCommodity } from '../../data/graph/nodes'
+import { openInRelationships } from '../../utils/openRelationships'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import { sessionCountdown, formatCountdown, SEVERITY_COLOUR, ROUTE_NOTES, SITE_EXTRAS, greatCircleKm } from './intelMapData'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
@@ -86,6 +88,21 @@ function TickerPills({ tickers, watchlist = [] }) {
         )
       })}
     </div>
+  )
+}
+
+// The first thing on this card that is a node in the Relationships graph —
+// the commodity itself, else the first ASX ticker named — and a link to it.
+// Nothing renders when the card names nothing the graph holds.
+function RelationshipsLink({ data, setActiveModule }) {
+  const tickers = [...(data?.asx ?? []), ...(data?.topStocks ?? []), ...(data?.asxImpact ?? [])].map((t) => (typeof t === 'string' ? t : t?.ticker))
+  const target = graphNodeForCommodity(data?.commodity) ?? tickers.map(graphNodeForTicker).find(Boolean)
+  if (!target) return null
+  return (
+    <button onClick={() => openInRelationships(setActiveModule, target)}
+      className="btn-secondary btn-sm" style={{ marginTop: 8, width: '100%' }}>
+      ⊶ OPEN {target.replace(/^cmd:/, '').replace(/-/g, ' ').toUpperCase()} IN RELATIONSHIPS
+    </button>
   )
 }
 
@@ -424,6 +441,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             </button>
           </>
         )}
+        <RelationshipsLink data={data} setActiveModule={setActiveModule} />
       </div>
     </div>
   )

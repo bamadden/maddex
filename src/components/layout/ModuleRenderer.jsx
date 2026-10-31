@@ -24,6 +24,7 @@ const MODULES = {
   etf:       lazy(() => import('../../modules/etf/ETFModule')),
   futures:   lazy(() => import('../../modules/futures/FuturesModule')),
   calculators: lazy(() => import('../../modules/calculators/CalculatorsModule')),
+  relationships: lazy(() => import('../../modules/relationships/RelationshipsModule')),
 }
 
 function ModuleFallback() {

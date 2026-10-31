@@ -21,6 +21,7 @@ export const WORKSPACE_MODULE_LIST = [
   { id: 'etf',       label: 'ETFs',       icon: '▤' },
   { id: 'futures',   label: 'Futures',    icon: '⧖' },
   { id: 'calculators', label: 'Calculators', icon: '∑' },
+  { id: 'relationships', label: 'Relationships', icon: '⊶' },
 ]
 
 // Routable from the nav but not offered as a workspace pane — the dashboard

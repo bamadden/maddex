@@ -59,6 +59,7 @@ const BondsModule         = lazy(() => import('./modules/bonds/BondsModule'))
 const CalculatorsModule   = lazy(() => import('./modules/calculators/CalculatorsModule'))
 const ETFModule           = lazy(() => import('./modules/etf/ETFModule'))
 const FuturesModule       = lazy(() => import('./modules/futures/FuturesModule'))
+const RelationshipsModule = lazy(() => import('./modules/relationships/RelationshipsModule'))
 // d3 + topojson-heavy — code-split out of the main bundle.
 const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
 
@@ -162,6 +163,7 @@ const MODULE_MAP = {
   calculators: CalculatorsModule,
   etf:       ETFModule,
   futures:   FuturesModule,
+  relationships: RelationshipsModule,
 }
 
 // Module component for an id, wrapped in its plan gate when the module is not
@@ -191,6 +193,7 @@ const MODULE_TITLES = {
   calculators: 'Calculators',
   etf:       'ETF Explorer',
   futures:   'Futures & Derivatives',
+  relationships: 'Relationships',
 }
 
 // Maps shortcutService nav.* action ids to MODULE_MAP keys — see
@@ -217,6 +220,7 @@ const NAV_ACTION_MODULE = {
   'nav.options':   'futures',
   'nav.replay':    'replay',
   'nav.screener':  'screener',
+  'nav.relationships': 'relationships',
 }
 
 // ── Keyboard shortcuts modal ──────────────────────────────────────────────────

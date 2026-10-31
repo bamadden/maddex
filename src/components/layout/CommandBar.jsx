@@ -48,6 +48,7 @@ const MODULE_LIST = [
   { key:'etf',       label:'ETFs',      desc:'ETF explorer, fee drag, comparison' },
   { key:'futures',   label:'FUTURES',   desc:'Futures, options chain, short interest' },
   { key:'calculators', label:'CALC',    desc:'Compound, super, CGT, mortgage, tax' },
+  { key:'relationships', label:'RELATIONSHIPS', desc:'Company graph — ownership, exposure, peers, every edge sourced' },
 ]
 
 // Stocks to scan for TOP/LOSERS commands
@@ -69,6 +70,7 @@ const NAV_MAP = {
   etf:       ['etf','etfs'],
   futures:   ['futures','fut','derivatives'],
   calculators: ['calc','calcs','calculator','calculators'],
+  relationships: ['relationships','rel','graph','network','links'],
 }
 
 const HELP_SECTIONS = [
