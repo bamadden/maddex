@@ -4,10 +4,26 @@ Phase 1 seed, read 31 Oct 2026. Every edge in `edges.js` has a source; this
 list is what is **missing** or **weaker than it should be**. Nothing here may
 be filled in from memory or by MaddenAI — each item needs the document.
 
-## Ownership (asked for 10; 9 shipped)
+## Ownership
 
-- [ ] **Substantial holders of the top-20 companies themselves.** None are in
-  yet. ASX's announcements API lists recent notices for these companies, but
+Phase 1.5 (31 Oct 2026) added the substantial holders of the ten largest
+companies from each latest annual report, marked DISCLOSED. Nine of ten done:
+
+- [ ] **XYZ (Block)** is US-incorporated and publishes no Australian
+  substantial-holder table. Use its SEC 13G/13D filings, or treat its ASX
+  CDIs separately.
+- [ ] **WBC, MQG and CSL** report share counts but no percentages, so those
+  edges carry no weight. Read each holder's latest notice for the percentage
+  (and then mark it VERIFIED).
+- [ ] Macquarie's report also lists Macquarie Group Limited itself as a
+  substantial holder of its own shares (27,719,351 — group funds and
+  employee plans). Left out as a self-edge. Decide how to show it.
+- [ ] Several report percentages rest on old notices (BlackRock: CBA 2020,
+  NAB 2020, ANZ 2019, BHP 2022). Re-check against the holders' latest
+  notices.
+- [ ] Holders ranked 11–20 by market cap: same annual-report method.
+
+- [ ] **The holder notices themselves, to make these edges VERIFIED.** ASX's announcements API lists recent notices for these companies, but
   its document keys do not map to the public `displayAnnouncement.do?idsId=`
   link (tested: every key resolved to a different company's document). Its
   file endpoint needs an access token, and using one was refused in this
@@ -46,7 +62,8 @@ be filled in from memory or by MaddenAI — each item needs the document.
 - [ ] The VAS → S&P/ASX 300 edge is confirmed through Morningstar and
   Stockspot. Vanguard's own page renders client-side and was not readable;
   re-check it in a browser.
-- [ ] The top 20 is ranked by ASX-reported market cap, not the official
+- [ ] The UI labels the list "TOP 20 BY ASX MARKET CAP, 30 OCT 2026 — NOT THE
+  OFFICIAL S&P/ASX 20" until this is done. The top 20 is ranked by ASX-reported market cap, not the official
   S&P/ASX 20 (which is float-adjusted). Swap in the official list at the
   next quarterly rebalance.
 
@@ -63,13 +80,19 @@ be filled in from memory or by MaddenAI — each item needs the document.
 
 ## People
 
-- [ ] "Michael Alfred Chaney" (WES chair) and "Michael Chaney" (NST chair)
-  are listed differently in the ASX directory. They are almost certainly the
-  same person, but the graph only merges exact name matches. Confirm from
-  each company's board page, then merge.
-- [ ] MQG's ASX profile lists two managing director/CEOs (Greg Ward and
-  Shemara Wikramanayake), so neither is in yet. Confirm the current CEO from
-  macquarie.com.
+- [x] Chaney resolved (31 Oct 2026): one person. Wesfarmers' 2026 Annual
+  Report lists "Chairman of Northern Star Resources Limited (since July
+  2021)". He left the Wesfarmers board at the 29 Oct 2026 AGM (final
+  director's interest notice, 30 Oct), so only his NST edge remains.
+- [ ] **WES chair:** Ken MacKenzie succeeds from the end of the 29 Oct 2026
+  AGM, subject to his election there (WES ASX release, 28 Aug 2025). Read the
+  "Results of 2026 Annual General Meeting" release (29 Oct) and add the edge.
+  The ASX directory still listed Chaney on 31 Oct.
+- [x] Macquarie CEO resolved: Shemara Wikramanayake (Macquarie 2026 Annual
+  Report). **On 7 Nov 2026** replace her with Greg Ward. She retires on
+  6 Nov, and Ward takes over from 7 Nov subject to approvals (Macquarie
+  release, 23 Jul 2026). Confirm the approvals were received.
+
 - [ ] Only chair and CEO so far; full boards would surface interlocks.
 
 ## Macro

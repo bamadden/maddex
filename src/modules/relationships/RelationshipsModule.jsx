@@ -6,8 +6,8 @@ import { drag as d3drag } from 'd3-drag'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { GRAPH } from '../../data/graph'
 import { EDGE_TYPES, CONFIDENCE, EDGE_LABEL } from '../../data/graph/schema'
-import { GRAPH_AS_OF } from '../../data/graph/nodes'
-import { neighbourhood, edgesOf, exposureMap, searchNodes, PROPAGATES } from '../../services/graphQuery'
+import { GRAPH_AS_OF, TOP20_LABEL } from '../../data/graph/nodes'
+import { neighbourhood, edgesOf, exposureMap, searchNodes, PROPAGATES, completeness } from '../../services/graphQuery'
 import { takeModuleIntent } from '../../services/moduleIntent'
 
 // RELATIONSHIPS — the company graph, phase 1.
@@ -30,6 +30,8 @@ const DASH = { VERIFIED: null, DISCLOSED: '2 3', INFERRED: '6 4' }
 const CONF_TONE = { VERIFIED: '#2D8A50', DISCLOSED: '#8BA3C4', INFERRED: '#C9A84C' }
 const HOP_TONE = ['#E8A33D', '#E8A33D', '#C4853A', '#8A6A3A']
 const DEFAULT_TYPES = EDGE_TYPES.filter((t) => t !== 'member_of')
+const THIN_COMPANIES = new Set(GRAPH.nodes.filter((n) => n.type === 'company' && completeness(GRAPH, n.id).level === 'THIN').map((n) => n.id))
+const LEVEL_TONE = { THIN: '#C4653A', PARTIAL: '#C9A84C', FULLER: '#2D8A50' }
 
 const fmtDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 const nodeLabel = (n) => n.ticker ?? (n.type === 'person' ? n.name.split(' ').slice(-1)[0] : n.name)
@@ -121,6 +123,7 @@ function GraphCanvas({ view, selected, onSelect, exposure, origin }) {
   }, [view])
 
   const lit = (id) => !exposure || id === origin || exposure.has(id)
+  const thin = THIN_COMPANIES
   return (
     <svg ref={svgRef} className="w-full h-full block" style={{ background: '#040A14', cursor: 'grab' }} role="img" aria-label="Relationships graph">
       <g ref={rootRef}>
@@ -144,7 +147,11 @@ function GraphCanvas({ view, selected, onSelect, exposure, origin }) {
               {(isSel || isOrigin || hop) && (
                 <circle r={radius(n) + 4} fill="none" stroke={isSel ? '#C9A84C' : HOP_TONE[hop ?? 0]} strokeWidth={isSel ? 2 : 1.5} />
               )}
-              <circle r={radius(n)} fill={TYPE_COLOUR[n.type]} fillOpacity={n.type === 'person' ? 0.7 : 0.9} stroke="#040A14" strokeWidth={1} />
+              {/* A THIN company is drawn hollow: it is on the map, but the
+                  graph knows little about it yet. */}
+              {n.type === 'company' && thin.has(n.id)
+                ? <circle r={radius(n)} fill="#040A14" stroke={TYPE_COLOUR[n.type]} strokeWidth={1.5} strokeDasharray="2 2" />
+                : <circle r={radius(n)} fill={TYPE_COLOUR[n.type]} fillOpacity={n.type === 'person' ? 0.7 : 0.9} stroke="#040A14" strokeWidth={1} />}
               <text y={radius(n) + 10} textAnchor="middle" className="font-mono select-none"
                 style={{ fontSize: n.type === 'person' ? 7 : 8, fill: isSel ? '#C9A84C' : '#8BA3C4', letterSpacing: '0.06em', pointerEvents: 'none' }}>
                 {nodeLabel(n)}{hop ? ` ·${hop}` : ''}
@@ -179,16 +186,43 @@ function EdgeRow({ row, onSelect }) {
   )
 }
 
+function Completeness({ id }) {
+  const c = completeness(GRAPH, id)
+  const n = GRAPH.byId.get(id)
+  const showLevel = n.type === 'company'
+  return (
+    <div className="mt-2 border px-2 py-1.5" style={{ borderColor: showLevel ? `${LEVEL_TONE[c.level]}55` : 'rgba(74,96,128,0.35)' }}>
+      <div className="flex items-center gap-2">
+        <span className="font-mono tracking-widest text-terminal-text-dim flex-1" style={{ fontSize: 9 }}>DATA COMPLETENESS</span>
+        {showLevel && <span className="font-mono font-bold tracking-widest" style={{ fontSize: 9, color: LEVEL_TONE[c.level] }}>{c.level}</span>}
+      </div>
+      <div className="flex items-center gap-3 mt-1 font-mono tabular-nums" style={{ fontSize: 10 }}>
+        {CONFIDENCE.map((k) => (
+          <span key={k} style={{ color: c.byConfidence[k] ? CONF_TONE[k] : '#3A4E68' }}>{c.byConfidence[k]} {k.slice(0, 4)}</span>
+        ))}
+        <span className="text-terminal-text-dim ml-auto">{c.total} edges</span>
+      </div>
+      <div className="font-mono text-terminal-text-dim/80 mt-1 leading-snug" style={{ fontSize: 9 }}>
+        {c.lastVerified ? `Last verified ${fmtDate(c.lastVerified)}` : 'No edges'}
+        {c.oldestSource && c.oldestSource !== c.lastVerified ? ` · oldest source ${fmtDate(c.oldestSource)}` : ''}
+        {showLevel && c.level === 'THIN' ? ' · no sourced ownership, customer, exposure or peer edge yet' : ''}
+      </div>
+    </div>
+  )
+}
+
 function NodePanel({ id, onSelect, onShock }) {
   const n = GRAPH.byId.get(id)
   const groups = edgesOf(GRAPH, id)
   return (
     <div>
-      <div className="font-mono tracking-widest" style={{ fontSize: 9, color: TYPE_COLOUR[n.type] }}>{n.type.toUpperCase()}{n.top20 ? ` · TOP 20 #${n.top20}` : ''}</div>
+      <div className="font-mono tracking-widest" style={{ fontSize: 9, color: TYPE_COLOUR[n.type] }}>{n.type.toUpperCase()}{n.top20 ? ` · #${n.top20} BY ASX MARKET CAP` : ''}</div>
+      {n.top20 && <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8, letterSpacing: '0.08em' }}>{TOP20_LABEL}</div>}
       <div className="text-terminal-text-bright font-semibold mt-0.5" style={{ fontSize: 15 }}>{n.name}</div>
       <div className="font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 10 }}>
         {[...new Set([n.ticker && `ASX:${n.ticker}`, n.sector, n.industry, n.country])].filter(Boolean).join(' · ')}
       </div>
+      <Completeness id={id} />
       <button onClick={() => onShock(id)}
         className="mt-2 font-mono font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-1" style={{ fontSize: 9 }}>
         SHOCK THIS NODE ▶
@@ -292,6 +326,15 @@ function Legend() {
         VERIFIED — read from the primary document, figure as filed. DISCLOSED — stated by the company, fund or exchange. INFERRED — derived from
         disclosed facts; never weighted.
       </div>
+      <div className="font-mono mt-3 leading-snug" style={{ fontSize: 9, color: '#C9A84C' }}>{TOP20_LABEL}</div>
+      <div className="text-terminal-text-dim mt-1 leading-snug" style={{ fontSize: 10 }}>
+        Ranked by the market cap on each company's ASX profile. The official index is float-adjusted and rebalanced quarterly; the two
+        can differ at the margin.
+      </div>
+      <div className="mt-2 flex items-center gap-2 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
+        <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="#8BA3C4" strokeWidth="1.5" strokeDasharray="2 2" /></svg>
+        HOLLOW = THIN: NO SOURCED OWNERSHIP, CUSTOMER, EXPOSURE OR PEER EDGE YET ({THIN_COMPANIES.size})
+      </div>
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
         {Object.entries(TYPE_COLOUR).map(([t, c]) => (
           <span key={t} className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
@@ -300,8 +343,8 @@ function Legend() {
         ))}
       </div>
       <div className="text-terminal-text-dim/70 mt-3 leading-snug" style={{ fontSize: 10 }}>
-        Phase 1 seed, as at {fmtDate(GRAPH_AS_OF)}: top 20 ASX companies by market cap, six commodities, index and ETF membership, GICS peers,
-        chairs and CEOs, and nine ownership edges from substantial holder notices and company releases.
+        Phase 1.5 seed, as at {fmtDate(GRAPH_AS_OF)}: six commodities, index and ETF membership, GICS peers, chairs and CEOs, the
+        substantial holders of the ten largest companies from their annual reports, and ownership edges from holder notices and company releases.
       </div>
     </div>
   )
@@ -350,7 +393,7 @@ export default function RelationshipsModule() {
   return (
     <div className="h-full flex flex-col min-h-0">
       <ModuleHeader title="RELATIONSHIPS" subtitle="Company graph · every edge sourced" moduleId="relationships"
-        right={<span className="hidden sm:inline font-mono text-terminal-text-dim text-2xs">PHASE 1 · AS AT {fmtDate(GRAPH_AS_OF).toUpperCase()}</span>} />
+        right={<span className="hidden sm:inline font-mono text-terminal-text-dim text-2xs">PHASE 1.5 · AS AT {fmtDate(GRAPH_AS_OF).toUpperCase()}</span>} />
 
       {/* Search + filters */}
       <div className="px-3 py-2 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0">

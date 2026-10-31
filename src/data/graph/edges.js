@@ -42,6 +42,61 @@ const OWNERSHIP = [
     { weight: 5.05, note: 'Became substantial 19 Jun 2025.' }),
 ]
 
+// ── Substantial holders of the top 10 — from each latest annual report ──
+// DISCLOSED: the company's own table of the substantial holding notices it
+// has received, not the notices themselves. A percentage is carried only
+// where the report prints one, and it is the holder's percentage at its own
+// last notice, which can be years old (the note says when). Where the report
+// gives share counts without a percentage, the edge has no weight: dividing
+// an old notice's share count by today's share count would mix two dates.
+// Block (XYZ) is a US company and publishes no such table (TODO.md).
+const NAB_AR = 'https://www.nab.com.au/content/dam/nab/documents/reports/corporate/2025-annual-report.pdf'
+const AR = {
+  BHP: { label: 'BHP Annual Report 2026 — substantial shareholders, as at 9 Jul 2026', url: `${ANN('20260818/pdf/072vxpfhmy9lfk')}#page=238`, date: '2026-07-09' },
+  CBA: { label: 'CBA 2026 Annual Report p342 — substantial shareholding, as at 11 Aug 2026', url: `${ANN('20260812/pdf/072nfthfnhfmbx')}#page=344`, date: '2026-08-11' },
+  NAB: { label: 'NAB 2025 Annual Report — substantial shareholders, as at 10 Oct 2025', url: `${NAB_AR}#page=252`, date: '2025-10-10' },
+  WBC: { label: 'Westpac 2025 Annual Report p248 — substantial shareholders, as at 30 Sep 2025', url: 'https://www.westpac.com.au/content/dam/public/wbc/documents/pdf/aw/ic/wbc-annual-report-2025.pdf#page=248', date: '2025-09-30' },
+  ANZ: { label: 'ANZ Group 2025 Annual Report — substantial shareholders, as at 1 Oct 2025', url: 'https://www.anz.com/content/dam/anzcom/shareholder/2025-annual-report/anz-2025-annual-report.pdf#page=226', date: '2025-10-01' },
+  MQG: { label: 'Macquarie Group 2026 Annual Report — substantial shareholders, as at 31 Mar 2026', url: `${ANN('20260508/pdf/06zcwby8r05n9g')}#page=335`, date: '2026-03-31' },
+  CSL: { label: 'CSL Annual Report 2026 — substantial shareholders, as at 31 Jul 2026', url: 'https://investors.csl.com/annualreport/2026/164/', date: '2026-07-31' },
+  WES: { label: 'Wesfarmers 2026 Annual Report p206 — substantial shareholders, as at the report date', url: `${ANN('20260827/pdf/0738z357pt1vhl')}#page=209`, date: '2026-08-27' },
+  WDS: { label: 'Woodside 2025 Annual Report p273 — substantial shareholders (released 24 Feb 2026)', url: `${ANN('20260224/pdf/06wnjpjvgshc5z')}#page=275`, date: '2026-02-24' },
+}
+const H = { ss: 'fund:state-street', br: 'fund:blackrock', vg: 'fund:vanguard', as: 'fund:australiansuper', citi: 'co:citigroup-gma' }
+const holder = (co, h, weight, note) => edge(H[h], 'owns', co, 'DISCLOSED', AR[co], { weight, note })
+const ANNUAL_REPORT_HOLDERS = [
+  holder('BHP', 'ss', 7.13, 'At its last notice (change 30 Jan 2025).'),
+  holder('BHP', 'br', 6.85, 'At its last notice (change 31 Jan 2022), plus ADRs worth 0.08%.'),
+  holder('BHP', 'vg', 6.001, 'At its last notice (change 16 Apr 2025).'),
+  holder('BHP', 'citi', 5.2988, 'At its last notice (change 12 May 2025).'),
+  holder('CBA', 'ss', 7, 'At its last notice (as at 16 Dec 2024); the report rounds to whole per cent.'),
+  holder('CBA', 'br', 6, 'At its last notice (as at 6 Mar 2020); the report rounds to whole per cent.'),
+  holder('CBA', 'vg', 6, 'At its last notice (as at 28 Apr 2025); the report rounds to whole per cent.'),
+  holder('NAB', 'ss', 7.24, 'At its last notice (as at 9 Jan 2025).'),
+  holder('NAB', 'vg', 6.014, 'At its last notice (as at 19 Dec 2024).'),
+  holder('NAB', 'br', 6.02, 'At its last notice (as at 18 Mar 2020).'),
+  holder('NAB', 'as', 5.01, 'At its last notice (as at 19 Sep 2025).'),
+  holder('WBC', 'br', null, 'Substantial (5%+) at 30 Sep 2025; report gives 221,964,794 securities as at 24 Mar 2020, no percentage.'),
+  holder('WBC', 'ss', null, 'Substantial (5%+) at 30 Sep 2025; report gives 226,119,322 securities as at 6 Aug 2024, no percentage.'),
+  holder('WBC', 'vg', null, 'Substantial (5%+) at 30 Sep 2025; report gives 206,182,459 securities as at 18 Dec 2024, no percentage.'),
+  holder('ANZ', 'ss', 7.33, 'At its last notice (as at 16 Dec 2024).'),
+  holder('ANZ', 'vg', 6.275, 'At its last notice (as at 15 May 2025).'),
+  holder('ANZ', 'br', 6.07, 'At its last notice (as at 2 Dec 2019).'),
+  holder('MQG', 'ss', null, 'Registered as substantial; report gives 26,047,723 shares, no percentage.'),
+  holder('MQG', 'br', null, 'Registered as substantial; report gives 22,929,594 shares, no percentage.'),
+  holder('MQG', 'vg', null, 'Registered as substantial; report gives 23,027,534 shares, no percentage.'),
+  holder('CSL', 'ss', null, 'Substantial; report gives 39,466,383 shares, no percentage.'),
+  holder('CSL', 'br', null, 'Substantial; report gives 33,347,498 shares plus 396,757 ADRs, no percentage.'),
+  holder('CSL', 'vg', null, 'Substantial; report gives 29,109,134 shares, no percentage.'),
+  holder('WES', 'ss', 7.14, 'As at the report date.'),
+  holder('WES', 'br', 6.04, 'As at the report date.'),
+  holder('WES', 'vg', 6.0, 'As at the report date.'),
+  holder('WDS', 'ss', 8.13, 'At its last notice (change 4 Mar 2025).'),
+  holder('WDS', 'as', 7.14, 'At its last notice (change 11 Mar 2025).'),
+  holder('WDS', 'br', 7.03, 'At its last notice (change 5 Feb 2024), plus ADRs.'),
+  holder('WDS', 'vg', 6.031, 'At its last notice (change 26 Sep 2024), plus ADRs.'),
+]
+
 // ── Customer — from the supplier's own disclosure ─────────────────────────
 const CUSTOMERS = [
   edge('WES', 'customer_of', 'BWP', 'VERIFIED',
@@ -108,4 +163,4 @@ const PEERS = PEER_GROUPS.flatMap(([group, members]) => members.flatMap((a, i) =
 const DIRECTORS = PEOPLE.flatMap(([name, roles]) => roles.map(([co, role]) =>
   edge(personId(name), 'director_of', co, 'DISCLOSED', asxProfile(co), { note: role })))
 
-export const EDGES = [...OWNERSHIP, ...CUSTOMERS, ...COMMODITY, ...RATES, ...ETFS, ...MEMBERSHIP, ...PEERS, ...DIRECTORS]
+export const EDGES = [...OWNERSHIP, ...ANNUAL_REPORT_HOLDERS, ...CUSTOMERS, ...COMMODITY, ...RATES, ...ETFS, ...MEMBERSHIP, ...PEERS, ...DIRECTORS]

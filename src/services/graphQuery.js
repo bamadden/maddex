@@ -115,3 +115,26 @@ export function searchNodes(graph, q, limit = 8) {
   }
   return graph.nodes.map((n) => [score(n), n]).filter(([sc]) => sc < 9).sort((a, b) => a[0] - b[0]).slice(0, limit).map(([, n]) => n)
 }
+
+// How much is known about a node, so a thin node looks thin.
+//
+// Substantive edges are the ones that say something about the business:
+// ownership, customers and suppliers, exposures, peers. Index membership and
+// board seats are true of every large company and say little, so they are
+// counted but do not lift the level.
+//   THIN     no substantive edge that is VERIFIED or DISCLOSED
+//   PARTIAL  at least one, but fewer than three substantive edges in all
+//   FULLER   at least one sourced substantive edge and three or more in all
+// "FULLER", not "COMPLETE": no node in a phase-1 graph is complete.
+const SUBSTANTIVE = new Set(['owns', 'supplies', 'customer_of', 'exposed_to', 'competes_with'])
+export function completeness(graph, id) {
+  const mine = graph.edges.filter((e) => e.from === id || e.to === id)
+  const byConfidence = { VERIFIED: 0, DISCLOSED: 0, INFERRED: 0 }
+  for (const e of mine) byConfidence[e.confidence]++
+  const subst = mine.filter((e) => SUBSTANTIVE.has(e.type))
+  const sourced = subst.filter((e) => e.confidence !== 'INFERRED').length
+  const level = sourced === 0 ? 'THIN' : subst.length < 3 ? 'PARTIAL' : 'FULLER'
+  const lastVerified = mine.reduce((m, e) => (e.lastVerified > m ? e.lastVerified : m), '')
+  const oldestSource = mine.reduce((m, e) => (!m || e.source.date < m ? e.source.date : m), '')
+  return { total: mine.length, byConfidence, substantive: subst.length, sourcedSubstantive: sourced, level, lastVerified: lastVerified || null, oldestSource: oldestSource || null }
+}

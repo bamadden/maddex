@@ -4,6 +4,10 @@
 // ticker in the graph?" (the stock modal, the Global map) can import this
 // small list without pulling in the edges or the graph module.
 //
+// TOP20_LABEL is what the UI calls this list until it is checked against
+// the official S&P/ASX 20 constituents.
+export const TOP20_LABEL = 'TOP 20 BY ASX MARKET CAP, 30 OCT 2026 — NOT THE OFFICIAL S&P/ASX 20'
+
 // TOP 20: the twenty largest ASX-listed companies by market capitalisation as
 // reported on each company's ASX profile, read 31 Oct 2026 (Friday 30 Oct
 // close). That is a ranking, not the official S&P/ASX 20 constituent list,
@@ -59,6 +63,13 @@ export const NODES = [
   { id: 'co:stp', type: 'company', name: 'Sydney Transport Partners (WestConnex)', ticker: null, sector: 'Industrials', country: 'AU' },
   { id: 'fund:cppib', type: 'fund', name: 'Canada Pension Plan Investment Board', ticker: null, sector: null, country: 'CA' },
 
+  // ── Substantial holders named in the top-10 annual reports ──
+  { id: 'fund:state-street', type: 'fund', name: 'State Street Corporation', ticker: null, sector: null, country: 'US' },
+  { id: 'fund:blackrock', type: 'fund', name: 'BlackRock Group', ticker: null, sector: null, country: 'US' },
+  { id: 'fund:vanguard', type: 'fund', name: 'The Vanguard Group', ticker: null, sector: null, country: 'US' },
+  { id: 'fund:australiansuper', type: 'fund', name: 'AustralianSuper', ticker: null, sector: null, country: 'AU' },
+  { id: 'co:citigroup-gma', type: 'company', name: 'Citigroup Global Markets Australia', ticker: null, sector: 'Financials', country: 'AU' },
+
   // ── Commodities ──
   { id: 'cmd:iron-ore', type: 'commodity', name: 'Iron ore' },
   { id: 'cmd:copper', type: 'commodity', name: 'Copper' },
@@ -81,7 +92,7 @@ export const NODES = [
 
 // People: chair and chief executive of each top-20 company as listed in the
 // ASX company directory on 31 Oct 2026, read directly from each profile.
-// One node per exact name — Scott Perkins chairs both WOW and ORG.
+// One node per person — Scott Perkins chairs both WOW and ORG.
 export const PEOPLE = [
   ['Ross McEwan', [['BHP', 'Chair']]], ['Brandon Craig', [['BHP', 'CEO']]],
   ["Paul O'Malley", [['CBA', 'Chair']]], ['Matthew Comyn', [['CBA', 'Managing Director & CEO']]],
@@ -89,8 +100,15 @@ export const PEOPLE = [
   ['Steven Gregg', [['WBC', 'Chair']]], ['Anthony Miller', [['WBC', 'Managing Director & CEO']]],
   ["Paul O'Sullivan", [['ANZ', 'Chair']]], ['Nuno Matos', [['ANZ', 'CEO']]],
   ['Glenn Stevens', [['MQG', 'Chair']]],
+  // Macquarie 2026 Annual Report (8 May 2026), PDF p46; Macquarie release of
+  // 23 Jul 2026: retires 6 Nov 2026, Greg Ward to succeed from 7 Nov subject
+  // to approvals. Swap the edge on 7 Nov (TODO.md).
+  ['Shemara Wikramanayake', [['MQG', 'Managing Director & CEO (retires 6 Nov 2026; Greg Ward from 7 Nov, subject to approvals)']]],
   ['Brian McNamee', [['CSL', 'Chair']]],
-  ['Michael Alfred Chaney', [['WES', 'Chair']]], ['Rob Scott', [['WES', 'Managing Director']]],
+  // WES chair: Michael Chaney left the board at the 29 Oct 2026 AGM (final
+  // director's interest notice lodged 30 Oct). His successor, Ken MacKenzie,
+  // needed election at that AGM; the result has not been read (TODO.md).
+  ['Rob Scott', [['WES', 'Managing Director']]],
   ['Jack Dorsey', [['XYZ', 'Chair & CEO']]],
   ['Richard Goyder', [['WDS', 'Chair']]], ['Liz Westcott', [['WDS', 'Managing Director & CEO']]],
   ['Stephen Johns', [['GMG', 'Chair']]], ['Gregory Goodman', [['GMG', 'Managing Director & CEO']]],
@@ -102,6 +120,8 @@ export const PEOPLE = [
   ['Craig Drummond', [['TCL', 'Chair']]], ['Michelle Jablko', [['TCL', 'CEO']]],
   ['Andrew Horton', [['QBE', 'CEO']]],
   ['Neil Chatfield', [['ALL', 'Chair']]], ['Trevor Croker', [['ALL', 'Managing Director & CEO']]],
+  // One person: Wesfarmers' 2026 Annual Report (PDF p105) lists his other office
+  // as "Chairman of Northern Star Resources Limited (since July 2021)".
   ['Michael Chaney', [['NST', 'Chair']]], ['Suresh Vadnagra', [['NST', 'Managing Director']]],
 ]
 
