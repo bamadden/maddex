@@ -10,6 +10,7 @@ import { GRAPH_AS_OF, TOP20_LABEL, graphNodeForTicker } from '../../data/graph/n
 import { neighbourhood, edgesOf, exposureMap, searchNodes, PROPAGATES, completeness } from '../../services/graphQuery'
 import { takeModuleIntent } from '../../services/moduleIntent'
 import { useStore } from '../../store/useStore'
+import { openCompanyProfile } from '../../utils/openRelationships'
 import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel } from './theme'
 import { ConfidenceBadge, StaleBadge, EdgeDetail, PathFinder, ConnectedHoldings } from './RelPanels'
 
@@ -231,6 +232,7 @@ function Completeness({ id, now }) {
 
 function NodePanel({ id, onSelect, onShock, onEdge, overlay, holdings, now }) {
   const n = GRAPH.byId.get(id)
+  const { setActiveModule } = useStore()
   const groups = edgesOf(GRAPH, id)
   return (
     <div>
@@ -246,6 +248,12 @@ function NodePanel({ id, onSelect, onShock, onEdge, overlay, holdings, now }) {
         className="mt-2 font-mono font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-1" style={{ fontSize: 9 }}>
         SHOCK THIS NODE ▶
       </button>
+      {n.type === 'company' && (
+        <button onClick={() => openCompanyProfile(setActiveModule, id)}
+          className="mt-2 ml-2 font-mono font-bold tracking-widest border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold/40 px-2 py-1" style={{ fontSize: 9 }}>
+          COMPANY PROFILE ◧
+        </button>
+      )}
       {EDGE_TYPES.filter((t) => groups[t]).map((t) => (
         <div key={t} className="mt-3">
           <div className="font-mono tracking-widest text-terminal-text-dim mb-0.5" style={{ fontSize: 9 }}>{EDGE_LABEL[t]} · {groups[t].length}</div>

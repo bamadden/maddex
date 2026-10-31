@@ -8,46 +8,25 @@
     24
   ],
   "model": "claude-sonnet-4-6",
-  "generatedAt": "2026-10-31T04:06:59.110Z",
+  "generatedAt": "2026-10-31T04:32:21.135Z",
   "usage": {
-    "input_tokens": 9434,
+    "input_tokens": 9595,
     "cache_creation_input_tokens": 0,
     "cache_read_input_tokens": 0,
     "cache_creation": {
       "ephemeral_5m_input_tokens": 0,
       "ephemeral_1h_input_tokens": 0
     },
-    "output_tokens": 315,
+    "output_tokens": 195,
     "service_tier": "standard",
     "inference_geo": "global",
     "speed": "standard"
   },
   "proposals": [
     {
-      "id": "c748278928ba9ab7",
+      "id": "61f154fd37503abc",
       "status": "pending",
-      "type": "customer",
-      "from": {
-        "name": "Wesfarmers",
-        "id": "WES"
-      },
-      "to": {
-        "name": "BWP",
-        "id": "BWP"
-      },
-      "weight": 23.4,
-      "quote": "Wesfarmers, BWP's largest securityholder with a 23.4 per cent of BWP securities, has committed to take up its full entitlement under the Entitlement Offer, representing a commitment of approximately $53 million",
-      "page": 6,
-      "context": {
-        "before": "Entitlement Offer\") - The Entitlement Offer is being conducted at an issue price of $3.77 (\"Issue Price\") which reflects a 4.3 per cent discount to the closing price on 5 May 2026 of $3.94 and a 3.4 per cent discount to the 5-day volume weighted average price (\"VWAP\") of $3.90 - ",
-        "quote": "Wesfarmers, BWP's largest securityholder with a 23.4 per cent of BWP securities, has committed to take up its full entitlement under the Entitlement Offer, representing a commitment of approximately $53 million",
-        "after": " > BWP's pro forma gearing will reduce to 17.0 per cent2, providing significant balance sheet capacity to execute future capital deployment opportunities that provide further growth for BWP securityholders > Assuming the expenditure of BWP's Capital Commitments of $163 million, p"
-      }
-    },
-    {
-      "id": "6ecb85d777810adc",
-      "status": "pending",
-      "type": "customer",
+      "type": "owns",
       "from": {
         "name": "Wesfarmers",
         "id": "WES"
@@ -66,9 +45,9 @@
       }
     },
     {
-      "id": "1db30015db4f94ea",
+      "id": "255c56b9de669e0c",
       "status": "pending",
-      "type": "supplier",
+      "type": "customer",
       "from": {
         "name": "Bunnings",
         "id": null
@@ -77,12 +56,12 @@
         "name": "BWP",
         "id": "BWP"
       },
-      "weight": null,
-      "quote": "Most of BWP's properties have significant or key tenants with the largest tenant (by income) being Bunnings. Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025.",
+      "weight": 76.7,
+      "quote": "Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025.",
       "page": 24,
       "context": {
-        "before": "stments; > unforeseen events such as pandemics which may result in Government policies or changes in law not previously anticipated (such as rent relief and abatements); and > lease expiry timing and the matters impacting any lease renewal at that time. Tenant concentration risk ",
-        "quote": "Most of BWP's properties have significant or key tenants with the largest tenant (by income) being Bunnings. Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025.",
+        "before": "previously anticipated (such as rent relief and abatements); and > lease expiry timing and the matters impacting any lease renewal at that time. Tenant concentration risk Most of BWP's properties have significant or key tenants with the largest tenant (by income) being Bunnings. ",
+        "quote": "Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025.",
         "after": " If any tenant defaults in performing its obligations under a lease, or vacates, particularly if that tenancy cannot be re-let on equivalent terms within the estimated timeframes or at all, then income, distributions and the value of BWP stapled securities may be negatively affec"
       }
     }

@@ -49,6 +49,7 @@ const MODULE_LIST = [
   { key:'futures',   label:'FUTURES',   desc:'Futures, options chain, short interest' },
   { key:'calculators', label:'CALC',    desc:'Compound, super, CGT, mortgage, tax' },
   { key:'relationships', label:'RELATIONSHIPS', desc:'Company graph — ownership, exposure, peers, every edge sourced' },
+  { key:'company',   label:'COMPANY',   desc:'Company profile — DES BHP: ownership, connections, sourced facts' },
 ]
 
 // Stocks to scan for TOP/LOSERS commands
@@ -71,6 +72,7 @@ const NAV_MAP = {
   futures:   ['futures','fut','derivatives'],
   calculators: ['calc','calcs','calculator','calculators'],
   relationships: ['relationships','rel','graph','network','links'],
+  company:   ['company','profile','des'],
 }
 
 const HELP_SECTIONS = [
@@ -417,6 +419,7 @@ function interpretCommand(raw) {
 
   if (cmd === 'help' || cmd === '?' || cmd === 'commands') return 'Show command reference'
   if (parts[0].toLowerCase() === 'ai') return `Ask MaddenAI: "${parts.slice(1).join(' ') || 'market overview'}"`
+  if (['des', 'profile'].includes(parts[0].toLowerCase()) && parts[1]) return `Company profile for ${parts[1].toUpperCase()}`
   for (const [module, aliases] of Object.entries(NAV_MAP)) {
     if (aliases.includes(cmd)) return `Navigate to ${module.toUpperCase()}`
   }
@@ -1419,6 +1422,20 @@ export default function CommandBar() {
     if (cmd === 'ideas' || cmd === 'roadmap') {
       window.dispatchEvent(new CustomEvent('madden:open-ideas'))
       flash('→ IDEAS & ROADMAP', 'text-terminal-green', 1500)
+      return
+    }
+
+    // ── DES / PROFILE {ticker}: the company profile ──
+    if (['des', 'profile'].includes(parts[0].toLowerCase()) && parts[1]) {
+      // Loaded on use: the node list is not part of the first paint.
+      const [{ graphNodeForTicker }, { openCompanyProfile, isCompanyNodeId }] = await Promise.all([import('../../data/graph/nodes'), import('../../utils/openRelationships')])
+      const id = graphNodeForTicker(parts[1])
+      if (isCompanyNodeId(id)) {
+        openCompanyProfile(setActiveModule, id)
+        flash(`→ COMPANY PROFILE · ${id}`, 'text-terminal-green', 1500)
+      } else {
+        flash(`No company profile for ${parts[1].toUpperCase()} yet — profiles cover the companies in the Relationships graph`, 'text-terminal-gold', 3500)
+      }
       return
     }
 

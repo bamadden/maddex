@@ -120,3 +120,24 @@ companies from each latest annual report, marked DISCLOSED. Nine of ten done:
 - [ ] Stale edges: most annual-report holder percentages rest on notices
   more than 12 months old (STALE in the panel). The holders' latest notices
   would refresh them.
+
+## Phase 2.5 (31 Oct 2026)
+
+- [x] **Official S&P/ASX 20.** TOP20 now matches the companies ASX lists in
+  index XTL on their profiles (exactly 20). Block (XYZ) and ResMed (RMD) left
+  the list; Coles (COL) and Brambles (BXB) joined. S&P/ASX 20, 200 and 300
+  membership edges are now DISCLOSED from the same profiles. Re-read the
+  profiles after each quarterly rebalance.
+- [ ] **Goodman (GMG) is now #10 of the S&P/ASX 20** (Block left), and its
+  annual-report substantial holders are not in yet. COL and BXB need the
+  same treatment.
+- [ ] Citigroup Global Markets Australia → BHP (5.2988%) carries a note that
+  it is likely stock lending or prime broking. Read Citi's own BHP notice to
+  confirm, then keep the edge or drop it.
+- [ ] Company profile key facts NOT YET SOURCED for every company: financial
+  year end, revenue, net profit, employees, auditor. Each needs the latest
+  annual report, read by a person.
+- [ ] Two BWP proposals (re-run with the corrected prompt) are waiting in
+  REVIEW: Wesfarmers owns 23.4% of BWP (already in the graph, VERIFIED), and
+  Bunnings is a customer of BWP at 76.7%. Bunnings is not a node; map it to
+  WES or create it.

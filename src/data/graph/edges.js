@@ -5,6 +5,7 @@
 // source on the date given, by a person.
 
 import { TOP20, PEOPLE, personId } from './nodes.js'
+import { COMPANY_FACTS, INDEX_CODE, factsSource } from './companyFacts.js'
 
 const READ = '2026-10-31'
 const ANN = (path) => `https://announcements.asx.com.au/asxpdf/${path}.pdf`
@@ -70,7 +71,7 @@ const ANNUAL_REPORT_HOLDERS = [
   holder('BHP', 'ss', 7.13, 'At its last notice (change 30 Jan 2025).', '2025-01-30'),
   holder('BHP', 'br', 6.85, 'At its last notice (change 31 Jan 2022), plus ADRs worth 0.08%.', '2022-01-31'),
   holder('BHP', 'vg', 6.001, 'At its last notice (change 16 Apr 2025).', '2025-04-16'),
-  holder('BHP', 'citi', 5.2988, 'At its last notice (change 12 May 2025).', '2025-05-12'),
+  holder('BHP', 'citi', 5.2988, 'At its last notice (change 12 May 2025). Likely stock lending or prime broking, not an investment: Citigroup Global Markets Australia\'s substantial-holder notices typically arise from securities-lending and market contracts (e.g. its Form 605 for Boss Energy, 6 Jun 2025, announcements.asx.com.au/asxpdf/20250606/pdf/06khyyx0y3x64j.pdf). Not confirmed for BHP: its own BHP notice has not been read.', '2025-05-12'),
   holder('CBA', 'ss', 7, 'At its last notice (as at 16 Dec 2024); the report rounds to whole per cent.', '2024-12-16'),
   holder('CBA', 'br', 6, 'At its last notice (as at 6 Mar 2020); the report rounds to whole per cent.', '2020-03-06'),
   holder('CBA', 'vg', 6, 'At its last notice (as at 28 Apr 2025); the report rounds to whole per cent.', '2025-04-28'),
@@ -131,10 +132,7 @@ const RATES = ['CBA', 'NAB', 'WBC', 'ANZ'].map((b) =>
   edge(b, 'exposed_to', 'macro:rba-cash-rate', 'INFERRED', RBA_TRANSMISSION, { note: 'Bank lending and deposit rates follow the cash rate; GICS industry group Banks.' }))
 
 // ── Indices and ETFs ──────────────────────────────────────────────────────
-// What each ETF tracks is the fund's own statement (DISCLOSED). Which
-// companies are in each index is INFERRED from market-cap rank — every top-20
-// company is far above the cut-off for all three — until it is checked
-// against the provider's constituent list.
+// What each ETF tracks is the fund's own statement (DISCLOSED).
 const ETFS = [
   edge('etf:IOZ', 'exposed_to', 'idx:asx200', 'DISCLOSED',
     { label: 'iShares IOZ product page ("performance of the S&P/ASX 200 Accumulation Index")', url: 'https://www.blackrock.com/au/products/251852/ishares-core-sp-asx-200-etf', date: READ }, { note: 'Tracks the index.' }),
@@ -143,16 +141,22 @@ const ETFS = [
   edge('etf:A200', 'exposed_to', 'idx:solactive200', 'DISCLOSED',
     { label: 'Betashares A200 product page ("Solactive Australia 200 Index")', url: 'https://www.betashares.com.au/fund/australia-200-etf/', date: READ }, { note: 'Tracks the index.' }),
 ]
-const INDEX_SOURCE = {
-  'idx:asx200': { label: 'S&P/ASX 200 — membership inferred from ASX market-cap rank', url: 'https://www.spglobal.com/spdji/en/indices/equity/sp-asx-200/', date: READ },
-  'idx:asx300': { label: 'S&P/ASX 300 — membership inferred from ASX market-cap rank', url: 'https://www.spglobal.com/spdji/en/indices/equity/sp-asx-300/', date: READ },
-  'idx:solactive200': { label: 'Solactive Australia 200 — membership inferred from ASX market-cap rank (A200 page)', url: 'https://www.betashares.com.au/fund/australia-200-etf/', date: READ },
-}
-const MEMBERSHIP = TOP20.flatMap((t) => Object.entries(INDEX_SOURCE).map(([idx, src]) => edge(t, 'member_of', idx, 'INFERRED', src)))
+// S&P/ASX 20, 200 and 300 membership is DISCLOSED: each company's ASX
+// profile lists the indices it is in (companyFacts.js, read 31 Oct 2026).
+// Solactive Australia 200 is not on ASX profiles, so its membership stays
+// INFERRED from market-cap rank — every S&P/ASX 20 company is far above its
+// cut-off.
+const SOLACTIVE = { label: 'Solactive Australia 200 — membership inferred from ASX market-cap rank (A200 page)', url: 'https://www.betashares.com.au/fund/australia-200-etf/', date: READ }
+const MEMBERSHIP = [
+  ...Object.entries(COMPANY_FACTS).flatMap(([t, f]) => f.indices.filter((code) => INDEX_CODE[code])
+    .map((code) => edge(t, 'member_of', INDEX_CODE[code], 'DISCLOSED', factsSource(t), { note: `ASX lists ${t} in index ${code}.` }))),
+  ...TOP20.map((t) => edge(t, 'member_of', 'idx:solactive200', 'INFERRED', SOLACTIVE)),
+]
 
 // ── Peers — INFERRED from the GICS industry group on each ASX profile ─────
 const PEER_GROUPS = [
   ['Banks', ['CBA', 'NAB', 'WBC', 'ANZ']],
+  ['Supermarkets (Consumer Staples Distribution & Retail)', ['WOW', 'COL']],
   ['Iron ore producers (Materials)', ['BHP', 'RIO', 'FMG']],
   ['Gold producers (Materials)', ['NST', 'EVN']],
   ['Oil and gas (Energy)', ['WDS', 'STO']],

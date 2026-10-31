@@ -4,15 +4,16 @@
 // ticker in the graph?" (the stock modal, the Global map) can import this
 // small list without pulling in the edges or the graph module.
 //
-// TOP20_LABEL is what the UI calls this list until it is checked against
-// the official S&P/ASX 20 constituents.
-export const TOP20_LABEL = 'TOP 20 BY ASX MARKET CAP, 30 OCT 2026 — NOT THE OFFICIAL S&P/ASX 20'
+export const TOP20_LABEL = 'S&P/ASX 20 MEMBER — PER ASX COMPANY PROFILES, 31 OCT 2026'
 
-// TOP 20: the twenty largest ASX-listed companies by market capitalisation as
-// reported on each company's ASX profile, read 31 Oct 2026 (Friday 30 Oct
-// close). That is a ranking, not the official S&P/ASX 20 constituent list,
-// which is float-adjusted and rebalanced quarterly — see TODO.md. Sector and
-// industry group are the GICS classifications on the same ASX profile.
+// TOP 20: the S&P/ASX 20 constituents, as listed in the "indices" section of
+// each company's ASX profile, read 31 Oct 2026 — exactly twenty companies
+// carry index XTL. Numbered by the market cap on the same profiles (Friday
+// 30 Oct close). This replaced a plain market-cap ranking on 31 Oct 2026:
+// Block (XYZ) and ResMed (RMD) rank in the top 20 by market cap but are not
+// in the index; Coles (COL) and Brambles (BXB) are. Sector and industry group
+// are the GICS classifications on the same profiles. Re-read after each
+// quarterly rebalance (third Friday of Mar, Jun, Sep, Dec).
 //
 // The other companies are in the graph because a sourced edge reaches them:
 // a producer of a tracked commodity, or the other side of an ownership edge.
@@ -22,10 +23,10 @@ export const GRAPH_AS_OF = '2026-10-31'
 const co = (ticker, name, sector, industry, country = 'AU', extra = {}) =>
   ({ id: ticker, type: 'company', name, ticker, sector, industry, country, ...extra })
 
-export const TOP20 = ['BHP', 'CBA', 'NAB', 'WBC', 'ANZ', 'MQG', 'CSL', 'WES', 'XYZ', 'WDS', 'GMG', 'RIO', 'TLS', 'RMD', 'WOW', 'FMG', 'TCL', 'QBE', 'ALL', 'NST']
+export const TOP20 = ['BHP', 'CBA', 'NAB', 'WBC', 'ANZ', 'MQG', 'CSL', 'WES', 'WDS', 'GMG', 'RIO', 'TLS', 'WOW', 'FMG', 'TCL', 'QBE', 'ALL', 'NST', 'COL', 'BXB']
 
 export const NODES = [
-  // ── Top 20 by ASX-reported market cap, 30 Oct 2026 close ──
+  // ── S&P/ASX 20, numbered by ASX-reported market cap, 30 Oct 2026 close ──
   co('BHP', 'BHP Group', 'Materials', 'Materials', 'AU', { top20: 1 }),
   co('CBA', 'Commonwealth Bank of Australia', 'Financials', 'Banks', 'AU', { top20: 2 }),
   co('NAB', 'National Australia Bank', 'Financials', 'Banks', 'AU', { top20: 3 }),
@@ -34,18 +35,22 @@ export const NODES = [
   co('MQG', 'Macquarie Group', 'Financials', 'Financial Services', 'AU', { top20: 6 }),
   co('CSL', 'CSL', 'Health Care', 'Pharmaceuticals, Biotechnology & Life Sciences', 'AU', { top20: 7 }),
   co('WES', 'Wesfarmers', 'Consumer Discretionary', 'Consumer Discretionary Distribution & Retail', 'AU', { top20: 8 }),
-  co('XYZ', 'Block, Inc.', 'Financials', 'Financial Services', 'US', { top20: 9 }),
-  co('WDS', 'Woodside Energy Group', 'Energy', 'Energy', 'AU', { top20: 10 }),
-  co('GMG', 'Goodman Group', 'Real Estate', 'Equity REITs', 'AU', { top20: 11 }),
-  co('RIO', 'Rio Tinto', 'Materials', 'Materials', 'AU', { top20: 12 }),
-  co('TLS', 'Telstra Group', 'Communication Services', 'Telecommunication Services', 'AU', { top20: 13 }),
-  co('RMD', 'ResMed', 'Health Care', 'Health Care Equipment & Services', 'US', { top20: 14 }),
-  co('WOW', 'Woolworths Group', 'Consumer Staples', 'Consumer Staples Distribution & Retail', 'AU', { top20: 15 }),
-  co('FMG', 'Fortescue', 'Materials', 'Materials', 'AU', { top20: 16 }),
-  co('TCL', 'Transurban Group', 'Industrials', 'Transportation', 'AU', { top20: 17 }),
-  co('QBE', 'QBE Insurance Group', 'Financials', 'Insurance', 'AU', { top20: 18 }),
-  co('ALL', 'Aristocrat Leisure', 'Consumer Discretionary', 'Consumer Services', 'AU', { top20: 19 }),
-  co('NST', 'Northern Star Resources', 'Materials', 'Materials', 'AU', { top20: 20 }),
+  co('WDS', 'Woodside Energy Group', 'Energy', 'Energy', 'AU', { top20: 9 }),
+  co('GMG', 'Goodman Group', 'Real Estate', 'Equity REITs', 'AU', { top20: 10 }),
+  co('RIO', 'Rio Tinto', 'Materials', 'Materials', 'AU', { top20: 11 }),
+  co('TLS', 'Telstra Group', 'Communication Services', 'Telecommunication Services', 'AU', { top20: 12 }),
+  co('WOW', 'Woolworths Group', 'Consumer Staples', 'Consumer Staples Distribution & Retail', 'AU', { top20: 13 }),
+  co('FMG', 'Fortescue', 'Materials', 'Materials', 'AU', { top20: 14 }),
+  co('TCL', 'Transurban Group', 'Industrials', 'Transportation', 'AU', { top20: 15 }),
+  co('QBE', 'QBE Insurance Group', 'Financials', 'Insurance', 'AU', { top20: 16 }),
+  co('ALL', 'Aristocrat Leisure', 'Consumer Discretionary', 'Consumer Services', 'AU', { top20: 17 }),
+  co('NST', 'Northern Star Resources', 'Materials', 'Materials', 'AU', { top20: 18 }),
+  co('COL', 'Coles Group', 'Consumer Staples', 'Consumer Staples Distribution & Retail', 'AU', { top20: 19 }),
+  co('BXB', 'Brambles', 'Industrials', 'Commercial & Professional Services', 'AU', { top20: 20 }),
+
+  // ── Large by market cap but not S&P/ASX 20 members (US-domiciled, ASX-listed CDIs) ──
+  co('XYZ', 'Block, Inc.', 'Financials', 'Financial Services', 'US'),
+  co('RMD', 'ResMed', 'Health Care', 'Health Care Equipment & Services', 'US'),
 
   // ── Producers of tracked commodities, outside the top 20 ──
   co('STO', 'Santos', 'Energy', 'Energy'),
@@ -82,6 +87,7 @@ export const NODES = [
   { id: 'macro:rba-cash-rate', type: 'macro', name: 'RBA cash rate', country: 'AU' },
 
   // ── Indices and the ETFs that track them ──
+  { id: 'idx:asx20', type: 'index', name: 'S&P/ASX 20', ticker: 'XTL', country: 'AU' },
   { id: 'idx:asx200', type: 'index', name: 'S&P/ASX 200', country: 'AU' },
   { id: 'idx:asx300', type: 'index', name: 'S&P/ASX 300', country: 'AU' },
   { id: 'idx:solactive200', type: 'index', name: 'Solactive Australia 200', country: 'AU' },
@@ -122,7 +128,9 @@ export const PEOPLE = [
   ['Neil Chatfield', [['ALL', 'Chair']]], ['Trevor Croker', [['ALL', 'Managing Director & CEO']]],
   // One person: Wesfarmers' 2026 Annual Report (PDF p105) lists his other office
   // as "Chairman of Northern Star Resources Limited (since July 2021)".
-  ['Michael Chaney', [['NST', 'Chair']]], ['Suresh Vadnagra', [['NST', 'Managing Director']]],
+  ['Michael Chaney', [['NST', 'Chair']]],
+  ['Peter Allen', [['COL', 'Chair']]], ['Leah Weckert', [['COL', 'Managing Director']]],
+  ['John Mullen', [['BXB', 'Chair']]], ['Graham Chipchase', [['BXB', 'CEO']]], ['Suresh Vadnagra', [['NST', 'Managing Director']]],
 ]
 
 export const personId = (name) => `person:${name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}`

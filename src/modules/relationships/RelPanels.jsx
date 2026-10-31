@@ -178,7 +178,7 @@ export function ConnectedHoldings({ id, holdings, onSelectNode }) {
         <>
           <div className="text-terminal-text-bright mt-1" style={{ fontSize: 12 }}>
             {result.rows.length} of your {holdings.length} holding{holdings.length === 1 ? '' : 's'} connect to {n.name}
-            {result.weight != null && result.rows.length > 0 && <span className="font-mono"> · {result.weight.toFixed(1)}% of A$ cost basis</span>}
+            {result.weight != null && result.rows.length > 0 && <span className="font-mono"> · {result.weight.toFixed(1)}% OF COST BASIS (A$)</span>}
           </div>
           <div className="text-terminal-text-dim mt-0.5 leading-snug" style={{ fontSize: 10 }}>
             Connected means a sourced path exists, nothing more. No price effect is estimated.{result.mixed ? ' Non-A$ holdings are listed but left out of the weight.' : ''}

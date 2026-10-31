@@ -99,7 +99,11 @@ Rules:
 - Direction: supplier — from supplies to; customer — from is a customer of to; owns — from holds an equity stake in to; subsidiary — from is the parent, to the subsidiary; joint_venture — from and to are partners; director_of — from is the person, to the company.
 - Ignore custodians and nominee companies (e.g. "HSBC Custody Nominees") as owners: they hold for others.
 - Use the company's full name as written in the document. The document's own company is ${TICKER}.
-- An empty list is a correct answer when the document states no such relationships.`
+- An empty list is a correct answer when the document states no such relationships.
+
+Mistakes to avoid (both were made on a real document):
+- Holding shares is OWNERSHIP, never a customer relationship. "Wesfarmers, BWP's largest securityholder with 23.4% of BWP securities" is type "owns", from "Wesfarmers" to "BWP", weight 23.4 — not "customer".
+- A tenant is the CUSTOMER of its landlord, not the landlord's supplier. "Bunnings comprise approximately 76.7% of the gross income of BWP" (BWP owns the properties Bunnings rents) is type "customer", from "Bunnings" to "BWP", weight 76.7 — not "supplier".`
 
 const TOOL = {
   name: 'propose_edges',

@@ -3,6 +3,8 @@
 // Exit code 1 when any figure has drifted, so it can run in CI or a cron.
 import { fetchOfficialStats, reconcile, checkHistories, checkUs } from '../src/services/officialStats.js'
 import { VERIFIED_CONSTANTS } from '../src/data/verifiedConstants.js'
+import { overdueChanges, upcomingChanges } from '../src/data/datedChanges.js'
+import { PEOPLE } from '../src/data/graph/nodes.js'
 
 // The agencies' endpoints time out now and then; one retry for whichever
 // feeds came back empty clears most of it.
@@ -36,4 +38,20 @@ for (const h of hist) {
   histDrift += h.misses.length
   console.log(`${pad(h.label, 22)}${pad(`${h.points} pts`, 11)}${h.misses.length ? `⚠ ${h.misses.length} differ: ${h.misses.map((m) => `${m.period} ours ${m.ours} / official ${m.official ?? 'none'}`).join('; ')}` : '✓ all match'}`)
 }
+// Known dated changes (src/data/datedChanges.js): warn when one has taken
+// effect and the terminal still shows the old value. A warning, not a
+// failure — the update needs a person to read the new figure first.
+const ceo = {}
+for (const [name, roles] of PEOPLE) for (const [co, role] of roles) if (/\bCEO\b/.test(role)) ceo[co] = name
+const overdue = overdueChanges({ ...VERIFIED_CONSTANTS, graph: { ceo } })
+console.log('\nDATED CHANGES')
+for (const c of overdue) {
+  console.log(`⚠ OVERDUE  ${c.what} (effective ${c.effective})`)
+  for (const f of c.stale) console.log(`           ${f.path} not updated (expect ${JSON.stringify(f.expect)})`)
+  console.log(`           source: ${c.source}${c.howTo ? ` · how: ${c.howTo}` : ''}`)
+}
+const next = upcomingChanges().slice(0, 3)
+if (!overdue.length) console.log('✓ none overdue')
+if (next.length) console.log(`  next: ${next.map((c) => `${c.what} (${c.effective.slice(0, 10)})`).join('; ')}`)
+
 process.exit(drift.length || histDrift ? 1 : 0)

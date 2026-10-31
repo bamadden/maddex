@@ -25,6 +25,7 @@ const MODULES = {
   futures:   lazy(() => import('../../modules/futures/FuturesModule')),
   calculators: lazy(() => import('../../modules/calculators/CalculatorsModule')),
   relationships: lazy(() => import('../../modules/relationships/RelationshipsModule')),
+  company:   lazy(() => import('../../modules/company/CompanyProfileModule')),
 }
 
 function ModuleFallback() {

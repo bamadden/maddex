@@ -158,3 +158,39 @@ test('approval re-checks the weight against the quote and writes DISCLOSED', () 
   assert.equal(applyReview(root, { file: 'BWP-2026-05-06.json', id: 'abc123', action: 'approve' }).ok, false) // not twice
   assert.equal(applyReview(root, { file: '../../etc/passwd', id: 'x', action: 'reject' }).ok, false)
 })
+
+// ── Dated changes (check-stats warning) ─────────────────────────────────────
+import { overdueChanges, fieldUpdated, DATED_CHANGES } from '../src/data/datedChanges.js'
+import { TOP20 } from '../src/data/graph/nodes.js'
+import { COMPANY_FACTS } from '../src/data/graph/companyFacts.js'
+
+const before = { rba: { lastDecision: '2026-09-29', nextMeeting: '2026-11-03', decisions: [{ date: '2026-09-29' }], latestStatement: { date: '2026-09-29' } },
+  fed: { lastDecision: '2026-10-28', nextMeeting: '2026-12-09' }, boj: { lastDecision: '2026-10-30', nextMeeting: '2026-12-18' },
+  graph: { ceo: { MQG: 'Shemara Wikramanayake' } } }
+
+test('nothing is overdue before its moment', () => {
+  assert.deepEqual(overdueChanges(before, Date.parse('2026-11-03T14:29:00+11:00')), [])
+})
+
+test('the RBA change is overdue after 2:30pm until every field moves', () => {
+  const t = Date.parse('2026-11-03T15:00:00+11:00')
+  const o = overdueChanges(before, t)
+  assert.deepEqual(o.map((c) => c.id), ['rba-2026-11-03'])
+  assert.equal(o[0].stale.length, 4)
+  const after = { ...before, rba: { lastDecision: '2026-11-03', nextMeeting: '2026-12-08', decisions: [{ date: '2026-11-03' }], latestStatement: { date: '2026-11-03' } } }
+  assert.deepEqual(overdueChanges(after, t), [])
+})
+
+test('the Macquarie CEO change is caught from 7 Nov', () => {
+  const o = overdueChanges(before, Date.parse('2026-11-07T09:00:00+11:00'))
+  assert.ok(o.some((c) => c.id === 'mqg-ceo-2026-11-07'))
+  assert.equal(fieldUpdated({ graph: { ceo: { MQG: 'Greg Ward' } } }, { path: 'graph.ceo.MQG', expect: { eq: 'Greg Ward' } }), true)
+  assert.ok(DATED_CHANGES.every((c) => Number.isFinite(Date.parse(c.effective))))
+})
+
+// ── S&P/ASX 20 from ASX profiles ─────────────────────────────────────────────
+test('TOP20 is exactly the companies ASX lists in the S&P/ASX 20', () => {
+  const inXtl = Object.entries(COMPANY_FACTS).filter(([, f]) => f.indices.includes('XTL')).map(([t]) => t).sort()
+  assert.equal(inXtl.length, 20)
+  assert.deepEqual([...TOP20].sort(), inXtl)
+})

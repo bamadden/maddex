@@ -24,7 +24,7 @@ const MODULE_LABELS = {
   global: 'Global Intelligence', watchlist: 'Watchlist', portfolio: 'Portfolio',
   news: 'News', screener: 'Screener', scanner: 'Market Scanner',
   calendar: 'Economic Calendar', brief: 'Morning Brief', dashboard: 'Dashboard',
-  relationships: 'Relationships',
+  relationships: 'Relationships', company: 'Company Profile',
 }
 
 export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null, moduleId = null }) {

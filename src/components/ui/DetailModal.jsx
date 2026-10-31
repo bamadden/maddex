@@ -21,7 +21,7 @@ import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { dispatchAskAI, todayAEST, deepDive } from '../../utils/askAI'
 import ResearchNoteGenerator from '../researchNote/ResearchNoteGenerator'
 import { graphNodeForTicker } from '../../data/graph/nodes'
-import { openInRelationships } from '../../utils/openRelationships'
+import { openInRelationships, openCompanyProfile, isCompanyNodeId } from '../../utils/openRelationships'
 import AnalystCoverage from '../markets/AnalystCoverage'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
 import SafeChart from './SafeChart'
@@ -1398,6 +1398,15 @@ export default function DetailModal() {
               className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
             >
               📄 GENERATE RESEARCH NOTE
+            </button>
+          )}
+          {isStockOrIdx && isCompanyNodeId(graphNodeForTicker(symbol)) && (
+            <button
+              onClick={() => { openCompanyProfile(setActiveModule, graphNodeForTicker(symbol)); closeModal() }}
+              title="Ownership, connections and sourced key facts on one screen"
+              className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-border text-terminal-text-dim hover:border-terminal-gold/50 hover:text-terminal-gold transition-colors cursor-pointer"
+            >
+              ◧ COMPANY PROFILE
             </button>
           )}
           {isStockOrIdx && graphNodeForTicker(symbol) && (
