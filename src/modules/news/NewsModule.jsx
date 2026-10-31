@@ -813,13 +813,16 @@ function MorningBriefing() {
     }
   }, [today])
 
+  // Generated when the panel is opened, not when the News module is: the
+  // panel is collapsed by default, and generating a brief nobody expanded was
+  // one paid completion per reader per day for nothing.
   useEffect(() => {
-    if (!text && !loading && !error) {
+    if (expanded && !text && !loading && !error) {
       const t = setTimeout(generate, 0)
       return () => clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [expanded])
 
   return (
     <div className="border-b border-terminal-border flex-shrink-0">

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { GRAPH } from '../../data/graph'
 import { EDGE_LABEL } from '../../data/graph/schema'
 import { isStale, ageDays, edgeAsAt } from '../../data/graph/staleness'
-import { searchNodes, findPaths, weakestConfidence, exposureMap, exposurePath } from '../../services/graphQuery'
+import { searchNodes, findPaths, weakestConfidence, exposureMap, exposurePath, RIPPLE_EVENTS, eventsFor } from '../../services/graphQuery'
 import { CONF_TONE, STALE_TONE, HELD_TONE, fmtDate, nodeLabel, pageOf } from './theme'
 
 // Side-panel pieces added in phase 2: edge detail, the path finder, and the
@@ -13,6 +13,23 @@ export function ConfidenceBadge({ c }) {
   return (
     <span className="font-mono font-bold tracking-widest px-1 flex-shrink-0"
       style={{ fontSize: 8, color: CONF_TONE[c], border: `1px solid ${CONF_TONE[c]}66` }}>{c}</span>
+  )
+}
+
+// The weight with its unit. A share of a SEGMENT, not of the whole company,
+// says so in the label, and the tooltip names the segments.
+export function WeightBadge({ edge: e, size = 11 }) {
+  if (e.weight == null) return null
+  const segment = /segment/i.test(e.weightLabel ?? '')
+  return (
+    <span className="font-mono tabular-nums text-terminal-text-bright flex-shrink-0" style={{ fontSize: size }} title={e.weightTip ?? e.weightLabel ?? undefined}>
+      {e.weight}%
+      {segment && (
+        <span className="ml-1 tracking-widest" style={{ fontSize: 8, color: '#C9A84C', cursor: 'help' }}>
+          OF SEGMENT REVENUE ⓘ
+        </span>
+      )}
+    </span>
   )
 }
 
@@ -68,7 +85,7 @@ export function EdgeDetail({ id, onSelectNode, now }) {
         <button className="hover:text-terminal-gold" onClick={() => onSelectNode(a.id)}>{a.name}</button>
         <span className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}> {EDGE_LABEL[e.type]} </span>
         <button className="hover:text-terminal-gold" onClick={() => onSelectNode(b.id)}>{b.name}</button>
-        {e.weight != null && <span className="font-mono tabular-nums"> · {e.weight}%</span>}
+        {e.weight != null && <span> · <WeightBadge edge={e} size={13} /></span>}
       </div>
       <div className="flex items-center gap-1.5 mt-1.5">
         <ConfidenceBadge c={e.confidence} />
@@ -85,7 +102,7 @@ export function EdgeDetail({ id, onSelectNode, now }) {
         {row('AS AT', fmtDate(edgeAsAt(e)))}
         {e.asAt && e.asAt !== e.source.date && row('DOCUMENT', fmtDate(e.source.date))}
         {row('CONFIDENCE', e.confidence)}
-        {e.weightLabel && row('WEIGHT', e.weightLabel)}
+        {e.weightLabel && row('WEIGHT', <span title={e.weightTip ?? undefined}>{e.weightLabel}{e.weightTip ? <span className="block text-terminal-text-dim mt-0.5" style={{ fontSize: 10 }}>{e.weightTip}</span> : null}</span>)}
         {e.note && row('NOTE', e.note)}
         {row('VERIFIED', fmtDate(e.lastVerified))}
       </div>
@@ -192,6 +209,78 @@ export function ConnectedHoldings({ id, holdings, onSelectNode }) {
             </div>
           ))}
         </>
+      )}
+    </div>
+  )
+}
+
+// ── Event ripple ────────────────────────────────────────────────────────────
+// An event at one node, and the nodes it reaches by hop, with the edge and its
+// confidence. Exposure direction only — the same rule as the shock simulator
+// this replaced: no sizes, no price effects.
+export function RipplePanel({ origin, setOrigin, event, setEvent, ripple, holdings, onSelect }) {
+  const o = origin && GRAPH.byId.get(origin)
+  const allowed = o ? eventsFor(o) : []
+  const byHop = [1, 2, 3].map((h) => [...(ripple ?? new Map())].filter(([, r]) => r.hop === h))
+  const heldHit = holdings.filter((h) => h.nodeId && (ripple?.has(h.nodeId) || h.nodeId === origin))
+  const aud = holdings.filter((h) => h.currency === 'AUD')
+  const totalCost = aud.reduce((s, h) => s + h.cost, 0)
+  const hitCost = heldHit.filter((h) => h.currency === 'AUD').reduce((s, h) => s + h.cost, 0)
+  return (
+    <div>
+      <div className="font-mono font-bold tracking-widest" style={{ fontSize: 10, color: '#E8A33D' }}>EVENT RIPPLE</div>
+      <div className="font-mono font-bold tracking-widest mt-1 px-1.5 py-1 inline-block" style={{ fontSize: 9, color: HELD_TONE, border: `1px solid ${HELD_TONE}88` }}>
+        CONNECTED EXPOSURE, NOT FORECAST
+      </div>
+      <p className="text-terminal-text-dim mt-2 leading-snug" style={{ fontSize: 11 }}>
+        Pick a node and an event. The list shows which nodes it reaches, hop by hop, along sourced edges. It says nothing about direction of price or size of effect.
+      </p>
+      <div className="mt-2">
+        <NodePicker value={origin} onPick={(id) => { setOrigin(id); const ev = eventsFor(GRAPH.byId.get(id)); if (!ev.includes(event)) setEvent(ev[0] ?? null) }} placeholder="Node — e.g. RBA cash rate, iron ore, WES" />
+      </div>
+      {o && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {allowed.length ? allowed.map((k) => (
+            <button key={k} onClick={() => setEvent(k)} aria-pressed={event === k}
+              className="font-mono tracking-wider px-2 py-0.5 border" style={{ fontSize: 9, borderColor: event === k ? 'rgba(201,168,76,0.6)' : 'rgba(74,96,128,0.35)', color: event === k ? '#C9A84C' : '#637899' }}>
+              {RIPPLE_EVENTS[k].label}
+            </button>
+          )) : <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>No event type applies to a {o.type} node yet.</span>}
+        </div>
+      )}
+      {o && event && ripple && (
+        <div className="mt-3">
+          <div className="text-terminal-text-bright" style={{ fontSize: 12 }}>
+            {RIPPLE_EVENTS[event].label.toLowerCase()} at {o.name} — reaches {ripple.size} node{ripple.size === 1 ? '' : 's'}
+          </div>
+          {holdings.length > 0 && (
+            <div className="mt-1.5 px-2 py-1 border" style={{ borderColor: `${HELD_TONE}66`, fontSize: 11 }}>
+              <span style={{ color: HELD_TONE }} className="font-mono font-bold tracking-widest">YOUR HOLDINGS · </span>
+              <span className="text-terminal-text-bright">{heldHit.length} of {holdings.length} connected{totalCost > 0 && heldHit.length ? ` · ${((hitCost / totalCost) * 100).toFixed(1)}% OF COST BASIS (A$)` : ''}</span>
+              {heldHit.length > 0 && <div className="font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 9 }}>{heldHit.map((h) => h.symbol).join(' · ')}</div>}
+            </div>
+          )}
+          {byHop.map((rows, i) => rows.length > 0 && (
+            <div key={i} className="mt-2">
+              <div className="font-mono tracking-widest mb-0.5" style={{ fontSize: 9, color: '#E8A33D' }}>HOP {i + 1} · {rows.length}</div>
+              {rows.map(([id, r]) => {
+                const n = GRAPH.byId.get(id), p = GRAPH.byId.get(r.parent)
+                const held = holdings.some((h) => h.nodeId === id)
+                return (
+                  <button key={id} onClick={() => onSelect(id)} className="block w-full text-left py-1 border-b border-terminal-border/30 hover:text-terminal-gold" style={{ fontSize: 11 }}>
+                    <span className="flex items-center gap-2">
+                      <span className="text-terminal-text-bright flex-1 min-w-0">{n.name}{held && <span className="font-mono ml-1.5" style={{ fontSize: 8, color: HELD_TONE }}>● HELD</span>}</span>
+                      <ConfidenceBadge c={r.via.confidence} />
+                    </span>
+                    <span className="block font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 9 }}>CONNECTED · via {EDGE_LABEL[r.via.type].toLowerCase()} {p.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+          {ripple.size === 0 && <div className="text-terminal-text-dim mt-2" style={{ fontSize: 11 }}>NOT YET SOURCED — no sourced edge carries this event beyond {o.name}.</div>}
+          <button onClick={() => setOrigin(null)} className="mt-3 font-mono tracking-widest text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 9 }}>CLEAR ✕</button>
+        </div>
       )}
     </div>
   )

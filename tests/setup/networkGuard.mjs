@@ -11,7 +11,7 @@ import http from 'node:http'
 import https from 'node:https'
 
 const BLOCKED_HOSTS = [/(^|\.)anthropic\.com$/i]
-const BLOCKED_PATHS = [/^\/api\/claude\b/]
+const BLOCKED_PATHS = [/^\/api\/claude\b/, /^\/api\/ai-daily\b/]
 
 const attempts = []
 let expecting = 0

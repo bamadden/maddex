@@ -497,10 +497,17 @@ function Terminal() {
   // terminal is likely already open. autoGenerateWeeklyReview holds the guards
   // (before the close, already cached), so most ticks return at once. The
   // in-flight ref stops a slow generation being started twice.
+  //
+  // Cost control (31 Oct 2026): automatic only on plans that include the
+  // weekly review in full (trial, Prime, Apex), and only while the tab is
+  // visible. Core readers generate it on demand from the Brief.
+  const { tier: weeklyTier } = useSubscription()
+  const weeklyAuto = ['trial', 'prime', 'apex'].includes(weeklyTier)
   const weeklyInFlight = useRef(false)
   useEffect(() => {
+    if (!weeklyAuto) return undefined
     const tick = () => {
-      if (weeklyInFlight.current) return
+      if (weeklyInFlight.current || document.hidden) return
       weeklyInFlight.current = true
       import('./services/weeklyReviewService')
         .then((m) => m.autoGenerateWeeklyReview())
@@ -513,7 +520,7 @@ function Terminal() {
     tick()
     const id = setInterval(tick, 15 * 60_000)
     return () => clearInterval(id)
-  }, [addNotification])
+  }, [addNotification, weeklyAuto])
 
   // Freshness clock for the status strip. React Query fires this whenever any
   // query resolves, so the strip reports real data age rather than a timer

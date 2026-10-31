@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import VERIFIED_CONSTANTS, { provenance, pendingRbaDecision } from '../../data/verifiedConstants'
 import { sydneyOffset, sydneyTzAbbr } from '../../utils/dateUtils'
+import { useStore } from '../../store/useStore'
+import { openRipple } from '../../utils/openRelationships'
 
 const PAST_TENSE = { HIKE: 'HIKED', CUT: 'CUT', HOLD: 'HELD' }
 
@@ -89,6 +91,7 @@ function Seg({ value, unit }) {
 }
 
 export default function RbaHeroCard({ onAskAI }) {
+  const { setActiveModule } = useStore()
   const rba = VERIFIED_CONSTANTS.rba
   const cd = useCountdown(rba?.nextMeeting)
   const gov = VERIFIED_CONSTANTS.centralBankOfficials?.rba
@@ -113,7 +116,9 @@ export default function RbaHeroCard({ onAskAI }) {
       >
         <span className="font-bold">⚠ HIGH HIKE PROBABILITY</span>
         <span>— RBA MEETING IN {cd.d} {cd.d === 1 ? 'DAY' : 'DAYS'} · ~{pricing.marketHikePct}% MARKET PRICING</span>
-        <span className="text-terminal-text-dim/70 ml-auto" style={{ fontSize: 9 }}>{pricing.marketSource}, {fmtDate(pricing.marketAsOf)}</span>
+        <button onClick={() => openRipple(setActiveModule, 'macro:rba-cash-rate', 'rate')} className="ml-auto underline decoration-dotted hover:text-terminal-text-bright" style={{ fontSize: 9 }}
+          title="Relationships: which holdings connect to rates — connected exposure, not forecast">WHICH HOLDINGS CONNECT? ⊶</button>
+        <span className="text-terminal-text-dim/70" style={{ fontSize: 9 }}>{pricing.marketSource}, {fmtDate(pricing.marketAsOf)}</span>
       </div>
     )}
     <div

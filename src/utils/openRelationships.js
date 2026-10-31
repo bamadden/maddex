@@ -16,3 +16,10 @@ export function openCompanyProfile(setActiveModule, nodeId) {
 
 // Company nodes are keyed by bare ticker; other node types carry a prefix.
 export const isCompanyNodeId = (id) => !!id && !id.includes(':')
+
+// Opens Relationships on the event ripple for a node, e.g. the RBA cash rate
+// on decision day: which holdings connect to rates.
+export function openRipple(setActiveModule, origin, event) {
+  sendModuleIntent('relationships', { ripple: { origin, event } })
+  setActiveModule('relationships')
+}

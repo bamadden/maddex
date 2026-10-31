@@ -1504,7 +1504,7 @@ function MaddenAISection() {
   }, [])
 
   const clearAiCache = () => {
-    const before = Object.keys(localStorage).filter((k) => k.startsWith('maddex_ai_content_')).length
+    const before = Object.keys(localStorage).filter((k) => k.startsWith('maddex_ai_daily_') || k.startsWith('maddex_ai_content_')).length
     aiContentService.clearCache()
     setCacheCleared(before)
     setTimeout(() => setCacheCleared(null), 4000)
@@ -2685,7 +2685,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
   // regenerates. User data (watchlist, portfolio, transactions, alerts,
   // settings, saved screens) is deliberately not in this list.
   const CACHE_PREFIXES = [
-    'maddex_live_', 'maddex_ds_', 'maddex_defi_', 'maddex_ai_content_', 'maddex_cdb_',
+    'maddex_live_', 'maddex_ds_', 'maddex_defi_', 'maddex_ai_content_', 'maddex_ai_daily_', 'maddex_cdb_',
     'maddex_indicator_forecast_', 'maddex_scanner_pattern_', 'maddex_morning_brief_', 'madden_econ_calendar_v1',
   ]
   const handleClearCache = () => {

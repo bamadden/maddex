@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { askMaddenAI } from '../../utils/askAI'
+import { useStore } from '../../store/useStore'
+import { openRipple } from '../../utils/openRelationships'
 
 // The highlighted card at the top of Rates after an RBA decision. Built from
 // VERIFIED_CONSTANTS.rba, so the next decision rewrites it with no edit here.
@@ -18,6 +20,7 @@ const longDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU'
 const readAck = () => { try { return localStorage.getItem(ACK_KEY) } catch { return null } }
 
 export default function RbaDecisionCard() {
+  const { setActiveModule } = useStore()
   const rba = VERIFIED_CONSTANTS.rba
   const [now] = useState(() => Date.now())
   const [ack, setAck] = useState(readAck)
@@ -52,6 +55,13 @@ export default function RbaDecisionCard() {
           onClick={() => askMaddenAI(`The RBA ${(PAST[verb] ?? verb).toLowerCase()} the cash rate${verb !== 'HOLD' && bp ? ` by ${bp}` : ''} to ${rate} on ${rba.lastDecision}${rba.minutes?.meeting === rba.lastDecision ? `, and its minutes said: ${rba.minutes.summary}` : ''}. What does this mean for mortgages, savers, the AUD and ASX sectors — and what would make the board move again at the next meeting on ${rba.nextMeeting}?`)}
           className="px-2 py-1 text-2xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright whitespace-nowrap"
         >WHAT THIS MEANS ▶</button>
+        {/* Which of the reader's holdings connect to the cash rate — the
+            Relationships event ripple. Connection only, not a forecast. */}
+        <button onClick={() => openRipple(setActiveModule, 'macro:rba-cash-rate', 'rate')}
+          title="Relationships: which holdings connect to rates — connected exposure, not forecast"
+          className="px-2 py-1 text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg whitespace-nowrap">
+          WHICH HOLDINGS CONNECT? ⊶
+        </button>
         <button onClick={dismiss} className="text-2xs text-terminal-text-dim hover:text-terminal-text tracking-widest">DISMISS</button>
       </div>
     </div>

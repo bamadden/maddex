@@ -75,6 +75,25 @@ export default defineConfig(({ mode }) => {
     },
   }
 
+  // /api/ai-daily in dev: the same shared-content handler as on Vercel (no
+  // CDN here, so its in-memory cache is what makes it once-per-day locally).
+  const aiDailyDevMiddleware = {
+    name: 'maddex-ai-daily-dev',
+    configureServer(server) {
+      server.middlewares.use('/api/ai-daily', async (req, res) => {
+        process.env.ANTHROPIC_API_KEY ||= env.ANTHROPIC_API_KEY
+        const { default: handler } = await server.ssrLoadModule('/api/ai-daily.js')
+        const shim = {
+          status(code) { res.statusCode = code; return shim },
+          setHeader(k, v) { res.setHeader(k, v); return shim },
+          json(body) { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)) },
+        }
+        try { await handler({ method: req.method, url: req.originalUrl ?? req.url }, shim) }
+        catch (err) { res.statusCode = 500; res.end(JSON.stringify({ error: err.message })) }
+      })
+    },
+  }
+
   const alertEmailDevMiddleware = {
     name: 'maddex-alert-email-dev',
     configureServer(server) {
@@ -98,7 +117,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), rssDevMiddleware, alertEmailDevMiddleware, graphReviewDevMiddleware],
+    plugins: [react(), rssDevMiddleware, aiDailyDevMiddleware, alertEmailDevMiddleware, graphReviewDevMiddleware],
 
     define: {
       __GIT_COMMIT__: JSON.stringify(gitCommit()),

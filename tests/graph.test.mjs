@@ -247,3 +247,30 @@ test('Wesfarmers chair is Ken MacKenzie, sourced from the company with a quote',
   assert.match(e.quote, /became Chairman in October 2026/)
   assert.match(e.source.url, /wesfarmers\.com\.au/)
 })
+
+// ── Event ripple ────────────────────────────────────────────────────────────
+import { rippleMap, eventsFor } from '../src/services/graphQuery.js'
+
+test('rate ripple from the RBA reaches the banks first, then indices and ETFs', () => {
+  const g = loadGraph(ALL_NODES, EDGES, { dev: true })
+  const m = rippleMap(g, 'macro:rba-cash-rate', 'rate')
+  for (const b of ['CBA', 'NAB', 'WBC', 'ANZ']) assert.equal(m.get(b)?.hop, 1, b)
+  assert.equal(m.get('idx:asx200')?.hop, 2)
+  assert.ok(m.has('etf:VAS') || m.has('etf:IOZ'))
+})
+
+test('substantial holder change reaches holders, then what they also hold', () => {
+  const g = loadGraph(ALL_NODES, EDGES, { dev: true })
+  const m = rippleMap(g, 'CBA', 'holder')
+  assert.equal(m.get('fund:blackrock')?.hop, 1)
+  assert.equal(m.get('BHP')?.hop, 2)
+  assert.ok(!m.has('idx:asx200'), 'holder ripple does not travel through index membership')
+})
+
+test('events apply only to the node types they fit', () => {
+  const g = loadGraph(ALL_NODES, EDGES, { dev: true })
+  assert.deepEqual(eventsFor(g.byId.get('macro:rba-cash-rate')), ['rate'])
+  assert.deepEqual(eventsFor(g.byId.get('cmd:iron-ore')), ['commodity'])
+  assert.deepEqual(eventsFor(g.byId.get('idx:asx200')), [])
+  assert.equal(rippleMap(g, 'CBA', 'nope').size, 0)
+})

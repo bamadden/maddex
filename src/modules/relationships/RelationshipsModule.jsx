@@ -7,12 +7,12 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { GRAPH } from '../../data/graph'
 import { EDGE_TYPES, CONFIDENCE, EDGE_LABEL } from '../../data/graph/schema'
 import { GRAPH_AS_OF, TOP20_LABEL, graphNodeForTicker } from '../../data/graph/nodes'
-import { neighbourhood, edgesOf, exposureMap, searchNodes, PROPAGATES, completeness } from '../../services/graphQuery'
+import { neighbourhood, edgesOf, rippleMap, eventsFor, searchNodes, PROPAGATES, completeness } from '../../services/graphQuery'
 import { takeModuleIntent, peekModuleIntent } from '../../services/moduleIntent'
 import { useStore } from '../../store/useStore'
 import { openCompanyProfile } from '../../utils/openRelationships'
 import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel } from './theme'
-import { ConfidenceBadge, StaleBadge, EdgeDetail, PathFinder, ConnectedHoldings } from './RelPanels'
+import { ConfidenceBadge, StaleBadge, WeightBadge, EdgeDetail, PathFinder, ConnectedHoldings, RipplePanel } from './RelPanels'
 
 // RELATIONSHIPS — the company graph.
 //
@@ -21,9 +21,9 @@ import { ConfidenceBadge, StaleBadge, EdgeDetail, PathFinder, ConnectedHoldings 
 // relationship, not behind a click, because the source is the point: a graph
 // of who-owns-what is only as good as the filing under each line.
 //
-// The shock simulator traces exposure, not effect. It says which nodes are
-// downstream of a shock and how many hops away, and nothing about how much
-// anything moves — see services/graphQuery.js.
+// The event ripple traces connected exposure, not effect. It says which nodes
+// an event reaches and how many hops away, and nothing about how much
+// anything moves — see rippleMap in services/graphQuery.js.
 
 const HOP_TONE = ['#E8A33D', '#E8A33D', '#C4853A', '#8A6A3A']
 const DEFAULT_TYPES = EDGE_TYPES.filter((t) => t !== 'member_of')
@@ -190,7 +190,7 @@ function EdgeRow({ row, onSelect, onEdge, now }) {
           <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{outgoing ? '→' : '←'} </span>
           {other.name}{other.ticker && other.ticker !== other.name ? <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}> {other.ticker}</span> : null}
         </button>
-        {e.weight != null && <span className="font-mono tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{e.weight}%</span>}
+        <WeightBadge edge={e} />
         <StaleBadge edge={e} now={now} />
         <ConfidenceBadge c={e.confidence} />
         <button onClick={() => onEdge(e.id)} className="font-mono text-terminal-text-dim hover:text-terminal-gold flex-shrink-0" style={{ fontSize: 9 }} title="Source, page, date and quote">ⓘ</button>
@@ -246,7 +246,7 @@ function NodePanel({ id, onSelect, onShock, onEdge, overlay, holdings, now }) {
       {overlay && <ConnectedHoldings id={id} holdings={holdings} onSelectNode={onSelect} />}
       <button onClick={() => onShock(id)}
         className="mt-2 font-mono font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-1" style={{ fontSize: 9 }}>
-        SHOCK THIS NODE ▶
+        EVENT RIPPLE FROM HERE ▶
       </button>
       {n.type === 'company' && (
         <button onClick={() => openCompanyProfile(setActiveModule, id)}
@@ -260,74 +260,6 @@ function NodePanel({ id, onSelect, onShock, onEdge, overlay, holdings, now }) {
           {groups[t].map((r) => <EdgeRow key={r.edge.id} row={r} onSelect={onSelect} onEdge={onEdge} now={now} />)}
         </div>
       ))}
-    </div>
-  )
-}
-
-function ShockPanel({ origin, setOrigin, shock, setShock, exposure, onSelect }) {
-  const [q, setQ] = useState('')
-  const hits = searchNodes(GRAPH, q, 6)
-  const byHop = [1, 2, 3].map((h) => [...(exposure ?? new Map())].filter(([, r]) => r.hop === h))
-  const o = origin && GRAPH.byId.get(origin)
-  return (
-    <div>
-      <div className="font-mono font-bold tracking-widest" style={{ fontSize: 10, color: '#E8A33D' }}>SHOCK SIMULATOR</div>
-      <div className="font-mono font-bold tracking-widest mt-1 px-1.5 py-1 inline-block" style={{ fontSize: 9, color: '#E8A33D', border: '1px solid rgba(232,163,61,0.5)' }}>
-        EXPOSURE MAP, NOT FORECAST
-      </div>
-      <p className="text-terminal-text-dim mt-2 leading-snug" style={{ fontSize: 11 }}>
-        Which nodes sit downstream of a shock, and how many hops away, along owns, exposure, index and customer edges. It does not estimate how much
-        anything moves — the edges carry no sensitivities, and none is invented here.
-      </p>
-      <div className="mt-2 relative">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={o ? o.name : 'Shock a node — e.g. iron ore, RBA, BHP'}
-          className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 font-mono text-terminal-text-bright focus:border-terminal-gold/60 outline-none" style={{ fontSize: 11 }} />
-        {q && hits.length > 0 && (
-          <div className="absolute z-10 left-0 right-0 bg-terminal-panel border border-terminal-border">
-            {hits.map((n) => (
-              <button key={n.id} onClick={() => { setOrigin(n.id); setQ('') }} className="block w-full text-left px-2 py-1 hover:bg-terminal-gold/10 text-terminal-text" style={{ fontSize: 11 }}>
-                {n.name} <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{n.type}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 mt-2">
-        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>SHOCK</span>
-        {[-20, -10, -5, 5, 10].map((v) => (
-          <Chip key={v} on={shock === v} onClick={() => setShock(v)}>{v > 0 ? '+' : ''}{v}%</Chip>
-        ))}
-      </div>
-      {o && (
-        <div className="mt-3">
-          <div className="text-terminal-text-bright" style={{ fontSize: 12 }}>
-            {o.name} <span className="font-mono" style={{ color: '#E8A33D' }}>{shock > 0 ? '+' : ''}{shock}%</span>
-            <span className="text-terminal-text-dim"> — {exposure.size} node{exposure.size === 1 ? '' : 's'} exposed</span>
-          </div>
-          <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: 10 }}>
-            The shock size is a label for the scenario. Nothing below is scaled by it.
-          </div>
-          {byHop.map((rows, i) => rows.length > 0 && (
-            <div key={i} className="mt-2">
-              <div className="font-mono tracking-widest mb-0.5" style={{ fontSize: 9, color: HOP_TONE[i + 1] }}>HOP {i + 1} · {rows.length}</div>
-              {rows.map(([id, r]) => {
-                const n = GRAPH.byId.get(id), p = GRAPH.byId.get(r.parent)
-                return (
-                  <button key={id} onClick={() => onSelect(id)} className="block w-full text-left py-1 border-b border-terminal-border/30 hover:text-terminal-gold" style={{ fontSize: 11 }}>
-                    <span className="flex items-center gap-2">
-                      <span className="text-terminal-text-bright flex-1 min-w-0">{n.name}</span>
-                      <ConfidenceBadge c={r.via.confidence} />
-                    </span>
-                    <span className="block font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 9 }}>EXPOSED · via {EDGE_LABEL[r.via.type].toLowerCase()} {p.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-          ))}
-          {exposure.size === 0 && <div className="text-terminal-text-dim mt-2" style={{ fontSize: 11 }}>No sourced exposure edges lead downstream of this node yet.</div>}
-          <button onClick={() => setOrigin(null)} className="mt-3 font-mono tracking-widest text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 9 }}>CLEAR SHOCK ✕</button>
-        </div>
-      )}
     </div>
   )
 }
@@ -386,9 +318,11 @@ export default function RelationshipsModule() {
   const [types, setTypes] = useState(() => new Set(DEFAULT_TYPES))
   const [confidence, setConfidence] = useState(() => new Set(CONFIDENCE))
   const [q, setQ] = useState('')
-  const [origin, setOrigin] = useState(null)
-  const [shock, setShock] = useState(-10)
-  const [tab, setTab] = useState(focus ? 'node' : 'about')
+  // An event ripple opened from elsewhere (the RBA decision banner):
+  // { ripple: { origin, event } } in the module intent.
+  const [origin, setOrigin] = useState(() => peekModuleIntent('relationships')?.ripple?.origin ?? null)
+  const [event, setEvent] = useState(() => peekModuleIntent('relationships')?.ripple?.event ?? null)
+  const [tab, setTab] = useState(() => (peekModuleIntent('relationships')?.ripple ? 'ripple' : focus ? 'node' : 'about'))
   const [selectedEdge, setSelectedEdge] = useState(null)
   const [pathA, setPathA] = useState(null)
   const [pathB, setPathB] = useState(null)
@@ -408,13 +342,15 @@ export default function RelationshipsModule() {
       takeModuleIntent('relationships')
       const f = ev.detail.intent?.focus
       if (f && GRAPH.byId.has(f)) { setFocus(f); setSelected(f); setTab('node') }
+      const r = ev.detail.intent?.ripple
+      if (r?.origin && GRAPH.byId.has(r.origin)) { setOrigin(r.origin); setEvent(r.event); setTab('ripple') }
     }
     window.addEventListener('madden:module-intent', on)
     return () => window.removeEventListener('madden:module-intent', on)
   }, [])
 
   const view = useMemo(() => neighbourhood(GRAPH, { focus, depth, types, confidence }), [focus, depth, types, confidence])
-  const exposure = useMemo(() => (origin ? exposureMap(GRAPH, origin, { maxHop: 3, confidence }) : null), [origin, confidence])
+  const exposure = useMemo(() => (origin && event ? rippleMap(GRAPH, origin, event, { confidence }) : null), [origin, event, confidence])
   const hits = searchNodes(GRAPH, q, 8)
   // While a shock is set, the canvas draws the exposure map itself — the
   // origin, every exposed node and the edge that reached each — whatever the
@@ -434,7 +370,7 @@ export default function RelationshipsModule() {
 
   const select_ = (id) => { setSelected(id); setTab('node') }
   const toggle = (set, setter, v) => setter(() => { const s = new Set(set); s.has(v) ? s.delete(v) : s.add(v); return s })
-  const startShock = (id) => { setOrigin(id); setTab('shock') }
+  const startShock = (id) => { setOrigin(id); setEvent(eventsFor(GRAPH.byId.get(id))[0] ?? null); setTab('ripple') }
   const selectEdge = (id) => { setSelectedEdge(id); setTab('edge') }
 
   return (
@@ -489,13 +425,13 @@ export default function RelationshipsModule() {
           {exposure && (
             <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
               style={{ fontSize: 9, color: '#E8A33D', border: '1px solid rgba(232,163,61,0.5)', background: 'rgba(4,10,20,0.85)' }}>
-              EXPOSURE MAP, NOT FORECAST
+              CONNECTED EXPOSURE, NOT FORECAST
             </div>
           )}
         </div>
         <aside className="lg:w-[340px] flex-shrink-0 border-t lg:border-t-0 lg:border-l border-terminal-border flex flex-col min-h-0 bg-terminal-panel">
           <div className="flex border-b border-terminal-border flex-shrink-0">
-            {[['about', 'ABOUT'], ['node', 'NODE'], ['edge', 'EDGE'], ['paths', 'PATHS'], ['shock', 'SHOCK']].map(([k, label]) => (
+            {[['about', 'ABOUT'], ['node', 'NODE'], ['edge', 'EDGE'], ['paths', 'PATHS'], ['ripple', 'RIPPLE']].map(([k, label]) => (
               <button key={k} onClick={() => setTab(k)} disabled={(k === 'node' && !selected) || (k === 'edge' && !selectedEdge)}
                 className="flex-1 font-mono tracking-widest py-1.5 disabled:opacity-30"
                 style={{ fontSize: 9, color: tab === k ? '#C9A84C' : '#637899', borderBottom: tab === k ? '2px solid #C9A84C' : '2px solid transparent' }}>
@@ -512,7 +448,7 @@ export default function RelationshipsModule() {
                 viaIndex={viaIndex} setViaIndex={(v) => { setViaIndex(v); setShownPath(null) }} confidence={confidence}
                 shown={shownPath?.i} onShowPath={(i, hops) => setShownPath({ i, hops })} onSelectEdge={selectEdge} />
             )}
-            {tab === 'shock' && <ShockPanel origin={origin} setOrigin={setOrigin} shock={shock} setShock={setShock} exposure={exposure} onSelect={select_} />}
+            {tab === 'ripple' && <RipplePanel origin={origin} setOrigin={setOrigin} event={event} setEvent={setEvent} ripple={exposure} holdings={holdings} onSelect={select_} />}
           </div>
         </aside>
       </div>

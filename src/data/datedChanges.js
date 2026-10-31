@@ -103,6 +103,39 @@ export const DATED_CHANGES = [
     source: 'federalreserve.gov',
   },
   {
+    // Minutes of each meeting come out two weeks later at 11:30am Sydney
+    // (docs/RBA_DECISION_DAY.md).
+    id: 'rba-minutes-2026-11-17',
+    what: 'RBA minutes of the 3 Nov 2026 meeting',
+    effective: '2026-11-17T11:30:00+11:00',
+    fields: [
+      { path: 'rba.minutes.meeting', expect: { eq: '2026-11-03' } },
+    ],
+    source: 'rba.gov.au monetary policy minutes',
+    howTo: 'src/data/verifiedConstants.js rba.minutes — released, meeting, summary',
+  },
+  {
+    // ABS Labour Force, October 2026: verifiedConstants au.unemploymentNextRelease.
+    id: 'abs-labour-force-2026-11-19',
+    what: 'ABS Labour Force, October 2026',
+    effective: '2026-11-19T11:30:00+11:00',
+    fields: [
+      { path: 'au.unemploymentPeriod', expect: { ne: 'Sep 2026' } },
+      { path: 'au.unemploymentNextRelease', expect: { ne: '2026-11-19' } },
+    ],
+    source: 'abs.gov.au Labour Force, Australia (npm run check-stats confirms the figure)',
+  },
+  {
+    // ECB announcement of 29 Oct 2026 (verifiedConstants centralBankOfficials.ecb).
+    id: 'ecb-president-2027-02-07',
+    what: 'ECB President: Christine Lagarde steps down',
+    effective: '2027-02-08T00:00:00+01:00',
+    fields: [
+      { path: 'centralBankOfficials.ecb.name', expect: { ne: 'Christine Lagarde' } },
+    ],
+    source: 'ECB announcement, 29 Oct 2026; successor to be named by the European Council',
+  },
+  {
     // Macquarie 2026 Annual Report (PDF p52): KPMG recommended as auditor
     // "for the financial year commencing on 1 April 2027", subject to
     // regulatory consents and shareholder approval.

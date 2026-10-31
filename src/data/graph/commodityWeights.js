@@ -52,6 +52,8 @@ export const COMMODITY_WEIGHTS =
     }
   },
   "RIO|cmd:iron-ore": {
+    "weightLabel": "% of segment revenue",
+    "weightTip": "Rio Tinto's Iron Ore product group segmental revenue as a share of its reportable segments total (Iron Ore, Aluminium & Lithium, Copper), 2025. Segmental revenue includes Rio's share of equity-accounted units, so this is not a share of consolidated sales revenue.",
     "weight": 48.5,
     "basis": "Iron Ore segmental revenue ÷ reportable segments total, 2025 (segmental revenue includes share of equity-accounted units)",
     "numerator": {
@@ -71,6 +73,8 @@ export const COMMODITY_WEIGHTS =
     }
   },
   "RIO|cmd:copper": {
+    "weightLabel": "% of segment revenue",
+    "weightTip": "Rio Tinto's Copper product group segmental revenue as a share of its reportable segments total (Iron Ore, Aluminium & Lithium, Copper), 2025. Segmental revenue includes Rio's share of equity-accounted units, so this is not a share of consolidated sales revenue.",
     "weight": 23.0,
     "basis": "Copper segmental revenue ÷ reportable segments total, 2025 (segmental revenue includes share of equity-accounted units)",
     "numerator": {
@@ -90,6 +94,8 @@ export const COMMODITY_WEIGHTS =
     }
   },
   "FMG|cmd:iron-ore": {
+    "weightLabel": "% of segment revenue",
+    "weightTip": "Total iron ore revenue as a share of the Metals segment's operating sales revenue (iron ore, shipping and other revenue), FY2026. Fortescue's Energy segment is not in the base.",
     "weight": 88.9,
     "basis": "Total iron ore revenue ÷ Metals segment operating sales revenue, FY2026",
     "numerator": {

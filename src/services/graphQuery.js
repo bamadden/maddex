@@ -82,11 +82,11 @@ export function edgesOf(graph, id) {
 // carries exposure, up to `maxHop`. Returns Map id → { hop, via, parent } for
 // every exposed node (origin excluded); `via` is the edge that first reached
 // it, so the panel can say why.
-export function exposureMap(graph, origin, { maxHop = 3, ...filters } = {}) {
+export function exposureMap(graph, origin, { maxHop = 3, rules = PROPAGATES, ...filters } = {}) {
   const out = new Map()
   for (const e of graph.edges) {
-    if (!edgePasses(e, filters) || !PROPAGATES[e.type]) continue
-    const dir = PROPAGATES[e.type]
+    if (!edgePasses(e, filters) || !rules[e.type]) continue
+    const dir = rules[e.type]
     if (dir === 'fromTo' || dir === 'both') (out.get(e.from) ?? out.set(e.from, []).get(e.from)).push([e.to, e])
     if (dir === 'toFrom' || dir === 'both') (out.get(e.to) ?? out.set(e.to, []).get(e.to)).push([e.from, e])
   }
@@ -195,4 +195,35 @@ export function exposurePath(exposure, id) {
     cur = r.parent
   }
   return hops
+}
+
+// ── Event ripple ────────────────────────────────────────────────────────────
+// Which nodes an event at one node reaches, and by which edges — direction of
+// exposure only. Each event type travels along different edges:
+//
+//   rate decision / commodity move — the standard exposure directions
+//     (PROPAGATES): exposed companies, their indices and ETFs, their holders.
+//   earnings / guidance cut — a company's own news reaches its holders,
+//     customers, suppliers and joint-venture partners, its indices and the
+//     ETFs on them; peers are reached as read-across ("competes with").
+//   substantial holder change — the holders themselves, then the other
+//     companies those holders own (owns, both ways, two hops).
+//
+// No event carries a size. Nothing here estimates a price move.
+const COMPANY_NEWS = { ...PROPAGATES, competes_with: 'both' }
+export const RIPPLE_EVENTS = {
+  rate:     { label: 'RATE DECISION',      appliesTo: ['macro'], rules: PROPAGATES, maxHop: 3 },
+  commodity:{ label: 'COMMODITY MOVE',     appliesTo: ['commodity'], rules: PROPAGATES, maxHop: 3 },
+  earnings: { label: 'EARNINGS',           appliesTo: ['company'], rules: COMPANY_NEWS, maxHop: 3 },
+  guidance: { label: 'GUIDANCE CUT',       appliesTo: ['company'], rules: COMPANY_NEWS, maxHop: 3 },
+  holder:   { label: 'SUBSTANTIAL HOLDER CHANGE', appliesTo: ['company', 'fund'], rules: { owns: 'both' }, maxHop: 2 },
+}
+
+export const eventsFor = (node) => Object.entries(RIPPLE_EVENTS).filter(([, ev]) => ev.appliesTo.includes(node?.type)).map(([k]) => k)
+
+// → Map id → { hop, via, parent } (as exposureMap), for that event type.
+export function rippleMap(graph, origin, event, filters = {}) {
+  const ev = RIPPLE_EVENTS[event]
+  if (!ev) return new Map()
+  return exposureMap(graph, origin, { ...filters, rules: ev.rules, maxHop: ev.maxHop })
 }

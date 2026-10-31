@@ -1,8 +1,8 @@
 // ─── AI-generated content ───────────────────────────────────────────────────
 //
-// SCOPE, deliberately narrow: this service generates PROSE ONLY — themes,
-// risk narratives, interpretation, ticker lines. It does not generate
-// figures.
+// SCOPE, deliberately narrow: this service serves PROSE ONLY — risk
+// narratives, interpretation, ticker lines, policy stance. It does not
+// generate figures.
 //
 // The reason is that a language model cannot know today's cash rate, this
 // morning's CPI print, or the current 10-year yield. Asked for them it will
@@ -15,342 +15,75 @@
 //              or liveDataService (real APIs)
 //   prose    → here
 //
-// Where a prompt needs a number for context, it is passed IN from the
-// verified constants rather than asked for. The model interprets; it does not
-// source.
-//
-// Caching is per calendar day: content regenerates once a day, so a module
-// mounting fifty times costs one call, and a stale-but-yesterday narrative is
-// preferred over a blank panel.
+// SHARED, ONCE A DAY. Since 31 Oct 2026 the prompts live in
+// services/aiDaily.js and are generated on the server by /api/ai-daily, once
+// per Sydney day for every reader together — before, every reader's browser
+// generated its own copy (and in production, without a sign-in token, the
+// requests were refused and every reader saw the fallback). A stale-but-
+// yesterday narrative is still preferred over a blank panel.
 
-import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
+import { getDaily, readDaily, clearDaily, DAILY_PREFIX } from './aiDailyClient'
+import { sydneyDay } from './aiDaily'
 
-const AI_CACHE_PREFIX = 'maddex_ai_content_'
+const yesterday = () => sydneyDay(new Date(Date.now() - 86_400_000))
 
-// The Australian market day, not UTC and not the browser's day.
-//
-// toISOString() keys the cache to the UTC day, which in Australia (UTC+10/+11)
-// rolls over at 10 or 11 in the morning — "today's" content expired
-// mid-morning and the "yesterday" fallback pointed at a day the user had not
-// had yet. Observed: a cache key of 2026-09-05 written at 00:47 local on
-// the 6th.
-//
-// Plain toLocaleDateString('en-CA') fixed that but keyed to whatever timezone
-// the browser is in. This is an Australian terminal and its content is a
-// market-day artefact, so the boundary is pinned to Australian eastern time:
-// open the terminal from London and you still get Sydney's Tuesday brief
-// rather than a new day starting mid-Australian-afternoon.
-//
-// Australia/Brisbane specifically, because Queensland does not observe daylight
-// saving — it is a stable UTC+10 all year, so the day boundary never shifts
-// under the cache. Sydney would move it by an hour twice a year.
-const AU_MARKET_TZ = 'Australia/Brisbane'
-const dayKey = (d = new Date()) =>
-  d.toLocaleDateString('en-CA', { timeZone: AU_MARKET_TZ })
-const today = () => dayKey()
-const yesterday = () => dayKey(new Date(Date.now() - 86400000))
-
-function readDay(key, day) {
+// → { data, source: 'cache' | 'live' | 'stale' | 'failed' }
+async function shared(key) {
   try {
-    const raw = localStorage.getItem(`${AI_CACHE_PREFIX}${key}_${day}`)
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
-}
-
-// Strips the ```json fence models sometimes add despite instructions.
-function parseJson(text) {
-  const cleaned = String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
-  return JSON.parse(cleaned)
-}
-
-// Today's cache → network → yesterday's cache → fallback.
-// The yesterday step matters: a day-old set of macro themes is still broadly
-// true and far more useful than an empty panel when a request fails.
-// Requests in flight, keyed by content key. Without this, two components
-// mounting against a cold cache — or StrictMode double-invoking one effect —
-// each fired their own completion for the same content, which showed up in
-// the console as the same key failing twice in the same millisecond.
-const inFlight = new Map()
-
-async function withDailyCache(key, buildPrompt, fallback = null) {
-  const cachedToday = readDay(key, today())
-  if (cachedToday) return { data: cachedToday, source: 'cache' }
-
-  const pending = inFlight.get(key)
-  if (pending) return pending
-
-  const run = fetchAndCache(key, buildPrompt, fallback)
-  inFlight.set(key, run)
-  try { return await run } finally { inFlight.delete(key) }
-}
-
-async function fetchAndCache(key, buildPrompt, fallback) {
-  try {
-    const res = await fetch('/api/claude', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        // 4000, not 1600: at 1600 a six-theme payload hit stop_reason
-        // "max_tokens" and truncated mid-string, so JSON.parse threw and the
-        // whole call fell back. Verified failing at 1600, passing at 4000.
-        max_tokens: 4000,
-        stream: false,
-        system: AI_CONTENT_SYSTEM,
-        messages: [{ role: 'user', content: buildPrompt() }],
-      }),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const payload = await res.json()
-    const text = payload?.content?.[0]?.text
-    if (!text) throw new Error('Empty completion')
-    const parsed = parseJson(text)
-    try { localStorage.setItem(`${AI_CACHE_PREFIX}${key}_${today()}`, JSON.stringify(parsed)) } catch { /* quota */ }
-    return { data: parsed, source: 'live' }
+    const { data, source } = await getDaily(key)
+    return { data, source: source === 'shared' ? 'live' : source }
   } catch (err) {
     console.warn(`[AIContent] ${key} failed:`, err.message)
-    const cachedYesterday = readDay(key, yesterday())
-    if (cachedYesterday) return { data: cachedYesterday, source: 'stale' }
-    return { data: fallback, source: fallback ? 'fallback' : 'failed' }
+    return { data: null, source: 'failed' }
   }
 }
 
-// Stable across every call so the cached prompt prefix stays byte-identical.
-const AI_CONTENT_SYSTEM =
-  'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal, writing for an Australian investor. '
-  + 'You return ONLY valid JSON — no markdown, no code fences, no prose outside the JSON. '
-  + 'You write ANALYSIS AND NARRATIVE, never invented statistics: any specific figure you are given in the prompt may be quoted, '
-  + 'but never state a market level, policy rate, index value or economic print that was not supplied to you. '
-  + 'Where a number would be needed and none was given, describe the direction or condition in words instead. '
-  + 'General information only, not financial advice.'
-
-// Context block appended to every prompt, so the model reasons from our
-// verified figures rather than reaching for its own.
-function contextBlock() {
-  const { rba, fed, au } = VERIFIED_CONSTANTS
-  return [
-    `Today is ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.`,
-    '',
-    'VERIFIED FIGURES you may quote (do not invent others):',
-    `- RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}`,
-    `- US Fed funds: ${fed.rateRange} (${fed.lastDecisionVerb} on ${fed.lastDecision})`,
-    `- AU CPI: ${au.cpi.toFixed(1)}% for the ${au.cpiPeriod}; RBA target band ${au.rbaTargetBand}`,
-    `- AU unemployment: ${au.unemployment}% (${au.unemploymentPeriod})`,
-    `- AU GDP: ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
-    '',
-  ].join('\n')
-}
-
 export const aiContentService = {
-  // NOTE: macro themes are NOT generated here. src/services/macroThemeService
-  // already owns them, in the shape MacroModule renders, and two generators
-  // would mean two completions a day for one panel. That service is now fed
-  // the same verified figures this one uses, so the constraint is identical.
+  // NOTE: macro themes are NOT served here. services/macroThemeService owns
+  // them, in the shape MacroModule renders. Both read the same shared
+  // endpoint with the same verified figures in the prompt.
 
-  // ── Geopolitical risk narratives ──────────────────────────────────────────
-  async getGeopoliticalRisks() {
-    return withDailyCache('geo_risks', () => `${contextBlock()}
-List the 5 most significant ongoing geopolitical risks for Australian investors.
-
-Return a JSON array:
-[{
-  "id": "<slug>",
-  "title": "<event name>",
-  "location": "<city or region>",
-  "coordinates": [<longitude>, <latitude>],
-  "severity": "CRITICAL|HIGH|MEDIUM|LOW",
-  "type": "CONFLICT|ECONOMIC|POLITICAL|NATURAL",
-  "summary": "<2 sentences>",
-  "marketImpact": "<the transmission channel to markets, in words>",
-  "asxExposure": "<specific ASX sectors or tickers and why>",
-  "auTradeDependence": "HIGH|MEDIUM|LOW",
-  "trend": "ESCALATING|STABLE|DE-ESCALATING"
-}]
-
-Coordinates should be the approximate centre of the region.
-Describe severity and impact qualitatively — no invented statistics.`)
-  },
-
-  // ── Shipping / chokepoint narratives ──────────────────────────────────────
-  async getShippingStatus() {
-    return withDailyCache('shipping_status', () => `${contextBlock()}
-Describe the currently significant global shipping chokepoints and disruptions.
-
-Return a JSON array:
-[{
-  "id": "<slug>",
-  "name": "<chokepoint name>",
-  "coordinates": [<longitude>, <latitude>],
-  "severity": "CRITICAL|HIGH|MEDIUM|LOW",
-  "title": "<short headline>",
-  "detail": "<2-3 sentences on the current situation>",
-  "impact": "<effect on freight and trade, in words>",
-  "affectedRoutes": ["<route>"],
-  "commodities": ["<commodity>"],
-  "auExports": "<how this affects Australian exports>",
-  "trend": "WORSENING|STABLE|IMPROVING"
-}]
-
-Describe magnitude in words rather than percentages you cannot verify.`)
-  },
-
-  // ── Intelligence ticker ───────────────────────────────────────────────────
-  async getIntelTicker() {
-    return withDailyCache('intel_ticker', () => `${contextBlock()}
-Generate 12 brief market-intelligence lines for an Australian investor,
-suitable for a scrolling terminal ticker.
-
-EVERY line must relate to at least one of:
-- ASX stocks or Australian markets
-- Global market moves (indices, FX, rates)
-- Commodities — iron ore, gold, LNG, coal, oil, lithium
-- Central bank decisions
-- Economic data releases
-- Geopolitical events with a market or trade consequence
-- Crypto markets
-
-DO NOT include sport, entertainment, crime, celebrity, domestic politics with
-no market consequence, weather (unless it moves a commodity), or health news
-(unless it moves pharma). A line a reader cannot trade or position around does
-not belong on a market ticker, however newsworthy it is.
-
-Where a line is geopolitical, name the market consequence rather than the
-event alone: "Red Sea — carriers still routing via the Cape" earns its place;
-"unrest continues in region X" does not.
-
-Return a JSON array of 12 strings, each at most 80 characters, each beginning
-with a single relevant emoji:
-["🔴 Red Sea — carriers still routing via the Cape", ...]
-
-Describe conditions and direction — do not state prices, index levels or
-percentages unless they appear in the verified figures above.`)
-  },
-
-  // ── Macro regime read ─────────────────────────────────────────────────────
-  async getMacroRegime() {
-    return withDailyCache('macro_regime', () => `${contextBlock()}
-Characterise the current macro regime for an Australian investor.
-
-Return a JSON object:
-{
-  "regime": "TIGHTENING|EASING|NEUTRAL|STAGFLATION",
-  "growthMomentum": "ACCELERATING|DECELERATING|STABLE",
-  "inflationTrend": "RISING|FALLING|STABLE",
-  "riskAppetite": "RISK_ON|RISK_OFF|NEUTRAL",
-  "description": "<2 sentences characterising the regime>",
-  "implications": {
-    "equities": "<one line>",
-    "bonds": "<one line>",
-    "commodities": "<one line>",
-    "aud": "<one line>"
-  },
-  "keyTension": "<the single biggest unresolved question in this regime>"
-}
-
-Reason from the verified figures supplied. Do not introduce new numbers.`)
-  },
-
-  // ── Central bank policy bias ──────────────────────────────────────────────
-  //
-  // ONE CALL FOR TEN BANKS, NOT TEN CALLS.
-  //
-  // Each expanded card needs a single sentence, and ten separate completions
-  // for ten sentences would be ten times the cost and ten chances to fail
-  // independently — a card grid where three banks have prose and seven have a
-  // spinner. One request returns the whole map, cached for the day like every
-  // other generator here.
-  //
-  // Called lazily, on the first card expansion rather than on module mount, so
-  // visiting Rates does not spend a completion on a panel nobody opened.
-  //
-  // The prompt supplies every figure. The model is asked for a stance, in
-  // words, from the rate and the last decision it is given — it is not asked
-  // what any rate IS, and the shared system prompt above forbids it inventing
-  // one.
-  async getPolicyBias() {
-    const banks = ['rba', 'fed', 'ecb', 'boe', 'boj', 'pboc', 'rbnz', 'boc', 'snb', 'riksbank']
-    const rows = banks
-      .map((k) => {
-        const c = VERIFIED_CONSTANTS[k]
-        if (!c) return null
-        return `- ${k}: ${c.label} (${c.country}), policy rate ${c.rateRange ?? `${c.cashRate.toFixed(2)}%`}, `
-          + `last decision ${c.lastDecisionVerb} on ${c.lastDecision}, next meeting ${c.nextMeeting}`
-      })
-      .filter(Boolean)
-      .join('\n')
-
-    return withDailyCache('policy_bias', () => `${contextBlock()}
-Below are ten central banks with their current policy rate and most recent
-decision. All figures are verified.
-
-${rows}
-
-For each, write ONE sentence (maximum 22 words) characterising the bank's
-current policy bias — the direction of travel and what is holding it there.
-
-Return a JSON object keyed by the lowercase bank id exactly as given above:
-{"rba": "<sentence>", "fed": "<sentence>", ...}
-
-Every id must be present. Write about stance and pressure in words. Do not
-state any rate, inflation print or probability that is not in the list above,
-and do not invent a market-implied likelihood of a hold or a cut — no such
-feed exists here.`)
-  },
+  getGeopoliticalRisks: () => shared('geo_risks'),
+  getShippingStatus: () => shared('shipping_status'),
+  getIntelTicker: () => shared('intel_ticker'),
+  getMacroRegime: () => shared('macro_regime'),
+  // Called lazily, on the first central-bank card expansion rather than on
+  // module mount, so visiting Rates does not fetch a panel nobody opened.
+  getPolicyBias: () => shared('policy_bias'),
 
   // ── Status + maintenance ──────────────────────────────────────────────────
   KEYS: ['geo_risks', 'shipping_status', 'intel_ticker', 'macro_regime', 'policy_bias'],
 
   getContentStatus() {
-    const d = today()
     return this.KEYS.map((key) => {
-      const fresh = readDay(key, d)
-      if (fresh) return { key, kind: 'ai', status: 'today' }
-      return { key, kind: 'ai', status: readDay(key, yesterday()) ? 'yesterday' : 'none' }
+      if (readDaily(key)) return { key, kind: 'ai', status: 'today' }
+      return { key, kind: 'ai', status: readDaily(key, yesterday()) ? 'yesterday' : 'none' }
     })
   },
 
-  // Invalidates ONE content key rather than the whole AI cache.
-  //
-  // Deletes today's and yesterday's entries — yesterday matters because
-  // withDailyCache falls back to it, so leaving it would serve the previous
-  // generation and look like the regeneration silently did nothing.
-  //
-  // The in-flight entry goes too. Without that, a regenerate fired while a
-  // request for the same key is already running returns the pending promise
-  // for the generation being replaced, which resolves with exactly the content
-  // the user just asked to discard.
+  // Drops this browser's copy of ONE item (today's and yesterday's), so the
+  // next read fetches the shared item again. It does not regenerate it: the
+  // item is shared by every reader for the day.
   clearKey(key) {
-    try {
-      localStorage.removeItem(`${AI_CACHE_PREFIX}${key}_${today()}`)
-      localStorage.removeItem(`${AI_CACHE_PREFIX}${key}_${yesterday()}`)
-    } catch { /* best effort */ }
-    inFlight.delete(key)
+    clearDaily(key)
   },
 
   clearCache() {
     try {
       Object.keys(localStorage)
-        .filter((k) => k.startsWith(AI_CACHE_PREFIX))
+        .filter((k) => k.startsWith(DAILY_PREFIX) || k.startsWith('maddex_ai_content_'))
         .forEach((k) => localStorage.removeItem(k))
     } catch { /* best effort */ }
   },
 
-  // Warms anything not already generated today. Sequential with a small gap
-  // rather than parallel: five concurrent completions is a burst that buys
-  // nothing when the results are cached for the rest of the day anyway.
+  // Fetches anything this browser does not have for today. Sequential: the
+  // items are cached for the day, so a burst buys nothing.
   async refreshAll() {
-    const missing = this.KEYS.filter((k) => !readDay(k, today()))
-    if (!missing.length) return { refreshed: 0, skipped: this.KEYS.length }
+    const missing = this.KEYS.filter((k) => k !== 'policy_bias' && !readDaily(k))
     let refreshed = 0
     for (const key of missing) {
-      try {
-        if (key === 'geo_risks') await this.getGeopoliticalRisks()
-        if (key === 'shipping_status') await this.getShippingStatus()
-        if (key === 'intel_ticker') await this.getIntelTicker()
-        if (key === 'macro_regime') await this.getMacroRegime()
-        refreshed += 1
-        await new Promise((r) => setTimeout(r, 400))
-      } catch { /* individual failures already logged and cached-through */ }
+      const r = await shared(key)
+      if (r.source !== 'failed') refreshed += 1
     }
     return { refreshed, skipped: this.KEYS.length - missing.length }
   },

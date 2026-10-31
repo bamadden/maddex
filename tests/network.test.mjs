@@ -37,3 +37,9 @@ test('the Anthropic SDK itself is refused', async () => {
   })
   assert.ok(guard.attempts.some((a) => /anthropic\.com/.test(a.url)), 'the SDK call was seen by the guard')
 })
+
+test('fetch to the shared daily AI endpoint is refused', async () => {
+  await guard.expectBlocked(async () => {
+    await assert.rejects(fetch('http://localhost:5173/api/ai-daily?kind=sentiment&day=2026-10-31'), /NETWORK GUARD/)
+  })
+})

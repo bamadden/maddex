@@ -29,7 +29,7 @@ const MOCK_STREAM = [
   { type: 'message_stop' },
 ].map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
 
-const counts = { mocked: 0, anthropic: 0 }
+const counts = { mocked: 0, shared: 0, anthropic: 0 }
 async function newPage(browser, { width, mobile = false }) {
   const page = await browser.newPage()
   await page.setViewport({ width, height: mobile ? 844 : 900, isMobile: mobile, hasTouch: mobile })
@@ -38,6 +38,12 @@ async function newPage(browser, { width, mobile = false }) {
     const u = new URL(req.url())
     if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; fail(`request to ${u.href}`); return req.abort() }
     if (u.pathname.startsWith('/api/claude')) { counts.mocked++; return req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM }) }
+    // The shared daily content (api/ai-daily.js) would generate for real on
+    // the dev server: mocked too, with an empty payload the panels tolerate.
+    if (u.pathname.startsWith('/api/ai-daily')) {
+      counts.shared++
+      return req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: u.searchParams.get('kind'), day: u.searchParams.get('day'), generatedAt: new Date().toISOString(), data: null }) })
+    }
     return req.continue()
   })
   page.on('pageerror', (e) => fail(`page error: ${e.message.slice(0, 160)}`))
@@ -93,10 +99,26 @@ try {
   if (/REVENUE \(LATEST FY\)/.test(bhp) && !/BANK MEASURE/.test(bhp)) pass('BHP shows plain revenue')
   else fail('BHP revenue label wrong')
 
+  console.log('RBA banner → event ripple')
+  await page.evaluate(() => localStorage.setItem('madden_portfolio_v2', JSON.stringify([
+    { id: 'u1', symbol: 'CBA', shares: 10, avgCost: 120, costCurrency: 'AUD', type: 'asx' },
+    { id: 'u2', symbol: 'BHP', shares: 10, avgCost: 40, costCurrency: 'AUD', type: 'asx' },
+  ])))
+  await runCommand(page, 'rates')
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.includes('WHICH HOLDINGS CONNECT')), { timeout: 30_000 }).catch(() => {})
+  const clicked = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.includes('WHICH HOLDINGS CONNECT')); b?.click(); return !!b })
+  if (!clicked) fail('no WHICH HOLDINGS CONNECT link on Rates')
+  await page.waitForFunction(() => document.body.innerText.includes('EVENT RIPPLE'), { timeout: 30_000 }).catch(() => {})
+  const ripple = await page.evaluate(() => document.querySelector('aside')?.innerText ?? '')
+  if (/rate decision at RBA cash rate/i.test(ripple) && /CONNECTED EXPOSURE, NOT FORECAST/.test(ripple)) pass('Rates → rate-decision ripple from the RBA cash rate')
+  else fail('ripple did not open on the RBA cash rate')
+  if (/YOUR HOLDINGS · 1 of 2 connected/.test(ripple)) pass('holdings: CBA connects, BHP does not')
+  else fail(`holdings line wrong: ${(ripple.match(/YOUR HOLDINGS[^\n]*/) ?? ['none'])[0]}`)
+
   console.log('MaddenAI is mocked')
   await runCommand(page, 'ai what does the profile show')
   await wait(3000)
-  counts.mocked > 0 ? pass(`${counts.mocked} /api/claude request(s) answered by the mock`) : fail('the AI request never reached the mock')
+  counts.mocked > 0 ? pass(`${counts.mocked} /api/claude request(s) answered by the mock; ${counts.shared} shared-content read(s) mocked`) : fail('the AI request never reached the mock')
   await page.close()
 } finally {
   await browser.close()

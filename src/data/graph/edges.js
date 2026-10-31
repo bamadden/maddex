@@ -142,7 +142,7 @@ const COMMODITY = [
     const w = COMMODITY_WEIGHTS[`${e.from}|${e.to}`]
     if (!w) return e
     return edge(e.from, 'exposed_to', e.to, 'DISCLOSED', w.source, {
-      weight: w.weight, weightLabel: '% of revenue', note: `${w.basis}.`,
+      weight: w.weight, weightLabel: w.weightLabel ?? '% of revenue', ...(w.weightTip ? { weightTip: w.weightTip } : {}), note: `${w.basis}.`,
       quote: w.numerator.quote, page: w.numerator.page, calc: { numerator: w.numerator, denominator: w.denominator },
     })
   })

@@ -11,7 +11,7 @@ import { completeness, edgesOf, searchNodes } from '../../services/graphQuery'
 import { takeModuleIntent, peekModuleIntent } from '../../services/moduleIntent'
 import { MOCK_ASX_STOCKS } from '../../services/mockData'
 import { openInRelationships } from '../../utils/openRelationships'
-import { ConfidenceBadge, StaleBadge } from '../relationships/RelPanels'
+import { ConfidenceBadge, StaleBadge, WeightBadge } from '../relationships/RelPanels'
 import { TYPE_COLOUR, CONF_TONE, STALE_TONE, fmtDate } from '../relationships/theme'
 
 // COMPANY PROFILE — one screen per company, in the spirit of a terminal's
@@ -94,7 +94,7 @@ function Linked({ row, now, onOpen, right }) {
           {other.name}{other.ticker ? <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}> {other.ticker}</span> : null} <span className="text-terminal-text-dim" style={{ fontSize: 10 }}>⊶</span>
         </button>
         {right}
-        {e.weight != null && <span className="font-mono tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{e.weight}%</span>}
+        <WeightBadge edge={e} />
         <StaleBadge edge={e} now={now} />
         <ConfidenceBadge c={e.confidence} />
       </div>

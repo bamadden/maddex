@@ -63,8 +63,10 @@ export default function DataHealthPanel() {
     const brief = read(`maddex_morning_brief_${new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Brisbane' })}`)
     const t = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', timeZone: 'Australia/Sydney' }) : null)
     return [
-      { label: 'Macro themes', ok: has('macro_themes_v2_'), value: has('macro_themes_v2_') ? 'generated today' : 'not yet today' },
-      { label: 'Intel ticker & map narrative', ok: has('maddex_ai_content_'), value: has('maddex_ai_content_') ? 'generated today' : 'not yet today' },
+      // Shared daily items (one generation per day for every reader).
+      { label: 'Macro themes', ok: has('maddex_ai_daily_macro-themes_'), value: has('maddex_ai_daily_macro-themes_') ? 'loaded today (shared)' : 'not yet today' },
+      { label: 'Intel ticker & map narrative', ok: has('maddex_ai_daily_intel_ticker_'), value: has('maddex_ai_daily_intel_ticker_') ? 'loaded today (shared)' : 'not yet today' },
+      { label: 'Market sentiment', ok: has('maddex_ai_daily_sentiment_'), value: has('maddex_ai_daily_sentiment_') ? 'loaded today (shared)' : 'not yet today' },
       { label: 'Morning brief', ok: !!brief, value: brief ? `${t(brief.generatedAt)}` : 'weekdays from 7am' },
       { label: 'Weekly review', ok: null, value: 'after the Friday close' },
     ]
