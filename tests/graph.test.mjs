@@ -169,16 +169,18 @@ const before = { rba: { lastDecision: '2026-09-29', nextMeeting: '2026-11-03', d
   graph: { ceo: { MQG: 'Shemara Wikramanayake' } } }
 
 test('nothing is overdue before its moment', () => {
-  assert.deepEqual(overdueChanges(before, Date.parse('2026-11-03T14:29:00+11:00')), [])
+  const ids = overdueChanges(before, Date.parse('2026-11-03T14:29:00+11:00')).map((c) => c.id)
+  assert.ok(!ids.includes('rba-2026-11-03'))
+  assert.ok(!ids.includes('mqg-auditor-2027-04-01'))
 })
 
 test('the RBA change is overdue after 2:30pm until every field moves', () => {
   const t = Date.parse('2026-11-03T15:00:00+11:00')
-  const o = overdueChanges(before, t)
+  const o = overdueChanges(before, t).filter((c) => c.id.startsWith('rba-'))
   assert.deepEqual(o.map((c) => c.id), ['rba-2026-11-03'])
   assert.equal(o[0].stale.length, 4)
   const after = { ...before, rba: { lastDecision: '2026-11-03', nextMeeting: '2026-12-08', decisions: [{ date: '2026-11-03' }], latestStatement: { date: '2026-11-03' } } }
-  assert.deepEqual(overdueChanges(after, t), [])
+  assert.deepEqual(overdueChanges(after, t).filter((c) => c.id.startsWith('rba-')), [])
 })
 
 test('the Macquarie CEO change is caught from 7 Nov', () => {
@@ -193,4 +195,22 @@ test('TOP20 is exactly the companies ASX lists in the S&P/ASX 20', () => {
   const inXtl = Object.entries(COMPANY_FACTS).filter(([, f]) => f.indices.includes('XTL')).map(([t]) => t).sort()
   assert.equal(inXtl.length, 20)
   assert.deepEqual([...TOP20].sort(), inXtl)
+})
+
+// ── Key facts from annual reports ───────────────────────────────────────────
+import { KEY_FACTS } from '../src/data/graph/keyFacts.js'
+
+test('every key-fact number appears in its quote, with a page and a source', () => {
+  const nums = (s) => s.match(/\d[\d,]*(?:\.\d+)?/g) ?? []
+  let n = 0
+  for (const [t, fields] of Object.entries(KEY_FACTS)) {
+    for (const [f, v] of Object.entries(fields)) {
+      n++
+      for (const x of nums(v.value)) assert.ok(v.quote.includes(x), `${t}.${f}: ${x} not in quote`)
+      assert.ok(Number.isInteger(v.page) && v.page > 0, `${t}.${f}: page`)
+      assert.match(v.source.url, /^https:\/\/.+#page=\d+$/, `${t}.${f}: url`)
+      assert.match(v.source.date, /^\d{4}-\d{2}-\d{2}$/)
+    }
+  }
+  assert.equal(n, 50)
 })

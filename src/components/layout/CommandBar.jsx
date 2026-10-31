@@ -891,6 +891,8 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
             return (
               <div
                 key={s.sym}
+                role="option"
+                aria-selected={i === suggestIdx}
                 ref={i === suggestIdx ? activeRef : null}
                 className={`flex items-center gap-3 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
                   i === suggestIdx

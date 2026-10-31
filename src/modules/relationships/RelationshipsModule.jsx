@@ -8,7 +8,7 @@ import { GRAPH } from '../../data/graph'
 import { EDGE_TYPES, CONFIDENCE, EDGE_LABEL } from '../../data/graph/schema'
 import { GRAPH_AS_OF, TOP20_LABEL, graphNodeForTicker } from '../../data/graph/nodes'
 import { neighbourhood, edgesOf, exposureMap, searchNodes, PROPAGATES, completeness } from '../../services/graphQuery'
-import { takeModuleIntent } from '../../services/moduleIntent'
+import { takeModuleIntent, peekModuleIntent } from '../../services/moduleIntent'
 import { useStore } from '../../store/useStore'
 import { openCompanyProfile } from '../../utils/openRelationships'
 import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel } from './theme'
@@ -378,7 +378,9 @@ function Legend() {
 }
 
 export default function RelationshipsModule() {
-  const [focus, setFocus] = useState(() => takeModuleIntent('relationships')?.focus ?? null)
+  // Peek, then clear after mount — see CompanyProfileModule for why.
+  const [focus, setFocus] = useState(() => peekModuleIntent('relationships')?.focus ?? null)
+  useEffect(() => { takeModuleIntent('relationships') }, [])
   const [selected, setSelected] = useState(focus)
   const [depth, setDepth] = useState(2)
   const [types, setTypes] = useState(() => new Set(DEFAULT_TYPES))

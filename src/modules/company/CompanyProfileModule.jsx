@@ -5,9 +5,10 @@ import { GRAPH } from '../../data/graph'
 import { EDGE_LABEL } from '../../data/graph/schema'
 import { TOP20_LABEL } from '../../data/graph/nodes'
 import { COMPANY_FACTS, factsSource } from '../../data/graph/companyFacts'
+import { KEY_FACTS } from '../../data/graph/keyFacts'
 import { edgeAsAt } from '../../data/graph/staleness'
 import { completeness, edgesOf, searchNodes } from '../../services/graphQuery'
-import { takeModuleIntent } from '../../services/moduleIntent'
+import { takeModuleIntent, peekModuleIntent } from '../../services/moduleIntent'
 import { MOCK_ASX_STOCKS } from '../../services/mockData'
 import { openInRelationships } from '../../utils/openRelationships'
 import { ConfidenceBadge, StaleBadge } from '../relationships/RelPanels'
@@ -122,13 +123,13 @@ function KeyFacts({ node }) {
     ['S&P/ASX 200 member', idx('XJO'), src],
     ['Registered office', f?.office, src],
     ['Website', f?.website, src],
-    // Not yet sourced for any company. Each needs the latest annual report,
-    // read by a person; the proposal pipeline does not extract figures.
-    ['Financial year end', null],
-    ['Revenue (latest FY)', null],
-    ['Net profit (latest FY)', null],
-    ['Employees', null],
-    ['Auditor', null],
+  ]
+  // From the latest annual report (keyFacts.js): each with its quote and
+  // page. Companies outside the ten done so far show NOT YET SOURCED.
+  const k = KEY_FACTS[node.ticker] ?? {}
+  const report = [
+    ['Financial year end', k.fye], ['Revenue (latest FY)', k.revenue], ['Net profit (latest FY)', k.profit],
+    ['Employees', k.employees], ['Auditor', k.auditor],
   ]
   return (
     <div>
@@ -139,6 +140,23 @@ function KeyFacts({ node }) {
             <span className="min-w-0">
               <span className="text-terminal-text-bright">{k === 'Website' ? <a href={/^https?:/.test(v) ? v : `https://${v}`} target="_blank" rel="noopener noreferrer" className="hover:text-terminal-gold underline decoration-dotted">{v.replace(/^https?:\/\//, '')}</a> : v}</span>
               {s && <span className="font-mono text-terminal-text-dim/60 ml-2" style={{ fontSize: 8 }}>DISCLOSED · {s.label.replace('ASX company profile — ', 'ASX profile ')} · {fmtDate(s.date)}</span>}
+            </span>
+          ) : (
+            <span className="font-mono tracking-widest" style={{ fontSize: 9, color: '#637899' }}>{NOT_SOURCED}</span>
+          )}
+        </div>
+      ))}
+      {report.map(([label, f]) => (
+        <div key={label} className="flex gap-3 py-1 border-b border-terminal-border/30 last:border-b-0" style={{ fontSize: 11 }}>
+          <span className="font-mono tracking-widest text-terminal-text-dim w-36 flex-shrink-0" style={{ fontSize: 9 }}>{label.toUpperCase()}</span>
+          {f ? (
+            <span className="min-w-0">
+              <span className="text-terminal-text-bright font-mono tabular-nums">{f.value}</span>
+              {f.note && <span className="text-terminal-text-dim ml-2" style={{ fontSize: 10 }}>{f.note}</span>}
+              <a href={f.source.url} target="_blank" rel="noopener noreferrer" title={`“${f.quote}”`}
+                className="block font-mono text-terminal-text-dim/70 hover:text-terminal-gold" style={{ fontSize: 8 }}>
+                DISCLOSED · {f.source.label} · year to {fmtDate(f.source.date)} · “{f.quote.length > 90 ? `${f.quote.slice(0, 90)}…` : f.quote}” ↗
+              </a>
             </span>
           ) : (
             <span className="font-mono tracking-widest" style={{ fontSize: 9, color: '#637899' }}>{NOT_SOURCED}</span>
@@ -173,10 +191,15 @@ const readLast = () => { try { return localStorage.getItem(LAST_KEY) } catch { r
 
 export default function CompanyProfileModule() {
   const { setActiveModule, openModal } = useStore()
+  // Peek in the initialiser, clear after mount (the useIntentState pattern):
+  // taking it here lost the company whenever the screen was started twice —
+  // React's dev double render, or the mobile layout — and the first profile
+  // opened from the command bar fell back to BHP.
   const [id, setId] = useState(() => {
-    const want = takeModuleIntent('company')?.id ?? readLast() ?? 'BHP'
+    const want = peekModuleIntent('company')?.id ?? readLast() ?? 'BHP'
     return GRAPH.byId.get(want)?.type === 'company' ? want : 'BHP'
   })
+  useEffect(() => { takeModuleIntent('company') }, [])
   const [now] = useState(() => Date.now())
 
   // "Company profile" pressed while this screen is already open.

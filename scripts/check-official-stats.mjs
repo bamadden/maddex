@@ -5,6 +5,7 @@ import { fetchOfficialStats, reconcile, checkHistories, checkUs } from '../src/s
 import { VERIFIED_CONSTANTS } from '../src/data/verifiedConstants.js'
 import { overdueChanges, upcomingChanges } from '../src/data/datedChanges.js'
 import { PEOPLE } from '../src/data/graph/nodes.js'
+import { KEY_FACTS } from '../src/data/graph/keyFacts.js'
 
 // The agencies' endpoints time out now and then; one retry for whichever
 // feeds came back empty clears most of it.
@@ -41,9 +42,12 @@ for (const h of hist) {
 // Known dated changes (src/data/datedChanges.js): warn when one has taken
 // effect and the terminal still shows the old value. A warning, not a
 // failure — the update needs a person to read the new figure first.
-const ceo = {}
-for (const [name, roles] of PEOPLE) for (const [co, role] of roles) if (/\bCEO\b/.test(role)) ceo[co] = name
-const overdue = overdueChanges({ ...VERIFIED_CONSTANTS, graph: { ceo } })
+const ceo = {}, chair = {}
+for (const [name, roles] of PEOPLE) for (const [co, role] of roles) {
+  if (/\bCEO\b/.test(role)) ceo[co] = name
+  if (/\bChair\b/.test(role)) chair[co] = name
+}
+const overdue = overdueChanges({ ...VERIFIED_CONSTANTS, graph: { ceo, chair }, keyFacts: KEY_FACTS })
 console.log('\nDATED CHANGES')
 for (const c of overdue) {
   console.log(`⚠ OVERDUE  ${c.what} (effective ${c.effective})`)

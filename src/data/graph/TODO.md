@@ -141,3 +141,23 @@ companies from each latest annual report, marked DISCLOSED. Nine of ten done:
   REVIEW: Wesfarmers owns 23.4% of BWP (already in the graph, VERIFIED), and
   Bunnings is a customer of BWP at 76.7%. Bunnings is not a node; map it to
   WES or create it.
+
+## Phase 3 (31 Oct 2026)
+
+- [x] Key facts (financial year end, revenue, net profit, employees, auditor)
+  for the ten largest S&P/ASX 20 companies, from their latest annual
+  reports: 50 values, each with quote, page and as-at date
+  (src/data/graph/keyFacts.js). Ranks 11–20 are NOT YET SOURCED.
+- [x] Holders added: GMG, COL (share counts, no percentage) and BXB (8.26%,
+  8.12%, 6.01%).
+- [ ] **26 Wesfarmers proposals in REVIEW** (full 2026 annual report,
+  US$0.66). By my read, 25 have the right type and direction. #10 (Zelora JV)
+  names Wesfarmers where the quote says Bunnings. #13 (Chaney as chair) was
+  true for FY2026 but is now out of date. #7 (Built Living JV) is agreed, not
+  formed. #25 (Cm3) is being sold. The model also missed Wesfarmers' own
+  substantial holders (p209), so recall is not complete.
+- [ ] BHP's annual report gives revenue by segment (Copper US$29,031m, Iron
+  Ore US$23,883m, Coal US$5,590m of US$58,760m, p32–33). That could turn the
+  BHP commodity edges from INFERRED to DISCLOSED with a weight.
+- [ ] Dated change wes-chair-2026-10-29 shows OVERDUE in check-stats until
+  the Wesfarmers AGM result is read.

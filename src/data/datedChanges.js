@@ -9,8 +9,10 @@
 //
 // effective: the moment the change takes effect, with its UTC offset.
 // fields:    { path, expect } checked against the context check-stats builds:
-//            the verified constants, plus graph.ceo.<TICKER> — the CEO named
-//            in src/data/graph/nodes.js. expect is one of
+//            the verified constants, plus graph.ceo.<TICKER> and
+//            graph.chair.<TICKER> — the CEO and chair named in
+//            src/data/graph/nodes.js — and keyFacts.<TICKER>.<field>.value
+//            from src/data/graph/keyFacts.js. expect is one of
 //            { gte: value } — the field is at least this (ISO dates compare);
 //            { eq: value }  — the field equals this;
 //            { ne: value }  — the field no longer equals this;
@@ -31,6 +33,19 @@ export const DATED_CHANGES = [
     ],
     source: 'rba.gov.au media releases',
     howTo: 'docs/RBA_DECISION_DAY.md',
+  },
+  {
+    // Already past when added (31 Oct 2026): the successor needed election at
+    // the 29 Oct AGM, and the result has not been read. Shows as overdue
+    // until it is — see src/data/graph/TODO.md.
+    id: 'wes-chair-2026-10-29',
+    what: 'Wesfarmers chair: Ken MacKenzie succeeds Michael Chaney (subject to election at the 29 Oct 2026 AGM)',
+    effective: '2026-10-29T13:00:00+08:00',
+    fields: [
+      { path: 'graph.chair.WES', expect: { eq: 'Ken MacKenzie' } },
+    ],
+    source: 'WES ASX release, 28 Aug 2025; AGM results release, 29 Oct 2026 (not yet read)',
+    howTo: 'src/data/graph/nodes.js PEOPLE — add Ken MacKenzie as WES Chair once the AGM result is read',
   },
   {
     id: 'mqg-ceo-2026-11-07',
@@ -64,6 +79,19 @@ export const DATED_CHANGES = [
       { path: 'fed.nextMeeting', expect: { ne: '2026-12-09' } },
     ],
     source: 'federalreserve.gov',
+  },
+  {
+    // Macquarie 2026 Annual Report (PDF p52): KPMG recommended as auditor
+    // "for the financial year commencing on 1 April 2027", subject to
+    // regulatory consents and shareholder approval.
+    id: 'mqg-auditor-2027-04-01',
+    what: 'Macquarie Group auditor: KPMG replaces PwC (subject to approval)',
+    effective: '2027-04-01T00:00:00+11:00',
+    fields: [
+      { path: 'keyFacts.MQG.auditor.value', expect: { eq: 'KPMG' } },
+    ],
+    source: 'Macquarie Group 2026 Annual Report, PDF p52',
+    howTo: 'src/data/graph/keyFacts.js — update once the appointment is confirmed (a report or notice of meeting)',
   },
   {
     // 17–18 Dec meeting; the decision comes around midday Tokyo on the 18th.

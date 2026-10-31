@@ -1,0 +1,590 @@
+{
+  "ticker": "WES",
+  "label": "Wesfarmers 2026 Annual Report",
+  "sourceUrl": "https://announcements.asx.com.au/asxpdf/20260827/pdf/0738z357pt1vhl.pdf",
+  "asAt": "2026-06-30",
+  "pagesSent": [
+    1,
+    212
+  ],
+  "model": "claude-sonnet-4-6",
+  "generatedAt": "2026-10-31T05:01:56.320Z",
+  "usage": {
+    "input_tokens": 208858,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 2128,
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+  },
+  "proposals": [
+    {
+      "id": "38995a68d4c51bbc",
+      "status": "pending",
+      "type": "owns",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "BWP Group",
+        "id": "BWP"
+      },
+      "weight": 23.44,
+      "quote": "On 18 May 2026, Wesfarmers subscribed for its full pro-rata entitlement of $53 million under BWP's accelerated non-renounceable entitlement offer, maintaining its holding of 23.44 per cent.",
+      "page": 57,
+      "context": {
+        "before": "ion of approximately $143 million. Wesfarmers received $100 million in cash, with the balance satisfied through stapled securities in BWP. Following completion of the transaction, Wesfarmers' ownership in BWP increased from 22.29 per cent to 23.44 per cent of stapled securities. ",
+        "quote": "On 18 May 2026, Wesfarmers subscribed for its full pro-rata entitlement of $53 million under BWP's accelerated non-renounceable entitlement offer, maintaining its holding of 23.44 per cent.",
+        "after": " BWP's portfolio as at 30 June 2026 consisted of 80 properties. For more information on BWP Group, visit bwptrust.com.au Wespine Industries The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia. Wespine manufactur"
+      }
+    },
+    {
+      "id": "4bb630f61b010e18",
+      "status": "pending",
+      "type": "owns",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Flybuys",
+        "id": null
+      },
+      "weight": 50,
+      "quote": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+      "page": 57,
+      "context": {
+        "before": "Other activities Wesfarmers is an investor in Flybuys, BWP Group, Gresham Partners and Wespine Industries. Flybuys ",
+        "quote": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+        "after": " Following the demerger of Coles from Wesfarmers in November 2018, the Flybuys business was set up as an independent, standalone business. As at 30 June 2026, there were 10.3 million active members in the Flybuys loyalty program. For more information on Flybuys, visit flybuys.com"
+      }
+    },
+    {
+      "id": "4c582f24ac9bd586",
+      "status": "pending",
+      "type": "owns",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Gresham Partners Group Limited",
+        "id": null
+      },
+      "weight": 50,
+      "quote": "Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations.",
+      "page": 57,
+      "context": {
+        "before": "er of Coles from Wesfarmers in November 2018, the Flybuys business was set up as an independent, standalone business. As at 30 June 2026, there were 10.3 million active members in the Flybuys loyalty program. For more information on Flybuys, visit flybuys.com.au Gresham Partners ",
+        "quote": "Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations.",
+        "after": " Gresham Partners is a leading independent financial services business with activities in corporate advisory, funds management, property and capital solutions. For more information on Gresham Partners, visit gresham.au BWP Group Wesfarmers' investment in BWP Group (BWP) contribut"
+      }
+    },
+    {
+      "id": "dcd257373f3d79bd",
+      "status": "pending",
+      "type": "owns",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Wespine Industries Pty Ltd",
+        "id": null
+      },
+      "weight": 50,
+      "quote": "The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia.",
+      "page": 57,
+      "context": {
+        "before": "l pro-rata entitlement of $53 million under BWP's accelerated non-renounceable entitlement offer, maintaining its holding of 23.44 per cent. BWP's portfolio as at 30 June 2026 consisted of 80 properties. For more information on BWP Group, visit bwptrust.com.au Wespine Industries ",
+        "quote": "The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia.",
+        "after": " Wespine manufactures structural timber used for the construction, landscaping and packaging industries. Demand for sawn timber products continued to recover, with increasing housing approvals and commencements in WA. Wespine achieved higher mill throughput and improved product m"
+      }
+    },
+    {
+      "id": "9e96c2131cb79c1f",
+      "status": "pending",
+      "type": "joint_venture",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Sociedad Química y Minera",
+        "id": null
+      },
+      "weight": 50,
+      "quote": "Covalent Lithium, Wesfarmers' 50 per cent joint venture with Sociedad Química y Minera (SQM), is a vertically integrated operation in Western Australia comprising a mine and concentrator at Mt Holland producing spodumene concentrate, and a refinery in Kwinana producing lithium hydroxide.",
+      "page": 40,
+      "context": {
+        "before": "nd manufactures liquefied natural gas (LNG) at the Kleenheat Production Facility. Kleenheat is also a retailer of natural gas to residential and commercial markets. CSBP Fertilisers manufactures, imports and distributes fertilisers for the Western Australian agricultural sector. ",
+        "quote": "Covalent Lithium, Wesfarmers' 50 per cent joint venture with Sociedad Química y Minera (SQM), is a vertically integrated operation in Western Australia comprising a mine and concentrator at Mt Holland producing spodumene concentrate, and a refinery in Kwinana producing lithium hydroxide.",
+        "after": " Highlights and outlook Revenue for WesCEF increased 5.9 per cent to $3,138 million for the year, driven by higher prices for fertilisers and spodumene concentrate. Earnings increased by 18.5 per cent to $473 million, reflecting a significant uplift in Lithium earnings, partially"
+      }
+    },
+    {
+      "id": "e038c3b7fecb9efd",
+      "status": "pending",
+      "type": "joint_venture",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Coles Group Limited",
+        "id": "COL"
+      },
+      "weight": 50,
+      "quote": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+      "page": 57,
+      "context": {
+        "before": "Other activities Wesfarmers is an investor in Flybuys, BWP Group, Gresham Partners and Wespine Industries. Flybuys ",
+        "quote": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+        "after": " Following the demerger of Coles from Wesfarmers in November 2018, the Flybuys business was set up as an independent, standalone business. As at 30 June 2026, there were 10.3 million active members in the Flybuys loyalty program. For more information on Flybuys, visit flybuys.com"
+      }
+    },
+    {
+      "id": "33e362152e4016bd",
+      "status": "pending",
+      "type": "joint_venture",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Built Group",
+        "id": null
+      },
+      "weight": null,
+      "quote": "In May 2026, Wesfarmers announced it had agreed to enter a joint venture with Built Group to establish Built Living, a business focused on delivering residential apartments at scale through advanced manufacturing.",
+      "page": 16,
+      "context": {
+        "before": "5, Wesfarmers completed the sale of BWP Management Limited to BWP Group and in May 2026, the Group participated in BWP's entitlement offer, maintaining our 23.44 per cent holding. Wesfarmers also successfully completed the wind up of the BPI property structure in September 2025. ",
+        "quote": "In May 2026, Wesfarmers announced it had agreed to enter a joint venture with Built Group to establish Built Living, a business focused on delivering residential apartments at scale through advanced manufacturing.",
+        "after": " In July 2026, Wesfarmers announced it had agreed to sell Cm3, a leading Australian contractor management software business that is part of the Blackwoods Group, to Achilles Group. The sale is subject to approval from the Australian Foreign Investment Review Board. Leadership Tea"
+      }
+    },
+    {
+      "id": "e2b54d19dc547cbc",
+      "status": "pending",
+      "type": "joint_venture",
+      "from": {
+        "name": "CSBP",
+        "id": null
+      },
+      "to": {
+        "name": "Coogee Chemicals",
+        "id": null
+      },
+      "weight": 75,
+      "quote": "Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide",
+      "page": 40,
+      "context": {
+        "before": "ight businesses in Australia across the chemicals, energy, fertilisers and lithium sectors with a shared services model that supports these businesses. Chemicals includes: - CSBP Chemicals, which manufactures and supplies ammonia, ammonium nitrate (AN) and industrial chemicals - ",
+        "quote": "Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide",
+        "after": " - Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN - Australian Vinyls, which supplies polyvinyl chloride (PVC) resin and specialty chemicals - ModWood, which manufactures wood-plastic composite de"
+      }
+    },
+    {
+      "id": "cb0d6f1655b0ff3f",
+      "status": "pending",
+      "type": "joint_venture",
+      "from": {
+        "name": "CSBP",
+        "id": null
+      },
+      "to": {
+        "name": "Dyno Nobel Asia Pacific",
+        "id": null
+      },
+      "weight": 50,
+      "quote": "Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN",
+      "page": 40,
+      "context": {
+        "before": "inesses. Chemicals includes: - CSBP Chemicals, which manufactures and supplies ammonia, ammonium nitrate (AN) and industrial chemicals - Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide - ",
+        "quote": "Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN",
+        "after": " - Australian Vinyls, which supplies polyvinyl chloride (PVC) resin and specialty chemicals - ModWood, which manufactures wood-plastic composite decking and screening products. WesCEF's energy business, Kleenheat, extracts liquefied petroleum gas (LPG) from natural gas and manufa"
+      }
+    },
+    {
+      "id": "8a2fddba4918fe4c",
+      "status": "pending",
+      "type": "joint_venture",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Intellihub",
+        "id": null
+      },
+      "weight": null,
+      "quote": "the Zelora joint venture between Bunnings Group and Intellihub (subject to certain consents and approvals)",
+      "page": 129,
+      "pageClaimed": 130,
+      "context": {
+        "before": "t of growth and investment opportunities throughout the portfolio included the transition of the Wesfarmers Industrial and Safety businesses into the Bunnings Group, the establishment of the Built Living joint venture with Built Group (subject to certain consents and approvals), ",
+        "quote": "the Zelora joint venture between Bunnings Group and Intellihub (subject to certain consents and approvals)",
+        "after": ", and various transactions relating to BWP Group that realised value for the Group. In addition, the Group completed the capital management initiative in December 2025, returning $1.7 billion to shareholders. Strong progress has been made with regard to AI initiatives across each"
+      }
+    },
+    {
+      "id": "7fa4b3247a1269b9",
+      "status": "pending",
+      "type": "customer",
+      "from": {
+        "name": "Bunnings",
+        "id": null
+      },
+      "to": {
+        "name": "BWP Group",
+        "id": "BWP"
+      },
+      "weight": null,
+      "quote": "Rent for retail stores and warehouses has been paid by the Group to an associate, BWP Group.",
+      "page": 189,
+      "context": {
+        "before": "es 12,132 17,582 Amounts owing to associates (166) (1,113) Joint ventures Amounts receivable from joint ventures 23,665 28,770 Amounts owing to joint ventures (156,721) (169,067) The Group entered into transactions with related parties during the year, including the following: • ",
+        "quote": "Rent for retail stores and warehouses has been paid by the Group to an associate, BWP Group.",
+        "after": " • Transitional services fees were received from BWP Group under the Cooperation and Services Agreement for a maximum period of five years. Management fees have been received from BWP Group on normal commercial terms and conditions until 1 August 2025. • Rent for retail stores an"
+      }
+    },
+    {
+      "id": "7eabd4099cd2900a",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Rob Scott",
+        "id": "person:rob-scott"
+      },
+      "to": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "weight": null,
+      "quote": "Rob Scott, Group Managing Director These executive KMP held their positions throughout the whole of the 2026 financial year.",
+      "page": 121,
+      "context": {
+        "before": "en Julie Coates Ken MacKenzie (Chairman Elect) Mr MacKenzie became a member of the Board of Wesfarmers Limited on 1 June 2026. FORMER NON-EXECUTIVE DIRECTORS Jennifer Westacott AC Ms Westacott retired from the Board of Wesfarmers Limited on 30 October 2025. CURRENT EXECUTIVE KMP ",
+        "quote": "Rob Scott, Group Managing Director These executive KMP held their positions throughout the whole of the 2026 financial year.",
+        "after": " Anthony Gianotti, Group Chief Financial Officer Michael Schneider, Managing Director, Bunnings Group Aleksandra Spaseska, Managing Director, Kmart Group There have been no changes to KMP since 30 June 2026. For personal use only"
+      }
+    },
+    {
+      "id": "f31b784d8c58738a",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Michael Chaney AO",
+        "id": null
+      },
+      "to": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "weight": null,
+      "quote": "M A Chaney (Chairman)",
+      "page": 112,
+      "context": {
+        "before": "ation in a joint venture for an integrated lithium project, including operation of a mine and concentrator and development of a refinery - processing and retailing of gas - management of the Group's investments. Directors The directors in office at the date of this report are: - ",
+        "quote": "M A Chaney (Chairman)",
+        "after": " - R G Scott (Group Managing Director) - J A Coates - A J Cransberg - S W English - K N MacKenzie - K M Munnings - M Roche - F von Oertzen - S L Warburton - A M Watkins All directors served on the Board for the period from 1 July 2025 to 30 June 2026, except for K N MacKenzie who"
+      }
+    },
+    {
+      "id": "84fbd0ede8d38876",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Ken MacKenzie",
+        "id": null
+      },
+      "to": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "weight": null,
+      "quote": "K N MacKenzie who was appointed as a director of the company effective from 1 June 2026.",
+      "page": 112,
+      "context": {
+        "before": "Chaney (Chairman) - R G Scott (Group Managing Director) - J A Coates - A J Cransberg - S W English - K N MacKenzie - K M Munnings - M Roche - F von Oertzen - S L Warburton - A M Watkins All directors served on the Board for the period from 1 July 2025 to 30 June 2026, except for ",
+        "quote": "K N MacKenzie who was appointed as a director of the company effective from 1 June 2026.",
+        "after": " During the year, J Westacott retired as a director of the company on 30 October 2025, from the conclusion of the 2025 Annual General Meeting. The qualifications, experience, special responsibilities and other details of the directors in office as at the date of this report appea"
+      }
+    },
+    {
+      "id": "49825090a161234d",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Michael Schneider",
+        "id": null
+      },
+      "to": {
+        "name": "Bunnings Group",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Michael was appointed Bunnings' Managing Director in 2016.",
+      "page": 18,
+      "pageClaimed": 17,
+      "context": {
+        "before": "4 Michael Schneider MANAGING DIRECTOR BUNNINGS GROUP ",
+        "quote": "Michael was appointed Bunnings' Managing Director in 2016.",
+        "after": " Michael joined Bunnings in 2005, having previously held a range of senior operational, commercial and human resource roles across regional and national markets, in retail and financial services. Outside Bunnings, Michael supports a range of not-for-profit and community organisat"
+      }
+    },
+    {
+      "id": "d42b86bcf02fa037",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Aleksandra Spaseska",
+        "id": null
+      },
+      "to": {
+        "name": "Kmart Group",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Aleks was appointed Managing Director, Kmart Group in April 2025.",
+      "page": 18,
+      "pageClaimed": 17,
+      "context": {
+        "before": "th Amplify and the Global Home Improvement Network, representing some of the world's leading home improvement businesses. In addition, Michael chairs FightMND and is a member of Deakin University Business School Advisory Board. 5 Aleksandra Spaseska MANAGING DIRECTOR KMART GROUP ",
+        "quote": "Aleks was appointed Managing Director, Kmart Group in April 2025.",
+        "after": " Before that appointment, Aleks was Chief Financial Officer of Kmart Group having responsibility for finance, property, strategy, data science and risk and compliance. She subsequently assumed additional responsibilities for global sourcing as well as domestic and international s"
+      }
+    },
+    {
+      "id": "66cbec65796dc2a1",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Aaron Hood",
+        "id": null
+      },
+      "to": {
+        "name": "Wesfarmers Chemicals, Energy & Fertilisers",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Aaron was appointed Managing Director, Wesfarmers Chemicals, Energy & Fertilisers (WesCEF) in November 2024.",
+      "page": 18,
+      "context": {
+        "before": "and Risk and General Manager Investor Relations. She held several senior operational roles with Target after commencing her career with Wesfarmers in 2008 in the Corporate Office Business Development team. 6 Aaron Hood MANAGING DIRECTOR WESFARMERS CHEMICALS, ENERGY & FERTILISERS ",
+        "quote": "Aaron was appointed Managing Director, Wesfarmers Chemicals, Energy & Fertilisers (WesCEF) in November 2024.",
+        "after": " Aaron joined Wesfarmers in 2017 and has held a number of executive roles across both Wesfarmers and WesCEF. At Wesfarmers, he worked in business development before being appointed as Executive General Manager Business Development. At WesCEF, he held the roles of Chief Financial "
+      }
+    },
+    {
+      "id": "3f134ad6bb9d7af2",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "John Gualtieri",
+        "id": null
+      },
+      "to": {
+        "name": "Officeworks",
+        "id": null
+      },
+      "weight": null,
+      "quote": "John Gualtieri is Managing Director of Officeworks, where he leads the business through its next phase of transformation, with a strong focus on customers, team members and long-term growth.",
+      "page": 18,
+      "context": {
+        "before": "eam and investments for a prominent Australian family office. Aaron is a Director of Covalent Lithium and represents Wesfarmers' investment in the joint venture managing the integrated Mt Holland lithium mining and refinery project. 7 John Gualtieri MANAGING DIRECTOR OFFICEWORKS ",
+        "quote": "John Gualtieri is Managing Director of Officeworks, where he leads the business through its next phase of transformation, with a strong focus on customers, team members and long-term growth.",
+        "after": " Since joining Officeworks in August 2025, John has focused on strengthening the customer experience, sharpening the business' value proposition and positioning Officeworks for the future. Prior to joining Officeworks, John served as Chief Executive Officer of Kmart and Target. 8"
+      }
+    },
+    {
+      "id": "fd638258fc764547",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Emily Amos",
+        "id": null
+      },
+      "to": {
+        "name": "Wesfarmers Health",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Emily was appointed Managing Director of Wesfarmers Health in April 2022, following Wesfarmers' acquisition of Australian Pharmaceutical Industries Limited in 2022.",
+      "page": 18,
+      "context": {
+        "before": "has focused on strengthening the customer experience, sharpening the business' value proposition and positioning Officeworks for the future. Prior to joining Officeworks, John served as Chief Executive Officer of Kmart and Target. 8 Emily Amos MANAGING DIRECTOR WESFARMERS HEALTH ",
+        "quote": "Emily was appointed Managing Director of Wesfarmers Health in April 2022, following Wesfarmers' acquisition of Australian Pharmaceutical Industries Limited in 2022.",
+        "after": " Emily has extensive health and retail sector experience gained through time in various executive roles at Bupa Australia and New Zealand, Woolworths Australia and Sainsbury's United Kingdom. Prior to joining Wesfarmers, Emily was the Managing Director Bupa Health Insurance and b"
+      }
+    },
+    {
+      "id": "3331ecd321d5e5e4",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Jenny Bryant",
+        "id": null
+      },
+      "to": {
+        "name": "Flybuys",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Jenny is a Director of the Flybuys joint venture with Coles Group Limited, a non-executive member of the Australian Public Service Commission Learning Board, and a member of Chief Executive Women.",
+      "page": 18,
+      "context": {
+        "before": "r 2016. Prior to this, she worked at Coles Group, Mars Inc (Europe and USA), Vodafone (global) and EMI Music (global). Over her career, she has held a variety of roles, including in international human resources, data analytics and technology, operations and sales and marketing. ",
+        "quote": "Jenny is a Director of the Flybuys joint venture with Coles Group Limited, a non-executive member of the Australian Public Service Commission Learning Board, and a member of Chief Executive Women.",
+        "after": " 12 Michael Britton EXECUTIVE GENERAL MANAGER BUSINESS DEVELOPMENT WESFARMERS Michael joined Wesfarmers in March 2023 in the role of Executive General Manager, Business Development. Before joining Wesfarmers, Michael worked in the private equity industry with global investment fi"
+      }
+    },
+    {
+      "id": "bd7365cc69459b7b",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Michael Britton",
+        "id": null
+      },
+      "to": {
+        "name": "Wespine Industries",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Michael is Chairman of Wespine Industries, a Director of the Zelora joint venture with Intellihub and a member of The University of Western Australia Business School Ambassadorial Council.",
+      "page": 18,
+      "context": {
+        "before": "rked in the private equity industry with global investment firm, The Carlyle Group. Michael has a background in mergers and acquisitions and strategic projects, with investment experience across a range of industries, including healthcare, consumer retail and industrial sectors. ",
+        "quote": "Michael is Chairman of Wespine Industries, a Director of the Zelora joint venture with Intellihub and a member of The University of Western Australia Business School Ambassadorial Council.",
+        "after": " 13 Sheldon Renkema EXECUTIVE GENERAL MANAGER, COMPANY SECRETARIAT WESFARMERS Sheldon was appointed Executive General Manager, Company Secretariat in October 2023 and is the Company Secretary of Wesfarmers. Before that appointment, Sheldon was General Manager of Business Developm"
+      }
+    },
+    {
+      "id": "684295afab472232",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Naomi Flutter",
+        "id": null
+      },
+      "to": {
+        "name": "Wespine Industries",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Naomi is a director of Wespine Industries, chair of The Kids Research Institute Australia and member of Chief Executive Women.",
+      "page": 18,
+      "context": {
+        "before": "d Wesfarmers as Executive General Manager, Corporate Affairs in August 2018. Prior to this, Naomi worked for Deutsche Bank for 20 years, in roles including Head of the Global Transaction Banking for Australia and New Zealand and Head of the Trust and Agency business across Asia. ",
+        "quote": "Naomi is a director of Wespine Industries, chair of The Kids Research Institute Australia and member of Chief Executive Women.",
+        "after": " 11 Jenny Bryant CHIEF HUMAN RESOURCES OFFICER WESFARMERS Jenny was appointed Chief Human Resources Officer of Wesfarmers in October 2016. Prior to this, she worked at Coles Group, Mars Inc (Europe and USA), Vodafone (global) and EMI Music (global). Over her career, she has held "
+      }
+    },
+    {
+      "id": "e19fe13c88028c77",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Aaron Hood",
+        "id": null
+      },
+      "to": {
+        "name": "Covalent Lithium",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Aaron is a Director of Covalent Lithium and represents Wesfarmers' investment in the joint venture managing the integrated Mt Holland lithium mining and refinery project.",
+      "page": 18,
+      "context": {
+        "before": " over a five-year period. Aaron began his career in investment banking with Macquarie in Sydney, before moving into private equity funds management across the industrial and mining sectors. He also led the commercial team and investments for a prominent Australian family office. ",
+        "quote": "Aaron is a Director of Covalent Lithium and represents Wesfarmers' investment in the joint venture managing the integrated Mt Holland lithium mining and refinery project.",
+        "after": " 7 John Gualtieri MANAGING DIRECTOR OFFICEWORKS John Gualtieri is Managing Director of Officeworks, where he leads the business through its next phase of transformation, with a strong focus on customers, team members and long-term growth. Since joining Officeworks in August 2025,"
+      }
+    },
+    {
+      "id": "d3d64440100c225a",
+      "status": "pending",
+      "type": "director_of",
+      "from": {
+        "name": "Rob Scott",
+        "id": "person:rob-scott"
+      },
+      "to": {
+        "name": "Gresham Partners Group Limited",
+        "id": null
+      },
+      "weight": null,
+      "quote": "Director of Gresham Partners Group Limited (since November 2020)",
+      "page": 105,
+      "context": {
+        "before": " Director and Chief Executive Officer at the conclusion of the 2017 Annual General Meeting in November 2017. Directorships of listed entities (last three years), other directorships/offices (current and recent): - Director of Business Council of Australia (since November 2021) - ",
+        "quote": "Director of Gresham Partners Group Limited (since November 2020)",
+        "after": " - Director of Gresham Partners Holding Limited (since November 2020) - Member of UWA Business School Advisory Board (since August 2017) - Director of Brisbane 2032 Board (retired July 2025) - Director of Flybuys joint venture with Coles Group Limited (retired May 2025) - Chairma"
+      }
+    },
+    {
+      "id": "877927ad71f86796",
+      "status": "pending",
+      "type": "subsidiary",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Cm3 Contractor Management Pty Ltd",
+        "id": null
+      },
+      "weight": null,
+      "quote": "On 24 July 2026, Wesfarmers announced that it had entered into an agreement to sell Cm3, a wholly owned subsidiary, to Achilles Group.",
+      "page": 115,
+      "context": {
+        "before": " an integrated ore sorting facility. Wesfarmers' share of the estimated capital expenditure is between $645 million and $715 million (excluding capitalised interest), which is expected to be funded from existing cash and debt facilities. Sale of Cm3 Contractor Management Pty Ltd ",
+        "quote": "On 24 July 2026, Wesfarmers announced that it had entered into an agreement to sell Cm3, a wholly owned subsidiary, to Achilles Group.",
+        "after": " Completion of the sale remains subject to approval by the Australian Foreign Investment Review Board. Non-audit services Ernst & Young provided non-audit services to the Group during the year ended 30 June 2026 and received or is due to receive the following amounts for the prov"
+      }
+    },
+    {
+      "id": "eeb3fba1121adf16",
+      "status": "pending",
+      "type": "subsidiary",
+      "from": {
+        "name": "Wesfarmers",
+        "id": "WES"
+      },
+      "to": {
+        "name": "Australian Gold Reagents Pty Ltd",
+        "id": null
+      },
+      "weight": 75,
+      "quote": "Australian Gold Reagents Pty Ltd 75 75",
+      "page": 186,
+      "context": {
+        "before": "y Limited (formerly KAS Pty Limited) t 100 100 ANKO Sourcing (India) Private Limited (formerly KAS Direct Sourcing Private Limited) l 100 100 API Financial Services Australia Limited (formerly API Financial Services Australia Pty Limited) @ 100 100 API Victoria Pty Ltd + 100 100 ",
+        "quote": "Australian Gold Reagents Pty Ltd 75 75",
+        "after": " Australian International Insurance Limited (deregistered on 22 October 2025) & - 100 Australian Light Energy Limited + 100 100 Australian Light Minerals Pty Ltd + 100 100 Australian Pharmaceutical Industries (Queensland) Pty Ltd + 100 100 Australian Pharmaceutical Industries Pty"
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "type": "owns",
+      "from": "Wesfarmers",
+      "to": "BWP Group",
+      "weight": 23.44,
+      "quote": "Wesfarmers' investment in BWP Group (BWP) contributed earnings of $96 million for the financial year compared to $59 million in the prior year, reflecting favourable property revaluation movements.",
+      "page": 57,
+      "id": "63280db6466393bc",
+      "reasons": [
+        "weight 23.44 does not appear in the quote"
+      ]
+    }
+  ]
+}

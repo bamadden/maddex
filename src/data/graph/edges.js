@@ -50,7 +50,8 @@ const OWNERSHIP = [
 // last notice, which can be years old (the note says when). Where the report
 // gives share counts without a percentage, the edge has no weight: dividing
 // an old notice's share count by today's share count would mix two dates.
-// Block (XYZ) is a US company and publishes no such table (TODO.md).
+// Block (XYZ) is a US company and publishes no such table (TODO.md); it is
+// no longer an S&P/ASX 20 member either.
 const NAB_AR = 'https://www.nab.com.au/content/dam/nab/documents/reports/corporate/2025-annual-report.pdf'
 const AR = {
   BHP: { label: 'BHP Annual Report 2026 — substantial shareholders, as at 9 Jul 2026', url: `${ANN('20260818/pdf/072vxpfhmy9lfk')}#page=238`, date: '2026-07-09' },
@@ -62,6 +63,11 @@ const AR = {
   CSL: { label: 'CSL Annual Report 2026 — substantial shareholders, as at 31 Jul 2026', url: 'https://investors.csl.com/annualreport/2026/164/', date: '2026-07-31' },
   WES: { label: 'Wesfarmers 2026 Annual Report p206 — substantial shareholders, as at the report date', url: `${ANN('20260827/pdf/0738z357pt1vhl')}#page=209`, date: '2026-08-27' },
   WDS: { label: 'Woodside 2025 Annual Report p273 — substantial shareholders (released 24 Feb 2026)', url: `${ANN('20260224/pdf/06wnjpjvgshc5z')}#page=275`, date: '2026-02-24' },
+  // Added 31 Oct 2026, for the S&P/ASX 20 members that joined the top ten
+  // (GMG) or the list (COL, BXB).
+  GMG: { label: 'Goodman Group Annual Report 2026 p288 — substantial securityholders, as at 31 Jul 2026', url: 'https://www.goodman.com/-/media/project/goodman/global/files/investor-centre/gmg-goodman-group/announcements/asx-announcements/2026/2-goodman-2026-annual-report-1.pdf#page=288', date: '2026-07-31' },
+  COL: { label: 'Coles Group 2026 Annual Report — substantial shareholdings, as at 20 Jul 2026', url: 'https://www.colesgroup.com.au/FormBuilder/_Resource/_module/ir5sKeTxxEOndzdh00hWJw/file/Annual_Report.pdf#page=90', date: '2026-07-20' },
+  BXB: { label: 'Brambles Annual Report 2026 p78 — substantial shareholders, as at 31 Jul 2026', url: 'https://www.brambles.com/Content/cms/FY26-Results/pdf/Brambles-FY26-Annual-Report-Print.pdf#page=80', date: '2026-07-31' },
 }
 const H = { ss: 'fund:state-street', br: 'fund:blackrock', vg: 'fund:vanguard', as: 'fund:australiansuper', citi: 'co:citigroup-gma' }
 // asAt: the date of the holder's own notice where the report prints one —
@@ -98,6 +104,15 @@ const ANNUAL_REPORT_HOLDERS = [
   holder('WDS', 'as', 7.14, 'At its last notice (change 11 Mar 2025).', '2025-03-11'),
   holder('WDS', 'br', 7.03, 'At its last notice (change 5 Feb 2024), plus ADRs.', '2024-02-05'),
   holder('WDS', 'vg', 6.031, 'At its last notice (change 26 Sep 2024), plus ADRs.', '2024-09-26'),
+  holder('GMG', 'br', null, 'Substantial; report gives 162,980,356 securities, no percentage.'),
+  holder('GMG', 'ss', null, 'Substantial; report gives 201,652,872 securities, no percentage.'),
+  holder('GMG', 'vg', null, 'Substantial; report gives 203,896,226 securities, no percentage.'),
+  holder('COL', 'vg', null, 'Substantial; report gives 94,165,553 shares, no percentage.'),
+  holder('COL', 'br', null, 'Substantial; report gives 83,226,846 shares, no percentage.'),
+  holder('COL', 'ss', null, 'Substantial; report gives 97,093,717 shares, no percentage.'),
+  holder('BXB', 'ss', 8.26, 'As disclosed in its substantial holding notice.'),
+  holder('BXB', 'br', 8.12, 'As disclosed in its notice; also 0.12% through ADRs. (The report prints "8.122" — the trailing 2 is a footnote marker.)'),
+  holder('BXB', 'vg', 6.01, 'As disclosed in its substantial holding notice.'),
 ]
 
 // ── Customer — from the supplier's own disclosure ─────────────────────────
