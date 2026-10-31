@@ -161,3 +161,18 @@ companies from each latest annual report, marked DISCLOSED. Nine of ten done:
   BHP commodity edges from INFERRED to DISCLOSED with a weight.
 - [ ] Dated change wes-chair-2026-10-29 shows OVERDUE in check-stats until
   the Wesfarmers AGM result is read.
+
+## Phase 4 (31 Oct 2026)
+
+- [x] WES chair: Ken MacKenzie, from Wesfarmers' own directors page ("became
+  Chairman in October 2026"). The 29 Oct AGM results announcement itself was
+  not reachable (the ASX file needs a token); the company page is the source.
+- [x] Commodity weights, % of revenue from each latest annual report: BHP
+  copper 49.4% and iron ore 40.6%; RIO iron ore 48.5% and copper 23.0% (of
+  reportable segments); FMG iron ore 88.9% (of Metals segment); WDS LNG 45.9%
+  and oil 40.5%; NST gold 99.6%.
+- [ ] Still INFERRED, unweighted: STO, EVN and PLS. They are outside the
+  S&P/ASX 20; same method if wanted. South32 is not in the graph, and its
+  main products (alumina, aluminium, manganese) are not modelled as
+  commodities.
+- [ ] BHP coal (5,590 of 58,760) is not modelled: there is no coal node yet.

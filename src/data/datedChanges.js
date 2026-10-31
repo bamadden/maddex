@@ -35,17 +35,17 @@ export const DATED_CHANGES = [
     howTo: 'docs/RBA_DECISION_DAY.md',
   },
   {
-    // Already past when added (31 Oct 2026): the successor needed election at
-    // the 29 Oct AGM, and the result has not been read. Shows as overdue
-    // until it is — see src/data/graph/TODO.md.
+    // Resolved 31 Oct 2026: Wesfarmers' directors page says MacKenzie "became
+    // Chairman in October 2026" (edge in src/data/graph/nodes.js). Kept so the
+    // check confirms it stays that way.
     id: 'wes-chair-2026-10-29',
     what: 'Wesfarmers chair: Ken MacKenzie succeeds Michael Chaney (subject to election at the 29 Oct 2026 AGM)',
     effective: '2026-10-29T13:00:00+08:00',
     fields: [
       { path: 'graph.chair.WES', expect: { eq: 'Ken MacKenzie' } },
     ],
-    source: 'WES ASX release, 28 Aug 2025; AGM results release, 29 Oct 2026 (not yet read)',
-    howTo: 'src/data/graph/nodes.js PEOPLE — add Ken MacKenzie as WES Chair once the AGM result is read',
+    source: 'WES ASX release, 28 Aug 2025; wesfarmers.com.au/who-we-are/directors, read 31 Oct 2026',
+    howTo: 'src/data/graph/nodes.js PEOPLE',
   },
   {
     id: 'mqg-ceo-2026-11-07',
@@ -58,6 +58,17 @@ export const DATED_CHANGES = [
     howTo: 'src/data/graph/nodes.js PEOPLE — replace the Shemara Wikramanayake row',
   },
   {
+    // Noon London (GMT in November) on Thu 5 Nov — 11pm AEDT.
+    id: 'boe-2026-11-05',
+    what: 'Bank of England decision, Thu 5 Nov 2026',
+    effective: '2026-11-05T12:00:00+00:00',
+    fields: [
+      { path: 'boe.lastDecision', expect: { gte: '2026-11-05' } },
+      { path: 'boe.nextMeeting', expect: { ne: '2026-11-05' } },
+    ],
+    source: 'bankofengland.co.uk',
+  },
+  {
     id: 'rba-2026-12-08',
     what: 'RBA decision, Tue 8 Dec 2026',
     effective: '2026-12-08T14:30:00+11:00',
@@ -67,6 +78,17 @@ export const DATED_CHANGES = [
     ],
     source: 'rba.gov.au media releases',
     howTo: 'docs/RBA_DECISION_DAY.md',
+  },
+  {
+    // 2pm Wellington (NZDT) on Wed 9 Dec — noon AEDT.
+    id: 'rbnz-2026-12-09',
+    what: 'RBNZ OCR decision, Wed 9 Dec 2026',
+    effective: '2026-12-09T14:00:00+13:00',
+    fields: [
+      { path: 'rbnz.lastDecision', expect: { gte: '2026-12-09' } },
+      { path: 'rbnz.nextMeeting', expect: { ne: '2026-12-09' } },
+    ],
+    source: 'rbnz.govt.nz',
   },
   {
     // 8–9 Dec meeting; the statement is at 2pm Washington on the 9th
@@ -92,6 +114,17 @@ export const DATED_CHANGES = [
     ],
     source: 'Macquarie Group 2026 Annual Report, PDF p52',
     howTo: 'src/data/graph/keyFacts.js — update once the appointment is confirmed (a report or notice of meeting)',
+  },
+  {
+    // 14:15 Frankfurt (CET) on Thu 17 Dec — 12:15am AEDT on the 18th.
+    id: 'ecb-2026-12-17',
+    what: 'ECB decision, Thu 17 Dec 2026',
+    effective: '2026-12-17T14:15:00+01:00',
+    fields: [
+      { path: 'ecb.lastDecision', expect: { gte: '2026-12-17' } },
+      { path: 'ecb.nextMeeting', expect: { ne: '2026-12-17' } },
+    ],
+    source: 'ecb.europa.eu',
   },
   {
     // 17–18 Dec meeting; the decision comes around midday Tokyo on the 18th.

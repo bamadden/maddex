@@ -24,6 +24,10 @@ import { TYPE_COLOUR, CONF_TONE, STALE_TONE, fmtDate } from '../relationships/th
 const LAST_KEY = 'maddex_company_profile_last'
 const LEVEL_TONE = { THIN: '#C4653A', PARTIAL: '#C9A84C', FULLER: '#2D8A50' }
 const NOT_SOURCED = 'NOT YET SOURCED'
+// Shown wherever a bank's operating income sits where a company's revenue
+// would. The two are not comparable, and a reader comparing CBA with BHP on
+// one screen should not have to know that already.
+const BANK_INCOME_TIP = 'Banks do not report revenue. Operating income is net interest income (interest earned minus interest paid) plus fees and other income: a net figure after funding costs. Company revenue is gross, before any costs. Do not compare the two directly.'
 
 function Section({ title, count, children }) {
   return (
@@ -128,7 +132,9 @@ function KeyFacts({ node }) {
   // page. Companies outside the ten done so far show NOT YET SOURCED.
   const k = KEY_FACTS[node.ticker] ?? {}
   const report = [
-    ['Financial year end', k.fye], ['Revenue (latest FY)', k.revenue], ['Net profit (latest FY)', k.profit],
+    ['Financial year end', k.fye],
+    [k.revenue?.measure === 'operating income' ? 'Operating income (latest FY) — bank measure' : 'Revenue (latest FY)', k.revenue, k.revenue?.measure === 'operating income' ? BANK_INCOME_TIP : null],
+    ['Net profit (latest FY)', k.profit],
     ['Employees', k.employees], ['Auditor', k.auditor],
   ]
   return (
@@ -146,9 +152,11 @@ function KeyFacts({ node }) {
           )}
         </div>
       ))}
-      {report.map(([label, f]) => (
+      {report.map(([label, f, tip]) => (
         <div key={label} className="flex gap-3 py-1 border-b border-terminal-border/30 last:border-b-0" style={{ fontSize: 11 }}>
-          <span className="font-mono tracking-widest text-terminal-text-dim w-36 flex-shrink-0" style={{ fontSize: 9 }}>{label.toUpperCase()}</span>
+          <span className="font-mono tracking-widest text-terminal-text-dim w-36 flex-shrink-0" style={{ fontSize: 9, color: tip ? '#C9A84C' : undefined }} title={tip ?? undefined}>
+            {label.toUpperCase()}{tip && <span aria-label={tip} style={{ cursor: 'help' }}> ⓘ</span>}
+          </span>
           {f ? (
             <span className="min-w-0">
               <span className="text-terminal-text-bright font-mono tabular-nums">{f.value}</span>
@@ -256,6 +264,9 @@ export default function CompanyProfileModule() {
 
       <div className="p-3 space-y-3 max-w-[1200px] w-full">
         <Meter id={id} now={now} />
+        <div className="font-mono text-terminal-text-dim/80 px-1 -mt-1 leading-snug" style={{ fontSize: 9 }}>
+          Absence of an edge is not evidence of no relationship. The graph holds only what has been read from a source.
+        </div>
 
         {/* Header */}
         <div className="flex items-start gap-6 flex-wrap px-1">
@@ -290,7 +301,7 @@ export default function CompanyProfileModule() {
         <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
           <Section title="OWNERSHIP — SUBSTANTIAL HOLDERS" count={holders.length}>
             {holders.length ? holders.map((r) => <Linked key={r.edge.id} row={r} now={now} onOpen={open} />)
-              : <NotSourced what="no substantial-holder table or notice read yet" />}
+              : <NotSourced what="substantial-holder table or notice not yet read" />}
             {stakes.length > 0 && (
               <div className="mt-3">
                 <div className="font-mono tracking-widest text-terminal-text-dim" style={{ fontSize: 9 }}>STAKES IT HOLDS · {stakes.length}</div>
@@ -300,10 +311,10 @@ export default function CompanyProfileModule() {
           </Section>
 
           <Section title="CONNECTIONS">
-            <Group label="SUPPLY CHAIN — CUSTOMERS, SUPPLIERS, JOINT VENTURES" rows={supply} now={now} onOpen={open} empty="no customer or supplier disclosure read yet" />
-            <Group label="COMMODITY & MACRO EXPOSURE" rows={exposure} now={now} onOpen={open} empty="no exposure edge yet" />
-            <Group label="PEERS" rows={peers} now={now} onOpen={open} empty="no peer group yet" />
-            <Group label="INDEX MEMBERSHIP" rows={membership} now={now} onOpen={open} empty="no index listing read" />
+            <Group label="SUPPLY CHAIN — CUSTOMERS, SUPPLIERS, JOINT VENTURES" rows={supply} now={now} onOpen={open} empty="customer and supplier disclosures not yet read" />
+            <Group label="COMMODITY & MACRO EXPOSURE" rows={exposure} now={now} onOpen={open} empty="exposure not yet read from a report" />
+            <Group label="PEERS" rows={peers} now={now} onOpen={open} empty="peer group not yet set" />
+            <Group label="INDEX MEMBERSHIP" rows={membership} now={now} onOpen={open} empty="index listing not yet read" />
             <div className="mb-1">
               <div className="font-mono tracking-widest text-terminal-text-dim" style={{ fontSize: 9 }}>ETFS THROUGH THOSE INDICES{etfs.length ? ` · ${etfs.length}` : ''}</div>
               {etfs.length ? etfs.map((e) => (
@@ -312,7 +323,7 @@ export default function CompanyProfileModule() {
                   <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}> tracks {GRAPH.byId.get(e.to).name} </span>
                   <ConfidenceBadge c={e.confidence} />
                 </button>
-              )) : <NotSourced what="no tracked index in the graph" />}
+              )) : <NotSourced what="its indices are not tracked by an ETF in the graph" />}
             </div>
           </Section>
 
@@ -321,7 +332,7 @@ export default function CompanyProfileModule() {
           </Section>
 
           <Section title="BOARD (CHAIR AND CEO ONLY SO FAR)" count={board.length}>
-            {board.length ? board.map((r) => <Linked key={r.edge.id} row={r} now={now} onOpen={open} />) : <NotSourced what="no directors read yet" />}
+            {board.length ? board.map((r) => <Linked key={r.edge.id} row={r} now={now} onOpen={open} />) : <NotSourced what="directors not yet read" />}
             <div className="font-mono text-terminal-text-dim/60 mt-1" style={{ fontSize: 8 }}>
               {EDGE_LABEL.director_of} edges from the ASX company directory. Full boards are not yet in the graph.
             </div>

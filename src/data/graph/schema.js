@@ -69,6 +69,12 @@ export function edgeProblems(e, nodeIds, names = null) {
   if (e?.page != null && !(Number.isInteger(e.page) && e.page > 0)) p.push('page must be a positive integer')
   if (e?.quote != null && String(e.quote).trim().length < 20) p.push('quote too short to be a source')
   if (e?.type === 'owns' && names && isNomineeHolder(names.get(e.from))) p.push(`holder "${names.get(e.from)}" is a custodian or nominee, not an owner`)
+  // A computed weight must be the ratio of its own quoted inputs.
+  if (e?.calc) {
+    const { numerator: n, denominator: d } = e.calc
+    if (!(n?.value > 0 && d?.value > 0)) p.push('calc needs a numerator and denominator')
+    else if (Math.abs(Math.round((n.value / d.value) * 1000) / 10 - e.weight) > 1e-9) p.push(`weight ${e.weight} is not ${n.value} ÷ ${d.value}`)
+  }
   return p
 }
 

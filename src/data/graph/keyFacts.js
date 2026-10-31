@@ -9,6 +9,8 @@
 //
 // fields: fye (financial year end), revenue, profit (net profit after tax,
 // attributable), employees, auditor. A missing field shows NOT YET SOURCED.
+// revenue.measure 'operating income' marks the banks and Macquarie, whose
+// figure is a net income line, not gross revenue — the profile labels it so.
 
 export const KEY_FACTS_READ = '2026-10-31'
 
@@ -84,6 +86,7 @@ export const KEY_FACTS =
       }
     },
     "revenue": {
+      "measure": "operating income",
       "value": "A$30,224m",
       "quote": "Total operating income 30,224 28,465",
       "page": 44,
@@ -141,6 +144,7 @@ export const KEY_FACTS =
       }
     },
     "revenue": {
+      "measure": "operating income",
       "value": "A$20,872m",
       "quote": "Net operating income 20,872 20,632",
       "page": 93,
@@ -198,6 +202,7 @@ export const KEY_FACTS =
       }
     },
     "revenue": {
+      "measure": "operating income",
       "value": "A$22,384m",
       "quote": "Net operating income 22,384 21,588",
       "page": 104,
@@ -255,6 +260,7 @@ export const KEY_FACTS =
       }
     },
     "revenue": {
+      "measure": "operating income",
       "value": "A$22,186m",
       "quote": "Operating income 22,186 21,899 20,547 20,809",
       "page": 40,
@@ -312,6 +318,7 @@ export const KEY_FACTS =
       }
     },
     "revenue": {
+      "measure": "operating income",
       "value": "A$19,477m",
       "quote": "Net operating income of $A19,477 million for the year ended 31 March 2026",
       "page": 32,

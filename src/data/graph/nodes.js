@@ -112,8 +112,14 @@ export const PEOPLE = [
   ['Shemara Wikramanayake', [['MQG', 'Managing Director & CEO (retires 6 Nov 2026; Greg Ward from 7 Nov, subject to approvals)']]],
   ['Brian McNamee', [['CSL', 'Chair']]],
   // WES chair: Michael Chaney left the board at the 29 Oct 2026 AGM (final
-  // director's interest notice lodged 30 Oct). His successor, Ken MacKenzie,
-  // needed election at that AGM; the result has not been read (TODO.md).
+  // director's interest notice lodged 30 Oct). Ken MacKenzie's chairmanship
+  // is from Wesfarmers' own directors page, read 31 Oct 2026 — the ASX
+  // directory still listed Chaney that day. A third element gives a role its
+  // own source and quote when it is not from the ASX directory.
+  ['Ken MacKenzie', [['WES', 'Chair', {
+    source: { label: 'Wesfarmers — Directors (company website)', url: 'https://www.wesfarmers.com.au/who-we-are/directors', date: '2026-10-31' },
+    quote: 'Ken MacKenzie Chairman Ken rejoined the Board as a non-executive director in June 2026 and became Chairman in October 2026.',
+  }]]],
   ['Rob Scott', [['WES', 'Managing Director']]],
   ['Jack Dorsey', [['XYZ', 'Chair & CEO']]],
   ['Richard Goyder', [['WDS', 'Chair']]], ['Liz Westcott', [['WDS', 'Managing Director & CEO']]],

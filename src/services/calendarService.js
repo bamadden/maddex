@@ -55,6 +55,8 @@ const FALLBACK_EVENTS = [
     sourceUrl: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['unemployment'],
     description: 'Unemployment was 4.7% in September, a five-year high.' },
   { date: '2026-12-08', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high' },
+  { date: '2026-12-09', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium',
+    description: 'OCR 2.75% after the 28 Oct hold (4–3); markets had priced a hike that meeting.' },
   { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
     description: 'Range 3.75–4.00% after the 28 Oct hold (10–2; Cook and Hammack wanted a hike). New projections.' },
   { date: '2026-12-18', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium',

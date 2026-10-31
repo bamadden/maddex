@@ -214,3 +214,36 @@ test('every key-fact number appears in its quote, with a page and a source', () 
   }
   assert.equal(n, 50)
 })
+
+// ── Commodity weights and the WES chair ─────────────────────────────────────
+import { COMMODITY_WEIGHTS } from '../src/data/graph/commodityWeights.js'
+
+test('commodity weights: inputs are inside their quotes and the weight is their ratio', () => {
+  const fmt = (v) => v.toLocaleString('en-US', { maximumFractionDigits: 1 })
+  for (const [k, w] of Object.entries(COMMODITY_WEIGHTS)) {
+    for (const part of ['numerator', 'denominator']) {
+      assert.ok(w[part].quote.includes(fmt(w[part].value)), `${k} ${part}: ${w[part].value} not in quote`)
+      assert.ok(Number.isInteger(w[part].page) && w[part].page > 0)
+    }
+    assert.equal(w.weight, Math.round((w.numerator.value / w.denominator.value) * 1000) / 10, k)
+  }
+  const g = loadGraph(ALL_NODES, EDGES, { dev: true })
+  const weighted = g.edges.filter((e) => e.type === 'exposed_to' && e.calc)
+  assert.equal(weighted.length, Object.keys(COMMODITY_WEIGHTS).length)
+  assert.ok(weighted.every((e) => e.confidence === 'DISCLOSED' && e.weight > 0))
+  assert.ok(g.edges.filter((e) => e.type === 'exposed_to' && e.to.startsWith('cmd:') && !e.calc).every((e) => e.confidence === 'INFERRED' && e.weight == null))
+})
+
+test('a calc weight that does not match its inputs is rejected', () => {
+  const w = COMMODITY_WEIGHTS['BHP|cmd:copper']
+  const bad = { from: 'BHP', to: 'cmd:copper', type: 'exposed_to', confidence: 'DISCLOSED', weight: 55, lastVerified: '2026-10-31', source: w.source, calc: { numerator: w.numerator, denominator: w.denominator } }
+  assert.throws(() => loadGraph(ALL_NODES, [...EDGES.filter((e) => !(e.from === 'BHP' && e.to === 'cmd:copper')), bad], { dev: true }), /is not/)
+})
+
+test('Wesfarmers chair is Ken MacKenzie, sourced from the company with a quote', () => {
+  const g = loadGraph(ALL_NODES, EDGES, { dev: true })
+  const e = g.edges.find((x) => x.type === 'director_of' && x.to === 'WES' && x.note === 'Chair')
+  assert.equal(g.byId.get(e.from).name, 'Ken MacKenzie')
+  assert.match(e.quote, /became Chairman in October 2026/)
+  assert.match(e.source.url, /wesfarmers\.com\.au/)
+})

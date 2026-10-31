@@ -6,6 +6,7 @@
 
 import { TOP20, PEOPLE, personId } from './nodes.js'
 import { COMPANY_FACTS, INDEX_CODE, factsSource } from './companyFacts.js'
+import { COMMODITY_WEIGHTS } from './commodityWeights.js'
 
 const READ = '2026-10-31'
 const ANN = (path) => `https://announcements.asx.com.au/asxpdf/${path}.pdf`
@@ -122,11 +123,11 @@ const CUSTOMERS = [
     { weight: 76.7, weightLabel: '% of BWP gross income', note: 'Through Bunnings, a Wesfarmers business; as at 31 Dec 2025.' }),
 ]
 
-// ── Commodity exposure — INFERRED ─────────────────────────────────────────
-// Each company names the commodity in its own description of its business,
-// but none of these rows carries the company's reported segment split, so
-// none is weighted. Adding the split from the latest annual report turns a
-// row DISCLOSED with a weight (TODO.md).
+// ── Commodity exposure ────────────────────────────────────────────────────
+// DISCLOSED with a weight where the producer's latest annual report gives the
+// revenue split (commodityWeights.js: % of revenue, both inputs quoted with
+// their pages). Otherwise INFERRED from the company's own description of its
+// business, unweighted.
 const FMG_SITE = { label: 'Fortescue — What we do ("Nearly 200 million tonnes of iron ore…")', url: 'https://www.fortescue.com/en/what-we-do', date: READ }
 const COMMODITY = [
   ['BHP', 'cmd:iron-ore'], ['BHP', 'cmd:copper'],
@@ -137,6 +138,14 @@ const COMMODITY = [
   ['PLS', 'cmd:lithium'],
 ].map(([co, cmd]) => edge(co, 'exposed_to', cmd, 'INFERRED', asxProfile(co), { note: 'Producer; named in the company\'s own description. No segment split carried.' }))
   .concat([edge('FMG', 'exposed_to', 'cmd:iron-ore', 'INFERRED', FMG_SITE, { note: 'Producer. No segment split carried.' })])
+  .map((e) => {
+    const w = COMMODITY_WEIGHTS[`${e.from}|${e.to}`]
+    if (!w) return e
+    return edge(e.from, 'exposed_to', e.to, 'DISCLOSED', w.source, {
+      weight: w.weight, weightLabel: '% of revenue', note: `${w.basis}.`,
+      quote: w.numerator.quote, page: w.numerator.page, calc: { numerator: w.numerator, denominator: w.denominator },
+    })
+  })
 
 // ── Rate exposure — INFERRED ──────────────────────────────────────────────
 // The banks' margins and loan books move with the cash rate; the RBA's own
@@ -181,7 +190,7 @@ const PEERS = PEER_GROUPS.flatMap(([group, members]) => members.flatMap((a, i) =
     { ...asxProfile(a), label: `ASX company profiles — GICS classification (${a}, ${b})` }, { note: `Peer group: ${group}.` }))))
 
 // ── Directors — DISCLOSED, ASX company directory ──────────────────────────
-const DIRECTORS = PEOPLE.flatMap(([name, roles]) => roles.map(([co, role]) =>
-  edge(personId(name), 'director_of', co, 'DISCLOSED', asxProfile(co), { note: role })))
+const DIRECTORS = PEOPLE.flatMap(([name, roles]) => roles.map(([co, role, own]) =>
+  edge(personId(name), 'director_of', co, 'DISCLOSED', own?.source ?? asxProfile(co), { note: role, ...(own?.quote ? { quote: own.quote } : {}) })))
 
 export const EDGES = [...OWNERSHIP, ...ANNUAL_REPORT_HOLDERS, ...CUSTOMERS, ...COMMODITY, ...RATES, ...ETFS, ...MEMBERSHIP, ...PEERS, ...DIRECTORS]

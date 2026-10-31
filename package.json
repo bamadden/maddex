@@ -9,8 +9,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node --test tests/*.test.mjs",
-    "propose-edges": "node scripts/propose-edges.mjs"
+    "test": "node --test --import ./tests/setup/networkGuard.mjs tests/*.test.mjs",
+    "propose-edges": "node scripts/propose-edges.mjs",
+    "test:ui": "node tests/ui/profile.ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
@@ -56,6 +57,7 @@
     "globals": "^17.6.0",
     "pdfjs-dist": "6.4.299",
     "postcss": "^8.5.15",
+    "puppeteer-core": "23.11.1",
     "sharp": "^0.35.4",
     "tailwindcss": "^3.4.19",
     "vite": "^8.0.12"
