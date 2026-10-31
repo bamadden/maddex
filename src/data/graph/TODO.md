@@ -102,3 +102,21 @@ companies from each latest annual report, marked DISCLOSED. Nine of ten done:
   they get an edge.
 - [ ] AUD/USD, China steel output and US Fed rate are obvious next macro
   nodes.
+
+## Phase 2 — proposals and review (31 Oct 2026)
+
+- [ ] **Three BWP proposals are waiting in REVIEW** (from the 6 May 2026
+  presentation). All three duplicate edges already in the graph, and two
+  carry the wrong type: the model called Wesfarmers' 23.4% stake "customer"
+  and Bunnings a "supplier". Reject them, or fix the type and approve. They
+  are a working sample of the queue.
+- [ ] Set `VITE_GRAPH_REVIEWERS` in Vercel to your Supabase user id (not
+  your email) to see the queue read-only in production. Unset, nobody sees
+  it there.
+- [ ] Run `npm run propose-edges` on the top-10 annual reports, using
+  `--pages` to send only the relevant sections (an annual report in full is
+  roughly 250k tokens). Customer, supplier and JV disclosures are where the
+  graph is thinnest.
+- [ ] Stale edges: most annual-report holder percentages rest on notices
+  more than 12 months old (STALE in the panel). The holders' latest notices
+  would refresh them.

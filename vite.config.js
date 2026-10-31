@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
+import { applyReview } from './scripts/graphReview.js'
 
 // Needs the function form (not a plain object) so loadEnv can read
 // ANTHROPIC_API_KEY — a non-VITE_-prefixed var, kept out of the client
@@ -52,6 +53,28 @@ export default defineConfig(({ mode }) => {
   // calls Resend, neither of which a plain proxy can do. Running the real
   // handler in dev means the 503-without-a-key and 401-without-a-session paths
   // are exercised locally rather than discovered in production.
+  // Relationships review queue: approve / reject writes to the repo's graph
+  // files (scripts/graphReview.js). Dev server only — `configureServer` never
+  // runs in a production build, so there is no such endpoint on Vercel.
+  const graphReviewDevMiddleware = {
+    name: 'maddex-graph-review-dev',
+    configureServer(server) {
+      server.middlewares.use('/__graph/review', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
+        const chunks = []
+        req.on('data', (c) => chunks.push(c))
+        req.on('end', () => {
+          let result
+          try { result = applyReview(process.cwd(), JSON.parse(Buffer.concat(chunks).toString('utf8'))) }
+          catch (err) { result = { ok: false, error: err.message } }
+          res.statusCode = result.ok ? 200 : 400
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(result))
+        })
+      })
+    },
+  }
+
   const alertEmailDevMiddleware = {
     name: 'maddex-alert-email-dev',
     configureServer(server) {
@@ -75,7 +98,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), rssDevMiddleware, alertEmailDevMiddleware],
+    plugins: [react(), rssDevMiddleware, alertEmailDevMiddleware, graphReviewDevMiddleware],
 
     define: {
       __GIT_COMMIT__: JSON.stringify(gitCommit()),

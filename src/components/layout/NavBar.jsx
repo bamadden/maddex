@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   LineChart, Bitcoin, ArrowLeftRight, Activity, Globe, Star, Briefcase, Newspaper, Search,
-  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package, CandlestickChart, Network,
+  Settings as SettingsIcon, Pin, PinOff, Sunrise, Rewind, Radar, Home, Calendar, Landmark, Calculator, Package, CandlestickChart, Network, ClipboardCheck,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { SCANNER_BADGE_KEY, SCANNER_BADGE_EVENT } from '../../services/scannerBadge'
@@ -11,6 +11,7 @@ import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../se
 import { MILESTONES, getProgress, subscribeProgress, shouldShowProgress, markCelebrated } from '../../services/gettingStarted'
 import { useSubscription } from '../../hooks/useSubscription'
 import { PRICES, openPricing, startUpgrade } from '../../services/plans'
+import { useGraphReview } from '../../hooks/useGraphReview'
 
 // Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
 // the one exception (its action is nav.rates — see App.jsx's
@@ -68,6 +69,9 @@ const NAV_ITEMS = [
   { id: 'futures',   label: 'FUTURES',   short: 'FUT',  fkey: null, Icon: CandlestickChart, group: 'INSTRUMENTS' },
   { id: 'calculators', label: 'CALC',    short: 'CLC',  fkey: null, Icon: Calculator, group: 'INSTRUMENTS' },
 ]
+
+// Shown only to graph reviewers; see the NavBar body.
+const REVIEW_ITEM = { id: 'graphreview', label: 'REVIEW', short: 'RVW', fkey: null, Icon: ClipboardCheck, group: 'ANALYSIS' }
 
 // Headings are derived from the items as they render — a heading appears each
 // time `group` changes — rather than from a separate list of group names,
@@ -148,6 +152,13 @@ export default function NavBar() {
   const labelCls = `${LABEL_BASE} ${pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'}`
 
   const { plan } = useSubscription()
+
+  // The Relationships review queue: listed only for reviewers (dev, or an
+  // allow-listed Apex account), right after RELATIONSHIPS, with its count.
+  const graphReview = useGraphReview()
+  const items = graphReview.canReview
+    ? NAV_ITEMS.flatMap((it) => (it.id === 'relationships' ? [it, REVIEW_ITEM] : [it]))
+    : NAV_ITEMS
 
   // Getting-started progress (first week only; see services/gettingStarted).
   const progress = useSyncExternalStore(subscribeProgress, getProgress)
@@ -250,10 +261,10 @@ export default function NavBar() {
           guessed they were there. The mask fades the last 12px so an
           overflowing list is visibly cut. */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden nav-scroll py-1.5">
-        {NAV_ITEMS.map((item, i) => {
+        {items.map((item, i) => {
           const isActive = activeModule === item.id
           const hint = shortcutHint(item)
-          const startsGroup = item.group && (i === 0 || NAV_ITEMS[i - 1].group !== item.group)
+          const startsGroup = item.group && (i === 0 || items[i - 1].group !== item.group)
           return (
             <div key={item.id}>
               {startsGroup && (
@@ -293,6 +304,10 @@ export default function NavBar() {
                   <item.Icon size={18} strokeWidth={1.75} />
                   {item.id === 'brief' && showBriefDot && !isActive && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-terminal-gold pulse-gold" title="New brief available" />
+                  )}
+                  {item.id === 'graphreview' && graphReview.pending > 0 && (
+                    <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-terminal-gold text-terminal-bg font-mono font-bold flex items-center justify-center"
+                      style={{ fontSize: 8 }} title={`${graphReview.pending} relationship proposal${graphReview.pending === 1 ? '' : 's'} to review`}>{graphReview.pending}</span>
                   )}
                   {item.id === 'scanner' && scannerBadge > 0 && !isActive && (
                     <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-terminal-gold text-terminal-bg font-mono font-bold flex items-center justify-center"

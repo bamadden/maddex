@@ -8,7 +8,13 @@
 //
 // node: { id, type, name, ticker, sector, country }
 // edge: { from, to, type, weight, weightLabel?, note?, confidence,
-//         source: { label, url, date }, lastVerified }
+//         source: { label, url, date }, lastVerified,
+//         asAt?   — the date the figure describes, when older than the
+//                   document repeating it (staleness.js)
+//         page?   — the page in the source the edge was read from
+//         quote?  — the sentence it was read from (review-queue edges) }
+//
+// An owns edge can never come from a custodian or nominee (denylist.js).
 //
 // DIRECTION — read every edge as "from <type> to":
 //   owns          holder → held           weight: % of voting power
@@ -18,6 +24,7 @@
 //   member_of     company → index
 //   exposed_to    exposed → driver        (commodity, macro, index)
 //   director_of   person → company        note: the role
+//   joint_venture partner → partner       stored once; symmetric
 //
 // CONFIDENCE:
 //   VERIFIED  a person read the primary document (substantial holder notice,
@@ -29,21 +36,24 @@
 //             without a reported segment split, GICS peers, index membership
 //             from market-cap rank. Drawn dashed; never given a weight.
 
+import { isNomineeHolder } from './denylist.js'
+
 export const NODE_TYPES = ['company', 'commodity', 'macro', 'index', 'etf', 'person', 'fund']
-export const EDGE_TYPES = ['owns', 'supplies', 'customer_of', 'competes_with', 'member_of', 'exposed_to', 'director_of']
+export const EDGE_TYPES = ['owns', 'supplies', 'customer_of', 'competes_with', 'joint_venture', 'member_of', 'exposed_to', 'director_of']
 export const CONFIDENCE = ['VERIFIED', 'DISCLOSED', 'INFERRED']
 
 export const EDGE_LABEL = {
   owns: 'OWNS', supplies: 'SUPPLIES', customer_of: 'CUSTOMER OF', competes_with: 'COMPETES WITH',
-  member_of: 'MEMBER OF', exposed_to: 'EXPOSED TO', director_of: 'DIRECTOR OF',
+  joint_venture: 'JOINT VENTURE', member_of: 'MEMBER OF', exposed_to: 'EXPOSED TO', director_of: 'DIRECTOR OF',
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
 
 export const edgeId = (e) => `${e.from}|${e.type}|${e.to}`
 
-// Every reason an edge cannot be loaded. Empty means it is sound.
-export function edgeProblems(e, nodeIds) {
+// Every reason an edge cannot be loaded. Empty means it is sound. `names`
+// (id → node name) lets it refuse custodian holders.
+export function edgeProblems(e, nodeIds, names = null) {
   const p = []
   if (!EDGE_TYPES.includes(e?.type)) p.push(`type "${e?.type}" is not an edge type`)
   if (!nodeIds.has(e?.from)) p.push(`from "${e?.from}" is not a node`)
@@ -55,6 +65,10 @@ export function edgeProblems(e, nodeIds) {
   if (!ISO.test(e?.lastVerified ?? '')) p.push('missing lastVerified')
   if (e?.weight != null && !(Number.isFinite(e.weight) && e.weight > 0 && e.weight <= 100)) p.push('weight must be a percentage in (0, 100]')
   if (e?.weight != null && e.confidence === 'INFERRED') p.push('an INFERRED edge cannot carry a weight')
+  if (e?.asAt != null && !ISO.test(e.asAt)) p.push('asAt must be an ISO date')
+  if (e?.page != null && !(Number.isInteger(e.page) && e.page > 0)) p.push('page must be a positive integer')
+  if (e?.quote != null && String(e.quote).trim().length < 20) p.push('quote too short to be a source')
+  if (e?.type === 'owns' && names && isNomineeHolder(names.get(e.from))) p.push(`holder "${names.get(e.from)}" is a custodian or nominee, not an owner`)
   return p
 }
 
@@ -86,8 +100,9 @@ export function loadGraph(nodes, edges, { dev = !!import.meta.env?.DEV, log = co
   }
   const goodEdges = []
   const seenEdges = new Set()
+  const names = new Map(goodNodes.map((n) => [n.id, n.name]))
   for (const e of edges) {
-    const p = edgeProblems(e, seenNodes)
+    const p = edgeProblems(e, seenNodes, names)
     if (seenEdges.has(edgeId(e))) p.push('duplicate edge')
     if (p.length) { reject('edge', e, p); continue }
     seenEdges.add(edgeId(e)); goodEdges.push({ ...e, id: edgeId(e) })

@@ -4,7 +4,7 @@
 // Nothing here is generated. Rows were read from the document named in their
 // source on the date given, by a person.
 
-import { TOP20, PEOPLE, personId } from './nodes'
+import { TOP20, PEOPLE, personId } from './nodes.js'
 
 const READ = '2026-10-31'
 const ANN = (path) => `https://announcements.asx.com.au/asxpdf/${path}.pdf`
@@ -63,25 +63,27 @@ const AR = {
   WDS: { label: 'Woodside 2025 Annual Report p273 — substantial shareholders (released 24 Feb 2026)', url: `${ANN('20260224/pdf/06wnjpjvgshc5z')}#page=275`, date: '2026-02-24' },
 }
 const H = { ss: 'fund:state-street', br: 'fund:blackrock', vg: 'fund:vanguard', as: 'fund:australiansuper', citi: 'co:citigroup-gma' }
-const holder = (co, h, weight, note) => edge(H[h], 'owns', co, 'DISCLOSED', AR[co], { weight, note })
+// asAt: the date of the holder's own notice where the report prints one —
+// the figure is that old, whatever the report's date.
+const holder = (co, h, weight, note, asAt) => edge(H[h], 'owns', co, 'DISCLOSED', AR[co], { weight, note, ...(asAt ? { asAt } : {}) })
 const ANNUAL_REPORT_HOLDERS = [
-  holder('BHP', 'ss', 7.13, 'At its last notice (change 30 Jan 2025).'),
-  holder('BHP', 'br', 6.85, 'At its last notice (change 31 Jan 2022), plus ADRs worth 0.08%.'),
-  holder('BHP', 'vg', 6.001, 'At its last notice (change 16 Apr 2025).'),
-  holder('BHP', 'citi', 5.2988, 'At its last notice (change 12 May 2025).'),
-  holder('CBA', 'ss', 7, 'At its last notice (as at 16 Dec 2024); the report rounds to whole per cent.'),
-  holder('CBA', 'br', 6, 'At its last notice (as at 6 Mar 2020); the report rounds to whole per cent.'),
-  holder('CBA', 'vg', 6, 'At its last notice (as at 28 Apr 2025); the report rounds to whole per cent.'),
-  holder('NAB', 'ss', 7.24, 'At its last notice (as at 9 Jan 2025).'),
-  holder('NAB', 'vg', 6.014, 'At its last notice (as at 19 Dec 2024).'),
-  holder('NAB', 'br', 6.02, 'At its last notice (as at 18 Mar 2020).'),
-  holder('NAB', 'as', 5.01, 'At its last notice (as at 19 Sep 2025).'),
-  holder('WBC', 'br', null, 'Substantial (5%+) at 30 Sep 2025; report gives 221,964,794 securities as at 24 Mar 2020, no percentage.'),
-  holder('WBC', 'ss', null, 'Substantial (5%+) at 30 Sep 2025; report gives 226,119,322 securities as at 6 Aug 2024, no percentage.'),
-  holder('WBC', 'vg', null, 'Substantial (5%+) at 30 Sep 2025; report gives 206,182,459 securities as at 18 Dec 2024, no percentage.'),
-  holder('ANZ', 'ss', 7.33, 'At its last notice (as at 16 Dec 2024).'),
-  holder('ANZ', 'vg', 6.275, 'At its last notice (as at 15 May 2025).'),
-  holder('ANZ', 'br', 6.07, 'At its last notice (as at 2 Dec 2019).'),
+  holder('BHP', 'ss', 7.13, 'At its last notice (change 30 Jan 2025).', '2025-01-30'),
+  holder('BHP', 'br', 6.85, 'At its last notice (change 31 Jan 2022), plus ADRs worth 0.08%.', '2022-01-31'),
+  holder('BHP', 'vg', 6.001, 'At its last notice (change 16 Apr 2025).', '2025-04-16'),
+  holder('BHP', 'citi', 5.2988, 'At its last notice (change 12 May 2025).', '2025-05-12'),
+  holder('CBA', 'ss', 7, 'At its last notice (as at 16 Dec 2024); the report rounds to whole per cent.', '2024-12-16'),
+  holder('CBA', 'br', 6, 'At its last notice (as at 6 Mar 2020); the report rounds to whole per cent.', '2020-03-06'),
+  holder('CBA', 'vg', 6, 'At its last notice (as at 28 Apr 2025); the report rounds to whole per cent.', '2025-04-28'),
+  holder('NAB', 'ss', 7.24, 'At its last notice (as at 9 Jan 2025).', '2025-01-09'),
+  holder('NAB', 'vg', 6.014, 'At its last notice (as at 19 Dec 2024).', '2024-12-19'),
+  holder('NAB', 'br', 6.02, 'At its last notice (as at 18 Mar 2020).', '2020-03-18'),
+  holder('NAB', 'as', 5.01, 'At its last notice (as at 19 Sep 2025).', '2025-09-19'),
+  holder('WBC', 'br', null, 'Substantial (5%+) at 30 Sep 2025; report gives 221,964,794 securities as at 24 Mar 2020, no percentage.', '2020-03-24'),
+  holder('WBC', 'ss', null, 'Substantial (5%+) at 30 Sep 2025; report gives 226,119,322 securities as at 6 Aug 2024, no percentage.', '2024-08-06'),
+  holder('WBC', 'vg', null, 'Substantial (5%+) at 30 Sep 2025; report gives 206,182,459 securities as at 18 Dec 2024, no percentage.', '2024-12-18'),
+  holder('ANZ', 'ss', 7.33, 'At its last notice (as at 16 Dec 2024).', '2024-12-16'),
+  holder('ANZ', 'vg', 6.275, 'At its last notice (as at 15 May 2025).', '2025-05-15'),
+  holder('ANZ', 'br', 6.07, 'At its last notice (as at 2 Dec 2019).', '2019-12-02'),
   holder('MQG', 'ss', null, 'Registered as substantial; report gives 26,047,723 shares, no percentage.'),
   holder('MQG', 'br', null, 'Registered as substantial; report gives 22,929,594 shares, no percentage.'),
   holder('MQG', 'vg', null, 'Registered as substantial; report gives 23,027,534 shares, no percentage.'),
@@ -91,10 +93,10 @@ const ANNUAL_REPORT_HOLDERS = [
   holder('WES', 'ss', 7.14, 'As at the report date.'),
   holder('WES', 'br', 6.04, 'As at the report date.'),
   holder('WES', 'vg', 6.0, 'As at the report date.'),
-  holder('WDS', 'ss', 8.13, 'At its last notice (change 4 Mar 2025).'),
-  holder('WDS', 'as', 7.14, 'At its last notice (change 11 Mar 2025).'),
-  holder('WDS', 'br', 7.03, 'At its last notice (change 5 Feb 2024), plus ADRs.'),
-  holder('WDS', 'vg', 6.031, 'At its last notice (change 26 Sep 2024), plus ADRs.'),
+  holder('WDS', 'ss', 8.13, 'At its last notice (change 4 Mar 2025).', '2025-03-04'),
+  holder('WDS', 'as', 7.14, 'At its last notice (change 11 Mar 2025).', '2025-03-11'),
+  holder('WDS', 'br', 7.03, 'At its last notice (change 5 Feb 2024), plus ADRs.', '2024-02-05'),
+  holder('WDS', 'vg', 6.031, 'At its last notice (change 26 Sep 2024), plus ADRs.', '2024-09-26'),
 ]
 
 // ── Customer — from the supplier's own disclosure ─────────────────────────

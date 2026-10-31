@@ -1,3 +1,5 @@
+import { isStale } from '../data/graph/staleness.js'
+
 // Queries over the relationships graph — pure functions, no React.
 //
 // neighbourhood: the nodes and edges within N hops of a focus, after filters.
@@ -19,6 +21,7 @@ export const PROPAGATES = {
   member_of: 'fromTo',    // an index moves with its members
   customer_of: 'both',    // revenue one way, supply the other
   supplies: 'both',
+  joint_venture: 'both',  // partners share the asset
   competes_with: null,
   director_of: null,
 }
@@ -126,15 +129,70 @@ export function searchNodes(graph, q, limit = 8) {
 //   PARTIAL  at least one, but fewer than three substantive edges in all
 //   FULLER   at least one sourced substantive edge and three or more in all
 // "FULLER", not "COMPLETE": no node in a phase-1 graph is complete.
-const SUBSTANTIVE = new Set(['owns', 'supplies', 'customer_of', 'exposed_to', 'competes_with'])
-export function completeness(graph, id) {
+//
+// A STALE edge (staleness.js: figure more than 12 months old) is counted on
+// its own and does not lift the level — a node whose only sourced edges are
+// stale reads THIN.
+const SUBSTANTIVE = new Set(['owns', 'supplies', 'customer_of', 'joint_venture', 'exposed_to', 'competes_with'])
+export function completeness(graph, id, now = Date.now()) {
   const mine = graph.edges.filter((e) => e.from === id || e.to === id)
   const byConfidence = { VERIFIED: 0, DISCLOSED: 0, INFERRED: 0 }
   for (const e of mine) byConfidence[e.confidence]++
+  const stale = mine.filter((e) => isStale(e, now)).length
   const subst = mine.filter((e) => SUBSTANTIVE.has(e.type))
-  const sourced = subst.filter((e) => e.confidence !== 'INFERRED').length
+  const sourced = subst.filter((e) => e.confidence !== 'INFERRED' && !isStale(e, now)).length
   const level = sourced === 0 ? 'THIN' : subst.length < 3 ? 'PARTIAL' : 'FULLER'
   const lastVerified = mine.reduce((m, e) => (e.lastVerified > m ? e.lastVerified : m), '')
   const oldestSource = mine.reduce((m, e) => (!m || e.source.date < m ? e.source.date : m), '')
-  return { total: mine.length, byConfidence, substantive: subst.length, sourcedSubstantive: sourced, level, lastVerified: lastVerified || null, oldestSource: oldestSource || null }
+  return { total: mine.length, byConfidence, stale, substantive: subst.length, sourcedSubstantive: sourced, level, lastVerified: lastVerified || null, oldestSource: oldestSource || null }
+}
+
+// ── Path finder ─────────────────────────────────────────────────────────────
+// "How are X and Y connected?" Up to `max` shortest simple paths, breadth
+// first, each a list of { from, to, edge } hops read in either direction.
+// A path is only as strong as its weakest edge, so its confidence is the
+// lowest on it. Index membership is excluded unless asked for: every large
+// company shares the S&P/ASX 200, which connects everything and explains
+// nothing.
+const RANK = { INFERRED: 0, DISCLOSED: 1, VERIFIED: 2 }
+export const weakestConfidence = (hops) => hops.reduce((w, h) => (RANK[h.edge.confidence] < RANK[w] ? h.edge.confidence : w), 'VERIFIED')
+
+export function findPaths(graph, a, b, { max = 3, maxDepth = 6, includeTypes = null, confidence = null, budget = 40_000 } = {}) {
+  if (!graph.byId.has(a) || !graph.byId.has(b) || a === b) return []
+  const adj = new Map()
+  for (const e of graph.edges) {
+    if (includeTypes && !includeTypes.has(e.type)) continue
+    if (confidence && !confidence.has(e.confidence)) continue
+    ;(adj.get(e.from) ?? adj.set(e.from, []).get(e.from)).push([e.to, e])
+    ;(adj.get(e.to) ?? adj.set(e.to, []).get(e.to)).push([e.from, e])
+  }
+  const found = []
+  let queue = [{ at: a, hops: [], seen: new Set([a]) }]
+  let work = 0
+  for (let depth = 1; depth <= maxDepth && queue.length && found.length < max; depth++) {
+    const next = []
+    for (const path of queue) {
+      for (const [nb, e] of adj.get(path.at) ?? []) {
+        if (path.seen.has(nb)) continue
+        if (++work > budget) return found
+        const hops = [...path.hops, { from: path.at, to: nb, edge: e }]
+        if (nb === b) { found.push(hops); if (found.length >= max) return found; continue }
+        next.push({ at: nb, hops, seen: new Set([...path.seen, nb]) })
+      }
+    }
+    queue = next
+  }
+  return found
+}
+
+// The chain of hops exposureMap used to reach `id` from its origin.
+export function exposurePath(exposure, id) {
+  const hops = []
+  let cur = id
+  while (exposure.has(cur)) {
+    const r = exposure.get(cur)
+    hops.unshift({ from: r.parent, to: cur, edge: r.via })
+    cur = r.parent
+  }
+  return hops
 }

@@ -60,6 +60,7 @@ const CalculatorsModule   = lazy(() => import('./modules/calculators/Calculators
 const ETFModule           = lazy(() => import('./modules/etf/ETFModule'))
 const FuturesModule       = lazy(() => import('./modules/futures/FuturesModule'))
 const RelationshipsModule = lazy(() => import('./modules/relationships/RelationshipsModule'))
+const GraphReviewModule   = lazy(() => import('./modules/graphreview/GraphReviewModule'))
 // d3 + topojson-heavy — code-split out of the main bundle.
 const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
 
@@ -164,6 +165,7 @@ const MODULE_MAP = {
   etf:       ETFModule,
   futures:   FuturesModule,
   relationships: RelationshipsModule,
+  graphreview: GraphReviewModule,
 }
 
 // Module component for an id, wrapped in its plan gate when the module is not
@@ -194,6 +196,7 @@ const MODULE_TITLES = {
   etf:       'ETF Explorer',
   futures:   'Futures & Derivatives',
   relationships: 'Relationships',
+  graphreview: 'Relationships Review',
 }
 
 // Maps shortcutService nav.* action ids to MODULE_MAP keys — see

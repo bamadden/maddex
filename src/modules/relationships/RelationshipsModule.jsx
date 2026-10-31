@@ -6,11 +6,14 @@ import { drag as d3drag } from 'd3-drag'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { GRAPH } from '../../data/graph'
 import { EDGE_TYPES, CONFIDENCE, EDGE_LABEL } from '../../data/graph/schema'
-import { GRAPH_AS_OF, TOP20_LABEL } from '../../data/graph/nodes'
+import { GRAPH_AS_OF, TOP20_LABEL, graphNodeForTicker } from '../../data/graph/nodes'
 import { neighbourhood, edgesOf, exposureMap, searchNodes, PROPAGATES, completeness } from '../../services/graphQuery'
 import { takeModuleIntent } from '../../services/moduleIntent'
+import { useStore } from '../../store/useStore'
+import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel } from './theme'
+import { ConfidenceBadge, StaleBadge, EdgeDetail, PathFinder, ConnectedHoldings } from './RelPanels'
 
-// RELATIONSHIPS — the company graph, phase 1.
+// RELATIONSHIPS — the company graph.
 //
 // Every line on this screen is an edge from src/data/graph, and every edge
 // carries the document it came from. The panel shows that source next to the
@@ -21,20 +24,27 @@ import { takeModuleIntent } from '../../services/moduleIntent'
 // downstream of a shock and how many hops away, and nothing about how much
 // anything moves — see services/graphQuery.js.
 
-const TYPE_COLOUR = {
-  company: '#8BA3C4', commodity: '#C4653A', macro: '#6FA34A', index: '#7B8FD1',
-  etf: '#A37BD1', person: '#5F7896', fund: '#3FA7A0',
-}
-// Solid = VERIFIED, dotted = DISCLOSED, dashed = INFERRED.
-const DASH = { VERIFIED: null, DISCLOSED: '2 3', INFERRED: '6 4' }
-const CONF_TONE = { VERIFIED: '#2D8A50', DISCLOSED: '#8BA3C4', INFERRED: '#C9A84C' }
 const HOP_TONE = ['#E8A33D', '#E8A33D', '#C4853A', '#8A6A3A']
 const DEFAULT_TYPES = EDGE_TYPES.filter((t) => t !== 'member_of')
 const THIN_COMPANIES = new Set(GRAPH.nodes.filter((n) => n.type === 'company' && completeness(GRAPH, n.id).level === 'THIN').map((n) => n.id))
 const LEVEL_TONE = { THIN: '#C4653A', PARTIAL: '#C9A84C', FULLER: '#2D8A50' }
 
-const fmtDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-const nodeLabel = (n) => n.ticker ?? (n.type === 'person' ? n.name.split(' ').slice(-1)[0] : n.name)
+
+// The user's holdings, one row per symbol, from the portfolio saved on this
+// device. Cost basis only: the graph has no prices.
+function loadHoldings() {
+  let rows = []
+  try { rows = JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]') } catch { /* private mode */ }
+  const by = new Map()
+  for (const h of rows) {
+    const sym = String(h.symbol ?? '').toUpperCase()
+    if (!sym) continue
+    const r = by.get(sym) ?? { symbol: sym, cost: 0, currency: h.costCurrency ?? 'AUD', nodeId: graphNodeForTicker(sym) }
+    r.cost += (Number(h.shares) || 0) * (Number(h.avgCost) || 0)
+    by.set(sym, r)
+  }
+  return [...by.values()]
+}
 const radius = (n) => (n.type === 'company' ? (n.top20 ? 9 : 6) : n.type === 'person' ? 4 : 8)
 
 function Chip({ on, onClick, children, tone }) {
@@ -53,15 +63,8 @@ function Chip({ on, onClick, children, tone }) {
   )
 }
 
-function ConfidenceBadge({ c }) {
-  return (
-    <span className="font-mono font-bold tracking-widest px-1 flex-shrink-0"
-      style={{ fontSize: 8, color: CONF_TONE[c], border: `1px solid ${CONF_TONE[c]}66` }}>{c}</span>
-  )
-}
-
 // ── The graph canvas ─────────────────────────────────────────────────────
-function GraphCanvas({ view, selected, onSelect, exposure, origin }) {
+function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exposure, origin, held, watched }) {
   const svgRef = useRef(null)
   const rootRef = useRef(null)
   const [layout, setLayout] = useState({ nodes: [], links: [] })
@@ -129,12 +132,18 @@ function GraphCanvas({ view, selected, onSelect, exposure, origin }) {
       <g ref={rootRef}>
         {layout.links.map((l) => {
           const on = !exposure || ((l.from === origin || exposure.has(l.from)) && (l.to === origin || exposure.has(l.to)) && PROPAGATES[l.type])
+          const sel = l.id === selectedEdge
           return (
-            <line key={l.id} data-eid={l.id} stroke={on && exposure ? '#E8A33D' : '#4A6080'}
-              strokeOpacity={on ? (exposure ? 0.8 : 0.55) : 0.08} strokeWidth={l.confidence === 'VERIFIED' ? 1.6 : 1}
-              strokeDasharray={DASH[l.confidence] ?? undefined}>
-              <title>{`${EDGE_LABEL[l.type]} · ${l.confidence}\n${l.source.label}`}</title>
-            </line>
+            <g key={l.id}>
+              <line data-eid={l.id} stroke={sel ? '#C9A84C' : on && exposure ? '#E8A33D' : '#4A6080'}
+                strokeOpacity={sel ? 1 : on ? (exposure ? 0.8 : 0.55) : 0.08} strokeWidth={sel ? 2.2 : l.confidence === 'VERIFIED' ? 1.6 : 1}
+                strokeDasharray={DASH[l.confidence] ?? undefined} style={{ pointerEvents: 'none' }} />
+              {/* A wide invisible line over each edge, so a 1px line can be clicked. */}
+              <line data-eid={l.id} stroke="transparent" strokeWidth={9} style={{ cursor: 'pointer' }}
+                onClick={(ev) => { ev.stopPropagation(); onSelectEdge(l.id) }}>
+                <title>{`${EDGE_LABEL[l.type]} · ${l.confidence} — click for the source\n${l.source.label}`}</title>
+              </line>
+            </g>
           )
         })}
         {layout.nodes.map((n) => {
@@ -146,6 +155,12 @@ function GraphCanvas({ view, selected, onSelect, exposure, origin }) {
               onClick={(ev) => { ev.stopPropagation(); onSelect(n.id) }}>
               {(isSel || isOrigin || hop) && (
                 <circle r={radius(n) + 4} fill="none" stroke={isSel ? '#C9A84C' : HOP_TONE[hop ?? 0]} strokeWidth={isSel ? 2 : 1.5} />
+              )}
+              {/* MY HOLDINGS: solid green ring for a holding, dashed for a
+                  watchlist name. */}
+              {(held?.has(n.id) || watched?.has(n.id)) && !isSel && (
+                <circle r={radius(n) + 6.5} fill="none" stroke={HELD_TONE} strokeWidth={1.6}
+                  strokeDasharray={held?.has(n.id) ? undefined : '2 2'} />
               )}
               {/* A THIN company is drawn hollow: it is on the map, but the
                   graph knows little about it yet. */}
@@ -165,7 +180,7 @@ function GraphCanvas({ view, selected, onSelect, exposure, origin }) {
 }
 
 // ── Side panel: a node's edges, grouped, each with its source ─────────────
-function EdgeRow({ row, onSelect }) {
+function EdgeRow({ row, onSelect, onEdge, now }) {
   const { edge: e, other, outgoing } = row
   return (
     <div className="py-1.5 border-b border-terminal-border/40">
@@ -175,7 +190,9 @@ function EdgeRow({ row, onSelect }) {
           {other.name}{other.ticker && other.ticker !== other.name ? <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}> {other.ticker}</span> : null}
         </button>
         {e.weight != null && <span className="font-mono tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{e.weight}%</span>}
+        <StaleBadge edge={e} now={now} />
         <ConfidenceBadge c={e.confidence} />
+        <button onClick={() => onEdge(e.id)} className="font-mono text-terminal-text-dim hover:text-terminal-gold flex-shrink-0" style={{ fontSize: 9 }} title="Source, page, date and quote">ⓘ</button>
       </div>
       {(e.note || e.weightLabel) && <div className="text-terminal-text-dim mt-0.5 leading-snug" style={{ fontSize: 10 }}>{[e.weightLabel, e.note].filter(Boolean).join(' · ')}</div>}
       <a href={e.source.url} target="_blank" rel="noopener noreferrer"
@@ -186,8 +203,8 @@ function EdgeRow({ row, onSelect }) {
   )
 }
 
-function Completeness({ id }) {
-  const c = completeness(GRAPH, id)
+function Completeness({ id, now }) {
+  const c = completeness(GRAPH, id, now)
   const n = GRAPH.byId.get(id)
   const showLevel = n.type === 'company'
   return (
@@ -200,6 +217,7 @@ function Completeness({ id }) {
         {CONFIDENCE.map((k) => (
           <span key={k} style={{ color: c.byConfidence[k] ? CONF_TONE[k] : '#3A4E68' }}>{c.byConfidence[k]} {k.slice(0, 4)}</span>
         ))}
+        {c.stale > 0 && <span style={{ color: STALE_TONE }} title="Figure more than 12 months old">{c.stale} STALE</span>}
         <span className="text-terminal-text-dim ml-auto">{c.total} edges</span>
       </div>
       <div className="font-mono text-terminal-text-dim/80 mt-1 leading-snug" style={{ fontSize: 9 }}>
@@ -211,7 +229,7 @@ function Completeness({ id }) {
   )
 }
 
-function NodePanel({ id, onSelect, onShock }) {
+function NodePanel({ id, onSelect, onShock, onEdge, overlay, holdings, now }) {
   const n = GRAPH.byId.get(id)
   const groups = edgesOf(GRAPH, id)
   return (
@@ -222,7 +240,8 @@ function NodePanel({ id, onSelect, onShock }) {
       <div className="font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 10 }}>
         {[...new Set([n.ticker && `ASX:${n.ticker}`, n.sector, n.industry, n.country])].filter(Boolean).join(' · ')}
       </div>
-      <Completeness id={id} />
+      <Completeness id={id} now={now} />
+      {overlay && <ConnectedHoldings id={id} holdings={holdings} onSelectNode={onSelect} />}
       <button onClick={() => onShock(id)}
         className="mt-2 font-mono font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-1" style={{ fontSize: 9 }}>
         SHOCK THIS NODE ▶
@@ -230,7 +249,7 @@ function NodePanel({ id, onSelect, onShock }) {
       {EDGE_TYPES.filter((t) => groups[t]).map((t) => (
         <div key={t} className="mt-3">
           <div className="font-mono tracking-widest text-terminal-text-dim mb-0.5" style={{ fontSize: 9 }}>{EDGE_LABEL[t]} · {groups[t].length}</div>
-          {groups[t].map((r) => <EdgeRow key={r.edge.id} row={r} onSelect={onSelect} />)}
+          {groups[t].map((r) => <EdgeRow key={r.edge.id} row={r} onSelect={onSelect} onEdge={onEdge} now={now} />)}
         </div>
       ))}
     </div>
@@ -360,6 +379,17 @@ export default function RelationshipsModule() {
   const [origin, setOrigin] = useState(null)
   const [shock, setShock] = useState(-10)
   const [tab, setTab] = useState(focus ? 'node' : 'about')
+  const [selectedEdge, setSelectedEdge] = useState(null)
+  const [pathA, setPathA] = useState(null)
+  const [pathB, setPathB] = useState(null)
+  const [viaIndex, setViaIndex] = useState(false)
+  const [shownPath, setShownPath] = useState(null) // { i, hops }
+  const [overlay, setOverlay] = useState(false)
+  const [holdings] = useState(loadHoldings)
+  const [now] = useState(() => Date.now())
+  const { watchlist } = useStore()
+  const held = useMemo(() => new Set(holdings.map((h) => h.nodeId).filter(Boolean)), [holdings])
+  const watched = useMemo(() => new Set((watchlist ?? []).map((w) => graphNodeForTicker(typeof w === 'string' ? w : w?.symbol)).filter(Boolean)), [watchlist])
 
   // An "Open in Relationships" while the module is already on screen.
   useEffect(() => {
@@ -384,11 +414,18 @@ export default function RelationshipsModule() {
     edges: [...exposure.values()].map((r) => r.via),
     hop: new Map(),
   } : null), [exposure, origin])
-  const drawn = shockView ?? view
+  // A path from the path finder, when one is shown: just its nodes and hops.
+  const pathView = useMemo(() => (tab === 'paths' && shownPath ? {
+    nodes: [...new Set(shownPath.hops.flatMap((h) => [h.from, h.to]))].map((id) => GRAPH.byId.get(id)),
+    edges: [...new Map(shownPath.hops.map((h) => [h.edge.id, h.edge])).values()],
+    hop: new Map(),
+  } : null), [tab, shownPath])
+  const drawn = shockView ?? pathView ?? view
 
   const select_ = (id) => { setSelected(id); setTab('node') }
   const toggle = (set, setter, v) => setter(() => { const s = new Set(set); s.has(v) ? s.delete(v) : s.add(v); return s })
   const startShock = (id) => { setOrigin(id); setTab('shock') }
+  const selectEdge = (id) => { setSelectedEdge(id); setTab('edge') }
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -422,14 +459,23 @@ export default function RelationshipsModule() {
         {EDGE_TYPES.map((t) => <Chip key={t} on={types.has(t)} onClick={() => toggle(types, setTypes, t)}>{EDGE_LABEL[t]}</Chip>)}
         <span className="w-px h-4 bg-terminal-border mx-1" />
         {CONFIDENCE.map((c) => <Chip key={c} on={confidence.has(c)} tone={CONF_TONE[c]} onClick={() => toggle(confidence, setConfidence, c)}>{c}</Chip>)}
+        <span className="w-px h-4 bg-terminal-border mx-1" />
+        <Chip on={overlay} tone={HELD_TONE} onClick={() => setOverlay((v) => !v)}>MY HOLDINGS{overlay ? ` · ${held.size} HELD · ${watched.size} WATCHED` : ''}</Chip>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <div className="relative flex-1 min-h-[360px]">
-          <GraphCanvas view={drawn} selected={selected} onSelect={select_} exposure={exposure} origin={origin} />
+          <GraphCanvas view={drawn} selected={selected} onSelect={select_} onSelectEdge={selectEdge} selectedEdge={tab === 'edge' ? selectedEdge : null}
+            exposure={exposure} origin={origin} held={overlay ? held : null} watched={overlay ? watched : null} />
           <div className="absolute left-3 bottom-2 font-mono text-terminal-text-dim/70 pointer-events-none" style={{ fontSize: 9 }}>
-            {drawn.nodes.length} NODES · {drawn.edges.length} EDGES{focus && !shockView ? ` · ${depth} HOP${depth > 1 ? 'S' : ''} FROM ${nodeLabel(GRAPH.byId.get(focus)).toUpperCase()}` : ''} · DRAG · SCROLL TO ZOOM
+            {drawn.nodes.length} NODES · {drawn.edges.length} EDGES{pathView ? ' · PATH' : focus && !shockView ? ` · ${depth} HOP${depth > 1 ? 'S' : ''} FROM ${nodeLabel(GRAPH.byId.get(focus)).toUpperCase()}` : ''} · CLICK A LINE FOR ITS SOURCE · SCROLL TO ZOOM
           </div>
+          {overlay && !exposure && (
+            <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
+              style={{ fontSize: 9, color: HELD_TONE, border: `1px solid ${HELD_TONE}88`, background: 'rgba(4,10,20,0.85)' }}>
+              CONNECTED EXPOSURE, NOT FORECAST
+            </div>
+          )}
           {exposure && (
             <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
               style={{ fontSize: 9, color: '#E8A33D', border: '1px solid rgba(232,163,61,0.5)', background: 'rgba(4,10,20,0.85)' }}>
@@ -439,8 +485,8 @@ export default function RelationshipsModule() {
         </div>
         <aside className="lg:w-[340px] flex-shrink-0 border-t lg:border-t-0 lg:border-l border-terminal-border flex flex-col min-h-0 bg-terminal-panel">
           <div className="flex border-b border-terminal-border flex-shrink-0">
-            {[['about', 'ABOUT'], ['node', 'NODE'], ['shock', 'SHOCK']].map(([k, label]) => (
-              <button key={k} onClick={() => setTab(k)} disabled={k === 'node' && !selected}
+            {[['about', 'ABOUT'], ['node', 'NODE'], ['edge', 'EDGE'], ['paths', 'PATHS'], ['shock', 'SHOCK']].map(([k, label]) => (
+              <button key={k} onClick={() => setTab(k)} disabled={(k === 'node' && !selected) || (k === 'edge' && !selectedEdge)}
                 className="flex-1 font-mono tracking-widest py-1.5 disabled:opacity-30"
                 style={{ fontSize: 9, color: tab === k ? '#C9A84C' : '#637899', borderBottom: tab === k ? '2px solid #C9A84C' : '2px solid transparent' }}>
                 {label}
@@ -449,7 +495,13 @@ export default function RelationshipsModule() {
           </div>
           <div className="flex-1 overflow-y-auto p-3 min-h-0">
             {tab === 'about' && <Legend />}
-            {tab === 'node' && selected && <NodePanel id={selected} onSelect={select_} onShock={startShock} />}
+            {tab === 'node' && selected && <NodePanel id={selected} onSelect={select_} onShock={startShock} onEdge={selectEdge} overlay={overlay} holdings={holdings} now={now} />}
+            {tab === 'edge' && selectedEdge && <EdgeDetail id={selectedEdge} onSelectNode={select_} now={now} />}
+            {tab === 'paths' && (
+              <PathFinder a={pathA} b={pathB} setA={(id) => { setPathA(id); setShownPath(null) }} setB={(id) => { setPathB(id); setShownPath(null) }}
+                viaIndex={viaIndex} setViaIndex={(v) => { setViaIndex(v); setShownPath(null) }} confidence={confidence}
+                shown={shownPath?.i} onShowPath={(i, hops) => setShownPath({ i, hops })} onSelectEdge={selectEdge} />
+            )}
             {tab === 'shock' && <ShockPanel origin={origin} setOrigin={setOrigin} shock={shock} setShock={setShock} exposure={exposure} onSelect={select_} />}
           </div>
         </aside>
