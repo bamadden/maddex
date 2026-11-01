@@ -63,10 +63,7 @@ const LEGACY_TIPS_KEY = 'maddex_tips_dismissed'
 // target: CSS selector of the element the arrow points at. Without one (or if
 // it is not on screen) the tooltip sits in the module's corner, unanchored.
 export const TOOLTIPS = {
-  // Waits for the first-run layout picker to be dealt with — over the picker
-  // the EDIT button it points at is dimmed out of reach.
-  dashboard: { text: 'Press EDIT, then drag widgets to customise your layout.', target: '[data-tip="dashboard-edit"]',
-    ready: () => { try { return localStorage.getItem('maddex_dashboard_setup_done') === 'true' } catch { return true } } },
+  dashboard: { text: 'CUSTOM switches to a widget layout you arrange yourself; OVERVIEW comes back to this view.', target: '[data-tip="dashboard-view"]' },
   markets:   { text: 'Click any stock for a deep dive.', target: '[data-tip="markets-movers"]' },
   global:    { text: 'Press F with the pointer over the map to search any location.', target: '[data-tip="global-search"]' },
   fx:        { text: "RBA figures are checked against the RBA's own data — the LIVE CHECK badge flags any change after a decision.", target: '[data-tip="rba-hero"]' },

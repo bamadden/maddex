@@ -9,6 +9,12 @@ import DashboardGrid from './DashboardGrid'
 import DashboardControls from './DashboardControls'
 import WidgetPicker from './WidgetPicker'
 import TrialWelcomeBanner from './TrialWelcomeBanner'
+import OverviewSurface from './OverviewSurface'
+
+// OVERVIEW (the default) is the fixed command surface; CUSTOM is the widget
+// grid people arrange themselves. The choice is remembered per device.
+const VIEW_KEY = 'maddex_dashboard_view'
+const readView = () => { try { return localStorage.getItem(VIEW_KEY) === 'custom' ? 'custom' : 'overview' } catch { return 'overview' } }
 
 // The dashboard is now a layout host, not a fixed page.
 //
@@ -35,6 +41,9 @@ export default function DashboardModule() {
   )
   const layout = dashboardService.getLayout()
 
+  const [view, setViewState] = useState(readView)
+  const setView = (v) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v) } catch { /* private mode */ } }
+  const custom = view === 'custom'
   const [showPicker, setShowPicker] = useState(false)
   // Measured, not a media query — the dashboard also renders in a split
   // pane and a popped-out window, where viewport width is not the
@@ -54,7 +63,7 @@ export default function DashboardModule() {
   // would be a setState-during-effect (the cascading-render pattern), and it
   // would also DISCARD the user's choice, so widening the window would come
   // back with edit mode off rather than as they left it.
-  const editing = editMode && !isNarrow
+  const editing = editMode && !isNarrow && custom
 
   // Widgets navigate by event so they can render anywhere, including inside
   // a popout window with no store provider in scope.
@@ -97,17 +106,24 @@ export default function DashboardModule() {
     <div ref={shellRef} className="h-full flex flex-col min-h-0 relative">
       <ModuleHeader
         title="DASHBOARD"
-        subtitle="Your terminal at a glance"
+        subtitle={custom ? 'Your own layout' : 'Markets, the RBA, your holdings and what changed'}
         right={
           <div className="flex items-center gap-1.5">
             <MorningCallButton />
+            <div role="tablist" aria-label="Dashboard view" className="flex" data-tip="dashboard-view">
+              {[['overview', 'OVERVIEW'], ['custom', 'CUSTOM']].map(([v, label]) => (
+                <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+                  className={`font-mono text-[11px] tracking-widest px-2 py-1 transition-colors ${view === v ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                  style={view === v ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}>{label}</button>
+              ))}
+            </div>
             {/* Layout picker and edit mode are both hidden when narrow.
                 Choosing between 1x3, 2x2, 3x2, 3x3 and 4x3 grids is
                 meaningless when the grid renders as a single column
                 regardless, and drag-to-rearrange needs a pointer it will not
                 have. The saved layout is untouched — it returns when there is
                 room to act on it. */}
-            {!isNarrow && (
+            {custom && !isNarrow && (
               <button
                 onClick={() => setShowPicker((v) => !v)}
                 className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
@@ -116,7 +132,7 @@ export default function DashboardModule() {
                 style={showPicker ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
               >⊞ LAYOUT</button>
             )}
-            {!isNarrow && (
+            {custom && !isNarrow && (
               <button
                 onClick={() => setEditMode((v) => !v)}
                 data-tip="dashboard-edit"
@@ -131,7 +147,7 @@ export default function DashboardModule() {
         }
       />
 
-      {showPicker && <DashboardControls layout={layout} onChange={() => {}} />}
+      {custom && showPicker && <DashboardControls layout={layout} onChange={() => {}} />}
 
       <DashboardStatusBar />
       <TrialWelcomeBanner />
@@ -150,11 +166,13 @@ export default function DashboardModule() {
         </div>
       )}
 
-      <DashboardGrid
-        layout={effective}
-        editMode={editing}
-        onAddAt={(col, row) => { setAddAt({ col, row }); }}
-      />
+      {custom ? (
+        <DashboardGrid
+          layout={effective}
+          editMode={editing}
+          onAddAt={(col, row) => { setAddAt({ col, row }); }}
+        />
+      ) : <OverviewSurface />}
 
       {addAt && (
         <WidgetPicker
@@ -164,7 +182,7 @@ export default function DashboardModule() {
         />
       )}
 
-      {showSetup && (
+      {custom && showSetup && (
         <DashboardSetup
           onPick={(presetId) => {
             dashboardService.applyPreset(presetId)

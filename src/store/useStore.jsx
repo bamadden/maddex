@@ -38,7 +38,8 @@ function saveSimpleAlerts(next) {
 }
 
 export function StoreProvider({ children }) {
-  const [activeModule, setActiveModuleRaw] = useState('markets')
+  // New users land on the dashboard (Overview), not the denser Markets grid.
+  const [activeModule, setActiveModuleRaw] = useState('dashboard')
   // Stamps the switch for Settings → About's module load times.
   const setActiveModule = useCallback((m) => { markModuleSwitch(m); setActiveModuleRaw(m) }, [])
   const [watchlist, setWatchlist]       = useState(getStoredWatchlist)

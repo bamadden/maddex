@@ -1344,3 +1344,18 @@ input.cmd-input:focus,
 @media (prefers-reduced-motion: reduce) {
   [style*="maddex-price-in"] { animation: none !important; }
 }
+
+/* Overview (dashboard default view): one screen on desktop, one column on
+   phones. Row 1 market state; row 2 RBA & macro | holdings | watchlist;
+   row 3 since your last visit | coming up. */
+.overview-grid { grid-template-columns: minmax(0, 1fr); }
+.overview-grid > section { min-height: 180px; }
+@media (min-width: 1100px) {
+  .overview-grid {
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+  .overview-grid > section { min-height: 0; }
+  .overview-grid > .overview-wide { grid-column: span 2; }
+}
