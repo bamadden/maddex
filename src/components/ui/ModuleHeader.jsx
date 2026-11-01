@@ -97,9 +97,9 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           }, { rawPrompt: true })}
           title={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
           aria-label={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
-          className="flex items-center justify-center w-6 h-6 flex-shrink-0 ml-3 transition-colors font-mono font-bold"
-          style={{ fontSize: 12, color: PAL.gold, border: '1px solid rgba(201,168,76,0.3)' }}
-        >M</button>
+          className="flex items-center justify-center h-6 px-2 flex-shrink-0 ml-3 transition-colors font-mono font-bold whitespace-nowrap hover:bg-terminal-gold/10"
+          style={{ fontSize: 11, letterSpacing: '0.1em', color: PAL.gold, border: '1px solid rgba(201,168,76,0.3)' }}
+        >ASK AI</button>
       )}
 
       {/* The three standard affordances are noise until wanted, so they fade

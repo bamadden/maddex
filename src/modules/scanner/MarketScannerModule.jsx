@@ -840,7 +840,7 @@ export default function MarketScannerModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="MARKET SCANNER"
-        subtitle="Automated pattern & signal detection"
+        subtitle="Breakouts · Volume spikes · Unusual activity"
         moduleId="scanner"
         right={
           <span className="flex items-center gap-2 text-2xs font-mono text-terminal-text-dim flex-shrink-0">

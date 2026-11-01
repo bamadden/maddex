@@ -889,7 +889,7 @@ export default function PortfolioModule() {
   if (holdings.length > 0 && isFetching && !portfolioResult && yfSymbols.length > 0) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
-        <ModuleHeader title="PORTFOLIO" subtitle="Loading live prices…" isFetching />
+        <ModuleHeader title="PORTFOLIO" subtitle="Loading prices…" isFetching />
         <div className="p-3 space-y-2">
           {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} rows={2} />)}
         </div>
@@ -902,7 +902,7 @@ export default function PortfolioModule() {
       <div className="h-full flex flex-col overflow-hidden">
         <ModuleHeader
           title="PORTFOLIO"
-          subtitle="Track your holdings across ASX, US equities, and crypto"
+          subtitle="ASX · US equities · Crypto"
           right={(
             <div className="flex items-center gap-2">
               <button onClick={() => setShowImport(true)} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide">IMPORT CSV</button>
