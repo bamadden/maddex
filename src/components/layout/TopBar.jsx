@@ -228,7 +228,7 @@ function OfficialDataDot() {
   )
 }
 
-function DataFreshnessBadge() {
+function DataFreshnessBadge({ interactive = true }) {
   const queryClient = useQueryClient()
   const REFRESH_INTERVAL = 60
   const [lastRefresh, setLastRefresh] = useState(() => Date.now())
@@ -283,6 +283,21 @@ function DataFreshnessBadge() {
   const ageMins = Math.floor(elapsed / 60)
   const tone = ageMins < 5 ? { c: PAL.up, pulse: true } : ageMins < 60 ? { c: PAL.gold, pulse: false } : { c: PAL.down, pulse: false }
   const due = remaining === 0
+  const dot = (
+    <span
+      className={`inline-block rounded-full transition-colors ${tone.pulse ? 'animate-pulse' : ''}`}
+      style={{ width: 5, height: 5, background: tone.c }}
+    />
+  )
+  // Where REFRESH ALL is shown (Apex) the dot is status only, so the bar has
+  // one refresh control rather than two side by side.
+  if (!interactive) {
+    return (
+      <Tooltip content={`Refreshed ${refreshedLabel}\n${due ? 'Refresh due' : `Auto-refresh in ${remaining}s`}`}>
+        <span role="img" aria-label={`Data refreshed ${refreshedLabel}`} className="flex items-center justify-center w-3.5 h-7 flex-shrink-0">{dot}</span>
+      </Tooltip>
+    )
+  }
   return (
     <Tooltip content={`Refreshed ${refreshedLabel}\n${due ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
     <button
@@ -290,10 +305,7 @@ function DataFreshnessBadge() {
       aria-label="Refresh live data"
       className="flex items-center justify-center w-3.5 h-7 flex-shrink-0 group"
     >
-      <span
-        className={`inline-block rounded-full transition-colors ${tone.pulse ? 'animate-pulse' : ''}`}
-        style={{ width: 5, height: 5, background: tone.c }}
-      />
+      {dot}
     </button>
     </Tooltip>
   )
@@ -465,7 +477,7 @@ export default function TopBar() {
           </span>,
           <OfficialDataDot key="official" />,
           canUse('priorityRefresh') ? <RefreshAllButton key="refresh" /> : null,
-          USING_MOCK_DATA ? <DataFreshnessBadge key="data" /> : null,
+          USING_MOCK_DATA ? <DataFreshnessBadge key="data" interactive={!canUse('priorityRefresh')} /> : null,
           // Mounted for everyone, not just signed-in users.
           //
           // NotificationCenter is not just the bell — every alert checker in
