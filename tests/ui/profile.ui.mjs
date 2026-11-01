@@ -275,6 +275,44 @@ try {
   else fail('tour returned after a replay')
   await ob.close()
 
+  console.log('Phone (390px): Markets fits, ALL lists every module')
+  const ph = await newPage(browser, { width: 390, mobile: true })
+  await runCommand(ph, 'markets')
+  await ph.waitForFunction(() => !document.body.innerText.includes('LOADING MODULE') && /COMPARE INDICES/.test(document.body.innerText), { timeout: 60_000 }).catch(() => {})
+  await wait(2500)
+  const spill = await ph.evaluate(() => [...document.querySelectorAll('main *, header *')].filter((el) => {
+    const r = el.getBoundingClientRect()
+    return r.width && r.right > innerWidth + 1 && r.left < innerWidth && !el.closest('[class*=overflow-x-auto],[class*=overflow-x-scroll]')
+  }).map((el) => el.textContent.trim().slice(0, 30)).slice(0, 5))
+  spill.length ? fail(`Markets spills past the screen edge: ${spill.join(' / ')}`) : pass('nothing on Markets runs past the screen edge')
+  const cards = await ph.evaluate(() => {
+    const strip = [...document.querySelectorAll('main .snap-x')][0]
+    if (!strip) return null
+    const box = strip.getBoundingClientRect()
+    return [...strip.children].filter((c) => { const r = c.getBoundingClientRect(); return r.left < box.right - 1 && r.right > box.right + 1 }).length
+  })
+  cards === 0 ? pass('the index strip shows whole cards') : fail(`index strip cuts a card (${cards})`)
+  await ph.click('button[aria-label="All modules"]')
+  const listed = await ph.waitForSelector('[data-all-modules]', { timeout: 5000 }).then(() => ph.evaluate(() => document.querySelectorAll('[data-all-modules] .grid button').length)).catch(() => 0)
+  listed >= 19 ? pass(`ALL lists ${listed} modules`) : fail(`ALL lists ${listed} modules`)
+  await ph.evaluate(() => [...document.querySelectorAll('[data-all-modules] .grid button')].find((b) => b.textContent.includes('CALC'))?.click())
+  await ph.waitForFunction(() => /CALCULATORS|CALC/.test(document.querySelector('main')?.innerText ?? ''), { timeout: 30_000 }).then(() => pass('picking a module there opens it')).catch(() => fail('ALL did not open the module'))
+  await ph.close()
+
+  console.log('Core plan: a locked module has a way back')
+  const core = await newPage(browser, { width: 1440 })
+  await core.evaluateOnNewDocument(() => localStorage.setItem('maddex_dev_plan', 'core')) // runs after newPage's apex seed
+  await core.reload({ waitUntil: 'domcontentloaded' }); await core.waitForSelector('[data-command-bar]', { timeout: 60_000 }); await wait(2000)
+  await runCommand(core, 'portfolio')
+  const back = await core.waitForFunction(() => [...document.querySelectorAll('[role=dialog] button')].find((b) => /BACK TO OVERVIEW/.test(b.textContent)), { timeout: 30_000 }).catch(() => null)
+  if (!back) fail('locked Portfolio shows no way back')
+  else {
+    await core.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].find((b) => /BACK TO OVERVIEW/.test(b.textContent)).click())
+    await core.waitForFunction(() => !/BACK TO OVERVIEW/.test(document.body.innerText), { timeout: 10_000 })
+      .then(() => pass('BACK TO OVERVIEW leaves the locked module')).catch(() => fail('BACK TO OVERVIEW did nothing'))
+  }
+  await core.close()
+
   console.log('MaddenAI is mocked')
   await runCommand(page, 'ai what does the profile show')
   await wait(3000)

@@ -450,8 +450,33 @@ export default function NavBar() {
 // CommandBar in App.jsx, not `fixed`, so it never overlaps the command input.
 export function MobileNavBar() {
   const { activeModule, setActiveModule, chatOpen, setChatOpen } = useStore()
+  // The bar fits about six tabs on a phone; ALL lists every module so the
+  // rest are not hidden behind a sideways scroll nobody knows is there.
+  const [allOpen, setAllOpen] = useState(false)
+  const go = (id) => { setActiveModule(id); setAllOpen(false) }
 
   return (
+    <>
+    {allOpen && (
+      <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end bg-black/60" onClick={() => setAllOpen(false)}>
+        <div role="dialog" aria-label="All modules" data-all-modules className="bg-terminal-panel border-t border-terminal-border-gold p-3 max-h-[75vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center mb-2">
+            <span className="font-mono text-2xs tracking-widest text-terminal-gold">ALL MODULES</span>
+            <button onClick={() => setAllOpen(false)} aria-label="Close" className="ml-auto text-terminal-text-dim hover:text-terminal-text px-2">✕</button>
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {NAV_ITEMS.map((item) => (
+              <button key={item.id} onClick={() => go(item.id)}
+                className={`flex flex-col items-center justify-center gap-1 py-2.5 border ${activeModule === item.id ? 'border-terminal-gold/60 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim'}`}>
+                <item.Icon size={16} strokeWidth={1.75} />
+                <span className="text-[11px] tracking-wide leading-none">{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 text-2xs text-terminal-text-dim">Or type a module name in the command bar.</div>
+        </div>
+      </div>
+    )}
     <div className="flex md:hidden items-stretch bg-terminal-header border-t border-terminal-border flex-shrink-0 overflow-x-auto hide-scrollbar">
       {NAV_ITEMS.map((item) => (
         <button
@@ -465,18 +490,30 @@ export function MobileNavBar() {
           <span className="text-[11px] tracking-wide leading-none">{item.short}</span>
         </button>
       ))}
-      <button
-        onClick={() => setChatOpen((v) => !v)}
-        // Pinned to the right edge: it sat after eighteen module tabs in a
-        // scrolling bar, so on a phone MaddenAI was off-screen.
-        className={`sticky right-0 bg-terminal-header flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 flex-shrink-0 min-w-[56px] ml-auto border-l border-terminal-border ${
-          chatOpen ? 'text-terminal-gold' : 'text-terminal-gold/70'
-        }`}
-        aria-label="MaddenAI"
-      >
-        <span className="text-sm leading-none">▲</span>
-        <span className="text-[11px] tracking-wide leading-none">AI</span>
-      </button>
+      {/* Pinned to the right edge: they sat after eighteen module tabs in a
+          scrolling bar, so on a phone they were off-screen. */}
+      <div className="sticky right-0 ml-auto flex flex-shrink-0 bg-terminal-header border-l border-terminal-border">
+        <button
+          onClick={() => setAllOpen(true)}
+          className="flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 min-w-[52px] text-terminal-text-bright"
+          aria-label="All modules"
+          aria-expanded={allOpen}
+        >
+          <span className="text-sm leading-none">☰</span>
+          <span className="text-[11px] tracking-wide leading-none">ALL</span>
+        </button>
+        <button
+          onClick={() => setChatOpen((v) => !v)}
+          className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 min-w-[52px] border-l border-terminal-border ${
+            chatOpen ? 'text-terminal-gold' : 'text-terminal-gold/70'
+          }`}
+          aria-label="MaddenAI"
+        >
+          <span className="text-sm leading-none">▲</span>
+          <span className="text-[11px] tracking-wide leading-none">AI</span>
+        </button>
+      </div>
     </div>
+    </>
   )
 }

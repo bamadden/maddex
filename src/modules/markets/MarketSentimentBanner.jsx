@@ -484,20 +484,22 @@ export default function MarketSentimentBanner() {
         className="border-b border-terminal-border bg-terminal-header flex-shrink-0 flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-terminal-accent/10 transition-colors"
         onClick={handleOpen}
       >
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0 whitespace-nowrap" title={sentimentTooltip(ms)}>MARKET SENTIMENT</span>
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0 whitespace-nowrap" title={sentimentTooltip(ms)}><span className="hidden sm:inline">MARKET </span>SENTIMENT</span>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0">◆</span>
         <span className="text-2xs font-bold flex-shrink-0 whitespace-nowrap" style={{ color }} data-sentiment-score={sentiment.score}>
           {sentiment.score}/100
         </span>
-        <ScoreGradientBar score={sentiment.score} />
+        {/* Phones keep the score and its label; the bar, breadth and summary
+            are in DETAILS. */}
+        <div className="hidden sm:block"><ScoreGradientBar score={sentiment.score} /></div>
         <SentimentBadge label={sentiment.label} score={sentiment.score} />
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0 hidden md:inline">·</span>
         <div className="hidden md:block">
           <BreadthGauge changes={asxChanges} />
         </div>
-        <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0">·</span>
-        <span className="text-2xs text-terminal-text-dim truncate min-w-0 flex-1">{shortSummary}</span>
-        <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hover:text-terminal-gold">[▼ DETAILS]</span>
+        <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0 hidden sm:inline">·</span>
+        <span className="text-2xs text-terminal-text-dim truncate min-w-0 flex-1 hidden sm:inline">{shortSummary}</span>
+        <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hover:text-terminal-gold ml-auto">[▼<span className="hidden sm:inline"> DETAILS</span>]</span>
       </div>
 
       {modalOpen && (

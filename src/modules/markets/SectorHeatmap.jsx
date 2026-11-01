@@ -842,7 +842,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   return (
     <div className="flex flex-col">
       {/* Breadcrumb / status bar */}
-      <div className="flex items-center gap-2 px-2 py-1 border-b border-terminal-border flex-shrink-0 bg-terminal-header">
+      <div className="flex flex-wrap items-center gap-2 px-2 py-1 border-b border-terminal-border flex-shrink-0 bg-terminal-header">
         <span className="text-2xs font-bold text-terminal-text-dim tracking-wider">
           SHOWING {indexLabel.toUpperCase()} SECTORS
         </span>
@@ -912,7 +912,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
         {/* Heatmap grid */}
         <div className={`p-2 transition-all duration-150 ${selected ? 'w-[55%]' : 'w-full'}`}>
           <div
-            className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-4' : 'grid-cols-3 xl:grid-cols-6'}`}
+            className={`grid gap-1.5 ${selected ? 'grid-cols-2 xl:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6'}`}
             style={{ gridAutoFlow: 'dense' }}
           >
             {(() => {
@@ -1038,7 +1038,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
                   {/* Bottom row: secondary metric (left) + breadth (bottom-right) */}
                   <div className="flex items-end justify-between flex-shrink-0 gap-1">
-                    <span className="text-[11px] font-mono leading-tight" style={{ color: secColor, opacity: 0.85 }}>
+                    <span className="text-[11px] font-mono leading-tight truncate min-w-0" style={{ color: secColor, opacity: 0.85 }}>
                       {secChange != null
                         ? `${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}% ${secondaryMetric}`
                         : `— ${secondaryMetric}`

@@ -355,6 +355,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
   return (
     <div className="bg-terminal-panel border-b border-terminal-border font-mono relative">
       <div className="flex items-center justify-end gap-2 px-2 pt-1 pb-0.5">
+        <span className="sm:hidden mr-auto text-2xs text-terminal-text-dim">{indices.length} indices · swipe →</span>
         {USING_MOCK_DATA ? <DemoBadge /> : isDelayed && <StaleBadge cachedAt={quotesResult?.cachedAt} />}
         <button
           onClick={() => setCompareOpen(true)}
@@ -365,8 +366,10 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
       {isFetching && !quotes ? (
         <SkeletonIndexBar count={indices.length} />
       ) : (
+      // Phones: three whole cards per screen, snapping, so a card is never
+      // cut mid-figure; the rest are a swipe away (said above).
       <div
-        className="grid grid-flow-col auto-cols-[120px] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-5 lg:grid-cols-10 gap-0 overflow-x-auto sm:overflow-visible hide-scrollbar"
+        className="grid grid-flow-col auto-cols-[calc(100%/3)] snap-x snap-mandatory [&>*]:snap-start sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-5 lg:grid-cols-10 gap-0 overflow-x-auto sm:overflow-visible hide-scrollbar"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {indices.map(({ symbol, label, isAud }, idx) => {

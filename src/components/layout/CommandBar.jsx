@@ -16,7 +16,11 @@ import {
   resolveAsset, searchCatalogue, parseSectorQuery, calcMatches, parseCompound,
   parseBondQuery, timeSuggestions, sydneyClock,
 } from './commandSearch'
+
 import { PAL } from '../../styles/palette.js'
+
+// Phones get a placeholder that fits whole beside CMD> and the status.
+const NARROW = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 639px)').matches
 
 // Module nav now has its own MODULES category (below) — these are the
 // remaining power-user commands that aren't just "go to a module".
@@ -1740,7 +1744,7 @@ export default function CommandBar() {
               if (inputValue.trim()) setSuggestions(getSuggestions(inputValue))
               else setShowRecent(true)
             }}
-            placeholder="Ticker · Command · Question — type HELP or ? for all commands"
+            placeholder={NARROW ? 'Ticker, question or ? for help' : 'Ticker · Command · Question — type HELP or ? for all commands'}
             inputMode="text"
             autoComplete="off"
             spellCheck={false}
