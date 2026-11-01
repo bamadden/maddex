@@ -11,12 +11,15 @@
 // fields:    { path, expect } checked against the context check-stats builds:
 //            the verified constants, plus graph.ceo.<TICKER> and
 //            graph.chair.<TICKER> — the CEO and chair named in
-//            src/data/graph/nodes.js — and keyFacts.<TICKER>.<field>.value
+//            src/data/graph/nodes.js — graph.boards.<Person name>, the
+//            companies a person holds any role at (nodes.js PEOPLE plus
+//            approved director_of edges), and keyFacts.<TICKER>.<field>.value
 //            from src/data/graph/keyFacts.js. expect is one of
 //            { gte: value } — the field is at least this (ISO dates compare);
 //            { eq: value }  — the field equals this;
 //            { ne: value }  — the field no longer equals this;
-//            { hasDate: d } — a list of { date } contains this date.
+//            { hasDate: d } — a list of { date } contains this date;
+//            { excludes: v } — a list does not contain this value.
 //
 // Dependency-free so the Node script can import it.
 
@@ -46,6 +49,20 @@ export const DATED_CHANGES = [
     ],
     source: 'WES ASX release, 28 Aug 2025; wesfarmers.com.au/who-we-are/directors, read 31 Oct 2026',
     howTo: 'src/data/graph/nodes.js PEOPLE',
+  },
+  {
+    // Chaney's chairmanship passed to MacKenzie (above); this is the wider
+    // fact that he left the Wesfarmers board altogether. It also catches the
+    // review-queue proposal "Michael Chaney AO director_of Wesfarmers" (from
+    // the August annual report) being approved after he left.
+    id: 'wes-chaney-board-2026-10-29',
+    what: 'Michael Chaney leaves the Wesfarmers board at the 29 Oct 2026 AGM',
+    effective: '2026-10-29T13:00:00+08:00',
+    fields: [
+      { path: 'graph.boards.Michael Chaney', expect: { excludes: 'WES' } },
+    ],
+    source: 'Wesfarmers final director\'s interest notice for M A Chaney, lodged 30 Oct 2026; wesfarmers.com.au/who-we-are/directors, read 31 Oct 2026',
+    howTo: 'src/data/graph/nodes.js PEOPLE; reject proposal f31b784d8c58738a in REVIEW',
   },
   {
     id: 'mqg-ceo-2026-11-07',
@@ -181,7 +198,23 @@ export function fieldUpdated(ctx, { path, expect }) {
   if ('eq' in expect) return v === expect.eq
   if ('ne' in expect) return v !== expect.ne
   if ('hasDate' in expect) return Array.isArray(v) && v.some((x) => x?.date === expect.hasDate)
+  if ('excludes' in expect) return !(Array.isArray(v) && v.includes(expect.excludes))
   return false
+}
+
+// The graph part of the check-stats context, from nodes.js PEOPLE
+// ([name, [[ticker, role]…]]) and approved.json edges. → { ceo, chair, boards }
+export function graphContext(people, approvedEdges = [], nodes = []) {
+  const ceo = {}, chair = {}, boards = {}
+  const add = (name, co) => { (boards[name] ??= []).includes(co) || boards[name].push(co) }
+  for (const [name, roles] of people) for (const [co, role] of roles) {
+    if (/\bCEO\b/.test(role)) ceo[co] = name
+    if (/\bChair\b/.test(role)) chair[co] = name
+    add(name, co)
+  }
+  const nameOf = new Map(nodes.map((n) => [n.id, n.name]))
+  for (const e of approvedEdges) if (e.type === 'director_of' && nameOf.has(e.from)) add(nameOf.get(e.from), e.to)
+  return { ceo, chair, boards }
 }
 
 // Changes whose moment has passed with at least one field not yet updated.

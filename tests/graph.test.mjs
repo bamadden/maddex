@@ -248,3 +248,31 @@ test('events apply only to the node types they fit', () => {
   assert.deepEqual(eventsFor(g.byId.get('idx:asx200')), [])
   assert.equal(rippleMap(g, 'CBA', 'nope').size, 0)
 })
+
+// ── Chaney's departure and the Macquarie CEO change ─────────────────────────
+import { graphContext } from '../src/data/datedChanges.js'
+import { PEOPLE } from '../src/data/graph/nodes.js'
+
+test('Chaney leaving the Wesfarmers board is a dated change, satisfied by the current graph', () => {
+  const c = DATED_CHANGES.find((x) => x.id === 'wes-chaney-board-2026-10-29')
+  assert.equal(c.effective, '2026-10-29T13:00:00+08:00')
+  const ctx = { graph: graphContext(PEOPLE, [], ALL_NODES) }
+  assert.ok(!ctx.graph.boards['Michael Chaney'].includes('WES'))
+  assert.ok(!overdueChanges(ctx, Date.parse('2026-11-01T00:00:00Z')).some((x) => x.id === c.id))
+})
+
+test('approving the out-of-date "Chaney director of Wesfarmers" proposal would flag OVERDUE', () => {
+  const approved = [{ from: 'person:michael-chaney', to: 'WES', type: 'director_of' }]
+  const ctx = { graph: graphContext(PEOPLE, approved, ALL_NODES) }
+  const ids = overdueChanges(ctx, Date.parse('2026-11-01T00:00:00Z')).map((x) => x.id)
+  assert.ok(ids.includes('wes-chaney-board-2026-10-29'))
+  assert.equal(fieldUpdated(ctx, { path: 'graph.boards.Michael Chaney', expect: { excludes: 'WES' } }), false)
+})
+
+test('the Macquarie CEO change on 7 Nov is modelled, and is due only from that morning', () => {
+  const c = DATED_CHANGES.find((x) => x.id === 'mqg-ceo-2026-11-07')
+  assert.equal(c.effective, '2026-11-07T00:00:00+11:00')
+  const ctx = { graph: graphContext(PEOPLE, [], ALL_NODES) }
+  assert.ok(!overdueChanges(ctx, Date.parse('2026-11-06T12:59:00Z')).some((x) => x.id === c.id))
+  assert.ok(overdueChanges(ctx, Date.parse('2026-11-06T13:00:00Z')).some((x) => x.id === c.id)) // still Wikramanayake in nodes.js
+})

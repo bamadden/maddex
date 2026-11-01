@@ -3,9 +3,10 @@
 // Exit code 1 when any figure has drifted, so it can run in CI or a cron.
 import { fetchOfficialStats, reconcile, checkHistories, checkUs } from '../src/services/officialStats.js'
 import { VERIFIED_CONSTANTS } from '../src/data/verifiedConstants.js'
-import { overdueChanges, upcomingChanges } from '../src/data/datedChanges.js'
-import { PEOPLE } from '../src/data/graph/nodes.js'
+import { overdueChanges, upcomingChanges, graphContext } from '../src/data/datedChanges.js'
+import { PEOPLE, ALL_NODES } from '../src/data/graph/nodes.js'
 import { KEY_FACTS } from '../src/data/graph/keyFacts.js'
+import { readFileSync } from 'node:fs'
 
 // The agencies' endpoints time out now and then; one retry for whichever
 // feeds came back empty clears most of it.
@@ -42,12 +43,8 @@ for (const h of hist) {
 // Known dated changes (src/data/datedChanges.js): warn when one has taken
 // effect and the terminal still shows the old value. A warning, not a
 // failure — the update needs a person to read the new figure first.
-const ceo = {}, chair = {}
-for (const [name, roles] of PEOPLE) for (const [co, role] of roles) {
-  if (/\bCEO\b/.test(role)) ceo[co] = name
-  if (/\bChair\b/.test(role)) chair[co] = name
-}
-const overdue = overdueChanges({ ...VERIFIED_CONSTANTS, graph: { ceo, chair }, keyFacts: KEY_FACTS })
+const APPROVED = JSON.parse(readFileSync(new URL('../src/data/graph/approved.json', import.meta.url), 'utf8'))
+const overdue = overdueChanges({ ...VERIFIED_CONSTANTS, graph: graphContext(PEOPLE, APPROVED.edges, [...ALL_NODES, ...APPROVED.nodes]), keyFacts: KEY_FACTS })
 console.log('\nDATED CHANGES')
 for (const c of overdue) {
   console.log(`⚠ OVERDUE  ${c.what} (effective ${c.effective})`)
