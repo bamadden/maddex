@@ -156,15 +156,15 @@ function CurrencyConverter({ rates }) {
       <div className="text-2xs text-terminal-gold font-bold mb-2 tracking-widest">CURRENCY CONVERTER</div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <input
-          type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+          type="number" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Amount to convert"
           className="w-20 bg-terminal-bg border border-terminal-border px-1.5 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold"
         />
-        <select value={fromCcy} onChange={(e) => setFromCcy(e.target.value)}
+        <select value={fromCcy} onChange={(e) => setFromCcy(e.target.value)} aria-label="Convert from currency"
           className="bg-terminal-bg border border-terminal-border px-1 py-1 text-2xs text-terminal-gold outline-none focus:border-terminal-gold">
           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <span className="text-terminal-text-dim text-xs">→</span>
-        <select value={toCcy} onChange={(e) => setToCcy(e.target.value)}
+        <select value={toCcy} onChange={(e) => setToCcy(e.target.value)} aria-label="Convert to currency"
           className="bg-terminal-bg border border-terminal-border px-1 py-1 text-2xs text-terminal-gold outline-none focus:border-terminal-gold">
           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>

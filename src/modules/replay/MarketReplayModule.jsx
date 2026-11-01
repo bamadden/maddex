@@ -148,6 +148,7 @@ export default function MarketReplayModule() {
             <div className="flex items-center gap-2">
               <input
                 type="date"
+                aria-label="Replay date"
                 value={pickerValue}
                 max={TODAY}
                 onChange={(e) => setPickerValue(e.target.value)}

@@ -117,9 +117,9 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
         </div>
 
         <div className="border border-terminal-border p-3">
-          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">AU INFLATION</div>
+          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">AU CPI · MONTHLY INDICATOR</div>
           <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{au.cpi.toFixed(1)}%</div>
-          <div className="text-2xs text-terminal-text-dim mt-0.5">{au.cpiPeriod}</div>
+          <div className="text-2xs text-terminal-text-dim mt-0.5">{au.cpiPeriod}, year on year · quarterly: {au.cpiQuarterYoY}% ({au.cpiQuarterPeriod})</div>
           <div className="text-2xs text-terminal-text mt-1">
             Target band {au.rbaTargetBand} · unemployment {au.unemployment}%
           </div>
