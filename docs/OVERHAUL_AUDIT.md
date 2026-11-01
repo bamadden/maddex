@@ -393,17 +393,17 @@ decision.
 | P2-2 noisy DEMO badge | **Done** `e254613`, `b1e3236` |
 | P2-3 six date formats | **Partly done.** `formatDate()` ("29 Sep 2026") covers the shared helpers, the Overview, badges and regime text (22 uses). 215 `toLocaleDateString` calls remain in modules. |
 | P2-4 two logos | **Done** `a38f7c2` |
-| P2-5 module header rule; unexplained "M" button | **Open** |
+| P2-5 module header rule; unexplained "M" button | **Done** `8bd7389`. The button reads ASK AI; subtitles list contents. |
 | P2-6 state handling | **Partly done.** `InlineLoading` replaces 22 loading strings. Empty and error states are not yet consolidated. |
-| P2-7 truncated names in Markets leaders | **Open** |
-| P2-8 Macro chart time axis | **Open** |
+| P2-7 truncated names in Markets leaders | **Done** `20665e8` |
+| P2-8 Macro chart time axis | **Done** `a037626` |
 | P2-9 sentiment colours | **Done** `d2aad79` (one score, one colour scale) |
 | P2-10 wizard leaves MaddenAI open | **Done** `45bfd09` |
-| P2-11 Core gate modal has no close control | **Open** |
+| P2-11 Core gate modal has no close control | **Done** `4d6313a` |
 | P2-12 Core sees the portfolio snapshot | **Needs Ben's decision** (include it in Core, or gate it) |
-| P2-13 two refresh controls | **Open** |
-| P2-14 news relevance | **Open** |
-| P2-15 obscure tokens lead the tape | **Open** |
+| P2-13 two refresh controls | **Done** `65e671a` |
+| P2-14 news relevance | **Done** `636fba1` (whole-word filter; movers badged DEMO). Since `6b31713` the feed carries only licensed-for-display publishers. |
+| P2-15 obscure tokens lead the tape | **Done** `ec99b38` |
 | P2-16 CoinGecko errors in the console | **Reduced.** One shared snapshot means far fewer calls, and the fallback is labelled. The calls still go direct from the browser. |
 
 ### P3
@@ -412,10 +412,11 @@ decision.
 |---|---|
 | P3-1, P3-2, P3-4 placeholders, newsletter, copy | **Done** `e4350bd` |
 | P3-3 CPI measure unlabelled | **Done** `6b6b504` |
-| P3-5 mobile clipping | **Partly done.** Header overlap fixed `b1e3236`. The Markets index strip still clips its fourth card. |
-| P3-6 mobile bottom bar shows 6 of 19 | **Open** |
+| P3-5 mobile clipping | **Done** `b1e3236`, `24781bc` |
+| P3-6 mobile bottom bar shows 6 of 19 | **Done** `24781bc` (ALL lists every module) |
 
 ### Found during the work
 
-- `useAudRates` still falls back to a fixed AUD/USD of 0.6520 when no rate has ever loaded, and uses it to convert US equities on Watchlist, Portfolio and the dashboard. Crypto no longer uses it. Recommended next fix: show "—" and label the conversion unavailable.
-- The shared daily sentiment prompt (`/api/ai-daily`, kind `sentiment`) still asks the model for a score. No screen shows it any more. Dropping it from the prompt would finish the "AI never originates a number" rule there.
+- `useAudRates`' fixed 0.6520 AUD/USD fallback — **Done** `46a995b` (no rate shows "—").
+- The shared sentiment prompt's score, and the Brief's AI "MaddenAI score" — **Done** `89583ed` (words only).
+- Legal-risk hardening (advice boundary, scores, reports, disclosures, claims, data licences, privacy, AI records, marks) — `e117802` … `daedeb0`; see `docs/LEGAL_READINESS.md`.
