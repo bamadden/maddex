@@ -52,7 +52,7 @@ export default function MarketsModule() {
           <TopMovers openModal={openModal} />
         </div>
 
-        {/* Unusual volume / dark-pool-style activity signals */}
+        {/* Volume against its 20-day average (demo bars) */}
         <UnusualActivityTracker />
 
         {/* Sector Heatmap / Index constituent list */}

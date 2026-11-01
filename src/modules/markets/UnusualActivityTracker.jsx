@@ -3,6 +3,7 @@ import { timeAgo } from '../../utils/dateUtils'
 import { MOCK_ASX_STOCKS, getMockFMPRow, todayVolumeRatio } from '../../services/mockData'
 import PriceChange from '../../components/ui/PriceChange'
 import { dispatchAskAI } from '../../utils/askAI'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 
 // Volume vs average comes from todayVolumeRatio — the same measure the
 // scanner's volume tab uses, read off the daily bars. This panel used to roll
@@ -83,9 +84,14 @@ export default function UnusualActivityTracker() {
   return (
     <div className="flex-shrink-0 border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2">
-        <span>UNUSUAL ACTIVITY · DARK POOL SIGNALS</span>
+        {/* Named for what it measures. The old heading claimed dark-pool data; Maddex
+            has no dark-pool data — the panel compares today's volume with
+            the 20-day average, on the demo daily bars (always: it reads
+            mockData directly), so it is badged DEMO unconditionally. */}
+        <span>VOLUME VS 20-DAY AVERAGE</span>
+        <DemoBadge />
         <span className="text-2xs text-terminal-text-dim/50 font-normal normal-case">
-          ASX top 20 · today's volume vs its 20-day average
+          ASX top 20 · flags volume above 2× its 20-day average
         </span>
       </div>
 

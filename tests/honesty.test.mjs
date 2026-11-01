@@ -56,3 +56,11 @@ test('Fear & Greed is never fabricated when the feed fails', () => {
   const body = src.slice(src.indexOf('export const fetchFearGreed'), src.indexOf('export const fetchCryptoGlobal'))
   assert.doesNotMatch(body, /value: '42'|mock value/)
 })
+
+test('no screen claims dark-pool data; the volume panel says what it measures and is badged DEMO', () => {
+  for (const f of fs.readdirSync('src', { recursive: true }).filter((f) => /\.jsx?$/.test(f))) {
+    assert.doesNotMatch(read(`src/${f}`), /DARK POOL/i, f)
+  }
+  const src = read('src/modules/markets/UnusualActivityTracker.jsx')
+  assert.match(src, /VOLUME VS 20-DAY AVERAGE<\/span>\s*<DemoBadge \/>/)
+})
