@@ -87,7 +87,7 @@ const HELP_SECTIONS = [
     { cmd:'MACRO', desc:'Macro module' },
     { cmd:'WATCHLIST / WL', desc:'Watchlist module' },
     { cmd:'NEWS', desc:'News feed module' },
-    { cmd:'GLOBAL / GLB', desc:'Global intelligence module' },
+    { cmd:'GLOBAL / GLB', desc:'Global risk map: shipping, trade, country risk' },
     { cmd:'CALENDAR / CAL', desc:'Economic & earnings calendar' },
     { cmd:'BONDS / BND', desc:'Sovereign bond curves' },
     { cmd:'ETF', desc:'ETF explorer' },

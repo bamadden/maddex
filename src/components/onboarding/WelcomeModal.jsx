@@ -25,7 +25,7 @@ const FEATURES = [
   },
   {
     glyph: '03',
-    title: 'Global intelligence',
+    title: 'Global risk map',
     body: 'Shipping chokepoints, trade flows, geopolitical risk scored against a published rubric, and a live intel map.',
   },
 ]
@@ -88,7 +88,7 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
           </div>
           <div className="mx-auto mt-3 h-px w-12" style={{ background: 'rgba(201,168,76,0.5)' }} aria-hidden="true" />
           <div className="text-xs text-terminal-text mt-3 font-sans" style={{ fontSize: 14 }}>
-            Financial intelligence for Australian investors.
+            Market data and analysis for Australian investors.
           </div>
         </div>
 
@@ -112,7 +112,7 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
             style={{ fontSize: 12, background: PAL.gold }}
           >GET STARTED →</button>
           <div className="text-2xs text-terminal-text-dim/70 text-center mt-2.5">
-            Five quick steps — a watchlist, MaddenAI, an alert. About two minutes.
+            Five steps: watchlist, holdings, MaddenAI, an alert. Each one can be skipped.
           </div>
 
           {onSignIn && (

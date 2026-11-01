@@ -22,7 +22,6 @@ import { clean } from './briefText'
 import { SectionText, BriefSection } from './BriefParts'
 import TabBar from '../../components/ui/TabBar'
 import WeeklyReviewTab, { WeeklyReviewBody } from './WeeklyReview'
-import { NewsletterEditions, NewsletterInline } from '../../components/newsletter/Newsletter'
 import { getCachedWeeklyReview, listWeeklyHistory, reviewWeek } from '../../services/weeklyReviewService'
 import { WatchlistToday, ScoreBreakdown } from './BriefExtras'
 import { downloadBriefImage } from './briefImage'
@@ -158,7 +157,6 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
       </div>
 
       <PreviousBriefs currentDay={currentDay} excludeWeek={review ? week.key : null} />
-      <NewsletterEditions />
     </div>
   )
 }
@@ -424,7 +422,7 @@ export default function MorningBriefModule() {
 
       {tab === 'weekly' && (
         <div className="flex-1 overflow-y-auto">
-          <WeeklyReviewTab history={<><PreviousBriefs currentDay={briefDayKey()} excludeWeek={reviewWeek().key} /><div className="mt-4"><NewsletterEditions /></div></>} />
+          <WeeklyReviewTab history={<PreviousBriefs currentDay={briefDayKey()} excludeWeek={reviewWeek().key} />} />
         </div>
       )}
 
@@ -563,10 +561,7 @@ export default function MorningBriefModule() {
               >↻ REGENERATE</button>
             </footer>
 
-            <NewsletterInline />
-
             <div className="mt-6"><PreviousBriefs currentDay={briefDayKey()} /></div>
-            <div className="mt-4"><NewsletterEditions /></div>
           </article>
         )}
       </div>

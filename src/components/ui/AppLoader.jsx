@@ -14,7 +14,7 @@ export default function AppLoader() {
     <div className="fixed inset-0 z-[100] bg-terminal-bg flex flex-col items-center justify-center gap-6 font-mono">
       <div className="flex flex-col items-center gap-3">
         <BrandLockup size={48} />
-        <div className="text-terminal-text-dim text-xs tracking-[0.5em]">FINANCIAL INTELLIGENCE</div>
+        <div className="text-terminal-text-dim text-xs tracking-[0.5em]">MARKET DATA AND ANALYSIS · AUSTRALIA</div>
       </div>
       <div className="w-48 h-0.5 bg-terminal-border overflow-hidden">
         <div className="h-full bg-terminal-gold transition-all duration-200" style={{ width: `${progress}%` }} />

@@ -13,7 +13,6 @@ import { ModuleError } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
-import { NewsletterBanner } from '../../components/newsletter/Newsletter'
 import { annotateArticles, clusterStories, marketSession, impactOf } from '../../services/newsIntelligence'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
@@ -1521,8 +1520,6 @@ export default function NewsModule() {
       />
 
       <MorningBriefing />
-
-      <NewsletterBanner />
 
       <FilterBar
         searchTerm={searchTerm} setSearchTerm={setSearchTerm}

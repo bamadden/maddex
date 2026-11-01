@@ -80,3 +80,18 @@ test('the top bar and dashboard read the same clock; no hard-coded zone', () => 
   assert.match(read('src/modules/dashboard/DashboardStatusBar.jsx'), /sydneyClock\(now/)
   assert.doesNotMatch(read('src/modules/global/GlobalModule.jsx'), /\+ ' AEST'/)
 })
+
+// ── Copy: no placeholders, no developer wording, no promises ────────────────
+test('no placeholder or developer wording reaches the screen', () => {
+  const jsx = fs.readdirSync('src', { recursive: true }).filter((f) => /\.jsx$/.test(f))
+  for (const f of jsx) {
+    const src = read(`src/${f}`).replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    assert.doesNotMatch(src, /coming soon|Live data connects on API setup|on API setup|scripted (sector|rate)|early-adopter offer|GOOD (MORNING|AFTERNOON|EVENING)/i, f)
+  }
+})
+
+test('no newsletter prompt while there is nothing to subscribe to', () => {
+  assert.doesNotMatch(read('src/modules/news/NewsModule.jsx'), /Newsletter/)
+  assert.doesNotMatch(read('src/modules/brief/MorningBriefModule.jsx'), /Newsletter(Editions|Inline)/)
+  assert.doesNotMatch(read('src/services/newsletterService.js'), /Delivered every Friday/)
+})

@@ -96,7 +96,7 @@ export function PricingModal({ onClose }) {
                         {ok === true ? '✓' : ok === 'soon' ? '◷' : '✗'}
                       </span>
                       <span className={ok === true ? 'text-terminal-text' : 'text-terminal-text-dim/60'}>
-                        {label}{ok === 'soon' && <span className="ml-1.5 text-[11px] font-mono tracking-wider text-terminal-gold/70">COMING SOON</span>}
+                        {label}{ok === 'soon' && <span className="ml-1.5 text-[11px] font-mono tracking-wider text-terminal-gold/70">PLANNED</span>}
                       </span>
                     </li>
                   ))}
@@ -155,19 +155,19 @@ export function ComingSoonModal({ tier, onClose }) {
     <Backdrop onClose={onClose} z="z-[270]">
       <div className="relative w-full max-w-md font-mono px-7 pt-7 pb-6 shadow-2xl"
         style={{ backgroundColor: PAL.panel, backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.08) 0%, rgba(201,168,76,0) 40%)', border: '1px solid rgba(201,168,76,0.45)' }}
-        role="dialog" aria-label="Payments coming soon">
+        role="dialog" aria-label="Payments are not live yet">
         <button onClick={onClose} aria-label="Close" className="absolute top-2.5 right-3 text-terminal-text-dim hover:text-terminal-text text-xs">✕</button>
         <div className="text-[11px] tracking-[0.24em] text-terminal-gold">{tier ? `MADDEX ${TIER_LABEL[tier].toUpperCase()}` : 'MADDEX'}</div>
-        <div className="text-lg font-bold text-terminal-text-bright mt-2 tracking-wide">PAYMENTS COMING SOON</div>
+        <div className="text-lg font-bold text-terminal-text-bright mt-2 tracking-wide">PAYMENTS ARE NOT LIVE YET</div>
         <p className="text-xs text-terminal-text-dim leading-relaxed mt-2 font-sans" style={{ fontSize: 13 }}>
-          We're finalising our payment system. Be the first to know when {tier ? TIER_LABEL[tier] : 'Prime'} launches:
+          {tier ? TIER_LABEL[tier] : 'Prime'} cannot be bought yet. Leave your email and we will tell you when it opens.
         </p>
         {status === 'saved' || status === 'local' ? (
           <div className="mt-5 border border-terminal-green/30 bg-terminal-green/5 px-3 py-3 text-xs text-terminal-text leading-relaxed">
             <span className="text-terminal-green">✓ You're on the list.</span>{' '}
             {status === 'saved'
-              ? <>We'll email <b className="text-terminal-text-bright">{email.trim()}</b> at launch with an exclusive early-adopter offer.</>
-              : <>Saved on this device as <b className="text-terminal-text-bright">{email.trim()}</b>. Our waitlist server isn't connected yet, so please check back here at launch.</>}
+              ? <>We will email <b className="text-terminal-text-bright">{email.trim()}</b> when payments open.</>
+              : <>Saved on this device as <b className="text-terminal-text-bright">{email.trim()}</b>. The waitlist server is not connected yet, so check back here when payments open.</>}
           </div>
         ) : (
           <form onSubmit={submit} className="mt-5">
@@ -180,7 +180,7 @@ export function ComingSoonModal({ tier, onClose }) {
               >{status === 'saving' ? '…' : 'NOTIFY ME'}</button>
             </div>
             {status === 'invalid' && <div className="text-[11px] text-terminal-red mt-1.5">Enter a valid email address.</div>}
-            <div className="text-[11px] text-terminal-text-dim/70 mt-2">We'll email you at launch with an exclusive early-adopter offer. Nothing else.</div>
+            <div className="text-[11px] text-terminal-text-dim/70 mt-2">One email when payments open. Nothing else.</div>
           </form>
         )}
       </div>

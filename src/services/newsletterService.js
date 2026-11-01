@@ -14,7 +14,8 @@ import { getCachedWeeklyReview, reviewWeek } from './weeklyReviewService'
 
 export const NEWSLETTER = {
   name: 'THE MADDEX INTELLIGENCE BRIEF',
-  tagline: 'Weekly market intelligence for Australian investors. Delivered every Friday.',
+  // No edition has been sent yet; the copy says so rather than promising a day.
+  tagline: 'A weekly newsletter for Australian investors. It has not started yet: join the list and the first edition comes to you.',
   url: 'https://maddex.com.au/newsletter',
 }
 

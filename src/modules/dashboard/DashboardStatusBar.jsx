@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '../../store/useAuthStore'
 import { marketSession } from '../../services/newsIntelligence'
-import { sydneyClock } from '../../utils/dateUtils'
+import { sydneyClock, formatDate } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
 import { RegimeBadge } from '../../components/ui/RegimeBadge'
 import IntelligenceScore from './IntelligenceScore'
@@ -29,29 +28,11 @@ import { PAL } from '../../styles/palette.js'
 // panel. One line naming the person, the day and whether the market they care
 // about is trading turns it into a briefing — and it costs 32px.
 //
-// Everything here is derived, nothing is fetched: the greeting from the clock,
-// the session from the same marketSession() the news module and status bar run
-// on, the name from the profile already in the auth store.
-
-function greetingFor(hour) {
-  if (hour >= 5 && hour < 12) return 'GOOD MORNING'
-  // Afternoon runs to 6pm: at 5:30 the working day is still on, and the
-  // greeting should not jump to evening the moment the ASX closes.
-  if (hour >= 12 && hour < 18) return 'GOOD AFTERNOON'
-  if (hour >= 18) return 'GOOD EVENING'
-  return 'GOOD NIGHT'
-}
-
-// Australian hour, not the browser's — the greeting should match the market
-// day the user is being briefed on, not the timezone they happen to be in.
-function auHour(d) {
-  return Number(new Intl.DateTimeFormat('en-AU', {
-    timeZone: 'Australia/Sydney', hour: '2-digit', hour12: false,
-  }).format(d))
-}
+// Everything here is derived, nothing is fetched: the date and clock (Sydney),
+// and the session from the same marketSession() the news module and status
+// bar run on.
 
 export default function DashboardStatusBar() {
-  const profile = useAuthStore((s) => s.profile)
   const [now, setNow] = useState(() => new Date())
 
   // One second, because the clock shows seconds. The whole bar is text on a
@@ -62,14 +43,10 @@ export default function DashboardStatusBar() {
   }, [])
 
   const { setActiveModule } = useStore()
-  const name = profile?.first_name?.trim()
-  const greeting = greetingFor(auHour(now))
+  const dateStr = formatDate(now, { weekday: true }).toUpperCase()
   const session = marketSession(now)
   const open = session.key === 'open'
 
-  const dateStr = now.toLocaleDateString('en-AU', {
-    timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric',
-  }).toUpperCase()
   // The same clock as the top bar (sydneyClock): HH:MM with its zone.
   const { time: timeStr, tz } = sydneyClock(now, { hour12: displayService.get('clockFormat') === '12h' })
 
@@ -81,13 +58,8 @@ export default function DashboardStatusBar() {
         borderBottom: '1px solid rgba(201,168,76,0.08)',
       }}
     >
-      <span className="text-2xs tracking-widest text-terminal-gold font-bold truncate">
-        {greeting}{name ? <span className="text-terminal-text-bright">{` ${name.toUpperCase()}`}</span> : ''}
-      </span>
-      {/* At phone width the bar keeps the greeting, the session and the clock;
-          the date and the zone label go, or all five overprint each other. */}
-      <span className="text-2xs text-terminal-text-dim/40 flex-shrink-0 hidden md:inline">·</span>
-      <span className="text-2xs text-terminal-text-dim tracking-wider truncate hidden md:inline">{dateStr}</span>
+      {/* The date — not a greeting (1 Nov 2026 copy pass). */}
+      <span className="text-2xs tracking-widest text-terminal-gold font-bold truncate">{dateStr}</span>
 
       {/* Session pill, centred. The dot pulses only while the market is
           actually trading — a pulsing dot beside "CLOSED" is a lie the eye

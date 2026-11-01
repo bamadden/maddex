@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
-  NEWSLETTER, NEWSLETTER_CHANGED_EVENT, isValidEmail, latestEdition, subscribeNewsletter, subscribedEmail,
+  NEWSLETTER, NEWSLETTER_CHANGED_EVENT, isValidEmail, subscribeNewsletter, subscribedEmail,
 } from '../../services/newsletterService'
 import { useAuthStore } from '../../store/useAuthStore'
 
-// The Maddex Intelligence Brief, wherever the terminal offers it: Settings →
-// About (card), below the morning brief (inline), the News module (banner),
-// and the Brief module's LATEST NEWSLETTER EDITION section (edition).
-
-const BANNER_DISMISSED_KEY = 'maddex_newsletter_banner_dismissed'
+// The newsletter sign-up, offered only in Settings → About until editions
+// exist. (The banner in News and the edition/archive sections in Brief were
+// removed on 1 Nov 2026: there was nothing to subscribe to yet.)
 
 function useSubscribed() {
   const [email, setEmail] = useState(subscribedEmail)
@@ -76,89 +74,6 @@ export function NewsletterCard() {
       <div className="text-2xs text-terminal-gold font-bold tracking-widest">{NEWSLETTER.name}</div>
       <div className="text-2xs text-terminal-text-dim mt-1 mb-2.5">{NEWSLETTER.tagline}</div>
       {email ? <SubscribedNote email={email} /> : <SignupForm />}
-    </div>
-  )
-}
-
-// Below the morning brief.
-export function NewsletterInline() {
-  const email = useSubscribed()
-  return (
-    <div className="mt-6 border-t border-terminal-border pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
-      <div className="flex-1 min-w-0">
-        <div className="text-xs text-terminal-text-bright font-semibold">Enjoyed this brief?</div>
-        <div className="text-2xs text-terminal-text-dim mt-0.5">Get weekly insights delivered to your inbox — The Maddex Intelligence Brief, every Friday.</div>
-      </div>
-      <div className="sm:w-80 flex-shrink-0">{email ? <SubscribedNote email={email} compact /> : <SignupForm compact />}</div>
-    </div>
-  )
-}
-
-// News module. Subtle, dismissable, and gone for good once subscribed.
-export function NewsletterBanner() {
-  const email = useSubscribed()
-  const [dismissed, setDismissed] = useState(() => { try { return !!localStorage.getItem(BANNER_DISMISSED_KEY) } catch { return false } })
-  const [open, setOpen] = useState(false)
-  if (email || dismissed) return null
-  const dismiss = () => { setDismissed(true); try { localStorage.setItem(BANNER_DISMISSED_KEY, '1') } catch { /* private mode */ } }
-  return (
-    <div className="flex items-center gap-3 px-3 py-1.5 border-b border-terminal-border font-mono flex-wrap" style={{ background: 'rgba(201,168,76,0.05)' }}>
-      <span className="text-[11px] text-terminal-gold font-bold tracking-widest">✉ {NEWSLETTER.name}</span>
-      <span className="text-2xs text-terminal-text-dim">Weekly, every Friday.</span>
-      <div className="ml-auto flex items-center gap-2">
-        {open ? <div className="w-72"><SignupForm compact autoFocus /></div> : (
-          <button onClick={() => setOpen(true)} className="text-[11px] font-bold tracking-widest text-terminal-gold hover:underline">SUBSCRIBE →</button>
-        )}
-        <button onClick={dismiss} aria-label="Dismiss newsletter banner" className="text-terminal-text-dim hover:text-terminal-gold text-xs px-1">✕</button>
-      </div>
-    </div>
-  )
-}
-
-// Brief module: LATEST NEWSLETTER EDITION and PREVIOUS EDITIONS.
-export function NewsletterEditions() {
-  const email = useSubscribed()
-  const [signup, setSignup] = useState(false)
-  const ed = latestEdition()
-  return (
-    <div className="space-y-3">
-      <div className="border border-terminal-border">
-        <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center justify-between">
-          <span className="text-2xs text-terminal-gold font-bold tracking-widest">LATEST NEWSLETTER EDITION</span>
-          <span className="text-2xs text-terminal-text-dim">{NEWSLETTER.name}</span>
-        </div>
-        <div className="p-3">
-          <div className="text-xs text-terminal-text-bright font-bold tracking-wide">{ed.title}</div>
-          <div className="text-xs text-terminal-text-dim mt-1.5 leading-relaxed font-sans">
-            {ed.preview ?? 'The preview appears once this week’s market review has generated — after the Friday close, in the Weekly tab.'}
-          </div>
-          <div className="flex items-center gap-2 mt-3">
-            <a href={ed.url} target="_blank" rel="noopener noreferrer"
-              className="text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-            >READ FULL EDITION ↗</a>
-            {email ? <SubscribedNote email={email} compact /> : !signup && (
-              <button onClick={() => setSignup(true)}
-                className="text-2xs font-bold tracking-widest bg-terminal-gold text-terminal-bg px-2.5 py-1 hover:bg-terminal-gold-bright transition-colors"
-              >SUBSCRIBE</button>
-            )}
-          </div>
-          {signup && !email && <div className="mt-3 max-w-md"><SignupForm compact autoFocus /></div>}
-        </div>
-      </div>
-
-      <div className="border border-terminal-border">
-        <div className="px-3 py-2 border-b border-terminal-border/50">
-          <span className="text-2xs text-terminal-gold font-bold tracking-widest">PREVIOUS EDITIONS</span>
-        </div>
-        <div className="px-3 py-4 text-center">
-          <div className="text-2xs text-terminal-text-dim">Newsletter archive coming soon.</div>
-          {!email && (
-            <button onClick={() => setSignup(true)} className="mt-2 text-[11px] font-bold tracking-widest text-terminal-gold hover:underline">
-              SUBSCRIBE TO GET FUTURE EDITIONS →
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

@@ -35,7 +35,7 @@ export default function DigestCard({ watchlist = [], onAsk }) {
     <div className="w-full mt-5 border border-terminal-gold/40" style={{ background: 'rgba(201,168,76,0.04)' }}>
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left">
         <span className="font-mono font-bold text-terminal-gold tracking-widest" style={{ fontSize: 11 }}>
-          {Number(new Date().toLocaleString('en-AU', { hour: 'numeric', hour12: false, timeZone: 'Australia/Sydney' })) < 12 ? 'GOOD MORNING — ' : ''}YOUR INTELLIGENCE DIGEST
+          YOUR DAILY DIGEST
         </span>
         <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>{digest.dateLabel}</span>
         <span className="ml-auto text-terminal-text-dim" style={{ fontSize: 11 }}>{open ? '▾' : '▸'}</span>

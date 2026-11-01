@@ -1853,7 +1853,7 @@ export default function AIPanel({ wide = false, onListening }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
-          placeholder="Ask about ASX, RBA, AUD, markets..."
+          placeholder="Ask MaddenAI: a stock, the RBA, your portfolio"
           disabled={loading}
         />
         <VoiceInterface onTranscript={(text) => send(text)} />

@@ -896,7 +896,7 @@ export default function WatchlistModule() {
     setValidating(true)
     try {
       const { yfSym } = toYahoo(raw)
-      if (!(await isKnownTicker(raw))) { setAddError(USING_MOCK_DATA ? 'TICKER NOT IN THE DEMO UNIVERSE — live data connects on API setup' : 'TICKER NOT FOUND — check symbol and try again'); return }
+      if (!(await isKnownTicker(raw))) { setAddError(USING_MOCK_DATA ? 'NOT IN THE DEMO LIST — equity prices are demo until a market-data provider is connected' : 'TICKER NOT FOUND — check symbol and try again'); return }
       const q = await fetchYahooQuote(yfSym)
       addToWatchlist(raw)
       logActivity('watchlist', `Added ${raw} to watchlist`)

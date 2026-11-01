@@ -254,7 +254,7 @@ export default function AuthModal({ deletedMessage }) {
         {/* Header */}
         <div className="py-6 px-6 text-center border-b border-terminal-border">
           <div className="flex justify-center"><BrandLockup size={40} /></div>
-          <div className="text-terminal-text-dim text-2xs tracking-[0.4em] mt-1">FINANCIAL INTELLIGENCE</div>
+          <div className="text-terminal-text-dim text-2xs tracking-[0.4em] mt-1">MARKET DATA AND ANALYSIS · AUSTRALIA</div>
         </div>
 
         {/* Trial messaging */}

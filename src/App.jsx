@@ -246,7 +246,7 @@ const SHORTCUT_GROUPS = [
       { keys: ['C'], desc: 'Crypto' },
       { keys: ['F'], desc: 'Rates' },
       { keys: ['X'], desc: 'Macro' },
-      { keys: ['G'], desc: 'Global intelligence' },
+      { keys: ['G'], desc: 'Global risk map' },
       { keys: ['W'], desc: 'Watchlist' },
       { keys: ['P'], desc: 'Portfolio' },
       { keys: ['N'], desc: 'News' },

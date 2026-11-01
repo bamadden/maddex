@@ -1737,7 +1737,7 @@ function SecuritySection({ onDeleteRequest }) {
 
       <div className="space-y-2">
         <div className="text-xs font-bold text-terminal-text-bright">TWO-FACTOR AUTHENTICATION</div>
-        <div className="text-2xs text-terminal-text-dim border border-terminal-border p-3">Coming Soon</div>
+        <div className="text-2xs text-terminal-text-dim border border-terminal-border p-3">Not available yet. Sign-in is by email and password — use a password you do not use elsewhere.</div>
       </div>
 
       <div className="border border-terminal-red/30 p-4 space-y-3">
@@ -2299,13 +2299,13 @@ const SOURCE_TIERS = [
   },
   {
     key: 'pending',
-    label: 'COMING SOON — NOT CONNECTED',
+    label: 'NOT CONNECTED YET',
     glyph: '◌',
     colour: PAL.muted,
     note: 'Shown as DEMO throughout the terminal until an equity data provider is connected.',
     rows: [
       { name: 'EODHD live ASX prices', detail: 'Connect with an API key — DEMO prices until then', connect: true },
-      { name: 'Real-time index feeds', detail: 'ASX 200, S&P 500 and peers — scripted levels until then', connect: true },
+      { name: 'Real-time index feeds', detail: 'ASX 200, S&P 500 and peers — demo levels until then', connect: true },
       { name: 'Fundamental data', detail: 'P/E, yield and EPS live — mock rows until then', connect: true },
       { name: 'Intraday charts', detail: 'Generated series, not real ticks' },
       { name: 'Rate-futures pricing', detail: 'No hold/cut probability is shown anywhere' },

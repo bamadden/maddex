@@ -294,7 +294,7 @@ function RateSensitiveTab({ scanTime, settings }) {
         <span className="font-bold tracking-widest" style={{ color: PAL.amber }}>{event.kind}</span>
         <span className="text-terminal-text-dim"> · {event.label} · ASX names in rate-sensitive sectors (property, banks, consumer, utilities, tech) moving more than 1%.</span>
         <div className="text-terminal-text-dim/60 mt-0.5" style={{ fontSize: 11 }}>
-          DEMO prices — the day&apos;s ASX moves carry a scripted rate-environment tilt, so this shows how the signal works, not what the market did today.
+          Demo prices: the day&apos;s moves are simulated, so this shows how the signal works, not what the market did today.
         </div>
       </div>
       {!results.length ? <EmptyState label="rate-sensitive" /> : results.map((r) => (

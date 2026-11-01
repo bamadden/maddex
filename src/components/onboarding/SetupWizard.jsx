@@ -273,7 +273,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
 
           {step === 2 && (
             <>
-              <h2 className="text-terminal-text-bright text-lg font-bold tracking-wide">Do you hold any shares?</h2>
+              <h2 className="text-terminal-text-bright text-lg font-bold tracking-wide">Add your holdings</h2>
               <p className="text-xs text-terminal-text-dim mt-1.5 leading-relaxed">
                 Add what you own and Maddex tracks your P&amp;L, sector exposure and dividend income — and MaddenAI can
                 answer questions about your actual portfolio.
@@ -292,7 +292,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
             <>
               <h2 className="text-terminal-text-bright text-lg font-bold tracking-wide">Ask MaddenAI</h2>
               <p className="text-xs text-terminal-text-dim mt-1.5 leading-relaxed">
-                Your analyst, built into every screen. It reasons over the figures the terminal gives it — it does not make numbers up.
+                MaddenAI writes analysis on any screen. Every figure it quotes comes from the terminal; it does not produce numbers of its own.
               </p>
               <div className="mt-4 border border-terminal-gold/30 bg-terminal-gold/5 px-3 py-2.5 text-xs text-terminal-text-bright leading-relaxed">
                 {AI_PROMPT}
