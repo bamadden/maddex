@@ -72,8 +72,9 @@ export function percentagesIn(text) {
 }
 
 // Name → node id, the same way for every stage: case, punctuation, company
-// suffixes (Limited, Ltd, Group…) and post-nominals (AO, AC, AM…) ignored. A
-// proposal's own id, when it has one, still has to be a node.
+// suffixes (Limited, Ltd, Group…) and post-nominals (AO, AC, AM…) ignored;
+// a node's legalName and aliases count as its names. A proposal's own id,
+// when it has one, still has to be a node.
 const SUFFIX = /\b(limited|ltd|plc|inc|group|holdings|corporation|pty|ao|ac|am|oam|psm)\b\.?/g
 export const nameKey = (s) => normaliseWs(s).toLowerCase().replace(SUFFIX, '').replace(/[^a-z0-9]+/g, ' ').trim()
 
@@ -81,7 +82,9 @@ export function nodeResolver(nodes) {
   const ids = new Set(nodes.map((n) => n.id))
   const byName = new Map()
   for (const n of nodes) {
-    if (!byName.has(nameKey(n.name))) byName.set(nameKey(n.name), n.id)
+    for (const name of [n.name, n.legalName, ...(n.aliases ?? [])].filter(Boolean)) {
+      if (!byName.has(nameKey(name))) byName.set(nameKey(name), n.id)
+    }
     if (n.ticker && !byName.has(n.ticker.toLowerCase())) byName.set(n.ticker.toLowerCase(), n.id)
   }
   return (side) => {

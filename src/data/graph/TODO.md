@@ -185,15 +185,22 @@ blind second reading, claude-opus-5-5), `npm run graph:triage` (Stage 3).
 Review in the REVIEW module (dev server): NEEDS HUMAN first. Every decision
 regenerates docs/GRAPH_QUALITY.md (`npm run graph:report` does it by hand).
 
-- [ ] **6 NEEDS HUMAN in REVIEW.** Both Wesfarmers → BWP ownership proposals
-  and the Rob Scott and Ken MacKenzie director proposals duplicate edges
-  already in the graph (the writer refuses duplicates, so reject them).
-  Chaney as WES director was true at the report date but he left the board
-  on 29 Oct 2026. Wesfarmers ↔ Coles joint venture is Flybuys (50/50).
-- [ ] **22 AUTO-REJECTED** because a counterparty is not a node (Bunnings,
-  Flybuys, Kmart, Officeworks, SQM, Covalent Lithium, the divisional
-  directors…). To bring any back, add the node to nodes.js and re-run
-  graph:verify and graph:triage. Australian Gold Reagents also fails the
-  stake check: its 75 is a table figure with no % sign.
+- [ ] **REVIEW after the counterparty nodes (1 Nov): 14 NEEDS HUMAN, 4
+  AGREED, 10 AUTO-REJECTED.** Nothing approved. Notes from reading them:
+  both Wesfarmers → BWP ownership proposals and the Rob Scott and Ken
+  MacKenzie director proposals duplicate graph edges (the writer refuses
+  duplicates — reject them); Chaney as WES director was true at the report
+  date but he left on 29 Oct 2026; Wesfarmers ↔ Coles JV is Flybuys
+  (50/50); the second pass found no relationship in the passage for one
+  Bunnings → BWP customer proposal; AGREED includes Cm3 as a subsidiary,
+  which Wesfarmers has agreed to sell to Achilles Group.
+- [ ] **10 AUTO-REJECTED:** 9 director proposals whose people are not nodes
+  (divisional directors — add people only if wanted), and Australian Gold
+  Reagents, whose 75 is a table figure with no % sign.
+- [x] 17 counterparty companies added to nodes.js (Bunnings, Kmart,
+  Officeworks, Flybuys, Gresham, Wespine, SQM, Built Group, CSBP, Coogee,
+  Dyno Nobel Asia Pacific, Intellihub, Covalent Lithium, Cm3, AGR, WesCEF,
+  Wesfarmers Health), each with its annual-report quote and, where the report
+  names the legal entity, an ABR-matched ABN.
 - [ ] Spot-check size is 5 (reviewConfig.js). Revisit once
   docs/GRAPH_QUALITY.md shows enough decided AGREED items.

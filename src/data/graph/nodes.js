@@ -20,6 +20,10 @@ export const TOP20_LABEL = 'S&P/ASX 20 MEMBER — PER ASX COMPANY PROFILES, 31 O
 
 export const GRAPH_AS_OF = '2026-10-31'
 
+// Source for a counterparty node: a page of the Wesfarmers 2026 Annual Report.
+const WES_AR_2026 = 'https://announcements.asx.com.au/asxpdf/20260827/pdf/0738z357pt1vhl.pdf'
+const wesAR = (page, quote) => ({ label: `Wesfarmers 2026 Annual Report p${page}`, url: `${WES_AR_2026}#page=${page}`, date: '2026-06-30', page, quote, abrChecked: '2026-11-01' })
+
 const co = (ticker, name, sector, industry, country = 'AU', extra = {}) =>
   ({ id: ticker, type: 'company', name, ticker, sector, industry, country, ...extra })
 
@@ -74,6 +78,33 @@ export const NODES = [
   { id: 'fund:vanguard', type: 'fund', name: 'The Vanguard Group', ticker: null, sector: null, country: 'US' },
   { id: 'fund:australiansuper', type: 'fund', name: 'AustralianSuper', ticker: null, sector: null, country: 'AU' },
   { id: 'co:citigroup-gma', type: 'company', name: 'Citigroup Global Markets Australia', ticker: null, sector: 'Financials', country: 'AU' },
+
+  // ── Counterparties named in the Wesfarmers 2026 Annual Report ──
+  // Added 1 Nov 2026 so review-queue proposals can resolve to them (Stage 1
+  // requires known nodes). Companies only — directors named in the same
+  // proposals are not added. Each carries the sentence or table row that
+  // names it (source, verbatim from the report's extracted text) and, where
+  // the report gives the legal entity, its ABN: matched exactly by entity name
+  // on the Australian Business Register (abr.business.gov.au), 1 Nov 2026.
+  // No ABN where the report names no legal entity, or ABR had no exact match
+  // (Australian Gold Reagents). No edges come with them.
+  { id: 'co:bunnings', type: 'company', name: 'Bunnings', ticker: null, sector: null, country: 'AU', legalName: 'Bunnings Group Limited', abn: '26 008 672 179', aliases: ['Bunnings Group'], source: wesAR(186, 'Bunnings Group Limited + 100 100') },
+  { id: 'co:kmart', type: 'company', name: 'Kmart', ticker: null, sector: null, country: 'AU', legalName: 'Kmart Australia Limited', abn: '73 004 700 485', aliases: ['Kmart Group', 'Kmart Australia Limited'], source: wesAR(186, 'Kmart Australia Limited + 100 100') },
+  { id: 'co:officeworks', type: 'company', name: 'Officeworks', ticker: null, sector: null, country: 'AU', legalName: 'Officeworks Ltd', abn: '36 004 763 526', source: wesAR(186, 'Officeworks Ltd + 100 100') },
+  { id: 'co:flybuys', type: 'company', name: 'Flybuys', ticker: null, sector: null, country: 'AU', legalName: 'Loyalty Pacific Pty Ltd', abn: '82 057 931 334', aliases: ['Loyalty Pacific'], source: wesAR(189, 'Amounts have been paid to and received from Loyalty Pacific Pty Ltd for the operation of the Flybuys loyalty program.') },
+  { id: 'co:gresham', type: 'company', name: 'Gresham Partners', ticker: null, sector: null, country: 'AU', legalName: 'Gresham Partners Group Limited', abn: '75 003 856 933', aliases: ['Gresham Partners Group Limited'], source: wesAR(189, 'a joint venture of the Group, Gresham Partners Group Limited, provided advisory services to Wesfarmers') },
+  { id: 'co:wespine', type: 'company', name: 'Wespine Industries', ticker: null, sector: null, country: 'AU', legalName: 'Wespine Industries Pty Ltd', abn: '88 052 954 337', aliases: ['Wespine Industries Pty Ltd'], source: wesAR(189, 'Purchase of goods from Wespine Industries Pty Ltd, a joint venture, on normal commercial terms and conditions.') },
+  { id: 'co:sqm', type: 'company', name: 'Sociedad Química y Minera (SQM)', ticker: null, sector: null, country: null, aliases: ['Sociedad Química y Minera', 'SQM'], source: wesAR(40, 'Wesfarmers’ 50 per cent joint venture with Sociedad Química y Minera (SQM)') },
+  { id: 'co:built', type: 'company', name: 'Built Group', ticker: null, sector: null, country: null, source: wesAR(16, 'Wesfarmers announced it had agreed to enter a joint venture with Built Group to establish Built Living') },
+  { id: 'co:csbp', type: 'company', name: 'CSBP', ticker: null, sector: null, country: 'AU', legalName: 'CSBP Limited', abn: '81 008 668 371', source: wesAR(186, 'CSBP Limited + 100 100') },
+  { id: 'co:coogee', type: 'company', name: 'Coogee Chemicals', ticker: null, sector: null, country: null, source: wesAR(40, 'CSBP’s 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide') },
+  { id: 'co:dyno-nobel-ap', type: 'company', name: 'Dyno Nobel Asia Pacific', ticker: null, sector: null, country: null, source: wesAR(40, 'CSBP’s 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN') },
+  { id: 'co:intellihub', type: 'company', name: 'Intellihub', ticker: null, sector: null, country: null, source: wesAR(129, 'the Zelora joint venture between Bunnings Group and Intellihub') },
+  { id: 'co:covalent-lithium', type: 'company', name: 'Covalent Lithium', ticker: null, sector: null, country: 'AU', legalName: 'Covalent Lithium Pty Ltd', abn: '70 623 090 139', aliases: ['Covalent Lithium Pty Ltd'], source: wesAR(189, 'Covalent Lithium Pty Ltd, a joint venture, under normal commercial terms and conditions for services related to the management of the Mt Holland lithium project.') },
+  { id: 'co:cm3', type: 'company', name: 'Cm3', ticker: null, sector: null, country: 'AU', legalName: 'Cm3 Contractor Management Pty Ltd', abn: '39 655 875 620', aliases: ['Cm3 Contractor Management Pty Ltd'], source: wesAR(192, 'Wesfarmers announced that it had entered into an agreement to sell Cm3, a wholly owned subsidiary, to Achilles Group.') },
+  { id: 'co:agr', type: 'company', name: 'Australian Gold Reagents', ticker: null, sector: null, country: null, legalName: 'Australian Gold Reagents Pty Ltd', aliases: ['Australian Gold Reagents Pty Ltd', 'AGR'], source: wesAR(186, 'Australian Gold Reagents Pty Ltd 75 75') },
+  { id: 'co:wescef', type: 'company', name: 'Wesfarmers Chemicals, Energy & Fertilisers', ticker: null, sector: null, country: 'AU', legalName: 'Wesfarmers Chemicals, Energy & Fertilisers Limited', abn: '48 008 797 402', aliases: ['WesCEF'], source: wesAR(187, 'Wesfarmers Chemicals, Energy & Fertilisers Limited + 100 100') },
+  { id: 'co:wesfarmers-health', type: 'company', name: 'Wesfarmers Health', ticker: null, sector: null, country: null, source: wesAR(8, 'Wesfarmers Health manages a portfolio of health, beauty and wellness companies operating in retail, pharmaceutical wholesale, medical aesthetics and digital health industries.') },
 
   // ── Commodities ──
   { id: 'cmd:iron-ore', type: 'commodity', name: 'Iron ore' },

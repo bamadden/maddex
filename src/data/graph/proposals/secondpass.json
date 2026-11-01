@@ -1,7 +1,7 @@
 {
   "stage": 2,
   "model": "claude-opus-5-5",
-  "generatedAt": "2026-11-01T02:29:19.385Z",
+  "generatedAt": "2026-11-01T03:47:34.364Z",
   "results": {
     "61f154fd37503abc": {
       "model": "claude-opus-5-5",
@@ -28,6 +28,44 @@
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 124,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "255c56b9de669e0c": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:46:56.375Z",
+      "parties": {
+        "a": "Bunnings",
+        "b": "BWP"
+      },
+      "passage": "and convenience of properties and the intensity of competition with other participants in the real estate industry; > the convenience and quality of properties; > unforeseen capital expenditure; > supply of developable land, new properties and other investment properties; > investor demand / liquidity in investments; > unforeseen events such as pandemics which may result in Government policies or changes in law not previously anticipated (such as rent relief and abatements); and > lease expiry timing and the matters impacting any lease renewal at that time. Tenant concentration risk Most of BWP's properties have significant or key tenants with the largest tenant (by income) being Bunnings. Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025. If any tenant defaults in performing its obligations under a lease, or vacates, particularly if that tenancy cannot be re-let on equivalent terms within the estimated timeframes or at all, then income, distributions and the value of BWP stapled securities may be negatively affected. This risk is heightened where it is a key tenant whose rent will represent a significant proportion of BWP's net operating income. Further, if a property remains wholly or materially vacant for any significant period of time, this may impact adjoining tenancies, and BWP's ability to achieve market rents or may require higher incentives to be paid to secure tenants. Any negative impact on the net operating income",
+      "passageSha256": "503d049771439c8a46cce57fa4291aa97e0e84ec4f8024a99f58ac2b629f839b",
+      "verdict": {
+        "relationship": "customer",
+        "direction": "a_to_b",
+        "confidence": "high",
+        "supporting_quote": "Most of BWP's properties have significant or key tenants with the largest tenant (by income) being Bunnings.",
+        "rationale": "Bunnings is named as the largest tenant of BWP's properties. A tenant is the customer of its landlord, so Bunnings is BWP's customer."
+      },
+      "usage": {
+        "input_tokens": 1354,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 129,
         "output_tokens_details": {
           "thinking_tokens": 0
         },
@@ -79,6 +117,158 @@
         "detail": "same type and direction"
       }
     },
+    "4bb630f61b010e18": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:46:59.641Z",
+      "parties": {
+        "a": "Flybuys",
+        "b": "Wesfarmers"
+      },
+      "passage": "Other activities Wesfarmers is an investor in Flybuys, BWP Group, Gresham Partners and Wespine Industries. Flybuys Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent. Following the demerger of Coles from Wesfarmers in November 2018, the Flybuys business was set up as an independent, standalone business. As at 30 June 2026, there were 10.3 million active members in the Flybuys loyalty program. For more information on Flybuys, visit flybuys.com.au Gresham Partners Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations. Gresham Partners is a leading independent financial services business with activities in corporate advisory, funds management, property and capital solutions. For more information on Gresham Partners, visit gresham.au BWP Group Wesfarmers' investment in BWP Group",
+      "passageSha256": "28ced9831ae1e7735e0ffc355015cc44237adf5664d4719f3d0f28eb06561e10",
+      "verdict": {
+        "relationship": "owns",
+        "direction": "b_to_a",
+        "confidence": "high",
+        "supporting_quote": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs",
+        "rationale": "The passage says Wesfarmers holds a 50 per cent shareholding in Flybuys, so B holds an equity stake in A."
+      },
+      "usage": {
+        "input_tokens": 1260,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 222,
+        "output_tokens_details": {
+          "thinking_tokens": 94
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "4c582f24ac9bd586": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:01.802Z",
+      "parties": {
+        "a": "Gresham Partners Group Limited",
+        "b": "Wesfarmers"
+      },
+      "passage": "Other activities Wesfarmers is an investor in Flybuys, BWP Group, Gresham Partners and Wespine Industries. Flybuys Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent. Following the demerger of Coles from Wesfarmers in November 2018, the Flybuys business was set up as an independent, standalone business. As at 30 June 2026, there were 10.3 million active members in the Flybuys loyalty program. For more information on Flybuys, visit flybuys.com.au Gresham Partners Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations. Gresham Partners is a leading independent financial services business with activities in corporate advisory, funds management, property and capital solutions. For more information on Gresham Partners, visit gresham.au BWP Group Wesfarmers' investment in BWP Group (BWP) contributed earnings of $96 million for the financial year compared to $59 million in the prior year, reflecting favourable property revaluation movements. BWP Group is an A-REIT focused on large format retailing properties, particularly those leased to Bunnings. BWP's stapled securities are listed on the Australian Securities Exchange (ASX). On 1 August 2025, Wesfarmers completed the sale of its 100 per cent interest in BWP",
+      "passageSha256": "21a0280589fae85888b9e429782f8ff81a8762a0678f1ef5f03dabaee48c714c",
+      "verdict": {
+        "relationship": "owns",
+        "direction": "b_to_a",
+        "confidence": "high",
+        "supporting_quote": "Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations.",
+        "rationale": "The passage states that Wesfarmers holds a 50 per cent shareholding in Gresham Partners Group Limited. That is an equity stake, so B owns A."
+      },
+      "usage": {
+        "input_tokens": 1416,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 146,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "dcd257373f3d79bd": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:06.378Z",
+      "parties": {
+        "a": "Wesfarmers",
+        "b": "Wespine Industries Pty Ltd"
+      },
+      "passage": "in BWP Management Limited, the responsible entity of the BWP Trust, for total consideration of approximately $143 million. Wesfarmers received $100 million in cash, with the balance satisfied through stapled securities in BWP. Following completion of the transaction, Wesfarmers' ownership in BWP increased from 22.29 per cent to 23.44 per cent of stapled securities. On 18 May 2026, Wesfarmers subscribed for its full pro-rata entitlement of $53 million under BWP's accelerated non-renounceable entitlement offer, maintaining its holding of 23.44 per cent. BWP's portfolio as at 30 June 2026 consisted of 80 properties. For more information on BWP Group, visit bwptrust.com.au Wespine Industries The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia. Wespine manufactures structural timber used for the construction, landscaping and packaging industries. Demand for sawn timber products continued to recover, with increasing housing approvals and commencements in WA. Wespine achieved higher mill throughput and improved product mix during financial year 2026, delivering revenue of $152 million, up from $139 million in the prior financial year. Safety continues to be a focus for management with ongoing investment and operational initiatives to ensure a strong safety performance. For more information on Wespine, visit wespine.com.au Wesfarmers 2026 Annual Report 54 Operating and financial review | Other activities For personal use only",
+      "passageSha256": "42aa6f746cc1957d3a7f1925c5e2206e5374c50b5087d57b508f23f87f5e4cc0",
+      "verdict": {
+        "relationship": "owns",
+        "direction": "a_to_b",
+        "confidence": "medium",
+        "supporting_quote": "The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia.",
+        "rationale": "In the Other activities section of the Wesfarmers 2026 Annual Report, Wespine is described as 50 per cent-owned, which indicates an equity stake held by Wesfarmers. The passage does not name a joint venture partner, so ownership is the relationship it most directly supports."
+      },
+      "usage": {
+        "input_tokens": 1440,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 334,
+        "output_tokens_details": {
+          "thinking_tokens": 148
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "9e96c2131cb79c1f": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:08.441Z",
+      "parties": {
+        "a": "Sociedad Química y Minera",
+        "b": "Wesfarmers"
+      },
+      "passage": "sodium cyanide - Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN - Australian Vinyls, which supplies polyvinyl chloride (PVC) resin and specialty chemicals - ModWood, which manufactures wood-plastic composite decking and screening products. WesCEF's energy business, Kleenheat, extracts liquefied petroleum gas (LPG) from natural gas and manufactures liquefied natural gas (LNG) at the Kleenheat Production Facility. Kleenheat is also a retailer of natural gas to residential and commercial markets. CSBP Fertilisers manufactures, imports and distributes fertilisers for the Western Australian agricultural sector. Covalent Lithium, Wesfarmers' 50 per cent joint venture with Sociedad Química y Minera (SQM), is a vertically integrated operation in Western Australia comprising a mine and concentrator at Mt Holland producing spodumene concentrate, and a refinery in Kwinana producing lithium hydroxide. Highlights and outlook Revenue for WesCEF increased 5.9 per cent to $3,138 million for the year, driven by higher prices for fertilisers and spodumene concentrate. Earnings increased by 18.5 per cent to $473 million, reflecting a significant uplift in Lithium earnings, partially offset by reduced earnings from Ammonia and Energy. WesCEF's TRIFR significantly improved to 0.6 and two major capacity expansion projects were delivered with no recordable injuries. Scope 1 and Scope 2 (market-based) emissions decreased by 3.3 per cent. Chemicals earnings will continue to be dependent on global commodity pricing and the execution of major shutdowns in financial year 2027. Ammonia earnings are",
+      "passageSha256": "79a827d2c85ecee22ad6d519a21eacacb80233d03da129bfc427cef77f0ccaf6",
+      "verdict": {
+        "relationship": "joint_venture",
+        "direction": "mutual",
+        "confidence": "high",
+        "supporting_quote": "Covalent Lithium, Wesfarmers' 50 per cent joint venture with Sociedad Química y Minera (SQM)",
+        "rationale": "The passage states that Covalent Lithium is a joint venture between Wesfarmers and SQM, making them joint venture partners."
+      },
+      "usage": {
+        "input_tokens": 1560,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 130,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type (symmetric)"
+      }
+    },
     "e038c3b7fecb9efd": {
       "model": "claude-opus-5-5",
       "at": "2026-11-01T02:29:03.486Z",
@@ -115,6 +305,196 @@
       "comparison": {
         "outcome": "agree",
         "detail": "same type (symmetric)"
+      }
+    },
+    "33e362152e4016bd": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:10.770Z",
+      "parties": {
+        "a": "Built Group",
+        "b": "Wesfarmers"
+      },
+      "passage": "that will deliver satisfactory returns to shareholders. The actions taken this year strengthen the portfolio and position the Group for further growth. From 1 July 2026, Blackwoods and Workwear Group transitioned into Bunnings. This brings together businesses with highly complementary customer bases, providing opportunity for Bunnings to accelerate growth with small- to medium-sized business customers. In August 2025, Wesfarmers completed the sale of BWP Management Limited to BWP Group and in May 2026, the Group participated in BWP's entitlement offer, maintaining our 23.44 per cent holding. Wesfarmers also successfully completed the wind up of the BPI property structure in September 2025. In May 2026, Wesfarmers announced it had agreed to enter a joint venture with Built Group to establish Built Living, a business focused on delivering residential apartments at scale through advanced manufacturing. In July 2026, Wesfarmers announced it had agreed to sell Cm3, a leading Australian contractor management software business that is part of the Blackwoods Group, to Achilles Group. The sale is subject to approval from the Australian Foreign Investment Review Board. Leadership Team I would like to thank Tim Bult, who retired as Managing Director of Wesfarmers Industrial and Safety following the division's transition into Bunnings, after more than 26 years with the Group. Tim made significant contributions to Wesfarmers including in the former Energy division, business development, and played a critical role leading the demerger of Coles Group in 2018. We thank Tim for his leadership and wish",
+      "passageSha256": "dff2ffbe720428f0cecbf0782d01639e26d53396bbcb5bed1d7c3f24813affc9",
+      "verdict": {
+        "relationship": "joint_venture",
+        "direction": "mutual",
+        "confidence": "high",
+        "supporting_quote": "In May 2026, Wesfarmers announced it had agreed to enter a joint venture with Built Group to establish Built Living",
+        "rationale": "The passage says Wesfarmers agreed to form a joint venture with Built Group to create Built Living, which makes the two joint venture partners."
+      },
+      "usage": {
+        "input_tokens": 1436,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 130,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type (symmetric)"
+      }
+    },
+    "e2b54d19dc547cbc": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:13.486Z",
+      "parties": {
+        "a": "Coogee Chemicals",
+        "b": "CSBP"
+      },
+      "passage": "Our business WesCEF manages a portfolio of eight businesses in Australia across the chemicals, energy, fertilisers and lithium sectors with a shared services model that supports these businesses. Chemicals includes: - CSBP Chemicals, which manufactures and supplies ammonia, ammonium nitrate (AN) and industrial chemicals - Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide - Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN - Australian Vinyls, which supplies polyvinyl chloride (PVC) resin and specialty chemicals - ModWood, which manufactures wood-plastic composite decking and screening products. WesCEF's energy business, Kleenheat, extracts liquefied petroleum gas (LPG) from natural gas and manufactures liquefied natural gas (LNG) at the Kleenheat Production Facility. Kleenheat is also a retailer of natural gas to residential and commercial markets. CSBP Fertilisers manufactures, imports and distributes fertilisers for the Western Australian agricultural sector. Covalent",
+      "passageSha256": "4a09bf84facbe9492933a552c17f8ea1d0d3f27ea51f151990dce1fd32b86b64",
+      "verdict": {
+        "relationship": "joint_venture",
+        "direction": "mutual",
+        "confidence": "high",
+        "supporting_quote": "Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide",
+        "rationale": "The passage states that CSBP and Coogee Chemicals are joint venture partners in Australian Gold Reagents."
+      },
+      "usage": {
+        "input_tokens": 1360,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 143,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type (symmetric)"
+      }
+    },
+    "cb0d6f1655b0ff3f": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:19.388Z",
+      "parties": {
+        "a": "CSBP",
+        "b": "Dyno Nobel Asia Pacific"
+      },
+      "passage": "Our business WesCEF manages a portfolio of eight businesses in Australia across the chemicals, energy, fertilisers and lithium sectors with a shared services model that supports these businesses. Chemicals includes: - CSBP Chemicals, which manufactures and supplies ammonia, ammonium nitrate (AN) and industrial chemicals - Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide - Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN - Australian Vinyls, which supplies polyvinyl chloride (PVC) resin and specialty chemicals - ModWood, which manufactures wood-plastic composite decking and screening products. WesCEF's energy business, Kleenheat, extracts liquefied petroleum gas (LPG) from natural gas and manufactures liquefied natural gas (LNG) at the Kleenheat Production Facility. Kleenheat is also a retailer of natural gas to residential and commercial markets. CSBP Fertilisers manufactures, imports and distributes fertilisers for the Western Australian agricultural sector. Covalent Lithium, Wesfarmers' 50 per cent joint venture with Sociedad Química y Minera (SQM), is a vertically integrated operation in Western",
+      "passageSha256": "1f07f05672bdc5c8768df5d52f5f08fefea4dcb63766cee60928d80a9eee4945",
+      "verdict": {
+        "relationship": "joint_venture",
+        "direction": "mutual",
+        "confidence": "high",
+        "supporting_quote": "Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN",
+        "rationale": "The passage describes Queensland Nitrates as a joint venture between CSBP and Dyno Nobel Asia Pacific, so the two are joint venture partners."
+      },
+      "usage": {
+        "input_tokens": 1419,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 158,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type (symmetric)"
+      }
+    },
+    "8a2fddba4918fe4c": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:24.111Z",
+      "parties": {
+        "a": "Intellihub",
+        "b": "Wesfarmers"
+      },
+      "passage": "was set a number of business enhancing objectives for the performance period, each of which has been assessed by the Board. Business growth: The Board assessed Mr Scott on a number of business growth objectives for the financial year, including the sales and earnings growth achieved across the Group's retail divisions relative to market, including improvements in e-commerce and retail media sales. The assessment of growth and investment opportunities throughout the portfolio included the transition of the Wesfarmers Industrial and Safety businesses into the Bunnings Group, the establishment of the Built Living joint venture with Built Group (subject to certain consents and approvals), the Zelora joint venture between Bunnings Group and Intellihub (subject to certain consents and approvals), and various transactions relating to BWP Group that realised value for the Group. In addition, the Group completed the capital management initiative in December 2025, returning $1.7 billion to shareholders. Strong progress has been made with regard to AI initiatives across each division and the establishment of strategic partnerships with global technology companies has delivered value. Turnaround/newly acquired businesses: The Board is pleased with the progress of the Officeworks transformation. OnePass continued to strengthen with growth in membership and sales incrementality through the year, and OnePass received the Canstar award for highest-rated loyalty program for customer",
+      "passageSha256": "eb79795339c00e5ab405d582190173b0175a0138b812a8937d6884566619a998",
+      "verdict": {
+        "relationship": "joint_venture",
+        "direction": "mutual",
+        "confidence": "low",
+        "supporting_quote": "the Zelora joint venture between Bunnings Group and Intellihub (subject to certain consents and approvals)",
+        "rationale": "The passage names Bunnings Group, not Wesfarmers itself, as Intellihub's partner in the Zelora joint venture. Wesfarmers' involvement is only implied because the passage counts this venture among opportunities across its own portfolio."
+      },
+      "usage": {
+        "input_tokens": 1346,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 344,
+        "output_tokens_details": {
+          "thinking_tokens": 183
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type (symmetric)"
+      }
+    },
+    "7fa4b3247a1269b9": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:28.853Z",
+      "parties": {
+        "a": "Bunnings",
+        "b": "BWP Group"
+      },
+      "passage": "parties Associates Lease rent paid (166,837) (164,503) Receipts from associates 2,873 21,947 Payments to associates (1,064) (1,469) Joint ventures Receipts from loyalty program 95,253 46,946 Payments for loyalty program (116,892) (94,914) Receipts from joint ventures 48,591 33,670 Payments to joint ventures (50,749) (70,035) Outstanding balances with related parties Associates Amounts receivable from associates 12,132 17,582 Amounts owing to associates (166) (1,113) Joint ventures Amounts receivable from joint ventures 23,665 28,770 Amounts owing to joint ventures (156,721) (169,067) The Group entered into transactions with related parties during the year, including the following: • Rent for retail stores and warehouses has been paid by the Group to an associate, BWP Group. • Transitional services fees were received from BWP Group under the Cooperation and Services Agreement for a maximum period of five years. Management fees have been received from BWP Group on normal commercial terms and conditions until 1 August 2025. • Rent for retail stores and warehouses has been paid and management fees have been received by the Group from a joint venture, BPI until 9 September 2025. • Amounts have been paid to and received from Loyalty Pacific Pty Ltd for the operation of the Flybuys loyalty program. • Purchase of goods from Wespine Industries Pty Ltd, a joint venture, on normal commercial terms and conditions. • Management fees and other charges were incurred relating",
+      "passageSha256": "2c4ab9421c2a225169e16c0d657668033df584a851babb875374ef809f0ec5d7",
+      "verdict": {
+        "relationship": "none",
+        "direction": "not_applicable",
+        "confidence": "medium",
+        "supporting_quote": "Rent for retail stores and warehouses has been paid by the Group to an associate, BWP Group.",
+        "rationale": "The passage says 'the Group' pays rent to its associate BWP Group, but Bunnings is never named. Nothing here ties Bunnings itself to BWP Group, so the passage states no relationship between these two parties."
+      },
+      "usage": {
+        "input_tokens": 1430,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 330,
+        "output_tokens_details": {
+          "thinking_tokens": 184
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "insufficient_evidence",
+        "detail": "second pass found no relationship stated in the passage"
       }
     },
     "7eabd4099cd2900a": {
@@ -220,6 +600,82 @@
         "output_tokens": 332,
         "output_tokens_details": {
           "thinking_tokens": 190
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "d3d64440100c225a": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:31.277Z",
+      "parties": {
+        "a": "Gresham Partners Group Limited",
+        "b": "Rob Scott"
+      },
+      "passage": "Australia and Asia. Rob rejoined Wesfarmers in 2004 in Business Development before being appointed Managing Director of Wesfarmers Insurance in 2007 and then Finance Director of Coles in 2013. He was Managing Director, Financial Services in 2014 and Managing Director of the Wesfarmers Industrials division in 2015. Rob became the Group's Deputy Chief Executive Officer in February 2017 and assumed the role of Managing Director and Chief Executive Officer at the conclusion of the 2017 Annual General Meeting in November 2017. Directorships of listed entities (last three years), other directorships/offices (current and recent): - Director of Business Council of Australia (since November 2021) - Director of Gresham Partners Group Limited (since November 2020) - Director of Gresham Partners Holding Limited (since November 2020) - Member of UWA Business School Advisory Board (since August 2017) - Director of Brisbane 2032 Board (retired July 2025) - Director of Flybuys joint venture with Coles Group Limited (retired May 2025) - Chairman of Rowing Australia (retired June 2024) Mike Roche DIRECTOR BSc GAICD FIA (London) FIAA (Australia) Age 73 Term: Director since February 2019 Skills and experience: Mike has more than 40 years' experience in the finance sector where he held senior positions firstly as an actuary with National Mutual/ AXA and then in investment banking where he provided strategic, financial, merger and acquisition, and capital",
+      "passageSha256": "1514a5cf7b68eb817f382d665958ff34bc41fdf936e77a4615d357c4fcafb50b",
+      "verdict": {
+        "relationship": "director_of",
+        "direction": "b_to_a",
+        "confidence": "high",
+        "supporting_quote": "Director of Gresham Partners Group Limited (since November 2020)",
+        "rationale": "The passage lists Rob Scott's current directorships, which include serving as a director of Gresham Partners Group Limited."
+      },
+      "usage": {
+        "input_tokens": 1437,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 105,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "877927ad71f86796": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T03:47:34.335Z",
+      "parties": {
+        "a": "Cm3 Contractor Management Pty Ltd",
+        "b": "Wesfarmers"
+      },
+      "passage": "period (continued) Mt Holland lithium expansion project - final investment decision On 22 July 2026, Wesfarmers and Sociedad Química y Minera de Chile S.A. (SQM) announced their joint approval of the final investment decision to expand the Mt Holland lithium project. The expansion is expected to approximately double annual spodumene concentrate production and includes construction of a second concentrator and an integrated ore sorting facility. Wesfarmers' share of the estimated capital expenditure is between $645 million and $715 million (excluding capitalised interest), which is expected to be funded from existing cash and debt facilities. Sale of Cm3 Contractor Management Pty Ltd On 24 July 2026, Wesfarmers announced that it had entered into an agreement to sell Cm3, a wholly owned subsidiary, to Achilles Group. Completion of the sale remains subject to approval by the Australian Foreign Investment Review Board. Non-audit services Ernst & Young provided non-audit services to the Group during the year ended 30 June 2026 and received or is due to receive the following amounts for the provision of these services: $'000 Tax compliance 698 Other 49 Total 747 The total non-audit services fees of $747,000 represents 10.1 per cent of the total fees paid or payable to Ernst & Young and related practices for the year ended 30 June 2026. Total non-audit services fees and other assurance and agreed-upon procedures fees were $1,037,000. Further details of amounts paid or payable to Ernst & Young and its related",
+      "passageSha256": "cba0a07c61013f1727db7d470064903cd50dcdb1bb6adeb328b4c7a7628ed519",
+      "verdict": {
+        "relationship": "subsidiary",
+        "direction": "b_to_a",
+        "confidence": "high",
+        "supporting_quote": "Wesfarmers announced that it had entered into an agreement to sell Cm3, a wholly owned subsidiary, to Achilles Group.",
+        "rationale": "The passage describes Cm3 as a wholly owned subsidiary of Wesfarmers, which makes Wesfarmers (B) the parent of Cm3 (A). The sale to Achilles Group is still pending completion, so the subsidiary relationship currently holds."
+      },
+      "usage": {
+        "input_tokens": 1440,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 182,
+        "output_tokens_details": {
+          "thinking_tokens": 0
         },
         "service_tier": "standard",
         "inference_geo": "global",

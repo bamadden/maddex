@@ -135,3 +135,41 @@ test('the verification record names the source bytes it was checked against', ()
   assert.equal(r.results.p1.match.sourceSha256, 'abc')
   assert.deepEqual(r.sources, { 'https://example.com/ar.pdf': { sha256: 'abc', pages: 3 } })
 })
+
+// ── Counterparty nodes (added 1 Nov 2026) ───────────────────────────────────
+import fs from 'node:fs'
+import { ALL_NODES } from '../src/data/graph/nodes.js'
+
+const sourced = ALL_NODES.filter((n) => n.source)
+
+test('every counterparty node carries a page, an https source and a quote; an ABN only beside the legal name it was matched on', () => {
+  assert.ok(sourced.length >= 17)
+  for (const n of sourced) {
+    assert.equal(n.type, 'company', n.id)
+    assert.match(n.source.url, /^https:\/\/.+#page=\d+$/, n.id)
+    assert.ok(Number.isInteger(n.source.page) && n.source.quote.length >= 15, n.id)
+    if (n.abn) {
+      assert.match(n.abn, /^\d{2} \d{3} \d{3} \d{3}$/, n.id)
+      assert.ok(n.legalName, `${n.id}: ABN without the legal name it belongs to`)
+    }
+  }
+  assert.ok(!ALL_NODES.some((n) => n.type === 'person' && n.source?.label?.startsWith('Wesfarmers 2026')), 'no directors added')
+})
+
+test('a counterparty resolves by its name, legal name or alias', () => {
+  const resolve = nodeResolver(ALL_NODES)
+  assert.equal(resolve({ name: 'Bunnings Group', id: null }), 'co:bunnings')
+  assert.equal(resolve({ name: 'Bunnings', id: null }), 'co:bunnings')
+  assert.equal(resolve({ name: 'Kmart Group', id: null }), 'co:kmart')
+  assert.equal(resolve({ name: 'Wespine Industries Pty Ltd', id: null }), 'co:wespine')
+  assert.equal(resolve({ name: 'Sociedad Química y Minera', id: null }), 'co:sqm')
+  assert.equal(resolve({ name: 'Wesfarmers Chemicals, Energy & Fertilisers', id: null }), 'co:wescef')
+  assert.equal(resolve({ name: 'Aaron Hood', id: null }), null) // people were not added
+})
+
+// Runs where the source PDF has been downloaded (npm run graph:verify).
+const AR = '.cache/graph-sources/announcements.asx.com.au_asxpdf_20260827_pdf_0738z357pt1vhl.pdf.pages.json'
+test('each counterparty quote is verbatim on its cited page of the report', { skip: !fs.existsSync(AR) && 'source text not cached' }, () => {
+  const pages = JSON.parse(fs.readFileSync(AR, 'utf8')).pages
+  for (const n of sourced) assert.ok(matchOnPage(pages[n.source.page - 1], n.source.quote), `${n.id} p${n.source.page}`)
+})

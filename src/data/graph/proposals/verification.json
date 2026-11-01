@@ -1,6 +1,6 @@
 {
   "stage": 1,
-  "generatedAt": "2026-11-01T02:16:34.971Z",
+  "generatedAt": "2026-11-01T03:46:30.722Z",
   "sources": {
     "https://announcements.asx.com.au/asxpdf/20260506/pdf/06z9c43p7cht8l.pdf": {
       "sha256": "d98c791d7f514e538538052c5614c267f3bf5442219199d715ab277d62074578",
@@ -51,10 +51,8 @@
     },
     "255c56b9de669e0c": {
       "file": "BWP-2026-05-06.json",
-      "ok": false,
-      "reasons": [
-        "from \"Bunnings\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -64,8 +62,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "from \"Bunnings\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -76,7 +73,7 @@
         }
       },
       "resolved": {
-        "from": null,
+        "from": "co:bunnings",
         "to": "BWP"
       },
       "match": {
@@ -128,10 +125,8 @@
     },
     "4bb630f61b010e18": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Flybuys\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -141,8 +136,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Flybuys\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -154,7 +148,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:flybuys"
       },
       "match": {
         "result": "verified",
@@ -168,10 +162,8 @@
     },
     "4c582f24ac9bd586": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Gresham Partners Group Limited\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -181,8 +173,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Gresham Partners Group Limited\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -194,7 +185,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:gresham"
       },
       "match": {
         "result": "verified",
@@ -208,10 +199,8 @@
     },
     "dcd257373f3d79bd": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Wespine Industries Pty Ltd\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -221,8 +210,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Wespine Industries Pty Ltd\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -234,7 +222,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:wespine"
       },
       "match": {
         "result": "verified",
@@ -248,10 +236,8 @@
     },
     "9e96c2131cb79c1f": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Sociedad Química y Minera\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -261,8 +247,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Sociedad Química y Minera\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -274,7 +259,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:sqm"
       },
       "match": {
         "result": "verified",
@@ -325,10 +310,8 @@
     },
     "33e362152e4016bd": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Built Group\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -338,8 +321,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Built Group\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -350,7 +332,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:built"
       },
       "match": {
         "result": "verified",
@@ -364,11 +346,8 @@
     },
     "e2b54d19dc547cbc": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "from \"CSBP\" does not resolve to a known node",
-        "to \"Coogee Chemicals\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -378,8 +357,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Coogee Chemicals\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -390,8 +368,8 @@
         }
       },
       "resolved": {
-        "from": null,
-        "to": null
+        "from": "co:csbp",
+        "to": "co:coogee"
       },
       "match": {
         "result": "verified",
@@ -405,11 +383,8 @@
     },
     "cb0d6f1655b0ff3f": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "from \"CSBP\" does not resolve to a known node",
-        "to \"Dyno Nobel Asia Pacific\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -419,8 +394,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Dyno Nobel Asia Pacific\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -431,8 +405,8 @@
         }
       },
       "resolved": {
-        "from": null,
-        "to": null
+        "from": "co:csbp",
+        "to": "co:dyno-nobel-ap"
       },
       "match": {
         "result": "verified",
@@ -446,10 +420,8 @@
     },
     "8a2fddba4918fe4c": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Intellihub\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -459,8 +431,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Intellihub\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -471,7 +442,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:intellihub"
       },
       "match": {
         "result": "verified",
@@ -485,10 +456,8 @@
     },
     "7fa4b3247a1269b9": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "from \"Bunnings\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -498,8 +467,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "from \"Bunnings\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -509,7 +477,7 @@
         }
       },
       "resolved": {
-        "from": null,
+        "from": "co:bunnings",
         "to": "BWP"
       },
       "match": {
@@ -634,8 +602,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Michael Schneider\" does not resolve to a known node",
-        "to \"Bunnings Group\" does not resolve to a known node"
+        "from \"Michael Schneider\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -647,7 +614,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Bunnings Group\" does not resolve to a known node"
+          "reason": "from \"Michael Schneider\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -658,7 +625,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:bunnings"
       },
       "match": {
         "result": "verified",
@@ -674,8 +641,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Aleksandra Spaseska\" does not resolve to a known node",
-        "to \"Kmart Group\" does not resolve to a known node"
+        "from \"Aleksandra Spaseska\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -687,7 +653,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Kmart Group\" does not resolve to a known node"
+          "reason": "from \"Aleksandra Spaseska\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -698,7 +664,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:kmart"
       },
       "match": {
         "result": "verified",
@@ -714,8 +680,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Aaron Hood\" does not resolve to a known node",
-        "to \"Wesfarmers Chemicals, Energy & Fertilisers\" does not resolve to a known node"
+        "from \"Aaron Hood\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -727,7 +692,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Wesfarmers Chemicals, Energy & Fertilisers\" does not resolve to a known node"
+          "reason": "from \"Aaron Hood\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -738,7 +703,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:wescef"
       },
       "match": {
         "result": "verified",
@@ -754,8 +719,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"John Gualtieri\" does not resolve to a known node",
-        "to \"Officeworks\" does not resolve to a known node"
+        "from \"John Gualtieri\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -767,7 +731,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Officeworks\" does not resolve to a known node"
+          "reason": "from \"John Gualtieri\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -778,7 +742,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:officeworks"
       },
       "match": {
         "result": "verified",
@@ -794,8 +758,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Emily Amos\" does not resolve to a known node",
-        "to \"Wesfarmers Health\" does not resolve to a known node"
+        "from \"Emily Amos\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -807,7 +770,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Wesfarmers Health\" does not resolve to a known node"
+          "reason": "from \"Emily Amos\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -818,7 +781,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:wesfarmers-health"
       },
       "match": {
         "result": "verified",
@@ -834,8 +797,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Jenny Bryant\" does not resolve to a known node",
-        "to \"Flybuys\" does not resolve to a known node"
+        "from \"Jenny Bryant\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -847,7 +809,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Flybuys\" does not resolve to a known node"
+          "reason": "from \"Jenny Bryant\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -858,7 +820,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:flybuys"
       },
       "match": {
         "result": "verified",
@@ -874,8 +836,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Michael Britton\" does not resolve to a known node",
-        "to \"Wespine Industries\" does not resolve to a known node"
+        "from \"Michael Britton\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -887,7 +848,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Wespine Industries\" does not resolve to a known node"
+          "reason": "from \"Michael Britton\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -898,7 +859,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:wespine"
       },
       "match": {
         "result": "verified",
@@ -914,8 +875,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Naomi Flutter\" does not resolve to a known node",
-        "to \"Wespine Industries\" does not resolve to a known node"
+        "from \"Naomi Flutter\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -927,7 +887,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Wespine Industries\" does not resolve to a known node"
+          "reason": "from \"Naomi Flutter\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -938,7 +898,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:wespine"
       },
       "match": {
         "result": "verified",
@@ -954,8 +914,7 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "from \"Aaron Hood\" does not resolve to a known node",
-        "to \"Covalent Lithium\" does not resolve to a known node"
+        "from \"Aaron Hood\" does not resolve to a known node"
       ],
       "checks": {
         "quote": {
@@ -967,7 +926,7 @@
         },
         "identifiers": {
           "ok": false,
-          "reason": "to \"Covalent Lithium\" does not resolve to a known node"
+          "reason": "from \"Aaron Hood\" does not resolve to a known node"
         },
         "type": {
           "ok": true
@@ -978,7 +937,7 @@
       },
       "resolved": {
         "from": null,
-        "to": null
+        "to": "co:covalent-lithium"
       },
       "match": {
         "result": "verified",
@@ -992,10 +951,8 @@
     },
     "d3d64440100c225a": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Gresham Partners Group Limited\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -1005,8 +962,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Gresham Partners Group Limited\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -1017,7 +973,7 @@
       },
       "resolved": {
         "from": "person:rob-scott",
-        "to": null
+        "to": "co:gresham"
       },
       "match": {
         "result": "verified",
@@ -1031,10 +987,8 @@
     },
     "877927ad71f86796": {
       "file": "WES-2026-06-30.json",
-      "ok": false,
-      "reasons": [
-        "to \"Cm3 Contractor Management Pty Ltd\" does not resolve to a known node"
-      ],
+      "ok": true,
+      "reasons": [],
       "checks": {
         "quote": {
           "ok": true,
@@ -1044,8 +998,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Cm3 Contractor Management Pty Ltd\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -1056,7 +1009,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:cm3"
       },
       "match": {
         "result": "verified",
@@ -1072,7 +1025,6 @@
       "file": "WES-2026-06-30.json",
       "ok": false,
       "reasons": [
-        "to \"Australian Gold Reagents Pty Ltd\" does not resolve to a known node",
         "stake 75% is not stated as a percentage in the quote"
       ],
       "checks": {
@@ -1084,8 +1036,7 @@
           "ok": true
         },
         "identifiers": {
-          "ok": false,
-          "reason": "to \"Australian Gold Reagents Pty Ltd\" does not resolve to a known node"
+          "ok": true
         },
         "type": {
           "ok": true
@@ -1097,7 +1048,7 @@
       },
       "resolved": {
         "from": "WES",
-        "to": null
+        "to": "co:agr"
       },
       "match": {
         "result": "verified",
