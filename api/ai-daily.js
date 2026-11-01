@@ -14,6 +14,7 @@
 // call, so the cache cannot be busted with junk query strings. A per-instance
 // daily cap stops a cold-cache stampede from running away.
 
+import { guardJson, GUARD_VERSION } from '../src/services/adviceGuard.js'
 import { DAILY_KINDS, SENTIMENT_FEEDS, sydneyDay, secondsToSydneyMidnight } from '../src/services/aiDaily.js'
 import { parseFeed } from './rss.js'
 
@@ -60,9 +61,13 @@ async function generate(kind, day) {
   if (msg.stop_reason === 'max_tokens') throw Object.assign(new Error('Reply cut off at max_tokens'), { status: 502 })
   const text = msg.content?.find((b) => b.type === 'text')?.text
   if (!text) throw Object.assign(new Error('Empty reply'), { status: 502 })
-  const data = spec.parse(text)
+  // The advice check (src/services/adviceGuard.js), string by string, before
+  // anything is shared with readers.
+  const flags = []
+  const data = guardJson(spec.parse(text), flags)
+  if (flags.length) console.warn('[ai-daily] advice guard rewrote', kind, flags.map((f) => f.rule).join(','))
   console.log('[ai-daily]', kind, day, msg.usage)
-  return { kind, day, generatedAt: new Date().toISOString(), model: MODEL, data }
+  return { kind, day, generatedAt: new Date().toISOString(), model: MODEL, guard: { version: GUARD_VERSION, flags: flags.length }, data }
 }
 
 export default async function handler(req, res) {

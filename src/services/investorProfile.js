@@ -33,7 +33,6 @@ export const HORIZONS = [
 
 export const riskLabel = (n) => (n <= 3 ? 'CONSERVATIVE' : n <= 7 ? 'MODERATE' : 'AGGRESSIVE')
 export const experienceLabel = (v) => EXPERIENCE.find((e) => e.value === v)?.label ?? v
-const horizonLabel = (v) => HORIZONS.find((h) => h.value === v)?.label ?? v
 const title = (s) => s.charAt(0) + s.slice(1).toLowerCase()
 
 export const emptyProfile = (experience = 'INTERMEDIATE') => ({
@@ -90,21 +89,21 @@ export function subscribeInvestorProfile(cb) {
 
 export function getInvestorContext(p = getInvestorProfile()) {
   if (!p) return ''
+  // Reading level and topics only. Time horizon and risk tolerance stay on
+  // the device and are never sent: personalisation may change tone and
+  // depth, never use the reader's goals or risk appetite to suggest an
+  // action (the advice line in MADDEX_SYSTEM_PROMPT).
   const lines = [
-    `Experience: ${experienceLabel(p.experience)}`,
-    p.focus && `Focus: ${p.focus}`,
-    p.timeHorizon && `Time horizon: ${horizonLabel(p.timeHorizon)}`,
-    `Risk tolerance: ${p.riskTolerance}/10 (${riskLabel(p.riskTolerance)})`,
-    `Preferred sectors: ${p.sectors.length ? p.sectors.join(', ') : 'none selected'}`,
+    `Reading level: ${experienceLabel(p.experience)}`,
+    p.focus && `Topics of interest: ${p.focus.toLowerCase()}`,
+    p.sectors.length && `Sectors of interest: ${p.sectors.join(', ')}`,
   ].filter(Boolean)
-  return `USER PROFILE:
+  return `READER PREFERENCES (tone and depth only):
 ${lines.join('\n')}
 
-Tailor your responses to this profile.
-A BEGINNER needs more explanation.
-A PROFESSIONAL can handle technical terms.
-An INCOME investor cares about yield, not growth.
-The profile shapes framing and emphasis only — it is not a request for personal advice, and the general-information rule still applies.
+Pitch explanations to the reading level: define terms for a beginner, be technical for a professional.
+Topics and sectors of interest decide which examples to reach for, nothing else.
+These preferences are not the reader's objectives, financial situation or needs, and are never a reason to suggest what to buy, sell or hold.
 
 `
 }
@@ -115,13 +114,13 @@ const q = (label, prompt) => ({ label, prompt, dataKeys: ['asx'] })
 
 const PROMPTS = {
   INCOME: [
-    q('ASX DIVIDEND STOCKS', 'Best ASX dividend stocks right now? Explain what makes a dividend reliable rather than just high, and use only figures you have been given.'),
+    q('DIVIDEND RELIABILITY', 'What makes a dividend reliable rather than just high? Explain payout ratios, earnings cover and franking, using only figures you have been given.'),
     q("BHP'S DIVIDEND", "Is BHP's dividend sustainable? Cover payout policy, the iron ore link and what would put it at risk."),
     q('FRANKING CREDITS', 'How does franking credit work for me? Explain with a simple worked example and who benefits most.'),
-    q('INCOME WATCHLIST', 'Build me an income-focused watchlist — the kinds of ASX names and sectors to consider and why. General information only.'),
+    q('INCOME SECTORS', 'Which ASX sectors have historically paid most of their earnings as dividends, and what drives that? Describe the sectors; no stock picks.'),
   ],
   GROWTH: [
-    q('GROWTH UNDER A$5B', 'Best ASX growth stocks under A$5B market cap? Describe what to look for and the risks of small-cap growth.'),
+    q('SMALL-CAP GROWTH', 'How do analysts assess growth companies under A$5B market cap, and what are the risks particular to small caps? No stock picks.'),
     q('AU TECH OUTLOOK', 'Tech sector outlook for AU investors?'),
     q('CSL VS PRO MEDICUS', 'CSL vs Pro Medicus — growth comparison? Cover business model, growth drivers and valuation risk in words.'),
     q('WHERE IS ASX GROWTH?', 'Where is the ASX finding growth right now?'),
@@ -130,7 +129,7 @@ const PROMPTS = {
     q('WHAT IS A P/E RATIO?', 'What is a P/E ratio and does it matter?'),
     q('START INVESTING', 'How do I start investing in the ASX? Walk me through the practical steps.'),
     q('ETFS VS STOCKS', 'Explain ETFs vs individual stocks for someone starting out.'),
-    q('A$5,000 TO INVEST', 'What should I consider before investing A$5,000? Cover the options and trade-offs — general information, not a recommendation.'),
+    q('COSTS AND FEES', 'What costs come with buying ASX shares or ETFs — brokerage, management fees, spreads — and how are they calculated?'),
   ],
   PROFESSIONAL: [
     q('YIELD CURVE & BANKS', 'Yield curve implications for AU banks? Cover net interest margin and funding costs.'),
@@ -163,10 +162,8 @@ const LEAD_WITH = {
 export function briefProfileLines(p = getInvestorProfile()) {
   if (!p) return ''
   const summary = [
-    p.focus && `${title(p.focus)} investor`,
+    p.focus && `interested in ${p.focus.toLowerCase()}`,
     title(experienceLabel(p.experience)),
-    p.timeHorizon && `${title(p.timeHorizon)} horizon`,
-    `${title(riskLabel(p.riskTolerance))} risk (${p.riskTolerance}/10)`,
     p.sectors.length && p.sectors.map(title).join('/'),
   ].filter(Boolean).join(', ')
   const asks = [
@@ -174,5 +171,5 @@ export function briefProfileLines(p = getInvestorProfile()) {
     p.sectors.length && `In SECTOR FOCUS, start with the investor's preferred sectors (${p.sectors.map(title).join(', ')}) where the day gives a reason to; do not force one in without one.`,
     p.experience === 'BEGINNER' && 'Briefly explain any term a newer investor may not know.',
   ].filter(Boolean)
-  return `USER PROFILE: ${summary}\n${asks.map((a) => `- ${a}`).join('\n')}`
+  return `READER PREFERENCES (tone and topics only — never a basis for suggesting an action): ${summary}\n${asks.map((a) => `- ${a}`).join('\n')}`
 }

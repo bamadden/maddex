@@ -111,7 +111,8 @@ try {
     if (!row) return 'no stock row'
     row.focus()
     row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-    await new Promise((r) => setTimeout(r, 800))
+    // The modal is lazy-loaded: poll rather than wait a fixed time.
+    for (let i = 0; i < 40 && !document.querySelector('[data-detail-modal]'); i++) await new Promise((r) => setTimeout(r, 200))
     const m = document.querySelector('[data-detail-modal]')
     return m ? `detail for ${m.dataset.detailModal}` : 'no detail modal'
   })

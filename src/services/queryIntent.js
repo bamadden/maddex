@@ -77,7 +77,7 @@ RECENT PERFORMANCE — the direction price has travelled and what drove it. If n
 KEY METRICS — what matters for this business and how to read it: which margin, which volume, which cycle. Name the metrics. Do NOT state values for them unless they were supplied to you.
 SECTOR CONTEXT — where it sits against its peers and what the sector as a whole is facing.
 RISKS — three specific risks. Specific to this company, not "market volatility".
-WATCH — what a holder should be monitoring next, and roughly when.
+WATCH — what is scheduled next (results, releases, decisions), and roughly when.
 
 No price targets. No valuation. No recommendation to buy, hold or sell.`,
 
@@ -89,7 +89,7 @@ THE SHORT VERSION — two sentences on how they actually differ.
 [FIRST SUBJECT] — its distinct character, strengths and weaknesses.
 [SECOND SUBJECT] — the same, written so the two can be read against each other.
 KEY DIFFERENCES — the three axes on which they genuinely diverge. Where they are similar, say so rather than manufacturing a contrast.
-WHICH SUITS WHOM — the investor profile each one fits, framed as characteristics, not as a recommendation.
+CHARACTER — how each behaves (income or growth, volatility, concentration, sensitivity to rates or commodities), described as facts about the asset, never matched to a type of investor.
 
 Compare like with like. If one is a miner and the other a bank, say why the comparison is awkward before making it. No price targets, no verdict on which is "better".`,
 
