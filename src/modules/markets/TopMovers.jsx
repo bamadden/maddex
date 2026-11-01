@@ -125,6 +125,10 @@ function NewsCell({ article }) {
 
 // Fixed widths so header cells line up exactly with the data below them —
 // only NAME is flexible, everything else is a known-width number/ticker.
+// Company names without the legal suffix ("Newmont Corporation" → "Newmont"),
+// so the column fits them whole; the full name is the cell's tooltip.
+const shortName = (n) => (n ? n.replace(/,?\s+(Limited|Ltd\.?|Corporation|Corp\.?|Incorporated|Inc\.?|plc|N\.V\.|S\.A\.)$/i, '') : '—')
+
 const COLUMNS = [
   { key: 'rank',       label: '#',        align: 'right', cell: 'always', width: 24, sortable: false },
   { key: 'symbol',     label: 'TICKER',   align: 'left',  cell: 'always', width: 60 },
@@ -223,7 +227,7 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
                 className="ml-1 text-[11px] font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold px-1 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-terminal-gold hover:text-terminal-bg transition-opacity"
               >ANALYSE</button>
             </td>
-            <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
+            <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[220px] hidden lg:table-cell" title={q.name ?? undefined}>{shortName(q.name)}</td>
             <td className="px-1.5 py-0.5 hidden lg:table-cell align-middle" style={{ width: 58, minWidth: 58 }}>
               <IntradaySpark symbol={q.symbol} price={audPrice} pct={q.dayChangePct} />
             </td>
