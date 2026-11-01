@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyClock } from '../../utils/dateUtils'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -690,7 +690,7 @@ export default function PortfolioModule() {
   const positionCount = new Set(holdings.map((h) => `${h.type}:${h.symbol}`)).size
   const yfSymbols = [...new Set(equityHoldings.map(requireYFSym))]
 
-  const { data: portfolioResult, isFetching, isError, refetch } = useQuery({
+  const { data: portfolioResult, isFetching, isError, refetch, dataUpdatedAt } = useQuery({
     queryKey:  ['yfPortfolio', ...yfSymbols],
     queryFn:   () => fetchEquityQuotes(yfSymbols),
     staleTime: 60_000,
@@ -759,7 +759,8 @@ export default function PortfolioModule() {
   const pnlData  = live.filter((h) => h.pnl != null).map((h) => ({
     symbol: h.symbol, pnl: parseFloat((h.pnl * displayMul).toFixed(0)),
   }))
-  const updatedAt = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+  // When the prices were fetched (Sydney time), not when this screen rendered.
+  const updatedAt = dataUpdatedAt ? sydneyClock(isDelayed && portfolioResult?.cachedAt ? portfolioResult.cachedAt : dataUpdatedAt).text : '—'
 
   const bySector   = groupByPct(live, (h) => SECTOR_BY_SYMBOL[h.symbol] ?? 'Other')
 
@@ -1165,7 +1166,7 @@ export default function PortfolioModule() {
                   </span>
                 : USING_MOCK_DATA
                   ? <span className="ml-auto"><DemoBadge /></span>
-                  : <span className="text-2xs text-terminal-text-dim font-normal ml-auto">{updatedAt} {sydneyTzNow()}</span>
+                  : <span className="text-2xs text-terminal-text-dim font-normal ml-auto">{updatedAt}</span>
             }
           </div>
           <div className="overflow-auto flex-1">

@@ -2,7 +2,7 @@ import {useState, useEffect, useRef, useSyncExternalStore, lazy, Suspense } from
 import { useSubscription } from '../../hooks/useSubscription'
 import RefreshAllButton from './RefreshAllButton'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
-import { timeAgo } from '../../utils/dateUtils'
+import { timeAgo, sydneyClock } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -345,16 +345,6 @@ function ModuleCrumb() {
   )
 }
 
-// The TopBar clock is the viewer's own time; the dashboard clock is Sydney
-// market time. Named in the tooltip so the hour between them reads as intent.
-const LOCAL_CLOCK_TITLE = (() => {
-  try {
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? ''
-    const city = zone.split('/').pop()?.replace(/_/g, ' ')
-    return city ? `Your local time (${city})` : 'Your local time'
-  } catch { return 'Your local time' }
-})()
-
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { user, supabaseOffline } = useAuthStore()
@@ -408,11 +398,10 @@ export default function TopBar() {
     (cb) => displayService.subscribe(cb),
     () => displayService.get('clockFormat'),
   )
-  // Time only — the date and timezone moved into the tooltip. Seconds dropped:
-  // a per-second relayout in a fixed-width strip is pure noise.
-  const timeStr = time.toLocaleTimeString('en-US', {
-    hour12: clockFormat === '12h', hour: '2-digit', minute: '2-digit',
-  })
+  // Sydney market time with its zone — the same clock as the dashboard
+  // (utils/dateUtils sydneyClock). It used to be the viewer's local time with
+  // no zone, an hour off the dashboard's AEDT clock in Brisbane.
+  const clock = sydneyClock(time, { hour12: clockFormat === '12h' })
 
   return (
     <>
@@ -476,10 +465,11 @@ export default function TopBar() {
           <Suspense key="sentiment" fallback={null}><SentimentTick /></Suspense>,
           <span
             key="clock"
-            title={LOCAL_CLOCK_TITLE}
+            title={`Sydney market time (${clock.tz})`}
+            data-clock
             className="text-[10px] font-mono text-terminal-muted whitespace-nowrap flex-shrink-0"
           >
-            {timeStr}
+            {clock.time} <span className="text-terminal-text-dim/60">{clock.tz}</span>
           </span>,
           <OfficialDataDot key="official" />,
           canUse('priorityRefresh') ? <RefreshAllButton key="refresh" /> : null,

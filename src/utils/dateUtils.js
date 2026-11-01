@@ -83,3 +83,16 @@ export const sydneyTzAbbr = (iso) => (sydneyOffset(iso) === '+11:00' ? 'AEDT' : 
 
 // Today's Sydney abbreviation, for "updated 14:05 AEDT"-style labels.
 export const sydneyTzNow = () => sydneyTzAbbr(new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
+
+// THE clock: Sydney market time with its zone (AEDT / AEST). The top bar, the
+// dashboard and every "updated" stamp use this, so the screen never shows two
+// different times, or a time without its zone.
+export function sydneyClock(date = new Date(), { seconds = false, hour12 = false } = {}) {
+  const d = date instanceof Date ? date : new Date(date)
+  const time = d.toLocaleTimeString('en-AU', {
+    timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', ...(seconds ? { second: '2-digit' } : {}),
+    hourCycle: hour12 ? 'h12' : 'h23',
+  })
+  const tz = sydneyTzAbbr(d.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
+  return { time, tz, text: `${time} ${tz}` }
+}

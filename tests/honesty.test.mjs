@@ -64,3 +64,19 @@ test('no screen claims dark-pool data; the volume panel says what it measures an
   const src = read('src/modules/markets/UnusualActivityTracker.jsx')
   assert.match(src, /VOLUME VS 20-DAY AVERAGE<\/span>\s*<DemoBadge \/>/)
 })
+
+// ── One clock ───────────────────────────────────────────────────────────────
+import { sydneyClock } from '../src/utils/dateUtils.js'
+
+test('the clock is Sydney time with its zone, across daylight saving', () => {
+  assert.deepEqual(sydneyClock(new Date('2026-11-01T02:06:00Z')), { time: '13:06', tz: 'AEDT', text: '13:06 AEDT' })
+  assert.deepEqual(sydneyClock(new Date('2026-07-01T02:06:00Z')), { time: '12:06', tz: 'AEST', text: '12:06 AEST' })
+  assert.match(sydneyClock(new Date('2026-11-01T02:06:00Z'), { hour12: true }).text, /^01:06 pm AEDT$/i)
+  assert.equal(sydneyClock(new Date('2026-11-01T13:00:00Z')).time, '00:00') // midnight is 00, not 24
+})
+
+test('the top bar and dashboard read the same clock; no hard-coded zone', () => {
+  assert.match(read('src/components/layout/TopBar.jsx'), /sydneyClock\(time/)
+  assert.match(read('src/modules/dashboard/DashboardStatusBar.jsx'), /sydneyClock\(now/)
+  assert.doesNotMatch(read('src/modules/global/GlobalModule.jsx'), /\+ ' AEST'/)
+})

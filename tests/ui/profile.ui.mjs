@@ -154,6 +154,13 @@ try {
   if (all.length >= 7 && dash.length >= 3 && new Set(all).size === 1) pass(`same score in ${all.length} places (${all[0]}): ${Object.entries(seen).map(([k, v]) => `${k} ×${v.length}`).join(', ')}`)
   else fail(`sentiment differs or is missing: ${JSON.stringify(seen)}`)
 
+  console.log('One clock')
+  await nav('DASHBOARD')
+  await page.waitForFunction(() => document.querySelectorAll('[data-clock]').length >= 2, { timeout: 30_000 }).catch(() => {})
+  const clocks = await page.evaluate(() => [...document.querySelectorAll('[data-clock]')].map((e) => (e.parentElement.innerText.match(/\d{1,2}:\d{2}(\s*[ap]m)?\s*AE[DS]T/i)?.[0] ?? e.innerText).replace(/\s+/g, ' ').trim()))
+  if (clocks.length >= 2 && clocks.every((c) => /AE[DS]T/.test(c)) && new Set(clocks).size === 1) pass(`top bar and dashboard show ${clocks[0]}`)
+  else fail(`clocks differ or lack a zone: ${JSON.stringify(clocks)}`)
+
   console.log('MaddenAI is mocked')
   await runCommand(page, 'ai what does the profile show')
   await wait(3000)

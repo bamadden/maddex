@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { marketSession } from '../../services/newsIntelligence'
-import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { sydneyClock } from '../../utils/dateUtils'
+import { displayService } from '../../services/displayService'
 import { RegimeBadge } from '../../components/ui/RegimeBadge'
 import IntelligenceScore from './IntelligenceScore'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
@@ -68,10 +69,8 @@ export default function DashboardStatusBar() {
   const dateStr = now.toLocaleDateString('en-AU', {
     timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric',
   }).toUpperCase()
-  const timeStr = now.toLocaleTimeString('en-AU', {
-    timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  })
-  const tz = sydneyTzAbbr(now.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
+  // The same clock as the top bar (sydneyClock): HH:MM with its zone.
+  const { time: timeStr, tz } = sydneyClock(now, { hour12: displayService.get('clockFormat') === '12h' })
 
   return (
     <div
@@ -113,8 +112,8 @@ export default function DashboardStatusBar() {
       <span className="hidden md:inline-flex flex-shrink-0"><SentimentChip /></span>
       <span className="hidden md:inline-flex flex-shrink-0"><IntelligenceScore /></span>
 
-      <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0 cursor-help">{timeStr}</span>
-      <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-dim/50 flex-shrink-0 hidden sm:inline cursor-help">{tz}</span>
+      <span title={`Sydney market time (${tz})`} data-clock className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0 cursor-help">{timeStr}</span>
+      <span title={`Sydney market time (${tz})`} className="text-2xs text-terminal-text-dim/60 flex-shrink-0 cursor-help">{tz}</span>
     </div>
   )
 }

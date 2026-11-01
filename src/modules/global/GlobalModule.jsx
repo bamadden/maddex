@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
-import { timeAgo } from '../../utils/dateUtils'
+import { timeAgo, sydneyClock } from '../../utils/dateUtils'
 import { SeismicSection } from './IntelSections'
 import { IntelTicker, IntelFilterBar, MarketHoursCompact, CommodityIntel, GeoRiskCards } from './IntelPanel'
 import { readIntelFilter, saveIntelFilter } from './intelFilter'
@@ -2379,7 +2379,7 @@ function WorldStatsSummary() {
 
 export default function GlobalModule() {
   const [now, setNow] = useState(
-    () => new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST'
+    () => sydneyClock(new Date(), { seconds: true }).text
   )
   const [nowMs, setNowMs] = useState(0)
   const [activeTab, setActiveTab]     = useState('summary')
@@ -2538,7 +2538,9 @@ export default function GlobalModule() {
   // Time tick (30s)
   useEffect(() => {
     const update = () => {
-      setNow(new Date().toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' AEST')
+      // Sydney time with the right zone — this appended "AEST" to the
+      // machine's local time, wrong in summer and wrong outside Sydney.
+      setNow(sydneyClock(new Date(), { seconds: true }).text)
       setNowMs(Date.now())
     }
     update()
