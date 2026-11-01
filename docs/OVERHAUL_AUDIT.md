@@ -341,3 +341,81 @@ command bar. That works, but nothing on screen says so.
    five sizes, 10/11/12/14/20, with a 10px floor for anything a reader needs) and for colour,
    including a down-red that passes AA on navy.
 5. **Phase 4** covers P3.
+
+---
+
+## Status — 1 Nov 2026
+
+Each item is shown with its commit, as pushed to `main`. "Held" means the
+item touches the RBA decision-day card, the Rates banner or the WHICH
+HOLDINGS CONNECT? button, which stay unchanged until after the 3 Nov
+decision.
+
+**Measured outcome.** Re-crawl of all 19 modules at 1440px, before → after:
+
+| Measure | Before | After |
+|---|---|---|
+| Text elements under 11px | 15,947 of 17,228 | 115 of 17,581 (52 are in the held Rates panels; most of the rest are glyph icons and scaled chart labels) |
+| Text below AA contrast (4.5:1) | 3,684 | 498 |
+| Text below 3:1 | 1,364 | 173 |
+| Clickable rows a keyboard cannot reach | 195 | 0 |
+| Controls without an accessible name | 2 | 0 |
+| Horizontal overflow at 390px | none | none |
+
+### P0: data honesty
+
+| Item | Status |
+|---|---|
+| P0-1 US$ crypto shown as A$ | **Done** `fcd937a`. The fallback is converted at the dated Frankfurter AUD/USD rate, with the rate, its date and the fetch time shown. Without a rate, prices stay in US$ and are labelled US$. One shared snapshot feeds every view. |
+| P0-2 "LIVE PRICES" on demo data | **Done** `5728733` |
+| P0-3 four sentiment numbers | **Done** `d2aad79`. One computed score appears in 7 places, checked in the browser. MaddenAI's headline read is shown as words only. Headline tone and crypto Fear & Greed carry their own labels. |
+| P0-4 "dark pool" heading | **Done** `29285ea` |
+| P0-5 two clocks | **Done** `c3b04d4`. Rates' own "updated" stamp is **held**. |
+| P0-6 onboarding repeats | **Done** `45bfd09` (item 9) |
+| P0-7 class, source and date; STALE | **Done** `e254613`. One vocabulary (LIVE / DELAYED / DEMO / STALE), a data key, and STALE wired to both cached-data fallbacks. Coverage is per panel on the dashboard, Overview, Crypto, the tape and Markets; panels elsewhere still use their own provenance lines. The VERIFIED badges on official statistics are kept as a separate check. |
+
+### P1
+
+| Item | Status |
+|---|---|
+| P1-1 to P1-4 dashboard | **Done** `672b6fc`. The Overview is now the default view, and new users land on it. |
+| P1-5 type scale | **Done** `a38f7c2`, `b1e3236`. One scale (11/12/13/14/16/20/28, plus 36/48 for display) with an 11px floor. |
+| P1-6 contrast | **Done** `a38f7c2`. AA tokens for change colours and labels. The remaining 498 elements are mostly low-alpha decorative text and the held Rates panels. |
+| P1-7 keyboard | **Done** `a38f7c2`. Skip link, all clickable rows reachable, detail modal is a labelled dialog. |
+| P1-8 unlabelled inputs | **Done** `6b6b504` |
+| P1-9 tap targets | **Done** `a38f7c2`. Every control gets a 44px hit area on touch screens. The area grows invisibly, so the crawl's "small element" count is unchanged by design. |
+
+### P2
+
+| Item | Status |
+|---|---|
+| P2-1 hard-coded colours | **Mostly done** `a38f7c2`. 1,331 references now use `PAL`; 604 literals remain (215 distinct), mostly one-off chart, map and flag colours. |
+| P2-2 noisy DEMO badge | **Done** `e254613`, `b1e3236` |
+| P2-3 six date formats | **Partly done.** `formatDate()` ("29 Sep 2026") covers the shared helpers, the Overview, badges and regime text (22 uses). 215 `toLocaleDateString` calls remain in modules. |
+| P2-4 two logos | **Done** `a38f7c2` |
+| P2-5 module header rule; unexplained "M" button | **Open** |
+| P2-6 state handling | **Partly done.** `InlineLoading` replaces 22 loading strings. Empty and error states are not yet consolidated. |
+| P2-7 truncated names in Markets leaders | **Open** |
+| P2-8 Macro chart time axis | **Open** |
+| P2-9 sentiment colours | **Done** `d2aad79` (one score, one colour scale) |
+| P2-10 wizard leaves MaddenAI open | **Done** `45bfd09` |
+| P2-11 Core gate modal has no close control | **Open** |
+| P2-12 Core sees the portfolio snapshot | **Needs Ben's decision** (include it in Core, or gate it) |
+| P2-13 two refresh controls | **Open** |
+| P2-14 news relevance | **Open** |
+| P2-15 obscure tokens lead the tape | **Open** |
+| P2-16 CoinGecko errors in the console | **Reduced.** One shared snapshot means far fewer calls, and the fallback is labelled. The calls still go direct from the browser. |
+
+### P3
+
+| Item | Status |
+|---|---|
+| P3-1, P3-2, P3-4 placeholders, newsletter, copy | **Done** `e4350bd` |
+| P3-3 CPI measure unlabelled | **Done** `6b6b504` |
+| P3-5 mobile clipping | **Partly done.** Header overlap fixed `b1e3236`. The Markets index strip still clips its fourth card. |
+| P3-6 mobile bottom bar shows 6 of 19 | **Open** |
+
+### Found during the work
+
+- `useAudRates` still falls back to a fixed AUD/USD of 0.6520 when no rate has ever loaded, and uses it to convert US equities on Watchlist, Portfolio and the dashboard. Crypto no longer uses it. Recommended next fix: show "—" and label the conversion unavailable.
+- The shared daily sentiment prompt (`/api/ai-daily`, kind `sentiment`) still asks the model for a score. No screen shows it any more. Dropping it from the prompt would finish the "AI never originates a number" rule there.

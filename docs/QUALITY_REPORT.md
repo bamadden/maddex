@@ -1,5 +1,46 @@
 # Maddex Terminal — Quality Report
 
+## Overhaul pass — 1 November 2026
+
+**Head:** `6b6b504` · **First paint:** 278.6 KB gzip (budget 280) · **Lint:**
+0 errors, 9 warnings (unchanged) · **Unit tests:** 148 pass · **UI checks:**
+all pass (headless Chrome, MaddenAI mocked) · **Stats check:** 11 of 11 match,
+no dated change overdue.
+
+Measured by crawling all 19 modules at 1440px and 390px, before and after:
+
+| Measure (desktop) | Before | After |
+|---|---|---|
+| Text under 11px | 15,947 | 115 |
+| Distinct rendered font sizes | 24 | 20, of which 9 are the scale (the others are scaled chart labels, glyphs and the held Rates panels) |
+| Text below WCAG AA | 3,684 | 498 |
+| Clickable rows unreachable by keyboard | 195 | 0 |
+| Unlabelled controls | 2 | 0 |
+
+**What changed for a reader:**
+
+- **Data honesty:** crypto prices carry their real currency, with any conversion shown. Portfolio no longer calls demo prices live. There is one market sentiment score, and "dark pool" is gone.
+- **One clock:** Sydney time with its zone.
+- **One data vocabulary:** LIVE, DELAYED, DEMO and STALE, with a data key. STALE now actually appears when a feed fails.
+- **Onboarding:** shows once per user, is saved to the account, resumes where it stopped, and can be replayed from Help.
+- **The Overview:** the new default dashboard view.
+- **One design system:** the type scale, AA colour tokens, one logo, a skip link, keyboard-reachable rows and 44px touch targets.
+- **Copy:** precise wording with no placeholders, developer notes, promises or greetings.
+
+**Graph:** 17 counterparty companies added (10 with ABR-matched ABNs). Review
+triage is now 14 NEEDS HUMAN, 4 AGREED, 10 AUTO-REJECTED. Nothing approved.
+Chaney's board departure is modelled as a dated change.
+
+**Held until after the 3 Nov RBA decision:** the decision-day card, the Rates
+banner and WHICH HOLDINGS CONNECT? (`RbaHeroCard`, `RbaDecisionCard`,
+`RbaDecisionPreview`, `RbaHikeImpact`) are byte-for-byte unchanged.
+
+Item-by-item status, and what is still open: `docs/OVERHAUL_AUDIT.md` → Status.
+
+---
+
+## Previous report — 7 September 2026
+
 **Date:** 7 September 2026 · **Build:** `744fb9e` + this commit
 **Build:** 2.5s · 97 chunks · 7.1 MB dist · 1.84 MB JS gzip · **268 KB first paint**
 **Lint:** 32 problems (20 errors, 12 warnings) — unchanged through the whole pass
