@@ -67,7 +67,7 @@ export const MODULE_FEATURE = {
 // What the upgrade prompt says about each gated feature: a name, and one
 // sentence on why it is worth having. Kept to things the feature really does.
 export const FEATURE_COPY = {
-  portfolio:         { name: 'Portfolio tracking', why: 'See live P&L, sector exposure and dividend income across every holding — and ask MaddenAI about your actual book.' },
+  portfolio:         { name: 'Portfolio tracking', why: 'Track P&L, sector exposure and dividend income across every holding — and ask MaddenAI about your actual book.' },
   alerts:            { name: 'Price alerts', why: 'Maddex watches the price for you and alerts you on screen, by desktop notification or by email when it crosses.' },
   scanner:           { name: 'The market scanner', why: 'Breakouts, RSI extremes, unusual volume and gaps, swept across the ASX and US universe automatically.' },
   screener:          { name: 'The stock screener', why: 'Filter the market on valuation, yield and momentum, and rank what passes by how strongly it matches.' },

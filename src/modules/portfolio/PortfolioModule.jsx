@@ -1045,10 +1045,13 @@ export default function PortfolioModule() {
           color={dayPnl >= 0 ? 'text-terminal-green' : 'text-terminal-red'}
         />
         <StatBox label="POSITIONS"   value={positionCount} color="text-terminal-text-bright" />
+        {/* What the prices ARE, then how many holdings have one. This read
+            "LIVE PRICES 2/2" while every equity price was demo data. */}
         <StatBox
-          label="LIVE PRICES"
-          value={isDelayed ? `${live.length}/${equityHoldings.length} ⏱` : `${live.length}/${equityHoldings.length}`}
-          color={isFetching ? 'text-terminal-gold' : isDelayed ? 'text-terminal-gold/80' : 'text-terminal-text-dim'}
+          label="PRICES"
+          value={USING_MOCK_DATA ? 'DEMO' : isDelayed ? 'STALE' : 'LIVE'}
+          sub={`${live.length} of ${equityHoldings.length} priced`}
+          color={USING_MOCK_DATA || isDelayed ? 'text-terminal-gold' : 'text-terminal-green'}
         />
         <StatBox label="DISPLAY CCY" value={currency}  color="text-terminal-gold" />
         <StatBox label="UPDATED"     value={updatedAt} color="text-terminal-text-dim" />

@@ -209,7 +209,7 @@ export default function SetupWizard({ onComplete }) {
             <>
               <h2 className="text-terminal-text-bright text-lg font-bold tracking-wide">Start your watchlist</h2>
               <p className="text-xs text-terminal-text-dim mt-1.5 leading-relaxed">
-                Stocks you watch get live prices, news highlights and alerts across the terminal.
+                Stocks you watch get prices, news highlights and alerts across the terminal.
               </p>
               <div className="mt-4 flex items-center border border-terminal-border focus-within:border-terminal-gold bg-terminal-bg">
                 <span className="px-2.5 text-terminal-gold text-xs" aria-hidden="true">⌕</span>
