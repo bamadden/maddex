@@ -6,10 +6,11 @@ import {
   YF_INDICES,
   transformFxRates,
   fetchMetalsRates, extractMetals,
-  ASX_STOCKS, US_STOCKS, toAUD,
+  ASX_STOCKS, US_STOCKS, toAUD, USING_MOCK_DATA,
 } from '../../services/api'
 import { fetchEquityQuotes, fetchIndexQuotesUnified, fetchFxRatesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
 import { formatCryptoPrice, describeCryptoSource } from '../../utils/cryptoSource'
+import { classOfResult, badgeText } from '../../utils/dataClass'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
@@ -28,6 +29,14 @@ const CRYPTO_COINS = ['BTC','ETH','SOL','BNB','XRP']
 
 const fmtAUD  = (v) => `A$${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const arrow   = (p) => (p > 0 ? '▲' : p < 0 ? '▼' : '—')
+// A section's data class when it is not LIVE: " · DEMO", or " · STALE ·
+// 13:52 AEDT" when the feed failed and the cached copy is shown.
+const classTag = (result, demo) => {
+  if (!result) return ''
+  const cls = classOfResult(result, { demo })
+  if (cls === 'LIVE') return ''
+  return ` · ${badgeText({ cls, at: cls === 'STALE' ? result.cachedAt ?? null : null })}`
+}
 
 // Inline style tokens for sub-element colouring not covered by Tailwind classes
 const S = {
@@ -190,7 +199,7 @@ export default function TickerTape() {
         pct:   q.pct,
       }
     }).filter(Boolean)
-    if (indexItems.length) sectionBlocks.push({ label: '📊 INDICES', items: indexItems })
+    if (indexItems.length) sectionBlocks.push({ label: `📊 INDICES${classTag(indexResult, USING_MOCK_DATA)}`, items: indexItems })
   }
 
   // 📈 STOCKS — ASX + US, shares TopMovers'/MarketSentimentBanner's cached
@@ -219,7 +228,7 @@ export default function TickerTape() {
         }),
       }
     })
-    if (stockItems.length) sectionBlocks.push({ label: '📈 STOCKS', items: stockItems })
+    if (stockItems.length) sectionBlocks.push({ label: `📈 STOCKS${classTag(asxResult?.stale ? asxResult : usResult, USING_MOCK_DATA)}`, items: stockItems })
   }
 
   // 💱 FX — AUD/USD, AUD/EUR, AUD/JPY, AUD/GBP
@@ -232,7 +241,7 @@ export default function TickerTape() {
       const dec = pair.includes('JPY') ? 2 : 4
       return { sym: pair, price: p.mid?.toFixed(dec), pct: null }
     }).filter(Boolean)
-    if (fxItems.length) sectionBlocks.push({ label: '💱 FX', items: fxItems })
+    if (fxItems.length) sectionBlocks.push({ label: `💱 FX${classTag(fxResult, false)}`, items: fxItems })
   }
 
   // 🛢 COMMODITIES — Gold / Silver AUD

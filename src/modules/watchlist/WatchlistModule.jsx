@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, Fragment } from 'react'
+import DataBadge from '../../components/ui/DataBadge'
 import {
   rememberEntryPrice, sinceAdded, metaFor, setNote, watchlistToText, watchlistToCsv,
   getMeta, setGroup, addGroup, removeGroup, setTarget, targetStatus, GROUP_COLOURS,
@@ -7,7 +8,7 @@ import {
   loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder, isKnownTicker,
 } from '../../services/watchlistPrefs'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooQuote, USING_MOCK_DATA, transformCryptoMarkets, fetchNews } from '../../services/api'
+import { fetchYahooQuote, USING_MOCK_DATA, EQUITY_SOURCE, transformCryptoMarkets, fetchNews } from '../../services/api'
 import { formatCryptoPrice } from '../../utils/cryptoSource'
 import { annotateArticles } from '../../services/newsIntelligence'
 import { fetchEquityQuotes, fetchCryptoMarketsUnified } from '../../services/dataService'
@@ -1086,8 +1087,8 @@ export default function WatchlistModule() {
           !anyFetching && (USING_MOCK_DATA
             ? <DemoBadge />
             : isDelayed
-              ? <StaleBadge cachedAt={batchResult?.cachedAt} />
-              : <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>)
+              ? <StaleBadge cachedAt={batchResult?.cachedAt} source={EQUITY_SOURCE} />
+              : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)
         }
       />
 

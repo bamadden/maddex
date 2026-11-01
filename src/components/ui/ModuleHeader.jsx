@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import DataBadge from './DataBadge'
 import { timeAgo } from '../../utils/dateUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { RefreshCw } from 'lucide-react'
@@ -72,10 +73,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
 
       {/* Status, not a control — stays visible. */}
       {live != null && (
-        <span className={`flex items-center gap-1.5 text-[8px] font-mono tracking-wider flex-shrink-0 mr-2 ${live ? 'text-terminal-green' : 'text-terminal-gold'}`}>
-          <span className={`inline-block w-1.5 h-1.5 rounded-full pulse-gold ${live ? 'bg-terminal-green' : 'bg-terminal-gold'}`} />
-          {live ? 'LIVE' : 'DEMO'}
-        </span>
+        <DataBadge cls={live ? 'LIVE' : 'DEMO'} compact className="flex-shrink-0 mr-2" />
       )}
 
       {/* Module-specific controls stay visible — hiding a module's own

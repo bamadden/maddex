@@ -161,6 +161,34 @@ try {
   if (clocks.length >= 2 && clocks.every((c) => /AE[DS]T/.test(c)) && new Set(clocks).size === 1) pass(`top bar and dashboard show ${clocks[0]}`)
   else fail(`clocks differ or lack a zone: ${JSON.stringify(clocks)}`)
 
+  console.log('Data classes: STALE appears when a feed fails; the key opens')
+  const off = await browser.newPage()
+  await off.setViewport({ width: 1440, height: 900 })
+  await off.setRequestInterception(true)
+  off.on('request', (req) => {
+    const u = new URL(req.url())
+    if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; return req.abort() }
+    if (u.pathname.startsWith('/api/claude') || u.pathname.startsWith('/api/ai-daily')) return req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' })
+    if (u.hostname === 'api.coingecko.com' || u.hostname === 'api.binance.com') return req.abort() // both crypto feeds down
+    return req.continue()
+  })
+  const cachedAt = Date.now() - 42 * 60_000
+  await off.evaluateOnNewDocument((ts) => {
+    for (const [k, v] of Object.entries({ maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true', maddex_notif_prompt_dismissed: 'true', maddex_whats_new_version: 'v0.2.0-beta', maddex_dev_plan: 'apex' })) localStorage.setItem(k, v)
+    localStorage.setItem('maddex_ds_crypto2:aud', JSON.stringify({ ts, data: { rows: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', currency: 'AUD', current_price: 110000, price_change_percentage_24h: 0.5 }], currency: 'AUD', provider: 'CoinGecko', fx: null, at: ts } }))
+  }, cachedAt)
+  await off.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  await off.waitForSelector('[data-command-bar]', { timeout: 60_000 })
+  await off.evaluate(() => [...document.querySelectorAll('button.nav-row')].find((b) => /^CRYPTO/.test((b.title || b.textContent).trim()))?.click())
+  const staleBadge = await off.waitForFunction(() => document.querySelector('[data-class="STALE"]')?.innerText, { timeout: 45_000 }).then((h) => h.jsonValue()).catch(() => null)
+  if (staleBadge && /STALE · CoinGecko · \d\d:\d\d AE[DS]T/.test(staleBadge)) pass(`crypto feeds down → ${staleBadge.replace(/[●\s]+/g, ' ').trim()}`)
+  else fail(`no STALE badge with source and time when the crypto feeds failed (${staleBadge})`)
+  await off.click('[data-class="STALE"]').catch(() => {})
+  const legend = await off.waitForFunction(() => document.querySelector('[aria-labelledby="data-key-title"]')?.innerText, { timeout: 10_000 }).then((h) => h.jsonValue()).catch(() => '')
+  if (['LIVE', 'DELAYED', 'DEMO', 'STALE'].every((c) => legend.includes(c))) pass('the badge opens the data key with all four classes')
+  else fail('data key did not open from the badge')
+  await off.close()
+
   console.log('MaddenAI is mocked')
   await runCommand(page, 'ai what does the profile show')
   await wait(3000)

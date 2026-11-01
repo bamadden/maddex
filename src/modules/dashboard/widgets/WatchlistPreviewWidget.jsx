@@ -1,16 +1,16 @@
 import { useStore } from '../../../store/useStore'
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../../services/dataService'
-import { USING_MOCK_DATA } from '../../../services/api'
+import { USING_MOCK_DATA, EQUITY_SOURCE } from '../../../services/api'
 import { useAudRates } from '../../../hooks/useAudRates'
-import {WidgetBody, WidgetRows, WidgetRow, WidgetEmpty} from './_shared'
+import { WidgetBody, WidgetRows, WidgetRow, WidgetEmpty, WidgetSource } from './_shared'
 import { goModule } from './navigate'
 
 export default function WatchlistPreviewWidget() {
   const { watchlist } = useStore()
   const { usdToAud } = useAudRates()
   const symbols = (watchlist ?? []).map((w) => w.symbol ?? w).slice(0, 6)
-  const { data } = useQuery({
+  const { data, dataUpdatedAt } = useQuery({
     queryKey: ['dashWatchlist', symbols],
     queryFn: () => fetchEquityQuotes(symbols),
     enabled: symbols.length > 0,
@@ -43,7 +43,7 @@ export default function WatchlistPreviewWidget() {
           )
         })}
       </WidgetRows>
-      {USING_MOCK_DATA && <span className="font-mono text-[8px]" style={{ color: '#4A6080' }}>DEMO · simulated prices</span>}
+      <WidgetSource result={data} demo={USING_MOCK_DATA} source={EQUITY_SOURCE} fetchedAt={dataUpdatedAt} />
     </WidgetBody>
   )
 }

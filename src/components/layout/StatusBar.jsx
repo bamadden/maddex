@@ -1,3 +1,4 @@
+import { openDataLegend } from '../../utils/dataClass'
 import { useState, useEffect } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
 import { useStore } from '../../store/useStore'
@@ -114,7 +115,9 @@ export default function StatusBar({ lastUpdated }) {
             ageSecs != null && ageSecs < 120 ? 'bg-terminal-green' : 'bg-amber-400'
           }`}
         />
-        <span>{USING_MOCK_DATA ? 'LIVE DEMO' : 'LIVE'} · {freshness}</span>
+        {/* What the data is, in the one vocabulary, and the key to it. */}
+        <span>{USING_MOCK_DATA ? 'EQUITIES DEMO · CRYPTO, FX LIVE' : 'LIVE'} · {freshness}</span>
+        <button type="button" onClick={openDataLegend} className="underline decoration-dotted hover:text-terminal-gold" data-data-key>DATA KEY</button>
       </span>
     </div>
   )

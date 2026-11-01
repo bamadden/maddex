@@ -276,13 +276,13 @@ function DataFreshnessBadge() {
   // whether the refresh timer has lapsed: green under five minutes, gold
   // under an hour, red beyond. A single "fresh or not" dot said nothing
   // about the difference between two minutes and two hours.
+  // Age only — LIVE / DELAYED / DEMO / STALE are data classes with fixed
+  // meanings (utils/dataClass), and this dot is a refresh timer, not a class.
   const ageMins = Math.floor(elapsed / 60)
-  const tone = ageMins < 5 ? { c: '#2D8A50', pulse: true, word: 'Live' }
-    : ageMins < 60 ? { c: '#C9A84C', pulse: false, word: 'Recent' }
-    : { c: '#A83232', pulse: false, word: 'Stale' }
-  const stale = remaining === 0
+  const tone = ageMins < 5 ? { c: '#2D8A50', pulse: true } : ageMins < 60 ? { c: '#C9A84C', pulse: false } : { c: '#A83232', pulse: false }
+  const due = remaining === 0
   return (
-    <Tooltip content={`Data ${tone.word.toLowerCase()} — updated ${refreshedLabel}\n${stale ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
+    <Tooltip content={`Refreshed ${refreshedLabel}\n${due ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
     <button
       onClick={handleClick}
       aria-label="Refresh live data"

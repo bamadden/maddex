@@ -12,11 +12,12 @@ const C = VERIFIED_CONSTANTS.commodities
 export default function CommodityWidget() {
   const [gold, setGold] = useState(null)
   const [source, setSource] = useState('failed')
+  const [at, setAt] = useState(null)
 
   useEffect(() => {
     let alive = true
     liveDataService.getGoldPrice()
-      .then(({ data, source: s }) => { if (alive && data) { setGold(data); setSource(s) } })
+      .then(({ data, source: s, at: t }) => { if (alive && data) { setGold(data); setSource(s); setAt(t ?? null) } })
       .catch(() => { /* row is simply omitted */ })
     return () => { alive = false }
   }, [])
@@ -24,7 +25,7 @@ export default function CommodityWidget() {
   return (
     <WidgetBody>
       <div className="flex items-center justify-end gap-1.5 flex-shrink-0 mb-1">
-        {gold && <LiveBadge label="Gold — PAXG proxy via CoinGecko" source={source} />}
+        {gold && <LiveBadge label="PAXG gold proxy · CoinGecko" source={source} at={at} />}
         <VerifiedBadge dataKey="commodities" />
       </div>
       <WidgetRows>

@@ -1,3 +1,4 @@
+import DataBadge from './DataBadge'
 import { timeAgo } from '../../utils/dateUtils'
 
 // Shared full-module loading/error states — used by any module while its
@@ -43,37 +44,16 @@ export function Viz3DLoader() {
   )
 }
 
-// Small inline indicator for data served from dataService.js's stale-cache
-// fallback — used instead of a blank panel or a bare RETRY button whenever
-// *some* data (even if old) is available. `cachedAt` is the ms-epoch
-// timestamp dataService captured that copy at.
-export function StaleBadge({ cachedAt, className = '' }) {
-  const age = timeAgo(cachedAt)
-  return (
-    <span
-      title={age ? `Showing cached data from ${age}` : 'Showing cached data'}
-      className={`inline-flex items-center gap-1 text-2xs text-terminal-gold/80 border border-terminal-gold/30 px-1 py-0 ${className}`}
-    >
-      ● DELAYED{age ? ` · ${age}` : ''}
-    </span>
-  )
+// The cached-data fallback (dataService's stale copy) and demo data, in the
+// one badge vocabulary (components/ui/DataBadge, utils/dataClass). STALE used
+// to read "DELAYED", which is a different class.
+export function StaleBadge({ cachedAt, source, className = '' }) {
+  return <DataBadge cls="STALE" source={source} at={cachedAt ?? null} className={className} />
 }
 
-// Shown instead of the "● LIVE" indicator whenever USING_MOCK_DATA (api.js)
-// is true — i.e. no working equities key is configured. Calling data "LIVE"
-// while it's actually mockData.js would be a lie; this replaces that claim
-// rather than just decorating alongside it.
-export function DemoBadge({ className = '' }) {
-  return (
-    <span
-      title="No live equities API key configured — showing realistic demo data until one is added"
-      className={`inline-flex items-center gap-1 rounded-full bg-terminal-gold/15 border border-terminal-gold/40 px-2 py-0.5 text-2xs text-terminal-gold whitespace-nowrap normal-case ${className}`}
-    >
-      {/* The explanation is the first thing cut at phone width — it lives in
-          the title too, and a clipped half-sentence reads worse than none. */}
-      ● DEMO <span className="text-terminal-gold/70 hidden sm:inline">Live data connects on API setup</span>
-    </span>
-  )
+// Equity prices without a market-data provider: DEMO, never "LIVE".
+export function DemoBadge({ source = 'demo data', className = '' }) {
+  return <DataBadge cls="DEMO" source={source} className={className} />
 }
 
 export function ModuleError({ module = 'MODULE', lastUpdated, onRetry, className = '' }) {

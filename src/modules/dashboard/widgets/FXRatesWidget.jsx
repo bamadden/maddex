@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import DataBadge from '../../../components/ui/DataBadge'
+import { classOfLiveSource } from '../../../utils/dataClass'
 import { liveDataService } from '../../../services/liveDataService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
@@ -17,6 +19,7 @@ const PAIRS = [
 export default function FXRatesWidget() {
   const [rates, setRates] = useState(null)
   const [source, setSource] = useState(null)
+  const [at, setAt] = useState(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
@@ -24,7 +27,7 @@ export default function FXRatesWidget() {
     liveDataService.getFXRates()
       .then((res) => {
         if (!alive) return
-        if (res?.data) { setRates(res.data); setSource(res.source ?? null) }
+        if (res?.data) { setRates(res.data); setSource(res.source ?? null); setAt(res.at ?? null) }
         else setFailed(true)
       })
       .catch(() => { if (alive) setFailed(true) })
@@ -34,13 +37,6 @@ export default function FXRatesWidget() {
   if (failed) return <WidgetEmpty action="OPEN RATES" onAction={() => goModule('fx')}>FX feed unavailable</WidgetEmpty>
   if (!rates) return <WidgetBody />
 
-  // LIVE only when the response actually came from the live feed. A cached or
-  // fallback response wearing a LIVE badge is the specific thing this badge
-  // exists to rule out — the label has to be able to say "no".
-  const isLive = source === 'live'
-  const badge = isLive
-    ? { text: 'LIVE', colour: '#2D8A50' }
-    : { text: source === 'cache' ? 'CACHED' : 'DELAYED', colour: '#C9A84C' }
 
   const lead = rates[LEAD[0]]
 
@@ -64,23 +60,9 @@ export default function FXRatesWidget() {
             🇦🇺{LEAD[2]} AUD/{LEAD[1]}
           </span>
         </span>
-        <span
-          className="font-mono flex-shrink-0"
-          style={{
-            fontSize: 7, letterSpacing: '0.12em', color: badge.colour,
-            border: `1px solid ${badge.colour}66`, borderRadius: 2, padding: '1px 4px',
-          }}
-        >
-          {isLive && (
-            <span
-              style={{
-                display: 'inline-block', width: 4, height: 4, borderRadius: 2,
-                background: badge.colour, marginRight: 3, verticalAlign: 'middle',
-              }}
-            />
-          )}
-          {badge.text}
-        </span>
+        {/* The one vocabulary: LIVE within the refresh window, STALE when the
+            last fetch failed and the cached copy is shown. */}
+        <DataBadge cls={classOfLiveSource(source)} source="open.er-api.com" at={at} compact className="flex-shrink-0" />
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col justify-start gap-[3px] mt-2">

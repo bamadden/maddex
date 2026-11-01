@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
+import DataBadge from '../../components/ui/DataBadge'
 import { useQuery } from '@tanstack/react-query'
-import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA, fetchNews } from '../../services/api'
+import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA, fetchNews, EQUITY_SOURCE } from '../../services/api'
 import { annotateArticles } from '../../services/newsIntelligence'
 import { timeAgo } from '../../utils/dateUtils'
 import { fetchEquityQuotes } from '../../services/dataService'
@@ -347,7 +348,7 @@ export default function TopMovers() {
           {asxFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
           {asxQuotes && !asxFetching && USING_MOCK_DATA && <DemoBadge />}
           {asxQuotes && !asxFetching && !USING_MOCK_DATA && asxDelayed && <StaleBadge cachedAt={asxResult?.cachedAt} />}
-          {asxQuotes && !asxFetching && !USING_MOCK_DATA && !asxDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {asxQuotes && !asxFetching && !USING_MOCK_DATA && !asxDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} />}
           {asxError && !asxFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
             {asxTrackedCap ? `${formatMarketCap(asxTrackedCap)} tracked · ` : ''}{updatedTime} · {ASX_STOCKS.length} stocks
@@ -362,7 +363,7 @@ export default function TopMovers() {
           {usFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
           {usQuotes && !usFetching && USING_MOCK_DATA && <DemoBadge />}
           {usQuotes && !usFetching && !USING_MOCK_DATA && usDelayed && <StaleBadge cachedAt={usResult?.cachedAt} />}
-          {usQuotes && !usFetching && !USING_MOCK_DATA && !usDelayed && <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+          {usQuotes && !usFetching && !USING_MOCK_DATA && !usDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} />}
           {usError && !usFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
             {usTrackedCap ? `${formatMarketCap(usTrackedCap)} tracked · ` : ''}{updatedTime} · {US_STOCKS.length} stocks

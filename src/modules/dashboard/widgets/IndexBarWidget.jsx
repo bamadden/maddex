@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchIndexQuotesUnified } from '../../../services/dataService'
-import { USING_MOCK_DATA } from '../../../services/api'
-import {WidgetBody, WidgetRows, WidgetRow} from './_shared'
+import { USING_MOCK_DATA, EQUITY_SOURCE } from '../../../services/api'
+import { WidgetBody, WidgetRows, WidgetRow, WidgetSource } from './_shared'
 import { goModule } from './navigate'
 
 // The Asian session first after the ASX and Wall St — it is what an
@@ -14,7 +14,7 @@ const INDICES = [
 ]
 
 export default function IndexBarWidget() {
-  const { data } = useQuery({
+  const { data, dataUpdatedAt } = useQuery({
     queryKey: ['yfBatch', 'indices'],
     queryFn: () => fetchIndexQuotesUnified(INDICES.map(([s]) => s)),
     staleTime: 60_000,
@@ -38,7 +38,7 @@ export default function IndexBarWidget() {
           )
         })}
       </WidgetRows>
-      {USING_MOCK_DATA && <span className="font-mono text-[8px]" style={{ color: '#4A6080' }}>DEMO · simulated index levels</span>}
+      <WidgetSource result={data} demo={USING_MOCK_DATA} source={EQUITY_SOURCE} fetchedAt={dataUpdatedAt} />
     </WidgetBody>
   )
 }

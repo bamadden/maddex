@@ -1,3 +1,6 @@
+import DataBadge from '../../../components/ui/DataBadge'
+import { classOfResult } from '../../../utils/dataClass'
+
 // Shared furniture for dashboard widgets.
 //
 // Every widget fills its cell, pads to 16px, and never scrolls internally —
@@ -127,4 +130,15 @@ export function ChangePill({ value, suffix = '', positiveIsGood = true }) {
       {value >= 0 ? '▲' : '▼'} {Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}{suffix}
     </span>
   )
+}
+
+// Class · source · time for the figures in a widget (utils/dataClass).
+// `result` is a dataService envelope; STALE (the cached-data fallback) takes
+// its time from the cached copy, otherwise `fetchedAt` (react-query's
+// dataUpdatedAt).
+export function WidgetSource({ result, demo = false, delayed = false, source, fetchedAt }) {
+  if (!result) return null
+  const cls = classOfResult(result, { demo, delayed })
+  const at = cls === 'STALE' ? result.cachedAt ?? null : fetchedAt || null
+  return <div className="mt-1"><DataBadge cls={cls} source={source} at={at} /></div>
 }

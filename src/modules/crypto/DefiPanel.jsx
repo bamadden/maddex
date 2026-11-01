@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
+import { classOfLiveSource } from '../../utils/dataClass'
+import DataBadge from '../../components/ui/DataBadge'
 import { defiService, ONCHAIN_EXPLAINERS } from '../../services/defiService'
 import Donut from '../../components/charts/Donut'
 
@@ -27,19 +29,10 @@ const toneOf = (v) => (v == null ? '#637899' : v >= 0 ? '#2D8A50' : '#A83232')
 // component non-idempotent for a label that only needs minute precision.
 function SourceBadge({ source, at, now }) {
   if (!source || source === 'failed') return null
-  const map = {
-    live: { text: 'LIVE', colour: '#2D8A50' },
-    cache: { text: 'CACHED', colour: '#C9A84C' },
-    stale: { text: 'STALE', colour: '#A83232' },
-  }
-  const b = map[source] ?? map.cache
-  const mins = at && now ? Math.floor((now - at) / 60000) : null
-  return (
-    <span className="flex items-center gap-1 flex-shrink-0" style={{ fontSize: 8, color: b.colour, letterSpacing: '0.1em' }}>
-      <span style={{ fontSize: 7 }}>●</span>
-      {b.text}{mins != null && mins > 0 ? ` · ${mins}m` : ''}
-    </span>
-  )
+  // The one vocabulary: within the refresh window is LIVE ("CACHED" was not
+  // a class); a failed fetch showing the last copy is STALE.
+  void now
+  return <DataBadge cls={classOfLiveSource(source)} source="DefiLlama" at={at ?? null} compact className="flex-shrink-0" />
 }
 
 function Metric({ label, value, sub, tone, title }) {

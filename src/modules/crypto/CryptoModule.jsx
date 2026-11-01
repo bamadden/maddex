@@ -16,6 +16,7 @@ import { fmt } from '../../utils/format'
 import { dispatchAskAI, askMaddenAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
+import DataBadge from '../../components/ui/DataBadge'
 import { SkeletonCoinRow } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
@@ -802,10 +803,6 @@ export default function CryptoModule() {
     return pearsonCorrelation(rawHistory.prices.map(p => p[1]), rawBtcHistory.prices.map(p => p[1]))
   }, [selectedCoin, rawHistory, rawBtcHistory])
 
-  // When the prices were fetched, not when this screen last rendered.
-  const updatedTime = rawMarketsResult?.meta?.at
-    ? new Date(rawMarketsResult.meta.at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })
-    : null
 
   // modalAsset.price is always AUD (DetailModal's primary display expects
   // AUD universally, same convention equities use); nativePrice/currency
@@ -890,9 +887,9 @@ export default function CryptoModule() {
             style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0B1628', borderBottom: '1px solid #0F1E35', margin: 0 }}>
             {/* The Binance fallback is a fixed list of 12 majors with no market caps. */}
             <span>{rawMarketsResult?.meta?.provider === 'Binance' ? `${rawMarkets?.length ?? ''} MAJOR COINS` : 'TOP 20 BY MKT CAP'} ({priceCcy})</span>
-            {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} />}
+            {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} source={rawMarketsResult?.meta?.provider} />}
             {rawMarkets && !marketsDelayed
-              ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {rawMarketsResult?.meta?.provider} · {updatedTime}</span>
+              ? <DataBadge cls="LIVE" source={rawMarketsResult?.meta?.provider} at={rawMarketsResult?.meta?.at ?? null} />
               : !rawMarkets && !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
             }
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
+import DataBadge from '../../components/ui/DataBadge'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import {
   GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS, ASX_SECTOR_STOCKS, INDEX_LABELS, INDEX_METADATA, RATE_SENSITIVITY,
 } from '../../data/sectorTaxonomy'
 import { rbaRateEnvironment } from '../../services/rateEnvironment'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA } from '../../services/api'
+import { fetchYahooBatch, fetchYFHistory, transformYFHistory, USING_MOCK_DATA, EQUITY_SOURCE } from '../../services/api'
 import { fmt } from '../../utils/format'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -844,7 +845,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           SHOWING {indexLabel.toUpperCase()} SECTORS
         </span>
         {isFetching && <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>}
-        {isLive && (USING_MOCK_DATA ? <DemoBadge /> : <span className="text-terminal-green text-2xs">● LIVE {updatedTime}</span>)}
+        {isLive && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)}
         {isError && !isFetching && (
           <button onClick={refetch} className="text-2xs text-terminal-red hover:text-terminal-gold">⚠ RETRY</button>
         )}
@@ -1175,7 +1176,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
-              {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <span className="text-terminal-green text-2xs font-normal">● LIVE</span>)}
+              {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)}
               {isASX && RATE_SENSITIVITY[selected] && <RatePill s={RATE_SENSITIVITY[selected]} sector={selected} />}
               <button
                 onClick={askAISector}

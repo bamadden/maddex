@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import DataBadge from '../../../components/ui/DataBadge'
 import { liveDataService } from '../../../services/liveDataService'
 import {WidgetBody, WidgetRows, WidgetRow, WidgetEmpty} from './_shared'
 import { goModule } from './navigate'
@@ -7,12 +8,13 @@ const COINS = [['bitcoin', 'BTC'], ['ethereum', 'ETH'], ['ripple', 'XRP'], ['sol
 
 export default function CryptoOverviewWidget() {
   const [prices, setPrices] = useState(null)
+  const [meta, setMeta] = useState(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let alive = true
     liveDataService.getCryptoPrices()
-      .then(({ data }) => { if (alive) (data ? setPrices(data) : setFailed(true)) })
+      .then(({ data, source, meta: m }) => { if (alive) { if (data) { setPrices(data); setMeta({ source, ...m }) } else setFailed(true) } })
       .catch(() => { if (alive) setFailed(true) })
     return () => { alive = false }
   }, [])
@@ -38,6 +40,8 @@ export default function CryptoOverviewWidget() {
           )
         })}
       </WidgetRows>
+      {/* The shared crypto snapshot: its provider and fetch time. */}
+      {meta && <div className="mt-1"><DataBadge cls={meta.source === 'stale' ? 'STALE' : 'LIVE'} source={meta.provider} at={meta.at ?? null} /></div>}
     </WidgetBody>
   )
 }

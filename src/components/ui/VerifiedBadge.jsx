@@ -1,3 +1,5 @@
+import DataBadge from './DataBadge'
+import { classOfLiveSource } from '../../utils/dataClass'
 import Tooltip from './Tooltip'
 import { daysSinceVerified, isStale, provenance, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 
@@ -45,18 +47,10 @@ export default function VerifiedBadge({ dataKey, alwaysShow = false, className =
 
 // Inline source marker for a live feed, the counterpart to the above. Live
 // data earns a green dot; the tooltip says which API and how old.
-export function LiveBadge({ label, ageMins, source = 'live', className = '' }) {
-  const dim = source === 'stale' || source === 'fallback'
-  const age = ageMins == null ? 'just now' : ageMins < 1 ? 'just now' : `${ageMins}m ago`
-  return (
-    <Tooltip content={`${label}\nLive feed · updated ${age}${dim ? '\n(serving cached data — last fetch failed)' : ''}`}>
-      <span className={`inline-flex items-center gap-1 ${className}`}
-        style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.1em', color: dim ? '#C9A84C' : '#2D8A50' }}>
-        <span style={{ width: 4, height: 4, borderRadius: '50%', background: dim ? '#C9A84C' : '#2D8A50', display: 'inline-block' }} />
-        {dim ? 'CACHED' : 'LIVE'}
-      </span>
-    </Tooltip>
-  )
+// A live feed in the one vocabulary: LIVE, or STALE when the last fetch
+// failed and the cached copy is shown (it used to say "CACHED").
+export function LiveBadge({ label, source = 'live', at = null, className = '' }) {
+  return <DataBadge cls={classOfLiveSource(source)} source={label} at={at} className={className} />
 }
 
 // Provenance marker for AI-written prose, the third kind of content in the

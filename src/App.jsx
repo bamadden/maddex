@@ -61,6 +61,8 @@ const ETFModule           = lazy(() => import('./modules/etf/ETFModule'))
 const FuturesModule       = lazy(() => import('./modules/futures/FuturesModule'))
 const RelationshipsModule = lazy(() => import('./modules/relationships/RelationshipsModule'))
 const GraphReviewModule   = lazy(() => import('./modules/graphreview/GraphReviewModule'))
+// The data key (LIVE / DELAYED / DEMO / STALE), opened from any data badge.
+const DataLegend = lazy(() => import('./components/ui/DataLegend'))
 const CompanyProfileModule = lazy(() => import('./modules/company/CompanyProfileModule'))
 // d3 + topojson-heavy — code-split out of the main bundle.
 const GlobalModule = lazy(() => import('./modules/global/GlobalModule'))
@@ -983,6 +985,7 @@ function Terminal() {
       })}
       {showWelcome && <Suspense fallback={null}><WelcomeModal onGetStarted={completeWelcome} /></Suspense>}
       <NotificationPermissionPrompt suppressed={showWelcome || showTour} />
+      <Suspense fallback={null}><DataLegend /></Suspense>
       <PlanOverlays />
       <AlertSuggestion />
       {!showWelcome && showTour && <Suspense fallback={null}><SetupWizard onComplete={completeTour} /></Suspense>}

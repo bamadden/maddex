@@ -6,6 +6,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
 import { fetchYFQuote, fetchYahooBatch, transformCryptoMarkets, USING_MOCK_DATA } from '../../services/api'
 import { fetchCryptoMarketsUnified } from '../../services/dataService'
+import { openDataLegend } from '../../utils/dataClass'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
 import Tooltip from '../ui/Tooltip'
@@ -122,6 +123,7 @@ const HELP_SECTIONS = [
     { cmd:'AI {question}', desc:'Ask MaddenAI directly' },
     { cmd:'IDEAS / ROADMAP', desc:'Vote on features, see what\'s coming' },
     { cmd:'HELP / ?', desc:'Show this panel' },
+    { cmd:'DATA KEY', desc:'What LIVE, DELAYED, DEMO and STALE mean' },
   ]},
   { title:'KEYBOARD', items:[
     { cmd:'/', desc:'Focus command bar from anywhere' },
@@ -623,8 +625,9 @@ function HelpOverlay({ onClose }) {
             </div>
           ))}
         </div>
-        <div className="px-4 py-1.5 border-t border-terminal-border bg-terminal-header text-2xs text-terminal-text-dim/50">
-          Press ESC or click outside to close · Unknown input is automatically routed to MADDEN AI
+        <div className="px-4 py-1.5 border-t border-terminal-border bg-terminal-header text-2xs text-terminal-text-dim/50 flex items-center gap-3 flex-wrap">
+          <span className="flex-1">Press ESC or click outside to close · Unknown input is automatically routed to MADDEN AI</span>
+          <button type="button" data-help-action="data-key" onClick={() => { onClose(); openDataLegend() }} className="text-terminal-gold hover:underline tracking-widest">DATA KEY</button>
         </div>
       </div>
     </div>
@@ -1421,6 +1424,10 @@ export default function CommandBar() {
     // ── HELP ──
     if (cmd === 'help' || cmd === '?' || cmd === 'commands') {
       setHelpOpen(true)
+      return
+    }
+    if (cmd === 'data key' || cmd === 'legend' || cmd === 'key') {
+      openDataLegend()
       return
     }
 
