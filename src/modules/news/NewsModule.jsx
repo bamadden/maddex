@@ -19,6 +19,8 @@ import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefCo
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import ContextPrompt from '../../components/ai/ContextPrompt'
 import { loadSavedArticles, toggleSavedArticle, removeSavedArticle, savedKey, SAVED_MAX } from '../../services/savedArticles'
+import ScoreNote from '../../components/ui/ScoreNote'
+import { toneWord } from '../../utils/tone'
 import { PAL } from '../../styles/palette.js'
 
 // MaddenAI's nudge on a HIGH-impact story that names a watchlist stock. At
@@ -1088,12 +1090,13 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, mark
         <div className="px-3 py-2 border-b border-terminal-border" title={sentimentTooltip(market)}>
           {head('Market sentiment', <span className="ml-auto font-mono font-bold" data-sentiment-score={market.sentiment.score} style={{ fontSize: 11, color: market.sentiment.color ?? PAL.gold }}>{market.sentiment.score} · {market.sentiment.label.toUpperCase()}</span>)}
           <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>Computed from market data{market.demoInputs ? ' · DEMO ASX inputs' : ''}</div>
+          <ScoreNote method="sentiment" inputs={market.inputs} asOf={market.asOf} className="mt-1" />
         </div>
       )}
 
       {/* A different measure: the tone of the headlines in this feed. */}
       <div className="px-3 py-2 border-b border-terminal-border" title={`Headline tone: ${s.total} articles in this feed, scored by keyword and weighted by impact and recency. A different measure from market sentiment.`}>
-        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 11, color: s.label === 'BULLISH' ? PAL.up : s.label === 'BEARISH' ? PAL.down : PAL.gold }}>{s.label}</span>)}
+        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 11, color: s.label === 'BULLISH' ? PAL.up : s.label === 'BEARISH' ? PAL.down : PAL.gold }}>{toneWord(s.label)}</span>)}
         <div className="flex h-2 rounded-sm overflow-hidden">
           <div style={{ width: `${s.bullPct}%`, background: PAL.up }} />
           <div style={{ width: `${s.neutralPct}%`, background: PAL.gold }} />

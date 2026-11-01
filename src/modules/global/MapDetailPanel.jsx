@@ -6,6 +6,7 @@ import { sessionCountdown, formatCountdown, SEVERITY_COLOUR, ROUTE_NOTES, SITE_E
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
 import { screenSector } from '../markets/screenSector'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 
 const RISK_TONE = { LOW: PAL.up, MEDIUM: PAL.gold, ELEVATED: '#D9773B', HIGH: PAL.down }
@@ -199,6 +200,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
               ⚠ {data.title}
             </div>
             <Meter score={data.severityScore} colour={`rgb(${(SEVERITY_COLOUR[data.severity] ?? [201,168,76]).join(',')})`} />
+              <ScoreNote method="country-risk" className="mt-1" />
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.detail}</div>
 
             <div style={S.label}>Market impact</div>
@@ -246,6 +248,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             </span>
             <div style={{ marginTop: 10 }}>
               <Meter score={data.riskScore} colour={`rgb(${(SEVERITY_COLOUR[data.severity] ?? [201,168,76]).join(',')})`} />
+              <ScoreNote method="country-risk" className="mt-1" />
             </div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.summary}</div>
 

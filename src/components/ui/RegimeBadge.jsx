@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { currentRegime, regimeHistory, TREND_GDP } from '../../services/marketRegime'
+import ScoreNote from './ScoreNote'
 
 // The market-regime label (services/marketRegime classifyRegime) in two sizes:
 // a compact badge for the Dashboard and a full panel for the Macro module.
@@ -55,6 +56,7 @@ export function RegimePanel() {
         Policy = direction of the RBA&apos;s last move within nine months. Slowing = GDP below {TREND_GDP}% trend, or unemployment up 0.2pt+ over six months.
         {hist.some((h) => h.gdpProvisional) && ' * Quarter\'s GDP not yet published — the latest figure is used.'} Derived from verified ABS and RBA data; a description, not a forecast.
       </div>
+      <ScoreNote method="regime" className="mt-1" />
     </div>
   )
 }

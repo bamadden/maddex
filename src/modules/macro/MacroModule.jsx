@@ -41,6 +41,7 @@ import GlobalComparison from './GlobalComparison'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 import { RegimePanel } from '../../components/ui/RegimeBadge'
+import { toneWord } from '../../utils/tone'
 import { PAL } from '../../styles/palette.js'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
@@ -1438,7 +1439,10 @@ function MacroRegimeGauge() {
 // than hardcoded here — see MacroThemesSection below. FALLBACK_THEMES (used
 // while loading and if the AI call fails) lives alongside that service.
 
+// Tone of a theme's effect so far (themes cached before 1 Nov say BULLISH /
+// BEARISH; toneWord shows them in the new words).
 const THEME_IMPACT_COLOR = {
+  POSITIVE: 'var(--color-gain)', NEGATIVE: 'var(--color-loss)',
   BULLISH: 'var(--color-gain)', BEARISH: 'var(--color-loss)',
   MIXED: PAL.gold, NEUTRAL: 'var(--color-text-dim)', BINARY: '#a855f7',
 }
@@ -1503,7 +1507,7 @@ function MacroThemeCard({ theme, expanded, onToggle, source }) {
             <span className="font-mono font-bold flex-shrink-0" style={{ fontSize: 11, letterSpacing: '0.1em', color: HORIZON_TONE[theme.horizon] }} title="When this theme bites">{theme.horizon}</span>
           )}
           <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0" style={{ color, borderColor: color }}>
-            {theme.impact}
+            {toneWord(theme.impact)}
           </span>
           <span className="text-2xs text-terminal-text-dim/50 flex-shrink-0">{expanded ? '▲' : '▼'}</span>
         </div>
@@ -1555,7 +1559,7 @@ function MacroThemeCard({ theme, expanded, onToggle, source }) {
                 e.stopPropagation()
                 dispatchAskAI({
                   name: theme.title, sector: theme.category, date: todayAEST(),
-                  instruction: `Give a deeper analysis of this macro theme for Australian investors: "${theme.title}" — ${theme.summary} Current stance: ${theme.impact}.`,
+                  instruction: `Give a deeper analysis of this macro theme for Australian investors: "${theme.title}" — ${theme.summary} Tone so far: ${toneWord(theme.impact).toLowerCase()}. Describe; do not forecast or recommend.`,
                 })
               }}
               className="text-2xs text-terminal-gold/70 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"

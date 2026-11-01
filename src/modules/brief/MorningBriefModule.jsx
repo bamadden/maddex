@@ -25,6 +25,7 @@ import WeeklyReviewTab, { WeeklyReviewBody } from './WeeklyReview'
 import { getCachedWeeklyReview, listWeeklyHistory, reviewWeek } from '../../services/weeklyReviewService'
 import { WatchlistToday, ScoreBreakdown } from './BriefExtras'
 import { downloadBriefImage } from './briefImage'
+import { toneWord } from '../../utils/tone'
 import { PAL } from '../../styles/palette.js'
 
 // The weekend state.
@@ -168,8 +169,8 @@ function Outlook({ label }) {
   if (!label) return null
   return (
     <div className="text-center">
-      <div className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 11 }}>MADDENAI OUTLOOK</div>
-      <div className="font-mono font-bold tracking-widest mt-1" style={{ fontSize: 20, color: outlookColour(label) }}>{String(label).toUpperCase()}</div>
+      <div className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 11 }}>MADDENAI OUTLOOK · TONE OF THE NEWS, NOT A CALL</div>
+      <div className="font-mono font-bold tracking-widest mt-1" style={{ fontSize: 20, color: outlookColour(label) }}>{toneWord(label)}</div>
     </div>
   )
 }
@@ -221,7 +222,7 @@ function PreviousBriefs({ currentDay, excludeWeek }) {
                 </span>
                 {!weekly && brief.scoreLabel && (
                   <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 11, color: outlookColour(brief.scoreLabel), border: `1px solid ${outlookColour(brief.scoreLabel)}55` }}>
-                    {brief.scoreLabel}
+                    {toneWord(brief.scoreLabel)}
                   </span>
                 )}
                 <span className="ml-auto text-2xs text-terminal-text-dim">{open === id ? '▲' : '▼'}</span>
@@ -322,7 +323,7 @@ export default function MorningBriefModule() {
     const day = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase()
     const text = [
       `MADDEX MORNING BRIEF — ${day}`,
-      ...(brief.scoreLabel ? [`MaddenAI outlook: ${brief.scoreLabel}`] : []),
+      ...(brief.scoreLabel ? [`MaddenAI outlook (tone of the news): ${toneWord(brief.scoreLabel)}`] : []),
       '',
       brief.headline,
       brief.scoreDriver ?? brief.scoreRationale ?? '',

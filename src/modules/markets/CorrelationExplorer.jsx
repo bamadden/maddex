@@ -3,9 +3,10 @@ import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import {
   CORRELATION_UNIVERSE, DEFAULT_ASSET_IDS, PERIODS,
-  assetInfo, correlationFor, strengthLabel, whatThisMeans, cellColor, generateScatterPoints, diversificationScore, suggestDiversifier,
+  assetInfo, correlationFor, strengthLabel, whatThisMeans, cellColor, generateScatterPoints, diversificationScore,
 } from '../../services/correlationService'
 import { PAL } from '../../styles/palette.js'
+import ScoreNote from '../../components/ui/ScoreNote'
 
 const CELL = 44
 
@@ -100,7 +101,6 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
     } catch { return [] }
   }, [])
   const diversification = useMemo(() => diversificationScore(portfolioIds, period), [portfolioIds, period])
-  const suggestion = useMemo(() => (portfolioIds.length >= 2 ? suggestDiversifier(portfolioIds, period) : null), [portfolioIds, period])
 
   const handleCellHover = (e, a, b) => {
     const rect = containerRef.current.getBoundingClientRect()
@@ -128,11 +128,9 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
         ) : (
           <span className="text-2xs text-terminal-text-dim/60">— (add 2+ ASX holdings to your portfolio to see this)</span>
         )}
-        {suggestion && (
-          <span className="text-2xs text-terminal-text-dim">
-            Adding <span className="text-terminal-gold font-bold">{suggestion.label}</span> would reduce correlation with your current holdings.
-          </span>
-        )}
+        {/* Describes how the holdings have moved together; it no longer names a
+            stock to add (that is a suggestion to buy). */}
+        {portfolioIds.length >= 2 && <ScoreNote method="diversification" inputs={[{ name: 'Average absolute correlation', value: diversification.avgCorrelation?.toFixed(2) ?? '—' }, { name: 'ASX holdings', value: String(portfolioIds.length) }, { name: 'Period', value: period }]} className="w-full" />}
       </div>
 
       {/* Controls */}

@@ -1,4 +1,5 @@
 import { outlookColour } from '../../utils/briefScore'
+import { toneWord } from '../../utils/tone'
 import { PAL } from '../../styles/palette.js'
 
 // SHARE AS IMAGE — the brief as a 1200×630 card (the size social platforms
@@ -52,7 +53,7 @@ export async function downloadBriefImage(brief, dayLabel) {
   ctx.textAlign = 'right'; ctx.fillStyle = TEXT; ctx.font = `600 16px ${mono}`; ctx.fillText(dayLabel, W - 56, 78); ctx.textAlign = 'left'
 
   // MaddenAI's outlook in words (the brief carries no model-made score).
-  const label = String(brief.scoreLabel ?? '').toUpperCase()
+  const label = brief.scoreLabel ? toneWord(brief.scoreLabel) : ''
   if (label) {
     ctx.textAlign = 'center'
     ctx.fillStyle = DIM; ctx.font = `500 14px ${mono}`; ctx.fillText('MADDENAI OUTLOOK', 240, 290)

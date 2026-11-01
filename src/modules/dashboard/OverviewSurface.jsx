@@ -17,6 +17,7 @@ import { classOfResult } from '../../utils/dataClass'
 import { formatCryptoPrice } from '../../utils/cryptoSource'
 import DataBadge from '../../components/ui/DataBadge'
 import PriceChange from '../../components/ui/PriceChange'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { computePortfolioSnapshot, holdingRows } from './portfolioSnapshot'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
@@ -91,6 +92,7 @@ function MarketState() {
             sub={<span className="text-terminal-text-dim">{ms.sentiment ? `${ms.sentiment.label} · computed` : ms.status === 'loading' ? 'reading data…' : 'no data yet'}</span>} />
         </div>
       </div>
+      {ms.sentiment && <ScoreNote method="sentiment" inputs={ms.inputs} asOf={ms.asOf} className="px-2 pb-1.5" />}
     </Panel>
   )
 }

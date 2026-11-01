@@ -189,7 +189,7 @@ export function ConnectedHoldings({ id, holdings, onSelectNode }) {
   const n = GRAPH.byId.get(id)
   return (
     <div className="mt-3 border px-2 py-1.5" style={{ borderColor: `${HELD_TONE}66` }}>
-      <div className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: HELD_TONE }}>CONNECTED EXPOSURE, NOT FORECAST</div>
+      <div className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: HELD_TONE }}>CONNECTED EXPOSURE, NOT FORECAST · NOT A RECOMMENDATION</div>
       {holdings.length === 0 ? (
         <div className="text-terminal-text-dim mt-1" style={{ fontSize: 11 }}>No portfolio holdings saved on this device.</div>
       ) : (
@@ -231,7 +231,7 @@ export function RipplePanel({ origin, setOrigin, event, setEvent, ripple, holdin
     <div>
       <div className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: PAL.amber }}>EVENT RIPPLE</div>
       <div className="font-mono font-bold tracking-widest mt-1 px-1.5 py-1 inline-block" style={{ fontSize: 11, color: HELD_TONE, border: `1px solid ${HELD_TONE}88` }}>
-        CONNECTED EXPOSURE, NOT FORECAST
+        CONNECTED EXPOSURE, NOT FORECAST · NOT A RECOMMENDATION
       </div>
       <p className="text-terminal-text-dim mt-2 leading-snug" style={{ fontSize: 11 }}>
         Pick a node and an event. The list shows which nodes it reaches, hop by hop, along sourced edges. It says nothing about direction of price or size of effect.

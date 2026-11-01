@@ -232,11 +232,11 @@ function BreakdownBars({ title, rows }) {
 // actual sector mix — clearly labelled as an example, not a substitute.
 const COMMON_SECTORS = ['Financials', 'Materials', 'Health Care', 'Information Technology', 'Consumer Discretionary', 'Energy', 'Real Estate', 'Industrials']
 
-function MockAnalysisPreview({ bySector, mktTotal }) {
+function MockAnalysisPreview({ bySector }) {
   const top = bySector[0]
   const diversificationScore = Math.max(15, Math.round(100 - (top?.pct ?? 0) * 0.8))
   const present = new Set(bySector.map((s) => s.label))
-  const underweight = COMMON_SECTORS.find((s) => !present.has(s)) ?? 'Financials'
+  const underweight = COMMON_SECTORS.find((s) => !present.has(s)) ?? null
   const concentrated = top && top.pct >= 40
 
   return (
@@ -263,21 +263,16 @@ function MockAnalysisPreview({ bySector, mktTotal }) {
           </div>
         </div>
         <div>
-          <div className="text-terminal-text-dim/60 tracking-widest mb-1">TOP OPPORTUNITY</div>
-          <div className="text-terminal-text-bright">Underweight {underweight} — consider whether this sector deserves representation given its typical weight in the ASX 200.</div>
+          <div className="text-terminal-text-dim/60 tracking-widest mb-1">SECTORS NOT HELD</div>
+          <div className="text-terminal-text-bright">{underweight
+            ? `${underweight} — a sector with a meaningful weight in the ASX 200 that these holdings do not include. A description of the holdings, not a suggestion to change them.`
+            : 'The holdings include every major ASX 200 sector.'}</div>
         </div>
         <div>
           <div className="text-terminal-text-dim/60 tracking-widest mb-1">MACRO ALIGNMENT</div>
           <div className="text-terminal-text-bright">RBA at {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% after a {VERIFIED_CONSTANTS.rba.lastDecisionVerb.toLowerCase()} on {VERIFIED_CONSTANTS.rba.lastDecision}, with further increases still possible — rate-sensitive sectors (Real Estate, consumer discretionary) carry the most pressure; commodity-heavy portfolios stay exposed to China demand.</div>
         </div>
-        <div>
-          <div className="text-terminal-text-dim/60 tracking-widest mb-1">SUGGESTIONS</div>
-          <ul className="list-disc list-inside space-y-0.5 text-terminal-text-bright">
-            <li>Trim the largest single-sector weighting toward the portfolio's long-run average.</li>
-            <li>Add exposure to {underweight} to smooth sector-level drawdowns.</li>
-            <li>Review currency mix — {fmt.aud(mktTotal, { decimals: 0, clarify: true })} tracked, check AUD/USD exposure against your risk tolerance.</li>
-          </ul>
-        </div>
+        <div className="text-terminal-text-dim">Describes exposure only — not a recommendation to buy, sell or hold anything.</div>
       </div>
     </div>
   )
@@ -847,12 +842,12 @@ export default function PortfolioModule() {
 
   const runAiAnalysis = () => dispatchAskAI({
     instruction:
-      'You are MaddenAI. Analyse this portfolio and provide:\n' +
-      '1. Portfolio composition assessment (diversification)\n' +
-      '2. Key risks (concentration, sector, currency)\n' +
-      '3. Performance attribution (what\'s driving P&L)\n' +
-      '4. 3 specific suggestions for improvement\n' +
-      '5. Macro outlook for this portfolio\n\n' +
+      'Describe the exposure in these holdings. Cover:\n' +
+      '1. Composition (sector, currency and single-name concentration)\n' +
+      '2. Exposure to current events: the cash rate, the AUD, commodities\n' +
+      '3. What has driven the P&L shown\n' +
+      '4. Scheduled events that touch these holdings\n\n' +
+      'Describe only. Do not suggest buying, selling, holding, trimming, adding or rebalancing anything, and do not use the holdings to recommend any action.\n\n' +
       `Holdings: ${JSON.stringify(live.map((h) => ({
         symbol: h.symbol, type: h.type, shares: h.shares,
         avgCost: h.avgCost, last: h.last, mktVal: h.mktVal,
@@ -863,7 +858,7 @@ export default function PortfolioModule() {
       'Format in professional markdown. Australian investor perspective. General information only, not advice.',
   }, { fullscreen: true, rawPrompt: true })
 
-  // PORTFOLIO STRATEGY SESSION — the whole book in one prompt: each holding's
+  // PORTFOLIO EXPOSURE REVIEW — the whole book in one prompt: each holding's
   // weight and P&L, sector and currency mix, totals. The investor profile
   // rides along in MaddenAI's per-turn context. Prices are the terminal's
   // (demo for equities), so the prompt says so and asks for no new figures.
@@ -874,13 +869,14 @@ export default function PortfolioModule() {
       .join('\n')
     const mix = (rows) => rows.map((r) => `${r.label} ${Number(r.pct).toFixed(1)}%`).join(', ')
     askMaddenAI(
-      'PORTFOLIO STRATEGY SESSION. Review my portfolio holistically. Cover:\n'
-      + '1. Concentration risks\n2. Macro alignment\n3. Income vs growth balance\n4. Suggested rebalancing considerations\n5. Key risks in the current environment\n\n'
+      'PORTFOLIO EXPOSURE REVIEW. Describe how these holdings are exposed. Cover:\n'
+      + '1. Concentration\n2. Sensitivity to the cash rate, the AUD and commodities\n3. Income vs growth character\n4. Key risks in the current environment\n\n'
+      + 'Describe exposure only — no suggestion to buy, sell, hold, trim, add or rebalance anything.\n\n'
       + `Holdings by weight:\n${holdingsLines}\n\n`
       + `Sector allocation: ${mix(bySector)}\nCurrency: ${mix(byCurrency)}\n`
       + `Total P&L since purchase: ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%\n\n`
       + 'Equity prices in this terminal are demo data, so treat P&L as illustrative. Use only the figures above and in your context. General information, not personal advice.',
-      { mode: 'research', fullscreen: true, save: { kind: 'strategy', asset: { symbol: 'PORTFOLIO', name: 'Portfolio strategy session' } } },
+      { mode: 'research', fullscreen: true, save: { kind: 'strategy', asset: { symbol: 'PORTFOLIO', name: 'Portfolio exposure review' } } },
     )
   }
 
@@ -991,7 +987,7 @@ export default function PortfolioModule() {
                 onClick={runStrategySession}
                 title="A holistic MaddenAI review of the whole portfolio — save it to research afterwards"
                 className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
-              >STRATEGY SESSION ▶</button>
+              >EXPOSURE REVIEW ▶</button>
             )}
             {live.length > 0 && (
               <button
@@ -1124,15 +1120,15 @@ export default function PortfolioModule() {
           <div className="text-3xl">▲</div>
           <div className="text-terminal-text-bright text-sm font-semibold">AI Portfolio Analysis</div>
           <div className="text-terminal-text-dim text-2xs max-w-sm leading-relaxed">
-            MaddenAI will assess your diversification, key risks, performance attribution, and give
-            specific suggestions — opens full-screen in the AI panel.
+            MaddenAI describes the exposure in these holdings — concentration, rate and currency
+            sensitivity, what drove the P&L. It describes; it does not suggest changes.
           </div>
           <button
             onClick={runAiAnalysis}
             disabled={live.length === 0}
             className="mt-1 text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >{live.length === 0 ? 'ADD LIVE HOLDINGS FIRST' : 'RUN AI ANALYSIS ▶'}</button>
-          {live.length > 0 && <MockAnalysisPreview bySector={bySector} mktTotal={mktTotal} />}
+          {live.length > 0 && <MockAnalysisPreview bySector={bySector} />}
         </div>
       )}
 

@@ -23,6 +23,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
 import { Area, Bar, ComposedChart, Tooltip, XAxis, YAxis } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
@@ -197,12 +198,14 @@ const P = {
 }
 
 function MaddenAIPanel({ momentum }) {
-  if (!momentum) return <div style={P.wrap}><div style={P.title}>MADDENAI MOMENTUM</div><div style={P.empty}>CALCULATING...</div></div>
+  if (!momentum) return <div style={P.wrap}><div style={P.title}>CRYPTO MOMENTUM INDEX</div><div style={P.empty}>CALCULATING...</div></div>
   const color = scoreToColor(momentum.score)
-  const { bullish = 33, neutral = 34, bearish = 33 } = momentum.breakdown ?? {}
+  // Computed in code, not by MaddenAI. The bull/neutral/bear split that sat
+  // under the score was derived from the score itself by formula — it showed
+  // percentages nothing had measured — and is gone.
   return (
     <div style={P.wrap}>
-      <div style={P.title}>MADDENAI MOMENTUM</div>
+      <div style={P.title}>CRYPTO MOMENTUM INDEX · COMPUTED</div>
       <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:5 }}>
         <span style={{ fontSize:36, fontWeight:700, lineHeight:1, color, fontFamily:'IBM Plex Mono' }}>{momentum.score}</span>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
@@ -210,16 +213,7 @@ function MaddenAIPanel({ momentum }) {
           <span style={{ fontSize:11, fontWeight:700, color }}>{momentum.label.toUpperCase()}</span>
         </div>
       </div>
-      <div style={{ height:6, display:'flex', borderRadius:2, overflow:'hidden' }}>
-        <div style={{ width:`${bullish}%`, background:'var(--color-gain)', transition:'width 0.5s' }} />
-        <div style={{ width:`${neutral}%`, background:'var(--color-neutral)', transition:'width 0.5s' }} />
-        <div style={{ width:`${bearish}%`, background:'var(--color-loss)', transition:'width 0.5s' }} />
-      </div>
-      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginTop:2 }}>
-        <span style={{ color:'var(--color-gain)' }}>{bullish}% BULL</span>
-        <span style={{ color:'var(--color-neutral)' }}>{neutral}% NEUT</span>
-        <span style={{ color:'var(--color-loss)' }}>{bearish}% BEAR</span>
-      </div>
+      <ScoreNote method="crypto-momentum" inputs={momentum.factors?.map((f) => ({ name: f.name, value: `${Math.round(f.score)}/100` }))} />
     </div>
   )
 }

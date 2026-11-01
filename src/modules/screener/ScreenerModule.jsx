@@ -613,7 +613,7 @@ function QualityBadge({ pct }) {
   return (
     <span className="font-mono font-bold tracking-wider px-1.5 py-px rounded-sm whitespace-nowrap"
       style={{ fontSize: 11, color: strong ? PAL.gold : PAL.dim, border: `1px solid ${strong ? 'rgba(201,168,76,0.5)' : 'rgba(139,163,196,0.35)'}` }}>
-      {strong ? '★ STRONG MATCH' : 'GOOD MATCH'}
+      {strong ? 'WIDE MARGIN' : 'CLEAR MARGIN'}
     </span>
   )
 }
@@ -1353,7 +1353,7 @@ export default function ScreenerModule() {
                   {rankable && (
                     <th
                       onClick={() => toggleSort('matchPct')}
-                      title="How far past the screen's thresholds each result sits — 50% only just qualifies, 100% is comfortably clear"
+                      title="How far past your screen's thresholds each result sits — 50% only just qualifies, 100% is comfortably clear. Fit to your own criteria; not a rating or a recommendation."
                       className="text-right px-3 py-1.5 cursor-pointer hover:text-terminal-gold"
                     >MATCH %{sortArrow('matchPct')}</th>
                   )}

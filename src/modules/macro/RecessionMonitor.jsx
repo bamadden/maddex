@@ -4,6 +4,7 @@ import {
   BAND_TONE, STATE_TONE, AU_RECESSIONS, RUBRIC,
 } from '../../data/recessionRisk'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import ScoreNote from '../../components/ui/ScoreNote'
 
 // Semicircle gauge, 0-100 left to right.
 const R = 46
@@ -91,6 +92,7 @@ function RegionCard({ risk }) {
       <div className="mt-2 pt-1 border-t border-terminal-border/40">
         {risk.factors.map((f) => <FactorRow key={f.key} f={f} />)}
       </div>
+      <ScoreNote method="recession" asOf={risk.asOf} inputs={risk.factors.map((f) => ({ name: f.label ?? f.key, value: `${f.points} pts` }))} className="mt-1.5" />
     </div>
   )
 }

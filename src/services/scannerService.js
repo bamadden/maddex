@@ -292,11 +292,11 @@ export function scanDivergence() {
     if (Math.abs(pricePct) < 1.5 || Math.abs(volPct) < 12) continue
 
     if (pricePct > 0 && volPct < 0) {
-      rows.push({ ...row, kind: 'BEARISH DIV', pricePct, volPct,
-        note: 'Price rising while participation falls — the move is being driven by fewer hands.' })
+      rows.push({ ...row, kind: 'PRICE UP · VOLUME DOWN', up: false, pricePct, volPct,
+        note: 'Price rose over five sessions while volume fell against the prior week.' })
     } else if (pricePct < 0 && volPct > 0) {
-      rows.push({ ...row, kind: 'BULLISH DIV', pricePct, volPct,
-        note: 'Price falling on rising volume — selling is gathering, which often precedes capitulation or a base.' })
+      rows.push({ ...row, kind: 'PRICE DOWN · VOLUME UP', up: true, pricePct, volPct,
+        note: 'Price fell over five sessions while volume rose against the prior week.' })
     }
   }
   return rows.sort((a, b) => Math.abs(b.volPct) - Math.abs(a.volPct))
@@ -354,14 +354,12 @@ These are index values, not prices. You have NOT been given this security's pric
 
 Identify the single most notable chart pattern in this series (e.g. cup-and-handle, descending triangle, ascending triangle, head-and-shoulders, double top/bottom, flag, wedge — or "no clear pattern" if genuinely none stands out).
 
-Do NOT provide a price target, a target level, a support or resistance price, or any figure in dollars. A target derived from data you do not have is a made-up number, and it is the part a reader would act on. Describe instead what would CONFIRM the pattern and what would INVALIDATE it, in terms of the shape: "confirmation on a close above the pattern's neckline", "invalidated if it breaks back below the lower trendline".
+Describe the shape only. Do NOT say which way the price is likely to go, how likely the pattern is to play out, or whether it is bullish or bearish. Do NOT provide a price target, a target level, a support or resistance price, or any figure in dollars. A target derived from data you do not have is a made-up number, and it is the part a reader would act on. Describe instead what would CONFIRM the pattern and what would INVALIDATE it, in terms of the shape: "confirmation on a close above the pattern's neckline", "invalidated if it breaks back below the lower trendline".
 
 Return JSON only:
 {
   "patternName": "short pattern name",
   "description": "1-2 sentences describing what the pattern looks like in this series, no figures",
-  "implication": "BULLISH" | "BEARISH" | "NEUTRAL",
-  "probability": "LOW" | "MEDIUM" | "HIGH",
   "confirmation": "what would confirm the pattern, described structurally — no price levels",
   "invalidation": "what would invalidate it, described structurally — no price levels"
 }`

@@ -420,13 +420,13 @@ export default function RelationshipsModule() {
           {overlay && !exposure && (
             <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
               style={{ fontSize: 11, color: HELD_TONE, border: `1px solid ${HELD_TONE}88`, background: 'rgba(4,10,20,0.85)' }}>
-              CONNECTED EXPOSURE, NOT FORECAST
+              CONNECTED EXPOSURE, NOT FORECAST · NOT A RECOMMENDATION
             </div>
           )}
           {exposure && (
             <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
               style={{ fontSize: 11, color: PAL.amber, border: '1px solid rgba(232,163,61,0.5)', background: 'rgba(4,10,20,0.85)' }}>
-              CONNECTED EXPOSURE, NOT FORECAST
+              CONNECTED EXPOSURE, NOT FORECAST · NOT A RECOMMENDATION
             </div>
           )}
         </div>

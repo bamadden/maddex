@@ -176,10 +176,10 @@ export const MARGIN_LENDERS = [
 ]
 
 export const POSITIONING = [
-  { asset: 'AUD/USD',     inst: 68, signal: 'BULLISH' },
-  { asset: 'Gold',        inst: 72, signal: 'BULLISH' },
-  { asset: 'ASX 200',     inst: 58, signal: 'NEUTRAL' },
-  { asset: 'Iron Ore',    inst: 64, signal: 'BULLISH' },
-  { asset: 'US Equities', inst: 61, signal: 'BULLISH' },
-  { asset: 'Bonds',       inst: 54, signal: 'NEUTRAL' },
+  { asset: 'AUD/USD',     inst: 68, signal: 'NET LONG' },
+  { asset: 'Gold',        inst: 72, signal: 'NET LONG' },
+  { asset: 'ASX 200',     inst: 58, signal: 'BALANCED' },
+  { asset: 'Iron Ore',    inst: 64, signal: 'NET LONG' },
+  { asset: 'US Equities', inst: 61, signal: 'NET LONG' },
+  { asset: 'Bonds',       inst: 54, signal: 'BALANCED' },
 ]

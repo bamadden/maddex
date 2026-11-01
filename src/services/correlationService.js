@@ -176,15 +176,3 @@ export function diversificationScore(ids, period = '6M') {
   return { score, label, avgCorrelation: avg }
 }
 
-// Suggests the universe asset that would add the LEAST average correlation
-// to an existing holding set — a simple, defensible diversification tip.
-export function suggestDiversifier(holdingIds, period = '6M') {
-  const held = new Set(holdingIds)
-  let best = null
-  for (const candidate of CORRELATION_UNIVERSE) {
-    if (held.has(candidate.id)) continue
-    const avg = holdingIds.reduce((s, id) => s + Math.abs(correlationFor(id, candidate.id, period)), 0) / holdingIds.length
-    if (!best || avg < best.avg) best = { id: candidate.id, label: candidate.label, avg }
-  }
-  return best
-}

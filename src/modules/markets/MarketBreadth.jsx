@@ -79,7 +79,7 @@ export default function MarketBreadth() {
     if (q.week52Low != null && q.price <= q.week52Low * 1.01) newLows++
   }
   const adRatio = declines > 0 ? advances / declines : advances
-  const sentiment = adRatio >= 1.5 ? 'BULLISH' : adRatio >= 0.8 ? 'NEUTRAL' : 'BEARISH'
+  const sentiment = adRatio >= 1.5 ? 'MORE RISING' : adRatio >= 0.8 ? 'BALANCED' : 'MORE FALLING'
   const sentimentCls = adRatio >= 1.5 ? 'text-terminal-green' : adRatio >= 0.8 ? 'text-terminal-gold' : 'text-terminal-red'
   const advPct = (advances / (advances + declines + unchanged)) * 100
 

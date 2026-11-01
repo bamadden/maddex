@@ -3,6 +3,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, Line
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import SafeChart from '../../components/ui/SafeChart'
 import { generateShortSummary, scoreToColor } from '../../services/maddenAiScoring'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 
 const PREV_SCORE_KEY     = 'maddex_sentiment_prev'
@@ -296,7 +297,7 @@ function TrendSection({ currentScore }) {
 }
 
 // ─── Sentiment Modal ──────────────────────────────────────────────────────────
-function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
+function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
   const overlayRef = useRef(null)
 
   useEffect(() => {
@@ -348,6 +349,10 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
           </div>
         </div>
 
+        <div className="px-4 py-1.5 border-b border-terminal-border flex-shrink-0">
+          <ScoreNote method="sentiment" inputs={ms?.inputs} asOf={ms?.asOf} />
+        </div>
+
         {/* ── Main content (two columns) ── */}
         <div
           style={{
@@ -393,15 +398,15 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
               </SafeChart>
               {/* Legend */}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>
-                <span style={{ color: PAL.down }}>● 0–33 BEARISH</span>
-                <span style={{ color: PAL.gold }}>● 34–66 NEUTRAL</span>
-                <span style={{ color: PAL.up }}>● 67–100 BULLISH</span>
+                <span style={{ color: PAL.down }}>● 0–33 MOSTLY DOWN</span>
+                <span style={{ color: PAL.gold }}>● 34–66 BALANCED</span>
+                <span style={{ color: PAL.up }}>● 67–100 MOSTLY UP</span>
               </div>
             </div>
 
             {/* Signal summary */}
             <div style={{ flex: '1 1 0', minHeight: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>SIGNAL SUMMARY</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>INPUT SUMMARY</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {sentiment.factors.filter((f) => f.score >= 55).map((f) => (
                   <div key={f.name} style={{ fontSize: 11, color: PAL.up }}>▲ {f.name}</div>
@@ -493,6 +498,7 @@ export default function MarketSentimentBanner() {
             are in DETAILS. */}
         <div className="hidden sm:block"><ScoreGradientBar score={sentiment.score} /></div>
         <SentimentBadge label={sentiment.label} score={sentiment.score} />
+        <span className="text-2xs text-terminal-text-dim flex-shrink-0 hidden lg:inline whitespace-nowrap">DESCRIPTIVE · NOT A RECOMMENDATION</span>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0 hidden md:inline">·</span>
         <div className="hidden md:block">
           <BreadthGauge changes={asxChanges} />
@@ -508,6 +514,7 @@ export default function MarketSentimentBanner() {
           asxChanges={asxChanges}
           fearGreed={fearGreed}
           onClose={handleClose}
+          ms={ms}
         />
       )}
     </>

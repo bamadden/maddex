@@ -1,18 +1,17 @@
 // ─── MaddenAI scoring engine ──────────────────────────────────────────────────
 // Ported from the original Maddex app (maddenAI_scoring.js). Every score is
 // anchored at 50 = neutral; it moves up/down as weighted live-data factors
-// diverge from neutral. Bands: 80-100 Extremely Bullish, 65-79 Bullish,
-// 55-64 Mildly Bullish, 45-54 Neutral, 35-44 Mildly Bearish, 20-34 Bearish,
-// 0-19 Extremely Bearish.
-
+// diverge from neutral. The labels describe what the data did — mostly up or
+// mostly down — in plain words; "bullish/bearish" read as a market call and
+// were replaced (legal-risk pass, 1 Nov 2026).
 export function scoreToLabel(score) {
-  if (score >= 80) return 'Extremely Bullish'
-  if (score >= 65) return 'Bullish'
-  if (score >= 55) return 'Mildly Bullish'
-  if (score >= 45) return 'Neutral'
-  if (score >= 35) return 'Mildly Bearish'
-  if (score >= 20) return 'Bearish'
-  return 'Extremely Bearish'
+  if (score >= 80) return 'Strongly positive'
+  if (score >= 65) return 'Positive'
+  if (score >= 55) return 'Mildly positive'
+  if (score >= 45) return 'Balanced'
+  if (score >= 35) return 'Mildly negative'
+  if (score >= 20) return 'Negative'
+  return 'Strongly negative'
 }
 
 // Colours map onto the terminal's existing gain/loss/neutral CSS variables
@@ -25,19 +24,6 @@ export function scoreToColor(score) {
   return 'var(--color-loss-bright)'
 }
 
-// Bull/Neutral/Bear breakdown for the progress-bar UI.
-export function scoreToBullBearBreakdown(score) {
-  if (score >= 50) {
-    const bullish = Math.round(33 + (score - 50) * 1.14)
-    const bearish = Math.max(2, Math.round(33 - (score - 50) * 0.62))
-    const neutral = Math.max(5, 100 - bullish - bearish)
-    return { bullish, neutral, bearish }
-  }
-  const bearish = Math.round(33 + (50 - score) * 1.14)
-  const bullish = Math.max(2, Math.round(33 - (50 - score) * 0.62))
-  const neutral = Math.max(5, 100 - bullish - bearish)
-  return { bullish, neutral, bearish }
-}
 
 // Converts a raw % change into a 0-100 contribution, clamped so extreme
 // single-day moves don't dominate the weighted average.
@@ -111,7 +97,6 @@ export function calculateMarketSentimentScore(data) {
     label: scoreToLabel(finalScore),
     color: scoreToColor(finalScore),
     confidence,
-    breakdown: scoreToBullBearBreakdown(finalScore),
     factors: factors.map((f) => ({
       ...f,
       score: Math.round(f.score),
@@ -175,7 +160,6 @@ export function calculateCryptoMomentumIndex({ coins, fearGreed }) {
     label: scoreToLabel(finalScore),
     color: scoreToColor(finalScore),
     confidence: Math.round((factors.length / 5) * 100),
-    breakdown: scoreToBullBearBreakdown(finalScore),
     factors: factors.map((f) => ({ ...f, score: Math.round(f.score) })),
   }
 }
@@ -219,11 +203,11 @@ export function generateShortSummary({ marketSentimentScore, asxChanges, fearGre
   // Named for what it is: the crypto index, not a market-wide fear reading.
   if (fgVal !== null && fgLbl) parts.push(`Crypto Fear & Greed ${fgVal} (${fgLbl})`)
   if (parts.length === 0) {
-    if (score >= 65) parts.push('Broad bullish momentum')
+    if (score >= 65) parts.push('Broad gains across markets')
     else if (score >= 55) parts.push('Mildly positive conditions')
-    else if (score >= 45) parts.push('Mixed signals')
-    else if (score >= 35) parts.push('Mild caution across markets')
-    else parts.push('Broadly bearish conditions')
+    else if (score >= 45) parts.push('Mixed moves')
+    else if (score >= 35) parts.push('Mild declines across markets')
+    else parts.push('Broad declines across markets')
   }
   return parts.join(' — ')
 }
@@ -243,11 +227,12 @@ export function generateSnapshotText({ marketSentimentScore, cryptoMomentumIndex
   const asxLosers = asxChanges?.filter((c) => (c ?? 0) < 0).length ?? 0
 
   let snapshot
-  if (mss >= 65) snapshot = 'MaddenAI detects broad-based bullish momentum. '
-  else if (mss >= 55) snapshot = 'MaddenAI detects mildly positive market conditions. '
-  else if (mss >= 45) snapshot = 'MaddenAI detects mixed signals across markets. '
-  else if (mss >= 35) snapshot = 'MaddenAI detects mild caution across markets. '
-  else snapshot = 'MaddenAI detects broadly bearish conditions. '
+  // Computed in code from market data — not written by MaddenAI.
+  if (mss >= 65) snapshot = 'Market data shows broad-based gains. '
+  else if (mss >= 55) snapshot = 'Market data shows mildly positive conditions. '
+  else if (mss >= 45) snapshot = 'Market data is mixed. '
+  else if (mss >= 35) snapshot = 'Market data shows mild declines. '
+  else snapshot = 'Market data shows broad-based declines. '
 
   if (asxAvg > 0.5) snapshot += `ASX tracking well with ${asxGainers} of ${asxChanges.length} tracked stocks advancing. `
   else if (asxAvg < -0.5) snapshot += `ASX under pressure with ${asxLosers} of ${asxChanges.length} tracked stocks in the red. `

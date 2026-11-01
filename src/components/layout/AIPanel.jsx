@@ -349,8 +349,8 @@ function scoreColour(score) {
 
 function sentimentLabelColour(label) {
   const u = label?.toUpperCase()
-  if (u === 'BULLISH' || u === 'RISK ON') return 'var(--color-gain)'
-  if (u === 'BEARISH' || u === 'RISK OFF') return 'var(--color-loss)'
+  if (u === 'BULLISH' || u === 'POSITIVE' || u === 'RISK ON') return 'var(--color-gain)'
+  if (u === 'BEARISH' || u === 'NEGATIVE' || u === 'RISK OFF') return 'var(--color-loss)'
   return 'var(--mt-amber, #C9A84C)'
 }
 

@@ -188,6 +188,16 @@ try {
   const dash = seen['dashboard (top bar, header, gauge)'] ?? []
   if (all.length >= 7 && dash.length >= 3 && new Set(all).size === 1) pass(`same score in ${all.length} places (${all[0]}): ${Object.entries(seen).map(([k, v]) => `${k} ×${v.length}`).join(', ')}`)
   else fail(`sentiment differs or is missing: ${JSON.stringify(seen)}`)
+  // On News: the score card says what it is, and its method opens in one click.
+  const method = await page.evaluate(async () => {
+    const note = document.querySelector('[data-score-note="sentiment"]')
+    if (!note) return null
+    if (!/Not a recommendation/.test(note.innerText)) return 'no label'
+    note.querySelector('button')?.click()
+    await new Promise((r) => setTimeout(r, 300))
+    return /Market sentiment score/.test(note.innerText) && /INPUTS THIS TIME/.test(note.innerText) ? 'ok' : 'method did not open'
+  })
+  method === 'ok' ? pass('score card: "Not a recommendation", method and inputs one click away') : fail(`score note: ${method ?? 'missing'}`)
 
   console.log('One clock')
   await nav('DASHBOARD')

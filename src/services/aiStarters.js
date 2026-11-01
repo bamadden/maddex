@@ -41,8 +41,8 @@ const BY_FOCUS = {
       prompt: 'Review my holdings for concentration risk, sector gaps, and income gaps. Where is my income concentrated, how dependent is it on one sector, and what is missing?' },
     { icon: '◉', title: 'Macro read for income', subtitle: `How does ${RATE} RBA rate affect dividend sustainability in AU banks?`,
       prompt: `How does the ${RATE} RBA cash rate affect dividend sustainability in Australian banks? Cover net interest margins, bad-debt risk, capital requirements and payout ratios.` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — where is the better income opportunity now?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — where is the better income opportunity now? Compare yield, payout reliability, franking and the cycle risk to each sector's dividends.` },
+    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — how do their dividends compare?`,
+      prompt: `${title(a)} vs ${title(b)} on the ASX — how do the two sectors compare on dividends? Describe yield, payout reliability, franking and the cycle risk to each sector's dividends.` },
   ],
   GROWTH: ([a, b]) => [
     { icon: '◈', title: 'Growth screen', subtitle: 'Which ASX companies have the longest growth runway — and what is priced in?',
@@ -51,8 +51,8 @@ const BY_FOCUS = {
       prompt: 'Review my holdings for concentration risk, sector gaps, and growth drivers. Which positions carry the growth, how correlated are they, and what is missing?' },
     { icon: '◉', title: 'Macro read for growth', subtitle: `How does a ${RATE} cash rate affect ASX growth valuations?`,
       prompt: `How does a ${RATE} RBA cash rate affect the valuations of ASX growth stocks? Explain the discount-rate mechanism and which kinds of growth company are most exposed.` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — where is the better growth opportunity now?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — where is the better growth opportunity now? Compare earnings growth drivers, valuation and what could derail each.` },
+    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — how do their growth drivers compare?`,
+      prompt: `${title(a)} vs ${title(b)} on the ASX — how do the two sectors compare on growth? Describe earnings growth drivers and what could derail each.` },
   ],
   BALANCED: ([a, b]) => [
     { icon: '◈', title: 'Core and satellite', subtitle: 'How should a balanced ASX portfolio split core and satellite?',
@@ -71,8 +71,8 @@ const BY_FOCUS = {
       prompt: 'Review my holdings for position sizing, concentration and downside risk. Where could one bad outcome do the most damage?' },
     { icon: '◉', title: 'Macro read for risk', subtitle: `How does a ${RATE} cash rate change risk appetite?`,
       prompt: `How does a ${RATE} RBA cash rate change the market's appetite for speculative ASX names? What would shift it either way?` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — where is the asymmetric opportunity?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — where is the more asymmetric opportunity right now, and what is the downside case for each?` },
+    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — what drives the volatility in each?`,
+      prompt: `${title(a)} vs ${title(b)} on the ASX — what drives the volatility in each sector, and what are the upside and downside cases each rests on?` },
   ],
 }
 

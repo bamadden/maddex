@@ -1,4 +1,5 @@
 import { PAL } from '../../styles/palette.js'
+import ScoreNote from './ScoreNote'
 // Same 5-band colour scale as MorningBriefModule's score gauge (0-30 red /
 // 30-50 amber / 50-70 gold / 70-85 light-green / 85-100 green) — kept in
 // sync deliberately so a score means the same colour everywhere in the app.
@@ -48,7 +49,7 @@ export function SentimentBar({ market, read }) {
         <span className="text-2xs font-bold tracking-widest" style={{ color }}>{m.label.toUpperCase()}</span>
         <SentimentMiniGauge score={m.score} width={90} height={8} />
       </div>
-      {read?.asxBias && <span className={`text-2xs font-bold ${biasColor}`} title="MaddenAI's read of today's headlines">HEADLINES: ASX BIAS {read.asxBias}</span>}
+      {read?.asxBias && <span className={`text-2xs font-bold ${biasColor}`} title="MaddenAI's read of the tone of today's headlines for the ASX — words only, not a forecast">HEADLINE TONE (ASX): {read.asxBias}</span>}
       {read?.drivers?.length > 0 && (
         <span className="text-2xs text-terminal-text-dim">
           <span className="text-terminal-green">▲ {read.drivers[0]}</span>
@@ -56,6 +57,7 @@ export function SentimentBar({ market, read }) {
         </span>
       )}
       {read?.keyTheme && <span className="text-2xs text-terminal-text flex-1 min-w-[200px]">{read.keyTheme}</span>}
+      <ScoreNote method="sentiment" inputs={market.inputs} asOf={market.asOf} className="w-full" />
     </div>
   )
 }

@@ -470,7 +470,9 @@ function StructureTab() {
   }, [portfolio, loan, limit, mrate])
 
   const shortTone = (p) => (p > 10 ? PAL.down : p >= 5 ? '#D69E2E' : PAL.muted)
-  const sigTone = { BULLISH: PAL.up, NEUTRAL: PAL.gold, BEARISH: PAL.down }
+  // Which way positioning leans — a description of the (illustrative) data,
+  // not a signal to act.
+  const sigTone = { 'NET LONG': PAL.up, BALANCED: PAL.gold, 'NET SHORT': PAL.down }
 
   const field = (label, value, set, suffix) => (
     <label className="block mb-2">
@@ -618,7 +620,7 @@ function StructureTab() {
               <th className="px-2 text-right">INSTITUTIONAL LONG</th>
               <th className="px-2 text-right">RETAIL LONG</th>
               <th className="px-2 text-left" style={{ width: 200 }}>SPLIT</th>
-              <th className="px-3 text-right">NET SIGNAL</th>
+              <th className="px-3 text-right">LEANS</th>
             </tr>
           </thead>
           <tbody>

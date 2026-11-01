@@ -5,16 +5,16 @@ import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { currentRegime } from '../../../services/marketRegime'
 import { PAL } from '../../../styles/palette.js'
+import ScoreNote from '../../../components/ui/ScoreNote'
 
-// Five bands rather than three. The old widget coloured everything above 60
-// the same green, which put "cautiously bullish" and "strongly bullish" in one
-// bucket — the two readings a person would act on differently.
+// Five colour bands for the gauge: how far the session's moves were from
+// balanced, in either direction. Colour describes direction, not a call.
 const BANDS = [
-  { min: 0,  max: 20,  colour: PAL.down, label: 'BEARISH' },
-  { min: 20, max: 40,  colour: '#C4653A', label: 'CAUTIOUS' },
-  { min: 40, max: 60,  colour: PAL.gold, label: 'NEUTRAL' },
-  { min: 60, max: 80,  colour: '#6FA34A', label: 'CONSTRUCTIVE' },
-  { min: 80, max: 100, colour: PAL.up, label: 'BULLISH' },
+  { min: 0,  max: 20,  colour: PAL.down, label: 'STRONGLY NEGATIVE' },
+  { min: 20, max: 40,  colour: '#C4653A', label: 'NEGATIVE' },
+  { min: 40, max: 60,  colour: PAL.gold, label: 'BALANCED' },
+  { min: 60, max: 80,  colour: '#6FA34A', label: 'POSITIVE' },
+  { min: 80, max: 100, colour: PAL.up, label: 'STRONGLY POSITIVE' },
 ]
 
 const bandFor = (score) => BANDS.find((b) => score >= b.min && score < b.max) ?? BANDS[BANDS.length - 1]
@@ -139,6 +139,7 @@ export default function MarketScoreWidget() {
           <div className="font-mono text-[11px] mt-0.5" style={{ color: PAL.muted }} title={sentimentTooltip(ms)}>
             MARKET SENTIMENT · COMPUTED{ms.demoInputs ? ' · DEMO ASX INPUTS' : ''}{ms.stale ? ' · STALE INPUTS' : ''}
           </div>
+          <ScoreNote method="sentiment" inputs={ms.inputs} asOf={ms.asOf} className="mt-1" />
         </div>
       </div>
 

@@ -33,7 +33,7 @@ FIGURES, which you must not invent:
 Generate a JSON object:
 {
   "headline": "One sentence naming the single most important thing about today",
-  "scoreLabel": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH" (your outlook in words; give no score — the terminal computes its own),
+  "scoreLabel": "POSITIVE" | "MIXED, LEANING POSITIVE" | "MIXED" | "MIXED, LEANING NEGATIVE" | "NEGATIVE" (the tone of the morning's news and data, in words; give no score and no market call — the terminal computes its own score),
   "scoreRationale": "One sentence justifying that outlook specifically",
   "scoreDriver": "One short line naming what is driving the outlook, e.g. 'Materials leading; the rate hike weighing on property'",
   "scoreBreakdown": [

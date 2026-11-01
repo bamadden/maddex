@@ -31,11 +31,11 @@ const releaseDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-A
 // VERIFIED_CONSTANTS — never type one in. The panel shows a DEFAULT badge
 // whenever this content is what the reader is seeing.
 export const FALLBACK_THEMES = [
-  { title: 'RBA TIGHTENING INTO A SOFTER ECONOMY', category: 'RBA', impact: 'BEARISH', horizon: 'IMMEDIATE',
+  { title: 'RBA TIGHTENING INTO A SOFTER ECONOMY', category: 'RBA', impact: 'NEGATIVE', horizon: 'IMMEDIATE',
     sectors: ['FINANCIALS', 'PROPERTY', 'CONSUMER'],
     keyQuote: `The RBA has raised the cash rate to ${V.rba.cashRate.toFixed(2)}% and the September-quarter inflation print came in above its own forecast, with the ${releaseDay(V.rba.nextMeeting)} decision next.`,
     analysis: 'Inflation has re-accelerated this year while growth has slowed and unemployment has risen, which leaves the Board weighing inflation against a softening economy rather than choosing between them. Its statements keep further increases explicitly on the table. Rate-sensitive sectors carry the most exposure; bank margins benefit up to the point that arrears rise.' },
-  { title: 'GLOBAL TIGHTENING CYCLE', category: 'FED', impact: 'BEARISH', horizon: 'SHORT-TERM',
+  { title: 'GLOBAL TIGHTENING CYCLE', category: 'FED', impact: 'NEGATIVE', horizon: 'SHORT-TERM',
     sectors: ['TECH', 'PROPERTY'],
     keyQuote: 'Several major central banks raised rates in September after inflation stopped falling short of target, reversing the easing priced through 2025.',
     analysis: 'Energy prices have done much of the work in pushing inflation back up across economies. A synchronised tightening cycle lifts global discount rates together, which weighs on long-duration growth stocks and listed property. It also narrows the rate-differential cushion that usually steadies a currency.' },

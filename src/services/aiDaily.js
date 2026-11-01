@@ -44,7 +44,7 @@ Return ONE JSON object:
     {
       "title": "SHORT, SPECIFIC THEME TITLE IN CAPS (max 6 words)",
       "category": "RBA" | "FED" | "CHINA" | "GLOBAL" | "COMMODITIES" | "GEOPOLITICAL",
-      "impact": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+      "impact": "POSITIVE" | "NEGATIVE" | "MIXED" | "NEUTRAL" (the tone of the theme's effect on Australian conditions so far — a description, not a forecast or a call),
       "horizon": "IMMEDIATE" | "SHORT-TERM" | "MEDIUM-TERM",
       "sectors": ["MATERIALS", "ENERGY"],
       "keyQuote": "One sentence that captures the theme",
@@ -203,7 +203,7 @@ ${headlines.join('\n')}
 
 Return JSON only:
 {
-  "label": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH",
+  "label": "POSITIVE" | "MIXED, LEANING POSITIVE" | "MIXED" | "MIXED, LEANING NEGATIVE" | "NEGATIVE" (the tone of the headlines, in words — not a market call),
   "drivers": ["top positive driver", "top negative driver"],
   "asxBias": "POSITIVE" | "NEUTRAL" | "NEGATIVE",
   "keyTheme": "one sentence on the dominant theme"

@@ -390,9 +390,7 @@ function DivergenceSection({ settings }) {
         <div key={r.symbol} className="px-3 py-2 border-t border-terminal-border/30 flex items-start gap-3">
           <span
             className="text-2xs font-bold px-1.5 py-0.5 border flex-shrink-0"
-            style={r.kind === 'BULLISH DIV'
-              ? { color: PAL.up, borderColor: 'rgba(45,138,80,0.5)' }
-              : { color: PAL.down, borderColor: 'rgba(200,100,100,0.5)' }}
+            style={{ color: PAL.gold, borderColor: 'rgba(201,168,76,0.45)' }}
           >{r.kind}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
@@ -523,8 +521,6 @@ function PatternCard({ candidate }) {
       .catch((e) => { setError(e.message); setStatus('error') })
   }
 
-  const implColor = pattern?.implication === 'BULLISH' ? 'text-terminal-green'
-    : pattern?.implication === 'BEARISH' ? 'text-terminal-red' : 'text-terminal-text-dim'
 
   return (
     <div className="border border-terminal-border p-3 space-y-2">
@@ -554,8 +550,7 @@ function PatternCard({ candidate }) {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-2xs font-bold text-terminal-gold">{pattern.patternName}</span>
-            <span className={`text-2xs font-bold ${implColor}`}>{pattern.implication}</span>
-            <span className="text-2xs text-terminal-text-dim">· {pattern.probability} probability</span>
+            <span className="text-2xs text-terminal-text-dim">· a description of past prices, not a forecast</span>
           </div>
           <div className="text-2xs text-terminal-text-dim">{pattern.description}</div>
           {/* The "Target: A$47.50" line that sat here was a number the model
@@ -575,7 +570,7 @@ function PatternCard({ candidate }) {
           <div className="flex items-center gap-2 pt-0.5">
             <button
               onClick={() => analyseSignal(candidate.symbol, candidate.name,
-                `${tickerOf(candidate.symbol)} is forming a ${pattern.patternName} pattern (${pattern.implication.toLowerCase()}, ${pattern.probability.toLowerCase()} probability). Walk me through this setup. Do not state a price target.`)}
+                `${tickerOf(candidate.symbol)}'s recent prices resemble a ${pattern.patternName} pattern. Explain what the pattern is and how it is described in technical analysis. Do not predict the price, give a target, or say whether to act.`)}
               className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >ANALYSE</button>
             <span

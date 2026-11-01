@@ -294,7 +294,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
               Top holding: <span className="font-bold text-terminal-text-bright">{concentration.top?.symbol}</span> — {concentration.topPct.toFixed(1)}% of portfolio
             </div>
             {concentration.topPct > 20 && (
-              <div className="text-2xs text-terminal-red font-bold">HIGH CONCENTRATION — consider diversifying</div>
+              <div className="text-2xs text-terminal-gold font-bold">CONCENTRATED — one holding is over 20% of the listed value</div>
             )}
             <div>
               <div className="flex justify-between text-2xs text-terminal-text-dim mb-0.5">

@@ -16,23 +16,23 @@ import { calculateMarketSentimentScore } from '../services/maddenAiScoring'
 // Same query keys as the Markets screen, so every consumer shares the fetches.
 const ALL_INDEX_SYMBOLS = YF_INDICES.map((i) => i.symbol)
 
-export const SENTIMENT_METHOD = 'Computed by Maddex from market data: ASX breadth and momentum (72 stocks), S&P 500, BTC and crypto breadth, and the crypto Fear & Greed index. Not an AI estimate.'
+export const SENTIMENT_METHOD = 'Computed by Maddex from market data: ASX breadth and momentum (72 stocks), S&P 500, BTC and crypto breadth, and the crypto Fear & Greed index. Not an AI estimate. A descriptive measure of what markets did — not a forecast and not a recommendation.'
 
 export function useMarketSentiment() {
-  const { data: asxResult, isLoading: asxLoading } = useAsxUniverseQuotes()
-  const { data: indexResult, isLoading: idxLoading } = useQuery({
+  const { data: asxResult, isLoading: asxLoading, dataUpdatedAt: asxAt } = useAsxUniverseQuotes()
+  const { data: indexResult, isLoading: idxLoading, dataUpdatedAt: idxAt } = useQuery({
     queryKey: ['yfBatch', 'indices'],
     queryFn: () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS),
     staleTime: 60_000, retry: 1,
   })
   // AUD, always: the 24h % differs slightly by quote currency, and one score
   // must not change with the display currency.
-  const { data: crypto, isLoading: cryptoLoading } = useQuery({
+  const { data: crypto, isLoading: cryptoLoading, dataUpdatedAt: cryptoAt } = useQuery({
     queryKey: ['cryptoMarkets', 'aud'],
     queryFn: () => fetchCryptoMarketsUnified('aud'),
     staleTime: 60_000, retry: 1,
   })
-  const { data: rawFearGreed, isLoading: fgLoading } = useQuery({
+  const { data: rawFearGreed, isLoading: fgLoading, dataUpdatedAt: fgAt } = useQuery({
     queryKey: ['fearGreed'],
     queryFn: fetchFearGreed,
     staleTime: 5 * 60_000, retry: 1,
@@ -61,8 +61,12 @@ export function useMarketSentiment() {
       demoInputs: USING_MOCK_DATA && !!asxChanges?.length,
       stale,
       method: SENTIMENT_METHOD,
+      // When the newest input was fetched, and the inputs used — for the
+      // ScoreNote on every card that shows the score.
+      asOf: Math.max(asxAt || 0, idxAt || 0, cryptoAt || 0, fgAt || 0) || null,
+      inputs: sentiment?.factors?.map((f) => ({ name: f.name, value: `${Math.round(f.score)}/100` })) ?? [],
     }
-  }, [asxResult, indexResult, crypto, rawFearGreed, asxLoading, idxLoading, cryptoLoading, fgLoading])
+  }, [asxResult, indexResult, crypto, rawFearGreed, asxLoading, idxLoading, cryptoLoading, fgLoading, asxAt, idxAt, cryptoAt, fgAt])
 }
 
 // One tooltip text for the score wherever it appears.
