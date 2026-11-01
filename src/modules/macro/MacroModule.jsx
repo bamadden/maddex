@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
 import { InlineLoading } from '../../components/ui/ModuleStates'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
-import { sydneyTzAbbr, sydneyTzNow, sydneyOffset } from '../../utils/dateUtils'
+import { sydneyTzAbbr, sydneyTzNow, sydneyOffset, formatDate } from '../../utils/dateUtils'
 import RecessionMonitor from './RecessionMonitor'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -504,6 +504,23 @@ function getCountdown(isoDate, timeStr) {
 // Read off the decision list, so the caption moves when a meeting is added.
 const RATE_HISTORY_END = new Date(`${RBA_RATE_HISTORY[RBA_RATE_HISTORY.length - 1].date}T00:00:00`)
   .toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })
+// On a true time axis: each decision at its effective date, the rate in force
+// carried to today, and a tick each January — not one evenly spaced slot per
+// decision, which squeezed 2022's monthly hikes and the 15 months of holds
+// to 2025 into the same width.
+const DAY = (iso) => Date.parse(`${iso}T00:00:00Z`)
+const RATE_SERIES = (() => {
+  const rows = RBA_RATE_HISTORY.map((r) => ({ ...r, ts: DAY(r.date) }))
+  const last = rows[rows.length - 1]
+  const today = DAY(new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
+  return today > last.ts ? [...rows, { date: null, rate: last.rate, ts: today }] : rows
+})()
+const RATE_TICKS = (() => {
+  const lo = RATE_SERIES[0].ts, hi = RATE_SERIES[RATE_SERIES.length - 1].ts
+  const out = []
+  for (let y = new Date(lo).getUTCFullYear() + 1; Date.UTC(y, 0, 1) <= hi; y++) out.push(Date.UTC(y, 0, 1))
+  return out
+})()
 const DECISIONS_THIS_YEAR = (() => {
   const year = VERIFIED_CONSTANTS.rba.lastDecision.slice(0, 4)
   const rows = VERIFIED_CONSTANTS.rba.decisions.filter((d) => d.date.startsWith(year))
@@ -561,7 +578,7 @@ function RBADashboard({ askAI }) {
           <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (May 2022 – {RATE_HISTORY_END}) · {DECISIONS_THIS_YEAR}</div>
           <div className="flex-1 min-h-0">
             <SafeChart width="100%" height="100%">
-              <AreaChart data={RBA_RATE_HISTORY} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+              <AreaChart data={RATE_SERIES} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
                 <defs>
                   <linearGradient id="rbaGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor={PAL.gold} stopOpacity={0.3} />
@@ -569,13 +586,13 @@ function RBADashboard({ askAI }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke={PAL.header} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={2}
-                  tickFormatter={(d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 5]} width={32} />
-                <Tooltip content={({ active, payload, label }) =>
+                <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={RATE_TICKS} interval={0}
+                  tick={{ fontSize: 11 }} tickFormatter={(t) => String(new Date(t).getUTCFullYear())} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} width={32} />
+                <Tooltip content={({ active, payload }) =>
                   active && payload?.length
                     ? <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
-                        <div className="text-terminal-text-dim">{new Date(label + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        <div className="text-terminal-text-dim">{payload[0].payload.date ? `From ${formatDate(payload[0].payload.date)}` : 'In force today'}</div>
                         <div className="text-terminal-gold font-semibold">{payload[0].value}%</div>
                       </div>
                     : null
@@ -600,8 +617,8 @@ function RBADashboard({ askAI }) {
             says plainly that pricing is not connected. */}
         <div className="p-2 w-40 flex-shrink-0 flex flex-col h-full justify-between text-2xs">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-terminal-gold font-bold">NEXT DECISION</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+              <span className="text-terminal-gold font-bold whitespace-nowrap">NEXT DECISION</span>
               <VerifiedBadge dataKey="rba" alwaysShow />
             </div>
             <div className="flex justify-between">
