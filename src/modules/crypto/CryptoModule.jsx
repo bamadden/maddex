@@ -24,6 +24,7 @@ import PriceChange from '../../components/ui/PriceChange'
 import { Area, Bar, ComposedChart, Tooltip, XAxis, YAxis } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 import ScoreNote from '../../components/ui/ScoreNote'
+import { CREDIT } from '../../data/credits'
 import { PAL } from '../../styles/palette.js'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
@@ -234,6 +235,7 @@ function FearGreedPanel({ data }) {
   return (
     <div style={{ ...P.wrap, minHeight: 190 }}>
       <div style={P.title}>FEAR &amp; GREED</div>
+      <a href={CREDIT.alternativeme.url} target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold" style={{ fontSize: 11 }}>{CREDIT.alternativeme.text}</a>
       <svg viewBox="-30 0 260 132" style={{ width: '100%', maxWidth: 280, alignSelf: 'center' }} role="img" aria-label={`Fear and Greed ${value}, ${label}`}>
         <defs>
           <linearGradient id="fgArc" x1="0" x2="1" y1="0" y2="0">
@@ -305,7 +307,7 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
         sub={dDom != null ? `${dDom >= 0 ? '▲' : '▼'} ${Math.abs(dDom).toFixed(2)}pp vs yesterday` : 'share of total market cap'} subTone={dDom != null ? up(dDom) : undefined}
         title="Bitcoin's share of total crypto market cap (CoinGecko). Yesterday's reading is the one this browser last saw." />
       <MetricCard label="FEAR & GREED" value={fg ? fg.value : '—'}
-        sub={fg ? `${fg.label.toUpperCase()} · yesterday ${fg.prev}` : 'alternative.me'} subTone={fgTone}
+        sub={fg ? `${fg.label.toUpperCase()} · yesterday ${fg.prev} · ${CREDIT.alternativeme.text}` : CREDIT.alternativeme.text} subTone={fgTone}
         title="alternative.me Crypto Fear & Greed Index, 0–100, with its own classification" />
       <MetricCard label="24H VOLUME" value={big(globalData?.total_volume?.[ccy])}
         sub={globalData?.active_cryptocurrencies ? `${globalData.active_cryptocurrencies.toLocaleString()} coins tracked` : 'CoinGecko'} />
@@ -889,6 +891,9 @@ export default function CryptoModule() {
               : !rawMarkets && !marketsError && <InlineLoading label="Loading" />
             }
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
+            {rawMarketsResult?.meta?.provider === 'CoinGecko' && (
+              <a href={CREDIT.coingecko.url} target="_blank" rel="noopener noreferrer" data-credit="coingecko" className="text-terminal-text-dim hover:text-terminal-gold font-normal" style={{ fontSize: 11 }}>{CREDIT.coingecko.text}</a>
+            )}
             {rawMarkets && (marketsSource?.converted || marketsSource?.mismatch) && (
               <span className="basis-full text-2xs font-normal normal-case" data-crypto-source style={{ color: marketsSource.mismatch ? PAL.gold : 'var(--color-text-dim)' }}>{marketsSource.text}</span>
             )}

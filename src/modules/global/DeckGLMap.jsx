@@ -21,6 +21,7 @@ import MapDetailPanel from './MapDetailPanel'
 import MapLocationSearch from './MapLocationSearch'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
+import { licenceOff } from '../../data/sourceLicence'
 import { PAL } from '../../styles/palette.js'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
@@ -76,12 +77,23 @@ const MAP_STYLES = {
   intel: 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
 }
 
+// The credit each basemap's provider requires. MapLibre's own attribution
+// control sits under deck.gl's canvas here, so the credit is drawn as an
+// overlay instead (docs/DATA_SOURCES.md lists each provider's terms).
+const MAP_CREDIT = {
+  dark: '© OpenStreetMap contributors © CARTO',
+  intel: '© OpenStreetMap contributors © CARTO',
+  satellite: 'Imagery © Esri, Maxar, Earthstar Geographics',
+  terrain: 'Relief © Esri',
+}
+
+// Satellite and terrain (Esri tiles) are not offered: Esri's terms need an
+// ArcGIS subscription for this use (data/sourceLicence). The styles stay
+// defined above for when one is in place.
 const STYLE_OPTIONS = [
   { id: 'dark',      label: 'DARK' },
-  { id: 'satellite', label: 'SATELLITE' },
-  { id: 'terrain',   label: 'TERRAIN' },
   { id: 'intel',     label: 'INTEL (NO LABELS)' },
-]
+].concat(licenceOff('esri') ? [] : [{ id: 'satellite', label: 'SATELLITE' }, { id: 'terrain', label: 'TERRAIN' }])
 
 // ── Layer catalogue ───────────────────────────────────────────────────────
 // One entry per toggleable layer. `dot` is the colour the panel shows beside
@@ -1148,6 +1160,11 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
           />
         )}
       </DeckGL>
+      {MAP_CREDIT[mapStyle] && (
+        <div data-map-credit className="absolute bottom-0 right-0 z-10 px-1.5 py-0.5 bg-black/60 text-terminal-text-dim font-mono pointer-events-auto" style={{ fontSize: 11 }}>
+          {MAP_CREDIT[mapStyle]}
+        </div>
+      )}
 
       {/* Vignette + top fade. Purely atmospheric, and inert to the pointer so
           they never intercept a click meant for the map.

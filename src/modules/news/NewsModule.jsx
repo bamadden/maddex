@@ -1513,7 +1513,7 @@ export default function NewsModule() {
     <div className="h-full flex flex-col overflow-hidden relative">
       <ModuleHeader
         title="NEWS"
-        subtitle={`AFR · SMH · ABC · Guardian · NYT · ${NEWS_SOURCES.length} sources`}
+        subtitle={`ABC · BBC · Yahoo Finance · RBA · ${NEWS_SOURCES.length} sources`}
         moduleId="news"
         isFetching={isFetching}
         lastUpdated={lastUpdatedAt}

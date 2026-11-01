@@ -10,6 +10,7 @@
 // the whole point of the exercise, since a plausible stale number is worse
 // than a visibly stale one.
 import { REST_COUNTRIES_AVAILABLE } from './countryApiService'
+import { licenceGuard } from '../data/sourceLicence'
 import { fetchCryptoMarketsUnified } from './dataService'
 
 const CACHE_PREFIX = 'maddex_live_'
@@ -191,6 +192,7 @@ export const liveDataService = {
   // ── Weather at exchange cities — Open-Meteo ─────────────────────────────
   // allSettled, not all: one city failing should not blank the other six.
   async getExchangeWeather() {
+    licenceGuard('openmeteo')   // off for licence reasons (data/sourceLicence)
     return withCache('exchange_weather', async () => {
       const results = await Promise.allSettled(EXCHANGE_CITIES.map(async (c) => {
         const d = await json(

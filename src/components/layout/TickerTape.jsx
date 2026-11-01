@@ -14,6 +14,7 @@ import { classOfResult, badgeText } from '../../utils/dataClass'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
+import { CREDIT } from '../../data/credits'
 import { PAL } from '../../styles/palette.js'
 
 // All 10 benchmark indices — same set/order as IndicesTable's benchmark bar —
@@ -192,7 +193,7 @@ export default function TickerTape() {
     // The fallback feed says what it is: Binance US$ prices, the rate they
     // were converted at and when — or that they are still in US$.
     const src = rawMarkets.meta?.provider !== 'CoinGecko' || rawMarkets.stale ? describeCryptoSource(rawMarkets, 'AUD') : null
-    if (cryptoItems.length) sectionBlocks.push({ label: src ? `◆ CRYPTO · ${src.text}` : '◆ CRYPTO', items: cryptoItems })
+    if (cryptoItems.length) sectionBlocks.push({ label: src ? `◆ CRYPTO · ${src.text}` : `◆ CRYPTO · ${CREDIT.coingecko.text}`, items: cryptoItems })
   }
 
   // 📊 INDICES — all 10 benchmark indices, shown first so the tape leads with
@@ -250,7 +251,7 @@ export default function TickerTape() {
       return { sym: pair, price: p.mid?.toFixed(dec), pct: null }
     }).filter(Boolean)
     // ECB reference rates, published once a working day: DELAYED, not live.
-    if (fxItems.length) sectionBlocks.push({ label: `💱 FX · ${fxResult?.stale ? badgeText({ cls: 'STALE', at: fxResult.cachedAt ?? null }) : 'DELAYED · ECB DAILY'}`, items: fxItems })
+    if (fxItems.length) sectionBlocks.push({ label: `💱 FX · ${fxResult?.stale ? badgeText({ cls: 'STALE', at: fxResult.cachedAt ?? null }) : 'DELAYED · ECB DAILY · SOURCE: ECB'}`, items: fxItems })
   }
 
   // 🛢 COMMODITIES — Gold / Silver AUD

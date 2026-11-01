@@ -42,6 +42,7 @@ import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Cartesia
 import SafeChart from '../../components/ui/SafeChart'
 import { RegimePanel } from '../../components/ui/RegimeBadge'
 import { toneWord } from '../../utils/tone'
+import { CREDIT, FREE_DATA_NOTICE } from '../../data/credits'
 import { PAL } from '../../styles/palette.js'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
@@ -2174,8 +2175,9 @@ export default function MacroModule() {
       {/* Subtle data attribution footer */}
       <div className="px-3 py-2 border-t border-terminal-border/30 mt-2">
         <span style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>
-          Verified figures checked {VERIFIED_CONSTANTS.rba.lastVerified} · Sources: RBA, ABS, IMF, BLS, BEA, ONS, Eurostat
+          Verified figures checked {VERIFIED_CONSTANTS.rba.lastVerified} · {CREDIT.rba.text} · {CREDIT.abs.text} · other national statistics agencies as named on each figure
         </span>
+        <div style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>{FREE_DATA_NOTICE}</div>
       </div>
 
     </div>

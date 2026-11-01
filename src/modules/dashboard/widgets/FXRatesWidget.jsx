@@ -4,6 +4,7 @@ import { classOfDailySource } from '../../../utils/dataClass'
 import { liveDataService } from '../../../services/liveDataService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
+import { CREDIT } from '../../../data/credits'
 import { PAL } from '../../../styles/palette.js'
 
 // AUD/USD leads and is drawn larger — it is the pair an Australian investor
@@ -66,6 +67,7 @@ export default function FXRatesWidget() {
             shown. */}
         <DataBadge cls={classOfDailySource(source)} source="open.er-api.com (daily)" at={at} compact className="flex-shrink-0" />
       </div>
+      <a href={CREDIT.exchangerateapi.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 hover:text-terminal-gold" style={{ fontSize: 11, color: PAL.muted }}>{CREDIT.exchangerateapi.text}</a>
 
       <div className="flex-1 min-h-0 flex flex-col justify-start gap-[3px] mt-2">
         {PAIRS.map(([key, code, flag, dp]) => (

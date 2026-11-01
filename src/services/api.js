@@ -2,6 +2,7 @@ import { httpGet } from '../utils/httpGet'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { recordUsage } from './aiUsageService'
 import { ASX_TICKERS } from '../utils/asxTickers'
+import { licenceGuard } from '../data/sourceLicence'
 import { supabase } from '../lib/supabase'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
@@ -1113,37 +1114,40 @@ const RSS_PROXY = '/api/rss'
 // failing on every load — three wasted requests and three permanent 'failed'
 // entries in source health, which made the health indicator useless because
 // it never showed all-green regardless of what was actually wrong.
+// Feeds shown in the terminal. Only publishers whose terms permit display in
+// a commercial product, with attribution, are on (docs/DATA_SOURCES.md, read
+// 1 Nov 2026): the RBA (copyright permits commercial use), Yahoo Finance and
+// BBC News (display with attribution and a link). ABC News is on pending
+// review — its terms page could not be reached. Every headline names its
+// publisher and links to the article.
 export const NEWS_SOURCES = [
-  // Australian — authoritative financial sources only
-  // Tested 18 Oct 2026. AFR's headline feed is open even though most articles
-  // are paywalled — the headline and standfirst are what the feed needs.
+  { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',                   name: 'ABC Business',     category: 'AU'          },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                   name: 'RBA Speeches',     category: 'AU'          },
+  { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml',             name: 'RBA Releases',     category: 'AU'          },
+  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EAXJO&region=AU&lang=en-AU', name: 'Yahoo Finance AU', category: 'AU' },
+  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                    name: 'BBC News',         category: 'GLOBAL'      },
+]
+
+// Off until licensed: each publisher's RSS terms limit the feed to personal,
+// non-commercial use or bar republication without written permission
+// (Mining.com: terms not found; a paid republishing licence exists). Move an
+// entry back to NEWS_SOURCES only with a licence on file.
+export const NEWS_SOURCES_OFF = [
   { url: 'https://www.afr.com/rss/feed.xml',                                 name: 'AFR',              category: 'AU'          },
   { url: 'https://www.smh.com.au/rss/business.xml',                          name: 'SMH Business',     category: 'AU'          },
   { url: 'https://www.theguardian.com/au/business/rss',                      name: 'Guardian AU Business', category: 'AU'      },
-  { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',                   name: 'ABC Business',     category: 'AU'          },
   { url: 'https://www.theguardian.com/australia-news/rss',                   name: 'Guardian AU',      category: 'AU'          },
-  { url: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',                   name: 'RBA Speeches',     category: 'AU'          },
-  { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml',             name: 'RBA Releases',     category: 'AU'          },
-  // US Financial
   { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',            name: 'CNBC Top News',    category: 'US'          },
   { url: 'https://www.cnbc.com/id/15839135/device/rss/rss.html',             name: 'CNBC Markets',     category: 'US'          },
   { url: 'https://feeds.marketwatch.com/marketwatch/topstories',              name: 'MarketWatch',      category: 'US'          },
-  // finance.yahoo.com/news/rssindex now 404s (Oct 2026); the per-symbol
-  // headline feed still works. ^AXJO = ASX 200 headlines.
-  { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EAXJO&region=AU&lang=en-AU', name: 'Yahoo Finance AU', category: 'AU' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',        name: 'NYT Business',     category: 'US'          },
   { url: 'https://www.investing.com/rss/news.rss',                           name: 'Investing.com',    category: 'US'          },
-  // Global
-  { url: 'http://feeds.bbci.co.uk/news/business/rss.xml',                    name: 'BBC Business',     category: 'GLOBAL'      },
   { url: 'https://www.theguardian.com/business/economics/rss',               name: 'Guardian Econ',    category: 'GLOBAL'      },
   { url: 'https://www.economist.com/finance-and-economics/rss.xml',          name: 'The Economist',    category: 'GLOBAL'      },
-  // Crypto
   { url: 'https://cointelegraph.com/rss',                                    name: 'CoinTelegraph',    category: 'CRYPTO'      },
   { url: 'https://coindesk.com/arc/outboundfeeds/rss/',                      name: 'CoinDesk',         category: 'CRYPTO'      },
-  // Commodities & Energy
   { url: 'https://oilprice.com/rss/main',                                    name: 'OilPrice.com',     category: 'COMMODITIES' },
   { url: 'https://www.mining.com/feed/',                                      name: 'Mining.com',       category: 'COMMODITIES' },
-  // Asia Pacific
   { url: 'https://asia.nikkei.com/rss/feed/nar',                             name: 'Nikkei Asia',      category: 'ASIA'        },
 ]
 
@@ -1303,7 +1307,7 @@ function dedupeByHeadline(items) {
 // failing silently on every call. Replaced with feeds that respond.
 export const GEO_RSS_FEEDS = [
   { url: 'https://feeds.bbci.co.uk/news/world/rss.xml',          source: 'BBC World'     },
-  { url: 'https://www.theguardian.com/world/rss',                source: 'Guardian World' },
+  // Guardian World is off: Guardian feeds are for personal, non-commercial use.
   { url: 'https://www.abc.net.au/news/feed/51120/rss.xml',       source: 'ABC News'      },
 ]
 
@@ -1435,6 +1439,7 @@ export const fetchNews = async () => {
 // ─── OpenSky Network (via proxy → /api/opensky) ──────────────────────────────
 
 export const fetchFlightData = async () => {
+  licenceGuard('opensky')
   const { data } = await httpGet('/api/opensky/api/states/all', {
     params:  { lamin: -45, lomin: 110, lamax: -10, lomax: 155 },
     timeout: 20000,

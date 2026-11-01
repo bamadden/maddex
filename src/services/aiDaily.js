@@ -185,12 +185,10 @@ function policyRows() {
 // ── Market sentiment ────────────────────────────────────────────────────────
 // Public business feeds the server reads for the sentiment headlines — a
 // subset of the News module's sources, AU first.
+// Only feeds whose terms allow commercial display (docs/DATA_SOURCES.md);
+// Guardian, SMH, CNBC and MarketWatch were removed on 1 Nov 2026.
 export const SENTIMENT_FEEDS = [
   'https://www.abc.net.au/news/feed/51120/rss.xml',
-  'https://www.theguardian.com/au/business/rss',
-  'https://www.smh.com.au/rss/business.xml',
-  'https://www.cnbc.com/id/100003114/device/rss/rss.html',
-  'https://feeds.marketwatch.com/marketwatch/topstories',
   'http://feeds.bbci.co.uk/news/business/rss.xml',
 ]
 

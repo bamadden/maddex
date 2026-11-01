@@ -53,7 +53,7 @@ export function SeismicSection({ earthquakes, onFocus, bare = false }) {
       {!bare && (
         <div className="flex items-center justify-between px-3 py-1.5">
           <span className="text-2xs text-terminal-gold font-bold tracking-widest">SEISMIC ACTIVITY</span>
-          <span className="text-2xs text-terminal-text-dim/50">USGS · M4.5+ · 7 days</span>
+          <span className="text-2xs text-terminal-text-dim/50">Credit: U.S. Geological Survey · M4.5+ · 7 days</span>
         </div>
       )}
 

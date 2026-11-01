@@ -5,6 +5,7 @@
 // computed from today rather than hand-maintained.
 
 import { getRelativeDate, sydneyOffset } from '../utils/dateUtils'
+import { licenceGuard } from '../data/sourceLicence'
 import VERIFIED_CONSTANTS from '../data/verifiedConstants'
 
 // No 'demo' fallback: FMP rejects it on this endpoint with a 401, so without
@@ -102,6 +103,7 @@ function writeCache(events) {
 }
 
 async function fetchLiveCalendar() {
+  licenceGuard('fmp')   // display needs an FMP display agreement (data/sourceLicence)
   if (!FMP_KEY) throw new Error('No FMP key — using the verified schedule')
   const from = getRelativeDate(0)
   const to   = getRelativeDate(60)

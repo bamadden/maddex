@@ -1,3 +1,4 @@
+import { licenceGuard } from '../data/sourceLicence'
 // Country data refresh service — REST Countries, World Bank, IMF
 // All fetches non-blocking: called after app load, results stored in localStorage
 
@@ -155,6 +156,7 @@ async function fetchWorldBank() {
 async function fetchImfSeries(seriesId) {
   // Through /api/imf (vite proxy in dev, vercel.json rewrite in production):
   // the IMF sends no CORS headers, so a direct browser fetch always failed.
+  licenceGuard('imf')
   const url = `/api/imf/v1/${seriesId}`
   const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
   if (!res.ok) throw new Error(`IMF ${seriesId} HTTP ${res.status}`)

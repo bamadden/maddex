@@ -1,5 +1,6 @@
 import { liveDataService } from './liveDataService'
 import { getEconomicCalendar, pendingEvents } from './calendarService'
+import { licenceGuard } from '../data/sourceLicence'
 import { VERIFIED_CONSTANTS } from '../data/verifiedConstants'
 
 // ─── Live items for the Global intelligence ticker ─────────────────────────
@@ -46,6 +47,7 @@ async function fearGreedItem() {
 
 // Total DeFi TVL, DefiLlama, with the change on the previous daily point.
 async function tvlItem() {
+  licenceGuard('defillama')
   const r = await fetch('https://api.llama.fi/v2/historicalChainTvl')
   if (!r.ok) throw new Error(`DefiLlama ${r.status}`)
   const rows = await r.json()

@@ -1,3 +1,4 @@
+import { licenceGuard } from '../data/sourceLicence'
 // DeFi and on-chain intelligence, from live public APIs.
 //
 // THE BRIEF FOR THIS ASKED FOR MOCK DATA WITH AN "INDICATIVE" BADGE.
@@ -58,6 +59,8 @@ async function withCache(key, fetchFn) {
 }
 
 const json = async (url) => {
+  // DefiLlama is off for licence reasons (data/sourceLicence).
+  if (url.includes('llama.fi')) licenceGuard('defillama')
   const r = await fetch(url)
   if (!r.ok) throw new Error(`${url} HTTP ${r.status}`)
   return r.json()

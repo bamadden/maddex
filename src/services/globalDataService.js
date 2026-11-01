@@ -7,6 +7,7 @@
 // services/countryApiService.js (fetchRestCountries, merged into
 // useCountryData) — both are reused as-is rather than duplicated here.
 
+import { licenceGuard } from '../data/sourceLicence'
 import { httpGet } from '../utils/httpGet'
 
 const USGS_QUAKES_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson'
@@ -33,6 +34,7 @@ export async function fetchSignificantEarthquakes() {
 // ─── Open-Meteo current weather for a single lat/lon ────────────────────────
 
 export async function fetchCurrentWeather(lat, lon) {
+  licenceGuard('openmeteo')
   const { data } = await httpGet(OPEN_METEO_URL, {
     params: { latitude: lat, longitude: lon, current_weather: true, timezone: 'auto' },
     timeout: 10000,

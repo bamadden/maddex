@@ -12,6 +12,7 @@
 // codebase and inventing one would be worse than omitting it. Both need doing.
 
 import { COMPANY, CONTACT } from './company'
+import { FREE_DATA_NOTICE } from './credits'
 export { COMPANY, CONTACT }
 export const EFFECTIVE = '7 September 2026'
 
@@ -58,6 +59,8 @@ const DISCLAIMER = {
       heading: 'Third-party data',
       body: [
         `The terminal displays data from third parties. ${COMPANY} does not warrant that any of it is accurate, complete, current or fit for any purpose, and is not responsible for errors or omissions in it or for delays or interruptions in its delivery.`,
+        `Sources include: crypto prices powered by CoinGecko; the Crypto Fear & Greed Index from alternative.me; FX reference rates from the European Central Bank (via Frankfurter) and rates by Exchange Rate API; statistics from the Reserve Bank of Australia and the Australian Bureau of Statistics (CC BY 4.0); earthquake data credit U.S. Geological Survey; map data © OpenStreetMap contributors © CARTO; headlines from ABC News, BBC News, Yahoo Finance and the RBA, each linked to its publisher. Each surface names the source of what it shows.`,
+        `${FREE_DATA_NOTICE} Third-party providers do not endorse Maddex.`,
       ],
     },
   ],

@@ -1,4 +1,5 @@
 import { PAL } from '../styles/palette.js'
+import { licenceGuard } from '../data/sourceLicence'
 // ─── IMF World Economic Outlook, by country ─────────────────────────────────
 //
 // Real GDP growth, average CPI inflation and unemployment for every economy
@@ -61,6 +62,7 @@ export function economyStatus(row, year) {
 }
 
 async function fetchJson(path) {
+  licenceGuard('imf')
   const res = await fetch(`/api/imf/v1/${path}`, { signal: AbortSignal.timeout(20_000) })
   if (!res.ok) throw new Error(`IMF ${path} HTTP ${res.status}`)
   return res.json()

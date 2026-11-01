@@ -1,4 +1,5 @@
 import { VERIFIED_CONSTANTS, markConfirmed } from '../data/verifiedConstants.js'
+import { licenceGuard } from '../data/sourceLicence.js'
 import { publishOfficialCheck } from './officialCheckStore.js'
 
 // ─── Official statistics, straight from the agencies ────────────────────────
@@ -141,6 +142,10 @@ export async function fetchOfficialStats(opts = {}) {
 // allows about 25 keyless queries a day per IP — in production every reader
 // shares Vercel's IP, so the startup check would exhaust it before lunch.
 export async function fetchUsOfficial({ fredBase = '/api/fred', fetchImpl = fetch } = {}) {
+  // FRED's terms bar commercial use and caching without consent: never from a
+  // reader's browser. The maintainers' check script (node) still reconciles
+  // our hand-entered US figures against it, which is internal use.
+  if (typeof window !== 'undefined') licenceGuard('fred')
   const start = `${new Date().getFullYear() - 2}-01-01`
   const get = (id) => fredSeries(id, start, fetchImpl, `${fredBase}/graph/fredgraph.csv`)
   const settled = await Promise.allSettled(['CPIAUCNS', 'CPILFENS', 'UNRATE', 'A191RL1Q225SBEA', 'DFEDTARU'].map(get))
