@@ -15,6 +15,7 @@
 // daily cap stops a cold-cache stampede from running away.
 
 import { guardJson, GUARD_VERSION } from '../src/services/adviceGuard.js'
+import { buildRecord, saveRecord, serviceDb } from './_aiRecords.js'
 import { DAILY_KINDS, SENTIMENT_FEEDS, sydneyDay, secondsToSydneyMidnight } from '../src/services/aiDaily.js'
 import { parseFeed } from './rss.js'
 
@@ -65,6 +66,8 @@ async function generate(kind, day) {
   // anything is shared with readers.
   const flags = []
   const data = guardJson(spec.parse(text), flags)
+  // The record of this shared reply (no user; prompt not kept).
+  await saveRecord(serviceDb(), buildRecord({ model: MODEL, purpose: `daily:${kind}`, template: `ai-daily:${kind}`, dataDate: day, system, messages: [{ role: 'user', content: user }], outputText: text }))
   if (flags.length) console.warn('[ai-daily] advice guard rewrote', kind, flags.map((f) => f.rule).join(','))
   console.log('[ai-daily]', kind, day, msg.usage)
   return { kind, day, generatedAt: new Date().toISOString(), model: MODEL, guard: { version: GUARD_VERSION, flags: flags.length }, data }

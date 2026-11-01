@@ -224,6 +224,8 @@ export default defineConfig(({ mode }) => {
               // Anthropic's business.
               proxyReq.removeHeader('authorization')
               proxyReq.removeHeader('x-maddex-purpose')
+              proxyReq.removeHeader('x-maddex-template')
+              proxyReq.removeHeader('x-maddex-data-date')
               proxyReq.setHeader('x-api-key', env.ANTHROPIC_API_KEY || '')
               proxyReq.setHeader('anthropic-version', '2023-06-01')
               // Vite's dev proxy forwards the browser's original Origin

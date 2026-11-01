@@ -19,6 +19,7 @@
 // breakpoint — anything that changes byte-for-byte inside the cached prefix
 // invalidates the entry on every call.
 import { guard, recordTokens } from './_aiGuard.js'
+import { buildRecord, saveRecord } from './_aiRecords.js'
 
 function buildSystem(system) {
   if (!system) return undefined
@@ -93,6 +94,13 @@ export default async function handler(req, res) {
   // Sign-in, model allowlist, token cap and daily limits — see _aiGuard.js.
   const g = await guard(req, body)
   if (!g.ok) return res.status(g.status).json(g.body)
+  // The record of this reply (api/_aiRecords): template and data date from
+  // the client's headers; the prompt itself is not kept.
+  const recordOf = (outputText) => buildRecord({
+    userId: g.user?.id ?? null, model: g.model, purpose: g.purpose,
+    template: req.headers?.['x-maddex-template'], dataDate: req.headers?.['x-maddex-data-date'],
+    system, messages, outputText,
+  })
 
   try {
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -121,6 +129,7 @@ export default async function handler(req, res) {
       const data = await anthropicRes.json()
       logCacheStats(data.usage)
       await recordTokens(g, data.usage)
+      await saveRecord(g.db, recordOf((data.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join('')))
       return res.status(200).json(data)
     }
 
@@ -135,6 +144,7 @@ export default async function handler(req, res) {
     const decoder = new TextDecoder()
     const usage   = { input_tokens: 0, output_tokens: 0 }
     let pending   = ''
+    let replyText = ''
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -144,7 +154,7 @@ export default async function handler(req, res) {
       pending = lines.pop()
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue
-        if (!line.includes('message_start') && !line.includes('message_delta')) continue
+        if (!line.includes('message_start') && !line.includes('message_delta') && !line.includes('text_delta')) continue
         try {
           const evt = JSON.parse(line.slice(6))
           if (evt.type === 'message_start') {
@@ -152,12 +162,14 @@ export default async function handler(req, res) {
             usage.input_tokens = evt.message?.usage?.input_tokens ?? 0
           }
           if (evt.type === 'message_delta' && evt.usage) usage.output_tokens = evt.usage.output_tokens ?? 0
+          if (evt.type === 'content_block_delta' && evt.delta?.text) replyText += evt.delta.text
         } catch { /* stats are diagnostic only */ }
       }
       res.write(value)
     }
     res.end()
     await recordTokens(g, usage)
+    await saveRecord(g.db, recordOf(replyText))
   } catch (err) {
     if (!res.headersSent) return res.status(500).json({ error: err.message })
     res.end()

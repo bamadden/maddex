@@ -1653,6 +1653,11 @@ export const askClaude = async (messages, onToken, options = {}) => {
   if (guarded) messages = withBoundary(messages, guardLib)
   const sg = guarded ? guardLib.streamGuard() : null
   let shown = ''
+  // For the server's record of the reply (api/_aiRecords): which prompt
+  // template, and the date of the newest verified figure it was given.
+  const template = options.template ?? (options.systemPrompt ? (options.purpose ?? 'feature') : 'maddex-system')
+  const dataDate = options.dataDate ?? await import('../data/verifiedConstants').then(({ VERIFIED_CONSTANTS }) =>
+    Object.values(VERIFIED_CONSTANTS).map((g) => g?.lastVerified).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? '')).sort().at(-1) ?? '').catch(() => '')
   const token = await sessionToken()
   const response = await fetch('/api/claude', {
     method: 'POST',
@@ -1661,6 +1666,8 @@ export const askClaude = async (messages, onToken, options = {}) => {
       // 'chat' counts against the plan's MaddenAI questions; everything else
       // against the daily ceiling only.
       'x-maddex-purpose': options.purpose ?? 'feature',
+      'x-maddex-template': String(template).slice(0, 60),
+      'x-maddex-data-date': dataDate,
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
@@ -1763,7 +1770,7 @@ export async function askClaudeJSON(prompt, options = {}) {
   const { text } = await askClaude(
     [{ role: 'user', content: prompt }],
     null,
-    { guard: false, maxTokens: options.maxTokens ?? 1500, systemPrompt: options.systemPrompt ?? 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. Always respond with ONLY valid JSON — no markdown, no commentary outside the JSON object.' },
+    { guard: false, template: options.template ?? 'json', maxTokens: options.maxTokens ?? 1500, systemPrompt: options.systemPrompt ?? 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. Always respond with ONLY valid JSON — no markdown, no commentary outside the JSON object.' },
   )
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
   let parsed
