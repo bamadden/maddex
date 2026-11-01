@@ -46,7 +46,7 @@ const HAS_LIVE_DATA_KEY = !!(
 )
 export const USING_MOCK_DATA = !HAS_LIVE_DATA_KEY
 // Named on every equity and index badge (utils/dataClass).
-export const EQUITY_SOURCE = USING_MOCK_DATA ? 'demo data'
+export const EQUITY_SOURCE = USING_MOCK_DATA ? 'simulated'
   : import.meta.env.VITE_POLYGON_KEY ? 'Polygon' : import.meta.env.VITE_TD_API_KEY ? 'Twelve Data' : 'FMP'
 
 // Range→days mapping for the historical endpoint (FMP takes a day count, not

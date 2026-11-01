@@ -84,6 +84,11 @@ export default {
         // 11 / 12 / 13 / 14 / 16 / 20 / 28, plus 36 and 48 for display).
         // Was 10px; every text-2xs call site moves with it.
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+        // Tailwind's defaults moved onto the same scale: 18 → 16, 24 → 20,
+        // 30 → 28 (xs 12, sm 14, base 16, xl 20 and 4xl 36 already sit on it).
+        lg: ['1rem', { lineHeight: '1.5rem' }],
+        '2xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '3xl': ['1.75rem', { lineHeight: '2.25rem' }],
       },
       animation: {
         'ticker-scroll': 'ticker 40s linear infinite',

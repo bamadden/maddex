@@ -52,7 +52,7 @@ export function StaleBadge({ cachedAt, source, className = '' }) {
 }
 
 // Equity prices without a market-data provider: DEMO, never "LIVE".
-export function DemoBadge({ source = 'demo data', className = '' }) {
+export function DemoBadge({ source = 'simulated', className = '' }) {
   return <DataBadge cls="DEMO" source={source} className={className} />
 }
 
