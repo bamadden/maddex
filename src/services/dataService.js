@@ -162,13 +162,86 @@ async function fetchBinanceMarkets() {
   }).filter(Boolean)
 }
 
-export async function fetchCryptoMarketsUnified(currency = 'aud') {
-  const cacheKey = `crypto:${currency}`
-  return withFallback({
-    cacheKey,
-    primary: () => fetchCryptoMarkets(currency).then(r => r.data),
-    fallback: fetchBinanceMarkets,
+// ONE SNAPSHOT FOR EVERY VIEW. The ticker tape, Crypto, Watchlist, the
+// command bar and the sentiment banner all read crypto prices through here,
+// and within CRYPTO_SNAPSHOT_MS they all get the same snapshot — so one asset
+// never shows two prices at once.
+//
+// THE CURRENCY TRAVELS WITH THE PRICES. CoinGecko quotes in the currency
+// asked for. The Binance fallback quotes in US$: it is converted at the
+// Frankfurter AUD/USD reference rate, and the rate, its date and when it was
+// fetched ride along in `meta.fx`; if no rate is available the prices stay in
+// US$ and `meta.currency` says so. They are never relabelled A$ unconverted.
+//
+// → { data: rows[], stale, source, cachedAt?, meta: { currency, provider, fx, at } }
+//   rows carry `currency` too, so transformCryptoMarkets labels each one.
+const CRYPTO_SNAPSHOT_MS = 60_000
+const cryptoSnapshots = new Map()
+
+export function fetchCryptoMarketsUnified(currency = 'aud', deps) {
+  const ccy = String(currency).toLowerCase()
+  const hit = cryptoSnapshots.get(ccy)
+  if (hit && Date.now() - hit.at < CRYPTO_SNAPSHOT_MS) return hit.promise
+  const promise = loadCryptoMarkets(ccy, deps).catch((err) => { cryptoSnapshots.delete(ccy); throw err })
+  cryptoSnapshots.set(ccy, { at: Date.now(), promise })
+  return promise
+}
+
+// Test hook: forget the shared snapshot.
+export const _resetCryptoSnapshots = () => cryptoSnapshots.clear()
+
+// US$ → `ccy` from the AUD-based Frankfurter table (rates.USD = US$ per A$1).
+// → { usdTo: number, rate, pair, date, fetchedAt, source, stale } | null
+export async function usdConversion(ccy, { fxFetch = fetchFxRatesUnified } = {}) {
+  const target = ccy.toUpperCase()
+  if (target === 'USD') return null
+  const fx = await fxFetch('AUD').catch(() => null)
+  const rates = fx?.data
+  if (!(rates?.USD > 0)) return null
+  const perAud = target === 'AUD' ? 1 : rates[target]
+  if (!(perAud > 0)) return null
+  return {
+    usdTo: perAud / rates.USD,
+    rate: rates.USD,
+    pair: 'AUD/USD',
+    date: rates.asOf ?? null,
+    fetchedAt: fx.cachedAt ?? Date.now(),
+    source: 'Frankfurter (ECB reference rate)',
+    stale: fx.stale === true,
+  }
+}
+
+export function convertUsdRows(rows, ccy, conv) {
+  const k = conv.usdTo
+  const x = (v) => (v == null ? null : v * k)
+  return rows.map((r) => ({ ...r, currency: ccy.toUpperCase(),
+    current_price: x(r.current_price), high_24h: x(r.high_24h), low_24h: x(r.low_24h), total_volume: x(r.total_volume) }))
+}
+
+// Binance fallback in the asked-for currency, or honestly in US$.
+export async function binanceIn(ccy, { binance = fetchBinanceMarkets, fxFetch } = {}) {
+  const rows = await binance()
+  if (ccy === 'usd') return { rows, currency: 'USD', provider: 'Binance', fx: null, at: Date.now() }
+  const conv = await usdConversion(ccy, { fxFetch })
+  if (!conv) return { rows, currency: 'USD', provider: 'Binance', fx: null, at: Date.now() }
+  const { usdTo: _usdTo, ...fx } = conv
+  return { rows: convertUsdRows(rows, ccy, conv), currency: ccy.toUpperCase(), provider: 'Binance', fx, at: Date.now() }
+}
+
+export async function loadCryptoMarkets(ccy, { coingecko = fetchCryptoMarkets, binance, fxFetch } = {}) {
+  const result = await withFallback({
+    // v2: the snapshot shape with its currency. The old key could hold US$
+    // rows filed under AUD.
+    cacheKey: `crypto2:${ccy}`,
+    primary: async () => {
+      const { data } = await coingecko(ccy)
+      if (!Array.isArray(data) || !data.length) throw new Error('CoinGecko returned no coins')
+      return { rows: data.map((r) => ({ ...r, currency: ccy.toUpperCase() })), currency: ccy.toUpperCase(), provider: 'CoinGecko', fx: null, at: Date.now() }
+    },
+    fallback: () => binanceIn(ccy, { binance, fxFetch }),
   })
+  const { rows, ...meta } = result.data
+  return { data: rows, stale: result.stale, source: result.source, cachedAt: result.cachedAt, meta }
 }
 
 // ─── FX rates — Frankfurter primary (already has its own proxy + direct

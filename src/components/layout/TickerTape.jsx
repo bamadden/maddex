@@ -9,6 +9,7 @@ import {
   ASX_STOCKS, US_STOCKS, toAUD,
 } from '../../services/api'
 import { fetchEquityQuotes, fetchIndexQuotesUnified, fetchFxRatesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
+import { formatCryptoPrice, describeCryptoSource } from '../../utils/cryptoSource'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
@@ -148,7 +149,7 @@ export default function TickerTape() {
     const losers  = [...sorted].reverse().slice(0, 3)
     const moverItems = [...gainers, ...losers].map(c => ({
       sym:       c.symbol,
-      price:     fmtAUD(c.price),
+      price:     formatCryptoPrice(c.price, c.currency),
       pct:       c.pct24h,
       marketCap: c.marketCap ?? null,
       onClick: () => openModal?.({ symbol: c.symbol, name: c.name, price: c.price, pct: c.pct24h, type: 'crypto' }),
@@ -165,13 +166,16 @@ export default function TickerTape() {
       if (!coin) return null
       return {
         sym,
-        price:     fmtAUD(coin.price),
+        price:     formatCryptoPrice(coin.price, coin.currency),
         pct:       coin.pct24h,
         marketCap: coin.marketCap ?? null,
         onClick: () => openModal?.({ symbol: sym, name: coin.name, price: coin.price, pct: coin.pct24h, type: 'crypto' }),
       }
     }).filter(Boolean)
-    if (cryptoItems.length) sectionBlocks.push({ label: '◆ CRYPTO', items: cryptoItems })
+    // The fallback feed says what it is: Binance US$ prices, the rate they
+    // were converted at and when — or that they are still in US$.
+    const src = rawMarkets.meta?.provider !== 'CoinGecko' || rawMarkets.stale ? describeCryptoSource(rawMarkets, 'AUD') : null
+    if (cryptoItems.length) sectionBlocks.push({ label: src ? `◆ CRYPTO · ${src.text}` : '◆ CRYPTO', items: cryptoItems })
   }
 
   // 📊 INDICES — all 10 benchmark indices, shown first so the tape leads with

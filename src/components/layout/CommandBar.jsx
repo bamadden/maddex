@@ -4,7 +4,8 @@ import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
-import { fetchYFQuote, fetchYahooBatch, fetchCryptoMarkets, transformCryptoMarkets, USING_MOCK_DATA } from '../../services/api'
+import { fetchYFQuote, fetchYahooBatch, transformCryptoMarkets, USING_MOCK_DATA } from '../../services/api'
+import { fetchCryptoMarketsUnified } from '../../services/dataService'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { fmt } from '../../utils/format'
 import Tooltip from '../ui/Tooltip'
@@ -1082,10 +1083,12 @@ export default function CommandBar() {
       }
       if (cryptoSyms.length) {
         try {
-          const raw = await fetchCryptoMarkets('aud')
-          const coins = transformCryptoMarkets(raw.data, raw.currency)
+          // The shared snapshot, so the dropdown matches the tape and Crypto.
+          // Only an A$ price is shown here (the dropdown labels A$).
+          const raw = await fetchCryptoMarketsUnified('aud')
+          const coins = transformCryptoMarkets(raw.data, 'aud')
           for (const c of coins) {
-            if (cryptoSyms.includes(c.symbol)) next[c.symbol] = { price: c.price, pct: c.pct24h }
+            if (cryptoSyms.includes(c.symbol) && c.currency === 'AUD') next[c.symbol] = { price: c.price, pct: c.pct24h }
           }
         } catch {
           // Live price is a nice-to-have in the dropdown — fall back to no price
@@ -1266,10 +1269,11 @@ export default function CommandBar() {
     const COIN_IDS = { BTC:'bitcoin', ETH:'ethereum', SOL:'solana', BNB:'binancecoin', XRP:'ripple', ADA:'cardano', DOGE:'dogecoin', AVAX:'avalanche-2', MATIC:'matic-network', LINK:'chainlink' }
     if (COIN_IDS[sym]) {
       try {
-        const raw2 = await fetchCryptoMarkets('aud')
-        const { data: coinList, currency: ccy } = raw2
-        const coins = transformCryptoMarkets(coinList, ccy)
-        const coin  = coins.find((c) => c.symbol === sym)
+        const raw2 = await fetchCryptoMarketsUnified('aud')
+        const coins = transformCryptoMarkets(raw2.data, 'aud')
+        // The detail view expects an A$ price; an unconverted US$ fallback
+        // price is not passed off as one.
+        const coin  = coins.find((c) => c.symbol === sym && c.currency === 'AUD')
         if (coin) {
           openModal({
             symbol: sym,

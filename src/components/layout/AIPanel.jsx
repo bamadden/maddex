@@ -974,8 +974,10 @@ export default function AIPanel({ wide = false, onListening }) {
 
     const audUsd   = fxRates?.USD
     const asxPrice = indicesData?.['^AXJO']?.last
-    const btcData  = cryptoData?.data?.find(c => c.id === 'bitcoin')
-    const ethData  = cryptoData?.data?.find(c => c.id === 'ethereum')
+    // Only quoted as A$ when the shared snapshot is in A$.
+    const audCrypto = (cryptoData?.meta?.currency ?? 'AUD') === 'AUD'
+    const btcData  = audCrypto ? cryptoData?.data?.find(c => c.id === 'bitcoin') : null
+    const ethData  = audCrypto ? cryptoData?.data?.find(c => c.id === 'ethereum') : null
 
     const parts = []
     if (item.dataKeys.includes('asx') && asxPrice)

@@ -10,6 +10,7 @@
 // the whole point of the exercise, since a plausible stale number is worse
 // than a visibly stale one.
 import { REST_COUNTRIES_AVAILABLE } from './countryApiService'
+import { fetchCryptoMarketsUnified } from './dataService'
 
 const CACHE_PREFIX = 'maddex_live_'
 
@@ -106,14 +107,23 @@ export const liveDataService = {
     }, 60 * 60 * 1000)
   },
 
-  // ── Crypto — CoinGecko public tier ──────────────────────────────────────
+  // ── Crypto — the shared snapshot ────────────────────────────────────────
+  // Read from dataService's one crypto snapshot (the ticker tape, Crypto and
+  // Watchlist read the same one), reshaped to the { id: { aud, aud_24h_change,
+  // aud_market_cap } } form these callers use. This used to be a second
+  // CoinGecko request on its own cache, so the same coin could show two
+  // prices. When the snapshot is an unconverted US$ fallback there is no `aud`
+  // field: callers show a dash rather than a US$ figure labelled A$.
   async getCryptoPrices() {
-    return withCache('crypto_prices', async () => json(
-      'https://api.coingecko.com/api/v3/simple/price'
-      + '?ids=bitcoin,ethereum,ripple,solana,cardano,polkadot,chainlink,avalanche-2,litecoin,uniswap'
-      + '&vs_currencies=aud,usd&include_24hr_change=true&include_market_cap=true',
-      'CoinGecko',
-    ), 5 * 60 * 1000)
+    const r = await fetchCryptoMarketsUnified('aud')
+    const inAud = r.meta?.currency === 'AUD'
+    const data = {}
+    for (const c of r.data ?? []) {
+      data[c.id] = inAud
+        ? { aud: c.current_price, aud_24h_change: c.price_change_percentage_24h ?? null, aud_market_cap: c.market_cap ?? null }
+        : { usd: c.current_price, usd_24h_change: c.price_change_percentage_24h ?? null }
+    }
+    return { data, source: r.stale ? 'stale' : 'live', meta: r.meta }
   },
 
   // ── Crypto Fear & Greed ─────────────────────────────────────────────────

@@ -43,7 +43,7 @@ export default function PriceChange({ pct, value, showArrow = true, className = 
       className={`inline-flex items-center gap-1 font-mono font-semibold ${size} ${color} ${className}`}
       style={pillStyle}
     >
-      {showArrow && <span aria-hidden="true">{arrow}</span>}
+      {showArrow && n != null && <span aria-hidden="true">{arrow}</span>}
       <span>{parts.length ? parts.join(' ') : '—'}</span>
     </span>
   )

@@ -7,6 +7,7 @@ import {
   COIN_IDS,
 } from '../../services/api'
 import { fetchCryptoMarketsUnified } from '../../services/dataService'
+import { pricePrefix, describeCryptoSource } from '../../utils/cryptoSource'
 import { HalvingCard, MyCryptoPanel } from './CryptoExtras'
 import { calculateCryptoMomentumIndex, scoreToColor } from '../../services/maddenAiScoring'
 import { useStore } from '../../store/useStore'
@@ -417,7 +418,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
   const compact = (n) => n == null ? '—' : n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n.toLocaleString('en-AU', { maximumFractionDigits: 0 })
 
   const statRows = [
-    ['MCap',        `${currPrefix}${coin.mktCap}`],
+    ['MCap',        coin.marketCap != null ? `${currPrefix}${coin.mktCap}` : '—'],
     ['Vol 24H',     `${currPrefix}${coin.vol24h}`],
     ['ATL',         money(coin.atl)],
     ['Above ATL',   coin.atlPct != null ? `+${Math.round(coin.atlPct).toLocaleString('en-AU')}%` : '—'],
@@ -486,7 +487,9 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
 
       <div className="px-3 py-2.5 border-b border-terminal-border/50">
         <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide mb-1">Supply</div>
-        {minted != null ? (
+        {coin.circulatingSupply == null ? (
+          <div className="text-2xs text-terminal-text-dim">Supply not reported by the fallback price source.</div>
+        ) : minted != null ? (
           <>
             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(100,130,160,0.2)' }}>
               <div className="h-full bg-terminal-gold" style={{ width: `${minted}%` }} />
@@ -699,7 +702,7 @@ export default function CryptoModule() {
   const [showMine, setShowMine] = useState(false)
   const titleBarRef = useRef(null)
   const { openModal, currency } = useStore()
-  const { usdToAud, audToUsd } = useAudRates()
+  const { usdToAud, audToUsd, rates: fxRates } = useAudRates()
 
   useEffect(() => {
     if (titleBarRef.current) {
@@ -709,7 +712,6 @@ export default function CryptoModule() {
     }
   }, [])
   const vsCurrency = currency.toLowerCase()
-  const currPrefix = currency === 'AUD' ? 'A$' : 'US$'
 
   const { data: rawMarketsResult, isError: marketsError, isFetching: marketsFetching, refetch: refetchMarkets } = useQuery({
     queryKey: ['cryptoMarkets', vsCurrency],
@@ -718,6 +720,13 @@ export default function CryptoModule() {
     retry: 1,
   })
   const marketsDelayed = rawMarketsResult?.stale === true
+  // Prices are labelled with the currency they are in, which is the one asked
+  // for unless the US$ fallback could not be converted (dataService).
+  const priceCcy = rawMarketsResult?.meta?.currency ?? currency
+  const currPrefix = pricePrefix(priceCcy)
+  const marketsSource = describeCryptoSource(rawMarketsResult, currency)
+  // The other-currency line needs a real rate; without one it is left off.
+  const haveRate = fxRates?.USD > 0
 
   const { data: rawFearGreed } = useQuery({
     queryKey: ['fearGreed'],
@@ -793,16 +802,20 @@ export default function CryptoModule() {
     return pearsonCorrelation(rawHistory.prices.map(p => p[1]), rawBtcHistory.prices.map(p => p[1]))
   }, [selectedCoin, rawHistory, rawBtcHistory])
 
-  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+  // When the prices were fetched, not when this screen last rendered.
+  const updatedTime = rawMarketsResult?.meta?.at
+    ? new Date(rawMarketsResult.meta.at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })
+    : null
 
   // modalAsset.price is always AUD (DetailModal's primary display expects
   // AUD universally, same convention equities use); nativePrice/currency
   // carry the USD figure for the dual-display sub-line regardless of which
   // unit the table itself is currently showing.
   const handleOpenModal = (coin) => {
-    const isAudTable = currency === 'AUD'
-    const audPrice = isAudTable ? coin.price : usdToAud(coin.price)
-    const usdPrice = isAudTable ? audToUsd(coin.price) : coin.price
+    const isAudTable = priceCcy === 'AUD'
+    // No real AUD/USD rate → no converted figure (never the built-in default).
+    const audPrice = isAudTable ? coin.price : haveRate ? usdToAud(coin.price) : null
+    const usdPrice = isAudTable ? (haveRate ? audToUsd(coin.price) : null) : coin.price
     openModal?.({
       symbol: coin.symbol, name: coin.name, price: audPrice,
       pct: coin.pct24h, change: null, type: 'crypto', coinId: COIN_IDS[coin.symbol],
@@ -875,13 +888,17 @@ export default function CryptoModule() {
         <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: '#0B1628', position: 'relative' }}>
           <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
             style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0B1628', borderBottom: '1px solid #0F1E35', margin: 0 }}>
-            <span>TOP 20 BY MKT CAP ({currency})</span>
+            {/* The Binance fallback is a fixed list of 12 majors with no market caps. */}
+            <span>{rawMarketsResult?.meta?.provider === 'Binance' ? `${rawMarkets?.length ?? ''} MAJOR COINS` : 'TOP 20 BY MKT CAP'} ({priceCcy})</span>
             {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} />}
             {rawMarkets && !marketsDelayed
-              ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {updatedTime}</span>
+              ? <span className="text-terminal-green text-2xs font-normal normal-case">● LIVE · {rawMarketsResult?.meta?.provider} · {updatedTime}</span>
               : !rawMarkets && !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
             }
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
+            {rawMarkets && (marketsSource?.converted || marketsSource?.mismatch) && (
+              <span className="basis-full text-2xs font-normal normal-case" data-crypto-source style={{ color: marketsSource.mismatch ? '#C9A84C' : 'var(--color-text-dim)' }}>{marketsSource.text}</span>
+            )}
             <div className="ml-auto flex items-center gap-1.5">
               <button
                 onClick={() => { setShowMine((v) => !v); setShowDefi(false); setView3D(false) }}
@@ -935,8 +952,8 @@ export default function CryptoModule() {
             <SortableCoinTable
               markets={markets}
               currPrefix={currPrefix}
-              usdToAud={usdToAud}
-              audToUsd={audToUsd}
+              usdToAud={haveRate ? usdToAud : null}
+              audToUsd={haveRate ? audToUsd : null}
               titleBarHeight={titleBarHeight}
               selectedCoin={selectedCoin}
               onRowClick={(coin) => { setSelectedCoin(coin.symbol); setMobilePanel('detail') }}
@@ -961,8 +978,8 @@ export default function CryptoModule() {
             <CoinDetailPanel
               coin={selectedCoinObj}
               currPrefix={currPrefix}
-              usdToAud={usdToAud}
-              audToUsd={audToUsd}
+              usdToAud={haveRate ? usdToAud : null}
+              audToUsd={haveRate ? audToUsd : null}
               chartData={chartData}
               chartLoading={chartLoading}
               historyError={historyError}
@@ -1147,7 +1164,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
               )}
               {show('marketCap') && (
                 <td style={{ ...CELL, textAlign: 'right', color: 'var(--color-text-dim)' }} className="hidden md:table-cell">
-                  {currPrefix}{coin.mktCap}
+                  {coin.marketCap != null ? `${currPrefix}${coin.mktCap}` : '—'}
                 </td>
               )}
               {show('volume') && (
@@ -1165,7 +1182,9 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
                       </div>
                       <span style={{ fontSize: 9, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
                     </div>
-                  ) : <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>∞</span>}
+                  ) : coin.circulatingSupply == null
+                    ? <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>—</span>
+                    : <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }} title="No maximum supply">∞</span>}
                 </td>
               )}
               {show('sparkline') && (

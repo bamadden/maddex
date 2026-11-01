@@ -7,9 +7,10 @@ import {
   loadSort, saveSort, loadColumns, saveColumns, loadOrder, saveOrder, applyOrder, isKnownTicker,
 } from '../../services/watchlistPrefs'
 import { useQuery } from '@tanstack/react-query'
-import { fetchYahooQuote, USING_MOCK_DATA, fetchCryptoMarkets, transformCryptoMarkets, fetchNews } from '../../services/api'
+import { fetchYahooQuote, USING_MOCK_DATA, transformCryptoMarkets, fetchNews } from '../../services/api'
+import { formatCryptoPrice } from '../../utils/cryptoSource'
 import { annotateArticles } from '../../services/newsIntelligence'
-import { fetchEquityQuotes } from '../../services/dataService'
+import { fetchEquityQuotes, fetchCryptoMarketsUnified } from '../../services/dataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
 import PriceChange from '../../components/ui/PriceChange'
@@ -258,15 +259,18 @@ function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose, colSp
 // the columns that are on. They stay components rather than becoming four
 // separate cell renderers because LivePriceCells subscribes to a live quote —
 // a hook cannot be called once per column inside a loop.
-function CryptoPriceCells({ price, pct, pct7d, audToUsd, show }) {
-  // Crypto quotes arrive in AUD (fetchCryptoMarkets('aud')), so the USD column
-  // is a conversion through the rate the app already holds — not a second fetch.
-  const usd = price != null ? audToUsd(price) : null
+function CryptoPriceCells({ price, currency = 'AUD', pct, pct7d, audToUsd, show }) {
+  // Crypto quotes come from the shared snapshot (fetchCryptoMarketsUnified),
+  // normally in AUD; the second column is US$ through the rate the app holds.
+  // If the fallback could not be converted, the price is shown as US$ and the
+  // second column is left empty rather than converting it twice.
+  const isAud = currency === 'AUD'
+  const usd = price != null && isAud && audToUsd ? audToUsd(price) : null
   return (
     <>
       {show('price') && (
         <td className="px-2 py-1.5 text-2xs text-right font-semibold text-terminal-text-bright">
-          {price != null ? fmt.aud(price) : '—'}
+          {formatCryptoPrice(price, currency)}
         </td>
       )}
       {show('change') && (
@@ -610,14 +614,15 @@ export default function WatchlistModule() {
   const isDelayed   = batchResult?.stale === true
 
   const { data: cryptoResult, isFetching: isFetchingCrypto, refetch: refetchCrypto } = useQuery({
-    queryKey:  ['watchlistCrypto', ...cryptoSymbols],
-    queryFn:   () => fetchCryptoMarkets('aud'),
+    // The same snapshot as the ticker tape and Crypto (one price per asset).
+    queryKey:  ['cryptoMarkets', 'aud'],
+    queryFn:   () => fetchCryptoMarketsUnified('aud'),
     enabled:   cryptoSymbols.length > 0,
     staleTime: 60_000,
     retry: 1,
   })
   const cryptoQuotes = cryptoResult
-    ? Object.fromEntries(transformCryptoMarkets(cryptoResult.data, cryptoResult.currency).map((c) => [c.symbol, c]))
+    ? Object.fromEntries(transformCryptoMarkets(cryptoResult.data, 'aud').map((c) => [c.symbol, c]))
     : {}
 
   // Same cached feed the News module reads. A ticker counts as "in the news"
@@ -662,7 +667,7 @@ export default function WatchlistModule() {
         isOpen:      true,
         isLive:      true,
         nativePrice: null,
-        currency:    'AUD',
+        currency:    c.currency,   // AUD unless the US$ fallback could not be converted
         volRatio:    null,
         offHigh:     null,
       }
@@ -1617,7 +1622,7 @@ export default function WatchlistModule() {
                         return (
                           <Fragment key={c.key}>
                             {row.type === 'crypto'
-                              ? <CryptoPriceCells price={row.price} pct={row.pct} pct7d={row.pct7d} audToUsd={audToUsd} show={isOn} />
+                              ? <CryptoPriceCells price={row.price} currency={row.currency} pct={row.pct} pct7d={row.pct7d} audToUsd={audToUsd} show={isOn} />
                               : <LivePriceCells symbol={row.symbol} price={row.price} change={row.change} pct={row.pct} week52Low={row.week52Low} week52High={row.week52High} target={targetStatus(row.symbol, row.price)} show={isOn} />}
                           </Fragment>
                         )

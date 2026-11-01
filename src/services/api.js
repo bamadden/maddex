@@ -883,13 +883,16 @@ export const transformCryptoMarkets = (items, currency = 'aud') =>
     name:      c.name,
     price:     c.current_price,
     pct24h:    c.price_change_percentage_24h ?? 0,
-    pct7d:     c.price_change_percentage_7d_in_currency ?? 0,
+    // Missing is missing (the Binance fallback has no 7-day change), not 0%.
+    pct7d:     c.price_change_percentage_7d_in_currency ?? null,
     pct30d:    c.price_change_percentage_30d_in_currency ?? null,
     marketCap: c.market_cap ?? null,
     mktCap:    formatLargeNum(c.market_cap ?? 0),
     volume:    c.total_volume ?? null,
     vol24h:    formatLargeNum(c.total_volume ?? 0),
-    currency:  currency.toUpperCase(),
+    // The row's own currency wins: a fallback row that could not be
+    // converted stays in US$ even when AUD was asked for.
+    currency:  (c.currency ?? currency).toUpperCase(),
     ath:       c.ath ?? null,
     athPct:    c.ath_change_percentage ?? null,
     atl:       c.atl ?? null,
@@ -953,6 +956,10 @@ async function frankfurterAttempt(url, label) {
   }
 }
 
+// The rates table, with the reference date Frankfurter published it for as
+// `asOf` (non-enumerable, so code that walks the currencies never sees it).
+const withRateDate = (data) => Object.defineProperty({ ...data.rates }, 'asOf', { value: data.date ?? null, enumerable: false })
+
 export const fetchFxRates = async (base = 'AUD') => {
   const proxyUrl  = `/api/frankfurter/latest?from=${base}`
   const directUrl = `${FRANKFURTER_DIRECT}/latest?from=${base}`
@@ -963,7 +970,7 @@ export const fetchFxRates = async (base = 'AUD') => {
       const data = await frankfurterAttempt(proxyUrl, `proxy ${i}/${FRANKFURTER_ATTEMPTS}`)
       if (!data?.rates) throw new Error('No rates in response')
       console.log('[MADDEN API] Frankfurter (proxy) /latest?from=' + base + ':', Object.keys(data.rates).length, 'currencies')
-      return data.rates
+      return withRateDate(data)
     } catch (e) {
       lastErr = e
       if (i < FRANKFURTER_ATTEMPTS) await sleep(FRANKFURTER_RETRY_MS)
@@ -975,7 +982,7 @@ export const fetchFxRates = async (base = 'AUD') => {
     const data = await frankfurterAttempt(directUrl, 'direct fallback')
     if (!data?.rates) throw new Error('No rates in response')
     console.log('[MADDEN API] Frankfurter (direct) /latest?from=' + base + ':', Object.keys(data.rates).length, 'currencies')
-    return data.rates
+    return withRateDate(data)
   } catch (e) {
     console.error('[MADDEN API] Frankfurter unavailable after', FRANKFURTER_ATTEMPTS, 'proxy attempts + direct fallback')
     throw lastErr ?? e
