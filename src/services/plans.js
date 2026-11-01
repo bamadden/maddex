@@ -71,14 +71,14 @@ export const FEATURE_COPY = {
   alerts:            { name: 'Price alerts', why: 'Maddex watches the price for you and alerts you on screen, by desktop notification or by email when it crosses.' },
   scanner:           { name: 'The market scanner', why: 'Breakouts, RSI extremes, unusual volume and gaps, swept across the ASX and US universe automatically.' },
   screener:          { name: 'The stock screener', why: 'Filter the market on valuation, yield and momentum, and rank what passes by how strongly it matches.' },
-  global:            { name: 'The global intelligence map', why: 'Shipping chokepoints, trade flows, seismic activity and country risk on one live map.' },
+  global:            { name: 'The global intelligence map', why: 'Shipping chokepoints, trade flows, seismic activity and country risk on one map.' },
   bonds:             { name: 'The bonds module', why: 'Australian and US yield curves, spreads and duration in one place.' },
   etfs:              { name: 'The ETF explorer', why: 'Compare ASX ETFs on fees, holdings and returns side by side.' },
   futures:           { name: 'Futures & derivatives', why: 'Index futures, rate futures and options context for the Australian market.' },
   researchNotes:     { name: 'Research notes', why: 'MaddenAI writes a structured research note on any stock, and you keep your own notes alongside.' },
   unlimitedMaddenAI: { name: 'Unlimited MaddenAI', why: 'Ask as many questions as you like, every day — no daily cap on your analyst.' },
   moreMaddenAI:      { name: 'More MaddenAI', why: 'Prime gives you 50 MaddenAI questions a day, plus portfolio tracking, alerts and the scanner.' },
-  apiAccess:         { name: 'API access', why: 'Pull Maddex data into your own spreadsheets and tools.' },
+  apiAccess:         { name: 'API access (beta)', why: 'Programmatic access to the terminal\'s data from your own tools — in beta, serving the same demo equity data as the terminal until a licensed feed is connected.' },
   shareWatchlist:    { name: 'Watchlist sharing', why: 'Send anyone a read-only link to your watchlist — tickers, prices and moves, never your alerts, notes or targets.' },
   sharePortfolio:    { name: 'Portfolio snapshot sharing', why: 'Share how your portfolio is allocated and performing in percentages — no dollar amounts, no holdings.' },
   exportAll:         { name: 'Export everything', why: 'One ZIP with your portfolio, transactions, watchlist, alerts, research notes as PDFs and settings.' },
@@ -97,7 +97,7 @@ export const PLAN_CARDS = {
   core: {
     tagline: 'For curious investors getting started',
     features: [
-      ['Live crypto prices (CoinGecko)', true], ['Live FX rates', true], ['Basic watchlist (5 stocks)', true],
+      ['Live crypto prices (CoinGecko)', true], ['FX reference rates (ECB, daily)', true], ['Basic watchlist (5 stocks)', true],
       ['Morning brief (3/week)', true], ['MaddenAI (10 queries/day)', true], ['Public news feed', true],
       ['Financial calculators', true], ['Live ASX prices', 'soon'], ['Portfolio tracking', false],
       ['Price alerts', false], ['Scanner / Screener', false], ['Global intel map', false], ['Bonds, ETFs, Futures modules', false],
@@ -110,7 +110,7 @@ export const PLAN_CARDS = {
       ['Full watchlist (unlimited)', true], ['Portfolio tracking', true], ['Price alerts (10 active)', true],
       ['Scanner + Screener', true], ['Global intel map', true], ['Bonds, ETFs, Futures modules', true],
       ['MaddenAI (50 queries/day)', true], ['Morning brief (daily)', true], ['Email alerts', true],
-      ['Research notes (5/month)', true], ['API access', false], ['Priority support', false],
+      ['Research notes (5/month)', true], ['API access (beta, demo data)', false],
     ],
   },
   apex: {
@@ -118,7 +118,7 @@ export const PLAN_CARDS = {
     lead: 'Everything in Prime, plus:',
     features: [
       ['Unlimited price alerts', true], ['MaddenAI (unlimited)', true], ['Research notes (unlimited)', true],
-      ['API access', true], ['Priority support', true], ['Early access to new features', true], ['Export all data', true],
+      ['API access (beta, demo data)', true], ['Export all data', true],
     ],
   },
 }

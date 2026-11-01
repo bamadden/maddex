@@ -117,7 +117,7 @@ export default function StatusBar({ lastUpdated }) {
           }`}
         />
         {/* What the data is, in the one vocabulary, and the key to it. */}
-        <span>{USING_MOCK_DATA ? 'EQUITIES DEMO · CRYPTO, FX LIVE' : 'LIVE'} · {freshness}</span>
+        <span>{USING_MOCK_DATA ? 'EQUITIES DEMO' : 'EQUITIES LIVE'} · CRYPTO LIVE · FX DAILY · {freshness}</span>
         <button type="button" onClick={openDataLegend} className="underline decoration-dotted hover:text-terminal-gold" data-data-key>DATA KEY</button>
       </span>
     </div>

@@ -22,7 +22,7 @@ export default function DataLegend() {
           <button onClick={() => setOpen(false)} className="text-terminal-text-dim hover:text-terminal-text-bright px-2" aria-label="Close data key" autoFocus>✕</button>
         </div>
         <p className="font-sans text-terminal-text-dim mb-3" style={{ fontSize: 12 }}>
-          Every figure is labelled with one of four classes, its source and when it was fetched or published (Sydney time).
+          Panels are labelled with one of four classes, their source and when the data was fetched or published (Sydney time). Panels not yet carrying a badge state their source in their own caption.
         </p>
         <dl className="space-y-2.5">
           {CLASS_ORDER.map((c) => (

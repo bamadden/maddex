@@ -55,6 +55,9 @@ const sydney = (ms) => {
 // within its refresh window) are LIVE; 'stale' (the fetch failed, last copy
 // served) is STALE.
 export const classOfLiveSource = (source) => (source === 'stale' || source === 'fallback' ? 'STALE' : 'LIVE')
+// A source that publishes on a schedule (FX reference rates once a day) is
+// DELAYED however recently it was fetched; STALE when the fetch failed.
+export const classOfDailySource = (source) => (source === 'stale' || source === 'fallback' ? 'STALE' : 'DELAYED')
 
 // "STALE · CoinGecko · 13:52 AEDT". `at` is ms since epoch, or an ISO date
 // for scheduled figures (shown as the date).

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import DataBadge from '../../../components/ui/DataBadge'
-import { classOfLiveSource } from '../../../utils/dataClass'
+import { classOfDailySource } from '../../../utils/dataClass'
 import { liveDataService } from '../../../services/liveDataService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
@@ -61,9 +61,10 @@ export default function FXRatesWidget() {
             🇦🇺{LEAD[2]} AUD/{LEAD[1]}
           </span>
         </span>
-        {/* The one vocabulary: LIVE within the refresh window, STALE when the
-            last fetch failed and the cached copy is shown. */}
-        <DataBadge cls={classOfLiveSource(source)} source="open.er-api.com" at={at} compact className="flex-shrink-0" />
+        {/* DELAYED: open.er-api.com publishes its rates once a day, so they are
+            never live; STALE when the last fetch failed and the cached copy is
+            shown. */}
+        <DataBadge cls={classOfDailySource(source)} source="open.er-api.com (daily)" at={at} compact className="flex-shrink-0" />
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col justify-start gap-[3px] mt-2">

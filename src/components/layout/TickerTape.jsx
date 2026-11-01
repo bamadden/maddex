@@ -249,7 +249,8 @@ export default function TickerTape() {
       const dec = pair.includes('JPY') ? 2 : 4
       return { sym: pair, price: p.mid?.toFixed(dec), pct: null }
     }).filter(Boolean)
-    if (fxItems.length) sectionBlocks.push({ label: `💱 FX${classTag(fxResult, false)}`, items: fxItems })
+    // ECB reference rates, published once a working day: DELAYED, not live.
+    if (fxItems.length) sectionBlocks.push({ label: `💱 FX · ${fxResult?.stale ? badgeText({ cls: 'STALE', at: fxResult.cachedAt ?? null }) : 'DELAYED · ECB DAILY'}`, items: fxItems })
   }
 
   // 🛢 COMMODITIES — Gold / Silver AUD

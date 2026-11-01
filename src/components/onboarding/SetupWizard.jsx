@@ -292,7 +292,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
             <>
               <h2 className="text-terminal-text-bright text-lg font-bold tracking-wide">Ask MaddenAI</h2>
               <p className="text-xs text-terminal-text-dim mt-1.5 leading-relaxed">
-                MaddenAI writes analysis on any screen. Every figure it quotes comes from the terminal; it does not produce numbers of its own.
+                MaddenAI writes analysis on any screen. It is instructed to quote only figures the terminal gives it, and it never recommends what to buy or sell. AI can make mistakes — check anything important.
               </p>
               <div className="mt-4 border border-terminal-gold/30 bg-terminal-gold/5 px-3 py-2.5 text-xs text-terminal-text-bright leading-relaxed">
                 {AI_PROMPT}

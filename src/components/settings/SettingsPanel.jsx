@@ -1007,8 +1007,8 @@ function DataProvenancePanel() {
           </button>
         </div>
         <div className="text-2xs text-terminal-text-dim mb-1">
-          Analysis and narrative only, regenerated once a day. Every figure MaddenAI reasons from is
-          supplied to it from the verified constants below — it never sources a number itself.
+          Analysis and narrative only, regenerated once a day. MaddenAI is given the verified constants
+          below and instructed to quote no other figures; its replies are checked for recommendation language.
         </div>
         {ai.map((a) => (
           <ProvenanceRow key={a.key} name={AI_LABELS[a.key] ?? a.key} status={a.status} />

@@ -15,18 +15,18 @@ import { PAL } from '../../styles/palette.js'
 const FEATURES = [
   {
     glyph: '01',
-    title: 'Markets, live and labelled',
-    body: 'Crypto, FX, commodities and global indices from live feeds. Equity prices run on demo data until a provider is connected — and every one of them says so.',
+    title: 'Markets, labelled',
+    body: 'Crypto prices from live feeds and FX at the ECB\'s daily reference rates. Equity and index prices run on demo data until a licensed feed is connected, and are badged DEMO.',
   },
   {
     glyph: '02',
     title: 'MaddenAI, for analysis not arithmetic',
-    body: 'Ask about a stock, the macro picture, or your own portfolio. The model writes the reasoning; every figure it quotes is one the terminal handed it.',
+    body: 'Ask about a stock, the macro picture, or your own portfolio. The model is instructed to quote only figures the terminal gives it, and it gives general information, never recommendations. AI can make mistakes.',
   },
   {
     glyph: '03',
     title: 'Global risk map',
-    body: 'Shipping chokepoints, trade flows, geopolitical risk scored against a published rubric, and a live intel map.',
+    body: 'Shipping chokepoints, trade flows, geopolitical risk scored against a published rubric, and an intel map.',
   },
 ]
 
