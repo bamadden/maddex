@@ -1149,7 +1149,7 @@ export const NEWS_SOURCES = [
 
 // Financial relevance filter — articles must match at least one term to pass through
 export const FINANCIAL_KEYWORDS = [
-  'market', 'markets', 'stock', 'stocks', 'share', 'shares', 'equity', 'equities',
+  'market', 'markets', 'stock', 'stocks', 'shares', 'share price', 'equity', 'equities',
   'fund', 'invest', 'investor', 'portfolio', 'trading', 'trader',
   'asx', 'nasdaq', 'nyse', 's&p', 'dow', 'nikkei', 'ftse', 'hang seng',
   'rba', 'federal reserve', 'fed', 'fomc', 'central bank', 'reserve bank',
@@ -1159,10 +1159,10 @@ export const FINANCIAL_KEYWORDS = [
   'bitcoin', 'crypto', 'ethereum', 'blockchain', 'defi', 'stablecoin',
   'gold', 'silver', 'oil', 'crude', 'commodity', 'iron ore', 'lng', 'copper', 'opec',
   'earnings', 'revenue', 'profit', 'dividend', 'eps', 'quarterly',
-  'ipo', 'merger', 'acquisition', 'takeover', 'deal',
+  'ipo', 'merger', 'acquisition', 'takeover',
   'bond', 'yield', 'treasury', 'debt', 'deficit', 'surplus',
   'tariff', 'trade war', 'sanctions', 'export', 'import',
-  'bank', 'banking', 'financial', 'economic', 'economy', 'recession', 'growth',
+  'banking', 'big four', 'financial', 'economic', 'economy', 'recession', 'economic growth',
   'bhp', 'cba', 'csl', 'westpac', 'anz', 'nab', 'macquarie', 'rio tinto',
   'apple', 'nvidia', 'microsoft', 'tesla', 'amazon', 'meta', 'alphabet',
   'energy', 'mining', 'resources', 'real estate', 'reit', 'property',
@@ -1173,9 +1173,14 @@ export const FINANCIAL_KEYWORDS = [
   'wesfarmers', 'woolworths', 'telstra', 'fortescue', 'woodside', 'santos', 'qantas',
 ]
 
-function isFinanciallyRelevant(title, description = '') {
-  const text = `${title} ${description}`.toLowerCase()
-  return FINANCIAL_KEYWORDS.some(kw => text.includes(kw))
+// Whole words, as the geo filter below does (see the note on FINANCE_PATTERNS):
+// as substrings 'aud' matched "fraud" and "applaud", 'dow' "window", 'oil'
+// "toilet", 'nab' "unable" and 'meta' "metal", which is how lifestyle stories
+// reached the feed. Bare 'share', 'deal', 'growth' and 'bank' went for the
+// same reason ("share their story", a sporting deal, a riverbank).
+const FINANCIAL_RE = new RegExp(`(?<![\\w&])(?:${FINANCIAL_KEYWORDS.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![\\w&])`, 'i')
+export function isFinanciallyRelevant(title, description = '') {
+  return FINANCIAL_RE.test(`${title} ${description}`)
 }
 
 // ─── News categories (tabs) — an article can match more than one ────────────

@@ -131,3 +131,19 @@ test('no MaddenAI prompt asks for a score, and the Brief shows its outlook as wo
     assert.doesNotMatch(read(f), /maddenAIScore|\.score\b/, f)
   }
 })
+
+// ── News relevance ─────────────────────────────────────────────────────────
+import { isFinanciallyRelevant } from '../src/services/api.js'
+
+test('the news filter matches whole words, so lifestyle stories stay out', () => {
+  for (const t of ['Fraud charges laid after applause', 'Window cleaner unable to find toilet', 'Players share their story after the deal', 'Crocodile spotted on the banks of the river']) {
+    assert.equal(isFinanciallyRelevant(t), false, t)
+  }
+  for (const t of ['ASX 200 slips', 'S&P 500 hits record', 'AUD falls after CPI', 'Woodside shares jump', 'M&A activity surges', 'Commonwealth Bank profit beats']) {
+    assert.equal(isFinanciallyRelevant(t), true, t)
+  }
+  // MOVERS IN THE NEWS pins a headline only when it names the asset, and says its moves are demo.
+  const news = read('src/modules/news/NewsModule.jsx')
+  assert.doesNotMatch(news, /headline\.toUpperCase\(\)\.includes\(needle\)/)
+  assert.match(news, /MOVERS IN THE NEWS<\/span>\s*<DemoBadge/)
+})

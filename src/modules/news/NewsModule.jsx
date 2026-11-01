@@ -9,7 +9,7 @@ import { USING_MOCK_DATA } from '../../services/api'
 import { getEconomicCalendar, pendingEvents } from '../../services/calendarService'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { useStore } from '../../store/useStore'
-import { ModuleError } from '../../components/ui/ModuleStates'
+import { ModuleError, DemoBadge } from '../../components/ui/ModuleStates'
 import { SkeletonNewsCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -389,11 +389,20 @@ function marketImpactAssets() {
   })
 }
 
-// Best-matching current headline for a given asset label, used by the
-// sidebar so each mover shows *why* it's moving, not just the number.
+// The latest headline that names the asset, used by the sidebar so each mover
+// shows what is in the news about it. Whole words in the headline only: a
+// substring match on "ASX" pinned the ASX 200 to a story about one
+// AustralianSuper executive that mentioned an ASX-listed company.
+const ASSET_NAMED = {
+  BHP: /\bBHP\b/i,
+  CBA: /\bCBA\b|\bCommonwealth Bank\b/i,
+  'ASX 200': /\bASX ?200\b|\bsharemarket\b|\bAustralian shares\b/i,
+  BTC: /\bbitcoin\b|\bBTC\b/i,
+  XRP: /\bXRP\b|\bRipple\b/i,
+}
 function headlineForAsset(items, label) {
-  const needle = label.replace(' 200', '').toUpperCase()
-  const hit = items.find(i => (i.tickers ?? []).includes(needle) || i.headline.toUpperCase().includes(needle))
+  const re = ASSET_NAMED[label]
+  const hit = re && items.find(i => re.test(i.headline ?? ''))
   return hit?.headline ?? null
 }
 
@@ -722,7 +731,12 @@ function MovingOnNews({ items }) {
   const maxAbs = Math.max(...assets.map(a => Math.abs(a.changePct)), 0.1)
   return (
     <div className="px-3 py-2 border-b border-terminal-border">
-      <div className="text-[11px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">MOVING ON NEWS</div>
+      {/* The moves come from the demo price set (marketImpactAssets reads
+          mockData whatever the feed), so the panel is always badged DEMO. */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[11px] font-mono tracking-widest text-terminal-text-dim uppercase">MOVERS IN THE NEWS</span>
+        <DemoBadge className="ml-auto" />
+      </div>
       <div className="flex flex-col gap-2">
         {assets.slice(0, 5).map(a => {
           const up = a.changePct >= 0
