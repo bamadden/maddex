@@ -162,13 +162,20 @@ function SubmitButton({ loading, loadingLabel, children }) {
 
 const LEGAL_LINK_CLS = 'text-terminal-gold hover:text-terminal-gold-bright underline'
 
-function LegalLinks() {
+function LegalLinks({ agree, onAgree, error, disabled }) {
   return (
-    <div className="text-2xs text-terminal-text-dim text-center leading-relaxed">
-      By creating an account you agree to our{' '}
-      <a href="/terms" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Terms of Service</a>
-      {' '}and{' '}
-      <a href="/privacy" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Privacy Policy</a>
+    <div>
+      <label className="flex items-start gap-2 text-2xs text-terminal-text-dim leading-relaxed cursor-pointer">
+        <input type="checkbox" checked={agree} onChange={(e) => onAgree(e.target.checked)} disabled={disabled} className="mt-0.5" data-terms-checkbox />
+        <span>
+          I have read and agree to the{' '}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Terms of Use</a>
+          {' '}and{' '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLS}>Privacy Policy</a>
+          {' '}(drafts, pending legal review).
+        </span>
+      </label>
+      {error && <div className="text-2xs text-terminal-red mt-1">{error}</div>}
     </div>
   )
 }
@@ -190,6 +197,9 @@ export default function AuthModal({ deletedMessage }) {
   const [suEmail, setSuEmail] = useState('')
   const [suPassword, setSuPassword] = useState('')
   const [suConfirm, setSuConfirm] = useState('')
+  // Acceptance of the Terms and Privacy Policy, recorded with the documents'
+  // versions and the time at sign-up (services/legalConsent).
+  const [suAgree, setSuAgree] = useState(false)
   const [suErrors, setSuErrors] = useState({})
   const [signedUp, setSignedUp] = useState(false)
 
@@ -228,6 +238,7 @@ export default function AuthModal({ deletedMessage }) {
     if (!suEmail) errs.email = 'Email is required'
     if (!suPassword || suPassword.length < 8) errs.password = 'Password must be at least 8 characters'
     if (suPassword !== suConfirm) errs.confirm = "Passwords don't match"
+    if (!suAgree) errs.agree = 'Please accept the Terms of Use and Privacy Policy'
     if (Object.keys(errs).length) { setSuErrors(errs); return }
     setSuErrors({}); setGlobalError(null); setLoading(true)
     const { error } = await signUp(suEmail, suPassword, suFirst, suLast, suCountry)
@@ -447,7 +458,7 @@ export default function AuthModal({ deletedMessage }) {
                   error={suErrors.confirm}
                   autoComplete="new-password"
                 />
-                <LegalLinks />
+                <LegalLinks agree={suAgree} onAgree={setSuAgree} error={suErrors.agree} disabled={loading} />
                 <SubmitButton loading={loading} loadingLabel="CREATING ACCOUNT...">CREATE ACCOUNT</SubmitButton>
                 <div className="text-2xs text-terminal-green text-center font-semibold">
                   7-day free trial — full Apex access
@@ -459,8 +470,8 @@ export default function AuthModal({ deletedMessage }) {
 
         <div className="px-6 py-3 border-t border-terminal-border text-center">
           <span className="text-2xs text-terminal-text-dim/60">
-            By continuing you agree to our{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Terms of Service</a>
+            Maddex is general information only, not financial advice.{' '}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Terms of Use</a>
             {' · '}
             <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline">Privacy Policy</a>
           </span>

@@ -122,6 +122,8 @@ function ModuleTimer({ id }) {
 }
 import { useSubscription } from './hooks/useSubscription'
 import { useOnboarding } from './hooks/useOnboarding'
+import { LegalFooter, DisclaimerAcknowledgement, TermsAcceptance } from './components/legal/LegalNotices'
+import { hasAcknowledged, recordAcknowledgement, termsAccepted, acceptanceRecord } from './services/legalConsent'
 import { startKeyboardClickables } from './utils/keyboardClickables'
 import { shouldShowTour, resumeStep } from './services/onboardingSync'
 import { useTheme } from './hooks/useTheme'
@@ -349,7 +351,11 @@ function Terminal() {
   // finished or dismissed one never returns. Help → REPLAY TOUR replays it
   // without resetting that.
   const { state: onboarding, sync: onboardingSync, store: onboardingStore } = useOnboarding()
-  const showWelcome = !onboarding.welcomed
+  // The first-use acknowledgement of the disclaimer comes before anything
+  // else — welcome, tour, prompts (services/legalConsent).
+  const { user: ackUser, updateUserMetadata: ackSave } = useAuthStore()
+  const [acknowledged, setAcknowledged] = useState(() => hasAcknowledged(ackUser))
+  const showWelcome = acknowledged && !onboarding.welcomed
   const [replayTour, setReplayTour] = useState(false)
   const showTour = replayTour || shouldShowTour(onboarding)
   useEffect(() => {
@@ -969,6 +975,7 @@ function Terminal() {
       </div>
       <CommandBar />
       <StatusBar lastUpdated={statusUpdatedAt} />
+      <LegalFooter />
       <MobileNavBar />
       <Suspense fallback={null}>{modalAsset && <DetailModal />}</Suspense>
       <OfflineBanner />
@@ -1000,12 +1007,13 @@ function Terminal() {
           </FloatingWindow>
         )
       })}
+      {!acknowledged && <DisclaimerAcknowledgement onAcknowledge={async () => { await recordAcknowledgement({ user: ackUser, updateUserMetadata: ackSave }); setAcknowledged(true) }} />}
       {showWelcome && <Suspense fallback={null}><WelcomeModal onGetStarted={completeWelcome} /></Suspense>}
-      <NotificationPermissionPrompt suppressed={showWelcome || showTour} />
+      <NotificationPermissionPrompt suppressed={!acknowledged || showWelcome || showTour} />
       <Suspense fallback={null}><DataLegend /></Suspense>
       <PlanOverlays />
       <AlertSuggestion />
-      {!showWelcome && showTour && (
+      {acknowledged && !showWelcome && showTour && (
         <Suspense fallback={null}>
           <SetupWizard key={replayTour ? 'replay' : 'tour'} onComplete={completeTour}
             initialStep={replayTour ? 1 : resumeStep(onboarding)} onStep={replayTour ? undefined : onboardingStore.stepReached} />
@@ -1033,8 +1041,9 @@ function Terminal() {
 // ── App root ──────────────────────────────────────────────────────────────────
 
 function AuthGate() {
-  const { user, profile, loading, initialize, settings } = useAuthStore()
+  const { user, profile, loading, initialize, settings, updateUserMetadata, signOut } = useAuthStore()
   const { setCurrency, setActiveModule } = useStore()
+  const [termsOk, setTermsOk] = useState(false)
   const { isTrial, isTrialExpired } = useSubscription()
   const [appReady, setAppReady] = useState(false)
   const [onboardingDone, setOnboardingDone] = useState(false)
@@ -1066,6 +1075,12 @@ function AuthGate() {
   // longer needed for local testing.
   const isDev = import.meta.env.DEV
   if (!user && !isDev) return <Suspense fallback={<AppLoader />}><AuthModal /></Suspense>
+  // Terms of Use and Privacy Policy, accepted with version and time: at
+  // sign-up for email accounts, here for any account without a record for
+  // the current versions (Google sign-in, older accounts).
+  if (user && !termsAccepted(user) && !termsOk) {
+    return <TermsAcceptance onAccept={async () => { await updateUserMetadata({ maddex_terms: acceptanceRecord() }); setTermsOk(true) }} onSignOut={() => signOut?.()} />
+  }
   if (profile && !profile.onboarding_complete && !onboarding.profileFlow && !onboardingDone) {
     return <Suspense fallback={<AppLoader />}><OnboardingFlow onComplete={() => { onboardingStore.markProfileFlow(); setOnboardingDone(true) }} /></Suspense>
   }

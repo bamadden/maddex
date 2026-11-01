@@ -65,7 +65,7 @@ const DISCLAIMER = {
 
 const TERMS = {
   slug: 'terms',
-  title: 'Terms of Service',
+  title: 'Terms of Use',
   lede: `These terms govern your use of the Maddex terminal, operated by ${COMPANY}.`,
   sections: [
     {

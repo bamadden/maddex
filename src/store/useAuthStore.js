@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { getTimezoneFromCountry } from '../lib/profileUtils'
+import { acceptanceRecord } from '../services/legalConsent'
 import { fetchFxRates } from '../services/api'
 
 // preferred_currency values the marketing site's profiles.preferred_currency
@@ -115,7 +116,9 @@ export const useAuthStore = create((set, get) => ({
       email,
       password,
       options: {
-        data: { first_name: firstName, last_name: lastName, country },
+        // The Terms and Privacy Policy accepted on the sign-up form, with
+        // their versions and the time (services/legalConsent).
+        data: { first_name: firstName, last_name: lastName, country, maddex_terms: acceptanceRecord() },
       },
     })
     // Upsert profile directly — don't rely solely on the DB trigger

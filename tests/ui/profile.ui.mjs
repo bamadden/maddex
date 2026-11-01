@@ -52,6 +52,7 @@ async function newPage(browser, { width, mobile = false }) {
     for (const [k, v] of Object.entries({
       maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true',
       maddex_notif_prompt_dismissed: 'true', maddex_whats_new_version: 'v0.2.0-beta', maddex_dev_plan: 'apex',
+      maddex_disclaimer_ack: JSON.stringify({ version: 'disclaimer-2026-11-01', at: '2026-11-01T00:00:00Z' }), 
     })) localStorage.setItem(k, v)
   })
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
@@ -219,7 +220,7 @@ try {
   })
   const cachedAt = Date.now() - 42 * 60_000
   await off.evaluateOnNewDocument((ts) => {
-    for (const [k, v] of Object.entries({ maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true', maddex_notif_prompt_dismissed: 'true', maddex_whats_new_version: 'v0.2.0-beta', maddex_dev_plan: 'apex' })) localStorage.setItem(k, v)
+    for (const [k, v] of Object.entries({ maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true', maddex_notif_prompt_dismissed: 'true', maddex_whats_new_version: 'v0.2.0-beta', maddex_dev_plan: 'apex', maddex_disclaimer_ack: JSON.stringify({ version: 'disclaimer-2026-11-01', at: '2026-11-01T00:00:00Z' }), })) localStorage.setItem(k, v)
     localStorage.setItem('maddex_ds_crypto2:aud', JSON.stringify({ ts, data: { rows: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', currency: 'AUD', current_price: 110000, price_change_percentage_24h: 0.5 }], currency: 'AUD', provider: 'CoinGecko', fx: null, at: ts } }))
   }, cachedAt)
   await off.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
@@ -251,6 +252,15 @@ try {
   await ob.reload({ waitUntil: 'domcontentloaded' })
   const dialogText = () => ob.evaluate(() => [...document.querySelectorAll('[role=dialog]')].map((d) => d.innerText).join(' | '))
   const clickText = (re) => ob.evaluate((src) => { const b = [...document.querySelectorAll('[role=dialog] button')].find((x) => new RegExp(src).test(x.textContent.trim())); b?.click(); return !!b }, re)
+  // First: the disclaimer acknowledgement, before anything else.
+  await ob.waitForSelector('[data-legal-ack]', { timeout: 60_000 }).catch(() => {})
+  const ackText = await ob.evaluate(() => document.querySelector('[data-legal-ack]')?.innerText ?? '')
+  if (/not financial advice/i.test(ackText) && /objectives, financial situation or needs/i.test(ackText) && /AI can make mistakes/i.test(ackText) && !/WELCOME TO MADDEX/.test(await dialogText().catch(() => ''))) pass('first visit: the disclaimer acknowledgement comes first')
+  else fail('first visit: no disclaimer acknowledgement before the welcome')
+  await ob.evaluate(() => [...document.querySelectorAll('[data-legal-ack] button')].find((b) => /I UNDERSTAND/.test(b.textContent))?.click())
+  const footer = await ob.evaluate(() => document.querySelector('[data-legal-footer]')?.getAttribute('title') ?? '')
+  if (/Past performance is not a reliable indicator/.test(footer)) pass('the disclaimer footer is on screen')
+  else fail('no disclaimer footer')
   await ob.waitForFunction(() => /WELCOME TO MADDEX/.test(document.body.innerText), { timeout: 60_000 }).catch(() => {})
   if (/WELCOME TO MADDEX/.test(await dialogText())) pass('first visit: welcome shows')
   else fail('first visit: no welcome')
@@ -266,6 +276,8 @@ try {
   const resumed = (await dialogText()).match(/STEP (\d) OF 5/)?.[1]
   if (resumed === '3') pass('reload mid-setup resumes at step 3')
   else fail(`after reload the tour is at step ${resumed ?? 'none'}`)
+  if (!(await ob.$('[data-legal-ack]'))) pass('the acknowledgement is not shown again')
+  else fail('acknowledgement repeated')
   if (!/WELCOME TO MADDEX/.test(await dialogText())) pass('welcome is not shown again')
   else fail('welcome repeated')
   await clickText('^EXIT SETUP$'); await wait(600)
@@ -284,6 +296,12 @@ try {
   await ob.waitForSelector('[data-command-bar]', { timeout: 60_000 }); await wait(2500)
   if (!/SETUP · STEP/.test(await dialogText())) pass('replaying does not reset completion')
   else fail('tour returned after a replay')
+  for (const slug of ['terms', 'privacy']) {
+    await ob.goto(`${BASE}/${slug}`, { waitUntil: 'domcontentloaded' })
+    const banner = await ob.waitForSelector('[data-legal-draft]', { timeout: 30_000 }).then((h) => h.evaluate((e) => e.textContent)).catch(() => '')
+    if (/DRAFT, PENDING LEGAL REVIEW/.test(banner)) pass(`/${slug} is marked DRAFT, pending legal review`)
+    else fail(`/${slug} has no draft banner`)
+  }
   await ob.close()
 
   console.log('Phone (390px): Markets fits, ALL lists every module')

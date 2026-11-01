@@ -446,7 +446,7 @@ function ProfileSection() {
       <div className="border-t border-terminal-border pt-4 space-y-1.5">
         <div className="text-2xs text-terminal-text-dim tracking-widest uppercase mb-1">Links</div>
         <a href="/terms" target="_blank" rel="noopener noreferrer"
-          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Service →</a>
+          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Use →</a>
         <a href="/privacy" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Privacy Policy →</a>
         <a href="/disclaimer" target="_blank" rel="noopener noreferrer"
@@ -2589,7 +2589,7 @@ function AboutSection() {
 
       <div className="pt-2 border-t border-terminal-border/30 space-y-1.5">
         <a href="/terms" target="_blank" rel="noopener noreferrer"
-          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Service</a>
+          className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Terms of Use</a>
         <a href="/privacy" target="_blank" rel="noopener noreferrer"
           className="block text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors">Privacy Policy</a>
         <a href="/disclaimer" target="_blank" rel="noopener noreferrer"

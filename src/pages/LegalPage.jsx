@@ -1,4 +1,7 @@
 import { LEGAL_DOCS, COMPANY, CONTACT, EFFECTIVE } from '../data/legalDocs'
+import { LEGAL_STATUS, TERMS_VERSION, PRIVACY_VERSION } from '../data/legalVersions'
+
+const VERSION = { terms: TERMS_VERSION, privacy: PRIVACY_VERSION }
 
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
@@ -21,9 +24,14 @@ export default function LegalPage({ slug }) {
           <span className="text-terminal-gold font-bold tracking-widest group-hover:text-terminal-gold-bright transition-colors">MADDEX</span>
         </a>
 
+        {/* Placeholder text until a lawyer has reviewed it — said at the top,
+            in words a reader cannot miss. */}
+        <div data-legal-draft className="mb-4 border border-terminal-gold/60 bg-terminal-gold/10 px-3 py-2 text-xs font-bold tracking-widest text-terminal-gold">
+          {LEGAL_STATUS.toUpperCase()}
+        </div>
         <h1 className="text-2xl font-bold text-terminal-text-bright tracking-wide">{doc.title}</h1>
         <p className="text-2xs text-terminal-text-dim mt-1">
-          {COMPANY} · Effective {EFFECTIVE}
+          {COMPANY} · Effective {EFFECTIVE}{VERSION[slug] ? ` · Version ${VERSION[slug]}` : ''}
         </p>
         <p className="text-xs text-terminal-text leading-relaxed mt-4 pb-5 border-b border-terminal-border">
           {doc.lede}
