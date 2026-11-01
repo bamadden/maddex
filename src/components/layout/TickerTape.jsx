@@ -28,7 +28,7 @@ const INDEX_LABELS = {
 }
 const CRYPTO_COINS = ['BTC','ETH','SOL','BNB','XRP']
 
-const fmtAUD  = (v) => `A$${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const fmtAUD  = (v) => v == null || !Number.isFinite(Number(v)) ? '—' : `A$${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const arrow   = (p) => (p > 0 ? '▲' : p < 0 ? '▼' : '—')
 // A section's data class when it is not LIVE: " · DEMO", or " · STALE ·
 // 13:52 AEDT" when the feed failed and the cached copy is shown.

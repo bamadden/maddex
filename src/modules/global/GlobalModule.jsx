@@ -659,10 +659,11 @@ const CHOKE_DOT   = { OPEN:'bg-terminal-green', MONITORED:'bg-terminal-gold anim
 
 // ─── Currency display helpers ─────────────────────────────────────────────────
 
-const FALLBACK_AUD_USD = 0.6520
-
+// audUsd is null until a rate has loaded; a figure that needs converting is
+// then "—", never converted at a fixed rate.
 function fmtGdpTotal(usdMillions, audUsd, mode) {
   if (usdMillions == null) return null
+  if (mode === 'AUD' && !(audUsd > 0)) return '—'
   const v = mode === 'AUD' ? usdMillions / audUsd : usdMillions
   const sym = mode === 'AUD' ? 'A$' : 'US$'
   if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}T`
@@ -672,6 +673,7 @@ function fmtGdpTotal(usdMillions, audUsd, mode) {
 
 function fmtPerCapita(usd, audUsd, mode) {
   if (usd == null) return null
+  if (mode === 'AUD' && !(audUsd > 0)) return '—'
   const v = mode === 'AUD' ? usd / audUsd : usd
   const sym = mode === 'AUD' ? 'A$' : 'US$'
   return `${sym}${Math.round(v).toLocaleString('en-AU')}`
@@ -679,6 +681,7 @@ function fmtPerCapita(usd, audUsd, mode) {
 
 function fmtAuTrade(audMillions, audUsd, mode) {
   if (audMillions == null) return null
+  if (mode === 'USD' && !(audUsd > 0)) return '—'
   // auTradeValue stored in AUD millions — convert to USD if needed
   const v = mode === 'USD' ? audMillions * audUsd : audMillions
   const sym = mode === 'USD' ? 'US$' : 'A$'
@@ -737,7 +740,7 @@ const COUNTRY_PANEL_TABS = [
   { id: 'trade',        label: 'TRADE' },
 ]
 
-function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = FALLBACK_AUD_USD, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
+function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
   const { openModal } = useStore()
   const [panelTab, setPanelTab] = useState('economy')
   const n      = parseInt(id)
@@ -2514,8 +2517,7 @@ export default function GlobalModule() {
   }, [viewMode])
   const { watchlist } = useStore()
 
-  const { rates } = useAudRates()
-  const audUsd = rates?.USD ?? FALLBACK_AUD_USD
+  const { rates, audUsd } = useAudRates()
 
   // Currency mode (AUD vs USD) — persisted to localStorage
   const [currencyMode, setCurrencyMode] = useState(() => {

@@ -198,15 +198,16 @@ export function mergeLots(computed) {
     const p = out.get(key)
     if (!p) { out.set(key, { ...h, lots: 1 }); continue }
     const shares = p.shares + h.shares
-    const totalCost = p.totalCost + h.totalCost
+    // A lot whose US$ cost could not be converted has no A$ cost, so neither
+    // does the merged position.
+    const totalCost = p.totalCost != null && h.totalCost != null ? p.totalCost + h.totalCost : null
     const mktVal = p.mktVal != null && h.mktVal != null ? p.mktVal + h.mktVal : null
-    const pnl = mktVal != null ? mktVal - totalCost : null
+    const pnl = mktVal != null && totalCost != null ? mktVal - totalCost : null
     out.set(key, {
       ...p,
       shares,
       totalCost,
-      avgCost: totalCost / shares,
-      costCurrency: 'AUD',
+      ...(totalCost != null ? { avgCost: totalCost / shares, costCurrency: 'AUD' } : {}),
       mktVal,
       pnl,
       pnlPct: pnl != null && totalCost > 0 ? (pnl / totalCost) * 100 : null,

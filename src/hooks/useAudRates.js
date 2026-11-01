@@ -2,8 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { fetchFxRatesUnified } from '../services/dataService'
 
-const FALLBACK_AUD_USD = 0.6520
-
 // Shared queryKey with TickerTape (fetch) / FXModule (fetch) / AIPanel
 // (passive read) — all now expect dataService's { data, stale, source }
 // envelope (see fetchFxRatesUnified in dataService.js).
@@ -16,8 +14,10 @@ export function useAudRates() {
   })
   const rates = fxResult?.data
 
-  // rates.USD = how many USD per 1 AUD (e.g. 0.6450 means 1 AUD = 0.6450 USD)
-  const audUsd = rates?.USD ?? FALLBACK_AUD_USD
+  // rates.USD = how many USD per 1 AUD (e.g. 0.6450 means 1 AUD = 0.6450 USD).
+  // Null until a rate has loaded: there is no fixed fallback, so a US price
+  // is shown as "—" rather than converted at a made-up rate.
+  const audUsd = rates?.USD > 0 ? rates.USD : null
 
   useEffect(() => {
     if (rates?.USD) {
@@ -30,7 +30,9 @@ export function useAudRates() {
     rates,
     audUsd,
     isDelayed: fxResult?.stale === true,
-    usdToAud: (usd) => (usd ?? 0) / audUsd,
-    audToUsd: (aud) => (aud ?? 0) * audUsd,
+    haveRate: audUsd != null,
+    // → null when the value or the rate is missing.
+    usdToAud: (usd) => (usd == null || audUsd == null ? null : usd / audUsd),
+    audToUsd: (aud) => (aud == null || audUsd == null ? null : aud * audUsd),
   }
 }

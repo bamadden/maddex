@@ -4,7 +4,7 @@ import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useDebounce } from '../../hooks/useDebounce'
-import { fetchYFQuote, fetchYahooBatch, transformCryptoMarkets, USING_MOCK_DATA } from '../../services/api'
+import { fetchYFQuote, fetchYahooBatch, transformCryptoMarkets, USING_MOCK_DATA, toAUD } from '../../services/api'
 import { fetchCryptoMarketsUnified } from '../../services/dataService'
 import { openDataLegend } from '../../utils/dataClass'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
@@ -671,7 +671,7 @@ function MoversPanel({ title, items, onClose, onSelect }) {
                   <td className="px-2 font-bold text-terminal-text-bright">{item.symbol}</td>
                   <td className="px-2 text-terminal-text-dim truncate max-w-[180px]">{item.name}</td>
                   <td className="px-2 text-right text-terminal-text">
-                    A${item.price != null ? fmt.price(item.price) : '—'}
+                    {item.price != null ? `A$${fmt.price(item.price)}` : '—'}
                   </td>
                   <td className={`px-3 text-right font-bold ${item.pct > 0 ? 'text-terminal-green' : item.pct < 0 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>
                     {item.pct > 0 ? '+' : ''}{item.pct?.toFixed(2) ?? '—'}%
@@ -1081,7 +1081,7 @@ export default function CommandBar() {
         try {
           const q = await fetchYahooBatch(stockSyms)
           for (const [sym, v] of Object.entries(q)) {
-            next[sym] = { price: v.currency === 'USD' ? v.last / audUsd : v.last, pct: v.pct, demo: USING_MOCK_DATA }
+            next[sym] = { price: toAUD(v.last, v.currency, audUsd), pct: v.pct, demo: USING_MOCK_DATA }
           }
         } catch {
           // Live price is a nice-to-have in the dropdown — fall back to no price
@@ -1242,7 +1242,7 @@ export default function CommandBar() {
   // ── Build modal asset from YF quote ──────────────────────────────────────────
   const buildModalAsset = (q, type, resolvedSym) => {
     const isUSD   = q.currency === 'USD'
-    const toAud   = (v) => v != null ? (isUSD ? v / audUsd : v) : null
+    const toAud   = (v) => toAUD(v, isUSD ? 'USD' : 'AUD', audUsd)
     return {
       symbol:  resolvedSym,
       name:    q.name,
@@ -1342,7 +1342,7 @@ export default function CommandBar() {
         .map(([sym, q]) => ({
           symbol: sym,
           name:   q.name,
-          price:  q.currency === 'USD' ? q.last / audUsd : q.last,
+          price:  toAUD(q.last, q.currency, audUsd),
           pct:    q.pct,
           type:   detectAssetType(sym),
           q,

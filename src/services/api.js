@@ -358,12 +358,13 @@ export async function fetchYahooHistory(symbol, range = '3mo', interval = '1d') 
   }
 }
 
-// Currency conversion — apply at display time, never at fetch time
+// Currency conversion — apply at display time, never at fetch time. A USD
+// price without a rate is null (shown as "—"), never passed through as A$.
 export function toAUD(price, currency, audUsdRate) {
   if (price == null || isNaN(price)) return null
-  if (currency === 'AUD') return price
-  if (currency === 'USD' && audUsdRate > 0) return price / audUsdRate
-  return price
+  if (currency === 'AUD' || currency == null) return price
+  if (currency === 'USD') return audUsdRate > 0 ? price / audUsdRate : null
+  return null
 }
 
 // Convenience batch — used by WatchlistModule, PortfolioModule etc.

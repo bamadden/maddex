@@ -21,6 +21,7 @@ export function computePortfolioSnapshot(priceable, rows, usdToAud) {
     if (last == null) continue
 
     const avgCostAud = h.costCurrency === 'USD' ? usdToAud(h.avgCost) : h.avgCost
+    if (avgCostAud == null) continue
     value += last * h.shares
     cost += avgCostAud * h.shares
     priced += 1

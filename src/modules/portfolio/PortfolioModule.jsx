@@ -535,9 +535,11 @@ export default function PortfolioModule() {
   const { usdToAud, audUsd }   = useAudRates()
   const displayMul = currency === 'USD' ? audUsd : 1
   const prefix     = currency === 'USD' ? 'US$' : 'A$'
+  // null when US$ display is chosen but no AUD/USD rate has loaded.
+  const disp       = (v) => (v == null || displayMul == null ? null : v * displayMul)
 
   const fmtCur = (audVal) => {
-    if (audVal == null || isNaN(audVal)) return '—'
+    if (audVal == null || isNaN(audVal) || displayMul == null) return '—'
     const v   = audVal * displayMul
     const abs = Math.abs(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     return `${v < 0 ? '-' : ''}${prefix}${abs}`
@@ -726,8 +728,8 @@ export default function PortfolioModule() {
 
     const avgCostAud = h.costCurrency === 'USD' ? usdToAud(h.avgCost) : h.avgCost
     const mktVal     = last != null ? last * h.shares : null
-    const totalCost  = avgCostAud * h.shares
-    const pnl        = mktVal != null ? mktVal - totalCost : null
+    const totalCost  = avgCostAud != null ? avgCostAud * h.shares : null
+    const pnl        = mktVal != null && totalCost != null ? mktVal - totalCost : null
     const pnlPct     = pnl != null && totalCost > 0 ? (pnl / totalCost) * 100 : null
     const marketCap = q?.marketCap != null ? (isAsx ? q.marketCap : usdToAud(q.marketCap)) : null
     // P/E and yield are ratios, so they carry through unconverted — dividing a
@@ -740,10 +742,12 @@ export default function PortfolioModule() {
   })
 
   const computed  = mergeLots(lots)
-  const live      = computed.filter((h) => h.mktVal != null)
+  // Priced holdings with a known A$ cost. Without an AUD/USD rate a US
+  // holding has neither, so it drops out here and TOTAL COST shows "—".
+  const live      = computed.filter((h) => h.mktVal != null && h.totalCost != null)
   const mktTotal  = live.reduce((s, h) => s + h.mktVal, 0)
   const liveCost  = live.reduce((s, h) => s + h.totalCost, 0)
-  const costTotal = computed.reduce((s, h) => s + h.totalCost, 0)
+  const costTotal = computed.some((h) => h.totalCost == null) ? null : computed.reduce((s, h) => s + h.totalCost, 0)
   const totalPnl  = mktTotal - liveCost
   const pnlPct    = liveCost > 0 ? (totalPnl / liveCost) * 100 : 0
   const dayPnl    = live.reduce((s, h) => s + h.mktVal * (h.dayPct / 100), 0)
@@ -757,8 +761,8 @@ export default function PortfolioModule() {
     }))
     .sort((a, b) => b.value - a.value)
 
-  const pnlData  = live.filter((h) => h.pnl != null).map((h) => ({
-    symbol: h.symbol, pnl: parseFloat((h.pnl * displayMul).toFixed(0)),
+  const pnlData  = live.filter((h) => h.pnl != null && displayMul != null).map((h) => ({
+    symbol: h.symbol, pnl: parseFloat(disp(h.pnl).toFixed(0)),
   }))
   // When the prices were fetched (Sydney time), not when this screen rendered.
   const updatedAt = dataUpdatedAt ? sydneyClock(isDelayed && portfolioResult?.cachedAt ? portfolioResult.cachedAt : dataUpdatedAt).text : '—'
@@ -1202,9 +1206,9 @@ export default function PortfolioModule() {
                       className="hover:bg-terminal-accent/20 cursor-pointer"
                       onClick={() => h.last && openModal?.({
                         symbol: h.symbol, name: h.name || h.symbol,
-                        price:  h.last * displayMul,
+                        price:  disp(h.last),
                         pct:    h.dayPct,
-                        change: (h.last * (h.dayPct / 100)) * displayMul,
+                        change: disp(h.last * (h.dayPct / 100)),
                         type:   h.type,
                         extra:  { nativePrice: h.nativePrice, currency: h.currency },
                       })}
@@ -1336,9 +1340,9 @@ export default function PortfolioModule() {
                     holdings={live}
                     onSelect={(h) => h.last && openModal?.({
                       symbol: h.symbol, name: h.name || h.symbol,
-                      price:  h.last * displayMul,
+                      price:  disp(h.last),
                       pct:    h.dayPct,
-                      change: (h.last * (h.dayPct / 100)) * displayMul,
+                      change: disp(h.last * (h.dayPct / 100)),
                       type:   h.type,
                     })}
                   />

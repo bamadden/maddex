@@ -696,12 +696,15 @@ const HISTORY_CHUNK = HISTORY_MAX - HISTORY_KEEP      // 8 messages ≈ 4 exchan
 // its sector and which way it tends to move when rates rise. With that the
 // model can answer "how does the RBA hike affect me" by naming CBA and GMG
 // rather than asking the user to list their own portfolio.
-function describeHoldings(rows, usdToAud = 1) {
+// usdToAud: A$ per US$1, or null when no rate has loaded — then a book with
+// US$ costs gets no shares at all rather than weights at a guessed rate.
+function describeHoldings(rows, usdToAud = null) {
   if (!rows.length) return ''
   const pos = new Map()
+  const weighable = usdToAud != null || !rows.some((h) => h.costCurrency === 'USD')
   for (const h of rows) {
     const k = `${h.type}:${h.symbol}`
-    const cost = (Number(h.shares) || 0) * (Number(h.avgCost) || 0) * (h.costCurrency === 'USD' ? usdToAud : 1)
+    const cost = (Number(h.shares) || 0) * (Number(h.avgCost) || 0) * (h.costCurrency === 'USD' ? (usdToAud ?? 1) : 1)
     const p = pos.get(k) ?? { h, cost: 0, shares: 0 }
     p.cost += cost; p.shares += Number(h.shares) || 0
     pos.set(k, p)
@@ -711,9 +714,9 @@ function describeHoldings(rows, usdToAud = 1) {
     const sym = h.type === 'asx' ? `${h.symbol}.AX` : h.symbol
     const sector = h.type === 'crypto' ? 'Crypto' : SECTOR_BY_SYMBOL[h.symbol] ?? 'Unclassified'
     const { impact } = rateImpact(h)
-    return `${sym}${h.name && h.name !== h.symbol ? ` (${h.name})` : ''} ~${Math.round((cost / total) * 100)}% — ${sector}${impact ? `, rate impact ${impact}` : ''}`
+    return `${sym}${h.name && h.name !== h.symbol ? ` (${h.name})` : ''}${weighable ? ` ~${Math.round((cost / total) * 100)}%` : ''} — ${sector}${impact ? `, rate impact ${impact}` : ''}`
   })
-  return `User's portfolio holdings (share of cost, approximate; sector; how each tends to move if rates rise): ${items.join('; ')}. When a question touches rates, sectors, markets or "me/my portfolio", refer to these holdings by name.`
+  return `User's portfolio holdings (${weighable ? 'share of cost, approximate; ' : ''}sector; how each tends to move if rates rise): ${items.join('; ')}. When a question touches rates, sectors, markets or "me/my portfolio", refer to these holdings by name.`
 }
 
 const FEED_TONE = { gold: PAL.gold, red: PAL.down, green: PAL.up, blue: '#4A9EDB' }
@@ -1031,7 +1034,7 @@ export default function AIPanel({ wide = false, onListening }) {
       holdingRows = (JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]')).filter((h) => h?.symbol)
     } catch { /* best-effort */ }
     const audUsd = queryClient.getQueryData(['fxRates'])?.data?.USD
-    const holdingsLine = describeHoldings(holdingRows, audUsd > 0 ? 1 / audUsd : 1)
+    const holdingsLine = describeHoldings(holdingRows, audUsd > 0 ? 1 / audUsd : null)
     const lines = [
       `Today's date: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
       `User is currently viewing: ${moduleLabel}`,

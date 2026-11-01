@@ -186,7 +186,7 @@ export function summarise(transactions, toAud) {
 
   for (const t of transactions) {
     const foreign = (t.currency ?? 'AUD') !== 'AUD'
-    if (foreign && typeof toAud !== 'function') unconverted = true
+    if (foreign && (typeof toAud !== 'function' || toAud(1) == null)) unconverted = true
     if (t.type === 'BUY') invested += txValueAud(t, toAud)
     else if (t.type === 'DIVIDEND') dividends += txValueAud(t, toAud)
     else if (t.type === 'SELL') {

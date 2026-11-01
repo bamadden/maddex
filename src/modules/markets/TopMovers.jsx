@@ -43,12 +43,16 @@ function displaySym(yahoo) {
   return yahoo.replace(/\.AX$/, '')
 }
 
+// In A$. A US cap is divided by AUD/USD (it was multiplied, understating it
+// about 2.4×); without a rate the total is not shown.
 function totalTrackedMktCap(quotes, audUsd) {
   if (!quotes) return null
   let total = 0
   for (const q of Object.values(quotes)) {
     if (!q?.marketCap) continue
-    total += q.currency === 'USD' ? q.marketCap * (audUsd ?? 1.55) : q.marketCap
+    const aud = toAUD(q.marketCap, q.currency, audUsd)
+    if (aud == null) return null
+    total += aud
   }
   return total > 0 ? total : null
 }
