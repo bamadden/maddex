@@ -28,6 +28,7 @@ const INDEX_LABELS = {
 }
 const CRYPTO_COINS = ['BTC','ETH','SOL','BNB','XRP']
 
+const STABLE = new Set(['USDT', 'USDC', 'DAI', 'FDUSD', 'TUSD', 'USDE', 'USDS', 'PYUSD', 'USD1', 'BUSD', 'USDD', 'FRAX', 'RLUSD'])
 const fmtAUD  = (v) => v == null || !Number.isFinite(Number(v)) ? '—' : `A$${Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const arrow   = (p) => (p > 0 ? '▲' : p < 0 ? '▼' : '—')
 // A section's data class when it is not LIVE: " · DEMO", or " · STALE ·
@@ -150,11 +151,17 @@ export default function TickerTape() {
 
   const sectionBlocks = []
 
-  // ▲▼ MOVERS — top 3 gainers + top 3 losers from CoinGecko
+  // ▲▼ CRYPTO MOVERS — top 3 gainers + top 3 losers among the 25 largest
+  // coins by market cap, stablecoins and tokenised loans (FIGR_HELOC) left
+  // out. Placed last: an ASX reader expects the market first, not whichever
+  // small token moved most overnight.
   if (rawMarkets) {
     const coinList = rawMarkets.data
     const markets = transformCryptoMarkets(coinList, 'aud')
-    const sorted = markets.filter(c => c.pct24h != null).sort((a, b) => b.pct24h - a.pct24h)
+    const sorted = markets
+      .filter(c => c.pct24h != null && c.marketCap && !STABLE.has(c.symbol) && !/[_\d]/.test(c.symbol))
+      .sort((a, b) => b.marketCap - a.marketCap).slice(0, 25)
+      .sort((a, b) => b.pct24h - a.pct24h)
     const gainers = sorted.slice(0, 3)
     const losers  = [...sorted].reverse().slice(0, 3)
     const moverItems = [...gainers, ...losers].map(c => ({
@@ -164,7 +171,7 @@ export default function TickerTape() {
       marketCap: c.marketCap ?? null,
       onClick: () => openModal?.({ symbol: c.symbol, name: c.name, price: c.price, pct: c.pct24h, type: 'crypto' }),
     }))
-    if (moverItems.length) sectionBlocks.push({ label: '▲▼ MOVERS', items: moverItems })
+    if (moverItems.length) sectionBlocks.push({ label: '▲▼ CRYPTO MOVERS', items: moverItems })
   }
 
   // ◆ CRYPTO — BTC/ETH/SOL/BNB/XRP AUD prices
@@ -256,11 +263,15 @@ export default function TickerTape() {
     if (commItems.length) sectionBlocks.push({ label: '🛢 COMMODITIES', items: commItems })
   }
 
+  // Market first: indices, stocks, FX, commodities, then crypto and its movers.
+  const ORDER = ['📊', '📈', '💱', '🛢', '◆', '▲▼']
+  sectionBlocks.sort((a, b) => ORDER.findIndex((p) => a.label.startsWith(p)) - ORDER.findIndex((p) => b.label.startsWith(p)))
+
   // Placeholder while data loads — keeps tape moving and never empty
   const PLACEHOLDERS = [
-    { label: '◆ CRYPTO', items: [{ sym: 'BTC', price: '—', pct: null }, { sym: 'ETH', price: '—', pct: null }] },
     { label: '📊 INDICES', items: [{ sym: 'ASX 200', price: '—', pct: null }, { sym: 'S&P 500', price: '—', pct: null }] },
     { label: '💱 FX', items: [{ sym: 'AUD/USD', price: '—', pct: null }] },
+    { label: '◆ CRYPTO', items: [{ sym: 'BTC', price: '—', pct: null }, { sym: 'ETH', price: '—', pct: null }] },
   ]
   const blocks = sectionBlocks.length ? sectionBlocks : PLACEHOLDERS
 
