@@ -162,6 +162,17 @@ export const useAuthStore = create((set, get) => ({
     set({ user: null, profile: null, session: null, settings: null })
   },
 
+  // Writes keys into the signed-in user's auth metadata (no table needed) —
+  // used for per-account onboarding state (services/onboardingSync). Throws
+  // on failure so the caller can keep a device copy and offer a retry.
+  updateUserMetadata: async (data) => {
+    if (!get().user) throw new Error('Not signed in')
+    const { data: res, error } = await supabase.auth.updateUser({ data })
+    if (error) throw error
+    if (res?.user) set({ user: res.user })
+    return res?.user ?? null
+  },
+
   updateProfile: async (updates) => {
     const userId = get().user?.id
     console.log('updateProfile called with:', updates)

@@ -120,6 +120,8 @@ function ModuleTimer({ id }) {
   return null
 }
 import { useSubscription } from './hooks/useSubscription'
+import { useOnboarding } from './hooks/useOnboarding'
+import { shouldShowTour, resumeStep } from './services/onboardingSync'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
 import { initGlobalRipples } from './hooks/useRipple'
@@ -336,18 +338,23 @@ function ShortcutModal({ onClose }) {
 // ── Terminal ──────────────────────────────────────────────────────────────────
 
 const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
-const ONBOARDING_KEY = 'maddex_onboarding_complete'
 
 function Terminal() {
   const { activeModule, setActiveModule, modalAsset, closeModal, compareAssets, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification, watchlist } = useStore()
-  // Welcome runs before everything, once per browser, and before sign-in —
-  // it is the screen that answers "should I make an account", so gating it
-  // behind having one defeats it.
-  const [showWelcome, setShowWelcome] = useState(() => !hasBeenWelcomed())
-
-  const [showTour, setShowTour] = useState(() => {
-    try { return !localStorage.getItem(ONBOARDING_KEY) } catch { return false }
-  })
+  // Welcome and the setup tour show ONCE PER USER: the state is kept in the
+  // account and mirrored on the device (hooks/useOnboarding,
+  // services/onboardingSync). A part-finished setup resumes at its step; a
+  // finished or dismissed one never returns. Help → REPLAY TOUR replays it
+  // without resetting that.
+  const { state: onboarding, sync: onboardingSync, store: onboardingStore } = useOnboarding()
+  const showWelcome = !onboarding.welcomed
+  const [replayTour, setReplayTour] = useState(false)
+  const showTour = replayTour || shouldShowTour(onboarding)
+  useEffect(() => {
+    const on = () => setReplayTour(true)
+    window.addEventListener('maddex:replay-tour', on)
+    return () => window.removeEventListener('maddex:replay-tour', on)
+  }, [])
 
   // KEYED TO THE VERSION, NOT A TIMER.
   //
@@ -361,15 +368,15 @@ function Terminal() {
   })
 
   const completeWelcome = () => {
-    markWelcomed()
+    markWelcomed()   // starts the first-week clock for contextual tips
+    onboardingStore.markWelcomed()
     // A first-time user should not be shown release notes for a version they
     // have never used, so this version is marked seen on the way past.
     markWhatsNewSeen(APP_VERSION)
-    setShowWelcome(false)
   }
-  const completeTour = () => {
-    try { localStorage.setItem(ONBOARDING_KEY, 'true') } catch { /* best-effort */ }
-    setShowTour(false)
+  const completeTour = (how) => {
+    setReplayTour(false)
+    onboardingStore.finishTour(how)
   }
   const dismissWhatsNew = () => {
     markWhatsNewSeen(APP_VERSION)
@@ -988,7 +995,18 @@ function Terminal() {
       <Suspense fallback={null}><DataLegend /></Suspense>
       <PlanOverlays />
       <AlertSuggestion />
-      {!showWelcome && showTour && <Suspense fallback={null}><SetupWizard onComplete={completeTour} /></Suspense>}
+      {!showWelcome && showTour && (
+        <Suspense fallback={null}>
+          <SetupWizard key={replayTour ? 'replay' : 'tour'} onComplete={completeTour}
+            initialStep={replayTour ? 1 : resumeStep(onboarding)} onStep={replayTour ? undefined : onboardingStore.stepReached} />
+        </Suspense>
+      )}
+      {onboardingSync.status === 'failed' && (
+        <div role="alert" data-onboarding-sync="failed" className="fixed bottom-14 left-1/2 -translate-x-1/2 z-[210] flex items-center gap-3 bg-terminal-panel border border-terminal-gold/50 px-3 py-2 font-mono shadow-xl" style={{ fontSize: 11 }}>
+          <span className="text-terminal-text">Setup progress is saved on this device; saving it to your account failed.</span>
+          <button onClick={() => onboardingStore.retry()} className="text-terminal-gold font-bold tracking-widest hover:underline">RETRY</button>
+        </div>
+      )}
       {!showWelcome && !showTour && showWhatsNew && (
         <Suspense fallback={null}>
           <WhatsNewModal
@@ -1011,6 +1029,10 @@ function AuthGate() {
   const [appReady, setAppReady] = useState(false)
   const [onboardingDone, setOnboardingDone] = useState(false)
   const [trialAck, setTrialAck] = useState(false)
+  // The post-signup questions, once per account: the profile flag, or the
+  // account/device onboarding record when the profile write failed (it used
+  // to reappear at every sign-in in that case).
+  const { state: onboarding, store: onboardingStore } = useOnboarding()
 
   useEffect(() => {
     initialize().then(() => {
@@ -1034,8 +1056,8 @@ function AuthGate() {
   // longer needed for local testing.
   const isDev = import.meta.env.DEV
   if (!user && !isDev) return <Suspense fallback={<AppLoader />}><AuthModal /></Suspense>
-  if (profile && !profile.onboarding_complete && !onboardingDone) {
-    return <Suspense fallback={<AppLoader />}><OnboardingFlow onComplete={() => setOnboardingDone(true)} /></Suspense>
+  if (profile && !profile.onboarding_complete && !onboarding.profileFlow && !onboardingDone) {
+    return <Suspense fallback={<AppLoader />}><OnboardingFlow onComplete={() => { onboardingStore.markProfileFlow(); setOnboardingDone(true) }} /></Suspense>
   }
   // Once per account: after "continue on Core" the terminal opens on Core.
   // devTrialDay() === 'expired' previews this screen in dev builds only.

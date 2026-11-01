@@ -124,6 +124,7 @@ const HELP_SECTIONS = [
     { cmd:'IDEAS / ROADMAP', desc:'Vote on features, see what\'s coming' },
     { cmd:'HELP / ?', desc:'Show this panel' },
     { cmd:'DATA KEY', desc:'What LIVE, DELAYED, DEMO and STALE mean' },
+    { cmd:'REPLAY TOUR', desc:'Run the setup tour again' },
   ]},
   { title:'KEYBOARD', items:[
     { cmd:'/', desc:'Focus command bar from anywhere' },
@@ -627,6 +628,7 @@ function HelpOverlay({ onClose }) {
         </div>
         <div className="px-4 py-1.5 border-t border-terminal-border bg-terminal-header text-2xs text-terminal-text-dim/50 flex items-center gap-3 flex-wrap">
           <span className="flex-1">Press ESC or click outside to close · Unknown input is automatically routed to MADDEN AI</span>
+          <button type="button" data-help-action="replay-tour" onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('maddex:replay-tour')) }} className="text-terminal-gold hover:underline tracking-widest">REPLAY TOUR</button>
           <button type="button" data-help-action="data-key" onClick={() => { onClose(); openDataLegend() }} className="text-terminal-gold hover:underline tracking-widest">DATA KEY</button>
         </div>
       </div>
@@ -1428,6 +1430,10 @@ export default function CommandBar() {
     }
     if (cmd === 'data key' || cmd === 'legend' || cmd === 'key') {
       openDataLegend()
+      return
+    }
+    if (cmd === 'replay tour' || cmd === 'tour') {
+      window.dispatchEvent(new CustomEvent('maddex:replay-tour'))
       return
     }
 

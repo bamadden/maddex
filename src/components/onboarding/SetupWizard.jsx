@@ -86,9 +86,13 @@ function Done({ children }) {
   return <div className="text-xs text-terminal-green flex items-center gap-2"><span aria-hidden="true">✓</span>{children}</div>
 }
 
-export default function SetupWizard({ onComplete }) {
+// initialStep: where a part-finished setup resumes (services/onboardingSync).
+// onStep(step): called as each step is reached, so progress survives a
+// reload or a new device. onComplete('done' | 'dismissed').
+export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
   const { watchlist, addToWatchlist, addAlert, setChatOpen, setActiveModule, chatMessages, chatOpen } = useStore()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(() => Math.min(TOTAL, Math.max(1, initialStep)))
+  useEffect(() => { onStep?.(step) }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
   const [did, setDid] = useState({})        // what the user actually did, for the summary
   const next = () => setStep((s) => Math.min(TOTAL, s + 1))
   const record = (k, v) => setDid((d) => ({ ...d, [k]: v }))
@@ -121,7 +125,13 @@ export default function SetupWizard({ onComplete }) {
     setAiSentAt(Date.now())
     record('ai', true)
   }
-  useEffect(() => { if (step === 3) setChatOpen(true) }, [step, setChatOpen])
+  // Open MaddenAI for step 3 and close it again on the way past — it used to
+  // stay open behind step 4's card.
+  useEffect(() => {
+    if (step !== 3) return undefined
+    setChatOpen(true)
+    return () => setChatOpen(false)
+  }, [step, setChatOpen])
 
   // ── Step 4: alert on something they now watch
   const alertChoices = useMemo(() => {
@@ -153,7 +163,7 @@ export default function SetupWizard({ onComplete }) {
     record('alert', `${sym4.replace('.AX', '')} ${direction} ${fmtAud(v)}`)
   }
 
-  const finish = () => {
+  const finish = (how = 'done') => {
     setChatOpen(false)
     if (wantsPortfolio) {
       // PortfolioModule opens its add form on mount when this is set.
@@ -162,7 +172,7 @@ export default function SetupWizard({ onComplete }) {
     } else {
       setActiveModule('dashboard')
     }
-    onComplete()
+    onComplete(how)
   }
 
   // Spotlight target per step: the AI panel on step 3, the bell on step 4.
@@ -195,7 +205,7 @@ export default function SetupWizard({ onComplete }) {
         <div className="flex items-center justify-between px-6 pt-5">
           <span className="text-[9px] tracking-[0.22em] text-terminal-gold">SETUP · STEP {step} OF {TOTAL}</span>
           {step < TOTAL && (
-            <button onClick={finish} className="text-[9px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">EXIT SETUP</button>
+            <button onClick={() => finish('dismissed')} className="text-[9px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">EXIT SETUP</button>
           )}
         </div>
         <div className="flex gap-1 px-6 mt-2" aria-hidden="true">
@@ -378,7 +388,7 @@ export default function SetupWizard({ onComplete }) {
                   </div>
                 ))}
               </div>
-              <div className="mt-6"><Primary onClick={finish}>ENTER TERMINAL →</Primary></div>
+              <div className="mt-6"><Primary onClick={() => finish('done')}>ENTER TERMINAL →</Primary></div>
             </>
           )}
         </div>
