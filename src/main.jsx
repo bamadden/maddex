@@ -54,18 +54,11 @@ setTimeout(async () => {
   }
 }, 2000)
 
-// ANTHROPIC deliberately excluded — its key is server-side only (see
-// api/claude.js) and is never read as a VITE_-prefixed client var.
-const KEYED_APIS = {
-  'EXCHANGERATE-API': import.meta.env.VITE_EXCHANGERATE_API_KEY,
-  'FMP':              import.meta.env.VITE_FMP_API_KEY,
-}
-for (const [name, key] of Object.entries(KEYED_APIS)) {
-  if (key) console.log(`[MADDEN] ✓ ${name}: configured (${key.slice(0, 8)}...)`)
-  // An absent equities key is the expected DEMO setup, not a fault.
-  else if (name === 'FMP' && USING_MOCK_DATA) console.info(`[MADDEN] ○ ${name}: not set — equities run on labelled DEMO data`)
-  else     console.warn(`[MADDEN] ✕ ${name}: MISSING — set in .env`)
-}
+// No third-party keys are read here any more. This block used to log the
+// first eight characters of the ExchangeRate-API and FMP keys — which also
+// compiled them into the public bundle. Service keys are server-side only
+// (api/*.js); scripts/check-client-secrets.mjs fails the gate if one appears
+// in dist/.
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

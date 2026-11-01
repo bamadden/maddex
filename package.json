@@ -15,7 +15,8 @@
     "graph:verify": "node scripts/graph-verify.mjs",
     "graph:second-pass": "node --env-file-if-exists=.env scripts/graph-second-pass.mjs",
     "graph:triage": "node scripts/graph-triage.mjs",
-    "graph:report": "node scripts/graph-report.mjs"
+    "graph:report": "node scripts/graph-report.mjs",
+    "check-secrets": "node scripts/check-client-secrets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

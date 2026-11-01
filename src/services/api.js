@@ -1016,14 +1016,14 @@ export const transformFxRates = (rates) =>
 
 // Frankfurter is not tried: it carries ECB fiat rates only, so XAU/XAG was a
 // guaranteed 404 on every load. Gold's live source is liveDataService.getGoldPrice.
+// Through the server (api/metals.js) so the ExchangeRate-API key stays
+// server-side; null when no key is configured there.
 export const fetchMetalsRates = async () => {
-  const key = import.meta.env.VITE_EXCHANGERATE_API_KEY
-  if (!key) return null
   try {
-    const { data } = await httpGet(`https://v6.exchangerate-api.com/v6/${key}/latest/AUD`)
-    if (data.result !== 'success') return null
-    console.log('[MADDEN API] ExchangeRate-API metals XAU/AUD:', (1 / (data.conversion_rates?.XAU ?? 1)).toFixed(2))
-    return data.conversion_rates
+    const r = await fetch('/api/metals')
+    if (r.status !== 200) return null
+    const data = await r.json()
+    return data?.XAU || data?.XAG ? data : null
   } catch { return null }
 }
 

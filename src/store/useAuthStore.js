@@ -248,16 +248,16 @@ export const useAuthStore = create((set, get) => ({
     return { data, error }
   },
 
+  // Everything, including the login (services/accountData + api/account-
+  // delete). The outcome is left in sessionStorage for the sign-in screen,
+  // since this browser's Maddex data — and the session — are cleared.
   deleteAccount: async () => {
-    const userId = get().user?.id
-    if (!userId) return
-    await supabase.from('watchlist').delete().eq('user_id', userId)
-    await supabase.from('portfolio_holdings').delete().eq('user_id', userId)
-    await supabase.from('price_alerts').delete().eq('user_id', userId)
-    await supabase.from('ai_notes').delete().eq('user_id', userId)
-    await supabase.from('user_settings').delete().eq('user_id', userId)
-    await supabase.from('profiles').delete().eq('id', userId)
-    await supabase.auth.signOut()
+    const user = get().user
+    if (!user) return null
+    const { deleteMyAccount } = await import('../services/accountData')
+    const result = await deleteMyAccount(user)
+    try { sessionStorage.setItem('maddex_account_deleted', result.login) } catch { /* private mode */ }
     set({ user: null, profile: null, session: null, settings: null })
+    return result
   },
 }))

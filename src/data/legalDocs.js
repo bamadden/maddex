@@ -154,52 +154,72 @@ const TERMS = {
   ],
 }
 
+// The data inventory below is checked against the code (legal-risk pass,
+// item 7): the Supabase tables in supabase/migrations, the browser keys in
+// services/accountData LOCAL_PREFIXES, and every server function in api/.
+// Change it when any of those change.
 const PRIVACY = {
   slug: 'privacy',
   title: 'Privacy Policy',
-  lede: `How ${COMPANY} handles your personal information, in line with the Privacy Act 1988 (Cth) and the Australian Privacy Principles.`,
+  lede: `How ${COMPANY} handles your personal information, in line with the Privacy Act 1988 (Cth) and the Australian Privacy Principles. DRAFT, pending legal review.`,
   sections: [
     {
-      heading: 'What we collect',
+      heading: 'What we collect, and where it is kept',
       body: [
-        `Account details you give us: first and last name, email address, and country.`,
-        `Subscription details: your plan, trial status and billing status. Card details are handled by our payment processor and are never stored by us.`,
-        `Usage data needed to run the service: sign-in times, and application error reports.`,
-        `Content you create: watchlists, portfolio holdings, alerts, notes and research notes. Much of this is stored only in your browser and never reaches us.`,
+        `Account: your email address, first and last name, country and time zone — stored with our authentication and database provider (Supabase). With it we keep records of your consents (the version of these terms and of the Disclaimer you accepted, and when) and your onboarding progress.`,
+        `Portfolio and watchlist: when you are signed in, your holdings (ticker, units, average cost, currency, date added) and watchlist are stored in your account so they follow you between devices. A copy is also kept in your browser.`,
+        `Alerts and notes: price alerts and saved research notes are stored in your account. Transactions you record, your investor profile (reading level, interests, risk tolerance and time horizon), layouts and preferences are kept in your browser only.`,
+        `AI usage: for each MaddenAI request we record the time, the model, whether it was a chat question, and the number of tokens used — to apply your plan's daily limits. We also keep a record of each AI reply (see "MaddenAI").`,
+        `Waitlist and newsletter: your email address, if you join.`,
+        `Share links: if you create one, the link's id and the snapshot it shows (for a portfolio, percentages only).`,
+        `Error reports are kept in your browser and are not sent to us.`,
+      ],
+    },
+    {
+      heading: 'MaddenAI',
+      body: [
+        `When you ask MaddenAI a question, your question and the context the terminal adds — the date, the module you are on, any asset you have open, your watchlist, your holdings by ticker and weight, and your reading level and interests — are sent through our server to Anthropic, which provides the model. Your name, email address and account identifiers are not sent to Anthropic. Your risk tolerance and time horizon are never sent.`,
+        `Maddex does not store your questions. We keep a record of each reply — the reply text, the model, the version of our instructions, the date of the data it was given, and the result of our automated check for recommendation language — so that we can investigate a complaint. That record is linked to your account.`,
       ],
     },
     {
       heading: 'What we do with it',
       body: [
-        `We use your information to provide the terminal, authenticate you, apply your subscription, respond to support requests, and keep the service secure and working.`,
-        `We do not sell your personal information, and we do not use it for third-party advertising.`,
+        `We use your information to provide the terminal, authenticate you, apply your plan, send the alerts and newsletters you ask for, respond to support requests and complaints, and keep the service secure and working.`,
+        `We do not sell your personal information, and we do not use it for advertising. Maddex uses no analytics or advertising trackers.`,
       ],
     },
     {
-      heading: 'Stored in your browser',
+      heading: 'Who else receives it',
       body: [
-        `Maddex deliberately keeps a lot on your own device rather than on a server: your watchlist, portfolio, alerts, notification history, layout and preferences. That data stays in your browser's local storage.`,
-        `It is not sent to us, it does not follow you to another device, and clearing your browser data removes it permanently.`,
-      ],
-    },
-    {
-      heading: 'Who else is involved',
-      body: [
-        `Authentication and account storage: Supabase. Hosting and delivery: Vercel. AI commentary: Anthropic — the terminal sends the question and the figures shown on screen, and does not send your name, email or account identifiers.`,
-        `Market, economic and on-chain data providers, each named on the surface that displays their data.`,
+        `Supabase — authentication and database (your account, portfolio, watchlist, alerts, notes, usage and AI reply records).`,
+        `Vercel — hosting, and the server functions your requests pass through (including MaddenAI requests). Vercel keeps request logs as part of running the service.`,
+        `Anthropic — the AI model, which receives MaddenAI requests as described above, under its commercial terms.`,
+        `Resend — delivers alert emails and newsletters to your email address, if you turn them on.`,
+        `Market, economic, news and map providers named in the terminal receive requests from your browser or our server when data is fetched. They see the request and your IP address, not your account.`,
         `Some of these providers process data outside Australia, including in the United States.`,
+      ],
+    },
+    {
+      heading: 'How long we keep it',
+      body: [
+        `Account, portfolio, watchlist, alerts and notes: until you delete them or your account.`,
+        `AI usage records: 90 days. AI reply records: 2 years, for complaint handling (this period is under legal review).`,
+        `Waitlist and newsletter: until you unsubscribe or delete your account.`,
+        `Data in your browser: until you clear it, delete your account, or use Clear all cached data in Settings.`,
       ],
     },
     {
       heading: 'Security',
       body: [
-        `Access is authenticated, traffic is encrypted in transit, and account data is held in managed infrastructure with access restricted to what is needed to operate the service. No system is perfectly secure, and we cannot guarantee absolute security.`,
+        `Access is authenticated, traffic is encrypted in transit, each user's rows are protected by row-level security, and service keys are held only on our servers. No system is perfectly secure, and we cannot guarantee absolute security. If a breach is likely to cause you serious harm we will tell you and the Office of the Australian Information Commissioner, as the Notifiable Data Breaches scheme requires.`,
       ],
     },
     {
       heading: 'Access, correction and deletion',
       body: [
-        `You can view and correct your profile in Settings at any time. To request a copy of the personal information we hold about you, or to have your account and its data deleted, email ${CONTACT}.`,
+        `Settings → Data → Export my data downloads everything we hold about you as one file. You can correct your profile in Settings at any time.`,
+        `Settings → Delete account deletes your account and all of its data, including your login, and clears Maddex data from that browser. You can also email ${CONTACT}.`,
       ],
     },
     {
@@ -210,7 +230,7 @@ const PRIVACY = {
     },
     {
       heading: 'Changes',
-      body: [`We may update this policy. The effective date below reflects the current version.`],
+      body: [`We may update this policy. The effective date and version above reflect the current one; if a change is significant we will ask you to accept it again.`],
     },
   ],
 }

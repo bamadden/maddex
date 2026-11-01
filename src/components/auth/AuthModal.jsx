@@ -180,10 +180,22 @@ function LegalLinks({ agree, onAgree, error, disabled }) {
   )
 }
 
+// After an account deletion (services/accountData), what happened to it.
+function deletionNotice() {
+  try {
+    const v = sessionStorage.getItem('maddex_account_deleted')
+    if (!v) return null
+    sessionStorage.removeItem('maddex_account_deleted')
+    return v === 'deleted'
+      ? 'Your Maddex account and its data have been deleted.'
+      : 'Your Maddex data has been deleted. Your login could not be removed automatically — email support and it will be removed.'
+  } catch { return null }
+}
+
 export default function AuthModal({ deletedMessage }) {
   const [tab, setTab] = useState('signin') // signin | signup | forgot
   const [loading, setLoading] = useState(false)
-  const [globalError, setGlobalError] = useState(deletedMessage || null)
+  const [globalError, setGlobalError] = useState(() => deletedMessage || deletionNotice())
 
   // Sign in state
   const [siEmail, setSiEmail] = useState('')

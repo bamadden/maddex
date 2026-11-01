@@ -1813,33 +1813,12 @@ function ExportAllBlock() {
 function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClearCache, onResetDashboard, onSignOut, signedIn }) {
   const [exporting, setExporting] = useState(false)
 
+  // Everything Maddex holds about you, on every plan (services/accountData).
   const exportUserData = async () => {
     setExporting(true)
     try {
-      const [profile, watchlist, portfolio, alerts, notes, settings] = await Promise.all([
-        supabase.from('profiles').select('*').limit(1),
-        supabase.from('watchlist').select('*'),
-        supabase.from('portfolio_holdings').select('*'),
-        supabase.from('price_alerts').select('*'),
-        supabase.from('ai_notes').select('*'),
-        supabase.from('user_settings').select('*').limit(1),
-      ])
-      const exportData = {
-        exported_at: new Date().toISOString(),
-        profile: profile.data?.[0] ?? null,
-        watchlist: watchlist.data,
-        portfolio: portfolio.data,
-        price_alerts: alerts.data,
-        ai_notes: notes.data,
-        settings: settings.data?.[0] ?? null,
-      }
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `maddex_data_export_${new Date().toISOString().slice(0, 10)}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      const { exportMyData } = await import('../../services/accountData')
+      await exportMyData(useAuthStore.getState().user)
     } finally {
       setExporting(false)
     }
@@ -1851,7 +1830,7 @@ function DataSection({ onClearWatchlist, onClearPortfolio, onClearNotes, onClear
 
       <div className="space-y-3">
         <div className="text-xs font-bold text-terminal-text-bright">EXPORT MY DATA</div>
-        <div className="text-2xs text-terminal-text-dim">Download all your Maddex data as a JSON file.</div>
+        <div className="text-2xs text-terminal-text-dim">Everything Maddex holds about you — your account and consents, every row stored against it, and the Maddex data in this browser — as one JSON file. Available on every plan.</div>
         <button
           onClick={exportUserData}
           disabled={exporting}
@@ -2817,7 +2796,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         <ConfirmDialog
           title="DELETE ACCOUNT"
           confirmLabel="DELETE ACCOUNT"
-          message="This will permanently delete your Maddex account and all associated data. This action cannot be undone."
+          message="This permanently deletes your Maddex account: your login, profile, settings, watchlist, portfolio, alerts, notes, share links and usage records, and the Maddex data in this browser. It cannot be undone. Export your data first if you want a copy."
           requiresType="DELETE"
           requiresPassword
           onConfirm={handleDeleteAccount}

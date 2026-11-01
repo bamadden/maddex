@@ -49,6 +49,24 @@ export default defineConfig(({ mode }) => {
     },
   }
 
+  // api/metals.js in dev: the ExchangeRate-API key is read on the server
+  // (process.env), never compiled into the client.
+  const metalsDevMiddleware = {
+    name: 'maddex-metals-dev',
+    configureServer(server) {
+      server.middlewares.use('/api/metals', async (req, res) => {
+        process.env.EXCHANGERATE_API_KEY ??= env.EXCHANGERATE_API_KEY || env.VITE_EXCHANGERATE_API_KEY || ''
+        const { default: handler } = await server.ssrLoadModule('/api/metals.js')
+        const shim = {
+          status(code) { res.statusCode = code; return shim },
+          setHeader(k, v) { res.setHeader(k, v); return shim },
+          json(body) { res.setHeader('Content-Type', 'application/json'); res.end(body == null ? '' : JSON.stringify(body)) },
+        }
+        try { await handler(req, shim) } catch (err) { res.statusCode = 500; res.end(JSON.stringify({ error: err.message })) }
+      })
+    },
+  }
+
   // Same idea for the alert-email handler: it verifies a Supabase token and
   // calls Resend, neither of which a plain proxy can do. Running the real
   // handler in dev means the 503-without-a-key and 401-without-a-session paths
@@ -123,7 +141,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), rssDevMiddleware, aiDailyDevMiddleware, alertEmailDevMiddleware, graphReviewDevMiddleware],
+    plugins: [react(), rssDevMiddleware, aiDailyDevMiddleware, alertEmailDevMiddleware, metalsDevMiddleware, graphReviewDevMiddleware],
 
     define: {
       __GIT_COMMIT__: JSON.stringify(gitCommit()),
