@@ -8,7 +8,9 @@ import { PAL } from '../../styles/palette.js'
 // line on why it is worth having; `feature` / `requiredTier` remain for the
 // older call sites that pass a label directly. `message` overrides the body,
 // for limits ("You've used today's 10 MaddenAI questions").
-export function UpgradeCard({ featureKey, feature, requiredTier = 'prime', message, onClose }) {
+// `onBack` adds a way out for a locked module, which otherwise fills the
+// screen with no exit but the nav.
+export function UpgradeCard({ featureKey, feature, requiredTier = 'prime', message, onClose, onBack }) {
   const copy = FEATURE_COPY[featureKey] ?? {}
   const name = copy.name ?? feature ?? 'This feature'
   const label = TIER_LABEL[requiredTier] ?? requiredTier
@@ -36,14 +38,19 @@ export function UpgradeCard({ featureKey, feature, requiredTier = 'prime', messa
       <button onClick={openPricing} className="mt-3 text-[11px] tracking-[0.16em] text-terminal-text-dim hover:text-terminal-gold underline underline-offset-4">
         SEE ALL PLANS
       </button>
+      {onBack && (
+        <button onClick={onBack} className="block mx-auto mt-3 text-[11px] tracking-[0.16em] text-terminal-text-dim hover:text-terminal-text">
+          ← BACK TO OVERVIEW
+        </button>
+      )}
     </div>
   )
 }
 
-export default function UpgradePrompt({ feature, featureKey, requiredTier = 'prime', message }) {
+export default function UpgradePrompt({ feature, featureKey, requiredTier = 'prime', message, onBack }) {
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-terminal-bg/80 backdrop-blur-sm p-4">
-      <UpgradeCard featureKey={featureKey} feature={feature} requiredTier={requiredTier} message={message} />
+      <UpgradeCard featureKey={featureKey} feature={feature} requiredTier={requiredTier} message={message} onClose={onBack} onBack={onBack} />
     </div>
   )
 }

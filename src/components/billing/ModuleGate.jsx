@@ -11,6 +11,7 @@ import UpgradePrompt from '../ui/UpgradePrompt'
 // stable across renders; a fresh wrapper each render would remount the
 // module on every parent update.
 const cache = new Map()
+const backToOverview = () => window.dispatchEvent(new CustomEvent('maddex:navigate', { detail: { module: 'dashboard' } }))
 
 export function gatedModule(Module, feature) {
   const key = Module
@@ -26,7 +27,10 @@ export function gatedModule(Module, feature) {
             style={{ filter: 'blur(3px) saturate(0.6)', opacity: 0.45 }}>
             <Module {...props} />
           </div>
-          <UpgradePrompt featureKey={feature} requiredTier={planFor(feature)} />
+          {/* ✕ or BACK TO OVERVIEW — a way out besides the nav. An event (App
+              listens) rather than useStore: importing the store here split the
+              first-paint bundle into extra chunks. */}
+          <UpgradePrompt featureKey={feature} requiredTier={planFor(feature)} onBack={backToOverview} />
         </div>
       )
     }
