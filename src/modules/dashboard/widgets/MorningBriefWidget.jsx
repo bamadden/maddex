@@ -2,27 +2,13 @@ import { useEffect, useState } from 'react'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { getCachedBrief, isAuWeekend, auHour } from '../../../services/morningBriefService'
-import { scoreColour } from '../../../utils/briefScore'
+import { outlookColour } from '../../../utils/briefScore'
 import { PAL } from '../../../styles/palette.js'
 
 // Today's morning brief, read from the brief module's own cache — no second
 // AI call. When there is no brief for today it says when one arrives and
 // offers to generate it; GENERATE NOW opens the Brief module, which generates
 // on open under the plan's weekly allowance, so the gate lives in one place.
-
-function Gauge({ score }) {
-  // Semicircle, 0–100 left to right, in the Brief module's own score bands.
-  const s = Math.max(0, Math.min(100, Number(score) || 0))
-  const a = Math.PI * (1 - s / 100)
-  const x = 30 + 24 * Math.cos(a), y = 30 - 24 * Math.sin(a)
-  const tone = scoreColour(s)
-  return (
-    <svg width="60" height="34" viewBox="0 0 60 34" aria-hidden="true">
-      <path d="M6 30 A24 24 0 0 1 54 30" fill="none" stroke="rgba(74,96,128,0.3)" strokeWidth="4" strokeLinecap="round" />
-      <path d={`M6 30 A24 24 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)}`} fill="none" stroke={tone} strokeWidth="4" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 export default function MorningBriefWidget() {
   // Re-read every minute so a brief generated in another tab or module shows
@@ -52,10 +38,10 @@ export default function MorningBriefWidget() {
   return (
     <WidgetBody>
       <div className="flex items-center gap-3 flex-shrink-0">
-        <Gauge score={brief.maddenAIScore} />
+        {/* MaddenAI's outlook in words; the brief carries no model-made score. */}
         <div className="min-w-0">
-          <div className="font-mono tabular-nums leading-none" style={{ fontSize: 20, color: PAL.bright }}>{brief.maddenAIScore ?? '—'}</div>
-          <div className="font-mono truncate mt-0.5" style={{ fontSize: 11, color: PAL.gold, letterSpacing: '0.1em' }}>{String(brief.scoreLabel ?? '').toUpperCase()}</div>
+          <div className="font-mono" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.1em' }}>MADDENAI OUTLOOK</div>
+          <div className="font-mono font-bold truncate mt-0.5" style={{ fontSize: 14, color: outlookColour(brief.scoreLabel), letterSpacing: '0.1em' }}>{brief.scoreLabel ? String(brief.scoreLabel).toUpperCase() : '—'}</div>
         </div>
         {time && <span className="ml-auto font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted }}>{time}</span>}
       </div>

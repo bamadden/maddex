@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { USING_MOCK_DATA } from '../../services/api'
-import { scoreColour } from '../../utils/briefScore'
 import { PAL } from '../../styles/palette.js'
 
 // YOUR WATCHLIST TODAY — one line of day moves, from the same quote layer as
@@ -41,41 +40,28 @@ export function WatchlistToday({ watchlist = [] }) {
   )
 }
 
-// The score's three parts, written by MaddenAI with the brief. Collapsed by
-// default under the gauge; briefs generated before the breakdown existed
-// simply have none.
+// The outlook's three parts, written by MaddenAI with the brief — notes in
+// words. Scores that older cached briefs carry are not shown: the model does
+// not originate numbers.
 export function ScoreBreakdown({ brief }) {
   const [open, setOpen] = useState(false)
-  const parts = Array.isArray(brief.scoreBreakdown) ? brief.scoreBreakdown.filter((p) => Number.isFinite(Number(p?.score))) : []
+  const parts = Array.isArray(brief.scoreBreakdown) ? brief.scoreBreakdown.filter((p) => p?.name && p?.note) : []
   if (!parts.length) return null
   return (
     <div className="mt-3 w-full max-w-md">
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="font-mono text-terminal-gold/80 hover:text-terminal-gold tracking-widest" style={{ fontSize: 11 }}>
-        {open ? '▾ HIDE SCORE BREAKDOWN' : '▸ SCORE BREAKDOWN'}
+        {open ? '▾ HIDE OUTLOOK BREAKDOWN' : '▸ OUTLOOK BREAKDOWN'}
       </button>
       {open && (
         <div className="mt-2 text-left border border-terminal-border divide-y divide-terminal-border/50">
-          {parts.map((p) => {
-            const v = Math.round(Number(p.score))
-            return (
-              <div key={p.name} className="px-3 py-2">
-                <div className="flex items-baseline justify-between font-mono" style={{ fontSize: 11 }}>
-                  <span className="text-terminal-text-dim tracking-wider">{p.name}</span>
-                  <span className="font-bold tabular-nums" style={{ color: scoreColour(v) }}>{v}/100</span>
-                </div>
-                <div className="h-1 mt-1 rounded-full overflow-hidden" style={{ background: 'rgba(99,120,153,0.2)' }}>
-                  <div className="h-full" style={{ width: `${v}%`, background: scoreColour(v) }} />
-                </div>
-                {p.note && <div className="text-terminal-text-dim mt-1" style={{ fontSize: 11 }}>{p.note}</div>}
-              </div>
-            )
-          })}
-          <div className="px-3 py-2 flex items-baseline justify-between font-mono" style={{ fontSize: 11 }}>
-            <span className="text-terminal-text-bright tracking-wider font-bold">COMBINED</span>
-            <span className="font-bold" style={{ color: scoreColour(brief.maddenAIScore ?? 50) }}>{brief.maddenAIScore}/100 — {brief.scoreLabel}</span>
-          </div>
-          <div className="px-3 py-1.5 text-terminal-text-dim/50 font-mono" style={{ fontSize: 11 }}>MaddenAI&apos;s judgement from the figures it was given — not a model or index.</div>
+          {parts.map((p) => (
+            <div key={p.name} className="px-3 py-2">
+              <div className="font-mono text-terminal-text-dim tracking-wider" style={{ fontSize: 11 }}>{p.name}</div>
+              <div className="text-terminal-text mt-1" style={{ fontSize: 12 }}>{p.note}</div>
+            </div>
+          ))}
+          <div className="px-3 py-1.5 text-terminal-text-dim font-mono" style={{ fontSize: 11 }}>MaddenAI&apos;s judgement from the figures it was given — not a model or index.</div>
         </div>
       )}
     </div>

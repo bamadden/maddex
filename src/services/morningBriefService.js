@@ -33,14 +33,13 @@ FIGURES, which you must not invent:
 Generate a JSON object:
 {
   "headline": "One sentence naming the single most important thing about today",
-  "maddenAIScore": number 0-100 (overall market bullishness),
-  "scoreLabel": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH",
-  "scoreRationale": "One sentence justifying that score specifically",
-  "scoreDriver": "One short line naming what is driving the score, e.g. 'Materials leading; the rate hike weighing on property'",
+  "scoreLabel": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH" (your outlook in words; give no score — the terminal computes its own),
+  "scoreRationale": "One sentence justifying that outlook specifically",
+  "scoreDriver": "One short line naming what is driving the outlook, e.g. 'Materials leading; the rate hike weighing on property'",
   "scoreBreakdown": [
-    { "name": "MACRO ENVIRONMENT", "score": number 0-100, "note": "One line, e.g. 'High inflation, moderate growth'" },
-    { "name": "MARKET MOMENTUM", "score": number 0-100, "note": "One line on breadth, trend and flows as far as the supplied figures allow" },
-    { "name": "RISK SENTIMENT", "score": number 0-100, "note": "One line on risk appetite — central banks, the AUD, credit, geopolitics" }
+    { "name": "MACRO ENVIRONMENT", "note": "One line, e.g. 'High inflation, moderate growth'" },
+    { "name": "MARKET MOMENTUM", "note": "One line on breadth, trend and flows as far as the supplied figures allow" },
+    { "name": "RISK SENTIMENT", "note": "One line on risk appetite — central banks, the AUD, credit, geopolitics" }
   ],
   "sections": [
     { "title": "MARKET OVERVIEW", "content": "3-4 sentences: the state of play going into today's session — overnight offshore action and how it feeds into the Sydney open" },
@@ -94,8 +93,6 @@ export function auHour(d = new Date()) {
 export function getWeekendMessage() {
   return {
     headline: 'Markets are closed for the weekend — see you Monday.',
-    maddenAIScore: 50,
-    scoreLabel: 'NEUTRAL',
     sections: [
       { title: 'WEEKEND', content: 'No new brief is generated on weekends. Check back Monday from 7am AEST for a fresh, personalised market brief.' },
     ],

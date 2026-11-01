@@ -1,5 +1,5 @@
-// MaddenAI content that is the same for every reader — the market
-// sentiment score, the macro themes and the Global/Macro narratives — built
+// MaddenAI content that is the same for every reader — the headline
+// sentiment read (in words), the macro themes and the Global/Macro narratives — built
 // ONCE per day on the server and shared.
 //
 // Before 31 Oct 2026 each of these was generated in every reader's browser
@@ -195,15 +195,14 @@ export const SENTIMENT_FEEDS = [
 ]
 
 function sentimentPrompt(headlines) {
-  return `Analyse these financial news headlines and return a market sentiment score for Australian investors.
-Some feeds carry general news. Ignore any headline with no plausible market relevance (crime, accidents, sport, entertainment, health stories that move no stock) — score only what an investor could position around, and name only such headlines as drivers.
+  return `Analyse these financial news headlines and return a market sentiment read, in words, for Australian investors. Do not give a number: the terminal computes its own sentiment score from market data.
+Some feeds carry general news. Ignore any headline with no plausible market relevance (crime, accidents, sport, entertainment, health stories that move no stock) — read only what an investor could position around, and name only such headlines as drivers.
 
 Headlines:
 ${headlines.join('\n')}
 
 Return JSON only:
 {
-  "score": number 0-100,
   "label": "STRONGLY BULLISH" | "BULLISH" | "CAUTIOUSLY BULLISH" | "NEUTRAL" | "CAUTIOUSLY BEARISH" | "BEARISH" | "STRONGLY BEARISH",
   "drivers": ["top positive driver", "top negative driver"],
   "asxBias": "POSITIVE" | "NEUTRAL" | "NEGATIVE",

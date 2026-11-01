@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { BRIEF_BANDS, scoreColour } from '../../utils/briefScore'
+import { outlookColour } from '../../utils/briefScore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
 import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey, getCachedBrief } from '../../services/morningBriefService'
@@ -161,48 +161,15 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
   )
 }
 
-// Score bands per spec — angular width is proportional to each band's share
-// of the 0-100 range, not evenly split, so the gauge's colour transitions
-// land at the same score thresholds the label logic uses.
-const BANDS = BRIEF_BANDS
-
-function polar(cx, cy, r, angleDeg) {
-  const rad = (angleDeg * Math.PI) / 180
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
-}
-// Score 0-100 -> angle 180 (left) .. 360/0 (right), sweeping the top half.
-const scoreToAngle = (s) => 180 + (s / 100) * 180
-
-function ScoreGauge({ score, label }) {
-  const cx = 110, cy = 105, r = 88, strokeW = 16
-  const needle = polar(cx, cy, r - strokeW / 2 - 6, scoreToAngle(score))
-  const bandColor = BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? PAL.dim
-
+// MaddenAI's outlook, in words. The brief never carries a number from the
+// model: the market's sentiment score is computed in code and shown below it
+// (SentimentBar).
+function Outlook({ label }) {
+  if (!label) return null
   return (
-    <div className="flex flex-col items-center">
-      <svg width={220} height={120} viewBox="0 0 220 120">
-        {BANDS.map((b) => {
-          const start = polar(cx, cy, r, scoreToAngle(b.from))
-          const end = polar(cx, cy, r, scoreToAngle(b.to))
-          return (
-            <path
-              key={b.from}
-              d={`M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y}`}
-              fill="none"
-              stroke={b.color}
-              strokeWidth={strokeW}
-              strokeLinecap="butt"
-            />
-          )
-        })}
-        {/* Needle */}
-        <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke={PAL.bright} strokeWidth={2.5} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={5} fill={PAL.bright} />
-      </svg>
-      <div className="text-center -mt-2">
-        <div className="text-4xl font-bold" style={{ color: bandColor }}>{score}</div>
-        <div className="text-2xs font-bold tracking-widest mt-1" style={{ color: bandColor }}>{label}</div>
-      </div>
+    <div className="text-center">
+      <div className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 11 }}>MADDENAI OUTLOOK</div>
+      <div className="font-mono font-bold tracking-widest mt-1" style={{ fontSize: 20, color: outlookColour(label) }}>{String(label).toUpperCase()}</div>
     </div>
   )
 }
@@ -252,9 +219,9 @@ function PreviousBriefs({ currentDay, excludeWeek }) {
                 <span className={`text-terminal-text-bright font-semibold ${weekly ? 'text-xs' : 'text-2xs'}`}>
                   {weekly ? `Week of ${brief.label}` : label(day)}
                 </span>
-                {!weekly && brief.maddenAIScore != null && (
-                  <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 11, color: scoreColour(brief.maddenAIScore), border: `1px solid ${scoreColour(brief.maddenAIScore)}55` }}>
-                    {brief.maddenAIScore} · {brief.scoreLabel}
+                {!weekly && brief.scoreLabel && (
+                  <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 11, color: outlookColour(brief.scoreLabel), border: `1px solid ${outlookColour(brief.scoreLabel)}55` }}>
+                    {brief.scoreLabel}
                   </span>
                 )}
                 <span className="ml-auto text-2xs text-terminal-text-dim">{open === id ? '▲' : '▼'}</span>
@@ -355,7 +322,7 @@ export default function MorningBriefModule() {
     const day = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase()
     const text = [
       `MADDEX MORNING BRIEF — ${day}`,
-      `Market Score: ${brief.maddenAIScore} (${brief.scoreLabel})`,
+      ...(brief.scoreLabel ? [`MaddenAI outlook: ${brief.scoreLabel}`] : []),
       '',
       brief.headline,
       brief.scoreDriver ?? brief.scoreRationale ?? '',
@@ -509,7 +476,7 @@ export default function MorningBriefModule() {
 
             {/* Score */}
             <div className="flex flex-col items-center text-center py-4">
-              <ScoreGauge score={brief.maddenAIScore ?? 50} label={brief.scoreLabel ?? 'NEUTRAL'} />
+              <Outlook label={brief.scoreLabel} />
               {(brief.scoreDriver || brief.scoreRationale) && (
                 <div className="font-sans text-terminal-text-dim mt-2 max-w-lg" style={{ fontSize: 13 }}>{brief.scoreDriver ?? brief.scoreRationale}</div>
               )}

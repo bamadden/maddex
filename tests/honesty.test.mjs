@@ -95,3 +95,39 @@ test('no newsletter prompt while there is nothing to subscribe to', () => {
   assert.doesNotMatch(read('src/modules/brief/MorningBriefModule.jsx'), /Newsletter(Editions|Inline)/)
   assert.doesNotMatch(read('src/services/newsletterService.js'), /Delivered every Friday/)
 })
+
+// ── No fixed exchange rate ──────────────────────────────────────────────────
+import { toAUD } from '../src/services/api.js'
+import { summarise } from '../src/services/transactionService.js'
+import { mergeLots } from '../src/services/portfolioCsv.js'
+import { computePortfolioSnapshot } from '../src/modules/dashboard/portfolioSnapshot.js'
+
+test('a US$ figure without an AUD/USD rate is "—", never converted at a fixed rate', () => {
+  for (const f of ['src/hooks/useAudRates.js', 'src/modules/global/GlobalModule.jsx', 'src/modules/markets/TopMovers.jsx']) {
+    assert.doesNotMatch(read(f), /0\.652\b|\?\? 1\.55/, f)
+  }
+  assert.equal(toAUD(100, 'USD', null), null)
+  assert.equal(toAUD(100, 'USD', 0.64), 100 / 0.64)
+  assert.equal(toAUD(100, 'AUD', null), 100)
+
+  const noRate = () => null
+  // Transactions: a US$ buy without a rate flags the total instead of adding US$ as A$.
+  assert.equal(summarise([{ id: 1, type: 'BUY', symbol: 'AAPL', units: 1, price: 200, currency: 'USD', date: '2026-01-02' }], noRate).unconverted, true)
+  // Portfolio: a lot with no A$ cost leaves the merged position without one.
+  const [m] = mergeLots([{ type: 'us', symbol: 'AAPL', shares: 1, totalCost: 300, mktVal: 320, addedAt: 1 }, { type: 'us', symbol: 'AAPL', shares: 1, totalCost: null, mktVal: 320, addedAt: 2 }])
+  assert.equal(m.totalCost, null)
+  assert.equal(m.pnl, null)
+  // Dashboard snapshot: a holding whose US$ cost cannot be converted is left out, not costed at zero.
+  const snap = computePortfolioSnapshot([{ symbol: 'CBA', type: 'asx', shares: 1, avgCost: 100, costCurrency: 'USD', yfSym: 'CBA.AX' }], { 'CBA.AX': { last: 120 } }, noRate)
+  assert.equal(snap, null)
+})
+
+// ── MaddenAI originates no score ────────────────────────────────────────────
+test('no MaddenAI prompt asks for a score, and the Brief shows its outlook as words', () => {
+  for (const f of ['src/services/aiDaily.js', 'src/services/morningBriefService.js']) {
+    assert.doesNotMatch(read(f), /"[a-zA-Z]*[sS]core": *number|maddenAIScore/, f)
+  }
+  for (const f of ['src/modules/brief/MorningBriefModule.jsx', 'src/modules/brief/BriefExtras.jsx', 'src/modules/brief/briefImage.js', 'src/modules/dashboard/widgets/MorningBriefWidget.jsx']) {
+    assert.doesNotMatch(read(f), /maddenAIScore|\.score\b/, f)
+  }
+})

@@ -10,3 +10,11 @@ export const BRIEF_BANDS = [
 ]
 
 export const scoreColour = (score) => BRIEF_BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? PAL.dim
+
+// MaddenAI's outlook is words only (it never gives a score), coloured on the
+// same scale: bearish red, cautious gold, bullish green.
+const OUTLOOK = {
+  'STRONGLY BEARISH': PAL.down, BEARISH: PAL.down, 'CAUTIOUSLY BEARISH': PAL.gold,
+  NEUTRAL: '#E8C96A', 'CAUTIOUSLY BULLISH': '#6FCB8F', BULLISH: '#6FCB8F', 'STRONGLY BULLISH': PAL.up,
+}
+export const outlookColour = (label) => OUTLOOK[String(label ?? '').toUpperCase()] ?? PAL.dim

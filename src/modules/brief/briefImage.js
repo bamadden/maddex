@@ -1,4 +1,4 @@
-import { scoreColour } from '../../utils/briefScore'
+import { outlookColour } from '../../utils/briefScore'
 import { PAL } from '../../styles/palette.js'
 
 // SHARE AS IMAGE — the brief as a 1200×630 card (the size social platforms
@@ -51,19 +51,18 @@ export async function downloadBriefImage(brief, dayLabel) {
   ctx.fillStyle = DIM; ctx.font = `500 14px ${mono}`; ctx.fillText('MORNING INTELLIGENCE BRIEF', 160, 77)
   ctx.textAlign = 'right'; ctx.fillStyle = TEXT; ctx.font = `600 16px ${mono}`; ctx.fillText(dayLabel, W - 56, 78); ctx.textAlign = 'left'
 
-  // Gauge: a 240° arc, filled to the score.
-  const score = Math.max(0, Math.min(100, Number(brief.maddenAIScore ?? 50)))
-  const col = scoreColour(score)
-  const cx = 240, cy = 330, r = 120
-  const a0 = (150 * Math.PI) / 180, span = (240 * Math.PI) / 180
-  ctx.lineCap = 'round'; ctx.lineWidth = 18
-  ctx.strokeStyle = 'rgba(99,120,153,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, r, a0, a0 + span); ctx.stroke()
-  ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(cx, cy, r, a0, a0 + (span * score) / 100); ctx.stroke()
-  ctx.textAlign = 'center'
-  ctx.fillStyle = TEXT; ctx.font = `700 72px ${mono}`; ctx.fillText(String(Math.round(score)), cx, cy + 22)
-  ctx.fillStyle = DIM; ctx.font = `500 13px ${mono}`; ctx.fillText('/ 100  MADDENAI SCORE', cx, cy + 50)
-  ctx.fillStyle = col; ctx.font = `700 18px ${mono}`; ctx.fillText(String(brief.scoreLabel ?? 'NEUTRAL'), cx, cy + 150)
-  ctx.textAlign = 'left'
+  // MaddenAI's outlook in words (the brief carries no model-made score).
+  const label = String(brief.scoreLabel ?? '').toUpperCase()
+  if (label) {
+    ctx.textAlign = 'center'
+    ctx.fillStyle = DIM; ctx.font = `500 14px ${mono}`; ctx.fillText('MADDENAI OUTLOOK', 240, 290)
+    ctx.fillStyle = outlookColour(label); ctx.font = `700 26px ${mono}`
+    const words = label.split(' ')
+    if (words.length > 1 && ctx.measureText(label).width > 330) {
+      ctx.fillText(words.slice(0, -1).join(' '), 240, 336); ctx.fillText(words.at(-1), 240, 372)
+    } else ctx.fillText(label, 240, 340)
+    ctx.textAlign = 'left'
+  }
 
   // Headline and three points.
   const x = 440, maxW = W - x - 60
