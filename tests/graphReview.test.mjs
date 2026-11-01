@@ -49,6 +49,7 @@ test('approve writes one DISCLOSED edge carrying approver, time, both verdicts a
   assert.deepEqual(e.review.quoteMatch, { result: 'verified', page: 9, start: 0, end: 70, sourceSha256: 'abc123' })
   assert.deepEqual(reviewProblems(e), [])
   assert.equal(read('decisions.json').a.by, 'Test Reviewer')
+  assert.match(fs.readFileSync(path.join(root, 'docs/GRAPH_QUALITY.md'), 'utf8'), /\| NEEDS_HUMAN \| 1 \| 0 \| 0 \|/) // report regenerated
   assert.equal(applyReview(root, { file: FILE, id: 'a', action: 'approve' }, as).ok, false) // not twice
 })
 

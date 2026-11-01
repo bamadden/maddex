@@ -20,7 +20,8 @@
 //   - the edge is re-checked — type, stake against the quote, endpoints,
 //     duplicates, the whole edge against schema.js.
 // Each published edge carries `review`: approver, timestamp, both passes'
-// verdicts and the quote match record.
+// verdicts and the quote match record. docs/GRAPH_QUALITY.md is regenerated
+// after every decision.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -31,6 +32,7 @@ import { edgeProblems, edgeId } from '../src/data/graph/schema.js'
 import { ALL_NODES } from '../src/data/graph/nodes.js'
 import { EDGES } from '../src/data/graph/edges.js'
 import { SPOT_CHECK_SIZE } from '../src/data/graph/reviewConfig.js'
+import { buildQualityReport } from './graph-report.mjs'
 
 const FILE_RE = /^[A-Z0-9]{2,6}-\d{4}-\d{2}-\d{2}\.json$/
 const readJson = (p, fallback) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')) } catch { return fallback } }
@@ -114,7 +116,16 @@ function findProposal(ctx, file, id) {
 
 // opts.reviewer: who is approving (supplied by the dev server, required).
 // opts.now: ISO timestamp.
-export function applyReview(root, body, { reviewer, now = new Date().toISOString() } = {}) {
+export function applyReview(root, body, opts = {}) {
+  const r = decide(root, body, opts)
+  if (r.ok) {
+    fs.mkdirSync(path.join(root, 'docs'), { recursive: true })
+    fs.writeFileSync(path.join(root, 'docs/GRAPH_QUALITY.md'), buildQualityReport(root))
+  }
+  return r
+}
+
+function decide(root, body, { reviewer, now = new Date().toISOString() } = {}) {
   if (!reviewer || !String(reviewer).trim()) return { ok: false, error: 'no reviewer recorded — every decision needs a named person' }
   const ctx = context(root)
   const decisions = readJson(ctx.decisionsPath, {})

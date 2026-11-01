@@ -176,3 +176,24 @@ companies from each latest annual report, marked DISCLOSED. Nine of ten done:
   main products (alumina, aluminium, manganese) are not modelled as
   commodities.
 - [ ] BHP coal (5,590 of 58,760) is not modelled: there is no coal node yet.
+
+## Review pipeline (1 Nov 2026)
+
+Workflow for every new proposals file: `npm run propose-edges …`, then
+`npm run graph:verify` (Stage 1, no AI), `npm run graph:second-pass` (Stage 2,
+blind second reading, claude-opus-5-5), `npm run graph:triage` (Stage 3).
+Review in the REVIEW module (dev server): NEEDS HUMAN first. Every decision
+regenerates docs/GRAPH_QUALITY.md (`npm run graph:report` does it by hand).
+
+- [ ] **6 NEEDS HUMAN in REVIEW.** Both Wesfarmers → BWP ownership proposals
+  and the Rob Scott and Ken MacKenzie director proposals duplicate edges
+  already in the graph (the writer refuses duplicates, so reject them).
+  Chaney as WES director was true at the report date but he left the board
+  on 29 Oct 2026. Wesfarmers ↔ Coles joint venture is Flybuys (50/50).
+- [ ] **22 AUTO-REJECTED** because a counterparty is not a node (Bunnings,
+  Flybuys, Kmart, Officeworks, SQM, Covalent Lithium, the divisional
+  directors…). To bring any back, add the node to nodes.js and re-run
+  graph:verify and graph:triage. Australian Gold Reagents also fails the
+  stake check: its 75 is a table figure with no % sign.
+- [ ] Spot-check size is 5 (reviewConfig.js). Revisit once
+  docs/GRAPH_QUALITY.md shows enough decided AGREED items.
