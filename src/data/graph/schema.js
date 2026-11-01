@@ -12,7 +12,13 @@
 //         asAt?   — the date the figure describes, when older than the
 //                   document repeating it (staleness.js)
 //         page?   — the page in the source the edge was read from
-//         quote?  — the sentence it was read from (review-queue edges) }
+//         quote?  — the sentence it was read from (review-queue edges)
+//         proposalId?, review? — review-queue edges only, see below }
+//
+// A review-queue edge (anything in approved.json) must carry its human
+// approval: review.approver, review.approvedAt, both passes' verdicts and a
+// verified quote match. Without them it is not loaded — no edge reaches the
+// graph from the pipeline without a recorded person signing it off.
 //
 // An owns edge can never come from a custodian or nominee (denylist.js).
 //
@@ -48,6 +54,20 @@ export const EDGE_LABEL = {
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
+const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
+
+// Why a review-queue edge lacks a recorded approval. Empty means it has one.
+export function reviewProblems(e) {
+  const p = []
+  const r = e?.review
+  if (!e?.proposalId) p.push('review-queue edge has no proposalId')
+  if (!r?.approver || !String(r.approver).trim()) p.push('no recorded approver')
+  if (!ISO_TIME.test(r?.approvedAt ?? '')) p.push('no approval timestamp')
+  if (!r?.firstPass?.type) p.push('no first-pass verdict')
+  if (!r?.secondPass?.relationship) p.push('no second-pass verdict')
+  if (r?.quoteMatch?.result !== 'verified' || !r?.quoteMatch?.sourceSha256) p.push('no verified quote match')
+  return p
+}
 
 export const edgeId = (e) => `${e.from}|${e.type}|${e.to}`
 
@@ -68,6 +88,7 @@ export function edgeProblems(e, nodeIds, names = null) {
   if (e?.asAt != null && !ISO.test(e.asAt)) p.push('asAt must be an ISO date')
   if (e?.page != null && !(Number.isInteger(e.page) && e.page > 0)) p.push('page must be a positive integer')
   if (e?.quote != null && String(e.quote).trim().length < 20) p.push('quote too short to be a source')
+  if (e && ('proposalId' in e || 'review' in e)) p.push(...reviewProblems(e))
   if (e?.type === 'owns' && names && isNomineeHolder(names.get(e.from))) p.push(`holder "${names.get(e.from)}" is a custodian or nominee, not an owner`)
   // A computed weight must be the ratio of its own quoted inputs.
   if (e?.calc) {

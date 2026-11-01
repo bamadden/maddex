@@ -56,6 +56,12 @@ export default defineConfig(({ mode }) => {
   // Relationships review queue: approve / reject writes to the repo's graph
   // files (scripts/graphReview.js). Dev server only — `configureServer` never
   // runs in a production build, so there is no such endpoint on Vercel.
+  // The approver recorded on every decision: GRAPH_REVIEWER from .env, else
+  // this machine's git user.name. Taken here, never from the browser.
+  const graphReviewer = () => {
+    if (env.GRAPH_REVIEWER) return env.GRAPH_REVIEWER
+    try { return execSync('git config user.name', { encoding: 'utf8' }).trim() || null } catch { return null }
+  }
   const graphReviewDevMiddleware = {
     name: 'maddex-graph-review-dev',
     configureServer(server) {
@@ -65,7 +71,7 @@ export default defineConfig(({ mode }) => {
         req.on('data', (c) => chunks.push(c))
         req.on('end', () => {
           let result
-          try { result = applyReview(process.cwd(), JSON.parse(Buffer.concat(chunks).toString('utf8'))) }
+          try { result = applyReview(process.cwd(), JSON.parse(Buffer.concat(chunks).toString('utf8')), { reviewer: graphReviewer() }) }
           catch (err) { result = { ok: false, error: err.message } }
           res.statusCode = result.ok ? 200 : 400
           res.setHeader('Content-Type', 'application/json')

@@ -3,9 +3,6 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
 import { validateProposal, findQuotePage, weightInQuote, normaliseWs, quoteContext } from '../src/data/graph/validate.js'
 import { isNomineeHolder } from '../src/data/graph/denylist.js'
 import { isStale, edgeAsAt, STALE_DAYS } from '../src/data/graph/staleness.js'
@@ -13,7 +10,6 @@ import { loadGraph } from '../src/data/graph/schema.js'
 import { ALL_NODES } from '../src/data/graph/nodes.js'
 import { EDGES } from '../src/data/graph/edges.js'
 import { findPaths, weakestConfidence, completeness } from '../src/services/graphQuery.js'
-import { applyReview } from '../scripts/graphReview.js'
 
 const PAGES = [
   'Annual report 2026\nOverview of the year.',
@@ -135,29 +131,7 @@ test('paths are shortest first, with the weakest confidence', () => {
   assert.deepEqual(findPaths(g, 'cmd:lithium', 'fund:cppib', { includeTypes: new Set(['owns']) }), [])
 })
 
-// ── Review queue writer ─────────────────────────────────────────────────────
-test('approval re-checks the weight against the quote and writes DISCLOSED', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'graph-review-'))
-  const dir = path.join(root, 'src/data/graph/proposals')
-  fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(path.join(root, 'src/data/graph/approved.json'), JSON.stringify({ nodes: [], edges: [] }))
-  const proposal = { id: 'abc123', status: 'pending', type: 'customer', from: { name: 'Wesfarmers', id: 'WES' }, to: { name: 'BWP', id: 'BWP' },
-    weight: 76.7, quote: 'Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025.', page: 24 }
-  fs.writeFileSync(path.join(dir, 'BWP-2026-05-06.json'), JSON.stringify({ label: 'BWP presentation', sourceUrl: 'https://example.com/b.pdf', asAt: '2026-05-06', proposals: [proposal] }))
-
-  const bad = applyReview(root, { file: 'BWP-2026-05-06.json', id: 'abc123', action: 'approve', edit: { weight: 80 } }, '2026-10-31')
-  assert.equal(bad.ok, false)
-  assert.match(bad.error, /does not appear in the quote/)
-
-  const good = applyReview(root, { file: 'BWP-2026-05-06.json', id: 'abc123', action: 'approve' }, '2026-10-31')
-  assert.equal(good.ok, true, good.error)
-  const approved = JSON.parse(fs.readFileSync(path.join(root, 'src/data/graph/approved.json'), 'utf8'))
-  assert.equal(approved.edges[0].confidence, 'DISCLOSED')
-  assert.equal(approved.edges[0].quote, proposal.quote)
-  assert.equal(approved.edges[0].lastVerified, '2026-10-31')
-  assert.equal(applyReview(root, { file: 'BWP-2026-05-06.json', id: 'abc123', action: 'approve' }).ok, false) // not twice
-  assert.equal(applyReview(root, { file: '../../etc/passwd', id: 'x', action: 'reject' }).ok, false)
-})
+// Review queue writer: see tests/graphReview.test.mjs.
 
 // ── Dated changes (check-stats warning) ─────────────────────────────────────
 import { overdueChanges, fieldUpdated, DATED_CHANGES } from '../src/data/datedChanges.js'

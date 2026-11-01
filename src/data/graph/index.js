@@ -8,4 +8,6 @@ import { ALL_NODES } from './nodes'
 import { EDGES } from './edges'
 import APPROVED from './approved.json'
 
-export const GRAPH = loadGraph([...ALL_NODES, ...APPROVED.nodes], [...EDGES, ...APPROVED.edges])
+// Every approved edge is checked as a review-queue edge (proposalId set even
+// when missing), so one without a recorded approval cannot load.
+export const GRAPH = loadGraph([...ALL_NODES, ...APPROVED.nodes], [...EDGES, ...APPROVED.edges.map((e) => ({ proposalId: null, ...e }))])

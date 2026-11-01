@@ -8,6 +8,7 @@
 // (override with CHROME_PATH) and the dev server at UI_BASE (default
 // http://localhost:5173).
 
+import fs from 'node:fs'
 import puppeteer from 'puppeteer-core'
 
 const BASE = process.env.UI_BASE ?? 'http://localhost:5173'
@@ -114,6 +115,25 @@ try {
   else fail('ripple did not open on the RBA cash rate')
   if (/YOUR HOLDINGS · 1 of 2 connected/.test(ripple)) pass('holdings: CBA connects, BHP does not')
   else fail(`holdings line wrong: ${(ripple.match(/YOUR HOLDINGS[^\n]*/) ?? ['none'])[0]}`)
+
+  console.log('Review queue (read only — nothing is approved)')
+  const triage = JSON.parse(fs.readFileSync(new URL('../../src/data/graph/proposals/triage.json', import.meta.url), 'utf8'))
+  await page.evaluate(() => [...document.querySelectorAll('button.nav-row')].find((b) => /^REVIEW/.test((b.title || b.textContent).trim()))?.click())
+  await page.waitForSelector('[role=tablist][aria-label="Review buckets"]', { timeout: 30_000 }).catch(() => {})
+  const review = await page.evaluate(() => ({
+    selected: document.querySelector('[role=tab][aria-selected=true]')?.textContent ?? '',
+    cards: document.querySelectorAll('[role=tabpanel] article').length,
+  }))
+  if (/^NEEDS HUMAN/.test(review.selected)) pass('opens on NEEDS HUMAN')
+  else fail(`default tab is ${review.selected || 'missing'}`)
+  review.cards === triage.counts.NEEDS_HUMAN ? pass(`${review.cards} NEEDS HUMAN card(s), as triaged`) : fail(`${review.cards} cards, triage says ${triage.counts.NEEDS_HUMAN}`)
+  const firstCard = await page.evaluate(() => document.querySelector('[role=tabpanel] article')?.innerText ?? '')
+  if (!triage.counts.NEEDS_HUMAN || (/FIRST PASS/.test(firstCard) && /SECOND PASS/.test(firstCard))) pass('cards show both passes side by side')
+  else fail('a card is missing a pass')
+  await page.evaluate(() => [...document.querySelectorAll('[role=tab]')].find((t) => t.textContent.startsWith('AUTO-REJECTED'))?.click())
+  await wait(300)
+  const log = await page.evaluate(() => ({ cards: document.querySelectorAll('[role=tabpanel] article').length, approve: [...document.querySelectorAll('[role=tabpanel] button')].filter((b) => /APPROVE/.test(b.textContent)).length }))
+  log.cards === triage.counts.AUTO_REJECTED && log.approve === 0 ? pass(`AUTO-REJECTED is a read-only log of ${log.cards}`) : fail(`AUTO-REJECTED: ${log.cards} cards, ${log.approve} approve buttons`)
 
   console.log('MaddenAI is mocked')
   await runCommand(page, 'ai what does the profile show')
