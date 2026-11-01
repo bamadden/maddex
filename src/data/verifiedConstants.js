@@ -311,7 +311,7 @@ export const VERIFIED_CONSTANTS = {
     // only where the statute fixes one; otherwise left out rather than guessed.
     boj: {
       role: 'Governor of the Bank of Japan', name: 'Kazuo Ueda', since: '2023-04-09', termEnds: '2028-04-08', termEndsDerived: true,
-      source: 'boj.or.jp (Bloomberg, 6 Oct 2026)', lastVerified: '2026-10-29',
+      source: 'boj.or.jp', lastVerified: '2026-10-29',
     },
     pboc: {
       role: 'Governor of the People\'s Bank of China', name: 'Pan Gongsheng', since: '2023-07-25',
@@ -320,11 +320,11 @@ export const VERIFIED_CONSTANTS = {
     rbnz: {
       role: 'Governor of the Reserve Bank of New Zealand', name: 'Anna Breman', since: '2025-12-01', termEnds: '2030-11-30', termEndsDerived: true,
       note: 'Succeeded Adrian Orr (resigned March 2025)',
-      source: 'rbnz.govt.nz (Bloomberg, 28 Oct 2026)', lastVerified: '2026-10-29',
+      source: 'rbnz.govt.nz', lastVerified: '2026-10-29',
     },
     boc: {
       role: 'Governor of the Bank of Canada', name: 'Tiff Macklem', since: '2020-06-03', termEnds: '2027-06-02', termEndsDerived: true,
-      source: 'bankofcanada.ca (BNN Bloomberg, 28 Oct 2026)', lastVerified: '2026-10-29',
+      source: 'bankofcanada.ca', lastVerified: '2026-10-29',
     },
     snb: {
       role: 'Chairman of the Swiss National Bank Governing Board', name: 'Martin Schlegel', since: '2024-10-01',
@@ -688,9 +688,9 @@ export const VERIFIED_CONSTANTS = {
       wheatUSDPerBu: '2026-06-30',
     },
     sourceBy: {
-      ironOreUSD: 'SGX iron ore futures (via Bloomberg, Investing.com)',
+      ironOreUSD: 'SGX iron ore futures close, from published market reports',
       thermalCoalUSD: 'globalCOAL Newcastle (via Kalkine)',
-      lngUSDPerMMBtu: 'Platts JKM (via Bloomberg)',
+      lngUSDPerMMBtu: 'JKM LNG spot assessment, from published market reports',
       copperUSDPerLb: 'LME 3-month',
       lithiumCNYPerTonne: 'GFEX lithium carbonate',
       brentUSD: 'ICE Brent futures (via CNBC)',
@@ -820,7 +820,7 @@ export const VERIFIED_CONSTANTS = {
     asx200: 8850.1, sp500: 7676.77, nasdaq: 26169.38, dow: 52361.58,
     ftse100: 10606.0, nikkei225: 64659.47, hangSeng: 23094.0,
     sseComposite: 3842.19, dax: 25704.02, sensex: 72480.29, tsx: 35235.87,
-    source: 'Index closes via ABC News, AP, Motley Fool AU, CNBC, BBN Times, Bloomberg — indicative, not a live feed',
+    source: 'Index closes from published market reports (ABC News, AP and others) — indicative, not a live feed',
     asOf: '2026-10-29',
     lastVerified: '2026-10-29',
   },

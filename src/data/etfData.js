@@ -70,11 +70,11 @@ export const AU_ETFS = [
 
   { ticker: 'VAF', name: 'Vanguard Australian Fixed Interest', provider: 'Vanguard', category: 'Fixed Income',
     aum: 2800, mer: 0.20, yield: 4.1, price: 48.24, oneYear: 4.8, threeYear: 2.1, fiveYear: 2.8,
-    holdings: 120, benchmark: 'Bloomberg AusBond Composite',
+    holdings: 120, benchmark: 'AusBond Composite 0+ Yr Index',
     description: 'Australian government and corporate bonds. Prices fall when yields rise — the three-year return reflects exactly that.' },
   { ticker: 'IAF', name: 'iShares Core Composite Bond', provider: 'BlackRock', category: 'Fixed Income',
     aum: 1840, mer: 0.15, yield: 4.0, price: 96.42, oneYear: 4.6, threeYear: 2.0, fiveYear: 2.6,
-    holdings: 80, benchmark: 'Bloomberg AusBond Composite' },
+    holdings: 80, benchmark: 'AusBond Composite 0+ Yr Index' },
   { ticker: 'BOND', name: 'PIMCO Australian Bond', provider: 'PIMCO', category: 'Fixed Income',
     aum: 820, mer: 0.40, yield: 4.2, price: 104.82, oneYear: 5.2, threeYear: 2.4, fiveYear: 2.9,
     holdings: 120, benchmark: 'Actively managed',

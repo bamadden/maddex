@@ -1,6 +1,6 @@
 # Maddex — Financial Intelligence
 
-Bloomberg-style financial terminal for Australian investors, powered by MaddenAI.
+A financial information terminal for Australian investors, with MaddenAI. General information only — not financial advice.
 
 ## Stack
 React 19 + Vite + TanStack Query + Axios + D3 + Recharts + Tailwind CSS + IBM Plex Mono

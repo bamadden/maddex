@@ -186,7 +186,7 @@ const SOURCE_PALETTE = [PAL.gold, PAL.blue, PAL.up, '#a855f7', '#f97316', '#14b8
 // Named-source brand colours per spec — hash palette is only a fallback for
 // the long tail of RSS sources that aren't one of these six.
 const SOURCE_COLORS = {
-  Reuters: PAL.blue, AFR: PAL.gold, Bloomberg: '#a855f7',
+  Reuters: PAL.blue, AFR: PAL.gold,
   ABC: PAL.up, FT: '#ec4899', WSJ: PAL.dim,
 }
 function sourceHash(s) {

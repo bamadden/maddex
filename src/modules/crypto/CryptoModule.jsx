@@ -31,8 +31,8 @@ import { PAL } from '../../styles/palette.js'
 // once the user actually switches to the 3D view.
 const CryptoLandscape3D = lazy(() => import('../../components/visualisations/CryptoLandscape3D'))
 
-// ── Coin colour circle (deterministic hash, not a real logo — Bloomberg-
-// terminal-style abstract avatar rather than brand marks) ──────────────────
+// ── Coin colour circle (deterministic hash, not a real logo — an abstract
+// avatar rather than third-party brand marks) ─────────────────────────────
 const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', PAL.gold]
 // Real (approximate) brand colours for the coins that actually show up in
 // the top-20 list — hash-based colour is only a fallback for the long tail.
