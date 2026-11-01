@@ -1,0 +1,1113 @@
+{
+  "stage": 1,
+  "generatedAt": "2026-11-01T02:16:34.971Z",
+  "sources": {
+    "https://announcements.asx.com.au/asxpdf/20260506/pdf/06z9c43p7cht8l.pdf": {
+      "sha256": "d98c791d7f514e538538052c5614c267f3bf5442219199d715ab277d62074578",
+      "pages": 33
+    },
+    "https://announcements.asx.com.au/asxpdf/20260827/pdf/0738z357pt1vhl.pdf": {
+      "sha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908",
+      "pages": 212
+    }
+  },
+  "results": {
+    "61f154fd37503abc": {
+      "file": "BWP-2026-05-06.json",
+      "ok": true,
+      "reasons": [],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 15, characters 1600–1800"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": true
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 23.4%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": "BWP"
+      },
+      "match": {
+        "result": "verified",
+        "page": 15,
+        "citedPage": 15,
+        "start": 1600,
+        "end": 1800,
+        "text": "Wesfarmers, BWP's largest securityholder with 23.4% of BWP securities, has committed to take up its full entitlement under the Entitlement Offer, representing a commitment of approximately $53 million",
+        "sourceSha256": "d98c791d7f514e538538052c5614c267f3bf5442219199d715ab277d62074578"
+      }
+    },
+    "255c56b9de669e0c": {
+      "file": "BWP-2026-05-06.json",
+      "ok": false,
+      "reasons": [
+        "from \"Bunnings\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 24, characters 3040–3128"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "from \"Bunnings\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 76.7%"
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": "BWP"
+      },
+      "match": {
+        "result": "verified",
+        "page": 24,
+        "citedPage": 24,
+        "start": 3040,
+        "end": 3128,
+        "text": "Bunnings comprise approximately 76.7% of the gross income of BWP as at 31 December 2025.",
+        "sourceSha256": "d98c791d7f514e538538052c5614c267f3bf5442219199d715ab277d62074578"
+      }
+    },
+    "38995a68d4c51bbc": {
+      "file": "WES-2026-06-30.json",
+      "ok": true,
+      "reasons": [],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 57, characters 1765–1954"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": true
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 23.44%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": "BWP"
+      },
+      "match": {
+        "result": "verified",
+        "page": 57,
+        "citedPage": 57,
+        "start": 1765,
+        "end": 1954,
+        "text": "On 18 May 2026, Wesfarmers subscribed for its full pro-rata entitlement of $53 million under BWP's accelerated non-renounceable entitlement offer, maintaining its holding of 23.44 per cent.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "4bb630f61b010e18": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Flybuys\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 57, characters 115–270"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Flybuys\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 50%, 50%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 57,
+        "citedPage": 57,
+        "start": 115,
+        "end": 270,
+        "text": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "4c582f24ac9bd586": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Gresham Partners Group Limited\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 57, characters 571–704"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Gresham Partners Group Limited\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 50%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 57,
+        "citedPage": 57,
+        "start": 571,
+        "end": 704,
+        "text": "Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "dcd257373f3d79bd": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Wespine Industries Pty Ltd\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 57, characters 2094–2215"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Wespine Industries Pty Ltd\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 50%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 57,
+        "citedPage": 57,
+        "start": 2094,
+        "end": 2215,
+        "text": "The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "9e96c2131cb79c1f": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Sociedad Química y Minera\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 40, characters 1148–1436"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Sociedad Química y Minera\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 50%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 40,
+        "citedPage": 40,
+        "start": 1148,
+        "end": 1436,
+        "text": "Covalent Lithium, Wesfarmers' 50 per cent joint venture with Sociedad Química y Minera (SQM), is a vertically integrated operation in Western Australia comprising a mine and concentrator at Mt Holland producing spodumene concentrate, and a refinery in Kwinana producing lithium hydroxide.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "e038c3b7fecb9efd": {
+      "file": "WES-2026-06-30.json",
+      "ok": true,
+      "reasons": [],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 57, characters 115–270"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": true
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 50%, 50%"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": "COL"
+      },
+      "match": {
+        "result": "verified",
+        "page": 57,
+        "citedPage": 57,
+        "start": 115,
+        "end": 270,
+        "text": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "33e362152e4016bd": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Built Group\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 16, characters 1603–1816"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Built Group\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 16,
+        "citedPage": 16,
+        "start": 1603,
+        "end": 1816,
+        "text": "In May 2026, Wesfarmers announced it had agreed to enter a joint venture with Built Group to establish Built Living, a business focused on delivering residential apartments at scale through advanced manufacturing.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "e2b54d19dc547cbc": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"CSBP\" does not resolve to a known node",
+        "to \"Coogee Chemicals\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 40, characters 324–464"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Coogee Chemicals\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 75%"
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 40,
+        "citedPage": 40,
+        "start": 324,
+        "end": 464,
+        "text": "Australian Gold Reagents (AGR), CSBP's 75 per cent-owned joint venture with Coogee Chemicals, which manufactures and supplies sodium cyanide",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "cb0d6f1655b0ff3f": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"CSBP\" does not resolve to a known node",
+        "to \"Dyno Nobel Asia Pacific\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 40, characters 467–597"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Dyno Nobel Asia Pacific\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true,
+          "detail": "quote states 50%"
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 40,
+        "citedPage": 40,
+        "start": 467,
+        "end": 597,
+        "text": "Queensland Nitrates (QNP), CSBP's 50 per cent-owned joint venture with Dyno Nobel Asia Pacific, which manufactures and supplies AN",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "8a2fddba4918fe4c": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Intellihub\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 129, characters 2448–2554"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Intellihub\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 129,
+        "citedPage": 129,
+        "start": 2448,
+        "end": 2554,
+        "text": "the Zelora joint venture between Bunnings Group and Intellihub (subject to certain consents and approvals)",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "7fa4b3247a1269b9": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Bunnings\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 189, characters 892–984"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "from \"Bunnings\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": "BWP"
+      },
+      "match": {
+        "result": "verified",
+        "page": 189,
+        "citedPage": 189,
+        "start": 892,
+        "end": 984,
+        "text": "Rent for retail stores and warehouses has been paid by the Group to an associate, BWP Group.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "7eabd4099cd2900a": {
+      "file": "WES-2026-06-30.json",
+      "ok": true,
+      "reasons": [],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 121, characters 1096–1220"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": true
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "person:rob-scott",
+        "to": "WES"
+      },
+      "match": {
+        "result": "verified",
+        "page": 121,
+        "citedPage": 121,
+        "start": 1096,
+        "end": 1220,
+        "text": "Rob Scott, Group Managing Director These executive KMP held their positions throughout the whole of the 2026 financial year.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "f31b784d8c58738a": {
+      "file": "WES-2026-06-30.json",
+      "ok": true,
+      "reasons": [],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 112, characters 2863–2884"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": true
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "person:michael-chaney",
+        "to": "WES"
+      },
+      "match": {
+        "result": "verified",
+        "page": 112,
+        "citedPage": 112,
+        "start": 2863,
+        "end": 2884,
+        "text": "M A Chaney (Chairman)",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "84fbd0ede8d38876": {
+      "file": "WES-2026-06-30.json",
+      "ok": true,
+      "reasons": [],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 112, characters 3147–3235"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": true
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "person:ken-mackenzie",
+        "to": "WES"
+      },
+      "match": {
+        "result": "verified",
+        "page": 112,
+        "citedPage": 112,
+        "start": 3147,
+        "end": 3235,
+        "text": "K N MacKenzie who was appointed as a director of the company effective from 1 June 2026.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "49825090a161234d": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Michael Schneider\" does not resolve to a known node",
+        "to \"Bunnings Group\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 53–111"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Bunnings Group\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 53,
+        "end": 111,
+        "text": "Michael was appointed Bunnings' Managing Director in 2016.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "d42b86bcf02fa037": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Aleksandra Spaseska\" does not resolve to a known node",
+        "to \"Kmart Group\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 700–765"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Kmart Group\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 700,
+        "end": 765,
+        "text": "Aleks was appointed Managing Director, Kmart Group in April 2025.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "66cbec65796dc2a1": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Aaron Hood\" does not resolve to a known node",
+        "to \"Wesfarmers Chemicals, Energy & Fertilisers\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 1468–1576"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Wesfarmers Chemicals, Energy & Fertilisers\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 1468,
+        "end": 1576,
+        "text": "Aaron was appointed Managing Director, Wesfarmers Chemicals, Energy & Fertilisers (WesCEF) in November 2024.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "3f134ad6bb9d7af2": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"John Gualtieri\" does not resolve to a known node",
+        "to \"Officeworks\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 2389–2579"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Officeworks\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 2389,
+        "end": 2579,
+        "text": "John Gualtieri is Managing Director of Officeworks, where he leads the business through its next phase of transformation, with a strong focus on customers, team members and long-term growth.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "fd638258fc764547": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Emily Amos\" does not resolve to a known node",
+        "to \"Wesfarmers Health\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 2907–3071"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Wesfarmers Health\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 2907,
+        "end": 3071,
+        "text": "Emily was appointed Managing Director of Wesfarmers Health in April 2022, following Wesfarmers' acquisition of Australian Pharmaceutical Industries Limited in 2022.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "3331ecd321d5e5e4": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Jenny Bryant\" does not resolve to a known node",
+        "to \"Flybuys\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 5467–5663"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Flybuys\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 5467,
+        "end": 5663,
+        "text": "Jenny is a Director of the Flybuys joint venture with Coles Group Limited, a non-executive member of the Australian Public Service Commission Learning Board, and a member of Chief Executive Women.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "bd7365cc69459b7b": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Michael Britton\" does not resolve to a known node",
+        "to \"Wespine Industries\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 6162–6350"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Wespine Industries\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 6162,
+        "end": 6350,
+        "text": "Michael is Chairman of Wespine Industries, a Director of the Zelora joint venture with Intellihub and a member of The University of Western Australia Business School Ambassadorial Council.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "684295afab472232": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Naomi Flutter\" does not resolve to a known node",
+        "to \"Wespine Industries\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 4930–5056"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Wespine Industries\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 4930,
+        "end": 5056,
+        "text": "Naomi is a director of Wespine Industries, chair of The Kids Research Institute Australia and member of Chief Executive Women.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "e19fe13c88028c77": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "from \"Aaron Hood\" does not resolve to a known node",
+        "to \"Covalent Lithium\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 18, characters 2171–2341"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Covalent Lithium\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": null,
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 18,
+        "citedPage": 18,
+        "start": 2171,
+        "end": 2341,
+        "text": "Aaron is a Director of Covalent Lithium and represents Wesfarmers' investment in the joint venture managing the integrated Mt Holland lithium mining and refinery project.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "d3d64440100c225a": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Gresham Partners Group Limited\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 105, characters 2006–2070"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Gresham Partners Group Limited\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "person:rob-scott",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 105,
+        "citedPage": 105,
+        "start": 2006,
+        "end": 2070,
+        "text": "Director of Gresham Partners Group Limited (since November 2020)",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "877927ad71f86796": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Cm3 Contractor Management Pty Ltd\" does not resolve to a known node"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 115, characters 835–969"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Cm3 Contractor Management Pty Ltd\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": true
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 115,
+        "citedPage": 115,
+        "start": 835,
+        "end": 969,
+        "text": "On 24 July 2026, Wesfarmers announced that it had entered into an agreement to sell Cm3, a wholly owned subsidiary, to Achilles Group.",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    },
+    "eeb3fba1121adf16": {
+      "file": "WES-2026-06-30.json",
+      "ok": false,
+      "reasons": [
+        "to \"Australian Gold Reagents Pty Ltd\" does not resolve to a known node",
+        "stake 75% is not stated as a percentage in the quote"
+      ],
+      "checks": {
+        "quote": {
+          "ok": true,
+          "detail": "page 186, characters 3158–3196"
+        },
+        "source": {
+          "ok": true
+        },
+        "identifiers": {
+          "ok": false,
+          "reason": "to \"Australian Gold Reagents Pty Ltd\" does not resolve to a known node"
+        },
+        "type": {
+          "ok": true
+        },
+        "stake": {
+          "ok": false,
+          "reason": "stake 75% is not stated as a percentage in the quote"
+        }
+      },
+      "resolved": {
+        "from": "WES",
+        "to": null
+      },
+      "match": {
+        "result": "verified",
+        "page": 186,
+        "citedPage": 186,
+        "start": 3158,
+        "end": 3196,
+        "text": "Australian Gold Reagents Pty Ltd 75 75",
+        "sourceSha256": "d97c98c69604db5bed7e71f256621ab659f405d6cc5bbf8131d77be124556908"
+      }
+    }
+  }
+}

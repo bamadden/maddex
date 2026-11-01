@@ -22,6 +22,7 @@ import crypto from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { validateProposal, quoteContext, normaliseWs, PROPOSAL_TYPES } from '../src/data/graph/validate.js'
 import { ALL_NODES } from '../src/data/graph/nodes.js'
+import { readPages } from './lib/sourceText.mjs'
 
 const MODEL = 'claude-sonnet-4-6'
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
@@ -43,41 +44,7 @@ const TICKER = String(a.ticker).toUpperCase()
 if (!/^[A-Z0-9]{2,6}$/.test(TICKER)) fail('--ticker looks wrong')
 
 // ── Document text, page by page ─────────────────────────────────────────────
-async function readPages(file) {
-  if (/\.txt$/i.test(file)) {
-    // Form feeds mark pages when the text was exported with them; otherwise
-    // the file is one page.
-    return fs.readFileSync(file, 'utf8').split('\f')
-  }
-  if (!/\.pdf$/i.test(file)) fail('--file must be .pdf or .txt')
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(fs.readFileSync(file)), isEvalSupported: false }).promise
-  // Text runs are joined by where they sit on the page, not with a blanket
-  // space: PDFs often split a word across runs ("compris" + "e"), and a space
-  // there would make an honest quote fail the verbatim check. A space goes in
-  // only where there is a visible gap, or a run ends a line.
-  const pages = []
-  for (let i = 1; i <= doc.numPages; i++) {
-    const c = await (await doc.getPage(i)).getTextContent()
-    let out = '', prev = null
-    for (const it of c.items) {
-      if (!('str' in it)) continue
-      if (prev) {
-        const [x, y] = [it.transform[4], it.transform[5]]
-        const prevEnd = prev.transform[4] + prev.width
-        const size = Math.abs(it.transform[0]) || Math.abs(it.transform[3]) || 10
-        const sameLine = Math.abs(y - prev.transform[5]) < size * 0.5
-        if (prev.hasEOL || !sameLine) out += '\n'
-        else if (x - prevEnd > size * 0.15 && !/\s$/.test(out) && !/^\s/.test(it.str)) out += ' '
-      }
-      out += it.str
-      prev = it
-    }
-    pages.push(out)
-  }
-  return pages
-}
-
+if (!/\.(pdf|txt)$/i.test(a.file)) fail('--file must be .pdf or .txt')
 const pages = await readPages(a.file)
 let [from, to] = [1, pages.length]
 if (a.pages) {

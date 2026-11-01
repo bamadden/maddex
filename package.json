@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "node --test --import ./tests/setup/networkGuard.mjs tests/*.test.mjs",
     "propose-edges": "node scripts/propose-edges.mjs",
-    "test:ui": "node tests/ui/profile.ui.mjs"
+    "test:ui": "node tests/ui/profile.ui.mjs",
+    "graph:verify": "node scripts/graph-verify.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
