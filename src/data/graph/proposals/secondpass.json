@@ -1,0 +1,235 @@
+{
+  "stage": 2,
+  "model": "claude-opus-5-5",
+  "generatedAt": "2026-11-01T02:29:19.385Z",
+  "results": {
+    "61f154fd37503abc": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T02:28:55.612Z",
+      "parties": {
+        "a": "BWP",
+        "b": "Wesfarmers"
+      },
+      "passage": "to enable future capital deployment opportunities that provide further growth for BWP securityholders, with proceeds initially used to repay debt > Assuming the expenditure of BWP's Capital Commitments of $163 million and therefore pro forma gearing of 20.3%, approximately $550 million of debt capacity would be available to fund growth, before BWP would be at the top end of its gearing range (20% to 30%)2 Ranking > New Securities issued under the Entitlement Offer will rank equally with existing BWP securities from the date of issue and will be fully entitled to the distribution for the six months ending 30 June 2026, expected to be 9.83 cents per security Wesfarmers participation > Wesfarmers, BWP's largest securityholder with 23.4% of BWP securities, has committed to take up its full entitlement under the Entitlement Offer, representing a commitment of approximately $53 million 1. TERP is calculated with reference to the last close price of $3.94 on 5 May 2026 2. This analysis does not incorporate any change to the value of the existing portfolio CAPITAL DEPLOYMENT AND EQUITY RAISING For personal use only",
+      "passageSha256": "814c85d39b71de5c4717ed6f457ae32793509994c7944fa7e7a8d8692f42cde6",
+      "verdict": {
+        "relationship": "owns",
+        "direction": "b_to_a",
+        "confidence": "high",
+        "supporting_quote": "Wesfarmers, BWP's largest securityholder with 23.4% of BWP securities",
+        "rationale": "The passage states Wesfarmers is BWP's largest securityholder, holding 23.4% of BWP securities, which is an equity stake held by B in A."
+      },
+      "usage": {
+        "input_tokens": 1295,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 124,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "38995a68d4c51bbc": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T02:28:58.066Z",
+      "parties": {
+        "a": "BWP Group",
+        "b": "Wesfarmers"
+      },
+      "passage": "year, reflecting favourable property revaluation movements. BWP Group is an A-REIT focused on large format retailing properties, particularly those leased to Bunnings. BWP's stapled securities are listed on the Australian Securities Exchange (ASX). On 1 August 2025, Wesfarmers completed the sale of its 100 per cent interest in BWP Management Limited, the responsible entity of the BWP Trust, for total consideration of approximately $143 million. Wesfarmers received $100 million in cash, with the balance satisfied through stapled securities in BWP. Following completion of the transaction, Wesfarmers' ownership in BWP increased from 22.29 per cent to 23.44 per cent of stapled securities. On 18 May 2026, Wesfarmers subscribed for its full pro-rata entitlement of $53 million under BWP's accelerated non-renounceable entitlement offer, maintaining its holding of 23.44 per cent. BWP's portfolio as at 30 June 2026 consisted of 80 properties. For more information on BWP Group, visit bwptrust.com.au Wespine Industries The 50 per cent-owned Wespine Industries (Wespine) operates a plantation softwood sawmill in Dardanup, Western Australia. Wespine manufactures structural timber used for the construction, landscaping and packaging industries. Demand for sawn timber products continued to recover, with increasing housing approvals and commencements in WA. Wespine achieved higher mill throughput and improved product mix during financial year 2026, delivering revenue of $152 million, up from $139 million in the prior financial year. Safety continues to be a focus for",
+      "passageSha256": "1a2bb4bd01997c1c4fb8c6cfdeaa18db7b2be41652897254df429b2964b743fa",
+      "verdict": {
+        "relationship": "owns",
+        "direction": "b_to_a",
+        "confidence": "high",
+        "supporting_quote": "Following completion of the transaction, Wesfarmers' ownership in BWP increased from 22.29 per cent to 23.44 per cent of stapled securities.",
+        "rationale": "The passage states Wesfarmers holds an equity stake in BWP's stapled securities, so Wesfarmers (B) owns part of BWP Group (A)."
+      },
+      "usage": {
+        "input_tokens": 1463,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 149,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "e038c3b7fecb9efd": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T02:29:03.486Z",
+      "parties": {
+        "a": "Coles Group Limited",
+        "b": "Wesfarmers"
+      },
+      "passage": "Other activities Wesfarmers is an investor in Flybuys, BWP Group, Gresham Partners and Wespine Industries. Flybuys Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent. Following the demerger of Coles from Wesfarmers in November 2018, the Flybuys business was set up as an independent, standalone business. As at 30 June 2026, there were 10.3 million active members in the Flybuys loyalty program. For more information on Flybuys, visit flybuys.com.au Gresham Partners Wesfarmers has a 50 per cent shareholding in Gresham Partners Group Limited, the holding company for the Gresham Partners operations. Gresham Partners is a leading independent financial services business with activities in corporate advisory, funds management, property and capital solutions. For more information on Gresham Partners, visit gresham.au BWP Group Wesfarmers' investment in BWP Group",
+      "passageSha256": "28ced9831ae1e7735e0ffc355015cc44237adf5664d4719f3d0f28eb06561e10",
+      "verdict": {
+        "relationship": "joint_venture",
+        "direction": "mutual",
+        "confidence": "high",
+        "supporting_quote": "Wesfarmers owns a 50 per cent shareholding in Flybuys, one of Australia's leading loyalty programs, with Coles Group Limited holding the other 50 per cent.",
+        "rationale": "Coles Group Limited and Wesfarmers each hold half of Flybuys, which makes it a business they own jointly. The passage notes Coles was demerged from Wesfarmers, so there is no current parent relationship."
+      },
+      "usage": {
+        "input_tokens": 1263,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 412,
+        "output_tokens_details": {
+          "thinking_tokens": 234
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type (symmetric)"
+      }
+    },
+    "7eabd4099cd2900a": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T02:29:08.247Z",
+      "parties": {
+        "a": "Rob Scott",
+        "b": "Wesfarmers"
+      },
+      "passage": "major profit-generating division of Wesfarmers). The KMP for the 2026 financial year are as follows: CURRENT NON-EXECUTIVE DIRECTORS Michael Chaney AO (Chairman) These directors were members of the Board of Wesfarmers Limited throughout the whole of the 2026 financial year. The Right Honourable Sir Bill English KNZM Mike Roche Sharon Warburton Alison Watkins AM Alan Cransberg Kate Munnings Friedrich (Tom) von Oertzen Julie Coates Ken MacKenzie (Chairman Elect) Mr MacKenzie became a member of the Board of Wesfarmers Limited on 1 June 2026. FORMER NON-EXECUTIVE DIRECTORS Jennifer Westacott AC Ms Westacott retired from the Board of Wesfarmers Limited on 30 October 2025. CURRENT EXECUTIVE KMP Rob Scott, Group Managing Director These executive KMP held their positions throughout the whole of the 2026 financial year. Anthony Gianotti, Group Chief Financial Officer Michael Schneider, Managing Director, Bunnings Group Aleksandra Spaseska, Managing Director, Kmart Group There have been no changes to KMP since 30 June 2026. For personal use only",
+      "passageSha256": "9e106c919ae0c95ea8b8482dccd41e5814050b87be3e87075a3628f0b7697472",
+      "verdict": {
+        "relationship": "director_of",
+        "direction": "a_to_b",
+        "confidence": "low",
+        "supporting_quote": "CURRENT EXECUTIVE KMP Rob Scott, Group Managing Director",
+        "rationale": "Rob Scott is listed as Wesfarmers' Group Managing Director among its executive key management personnel. The passage does not explicitly list him as a Board member, so a directorship is only implied by the title."
+      },
+      "usage": {
+        "input_tokens": 1369,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 304,
+        "output_tokens_details": {
+          "thinking_tokens": 164
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "f31b784d8c58738a": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T02:29:12.243Z",
+      "parties": {
+        "a": "Michael Chaney AO",
+        "b": "Wesfarmers"
+      },
+      "passage": "product distribution - retailing of general merchandise and apparel products - retailing of office and technology products - retailing and provision of health, beauty and wellness products and services - management of a retail subscription program, shared data asset and Group retail media network - wholesale distribution of pharmaceutical goods - manufacturing and distribution of chemicals and fertilisers - participation in a joint venture for an integrated lithium project, including operation of a mine and concentrator and development of a refinery - processing and retailing of gas - management of the Group's investments. Directors The directors in office at the date of this report are: - M A Chaney (Chairman) - R G Scott (Group Managing Director) - J A Coates - A J Cransberg - S W English - K N MacKenzie - K M Munnings - M Roche - F von Oertzen - S L Warburton - A M Watkins All directors served on the Board for the period from 1 July 2025 to 30 June 2026, except for K N MacKenzie who was appointed as a director of the company effective from 1 June 2026. During the year, J Westacott retired as a director of the company on 30 October 2025, from the conclusion of the 2025 Annual General Meeting. The qualifications, experience, special responsibilities and other details of the directors in office as at the date of this report appear on pages 102 and 103. For personal use only",
+      "passageSha256": "8c6203cc8b409c1ed48ffdfc8edb5e44498f86bb075ffac50b23b13f3db0ec53",
+      "verdict": {
+        "relationship": "director_of",
+        "direction": "a_to_b",
+        "confidence": "medium",
+        "supporting_quote": "The directors in office at the date of this report are: - M A Chaney (Chairman)",
+        "rationale": "The passage lists M A Chaney as Chairman among the directors of the reporting company, which matches Michael Chaney AO. Wesfarmers is not named in the passage itself and is only inferred as the reporting company, so confidence is medium."
+      },
+      "usage": {
+        "input_tokens": 1350,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 312,
+        "output_tokens_details": {
+          "thinking_tokens": 163
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    },
+    "84fbd0ede8d38876": {
+      "model": "claude-opus-5-5",
+      "at": "2026-11-01T02:29:19.384Z",
+      "parties": {
+        "a": "Ken MacKenzie",
+        "b": "Wesfarmers"
+      },
+      "passage": "media network - wholesale distribution of pharmaceutical goods - manufacturing and distribution of chemicals and fertilisers - participation in a joint venture for an integrated lithium project, including operation of a mine and concentrator and development of a refinery - processing and retailing of gas - management of the Group's investments. Directors The directors in office at the date of this report are: - M A Chaney (Chairman) - R G Scott (Group Managing Director) - J A Coates - A J Cransberg - S W English - K N MacKenzie - K M Munnings - M Roche - F von Oertzen - S L Warburton - A M Watkins All directors served on the Board for the period from 1 July 2025 to 30 June 2026, except for K N MacKenzie who was appointed as a director of the company effective from 1 June 2026. During the year, J Westacott retired as a director of the company on 30 October 2025, from the conclusion of the 2025 Annual General Meeting. The qualifications, experience, special responsibilities and other details of the directors in office as at the date of this report appear on pages 102 and 103. For personal use only",
+      "passageSha256": "a6444fe1ce72b895d63cf36a175d31239c0d449c0b0b0661bdbfe9f6c8ce81e8",
+      "verdict": {
+        "relationship": "director_of",
+        "direction": "a_to_b",
+        "confidence": "medium",
+        "supporting_quote": "K N MacKenzie who was appointed as a director of the company effective from 1 June 2026",
+        "rationale": "The passage states that K N MacKenzie was appointed a director of the reporting company, which matches Ken MacKenzie. Wesfarmers is not named in the passage; it is identified as that company only from the document context."
+      },
+      "usage": {
+        "input_tokens": 1280,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 332,
+        "output_tokens_details": {
+          "thinking_tokens": 190
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "problems": [],
+      "comparison": {
+        "outcome": "agree",
+        "detail": "same type and direction"
+      }
+    }
+  }
+}
