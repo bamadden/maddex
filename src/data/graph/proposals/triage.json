@@ -1,0 +1,445 @@
+{
+  "stage": 3,
+  "generatedAt": "2026-11-01T02:31:41.121Z",
+  "counts": {
+    "NEEDS_HUMAN": 6,
+    "AGREED": 0,
+    "AUTO_REJECTED": 22
+  },
+  "items": [
+    {
+      "id": "61f154fd37503abc",
+      "file": "BWP-2026-05-06.json",
+      "bucket": "NEEDS_HUMAN",
+      "reasons": [
+        "the graph already has this edge (VERIFIED, BWP investor presentation, 6 May 2026 (\"BWP's largest securityholder\"))"
+      ],
+      "claim": {
+        "type": "owns",
+        "from": "Wesfarmers",
+        "to": "BWP",
+        "weight": 23.4,
+        "page": 15
+      }
+    },
+    {
+      "id": "38995a68d4c51bbc",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_HUMAN",
+      "reasons": [
+        "the graph already has this edge (VERIFIED, BWP investor presentation, 6 May 2026 (\"BWP's largest securityholder\"))"
+      ],
+      "claim": {
+        "type": "owns",
+        "from": "Wesfarmers",
+        "to": "BWP Group",
+        "weight": 23.44,
+        "page": 57
+      }
+    },
+    {
+      "id": "7eabd4099cd2900a",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_HUMAN",
+      "reasons": [
+        "second pass confidence is low",
+        "the graph already has this edge (DISCLOSED, ASX company profile — WES)"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Rob Scott",
+        "to": "Wesfarmers",
+        "weight": null,
+        "page": 121
+      }
+    },
+    {
+      "id": "84fbd0ede8d38876",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_HUMAN",
+      "reasons": [
+        "second pass confidence is medium",
+        "the graph already has this edge (DISCLOSED, Wesfarmers — Directors (company website))"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Ken MacKenzie",
+        "to": "Wesfarmers",
+        "weight": null,
+        "page": 112
+      }
+    },
+    {
+      "id": "e038c3b7fecb9efd",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_HUMAN",
+      "reasons": [
+        "type joint venture is always reviewed by a person (past errors)"
+      ],
+      "claim": {
+        "type": "joint_venture",
+        "from": "Wesfarmers",
+        "to": "Coles Group Limited",
+        "weight": 50,
+        "page": 57
+      }
+    },
+    {
+      "id": "f31b784d8c58738a",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_HUMAN",
+      "reasons": [
+        "second pass confidence is medium"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Michael Chaney AO",
+        "to": "Wesfarmers",
+        "weight": null,
+        "page": 112
+      }
+    },
+    {
+      "id": "255c56b9de669e0c",
+      "file": "BWP-2026-05-06.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Bunnings\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "customer",
+        "from": "Bunnings",
+        "to": "BWP",
+        "weight": 76.7,
+        "page": 24
+      }
+    },
+    {
+      "id": "3331ecd321d5e5e4",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Jenny Bryant\" does not resolve to a known node",
+        "stage 1: to \"Flybuys\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Jenny Bryant",
+        "to": "Flybuys",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "33e362152e4016bd",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Built Group\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "joint_venture",
+        "from": "Wesfarmers",
+        "to": "Built Group",
+        "weight": null,
+        "page": 16
+      }
+    },
+    {
+      "id": "3f134ad6bb9d7af2",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"John Gualtieri\" does not resolve to a known node",
+        "stage 1: to \"Officeworks\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "John Gualtieri",
+        "to": "Officeworks",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "49825090a161234d",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Michael Schneider\" does not resolve to a known node",
+        "stage 1: to \"Bunnings Group\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Michael Schneider",
+        "to": "Bunnings Group",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "4bb630f61b010e18",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Flybuys\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "owns",
+        "from": "Wesfarmers",
+        "to": "Flybuys",
+        "weight": 50,
+        "page": 57
+      }
+    },
+    {
+      "id": "4c582f24ac9bd586",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Gresham Partners Group Limited\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "owns",
+        "from": "Wesfarmers",
+        "to": "Gresham Partners Group Limited",
+        "weight": 50,
+        "page": 57
+      }
+    },
+    {
+      "id": "66cbec65796dc2a1",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Aaron Hood\" does not resolve to a known node",
+        "stage 1: to \"Wesfarmers Chemicals, Energy & Fertilisers\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Aaron Hood",
+        "to": "Wesfarmers Chemicals, Energy & Fertilisers",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "684295afab472232",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Naomi Flutter\" does not resolve to a known node",
+        "stage 1: to \"Wespine Industries\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Naomi Flutter",
+        "to": "Wespine Industries",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "7fa4b3247a1269b9",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Bunnings\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "customer",
+        "from": "Bunnings",
+        "to": "BWP Group",
+        "weight": null,
+        "page": 189
+      }
+    },
+    {
+      "id": "877927ad71f86796",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Cm3 Contractor Management Pty Ltd\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "subsidiary",
+        "from": "Wesfarmers",
+        "to": "Cm3 Contractor Management Pty Ltd",
+        "weight": null,
+        "page": 115
+      }
+    },
+    {
+      "id": "8a2fddba4918fe4c",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Intellihub\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "joint_venture",
+        "from": "Wesfarmers",
+        "to": "Intellihub",
+        "weight": null,
+        "page": 129
+      }
+    },
+    {
+      "id": "9e96c2131cb79c1f",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Sociedad Química y Minera\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "joint_venture",
+        "from": "Wesfarmers",
+        "to": "Sociedad Química y Minera",
+        "weight": 50,
+        "page": 40
+      }
+    },
+    {
+      "id": "bd7365cc69459b7b",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Michael Britton\" does not resolve to a known node",
+        "stage 1: to \"Wespine Industries\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Michael Britton",
+        "to": "Wespine Industries",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "cb0d6f1655b0ff3f",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"CSBP\" does not resolve to a known node",
+        "stage 1: to \"Dyno Nobel Asia Pacific\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "joint_venture",
+        "from": "CSBP",
+        "to": "Dyno Nobel Asia Pacific",
+        "weight": 50,
+        "page": 40
+      }
+    },
+    {
+      "id": "d3d64440100c225a",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Gresham Partners Group Limited\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Rob Scott",
+        "to": "Gresham Partners Group Limited",
+        "weight": null,
+        "page": 105
+      }
+    },
+    {
+      "id": "d42b86bcf02fa037",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Aleksandra Spaseska\" does not resolve to a known node",
+        "stage 1: to \"Kmart Group\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Aleksandra Spaseska",
+        "to": "Kmart Group",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "dcd257373f3d79bd",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Wespine Industries Pty Ltd\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "owns",
+        "from": "Wesfarmers",
+        "to": "Wespine Industries Pty Ltd",
+        "weight": 50,
+        "page": 57
+      }
+    },
+    {
+      "id": "e19fe13c88028c77",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Aaron Hood\" does not resolve to a known node",
+        "stage 1: to \"Covalent Lithium\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Aaron Hood",
+        "to": "Covalent Lithium",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "e2b54d19dc547cbc",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"CSBP\" does not resolve to a known node",
+        "stage 1: to \"Coogee Chemicals\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "joint_venture",
+        "from": "CSBP",
+        "to": "Coogee Chemicals",
+        "weight": 75,
+        "page": 40
+      }
+    },
+    {
+      "id": "eeb3fba1121adf16",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: to \"Australian Gold Reagents Pty Ltd\" does not resolve to a known node",
+        "stage 1: stake 75% is not stated as a percentage in the quote"
+      ],
+      "claim": {
+        "type": "subsidiary",
+        "from": "Wesfarmers",
+        "to": "Australian Gold Reagents Pty Ltd",
+        "weight": 75,
+        "page": 186
+      }
+    },
+    {
+      "id": "fd638258fc764547",
+      "file": "WES-2026-06-30.json",
+      "bucket": "AUTO_REJECTED",
+      "reasons": [
+        "stage 1: from \"Emily Amos\" does not resolve to a known node",
+        "stage 1: to \"Wesfarmers Health\" does not resolve to a known node"
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Emily Amos",
+        "to": "Wesfarmers Health",
+        "weight": null,
+        "page": 18
+      }
+    }
+  ]
+}

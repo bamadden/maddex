@@ -13,7 +13,8 @@
     "propose-edges": "node scripts/propose-edges.mjs",
     "test:ui": "node tests/ui/profile.ui.mjs",
     "graph:verify": "node scripts/graph-verify.mjs",
-    "graph:second-pass": "node --env-file-if-exists=.env scripts/graph-second-pass.mjs"
+    "graph:second-pass": "node --env-file-if-exists=.env scripts/graph-second-pass.mjs",
+    "graph:triage": "node scripts/graph-triage.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
