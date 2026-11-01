@@ -6,6 +6,7 @@ import {
 } from '../../services/centralBankSchedule'
 import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Upcoming decisions, next 90 days ───────────────────────────────────────
 //
@@ -49,9 +50,9 @@ const BANKS = [
 ]
 
 const PILL = {
-  HOLD: { colour: '#C9A84C', bg: 'rgba(201,168,76,0.14)', border: 'rgba(201,168,76,0.4)' },
-  CUT:  { colour: '#2D8A50', bg: 'rgba(45,138,80,0.16)',  border: 'rgba(45,138,80,0.45)' },
-  HIKE: { colour: '#CC4444', bg: 'rgba(200,68,68,0.16)',  border: 'rgba(200,68,68,0.45)' },
+  HOLD: { colour: PAL.gold, bg: 'rgba(201,168,76,0.14)', border: 'rgba(201,168,76,0.4)' },
+  CUT:  { colour: PAL.up, bg: 'rgba(45,138,80,0.16)',  border: 'rgba(45,138,80,0.45)' },
+  HIKE: { colour: PAL.down, bg: 'rgba(200,68,68,0.16)',  border: 'rgba(200,68,68,0.45)' },
 }
 
 export default function UpcomingDecisions({ days = 90 }) {
@@ -95,7 +96,7 @@ export default function UpcomingDecisions({ days = 90 }) {
 
       <table className="w-full">
         <thead>
-          <tr className="text-terminal-text-dim border-b border-terminal-border/50" style={{ fontSize: 8 }}>
+          <tr className="text-terminal-text-dim border-b border-terminal-border/50" style={{ fontSize: 11 }}>
             <th className="text-left font-normal px-3 py-1 tracking-widest" style={{ width: 34 }}></th>
             <th className="text-left font-normal py-1 tracking-widest" style={{ width: 90 }}>BANK</th>
             <th className="text-left font-normal py-1 tracking-widest">&nbsp;</th>
@@ -115,7 +116,7 @@ export default function UpcomingDecisions({ days = 90 }) {
                 className="border-b border-terminal-border/25 hover:bg-terminal-accent/10 transition-colors"
               >
                 <td className="px-3 py-1" style={{ fontSize: 14 }}>{r.flag}</td>
-                <td className="py-1 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 10 }}>
+                <td className="py-1 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>
                   {r.label}
                   {!r.official && (
                     <span
@@ -124,16 +125,16 @@ export default function UpcomingDecisions({ days = 90 }) {
                     >~</span>
                   )}
                 </td>
-                <td className="py-1 font-mono text-terminal-text-dim/70 truncate" style={{ fontSize: 9 }}>
+                <td className="py-1 font-mono text-terminal-text-dim/70 truncate" style={{ fontSize: 11 }}>
                   {VERIFIED_CONSTANTS[r.key]?.country ?? ''}
                 </td>
-                <td className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 10 }}>
+                <td className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 11 }}>
                   {new Date(`${r.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                 </td>
                 {/* The rate going INTO the meeting — the number the expected
                     decision would move. A date and a stance with no level
                     between them makes the reader look it up again. */}
-                <td className="py-1 text-right font-mono tabular-nums text-terminal-gold" style={{ fontSize: 10 }}>
+                <td className="py-1 text-right font-mono tabular-nums text-terminal-gold" style={{ fontSize: 11 }}>
                   {VERIFIED_CONSTANTS[r.key]?.cashRate?.toFixed(2)}%
                 </td>
                 <td className="py-1 pl-6">
@@ -141,17 +142,17 @@ export default function UpcomingDecisions({ days = 90 }) {
                     <span
                       className="font-mono font-bold inline-block"
                       style={{
-                        fontSize: 8, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
+                        fontSize: 11, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
                         color: st.colour, background: st.bg, border: `1px solid ${st.border}`,
                       }}
                     >{r.expected}</span>
                   ) : (
-                    <span className="font-mono text-terminal-text-dim/35" style={{ fontSize: 10 }} title="No stance recorded for a bank's later meetings">—</span>
+                    <span className="font-mono text-terminal-text-dim/35" style={{ fontSize: 11 }} title="No stance recorded for a bank's later meetings">—</span>
                   )}
                 </td>
                 <td
                   className="px-3 py-1 text-right font-mono tabular-nums"
-                  style={{ fontSize: 10, color: soon ? '#C9A84C' : '#637899', fontWeight: soon ? 700 : 400 }}
+                  style={{ fontSize: 11, color: soon ? PAL.gold : PAL.muted, fontWeight: soon ? 700 : 400 }}
                 >
                   {r.daysAway} {r.daysAway === 1 ? 'day' : 'days'}
                 </td>
@@ -161,7 +162,7 @@ export default function UpcomingDecisions({ days = 90 }) {
         </tbody>
       </table>
 
-      <div className="px-3 py-1.5 border-t border-terminal-border/40 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 8 }}>
+      <div className="px-3 py-1.5 border-t border-terminal-border/40 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
         RBA, Fed, ECB and BOE dates are each bank&apos;s published calendar. The six marked
         <span className="text-terminal-text-dim/80"> ~ </span>
         follow that bank&apos;s known meeting cadence — treat those dates as approximate.

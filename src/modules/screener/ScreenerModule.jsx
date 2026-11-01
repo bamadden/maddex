@@ -10,6 +10,7 @@ import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
 import { useSubscription } from '../../hooks/useSubscription'
 import { takeModuleIntent } from '../../services/moduleIntent'
+import { PAL } from '../../styles/palette.js'
 
 // Two derived fields the raw data does not carry, computed once here rather
 // than at every filter, sort and render:
@@ -257,11 +258,11 @@ function YieldContextBar({ results, insights, screenName }) {
         <span className="text-terminal-text-dim/50"> ({payers}/{results.length} payers · demo data)</span>
       </span>
       <span className="text-terminal-text-dim">
-        vs cash <b className="tabular-nums" style={{ color: above ? '#2D8A50' : '#E8A33D' }}>{premium >= 0 ? '+' : '−'}{Math.abs(premium).toFixed(1)}pp</b>
+        vs cash <b className="tabular-nums" style={{ color: above ? PAL.up : PAL.amber }}>{premium >= 0 ? '+' : '−'}{Math.abs(premium).toFixed(1)}pp</b>
       </span>
       <span
         className="font-bold px-1.5 py-0.5"
-        style={{ fontSize: 9, letterSpacing: '0.12em', color: above ? '#2D8A50' : '#E8A33D', border: `1px solid ${above ? 'rgba(45,138,80,0.5)' : 'rgba(232,163,61,0.5)'}` }}
+        style={{ fontSize: 11, letterSpacing: '0.12em', color: above ? PAL.up : PAL.amber, border: `1px solid ${above ? 'rgba(45,138,80,0.5)' : 'rgba(232,163,61,0.5)'}` }}
         title="Average cash dividend yield against the RBA cash rate — before franking credits, which vary by company and investor."
       >{above ? 'YIELD PREMIUM' : 'BELOW CASH RATE'}</span>
       <button
@@ -424,8 +425,8 @@ function Range52Bar({ pos }) {
 function Metric({ label, value, tone }) {
   return (
     <div className="min-w-0">
-      <div className="text-2xs text-terminal-text-dim/50 tracking-wider" style={{ fontSize: 8 }}>{label}</div>
-      <div className="font-mono font-semibold tabular-nums truncate" style={{ fontSize: 12, color: tone ?? '#E8EDF5' }}>{value}</div>
+      <div className="text-2xs text-terminal-text-dim/50 tracking-wider" style={{ fontSize: 11 }}>{label}</div>
+      <div className="font-mono font-semibold tabular-nums truncate" style={{ fontSize: 12, color: tone ?? PAL.bright }}>{value}</div>
     </div>
   )
 }
@@ -611,7 +612,7 @@ function QualityBadge({ pct }) {
   const strong = pct > 90
   return (
     <span className="font-mono font-bold tracking-wider px-1.5 py-px rounded-sm whitespace-nowrap"
-      style={{ fontSize: 8, color: strong ? '#C9A84C' : '#8BA3C4', border: `1px solid ${strong ? 'rgba(201,168,76,0.5)' : 'rgba(139,163,196,0.35)'}` }}>
+      style={{ fontSize: 11, color: strong ? PAL.gold : PAL.dim, border: `1px solid ${strong ? 'rgba(201,168,76,0.5)' : 'rgba(139,163,196,0.35)'}` }}>
       {strong ? '★ STRONG MATCH' : 'GOOD MATCH'}
     </span>
   )
@@ -638,7 +639,7 @@ function rescanUniverse(base) {
 function CompareModal({ rows, onClose }) {
   const metrics = [
     ['PRICE', (s) => `${s.exchange === 'ASX' ? 'A$' : 'US$'}${s.price.toFixed(2)}`],
-    ['CHANGE', (s) => `${s.changePct >= 0 ? '+' : ''}${s.changePct.toFixed(2)}%`, (s) => (s.changePct >= 0 ? '#2D8A50' : '#A83232')],
+    ['CHANGE', (s) => `${s.changePct >= 0 ? '+' : ''}${s.changePct.toFixed(2)}%`, (s) => (s.changePct >= 0 ? PAL.up : PAL.down)],
     ['P/E', (s) => (s.pe > 0 ? s.pe.toFixed(1) : '—')],
     ['DIV YIELD', (s) => (s.divYield > 0 ? `${s.divYield.toFixed(1)}%` : '—')],
     ['MKT CAP', (s) => fmt.large(s.marketCap)],
@@ -670,7 +671,7 @@ function CompareModal({ rows, onClose }) {
             ))}
           </tbody>
         </table>
-        <div className="text-[9px] text-terminal-text-dim/60 mt-3">Demo dataset · simulated prices · general information only.</div>
+        <div className="text-[11px] text-terminal-text-dim/60 mt-3">Demo dataset · simulated prices · general information only.</div>
       </div>
     </div>
   )
@@ -983,18 +984,18 @@ export default function ScreenerModule() {
       />
       {/* Auto-scan strip */}
       <div className="flex items-center gap-3 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 font-mono" style={{ background: 'rgba(201,168,76,0.03)' }}>
-        <span className="text-[9px] font-bold tracking-widest text-terminal-gold">AUTO-SCAN</span>
-        <span className="text-[9px] text-terminal-text-dim">every 2 min</span>
+        <span className="text-[11px] font-bold tracking-widest text-terminal-gold">AUTO-SCAN</span>
+        <span className="text-[11px] text-terminal-text-dim">every 2 min</span>
         <div className="relative flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(100,130,160,0.2)' }}>
           {scanning
             ? <div className="scan-sweep h-full w-full" />
             : <div className="h-full bg-terminal-gold/70 transition-[width] duration-1000 ease-linear" style={{ width: `${Math.min(100, ((now - scanAt) / SCAN_MS) * 100)}%` }} />}
         </div>
-        <span className="text-[9px] text-terminal-text-dim whitespace-nowrap tabular-nums">
+        <span className="text-[11px] text-terminal-text-dim whitespace-nowrap tabular-nums">
           {scanning ? <span className="text-terminal-gold animate-pulse">SCANNING…</span>
             : `LAST SCAN: ${Math.floor((now - scanAt) / 60000) ? `${Math.floor((now - scanAt) / 60000)}m` : `${Math.floor((now - scanAt) / 1000)}s`} ago${hasSearched ? ` · ${results.length} result${results.length === 1 ? '' : 's'}` : ''}`}
         </span>
-        <button onClick={runScan} disabled={scanning} className="text-[9px] font-bold tracking-widest text-terminal-text-dim hover:text-terminal-gold disabled:opacity-40">↻ SCAN NOW</button>
+        <button onClick={runScan} disabled={scanning} className="text-[11px] font-bold tracking-widest text-terminal-text-dim hover:text-terminal-gold disabled:opacity-40">↻ SCAN NOW</button>
       </div>
 
       <div className="p-3 border-b border-terminal-border flex-shrink-0">
@@ -1155,7 +1156,7 @@ export default function ScreenerModule() {
 
         {/* Rate-environment screens, on their own row so they read as a set. */}
         <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-          <span className="text-2xs font-bold tracking-widest mr-1" style={{ color: '#E8A33D' }}>RATE ENVIRONMENT</span>
+          <span className="text-2xs font-bold tracking-widest mr-1" style={{ color: PAL.amber }}>RATE ENVIRONMENT</span>
           {PRESETS.filter((p) => p.group === 'rates').map((p) => (
             <button
               key={p.key}
@@ -1164,7 +1165,7 @@ export default function ScreenerModule() {
                 activePreset === p.key ? 'font-bold' : 'text-terminal-text-dim hover:text-[#E8A33D]'
               }`}
               style={activePreset === p.key
-                ? { background: '#E8A33D', color: '#0A1220', borderColor: '#E8A33D' }
+                ? { background: PAL.amber, color: '#0A1220', borderColor: PAL.amber }
                 : { borderColor: 'rgba(232,163,61,0.4)' }}
               title={p.desc}
             >{p.label}</button>
@@ -1210,7 +1211,7 @@ export default function ScreenerModule() {
                     {insights.divYield != null && <> · avg yield <span className="text-terminal-text-bright tabular-nums">{insights.divYield.toFixed(1)}%</span></>}
                     {insights.best && (
                       <> · best today <span className="text-terminal-gold font-bold">{String(insights.best.symbol).replace(/\.AX$/i, '')}</span>{' '}
-                        <span style={{ color: insights.best.changePct >= 0 ? '#2D8A50' : '#A83232' }} className="tabular-nums">
+                        <span style={{ color: insights.best.changePct >= 0 ? PAL.up : PAL.down }} className="tabular-nums">
                           {insights.best.changePct >= 0 ? '+' : ''}{insights.best.changePct.toFixed(2)}%
                         </span>
                       </>
@@ -1288,7 +1289,7 @@ export default function ScreenerModule() {
                     key={s2.symbol}
                     onClick={() => openModal?.({ symbol: s2.symbol, name: s2.name, price: s2.price, pct: s2.changePct, type: 'stock' })}
                     className="group cursor-pointer transition-colors"
-                    style={{ background: '#0B1628', border: '1px solid rgba(201,168,76,0.12)', padding: 16, borderRadius: 2 }}
+                    style={{ background: PAL.panel, border: '1px solid rgba(201,168,76,0.12)', padding: 16, borderRadius: 2 }}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <SectorPill sector={s2.sector} />
@@ -1310,13 +1311,13 @@ export default function ScreenerModule() {
                     <div className="grid grid-cols-2 gap-y-1.5 gap-x-2">
                       <Metric label="PRICE" value={`${cur}${s2.price?.toFixed(2) ?? '—'}`} />
                       <Metric label="CHANGE" value={s2.changePct != null ? `${up ? '+' : ''}${s2.changePct.toFixed(2)}%` : '—'}
-                        tone={s2.changePct == null ? undefined : up ? '#2D8A50' : '#A83232'} />
+                        tone={s2.changePct == null ? undefined : up ? PAL.up : PAL.down} />
                       <Metric label="P/E" value={s2.pe > 0 ? s2.pe.toFixed(1) : '—'} />
                       <Metric label="YIELD" value={s2.divYield > 0 ? `${s2.divYield.toFixed(1)}%` : '—'} />
                     </div>
                     {s2.matchPct != null && (
                       <div className="mt-3" style={{ height: 3, background: 'rgba(201,168,76,0.12)' }}>
-                        <div style={{ width: `${s2.matchPct}%`, height: '100%', background: '#C9A84C' }} />
+                        <div style={{ width: `${s2.matchPct}%`, height: '100%', background: PAL.gold }} />
                       </div>
                     )}
                     <button
@@ -1324,8 +1325,8 @@ export default function ScreenerModule() {
                       disabled={watchlist?.includes(s2.symbol)}
                       className="mt-3 w-full text-2xs font-bold tracking-widest py-1 border transition-colors disabled:cursor-default"
                       style={watchlist?.includes(s2.symbol)
-                        ? { borderColor: 'rgba(45,138,80,0.4)', color: '#2D8A50' }
-                        : { borderColor: 'rgba(201,168,76,0.4)', color: '#C9A84C' }}
+                        ? { borderColor: 'rgba(45,138,80,0.4)', color: PAL.up }
+                        : { borderColor: 'rgba(201,168,76,0.4)', color: PAL.gold }}
                     >{watchlist?.includes(s2.symbol) ? '✓ ON WATCHLIST' : '+ WATCHLIST'}</button>
                   </div>
                 )

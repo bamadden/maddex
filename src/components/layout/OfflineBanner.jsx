@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { PAL } from '../../styles/palette.js'
 
 // "● OFFLINE — showing cached data" while the browser reports no connection;
 // "✓ RECONNECTED — refreshing data" for a few seconds after it returns, while
@@ -30,8 +31,8 @@ export default function OfflineBanner() {
     <div role="status" aria-live="polite"
       className="fixed left-1/2 -translate-x-1/2 z-[300] font-mono font-bold tracking-widest px-3 py-1 shadow-lg"
       style={{
-        top: 6, fontSize: 10,
-        color: offline ? '#E8A33D' : '#2D8A50',
+        top: 6, fontSize: 11,
+        color: offline ? PAL.amber : PAL.up,
         background: 'rgba(6,13,26,0.95)',
         border: `1px solid ${offline ? 'rgba(232,163,61,0.6)' : 'rgba(45,138,80,0.6)'}`,
       }}>

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { PAL } from '../styles/palette.js'
 
 // Each theme sets every --t-x CSS custom property tailwind.config.js's
 // terminal-* colors resolve through (rgb(var(--t-x) / <alpha-value>)).
@@ -6,16 +7,16 @@ import { useEffect } from 'react'
 // is consumed as a raw rgba() string (see index.css comment for why).
 export const THEMES = {
   dark: {
-    label: 'DARK', swatch: '#0B1628',
+    label: 'DARK', swatch: PAL.panel,
     vars: {
       '--t-bg': '6 13 26', '--t-panel': '11 22 40', '--t-header': '10 31 61', '--t-accent': '26 58 107',
       '--t-surface': '11 22 40', '--t-surface2': '15 30 53', '--t-surface3': '21 37 64',
       '--t-border': '22 48 79', '--t-border-gold': 'rgba(201,168,76,0.25)',
       '--t-gold': '201 168 76', '--t-gold-bright': '232 201 106', '--t-gold-dim': '138 110 42',
       '--t-blue': '26 78 138', '--t-blue-bright': '45 125 210',
-      '--t-green': '45 138 80', '--t-green-bright': '61 173 101', '--t-green-dim': '0 122 51',
-      '--t-red': '168 50 50', '--t-red-bright': '201 62 62', '--t-red-dim': '183 28 28',
-      '--t-muted': '99 120 153', '--t-muted-bright': '139 163 196',
+      '--t-green': '63 176 107', '--t-green-bright': '61 173 101', '--t-green-dim': '0 122 51',
+      '--t-red': '235 107 102', '--t-red-bright': '201 62 62', '--t-red-dim': '183 28 28',
+      '--t-muted': '125 147 181', '--t-muted-bright': '139 163 196',
       '--t-text': '232 237 245', '--t-text-dim': '184 200 216', '--t-text-bright': '232 240 255',
     },
   },
@@ -27,9 +28,9 @@ export const THEMES = {
       '--t-border': '36 36 44', '--t-border-gold': 'rgba(201,168,76,0.2)',
       '--t-gold': '201 168 76', '--t-gold-bright': '232 201 106', '--t-gold-dim': '122 98 36',
       '--t-blue': '20 51 94', '--t-blue-bright': '45 125 210',
-      '--t-green': '35 122 69', '--t-green-bright': '52 160 92', '--t-green-dim': '10 92 42',
-      '--t-red': '146 44 44', '--t-red-bright': '201 62 62', '--t-red-dim': '140 31 31',
-      '--t-muted': '90 100 120', '--t-muted-bright': '126 138 160',
+      '--t-green': '63 176 107', '--t-green-bright': '52 160 92', '--t-green-dim': '10 92 42',
+      '--t-red': '235 107 102', '--t-red-bright': '201 62 62', '--t-red-dim': '140 31 31',
+      '--t-muted': '125 147 181', '--t-muted-bright': '126 138 160',
       '--t-text': '220 226 236', '--t-text-dim': '166 175 192', '--t-text-bright': '240 243 248',
     },
   },
@@ -76,7 +77,7 @@ const ACCENT_KEY = 'maddex_accent'
 // variable honest would touch every file and change nothing a user sees, so
 // the name stays and this comment explains it.
 export const ACCENTS = {
-  gold:   { label: 'GOLD',   swatch: '#C9A84C', vars: { '--t-gold': '201 168 76',  '--t-gold-bright': '232 201 106', '--t-gold-dim': '138 110 42' } },
+  gold:   { label: 'GOLD',   swatch: PAL.gold, vars: { '--t-gold': '201 168 76',  '--t-gold-bright': '232 201 106', '--t-gold-dim': '138 110 42' } },
   blue:   { label: 'BLUE',   swatch: '#4A90D9', vars: { '--t-gold': '74 144 217',  '--t-gold-bright': '110 174 240', '--t-gold-dim': '42 88 138' } },
   green:  { label: 'GREEN',  swatch: '#4FA86B', vars: { '--t-gold': '79 168 107',  '--t-gold-bright': '110 200 138', '--t-gold-dim': '44 106 66' } },
   silver: { label: 'SILVER', swatch: '#A8B2C1', vars: { '--t-gold': '168 178 193', '--t-gold-bright': '206 214 226', '--t-gold-dim': '110 120 136' } },

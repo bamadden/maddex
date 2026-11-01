@@ -3,18 +3,19 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceDot } f
 import SafeChart from '../../components/ui/SafeChart'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { CATEGORY_STYLE, progressOf, reconstructPath } from '../../services/replayScenarios'
+import { PAL } from '../../styles/palette.js'
 
 const FRAMES = 120
 const SPEEDS = { '1x': 250, '5x': 50 }
 
 const fmt = (v, dp) => v.toLocaleString('en-AU', { minimumFractionDigits: dp, maximumFractionDigits: dp })
-const toneColour = (t) => (t === 'up' ? '#2D8A50' : t === 'down' ? '#A83232' : '#C9A84C')
+const toneColour = (t) => (t === 'up' ? PAL.up : t === 'down' ? PAL.down : PAL.gold)
 
 export function FactPill({ f }) {
   return (
     <span
       className="inline-flex items-center gap-1 font-mono px-1.5 py-0.5 rounded-sm"
-      style={{ fontSize: 9, color: toneColour(f.tone), background: `${toneColour(f.tone)}1F`, border: `1px solid ${toneColour(f.tone)}40` }}
+      style={{ fontSize: 11, color: toneColour(f.tone), background: `${toneColour(f.tone)}1F`, border: `1px solid ${toneColour(f.tone)}40` }}
       title={f.note}
     >
       <span className="opacity-80">{f.label}</span>
@@ -31,7 +32,7 @@ function Quiz({ scenario, onAsk }) {
     <div className="border border-terminal-border">
       <div className="px-3 py-2 border-b border-terminal-border flex items-center justify-between">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">QUIZ · WHAT HAPPENED?</span>
-        {done && <span className="text-2xs font-bold" style={{ color: score === scenario.quiz.length ? '#2D8A50' : '#C9A84C' }}>SCORE {score}/{scenario.quiz.length}</span>}
+        {done && <span className="text-2xs font-bold" style={{ color: score === scenario.quiz.length ? PAL.up : PAL.gold }}>SCORE {score}/{scenario.quiz.length}</span>}
       </div>
       <div className="p-3 space-y-3">
         {scenario.quiz.map((q, i) => {
@@ -44,7 +45,7 @@ function Quiz({ scenario, onAsk }) {
                   const isPicked = picked === j
                   const show = picked != null
                   const correct = j === q.answer
-                  const colour = show && correct ? '#2D8A50' : show && isPicked ? '#A83232' : null
+                  const colour = show && correct ? PAL.up : show && isPicked ? PAL.down : null
                   return (
                     <button
                       key={o}
@@ -122,7 +123,7 @@ export default function ScenarioPlayer({ scenario, onExit }) {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2 flex-shrink-0" style={{ borderBottom: `1px solid ${style.colour}40`, background: style.bg }}>
-        <span className={`rounded-full ${playing ? 'pulse-gold' : ''}`} style={{ width: 7, height: 7, background: playing ? '#C9A84C' : '#4A6080' }} />
+        <span className={`rounded-full ${playing ? 'pulse-gold' : ''}`} style={{ width: 7, height: 7, background: playing ? PAL.gold : PAL.muted }} />
         <span className="text-2xs font-bold tracking-widest text-terminal-text-bright truncate">
           {complete ? '■ REPLAYED' : playing ? '▶ REPLAYING' : '❚❚ PAUSED'}: {scenario.title}
         </span>
@@ -152,10 +153,10 @@ export default function ScenarioPlayer({ scenario, onExit }) {
           <div className="p-4 border-r border-terminal-border">
             <div className="flex items-baseline gap-3 mb-1">
               <span className="text-2xs text-terminal-text-dim tracking-widest">{series.label.toUpperCase()}</span>
-              <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 22 }}>
+              <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 20 }}>
                 {fmt(current.value, series.dp)}{series.unit === '%' ? '%' : ''}
               </span>
-              <span className="font-mono text-xs tabular-nums" style={{ color: changePct >= 0 ? '#2D8A50' : '#A83232' }}>
+              <span className="font-mono text-xs tabular-nums" style={{ color: changePct >= 0 ? PAL.up : PAL.down }}>
                 {series.step ? `${current.value - start >= 0 ? '+' : ''}${Math.round((current.value - start) * 100)}bp` : `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`}
               </span>
               <span className="ml-auto text-2xs text-terminal-text-dim/60">{series.unit !== '%' && series.unit !== 'pts' ? series.unit : ''}</span>
@@ -165,14 +166,14 @@ export default function ScenarioPlayer({ scenario, onExit }) {
                 <AreaChart data={shown} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="replayFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
+                      <stop offset="0%" stopColor={PAL.gold} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={PAL.gold} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#0F1E35" vertical={false} />
+                  <CartesianGrid stroke={PAL.header} vertical={false} />
                   <XAxis dataKey="p" type="number" domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]}
-                    tickFormatter={(v) => path[Math.round(v * FRAMES)]?.label ?? ''} tick={{ fontSize: 9 }} stroke="#4A6080" />
-                  <YAxis domain={domain} tick={{ fontSize: 9 }} stroke="#4A6080" width={52} tickFormatter={(v) => fmt(v, series.dp > 1 ? 1 : series.dp)} />
+                    tickFormatter={(v) => path[Math.round(v * FRAMES)]?.label ?? ''} tick={{ fontSize: 11 }} stroke={PAL.muted} />
+                  <YAxis domain={domain} tick={{ fontSize: 11 }} stroke={PAL.muted} width={52} tickFormatter={(v) => fmt(v, series.dp > 1 ? 1 : series.dp)} />
                   <Tooltip
                     content={({ active, payload }) => active && payload?.length ? (
                       <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
@@ -182,9 +183,9 @@ export default function ScenarioPlayer({ scenario, onExit }) {
                       </div>
                     ) : null}
                   />
-                  <Area type={series.step ? 'stepAfter' : 'monotone'} dataKey="value" stroke="#C9A84C" strokeWidth={1.75} fill="url(#replayFill)" isAnimationActive={false} />
+                  <Area type={series.step ? 'stepAfter' : 'monotone'} dataKey="value" stroke={PAL.gold} strokeWidth={1.75} fill="url(#replayFill)" isAnimationActive={false} />
                   {shown.filter((d) => d.anchor).map((d) => (
-                    <ReferenceDot key={d.p} x={d.p} y={d.value} r={3.5} fill="#C9A84C" stroke="#040d1a" />
+                    <ReferenceDot key={d.p} x={d.p} y={d.value} r={3.5} fill={PAL.gold} stroke="#040d1a" />
                   ))}
                 </AreaChart>
               </SafeChart>
@@ -200,8 +201,8 @@ export default function ScenarioPlayer({ scenario, onExit }) {
             <div ref={feedRef} className="flex-1 overflow-y-auto p-3 space-y-2.5" style={{ maxHeight: 330 }}>
               {events.length === 0 && <div className="text-2xs text-terminal-text-dim/60">Events appear as the replay reaches them.</div>}
               {events.map((e, i) => (
-                <div key={`${e.at}-${i}`} className="panel-fade" style={{ borderLeft: `2px solid ${e.key ? '#C9A84C' : 'rgba(99,120,153,0.35)'}`, paddingLeft: 8 }}>
-                  <div className="font-mono text-terminal-gold/80" style={{ fontSize: 9 }}>
+                <div key={`${e.at}-${i}`} className="panel-fade" style={{ borderLeft: `2px solid ${e.key ? PAL.gold : 'rgba(99,120,153,0.35)'}`, paddingLeft: 8 }}>
+                  <div className="font-mono text-terminal-gold/80" style={{ fontSize: 11 }}>
                     {scenario.window.kind === 'intraday' ? e.at : new Date(`${e.at}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </div>
                   <div className={`text-2xs leading-snug ${e.key ? 'text-terminal-text-bright' : 'text-terminal-text'}`}>{e.text}</div>

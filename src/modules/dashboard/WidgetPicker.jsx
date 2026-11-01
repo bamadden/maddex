@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { dashboardService } from '../../services/dashboardService'
+import { PAL } from '../../styles/palette.js'
 
 const CATEGORY_COLOUR = {
-  Markets: '#4A9EDB', Portfolio: '#2D8A50', AI: '#8C8CFF', Global: '#C9A84C',
+  Markets: '#4A9EDB', Portfolio: PAL.up, AI: '#8C8CFF', Global: PAL.gold,
   Calendar: '#C87832', News: '#A8A8B8', Tools: '#4ADBD0', Crypto: '#D9A441', Macro: '#7BE495',
 }
 
@@ -51,7 +52,7 @@ export default function WidgetPicker({ at, onClose, onAdded }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 560, maxWidth: '92vw', maxHeight: '70vh',
-          background: '#0B1628',
+          background: PAL.panel,
           border: '1px solid rgba(201,168,76,0.25)',
           borderRadius: 4,
           display: 'flex', flexDirection: 'column',
@@ -59,8 +60,8 @@ export default function WidgetPicker({ at, onClose, onAdded }) {
         }}
       >
         <div className="flex items-center justify-between flex-shrink-0" style={{ padding: '12px 16px', borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
-          <span className="font-mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: '#C9A84C' }}>ADD WIDGET</span>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', fontSize: 14 }}>✕</button>
+          <span className="font-mono" style={{ fontSize: 11, letterSpacing: '0.2em', color: PAL.gold }}>ADD WIDGET</span>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: PAL.muted, cursor: 'pointer', fontSize: 14 }}>✕</button>
         </div>
 
         <div className="flex-shrink-0" style={{ padding: '12px 16px 8px' }}>
@@ -76,7 +77,7 @@ export default function WidgetPicker({ at, onClose, onAdded }) {
               <button
                 key={c}
                 onClick={() => setCategory(c)}
-                className={`font-mono text-[8px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
+                className={`font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
                   category === c ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
                 }`}
                 style={category === c ? undefined : { border: '1px solid rgba(201,168,76,0.15)' }}
@@ -87,7 +88,7 @@ export default function WidgetPicker({ at, onClose, onAdded }) {
 
         <div className="thin-scrollbar" style={{ overflowY: 'auto', padding: '4px 16px 16px', minHeight: 0 }}>
           {results.length === 0 ? (
-            <div className="font-sans text-[11px] py-6 text-center" style={{ color: '#4A6080' }}>
+            <div className="font-sans text-[11px] py-6 text-center" style={{ color: PAL.muted }}>
               No widgets match “{query}”
             </div>
           ) : (
@@ -108,14 +109,14 @@ export default function WidgetPicker({ at, onClose, onAdded }) {
                   <span
                     className="inline-block font-mono mb-1.5"
                     style={{
-                      fontSize: 8, letterSpacing: '0.12em', padding: '1px 5px', borderRadius: 2,
-                      color: CATEGORY_COLOUR[w.category] ?? '#8BA3C4',
-                      background: `${CATEGORY_COLOUR[w.category] ?? '#8BA3C4'}1A`,
+                      fontSize: 11, letterSpacing: '0.12em', padding: '1px 5px', borderRadius: 2,
+                      color: CATEGORY_COLOUR[w.category] ?? PAL.dim,
+                      background: `${CATEGORY_COLOUR[w.category] ?? PAL.dim}1A`,
                     }}
                   >{w.category.toUpperCase()}</span>
-                  <div className="font-mono font-bold mb-0.5" style={{ fontSize: 12, color: '#E8EDF5' }}>{w.name}</div>
-                  <div className="font-sans leading-snug" style={{ fontSize: 11, color: '#637899' }}>{w.description}</div>
-                  <div className="font-mono mt-1.5" style={{ fontSize: 9, color: '#4A6080' }}>{w.minW}×{w.minH}</div>
+                  <div className="font-mono font-bold mb-0.5" style={{ fontSize: 12, color: PAL.bright }}>{w.name}</div>
+                  <div className="font-sans leading-snug" style={{ fontSize: 11, color: PAL.muted }}>{w.description}</div>
+                  <div className="font-mono mt-1.5" style={{ fontSize: 11, color: PAL.muted }}>{w.minW}×{w.minH}</div>
                 </button>
               ))}
             </div>

@@ -14,13 +14,14 @@ function SentimentChip() {
   if (!s) return null
   return (
     <span className="font-mono font-bold tracking-widest px-2 py-0.5 whitespace-nowrap cursor-help"
-      style={{ fontSize: 9, color: s.color ?? '#C9A84C', border: '1px solid currentColor', borderRadius: 2 }}
+      style={{ fontSize: 11, color: s.color ?? PAL.gold, border: '1px solid currentColor', borderRadius: 2 }}
       title={sentimentTooltip(ms)} data-sentiment-score={s.score}>
       SENTIMENT {s.score} · {s.label.toUpperCase()}
     </span>
   )
 }
 import { useStore } from '../../store/useStore'
+import { PAL } from '../../styles/palette.js'
 
 // The first line of the first screen.
 //

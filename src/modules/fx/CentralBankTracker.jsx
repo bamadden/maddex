@@ -3,6 +3,7 @@ import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import { LAST_DECISIONS } from '../../services/centralBankSchedule'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import PolicySpreadMonitor from './PolicySpreadMonitor'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Central bank tracker ──────────────────────────────────────────────────
 //
@@ -28,9 +29,9 @@ import PolicySpreadMonitor from './PolicySpreadMonitor'
 // decision dots, and feeds the policy spread monitor. The ECB still has none.
 
 const DECISION_STYLE = {
-  HIKE: { colour: '#2D8A50', bg: 'rgba(45,138,80,0.15)', border: 'rgba(45,138,80,0.5)', mark: '▲' },
-  CUT:  { colour: '#CC4444', bg: 'rgba(200,100,100,0.15)', border: 'rgba(200,100,100,0.5)', mark: '▼' },
-  HOLD: { colour: '#C9A84C', bg: 'rgba(201,168,76,0.12)', border: 'rgba(201,168,76,0.4)', mark: '—' },
+  HIKE: { colour: PAL.up, bg: 'rgba(45,138,80,0.15)', border: 'rgba(45,138,80,0.5)', mark: '▲' },
+  CUT:  { colour: PAL.down, bg: 'rgba(200,100,100,0.15)', border: 'rgba(200,100,100,0.5)', mark: '▼' },
+  HOLD: { colour: PAL.gold, bg: 'rgba(201,168,76,0.12)', border: 'rgba(201,168,76,0.4)', mark: '—' },
 }
 
 // Turns the rate path into decisions. A change in rate is a hike or a cut of
@@ -69,7 +70,7 @@ function RbaTimeline() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">RBA DECISIONS · LAST 18 MONTHS</span>
-        <span className="text-[9px] text-terminal-text-dim">Derived from the published cash-rate path</span>
+        <span className="text-[11px] text-terminal-text-dim">Derived from the published cash-rate path</span>
       </div>
 
       <div className="overflow-x-auto">
@@ -92,8 +93,8 @@ function RbaTimeline() {
                   <div style={{ width: 5, height: 5, borderRadius: 3, background: st.colour, flexShrink: 0 }} />
                   <div className="flex-1" style={{ height: 1, background: i === decisions.length - 1 ? 'transparent' : 'rgba(201,168,76,0.25)' }} />
                 </div>
-                <div className="text-[9px] text-terminal-text-dim mt-1 whitespace-nowrap">{shortDate(d.date)}</div>
-                <div className="text-[9px] text-terminal-text-bright tabular-nums">{d.rate.toFixed(2)}%</div>
+                <div className="text-[11px] text-terminal-text-dim mt-1 whitespace-nowrap">{shortDate(d.date)}</div>
+                <div className="text-[11px] text-terminal-text-bright tabular-nums">{d.rate.toFixed(2)}%</div>
               </div>
             )
           })}
@@ -176,14 +177,14 @@ function SpreadMonitor({ curves }) {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">AU / US 10-YEAR SPREAD</span>
-        <span className="text-[9px] text-terminal-text-dim">{curves.AU.src}</span>
+        <span className="text-[11px] text-terminal-text-dim">{curves.AU.src}</span>
       </div>
       <div className="px-3 py-2 flex flex-wrap items-baseline gap-x-6 gap-y-1">
         <span className="text-2xs text-terminal-text-dim">AU 10Y <b className="text-terminal-text-bright tabular-nums ml-1">{au.toFixed(2)}%</b></span>
         <span className="text-2xs text-terminal-text-dim">US 10Y <b className="text-terminal-text-bright tabular-nums ml-1">{us.toFixed(2)}%</b></span>
         <span className="text-2xs text-terminal-text-dim">
           SPREAD
-          <b className="tabular-nums ml-1" style={{ color: auDiscount ? '#CC4444' : '#2D8A50' }}>
+          <b className="tabular-nums ml-1" style={{ color: auDiscount ? PAL.down : PAL.up }}>
             {spread >= 0 ? '+' : ''}{spread.toFixed(0)} bp
           </b>
         </span>
@@ -194,7 +195,7 @@ function SpreadMonitor({ curves }) {
           </span>
         )}
       </div>
-      <div className="px-3 pb-2 text-[10px] text-terminal-text-dim leading-relaxed">
+      <div className="px-3 pb-2 text-[11px] text-terminal-text-dim leading-relaxed">
         {auDiscount
           ? 'Australian 10-year yields sit below US equivalents. A negative carry on AUD assets tends to weigh on the currency, all else equal — capital is paid more to sit in US duration.'
           : 'Australian 10-year yields sit above US equivalents, which is historically supportive for the AUD: the yield pick-up rewards holding Australian duration.'}

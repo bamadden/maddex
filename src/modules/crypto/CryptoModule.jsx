@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import DefiPanel from './DefiPanel'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -22,6 +23,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
 import { Area, Bar, ComposedChart, Tooltip, XAxis, YAxis } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -29,7 +31,7 @@ const CryptoLandscape3D = lazy(() => import('../../components/visualisations/Cry
 
 // ── Coin colour circle (deterministic hash, not a real logo — Bloomberg-
 // terminal-style abstract avatar rather than brand marks) ──────────────────
-const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#C9A84C']
+const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', PAL.gold]
 // Real (approximate) brand colours for the coins that actually show up in
 // the top-20 list — hash-based colour is only a fallback for the long tail.
 const COIN_COLORS = {
@@ -74,7 +76,7 @@ function Sparkline({ prices, w = 60, h = 28 }) {
   // Gold when the price is above where it started the window, red below —
   // read off the series itself, so it always agrees with the line's shape.
   const up = sampled.at(-1) >= sampled[0]
-  const color = up ? '#C9A84C' : 'var(--color-loss)'
+  const color = up ? PAL.gold : 'var(--color-loss)'
   return (
     <span style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'middle', width: w, height: h }}>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', opacity: 0.8 }}>
@@ -111,7 +113,7 @@ function TopVolumeList({ markets, currPrefix, selectedCoin, onSelect }) {
   return (
     <div style={P.wrap}>
       <div style={P.title}>TOP 5 BY VOLUME</div>
-      {!top5.length ? <div style={P.empty}>LOADING...</div> : (
+      {!top5.length ? <InlineLoading label="Loading" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {top5.map((c, i) => (
             <div
@@ -122,10 +124,10 @@ function TopVolumeList({ markets, currPrefix, selectedCoin, onSelect }) {
                 opacity: selectedCoin === c.symbol ? 1 : 0.85,
               }}
             >
-              <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.5)', width: 10, flexShrink: 0 }}>{i + 1}</span>
+              <span style={{ fontSize: 11, color: 'rgba(100,130,160,0.5)', width: 10, flexShrink: 0 }}>{i + 1}</span>
               <CoinCircle symbol={c.symbol} size={16} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: selectedCoin === c.symbol ? '#C9A84C' : '#e8ecf0' }}>{c.symbol}</span>
-              <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.6)', marginLeft: 'auto' }}>{currPrefix}{c.vol24h}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: selectedCoin === c.symbol ? PAL.gold : '#e8ecf0' }}>{c.symbol}</span>
+              <span style={{ fontSize: 11, color: 'rgba(100,130,160,0.6)', marginLeft: 'auto' }}>{currPrefix}{c.vol24h}</span>
             </div>
           ))}
         </div>
@@ -162,14 +164,14 @@ function SectorPerformanceList({ markets }) {
   return (
     <div style={P.wrap}>
       <div style={P.title}>SECTOR PERFORMANCE (24H)</div>
-      {!sectors.length ? <div style={P.empty}>LOADING...</div> : (
+      {!sectors.length ? <InlineLoading label="Loading" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {sectors.map(s => (
             <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span style={{ fontSize: 9, color: 'rgba(100,130,160,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+              <span style={{ fontSize: 11, color: 'rgba(100,130,160,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {s.name} <span style={{ color: 'rgba(100,130,160,0.4)' }}>({s.count})</span>
               </span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: s.avg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: s.avg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', flexShrink: 0 }}>
                 {s.avg >= 0 ? '▲' : '▼'}{Math.abs(s.avg).toFixed(2)}%
               </span>
             </div>
@@ -190,8 +192,8 @@ function SectorPerformanceList({ markets }) {
 // its natural content height and let the column scroll.
 const P = {
   wrap:  { flexShrink:0, display:'flex', flexDirection:'column', padding:'12px 10px', marginBottom:16, boxSizing:'border-box' },
-  title: { fontSize:9, fontWeight:700, color:'#C9A84C', letterSpacing:'0.1em', marginBottom:6, textTransform:'uppercase' },
-  empty: { display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'rgba(100,130,160,0.5)', minHeight:60 },
+  title: { fontSize:11, fontWeight:700, color:PAL.gold, letterSpacing:'0.1em', marginBottom:6, textTransform:'uppercase' },
+  empty: { display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'rgba(100,130,160,0.5)', minHeight:60 },
 }
 
 function MaddenAIPanel({ momentum }) {
@@ -204,7 +206,7 @@ function MaddenAIPanel({ momentum }) {
       <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:5 }}>
         <span style={{ fontSize:36, fontWeight:700, lineHeight:1, color, fontFamily:'IBM Plex Mono' }}>{momentum.score}</span>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-          <span style={{ fontSize:9, color:'rgba(100,130,160,0.5)' }}>/ 100</span>
+          <span style={{ fontSize:11, color:'rgba(100,130,160,0.5)' }}>/ 100</span>
           <span style={{ fontSize:11, fontWeight:700, color }}>{momentum.label.toUpperCase()}</span>
         </div>
       </div>
@@ -213,7 +215,7 @@ function MaddenAIPanel({ momentum }) {
         <div style={{ width:`${neutral}%`, background:'var(--color-neutral)', transition:'width 0.5s' }} />
         <div style={{ width:`${bearish}%`, background:'var(--color-loss)', transition:'width 0.5s' }} />
       </div>
-      <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, marginTop:2 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginTop:2 }}>
         <span style={{ color:'var(--color-gain)' }}>{bullish}% BULL</span>
         <span style={{ color:'var(--color-neutral)' }}>{neutral}% NEUT</span>
         <span style={{ color:'var(--color-loss)' }}>{bearish}% BEAR</span>
@@ -223,13 +225,13 @@ function MaddenAIPanel({ momentum }) {
 }
 
 function FearGreedPanel({ data }) {
-  if (!data) return <div style={P.wrap}><div style={P.title}>FEAR &amp; GREED</div><div style={P.empty}>LOADING...</div></div>
+  if (!data) return <div style={P.wrap}><div style={P.title}>FEAR &amp; GREED</div><InlineLoading label="Loading" /></div>
   const { value, label, prev, weekAgo, monthAgo } = data
   // The arc runs red → amber → gold → green across 0–100. The five zone NAMES
   // sit along it in order; alternative.me publishes no numeric cut-offs, so
   // none are drawn — the reading's own label (from the API) is the one shown
   // large, which is why 51 reads NEUTRAL rather than a guessed band.
-  const colourAt = (v) => (v >= 75 ? '#2D8A50' : v >= 55 ? '#7BC47F' : v > 45 ? '#C9A84C' : v >= 25 ? '#E8A33D' : '#C0504D')
+  const colourAt = (v) => (v >= 75 ? PAL.up : v >= 55 ? '#7BC47F' : v > 45 ? PAL.gold : v >= 25 ? PAL.amber : '#C0504D')
   const color = colourAt(value)
   const cx = 100, cy = 84, r = 64
   const pt = (v, rr = r) => { const a = Math.PI * (1 - v / 100); return [cx + rr * Math.cos(a), cy - rr * Math.sin(a)] }
@@ -241,30 +243,30 @@ function FearGreedPanel({ data }) {
       <svg viewBox="-30 0 260 132" style={{ width: '100%', maxWidth: 280, alignSelf: 'center' }} role="img" aria-label={`Fear and Greed ${value}, ${label}`}>
         <defs>
           <linearGradient id="fgArc" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#C0504D" /><stop offset="30%" stopColor="#E8A33D" />
-            <stop offset="50%" stopColor="#C9A84C" /><stop offset="72%" stopColor="#7BC47F" /><stop offset="100%" stopColor="#2D8A50" />
+            <stop offset="0%" stopColor="#C0504D" /><stop offset="30%" stopColor={PAL.amber} />
+            <stop offset="50%" stopColor={PAL.gold} /><stop offset="72%" stopColor="#7BC47F" /><stop offset="100%" stopColor={PAL.up} />
           </linearGradient>
         </defs>
         <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#fgArc)" strokeWidth="12" opacity="0.85" />
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#E8EDF5" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r="4" fill="#E8EDF5" />
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={PAL.bright} strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r="4" fill={PAL.bright} />
         {zones.map(([z, v]) => {
           const [x, y] = pt(v, r + 14)
-          return <text key={z} x={x} y={y + 2} textAnchor={v < 20 ? 'end' : v > 80 ? 'start' : 'middle'} fill={colourAt(v)} fontSize="6.5" fontFamily="IBM Plex Mono" letterSpacing="0.04em">{z}</text>
+          return <text key={z} x={x} y={y + 2} textAnchor={v < 20 ? 'end' : v > 80 ? 'start' : 'middle'} fill={colourAt(v)} fontSize="11" fontFamily="IBM Plex Mono" letterSpacing="0.04em">{z}</text>
         })}
         {/* The reading sits under the pivot, clear of the needle. */}
         <text x={cx} y={cy + 30} textAnchor="middle" fill={color} fontSize="28" fontFamily="IBM Plex Mono" fontWeight="700">{value}</text>
-        <text x={cx} y={cy + 44} textAnchor="middle" fill={color} fontSize="9" fontFamily="IBM Plex Mono" fontWeight="700" letterSpacing="0.12em">{label.toUpperCase()}</text>
+        <text x={cx} y={cy + 44} textAnchor="middle" fill={color} fontSize="11" fontFamily="IBM Plex Mono" fontWeight="700" letterSpacing="0.12em">{label.toUpperCase()}</text>
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: 9, marginTop: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: 11, marginTop: 4 }}>
         {[['YESTERDAY', prev], ['7D AGO', weekAgo], ['30D AGO', monthAgo]].map(([k, v]) => (
           <div key={k} style={{ textAlign: 'center' }}>
-            <div style={{ color: 'rgba(100,130,160,0.55)', fontSize: 8 }}>{k}</div>
+            <div style={{ color: 'rgba(100,130,160,0.55)', fontSize: 11 }}>{k}</div>
             <div style={{ color: colourAt(v), fontWeight: 700 }}>{v}</div>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 8, color: 'rgba(100,130,160,0.5)', marginTop: 4, textAlign: 'center' }}>alternative.me · classification is the index&apos;s own</div>
+      <div style={{ fontSize: 11, color: 'rgba(100,130,160,0.5)', marginTop: 4, textAlign: 'center' }}>alternative.me · classification is the index&apos;s own</div>
     </div>
   )
 }
@@ -278,11 +280,11 @@ function MetricCard({ label, value, sub, subTone, children, title }) {
   return (
     <div className="px-4 py-2.5 min-w-0 border-r border-terminal-border last:border-r-0" title={title}>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[9px] tracking-widest text-terminal-gold font-bold">{label}</span>
+        <span className="font-mono text-[11px] tracking-widest text-terminal-gold font-bold">{label}</span>
         {children}
       </div>
       <div className="font-mono font-bold tabular-nums text-terminal-text-bright mt-1" style={{ fontSize: 20 }}>{value}</div>
-      <div className="font-mono text-[10px] mt-0.5" style={{ color: subTone ?? 'var(--color-text-dim)' }}>{sub}</div>
+      <div className="font-mono text-[11px] mt-0.5" style={{ color: subTone ?? 'var(--color-text-dim)' }}>{sub}</div>
     </div>
   )
 }
@@ -296,7 +298,7 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
   const yday = btcDomYesterday()
   const dDom = btc != null && yday != null ? btc - yday : null
   const fg = fearGreed
-  const fgTone = fg == null ? undefined : fg.value >= 55 ? 'var(--color-gain)' : fg.value <= 45 ? 'var(--color-loss)' : '#C9A84C'
+  const fgTone = fg == null ? undefined : fg.value >= 55 ? 'var(--color-gain)' : fg.value <= 45 ? 'var(--color-loss)' : PAL.gold
   const up = (v) => (v >= 0 ? 'var(--color-gain)' : 'var(--color-loss)')
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(201,168,76,0.03)' }}>
@@ -349,7 +351,7 @@ function DominancePanel({ globalData }) {
     if (btc != null) writeBtcDomHistory(btc)
   }, [globalData])
 
-  if (!globalData) return <div style={P.wrap}><div style={P.title}>MARKET SHARE</div><div style={P.empty}>LOADING...</div></div>
+  if (!globalData) return <div style={P.wrap}><div style={P.title}>MARKET SHARE</div><InlineLoading label="Loading" /></div>
   const pct = globalData.market_cap_percentage ?? {}
   const btc = pct.btc ?? 0
   const eth = pct.eth ?? 0
@@ -364,7 +366,7 @@ function DominancePanel({ globalData }) {
       <div className="space-y-2">
         {bars.map((b) => (
           <div key={b.label}>
-            <div className="flex items-center justify-between font-mono" style={{ fontSize: 9 }}>
+            <div className="flex items-center justify-between font-mono" style={{ fontSize: 11 }}>
               <span style={{ color: b.color, fontWeight: 700 }}>{b.label}</span>
               <span className="tabular-nums" style={{ color: '#d4dce8', fontWeight: 600 }}>{b.pct.toFixed(1)}%</span>
             </div>
@@ -374,7 +376,7 @@ function DominancePanel({ globalData }) {
           </div>
         ))}
       </div>
-      <div className="font-mono mt-1.5" style={{ fontSize: 8, color: 'rgba(100,130,160,0.6)' }}>Share of total crypto market cap · CoinGecko</div>
+      <div className="font-mono mt-1.5" style={{ fontSize: 11, color: 'rgba(100,130,160,0.6)' }}>Share of total crypto market cap · CoinGecko</div>
     </div>
   )
 }
@@ -433,7 +435,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
         <div className="flex items-center gap-2 min-w-0">
           <CoinCircle symbol={coin.symbol} size={32} />
           <div className="min-w-0">
-            <div className="font-mono text-[9px] text-terminal-gold tracking-widest">#{coin.rank} {coin.name.toUpperCase()}</div>
+            <div className="font-mono text-[11px] text-terminal-gold tracking-widest">#{coin.rank} {coin.name.toUpperCase()}</div>
             <div className="text-sm font-bold text-terminal-text-bright truncate">{coin.symbol}</div>
           </div>
         </div>
@@ -448,18 +450,18 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
         </div>
         {rangePct != null && (
           <div className="mt-2.5">
-            <div className="flex justify-between text-[9px] text-terminal-text-dim mb-1"><span>24H LOW</span><span>24H HIGH</span></div>
+            <div className="flex justify-between text-[11px] text-terminal-text-dim mb-1"><span>24H LOW</span><span>24H HIGH</span></div>
             <div className="relative h-1.5 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(168,50,50,0.5), rgba(45,138,80,0.5))' }}>
-              <span className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2" style={{ left: `calc(${rangePct}% - 5px)`, background: '#E8EDF5', borderColor: '#040d1a' }} />
+              <span className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2" style={{ left: `calc(${rangePct}% - 5px)`, background: PAL.bright, borderColor: '#040d1a' }} />
             </div>
-            <div className="flex justify-between text-[9px] font-mono tabular-nums text-terminal-text mt-1"><span>{money(lo)}</span><span>{money(hi)}</span></div>
+            <div className="flex justify-between text-[11px] font-mono tabular-nums text-terminal-text mt-1"><span>{money(lo)}</span><span>{money(hi)}</span></div>
           </div>
         )}
       </div>
 
       {coin.ath != null && (
         <div className="px-3 py-2.5 border-b border-terminal-border/50">
-          <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide">All-time high</div>
+          <div className="text-[11px] text-terminal-text-dim uppercase tracking-wide">All-time high</div>
           <div className="text-2xs text-terminal-text-bright font-semibold mt-0.5 tabular-nums">
             {money(coin.ath)}{coin.athPct != null && <span className="text-terminal-red"> — {Math.abs(coin.athPct).toFixed(1)}% below ATH</span>}
           </div>
@@ -467,9 +469,9 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
             <>
               <div className="relative h-1.5 rounded-full mt-2" style={{ background: 'rgba(100,130,160,0.2)' }}>
                 <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${recovery}%`, background: 'linear-gradient(90deg, rgba(168,50,50,0.6), #C9A84C)' }} />
-                <span className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full" style={{ left: `calc(${recovery}% - 4px)`, background: '#E8EDF5' }} />
+                <span className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full" style={{ left: `calc(${recovery}% - 4px)`, background: PAL.bright }} />
               </div>
-              <div className="flex justify-between text-[9px] text-terminal-text-dim mt-1">
+              <div className="flex justify-between text-[11px] text-terminal-text-dim mt-1">
                 <span>ATL</span><span>{recovery.toFixed(0)}% of the way from ATL to ATH</span><span>ATH</span>
               </div>
             </>
@@ -480,14 +482,14 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
       <div className="px-3 py-2.5 border-b border-terminal-border/50 grid grid-cols-2 gap-x-3 gap-y-2">
         {statRows.map(([label, value]) => (
           <div key={label}>
-            <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide">{label}</div>
+            <div className="text-[11px] text-terminal-text-dim uppercase tracking-wide">{label}</div>
             <div className="text-2xs text-terminal-text-bright font-semibold mt-0.5 tabular-nums">{value}</div>
           </div>
         ))}
       </div>
 
       <div className="px-3 py-2.5 border-b border-terminal-border/50">
-        <div className="text-[9px] text-terminal-text-dim uppercase tracking-wide mb-1">Supply</div>
+        <div className="text-[11px] text-terminal-text-dim uppercase tracking-wide mb-1">Supply</div>
         {coin.circulatingSupply == null ? (
           <div className="text-2xs text-terminal-text-dim">Supply not reported by the fallback price source.</div>
         ) : minted != null ? (
@@ -509,17 +511,17 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
         )}
         {coin.id && (
           <a href={`https://www.coingecko.com/en/coins/${coin.id}`} target="_blank" rel="noopener noreferrer"
-            className="inline-block mt-2 text-[9px] font-bold tracking-widest text-terminal-gold/80 hover:text-terminal-gold">VIEW ON COINGECKO ↗</a>
+            className="inline-block mt-2 text-[11px] font-bold tracking-widest text-terminal-gold/80 hover:text-terminal-gold">VIEW ON COINGECKO ↗</a>
         )}
       </div>
 
       <div className="px-3 py-2.5 border-b border-terminal-border/50">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[9px] text-terminal-gold tracking-widest font-bold">PRICE HISTORY</span>
+          <span className="text-[11px] text-terminal-gold tracking-widest font-bold">PRICE HISTORY</span>
           <div className="flex gap-0.5">
             {TIMEFRAMES.map(tf => (
               <button key={tf} onClick={() => onTimeframeChange(tf)}
-                className={`px-1 py-0 text-[9px] transition-colors ${
+                className={`px-1 py-0 text-[11px] transition-colors ${
                   timeframe === tf ? 'border border-terminal-gold text-terminal-gold' : 'text-terminal-text-dim hover:text-terminal-gold'
                 }`}>{tf}</button>
             ))}
@@ -529,24 +531,24 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
           {historyError && !chartData ? (
             <DataUnavailable label="CHART UNAVAILABLE" onRetry={onRetryHistory} className="h-full" />
           ) : chartLoading ? (
-            <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING...</div>
+            <InlineLoading label="Loading" className="flex items-center justify-center h-full" />
           ) : chartData?.length > 1 ? (
             <SafeChart width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 2, right: 2, left: 2, bottom: 0 }}>
                 <defs>
                   <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
+                    <stop offset="5%" stopColor={PAL.gold} stopOpacity={0.25} />
+                    <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
                 <YAxis yAxisId="p" hide domain={['auto', 'auto']} />
                 {/* Volume on its own axis, scaled so the tallest bar reaches a
                     quarter of the chart and sits under the price line. */}
                 <YAxis yAxisId="v" hide domain={[0, (max) => (max || 1) * 4]} />
                 <Tooltip content={<ChartTooltip currency={isAud ? 'AUD' : 'USD'} />} />
                 <Bar yAxisId="v" dataKey="volume" fill="rgba(99,120,153,0.35)" isAnimationActive={false} />
-                <Area yAxisId="p" type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5}
+                <Area yAxisId="p" type="monotone" dataKey="price" stroke={PAL.gold} strokeWidth={1.5}
                   fill="url(#detailGrad)" dot={false} isAnimationActive={false} connectNulls />
               </ComposedChart>
             </SafeChart>
@@ -558,7 +560,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
 
       {coin.symbol !== 'BTC' && (
         <div className="px-3 py-2.5 border-b border-terminal-border/50">
-          <div className="text-[9px] text-terminal-gold tracking-widest font-bold mb-1.5">BTC CORRELATION</div>
+          <div className="text-[11px] text-terminal-gold tracking-widest font-bold mb-1.5">BTC CORRELATION</div>
           {btcCorrelation != null ? (
             <div>
               <div className="flex items-center justify-between text-2xs mb-1">
@@ -650,8 +652,8 @@ function ResizablePanel({ children, defaultWidth, minWidth, maxWidth, storageKey
 
 // ── Shared cell styles ─────────────────────────────────────────────────────────
 
-const CELL = { padding: '5px 8px', fontSize: '10px', verticalAlign: 'middle', position: 'static' }
-const HEAD = { padding: '6px 8px', fontSize: '9px', color: '#C9A84C', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: '#0B1628', verticalAlign: 'middle' }
+const CELL = { padding: '5px 8px', fontSize: '11px', verticalAlign: 'middle', position: 'static' }
+const HEAD = { padding: '6px 8px', fontSize: '11px', color: PAL.gold, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: PAL.panel, verticalAlign: 'middle' }
 
 // ── Main Module ────────────────────────────────────────────────────────────────
 
@@ -674,9 +676,9 @@ function AuCryptoContext() {
       <div style={P.title}>CRYPTO IN AUSTRALIA</div>
       <ul className="space-y-2">
         {AU_CRYPTO_FACTS.map(([fact, src]) => (
-          <li key={fact} className="text-[10px] leading-snug text-terminal-text">
+          <li key={fact} className="text-[11px] leading-snug text-terminal-text">
             {fact}
-            <div className="text-[8px] text-terminal-text-dim/60 mt-0.5">{src}</div>
+            <div className="text-[11px] text-terminal-text-dim/60 mt-0.5">{src}</div>
           </li>
         ))}
       </ul>
@@ -684,7 +686,7 @@ function AuCryptoContext() {
         onClick={() => askMaddenAI('What do Australian investors need to know about crypto tax and regulation? Cover capital gains tax and losses, record-keeping, AUSTRAC registration of exchanges and the 2026 Digital Assets Framework. General information, not personal tax advice.')}
         className="mt-2.5 text-2xs font-bold tracking-wide border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-1.5"
       >ASK MADDENAI ▶</button>
-      <div className="text-[8px] text-terminal-text-dim/50 mt-1.5">General information only — not tax or financial advice.</div>
+      <div className="text-[11px] text-terminal-text-dim/50 mt-1.5">General information only — not tax or financial advice.</div>
     </div>
   )
 }
@@ -882,19 +884,19 @@ export default function CryptoModule() {
         </ResizablePanel>
 
         {/* ── CENTRE: elite coin table ── */}
-        <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: '#0B1628', position: 'relative' }}>
+        <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: PAL.panel, position: 'relative' }}>
           <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
-            style={{ position: 'sticky', top: 0, zIndex: 20, background: '#0B1628', borderBottom: '1px solid #0F1E35', margin: 0 }}>
+            style={{ position: 'sticky', top: 0, zIndex: 20, background: PAL.panel, borderBottom: '1px solid #0F1E35', margin: 0 }}>
             {/* The Binance fallback is a fixed list of 12 majors with no market caps. */}
             <span>{rawMarketsResult?.meta?.provider === 'Binance' ? `${rawMarkets?.length ?? ''} MAJOR COINS` : 'TOP 20 BY MKT CAP'} ({priceCcy})</span>
             {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} source={rawMarketsResult?.meta?.provider} />}
             {rawMarkets && !marketsDelayed
               ? <DataBadge cls="LIVE" source={rawMarketsResult?.meta?.provider} at={rawMarketsResult?.meta?.at ?? null} />
-              : !rawMarkets && !marketsError && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>
+              : !rawMarkets && !marketsError && <InlineLoading label="Loading" />
             }
             {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
             {rawMarkets && (marketsSource?.converted || marketsSource?.mismatch) && (
-              <span className="basis-full text-2xs font-normal normal-case" data-crypto-source style={{ color: marketsSource.mismatch ? '#C9A84C' : 'var(--color-text-dim)' }}>{marketsSource.text}</span>
+              <span className="basis-full text-2xs font-normal normal-case" data-crypto-source style={{ color: marketsSource.mismatch ? PAL.gold : 'var(--color-text-dim)' }}>{marketsSource.text}</span>
             )}
             <div className="ml-auto flex items-center gap-1.5">
               <button
@@ -917,7 +919,7 @@ export default function CryptoModule() {
               >{view3D ? '2D TABLE' : '3D VIEW'}</button>
             </div>
           </div>
-          <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: '#0B1628', margin: 0, padding: 0 }} />
+          <div style={{ position: 'sticky', top: titleBarHeight, zIndex: 15, height: 2, background: PAL.panel, margin: 0, padding: 0 }} />
 
           {showMine ? (
             <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
@@ -1091,7 +1093,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
-        <tr style={{ background: '#0B1628', borderBottom: '1px solid #C9A84C' }}>
+        <tr style={{ background: PAL.panel, borderBottom: '1px solid #C9A84C' }}>
           {cols.map(col => (
             <th
               key={col.key}
@@ -1100,7 +1102,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
               className={col.cell === 'sm' ? 'hidden sm:table-cell' : col.cell === 'md' ? 'hidden md:table-cell' : col.cell === 'lg' ? 'hidden lg:table-cell' : col.cell === 'xl' ? 'hidden xl:table-cell' : ''}
             >
               {col.label}
-              {sortKey === col.key && <span style={{ color: '#C9A84C', marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+              {sortKey === col.key && <span style={{ color: PAL.gold, marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
             </th>
           ))}
           <th style={{ ...HEAD, textAlign: 'right', width: 28, cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
@@ -1136,8 +1138,8 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <CoinCircle symbol={coin.symbol} />
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-bright)' }}>{coin.symbol}</div>
-                    <div style={{ fontSize: 9, color: 'var(--color-text-dim)' }} className="hidden xl:block">{coin.name}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-bright)' }}>{coin.symbol}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-dim)' }} className="hidden xl:block">{coin.name}</div>
                   </div>
                 </div>
               </td>
@@ -1145,7 +1147,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
                 <div style={{ fontWeight: 700, fontFamily: 'IBM Plex Mono' }}>
                   {currPrefix}{coin.price.toLocaleString('en-AU', { minimumFractionDigits: coin.price < 1 ? 4 : 2, maximumFractionDigits: coin.price < 1 ? 4 : 2 })}
                 </div>
-                <div style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-dim)' }}>
                   {otherPrice != null ? `${isAud ? 'US$' : 'A$'}${otherPrice.toLocaleString('en-AU', { maximumFractionDigits: otherPrice < 1 ? 4 : 2 })}` : ''}
                 </div>
               </td>
@@ -1175,13 +1177,13 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
                   {supplyPct != null ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
                       <div style={{ width: 44, height: 4, background: 'rgba(100,120,160,0.2)', borderRadius: 2, flexShrink: 0 }}>
-                        <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: '#C9A84C' }} />
+                        <div style={{ width: `${supplyPct}%`, height: '100%', borderRadius: 2, background: PAL.gold }} />
                       </div>
-                      <span style={{ fontSize: 9, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
+                      <span style={{ fontSize: 11, color: 'var(--color-text-dim)', width: 28, textAlign: 'right' }}>{supplyPct.toFixed(0)}%</span>
                     </div>
                   ) : coin.circulatingSupply == null
-                    ? <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }}>—</span>
-                    : <span style={{ fontSize: 9, color: 'var(--color-text-dim)' }} title="No maximum supply">∞</span>}
+                    ? <span style={{ fontSize: 11, color: 'var(--color-text-dim)' }}>—</span>
+                    : <span style={{ fontSize: 11, color: 'var(--color-text-dim)' }} title="No maximum supply">∞</span>}
                 </td>
               )}
               {show('sparkline') && (

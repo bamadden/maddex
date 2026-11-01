@@ -3,6 +3,7 @@ import { VERIFIED_CONSTANTS } from '../../../data/verifiedConstants'
 import VerifiedBadge from '../../../components/ui/VerifiedBadge'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // Figures come from verifiedConstants, never from a live guess — see that
 // file for why policy rates are maintained rather than fetched.
@@ -39,22 +40,22 @@ export default function RBAStatusWidget() {
   // level rather than the last decision's verb.
   const delta = rba.cashRate - (rba.previousRate ?? rba.cashRate)
   const trend = delta > 0
-    ? { arrow: '▲', colour: '#A83232', text: `up ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate.toFixed(2)}%` }
+    ? { arrow: '▲', colour: PAL.down, text: `up ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate.toFixed(2)}%` }
     : delta < 0
-      ? { arrow: '▼', colour: '#2D8A50', text: `down ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate.toFixed(2)}%` }
-      : { arrow: '▬', colour: '#4A6080', text: 'unchanged' }
+      ? { arrow: '▼', colour: PAL.up, text: `down ${Math.abs(delta).toFixed(2)}pp from ${rba.previousRate.toFixed(2)}%` }
+      : { arrow: '▬', colour: PAL.muted, text: 'unchanged' }
 
   return (
     <WidgetBody>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono tabular-nums leading-none" style={{ fontSize: 28, color: '#C9A84C' }}>
+            <span className="font-mono tabular-nums leading-none" style={{ fontSize: 28, color: PAL.gold }}>
               {rba.cashRate.toFixed(2)}%
             </span>
             <span className="font-mono leading-none" style={{ fontSize: 12, color: trend.colour }}>{trend.arrow}</span>
           </div>
-          <div className="font-mono text-[9px] mt-1 truncate" style={{ color: '#4A6080', letterSpacing: '0.08em' }}>
+          <div className="font-mono text-[11px] mt-1 truncate" style={{ color: PAL.muted, letterSpacing: '0.08em' }}>
             {rba.lastDecisionVerb} · {trend.text}
           </div>
         </div>
@@ -64,17 +65,17 @@ export default function RBAStatusWidget() {
       <div className="flex-1 min-h-0 flex flex-col justify-end gap-1.5">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="font-mono text-[8px]" style={{ color: '#4A6080', letterSpacing: '0.1em' }}>
+            <span className="font-mono text-[11px]" style={{ color: PAL.muted, letterSpacing: '0.1em' }}>
               SINCE LAST DECISION
             </span>
-            <span className="font-mono text-[9px] tabular-nums" style={{ color: '#C9A84C' }}>
+            <span className="font-mono text-[11px] tabular-nums" style={{ color: PAL.gold }}>
               {days}d to go
             </span>
           </div>
           <div style={{ height: 4, borderRadius: 2, background: 'rgba(99,120,153,0.2)', overflow: 'hidden' }}>
             <div
               style={{
-                height: '100%', width: `${progress}%`, background: '#C9A84C',
+                height: '100%', width: `${progress}%`, background: PAL.gold,
                 transition: 'width 600ms ease',
               }}
             />
@@ -82,10 +83,10 @@ export default function RBAStatusWidget() {
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <button onClick={() => goModule('macro')} className="font-mono text-[9px] tracking-widest" style={{ color: '#4A6080' }}>
+          <button onClick={() => goModule('macro')} className="font-mono text-[11px] tracking-widest" style={{ color: PAL.muted }}>
             MACRO →
           </button>
-          <span className="font-mono text-[9px]" style={{ color: '#8BA3C4' }}>
+          <span className="font-mono text-[11px]" style={{ color: PAL.dim }}>
             {next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
           </span>
         </div>

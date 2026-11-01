@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
+import { InlineLoading } from './ModuleStates'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -25,6 +26,7 @@ import { openInRelationships, openCompanyProfile, isCompanyNodeId } from '../../
 import AnalystCoverage from '../markets/AnalystCoverage'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
 import SafeChart from './SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y', 'ALL']
 const CHART_TYPES = ['area', 'line', 'candle', 'pro']
@@ -36,7 +38,7 @@ const CHART_TYPES = ['area', 'line', 'candle', 'pro']
 // Same deterministic-hash approach as CryptoModule.jsx's CoinCircle — kept as
 // a small local copy rather than a cross-import from modules/ into
 // components/ui/, which would invert this app's dependency direction.
-const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', '#C9A84C']
+const CIRCLE_PALETTE = ['#f7931a', '#627eea', '#9945ff', '#00d4ff', '#f0b90b', '#26a17b', '#e84142', '#2775ca', '#8247e5', PAL.gold]
 function hashStr(s) {
   let h = 0
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
@@ -76,7 +78,7 @@ function coinDescription(symbol, name) {
 const REC_LABELS = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
 // STRONG BUY -> BUY -> HOLD -> SELL -> STRONG SELL, walked through the
 // terminal's own green, gold and red rather than five Tailwind swatches.
-const REC_COLORS = ['#2D8A50', '#5E9B76', '#C9A84C', '#B07A7A', '#A83232']
+const REC_COLORS = [PAL.up, '#5E9B76', PAL.gold, '#B07A7A', PAL.down]
 
 // ─── Candlestick Chart ────────────────────────────────────────────────────────
 
@@ -132,15 +134,15 @@ function CandleChart({ data }) {
     <div ref={containerRef} className="w-full relative" style={{ height: `${height}px` }}>
       <svg width={width} height={height} onMouseLeave={() => setTooltip(null)}>
         {yLabels.map((lbl) => (
-          <line key={lbl.price} x1={padLeft} y1={lbl.y} x2={width - padRight} y2={lbl.y} stroke="#0F1E35" strokeWidth={1} />
+          <line key={lbl.price} x1={padLeft} y1={lbl.y} x2={width - padRight} y2={lbl.y} stroke={PAL.header} strokeWidth={1} />
         ))}
         {yLabels.map((lbl) => (
-          <text key={lbl.price} x={padLeft - 4} y={lbl.y + 3} textAnchor="end" fill="#4A6080" fontSize={9} fontFamily="IBM Plex Mono">
+          <text key={lbl.price} x={padLeft - 4} y={lbl.y + 3} textAnchor="end" fill={PAL.muted} fontSize={11} fontFamily="IBM Plex Mono">
             {lbl.price >= 1000 ? fmt.price(lbl.price, 0) : fmt.price(lbl.price, 2)}
           </text>
         ))}
         {xLabels.map((lbl) => (
-          <text key={lbl.date} x={lbl.x} y={height - 4} textAnchor="middle" fill="#4A6080" fontSize={9} fontFamily="IBM Plex Mono">
+          <text key={lbl.date} x={lbl.x} y={height - 4} textAnchor="middle" fill={PAL.muted} fontSize={11} fontFamily="IBM Plex Mono">
             {lbl.date}
           </text>
         ))}
@@ -211,7 +213,7 @@ function RangeBar({ price, low, high }) {
           style={{
             top: -14, left: `${pct}%`,
             transform: `translateX(-${Math.max(6, Math.min(94, pct))}%)`,
-            fontSize: 9, color: '#C9A84C',
+            fontSize: 11, color: PAL.gold,
           }}
         >
           {pct.toFixed(0)}%
@@ -219,13 +221,13 @@ function RangeBar({ price, low, high }) {
         <div className="relative" style={{ height: 5, borderRadius: 3, background: 'rgba(99,120,153,0.22)' }}>
           <div
             className="absolute inset-y-0 left-0"
-            style={{ width: '100%', borderRadius: 3, opacity: 0.35, background: 'linear-gradient(90deg,#A83232,#C9A84C,#2D8A50)' }}
+            style={{ width: '100%', borderRadius: 3, opacity: 0.35, background: 'linear-gradient(90deg,#EB6B66,#C9A84C,#3FB06B)' }}
           />
           <span
             className="absolute"
             style={{
               left: `${pct}%`, top: -3, width: 3, height: 11, borderRadius: 2,
-              background: '#C9A84C', transform: 'translateX(-1.5px)',
+              background: PAL.gold, transform: 'translateX(-1.5px)',
               boxShadow: '0 0 6px rgba(201,168,76,0.6)',
             }}
           />
@@ -237,8 +239,8 @@ function RangeBar({ price, low, high }) {
           directly under a green day-change, meaning two different things in
           the same 200px. */}
       <div className="flex items-center justify-between mt-1">
-        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#637899' }}>{fmt.aud(low, { decimals: 2 })}</span>
-        <span className="font-mono tabular-nums" style={{ fontSize: 9, color: '#637899' }}>{fmt.aud(high, { decimals: 2 })}</span>
+        <span className="font-mono tabular-nums" style={{ fontSize: 11, color: PAL.muted }}>{fmt.aud(low, { decimals: 2 })}</span>
+        <span className="font-mono tabular-nums" style={{ fontSize: 11, color: PAL.muted }}>{fmt.aud(high, { decimals: 2 })}</span>
       </div>
     </div>
   )
@@ -318,7 +320,7 @@ function AnalystBar({ recMean, analystCount }) {
       </div>
       <div className="flex justify-between mt-0.5 px-0.5">
         {REC_LABELS.map((l) => (
-          <span key={l} className="text-terminal-text-dim/40 text-center leading-tight" style={{ fontSize: '9px', width: '20%' }}>
+          <span key={l} className="text-terminal-text-dim/40 text-center leading-tight" style={{ fontSize: '11px', width: '20%' }}>
             {l.split(' ').map((w, wi) => <span key={wi} className="block">{w}</span>)}
           </span>
         ))}
@@ -527,7 +529,7 @@ function RelatedStocks({ symbol, type, sector, onPick }) {
               </span>
               <span
                 className="font-mono text-2xs tabular-nums text-right"
-                style={{ width: 52, color: p.changePct >= 0 ? '#2D8A50' : '#A83232' }}
+                style={{ width: 52, color: p.changePct >= 0 ? PAL.up : PAL.down }}
               >
                 {p.changePct >= 0 ? '▲' : '▼'}{Math.abs(p.changePct).toFixed(2)}%
               </span>
@@ -1088,6 +1090,7 @@ export default function DetailModal() {
       onClick={handleOverlayClick}
     >
       <div
+        role="dialog" aria-modal="true" aria-label={`${modalAsset?.symbol ?? 'Asset'} detail`} data-detail-modal={modalAsset?.symbol ?? ''}
         className="panel-slide-in bg-terminal-panel border-l border-terminal-border flex flex-col overflow-hidden h-full"
         style={{ width: '100%', maxWidth: 720 }}
         onClick={(e) => e.stopPropagation()}
@@ -1128,7 +1131,7 @@ export default function DetailModal() {
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             {(isChartLoading || qsLoading) && (
-              <span className="text-2xs text-terminal-gold animate-pulse">LOADING...</span>
+              <InlineLoading label="Loading" />
             )}
             {isStockOrIdx && (
               <button
@@ -1233,7 +1236,7 @@ export default function DetailModal() {
             )}
             {display52High != null && (
               <div style={{ width: 210 }}>
-                <div className="font-mono mb-0.5" style={{ fontSize: 8, letterSpacing: '0.18em', color: '#4A6080' }}>52W RANGE</div>
+                <div className="font-mono mb-0.5" style={{ fontSize: 11, letterSpacing: '0.18em', color: PAL.muted }}>52W RANGE</div>
                 <RangeBar price={displayPrice} low={display52Low} high={display52High} />
               </div>
             )}
@@ -1247,7 +1250,7 @@ export default function DetailModal() {
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-2.5 py-1 rounded-sm font-mono text-[9px] tracking-wider transition-colors ${
+                className={`px-2.5 py-1 rounded-sm font-mono text-[11px] tracking-wider transition-colors ${
                   timeframe === tf
                     ? 'bg-terminal-gold text-terminal-bg font-bold'
                     : 'text-terminal-text-dim hover:text-terminal-gold border border-terminal-border'
@@ -1304,7 +1307,7 @@ export default function DetailModal() {
             than the other (compact) chart types. */}
         <div className={`flex-shrink-0 overflow-hidden ${chartType === 'pro' ? '' : 'px-4 py-2'}`} style={{ height: chartType === 'pro' ? '560px' : '200px' }}>
           {isChartLoading ? (
-            <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
+            <InlineLoading label="Loading chart" className="flex items-center justify-center h-full" />
           ) : chartData.length === 0 ? (
             <DataUnavailable
               label={type === 'fx' || type === 'commodity' ? 'CHART UNAVAILABLE FOR THIS ASSET TYPE' : 'CHART DATA UNAVAILABLE'}
@@ -1315,24 +1318,24 @@ export default function DetailModal() {
           ) : compareOpen && compareData.length > 1 ? (
             <SafeChart width="100%" height="100%">
               <LineChart data={compareData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                <CartesianGrid stroke="#0F1E35" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} width={40} tickFormatter={(v) => v.toFixed(0)} />
+                <CartesianGrid stroke={PAL.header} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11 }} domain={['auto', 'auto']} width={40} tickFormatter={(v) => v.toFixed(0)} />
                 <Tooltip
-                  contentStyle={{ background: '#0B1628', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '10px' }}
+                  contentStyle={{ background: PAL.panel, border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
                   formatter={(v, name) => [`${v.toFixed(1)}`, name === 'a' ? symbol : compareSymbol]}
                 />
-                <Legend wrapperStyle={{ fontSize: 9 }} formatter={(name) => name === 'a' ? symbol : compareSymbol} />
-                <Line type="monotone" dataKey="a" stroke="#C9A84C" strokeWidth={1.5} dot={false} isAnimationActive={false} name="a" />
+                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(name) => name === 'a' ? symbol : compareSymbol} />
+                <Line type="monotone" dataKey="a" stroke={PAL.gold} strokeWidth={1.5} dot={false} isAnimationActive={false} name="a" />
                 <Line type="monotone" dataKey="b" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} name="b" />
-                <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
+                <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} />
               </LineChart>
             </SafeChart>
           ) : chartType === 'candle' ? (
             <CandleChart data={chartData} />
           ) : chartType === 'pro' ? (
             proChartData.length >= 2 ? (
-              <Suspense fallback={<div className="h-full flex items-center justify-center text-terminal-text-dim text-2xs tracking-widest animate-pulse">LOADING CHART...</div>}>
+              <Suspense fallback={<InlineLoading label="Loading chart" className="h-full flex items-center justify-center" />}>
                 <TradingChart
                   symbol={symbol}
                   name={name}
@@ -1351,25 +1354,25 @@ export default function DetailModal() {
                 <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                   <defs>
                     <linearGradient id="modalAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
+                      <stop offset="5%"  stopColor={PAL.gold} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#0F1E35" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
+                  <CartesianGrid stroke={PAL.header} vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
-                  <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
+                  <Area type="monotone" dataKey="price" stroke={PAL.gold} strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
+                  <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} />
                 </AreaChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                  <CartesianGrid stroke="#0F1E35" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 9 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
+                  <CartesianGrid stroke={PAL.header} vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
                   <Line type="monotone" dataKey="price" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                  <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill="#0B1628" />
+                  <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} />
                 </LineChart>
               )}
             </SafeChart>

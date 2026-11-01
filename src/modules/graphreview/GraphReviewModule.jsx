@@ -8,6 +8,7 @@ import { matchOnPage } from '../../data/graph/verify'
 import { partiesOf } from '../../data/graph/secondPass'
 import { SPOT_CHECK_SIZE } from '../../data/graph/reviewConfig'
 import { GRAPH } from '../../data/graph'
+import { PAL } from '../../styles/palette.js'
 
 // REVIEW — the Relationships proposal queue.
 //
@@ -20,7 +21,7 @@ import { GRAPH } from '../../data/graph'
 // the approver. In production the queue is read-only.
 
 const RED = '#C4653A'
-const GREEN = '#2D8A50'
+const GREEN = PAL.up
 const TABS = [
   { id: 'NEEDS_HUMAN', label: 'NEEDS HUMAN' },
   { id: 'AGREED', label: 'AGREED' },
@@ -58,7 +59,7 @@ function QuoteInContext({ item }) {
 function Checks({ v1 }) {
   if (!v1) return null
   return (
-    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-mono" style={{ fontSize: 10 }}>
+    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-mono" style={{ fontSize: 11 }}>
       {Object.entries(v1.checks).map(([k, c]) => (
         <span key={k} style={{ color: c.ok ? GREEN : RED }} title={c.ok ? c.detail ?? '' : c.reason}>{c.ok ? '✓' : '✗'} {k.toUpperCase()}</span>
       ))}
@@ -77,20 +78,20 @@ function Verdicts({ item }) {
   return (
     <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', fontSize: 12 }}>
       <div className={cell}>
-        <div className={k} style={{ fontSize: 10 }}>FIRST PASS · {item.doc.model ?? 'model unknown'}</div>
+        <div className={k} style={{ fontSize: 11 }}>FIRST PASS · {item.doc.model ?? 'model unknown'}</div>
         <div className="mt-1 text-terminal-text-bright">{typeLabel(item.type)} · {item.from.name} → {item.to.name}</div>
         <div className="text-terminal-text-dim">{item.weight != null ? `${item.weight}% · ` : ''}page {item.page}</div>
       </div>
       <div className={cell} style={{ borderColor: outcome && outcome !== 'agree' ? `${RED}88` : undefined }}>
-        <div className={k} style={{ fontSize: 10 }}>SECOND PASS · {item.v2?.model ?? 'not run'} · BLIND</div>
+        <div className={k} style={{ fontSize: 11 }}>SECOND PASS · {item.v2?.model ?? 'not run'} · BLIND</div>
         {v ? (
           <>
-            <div className="mt-1 text-terminal-text-bright">{typeLabel(v.relationship)} · {dir} · <span style={{ color: v.confidence === 'high' ? GREEN : '#C9A84C' }}>{v.confidence.toUpperCase()}</span></div>
+            <div className="mt-1 text-terminal-text-bright">{typeLabel(v.relationship)} · {dir} · <span style={{ color: v.confidence === 'high' ? GREEN : PAL.gold }}>{v.confidence.toUpperCase()}</span></div>
             <div className="text-terminal-text-dim">“{v.supporting_quote}”</div>
             <div className="text-terminal-text-dim mt-0.5">{v.rationale}</div>
           </>
         ) : <div className="mt-1 text-terminal-text-dim">{item.v2?.error ?? 'Run npm run graph:second-pass.'}</div>}
-        {outcome && <div className="mt-1 font-mono" style={{ fontSize: 10, color: outcome === 'agree' ? GREEN : RED }}>{outcome.replace(/_/g, ' ').toUpperCase()} — {item.v2.comparison.detail}</div>}
+        {outcome && <div className="mt-1 font-mono" style={{ fontSize: 11, color: outcome === 'agree' ? GREEN : RED }}>{outcome.replace(/_/g, ' ').toUpperCase()} — {item.v2.comparison.detail}</div>}
       </div>
     </div>
   )
@@ -114,17 +115,17 @@ function Card({ item, mode, onDone, onSpot }) {
   return (
     <article className="border border-terminal-border bg-terminal-panel p-3" aria-label={`${item.from.name} ${typeLabel(item.type)} ${item.to.name}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 10 }}>{item.doc.ticker}</span>
+        <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>{item.doc.ticker}</span>
         <span className="text-terminal-text-bright" style={{ fontSize: 13 }}>{nodeName(item.v1?.resolved?.from, item.from.name)}</span>
-        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>{typeLabel(item.type)}</span>
+        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{typeLabel(item.type)}</span>
         <span className="text-terminal-text-bright" style={{ fontSize: 13 }}>{nodeName(item.v1?.resolved?.to, item.to.name)}</span>
         {item.weight != null && <span className="font-mono text-terminal-text-bright">{item.weight}%</span>}
       </div>
-      <ul className="mt-1.5 space-y-0.5" style={{ fontSize: 11, color: item.bucket === 'AGREED' ? GREEN : item.bucket === 'AUTO_REJECTED' ? RED : '#C9A84C' }}>
+      <ul className="mt-1.5 space-y-0.5" style={{ fontSize: 11, color: item.bucket === 'AGREED' ? GREEN : item.bucket === 'AUTO_REJECTED' ? RED : PAL.gold }}>
         {item.reasons.map((r) => <li key={r}>· {r}</li>)}
       </ul>
       <QuoteInContext item={item} />
-      <div className="mt-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>
+      <div className="mt-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
         <a href={`${item.doc.sourceUrl.split('#')[0]}#page=${item.page}`} target="_blank" rel="noopener noreferrer" className="hover:text-terminal-gold underline decoration-dotted">
           {item.doc.label} · PAGE {item.page} ↗
         </a>
@@ -136,7 +137,7 @@ function Card({ item, mode, onDone, onSpot }) {
       {mode === 'review' && (
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           <button onClick={() => send({ action: 'approve' }, 'approve')} disabled={!writable || busy}
-            className={`${btn} bg-terminal-gold text-terminal-bg`} style={{ fontSize: 10 }}>APPROVE</button>
+            className={`${btn} bg-terminal-gold text-terminal-bg`} style={{ fontSize: 11 }}>APPROVE</button>
           <span className="flex items-center gap-1">
             <label className="sr-only" htmlFor={`fix-${item.id}`}>Fix type</label>
             <select id={`fix-${item.id}`} value={fixType} onChange={(e) => setFixType(e.target.value)} disabled={!writable || busy}
@@ -144,19 +145,19 @@ function Card({ item, mode, onDone, onSpot }) {
               {PROPOSAL_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </select>
             <button onClick={() => send({ action: 'approve', edit: { type: fixType } }, 'fix')} disabled={!writable || busy || fixType === item.type}
-              className={`${btn} border border-terminal-gold text-terminal-gold`} style={{ fontSize: 10 }}>FIX TYPE &amp; APPROVE</button>
+              className={`${btn} border border-terminal-gold text-terminal-gold`} style={{ fontSize: 11 }}>FIX TYPE &amp; APPROVE</button>
           </span>
           <label className="sr-only" htmlFor={`why-${item.id}`}>Reason for rejecting</label>
           <input id={`why-${item.id}`} value={reason} onChange={(e) => setReason(e.target.value)} disabled={!writable} placeholder="Reason for rejecting (optional)"
             className="flex-1 min-w-[160px] bg-terminal-bg border border-terminal-border px-2 py-1 text-terminal-text-bright" style={{ fontSize: 11 }} />
           <button onClick={() => send({ action: 'reject', reason }, 'reject')} disabled={!writable || busy}
-            className={`${btn} border border-terminal-border text-terminal-text-dim hover:text-terminal-text-bright`} style={{ fontSize: 10 }}>REJECT</button>
+            className={`${btn} border border-terminal-border text-terminal-text-dim hover:text-terminal-text-bright`} style={{ fontSize: 11 }}>REJECT</button>
         </div>
       )}
       {mode === 'spot' && (
         <div className="mt-3 flex items-center gap-2">
-          <button onClick={() => onSpot(item.id, 'correct')} className={`${btn} border`} style={{ fontSize: 10, color: GREEN, borderColor: GREEN }}>CORRECT</button>
-          <button onClick={() => onSpot(item.id, 'wrong')} className={`${btn} border`} style={{ fontSize: 10, color: RED, borderColor: RED }}>WRONG</button>
+          <button onClick={() => onSpot(item.id, 'correct')} className={`${btn} border`} style={{ fontSize: 11, color: GREEN, borderColor: GREEN }}>CORRECT</button>
+          <button onClick={() => onSpot(item.id, 'wrong')} className={`${btn} border`} style={{ fontSize: 11, color: RED, borderColor: RED }}>WRONG</button>
         </div>
       )}
       {msg && <div className="mt-1 font-mono" role="alert" style={{ fontSize: 11, color: RED }}>{msg}</div>}
@@ -197,7 +198,7 @@ function ApproveAllAgreed({ items, onDone }) {
     <div className="border border-terminal-gold/40 p-3 space-y-3" style={{ background: 'rgba(201,168,76,0.04)' }}>
       {phase === 'idle' && (
         <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={start} disabled={!writable} className="font-mono font-bold tracking-widest px-3 py-1.5 bg-terminal-gold text-terminal-bg disabled:opacity-40" style={{ fontSize: 10 }}>
+          <button onClick={start} disabled={!writable} className="font-mono font-bold tracking-widest px-3 py-1.5 bg-terminal-gold text-terminal-bg disabled:opacity-40" style={{ fontSize: 11 }}>
             APPROVE ALL AGREED ({items.length})
           </button>
           <span className="text-terminal-text-dim" style={{ fontSize: 11 }}>Spot-check {n} at random first. One marked wrong cancels the batch.</span>
@@ -205,24 +206,24 @@ function ApproveAllAgreed({ items, onDone }) {
       )}
       {phase === 'checking' && next && (
         <>
-          <div className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 10 }}>SPOT-CHECK {picks.indexOf(next) + 1} OF {n} — IS THIS EDGE CORRECT?</div>
+          <div className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>SPOT-CHECK {picks.indexOf(next) + 1} OF {n} — IS THIS EDGE CORRECT?</div>
           <Card key={next.id} item={next} mode="spot" onSpot={mark} />
-          <button onClick={() => setPhase('idle')} className="font-mono text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 10 }}>CANCEL</button>
+          <button onClick={() => setPhase('idle')} className="font-mono text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 11 }}>CANCEL</button>
         </>
       )}
       {phase === 'confirm' && (
         <div className="flex items-center gap-3 flex-wrap" role="alertdialog" aria-label="Confirm bulk approval">
           <span className="text-terminal-text-bright" style={{ fontSize: 12 }}>{n} of {n} spot-checks correct. Approve all {items.length} agreed edges as DISCLOSED?</span>
-          <button onClick={approveAll} disabled={busy} className="font-mono font-bold tracking-widest px-3 py-1.5 bg-terminal-gold text-terminal-bg disabled:opacity-40" style={{ fontSize: 10 }}>
+          <button onClick={approveAll} disabled={busy} className="font-mono font-bold tracking-widest px-3 py-1.5 bg-terminal-gold text-terminal-bg disabled:opacity-40" style={{ fontSize: 11 }}>
             APPROVE {items.length}
           </button>
-          <button onClick={() => setPhase('idle')} className="font-mono text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 10 }}>CANCEL</button>
+          <button onClick={() => setPhase('idle')} className="font-mono text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 11 }}>CANCEL</button>
         </div>
       )}
       {phase === 'aborted' && (
         <div className="flex items-center gap-3 flex-wrap" role="alert">
           <span style={{ fontSize: 12, color: RED }}>Marked wrong — batch cancelled. Review that item on its own below (Fix type or Reject).</span>
-          <button onClick={() => setPhase('idle')} className="font-mono text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 10 }}>OK</button>
+          <button onClick={() => setPhase('idle')} className="font-mono text-terminal-text-dim hover:text-terminal-text-bright" style={{ fontSize: 11 }}>OK</button>
         </div>
       )}
       {msg && <div className="font-mono" role="alert" style={{ fontSize: 11, color: RED }}>{msg}</div>}
@@ -256,7 +257,7 @@ export default function GraphReviewModule() {
       <div role="tablist" aria-label="Review buckets" className="flex border-b border-terminal-border px-2">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`font-mono tracking-widest px-3 py-2 border-b-2 ${tab === t.id ? 'border-terminal-gold text-terminal-gold' : 'border-transparent text-terminal-text-dim hover:text-terminal-text-bright'}`} style={{ fontSize: 10 }}>
+            className={`font-mono tracking-widest px-3 py-2 border-b-2 ${tab === t.id ? 'border-terminal-gold text-terminal-gold' : 'border-transparent text-terminal-text-dim hover:text-terminal-text-bright'}`} style={{ fontSize: 11 }}>
             {t.label} ({count(t.id)})
           </button>
         ))}
@@ -269,7 +270,7 @@ export default function GraphReviewModule() {
         {inTab.length === 0 && <div className="text-terminal-text-dim" style={{ fontSize: 12 }}>Nothing in {TABS.find((t) => t.id === tab).label}.</div>}
         {inTab.map((i) => <Card key={i.id} item={i} mode={tab === 'AUTO_REJECTED' ? 'log' : 'review'} onDone={onDone} />)}
         {Object.keys(done).length > 0 && (
-          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>
+          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
             This session: {Object.values(done).filter((a) => a !== 'reject').length} approved, {Object.values(done).filter((a) => a === 'reject').length} rejected. The graph reloads with approved edges.
           </div>
         )}

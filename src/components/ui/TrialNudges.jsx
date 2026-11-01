@@ -64,18 +64,18 @@ export default function TrialNudges() {
     <div role="status" className="fixed z-[180] right-4 bottom-16 w-80 bg-terminal-panel shadow-2xl p-3 font-sans"
       style={{ border: '1px solid rgba(201,168,76,0.6)', borderLeft: '3px solid #C9A84C' }}>
       <div className="flex items-start gap-2">
-        <span className="font-mono font-bold text-terminal-gold tracking-widest flex-1" style={{ fontSize: 10 }}>{card.title} →</span>
+        <span className="font-mono font-bold text-terminal-gold tracking-widest flex-1" style={{ fontSize: 11 }}>{card.title} →</span>
         <button onClick={close} aria-label="Dismiss" className="text-terminal-text-dim hover:text-terminal-text-bright leading-none">✕</button>
       </div>
       <p className="text-terminal-text mt-1 leading-snug" style={{ fontSize: 12 }}>{card.body}</p>
       <div className="flex items-center gap-2 mt-2">
         {card.module && (
           <button onClick={() => { setActiveModule(card.module); close() }}
-            className="font-mono font-bold tracking-wider text-terminal-bg bg-terminal-gold px-2.5 py-1 hover:opacity-90" style={{ fontSize: 9 }}>{card.cta}</button>
+            className="font-mono font-bold tracking-wider text-terminal-bg bg-terminal-gold px-2.5 py-1 hover:opacity-90" style={{ fontSize: 11 }}>{card.cta}</button>
         )}
         {card.upgrade && (
           <button onClick={() => { startUpgrade(card.upgrade); close() }}
-            className="font-mono font-bold tracking-wider text-terminal-gold border border-terminal-gold/50 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg" style={{ fontSize: 9 }}>SEE {card.upgrade.toUpperCase()}</button>
+            className="font-mono font-bold tracking-wider text-terminal-gold border border-terminal-gold/50 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg" style={{ fontSize: 11 }}>SEE {card.upgrade.toUpperCase()}</button>
         )}
       </div>
     </div>

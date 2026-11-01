@@ -21,6 +21,7 @@ import TabBar from '../../components/ui/TabBar'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { PAL } from '../../styles/palette.js'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -1466,8 +1467,8 @@ function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
 
         {/* Legend */}
         <div className="flex gap-3 px-2 py-1.5 border-b border-terminal-border">
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#C9A84C'}}/>AU Origin/Dest</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#2D7DD2'}}/>Intl Corridor</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:PAL.gold}}/>AU Origin/Dest</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:PAL.blue}}/>Intl Corridor</span>
           <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#14b8a6'}}/>Cargo Heavy</span>
         </div>
 
@@ -2061,7 +2062,7 @@ function Sparkline({ points, positive }) {
     .join(' ')
   return (
     <svg width={w} height={h} className="flex-shrink-0">
-      <path d={path} fill="none" stroke={positive ? 'var(--color-gain, #3aaa63)' : 'var(--color-loss, #a83232)'} strokeWidth={1.25} />
+      <path d={path} fill="none" stroke={positive ? 'var(--color-gain, #3FB06B)' : 'var(--color-loss, #EB6B66)'} strokeWidth={1.25} />
     </svg>
   )
 }
@@ -2157,7 +2158,7 @@ function CollapsibleSection({ id, title, badge, defaultOpen = true, hidden = fal
         <span className="flex items-center gap-2 min-w-0">
           <span
             className="flex-shrink-0 transition-transform duration-200"
-            style={{ fontSize: 10, color: '#4A6080', transform: open ? 'none' : 'rotate(-90deg)' }}
+            style={{ fontSize: 11, color: PAL.muted, transform: open ? 'none' : 'rotate(-90deg)' }}
           >▾</span>
           <span className="intel-section-title truncate">{title}</span>
         </span>
@@ -2218,9 +2219,9 @@ function PortfolioExposure({ watchlist }) {
           <span className="flex items-center gap-1.5 flex-shrink-0">
             <span className="text-2xs text-terminal-text-bright font-semibold w-9">{r.sym}</span>
             {/* One dot per exposure — a count reads faster than a list. */}
-            <span className="text-terminal-gold text-[9px] tracking-tight">{'●'.repeat(r.tags.length)}</span>
+            <span className="text-terminal-gold text-[11px] tracking-tight">{'●'.repeat(r.tags.length)}</span>
           </span>
-          <span className="text-[9px] text-terminal-text-dim text-right truncate">{r.tags.join(', ')}</span>
+          <span className="text-[11px] text-terminal-text-dim text-right truncate">{r.tags.join(', ')}</span>
         </div>
       ))}
     </div>
@@ -2285,8 +2286,8 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQu
                 {a.source && (
                   <div className="mt-1">
                     <span style={{
-                      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
-                      background: 'rgba(99,120,153,0.14)', border: '1px solid rgba(99,120,153,0.28)', color: '#8BA3C4', whiteSpace: 'nowrap',
+                      fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
+                      background: 'rgba(99,120,153,0.14)', border: '1px solid rgba(99,120,153,0.28)', color: PAL.dim, whiteSpace: 'nowrap',
                     }}>{String(a.source).toUpperCase()}</span>
                   </div>
                 )}
@@ -2296,7 +2297,7 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQu
         </CollapsibleSection>
 
         <CollapsibleSection id="seismic" title="SEISMIC ACTIVITY" hidden={!show('SEISMIC', 'LIVE')}
-          badge={<span className="text-[8px] text-terminal-text-dim/50 font-mono">USGS · M4.5+ · 7D</span>}>
+          badge={<span className="text-[11px] text-terminal-text-dim/50 font-mono">USGS · M4.5+ · 7D</span>}>
           <SeismicSection earthquakes={earthquakes} onFocus={onFocusQuake} bare />
         </CollapsibleSection>
 
@@ -2345,7 +2346,7 @@ function StatBlock({ label, value, accent }) {
   return (
     <div className="border border-terminal-border px-2.5 py-2">
       <div className={`text-lg font-bold tabular-nums ${accent ?? 'text-terminal-text-bright'}`}>{value}</div>
-      <div className="text-[9px] text-terminal-text-dim tracking-wide uppercase mt-0.5">{label}</div>
+      <div className="text-[11px] text-terminal-text-dim tracking-wide uppercase mt-0.5">{label}</div>
     </div>
   )
 }
@@ -2841,7 +2842,7 @@ export default function GlobalModule() {
                   title={leftPinned ? 'Unpin panel' : 'Pin panel open'}
                   aria-pressed={leftPinned}
                   className="ml-auto transition-colors"
-                  style={{ color: leftPinned ? '#C9A84C' : '#4A6080', fontSize: 11 }}
+                  style={{ color: leftPinned ? PAL.gold : PAL.muted, fontSize: 11 }}
                 >📌</button>
                 <button
                   onClick={() => setLayout(layout === 'D' ? 'C' : 'A')}
@@ -2870,7 +2871,7 @@ export default function GlobalModule() {
               >
                 <span style={{
                   writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-                  fontSize: 8, letterSpacing: '0.2em', color: '#C9A84C',
+                  fontSize: 11, letterSpacing: '0.2em', color: PAL.gold,
                   fontFamily: '"IBM Plex Mono", monospace',
                 }}>INTEL</span>
               </button>

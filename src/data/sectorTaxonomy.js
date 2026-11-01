@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // Sector taxonomy and index metadata.
 //
 // These six tables lived in SectorHeatmap.jsx, which four other modules then
@@ -266,10 +267,10 @@ export const RATE_SENSITIVITY = {
 }
 
 export const RATE_LEVEL_STYLE = {
-  POSITIVE: { colour: '#2D8A50', label: 'POSITIVE' },
-  HIGH:     { colour: '#CC4444', label: 'HIGH' },
-  MEDIUM:   { colour: '#E8A33D', label: 'MEDIUM' },
-  LOW:      { colour: '#8BA3C4', label: 'LOW' },
+  POSITIVE: { colour: PAL.up, label: 'POSITIVE' },
+  HIGH:     { colour: PAL.down, label: 'HIGH' },
+  MEDIUM:   { colour: PAL.amber, label: 'MEDIUM' },
+  LOW:      { colour: PAL.dim, label: 'LOW' },
 }
 
 // What each benchmark index is most sensitive to — one line each, for the

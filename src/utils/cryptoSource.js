@@ -3,6 +3,8 @@
 // the time it was fetched. Every crypto view uses these, so a price is never
 // shown under a currency it is not in.
 
+import { formatDate } from './dateUtils.js'
+
 const PREFIX = { AUD: 'A$', USD: 'US$', NZD: 'NZ$', SGD: 'S$', CAD: 'C$', EUR: '€', GBP: '£', JPY: '¥' }
 
 export const pricePrefix = (ccy) => PREFIX[String(ccy ?? '').toUpperCase()] ?? `${String(ccy ?? '').toUpperCase()} `
@@ -15,7 +17,7 @@ export function formatCryptoPrice(value, ccy) {
 }
 
 const sydneyTime = (ms) => new Date(ms).toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' })
-const day = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : null)
+const day = (iso) => (iso ? formatDate(iso) : null)
 
 // result: fetchCryptoMarketsUnified's envelope. `asked`: the currency the view
 // wanted. → { text, converted, mismatch } | null

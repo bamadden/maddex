@@ -20,6 +20,7 @@ import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefCo
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import ContextPrompt from '../../components/ai/ContextPrompt'
 import { loadSavedArticles, toggleSavedArticle, removeSavedArticle, savedKey, SAVED_MAX } from '../../services/savedArticles'
+import { PAL } from '../../styles/palette.js'
 
 // MaddenAI's nudge on a HIGH-impact story that names a watchlist stock. At
 // most one NEW story every 30 minutes: the story already being offered stays
@@ -51,8 +52,8 @@ const BREAKING_RE = /rate (cut|hike)|crash|collapse|record (high|low)|emergency|
 // so one category had two colour definitions that had to be kept in step by
 // hand. The card now uses these hexes like every other surface in the module.
 const TAG_COLOR = {
-  MACRO: '#C9A84C', AU: '#C9A84C', EQUITY: '#2D7DD2', ENERGY: '#a83232', FX: '#8BA3C4',
-  CRYPTO: '#2D8A50', RATES: '#8BA3C4', 'M&A': '#C9A84C', INTL: '#2D7DD2', EARNINGS: '#a83232', TECH: '#2D7DD2',
+  MACRO: PAL.gold, AU: PAL.gold, EQUITY: PAL.blue, ENERGY: PAL.down, FX: PAL.dim,
+  CRYPTO: PAL.up, RATES: PAL.dim, 'M&A': PAL.gold, INTL: PAL.blue, EARNINGS: PAL.down, TECH: PAL.blue,
 }
 
 // ─── Persistence helpers ───────────────────────────────────────────────────────
@@ -180,12 +181,12 @@ function knownTickerBadges(tickers) {
 
 // ─── Source circle — colour derived from the source name, deterministic ─────
 
-const SOURCE_PALETTE = ['#C9A84C', '#2D7DD2', '#2D8A50', '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
+const SOURCE_PALETTE = [PAL.gold, PAL.blue, PAL.up, '#a855f7', '#f97316', '#14b8a6', '#e84142', '#0ea5e9']
 // Named-source brand colours per spec — hash palette is only a fallback for
 // the long tail of RSS sources that aren't one of these six.
 const SOURCE_COLORS = {
-  Reuters: '#2D7DD2', AFR: '#C9A84C', Bloomberg: '#a855f7',
-  ABC: '#2D8A50', FT: '#ec4899', WSJ: '#8BA3C4',
+  Reuters: PAL.blue, AFR: PAL.gold, Bloomberg: '#a855f7',
+  ABC: PAL.up, FT: '#ec4899', WSJ: PAL.dim,
 }
 function sourceHash(s) {
   let h = 0
@@ -312,7 +313,7 @@ function MiniSparkline({ values, up, width = 80, height = 36 }) {
   const range = max - min || 1
   const step = width / (values.length - 1)
   const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ')
-  const color = up ? '#C9A84C' : '#a83232'
+  const color = up ? PAL.gold : PAL.down
   return (
     <svg width={width} height={height} style={{ flexShrink: 0, display: 'block' }}>
       <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
@@ -429,13 +430,13 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
   const isNew      = isNewArticle(item)
   const isBreaking = isBreakingArticle(item)
   const asset      = useMemo(() => resolveStoryAsset(item), [item])
-  const impact     = item.impact ?? { level: 'LOW', colour: '#4A6080' }
+  const impact     = item.impact ?? { level: 'LOW', colour: PAL.muted }
 
   return (
     <div
       className={`news-top-story ${isPulsing ? 'news-pulse' : ''} bg-terminal-surface transition-colors`}
       style={{
-        borderLeft: `3px solid ${isBreaking ? '#a83232' : '#C9A84C'}`,
+        borderLeft: `3px solid ${isBreaking ? PAL.down : PAL.gold}`,
         background: 'rgba(201,168,76,0.04)',
         padding: 16,
         marginBottom: 1,
@@ -445,14 +446,14 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
       <div className="flex items-center gap-1.5 flex-wrap mb-2">
         <span
           className="font-mono font-bold tracking-widest flex-shrink-0"
-          style={{ fontSize: 8, color: '#C9A84C', background: 'rgba(201,168,76,0.12)', padding: '2px 6px', borderRadius: 2 }}
+          style={{ fontSize: 11, color: PAL.gold, background: 'rgba(201,168,76,0.12)', padding: '2px 6px', borderRadius: 2 }}
         >{rank === 1 ? 'TOP STORY' : rank}</span>
         <span
           className="font-mono font-bold tracking-wider flex-shrink-0"
           style={{
-            fontSize: 8, padding: '2px 6px', borderRadius: 2,
-            color: TAG_COLOR[item.tag] ?? '#8BA3C4',
-            background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`,
+            fontSize: 11, padding: '2px 6px', borderRadius: 2,
+            color: TAG_COLOR[item.tag] ?? PAL.dim,
+            background: `${TAG_COLOR[item.tag] ?? PAL.dim}22`,
           }}
         >{primaryDisplayCategory(item)}</span>
         <span
@@ -460,9 +461,9 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
           style={{ width: 6, height: 6, background: sourceColor(item.source) }}
           title={item.source}
         />
-        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{item.source}</span>
-        {isBreaking && <span className="font-mono font-bold text-[#a83232]" style={{ fontSize: 9 }}>● BREAKING</span>}
-        {isNew && !isBreaking && <span className="font-mono font-bold text-terminal-gold" style={{ fontSize: 9 }}>NEW</span>}
+        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{item.source}</span>
+        {isBreaking && <span className="font-mono font-bold text-[#EB6B66]" style={{ fontSize: 11 }}>● BREAKING</span>}
+        {isNew && !isBreaking && <span className="font-mono font-bold text-terminal-gold" style={{ fontSize: 11 }}>NEW</span>}
         {/* The watchlist marker has to live here too. Stories touching the
             user's holdings are promoted to the top of the feed, which means
             the one story most likely to carry the badge is the one rendered by
@@ -470,11 +471,11 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
         {item.inWatchlist && (
           <span
             className="font-mono tracking-widest text-terminal-gold flex-shrink-0"
-            style={{ fontSize: 8 }}
+            style={{ fontSize: 11 }}
             title="You hold or track one of the companies in this story"
           >IN YOUR WATCHLIST</span>
         )}
-        <span className="font-mono text-terminal-text-dim/60 ml-auto flex-shrink-0" style={{ fontSize: 9 }}>
+        <span className="font-mono text-terminal-text-dim/60 ml-auto flex-shrink-0" style={{ fontSize: 11 }}>
           {timeAgo(item.pubDate)}
         </span>
       </div>
@@ -493,14 +494,14 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
           {item.summary && (
             <p
               className="text-terminal-text-dim line-clamp-3 mt-1.5"
-              style={{ fontSize: 11, lineHeight: 1.6, color: '#8BA3C4' }}
+              style={{ fontSize: 11, lineHeight: 1.6, color: PAL.dim }}
             >{item.summary}</p>
           )}
         </div>
         {asset && (
           <div className="flex-shrink-0 text-right">
             <MiniSparkline values={asset.values} up={asset.up} width={60} height={30} />
-            <div className={`text-[9px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
+            <div className={`text-[11px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
           </div>
         )}
       </div>
@@ -517,7 +518,7 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
       <div className="flex items-center gap-2 flex-wrap mt-3 pt-2" style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
         <span
           className="font-mono font-bold flex-shrink-0"
-          style={{ fontSize: 8, letterSpacing: '0.08em', color: impact.colour }}
+          style={{ fontSize: 11, letterSpacing: '0.08em', color: impact.colour }}
           title={`${impact.level} — estimated from keywords in the headline, not a market forecast`}
         >● {impact.level}</span>
 
@@ -553,8 +554,8 @@ function ImpactDot({ impact }) {
       title={`${impact.level} — estimated from keywords in the headline, not a market forecast`}
       style={{ color: impact.colour }}
     >
-      <span style={{ fontSize: 7 }}>●</span>
-      <span style={{ fontSize: 8, letterSpacing: '0.08em' }}>{impact.level}</span>
+      <span style={{ fontSize: 11 }}>●</span>
+      <span style={{ fontSize: 11, letterSpacing: '0.08em' }}>{impact.level}</span>
     </span>
   )
 }
@@ -592,10 +593,10 @@ function StoryCluster({ cluster, savedKeys, onToggleSave, ...rowProps }) {
   return (
     <div className="border-b border-terminal-border">
       <div className="w-full flex items-center gap-2 px-3 py-1 bg-terminal-gold/5">
-        <span className="text-[8px] font-mono tracking-widest text-terminal-gold/80 truncate">
+        <span className="text-[11px] font-mono tracking-widest text-terminal-gold/80 truncate">
           {cluster.label}
         </span>
-        <span className="text-[8px] font-mono text-terminal-text-dim flex-shrink-0">
+        <span className="text-[11px] font-mono text-terminal-text-dim flex-shrink-0">
           ({cluster.count} stories)
         </span>
       </div>
@@ -608,7 +609,7 @@ function StoryCluster({ cluster, savedKeys, onToggleSave, ...rowProps }) {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full text-left px-3 py-1 font-mono text-[9px] tracking-widest text-terminal-gold/80 hover:text-terminal-gold hover:bg-terminal-gold/5 transition-colors"
+        className="w-full text-left px-3 py-1 font-mono text-[11px] tracking-widest text-terminal-gold/80 hover:text-terminal-gold hover:bg-terminal-gold/5 transition-colors"
       >{open ? '− SHOW LESS' : `+${more} MORE`}</button>
     </div>
   )
@@ -643,7 +644,7 @@ function SavedArticles({ items, searchTerm, onRemove, onAskAI }) {
   }
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="px-3 py-1.5 border-b border-terminal-border text-[9px] font-mono tracking-widest text-terminal-text-dim">
+      <div className="px-3 py-1.5 border-b border-terminal-border text-[11px] font-mono tracking-widest text-terminal-text-dim">
         {items.length} / {SAVED_MAX} SAVED{lc ? ` · ${shown.length} matching` : ''}
       </div>
       {shown.map((a) => (
@@ -653,7 +654,7 @@ function SavedArticles({ items, searchTerm, onRemove, onAskAI }) {
             <p className="text-[13px] text-terminal-text-bright leading-snug"><HighlightText text={a.headline} term={searchTerm} /></p>
             {a.summary && <p className="text-2xs text-terminal-text-dim mt-1 line-clamp-2"><HighlightText text={a.summary} term={searchTerm} /></p>}
             <div className="flex items-center gap-3 mt-1.5">
-              <span className="text-[9px] font-mono text-terminal-text-dim">{a.source} · {timeAgo(a.pubDate)} · saved {timeAgo(a.savedAt)}</span>
+              <span className="text-[11px] font-mono text-terminal-text-dim">{a.source} · {timeAgo(a.pubDate)} · saved {timeAgo(a.savedAt)}</span>
               {a.link && <a href={a.link} target="_blank" rel="noopener noreferrer" className="text-2xs text-terminal-blue-bright hover:text-terminal-gold">READ →</a>}
               <button onClick={() => onAskAI(a)} className="text-2xs text-terminal-gold hover:text-terminal-gold-bright">ASK MADDENAI ▶</button>
               <button onClick={() => onRemove(a)} className="text-2xs font-bold tracking-wide text-terminal-text-dim hover:text-terminal-green ml-auto">✓ MARK AS READ</button>
@@ -680,24 +681,24 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, onOpen, onO
     >
       <div className="flex items-center gap-2 px-3" style={{ height: 40 }}>
         <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: sourceColor(item.source) }} />
-        <span className="font-mono font-bold flex-shrink-0 truncate" style={{ fontSize: 9, width: 92, color: sourceColor(item.source), letterSpacing: '0.04em' }} title={item.source}>
+        <span className="font-mono font-bold flex-shrink-0 truncate" style={{ fontSize: 11, width: 92, color: sourceColor(item.source), letterSpacing: '0.04em' }} title={item.source}>
           {item.source.toUpperCase()}
         </span>
         <span className="flex-1 min-w-0 truncate text-terminal-text-bright" style={{ fontSize: 12 }}>
           {isUnread && <span className="inline-block w-1 h-1 rounded-full bg-terminal-gold mr-1.5 align-middle" />}
-          {isBreaking && <span className="text-[#a83232] font-bold mr-1">●</span>}
+          {isBreaking && <span className="text-[#EB6B66] font-bold mr-1">●</span>}
           <HighlightText text={item.headline} term={searchTerm} />
-          {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[9px]">NEW</span>}
+          {isNew && !isBreaking && <span className="text-terminal-gold font-bold ml-1.5 text-[11px]">NEW</span>}
         </span>
-        {item.inWatchlist && <span className="font-mono text-terminal-gold flex-shrink-0" style={{ fontSize: 8 }} title="Mentions a stock on your watchlist">★</span>}
-        <span className="font-mono text-terminal-text-dim/70 flex-shrink-0 tabular-nums" style={{ fontSize: 9 }}>{timeAgo(item.pubDate)}</span>
+        {item.inWatchlist && <span className="font-mono text-terminal-gold flex-shrink-0" style={{ fontSize: 11 }} title="Mentions a stock on your watchlist">★</span>}
+        <span className="font-mono text-terminal-text-dim/70 flex-shrink-0 tabular-nums" style={{ fontSize: 11 }}>{timeAgo(item.pubDate)}</span>
       </div>
       {/* Hover reveal — summary and actions. Hidden on touch, where the tap
           opens the article panel instead. */}
       <div className="hidden group-hover:block px-3 pb-2.5" style={{ paddingLeft: 27 }}>
         {item.summary && <p className="text-terminal-text-dim line-clamp-2" style={{ fontSize: 11, lineHeight: 1.55 }}><HighlightText text={item.summary} term={searchTerm} /></p>}
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className="px-1 rounded-full leading-none py-0.5" style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`, color: TAG_COLOR[item.tag] ?? '#8BA3C4' }}>{primaryDisplayCategory(item)}</span>
+          <span className="px-1 rounded-full leading-none py-0.5" style={{ fontSize: 11, background: `${TAG_COLOR[item.tag] ?? PAL.dim}22`, color: TAG_COLOR[item.tag] ?? PAL.dim }}>{primaryDisplayCategory(item)}</span>
           <ImpactDot impact={item.impact} />
           {item.companies?.length
             ? <CompanyPills companies={item.companies} onOpenTicker={onOpenTicker} />
@@ -722,22 +723,22 @@ function MovingOnNews({ items }) {
   const maxAbs = Math.max(...assets.map(a => Math.abs(a.changePct)), 0.1)
   return (
     <div className="px-3 py-2 border-b border-terminal-border">
-      <div className="text-[9px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">MOVING ON NEWS</div>
+      <div className="text-[11px] font-mono tracking-widest text-terminal-text-dim/60 uppercase mb-1.5">MOVING ON NEWS</div>
       <div className="flex flex-col gap-2">
         {assets.slice(0, 5).map(a => {
           const up = a.changePct >= 0
           const headline = headlineForAsset(items, a.label)
           return (
             <div key={a.label}>
-              <div className="flex items-center justify-between text-[10px] font-mono">
+              <div className="flex items-center justify-between text-[11px] font-mono">
                 <span className="text-terminal-gold font-bold">{a.label}</span>
                 <span className={up ? 'pos' : 'neg'}>{up ? '+' : ''}{a.changePct.toFixed(2)}%</span>
               </div>
               <div className="h-1 rounded-full overflow-hidden mt-0.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ width: `${(Math.abs(a.changePct) / maxAbs) * 100}%`, height: '100%', background: up ? '#3aaa63' : '#a83232' }} />
+                <div style={{ width: `${(Math.abs(a.changePct) / maxAbs) * 100}%`, height: '100%', background: up ? PAL.up : PAL.down }} />
               </div>
               {headline && (
-                <div className="text-[9px] text-terminal-text-dim/70 leading-snug truncate mt-0.5">{headline}</div>
+                <div className="text-[11px] text-terminal-text-dim/70 leading-snug truncate mt-0.5">{headline}</div>
               )}
             </div>
           )
@@ -865,8 +866,8 @@ function MorningBriefing() {
               <div
                 style={{
                   fontFamily: '"IBM Plex Mono", monospace',
-                  fontSize: 9,
-                  color: '#4A6080',
+                  fontSize: 11,
+                  color: PAL.muted,
                   letterSpacing: '0.1em',
                   padding: '8px 0 0',
                   borderTop: '1px solid rgba(201,168,76,0.08)',
@@ -931,12 +932,12 @@ function SessionContext({ nowTs, session, watchlistCount }) {
 
   return (
     <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ borderColor: `${colour}44`, background: `${colour}0F` }}>
-      <span className="text-[9px] font-mono font-bold tracking-widest" style={{ color: colour }}>{label}</span>
+      <span className="text-[11px] font-mono font-bold tracking-widest" style={{ color: colour }}>{label}</span>
       {parts.filter(Boolean).map((t) => (
-        <span key={t} className="text-[9px] font-mono text-terminal-text-dim">· {t}</span>
+        <span key={t} className="text-[11px] font-mono text-terminal-text-dim">· {t}</span>
       ))}
       {watchlistCount > 0 && (
-        <span className="text-[9px] font-mono text-terminal-gold ml-auto">{watchlistCount} {watchlistCount === 1 ? 'story' : 'stories'} on your watchlist</span>
+        <span className="text-[11px] font-mono text-terminal-gold ml-auto">{watchlistCount} {watchlistCount === 1 ? 'story' : 'stories'} on your watchlist</span>
       )}
     </div>
   )
@@ -957,10 +958,10 @@ function NewsToolbar({ isLive, isFetching, articleCount, sourcesOk, sourcesTotal
       <button
         onClick={onBrief}
         className="font-mono font-bold tracking-wider text-terminal-gold border border-terminal-gold/50 hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-2.5 py-1"
-        style={{ fontSize: 9 }}
+        style={{ fontSize: 11 }}
         title="A three-paragraph briefing on today's top stories, from the headlines on screen"
       >ASK MADDENAI ABOUT TODAY&apos;S NEWS ▶</button>
-      <span className="group flex items-center gap-2 ml-auto font-mono" style={{ fontSize: 9 }}>
+      <span className="group flex items-center gap-2 ml-auto font-mono" style={{ fontSize: 11 }}>
         {isFetching ? (
           <span className="text-terminal-gold animate-pulse">↻ CHECKING FOR NEW ARTICLES…</span>
         ) : flash ? (
@@ -968,8 +969,8 @@ function NewsToolbar({ isLive, isFetching, articleCount, sourcesOk, sourcesTotal
         ) : (
           <>
             <span className="flex items-center gap-1.5">
-              <span className={`rounded-full ${isLive ? 'animate-pulse' : ''}`} style={{ width: 6, height: 6, background: isLive ? '#2D8A50' : '#a83232' }} />
-              <span className="font-bold tracking-widest" style={{ color: isLive ? '#2D8A50' : '#a83232' }}>{isLive ? 'LIVE' : 'OFFLINE'}</span>
+              <span className={`rounded-full ${isLive ? 'animate-pulse' : ''}`} style={{ width: 6, height: 6, background: isLive ? PAL.up : PAL.down }} />
+              <span className="font-bold tracking-widest" style={{ color: isLive ? PAL.up : PAL.down }}>{isLive ? 'LIVE' : 'OFFLINE'}</span>
             </span>
             <span className="text-terminal-text-dim">
               · {articleCount} articles · {sourcesOk}/{sourcesTotal} sources{lastUpdatedAt != null && <> · {sharedTimeAgo(lastUpdatedAt) ?? 'just now'}</>}
@@ -1010,21 +1011,21 @@ function FilterBar({ searchTerm, setSearchTerm, activeCategory, onCategory, catC
             aria-label="Search news"
           />
         </div>
-        <select className={select} style={{ fontSize: 9, height: 24 }} value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source">
+        <select className={select} style={{ fontSize: 11, height: 24 }} value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source">
           <option value="ALL">ALL SOURCES</option>
           {sources.map((s) => <option key={s} value={s}>{s.toUpperCase()}</option>)}
         </select>
-        <select className={select} style={{ fontSize: 9, height: 24 }} value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time">
+        <select className={select} style={{ fontSize: 11, height: 24 }} value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time">
           {TIME_FILTERS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
         {active.length > 0 && (
           <span className="flex items-center gap-1 flex-wrap">
             {active.map((f) => (
-              <button key={f.k} onClick={f.clear} className="font-mono text-terminal-gold border border-terminal-gold/40 rounded-full px-2 hover:bg-terminal-gold/10" style={{ fontSize: 9, height: 20 }} title="Remove filter">{f.label} ✕</button>
+              <button key={f.k} onClick={f.clear} className="font-mono text-terminal-gold border border-terminal-gold/40 rounded-full px-2 hover:bg-terminal-gold/10" style={{ fontSize: 11, height: 20 }} title="Remove filter">{f.label} ✕</button>
             ))}
             <button
               onClick={() => { setSearchTerm(''); onCategory('ALL'); setSource('ALL'); setTime('ALL'); setTopic(null) }}
-              className="font-mono text-terminal-text-dim hover:text-terminal-red ml-1" style={{ fontSize: 9 }}
+              className="font-mono text-terminal-text-dim hover:text-terminal-red ml-1" style={{ fontSize: 11 }}
             >CLEAR ALL</button>
           </span>
         )}
@@ -1033,12 +1034,12 @@ function FilterBar({ searchTerm, setSearchTerm, activeCategory, onCategory, catC
         {DISPLAY_CATEGORIES.map(({ key, label }) => {
           const count = catCount(key)
           return (
-            <button key={key} onClick={() => onCategory(key)} className={pill(activeCategory === key)} style={{ fontSize: 9, height: 22, padding: '0 10px' }}>
+            <button key={key} onClick={() => onCategory(key)} className={pill(activeCategory === key)} style={{ fontSize: 11, height: 22, padding: '0 10px' }}>
               {label}{count > 0 && <span className="opacity-70">({count})</span>}
             </button>
           )
         })}
-        <button onClick={() => onCategory('SAVED')} className={pill(activeCategory === 'SAVED')} style={{ fontSize: 9, height: 22, padding: '0 10px' }}>
+        <button onClick={() => onCategory('SAVED')} className={pill(activeCategory === 'SAVED')} style={{ fontSize: 11, height: 22, padding: '0 10px' }}>
           🔖 SAVED{savedCount > 0 && <span className="opacity-70">({savedCount})</span>}
         </button>
       </div>
@@ -1054,14 +1055,14 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, mark
   const topics = useMemo(() => trendingTopics(annotatedAll), [annotatedAll])
   const watch = useMemo(() => annotatedAll.filter((a) => a.inWatchlist).sort((a, b) => b.pubDate - a.pubDate).slice(0, 5), [annotatedAll])
   const breaking = items.filter(isBreakingArticle).slice(0, 3)
-  const head = (t, extra) => <div className="flex items-center gap-2 mb-1.5"><span className="text-[9px] font-mono tracking-widest text-terminal-text-dim/70 uppercase">{t}</span>{extra}</div>
-  const trend = s.trend === 'improving' ? { t: '▲ improving from 2h ago', c: '#2D8A50' } : s.trend === 'declining' ? { t: '▼ weakening from 2h ago', c: '#a83232' } : s.trend === 'steady' ? { t: '— steady vs 2h ago', c: '#8BA3C4' } : null
+  const head = (t, extra) => <div className="flex items-center gap-2 mb-1.5"><span className="text-[11px] font-mono tracking-widest text-terminal-text-dim/70 uppercase">{t}</span>{extra}</div>
+  const trend = s.trend === 'improving' ? { t: '▲ improving from 2h ago', c: PAL.up } : s.trend === 'declining' ? { t: '▼ weakening from 2h ago', c: PAL.down } : s.trend === 'steady' ? { t: '— steady vs 2h ago', c: PAL.dim } : null
 
   return (
     <>
       {breaking.length > 0 && (
-        <div className="px-3 py-2 border-b border-[#a83232]/40" style={{ background: 'rgba(168,50,50,0.12)' }}>
-          <div className="font-mono font-bold tracking-widest text-[#e05c5c] mb-1" style={{ fontSize: 9 }}>🔴 BREAKING</div>
+        <div className="px-3 py-2 border-b border-[#EB6B66]/40" style={{ background: 'rgba(168,50,50,0.12)' }}>
+          <div className="font-mono font-bold tracking-widest text-[#e05c5c] mb-1" style={{ fontSize: 11 }}>🔴 BREAKING</div>
           {breaking.map((b) => (
             <button key={b.id ?? b.headline} onClick={() => onOpen(b)} className="block text-left text-[11px] leading-snug text-terminal-text-bright hover:text-terminal-gold mb-1">{b.headline}</button>
           ))}
@@ -1072,31 +1073,31 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, mark
           Markets and the dashboard. */}
       {market?.sentiment && (
         <div className="px-3 py-2 border-b border-terminal-border" title={sentimentTooltip(market)}>
-          {head('Market sentiment', <span className="ml-auto font-mono font-bold" data-sentiment-score={market.sentiment.score} style={{ fontSize: 9, color: market.sentiment.color ?? '#C9A84C' }}>{market.sentiment.score} · {market.sentiment.label.toUpperCase()}</span>)}
-          <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8 }}>Computed from market data{market.demoInputs ? ' · DEMO ASX inputs' : ''}</div>
+          {head('Market sentiment', <span className="ml-auto font-mono font-bold" data-sentiment-score={market.sentiment.score} style={{ fontSize: 11, color: market.sentiment.color ?? PAL.gold }}>{market.sentiment.score} · {market.sentiment.label.toUpperCase()}</span>)}
+          <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>Computed from market data{market.demoInputs ? ' · DEMO ASX inputs' : ''}</div>
         </div>
       )}
 
       {/* A different measure: the tone of the headlines in this feed. */}
       <div className="px-3 py-2 border-b border-terminal-border" title={`Headline tone: ${s.total} articles in this feed, scored by keyword and weighted by impact and recency. A different measure from market sentiment.`}>
-        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 9, color: s.label === 'BULLISH' ? '#2D8A50' : s.label === 'BEARISH' ? '#a83232' : '#C9A84C' }}>{s.label}</span>)}
+        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 11, color: s.label === 'BULLISH' ? PAL.up : s.label === 'BEARISH' ? PAL.down : PAL.gold }}>{s.label}</span>)}
         <div className="flex h-2 rounded-sm overflow-hidden">
-          <div style={{ width: `${s.bullPct}%`, background: '#2D8A50' }} />
-          <div style={{ width: `${s.neutralPct}%`, background: '#C9A84C' }} />
-          <div style={{ width: `${s.bearPct}%`, background: '#a83232' }} />
+          <div style={{ width: `${s.bullPct}%`, background: PAL.up }} />
+          <div style={{ width: `${s.neutralPct}%`, background: PAL.gold }} />
+          <div style={{ width: `${s.bearPct}%`, background: PAL.down }} />
         </div>
-        <div className="flex justify-between font-mono mt-1" style={{ fontSize: 8 }}>
-          <span style={{ color: '#2D8A50' }}>POSITIVE {s.bullPct}%</span><span style={{ color: '#C9A84C' }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: '#a83232' }}>NEGATIVE {s.bearPct}%</span>
+        <div className="flex justify-between font-mono mt-1" style={{ fontSize: 11 }}>
+          <span style={{ color: PAL.up }}>POSITIVE {s.bullPct}%</span><span style={{ color: PAL.gold }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: PAL.down }}>NEGATIVE {s.bearPct}%</span>
         </div>
-        {trend && <div className="font-mono mt-1" style={{ fontSize: 9, color: trend.c }}>{trend.t}</div>}
+        {trend && <div className="font-mono mt-1" style={{ fontSize: 11, color: trend.c }}>{trend.t}</div>}
       </div>
 
       <div className="px-3 py-2 border-b border-terminal-border">
-        {head('Trending topics', <span className="ml-auto font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>stories</span>)}
-        {topics.length === 0 ? <div className="text-[10px] text-terminal-text-dim/60">Not enough stories yet</div> : topics.map((t, i) => {
+        {head('Trending topics', <span className="ml-auto font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>stories</span>)}
+        {topics.length === 0 ? <div className="text-[11px] text-terminal-text-dim/60">Not enough stories yet</div> : topics.map((t, i) => {
           const on = topic?.key === t.key
           return (
-            <button key={t.key} onClick={() => setTopic(on ? null : t)} className={`w-full flex items-center gap-2 py-0.5 font-mono text-left transition-colors ${on ? 'text-terminal-gold' : 'text-terminal-text-bright hover:text-terminal-gold'}`} style={{ fontSize: 10 }}>
+            <button key={t.key} onClick={() => setTopic(on ? null : t)} className={`w-full flex items-center gap-2 py-0.5 font-mono text-left transition-colors ${on ? 'text-terminal-gold' : 'text-terminal-text-bright hover:text-terminal-gold'}`} style={{ fontSize: 11 }}>
               <span className="text-terminal-text-dim/50 w-3">{i + 1}.</span>
               <span className={on ? 'font-bold' : ''}>{t.label}</span>
               <span className="ml-auto text-terminal-text-dim tabular-nums">{t.count}</span>
@@ -1106,13 +1107,13 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, mark
       </div>
 
       <div className="px-3 py-2 border-b border-terminal-border">
-        <div className="text-[9px] font-mono tracking-widest text-terminal-gold font-bold mb-1.5">IN YOUR WATCHLIST</div>
+        <div className="text-[11px] font-mono tracking-widest text-terminal-gold font-bold mb-1.5">IN YOUR WATCHLIST</div>
         {watch.length === 0 ? (
-          <div className="text-[10px] text-terminal-text-dim/60">No watchlist mentions today</div>
+          <div className="text-[11px] text-terminal-text-dim/60">No watchlist mentions today</div>
         ) : watch.map((a) => (
           <button key={a.id ?? a.headline} onClick={() => onOpen(a)} className="block w-full text-left mb-1.5 hover:text-terminal-gold">
             <div className="text-[11px] leading-snug text-terminal-text-bright line-clamp-2">{a.headline}</div>
-            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8 }}>{(a.companies ?? []).map((c) => c.ticker.replace('.AX', '')).join(', ')} · {a.source} · {timeAgo(a.pubDate)}</div>
+            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>{(a.companies ?? []).map((c) => c.ticker.replace('.AX', '')).join(', ')} · {a.source} · {timeAgo(a.pubDate)}</div>
           </button>
         ))}
       </div>
@@ -1144,15 +1145,15 @@ function ArticlePanel({ item, index, total, onClose, onStep, onAskAI, onOpenTick
       setShared(true); setTimeout(() => setShared(false), 2000)
     } catch { /* cancelled or blocked */ }
   }
-  const impact = item.impact ?? { level: 'LOW', colour: '#4A6080' }
+  const impact = item.impact ?? { level: 'LOW', colour: PAL.muted }
   return (
     <div className="absolute top-0 right-0 bottom-0 z-30 flex flex-col border-l border-terminal-border-gold panel-fade" style={{ width: 400, maxWidth: '100%', background: 'rgb(var(--t-panel))', boxShadow: 'var(--shadow-floating)' }} role="dialog" aria-label="Article">
       <div className="flex items-center gap-2 px-4 py-2 border-b border-terminal-border flex-shrink-0">
         <span className="rounded-full" style={{ width: 7, height: 7, background: sourceColor(item.source) }} />
-        <span className="font-mono font-bold" style={{ fontSize: 9, color: sourceColor(item.source) }}>{item.source.toUpperCase()}</span>
-        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>· {timeAgo(item.pubDate)}</span>
-        <span className="px-1.5 rounded-full leading-none py-0.5" style={{ fontSize: 8, background: `${TAG_COLOR[item.tag] ?? '#8BA3C4'}22`, color: TAG_COLOR[item.tag] ?? '#8BA3C4' }}>{primaryDisplayCategory(item)}</span>
-        <span className="ml-auto flex items-center gap-1 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
+        <span className="font-mono font-bold" style={{ fontSize: 11, color: sourceColor(item.source) }}>{item.source.toUpperCase()}</span>
+        <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>· {timeAgo(item.pubDate)}</span>
+        <span className="px-1.5 rounded-full leading-none py-0.5" style={{ fontSize: 11, background: `${TAG_COLOR[item.tag] ?? PAL.dim}22`, color: TAG_COLOR[item.tag] ?? PAL.dim }}>{primaryDisplayCategory(item)}</span>
+        <span className="ml-auto flex items-center gap-1 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
           <button onClick={() => onStep(-1)} className="px-1 hover:text-terminal-gold" title="Previous (←)">←</button>
           {index + 1}/{total}
           <button onClick={() => onStep(1)} className="px-1 hover:text-terminal-gold" title="Next (→)">→</button>
@@ -1161,13 +1162,13 @@ function ArticlePanel({ item, index, total, onClose, onStep, onAskAI, onOpenTick
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <h2 className="font-bold text-terminal-text-bright" style={{ fontSize: 20, lineHeight: 1.3 }}>{item.headline}</h2>
-        {item.author && <div className="font-mono text-terminal-text-dim/70 mt-1" style={{ fontSize: 9 }}>{item.author}</div>}
+        {item.author && <div className="font-mono text-terminal-text-dim/70 mt-1" style={{ fontSize: 11 }}>{item.author}</div>}
         <p className="text-terminal-text mt-3" style={{ fontSize: 14, lineHeight: 1.7, color: '#B8C7DC' }}>
           {item.summary || <span className="italic text-terminal-text-dim/60">No summary in the feed — the full story is at {item.source}.</span>}
         </p>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <span className="font-mono font-bold" style={{ fontSize: 9, color: impact.colour }} title="Estimated from keywords in the headline, not a market forecast">● {impact.level} IMPACT</span>
-          {item.inWatchlist && <span className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>IN YOUR WATCHLIST</span>}
+          <span className="font-mono font-bold" style={{ fontSize: 11, color: impact.colour }} title="Estimated from keywords in the headline, not a market forecast">● {impact.level} IMPACT</span>
+          {item.inWatchlist && <span className="font-mono tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>IN YOUR WATCHLIST</span>}
         </div>
         {(item.companies?.length > 0 || knownTickerBadges(item.tickers).length > 0) && (
           <div className="flex items-center gap-1 mt-3 flex-wrap">
@@ -1184,7 +1185,7 @@ function ArticlePanel({ item, index, total, onClose, onStep, onAskAI, onOpenTick
             <button onClick={share} className="flex-1 text-2xs font-bold tracking-wide border border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold rounded-full px-3 py-1">{shared ? '✓ COPIED' : '⧉ SHARE'}</button>
           </div>
         </div>
-        <div className="font-mono text-terminal-text-dim/40 mt-4" style={{ fontSize: 8 }}>Esc to close · ← → to move between stories</div>
+        <div className="font-mono text-terminal-text-dim/40 mt-4" style={{ fontSize: 11 }}>Esc to close · ← → to move between stories</div>
       </div>
     </div>
   )
@@ -1578,14 +1579,14 @@ export default function NewsModule() {
               <div key={cluster.id}>
                 {i === 0 && cluster.lead.inWatchlist && (
                   <div className="flex items-center gap-2 px-3 py-1 bg-terminal-gold/10 border-b border-terminal-gold/25">
-                    <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>WATCHLIST MENTIONS</span>
-                    <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8 }}>promoted above the wire</span>
+                    <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>WATCHLIST MENTIONS</span>
+                    <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>promoted above the wire</span>
                   </div>
                 )}
                 {i > 0 && !cluster.lead.inWatchlist && listRest[i - 1].lead.inWatchlist && (
                   <div className="flex items-center gap-2 px-3 py-1 border-b border-terminal-border bg-terminal-surface2/40">
-                    <span className="font-mono font-bold tracking-widest text-terminal-text-dim/70" style={{ fontSize: 8 }}>ALL STORIES</span>
-                    <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>ranked by relevance</span>
+                    <span className="font-mono font-bold tracking-widest text-terminal-text-dim/70" style={{ fontSize: 11 }}>ALL STORIES</span>
+                    <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>ranked by relevance</span>
                   </div>
                 )}
                 <StoryCluster

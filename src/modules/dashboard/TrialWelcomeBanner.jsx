@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore'
 import { startUpgrade, trialState, lostOnCore, PRICES } from '../../services/plans'
 import { getUsage } from '../../services/usageService'
 import { loadAlerts } from '../../services/alertsService'
+import { PAL } from '../../styles/palette.js'
 
 // YOUR TRIAL — DAY N OF 7, for an account on its free trial and only then.
 //
@@ -56,18 +57,18 @@ export default function TrialWelcomeBanner() {
       <div className="flex items-center gap-4 flex-wrap">
         <button onClick={() => setOpen((v) => !v)} className="text-left" aria-expanded={open}>
           <div className="text-terminal-gold font-bold" style={{ fontSize: 11, letterSpacing: '0.18em' }}>YOUR TRIAL — DAY {t.day} OF {t.length} {open ? '▾' : '▸'}</div>
-          <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: 10 }}>
+          <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: 11 }}>
             Full Apex access · <span className="text-terminal-text-bright">{t.daysLeft} day{t.daysLeft === 1 ? '' : 's'} left</span>
           </div>
         </button>
         <div className="flex-1 min-w-[120px] max-w-[300px]">
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(74,96,128,0.25)' }}>
-            <div className="h-full rounded-full" style={{ width: `${(t.day / t.length) * 100}%`, background: t.daysLeft <= 2 ? '#E8A33D' : '#C9A84C' }} />
+            <div className="h-full rounded-full" style={{ width: `${(t.day / t.length) * 100}%`, background: t.daysLeft <= 2 ? PAL.amber : PAL.gold }} />
           </div>
         </div>
         <div className="flex items-center gap-3 ml-auto">
-          <button onClick={later} className="text-[9px] tracking-widest text-terminal-text-dim/70 hover:text-terminal-text-bright">REMIND ME LATER</button>
-          <button onClick={() => startUpgrade('prime')} className="text-[10px] tracking-widest px-3 py-1.5 font-bold bg-terminal-gold text-terminal-bg hover:opacity-90">
+          <button onClick={later} className="text-[11px] tracking-widest text-terminal-text-dim/70 hover:text-terminal-text-bright">REMIND ME LATER</button>
+          <button onClick={() => startUpgrade('prime')} className="text-[11px] tracking-widest px-3 py-1.5 font-bold bg-terminal-gold text-terminal-bg hover:opacity-90">
             UPGRADE NOW — A${PRICES.prime.monthly}/month
           </button>
         </div>
@@ -75,11 +76,11 @@ export default function TrialWelcomeBanner() {
       {open && (
         <div className={`grid gap-x-8 gap-y-2 mt-2.5 ${showLoss ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
           <div>
-            <div className="text-terminal-text-dim/70 tracking-widest mb-1" style={{ fontSize: 8 }}>WHAT YOU&apos;VE USED</div>
+            <div className="text-terminal-text-dim/70 tracking-widest mb-1" style={{ fontSize: 11 }}>WHAT YOU&apos;VE USED</div>
             <div className={`grid gap-x-6 gap-y-0.5 ${showLoss ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
               {used.map((u) => (
-                <div key={u.label} className="flex items-baseline gap-1.5" style={{ fontSize: 10 }}>
-                  <span style={{ color: u.done ? '#2D8A50' : '#4A6080' }}>{u.done ? '✓' : '○'}</span>
+                <div key={u.label} className="flex items-baseline gap-1.5" style={{ fontSize: 11 }}>
+                  <span style={{ color: u.done ? PAL.up : PAL.muted }}>{u.done ? '✓' : '○'}</span>
                   <span className={u.done ? 'text-terminal-text-bright' : 'text-terminal-text-dim'}>{u.label}:</span>
                   <span className="text-terminal-text-dim">{u.value}</span>
                 </div>
@@ -88,13 +89,13 @@ export default function TrialWelcomeBanner() {
           </div>
           {showLoss && (
             <div>
-              <div className="tracking-widest mb-1" style={{ fontSize: 8, color: '#E8A33D' }}>ON CORE AFTER DAY {t.length} — WHAT CHANGES</div>
+              <div className="tracking-widest mb-1" style={{ fontSize: 11, color: PAL.amber }}>ON CORE AFTER DAY {t.length} — WHAT CHANGES</div>
               {lostOnCore().map((l) => (
-                <div key={l} className="flex items-baseline gap-1.5 text-terminal-text-dim" style={{ fontSize: 10 }}>
-                  <span style={{ color: '#CC4444' }}>✗</span>{l}
+                <div key={l} className="flex items-baseline gap-1.5 text-terminal-text-dim" style={{ fontSize: 11 }}>
+                  <span style={{ color: PAL.down }}>✗</span>{l}
                 </div>
               ))}
-              <div className="text-terminal-text-dim/50 mt-1" style={{ fontSize: 8 }}>Your watchlist, portfolio and alerts are kept whichever plan you choose.</div>
+              <div className="text-terminal-text-dim/50 mt-1" style={{ fontSize: 11 }}>Your watchlist, portfolio and alerts are kept whichever plan you choose.</div>
             </div>
           )}
         </div>

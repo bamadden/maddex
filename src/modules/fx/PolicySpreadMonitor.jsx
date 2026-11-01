@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip } from 'recharts'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { spreadOn, spreadSeries, spreadStats } from '../../data/policySpread'
 import SafeChart from '../../components/ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 // ─── AU – US policy spread monitor ─────────────────────────────────────────
 //
@@ -50,28 +51,28 @@ export default function PolicySpreadMonitor() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">AU / US POLICY SPREAD</span>
-        <span className="text-[9px] text-terminal-text-dim">RBA − Fed upper bound</span>
+        <span className="text-[11px] text-terminal-text-dim">RBA − Fed upper bound</span>
       </div>
 
       <div className="px-3 py-2 grid grid-cols-3 gap-2">
         <div>
-          <div className="text-[9px] text-terminal-text-dim tracking-wider">AU POLICY RATE</div>
+          <div className="text-[11px] text-terminal-text-dim tracking-wider">AU POLICY RATE</div>
           <div className="text-sm font-bold text-terminal-text-bright tabular-nums">{rba.cashRate.toFixed(2)}%</div>
         </div>
         <div>
-          <div className="text-[9px] text-terminal-text-dim tracking-wider">US POLICY RATE</div>
+          <div className="text-[11px] text-terminal-text-dim tracking-wider">US POLICY RATE</div>
           <div className="text-sm font-bold text-terminal-text-bright tabular-nums">{fed.rateRange}</div>
-          <div className="text-[9px] text-terminal-text-dim">upper {fed.cashRate.toFixed(2)}%</div>
+          <div className="text-[11px] text-terminal-text-dim">upper {fed.cashRate.toFixed(2)}%</div>
         </div>
         <div>
-          <div className="text-[9px] text-terminal-text-dim tracking-wider">SPREAD</div>
-          <div className="text-sm font-bold tabular-nums" style={{ color: premium ? '#2D8A50' : '#CC4444' }}>{signedBp(today)}</div>
-          <div className="text-[9px] text-terminal-text-dim">{premium ? 'AU premium' : 'AU discount'}</div>
+          <div className="text-[11px] text-terminal-text-dim tracking-wider">SPREAD</div>
+          <div className="text-sm font-bold tabular-nums" style={{ color: premium ? PAL.up : PAL.down }}>{signedBp(today)}</div>
+          <div className="text-[11px] text-terminal-text-dim">{premium ? 'AU premium' : 'AU discount'}</div>
         </div>
       </div>
 
       <div className="px-3">
-        <div className="flex items-baseline justify-between text-[9px] text-terminal-text-dim tracking-wider">
+        <div className="flex items-baseline justify-between text-[11px] text-terminal-text-dim tracking-wider">
           <span>LAST 12 MONTHS</span>
           {yearAgo != null && <span>{signedBp(yearAgo)} → {signedBp(today)}</span>}
         </div>
@@ -82,17 +83,17 @@ export default function PolicySpreadMonitor() {
               <YAxis domain={['dataMin - 15', 'dataMax + 15']} hide />
               <ReferenceLine y={0} stroke="rgba(201,168,76,0.35)" strokeDasharray="2 3" />
               <Tooltip content={<SparkTooltip />} />
-              <Line type="stepAfter" dataKey="bp" stroke="#C9A84C" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+              <Line type="stepAfter" dataKey="bp" stroke={PAL.gold} strokeWidth={1.5} dot={false} isAnimationActive={false} />
             </LineChart>
           </SafeChart>
         </div>
-        <div className="flex justify-between text-[9px] text-terminal-text-dim/60 -mt-0.5">
+        <div className="flex justify-between text-[11px] text-terminal-text-dim/60 -mt-0.5">
           <span>{monthYear(series[0].date)}</span><span>dashed = parity</span><span>{monthYear(series[series.length - 1].date)}</span>
         </div>
       </div>
 
       {five && (
-        <div className="px-3 py-2 mt-1 border-t border-terminal-border/50 text-[10px] text-terminal-text-dim leading-relaxed">
+        <div className="px-3 py-2 mt-1 border-t border-terminal-border/50 text-[11px] text-terminal-text-dim leading-relaxed">
           Over the five years from {monthYear(five.from)} the spread averaged{' '}
           <b className="text-terminal-text-bright tabular-nums">{signedBp(five.mean)}</b>, ranging from{' '}
           <span className="tabular-nums">{signedBp(five.lo)}</span> ({monthYear(five.loDay)}) to{' '}

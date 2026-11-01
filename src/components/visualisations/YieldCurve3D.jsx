@@ -4,6 +4,7 @@ import { OrbitControls, Stars, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { BG_COLOR } from './shared3d'
+import { PAL } from '../../styles/palette.js'
 
 const MATURITY_YEARS = { '3M': 0.25, '6M': 0.5, '1Y': 1, '2Y': 2, '3Y': 3, '5Y': 5, '10Y': 10, '30Y': 30 }
 // Oldest first (Z increases toward "now") so PLAY-direction and depth agree.
@@ -130,12 +131,12 @@ function AxisLabels({ half, curves }) {
     <group>
       {maturities.map((m) => (
         <Html key={m} position={[logX(MATURITY_YEARS[m], half), -0.3, ((TIME_LABELS.length - 1) * 2.0) / 2 + 0.6]} center distanceFactor={14}>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: '#8BA3C4', whiteSpace: 'nowrap' }}>{m}</div>
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: PAL.dim, whiteSpace: 'nowrap' }}>{m}</div>
         </Html>
       ))}
       {TIME_LABELS.map((label, ti) => (
         <Html key={label} position={[-half - 0.8, 0, ti * 2.0 - ((TIME_LABELS.length - 1) * 2.0) / 2]} center distanceFactor={14}>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: '#8BA3C4', whiteSpace: 'nowrap' }}>{label}</div>
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: PAL.dim, whiteSpace: 'nowrap' }}>{label}</div>
         </Html>
       ))}
     </group>
@@ -159,7 +160,7 @@ function Scene({ curves }) {
       <color attach="background" args={[BG_COLOR]} />
       <ambientLight intensity={0.4} />
       <pointLight position={[10, 10, 10]} intensity={1} />
-      <pointLight position={[-10, 6, -6]} intensity={0.3} color="#2D7DD2" />
+      <pointLight position={[-10, 6, -6]} intensity={0.3} color={PAL.blue} />
 
       <Stars radius={100} depth={50} count={2000} factor={2} saturation={0} fade speed={0.3} />
 
@@ -174,7 +175,7 @@ function Scene({ curves }) {
       {hover && (
         <Html position={hover.pos} center distanceFactor={11} occlude>
           <div style={{
-            fontFamily: 'IBM Plex Mono, monospace', fontSize: 10, color: '#e8edf5',
+            fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: PAL.bright,
             background: 'rgba(6,13,26,0.92)', border: `1px solid ${hover.curve.color}`, borderRadius: 3,
             padding: '4px 8px', whiteSpace: 'nowrap', pointerEvents: 'none', transform: 'translateY(-140%)',
           }}>

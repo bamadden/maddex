@@ -5,6 +5,7 @@ import { fetchLiveTickerItems, quakeItem } from '../../services/intelTickerLive'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { GEO_RISK_INDEX, riskBand, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
 import { INTEL_FILTERS, keepItem } from './intelFilter'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Global module: left intelligence panel pieces ─────────────────────────
 //
@@ -27,10 +28,10 @@ export function IntelFilterBar({ value, onChange }) {
         <button key={f} onClick={() => onChange(f)}
           className="transition-colors"
           style={{
-            fontFamily: MONO, fontSize: 8, letterSpacing: '0.12em', padding: '2px 6px', borderRadius: 2,
-            border: `1px solid ${value === f ? '#C9A84C' : 'rgba(201,168,76,0.15)'}`,
+            fontFamily: MONO, fontSize: 11, letterSpacing: '0.12em', padding: '2px 6px', borderRadius: 2,
+            border: `1px solid ${value === f ? PAL.gold : 'rgba(201,168,76,0.15)'}`,
             background: value === f ? 'rgba(201,168,76,0.15)' : 'transparent',
-            color: value === f ? '#C9A84C' : '#637899',
+            color: value === f ? PAL.gold : PAL.muted,
           }}
         >{f}</button>
       ))}
@@ -45,7 +46,7 @@ export function IntelFilterBar({ value, onChange }) {
 // its category. Duplicated content translated by exactly −50% keeps the loop
 // seamless; it pauses on hover.
 
-const TAG_COLOUR = { FX: '#4A7FB5', CRYPTO: '#D69E2E', DEFI: '#9A7AB5', MACRO: '#C9A84C', EVENT: '#C9A84C', SEISMIC: '#CC6A44', AI: '#637899' }
+const TAG_COLOUR = { FX: '#4A7FB5', CRYPTO: '#D69E2E', DEFI: '#9A7AB5', MACRO: PAL.gold, EVENT: PAL.gold, SEISMIC: '#CC6A44', AI: PAL.muted }
 
 export function IntelTicker({ earthquakes, filter }) {
   const [aiLines, setAiLines] = useState(null)
@@ -106,14 +107,14 @@ export function IntelTicker({ earthquakes, filter }) {
         title="Regenerate the AI lines — clears today's cached generation. Live items refresh every 5 minutes on their own."
         aria-label="Regenerate intelligence ticker"
         className="absolute right-0 top-0 h-full z-10 flex items-center pr-2 pl-6 opacity-30 hover:opacity-100 transition-opacity disabled:opacity-40"
-        style={{ background: 'linear-gradient(to right, transparent, #020609 45%)', color: '#C9A84C', fontSize: 11, lineHeight: 1, border: 'none' }}>
+        style={{ background: 'linear-gradient(to right, transparent, #020609 45%)', color: PAL.gold, fontSize: 11, lineHeight: 1, border: 'none' }}>
         <span className={regenerating ? 'animate-spin inline-block' : 'inline-block'}>↻</span>
       </button>
       <div className="intel-ticker-track flex items-center h-full whitespace-nowrap">
         {run.map((it, i) => (
-          <span key={i} className="flex-shrink-0 flex items-center gap-1.5" style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', paddingLeft: 14, paddingRight: 14 }}>
-            <span style={{ color: TAG_COLOUR[it.tag] ?? '#637899', fontWeight: 700 }}>[{it.tag === 'AI' ? 'AI' : it.tag}]</span>
-            <span style={{ color: it.tag === 'AI' ? '#8BA3C4' : it.dir === 'up' ? '#5FBF7F' : it.dir === 'down' ? '#D46A6A' : '#C9A84C' }}>{it.text}</span>
+          <span key={i} className="flex-shrink-0 flex items-center gap-1.5" style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', paddingLeft: 14, paddingRight: 14 }}>
+            <span style={{ color: TAG_COLOUR[it.tag] ?? PAL.muted, fontWeight: 700 }}>[{it.tag === 'AI' ? 'AI' : it.tag}]</span>
+            <span style={{ color: it.tag === 'AI' ? PAL.dim : it.dir === 'up' ? '#5FBF7F' : it.dir === 'down' ? '#D46A6A' : PAL.gold }}>{it.text}</span>
           </span>
         ))}
       </div>
@@ -164,10 +165,10 @@ export function MarketHoursCompact({ onFocus }) {
           <button key={ex.code} onClick={() => onFocus?.({ longitude: ex.lon, latitude: ex.lat, zoom: 4 })}
             title={`Fly the map to ${ex.code}`}
             className="flex items-center gap-1.5 text-left hover:bg-terminal-accent/10 rounded-sm px-1 -mx-1 py-0.5 transition-colors min-w-0">
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.open ? 'bg-terminal-green animate-pulse' : ''}`} style={s.open ? undefined : { background: '#4A6080' }} />
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.open ? 'bg-terminal-green animate-pulse' : ''}`} style={s.open ? undefined : { background: PAL.muted }} />
             <span className="text-2xs font-bold text-terminal-text-bright w-9 flex-shrink-0">{ex.code}</span>
-            <span className="text-[9px] font-bold w-12 flex-shrink-0" style={{ color: s.open ? '#2D8A50' : '#637899' }}>{s.open ? 'OPEN' : 'CLOSED'}</span>
-            <span className="text-[9px] text-terminal-text-dim truncate">
+            <span className="text-[11px] font-bold w-12 flex-shrink-0" style={{ color: s.open ? PAL.up : PAL.muted }}>{s.open ? 'OPEN' : 'CLOSED'}</span>
+            <span className="text-[11px] text-terminal-text-dim truncate">
               {s.open ? `closes in ${fmtGap(s.gap)}` : `opens in ${fmtGap(s.gap)}`}
             </span>
           </button>
@@ -222,23 +223,23 @@ export function CommodityIntel({ gold, onFocus }) {
             className="w-full text-left hover:bg-terminal-accent/10 rounded-sm px-1 -mx-1 py-0.5 transition-colors">
             <div className="flex items-baseline gap-2">
               <span className="text-2xs font-bold text-terminal-text-bright flex-shrink-0">{c.name}</span>
-              <span className="text-[8px] text-terminal-text-dim/60 truncate flex-1 min-w-0">{c.spec}</span>
+              <span className="text-[11px] text-terminal-text-dim/60 truncate flex-1 min-w-0">{c.spec}</span>
               <span className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0">{price}</span>
             </div>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-[9px] text-terminal-text-dim truncate flex-1 min-w-0">{c.exposure}</span>
+              <span className="text-[11px] text-terminal-text-dim truncate flex-1 min-w-0">{c.exposure}</span>
               {chg != null ? (
-                <span className="text-[9px] tabular-nums flex-shrink-0" style={{ color: chg >= 0 ? '#2D8A50' : '#CC4444' }}>
+                <span className="text-[11px] tabular-nums flex-shrink-0" style={{ color: chg >= 0 ? PAL.up : PAL.down }}>
                   {chg >= 0 ? '▲' : '▼'}{Math.abs(chg).toFixed(1)}% <span className="text-terminal-text-dim/50">{chgLabel}</span>
                 </span>
               ) : !c.live && c.asOf ? (
-                <span className="text-[9px] text-terminal-text-dim/50 flex-shrink-0">as at {fmtDay(c.asOf)}</span>
+                <span className="text-[11px] text-terminal-text-dim/50 flex-shrink-0">as at {fmtDay(c.asOf)}</span>
               ) : null}
             </div>
           </button>
         )
       })}
-      <div className="text-[8px] text-terminal-text-dim/50 leading-snug">
+      <div className="text-[11px] text-terminal-text-dim/50 leading-snug">
         Dated exchange settlements ({fmtDay(C.asOfBy?.lithiumCNYPerTonne ?? C.asOf)}–{fmtDay(C.asOf)}), not a live feed; change is since the
         previous verified level. Gold is live via PAXG. Click a row to fly to where it is produced.
       </div>
@@ -273,20 +274,20 @@ export function GeoRiskCards({ onFocus }) {
             style={{ borderColor: focused === r.id ? 'rgba(201,168,76,0.45)' : 'rgba(201,168,76,0.1)', background: focused === r.id ? 'rgba(201,168,76,0.05)' : 'transparent' }}>
             <div className="flex items-center gap-2">
               <span className="text-2xs font-bold text-terminal-text-bright uppercase truncate flex-1 min-w-0">{r.label}</span>
-              <span className="text-[8px] font-bold tracking-wider px-1 flex-shrink-0" style={{ color: band.colour, border: `1px solid ${band.colour}66` }}>{band.label}</span>
+              <span className="text-[11px] font-bold tracking-wider px-1 flex-shrink-0" style={{ color: band.colour, border: `1px solid ${band.colour}66` }}>{band.label}</span>
             </div>
-            <div className="text-[9px] text-terminal-text-dim mt-0.5 truncate">{r.summary}</div>
+            <div className="text-[11px] text-terminal-text-dim mt-0.5 truncate">{r.summary}</div>
             <div className="grid grid-cols-[52px_1fr_22px] items-center gap-x-1.5 gap-y-0.5 mt-1">
-              <span className="text-[8px] text-terminal-text-dim tracking-wider">AU IMPACT</span>
+              <span className="text-[11px] text-terminal-text-dim tracking-wider">AU IMPACT</span>
               <div className="h-[3px] bg-terminal-surface2 rounded-full overflow-hidden"><div className="h-full" style={{ width: `${r.auImpact}%`, background: '#4A7FB5' }} /></div>
-              <span className="text-[8px] text-terminal-text-bright tabular-nums text-right">{r.auImpact}</span>
-              <span className="text-[8px] text-terminal-text-dim tracking-wider">GLOBAL</span>
+              <span className="text-[11px] text-terminal-text-bright tabular-nums text-right">{r.auImpact}</span>
+              <span className="text-[11px] text-terminal-text-dim tracking-wider">GLOBAL</span>
               <div className="h-[3px] bg-terminal-surface2 rounded-full overflow-hidden"><div className="h-full" style={{ width: `${r.score}%`, background: band.colour }} /></div>
-              <span className="text-[8px] text-terminal-text-bright tabular-nums text-right">{r.score}</span>
+              <span className="text-[11px] text-terminal-text-bright tabular-nums text-right">{r.score}</span>
             </div>
-            {r.affects?.length > 0 && <div className="text-[9px] text-terminal-text-dim/80 mt-1">Affects: {r.affects.join(', ')}</div>}
+            {r.affects?.length > 0 && <div className="text-[11px] text-terminal-text-dim/80 mt-1">Affects: {r.affects.join(', ')}</div>}
             {open === r.id && (
-              <div className="mt-1.5 pt-1.5 border-t border-terminal-border/50 text-[9px] text-terminal-text-dim leading-snug">
+              <div className="mt-1.5 pt-1.5 border-t border-terminal-border/50 text-[11px] text-terminal-text-dim leading-snug">
                 <div className="mb-1">{r.auImpactNote}</div>
                 {r.factors.map((f) => (
                   <div key={f.key} className="flex gap-1.5"><span className="tabular-nums text-terminal-text-bright w-5 text-right flex-shrink-0">+{f.weight}</span><span>{f.note}</span></div>
@@ -296,7 +297,7 @@ export function GeoRiskCards({ onFocus }) {
           </button>
         )
       })}
-      <div className="text-[8px] text-terminal-text-dim/50 leading-snug">
+      <div className="text-[11px] text-terminal-text-dim/50 leading-snug">
         Maddex internal assessment, scored by a documented rubric · reviewed {fmtDay(RISK_LAST_REVIEWED)}. Top five by
         AU impact. Click to fly there, again for the reasoning.
       </div>

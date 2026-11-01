@@ -7,6 +7,7 @@ import { recordPortfolioValue, getPortfolioHistory, marketDayKey } from '../../.
 import { WidgetBody, WidgetEmpty, Sparkline, ChangePill } from './_shared'
 import { goModule } from './navigate'
 import { computePortfolioSnapshot } from '../portfolioSnapshot'
+import { PAL } from '../../../styles/palette.js'
 
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
 
@@ -86,8 +87,8 @@ export default function PortfolioSnapshotWidget() {
     // is none — this is the first screen a new user sees.
     return (
       <WidgetEmpty action="ADD HOLDINGS" onAction={() => goModule('portfolio')}>
-        <span className="block" style={{ color: '#8BA3C4' }}>No holdings yet</span>
-        <span className="block mt-1.5 leading-relaxed" style={{ fontSize: 10 }}>
+        <span className="block" style={{ color: PAL.dim }}>No holdings yet</span>
+        <span className="block mt-1.5 leading-relaxed" style={{ fontSize: 11 }}>
           Track P&amp;L in A$, see how an RBA hike hits each holding,<br />
           your dividend income by month, and a daily digest written around them.
           <br />Add them one by one or import a broker CSV.
@@ -102,12 +103,12 @@ export default function PortfolioSnapshotWidget() {
     <WidgetBody>
       <div className="flex items-start justify-between gap-2 min-w-0">
         <div className="min-w-0">
-          <div className="font-mono tabular-nums truncate" style={{ fontSize: 22, lineHeight: 1.15, color: '#E8EDF5' }}>
+          <div className="font-mono tabular-nums truncate" style={{ fontSize: 20, lineHeight: 1.15, color: PAL.bright }}>
             A${Math.round(stats.value).toLocaleString()}
           </div>
           <div className="flex items-center gap-1.5 mt-1">
             <ChangePill value={stats.dayPct} suffix="%" />
-            <span className="font-mono text-[8px]" style={{ color: '#4A6080', letterSpacing: '0.08em' }}>
+            <span className="font-mono text-[11px]" style={{ color: PAL.muted, letterSpacing: '0.08em' }}>
               {stats.dayPnl == null
                 ? 'TODAY UNAVAILABLE'
                 : `TODAY ${stats.dayPnl >= 0 ? '+' : '−'}A$${Math.abs(Math.round(stats.dayPnl)).toLocaleString()}`}
@@ -117,24 +118,24 @@ export default function PortfolioSnapshotWidget() {
 
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
           {series.length >= 2
-            ? <Sparkline values={series} tone={up ? '#2D8A50' : '#A83232'} />
+            ? <Sparkline values={series} tone={up ? PAL.up : PAL.down} />
             : (
               // Not a placeholder shape — saying "collecting" is the honest
               // answer on day one, and a flat line would not be.
-              <span className="font-mono text-[8px]" style={{ color: '#3A4E68' }}>
+              <span className="font-mono text-[11px]" style={{ color: PAL.muted }}>
                 {series.length === 1 ? '7D · 1 day so far' : '7D · collecting'}
               </span>
             )}
           {series.length >= 2 && (
-            <span className="font-mono text-[8px]" style={{ color: '#3A4E68' }}>{series.length}D OBSERVED</span>
+            <span className="font-mono text-[11px]" style={{ color: PAL.muted }}>{series.length}D OBSERVED</span>
           )}
         </div>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col justify-end gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[9px]" style={{ color: '#4A6080' }}>TOTAL P&L</span>
-          <span className="font-mono text-[10px] tabular-nums" style={{ color: up ? '#2D8A50' : '#A83232' }}>
+          <span className="font-mono text-[11px]" style={{ color: PAL.muted }}>TOTAL P&L</span>
+          <span className="font-mono text-[11px] tabular-nums" style={{ color: up ? PAL.up : PAL.down }}>
             {up ? '+' : '−'}A${Math.abs(Math.round(stats.pnl)).toLocaleString()} ({stats.pnlPct.toFixed(2)}%)
           </span>
         </div>
@@ -142,11 +143,11 @@ export default function PortfolioSnapshotWidget() {
             the tickers say what each line is made of. */}
         {stats.sectors.slice(0, 3).map((s) => (
           <div key={s.sector} className="flex items-center justify-between gap-2">
-            <span className="font-mono text-[9px] truncate min-w-0" style={{ color: '#8BA3C4' }}>
-              <span style={{ color: s.pct >= 0 ? '#2D8A50' : '#A83232' }}>{s.pct >= 0 ? '▲' : '▼'}</span> {s.sector}
-              <span style={{ color: '#4A6080' }}> ({s.syms.slice(0, 3).join(', ')}{s.syms.length > 3 ? '…' : ''})</span>
+            <span className="font-mono text-[11px] truncate min-w-0" style={{ color: PAL.dim }}>
+              <span style={{ color: s.pct >= 0 ? PAL.up : PAL.down }}>{s.pct >= 0 ? '▲' : '▼'}</span> {s.sector}
+              <span style={{ color: PAL.muted }}> ({s.syms.slice(0, 3).join(', ')}{s.syms.length > 3 ? '…' : ''})</span>
             </span>
-            <span className="font-mono text-[9px] tabular-nums flex-shrink-0" style={{ color: s.pct >= 0 ? '#2D8A50' : '#A83232' }}>
+            <span className="font-mono text-[11px] tabular-nums flex-shrink-0" style={{ color: s.pct >= 0 ? PAL.up : PAL.down }}>
               {s.pct >= 0 ? '+' : ''}{s.pct.toFixed(2)}%
             </span>
           </div>

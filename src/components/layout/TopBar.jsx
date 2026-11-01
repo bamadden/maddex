@@ -11,7 +11,9 @@ import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import Tooltip from '../ui/Tooltip'
+import BrandLockup from '../ui/BrandLockup'
 import { WORKSPACE_MODULE_LIST, NAV_ONLY_MODULES } from '../../config/workspaceModules'
+import { PAL } from '../../styles/palette.js'
 
 // 2,336 lines for a screen most sessions never open.
 const SettingsPanel = lazy(() => import('../settings/SettingsPanel'))
@@ -139,11 +141,11 @@ function UserMenu() {
           title={displayName || 'Account'}
         >
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] font-bold flex-shrink-0 transition-colors"
+            className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-[11px] font-bold flex-shrink-0 transition-colors"
             style={{
               background: 'rgba(201,168,76,0.08)',
               border: '1px solid rgba(201,168,76,0.3)',
-              color: '#C9A84C',
+              color: PAL.gold,
             }}
           >
             {initials}
@@ -209,7 +211,7 @@ function OfficialDataDot() {
   const reached = rows.filter((r) => r.status !== 'unavailable').length
   const state = !check ? null : drift ? 'drift' : reached === 0 ? 'failed' : 'ok'
   if (!state) return null
-  const colour = state === 'ok' ? '#2D8A50' : state === 'drift' ? '#C9A84C' : '#A83232'
+  const colour = state === 'ok' ? PAL.up : state === 'drift' ? PAL.gold : PAL.down
   const tip = state === 'ok' ? 'Verified constants status: all RBA/ABS figures match the official data'
     : state === 'drift' ? `Verified constants status: ${drift} figure${drift === 1 ? '' : 's'} differ from the official data`
     : 'Verified constants status: the RBA/ABS check could not reach the agencies'
@@ -218,7 +220,7 @@ function OfficialDataDot() {
       onClick={() => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'DATA SOURCES' } }))}
       title={tip}
       className="flex items-center gap-1 font-mono text-terminal-muted hover:text-terminal-text-dim flex-shrink-0"
-      style={{ fontSize: 8, letterSpacing: '0.16em' }}
+      style={{ fontSize: 11, letterSpacing: '0.16em' }}
     >
       <span className="rounded-full" style={{ width: 5, height: 5, background: colour }} />
       DATA
@@ -279,7 +281,7 @@ function DataFreshnessBadge() {
   // Age only — LIVE / DELAYED / DEMO / STALE are data classes with fixed
   // meanings (utils/dataClass), and this dot is a refresh timer, not a class.
   const ageMins = Math.floor(elapsed / 60)
-  const tone = ageMins < 5 ? { c: '#2D8A50', pulse: true } : ageMins < 60 ? { c: '#C9A84C', pulse: false } : { c: '#A83232', pulse: false }
+  const tone = ageMins < 5 ? { c: PAL.up, pulse: true } : ageMins < 60 ? { c: PAL.gold, pulse: false } : { c: PAL.down, pulse: false }
   const due = remaining === 0
   return (
     <Tooltip content={`Refreshed ${refreshedLabel}\n${due ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
@@ -335,8 +337,8 @@ function ModuleCrumb() {
     <span className="flex items-center gap-2 min-w-0" aria-live="polite">
       <span className="text-[11px] leading-none flex-shrink-0 opacity-60">{mod.icon}</span>
       <span
-        className="font-mono text-[10px] uppercase whitespace-nowrap truncate"
-        style={{ letterSpacing: '0.15em', color: '#637899' }}
+        className="font-mono text-[11px] uppercase whitespace-nowrap truncate"
+        style={{ letterSpacing: '0.15em', color: PAL.muted }}
       >
         {mod.label}
         {subview && <span style={{ color: '#3A4A61' }}> · {subview}</span>}
@@ -434,17 +436,7 @@ export default function TopBar() {
         className="flex items-center flex-shrink-0"
         style={{ gap: 8, padding: '0 16px', borderRight: '1px solid rgba(201,168,76,0.08)' }}
       >
-        <img
-          src="/icons/icon-mark-96.png"
-          alt="Maddex"
-          style={{ width: 28, height: 28, objectFit: 'contain' }}
-        />
-        <span
-          className="font-mono whitespace-nowrap"
-          style={{ fontSize: 9, letterSpacing: '0.25em', color: '#C9A84C', fontWeight: 600 }}
-        >
-          MADDEX
-        </span>
+        <BrandLockup />
       </div>
 
       {/* CENTRE — breadcrumb, left-aligned against the divider rather than
@@ -467,7 +459,7 @@ export default function TopBar() {
             key="clock"
             title={`Sydney market time (${clock.tz})`}
             data-clock
-            className="text-[10px] font-mono text-terminal-muted whitespace-nowrap flex-shrink-0"
+            className="text-[11px] font-mono text-terminal-muted whitespace-nowrap flex-shrink-0"
           >
             {clock.time} <span className="text-terminal-text-dim/60">{clock.tz}</span>
           </span>,

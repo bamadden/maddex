@@ -1,11 +1,12 @@
 import { ASX_LISTINGS, CORPORATE_ACTIONS_AS_OF, listingStatus } from '../../data/corporateActions'
 import { dispatchAskAI } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // UPCOMING LISTINGS — the ASX's own upcoming floats page, as read on the date
 // shown. A passed proposed date reads DATE PASSED, not LISTED: whether the
 // float completed is something to check, not assume.
 
-const STATUS_TONE = { UPCOMING: '#C9A84C', 'DATE PASSED': '#637899', TBA: '#637899' }
+const STATUS_TONE = { UPCOMING: PAL.gold, 'DATE PASSED': PAL.muted, TBA: PAL.muted }
 const fmtDate = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : 'TBA')
 const fmtRaise = (n) => `A$${(n / 1e6).toFixed(n % 1e6 ? 1 : 0)}M`
 
@@ -15,7 +16,7 @@ export default function UpcomingListings() {
     <div className="flex-shrink-0 border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">UPCOMING LISTINGS</span>
-        <span className="text-[9px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold">INDICATIVE</span>
+        <span className="text-[11px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold">INDICATIVE</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">
           ASX upcoming floats page, read {fmtDate(CORPORATE_ACTIONS_AS_OF)} ·{' '}
           <a href={rows[0]?.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-terminal-gold/80 hover:underline">asx.com.au ↗</a>
@@ -48,7 +49,7 @@ export default function UpcomingListings() {
                         name: l.company, ticker: `${l.code}.AX`, date: l.date,
                         instruction: `${l.company} (proposed ASX code ${l.code}) intends to list on the ASX${l.date ? ` on ${l.date}` : ''}, raising ${fmtRaise(l.raiseAud)} at A$${l.price.toFixed(2)} a share (${l.note.toLowerCase()}). What should an investor weigh when looking at a small-cap IPO like this, and what should they read in the prospectus? General information only.`,
                       }, { rawPrompt: true })}
-                      className="text-[9px] font-bold text-terminal-gold hover:underline"
+                      className="text-[11px] font-bold text-terminal-gold hover:underline"
                     >ASK MADDENAI</button>
                   </td>
                 </tr>

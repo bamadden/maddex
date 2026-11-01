@@ -1,4 +1,5 @@
 import { clean } from './briefText'
+import { PAL } from '../../styles/palette.js'
 
 // Section renderers shared by the daily brief and the weekly review.
 
@@ -28,8 +29,8 @@ export function SectionText({ text }) {
 export function BriefSection({ title, content }) {
   return (
     <section className="relative pl-5 py-4 pr-4" style={{ background: 'rgba(7,20,40,0.55)', border: '1px solid rgba(201,168,76,0.08)' }}>
-      <span className="absolute left-0 top-0 bottom-0" style={{ width: 3, background: '#C9A84C' }} />
-      <h3 className="font-mono text-terminal-gold uppercase mb-2" style={{ fontSize: 8, letterSpacing: '0.22em' }}>{title}</h3>
+      <span className="absolute left-0 top-0 bottom-0" style={{ width: 3, background: PAL.gold }} />
+      <h3 className="font-mono text-terminal-gold uppercase mb-2" style={{ fontSize: 11, letterSpacing: '0.22em' }}>{title}</h3>
       <div className="font-sans text-terminal-text" style={{ fontSize: 14, lineHeight: 1.7 }}>
         <SectionText text={content} />
       </div>

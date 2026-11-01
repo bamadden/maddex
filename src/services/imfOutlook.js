@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // ─── IMF World Economic Outlook, by country ─────────────────────────────────
 //
 // Real GDP growth, average CPI inflation and unemployment for every economy
@@ -23,11 +24,11 @@ const TTL = 7 * 24 * 60 * 60 * 1000   // the WEO is published twice a year
 const KEEP_YEARS = 4                   // last year, this year, the next two
 
 export const GROWTH_BANDS = [
-  { key: 'CONTRACTING', below: 0, colour: '#A83232', label: 'Contracting', range: '< 0%' },
+  { key: 'CONTRACTING', below: 0, colour: PAL.down, label: 'Contracting', range: '< 0%' },
   { key: 'WEAK', below: 1, colour: '#B8653A', label: 'Weak', range: '0–1%' },
-  { key: 'MODERATE', below: 2, colour: '#C9A84C', label: 'Moderate', range: '1–2%' },
+  { key: 'MODERATE', below: 2, colour: PAL.gold, label: 'Moderate', range: '1–2%' },
   { key: 'SOLID', below: 4, colour: '#5E9150', label: 'Solid', range: '2–4%' },
-  { key: 'STRONG', below: Infinity, colour: '#2D8A50', label: 'Strong', range: '≥ 4%' },
+  { key: 'STRONG', below: Infinity, colour: PAL.up, label: 'Strong', range: '≥ 4%' },
 ]
 export const NO_DATA_COLOUR = '#162236'
 const MOMENTUM_STEP = 0.3   // pp change in growth that counts as a turn

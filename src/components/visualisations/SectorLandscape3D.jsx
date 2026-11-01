@@ -2,6 +2,7 @@ import { Suspense, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
 import { pctToColor, normalise, BG_COLOR } from './shared3d'
+import { PAL } from '../../styles/palette.js'
 
 // One "mountain" — a box whose height encodes market cap and whose colour
 // encodes performance. Sits on a grid laid out in the XZ plane.
@@ -28,8 +29,8 @@ function SectorBar({ sector, x, z, height, color, onHover }) {
       <Html position={[0, height + 0.45, 0]} center distanceFactor={12} occlude>
         <div style={{
           fontFamily: 'IBM Plex Mono, monospace',
-          fontSize: 10,
-          color: '#e8edf5',
+          fontSize: 11,
+          color: PAL.bright,
           background: 'rgba(6,13,26,0.85)',
           border: `1px solid ${color}`,
           borderRadius: 3,

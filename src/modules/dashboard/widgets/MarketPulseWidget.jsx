@@ -7,6 +7,7 @@ import { USING_MOCK_DATA } from '../../../services/api'
 import { sydneyOffset } from '../../../utils/dateUtils'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // MARKET PULSE — the five numbers that matter right now, one line each.
 //
@@ -30,11 +31,11 @@ function useTick(ms) {
 
 function Line({ label, children, change, onClick, title }) {
   return (
-    <button onClick={onClick} title={title} className="flex items-baseline gap-2 w-full min-w-0 text-left hover:opacity-80 transition-opacity font-mono" style={{ fontSize: 10 }}>
-      <span className="font-bold flex-shrink-0" style={{ color: '#C9A84C', width: 30, letterSpacing: '0.06em' }}>{label}</span>
-      <span className="truncate min-w-0 tabular-nums" style={{ color: '#E8EDF5' }}>{children}</span>
+    <button onClick={onClick} title={title} className="flex items-baseline gap-2 w-full min-w-0 text-left hover:opacity-80 transition-opacity font-mono" style={{ fontSize: 11 }}>
+      <span className="font-bold flex-shrink-0" style={{ color: PAL.gold, width: 30, letterSpacing: '0.06em' }}>{label}</span>
+      <span className="truncate min-w-0 tabular-nums" style={{ color: PAL.bright }}>{children}</span>
       {change != null && (
-        <span className="ml-auto flex-shrink-0 tabular-nums" style={{ color: change >= 0 ? '#2D8A50' : '#A83232' }}>
+        <span className="ml-auto flex-shrink-0 tabular-nums" style={{ color: change >= 0 ? PAL.up : PAL.down }}>
           {change >= 0 ? '▲' : '▼'}{Math.abs(change).toFixed(2)}%
         </span>
       )}
@@ -84,26 +85,26 @@ export default function MarketPulseWidget() {
       <div className="flex-1 min-h-0 flex flex-col justify-start gap-[7px]">
         <Line label="RBA" onClick={() => goModule('fx')} title={`Cash rate (rba.gov.au). ${pricing != null ? `Hike pricing: ${nd.marketSource}, ${nd.marketAsOf}.` : ''}`}>
           {rba.cashRate.toFixed(2)}%
-          {pricing != null && <span style={{ color: '#E8A33D' }}> · HIKE {pricing}%</span>}
-          {days != null && <span style={{ color: '#8BA3C4' }}> · {days}D</span>}
+          {pricing != null && <span style={{ color: PAL.amber }}> · HIKE {pricing}%</span>}
+          {days != null && <span style={{ color: PAL.dim }}> · {days}D</span>}
         </Line>
         <Line label="CPI" onClick={() => goModule('macro')} title={`ABS, released ${au.cpiLastRelease}`}>
           {au.cpi.toFixed(1)}% {au.cpiPeriod.replace(/ \d{4}$/, '')}
-          {au.cpiQuarterTrimmedQoQ != null && <span style={{ color: '#8BA3C4' }}> · {au.cpiQuarterPeriod.slice(0, 3).toUpperCase()} Q TM {au.cpiQuarterTrimmedQoQ.toFixed(1)}%</span>}
+          {au.cpiQuarterTrimmedQoQ != null && <span style={{ color: PAL.dim }}> · {au.cpiQuarterPeriod.slice(0, 3).toUpperCase()} Q TM {au.cpiQuarterTrimmedQoQ.toFixed(1)}%</span>}
         </Line>
         <Line label="AUD" onClick={() => goModule('fx')} title={fx?.live ? 'Frankfurter (ECB reference rate)' : 'Cached / delayed rate'}>
-          {fx ? <>{fx.rate.toFixed(4)} <span style={{ color: '#4A6080' }}>USD{fx.live ? '' : ' · delayed'}</span></> : '—'}
+          {fx ? <>{fx.rate.toFixed(4)} <span style={{ color: PAL.muted }}>USD{fx.live ? '' : ' · delayed'}</span></> : '—'}
         </Line>
         <Line label="BTC" onClick={() => goModule('crypto')} change={btc?.aud_24h_change ?? null} title="CoinGecko · 24h change">
           {btc?.aud != null ? `A$${Math.round(btc.aud).toLocaleString('en-AU')}` : '—'}
         </Line>
         <Line label="ASX" onClick={() => goModule('markets')} change={asx?.pct ?? null} title={USING_MOCK_DATA ? 'DEMO — simulated index level' : 'S&P/ASX 200'}>
           {asx?.last != null ? asx.last.toLocaleString('en-AU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—'}
-          {USING_MOCK_DATA && <span style={{ color: '#4A6080' }}> demo</span>}
+          {USING_MOCK_DATA && <span style={{ color: PAL.muted }}> demo</span>}
         </Line>
       </div>
-      <div className="flex items-center gap-1.5 font-mono flex-shrink-0" style={{ fontSize: 8, color: '#4A6080' }}>
-        <span className="rounded-full" style={{ width: 4, height: 4, background: ago != null && ago < 90 ? '#2D8A50' : '#4A6080' }} />
+      <div className="flex items-center gap-1.5 font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted }}>
+        <span className="rounded-full" style={{ width: 4, height: 4, background: ago != null && ago < 90 ? PAL.up : PAL.muted }} />
         {ago == null ? 'loading feeds…' : `feeds updated ${ago < 60 ? `${ago}s` : `${Math.round(ago / 60)}m`} ago · RBA/CPI verified`}
       </div>
     </WidgetBody>

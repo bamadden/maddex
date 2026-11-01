@@ -1,5 +1,6 @@
 import DataBadge from '../../../components/ui/DataBadge'
 import { classOfResult } from '../../../utils/dataClass'
+import { PAL } from '../../../styles/palette.js'
 
 // Shared furniture for dashboard widgets.
 //
@@ -19,12 +20,12 @@ export function WidgetBody({ children, className = '' }) {
 export function WidgetEmpty({ children, action, onAction }) {
   return (
     <WidgetBody className="items-center justify-center text-center">
-      <span className="font-sans text-[11px]" style={{ color: '#4A6080' }}>{children}</span>
+      <span className="font-sans text-[11px]" style={{ color: PAL.muted }}>{children}</span>
       {action && (
         <button
           onClick={onAction}
-          className="mt-2 font-mono text-[9px] tracking-widest transition-colors"
-          style={{ color: '#C9A84C' }}
+          className="mt-2 font-mono text-[11px] tracking-widest transition-colors"
+          style={{ color: PAL.gold }}
         >
           {action} →
         </button>
@@ -40,12 +41,12 @@ export function WidgetFigure({ value, sub, tone }) {
     <div className="min-w-0">
       <div
         className="font-mono tabular-nums truncate"
-        style={{ fontSize: 22, lineHeight: 1.15, color: tone ?? '#E8EDF5' }}
+        style={{ fontSize: 20, lineHeight: 1.15, color: tone ?? PAL.bright }}
       >
         {value}
       </div>
       {sub && (
-        <div className="font-mono text-[9px] mt-0.5 truncate" style={{ color: '#4A6080', letterSpacing: '0.08em' }}>
+        <div className="font-mono text-[11px] mt-0.5 truncate" style={{ color: PAL.muted, letterSpacing: '0.08em' }}>
           {sub}
         </div>
       )}
@@ -71,13 +72,13 @@ export function WidgetRow({ label, value, change, onClick }) {
       onClick={onClick}
       className={`flex items-center justify-between gap-2 w-full ${onClick ? 'hover:opacity-80 transition-opacity' : ''}`}
     >
-      <span className="font-mono text-[10px] truncate min-w-0" style={{ color: '#8BA3C4' }}>{label}</span>
+      <span className="font-mono text-[11px] truncate min-w-0" style={{ color: PAL.dim }}>{label}</span>
       <span className="flex items-center gap-2 flex-shrink-0">
-        <span className="font-mono text-[10px] tabular-nums" style={{ color: '#E8EDF5' }}>{value}</span>
+        <span className="font-mono text-[11px] tabular-nums" style={{ color: PAL.bright }}>{value}</span>
         {change != null && (
           <span
-            className="font-mono text-[9px] tabular-nums text-right"
-            style={{ width: 46, color: change >= 0 ? '#2D8A50' : '#A83232' }}
+            className="font-mono text-[11px] tabular-nums text-right"
+            style={{ width: 46, color: change >= 0 ? PAL.up : PAL.down }}
           >
             {change >= 0 ? '▲' : '▼'}{Math.abs(change).toFixed(2)}%
           </span>
@@ -92,7 +93,7 @@ export function WidgetRow({ label, value, change, onClick }) {
 // Draws nothing at all with fewer than two points. A one-point "line" is a
 // flat segment, which reads as "unchanged" rather than "no data yet", and the
 // difference matters when the series is a portfolio balance.
-export function Sparkline({ values, tone = '#8BA3C4', width = 76, height = 20 }) {
+export function Sparkline({ values, tone = PAL.dim, width = 76, height = 20 }) {
   if (!values || values.length < 2) return null
   const min = Math.min(...values)
   const max = Math.max(...values)
@@ -118,12 +119,12 @@ export function Sparkline({ values, tone = '#8BA3C4', width = 76, height = 20 })
 export function ChangePill({ value, suffix = '', positiveIsGood = true }) {
   if (value == null || !Number.isFinite(value)) return null
   const good = positiveIsGood ? value >= 0 : value < 0
-  const colour = good ? '#2D8A50' : '#A83232'
+  const colour = good ? PAL.up : PAL.down
   return (
     <span
       className="font-mono tabular-nums flex-shrink-0"
       style={{
-        fontSize: 9, color: colour, background: `${colour}1F`,
+        fontSize: 11, color: colour, background: `${colour}1F`,
         border: `1px solid ${colour}55`, borderRadius: 2, padding: '1px 5px',
       }}
     >

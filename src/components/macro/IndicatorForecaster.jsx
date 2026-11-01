@@ -5,6 +5,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { AU_TRADE_BALANCE } from '../../data/placeholders'
 import { askClaudeJSON } from '../../services/api'
 import { AIContentBadge } from '../ui/VerifiedBadge'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Economic dashboard — twelve Australian indicators ──────────────────────
 //
@@ -120,7 +121,7 @@ function Spark({ data, step }) {
     <div style={{ width: 80, height: 28 }}>
       <SafeChart width="100%" height="100%">
         <LineChart data={data}>
-          <Line type={step ? 'stepAfter' : 'monotone'} dataKey="value" stroke="#C9A84C" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
+          <Line type={step ? 'stepAfter' : 'monotone'} dataKey="value" stroke={PAL.gold} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
         </LineChart>
       </SafeChart>
     </div>
@@ -141,7 +142,7 @@ function IndicatorCard({ ind, expanded, onToggle }) {
   const [c, setC] = useState({ status: 'idle', data: null })
   const delta = ind.value != null && ind.prev != null ? ind.value - ind.prev : null
   const worse = delta == null || delta === 0 ? null : ind.upIsBad ? delta > 0 : delta < 0
-  const tone = worse == null ? '#8BA3C4' : worse ? '#CC4444' : '#2D8A50'
+  const tone = worse == null ? PAL.dim : worse ? PAL.down : PAL.up
 
   const toggle = () => {
     onToggle()
@@ -160,10 +161,10 @@ function IndicatorCard({ ind, expanded, onToggle }) {
         </div>
         <div className="text-lg font-bold mt-0.5 text-terminal-text-bright tabular-nums">{fmt(ind, ind.value)}</div>
         <div className="flex items-center justify-between gap-2 mt-1">
-          <span className="text-[9px] text-terminal-text-dim/70 truncate">
+          <span className="text-[11px] text-terminal-text-dim/70 truncate">
             {ind.period}{ind.prev != null ? ` · prev ${fmt(ind, ind.prev)}` : ''}
           </span>
-          {ind.series?.length > 2 ? <Spark data={ind.series.slice(-12)} step={ind.step} /> : <span className="text-[8px] text-terminal-text-dim/40">latest only</span>}
+          {ind.series?.length > 2 ? <Spark data={ind.series.slice(-12)} step={ind.step} /> : <span className="text-[11px] text-terminal-text-dim/40">latest only</span>}
         </div>
       </button>
 
@@ -174,10 +175,10 @@ function IndicatorCard({ ind, expanded, onToggle }) {
               <SafeChart width="100%" height="100%">
                 <AreaChart data={ind.series} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                  <XAxis dataKey="label" tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" interval="preserveStartEnd" minTickGap={24} />
-                  <YAxis tick={{ fontSize: 8 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} width={34} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" interval="preserveStartEnd" minTickGap={24} />
+                  <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} width={34} />
                   <Tooltip content={<ChartTip />} />
-                  <Area type={ind.step ? 'stepAfter' : 'monotone'} dataKey="value" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} isAnimationActive={false} connectNulls />
+                  <Area type={ind.step ? 'stepAfter' : 'monotone'} dataKey="value" stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.15} isAnimationActive={false} connectNulls />
                 </AreaChart>
               </SafeChart>
             </div>
@@ -186,9 +187,9 @@ function IndicatorCard({ ind, expanded, onToggle }) {
           )}
 
           <div className="grid grid-cols-2 gap-2 text-2xs">
-            <div><div className="text-[9px] text-terminal-text-dim tracking-widest">SOURCE</div><div className="text-terminal-text">{ind.src}</div></div>
-            <div><div className="text-[9px] text-terminal-text-dim tracking-widest">NEXT RELEASE</div><div className="text-terminal-text">{ind.next ? day(ind.next) : (ind.nextNote ?? '—')}</div></div>
-            <div className="col-span-2"><div className="text-[9px] text-terminal-text-dim tracking-widest">CONTEXT</div><div className="text-terminal-text">{ind.hint}</div></div>
+            <div><div className="text-[11px] text-terminal-text-dim tracking-widest">SOURCE</div><div className="text-terminal-text">{ind.src}</div></div>
+            <div><div className="text-[11px] text-terminal-text-dim tracking-widest">NEXT RELEASE</div><div className="text-terminal-text">{ind.next ? day(ind.next) : (ind.nextNote ?? '—')}</div></div>
+            <div className="col-span-2"><div className="text-[11px] text-terminal-text-dim tracking-widest">CONTEXT</div><div className="text-terminal-text">{ind.hint}</div></div>
           </div>
 
           <div className="border border-terminal-border p-2.5">
@@ -225,7 +226,7 @@ export default function IndicatorForecaster() {
           <IndicatorCard key={ind.key} ind={ind} expanded={expandedKey === ind.key} onToggle={() => setExpandedKey((k) => (k === ind.key ? null : ind.key))} />
         ))}
       </div>
-      <div className="px-3 py-2 border-t border-terminal-border text-[9px] text-terminal-text-dim/60 leading-snug">
+      <div className="px-3 py-2 border-t border-terminal-border text-[11px] text-terminal-text-dim/60 leading-snug">
         Every value is a published reading held in the terminal&apos;s verified figures and checked against the agencies by the stats check. No
         consensus or forecast is shown — none is held. Commentary describes the readings; it does not predict the next one.
       </div>

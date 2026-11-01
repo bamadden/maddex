@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useEtfPrices } from '../../etf/useEtfPrices'
 import { WidgetBody, WidgetRows, WidgetRow } from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // The three ETFs that have moved most today, either direction. Prices run on
 // the ETF module's simulated tick, and the tile says so.
@@ -26,8 +27,8 @@ export default function ETFMoverWidget() {
         ))}
       </WidgetRows>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[8px]" style={{ color: '#4A6080' }}>DEMO · simulated tick</span>
-        <button onClick={() => goModule('etf')} className="font-mono text-[9px] tracking-widest" style={{ color: '#4A6080' }}>
+        <span className="font-mono text-[11px]" style={{ color: PAL.muted }}>DEMO · simulated tick</span>
+        <button onClick={() => goModule('etf')} className="font-mono text-[11px] tracking-widest" style={{ color: PAL.muted }}>
           ETFs →
         </button>
       </div>

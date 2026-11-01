@@ -67,7 +67,7 @@ export default function DiagnosticsPanel() {
           <div className="border border-terminal-border max-h-48 overflow-y-auto divide-y divide-terminal-border/40">
             {errors.map((e, i) => (
               <div key={`${e.timestamp}-${i}`} className="px-2 py-1 text-2xs">
-                <div className="flex gap-2 text-terminal-text-dim/70 font-mono" style={{ fontSize: 9 }}>
+                <div className="flex gap-2 text-terminal-text-dim/70 font-mono" style={{ fontSize: 11 }}>
                   <span>{new Date(e.timestamp).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</span>
                   <span className="text-terminal-gold/80">{e.module}</span>
                   {e.count > 1 && <span>×{e.count}</span>}

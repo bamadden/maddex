@@ -7,6 +7,8 @@
 // new one; later mounts in the same session reuse the same "previous" so a
 // tab switch does not reset the comparison.
 
+import { formatDate } from '../utils/dateUtils.js'
+
 const KEY = 'maddex_last_visit'
 const SESSION_KEY = 'maddex_visit_prev'
 
@@ -43,7 +45,7 @@ export function sinceLastVisit(prev, now, { constants, alerts = [], changes = []
 
   const rba = constants?.rba
   for (const d of rba?.decisions ?? []) {
-    if (d.date > since) items.push({ kind: 'rba', text: `RBA ${d.decision.toLowerCase()} to ${d.rate.toFixed(2)}% on ${d.date}` })
+    if (d.date > since) items.push({ kind: 'rba', text: `RBA ${d.decision.toLowerCase()} to ${d.rate.toFixed(2)}% on ${formatDate(d.date)}` })
   }
   const au = constants?.au ?? {}
   const releases = [
@@ -51,7 +53,7 @@ export function sinceLastVisit(prev, now, { constants, alerts = [], changes = []
     [au.unemploymentLastRelease, `Unemployment ${au.unemploymentPeriod}: ${au.unemployment}% (ABS)`],
     [au.gdpLastRelease, `GDP ${au.gdpPeriod}: ${au.gdpQoQ}% q/q, ${au.gdpAnnual}% y/y (ABS)`],
   ]
-  for (const [date, text] of releases) if (date && date > since) items.push({ kind: 'release', text: `${text}, released ${date}` })
+  for (const [date, text] of releases) if (date && date > since) items.push({ kind: 'release', text: `${text}, released ${formatDate(date)}` })
 
   const asx = pct(now?.asx200, prev.asx200)
   if (asx != null) items.push({ kind: 'market', text: `ASX 200 ${asx >= 0 ? '+' : ''}${asx.toFixed(2)}% (${prev.asx200.toFixed(1)} → ${now.asx200.toFixed(1)})`, value: asx })

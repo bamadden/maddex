@@ -12,7 +12,7 @@ import { beginVisit, recordVisit, sinceLastVisit } from '../../services/lastVisi
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import { useAudRates } from '../../hooks/useAudRates'
 import { requireYFSym } from '../../utils/tickerGuard'
-import { sydneyClock, sydneyOffset } from '../../utils/dateUtils'
+import { sydneyClock, sydneyOffset, formatDate } from '../../utils/dateUtils'
 import { classOfResult } from '../../utils/dataClass'
 import { formatCryptoPrice } from '../../utils/cryptoSource'
 import DataBadge from '../../components/ui/DataBadge'
@@ -31,7 +31,7 @@ const LABEL = Object.fromEntries(YF_INDICES.map((i) => [i.symbol, i.label.toUppe
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
 const fmtNum = (v, dp = 1) => (v == null ? '—' : v.toLocaleString('en-AU', { minimumFractionDigits: dp, maximumFractionDigits: dp }))
 const fmtAud = (v, dp = 2) => (v == null ? '—' : `${v < 0 ? '−' : ''}A$${Math.abs(v).toLocaleString('en-AU', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`)
-const longDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+const longDate = (iso) => formatDate(iso, { weekday: true })
 
 function Panel({ title, badge, action, onAction, className = '', children, id }) {
   return (
@@ -144,9 +144,9 @@ function RbaMacro({ goTo }) {
       </div>
       <div className="mt-1">
         {row('RBA', regime.inputs?.rba ?? '—')}
-        {row('CPI', `${au.cpi}% y/y`, `${au.cpiPeriod}, ABS ${au.cpiLastRelease}`)}
+        {row('CPI', `${au.cpi}% y/y`, `${au.cpiPeriod}, ABS ${formatDate(au.cpiLastRelease)}`)}
         {row('Trimmed mean (qtr)', `${au.cpiQuarterTrimmedQoQ.toFixed(1)}% q/q`, au.cpiQuarterPeriod)}
-        {row('Unemployment', `${au.unemployment}%`, `${au.unemploymentPeriod}, ABS ${au.unemploymentLastRelease}`)}
+        {row('Unemployment', `${au.unemployment}%`, `${au.unemploymentPeriod}, ABS ${formatDate(au.unemploymentLastRelease)}`)}
         {row('GDP', `${au.gdpAnnual}% y/y`, au.gdpPeriod)}
         {row('Next CPI', longDate(au.cpiNextRelease))}
         {row('Next Labour Force', longDate(au.unemploymentNextRelease))}
@@ -238,14 +238,14 @@ function SinceLastVisit({ asx200, portfolioValue }) {
   useEffect(() => { recordVisit({ asx200, portfolioValue }) }, [asx200, portfolioValue])
   const items = useMemo(() => sinceLastVisit(prev, { at: openedAt, asx200, portfolioValue }, { constants: VERIFIED_CONSTANTS, alerts: loadAlertHistory(), changes: DATED_CHANGES }), [prev, openedAt, asx200, portfolioValue])
   return (
-    <Panel id="ov-since" title="SINCE YOUR LAST VISIT" badge={prev?.at && <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{new Date(prev.at).toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney', weekday: 'short', day: 'numeric', month: 'short' })} {sydneyClock(prev.at).text}</span>}>
+    <Panel id="ov-since" title="SINCE YOUR LAST VISIT" badge={prev?.at && <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{formatDate(prev.at, { weekday: true, year: false })} {sydneyClock(prev.at).text}</span>}>
       {!prev?.at ? <Empty>First visit on this device. Changes from now on will be listed here next time.</Empty>
         : !items.length ? <Empty>Nothing has changed since your last visit.</Empty> : (
           <ul className="space-y-1" style={{ fontSize: 12 }}>
             {items.map((i) => (
               <li key={i.text} className="flex gap-2">
                 <span className="font-mono tracking-widest text-terminal-text-dim w-20 flex-shrink-0 uppercase" style={{ fontSize: 11 }}>{i.kind}</span>
-                <span className="text-terminal-text-bright" style={{ color: i.value != null ? (i.value >= 0 ? 'var(--color-up, #2D8A50)' : 'var(--color-down-text, #E06666)') : undefined }}>{i.text}</span>
+                <span className="text-terminal-text-bright" style={{ color: i.value != null ? (i.value >= 0 ? 'var(--color-up, #3FB06B)' : 'var(--color-down-text, #E06666)') : undefined }}>{i.text}</span>
               </li>
             ))}
           </ul>
@@ -271,7 +271,7 @@ function ComingUp({ goTo }) {
               return (
                 <tr key={`${e.date}-${e.event ?? e.title}`} className="border-t border-terminal-border/40 first:border-0">
                   <td className="py-1 pr-2 font-mono text-terminal-text-dim whitespace-nowrap" style={{ fontSize: 11 }}>
-                    {new Date(`${e.date}T00:00:00Z`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}
+                    {formatDate(e.date, { weekday: true, year: false })}
                     {t && /^\d{1,2}:\d{2}$/.test(e.time ?? '') ? ` ${sydneyClock(t).time}` : ''}
                   </td>
                   <td className="text-terminal-text-bright">{e.event ?? e.title}</td>

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { dashboardService } from '../../services/dashboardService'
+import { PAL } from '../../styles/palette.js'
 
 // Widget router. Every widget is code-split: a dashboard shows five of
 // fifteen, and loading the other ten costs a slower first paint for content
@@ -47,7 +48,7 @@ function WidgetSkeleton({ index = 0 }) {
 function UnknownWidget({ id }) {
   return (
     <div className="h-full w-full flex items-center justify-center p-4 text-center">
-      <span className="font-mono text-[9px] tracking-widest" style={{ color: '#4A6080' }}>
+      <span className="font-mono text-[11px] tracking-widest" style={{ color: PAL.muted }}>
         UNKNOWN WIDGET
         <br />
         <span style={{ color: '#3A4A61' }}>{id}</span>
@@ -72,15 +73,15 @@ export default function WidgetContent({ widgetId, index = 0 }) {
       >
         <span
           className="font-mono uppercase truncate"
-          style={{ fontSize: 8, letterSpacing: '0.18em', color: '#C9A84C' }}
+          style={{ fontSize: 11, letterSpacing: '0.18em', color: PAL.gold }}
         >
           {meta?.name ?? widgetId}
         </span>
         {/* Only on widgets fed by a live source (catalogue `live`), so the
             pulse means something — never on the demo-priced ones. */}
         {meta?.live && (
-          <span className="flex items-center gap-1 flex-shrink-0 font-mono" style={{ fontSize: 7, letterSpacing: '0.14em', color: '#2D8A50' }} title="Live feed — refreshes on its own">
-            <span className="rounded-full pulse-gold" style={{ width: 4, height: 4, background: '#2D8A50' }} />
+          <span className="flex items-center gap-1 flex-shrink-0 font-mono" style={{ fontSize: 11, letterSpacing: '0.14em', color: PAL.up }} title="Live feed — refreshes on its own">
+            <span className="rounded-full pulse-gold" style={{ width: 4, height: 4, background: PAL.up }} />
             FEED
           </span>
         )}

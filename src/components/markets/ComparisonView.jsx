@@ -8,8 +8,9 @@ import { fmt } from '../../utils/format'
 import { getMockFMPHistory } from '../../services/mockData'
 import { dispatchAskAI } from '../../utils/askAI'
 import SafeChart from '../ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
-const LINE_COLORS = ['#C9A84C', '#4a9dd9', '#3AAA63', '#9B6BC4']
+const LINE_COLORS = [PAL.gold, '#4a9dd9', PAL.up, '#9B6BC4']
 const MAX_COMPARE = 4
 
 const PERIODS = [
@@ -247,9 +248,9 @@ export default function ComparisonView() {
               <div className="h-48 px-3 pt-1">
                 <SafeChart width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#0F1E35" vertical={false} />
+                    <CartesianGrid stroke={PAL.header} vertical={false} />
                     <XAxis dataKey="i" tick={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 8 }} width={36} domain={yDomain} />
+                    <YAxis tick={{ fontSize: 11 }} width={36} domain={yDomain} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null
@@ -279,7 +280,7 @@ export default function ComparisonView() {
                       <span className="text-2xs text-terminal-text-bright font-bold">{a.symbol}</span>
                       <span
                         className="text-2xs font-bold tabular-nums"
-                        style={{ color: r == null ? '#637899' : r >= 0 ? '#2D8A50' : '#A83232' }}
+                        style={{ color: r == null ? PAL.muted : r >= 0 ? PAL.up : PAL.down }}
                       >{r == null ? '—' : `${r >= 0 ? '+' : ''}${r.toFixed(1)}%`}</span>
                       <button
                         onClick={() => removeCompareAsset(a.symbol)}

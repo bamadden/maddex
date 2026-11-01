@@ -33,7 +33,7 @@ export default function NotificationPermissionPrompt({ suppressed = false }) {
           >ENABLE NOTIFICATIONS</button>
           <button onClick={close} className="text-2xs font-bold tracking-widest px-3 py-1.5 border border-terminal-border text-terminal-text-dim hover:text-terminal-text">NOT NOW</button>
         </div>
-        <div className="text-[9px] text-terminal-text-dim/60 mt-2">Change any time in Settings → Notifications.</div>
+        <div className="text-[11px] text-terminal-text-dim/60 mt-2">Change any time in Settings → Notifications.</div>
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { sydneyOffset } from '../../utils/dateUtils'
 import { askMaddenAI } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // The September quarter CPI result, the last major print before the 3 Nov RBA
 // decision. Shown from the release until that decision (or three days, if no
@@ -46,7 +47,7 @@ export default function CpiPreviewPanel() {
     <div className="border-b border-terminal-border" style={{ background: 'rgba(201,168,76,0.04)' }}>
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">SEP QUARTER (Q3) CPI — RESULT</span>
-        <span className="text-2xs font-bold px-1.5" style={{ color: '#2D8A50', border: '1px solid #2D8A5066' }}>RELEASED {a.cpiLastRelease}</span>
+        <span className="text-2xs font-bold px-1.5" style={{ color: PAL.up, border: '1px solid #2D8A5066' }}>RELEASED {a.cpiLastRelease}</span>
         <VerifiedBadge dataKey="au" alwaysShow />
         <span className="ml-auto flex items-center gap-2">
           <a href={a.cpiQuarterUrl} target="_blank" rel="noopener noreferrer" className="text-2xs text-terminal-gold hover:underline">ABS.GOV.AU ↗</a>

@@ -13,7 +13,7 @@ export default function DataBadge({ cls, source, at, compact = false, className 
       data-class={cls}
       title={`${badgeText({ cls, source, at })}\n${def.meaning}\nClick for the data key.`}
       className={`inline-flex items-center gap-1 font-mono font-semibold tracking-wider whitespace-nowrap normal-case px-1.5 py-px rounded-sm ${className}`}
-      style={{ fontSize: 10, color: def.colour, border: `1px solid ${def.colour}66`, background: `${def.colour}14`, lineHeight: 1.4 }}
+      style={{ fontSize: 11, color: def.colour, border: `1px solid ${def.colour}66`, background: `${def.colour}14`, lineHeight: 1.4 }}
     >
       <span aria-hidden="true">●</span>{text}
     </button>

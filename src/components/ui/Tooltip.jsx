@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { PAL } from '../../styles/palette.js'
 
 // Shared tooltip for the whole terminal — one look, one delay, one behaviour,
 // replacing ad-hoc native title="" attributes wherever richer or more
@@ -78,9 +79,9 @@ export default function Tooltip({ content, children, placement = 'top', maxWidth
             borderRadius: 3,
             padding: '6px 10px',
             fontFamily: '"IBM Plex Mono", Menlo, Monaco, Consolas, monospace',
-            fontSize: 10,
+            fontSize: 11,
             lineHeight: 1.5,
-            color: '#E8EDF5',
+            color: PAL.bright,
             boxShadow: 'var(--shadow-elevated)',
             pointerEvents: 'none',
             whiteSpace: 'pre-line',

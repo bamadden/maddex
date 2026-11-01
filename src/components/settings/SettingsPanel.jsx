@@ -47,6 +47,7 @@ import { dashboardService } from '../../services/dashboardService'
 import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
 import DiagnosticsPanel from './DiagnosticsPanel'
 import DataHealthPanel from './DataHealthPanel'
+import { PAL } from '../../styles/palette.js'
 
 const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
 // Older callers still ask for 'SUBSCRIPTION'.
@@ -290,7 +291,7 @@ function InvestorProfileSection() {
           aria-valuetext={`${riskLabel(draft.riskTolerance)}, ${draft.riskTolerance} of 10`}
           className="w-full accent-[#C9A84C]"
         />
-        <div className="flex justify-between text-[9px] text-terminal-text-dim/60 tracking-widest">
+        <div className="flex justify-between text-[11px] text-terminal-text-dim/60 tracking-widest">
           <span>CONSERVATIVE</span><span>MODERATE</span><span>AGGRESSIVE</span>
         </div>
       </div>
@@ -687,7 +688,7 @@ function DisplaySection() {
               }`}
             >
               <div className="text-2xs font-bold">{d.label.toUpperCase()}</div>
-              <div className="text-[10px] mt-0.5 opacity-70">{d.note}</div>
+              <div className="text-[11px] mt-0.5 opacity-70">{d.note}</div>
             </button>
           ))}
         </div>
@@ -792,7 +793,7 @@ function WorkspacesSection() {
                 ) : (
                   <span className="text-xs text-terminal-text-bright truncate">{ws.name}</span>
                 )}
-                <span className="text-[10px] text-terminal-text-dim/50 uppercase tracking-wide">{ws.layout}</span>
+                <span className="text-[11px] text-terminal-text-dim/50 uppercase tracking-wide">{ws.layout}</span>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
@@ -867,20 +868,20 @@ function WorkspacesSection() {
 // says so. Everything current stays quiet.
 
 const STATUS_STYLE = {
-  fresh:     { text: 'FRESH',      color: '#2D8A50' },
-  recent:    { text: 'RECENT',     color: '#2D8A50' },
-  stale:     { text: 'STALE',      color: '#C9A84C' },
-  never:     { text: 'NOT LOADED', color: '#637899' },
-  today:     { text: 'TODAY',      color: '#2D8A50' },
-  yesterday: { text: 'YESTERDAY',  color: '#C9A84C' },
-  none:      { text: 'NOT LOADED', color: '#637899' },
+  fresh:     { text: 'FRESH',      color: PAL.up },
+  recent:    { text: 'RECENT',     color: PAL.up },
+  stale:     { text: 'STALE',      color: PAL.gold },
+  never:     { text: 'NOT LOADED', color: PAL.muted },
+  today:     { text: 'TODAY',      color: PAL.up },
+  yesterday: { text: 'YESTERDAY',  color: PAL.gold },
+  none:      { text: 'NOT LOADED', color: PAL.muted },
 }
 
 function StatusPill({ status }) {
   const st = STATUS_STYLE[status] ?? STATUS_STYLE.none
   return (
     <span
-      className="text-[8px] font-mono tracking-widest px-1.5 py-0.5 rounded-sm flex-shrink-0"
+      className="text-[11px] font-mono tracking-widest px-1.5 py-0.5 rounded-sm flex-shrink-0"
       style={{ color: st.color, border: `1px solid ${st.color}40`, background: `${st.color}14` }}
     >
       {st.text}
@@ -963,7 +964,7 @@ function DataProvenancePanel() {
         {staleConstants.length > 0 && (
           <div
             className="text-2xs mb-3 px-2 py-1.5 rounded-sm"
-            style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}
+            style={{ color: PAL.gold, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}
           >
             ⚠ {staleConstants.length} manually-maintained {staleConstants.length === 1 ? 'group has' : 'groups have'} not
             been verified in over {VERIFY_WARN_DAYS} days: {staleConstants.map((c) => c.label).join(', ')}.
@@ -1289,7 +1290,7 @@ function BrowserNotificationsBlock() {
     <div className="border border-terminal-border p-3 mb-4">
       <div className="flex items-center gap-2">
         <span className="text-2xs font-bold tracking-widest text-terminal-gold">BROWSER NOTIFICATIONS</span>
-        <span className="text-2xs font-bold" style={{ color: enabled ? '#2D8A50' : perm === 'denied' ? '#C9A84C' : '#637899' }}>
+        <span className="text-2xs font-bold" style={{ color: enabled ? PAL.up : perm === 'denied' ? PAL.gold : PAL.muted }}>
           {enabled ? '●' : '○'} {status}
         </span>
         <span className="ml-auto flex gap-1.5">
@@ -1311,7 +1312,7 @@ function BrowserNotificationsBlock() {
           ? 'Notifications are blocked for this site. Allow them from the padlock icon in your browser’s address bar, then return here.'
           : 'Delivered by your operating system when Maddex is in a background tab. In the foreground the in-app toast shows instead.'}
       </div>
-      <div className="mt-2.5 text-[9px] text-terminal-text-dim tracking-widest">NOTIFY ME FOR</div>
+      <div className="mt-2.5 text-[11px] text-terminal-text-dim tracking-widest">NOTIFY ME FOR</div>
       <div className="mt-1 space-y-1">
         {NOTIFY_CATEGORIES.map((c) => (
           <label key={c.id} className="flex items-center gap-2 text-2xs text-terminal-text cursor-pointer">
@@ -1451,13 +1452,13 @@ function NotificationsSection() {
 //
 // Costs one token to find out, which is the cheapest possible question.
 const CREDIT_STATES = {
-  active:      { label: 'ACTIVE',      colour: '#2D8A50', note: 'Key configured and funded.' },
-  no_key:      { label: 'NO API KEY',  colour: '#A83232', note: 'ANTHROPIC_API_KEY is not set on the server.' },
-  no_credits:  { label: 'NO CREDITS',  colour: '#C9A84C', note: 'The key works but the account has no balance.' },
-  rate_limit:  { label: 'RATE LIMITED', colour: '#C9A84C', note: 'Too many requests — this usually clears in a minute.' },
-  error:       { label: 'API ERROR',   colour: '#A83232', note: 'Could not reach the API.' },
-  checking:    { label: 'CHECKING…',   colour: '#637899', note: '' },
-  unknown:     { label: 'UNKNOWN',     colour: '#637899', note: 'Unexpected response shape.' },
+  active:      { label: 'ACTIVE',      colour: PAL.up, note: 'Key configured and funded.' },
+  no_key:      { label: 'NO API KEY',  colour: PAL.down, note: 'ANTHROPIC_API_KEY is not set on the server.' },
+  no_credits:  { label: 'NO CREDITS',  colour: PAL.gold, note: 'The key works but the account has no balance.' },
+  rate_limit:  { label: 'RATE LIMITED', colour: PAL.gold, note: 'Too many requests — this usually clears in a minute.' },
+  error:       { label: 'API ERROR',   colour: PAL.down, note: 'Could not reach the API.' },
+  checking:    { label: 'CHECKING…',   colour: PAL.muted, note: '' },
+  unknown:     { label: 'UNKNOWN',     colour: PAL.muted, note: 'Unexpected response shape.' },
 }
 
 async function checkCredits() {
@@ -1531,7 +1532,7 @@ function MaddenAISection() {
         <div className="text-xs text-terminal-text-bright mb-1">API Status</div>
         <div className="flex items-center gap-2 flex-wrap">
           <span
-            className="flex items-center gap-1.5 font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm"
+            className="flex items-center gap-1.5 font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm"
             style={{
               color: CREDIT_STATES[credits].colour,
               border: `1px solid ${CREDIT_STATES[credits].colour}40`,
@@ -1550,7 +1551,7 @@ function MaddenAISection() {
               href="https://console.anthropic.com/settings/billing"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-[9px] tracking-widest text-terminal-gold hover:underline"
+              className="font-mono text-[11px] tracking-widest text-terminal-gold hover:underline"
             >ADD CREDITS →</a>
           )}
         </div>
@@ -1573,7 +1574,7 @@ function MaddenAISection() {
             ['EST. TODAY', `~A$${usage.costTodayAud.toFixed(2)}`],
           ].map(([label, value]) => (
             <div key={label}>
-              <div className="font-mono text-[8px] tracking-widest text-terminal-text-dim">{label}</div>
+              <div className="font-mono text-[11px] tracking-widest text-terminal-text-dim">{label}</div>
               <div className="font-mono text-xs text-terminal-text-bright tabular-nums">{value}</div>
             </div>
           ))}
@@ -1795,7 +1796,7 @@ function ExportAllBlock() {
     <div className="space-y-3 border border-terminal-gold/30 p-3">
       <div className="flex items-center gap-2">
         <div className="text-xs font-bold text-terminal-text-bright">EXPORT ALL DATA</div>
-        <span className="text-[9px] font-bold px-1 border border-terminal-gold/50 text-terminal-gold">APEX</span>
+        <span className="text-[11px] font-bold px-1 border border-terminal-gold/50 text-terminal-gold">APEX</span>
       </div>
       <div className="text-2xs text-terminal-text-dim">
         One ZIP: portfolio.csv (every lot), watchlist.csv, alerts.csv, transactions.csv, research-notes/ (each saved note as a PDF) and settings.json.
@@ -1935,10 +1936,10 @@ function UsageRow({ label, used, limit, note }) {
       </div>
       {limit !== undefined && !unlimited && limit > 0 && (
         <div className="mt-1.5 h-[3px] bg-terminal-border/50">
-          <div className="h-full" style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-loss)' : pct >= 80 ? '#E8A33D' : '#C9A84C' }} />
+          <div className="h-full" style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-loss)' : pct >= 80 ? PAL.amber : PAL.gold }} />
         </div>
       )}
-      {note && <div className="text-[10px] text-terminal-text-dim mt-1">{note}</div>}
+      {note && <div className="text-[11px] text-terminal-text-dim mt-1">{note}</div>}
     </div>
   )
 }
@@ -1990,7 +1991,7 @@ function AccountDiagnostic() {
     <div className="border border-terminal-border">
       <div className="px-3 py-2 flex items-center gap-2">
         <span className="text-2xs text-terminal-text-dim tracking-widest">ACCOUNT DIAGNOSTIC</span>
-        {report && <span className="text-[10px] text-terminal-text-dim/60">read {report.at.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>}
+        {report && <span className="text-[11px] text-terminal-text-dim/60">read {report.at.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</span>}
         <button onClick={run} disabled={busy}
           className="ml-auto text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40">
           {busy ? 'CHECKING…' : 'VERIFY ACCOUNT STATUS'}
@@ -2038,7 +2039,7 @@ function PlanBillingSection() {
       <div className="border border-terminal-gold/40 bg-terminal-gold/5">
         <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
           <div>
-            <div className="text-[9px] text-terminal-gold tracking-[0.22em]">CURRENT PLAN</div>
+            <div className="text-[11px] text-terminal-gold tracking-[0.22em]">CURRENT PLAN</div>
             <div className="text-2xl font-bold text-terminal-text-bright tracking-[0.18em] mt-1">{planName}</div>
           </div>
           {plan !== 'core' && (
@@ -2055,23 +2056,23 @@ function PlanBillingSection() {
             ...(isTrial && profile?.trial_ends_at ? [['TRIAL ENDS', fmtDate(profile.trial_ends_at)]] : []),
           ].map(([k, v]) => (
             <div key={k} className="flex items-baseline gap-3 px-4 py-2">
-              <span className="w-28 flex-shrink-0 text-[10px] tracking-[0.14em] text-terminal-text-dim">{k}</span>
+              <span className="w-28 flex-shrink-0 text-[11px] tracking-[0.14em] text-terminal-text-dim">{k}</span>
               <span className="text-xs text-terminal-text-bright">{v}</span>
             </div>
           ))}
         </div>
         <div className="px-4 py-3 flex flex-wrap gap-2 border-t border-terminal-gold/20">
           <button onClick={openPricing}
-            className="px-4 py-2 text-[10px] font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+            className="px-4 py-2 text-[11px] font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
           >CHANGE PLAN</button>
           <button
             // TODO(stripe): redirect to the Stripe customer portal.
             onClick={() => setNotice('The billing portal opens when payments go live. No card is on file and nothing has been charged.')}
-            className="px-4 py-2 text-[10px] font-bold tracking-[0.16em] border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10 transition-colors"
+            className="px-4 py-2 text-[11px] font-bold tracking-[0.16em] border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10 transition-colors"
           >MANAGE BILLING</button>
           {paid && (
             <button onClick={() => setConfirmCancel(true)}
-              className="ml-auto px-3 py-2 text-[10px] tracking-[0.14em] text-terminal-text-dim hover:text-terminal-red transition-colors"
+              className="ml-auto px-3 py-2 text-[11px] tracking-[0.14em] text-terminal-text-dim hover:text-terminal-red transition-colors"
             >CANCEL SUBSCRIPTION</button>
           )}
         </div>
@@ -2081,7 +2082,7 @@ function PlanBillingSection() {
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <div className="text-2xs text-terminal-text-dim tracking-widest uppercase">Usage this month</div>
-          <div className="text-[10px] text-terminal-text-dim">{monthLabel} · {planName}</div>
+          <div className="text-[11px] text-terminal-text-dim">{monthLabel} · {planName}</div>
         </div>
         <div className="border border-terminal-border divide-y divide-terminal-border/60">
           <UsageRow label="MaddenAI queries" used={usage.aiQueries} limit={limits.aiPerDay === Infinity ? Infinity : undefined}
@@ -2091,7 +2092,7 @@ function PlanBillingSection() {
           <UsageRow label="Price alerts (active)" used={alerts} limit={limits.alerts}
             note={limits.alerts === 0 ? 'Price alerts are on Prime and Apex' : `${usage.alerts} created this month`} />
         </div>
-        <div className="text-[10px] text-terminal-text-dim/60">Counted on this device. Resets on the 1st of each month.</div>
+        <div className="text-[11px] text-terminal-text-dim/60">Counted on this device. Resets on the 1st of each month.</div>
       </div>
 
       <AccountDiagnostic />
@@ -2099,19 +2100,19 @@ function PlanBillingSection() {
       {confirmCancel && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-black/70" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmCancel(false) }}>
           <div className="w-full max-w-sm p-6 font-mono shadow-2xl" role="alertdialog" aria-label="Cancel subscription"
-            style={{ backgroundColor: '#0B1628', border: '1px solid rgba(201,168,76,0.45)' }}>
+            style={{ backgroundColor: PAL.panel, border: '1px solid rgba(201,168,76,0.45)' }}>
             <div className="text-sm font-bold text-terminal-text-bright">Are you sure?</div>
             <p className="text-xs text-terminal-text-dim leading-relaxed mt-2">
               You'll lose access to {planName === 'APEX' ? 'Prime and Apex' : 'Prime'} features immediately.
             </p>
             <div className="flex gap-2 mt-5">
               <button onClick={() => setConfirmCancel(false)} autoFocus
-                className="flex-1 py-2 text-[10px] font-bold tracking-[0.14em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright"
+                className="flex-1 py-2 text-[11px] font-bold tracking-[0.14em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright"
               >KEEP MY PLAN</button>
               <button
                 // TODO(stripe): cancel the Stripe subscription.
                 onClick={() => { setConfirmCancel(false); setNotice('Nothing was cancelled: payments are not live yet, so there is no subscription to end and your plan is unchanged. Contact support if you need your plan changed.') }}
-                className="flex-1 py-2 text-[10px] font-bold tracking-[0.14em] border border-terminal-red/50 text-terminal-red hover:bg-terminal-red/10"
+                className="flex-1 py-2 text-[11px] font-bold tracking-[0.14em] border border-terminal-red/50 text-terminal-red hover:bg-terminal-red/10"
               >CANCEL SUBSCRIPTION</button>
             </div>
           </div>
@@ -2258,7 +2259,7 @@ const SOURCE_TIERS = [
     key: 'live',
     label: 'LIVE SOURCES',
     glyph: '●',
-    colour: '#2D8A50',
+    colour: PAL.up,
     note: 'Fetched from a public API. Cached briefly, timestamped below.',
     rows: [
       { name: 'FX rates', detail: 'open.er-api.com', cacheKey: 'fx_rates' },
@@ -2292,7 +2293,7 @@ const SOURCE_TIERS = [
     key: 'verified',
     label: 'VERIFIED CONSTANTS (MANUALLY MAINTAINED)',
     glyph: '⊙',
-    colour: '#C9A84C',
+    colour: PAL.gold,
     note: 'Policy rates and official statistics, checked by hand against the source and dated. Not a feed.',
     rows: null, // built from VERIFIED_CONSTANTS at render
   },
@@ -2300,7 +2301,7 @@ const SOURCE_TIERS = [
     key: 'pending',
     label: 'COMING SOON — NOT CONNECTED',
     glyph: '◌',
-    colour: '#637899',
+    colour: PAL.muted,
     note: 'Shown as DEMO throughout the terminal until an equity data provider is connected.',
     rows: [
       { name: 'EODHD live ASX prices', detail: 'Connect with an API key — DEMO prices until then', connect: true },
@@ -2342,11 +2343,11 @@ function OfficialCheckPanel() {
   }
   const rows = check?.rows ?? []
   const drift = rows.filter((r) => r.status === 'drift')
-  const colour = (st) => (st === 'match' ? '#2D8A50' : st === 'drift' ? '#C9A84C' : '#4A6080')
+  const colour = (st) => (st === 'match' ? PAL.up : st === 'drift' ? PAL.gold : PAL.muted)
   return (
     <div className="border border-terminal-border">
       <div className="px-3 py-1.5 border-b border-terminal-border/50 bg-terminal-surface2/40 flex items-center gap-2">
-        <span style={{ color: '#2D8A50', fontSize: 10 }}>✓</span>
+        <span style={{ color: PAL.up, fontSize: 11 }}>✓</span>
         <span className="text-2xs font-bold tracking-widest text-terminal-text-bright">OFFICIAL FEED CHECK</span>
         <span className="text-2xs text-terminal-text-dim ml-auto">
           {check ? `Last checked: ${sinceLabel(check.fetchedAt)}` : 'not run yet'}
@@ -2362,7 +2363,7 @@ function OfficialCheckPanel() {
         verifiedConstants.js needs updating.
       </div>
       {drift.length > 0 && (
-        <div className="mx-3 mt-2 text-2xs px-2 py-1.5" style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}>
+        <div className="mx-3 mt-2 text-2xs px-2 py-1.5" style={{ color: PAL.gold, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.1)' }}>
           ⚠ {drift.length} figure{drift.length === 1 ? '' : 's'} out of date: {drift.map((r) => `${r.label} ${r.constant} → ${r.official}`).join(' · ')}
         </div>
       )}
@@ -2465,7 +2466,7 @@ function DataSourcesSection() {
           <div key={tier.key} className="border border-terminal-border">
             <div className="px-3 py-1.5 border-b border-terminal-border/50 bg-terminal-surface2/40">
               <div className="flex items-center gap-2">
-                <span style={{ color: tier.colour, fontSize: 10 }}>{tier.glyph}</span>
+                <span style={{ color: tier.colour, fontSize: 11 }}>{tier.glyph}</span>
                 <span className="text-2xs font-bold tracking-widest" style={{ color: tier.colour }}>{tier.label}</span>
                 <span className="text-2xs text-terminal-text-dim ml-auto">{rows.length}</span>
               </div>
@@ -2479,14 +2480,14 @@ function DataSourcesSection() {
                     <span className="text-2xs text-terminal-text-bright truncate">{r.name}</span>
                     <span className="text-2xs text-terminal-text-dim/70 truncate flex-1 text-right">{r.detail}</span>
                     {r.cacheKey && (
-                      <span className="text-2xs flex-shrink-0 w-20 text-right" style={{ color: ts ? tier.colour : '#4A6080' }}>
+                      <span className="text-2xs flex-shrink-0 w-20 text-right" style={{ color: ts ? tier.colour : PAL.muted }}>
                         {ts ? sinceLabel(ts) : 'not cached'}
                       </span>
                     )}
                     {tier.key === 'verified' && (
                       <span className="text-2xs font-bold tracking-wider flex-shrink-0 w-16 text-right"
                         title={r.status ? 'From the official feed check above' : 'Not covered by the automatic check — verified by hand'}
-                        style={{ color: r.status === 'match' ? '#2D8A50' : r.status === 'drift' ? '#C9A84C' : '#4A6080' }}>
+                        style={{ color: r.status === 'match' ? PAL.up : r.status === 'drift' ? PAL.gold : PAL.muted }}>
                         {r.status === 'match' ? '✓ MATCH' : r.status === 'drift' ? '⚠ DRIFT' : r.status === 'unavailable' ? '—' : 'BY HAND'}
                       </span>
                     )}
@@ -2553,7 +2554,7 @@ function AboutSection() {
           <div className="text-2xs text-terminal-text-dim">ENVIRONMENT</div>
           <div
             className="text-xs font-bold mt-0.5"
-            style={{ color: ENVIRONMENT === 'Production' ? '#2D8A50' : '#C9A84C' }}
+            style={{ color: ENVIRONMENT === 'Production' ? PAL.up : PAL.gold }}
           >{ENVIRONMENT}</div>
         </div>
       </div>

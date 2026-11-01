@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
@@ -7,6 +8,7 @@ import { fetchBatch, USING_MOCK_DATA, EQUITY_SOURCE } from '../../services/api'
 import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from '../../data/sectorTaxonomy'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import SafeChart from '../../components/ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 // Recharts renders these into SVG, where a bare 'monospace' resolves to the
 // browser default — Courier on some systems — which is a visibly different
@@ -42,8 +44,8 @@ function scoreStock(q) {
 
 function scoreColor(s) {
   if (s == null) return '#4a5568'
-  if (s >= 67)   return '#2D8A50'
-  if (s >= 34)   return '#C9A84C'
+  if (s >= 67)   return PAL.up
+  if (s >= 34)   return PAL.gold
   return '#ef4444'
 }
 
@@ -56,7 +58,7 @@ function ClickableTick({ payload, x, y, textAnchor, onSectorClick }) {
       x={x} y={y}
       textAnchor={textAnchor}
       dominantBaseline="central"
-      fill="#c9a84c"
+      fill={PAL.gold}
       fontSize={11}
       fontFamily="monospace"
       style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -182,7 +184,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
         <span className="text-terminal-text-dim font-normal text-2xs normal-case ml-1">
           — composite scores · {validSectors.length} sectors
         </span>
-        {isLoading && <span className="text-terminal-text-dim text-2xs font-normal ml-auto animate-pulse">LOADING...</span>}
+        {isLoading && <InlineLoading label="Loading" className="ml-auto" />}
         {isError && !isLoading && <span className="text-terminal-red text-2xs font-normal ml-auto">⚠ ERROR</span>}
         {!isLoading && !isError && (USING_MOCK_DATA
           ? <span className="ml-auto"><DemoBadge /></span>
@@ -219,7 +221,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
             <PolarRadiusAxis
               angle={90}
               domain={[0, 100]}
-              tick={{ fill: '#374151', fontSize: 8, fontFamily: MONO }}
+              tick={{ fill: '#374151', fontSize: 11, fontFamily: MONO }}
               tickCount={5}
               stroke="rgba(30,70,140,0.2)"
             />
@@ -235,17 +237,17 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
             <Radar
               name="Current session"
               dataKey="score"
-              stroke="#c9a84c"
+              stroke={PAL.gold}
               strokeWidth={1.8}
               fill="rgba(201,168,76,0.18)"
-              dot={{ r: 4, fill: '#c9a84c', strokeWidth: 0 }}
-              activeDot={{ r: 6, fill: '#c9a84c', stroke: '#fff', strokeWidth: 1 }}
+              dot={{ r: 4, fill: PAL.gold, strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: PAL.gold, stroke: '#fff', strokeWidth: 1 }}
               isAnimationActive
             />
             <Tooltip content={<RadarTooltip />} />
             <Legend
               iconType="line"
-              wrapperStyle={{ fontSize: 10, fontFamily: MONO, color: '#6b7280', paddingTop: 4 }}
+              wrapperStyle={{ fontSize: 11, fontFamily: MONO, color: '#6b7280', paddingTop: 4 }}
             />
           </RadarChart>
         </SafeChart>
@@ -282,7 +284,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
       {/* Legend + footer */}
       <div className="border-t border-terminal-border px-3 py-1.5 flex items-center justify-between flex-shrink-0">
         <div className="flex gap-4">
-          {[['0–33','WEAK','#ef4444'],['34–66','NEUTRAL','#C9A84C'],['67–100','STRONG','#2D8A50']].map(([range, label, color]) => (
+          {[['0–33','WEAK','#ef4444'],['34–66','NEUTRAL',PAL.gold],['67–100','STRONG',PAL.up]].map(([range, label, color]) => (
             <div key={label} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color, opacity: 0.7 }} />
               <span className="text-2xs text-terminal-text-dim">{label} <span className="text-terminal-text-dim/40">{range}</span></span>

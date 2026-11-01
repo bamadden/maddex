@@ -7,13 +7,13 @@ import { rateImpact, RATE_IMPACT_STYLE } from './rateSensitivity'
 
 export function RateImpactPill({ holding }) {
   const { impact, why } = rateImpact(holding)
-  if (!impact) return <span className="font-mono" style={{ fontSize: 8, color: '#3A4A61' }} title={why}>—</span>
+  if (!impact) return <span className="font-mono" style={{ fontSize: 11, color: '#3A4A61' }} title={why}>—</span>
   const c = RATE_IMPACT_STYLE[impact].colour
   return (
     <span
       className="font-mono whitespace-nowrap"
       title={`${impact} if rates rise — ${why}`}
-      style={{ fontSize: 8, letterSpacing: '0.08em', padding: '1px 5px', borderRadius: 2, color: c, background: `${c}1A`, border: `1px solid ${c}55` }}
+      style={{ fontSize: 11, letterSpacing: '0.08em', padding: '1px 5px', borderRadius: 2, color: c, background: `${c}1A`, border: `1px solid ${c}55` }}
     >{impact === 'POSITIVE' ? 'POS ▲' : impact === 'NEGATIVE' ? 'NEG ▼' : 'NEUTRAL'}</span>
   )
 }
@@ -75,7 +75,7 @@ export function RowMenu({ items }) {
               role="menuitem"
               onClick={() => { setPos(null); it.onClick() }}
               className="w-full text-left px-3 font-mono font-bold tracking-wider text-terminal-text hover:bg-terminal-gold/10 hover:text-terminal-gold transition-colors flex items-center gap-2"
-              style={{ fontSize: 10, height: 28 }}
+              style={{ fontSize: 11, height: 28 }}
             >
               <span aria-hidden="true" className="w-4 text-center">{it.icon}</span>{it.label}
             </button>
@@ -107,7 +107,7 @@ export function PortfolioNotes() {
     <div className="border-t border-terminal-border px-3 py-2 flex-shrink-0">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">PORTFOLIO NOTES</span>
-        <span className="text-terminal-text-dim/40 font-mono" style={{ fontSize: 8 }}>saved on this device</span>
+        <span className="text-terminal-text-dim/40 font-mono" style={{ fontSize: 11 }}>saved on this device</span>
         {!editing && (
           <button onClick={edit} className="ml-auto text-2xs font-bold border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 transition-colors">
             {text ? 'EDIT' : '+ ADD'}
@@ -130,10 +130,10 @@ export function PortfolioNotes() {
             className="w-full bg-terminal-bg border border-terminal-border focus:border-terminal-gold outline-none px-2 py-1.5 text-xs text-terminal-text-bright resize-none leading-relaxed"
           />
           <div className="flex items-center gap-2 mt-1">
-            <span className={`font-mono tabular-nums ${draft.length >= NOTES_MAX ? 'text-terminal-red' : 'text-terminal-text-dim/50'}`} style={{ fontSize: 9 }}>
+            <span className={`font-mono tabular-nums ${draft.length >= NOTES_MAX ? 'text-terminal-red' : 'text-terminal-text-dim/50'}`} style={{ fontSize: 11 }}>
               {draft.length}/{NOTES_MAX}
             </span>
-            <span className="text-terminal-text-dim/40 font-mono" style={{ fontSize: 8 }}>⌘↵ to save · Esc to cancel</span>
+            <span className="text-terminal-text-dim/40 font-mono" style={{ fontSize: 11 }}>⌘↵ to save · Esc to cancel</span>
             <button onClick={() => setEditing(false)} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-text-bright px-2">CANCEL</button>
             <button onClick={save} className="text-2xs font-bold bg-terminal-gold text-terminal-bg px-3 py-0.5 hover:bg-terminal-gold-bright">SAVE</button>
           </div>

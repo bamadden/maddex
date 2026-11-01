@@ -12,6 +12,7 @@ import { MILESTONES, getProgress, subscribeProgress, shouldShowProgress, markCel
 import { useSubscription } from '../../hooks/useSubscription'
 import { PRICES, openPricing, startUpgrade } from '../../services/plans'
 import { useGraphReview } from '../../hooks/useGraphReview'
+import { PAL } from '../../styles/palette.js'
 
 // Most nav ids match shortcutService's nav.* action ids directly; 'fx' is
 // the one exception (its action is nav.rates — see App.jsx's
@@ -97,7 +98,7 @@ export const APP_VERSION = `v${typeof __APP_VERSION__ !== 'undefined' ? __APP_VE
 // terminal chrome element sitting beside monospaced data; a 13px sans label
 // was the single loudest thing in the rail and read as a website menu.
 const LABEL_BASE =
-  'font-mono text-[10px] tracking-[0.12em] uppercase whitespace-nowrap transition-opacity duration-150'
+  'font-mono text-[11px] tracking-[0.12em] uppercase whitespace-nowrap transition-opacity duration-150'
 
 // Row height differs by state, deliberately, and not the way the spec first
 // reads. 44px collapsed AND while hover-expanded; 40px only when pinned.
@@ -223,22 +224,9 @@ export default function NavBar() {
         }`}
         style={{ borderBottom: '1px solid rgba(201,168,76,0.06)' }}
       >
-        {/* The mark itself, always visible; the wordmark joins it once the
-            rail is open. Collapsed, the icon alone is the brand — which is
-            what a 64px rail can actually carry. */}
-        <img
-          src="/icons/icon-mark-96.png"
-          alt="Maddex"
-          className={pinned ? 'flex-shrink-0' : 'absolute left-1/2 -translate-x-1/2 group-hover/nav:static group-hover/nav:translate-x-0'}
-          style={{ width: 36, height: 36, objectFit: 'contain' }}
-        />
-        <span
-          className={`mr-auto pl-2 font-mono text-[10px] tracking-[0.22em] text-terminal-gold transition-opacity duration-150 ${
-            pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
-          }`}
-        >
-          MADDEX
-        </span>
+        {/* No second logo here: the top bar's lockup sits directly above.
+            The rail's header keeps only the pin control. */}
+        <span className="mr-auto" />
         <button
           onClick={() => setPinned((p) => !p)}
           title={pinned ? 'Unpin sidebar' : 'Pin sidebar open'}
@@ -274,10 +262,10 @@ export default function NavBar() {
                       list does not reflow when the rail opens. */}
                   <div className={`${i === 0 ? 'mt-1' : 'mt-2'} h-6 flex items-center`}>
                     <span
-                      className={`pl-5 font-mono text-[8px] tracking-[0.2em] uppercase whitespace-nowrap transition-opacity duration-150 ${
+                      className={`pl-5 font-mono text-[11px] tracking-[0.2em] uppercase whitespace-nowrap transition-opacity duration-150 ${
                         pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
                       }`}
-                      style={{ color: '#4A6080' }}
+                      style={{ color: PAL.muted }}
                     >
                       {item.group}
                     </span>
@@ -307,17 +295,17 @@ export default function NavBar() {
                   )}
                   {item.id === 'graphreview' && graphReview.pending > 0 && (
                     <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-terminal-gold text-terminal-bg font-mono font-bold flex items-center justify-center"
-                      style={{ fontSize: 8 }} title={`${graphReview.pending} relationship proposal${graphReview.pending === 1 ? '' : 's'} to review`}>{graphReview.pending}</span>
+                      style={{ fontSize: 11 }} title={`${graphReview.pending} relationship proposal${graphReview.pending === 1 ? '' : 's'} to review`}>{graphReview.pending}</span>
                   )}
                   {item.id === 'scanner' && scannerBadge > 0 && !isActive && (
                     <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-terminal-gold text-terminal-bg font-mono font-bold flex items-center justify-center"
-                      style={{ fontSize: 8 }} title={`${scannerBadge} scanner signal${scannerBadge === 1 ? '' : 's'} on your watchlist today`}>{scannerBadge}</span>
+                      style={{ fontSize: 11 }} title={`${scannerBadge} scanner signal${scannerBadge === 1 ? '' : 's'} on your watchlist today`}>{scannerBadge}</span>
                   )}
                 </span>
                 <span className={`nav-label ${labelCls}`}>{item.label}</span>
                 <span
-                  className="ml-auto pl-2 font-mono text-[9px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
-                  style={{ color: '#4A6080' }}
+                  className="ml-auto pl-2 font-mono text-[11px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+                  style={{ color: PAL.muted }}
                 >
                   {hint}
                 </span>
@@ -342,10 +330,10 @@ export default function NavBar() {
         onClick={() => setChatOpen((v) => !v)}
         title={`AI Analyst (${shortcutService.shortcuts['ui.ai']?.display ?? 'A'})`}
         className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3 ${chatOpen ? 'is-active' : ''}`}
-        style={{ borderTop: '1px solid rgba(201,168,76,0.06)', color: chatOpen ? '#C9A84C' : '#C9A84C' }}
+        style={{ borderTop: '1px solid rgba(201,168,76,0.06)', color: chatOpen ? PAL.gold : PAL.gold }}
       >
-        <span className="text-[18px] leading-none flex-shrink-0 w-[18px] text-center">▲</span>
-        <span className={`nav-label ${labelCls}`} style={{ color: '#C9A84C' }}>AI ANALYST</span>
+        <span className="text-[20px] leading-none flex-shrink-0 w-[18px] text-center">▲</span>
+        <span className={`nav-label ${labelCls}`} style={{ color: PAL.gold }}>AI ANALYST</span>
       </button>
 
       {/* Bottom: Settings only.
@@ -360,16 +348,16 @@ export default function NavBar() {
         <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.12)' }}>
           <button onClick={openPricing} title="Upgrade to Prime — unlock the full terminal"
             className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3 w-full`} style={{ background: 'rgba(201,168,76,0.06)' }}>
-            <span className="flex-shrink-0 text-terminal-gold" style={{ width: 18, textAlign: 'center', fontSize: 15 }} aria-hidden="true">★</span>
+            <span className="flex-shrink-0 text-terminal-gold" style={{ width: 18, textAlign: 'center', fontSize: 14 }} aria-hidden="true">★</span>
             <span className={`nav-label ${labelCls} flex-1 min-w-0 text-left leading-tight`}>
-              <span className="block text-terminal-gold font-bold tracking-wider" style={{ fontSize: 10 }}>UPGRADE TO PRIME</span>
-              <span className="block text-terminal-text-dim" style={{ fontSize: 9 }}>Unlock the full terminal · A${PRICES.prime.monthly}/month</span>
+              <span className="block text-terminal-gold font-bold tracking-wider" style={{ fontSize: 11 }}>UPGRADE TO PRIME</span>
+              <span className="block text-terminal-text-dim" style={{ fontSize: 11 }}>Unlock the full terminal · A${PRICES.prime.monthly}/month</span>
             </span>
             <span role="button" tabIndex={0}
               onClick={(e) => { e.stopPropagation(); startUpgrade('prime') }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startUpgrade('prime') } }}
               className={`nav-label ${labelCls} flex-shrink-0 px-2 py-0.5 bg-terminal-gold text-terminal-bg font-bold tracking-wider hover:bg-terminal-gold-bright`}
-              style={{ fontSize: 9 }}>UPGRADE</span>
+              style={{ fontSize: 11 }}>UPGRADE</span>
           </button>
         </div>
       )}
@@ -378,7 +366,7 @@ export default function NavBar() {
           className={`flex-shrink-0 nav-row ${ROW} ${GAP} ${iconPad} pr-3 text-terminal-text-dim/70 hover:text-terminal-gold`}
           style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
           <span className="flex-shrink-0" style={{ width: 18, textAlign: 'center', fontSize: 12 }} aria-hidden="true">✦</span>
-          <span className={`nav-label ${labelCls}`} style={{ fontSize: 9, letterSpacing: '0.06em' }}>Upgrade to Apex for unlimited AI</span>
+          <span className={`nav-label ${labelCls}`} style={{ fontSize: 11, letterSpacing: '0.06em' }}>Upgrade to Apex for unlimited AI</span>
         </button>
       )}
       <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
@@ -398,18 +386,18 @@ export default function NavBar() {
               <span className="absolute left-1/2 -translate-x-1/2 flex gap-[2px]" style={{ bottom: -7 }} aria-hidden="true">
                 {MILESTONES.map((m) => (
                   <span key={m.id} className="w-[3px] h-[3px] rounded-full"
-                    style={{ background: progress.done.includes(m.id) ? '#C9A84C' : 'rgba(99,120,153,0.45)' }} />
+                    style={{ background: progress.done.includes(m.id) ? PAL.gold : 'rgba(99,120,153,0.45)' }} />
                 ))}
               </span>
             )}
           </span>
           <span className={`nav-label ${labelCls}`}>
             SETTINGS
-            {showProgress && <span className="ml-2 font-mono text-[9px] text-terminal-gold/80 tracking-wider">{progress.count}/{progress.total}</span>}
+            {showProgress && <span className="ml-2 font-mono text-[11px] text-terminal-gold/80 tracking-wider">{progress.count}/{progress.total}</span>}
           </span>
           <span
-            className="ml-auto pl-2 font-mono text-[9px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
-            style={{ color: '#4A6080' }}
+            className="ml-auto pl-2 font-mono text-[11px] whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+            style={{ color: PAL.muted }}
           >
             {shortcutService.shortcuts['ui.settings']?.display ?? ''}
           </span>
@@ -419,7 +407,7 @@ export default function NavBar() {
             className="fixed z-[150] font-mono shadow-2xl px-3 py-2.5 flex items-start gap-2.5"
             style={{ left: 76, bottom: 64, width: 250, background: '#0E1E36', border: '1px solid rgba(201,168,76,0.6)', borderRadius: 3, animation: 'maddex-tip-in 260ms cubic-bezier(0.22, 1, 0.36, 1)' }}>
             <span className="text-terminal-gold" aria-hidden="true">✓</span>
-            <div className="flex-1 text-[11.5px] leading-[17px] text-terminal-text">You've explored everything. Welcome aboard.</div>
+            <div className="flex-1 text-[11px] leading-[17px] text-terminal-text">You've explored everything. Welcome aboard.</div>
             <button onClick={markCelebrated} aria-label="Dismiss" className="text-terminal-text-dim hover:text-terminal-text text-xs leading-none">✕</button>
           </div>
         )}
@@ -439,7 +427,7 @@ export default function NavBar() {
           {/* truncate (not nowrap) so a narrow rail ellipses this rather than
               letting it run under the version stamp on the same row. */}
           <span
-            className={`text-[10px] font-sans truncate transition-opacity duration-150 ${
+            className={`text-[11px] font-sans truncate transition-opacity duration-150 ${
               pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
             }`}
           >
@@ -447,7 +435,7 @@ export default function NavBar() {
           </span>
         </a>
         <span
-          className={`ml-auto pl-2 flex-shrink-0 text-[9px] font-mono tracking-wide text-terminal-muted/50 whitespace-nowrap transition-opacity duration-150 ${
+          className={`ml-auto pl-2 flex-shrink-0 text-[11px] font-mono tracking-wide text-terminal-muted/50 whitespace-nowrap transition-opacity duration-150 ${
             pinned ? 'opacity-100' : 'opacity-0 group-hover/nav:opacity-100'
           }`}
         >
@@ -474,7 +462,7 @@ export function MobileNavBar() {
           }`}
         >
           <item.Icon size={16} strokeWidth={1.75} />
-          <span className="text-[8px] tracking-wide leading-none">{item.short}</span>
+          <span className="text-[11px] tracking-wide leading-none">{item.short}</span>
         </button>
       ))}
       <button
@@ -487,7 +475,7 @@ export function MobileNavBar() {
         aria-label="MaddenAI"
       >
         <span className="text-sm leading-none">▲</span>
-        <span className="text-[8px] tracking-wide leading-none">AI</span>
+        <span className="text-[11px] tracking-wide leading-none">AI</span>
       </button>
     </div>
   )

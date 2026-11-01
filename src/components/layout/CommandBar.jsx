@@ -16,6 +16,7 @@ import {
   resolveAsset, searchCatalogue, parseSectorQuery, calcMatches, parseCompound,
   parseBondQuery, timeSuggestions, sydneyClock,
 } from './commandSearch'
+import { PAL } from '../../styles/palette.js'
 
 // Module nav now has its own MODULES category (below) — these are the
 // remaining power-user commands that aren't just "go to a module".
@@ -606,7 +607,7 @@ function HelpOverlay({ onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-2 border-b border-terminal-border bg-terminal-header">
-          <span className="text-terminal-gold font-bold tracking-widest text-sm">▲ MADDEX · COMMAND REFERENCE</span>
+          <span className="text-terminal-gold font-bold tracking-widest text-sm">MADDEX · COMMAND REFERENCE</span>
           <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg">✕</button>
         </div>
         <div className="grid grid-cols-3 xl:grid-cols-5 gap-0 max-h-[60vh] overflow-auto">
@@ -827,8 +828,8 @@ function KeyHints({ context = 'idle', className = '' }) {
           <kbd
             className="font-mono"
             style={{
-              fontSize: 8, padding: '0 3px', borderRadius: 2,
-              border: '1px solid rgba(99,120,153,0.3)', color: '#8BA3C4',
+              fontSize: 11, padding: '0 3px', borderRadius: 2,
+              border: '1px solid rgba(99,120,153,0.3)', color: PAL.dim,
             }}
           >{key}</kbd>
           <span className="text-terminal-text-dim/50">{label}</span>
@@ -924,7 +925,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
                 <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
                 {q && (
                   <span className="flex items-center gap-2 flex-shrink-0">
-                    {q.demo && <span className="text-terminal-gold/70 font-bold" style={{ fontSize: 8 }}>DEMO</span>}
+                    {q.demo && <span className="text-terminal-gold/70 font-bold" style={{ fontSize: 11 }}>DEMO</span>}
                     <span className="text-terminal-text-bright font-semibold">
                       {q.price != null ? `A$${fmt.price(q.price)}` : '—'}
                     </span>

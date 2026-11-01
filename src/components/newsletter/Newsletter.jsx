@@ -60,7 +60,7 @@ function SignupForm({ autoFocus = false, compact = false }) {
         />
         <button
           type="submit" disabled={status === 'saving'}
-          className={`font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-50 ${compact ? 'px-2.5 text-[9px]' : 'px-3 text-2xs'}`}
+          className={`font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-50 ${compact ? 'px-2.5 text-[11px]' : 'px-3 text-2xs'}`}
         >{status === 'saving' ? '…' : 'SUBSCRIBE'}</button>
       </div>
       {status === 'invalid' && <div className="text-2xs text-terminal-red mt-1">Enter a valid email address.</div>}
@@ -103,11 +103,11 @@ export function NewsletterBanner() {
   const dismiss = () => { setDismissed(true); try { localStorage.setItem(BANNER_DISMISSED_KEY, '1') } catch { /* private mode */ } }
   return (
     <div className="flex items-center gap-3 px-3 py-1.5 border-b border-terminal-border font-mono flex-wrap" style={{ background: 'rgba(201,168,76,0.05)' }}>
-      <span className="text-[9px] text-terminal-gold font-bold tracking-widest">✉ {NEWSLETTER.name}</span>
+      <span className="text-[11px] text-terminal-gold font-bold tracking-widest">✉ {NEWSLETTER.name}</span>
       <span className="text-2xs text-terminal-text-dim">Weekly, every Friday.</span>
       <div className="ml-auto flex items-center gap-2">
         {open ? <div className="w-72"><SignupForm compact autoFocus /></div> : (
-          <button onClick={() => setOpen(true)} className="text-[9px] font-bold tracking-widest text-terminal-gold hover:underline">SUBSCRIBE →</button>
+          <button onClick={() => setOpen(true)} className="text-[11px] font-bold tracking-widest text-terminal-gold hover:underline">SUBSCRIBE →</button>
         )}
         <button onClick={dismiss} aria-label="Dismiss newsletter banner" className="text-terminal-text-dim hover:text-terminal-gold text-xs px-1">✕</button>
       </div>
@@ -153,7 +153,7 @@ export function NewsletterEditions() {
         <div className="px-3 py-4 text-center">
           <div className="text-2xs text-terminal-text-dim">Newsletter archive coming soon.</div>
           {!email && (
-            <button onClick={() => setSignup(true)} className="mt-2 text-[9px] font-bold tracking-widest text-terminal-gold hover:underline">
+            <button onClick={() => setSignup(true)} className="mt-2 text-[11px] font-bold tracking-widest text-terminal-gold hover:underline">
               SUBSCRIBE TO GET FUTURE EDITIONS →
             </button>
           )}

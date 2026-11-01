@@ -3,6 +3,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import aiContentService from '../../services/aiContentService'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Central bank comparison cards ──────────────────────────────────────────
 //
@@ -35,12 +36,12 @@ const BANKS = [
 // worth saying plainly: it describes the last move, not a forecast of the
 // next one.
 const BIAS = {
-  CUT:  { label: 'EASING',     colour: '#2D8A50', bg: 'rgba(45,138,80,0.16)',  border: 'rgba(45,138,80,0.45)' },
-  HIKE: { label: 'TIGHTENING', colour: '#CC4444', bg: 'rgba(200,68,68,0.16)',  border: 'rgba(200,68,68,0.45)' },
-  HOLD: { label: 'NEUTRAL',    colour: '#C9A84C', bg: 'rgba(201,168,76,0.14)', border: 'rgba(201,168,76,0.4)' },
+  CUT:  { label: 'EASING',     colour: PAL.up, bg: 'rgba(45,138,80,0.16)',  border: 'rgba(45,138,80,0.45)' },
+  HIKE: { label: 'TIGHTENING', colour: PAL.down, bg: 'rgba(200,68,68,0.16)',  border: 'rgba(200,68,68,0.45)' },
+  HOLD: { label: 'NEUTRAL',    colour: PAL.gold, bg: 'rgba(201,168,76,0.14)', border: 'rgba(201,168,76,0.4)' },
 }
 
-const DOT = { HIKE: '#CC4444', CUT: '#2D8A50', HOLD: '#C9A84C' }
+const DOT = { HIKE: PAL.down, CUT: PAL.up, HOLD: PAL.gold }
 
 // A fixed three-letter table rather than toLocaleDateString('short'): ICU's
 // en-AU short months are not all three letters — June and July come back
@@ -103,15 +104,15 @@ function cycleFor(c) {
 function CycleLine({ c }) {
   const low = cycleFor(c)
   if (!low) {
-    return <div className="font-mono text-terminal-text-dim/50 mt-1" style={{ fontSize: 8 }}>cycle low not recorded</div>
+    return <div className="font-mono text-terminal-text-dim/50 mt-1" style={{ fontSize: 11 }}>cycle low not recorded</div>
   }
   const bp = Math.round((c.cashRate - low.rate) * 100)
-  const tone = bp > 0 ? '#E8A33D' : bp < 0 ? '#2D8A50' : '#8BA3C4'
+  const tone = bp > 0 ? PAL.amber : bp < 0 ? PAL.up : PAL.dim
   return (
     <div className="mt-1">
       <div className="flex items-center gap-1.5">
         <span className="font-mono font-bold tabular-nums" style={{ fontSize: 11, color: tone }}>{bp > 0 ? '+' : ''}{bp}bp</span>
-        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8 }}>from {low.rate.toFixed(2)}% ({monthYear(low.date)})</span>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>from {low.rate.toFixed(2)}% ({monthYear(low.date)})</span>
       </div>
       <div className="h-1 mt-1 rounded-full overflow-hidden" style={{ background: 'rgba(74,96,128,0.18)' }}>
         <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, bp) / 1.5)}%`, background: tone }} />
@@ -125,11 +126,11 @@ function DecisionDots({ rows }) {
     <div className="flex flex-col gap-1">
       {rows.map((r) => (
         <div key={r.date} className="flex items-center gap-1.5">
-          <span className="rounded-full flex-shrink-0" style={{ width: 5, height: 5, background: DOT[r.decision] ?? '#637899' }} />
-          <span className="font-mono font-bold" style={{ fontSize: 9, color: DOT[r.decision] ?? '#637899' }}>{r.decision}</span>
-          <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{monthYear(r.date)}</span>
+          <span className="rounded-full flex-shrink-0" style={{ width: 5, height: 5, background: DOT[r.decision] ?? PAL.muted }} />
+          <span className="font-mono font-bold" style={{ fontSize: 11, color: DOT[r.decision] ?? PAL.muted }}>{r.decision}</span>
+          <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{monthYear(r.date)}</span>
           {r.rate != null && (
-            <span className="font-mono text-terminal-text-dim/60 tabular-nums ml-auto" style={{ fontSize: 9 }}>{r.rate.toFixed(2)}%</span>
+            <span className="font-mono text-terminal-text-dim/60 tabular-nums ml-auto" style={{ fontSize: 11 }}>{r.rate.toFixed(2)}%</span>
           )}
         </div>
       ))}
@@ -153,36 +154,36 @@ function CardBody({ bank, c, now, bias, biasSource }) {
           build, and the card says so rather than filling the line from
           memory. */}
       <div>
-        <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 7, letterSpacing: '0.14em' }}>OFFICE HOLDER</div>
+        <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>OFFICE HOLDER</div>
         {gov?.name ? (
           <>
-            <div className="font-mono text-terminal-text-bright" style={{ fontSize: 10 }}>{gov.name}</div>
-            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8 }}>
+            <div className="font-mono text-terminal-text-bright" style={{ fontSize: 11 }}>{gov.name}</div>
+            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
               {gov.role}{gov.since ? ` · since ${new Date(`${gov.since}T00:00:00`).getFullYear()}` : ''}
             </div>
           </>
         ) : (
-          <div className="font-mono text-terminal-text-dim/45 italic leading-snug" style={{ fontSize: 8 }}>
+          <div className="font-mono text-terminal-text-dim/45 italic leading-snug" style={{ fontSize: 11 }}>
             Not verified in this build — no name shown.
           </div>
         )}
       </div>
 
       <div>
-        <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 7, letterSpacing: '0.14em' }}>NEXT MEETING</div>
-        <div className="font-mono" style={{ fontSize: 10 }}>
+        <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>NEXT MEETING</div>
+        <div className="font-mono" style={{ fontSize: 11 }}>
           <span className="text-terminal-text-bright">{dayMonth(c.nextMeeting)}</span>
           {daysAway != null && <span className="text-terminal-gold"> · {daysAway} {daysAway === 1 ? 'day' : 'days'} away</span>}
         </div>
       </div>
 
       <div>
-        <div className="font-mono text-terminal-text-dim/50 mb-1" style={{ fontSize: 7, letterSpacing: '0.14em' }}>
+        <div className="font-mono text-terminal-text-dim/50 mb-1" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
           {bank.key === 'rba' ? 'LAST 3 DECISIONS' : 'LAST DECISION'}
         </div>
         <DecisionDots rows={decisions} />
         {bank.key !== 'rba' && (
-          <div className="font-mono text-terminal-text-dim/40 italic mt-1 leading-snug" style={{ fontSize: 7 }}>
+          <div className="font-mono text-terminal-text-dim/40 italic mt-1 leading-snug" style={{ fontSize: 11 }}>
             Only the most recent decision is recorded for this bank.
           </div>
         )}
@@ -190,10 +191,10 @@ function CardBody({ bank, c, now, bias, biasSource }) {
 
       <div>
         <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 7, letterSpacing: '0.14em' }}>POLICY BIAS</span>
+          <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>POLICY BIAS</span>
           <AIContentBadge source={biasSource} label="AI-ESTIMATE" />
         </div>
-        <div className="font-mono text-terminal-text-dim leading-snug" style={{ fontSize: 9 }}>
+        <div className="font-mono text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>
           {bias ?? (biasSource === 'loading' ? 'Reading…' : 'Unavailable — the daily generation did not return.')}
         </div>
       </div>
@@ -282,24 +283,24 @@ export default function CentralBankCards() {
             >
               <div className={`flex items-center gap-1 font-mono uppercase tracking-wide ${
                 b.home ? 'text-terminal-gold font-bold' : 'text-terminal-text-dim'
-              }`} style={{ fontSize: 9 }}>
+              }`} style={{ fontSize: 11 }}>
                 <span style={{ fontSize: 20, lineHeight: 1 }}>{b.flag}</span>
                 <span className="truncate">{b.name}</span>
-                {b.home && <span className="ml-auto text-terminal-gold/60 flex-shrink-0" style={{ fontSize: 7, letterSpacing: '0.18em' }}>HOME</span>}
+                {b.home && <span className="ml-auto text-terminal-gold/60 flex-shrink-0" style={{ fontSize: 11, letterSpacing: '0.18em' }}>HOME</span>}
               </div>
 
-              <div className="font-mono font-bold text-terminal-gold leading-tight tabular-nums mt-1" style={{ fontSize: 18 }}>
+              <div className="font-mono font-bold text-terminal-gold leading-tight tabular-nums mt-1" style={{ fontSize: 20 }}>
                 {c.cashRate.toFixed(2)}%
               </div>
 
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8 }}>
+                <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
                   {verb} {monthYear(c.lastDecision)}
                 </span>
                 <span
                   className="ml-auto font-mono font-bold flex-shrink-0"
                   style={{
-                    fontSize: 7, letterSpacing: '0.1em', padding: '1px 4px', borderRadius: 2,
+                    fontSize: 11, letterSpacing: '0.1em', padding: '1px 4px', borderRadius: 2,
                     color: st.colour, background: st.bg, border: `1px solid ${st.border}`,
                   }}
                 >{st.label}</span>
@@ -308,10 +309,10 @@ export default function CentralBankCards() {
               {cycle && <CycleLine c={c} />}
 
               {!cycle && c.rateRange && (
-                <div className="font-mono text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 7 }}>Target range {c.rateRange}</div>
+                <div className="font-mono text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 11 }}>Target range {c.rateRange}</div>
               )}
               {!cycle && c.note && !c.rateRange && (
-                <div className="font-mono text-terminal-text-dim/50 mt-0.5 truncate" style={{ fontSize: 7 }}>{c.note}</div>
+                <div className="font-mono text-terminal-text-dim/50 mt-0.5 truncate" style={{ fontSize: 11 }}>{c.note}</div>
               )}
 
               {/* 0fr → 1fr on a grid row animates height without measuring
@@ -328,7 +329,7 @@ export default function CentralBankCards() {
                 </div>
               </div>
 
-              <div className="font-mono text-terminal-text-dim/40 mt-1.5" style={{ fontSize: 7 }}>
+              <div className="font-mono text-terminal-text-dim/40 mt-1.5" style={{ fontSize: 11 }}>
                 {isOpen ? '▲ CLOSE' : '▼ DETAIL'}
               </div>
             </button>

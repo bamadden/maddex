@@ -2,6 +2,7 @@ import { useReleaseWatch } from '../../hooks/useReleaseWatch'
 import { dismissRelease } from '../../services/releaseWatch'
 import { runOfficialCheck } from '../../services/officialCheckStore'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { PAL } from '../../styles/palette.js'
 
 // "DATA NOW RELEASED" — shown in Macro, Calendar, Dashboard and Rates once a
 // high-impact release time has passed and verifiedConstants does not yet
@@ -41,10 +42,10 @@ export default function ReleaseWatchBanner({ compact = false, className = '' }) 
           >
             <div className="flex items-start gap-3 flex-wrap">
               <div className="min-w-0 flex-1">
-                <div className="font-bold tracking-widest text-terminal-gold" style={{ fontSize: compact ? 9 : 11 }}>
+                <div className="font-bold tracking-widest text-terminal-gold" style={{ fontSize: compact ? 11 : 11 }}>
                   📊 {e.event.toUpperCase()} — DATA NOW RELEASED
                 </div>
-                <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: compact ? 8 : 10 }}>
+                <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: compact ? 11 : 11 }}>
                   Released {time}. Official figures: {e.sourceLabel?.toLowerCase()}.
                   {MAINTAINER && ' Update verifiedConstants once confirmed.'}
                   {!MAINTAINER && !detected && ' Terminal figures update once the release is verified.'}
@@ -54,13 +55,13 @@ export default function ReleaseWatchBanner({ compact = false, className = '' }) 
                 <a
                   href={e.sourceUrl} target="_blank" rel="noopener noreferrer"
                   className="font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                  style={{ fontSize: 9 }}
+                  style={{ fontSize: 11 }}
                 >VIEW ON {e.sourceLabel} ↗</a>
                 {MAINTAINER && (
                   <button
                     onClick={openUpdateFlow}
                     className="font-bold tracking-widest border border-terminal-border text-terminal-text-bright px-2 py-0.5 hover:border-terminal-gold transition-colors"
-                    style={{ fontSize: 9 }}
+                    style={{ fontSize: 11 }}
                   >UPDATE NOW</button>
                 )}
                 <button
@@ -74,9 +75,9 @@ export default function ReleaseWatchBanner({ compact = false, className = '' }) 
 
             {detected ? (
               <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid rgba(201,168,76,0.25)' }}>
-                <div className="font-bold tracking-widest" style={{ fontSize: 9, color: '#2D8A50' }}>● NEW DATA DETECTED · ABS / RBA / FRED API</div>
+                <div className="font-bold tracking-widest" style={{ fontSize: 11, color: PAL.up }}>● NEW DATA DETECTED · ABS / RBA / FRED API</div>
                 {e.newData.map((d) => (
-                  <div key={d.label} className="text-terminal-text-bright mt-0.5" style={{ fontSize: compact ? 9 : 10 }}>
+                  <div key={d.label} className="text-terminal-text-bright mt-0.5" style={{ fontSize: compact ? 11 : 11 }}>
                     {d.label}: official API shows <b className="text-terminal-gold">{fmt(d.official)}</b> ({d.officialPeriod})
                     <span className="text-terminal-text-dim"> — terminal shows {fmt(d.terminal)} ({d.terminalPeriod})</span>
                   </div>
@@ -85,13 +86,13 @@ export default function ReleaseWatchBanner({ compact = false, className = '' }) 
                   <button
                     onClick={openUpdateFlow}
                     className="mt-1 font-bold tracking-widest text-terminal-gold underline"
-                    style={{ fontSize: 9 }}
+                    style={{ fontSize: 11 }}
                   >UPDATE CONSTANTS →</button>
                 )}
               </div>
             ) : (
               !compact && e.polling && (
-                <div className="text-terminal-text-dim/60 mt-1" style={{ fontSize: 8 }}>
+                <div className="text-terminal-text-dim/60 mt-1" style={{ fontSize: 11 }}>
                   Checking the agency API every ten minutes for the new figures.
                 </div>
               )

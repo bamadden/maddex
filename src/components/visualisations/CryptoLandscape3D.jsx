@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { GAIN_BRIGHT, LOSS_BRIGHT, GOLD, normalise, BG_COLOR } from './shared3d'
+import { PAL } from '../../styles/palette.js'
 
 function scaleAxis(value, min, max, outHalfRange) {
   if (max === min) return 0
@@ -187,8 +188,8 @@ function CoinPoint({ coin, position, radius, color, showLabel, onHover, hovered,
         <Html position={[0, radius + 0.3, 0]} center distanceFactor={11} occlude>
           <div style={{
             fontFamily: 'IBM Plex Mono, monospace',
-            fontSize: 10,
-            color: '#e8edf5',
+            fontSize: 11,
+            color: PAL.bright,
             background: 'rgba(6,13,26,0.9)',
             border: `1px solid ${color}`,
             borderRadius: 3,
@@ -204,7 +205,7 @@ function CoinPoint({ coin, position, radius, color, showLabel, onHover, hovered,
                 <div style={{ color, fontWeight: 600 }}>
                   {coin.pct24h >= 0 ? '▲' : '▼'} {Math.abs(coin.pct24h).toFixed(2)}% 24H
                 </div>
-                <div style={{ color: '#8BA3C4' }}>
+                <div style={{ color: PAL.dim }}>
                   MCAP {(coin.marketCap / 1e9).toFixed(1)}B · VOL {(coin.volume / 1e9).toFixed(2)}B
                 </div>
               </>

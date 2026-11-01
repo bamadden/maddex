@@ -4,6 +4,7 @@ import { timeAgo } from '../../utils/dateUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { RefreshCw } from 'lucide-react'
 import Tooltip from './Tooltip'
+import { PAL } from '../../styles/palette.js'
 
 // Relative age — "2m ago" reads faster than a wall-clock stamp for a
 // freshness indicator, which is the only thing this is used for.
@@ -58,12 +59,12 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
             legible at a glance as the module you're currently in. */}
         <span
           className="font-mono text-[13px] uppercase whitespace-nowrap"
-          style={{ fontWeight: 600, letterSpacing: '0.15em', color: '#C9A84C' }}
+          style={{ fontWeight: 600, letterSpacing: '0.15em', color: PAL.gold }}
         >
           {title}
         </span>
         {subtitle && (
-          <span className="font-sans text-[11px] truncate" style={{ marginLeft: 12, color: '#4A6080' }}>
+          <span className="font-sans text-[11px] truncate" style={{ marginLeft: 12, color: PAL.muted }}>
             {subtitle}
           </span>
         )}
@@ -97,7 +98,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           title={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
           aria-label={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
           className="flex items-center justify-center w-6 h-6 flex-shrink-0 ml-3 transition-colors font-mono font-bold"
-          style={{ fontSize: 12, color: '#C9A84C', border: '1px solid rgba(201,168,76,0.3)' }}
+          style={{ fontSize: 12, color: PAL.gold, border: '1px solid rgba(201,168,76,0.3)' }}
         >M</button>
       )}
 
@@ -105,9 +106,9 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           in on header hover. focus-within keeps them reachable by keyboard. */}
       <div className="flex items-center gap-3 ml-3 opacity-0 group-hover/mh:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
         {isFetching ? (
-          <span className="text-terminal-muted text-[9px] font-mono animate-pulse whitespace-nowrap">REFRESHING…</span>
+          <span className="text-terminal-muted text-[11px] font-mono animate-pulse whitespace-nowrap">REFRESHING…</span>
         ) : lastUpdated ? (
-          <span className="text-terminal-muted text-[9px] font-mono whitespace-nowrap">{timeAgo(lastUpdated)}</span>
+          <span className="text-terminal-muted text-[11px] font-mono whitespace-nowrap">{timeAgo(lastUpdated)}</span>
         ) : null}
         {onRefresh && (
           <Tooltip content={`Refresh ${title}\nR`}>

@@ -1,16 +1,17 @@
+import { PAL } from '../../styles/palette.js'
 // Same 5-band colour scale as MorningBriefModule's score gauge (0-30 red /
 // 30-50 amber / 50-70 gold / 70-85 light-green / 85-100 green) — kept in
 // sync deliberately so a score means the same colour everywhere in the app.
 const BANDS = [
-  { max: 30, color: '#A83232' },
-  { max: 50, color: '#C9A84C' },
+  { max: 30, color: PAL.down },
+  { max: 50, color: PAL.gold },
   { max: 70, color: '#E8C96A' },
   { max: 85, color: '#6FCB8F' },
-  { max: 100, color: '#2D8A50' },
+  { max: 100, color: PAL.up },
 ]
 
 function colorForScore(score) {
-  if (score == null) return '#8BA3C4'
+  if (score == null) return PAL.dim
   return (BANDS.find((b) => score <= b.max) ?? BANDS[BANDS.length - 1]).color
 }
 

@@ -5,6 +5,7 @@ import SafeChart from '../../components/ui/SafeChart'
 import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { holdingRate } from './rateSensitivity'
+import { PAL } from '../../styles/palette.js'
 
 // The coming RBA decision, for the hike scenario's label: "RBA HIKES TO
 // 4.85% (3 NOV)". Falls back to a generic label once no decision is pending.
@@ -121,7 +122,7 @@ function customShock(h, factors) {
   return pct
 }
 
-const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#3AAA63', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
+const STOCK_PALETTE = [PAL.gold, '#1e5fa8', '#9b59b6', PAL.up, '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 function DonutMini({ data, title }) {
   return (
@@ -224,7 +225,7 @@ export default function StressTest({ holdings, fmtCur }) {
                 className="text-left p-2 flex flex-col justify-between transition-all duration-150"
                 style={{
                   height: 72,
-                  border: `1px solid ${isSelected ? '#C9A84C' : SEVERITY_BORDER[meta.severity]}`,
+                  border: `1px solid ${isSelected ? PAL.gold : SEVERITY_BORDER[meta.severity]}`,
                   background: isSelected ? 'rgba(201,168,76,0.08)' : 'transparent',
                   opacity: anySelected && !isSelected ? 0.4 : 1,
                 }}
@@ -246,7 +247,7 @@ export default function StressTest({ holdings, fmtCur }) {
             className="text-left p-2 flex flex-col justify-between transition-all duration-150"
             style={{
               height: 72,
-              border: `1px solid ${customOpen ? '#C9A84C' : 'rgba(201,168,76,0.3)'}`,
+              border: `1px solid ${customOpen ? PAL.gold : 'rgba(201,168,76,0.3)'}`,
               background: customOpen ? 'rgba(201,168,76,0.08)' : 'transparent',
               opacity: (customOpen || scenarioKey != null) && !customOpen ? 0.4 : 1,
             }}

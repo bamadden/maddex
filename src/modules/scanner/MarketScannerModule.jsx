@@ -18,6 +18,7 @@ import {
   loadScanSettings, saveScanSettings, applyScanFilters,
   SCAN_UNIVERSES, MIN_VOLUME_OPTIONS, MIN_MCAP_OPTIONS, INTERVAL_OPTIONS, SIGNAL_TYPES, SECTORS,
 } from '../../services/scannerSettings'
+import { PAL } from '../../styles/palette.js'
 
 // Header strip per signal type — the colour says what kind of signal it is
 // before the eye reaches a word.
@@ -75,10 +76,10 @@ function detectedAtStr(ms) {
 // maps the same signal types to real colours so the row can be built around
 // one accent instead of six unrelated utility classes.
 const SIGNAL_TONE = {
-  BREAKOUT:   '#2D8A50',
-  OVERSOLD:   '#2D7DD2',
-  OVERBOUGHT: '#A83232',
-  VOLUME:     '#C9A84C',
+  BREAKOUT:   PAL.up,
+  OVERSOLD:   PAL.blue,
+  OVERBOUGHT: PAL.down,
+  VOLUME:     PAL.gold,
   MOMENTUM:   '#6FA34A',
   PATTERN:    '#7C6BC4',
 }
@@ -86,7 +87,7 @@ const toneFor = (badge) => {
   const key = String(badge ?? '').split(' ')[0].toUpperCase()
   if (SIGNAL_TONE[key]) return SIGNAL_TONE[key]
   if (key === 'GAP') return '#9B6BC4'
-  return '#637899'
+  return PAL.muted
 }
 
 // A signal row with actual hierarchy.
@@ -116,7 +117,7 @@ function StrengthBars({ strength }) {
   if (strength == null) return null
   const filled = Math.max(1, Math.min(5, Math.round(strength * 5)))
   const label = filled >= 4 ? 'STRONG' : filled >= 3 ? 'MODERATE' : 'WEAK'
-  const tone = filled >= 4 ? '#C9A84C' : filled >= 3 ? '#8BA3C4' : '#4A6080'
+  const tone = filled >= 4 ? PAL.gold : filled >= 3 ? PAL.dim : PAL.muted
   return (
     <div className="flex items-center gap-1.5 flex-shrink-0" title={`Signal strength: ${label}`}>
       <span className="flex gap-px">
@@ -124,7 +125,7 @@ function StrengthBars({ strength }) {
           <span key={i} style={{ width: 3, height: 9, background: i < filled ? tone : 'rgba(201,168,76,0.12)' }} />
         ))}
       </span>
-      <span className="text-2xs font-bold tracking-wider" style={{ color: tone, fontSize: 8 }}>{label}</span>
+      <span className="text-2xs font-bold tracking-wider" style={{ color: tone, fontSize: 11 }}>{label}</span>
     </div>
   )
 }
@@ -177,7 +178,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
   const alert = alertFor(type, price, up)
   return (
     <div className={`border-b border-terminal-border/50 ${veryFresh ? 'signal-fresh' : ''}`} style={{ opacity: stale ? 0.5 : ageing ? 0.72 : 1 }}>
-    <div className="flex items-center px-3 font-mono uppercase" style={{ height: 24, background: head.bg, color: head.fg, fontSize: 8, letterSpacing: '0.16em' }}>
+    <div className="flex items-center px-3 font-mono uppercase" style={{ height: 24, background: head.bg, color: head.fg, fontSize: 11, letterSpacing: '0.16em' }}>
       <span className="font-bold">{badge}</span>
       <span className="mx-1.5 opacity-70">·</span>
       <span className="font-bold">{symbol}</span>
@@ -206,17 +207,17 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
       <div className="flex-1 min-w-0 flex items-baseline gap-2" title={metricLabel}>
         <span className="min-w-0 flex flex-col">
           <span className="text-2xs text-terminal-text leading-tight truncate">{metricValue}</span>
-          {extraLine && <span className="text-[9px] text-terminal-text leading-tight truncate">{extraLine}</span>}
-          {ctx && <span className="text-[9px] text-terminal-text-dim/70 leading-tight truncate">{ctx.line1} · {ctx.line2}</span>}
+          {extraLine && <span className="text-[11px] text-terminal-text leading-tight truncate">{extraLine}</span>}
+          {ctx && <span className="text-[11px] text-terminal-text-dim/70 leading-tight truncate">{ctx.line1} · {ctx.line2}</span>}
           {macro && (
-            <span className="text-[9px] text-terminal-text-dim/55 leading-tight truncate" title={macro}>
+            <span className="text-[11px] text-terminal-text-dim/55 leading-tight truncate" title={macro}>
               <span className="tracking-widest text-terminal-gold/50">MACRO </span>{macro}
             </span>
           )}
         </span>
         <StrengthBars strength={strength} />
         {stale && (
-          <span className="badge flex-shrink-0" style={{ color: '#637899', border: '1px solid rgba(99,120,153,0.35)' }}>
+          <span className="badge flex-shrink-0" style={{ color: PAL.muted, border: '1px solid rgba(99,120,153,0.35)' }}>
             STALE
           </span>
         )}
@@ -233,7 +234,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
         </div>
         <div
           className="text-2xs font-bold tabular-nums leading-tight"
-          style={{ color: up ? '#2D8A50' : '#A83232' }}
+          style={{ color: up ? PAL.up : PAL.down }}
         >
           {up ? '▲' : '▼'} {Math.abs(changePct).toFixed(2)}%
         </div>
@@ -290,9 +291,9 @@ function RateSensitiveTab({ scanTime, settings }) {
   return (
     <div>
       <div className="px-3 py-2 border-b border-terminal-border/60 text-2xs font-mono" style={{ background: 'rgba(232,163,61,0.06)' }}>
-        <span className="font-bold tracking-widest" style={{ color: '#E8A33D' }}>{event.kind}</span>
+        <span className="font-bold tracking-widest" style={{ color: PAL.amber }}>{event.kind}</span>
         <span className="text-terminal-text-dim"> · {event.label} · ASX names in rate-sensitive sectors (property, banks, consumer, utilities, tech) moving more than 1%.</span>
-        <div className="text-terminal-text-dim/60 mt-0.5" style={{ fontSize: 9 }}>
+        <div className="text-terminal-text-dim/60 mt-0.5" style={{ fontSize: 11 }}>
           DEMO prices — the day&apos;s ASX moves carry a scripted rate-environment tilt, so this shows how the signal works, not what the market did today.
         </div>
       </div>
@@ -383,15 +384,15 @@ function DivergenceSection({ settings }) {
     <div className="border-t border-terminal-border">
       <div className="px-3 py-2 flex items-baseline gap-2">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">PRICE / VOLUME DIVERGENCE</span>
-        <span className="text-[9px] text-terminal-text-dim">5-session price move against the change in participation</span>
+        <span className="text-[11px] text-terminal-text-dim">5-session price move against the change in participation</span>
       </div>
       {rows.map((r) => (
         <div key={r.symbol} className="px-3 py-2 border-t border-terminal-border/30 flex items-start gap-3">
           <span
             className="text-2xs font-bold px-1.5 py-0.5 border flex-shrink-0"
             style={r.kind === 'BULLISH DIV'
-              ? { color: '#2D8A50', borderColor: 'rgba(45,138,80,0.5)' }
-              : { color: '#CC4444', borderColor: 'rgba(200,100,100,0.5)' }}
+              ? { color: PAL.up, borderColor: 'rgba(45,138,80,0.5)' }
+              : { color: PAL.down, borderColor: 'rgba(200,100,100,0.5)' }}
           >{r.kind}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
@@ -401,7 +402,7 @@ function DivergenceSection({ settings }) {
             <div className="text-2xs text-terminal-text-dim mt-0.5">{r.note}</div>
           </div>
           <div className="text-right flex-shrink-0 tabular-nums">
-            <div className="text-2xs" style={{ color: r.pricePct >= 0 ? '#2D8A50' : '#CC4444' }}>
+            <div className="text-2xs" style={{ color: r.pricePct >= 0 ? PAL.up : PAL.down }}>
               PRICE {r.pricePct >= 0 ? '+' : ''}{r.pricePct.toFixed(1)}%
             </div>
             <div className="text-2xs text-terminal-text-dim">
@@ -422,7 +423,7 @@ function MomentumTab({ settings }) {
   const peak = Math.max(...rows.map((r) => Math.abs(r.score)), 1)
   return (
     <div>
-      <div className="px-3 py-2 text-[9px] text-terminal-text-dim">
+      <div className="px-3 py-2 text-[11px] text-terminal-text-dim">
         Score is a weighted blend of the three windows — 50% of the 5-day move, 30% of the 10-day, 20% of the 20-day.
       </div>
       <table className="w-full text-2xs">
@@ -451,7 +452,7 @@ function MomentumTab({ settings }) {
                   {r.sector && <span className="text-terminal-text-dim/60 ml-1.5">{r.sector}</span>}
                 </td>
                 {[r.d5, r.d10, r.d20].map((v, j) => (
-                  <td key={j} className="py-1 text-right tabular-nums" style={{ color: v >= 0 ? '#2D8A50' : '#CC4444' }}>
+                  <td key={j} className="py-1 text-right tabular-nums" style={{ color: v >= 0 ? PAL.up : PAL.down }}>
                     {v >= 0 ? '+' : ''}{v.toFixed(1)}%
                   </td>
                 ))}
@@ -580,9 +581,9 @@ function PatternCard({ candidate }) {
             <span
               title="Pattern read by MaddenAI from the shape of the recent series. No price target — chart patterns here describe structure, not a level to trade to."
               style={{
-                fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.1em',
+                fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, letterSpacing: '0.1em',
                 padding: '1px 5px', borderRadius: 2, whiteSpace: 'nowrap',
-                background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.4)', color: '#C9A84C',
+                background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.4)', color: PAL.gold,
               }}
             >AI ESTIMATE · NO TARGET</span>
           </div>
@@ -612,7 +613,7 @@ function PatternsTab() {
 function SettingGroup({ label, options, value, onPick }) {
   return (
     <div className="mb-2.5">
-      <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1">{label}</div>
+      <div className="text-[11px] text-terminal-text-dim tracking-widest mb-1">{label}</div>
       <div className="flex flex-wrap gap-1">
         {options.map((o) => (
           <button
@@ -660,14 +661,14 @@ function ScanSettings({ settings, onChange }) {
             <SettingGroup label="AUTO-SCAN INTERVAL" options={INTERVAL_OPTIONS} value={settings.intervalMs}
               onPick={(v) => onChange({ ...settings, intervalMs: v })} />
             <div className="mb-2.5">
-              <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1">SECTOR</div>
+              <div className="text-[11px] text-terminal-text-dim tracking-widest mb-1">SECTOR</div>
               <select value={settings.sector ?? 'ALL'} onChange={(e) => onChange({ ...settings, sector: e.target.value })}
                 className="w-full bg-terminal-bg border border-terminal-border text-2xs text-terminal-text px-1.5 py-1">
                 {SECTORS.map((sec) => <option key={sec} value={sec}>{sec}</option>)}
               </select>
             </div>
             <div className="mb-2.5">
-              <div className="text-[9px] text-terminal-text-dim tracking-widest mb-1">SIGNAL TYPES</div>
+              <div className="text-[11px] text-terminal-text-dim tracking-widest mb-1">SIGNAL TYPES</div>
               <div className="flex flex-wrap gap-1">
                 {SIGNAL_TYPES.map((t) => {
                   const on = (settings.signalTypes ?? []).includes(t.id)
@@ -678,13 +679,13 @@ function ScanSettings({ settings, onChange }) {
                         const next = on ? cur.filter((x) => x !== t.id) : [...cur, t.id]
                         if (next.length) onChange({ ...settings, signalTypes: next })
                       }}
-                      className={`text-[9px] px-1.5 py-0.5 border ${on ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim'}`}
+                      className={`text-[11px] px-1.5 py-0.5 border ${on ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim'}`}
                     >{t.label}</button>
                   )
                 })}
               </div>
             </div>
-            <div className="text-[9px] text-terminal-text-dim/60 leading-snug pt-1 border-t border-terminal-border/50">
+            <div className="text-[11px] text-terminal-text-dim/60 leading-snug pt-1 border-t border-terminal-border/50">
               Filters apply to the tracked demo universe.
             </div>
           </div>
@@ -873,7 +874,7 @@ export default function MarketScannerModule() {
 
       {firstScan ? (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 text-center px-6" role="status">
-          <span className="relative w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 24 }} aria-hidden="true">
+          <span className="relative w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 28 }} aria-hidden="true">
             ◎
             <span className="absolute inset-0 rounded-full border border-terminal-gold/60 animate-ping" />
           </span>
@@ -897,7 +898,7 @@ export default function MarketScannerModule() {
           <div className="border-t border-terminal-border px-3 py-3">
             <div className="flex items-baseline justify-between mb-2">
               <span className="text-2xs font-bold tracking-widest text-terminal-gold">RECENT SIGNALS</span>
-              <span className="text-[9px] text-terminal-text-dim">last {history.length} this session · grouped by ticker</span>
+              <span className="text-[11px] text-terminal-text-dim">last {history.length} this session · grouped by ticker</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
               {historyByTicker.slice(0, 10).map((h) => (

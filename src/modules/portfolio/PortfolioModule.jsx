@@ -44,6 +44,7 @@ import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGen
 import { RateImpactPill, RowMenu, PortfolioNotes } from './PortfolioExtras'
 import { portfolioTotals, heldFor } from './portfolioTotals'
 import { PortfolioBanners } from './PortfolioBanners'
+import { PAL } from '../../styles/palette.js'
 
 const TABS = [
   { key: 'holdings',    label: 'HOLDINGS' },
@@ -86,7 +87,7 @@ const SORT_ACCESSOR = {
   marketCap:(h) => h.marketCap,
 }
 
-const STOCK_PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#3AAA63', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
+const STOCK_PALETTE = [PAL.gold, '#1e5fa8', '#9b59b6', PAL.up, '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 
 // Wash behind a P&L cell. Alpha is deliberately low — it must read as a tint
@@ -157,9 +158,9 @@ const PieTooltip = ({ active, payload }) => {
 // sit under the P&L figures rather than competing with them.
 const SECTOR_COLOUR = {
   Financials:    '#4A9EDB',
-  Materials:     '#C9A84C',
+  Materials:     PAL.gold,
   Health:        '#4ADBD0',
-  Industrials:   '#8BA3C4',
+  Industrials:   PAL.dim,
   Staples:       '#7BE495',
   'Cons Disc':   '#D98BC4',
   IT:            '#8C8CFF',
@@ -182,15 +183,15 @@ function SectorPill({ symbol, type }) {
   // implies it was classified and came back unknown, which it was not.
   const sector = type === 'crypto' ? null : SECTOR_BY_SYMBOL[String(symbol).toUpperCase()]
   if (!sector) {
-    return <span className="font-mono" style={{ fontSize: 8, color: '#3A4A61' }}>{type === 'crypto' ? 'CRYPTO' : '—'}</span>
+    return <span className="font-mono" style={{ fontSize: 11, color: '#3A4A61' }}>{type === 'crypto' ? 'CRYPTO' : '—'}</span>
   }
-  const colour = SECTOR_COLOUR[sector] ?? '#8BA3C4'
+  const colour = SECTOR_COLOUR[sector] ?? PAL.dim
   return (
     <span
       className="font-mono whitespace-nowrap"
       title={sector}
       style={{
-        fontSize: 8, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
+        fontSize: 11, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
         color: colour, background: `${colour}1F`, border: `1px solid ${colour}3D`,
       }}
     >
@@ -494,7 +495,7 @@ function TotalsRow({ totals: t, fmtCur }) {
   const since = t.earliest ? new Date(`${t.earliest}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : null
   const cell = (label, value, cls = 'text-terminal-text-bright', title) => (
     <div className="px-3 py-1.5 min-w-0" title={title}>
-      <div className="font-mono text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 8 }}>{label}</div>
+      <div className="font-mono text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 11 }}>{label}</div>
       <div className={`font-mono font-bold tabular-nums text-xs ${cls}`}>{value}</div>
     </div>
   )
@@ -512,7 +513,7 @@ function TotalsRow({ totals: t, fmtCur }) {
           ? 'Money-weighted (XIRR): each lot counted from the day it was bought'
           : 'Shown once the earliest lot is a year old — annualising a shorter period would overstate it',
       )}
-      <div className="col-span-full px-3 pb-1 font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>
+      <div className="col-span-full px-3 pb-1 font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>
         {since && <>Since {since}{t.heldDays != null ? ` (${t.heldDays} days)` : ''} · </>}
         price return from your lots at today&apos;s prices, before dividends (PERFORMANCE adds estimated dividends)
         {t.unpriced > 0 && <> · excludes {t.unpriced} unpriced lot{t.unpriced === 1 ? '' : 's'}</>}
@@ -1211,7 +1212,7 @@ export default function PortfolioModule() {
                       <td className="px-2 py-0.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap">
                         {dispSym}
                         {lotCount.get(`${h.type}:${h.symbol}`) > 1 && (
-                          <span className="ml-1.5 text-[8px] font-normal tracking-wider text-terminal-gold/70 border border-terminal-gold/30 px-1" title={`Bought ${h.addedAt} — one of ${lotCount.get(`${h.type}:${h.symbol}`)} lots`}>LOT {lotNo.get(h.id) ?? 1}/{lotCount.get(`${h.type}:${h.symbol}`)}</span>
+                          <span className="ml-1.5 text-[11px] font-normal tracking-wider text-terminal-gold/70 border border-terminal-gold/30 px-1" title={`Bought ${h.addedAt} — one of ${lotCount.get(`${h.type}:${h.symbol}`)} lots`}>LOT {lotNo.get(h.id) ?? 1}/{lotCount.get(`${h.type}:${h.symbol}`)}</span>
                         )}
                       </td>
                       <td className="px-1 py-0.5 text-2xs hidden 2xl:table-cell">
@@ -1383,12 +1384,12 @@ export default function PortfolioModule() {
               <div className="h-36 p-1 flex-shrink-0">
                 <SafeChart width="100%" height="100%">
                   <BarChart data={pnlData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#0F1E35" vertical={false} />
+                    <CartesianGrid stroke={PAL.header} vertical={false} />
                     {/* Break-even, so winners and losers read as sides of a
                         line rather than just bars of different heights. */}
-                    <ReferenceLine y={0} stroke="#C9A84C" strokeDasharray="4 4" strokeOpacity={0.5} />
-                    <XAxis dataKey="symbol" tick={{ fontSize: 8 }} />
-                    <YAxis tick={{ fontSize: 8 }} />
+                    <ReferenceLine y={0} stroke={PAL.gold} strokeDasharray="4 4" strokeOpacity={0.5} />
+                    <XAxis dataKey="symbol" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null

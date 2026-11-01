@@ -23,6 +23,7 @@ import {
   getHistory, groupHistoryByDay, removeHistory, clearHistory,
   shouldSendDigest, markDigestSent, buildDigest, inQuietHours,
 } from '../../services/notificationPolicy'
+import { PAL } from '../../styles/palette.js'
 
 // One face, one weight, one baseline. Every glyph here is text-presentation,
 // so it inherits the panel's colour and the monospace metrics rather than
@@ -119,12 +120,12 @@ function AlertsPane({ alerts, onRemove, onGoWatchlist }) {
   if (!alerts?.length) {
     return (
       <div className="flex flex-col items-center gap-1.5 px-4 py-8 text-center">
-        <span className="w-11 h-11 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 18 }} aria-hidden="true">⚡</span>
+        <span className="w-11 h-11 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 20 }} aria-hidden="true">⚡</span>
         <div className="text-xs text-terminal-text-bright font-semibold mt-1">No active alerts</div>
         <div className="text-2xs text-terminal-text-dim leading-relaxed">Set price alerts on any stock in your watchlist</div>
         {onGoWatchlist && (
           <button onClick={onGoWatchlist}
-            className="mt-2 px-3 py-1.5 text-[10px] font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
+            className="mt-2 px-3 py-1.5 text-[11px] font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
           >GO TO WATCHLIST</button>
         )}
       </div>
@@ -154,7 +155,7 @@ function AlertsPane({ alerts, onRemove, onGoWatchlist }) {
               const close = pct != null && pct >= 95
               return (
                 <div key={a.id} className="flex items-center gap-2 py-0.5">
-                  <span className="text-2xs flex-shrink-0" style={{ color: close ? '#C9A84C' : '#4A6080' }}>⚡</span>
+                  <span className="text-2xs flex-shrink-0" style={{ color: close ? PAL.gold : PAL.muted }}>⚡</span>
                   <span className="text-2xs text-terminal-text-dim flex-1 min-w-0 truncate">
                     {(a.direction ?? 'above').toUpperCase()} A${Number(a.price).toFixed(2)}
                   </span>
@@ -162,7 +163,7 @@ function AlertsPane({ alerts, onRemove, onGoWatchlist }) {
                     <span
                       className="text-2xs tabular-nums flex-shrink-0"
                       title="How close this alert is to firing"
-                      style={{ color: close ? '#C9A84C' : '#637899' }}
+                      style={{ color: close ? PAL.gold : PAL.muted }}
                     >{pct}%</span>
                   )}
                   <button
@@ -766,7 +767,7 @@ export default function NotificationCenter() {
         {notifyPerm === 'denied' && (
           <span
             className="absolute -bottom-0.5 -right-1 min-w-[10px] h-[10px] rounded-full flex items-center justify-center font-bold"
-            style={{ background: '#C9A84C', color: '#040d1a', fontSize: 7 }}
+            style={{ background: PAL.gold, color: '#040d1a', fontSize: 11 }}
             title="Notifications are blocked for this site — allow them in your browser's site settings to get price alerts"
           >!</span>
         )}
@@ -833,7 +834,7 @@ export default function NotificationCenter() {
                       </div>
                       {items.map((n) => (
                         <div key={n.id} className="group flex items-start gap-2 px-3 py-1.5 border-b border-terminal-border/30">
-                          <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${TYPE_CIRCLE[n.type] ?? 'bg-terminal-muted/15 text-terminal-muted'}`} style={{ fontSize: 10 }}>
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${TYPE_CIRCLE[n.type] ?? 'bg-terminal-muted/15 text-terminal-muted'}`} style={{ fontSize: 11 }}>
                             {TYPE_ICON[n.type] ?? '•'}
                           </span>
                           <div className="flex-1 min-w-0">
@@ -915,7 +916,7 @@ export default function NotificationCenter() {
           const grouped = items.length > 1
           const expanded = expandedToast === type
           const accent = (TYPE_CIRCLE[type] ?? '').includes('blue') ? 'var(--mt-blue-bright, #2D7DD2)'
-            : (TYPE_CIRCLE[type] ?? '').includes('green') ? 'var(--mt-green, #2D8A50)' : '#C9A84C'
+            : (TYPE_CIRCLE[type] ?? '').includes('green') ? 'var(--mt-green, #3FB06B)' : PAL.gold
           return (
             <div
               key={type}

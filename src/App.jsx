@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { InlineLoading } from './components/ui/ModuleStates'
 import NotificationPermissionPrompt from './components/ui/NotificationPermissionPrompt'
 import PlanOverlays from './components/billing/PlanOverlays'
 import { gatedModule } from './components/billing/ModuleGate'
@@ -121,6 +122,7 @@ function ModuleTimer({ id }) {
 }
 import { useSubscription } from './hooks/useSubscription'
 import { useOnboarding } from './hooks/useOnboarding'
+import { startKeyboardClickables } from './utils/keyboardClickables'
 import { shouldShowTour, resumeStep } from './services/onboardingSync'
 import { useTheme } from './hooks/useTheme'
 import { useLayoutMode } from './hooks/useLayoutMode'
@@ -133,7 +135,7 @@ import StatusBar from './components/layout/StatusBar'
 function ModuleSuspenseFallback() {
   return (
     <div className="h-full flex items-center justify-center">
-      <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse font-mono">LOADING MODULE...</span>
+      <InlineLoading label="Loading module" />
     </div>
   )
 }
@@ -382,6 +384,8 @@ function Terminal() {
     markWhatsNewSeen(APP_VERSION)
     setShowWhatsNew(false)
   }
+  // Clickable rows (stock tables, lists) reachable by Tab and Enter/Space.
+  useEffect(() => startKeyboardClickables(), [])
   // Applies the persisted theme (or default) to :root on mount — independent
   // of whether the Settings panel (where the switcher lives) is open.
   useTheme()
@@ -841,6 +845,8 @@ function Terminal() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-mono bg-terminal-bg">
+      {/* First stop for keyboard users: past the top bar and tape to the module. */}
+      <a href="#main-content" className="skip-link" onClick={(e) => { e.preventDefault(); document.getElementById('main-content')?.focus() }}>Skip to main content</a>
       <div className="fixed inset-0 scanlines pointer-events-none z-50" />
       <TopBar />
       <EventWarningBar />
@@ -864,6 +870,9 @@ function Terminal() {
       )}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {layout !== 'focus' && <NavBar />}
+        {/* The skip link's target: the module area (everything right of the
+            sidebar). */}
+        <main id="main-content" tabIndex={-1} aria-label={MODULE_TITLES[activeModule] ?? 'Module'} className="flex flex-1 min-w-0 min-h-0 overflow-hidden focus:outline-none">
         {isCustomWorkspace ? (
           <div key={activeWorkspace.id} className="flex-1 min-w-0 overflow-hidden module-fade">
             <WorkspaceRenderer workspace={activeWorkspace} />
@@ -955,6 +964,7 @@ function Terminal() {
             )}
           </div>
         )}
+        </main>
         {layout !== 'focus' && layout !== 'split' && <AIPanelGate wide={layout === 'research'} />}
       </div>
       <CommandBar />

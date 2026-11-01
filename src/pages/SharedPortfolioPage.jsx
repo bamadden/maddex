@@ -1,17 +1,18 @@
 import { useSharedRecord } from '../services/sharingService'
+import { PAL } from '../styles/palette.js'
 
 // Public, read-only portfolio snapshot — percentages only (see
 // PortfolioSnapshot's sharePayload). Routed by App.jsx before the app mounts,
 // so no sign-in is needed.
 
-const PALETTE = ['#C9A84C', '#3DAD65', '#8BA3C4', '#C93E3E', '#637899', '#8A6E2A', '#B07CC6', '#5B9BD5']
+const PALETTE = [PAL.gold, '#3DAD65', PAL.dim, '#C93E3E', PAL.muted, '#8A6E2A', '#B07CC6', '#5B9BD5']
 
 function Donut({ slices }) {
   const r = 70, c = 2 * Math.PI * r
   const starts = slices.map((_, i) => slices.slice(0, i).reduce((sum, s) => sum + (s.pct / 100) * c, 0))
   return (
     <svg viewBox="0 0 200 200" className="w-44 h-44 flex-shrink-0" role="img" aria-label="Asset allocation">
-      <circle cx="100" cy="100" r={r} fill="none" stroke="#0F1E35" strokeWidth="34" />
+      <circle cx="100" cy="100" r={r} fill="none" stroke={PAL.header} strokeWidth="34" />
       {slices.map((s, i) => {
         const len = (s.pct / 100) * c
         return (

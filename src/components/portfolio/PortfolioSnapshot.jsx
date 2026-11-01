@@ -45,7 +45,7 @@ function draw(ctx, { holdings, totalPnl, pnlPct, mktTotal, currency, ownerName }
   // Header
   ctx.fillStyle = COLOR.gold
   ctx.font = 'bold 30px "IBM Plex Mono", monospace'
-  ctx.fillText('▲ MADDEX', 60, 80)
+  ctx.fillText('MADDEX', 60, 80)
 
   ctx.fillStyle = COLOR.textDim
   ctx.font = '16px "IBM Plex Mono", monospace'
@@ -233,7 +233,7 @@ export default function PortfolioSnapshot({ holdings, totalPnl, pnlPct, mktTotal
               className="text-2xs font-bold bg-terminal-gold text-terminal-bg px-5 py-2 hover:bg-terminal-gold-bright transition-colors"
             >SHARE SNAPSHOT{!canUse('sharePortfolio') && ' ⊘'}</button>
           </div>
-          <div className="text-[9px] text-terminal-text-dim/70 max-w-[340px] text-center">
+          <div className="text-[11px] text-terminal-text-dim/70 max-w-[340px] text-center">
             The PNG is for you. The shared page shows only percentages — return, asset mix and sectors — never amounts or holdings.
           </div>
         </div>

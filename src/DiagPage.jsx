@@ -181,7 +181,7 @@ export default function DiagPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-6" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-yellow-400 mb-1">▲ MADDEX — API DIAGNOSTIC</h1>
+        <h1 className="text-2xl font-bold text-yellow-400 mb-1">MADDEX — API DIAGNOSTIC</h1>
         <p className="text-gray-400 text-sm mb-2">
           All calls via Vite proxy (localhost). Tests Stooq, Frankfurter, CoinGecko, OpenSky, RBA.
         </p>

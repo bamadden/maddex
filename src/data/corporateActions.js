@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // Corporate actions and new listings — dated, sourced, hand-entered.
 //
 // Every row is from a company's published financial calendar or notice of
@@ -13,9 +14,9 @@
 export const CORPORATE_ACTIONS_AS_OF = '2026-10-27'
 
 export const ACTION_TYPES = [
-  { key: 'dividend', label: 'DIVIDENDS', short: 'EX-DIV', colour: '#2D8A50' },
-  { key: 'results', label: 'RESULTS', short: 'RESULT', colour: '#C9A84C' },
-  { key: 'agm', label: 'AGMs', short: 'AGM', colour: '#8BA3C4' },
+  { key: 'dividend', label: 'DIVIDENDS', short: 'EX-DIV', colour: PAL.up },
+  { key: 'results', label: 'RESULTS', short: 'RESULT', colour: PAL.gold },
+  { key: 'agm', label: 'AGMs', short: 'AGM', colour: PAL.dim },
   { key: 'raising', label: 'RAISINGS / SPPs', short: 'RAISING', colour: '#B07CC6' },
   { key: 'split', label: 'SPLITS', short: 'SPLIT', colour: '#5B9BD5' },
   { key: 'listing', label: 'LISTINGS', short: 'LISTING', colour: '#D08A3C' },

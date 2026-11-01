@@ -4,6 +4,7 @@ import { OrbitControls, Html, Stars } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { animated, useSpring } from '@react-spring/three'
 import { pctToColor, normalise, BG_COLOR, GOLD } from './shared3d'
+import { PAL } from '../../styles/palette.js'
 
 // Per-stock "building" — height encodes market cap, footprint width encodes
 // volume, colour encodes today's performance. Gold cap marks gainers, and
@@ -53,8 +54,8 @@ function Building({ stock, x, z, height, width, color, onSelect, onHover, hovere
         <Html position={[0, height / 2 + 0.5, 0]} center distanceFactor={11} occlude>
           <div style={{
             fontFamily: 'IBM Plex Mono, monospace',
-            fontSize: 10,
-            color: '#e8edf5',
+            fontSize: 11,
+            color: PAL.bright,
             background: 'rgba(6,13,26,0.92)',
             border: `1px solid ${color}`,
             borderRadius: 3,
@@ -85,7 +86,7 @@ function SectorLabel({ abbr, x, z, avgPct }) {
     <Html position={[x, 0.02, z]} center distanceFactor={16} occlude={false}>
       <div style={{
         fontFamily: 'IBM Plex Mono, monospace',
-        fontSize: 9,
+        fontSize: 11,
         fontWeight: 700,
         letterSpacing: '0.15em',
         color,
@@ -115,7 +116,7 @@ function Scene({ clusters, onSelect }) {
       <fog attach="fog" args={[BG_COLOR, 20, 48]} />
       <ambientLight intensity={0.3} />
       <pointLight position={[14, 22, 14]} intensity={1} color={GOLD} />
-      <pointLight position={[-14, 20, -14]} intensity={0.5} color="#2D7DD2" />
+      <pointLight position={[-14, 20, -14]} intensity={0.5} color={PAL.blue} />
       <directionalLight position={[8, 16, 8]} intensity={0.4} castShadow />
 
       <Stars radius={100} depth={50} count={2500} factor={2} saturation={0} fade speed={0.4} />

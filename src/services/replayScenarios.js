@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // ─── Replay scenario library ────────────────────────────────────────────────
 //
 // WHAT IS SOURCED AND WHAT IS NOT.
@@ -18,10 +19,10 @@
 // opening is described by what was priced, not by a move nobody recorded.
 
 export const CATEGORY_STYLE = {
-  'CRISIS':       { colour: '#A83232', bg: 'rgba(168,50,50,0.14)' },
-  'CENTRAL BANK': { colour: '#C9A84C', bg: 'rgba(201,168,76,0.14)' },
+  'CRISIS':       { colour: PAL.down, bg: 'rgba(168,50,50,0.14)' },
+  'CENTRAL BANK': { colour: PAL.gold, bg: 'rgba(201,168,76,0.14)' },
   'MACRO':        { colour: '#4A7FB5', bg: 'rgba(74,127,181,0.14)' },
-  'COMMODITY':    { colour: '#2D8A50', bg: 'rgba(45,138,80,0.14)' },
+  'COMMODITY':    { colour: PAL.up, bg: 'rgba(45,138,80,0.14)' },
 }
 
 export const SCENARIOS = [

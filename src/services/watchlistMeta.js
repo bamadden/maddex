@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // Everything the watchlist knows about a symbol beyond "it is on the list".
 //
 // A SIDECAR, DELIBERATELY.
@@ -15,9 +16,9 @@
 const KEY = 'maddex_watchlist_meta'
 
 export const GROUP_COLOURS = {
-  gold:   '#C9A84C',
+  gold:   PAL.gold,
   blue:   '#4A7FB5',
-  green:  '#2D8A50',
+  green:  PAL.up,
   purple: '#7C6BC4',
 }
 

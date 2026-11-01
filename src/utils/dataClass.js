@@ -5,20 +5,21 @@
 // STALE (the feed failed and this is the last good copy), then DELAYED, then
 // LIVE.
 
-import { sydneyClock } from './dateUtils'
+import { sydneyClock, formatDate } from './dateUtils'
+import { PAL } from '../styles/palette.js'
 
 export const DATA_CLASSES = {
   LIVE: {
     meaning: 'Fetched from the source this session and refreshing on its normal schedule.',
-    colour: '#2D8A50',
+    colour: PAL.up,
   },
   DELAYED: {
     meaning: 'From the source, but behind real time: the provider delays it, or it is a figure published on a schedule (end of day, monthly, quarterly).',
-    colour: '#8BA3C4',
+    colour: PAL.dim,
   },
   DEMO: {
     meaning: 'Simulated for demonstration. Not market data. Equity prices are demo until a market-data provider is connected.',
-    colour: '#C9A84C',
+    colour: PAL.gold,
   },
   STALE: {
     meaning: 'The feed failed just now, so this is the last copy that arrived. The time shown is when that copy was fetched.',
@@ -47,7 +48,7 @@ const sydney = (ms) => {
   const d = new Date(ms)
   const sameDay = d.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) === new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
   const { text } = sydneyClock(d)
-  return sameDay ? text : `${d.toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney', day: 'numeric', month: 'short' })} ${text}`
+  return sameDay ? text : `${formatDate(d, { year: false })} ${text}`
 }
 
 // liveDataService's `source`: 'live' (just fetched) and 'cache' (fetched
@@ -59,7 +60,7 @@ export const classOfLiveSource = (source) => (source === 'stale' || source === '
 // for scheduled figures (shown as the date).
 export function badgeText({ cls, source, at }) {
   const when = at == null ? null : typeof at === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(at)
-    ? new Date(`${at}T00:00:00Z`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+    ? formatDate(at)
     : sydney(typeof at === 'string' ? Date.parse(at) : at)
   return [cls, source, when].filter(Boolean).join(' · ')
 }

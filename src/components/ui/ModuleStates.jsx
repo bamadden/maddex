@@ -56,6 +56,17 @@ export function DemoBadge({ source = 'demo data', className = '' }) {
   return <DataBadge cls="DEMO" source={source} className={className} />
 }
 
+// The one inline loading state: a small shimmer bar and the label, announced
+// politely to screen readers. Replaces the plain "LOADING..." strings.
+export function InlineLoading({ label = 'Loading', className = '' }) {
+  return (
+    <span role="status" aria-live="polite" className={`inline-flex items-center gap-1.5 font-mono text-2xs tracking-widest text-terminal-text-dim font-normal normal-case ${className}`}>
+      <span className="skeleton inline-block w-6 h-1.5 rounded-sm" aria-hidden="true" />
+      {label.toUpperCase()}…
+    </span>
+  )
+}
+
 export function ModuleError({ module = 'MODULE', lastUpdated, onRetry, className = '' }) {
   const lastSeen = timeAgo(lastUpdated)
   return (

@@ -5,22 +5,23 @@ import {
 import {
   generateOHLCV, PERIOD_DAYS, sma, ema, bollingerBands, rsi, macd,
 } from '../../utils/generateOHLCV'
+import { PAL } from '../../styles/palette.js'
 
 const PERIODS = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y']
 
 const CHART_COLORS = {
-  bg: '#060D1A',
+  bg: PAL.bg,
   grid: '#0d1a2e',
-  text: '#8BA3C4',
+  text: PAL.dim,
   border: '#1a2b4a',
-  up: '#3aaa63',
-  down: '#a83232',
-  gold: '#C9A84C',
+  up: PAL.up,
+  down: PAL.down,
+  gold: PAL.gold,
   sma20: '#4a9dff',
-  sma50: '#C9A84C',
+  sma50: PAL.gold,
   ema20: '#e879f9',
   bbBand: 'rgba(138,148,166,0.5)',
-  rsi: '#C9A84C',
+  rsi: PAL.gold,
   macdLine: '#4a9dff',
   macdSignal: '#e879f9',
 }
@@ -76,7 +77,7 @@ export default function TradingChart({ symbol, name, basePrice = 100, currency =
   useEffect(() => {
     if (!containerRef.current) return
     const chart = createChart(containerRef.current, {
-      layout: { background: { type: ColorType.Solid, color: CHART_COLORS.bg }, textColor: CHART_COLORS.text, fontFamily: 'IBM Plex Mono, monospace', fontSize: 10 },
+      layout: { background: { type: ColorType.Solid, color: CHART_COLORS.bg }, textColor: CHART_COLORS.text, fontFamily: 'IBM Plex Mono, monospace', fontSize: 11 },
       grid: { vertLines: { color: CHART_COLORS.grid }, horzLines: { color: CHART_COLORS.grid } },
       rightPriceScale: { borderColor: CHART_COLORS.border },
       timeScale: { borderColor: CHART_COLORS.border, timeVisible: true },

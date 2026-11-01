@@ -10,6 +10,7 @@ import DashboardControls from './DashboardControls'
 import WidgetPicker from './WidgetPicker'
 import TrialWelcomeBanner from './TrialWelcomeBanner'
 import OverviewSurface from './OverviewSurface'
+import { PAL } from '../../styles/palette.js'
 
 // OVERVIEW (the default) is the fixed command surface; CUSTOM is the widget
 // grid people arrange themselves. The choice is remembered per device.
@@ -126,7 +127,7 @@ export default function DashboardModule() {
             {custom && !isNarrow && (
               <button
                 onClick={() => setShowPicker((v) => !v)}
-                className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
+                className={`font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
                   showPicker ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
                 }`}
                 style={showPicker ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
@@ -137,7 +138,7 @@ export default function DashboardModule() {
                 onClick={() => setEditMode((v) => !v)}
                 data-tip="dashboard-edit"
                 title="Toggle edit mode (⌘E)"
-                className={`font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
+                className={`font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm transition-colors ${
                   editing ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
                 }`}
                 style={editing ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
@@ -156,7 +157,7 @@ export default function DashboardModule() {
         <div
           className="flex-shrink-0 font-mono"
           style={{
-            padding: '6px 20px', fontSize: 9, letterSpacing: '0.08em', color: '#4A6080',
+            padding: '6px 20px', fontSize: 11, letterSpacing: '0.08em', color: PAL.muted,
             background: 'rgba(201,168,76,0.04)', borderBottom: '1px solid rgba(201,168,76,0.1)',
           }}
         >
@@ -209,10 +210,10 @@ function DashboardSetup({ onPick, onSkip }) {
       style={{ zIndex: 40, background: 'rgba(2,6,12,0.9)', backdropFilter: 'blur(3px)' }}
     >
       <div style={{ width: 620, maxWidth: '92vw', padding: 24 }}>
-        <div className="font-mono mb-1" style={{ fontSize: 13, letterSpacing: '0.2em', color: '#C9A84C' }}>
+        <div className="font-mono mb-1" style={{ fontSize: 13, letterSpacing: '0.2em', color: PAL.gold }}>
           WELCOME TO YOUR DASHBOARD
         </div>
-        <div className="font-sans mb-5" style={{ fontSize: 12, color: '#8BA3C4' }}>
+        <div className="font-sans mb-5" style={{ fontSize: 12, color: PAL.dim }}>
           Choose a layout to get started, or customise it to fit your workflow.
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -228,14 +229,14 @@ function DashboardSetup({ onPick, onSkip }) {
               }}
             >
               <div className="flex items-center gap-2 mb-1.5">
-                <span style={{ fontSize: 13, color: '#C9A84C' }}>{p.icon}</span>
-                <span className="font-mono" style={{ fontSize: 11, letterSpacing: '0.1em', color: '#E8EDF5' }}>{p.name}</span>
+                <span style={{ fontSize: 13, color: PAL.gold }}>{p.icon}</span>
+                <span className="font-mono" style={{ fontSize: 11, letterSpacing: '0.1em', color: PAL.bright }}>{p.name}</span>
               </div>
-              <div className="font-sans" style={{ fontSize: 11, color: '#637899' }}>{p.description}</div>
+              <div className="font-sans" style={{ fontSize: 11, color: PAL.muted }}>{p.description}</div>
             </button>
           ))}
         </div>
-        <button onClick={onSkip} className="font-mono text-[9px] tracking-widest mt-4" style={{ color: '#4A6080' }}>
+        <button onClick={onSkip} className="font-mono text-[11px] tracking-widest mt-4" style={{ color: PAL.muted }}>
           SKIP — USE DEFAULT
         </button>
       </div>

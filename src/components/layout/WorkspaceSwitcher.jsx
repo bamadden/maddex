@@ -90,7 +90,7 @@ function NewWorkspaceModal({ onClose, onCreated }) {
                 }`}
               >
                 <div style={{ width: 48, height: 32 }}><LayoutWireframe layout={l.id} /></div>
-                <span className="text-[9px] text-terminal-text-dim tracking-wide">{l.label.toUpperCase()}</span>
+                <span className="text-[11px] text-terminal-text-dim tracking-wide">{l.label.toUpperCase()}</span>
               </button>
             ))}
           </div>
@@ -225,7 +225,7 @@ function SavedViewsMenu() {
       <Tooltip content={'Saved views\nSave or restore a layout'}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-center h-7 px-3 text-[9px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
+        className="flex items-center justify-center h-7 px-3 text-[11px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
       >
         ⧉
       </button>
@@ -270,7 +270,7 @@ function SavedViewsMenu() {
                   className="text-left flex-1 min-w-0"
                 >
                   <div className="text-2xs text-terminal-text-bright truncate">{v.name}</div>
-                  <div className="text-[10px] text-terminal-text-dim/60">{fmtViewTime(v.timestamp)}</div>
+                  <div className="text-[11px] text-terminal-text-dim/60">{fmtViewTime(v.timestamp)}</div>
                 </button>
                 <button
                   onClick={() => viewStateService.deleteView(v.id)}
@@ -321,7 +321,7 @@ export default function WorkspaceSwitcher() {
             e.preventDefault()
             setContextMenu({ workspace: ws, position: { x: e.clientX, y: e.clientY } })
           }}
-          className={`flex items-center gap-1.5 h-7 px-3 text-[9px] font-mono tracking-wider uppercase rounded-[2px] whitespace-nowrap transition-colors ${
+          className={`flex items-center gap-1.5 h-7 px-3 text-[11px] font-mono tracking-wider uppercase rounded-[2px] whitespace-nowrap transition-colors ${
             ws.id === active
               ? 'bg-terminal-gold/[0.15] text-terminal-gold border border-terminal-gold/40'
               : 'bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim'
@@ -335,7 +335,7 @@ export default function WorkspaceSwitcher() {
       <Tooltip content={`New workspace\n${shortcutService.shortcuts['ws.new']?.display ?? ''}`}>
       <button
         onClick={() => setShowNew(true)}
-        className="flex items-center justify-center h-7 px-3 text-[9px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
+        className="flex items-center justify-center h-7 px-3 text-[11px] font-mono tracking-wider rounded-[2px] bg-transparent text-terminal-muted border border-terminal-gold/[0.12] hover:border-terminal-gold/30 hover:text-terminal-text-dim transition-colors"
       >
         +
       </button>

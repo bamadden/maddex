@@ -8,6 +8,7 @@ import {
 } from '../../services/replayService'
 import { SCENARIOS, CATEGORY_STYLE } from '../../services/replayScenarios'
 import ScenarioPlayer, { FactPill } from './ScenarioPlayer'
+import { PAL } from '../../styles/palette.js'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D view.
@@ -35,7 +36,7 @@ function ChartTip({ active, payload, label }) {
   )
 }
 
-const DIFFICULTY_COLOUR = { BEGINNER: '#2D8A50', INTERMEDIATE: '#C9A84C', ADVANCED: '#A83232' }
+const DIFFICULTY_COLOUR = { BEGINNER: PAL.up, INTERMEDIATE: PAL.gold, ADVANCED: PAL.down }
 
 function ScenarioCard({ s, onPlay }) {
   const st = CATEGORY_STYLE[s.category]
@@ -44,11 +45,11 @@ function ScenarioCard({ s, onPlay }) {
       <div style={{ height: 3, background: st.colour }} />
       <div className="p-3 flex flex-col gap-2 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-mono font-bold tracking-widest" style={{ fontSize: 8, color: st.colour }}>{s.category}</span>
-          <span className="font-mono tracking-widest px-1.5 py-px" style={{ fontSize: 7, color: DIFFICULTY_COLOUR[s.difficulty], border: `1px solid ${DIFFICULTY_COLOUR[s.difficulty]}55` }}>{s.difficulty}</span>
+          <span className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: st.colour }}>{s.category}</span>
+          <span className="font-mono tracking-widest px-1.5 py-px" style={{ fontSize: 11, color: DIFFICULTY_COLOUR[s.difficulty], border: `1px solid ${DIFFICULTY_COLOUR[s.difficulty]}55` }}>{s.difficulty}</span>
         </div>
         <div className="font-bold text-terminal-text-bright" style={{ fontSize: 16, lineHeight: 1.2 }}>{s.title}</div>
-        <div className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{s.dateLabel} · {s.duration}</div>
+        <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{s.dateLabel} · {s.duration}</div>
         <div className="text-2xs text-terminal-text-dim leading-snug line-clamp-2">{s.description}</div>
         <div className="flex flex-wrap gap-1 mt-auto pt-1">
           {s.facts.slice(0, 3).map((f) => <FactPill key={f.label} f={f} />)}
@@ -212,10 +213,10 @@ export default function MarketReplayModule() {
                 <SafeChart width="100%" height="100%">
                   <AreaChart data={series}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
-                    <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
                     <Tooltip content={<ChartTip />} />
-                    <Area type="monotone" dataKey="level" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
+                    <Area type="monotone" dataKey="level" stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.15} />
                   </AreaChart>
                 </SafeChart>
               </div>

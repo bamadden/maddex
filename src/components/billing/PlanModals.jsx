@@ -6,6 +6,7 @@ import {
   TIERS, TIER_LABEL, PRICES, PLAN_CARDS, annualSaving, planFor, startUpgrade,
 } from '../../services/plans'
 import { UpgradeCard } from '../ui/UpgradePrompt'
+import { PAL } from '../../styles/palette.js'
 
 // The plan modals. PlanOverlays (mounted in App) hosts them and loads this
 // file on the first plan event, so none of it is in the first-paint bundle.
@@ -61,7 +62,7 @@ export function PricingModal({ onClose }) {
           <div className="inline-flex mt-5 border border-terminal-gold/40" role="radiogroup" aria-label="Billing period">
             {[['monthly', 'MONTHLY'], ['annual', 'ANNUALLY ★ SAVE']].map(([id, label]) => (
               <button key={id} role="radio" aria-checked={billing === id} onClick={() => setBilling(id)}
-                className={`px-4 py-1.5 text-[10px] font-bold tracking-[0.16em] transition-colors ${billing === id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                className={`px-4 py-1.5 text-[11px] font-bold tracking-[0.16em] transition-colors ${billing === id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
               >{label}</button>
             ))}
           </div>
@@ -74,28 +75,28 @@ export function PricingModal({ onClose }) {
             const featured = t === 'prime'
             return (
               <div key={t} className="relative flex flex-col p-5"
-                style={{ backgroundColor: '#0B1628', border: `1px solid ${featured ? 'rgba(201,168,76,0.7)' : 'rgba(99,120,153,0.35)'}`,
+                style={{ backgroundColor: PAL.panel, border: `1px solid ${featured ? 'rgba(201,168,76,0.7)' : 'rgba(99,120,153,0.35)'}`,
                   backgroundImage: featured ? 'linear-gradient(180deg, rgba(201,168,76,0.08) 0%, rgba(201,168,76,0) 30%)' : undefined }}>
                 {featured && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[9px] font-bold tracking-[0.18em] bg-terminal-gold text-terminal-bg">MOST POPULAR</span>
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[11px] font-bold tracking-[0.18em] bg-terminal-gold text-terminal-bg">MOST POPULAR</span>
                 )}
                 <div className="text-xs font-bold tracking-[0.24em] text-terminal-gold">{TIER_LABEL[t].toUpperCase()}</div>
                 <div className="text-xs text-terminal-text-dim mt-1 font-sans" style={{ fontSize: 13 }}>{card.tagline}</div>
                 <Price tier={t} billing={billing} />
-                <div className="text-[10px] text-terminal-text-dim mt-1 h-4">
+                <div className="text-[11px] text-terminal-text-dim mt-1 h-4">
                   {t === 'core' ? 'Free forever'
                     : billing === 'annual' ? `Billed annually (A$${PRICES[t].annual * 12}/yr) · save ${annualSaving(t)}%`
                     : `Billed monthly · A$${PRICES[t].annual}/mo billed annually`}
                 </div>
-                {card.lead && <div className="text-[10px] tracking-wider text-terminal-text-dim mt-4">{card.lead}</div>}
+                {card.lead && <div className="text-[11px] tracking-wider text-terminal-text-dim mt-4">{card.lead}</div>}
                 <ul className={`space-y-1.5 ${card.lead ? 'mt-2' : 'mt-4'} flex-1`}>
                   {card.features.map(([label, ok]) => (
-                    <li key={label} className="flex items-start gap-2 text-xs font-sans" style={{ fontSize: 12.5 }}>
+                    <li key={label} className="flex items-start gap-2 text-xs font-sans" style={{ fontSize: 12 }}>
                       <span className={`flex-shrink-0 font-mono ${ok === true ? 'text-terminal-green' : ok === 'soon' ? 'text-terminal-gold/70' : 'text-terminal-text-dim/40'}`} aria-hidden="true">
                         {ok === true ? '✓' : ok === 'soon' ? '◷' : '✗'}
                       </span>
                       <span className={ok === true ? 'text-terminal-text' : 'text-terminal-text-dim/60'}>
-                        {label}{ok === 'soon' && <span className="ml-1.5 text-[9px] font-mono tracking-wider text-terminal-gold/70">COMING SOON</span>}
+                        {label}{ok === 'soon' && <span className="ml-1.5 text-[11px] font-mono tracking-wider text-terminal-gold/70">COMING SOON</span>}
                       </span>
                     </li>
                   ))}
@@ -104,7 +105,7 @@ export function PricingModal({ onClose }) {
                   {current ? (
                     <div className="w-full py-2.5 text-center text-xs font-bold tracking-[0.16em] border border-terminal-border text-terminal-text-dim">CURRENT PLAN</div>
                   ) : t === 'core' ? (
-                    <div className="w-full py-2.5 text-center text-[10px] tracking-[0.14em] text-terminal-text-dim/60">INCLUDED FREE</div>
+                    <div className="w-full py-2.5 text-center text-[11px] tracking-[0.14em] text-terminal-text-dim/60">INCLUDED FREE</div>
                   ) : (
                     <button onClick={() => startUpgrade(t, billing)}
                       className="w-full py-2.5 text-xs font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
@@ -118,7 +119,7 @@ export function PricingModal({ onClose }) {
         {isTrial && plan === 'apex' && (
           <div className="text-center text-[11px] text-terminal-text-dim mt-4">You're on a free trial with full Apex access.</div>
         )}
-        <div className="text-center text-[10px] text-terminal-text-dim/50 mt-3">
+        <div className="text-center text-[11px] text-terminal-text-dim/50 mt-3">
           General information only — Maddex is not a financial adviser. Equity prices run on demo data until a live feed is connected.
         </div>
       </div>
@@ -153,10 +154,10 @@ export function ComingSoonModal({ tier, onClose }) {
   return (
     <Backdrop onClose={onClose} z="z-[270]">
       <div className="relative w-full max-w-md font-mono px-7 pt-7 pb-6 shadow-2xl"
-        style={{ backgroundColor: '#0B1628', backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.08) 0%, rgba(201,168,76,0) 40%)', border: '1px solid rgba(201,168,76,0.45)' }}
+        style={{ backgroundColor: PAL.panel, backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.08) 0%, rgba(201,168,76,0) 40%)', border: '1px solid rgba(201,168,76,0.45)' }}
         role="dialog" aria-label="Payments coming soon">
         <button onClick={onClose} aria-label="Close" className="absolute top-2.5 right-3 text-terminal-text-dim hover:text-terminal-text text-xs">✕</button>
-        <div className="text-[9px] tracking-[0.24em] text-terminal-gold">{tier ? `MADDEX ${TIER_LABEL[tier].toUpperCase()}` : 'MADDEX'}</div>
+        <div className="text-[11px] tracking-[0.24em] text-terminal-gold">{tier ? `MADDEX ${TIER_LABEL[tier].toUpperCase()}` : 'MADDEX'}</div>
         <div className="text-lg font-bold text-terminal-text-bright mt-2 tracking-wide">PAYMENTS COMING SOON</div>
         <p className="text-xs text-terminal-text-dim leading-relaxed mt-2 font-sans" style={{ fontSize: 13 }}>
           We're finalising our payment system. Be the first to know when {tier ? TIER_LABEL[tier] : 'Prime'} launches:
@@ -179,7 +180,7 @@ export function ComingSoonModal({ tier, onClose }) {
               >{status === 'saving' ? '…' : 'NOTIFY ME'}</button>
             </div>
             {status === 'invalid' && <div className="text-[11px] text-terminal-red mt-1.5">Enter a valid email address.</div>}
-            <div className="text-[10px] text-terminal-text-dim/70 mt-2">We'll email you at launch with an exclusive early-adopter offer. Nothing else.</div>
+            <div className="text-[11px] text-terminal-text-dim/70 mt-2">We'll email you at launch with an exclusive early-adopter offer. Nothing else.</div>
           </form>
         )}
       </div>

@@ -11,6 +11,7 @@ import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { portfolioRate } from './rateSensitivity'
 import { RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import { PAL } from '../../styles/palette.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -40,9 +41,9 @@ function DividendSection({ holdings, fmtCur }) {
       <div style={{ height: 150 }}>
         <SafeChart width="100%" height="100%">
           <BarChart data={year} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#637899' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 8, fill: '#4A6080' }} axisLine={false} tickLine={false} width={44}
+            <CartesianGrid stroke={PAL.header} vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: PAL.muted }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: PAL.muted }} axisLine={false} tickLine={false} width={44}
               tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v))} />
             <RTooltip
               cursor={{ fill: 'rgba(201,168,76,0.06)' }}
@@ -70,16 +71,16 @@ function DividendSection({ holdings, fmtCur }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ background: 'rgba(201,168,76,0.12)' }}>
         {[
-          ['ESTIMATED ANNUAL INCOME', fmtCur(sched.totalAnnual), '#C9A84C', `${fmtCur(sched.monthlyAverage)} a month on average`],
-          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', '#2D8A50', 'Income ÷ what you paid'],
+          ['ESTIMATED ANNUAL INCOME', fmtCur(sched.totalAnnual), PAL.gold, `${fmtCur(sched.monthlyAverage)} a month on average`],
+          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', PAL.up, 'Income ÷ what you paid'],
           ['YIELD ON VALUE', sched.yieldOnValue != null ? `${sched.yieldOnValue.toFixed(2)}%` : '—', null,
             sched.yieldOnValue != null && td != null ? `vs 1-yr term deposit ${td.toFixed(2)}% (RBA F4)` : 'Income ÷ value today'],
-          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), '#2D8A50', 'Per year, at the 30% company rate'],
+          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), PAL.up, 'Per year, at the 30% company rate'],
         ].map(([label, value, tone, sub]) => (
-          <div key={label} style={{ background: '#0B1628', padding: '10px 12px' }}>
-            <div className="text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 8 }}>{label}</div>
-            <div className="font-mono font-bold tabular-nums mt-0.5" style={{ fontSize: 16, color: tone ?? '#E8EDF5' }}>{value}</div>
-            <div className="text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 8 }}>{sub}</div>
+          <div key={label} style={{ background: PAL.panel, padding: '10px 12px' }}>
+            <div className="text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 11 }}>{label}</div>
+            <div className="font-mono font-bold tabular-nums mt-0.5" style={{ fontSize: 16, color: tone ?? PAL.bright }}>{value}</div>
+            <div className="text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 11 }}>{sub}</div>
           </div>
         ))}
       </div>
@@ -94,7 +95,7 @@ function DividendSection({ holdings, fmtCur }) {
             <span className="text-2xs text-terminal-text-dim truncate flex-1 min-w-0">{r.note ?? 'Payment months not recorded'}</span>
             {r.franking != null && (
               <span className="badge flex-shrink-0" style={{
-                color: r.franking >= 100 ? '#2D8A50' : r.franking > 0 ? '#C9A84C' : '#637899',
+                color: r.franking >= 100 ? PAL.up : r.franking > 0 ? PAL.gold : PAL.muted,
                 border: `1px solid ${r.franking >= 100 ? 'rgba(45,138,80,0.4)' : r.franking > 0 ? 'rgba(201,168,76,0.4)' : 'rgba(99,120,153,0.3)'}`,
               }}>{r.franking}% FRANKED</span>
             )}
@@ -341,7 +342,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
                     <span className="text-2xs font-bold text-terminal-text-bright">{f.label}</span>
                     <span
                       className="text-2xs font-bold tabular-nums"
-                      style={{ color: f.direction === 'over' ? '#2D8A50' : f.direction === 'under' ? '#A83232' : '#637899' }}
+                      style={{ color: f.direction === 'over' ? PAL.up : f.direction === 'under' ? PAL.down : PAL.muted }}
                     >
                       {f.direction === 'over' ? '▲ OVERWEIGHT' : f.direction === 'under' ? '▼ UNDERWEIGHT' : '→ NEUTRAL'}
                     </span>
@@ -352,7 +353,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
                     <div className="absolute top-0 bottom-0 left-1/2 w-px bg-terminal-text-dim/40" />
                     <div
                       className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
-                      style={{ left: `${offset}%`, background: '#C9A84C' }}
+                      style={{ left: `${offset}%`, background: PAL.gold }}
                     />
                   </div>
 
@@ -407,7 +408,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
               <div key={r.sector} className="flex items-start gap-2">
                 <span
                   className="text-2xs font-bold flex-shrink-0 w-16"
-                  style={{ color: r.exposed ? '#C9A84C' : '#637899' }}
+                  style={{ color: r.exposed ? PAL.gold : PAL.muted }}
                 >{r.weight.toFixed(0)}%</span>
                 <span className="text-2xs font-bold text-terminal-text-bright w-20 flex-shrink-0">{r.sector}</span>
                 <span className="text-2xs text-terminal-text-dim flex-1 leading-snug">{r.mechanism}</span>
@@ -452,7 +453,7 @@ function RateSensitivitySection({ holdings, fmtCur }) {
   if (!pr) return null
   const nd = pendingRbaDecision()
   const hikeTo = nd?.hikeRate != null ? `${nd.hikeRate.toFixed(2)}%` : null
-  const tone = RATE_LEVEL_STYLE[pr.rating]?.colour ?? '#8BA3C4'
+  const tone = RATE_LEVEL_STYLE[pr.rating]?.colour ?? PAL.dim
   const topText = pr.top.map(([s, w]) => `${s} (${Math.round(w * 100)}%)`).join(' and ')
   const verdict = {
     POSITIVE: 'tends to benefit from rising rates — banks\' margins outweigh the pressure elsewhere',
@@ -502,7 +503,7 @@ function RateSensitivitySection({ holdings, fmtCur }) {
                   <tr key={h.id ?? h.symbol} className="border-t border-terminal-border/30" title={r.why}>
                     <td className="py-1 font-bold text-terminal-text-bright">{h.symbol}</td>
                     <td className="text-terminal-text-dim">{r.sector}</td>
-                    <td className="font-bold" style={{ color: st?.colour ?? '#637899' }}>{st?.label ?? '—'}</td>
+                    <td className="font-bold" style={{ color: st?.colour ?? PAL.muted }}>{st?.label ?? '—'}</td>
                     <td className="text-right tabular-nums" style={{ color: r.shock > 0.05 ? 'var(--color-gain)' : r.shock < -0.05 ? 'var(--color-loss)' : undefined }}>{fmtShock(r.shock)}</td>
                     <td className="text-right tabular-nums text-terminal-text-dim hidden sm:table-cell">
                       {Math.abs(r.shock) < 0.05 ? '—' : `${r.shock > 0 ? '+' : '−'}${fmtCur(Math.abs(h.mktVal * r.shock / 100))}`}

@@ -4,6 +4,7 @@ import { OrbitControls, Stars, Html } from '@react-three/drei'
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { BG_COLOR, GAIN_BRIGHT, LOSS_BRIGHT, GOLD } from './shared3d'
+import { PAL } from '../../styles/palette.js'
 
 // Iron Man HUD / Palantir-style control room — a central health orb with
 // each macro indicator floating as its own panel in a ring around it,
@@ -35,10 +36,10 @@ function CentralOrb({ score }) {
       </mesh>
       <Html center distanceFactor={11}>
         <div style={{ pointerEvents: 'none', textAlign: 'center' }}>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 24, color: 'white', fontWeight: 700, textShadow: `0 0 20px ${color}` }}>
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 28, color: 'white', fontWeight: 700, textShadow: `0 0 20px ${color}` }}>
             {Math.round(score)}
           </div>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: GOLD, letterSpacing: '0.2em' }}>
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: GOLD, letterSpacing: '0.2em' }}>
             MACRO SCORE
           </div>
         </div>
@@ -70,21 +71,21 @@ function IndicatorPanel({ indicator, position, rotation }) {
         onPointerOut={(e) => { e.stopPropagation(); setHovered(false) }}
       >
         <planeGeometry args={[2.5, 1.5]} />
-        <meshStandardMaterial color="#0B1628" transparent opacity={hovered ? 0.95 : 0.7} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={PAL.panel} transparent opacity={hovered ? 0.95 : 0.7} side={THREE.DoubleSide} />
       </mesh>
       <lineSegments>
         <edgesGeometry args={[new THREE.PlaneGeometry(2.5, 1.5)]} />
-        <lineBasicMaterial color={hovered ? GOLD : '#4A6080'} />
+        <lineBasicMaterial color={hovered ? GOLD : PAL.muted} />
       </lineSegments>
       <Html position={[0, 0, 0.3]} center distanceFactor={11} occlude style={{ pointerEvents: 'none' }}>
         <div style={{ width: 200, padding: '8px 12px', fontFamily: 'IBM Plex Mono, monospace' }}>
-          <div style={{ fontSize: 8, color: '#637899', letterSpacing: '0.15em', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.15em', marginBottom: 4 }}>
             {indicator.name.toUpperCase()}
           </div>
           <div style={{ fontSize: 20, color: 'white', fontWeight: 700 }}>
             {indicator.current}{indicator.unit}
           </div>
-          <div style={{ fontSize: 9, color: trendColor }}>{indicator.trend}</div>
+          <div style={{ fontSize: 11, color: trendColor }}>{indicator.trend}</div>
         </div>
       </Html>
     </group>

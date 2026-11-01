@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { InlineLoading } from '../ui/ModuleStates'
 import ErrorBoundary from '../ui/ErrorBoundary'
 import { WORKSPACE_MODULE_LIST } from '../../config/workspaceModules'
 
@@ -31,7 +32,7 @@ const MODULES = {
 function ModuleFallback() {
   return (
     <div className="h-full flex items-center justify-center">
-      <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse font-mono">LOADING MODULE...</span>
+      <InlineLoading label="Loading module" />
     </div>
   )
 }

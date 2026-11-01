@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { PricingModal, ComingSoonModal } from '../billing/PlanModals'
 import { markTrialEndedSeen, PRICES, LIMITS } from '../../services/plans'
+import { PAL } from '../../styles/palette.js'
 
 // Shown once when a 7-day trial ends. Core is a free plan now, so this is a
 // choice rather than a lock: continue on Core, or pick a paid plan. The
@@ -34,7 +35,7 @@ export default function TrialExpiredModal({ onContinue }) {
     <div className="fixed inset-0 z-[300] bg-terminal-bg flex items-center justify-center font-mono p-4"
       style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
       <div className="w-full max-w-lg shadow-2xl px-8 pt-9 pb-7 text-center"
-        style={{ backgroundColor: '#0B1628', backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0) 34%)', border: '1px solid rgba(201,168,76,0.45)' }}>
+        style={{ backgroundColor: PAL.panel, backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0) 34%)', border: '1px solid rgba(201,168,76,0.45)' }}>
         <img src="/icons/icon-mark-192.png" alt="" aria-hidden="true" className="mx-auto" style={{ width: 52, height: 52, objectFit: 'contain' }} />
         <div className="text-terminal-text-bright text-lg font-bold mt-4 tracking-wide">YOUR TRIAL HAS ENDED</div>
         <p className="text-terminal-text-dim leading-relaxed mt-2 font-sans" style={{ fontSize: 13 }}>
@@ -44,7 +45,7 @@ export default function TrialExpiredModal({ onContinue }) {
           <span className="text-terminal-green font-bold">Your data is safe.</span>{' '}
           <span className="text-terminal-text">Your watchlist, portfolio and alerts are kept, whichever plan you choose.</span>
         </div>
-        <div className="text-[10px] tracking-[0.16em] text-terminal-text-dim mt-5 mb-2">CONTINUE ON CORE (FREE) OR UPGRADE</div>
+        <div className="text-[11px] tracking-[0.16em] text-terminal-text-dim mt-5 mb-2">CONTINUE ON CORE (FREE) OR UPGRADE</div>
         <div className="grid grid-cols-3 gap-2">
           {[
             { tier: 'core', label: 'CORE', price: 'FREE', note: `${LIMITS.core.aiPerDay} AI questions a day, ${LIMITS.core.watchlist}-stock watchlist`, onClick: continueOnCore },
@@ -55,14 +56,14 @@ export default function TrialExpiredModal({ onContinue }) {
               className={`px-2 py-3 flex flex-col items-center gap-1 transition-colors ${p.featured ? 'bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright' : 'border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10'}`}>
               <span className="text-xs font-bold tracking-[0.16em]">{p.label}</span>
               <span className="text-[11px] font-bold">{p.price}</span>
-              <span className={`font-sans leading-tight ${p.featured ? 'text-terminal-bg/80' : 'text-terminal-text-dim'}`} style={{ fontSize: 10 }}>{p.note}</span>
+              <span className={`font-sans leading-tight ${p.featured ? 'text-terminal-bg/80' : 'text-terminal-text-dim'}`} style={{ fontSize: 11 }}>{p.note}</span>
             </button>
           ))}
         </div>
-        <button onClick={() => setView('plans')} className="mt-4 text-[10px] tracking-[0.14em] text-terminal-gold/80 hover:text-terminal-gold">COMPARE EVERY FEATURE →</button>
+        <button onClick={() => setView('plans')} className="mt-4 text-[11px] tracking-[0.14em] text-terminal-gold/80 hover:text-terminal-gold">COMPARE EVERY FEATURE →</button>
         {upgradeTier && <ComingSoonModal tier={upgradeTier} onClose={() => setUpgradeTier(null)} />}
         <div />
-        <button onClick={signOut} className="mt-5 text-[10px] tracking-[0.14em] text-terminal-text-dim hover:text-terminal-text">SIGN OUT</button>
+        <button onClick={signOut} className="mt-5 text-[11px] tracking-[0.14em] text-terminal-text-dim hover:text-terminal-text">SIGN OUT</button>
       </div>
     </div>
   )

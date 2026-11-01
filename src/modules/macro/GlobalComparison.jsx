@@ -1,5 +1,6 @@
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Global economic comparison ─────────────────────────────────────────────
 //
@@ -12,8 +13,8 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 // forecast of its next.
 
 const STANCE = {
-  HIKE: { label: 'HIKING', colour: '#E8A33D' },
-  HOLD: { label: 'HOLDING', colour: '#C9A84C' },
+  HIKE: { label: 'HIKING', colour: PAL.amber },
+  HOLD: { label: 'HOLDING', colour: PAL.gold },
   CUT: { label: 'EASING', colour: '#4A9EDB' },
 }
 
@@ -41,7 +42,7 @@ export default function GlobalComparison() {
       <div className="overflow-x-auto">
         <table className="w-full text-2xs font-mono">
           <thead>
-            <tr className="text-terminal-text-dim text-[9px] tracking-widest border-b border-terminal-border">
+            <tr className="text-terminal-text-dim text-[11px] tracking-widest border-b border-terminal-border">
               <th className="text-left py-1.5 px-3 font-normal">ECONOMY</th>
               <th className="text-right py-1.5 px-3 font-normal">GROWTH</th>
               <th className="text-right py-1.5 px-3 font-normal">INFLATION</th>
@@ -61,28 +62,28 @@ export default function GlobalComparison() {
                   </td>
                   <td className="py-1.5 px-3 text-right tabular-nums">
                     <span className="text-terminal-text-bright">{r.growth != null ? `${r.growth.toFixed(1)}%` : '—'}</span>
-                    <div className="text-[8px] text-terminal-text-dim/60">{r.gLabel}</div>
+                    <div className="text-[11px] text-terminal-text-dim/60">{r.gLabel}</div>
                   </td>
                   <td className="py-1.5 px-3 text-right tabular-nums">
                     <span className="text-terminal-text-bright">{r.cpi != null ? `${r.cpi.toFixed(1)}%` : '—'}</span>
-                    <div className="text-[8px] text-terminal-text-dim/60">{r.cLabel}</div>
+                    <div className="text-[11px] text-terminal-text-dim/60">{r.cLabel}</div>
                   </td>
                   <td className="py-1.5 px-3 text-right tabular-nums">
                     <span className="text-terminal-text-bright">{r.bank?.rateRange ?? `${r.bank?.cashRate?.toFixed(2)}%`}</span>
-                    <div className="text-[8px] text-terminal-text-dim/60">{r.bankName}</div>
+                    <div className="text-[11px] text-terminal-text-dim/60">{r.bankName}</div>
                   </td>
                   <td className="py-1.5 px-3">
                     <span className="font-bold" style={{ color: st.colour, letterSpacing: '0.08em' }}>{st.label}</span>
-                    <div className="text-[8px] text-terminal-text-dim/60">{r.bank?.lastDecisionVerb} {short(r.bank?.lastDecision)}</div>
+                    <div className="text-[11px] text-terminal-text-dim/60">{r.bank?.lastDecisionVerb} {short(r.bank?.lastDecision)}</div>
                   </td>
-                  <td className="py-1.5 px-3 text-[9px] text-terminal-text-dim/70 hidden lg:table-cell">{r.src}</td>
+                  <td className="py-1.5 px-3 text-[11px] text-terminal-text-dim/70 hidden lg:table-cell">{r.src}</td>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
-      <div className="px-3 py-1.5 text-[9px] text-terminal-text-dim/60 leading-snug">
+      <div className="px-3 py-1.5 text-[11px] text-terminal-text-dim/60 leading-snug">
         Growth: the US and Japan headline annualised quarterly growth; the others year-on-year — not directly comparable. Inflation is each
         economy&apos;s headline CPI (HICP for the euro area). Policy stances are each bank's latest decision, updated as the constants are.
       </div>

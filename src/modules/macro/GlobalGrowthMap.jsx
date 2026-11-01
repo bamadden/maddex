@@ -5,6 +5,7 @@ import { loadCountries, featureIso3 } from '../../utils/naturalEarth'
 import {
   fetchImfOutlook, economyStatus, GROWTH_BANDS, NO_DATA_COLOUR, FOCUS_ECONOMIES,
 } from '../../services/imfOutlook'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Global growth map ──────────────────────────────────────────────────────
 //
@@ -137,7 +138,7 @@ export default function GlobalGrowthMap() {
                 if (!st?.momentum || st.momentum.key === 'flat' || !Number.isFinite(s.cx)) return null
                 return (
                   <text key={`m-${s.iso}`} x={s.cx} y={s.cy + 4} textAnchor="middle" fontSize="12" fontWeight="700"
-                    fill="#F5E6B8" stroke="#0B1628" strokeWidth="2.5" paintOrder="stroke" pointerEvents="none">
+                    fill="#F5E6B8" stroke={PAL.panel} strokeWidth="2.5" paintOrder="stroke" pointerEvents="none">
                     {st.momentum.arrow}
                   </text>
                 )
@@ -177,7 +178,7 @@ export default function GlobalGrowthMap() {
                   <span className="text-right text-terminal-text-dim">{fmt(row?.growth?.[year + 1])}</span>
                 </div>
                 {st && (
-                  <div className="text-[9px] tracking-widest mt-0.5" style={{ color: st.band.colour }}>
+                  <div className="text-[11px] tracking-widest mt-0.5" style={{ color: st.band.colour }}>
                     {st.band.label.toUpperCase()}{st.momentum ? ` ${st.momentum.arrow} ${st.momentum.label.toUpperCase()}` : ''}
                     <span className="text-terminal-text-dim/60 normal-case tracking-normal"> · CPI {fmt(st.inflation)}</span>
                   </div>

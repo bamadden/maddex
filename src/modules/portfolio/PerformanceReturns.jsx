@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Tooltip from '../../components/ui/Tooltip'
 import { TAX_RATES, MEDICARE_LEVY, MIN_ANNUALISE_DAYS } from '../../services/performanceMath'
 import { basisOf, taxNoteFor } from './performanceModel'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Performance summary, returns by holding, tax controls ─────────────────
 //
@@ -10,7 +11,7 @@ import { basisOf, taxNoteFor } from './performanceModel'
 // price — which is DEMO data in this build, as the rest of the module says.
 
 const fmtPct = (v, dp = 1) => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(dp)}%`)
-const tone = (v) => (v == null ? '#8BA3C4' : v >= 0 ? '#2D8A50' : '#CC4444')
+const tone = (v) => (v == null ? PAL.dim : v >= 0 ? PAL.up : PAL.down)
 const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 
 function Annualised({ value, days }) {
@@ -23,10 +24,10 @@ function Annualised({ value, days }) {
 function Stat({ label, title, value, sub, colour }) {
   return (
     <div className="px-3 py-2.5 min-w-0">
-      <div className="font-mono text-[8px] tracking-[0.18em] text-terminal-text-dim mb-1">{label}</div>
+      <div className="font-mono text-[11px] tracking-[0.18em] text-terminal-text-dim mb-1">{label}</div>
       {title && <div className="font-mono text-[11px] font-bold text-terminal-text-bright truncate">{title}</div>}
       <div className="font-mono text-lg font-bold tabular-nums" style={{ color: colour }}>{value}</div>
-      <div className="font-mono text-[9px] mt-0.5">{sub}</div>
+      <div className="font-mono text-[11px] mt-0.5">{sub}</div>
     </div>
   )
 }
@@ -80,12 +81,12 @@ export function PerformanceSummary({ model, afterTax, fmtCur, taxRate }) {
           <Stat label="WORST PERFORMER" title={worst.label} value={fmtPct(worst[b.ret])} colour={tone(worst[b.ret])}
             sub={<Annualised value={worst[b.ann]} days={worst.days} />} />
         ) : (
-          <Stat label="WORST PERFORMER" value="—" colour="#4A6080" sub={<span className="text-terminal-text-dim/60">One position — nothing to rank</span>} />
+          <Stat label="WORST PERFORMER" value="—" colour={PAL.muted} sub={<span className="text-terminal-text-dim/60">One position — nothing to rank</span>} />
         )}
         <Stat label={`PORTFOLIO RETURN (${b.label.toUpperCase()})`} value={fmtPct(p[b.ret])} colour={tone(p[b.ret])}
           sub={<Annualised value={p[b.ann]} days={p.days} />} />
       </div>
-      <div className="px-3 pb-2 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[9px] text-terminal-text-dim">
+      <div className="px-3 pb-2 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-terminal-text-dim">
         <span>Since {fmtDay(p.firstDate)}</span>
         <span>Price return <b className="tabular-nums" style={{ color: tone(p.priceRet) }}>{fmtPct(p.priceRet)}</b></span>
         <span>Total return <b className="tabular-nums" style={{ color: tone(p.totalRet) }}>{fmtPct(p.totalRet)}</b> <span className="text-terminal-text-dim/60">({divNote})</span></span>
@@ -96,13 +97,13 @@ export function PerformanceSummary({ model, afterTax, fmtCur, taxRate }) {
         </span>
       </div>
       {p.divEstimated > 0 && (
-        <div className="px-3 pb-2 font-mono text-[8px] text-terminal-text-dim/50 leading-snug">
+        <div className="px-3 pb-2 font-mono text-[11px] text-terminal-text-dim/50 leading-snug">
           Total return includes estimated dividends based on current yields where no dividend has been recorded.
           Actual dividends depend on ex-dividend dates — record them in Transactions to replace the estimate.
         </div>
       )}
       {afterTax && (
-        <div className="px-3 pb-2 font-mono text-[8px] text-terminal-text-dim/50 leading-snug">{taxNoteFor(taxRate)}</div>
+        <div className="px-3 pb-2 font-mono text-[11px] text-terminal-text-dim/50 leading-snug">{taxNoteFor(taxRate)}</div>
       )}
     </div>
   )
@@ -110,7 +111,7 @@ export function PerformanceSummary({ model, afterTax, fmtCur, taxRate }) {
 
 function LotTip({ position, fmtCur }) {
   return (
-    <div className="font-mono text-[10px] leading-relaxed">
+    <div className="font-mono text-[11px] leading-relaxed">
       {position.lots.map((l, i) => (
         <div key={i}>
           LOT {i + 1}: {l.units} units @ {l.currency === 'USD' ? 'US$' : 'A$'}{Number(l.price).toFixed(2)} ({fmtDay(l.date)})
@@ -138,9 +139,9 @@ export function ReturnsTable({ model, afterTax, fmtCur }) {
   )
   return (
     <div className="overflow-x-auto">
-      <table className="w-full font-mono text-[10px]">
+      <table className="w-full font-mono text-[11px]">
         <thead>
-          <tr className="text-terminal-text-dim border-b border-terminal-border/60 text-[9px] tracking-wider">
+          <tr className="text-terminal-text-dim border-b border-terminal-border/60 text-[11px] tracking-wider">
             {th('HOLDING', null, 'text-left')}
             {th('SINCE', null, 'text-left')}
             {th('COST', 'cost')}
@@ -158,7 +159,7 @@ export function ReturnsTable({ model, afterTax, fmtCur }) {
                 <Tooltip content={<LotTip position={p} fmtCur={fmtCur} />}>
                   <span className="text-terminal-text-bright font-bold cursor-help">{p.label}</span>
                 </Tooltip>
-                {p.lots.length > 1 && <span className="ml-1.5 text-[8px] text-terminal-gold/70 border border-terminal-gold/30 px-1">{p.lots.length} LOTS</span>}
+                {p.lots.length > 1 && <span className="ml-1.5 text-[11px] text-terminal-gold/70 border border-terminal-gold/30 px-1">{p.lots.length} LOTS</span>}
               </td>
               <td className="px-2 py-1 text-left text-terminal-text-dim">{fmtDay(p.firstDate)}</td>
               <td className="px-2 py-1 text-right tabular-nums">{fmtCur(p.cost)}</td>
@@ -166,15 +167,15 @@ export function ReturnsTable({ model, afterTax, fmtCur }) {
               <td className="px-2 py-1 text-right tabular-nums" style={{ color: tone(p.priceRet) }}>{fmtPct(p.priceRet)}</td>
               <td className="px-2 py-1 text-right tabular-nums text-terminal-text-dim">
                 {p.divs > 0 ? fmtCur(p.divs) : '—'}
-                {p.divs > 0 && <span className="ml-1 text-[8px] text-terminal-text-dim/60">{p.divRecorded > 0 ? 'REC' : 'EST'}</span>}
+                {p.divs > 0 && <span className="ml-1 text-[11px] text-terminal-text-dim/60">{p.divRecorded > 0 ? 'REC' : 'EST'}</span>}
               </td>
               <td className="px-2 py-1 text-right tabular-nums font-bold" style={{ color: tone(p[b.ret]) }}>{fmtPct(p[b.ret])}</td>
-              <td className="px-2 py-1 text-left text-[9px]"><Annualised value={p[b.ann]} days={p.days} /></td>
+              <td className="px-2 py-1 text-left text-[11px]"><Annualised value={p[b.ann]} days={p.days} /></td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="px-2 pt-1.5 font-mono text-[8px] text-terminal-text-dim/50 leading-snug">
+      <div className="px-2 pt-1.5 font-mono text-[11px] text-terminal-text-dim/50 leading-snug">
         Hover a ticker for its lots. Cost is the units-weighted average across all lots; days held is cost-weighted, so a
         large recent purchase counts for more than a small old one. Annualised = (1 + return)^(365 ÷ days) − 1, shown from
         {` ${MIN_ANNUALISE_DAYS}`} days. DIVIDENDS: REC = recorded in Transactions, EST = current yield accrued since purchase.

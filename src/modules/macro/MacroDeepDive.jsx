@@ -3,6 +3,7 @@ import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConst
 import { askClaude } from '../../services/api'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import RegimeQuadrant from './RegimeQuadrant'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Macro indicator deep dive ─────────────────────────────────────────────
 //
@@ -29,9 +30,9 @@ function targetRead(name, value) {
   if (!/CPI/i.test(name)) return null
   const v = parseNum(value)
   if (v == null) return null
-  if (v > 3) return { label: 'ABOVE TARGET BAND', colour: '#CC4444', detail: `${v}% against the RBA's 2–3% band` }
+  if (v > 3) return { label: 'ABOVE TARGET BAND', colour: PAL.down, detail: `${v}% against the RBA's 2–3% band` }
   if (v < 2) return { label: 'BELOW TARGET BAND', colour: '#4A9EDB', detail: `${v}% against the RBA's 2–3% band` }
-  return { label: 'IN TARGET BAND', colour: '#2D8A50', detail: `${v}% within the RBA's 2–3% band` }
+  return { label: 'IN TARGET BAND', colour: PAL.up, detail: `${v}% within the RBA's 2–3% band` }
 }
 
 // How directly each indicator feeds the RBA's decision. This is a property of
@@ -47,7 +48,7 @@ const RBA_RELEVANCE = [
   { test: /trade|balance/i,                level: 'LOW',    why: 'Reaches policy indirectly, mainly through the currency.' },
 ]
 
-const RELEVANCE_TONE = { HIGH: '#CC4444', MEDIUM: '#C9A84C', LOW: '#637899' }
+const RELEVANCE_TONE = { HIGH: PAL.down, MEDIUM: PAL.gold, LOW: PAL.muted }
 
 function rbaRelevance(name = '') {
   const hit = RBA_RELEVANCE.find((r) => r.test.test(name))
@@ -127,7 +128,7 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
           <span className="text-2xs font-bold text-terminal-gold tracking-widest">{indicator.name.toUpperCase()}</span>
           <span className="text-lg font-bold text-terminal-text-bright tabular-nums">{indicator.value}</span>
           {delta != null && (
-            <span className="text-2xs tabular-nums" style={{ color: delta > 0 ? '#2D8A50' : delta < 0 ? '#CC4444' : '#637899' }}>
+            <span className="text-2xs tabular-nums" style={{ color: delta > 0 ? PAL.up : delta < 0 ? PAL.down : PAL.muted }}>
               {delta > 0 ? '▲' : delta < 0 ? '▼' : '→'} {Math.abs(delta)} vs previous ({indicator.prev})
             </span>
           )}
@@ -159,7 +160,7 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
 
         <div className="border-t border-terminal-border/40 pt-2">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[9px] text-terminal-gold font-bold tracking-widest">MADDENAI INTERPRETATION</span>
+            <span className="text-[11px] text-terminal-gold font-bold tracking-widest">MADDENAI INTERPRETATION</span>
             <AIContentBadge source={read.source === 'cache' ? 'cache' : 'live'} />
           </div>
           {read.status === 'loading' && (
@@ -193,13 +194,13 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
 const TREND_GDP = 2.25 // Australia's approximate trend growth, the usual dividing line
 
 const QUADRANT_GUIDE = [
-  { key: 'stag', label: 'STAGFLATION RISK', growth: false, infl: true, lean: 'HIKE / HOLD', tone: '#CC4444',
+  { key: 'stag', label: 'STAGFLATION RISK', growth: false, infl: true, lean: 'HIKE / HOLD', tone: PAL.down,
     note: 'The hardest case — growth below trend, inflation above target. Inflation outside the band usually wins: the RBA tightens despite the slowdown.' },
-  { key: 'over', label: 'OVERHEATING', growth: true, infl: true, lean: 'HIKE', tone: '#E8A33D',
+  { key: 'over', label: 'OVERHEATING', growth: true, infl: true, lean: 'HIKE', tone: PAL.amber,
     note: 'Demand running ahead of capacity — the textbook case for tightening.' },
   { key: 'rec', label: 'CONTRACTION', growth: false, infl: false, lean: 'CUT', tone: '#4A9EDB',
     note: 'Weak growth and inflation in or below the band — room to support activity.' },
-  { key: 'gold', label: 'GOLDILOCKS', growth: true, infl: false, lean: 'HOLD', tone: '#2D8A50',
+  { key: 'gold', label: 'GOLDILOCKS', growth: true, infl: false, lean: 'HOLD', tone: PAL.up,
     note: 'Growth at trend without price pressure — policy can sit still.' },
 ]
 
@@ -222,7 +223,7 @@ export function RbaSensitivityMatrix() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border flex-wrap gap-2">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">GROWTH / INFLATION POSITION · RBA SENSITIVITY</span>
-        <span className="text-[9px] text-terminal-text-dim">
+        <span className="text-[11px] text-terminal-text-dim">
           CPI {au.cpi.toFixed(1)}% · GDP {au.gdpAnnual}% · cash rate {rba.cashRate.toFixed(2)}%
         </span>
       </div>
@@ -239,11 +240,11 @@ export function RbaSensitivityMatrix() {
                 background: active ? `${q.tone}14` : 'transparent',
               }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xs font-bold tracking-widest" style={{ color: active ? q.tone : '#637899' }}>{q.label}</span>
-                  <span className="text-[9px] font-mono" style={{ color: active ? '#E8EDF5' : '#4A6080' }}>→ {q.lean}</span>
-                  {active && <span className="ml-auto text-[8px] text-terminal-gold tracking-widest font-bold">YOU ARE HERE</span>}
+                  <span className="text-2xs font-bold tracking-widest" style={{ color: active ? q.tone : PAL.muted }}>{q.label}</span>
+                  <span className="text-[11px] font-mono" style={{ color: active ? PAL.bright : PAL.muted }}>→ {q.lean}</span>
+                  {active && <span className="ml-auto text-[11px] text-terminal-gold tracking-widest font-bold">YOU ARE HERE</span>}
                 </div>
-                <div className="text-[9px] mt-0.5 leading-snug" style={{ color: active ? '#8BA3C4' : 'rgba(99,120,153,0.6)' }}>{q.note}</div>
+                <div className="text-[11px] mt-0.5 leading-snug" style={{ color: active ? PAL.dim : 'rgba(99,120,153,0.6)' }}>{q.note}</div>
               </div>
             )
           })}
@@ -252,11 +253,11 @@ export function RbaSensitivityMatrix() {
 
       <div className="px-3 pb-3">
         <div className="border-t border-terminal-border/50 pt-2.5 flex items-start gap-2">
-          <span className="font-mono font-bold flex-shrink-0 px-1.5" style={{ fontSize: 8, letterSpacing: '0.1em', color: '#8BA3C4', border: '1px solid rgba(139,163,196,0.35)' }}
+          <span className="font-mono font-bold flex-shrink-0 px-1.5" style={{ fontSize: 11, letterSpacing: '0.1em', color: PAL.dim, border: '1px solid rgba(139,163,196,0.35)' }}
             title="Assembled from verified figures, not generated by MaddenAI">FROM VERIFIED FIGURES</span>
           <p className="text-2xs text-terminal-text leading-relaxed">{narrative}</p>
         </div>
-        <div className="text-[9px] text-terminal-text-dim/60 leading-snug mt-1.5">
+        <div className="text-[11px] text-terminal-text-dim/60 leading-snug mt-1.5">
           Quadrant boundaries: ~{TREND_GDP}% trend growth; inflation above the top of the band counts as high. The lean is
           what the framework implies, not a forecast of the Board&apos;s decision.
         </div>

@@ -37,9 +37,9 @@ test('lists decisions, releases, market and holdings moves, alerts and scheduled
     changes: [{ what: 'Michael Chaney leaves the Wesfarmers board', effective: '2026-10-29T13:00:00+08:00' }, { what: 'later', effective: '2026-12-01T00:00:00Z' }],
   })
   const text = items.map((i) => i.text).join('\n')
-  assert.match(text, /RBA hike to 4\.85% on 2026-11-03/)
+  assert.match(text, /RBA hike to 4\.85% on 3 Nov 2026/)
   assert.doesNotMatch(text, /2026-09-29/)                          // before the last visit
-  assert.match(text, /CPI Sep 2026: 4\.3% y\/y \(ABS\), released 2026-10-28/)
+  assert.match(text, /CPI Sep 2026: 4\.3% y\/y \(ABS\), released 28 Oct 2026/)
   assert.doesNotMatch(text, /Unemployment/)                         // released before the last visit
   assert.match(text, /ASX 200 \+0\.96% \(8790\.2 → 8874\.6\)/)
   assert.match(text, /Your holdings \+4\.18% \(A\$7,900 → A\$8,230\)/)

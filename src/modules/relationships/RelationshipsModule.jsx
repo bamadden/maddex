@@ -13,6 +13,7 @@ import { useStore } from '../../store/useStore'
 import { openCompanyProfile } from '../../utils/openRelationships'
 import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel } from './theme'
 import { ConfidenceBadge, StaleBadge, WeightBadge, EdgeDetail, PathFinder, ConnectedHoldings, RipplePanel } from './RelPanels'
+import { PAL } from '../../styles/palette.js'
 
 // RELATIONSHIPS — the company graph.
 //
@@ -25,10 +26,10 @@ import { ConfidenceBadge, StaleBadge, WeightBadge, EdgeDetail, PathFinder, Conne
 // an event reaches and how many hops away, and nothing about how much
 // anything moves — see rippleMap in services/graphQuery.js.
 
-const HOP_TONE = ['#E8A33D', '#E8A33D', '#C4853A', '#8A6A3A']
+const HOP_TONE = [PAL.amber, PAL.amber, '#C4853A', '#8A6A3A']
 const DEFAULT_TYPES = EDGE_TYPES.filter((t) => t !== 'member_of')
 const THIN_COMPANIES = new Set(GRAPH.nodes.filter((n) => n.type === 'company' && completeness(GRAPH, n.id).level === 'THIN').map((n) => n.id))
-const LEVEL_TONE = { THIN: '#C4653A', PARTIAL: '#C9A84C', FULLER: '#2D8A50' }
+const LEVEL_TONE = { THIN: '#C4653A', PARTIAL: PAL.gold, FULLER: PAL.up }
 
 
 // The user's holdings, one row per symbol, from the portfolio saved on this
@@ -53,9 +54,9 @@ function Chip({ on, onClick, children, tone }) {
     <button onClick={onClick} aria-pressed={on}
       className="font-mono tracking-wider px-2 py-0.5 border transition-colors"
       style={{
-        fontSize: 9,
+        fontSize: 11,
         borderColor: on ? 'rgba(201,168,76,0.6)' : 'rgba(74,96,128,0.35)',
-        color: on ? '#C9A84C' : '#637899',
+        color: on ? PAL.gold : PAL.muted,
         background: on ? 'rgba(201,168,76,0.08)' : 'transparent',
       }}>
       {tone && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 6, background: tone, marginRight: 5 }} />}
@@ -136,7 +137,7 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
           const sel = l.id === selectedEdge
           return (
             <g key={l.id}>
-              <line data-eid={l.id} stroke={sel ? '#C9A84C' : on && exposure ? '#E8A33D' : '#4A6080'}
+              <line data-eid={l.id} stroke={sel ? PAL.gold : on && exposure ? PAL.amber : PAL.muted}
                 strokeOpacity={sel ? 1 : on ? (exposure ? 0.8 : 0.55) : 0.08} strokeWidth={sel ? 2.2 : l.confidence === 'VERIFIED' ? 1.6 : 1}
                 strokeDasharray={DASH[l.confidence] ?? undefined} style={{ pointerEvents: 'none' }} />
               {/* A wide invisible line over each edge, so a 1px line can be clicked. */}
@@ -155,7 +156,7 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
             <g key={n.id} data-nid={n.id} style={{ cursor: 'pointer', opacity: lit(n.id) ? 1 : 0.15 }}
               onClick={(ev) => { ev.stopPropagation(); onSelect(n.id) }}>
               {(isSel || isOrigin || hop) && (
-                <circle r={radius(n) + 4} fill="none" stroke={isSel ? '#C9A84C' : HOP_TONE[hop ?? 0]} strokeWidth={isSel ? 2 : 1.5} />
+                <circle r={radius(n) + 4} fill="none" stroke={isSel ? PAL.gold : HOP_TONE[hop ?? 0]} strokeWidth={isSel ? 2 : 1.5} />
               )}
               {/* MY HOLDINGS: solid green ring for a holding, dashed for a
                   watchlist name. */}
@@ -169,7 +170,7 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
                 ? <circle r={radius(n)} fill="#040A14" stroke={TYPE_COLOUR[n.type]} strokeWidth={1.5} strokeDasharray="2 2" />
                 : <circle r={radius(n)} fill={TYPE_COLOUR[n.type]} fillOpacity={n.type === 'person' ? 0.7 : 0.9} stroke="#040A14" strokeWidth={1} />}
               <text y={radius(n) + 10} textAnchor="middle" className="font-mono select-none"
-                style={{ fontSize: n.type === 'person' ? 7 : 8, fill: isSel ? '#C9A84C' : '#8BA3C4', letterSpacing: '0.06em', pointerEvents: 'none' }}>
+                style={{ fontSize: n.type === 'person' ? 11 : 11, fill: isSel ? PAL.gold : PAL.dim, letterSpacing: '0.06em', pointerEvents: 'none' }}>
                 {nodeLabel(n)}{hop ? ` ·${hop}` : ''}
               </text>
             </g>
@@ -187,17 +188,17 @@ function EdgeRow({ row, onSelect, onEdge, now }) {
     <div className="py-1.5 border-b border-terminal-border/40">
       <div className="flex items-start gap-2">
         <button onClick={() => onSelect(other.id)} className="text-left flex-1 min-w-0 text-terminal-text-bright hover:text-terminal-gold" style={{ fontSize: 12 }}>
-          <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{outgoing ? '→' : '←'} </span>
-          {other.name}{other.ticker && other.ticker !== other.name ? <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}> {other.ticker}</span> : null}
+          <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{outgoing ? '→' : '←'} </span>
+          {other.name}{other.ticker && other.ticker !== other.name ? <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}> {other.ticker}</span> : null}
         </button>
         <WeightBadge edge={e} />
         <StaleBadge edge={e} now={now} />
         <ConfidenceBadge c={e.confidence} />
-        <button onClick={() => onEdge(e.id)} className="font-mono text-terminal-text-dim hover:text-terminal-gold flex-shrink-0" style={{ fontSize: 9 }} title="Source, page, date and quote">ⓘ</button>
+        <button onClick={() => onEdge(e.id)} className="font-mono text-terminal-text-dim hover:text-terminal-gold flex-shrink-0" style={{ fontSize: 11 }} title="Source, page, date and quote">ⓘ</button>
       </div>
-      {(e.note || e.weightLabel) && <div className="text-terminal-text-dim mt-0.5 leading-snug" style={{ fontSize: 10 }}>{[e.weightLabel, e.note].filter(Boolean).join(' · ')}</div>}
+      {(e.note || e.weightLabel) && <div className="text-terminal-text-dim mt-0.5 leading-snug" style={{ fontSize: 11 }}>{[e.weightLabel, e.note].filter(Boolean).join(' · ')}</div>}
       <a href={e.source.url} target="_blank" rel="noopener noreferrer"
-        className="block font-mono text-terminal-text-dim/70 hover:text-terminal-gold mt-0.5 leading-snug" style={{ fontSize: 9 }}>
+        className="block font-mono text-terminal-text-dim/70 hover:text-terminal-gold mt-0.5 leading-snug" style={{ fontSize: 11 }}>
         SOURCE: {e.source.label} · {fmtDate(e.source.date)} ↗
       </a>
     </div>
@@ -211,17 +212,17 @@ function Completeness({ id, now }) {
   return (
     <div className="mt-2 border px-2 py-1.5" style={{ borderColor: showLevel ? `${LEVEL_TONE[c.level]}55` : 'rgba(74,96,128,0.35)' }}>
       <div className="flex items-center gap-2">
-        <span className="font-mono tracking-widest text-terminal-text-dim flex-1" style={{ fontSize: 9 }}>DATA COMPLETENESS</span>
-        {showLevel && <span className="font-mono font-bold tracking-widest" style={{ fontSize: 9, color: LEVEL_TONE[c.level] }}>{c.level}</span>}
+        <span className="font-mono tracking-widest text-terminal-text-dim flex-1" style={{ fontSize: 11 }}>DATA COMPLETENESS</span>
+        {showLevel && <span className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: LEVEL_TONE[c.level] }}>{c.level}</span>}
       </div>
-      <div className="flex items-center gap-3 mt-1 font-mono tabular-nums" style={{ fontSize: 10 }}>
+      <div className="flex items-center gap-3 mt-1 font-mono tabular-nums" style={{ fontSize: 11 }}>
         {CONFIDENCE.map((k) => (
-          <span key={k} style={{ color: c.byConfidence[k] ? CONF_TONE[k] : '#3A4E68' }}>{c.byConfidence[k]} {k.slice(0, 4)}</span>
+          <span key={k} style={{ color: c.byConfidence[k] ? CONF_TONE[k] : PAL.muted }}>{c.byConfidence[k]} {k.slice(0, 4)}</span>
         ))}
         {c.stale > 0 && <span style={{ color: STALE_TONE }} title="Figure more than 12 months old">{c.stale} STALE</span>}
         <span className="text-terminal-text-dim ml-auto">{c.total} edges</span>
       </div>
-      <div className="font-mono text-terminal-text-dim/80 mt-1 leading-snug" style={{ fontSize: 9 }}>
+      <div className="font-mono text-terminal-text-dim/80 mt-1 leading-snug" style={{ fontSize: 11 }}>
         {c.lastVerified ? `Last verified ${fmtDate(c.lastVerified)}` : 'No edges'}
         {c.oldestSource && c.oldestSource !== c.lastVerified ? ` · oldest source ${fmtDate(c.oldestSource)}` : ''}
         {showLevel && c.level === 'THIN' ? ' · no sourced ownership, customer, exposure or peer edge yet' : ''}
@@ -236,27 +237,27 @@ function NodePanel({ id, onSelect, onShock, onEdge, overlay, holdings, now }) {
   const groups = edgesOf(GRAPH, id)
   return (
     <div>
-      <div className="font-mono tracking-widest" style={{ fontSize: 9, color: TYPE_COLOUR[n.type] }}>{n.type.toUpperCase()}{n.top20 ? ` · #${n.top20} BY ASX MARKET CAP` : ''}</div>
-      {n.top20 && <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8, letterSpacing: '0.08em' }}>{TOP20_LABEL}</div>}
-      <div className="text-terminal-text-bright font-semibold mt-0.5" style={{ fontSize: 15 }}>{n.name}</div>
-      <div className="font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 10 }}>
+      <div className="font-mono tracking-widest" style={{ fontSize: 11, color: TYPE_COLOUR[n.type] }}>{n.type.toUpperCase()}{n.top20 ? ` · #${n.top20} BY ASX MARKET CAP` : ''}</div>
+      {n.top20 && <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11, letterSpacing: '0.08em' }}>{TOP20_LABEL}</div>}
+      <div className="text-terminal-text-bright font-semibold mt-0.5" style={{ fontSize: 14 }}>{n.name}</div>
+      <div className="font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 11 }}>
         {[...new Set([n.ticker && `ASX:${n.ticker}`, n.sector, n.industry, n.country])].filter(Boolean).join(' · ')}
       </div>
       <Completeness id={id} now={now} />
       {overlay && <ConnectedHoldings id={id} holdings={holdings} onSelectNode={onSelect} />}
       <button onClick={() => onShock(id)}
-        className="mt-2 font-mono font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-1" style={{ fontSize: 9 }}>
+        className="mt-2 font-mono font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-1" style={{ fontSize: 11 }}>
         EVENT RIPPLE FROM HERE ▶
       </button>
       {n.type === 'company' && (
         <button onClick={() => openCompanyProfile(setActiveModule, id)}
-          className="mt-2 ml-2 font-mono font-bold tracking-widest border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold/40 px-2 py-1" style={{ fontSize: 9 }}>
+          className="mt-2 ml-2 font-mono font-bold tracking-widest border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold/40 px-2 py-1" style={{ fontSize: 11 }}>
           COMPANY PROFILE ◧
         </button>
       )}
       {EDGE_TYPES.filter((t) => groups[t]).map((t) => (
         <div key={t} className="mt-3">
-          <div className="font-mono tracking-widest text-terminal-text-dim mb-0.5" style={{ fontSize: 9 }}>{EDGE_LABEL[t]} · {groups[t].length}</div>
+          <div className="font-mono tracking-widest text-terminal-text-dim mb-0.5" style={{ fontSize: 11 }}>{EDGE_LABEL[t]} · {groups[t].length}</div>
           {groups[t].map((r) => <EdgeRow key={r.edge.id} row={r} onSelect={onSelect} onEdge={onEdge} now={now} />)}
         </div>
       ))}
@@ -268,7 +269,7 @@ function Legend() {
   const counts = CONFIDENCE.map((c) => [c, GRAPH.edges.filter((e) => e.confidence === c).length])
   return (
     <div>
-      <div className="font-mono tracking-widest text-terminal-text-dim" style={{ fontSize: 9 }}>EVERY EDGE IS SOURCED</div>
+      <div className="font-mono tracking-widest text-terminal-text-dim" style={{ fontSize: 11 }}>EVERY EDGE IS SOURCED</div>
       <p className="text-terminal-text mt-1 leading-snug" style={{ fontSize: 12 }}>
         {GRAPH.nodes.length} nodes and {GRAPH.edges.length} relationships, each carrying the filing, release or profile it was read from.
         Nothing here is generated by MaddenAI. Click a node to see its relationships and their sources.
@@ -276,32 +277,32 @@ function Legend() {
       <div className="mt-3 space-y-1.5">
         {counts.map(([c, k]) => (
           <div key={c} className="flex items-center gap-2" style={{ fontSize: 11 }}>
-            <svg width="34" height="6"><line x1="0" y1="3" x2="34" y2="3" stroke="#8BA3C4" strokeWidth={c === 'VERIFIED' ? 1.6 : 1} strokeDasharray={DASH[c] ?? undefined} /></svg>
+            <svg width="34" height="6"><line x1="0" y1="3" x2="34" y2="3" stroke={PAL.dim} strokeWidth={c === 'VERIFIED' ? 1.6 : 1} strokeDasharray={DASH[c] ?? undefined} /></svg>
             <ConfidenceBadge c={c} /><span className="text-terminal-text-dim">{k}</span>
           </div>
         ))}
       </div>
-      <div className="text-terminal-text-dim mt-2 leading-snug" style={{ fontSize: 10 }}>
+      <div className="text-terminal-text-dim mt-2 leading-snug" style={{ fontSize: 11 }}>
         VERIFIED — read from the primary document, figure as filed. DISCLOSED — stated by the company, fund or exchange. INFERRED — derived from
         disclosed facts; never weighted.
       </div>
-      <div className="font-mono mt-3 leading-snug" style={{ fontSize: 9, color: '#C9A84C' }}>{TOP20_LABEL}</div>
-      <div className="text-terminal-text-dim mt-1 leading-snug" style={{ fontSize: 10 }}>
+      <div className="font-mono mt-3 leading-snug" style={{ fontSize: 11, color: PAL.gold }}>{TOP20_LABEL}</div>
+      <div className="text-terminal-text-dim mt-1 leading-snug" style={{ fontSize: 11 }}>
         Ranked by the market cap on each company's ASX profile. The official index is float-adjusted and rebalanced quarterly; the two
         can differ at the margin.
       </div>
-      <div className="mt-2 flex items-center gap-2 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
-        <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="#8BA3C4" strokeWidth="1.5" strokeDasharray="2 2" /></svg>
+      <div className="mt-2 flex items-center gap-2 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
+        <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke={PAL.dim} strokeWidth="1.5" strokeDasharray="2 2" /></svg>
         HOLLOW = THIN: NO SOURCED OWNERSHIP, CUSTOMER, EXPOSURE OR PEER EDGE YET ({THIN_COMPANIES.size})
       </div>
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
         {Object.entries(TYPE_COLOUR).map(([t, c]) => (
-          <span key={t} className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
+          <span key={t} className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
             <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 7, background: c, marginRight: 4 }} />{t.toUpperCase()}
           </span>
         ))}
       </div>
-      <div className="text-terminal-text-dim/70 mt-3 leading-snug" style={{ fontSize: 10 }}>
+      <div className="text-terminal-text-dim/70 mt-3 leading-snug" style={{ fontSize: 11 }}>
         Phase 1.5 seed, as at {fmtDate(GRAPH_AS_OF)}: six commodities, index and ETF membership, GICS peers, chairs and CEOs, the
         substantial holders of the ten largest companies from their annual reports, and ownership edges from holder notices and company releases.
       </div>
@@ -388,7 +389,7 @@ export default function RelationshipsModule() {
               {hits.map((n) => (
                 <button key={n.id} onClick={() => { setFocus(n.id); setSelected(n.id); setTab('node'); setQ('') }}
                   className="block w-full text-left px-2 py-1 hover:bg-terminal-gold/10 text-terminal-text" style={{ fontSize: 11 }}>
-                  {n.name} <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{n.ticker ?? n.type}</span>
+                  {n.name} <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{n.ticker ?? n.type}</span>
                 </button>
               ))}
             </div>
@@ -396,7 +397,7 @@ export default function RelationshipsModule() {
         </div>
         {focus && (
           <>
-            <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>DEPTH</span>
+            <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>DEPTH</span>
             {[1, 2, 3].map((d) => <Chip key={d} on={depth === d} onClick={() => setDepth(d)}>{d}</Chip>)}
             <Chip on={false} onClick={() => setFocus(null)}>WHOLE GRAPH ✕</Chip>
           </>
@@ -413,18 +414,18 @@ export default function RelationshipsModule() {
         <div className="relative flex-1 min-h-[360px]">
           <GraphCanvas view={drawn} selected={selected} onSelect={select_} onSelectEdge={selectEdge} selectedEdge={tab === 'edge' ? selectedEdge : null}
             exposure={exposure} origin={origin} held={overlay ? held : null} watched={overlay ? watched : null} />
-          <div className="absolute left-3 bottom-2 font-mono text-terminal-text-dim/70 pointer-events-none" style={{ fontSize: 9 }}>
+          <div className="absolute left-3 bottom-2 font-mono text-terminal-text-dim/70 pointer-events-none" style={{ fontSize: 11 }}>
             {drawn.nodes.length} NODES · {drawn.edges.length} EDGES{pathView ? ' · PATH' : focus && !shockView ? ` · ${depth} HOP${depth > 1 ? 'S' : ''} FROM ${nodeLabel(GRAPH.byId.get(focus)).toUpperCase()}` : ''} · CLICK A LINE FOR ITS SOURCE · SCROLL TO ZOOM
           </div>
           {overlay && !exposure && (
             <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
-              style={{ fontSize: 9, color: HELD_TONE, border: `1px solid ${HELD_TONE}88`, background: 'rgba(4,10,20,0.85)' }}>
+              style={{ fontSize: 11, color: HELD_TONE, border: `1px solid ${HELD_TONE}88`, background: 'rgba(4,10,20,0.85)' }}>
               CONNECTED EXPOSURE, NOT FORECAST
             </div>
           )}
           {exposure && (
             <div className="absolute left-3 top-2 font-mono font-bold tracking-widest px-1.5 py-0.5 pointer-events-none"
-              style={{ fontSize: 9, color: '#E8A33D', border: '1px solid rgba(232,163,61,0.5)', background: 'rgba(4,10,20,0.85)' }}>
+              style={{ fontSize: 11, color: PAL.amber, border: '1px solid rgba(232,163,61,0.5)', background: 'rgba(4,10,20,0.85)' }}>
               CONNECTED EXPOSURE, NOT FORECAST
             </div>
           )}
@@ -434,7 +435,7 @@ export default function RelationshipsModule() {
             {[['about', 'ABOUT'], ['node', 'NODE'], ['edge', 'EDGE'], ['paths', 'PATHS'], ['ripple', 'RIPPLE']].map(([k, label]) => (
               <button key={k} onClick={() => setTab(k)} disabled={(k === 'node' && !selected) || (k === 'edge' && !selectedEdge)}
                 className="flex-1 font-mono tracking-widest py-1.5 disabled:opacity-30"
-                style={{ fontSize: 9, color: tab === k ? '#C9A84C' : '#637899', borderBottom: tab === k ? '2px solid #C9A84C' : '2px solid transparent' }}>
+                style={{ fontSize: 11, color: tab === k ? PAL.gold : PAL.muted, borderBottom: tab === k ? '2px solid #C9A84C' : '2px solid transparent' }}>
                 {label}
               </button>
             ))}

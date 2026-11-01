@@ -96,3 +96,24 @@ export function sydneyClock(date = new Date(), { seconds = false, hour12 = false
   const tz = sydneyTzAbbr(d.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))
   return { time, tz, text: `${time} ${tz}` }
 }
+
+// THE date format: "29 Sep 2026" (or "Tue 29 Sep 2026" with weekday). Fixed
+// three-letter months — en-AU's own formatter writes "Sept", and the app had
+// six formats on screen (2026-10-28, 29 SEPT 2026, Sep 2026…). Accepts an
+// ISO date (a calendar date, not shifted by zone), a Date or ms; Date and ms
+// are read in Sydney time.
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const WDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export function formatDate(input, { weekday = false, year = true } = {}) {
+  if (input == null || input === '') return '—'
+  let y, m, d
+  if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    [y, m, d] = input.split('-').map(Number)
+  } else {
+    const iso = new Date(input).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+    ;[y, m, d] = iso.split('-').map(Number)
+  }
+  if (!y) return '—'
+  const wd = WDAY[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
+  return `${weekday ? `${wd} ` : ''}${d} ${MON[m - 1]}${year ? ` ${y}` : ''}`
+}

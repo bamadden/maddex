@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import BrandLockup from './BrandLockup'
 
 // Shown while the app is still initialising (auth check + a short minimum
 // hold, see AuthGate in App.jsx) — not a fixed fake timer, so it never
@@ -12,7 +13,7 @@ export default function AppLoader() {
   return (
     <div className="fixed inset-0 z-[100] bg-terminal-bg flex flex-col items-center justify-center gap-6 font-mono">
       <div className="flex flex-col items-center gap-3">
-        <div className="text-terminal-gold text-4xl font-bold tracking-[0.3em]">▲ MADDEX</div>
+        <BrandLockup size={48} />
         <div className="text-terminal-text-dim text-xs tracking-[0.5em]">FINANCIAL INTELLIGENCE</div>
       </div>
       <div className="w-48 h-0.5 bg-terminal-border overflow-hidden">

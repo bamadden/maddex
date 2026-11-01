@@ -8,6 +8,7 @@ import { useBondYields } from './useBondYields'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import Tooltip from '../../components/ui/Tooltip'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Bonds ──────────────────────────────────────────────────────────────────
 //
@@ -19,10 +20,10 @@ import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 // CPI used for the real-yield column, which comes from verifiedConstants.
 
 const TERM_TONE = (years) =>
-  years < 2 ? '#4A7FB5' : years <= 10 ? '#C9A84C' : years <= 30 ? '#a855f7' : '#8BA3C4'
+  years < 2 ? '#4A7FB5' : years <= 10 ? PAL.gold : years <= 30 ? '#a855f7' : PAL.dim
 
 const SHAPE_TONE = {
-  NORMAL: '#2D8A50', FLAT: '#C9A84C', INVERTED: '#CC4444', HUMPED: '#a855f7', '—': '#637899',
+  NORMAL: PAL.up, FLAT: PAL.gold, INVERTED: PAL.down, HUMPED: '#a855f7', '—': PAL.muted,
 }
 
 const bp = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(0)}bp`
@@ -70,15 +71,15 @@ function CurveChart({ series, hover, onHover, onPick }) {
     >
       {[lo, (lo + hi) / 2, hi].map((v, i) => (
         <g key={i}>
-          <line x1={padL} x2={W - padR} y1={y(v)} y2={y(v)} stroke="#0F1E35" />
-          <text x={6} y={y(v) + 3} fill="#4A6080" style={{ fontSize: 8, fontFamily: '"IBM Plex Mono", monospace' }}>
+          <line x1={padL} x2={W - padR} y1={y(v)} y2={y(v)} stroke={PAL.header} />
+          <text x={6} y={y(v) + 3} fill={PAL.muted} style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}>
             {v.toFixed(2)}%
           </text>
         </g>
       ))}
       {TICKS.map(([label, yrs]) => (
-        <text key={label} x={x(yrs)} y={H - 8} textAnchor="middle" fill="#4A6080"
-          style={{ fontSize: 8, fontFamily: '"IBM Plex Mono", monospace' }}>{label}</text>
+        <text key={label} x={x(yrs)} y={H - 8} textAnchor="middle" fill={PAL.muted}
+          style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}>{label}</text>
       ))}
 
       {series.map((s) => (
@@ -100,8 +101,8 @@ function CurveChart({ series, hover, onHover, onPick }) {
       {hover && (
         <>
           <line x1={x(hover.row.years)} x2={x(hover.row.years)} y1={padT} y2={H - padB}
-            stroke="#C9A84C" strokeOpacity={0.4} />
-          <circle cx={x(hover.row.years)} cy={y(hover.row.yield)} r={5} fill="#C9A84C" />
+            stroke={PAL.gold} strokeOpacity={0.4} />
+          <circle cx={x(hover.row.years)} cy={y(hover.row.yield)} r={5} fill={PAL.gold} />
         </>
       )}
     </svg>
@@ -131,7 +132,7 @@ function BondDetail({ market, row, onClose }) {
 
   const stat = (label, value, tip) => (
     <div>
-      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.14em' }}>{label}</div>
+      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>{label}</div>
       {tip ? (
         <Tooltip content={tip}>
           <div className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 12 }}>{value}</div>
@@ -149,12 +150,12 @@ function BondDetail({ market, row, onClose }) {
           <span className="font-mono font-bold text-terminal-gold tracking-widest" style={{ fontSize: 11 }}>
             {market.flag} {market.label} {row.maturity} {row.type}
           </span>
-          <span className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 18 }}>
+          <span className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 20 }}>
             {row.yield.toFixed(3)}%
           </span>
           {row.indicative && (
             <Tooltip content="Not a sourced point. Interpolated between quoted maturities, or an ultra-long tenor that is thinly traded even in the real market.">
-              <span className="font-mono text-terminal-text-dim/60 italic" style={{ fontSize: 9 }}>INDICATIVE</span>
+              <span className="font-mono text-terminal-text-dim/60 italic" style={{ fontSize: 11 }}>INDICATIVE</span>
             </Tooltip>
           )}
           <button onClick={onClose} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold">✕ CLOSE</button>
@@ -163,13 +164,13 @@ function BondDetail({ market, row, onClose }) {
         {/* THE POINT OF THE PANEL. A 30-year bond is a thirty-year decision and
             "30Y" does not read like one. The exact remaining term does. */}
         <div className="mb-3">
-          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
             TIME TO MATURITY
           </div>
           <div className="font-mono font-bold text-terminal-gold" style={{ fontSize: 20, letterSpacing: '0.04em' }}>
             {t.y} {t.y === 1 ? 'YEAR' : 'YEARS'} · {t.m} {t.m === 1 ? 'MONTH' : 'MONTHS'} · {t.d} {t.d === 1 ? 'DAY' : 'DAYS'}
           </div>
-          <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>
+          <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
             {t.totalDays.toLocaleString()} days · matures {t.date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
         </div>
@@ -218,13 +219,13 @@ function BondCalculator() {
 
   const field = (label, value, set, suffix) => (
     <label className="block">
-      <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8, letterSpacing: '0.14em' }}>{label}</span>
+      <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.14em' }}>{label}</span>
       <div className="flex items-center gap-1 mt-0.5">
         <input
           type="number" value={value} onChange={(e) => set(e.target.value)}
           className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold font-mono tabular-nums"
         />
-        {suffix && <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 9 }}>{suffix}</span>}
+        {suffix && <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>{suffix}</span>}
       </div>
     </label>
   )
@@ -232,7 +233,7 @@ function BondCalculator() {
   const res = (label, value, tip) => (
     <Tooltip content={tip}>
       <div className="border border-terminal-border px-2 py-1.5">
-        <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em' }}>{label}</div>
+        <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>{label}</div>
         <div className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 14 }}>{value}</div>
       </div>
     </Tooltip>
@@ -277,7 +278,7 @@ function BondCalculator() {
           <div className="text-2xs text-terminal-text-dim/60">Enter a face value, coupon, term and price.</div>
         )}
 
-        <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 8 }}>
+        <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 11 }}>
           Annual coupons assumed. General information only — not financial advice.
         </div>
       </div>
@@ -330,8 +331,8 @@ export default function BondsModule() {
           indicative; the CPI the real-yield column uses is not. */}
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(201,168,76,0.04)' }}>
-        <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>INDICATIVE DATA</span>
-        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
+        <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>INDICATIVE DATA</span>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           AU and US curves are anchored to quoted closes (AU {BOND_CURVES_AS_OF.AU}, US Treasury par curve {BOND_CURVES_AS_OF.US});
           UK, DE and JP are illustrative. Ticking is simulated, not a market feed. Real yields use verified AU CPI of {cpi.toFixed(1)}%.
         </span>
@@ -344,10 +345,10 @@ export default function BondsModule() {
             onClick={() => { setMarketKey(m.key); setPicked(null) }}
             className="font-mono uppercase tracking-wider transition-colors"
             style={{
-              fontSize: 9, padding: '3px 10px', borderRadius: 2,
+              fontSize: 11, padding: '3px 10px', borderRadius: 2,
               border: `1px solid ${marketKey === m.key ? m.colour : 'rgba(201,168,76,0.12)'}`,
               background: marketKey === m.key ? `${m.colour}26` : 'transparent',
-              color: marketKey === m.key ? m.colour : '#4A6080',
+              color: marketKey === m.key ? m.colour : PAL.muted,
             }}
           >{m.flag} {m.label}</button>
         ))}
@@ -355,23 +356,23 @@ export default function BondsModule() {
           onClick={() => setShowAll((v) => !v)}
           className="font-mono uppercase tracking-wider transition-colors ml-2"
           style={{
-            fontSize: 9, padding: '3px 10px', borderRadius: 2,
-            border: `1px solid ${showAll ? '#C9A84C' : 'rgba(201,168,76,0.12)'}`,
+            fontSize: 11, padding: '3px 10px', borderRadius: 2,
+            border: `1px solid ${showAll ? PAL.gold : 'rgba(201,168,76,0.12)'}`,
             background: showAll ? 'rgba(201,168,76,0.15)' : 'transparent',
-            color: showAll ? '#C9A84C' : '#4A6080',
+            color: showAll ? PAL.gold : PAL.muted,
           }}
         >ALL MARKETS</button>
 
         <span className="ml-auto flex items-center gap-2">
-          <span className="font-mono font-bold px-2 py-0.5" style={{ fontSize: 8, letterSpacing: '0.1em', color: SHAPE_TONE[stats.shape], border: `1px solid ${SHAPE_TONE[stats.shape]}66` }}>
+          <span className="font-mono font-bold px-2 py-0.5" style={{ fontSize: 11, letterSpacing: '0.1em', color: SHAPE_TONE[stats.shape], border: `1px solid ${SHAPE_TONE[stats.shape]}66` }}>
             {stats.shape} CURVE
           </span>
-          <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
+          <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
             2s10s <b className="text-terminal-text-bright tabular-nums">{stats.spread == null ? '—' : bp(stats.spread * 100)}</b>
           </span>
           {au10 != null && us10 != null && marketKey === 'AU' && (
-            <span className="font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
-              AU−US 10Y <b className="tabular-nums" style={{ color: au10 >= us10 ? '#2D8A50' : '#CC4444' }}>{bp((au10 - us10) * 100)}</b>
+            <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
+              AU−US 10Y <b className="tabular-nums" style={{ color: au10 >= us10 ? PAL.up : PAL.down }}>{bp((au10 - us10) * 100)}</b>
             </span>
           )}
         </span>
@@ -381,16 +382,16 @@ export default function BondsModule() {
         <CurveChart series={series} hover={hover} onHover={setHover} onPick={setPicked} />
         <div className="flex items-center gap-3 px-1 pb-1 flex-wrap" style={{ minHeight: 18 }}>
           {hover ? (
-            <span className="font-mono text-terminal-gold" style={{ fontSize: 9 }}>
+            <span className="font-mono text-terminal-gold" style={{ fontSize: 11 }}>
               {market.label} {hover.row.maturity} · {hover.row.yield.toFixed(3)}% · click to open
             </span>
           ) : (
-            <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 9 }}>
+            <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>
               Hover the curve for a reading · log scale, so the short end is legible
             </span>
           )}
           {showAll && BOND_MARKETS.map((m) => (
-            <span key={m.key} className="flex items-center gap-1 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>
+            <span key={m.key} className="flex items-center gap-1 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
               <span style={{ width: 10, height: 2, background: m.colour, display: 'inline-block' }} />{m.label}
             </span>
           ))}
@@ -417,16 +418,16 @@ export default function BondsModule() {
                 const diff = au != null && us != null ? (au - us) * 100 : null
                 return (
                   <tr key={t} className="border-b border-terminal-border/30">
-                    <td className="px-3 py-1.5 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 10 }}>{t}</td>
+                    <td className="px-3 py-1.5 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>{t}</td>
                     {BOND_MARKETS.map((m) => {
                       const v = BOND_CURVES[m.key].find((r) => r.maturity === t)?.yield
                       return (
-                        <td key={m.key} className="px-3 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10, color: m.key === marketKey ? m.colour : '#8BA3C4' }}>
+                        <td key={m.key} className="px-3 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: m.key === marketKey ? m.colour : PAL.dim }}>
                           {v != null ? `${v.toFixed(2)}%` : '—'}
                         </td>
                       )
                     })}
-                    <td className="px-3 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 10, color: diff == null ? '#637899' : diff >= 0 ? '#2D8A50' : '#CC4444' }}>
+                    <td className="px-3 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 11, color: diff == null ? PAL.muted : diff >= 0 ? PAL.up : PAL.down }}>
                       {diff == null ? '—' : bp(diff)}
                     </td>
                   </tr>
@@ -434,7 +435,7 @@ export default function BondsModule() {
               })}
             </tbody>
           </table>
-          <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 8 }}>
+          <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 11 }}>
             A positive AU−US spread pays investors more to hold Australian duration, which is historically
             supportive for the AUD. Not every market quotes every maturity, and a blank is a blank rather than a zero.
           </div>
@@ -477,12 +478,12 @@ export default function BondsModule() {
                       {r.maturity}
                       {r.indicative && (
                         <Tooltip content="Ultra-long bonds are thinly traded. Yields shown at these maturities are market estimates.">
-                          <span className="ml-1.5 font-normal not-italic" style={{ fontSize: 7, color: '#4A6080', letterSpacing: '0.1em' }}>INDICATIVE</span>
+                          <span className="ml-1.5 font-normal not-italic" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.1em' }}>INDICATIVE</span>
                         </Tooltip>
                       )}
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{r.type}</td>
-                    <td className="px-2 py-1.5 text-right font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 10 }}>
+                    <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{r.type}</td>
+                    <td className="px-2 py-1.5 text-right font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 11 }}>
                       {r.coupon ? `${r.coupon.toFixed(2)}%` : '—'}
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 11 }}>
@@ -492,18 +493,18 @@ export default function BondsModule() {
                         correct here and the opposite of every equity row in the
                         terminal, so the header says CHANGE and the tooltip says
                         which way the money went. */}
-                    <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10, color: r.changeBp > 0.05 ? '#CC4444' : r.changeBp < -0.05 ? '#2D8A50' : '#637899' }}>
+                    <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: r.changeBp > 0.05 ? PAL.down : r.changeBp < -0.05 ? PAL.up : PAL.muted }}>
                       <Tooltip content={r.changeBp >= 0 ? 'Yield up since the session seed — bond prices fall as yields rise.' : 'Yield down since the session seed — bond prices rise as yields fall.'}>
                         <span>{bp(r.changeBp)}</span>
                       </Tooltip>
                     </td>
-                    <td className="px-2 py-1.5 text-right font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 10 }}>
+                    <td className="px-2 py-1.5 text-right font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 11 }}>
                       {priceFromYield(r.coupon, r.yield, r.years).toFixed(2)}
                     </td>
-                    <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 10, color: real >= 0 ? '#2D8A50' : '#CC4444' }}>
+                    <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 11, color: real >= 0 ? PAL.up : PAL.down }}>
                       {real >= 0 ? '+' : ''}{real.toFixed(2)}%
                     </td>
-                    <td className="px-3 py-1.5 text-right font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 10 }}>
+                    <td className="px-3 py-1.5 text-right font-mono text-terminal-text-dim tabular-nums" style={{ fontSize: 11 }}>
                       {r.years < 1 ? '—' : `${dur.modified.toFixed(2)}y`}
                     </td>
                   </tr>
@@ -511,7 +512,7 @@ export default function BondsModule() {
               })}
             </tbody>
           </table>
-          <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 8 }}>
+          <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 11 }}>
             REAL YIELD is the nominal yield less AU CPI of {cpi.toFixed(1)}% ({VERIFIED_CONSTANTS.au.cpiPeriod}) — a negative
             figure means the bond loses purchasing power before tax. PRICE, DURATION and the change column are
             calculated from the yield, not quoted.

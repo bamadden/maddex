@@ -8,12 +8,13 @@
 //   more than two hikes in 12 months         → AGGRESSIVE TIGHTENING
 
 import VERIFIED_CONSTANTS from '../data/verifiedConstants'
+import { PAL } from '../styles/palette.js'
 
 const STYLE = {
-  EASING:                  '#2D8A50',
-  NEUTRAL:                 '#8BA3C4',
-  TIGHTENING:              '#E8A33D',
-  'AGGRESSIVE TIGHTENING': '#CC4444',
+  EASING:                  PAL.up,
+  NEUTRAL:                 PAL.dim,
+  TIGHTENING:              PAL.amber,
+  'AGGRESSIVE TIGHTENING': PAL.down,
 }
 
 export function rbaRateEnvironment(now = Date.now()) {

@@ -1,13 +1,14 @@
+import { PAL } from '../../styles/palette.js'
 // Shared helpers for the Three.js visualisations — kept tiny and
 // dependency-free so each visualisation file stays focused on its own scene.
 
-export const GAIN_COLOR   = '#3aaa63'
+export const GAIN_COLOR   = PAL.up
 export const GAIN_BRIGHT  = '#4ade80'
-export const LOSS_COLOR   = '#a83232'
+export const LOSS_COLOR   = PAL.down
 export const LOSS_BRIGHT  = '#f87171'
-export const NEUTRAL      = '#8BA3C4'
+export const NEUTRAL      = PAL.dim
 export const GOLD         = '#c8a84b'
-export const BG_COLOR     = '#060D1A'
+export const BG_COLOR     = PAL.bg
 
 // Interpolates between loss/neutral/gain colour stops based on a signed
 // percentage, clamped to +/-clampPct for the gradient range.

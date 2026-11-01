@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // Reading structure out of a news feed.
 //
 // Four things a terminal should do to a wire that a reader should not have to
@@ -94,12 +95,12 @@ export function extractCompanies(text) {
 const IMPACT_RULES = [
   {
     level: 'HIGH',
-    colour: '#A83232',
+    colour: PAL.down,
     re: /\b(RBA|rate decision|cash rate|interest rate decision|FOMC|Federal Reserve|GDP|CPI|inflation data|unemployment rate|merger|acquisition|takeover|profit warning|earnings|full[- ]year results|half[- ]year results|capital raising|administration|receivership)\b|\b(cut|cuts|slash\w*|lower\w*|downgrade\w*|withdraw\w*)\b[^.]{0,20}\bguidance\b/i,
   },
   {
     level: 'MED',
-    colour: '#C9A84C',
+    colour: PAL.gold,
     re: /\b(quarterly|trading update|guidance|outlook|analysts?|upgrade[sd]?|downgrade[sd]?|broker|dividend|buyback|appoint\w*|resign\w*|contract win|production report)\b/i,
   },
 ]
@@ -109,7 +110,7 @@ export function impactOf(text) {
   for (const rule of IMPACT_RULES) {
     if (rule.re.test(hay)) return { level: rule.level, colour: rule.colour }
   }
-  return { level: 'LOW', colour: '#4A6080' }
+  return { level: 'LOW', colour: PAL.muted }
 }
 
 // ─── Topics ──────────────────────────────────────────────────────────────────
@@ -323,17 +324,17 @@ export function marketSession(now = new Date()) {
   }
 
   if (weekend) {
-    return { key: 'weekend', label: 'WEEKEND', detail: `ASX opens in ${fmtGap(toOpen())}`, colour: '#4A6080' }
+    return { key: 'weekend', label: 'WEEKEND', detail: `ASX opens in ${fmtGap(toOpen())}`, colour: PAL.muted }
   }
   if (mins >= 5 * 60 && mins < OPEN_MIN) {
-    return { key: 'pre', label: 'PRE-MARKET', detail: `ASX opens in ${fmtGap(OPEN_MIN - mins)}`, colour: '#C9A84C' }
+    return { key: 'pre', label: 'PRE-MARKET', detail: `ASX opens in ${fmtGap(OPEN_MIN - mins)}`, colour: PAL.gold }
   }
   if (mins >= OPEN_MIN && mins < CLOSE_MIN) {
-    return { key: 'open', label: 'MARKET OPEN', detail: `${fmtGap(CLOSE_MIN - mins)} remaining`, colour: '#2D8A50' }
+    return { key: 'open', label: 'MARKET OPEN', detail: `${fmtGap(CLOSE_MIN - mins)} remaining`, colour: PAL.up }
   }
   if (mins >= CLOSE_MIN) {
     // Public holidays are not modelled; Friday evening points at Monday.
-    return { key: 'after', label: 'ASX CLOSED', detail: `Opens in ${fmtGap(toOpen())}`, colour: '#4A6080' }
+    return { key: 'after', label: 'ASX CLOSED', detail: `Opens in ${fmtGap(toOpen())}`, colour: PAL.muted }
   }
   return { key: 'overnight', label: 'OVERNIGHT', detail: `ASX opens in ${fmtGap(toOpen())}`, colour: '#7C6BC4' }
 }

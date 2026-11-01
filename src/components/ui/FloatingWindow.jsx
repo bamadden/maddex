@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { PAL } from '../../styles/palette.js'
 
 const SNAP_MARGIN = 40
 const TOP_OFFSET = 0 // snap zones fill the viewport; the window's own z-index already sits above TopBar/TickerTape
@@ -148,7 +149,7 @@ export function FloatingWindow({ title, children, onClose, defaultPos, defaultSi
         style={{
           position: 'fixed', left: pos.x, top: pos.y,
           width: size.w, height: minimised ? 36 : size.h,
-          background: '#0B1628', border: '1px solid rgba(201,168,76,0.3)',
+          background: PAL.panel, border: '1px solid rgba(201,168,76,0.3)',
           borderRadius: maximised ? 0 : '4px', zIndex,
           boxShadow: 'var(--shadow-floating)',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -158,21 +159,21 @@ export function FloatingWindow({ title, children, onClose, defaultPos, defaultSi
           onMouseDown={onDragMouseDown}
           onDoubleClick={toggleMaximise}
           style={{
-            height: 36, background: '#060D1A',
+            height: 36, background: PAL.bg,
             borderBottom: '1px solid rgba(201,168,76,0.15)',
             display: 'flex', alignItems: 'center',
             padding: '0 12px', cursor: 'grab', flexShrink: 0,
             userSelect: 'none',
           }}
         >
-          <span style={{ color: '#4A6080', marginRight: 8, fontSize: 11, letterSpacing: 2 }}>⋮⋮</span>
-          <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 10, color: '#C9A84C', flex: 1, letterSpacing: '0.15em' }}>
+          <span style={{ color: PAL.muted, marginRight: 8, fontSize: 11, letterSpacing: 2 }}>⋮⋮</span>
+          <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: PAL.gold, flex: 1, letterSpacing: '0.15em' }}>
             {title}
           </span>
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={() => setMinimised((m) => !m)}
-            style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', marginRight: 8, fontSize: 12 }}
+            style={{ background: 'none', border: 'none', color: PAL.muted, cursor: 'pointer', marginRight: 8, fontSize: 12 }}
             title={minimised ? 'Restore' : 'Minimise'}
           >
             {minimised ? '□' : '─'}
@@ -180,7 +181,7 @@ export function FloatingWindow({ title, children, onClose, defaultPos, defaultSi
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={toggleMaximise}
-            style={{ background: 'none', border: 'none', color: maximised ? '#C9A84C' : '#637899', cursor: 'pointer', marginRight: 8, fontSize: 12 }}
+            style={{ background: 'none', border: 'none', color: maximised ? PAL.gold : PAL.muted, cursor: 'pointer', marginRight: 8, fontSize: 12 }}
             title={maximised ? 'Restore' : 'Maximise'}
           >
             {maximised ? '❐' : '□'}
@@ -188,7 +189,7 @@ export function FloatingWindow({ title, children, onClose, defaultPos, defaultSi
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', fontSize: 12 }}
+            style={{ background: 'none', border: 'none', color: PAL.muted, cursor: 'pointer', fontSize: 12 }}
             title="Close"
           >
             ✕

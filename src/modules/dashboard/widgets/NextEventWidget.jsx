@@ -4,11 +4,12 @@ import { getEconomicCalendar, pendingEvents, eventInstant } from '../../../servi
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import ReleaseWatchBanner from '../../../components/ui/ReleaseWatchBanner'
+import { PAL } from '../../../styles/palette.js'
 
 const IMPACT = {
-  high:   { label: 'HIGH',   colour: '#A83232' },
-  medium: { label: 'MED',    colour: '#C9A84C' },
-  low:    { label: 'LOW',    colour: '#4A6080' },
+  high:   { label: 'HIGH',   colour: PAL.down },
+  medium: { label: 'MED',    colour: PAL.gold },
+  low:    { label: 'LOW',    colour: PAL.muted },
 }
 
 // The moment an event actually lands — Sydney local time on its own date,
@@ -18,10 +19,10 @@ const eventTime = (e) => eventInstant(e)
 function Segment({ value, unit }) {
   return (
     <div className="flex flex-col items-center" style={{ minWidth: 26 }}>
-      <span className="font-mono tabular-nums leading-none" style={{ fontSize: 18, color: '#E8EDF5' }}>
+      <span className="font-mono tabular-nums leading-none" style={{ fontSize: 20, color: PAL.bright }}>
         {String(value).padStart(2, '0')}
       </span>
-      <span className="font-mono leading-none mt-1" style={{ fontSize: 7, color: '#4A6080', letterSpacing: '0.14em' }}>
+      <span className="font-mono leading-none mt-1" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.14em' }}>
         {unit}
       </span>
     </div>
@@ -99,9 +100,9 @@ export default function NextEventWidget() {
           <Segment value={sec} unit="SEC" />
         </div>
       ) : (
-        <div className="font-mono leading-none" style={{ fontSize: 18, color: '#E8EDF5' }}>
+        <div className="font-mono leading-none" style={{ fontSize: 20, color: PAL.bright }}>
           {untimedDays === 0 ? 'TODAY' : untimedDays === 1 ? 'TOMORROW' : `IN ${untimedDays} DAYS`}
-          <span className="block mt-1" style={{ fontSize: 7, color: '#4A6080', letterSpacing: '0.14em' }}>TIME NOT PUBLISHED</span>
+          <span className="block mt-1" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.14em' }}>TIME NOT PUBLISHED</span>
         </div>
       )}
 
@@ -117,13 +118,13 @@ export default function NextEventWidget() {
             <span
               className="font-mono flex-shrink-0"
               style={{
-                fontSize: 7, letterSpacing: '0.1em', color: impact.colour,
+                fontSize: 11, letterSpacing: '0.1em', color: impact.colour,
                 border: `1px solid ${impact.colour}66`, borderRadius: 2,
                 padding: '1px 4px', marginTop: 1,
               }}
             >{impact.label}</span>
           )}
-          <span className="font-sans text-[11px] leading-snug line-clamp-2 min-w-0" style={{ color: '#E8EDF5' }}>
+          <span className="font-sans text-[11px] leading-snug line-clamp-2 min-w-0" style={{ color: PAL.bright }}>
             {next.title ?? next.event}
           </span>
         </div>
@@ -136,10 +137,10 @@ export default function NextEventWidget() {
               const im = IMPACT[String(e.importance ?? '').toLowerCase()]
               return (
                 <div key={`${e.date}-${e.event}`} className="flex items-baseline gap-2 min-w-0">
-                  <span className="font-mono flex-shrink-0" style={{ fontSize: 8, color: '#4A6080', width: 64 }}>
+                  <span className="font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted, width: 64 }}>
                     {t?.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </span>
-                  <span className="font-sans text-[10px] truncate" style={{ color: im?.label === 'HIGH' ? '#E8EDF5' : '#8BA3C4' }}>{e.title ?? e.event}</span>
+                  <span className="font-sans text-[11px] truncate" style={{ color: im?.label === 'HIGH' ? PAL.bright : PAL.dim }}>{e.title ?? e.event}</span>
                 </div>
               )
             })}
@@ -147,14 +148,14 @@ export default function NextEventWidget() {
         )}
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[8px]" style={{ color: '#4A6080' }}>
+          <span className="font-mono text-[11px]" style={{ color: PAL.muted }}>
             {at?.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
             {/^\d{1,2}:\d{2}$/.test(next.time ?? '') ? ` · ${next.time}` : ''}
           </span>
           <button
             onClick={() => goModule('calendar')}
-            className="font-mono text-[8px] flex-shrink-0"
-            style={{ color: '#4A6080' }}
+            className="font-mono text-[11px] flex-shrink-0"
+            style={{ color: PAL.muted }}
           >{thisWeek} this week →</button>
         </div>
       </div>

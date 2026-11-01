@@ -118,13 +118,13 @@ export default function ContextualTip({ moduleId, suppressed = false }) {
       {pos?.arrow === 'right' && <span className={arrowBase} style={{ ...arrowStyle, right: -6, top: pos.arrowAt, borderRight: edge, borderTop: edge }} />}
       <div className="relative px-3 pt-2.5 pb-2">
         <div className="flex items-start gap-2">
-          <span className="text-terminal-gold flex-shrink-0" style={{ fontSize: 10, lineHeight: '17px' }} aria-hidden="true">◆</span>
-          <div className="text-[11.5px] text-terminal-text leading-[17px]">{tip.text}</div>
+          <span className="text-terminal-gold flex-shrink-0" style={{ fontSize: 11, lineHeight: '17px' }} aria-hidden="true">◆</span>
+          <div className="text-[11px] text-terminal-text leading-[17px]">{tip.text}</div>
         </div>
         <div className="flex justify-end mt-2">
           <button
             onClick={close}
-            className="text-[9px] font-bold tracking-[0.18em] px-2 py-1 text-terminal-gold border border-terminal-gold/40 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+            className="text-[11px] font-bold tracking-[0.18em] px-2 py-1 text-terminal-gold border border-terminal-gold/40 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
           >GOT IT</button>
         </div>
       </div>

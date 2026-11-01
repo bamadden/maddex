@@ -35,6 +35,7 @@ import SavedResearch from '../researchNote/SavedResearch'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { saveProseNote } from '../../services/researchNoteService'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
+import { PAL } from '../../styles/palette.js'
 
 // ── MaddenAI daily query limit ─────────────────────────────────────────────
 // Per plan (services/plans LIMITS.aiPerDay): 10 on Core, 50 on Prime,
@@ -326,7 +327,7 @@ function earningsSeasonPrompts(now = new Date()) {
 // session is missing or expired — signing out returns to the sign-in screen),
 // or move up a plan after the daily limit.
 function AccessActions({ access }) {
-  const cls = 'text-[9px] font-mono font-bold bg-terminal-gold text-terminal-bg px-1.5 hover:bg-terminal-gold-bright transition-colors'
+  const cls = 'text-[11px] font-mono font-bold bg-terminal-gold text-terminal-bg px-1.5 hover:bg-terminal-gold-bright transition-colors'
   if (/^AUTH_/.test(access.code ?? '')) {
     return <button className={cls} onClick={() => useAuthStore.getState().signOut()}>SIGN IN</button>
   }
@@ -432,11 +433,11 @@ function ResponseFeedback({ text, question, onSaved }) {
       .catch(() => flash('Copy blocked by the browser'))
   }
 
-  const chip = 'text-[9px] font-mono tracking-wider px-1.5 py-0.5 border transition-colors'
+  const chip = 'text-[11px] font-mono tracking-wider px-1.5 py-0.5 border transition-colors'
 
   return (
     <div className="relative flex items-center gap-1.5">
-      {note && <span className="text-[9px] font-mono text-terminal-gold whitespace-nowrap">{note}</span>}
+      {note && <span className="text-[11px] font-mono text-terminal-gold whitespace-nowrap">{note}</span>}
       <button
         onClick={() => { record('up'); setAsking(false) }}
         title="Helpful"
@@ -476,7 +477,7 @@ function ResponseFeedback({ text, question, onSaved }) {
           className="absolute right-0 top-full mt-1 z-[100] bg-terminal-panel border border-terminal-border-gold shadow-2xl"
           onMouseLeave={() => setAsking(false)}
         >
-          <div className="px-2 py-1 text-[9px] font-mono tracking-wider text-terminal-text-dim border-b border-terminal-border">
+          <div className="px-2 py-1 text-[11px] font-mono tracking-wider text-terminal-text-dim border-b border-terminal-border">
             WHAT WAS WRONG?
           </div>
           {FEEDBACK_REASONS.map((r) => (
@@ -484,7 +485,7 @@ function ResponseFeedback({ text, question, onSaved }) {
               key={r}
               role="menuitem"
               onClick={() => { record('down', r); setAsking(false); flash('Thanks — this helps improve MaddenAI') }}
-              className="block w-full text-left px-2 py-1.5 text-[10px] font-mono tracking-wider text-terminal-text-dim hover:bg-terminal-surface2 hover:text-terminal-text whitespace-nowrap"
+              className="block w-full text-left px-2 py-1.5 text-[11px] font-mono tracking-wider text-terminal-text-dim hover:bg-terminal-surface2 hover:text-terminal-text whitespace-nowrap"
             >{r}</button>
           ))}
         </div>
@@ -528,7 +529,7 @@ function FormattedResponse({ text }) {
           return (
             <div key={i} style={{ marginTop: i > 0 ? '14px' : '0', marginBottom: '4px' }}>
               <div style={{
-                color: 'var(--mt-gold)', fontWeight: 700, fontSize: '10px',
+                color: 'var(--mt-gold)', fontWeight: 700, fontSize: '11px',
                 letterSpacing: '0.14em', borderBottom: '1px solid rgba(201,168,76,0.2)',
                 paddingBottom: '3px', marginBottom: '5px',
               }}>{label}</div>
@@ -579,7 +580,7 @@ function FormattedResponse({ text }) {
           const rest  = trimmed.slice(colonIdx + 1).trim()
           return (
             <div key={i} style={{ marginTop: '10px', marginBottom: '3px', display: 'flex', gap: '8px', alignItems: 'baseline' }}>
-              <span style={{ color: 'var(--mt-gold)', fontWeight: 700, fontSize: '10px', letterSpacing: '0.1em', flexShrink: 0 }}>
+              <span style={{ color: 'var(--mt-gold)', fontWeight: 700, fontSize: '11px', letterSpacing: '0.1em', flexShrink: 0 }}>
                 {label}:
               </span>
               {rest && (
@@ -605,7 +606,7 @@ function FormattedResponse({ text }) {
                   : <span style={{ color:'var(--mt-muted)' }} title="No score for this line">—</span>
                 }
                 {parsed.sentiment && (
-                  <span style={{ color: sentimentLabelColour(parsed.sentiment), fontWeight:700, fontSize:'10px', marginLeft:'4px' }}>
+                  <span style={{ color: sentimentLabelColour(parsed.sentiment), fontWeight:700, fontSize:'11px', marginLeft:'4px' }}>
                     {parsed.sentiment}
                   </span>
                 )}
@@ -625,7 +626,7 @@ function FormattedResponse({ text }) {
         // Italic-only line (*text*)
         if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
           return (
-            <div key={i} style={{ color: 'var(--mt-muted)', fontSize: '10px', marginTop: '8px', fontStyle: 'italic' }}
+            <div key={i} style={{ color: 'var(--mt-muted)', fontSize: '11px', marginTop: '8px', fontStyle: 'italic' }}
               dangerouslySetInnerHTML={{ __html: formatInline(trimmed.replace(/^\*|\*$/g, '')) }} />
           )
         }
@@ -715,7 +716,7 @@ function describeHoldings(rows, usdToAud = 1) {
   return `User's portfolio holdings (share of cost, approximate; sector; how each tends to move if rates rise): ${items.join('; ')}. When a question touches rates, sectors, markets or "me/my portfolio", refer to these holdings by name.`
 }
 
-const FEED_TONE = { gold: '#C9A84C', red: '#CC4444', green: '#2D8A50', blue: '#4A9EDB' }
+const FEED_TONE = { gold: PAL.gold, red: PAL.down, green: PAL.up, blue: '#4A9EDB' }
 
 function IntelligenceFeed({ feed, onRead, disabled }) {
   if (!feed?.cards?.length) return null
@@ -723,21 +724,21 @@ function IntelligenceFeed({ feed, onRead, disabled }) {
     <div className="w-full mt-5">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-terminal-gold animate-pulse" aria-hidden="true" />
-        <span className="text-[9px] font-mono tracking-[0.16em] text-terminal-gold font-bold">INTELLIGENCE UPDATE — {feed.date}</span>
-        <span className="ml-auto text-[8px] font-mono text-terminal-text-dim/50 tracking-wider">FROM VERIFIED FIGURES</span>
+        <span className="text-[11px] font-mono tracking-[0.16em] text-terminal-gold font-bold">INTELLIGENCE UPDATE — {feed.date}</span>
+        <span className="ml-auto text-[11px] font-mono text-terminal-text-dim/50 tracking-wider">FROM VERIFIED FIGURES</span>
       </div>
       <div className="space-y-1.5">
         {feed.cards.map((c) => (
           <div key={c.id} className="border border-terminal-border bg-terminal-bg/40 px-2.5 py-2" style={{ borderLeft: `2px solid ${FEED_TONE[c.tone] ?? FEED_TONE.gold}` }}>
             <div className="flex items-baseline gap-2">
-              <span className="font-mono font-bold tracking-widest flex-shrink-0" style={{ fontSize: 8, color: FEED_TONE[c.tone] ?? FEED_TONE.gold }}>{c.tag}</span>
+              <span className="font-mono font-bold tracking-widest flex-shrink-0" style={{ fontSize: 11, color: FEED_TONE[c.tone] ?? FEED_TONE.gold }}>{c.tag}</span>
               <span className="font-mono font-bold text-terminal-text-bright leading-snug" style={{ fontSize: 11 }}>{c.title}</span>
             </div>
             <p className="mt-1 font-sans text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>{c.body}</p>
             <div className="flex items-center mt-1">
-              <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>{c.source}</span>
+              <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>{c.source}</span>
               <button onClick={() => onRead(c)} disabled={disabled}
-                className="ml-auto font-mono font-bold tracking-wider text-terminal-gold hover:underline disabled:opacity-40" style={{ fontSize: 9 }}>
+                className="ml-auto font-mono font-bold tracking-wider text-terminal-gold hover:underline disabled:opacity-40" style={{ fontSize: 11 }}>
                 READ MORE ▶
               </button>
             </div>
@@ -1332,7 +1333,7 @@ export default function AIPanel({ wide = false, onListening }) {
               ['research', 'RESEARCH', 'Deep dive — long, structured: overview, analysis, risks, conclusion']].map(([id, label, hint]) => (
               <button key={id} role="radio" aria-checked={responseMode === id} title={hint}
                 onClick={() => setResponseMode(id)}
-                className={`px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-wider transition-colors ${
+                className={`px-1.5 py-0.5 text-[11px] font-mono font-bold tracking-wider transition-colors ${
                   responseMode === id ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
                 }`}
               >{label}</button>
@@ -1343,7 +1344,7 @@ export default function AIPanel({ wide = false, onListening }) {
           )}
           {sessionTokens > HIGH_SESSION_TOKENS && (
             <span data-usage-note
-              className="text-[9px] font-mono text-terminal-gold/60 whitespace-nowrap truncate"
+              className="text-[11px] font-mono text-terminal-gold/60 whitespace-nowrap truncate"
               title={`About ${Math.round(sessionTokens / 1000)}K tokens processed in this tab since it opened (including cached context). A session counter, not a bill — see Settings → MaddenAI for usage.`}
               aria-label="High usage this session"
             >●{isFullscreen && ' High usage this session'}</span>
@@ -1505,7 +1506,7 @@ export default function AIPanel({ wide = false, onListening }) {
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-[9px] text-terminal-text-dim/60 font-mono">
+                    <div className="text-[11px] text-terminal-text-dim/60 font-mono">
                       {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                     </div>
                     <div className="text-2xs text-terminal-text-bright truncate">{conv.title || 'Untitled'}</div>
@@ -1528,8 +1529,8 @@ export default function AIPanel({ wide = false, onListening }) {
       {isFullscreen && (
         <aside className="w-60 flex-shrink-0 border-r border-terminal-border flex flex-col bg-terminal-bg/40" aria-label="Conversation history">
           <div className="flex items-center justify-between px-3 py-2 border-b border-terminal-border">
-            <span className="text-[9px] font-mono font-bold tracking-[0.18em] text-terminal-gold">CONVERSATIONS</span>
-            <span className="text-[9px] font-mono text-terminal-text-dim/50">{historyList.length}/10</span>
+            <span className="text-[11px] font-mono font-bold tracking-[0.18em] text-terminal-gold">CONVERSATIONS</span>
+            <span className="text-[11px] font-mono text-terminal-text-dim/50">{historyList.length}/10</span>
           </div>
           <button
             onClick={startNewChat}
@@ -1550,7 +1551,7 @@ export default function AIPanel({ wide = false, onListening }) {
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-xs text-terminal-text-bright leading-snug line-clamp-2">{conv.title || 'Untitled'}</div>
-                  <div className="text-[9px] text-terminal-text-dim/60 font-mono mt-0.5">
+                  <div className="text-[11px] text-terminal-text-dim/60 font-mono mt-0.5">
                     {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
                     {' · '}{new Date(conv.date).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     {' · '}{conv.messages.filter((m) => m.role === 'assistant' && m.content).length} repl{conv.messages.filter((m) => m.role === 'assistant' && m.content).length === 1 ? 'y' : 'ies'}
@@ -1571,10 +1572,10 @@ export default function AIPanel({ wide = false, onListening }) {
       )}
       <div className="flex-1 min-w-0 flex flex-col">
       <div className="flex items-center gap-1 px-3 py-1 border-b border-terminal-border/50 flex-shrink-0" role="radiogroup" aria-label="MaddenAI persona">
-        <span className="text-[9px] font-mono text-terminal-text-dim/60 tracking-widest mr-1">VOICE</span>
+        <span className="text-[11px] font-mono text-terminal-text-dim/60 tracking-widest mr-1">VOICE</span>
         {PERSONAS.map(([id, label, hint]) => (
           <button key={id} role="radio" aria-checked={persona === id} title={hint} onClick={() => setPersona(id)}
-            className={`px-1.5 py-px text-[9px] font-mono font-bold tracking-wider border transition-colors ${
+            className={`px-1.5 py-px text-[11px] font-mono font-bold tracking-wider border transition-colors ${
               persona === id ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10' : 'border-transparent text-terminal-text-dim hover:text-terminal-gold'
             }`}
           >{label}</button>
@@ -1605,14 +1606,14 @@ export default function AIPanel({ wide = false, onListening }) {
 
       {!disclaimerDismissed && (
         <div className="flex items-center justify-between gap-2 px-3 py-1 border-b border-terminal-border/50 flex-shrink-0">
-          <span className="text-terminal-text-dim/60 font-mono" style={{ fontSize: '9px' }}>
+          <span className="text-terminal-text-dim/60 font-mono" style={{ fontSize: '11px' }}>
             ⓘ General information only — not financial advice
           </span>
           <button
             onClick={dismissDisclaimer}
             title="Dismiss"
             className="text-terminal-text-dim/50 hover:text-terminal-gold flex-shrink-0 leading-none"
-            style={{ fontSize: '9px' }}
+            style={{ fontSize: '11px' }}
           >✕</button>
         </div>
       )}
@@ -1642,7 +1643,7 @@ export default function AIPanel({ wide = false, onListening }) {
         <div className={isFullscreen ? 'max-w-[800px] mx-auto p-4 space-y-3' : 'p-3 space-y-3'}>
         {chatMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center px-1 py-10">
-            <span className="text-terminal-gold font-mono font-bold leading-none" style={{ fontSize: 32 }}>M</span>
+            <span className="text-terminal-gold font-mono font-bold leading-none" style={{ fontSize: 36 }}>M</span>
             <span className="mt-2 text-terminal-gold font-mono tracking-[0.2em] text-2xs">MADDENAI</span>
             <span className="mt-1 text-terminal-text-dim italic font-sans text-center" style={{ fontSize: 13 }}>
               Financial intelligence at your command.
@@ -1654,7 +1655,7 @@ export default function AIPanel({ wide = false, onListening }) {
             {/* Four openers — written for the saved investor profile when there
                 is one (services/aiStarters.js), otherwise the generic set. */}
             {starters.label && (
-              <span className="mt-5 text-[9px] font-mono tracking-[0.16em] text-terminal-gold/70 text-center">{starters.label}</span>
+              <span className="mt-5 text-[11px] font-mono tracking-[0.16em] text-terminal-gold/70 text-center">{starters.label}</span>
             )}
             <div className={`grid grid-cols-2 gap-2 w-full ${starters.label ? 'mt-2' : 'mt-5'}`}>
               {starters.cards.map((c) => (
@@ -1709,7 +1710,7 @@ export default function AIPanel({ wide = false, onListening }) {
               </div>
             ) : msg.silent && !msg.content ? (
               <div className="flex items-center justify-center py-4">
-                <span className="font-mono text-[9px] tracking-[0.2em] text-terminal-text-dim animate-pulse">
+                <span className="font-mono text-[11px] tracking-[0.2em] text-terminal-text-dim animate-pulse">
                   MADDENAI · ANALYSING {(msg.context?.ticker || msg.context?.name || 'ASSET').toUpperCase()}...
                 </span>
               </div>
@@ -1726,7 +1727,7 @@ export default function AIPanel({ wide = false, onListening }) {
                     className="-mx-3 mb-2 px-3 py-1.5"
                     style={{ background: 'rgba(201,168,76,0.06)', borderBottom: '1px solid rgba(201,168,76,0.15)' }}
                   >
-                    <div className="font-mono text-[9px] tracking-wider text-terminal-text-dim flex items-center gap-1.5 flex-wrap">
+                    <div className="font-mono text-[11px] tracking-wider text-terminal-text-dim flex items-center gap-1.5 flex-wrap">
                       {msg.context.ticker && <span className="text-terminal-text-bright font-bold">{msg.context.ticker}</span>}
                       {msg.context.price && <span>{msg.context.price}</span>}
                       {msg.context.change && (
@@ -1736,7 +1737,7 @@ export default function AIPanel({ wide = false, onListening }) {
                       )}
                     </div>
                     {(msg.context.exchange || msg.context.sector || msg.context.date) && (
-                      <div className="font-mono text-[9px] tracking-wider text-terminal-text-dim mt-0.5">
+                      <div className="font-mono text-[11px] tracking-wider text-terminal-text-dim mt-0.5">
                         {[msg.context.exchange, msg.context.sector, msg.context.date].filter(Boolean).join('  ·  ')}
                       </div>
                     )}
@@ -1745,14 +1746,14 @@ export default function AIPanel({ wide = false, onListening }) {
                 <div className="flex items-center justify-between mb-1">
                   <span className="flex items-center gap-1.5">
                     {i === firstAssistantIdx && (
-                      <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[9px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
+                      <span className="w-4 h-4 rounded-full bg-terminal-gold/15 border border-terminal-border-gold text-terminal-gold text-[11px] font-bold font-mono flex items-center justify-center flex-shrink-0">M</span>
                     )}
                     <span className="text-2xs text-terminal-gold font-mono">MADDENAI</span>
                     {msg.mode === 'research' && (
-                      <span className="text-[8px] font-mono font-bold tracking-[0.16em] text-terminal-gold border border-terminal-gold/40 px-1 leading-[12px]">RESEARCH</span>
+                      <span className="text-[11px] font-mono font-bold tracking-[0.16em] text-terminal-gold border border-terminal-gold/40 px-1 leading-[12px]">RESEARCH</span>
                     )}
                     {msg.at && (
-                      <span className="text-[9px] font-mono text-terminal-muted/60">
+                      <span className="text-[11px] font-mono text-terminal-muted/60">
                         {new Date(msg.at).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
                       </span>
                     )}
@@ -1760,13 +1761,13 @@ export default function AIPanel({ wide = false, onListening }) {
                   {msg.access && <AccessActions access={msg.access} />}
                   {msg.content && msg.researchSave && !loading && (
                     msg.savedResearch
-                      ? <span className="text-[9px] font-mono text-terminal-green">✓ IN SAVED RESEARCH</span>
+                      ? <span className="text-[11px] font-mono text-terminal-green">✓ IN SAVED RESEARCH</span>
                       : <button
                           onClick={() => {
                             saveProseNote({ kind: msg.researchSave.kind, asset: msg.researchSave.asset, body: msg.content })
                             setChatMessages((all) => all.map((m) => (m === msg ? { ...m, savedResearch: true } : m)))
                           }}
-                          className="text-[9px] font-mono font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                          className="text-[11px] font-mono font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                         >SAVE AS NOTE</button>
                   )}
                   {msg.content && (
@@ -1810,7 +1811,7 @@ export default function AIPanel({ wide = false, onListening }) {
                         <button
                           key={a.key}
                           onClick={a.onClick}
-                          className={`text-[9px] font-mono px-2 py-0.5 border rounded-full transition-colors ${ACTION_STYLE[a.type]}`}
+                          className={`text-[11px] font-mono px-2 py-0.5 border rounded-full transition-colors ${ACTION_STYLE[a.type]}`}
                         >
                           {a.label}
                         </button>

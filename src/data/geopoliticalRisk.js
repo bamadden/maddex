@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // ─── Geopolitical risk index ────────────────────────────────────────────────
 //
 // WHAT THIS IS, AND WHAT IT IS NOT
@@ -227,8 +228,8 @@ export const GEO_RISK_BY_ID = Object.fromEntries(GEO_RISK_INDEX.map((r) => [r.id
 // Bands. Four, because the useful question is which band a region is in, not
 // whether it scores 52 or 54.
 export const RISK_BANDS = [
-  { max: 30,  label: 'LOW',       colour: '#2D8A50', tw: 'text-terminal-green', bar: 'bg-terminal-green' },
-  { max: 55,  label: 'ELEVATED',  colour: '#C9A84C', tw: 'text-terminal-gold',  bar: 'bg-terminal-gold' },
+  { max: 30,  label: 'LOW',       colour: PAL.up, tw: 'text-terminal-green', bar: 'bg-terminal-green' },
+  { max: 55,  label: 'ELEVATED',  colour: PAL.gold, tw: 'text-terminal-gold',  bar: 'bg-terminal-gold' },
   { max: 75,  label: 'HIGH',      colour: '#D9822B', tw: 'text-orange-400',     bar: 'bg-orange-500' },
   { max: 100, label: 'CRITICAL',  colour: '#C93E3E', tw: 'text-terminal-red',   bar: 'bg-terminal-red' },
 ]

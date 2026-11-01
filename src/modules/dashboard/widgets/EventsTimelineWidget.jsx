@@ -5,6 +5,7 @@ import { setModuleIntent } from '../../../services/moduleIntent'
 import { sydneyTzAbbr } from '../../../utils/dateUtils'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // EVENTS TIMELINE — the next seven days as columns, one per day that has
 // something on, from the same calendar the Calendar module reads (dates and
@@ -12,7 +13,7 @@ import { goModule } from './navigate'
 // from the calendar's own star scoring, so a five-star event here is a
 // five-star event there. Clicking an event opens the Calendar on its day.
 
-const TONE = { high: '#E8A33D', medium: '#C9A84C', low: '#637899' }
+const TONE = { high: PAL.amber, medium: PAL.gold, low: PAL.muted }
 const MAX_DAYS = 4
 const PER_DAY = 2
 
@@ -59,16 +60,16 @@ export default function EventsTimelineWidget() {
       <div className="flex-1 min-h-0 grid gap-3" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}>
         {days.map(([date, list]) => (
           <div key={date} className="min-w-0 flex flex-col gap-2" style={{ borderLeft: '1px solid rgba(201,168,76,0.12)', paddingLeft: 8 }}>
-            <div className="font-mono font-bold truncate" style={{ fontSize: 9, letterSpacing: '0.12em', color: date === today ? '#C9A84C' : '#8BA3C4' }}>
+            <div className="font-mono font-bold truncate" style={{ fontSize: 11, letterSpacing: '0.12em', color: date === today ? PAL.gold : PAL.dim }}>
               {dayLabel(date, today)}
             </div>
             {list.map((e, i) => {
               const n = eventStars(e)
               return (
                 <button key={i} onClick={() => open(date)} className="text-left min-w-0 hover:opacity-80 transition-opacity" title={`${e.event} — open in Calendar`}>
-                  <div className="font-sans text-[11px] leading-tight line-clamp-2" style={{ color: TONE[e.importance] ?? '#E8EDF5' }}>{e.event}</div>
-                  <div className="font-mono mt-0.5" style={{ fontSize: 8, color: '#4A6080' }}>{timeLabel(e)}</div>
-                  <div className="font-mono" style={{ fontSize: 9, color: TONE[e.importance] ?? '#637899', letterSpacing: '-0.02em' }}>{starString(n)}</div>
+                  <div className="font-sans text-[11px] leading-tight line-clamp-2" style={{ color: TONE[e.importance] ?? PAL.bright }}>{e.event}</div>
+                  <div className="font-mono mt-0.5" style={{ fontSize: 11, color: PAL.muted }}>{timeLabel(e)}</div>
+                  <div className="font-mono" style={{ fontSize: 11, color: TONE[e.importance] ?? PAL.muted, letterSpacing: '-0.02em' }}>{starString(n)}</div>
                 </button>
               )
             })}
@@ -76,7 +77,7 @@ export default function EventsTimelineWidget() {
         ))}
       </div>
       {hidden > 0 && (
-        <button onClick={() => goModule('calendar')} className="font-mono text-left flex-shrink-0 mt-1" style={{ fontSize: 8, color: '#4A6080' }}>
+        <button onClick={() => goModule('calendar')} className="font-mono text-left flex-shrink-0 mt-1" style={{ fontSize: 11, color: PAL.muted }}>
           +{hidden} more this week →
         </button>
       )}

@@ -11,6 +11,8 @@
 // move nobody announced.
 
 import VERIFIED_CONSTANTS from '../data/verifiedConstants.js'
+import { formatDate } from '../utils/dateUtils.js'
+import { PAL } from '../styles/palette.js'
 
 const verb = (cb) => String(cb?.lastDecisionVerb ?? '').toUpperCase()
 
@@ -24,11 +26,11 @@ export function getMarketRegime(c = VERIFIED_CONSTANTS) {
 
   const rbaOpen = /further|more hikes|if required/i.test(rba.minutes?.summary ?? '')
   const rbaStance = verb(rba) === 'HIKE'
-    ? `HAWKISH — hiked ${rba.lastChange ?? ''} to ${rba.cashRate.toFixed(2)}% on ${rba.lastDecision}${rbaOpen ? '; minutes leave the door open to more hikes' : ''}`
-    : verb(rba) === 'CUT' ? `DOVISH — cut to ${rba.cashRate.toFixed(2)}% on ${rba.lastDecision}` : `ON HOLD at ${rba.cashRate.toFixed(2)}%`
+    ? `HAWKISH — hiked ${rba.lastChange ?? ''} to ${rba.cashRate.toFixed(2)}% on ${formatDate(rba.lastDecision)}${rbaOpen ? '; minutes leave the door open to more hikes' : ''}`
+    : verb(rba) === 'CUT' ? `DOVISH — cut to ${rba.cashRate.toFixed(2)}% on ${formatDate(rba.lastDecision)}` : `ON HOLD at ${rba.cashRate.toFixed(2)}%`
   const fedStance = verb(fed) === 'HIKE'
-    ? `HAWKISH — hiked ${fed.lastChange ?? ''} to ${fed.rateRange} on ${fed.lastDecision}; next meeting ${fed.nextMeeting}`
-    : verb(fed) === 'CUT' ? `DOVISH — cut to ${fed.rateRange} on ${fed.lastDecision}` : `ON HOLD at ${fed.rateRange}`
+    ? `HAWKISH — hiked ${fed.lastChange ?? ''} to ${fed.rateRange} on ${formatDate(fed.lastDecision)}; next meeting ${formatDate(fed.nextMeeting)}`
+    : verb(fed) === 'CUT' ? `DOVISH — cut to ${fed.rateRange} on ${formatDate(fed.lastDecision)}` : `ON HOLD at ${fed.rateRange}`
 
   const rising = au.unemploymentPrevious != null && au.unemployment > au.unemploymentPrevious
   const slowing = rising || (au.gdpAnnual != null && au.gdpAnnual < 2.5)
@@ -83,11 +85,11 @@ export function regimePrompts() {
 
 export const TREND_GDP = 2.25
 export const REGIME_STYLE = {
-  'STAGFLATION RISK': { colour: '#E8A33D', note: 'The RBA is tightening into a slowing economy — rate-sensitive and consumer sectors carry the most pressure.' },
-  OVERHEATING: { colour: '#CC4444', note: 'Growth is holding up while the RBA tightens — the risk is further hikes until demand cools.' },
+  'STAGFLATION RISK': { colour: PAL.amber, note: 'The RBA is tightening into a slowing economy — rate-sensitive and consumer sectors carry the most pressure.' },
+  OVERHEATING: { colour: PAL.down, note: 'Growth is holding up while the RBA tightens — the risk is further hikes until demand cools.' },
   'RECESSION RISK': { colour: '#8B2222', note: 'The RBA is easing into a slowing economy — defensives and bonds usually lead.' },
-  GOLDILOCKS: { colour: '#2D8A50', note: 'Easier policy with growth intact — the most supportive backdrop for equities.' },
-  'ON HOLD': { colour: '#8BA3C4', note: 'No RBA move in nine months — the label waits for a direction.' },
+  GOLDILOCKS: { colour: PAL.up, note: 'Easier policy with growth intact — the most supportive backdrop for equities.' },
+  'ON HOLD': { colour: PAL.dim, note: 'No RBA move in nine months — the label waits for a direction.' },
 }
 
 const monthsBetween = (a, b) => (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / (30.44 * 86_400_000)
@@ -129,7 +131,7 @@ export function classifyRegime({ asOf, gdpAnnual, cpi }, c = VERIFIED_CONSTANTS)
     colour: REGIME_STYLE[regime].colour,
     note: REGIME_STYLE[regime].note,
     inputs: {
-      rba: policy === 'HOLD' ? 'Holding' : policy === 'TIGHTENING' ? `Hiking (last ${last.date})` : `Cutting (last ${last.date})`,
+      rba: policy === 'HOLD' ? 'Holding' : policy === 'TIGHTENING' ? `Hiking (last ${formatDate(last.date)})` : `Cutting (last ${formatDate(last.date)})`,
       cpi: cpi == null ? '—' : cpi > band[1] ? `Above target (${cpi.toFixed(1)}%)` : cpi < band[0] ? `Below target (${cpi.toFixed(1)}%)` : `In the band (${cpi.toFixed(1)}%)`,
       gdp: gdpAnnual == null ? '—' : `${belowTrend ? 'Below' : 'At or above'} trend (${gdpAnnual}% vs ${TREND_GDP}%)`,
       unemployment: u.now == null ? '—' : `${u.trend[0]}${u.trend.slice(1).toLowerCase()} (${u.back}% → ${u.now}% over 6 months)`,
@@ -141,7 +143,7 @@ export function currentRegime(c = VERIFIED_CONSTANTS, now = new Date()) {
   const asOf = now.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
   const r = classifyRegime({ asOf, gdpAnnual: c.au.gdpAnnual, cpi: c.au.cpi }, c)
   const fed = verb(c.fed)
-  return { ...r, inputs: { ...r.inputs, fed: fed === 'HIKE' ? `Hiking (${c.fed.lastDecision})` : fed === 'CUT' ? `Cutting (${c.fed.lastDecision})` : `Holding at ${c.fed.rateRange} (${c.fed.lastDecision})` } }
+  return { ...r, inputs: { ...r.inputs, fed: fed === 'HIKE' ? `Hiking (${formatDate(c.fed.lastDecision)})` : fed === 'CUT' ? `Cutting (${formatDate(c.fed.lastDecision)})` : `Holding at ${c.fed.rateRange} (${formatDate(c.fed.lastDecision)})` } }
 }
 
 // The last four quarter-ends, each classified with what was published for

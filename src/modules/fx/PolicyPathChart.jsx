@@ -4,6 +4,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { RBA_RATE_HISTORY, FED_RATE_HISTORY } from '../../data/placeholders'
 import { RBA_PATH, FED_PATH, rateOn } from '../../data/policySpread'
 import SafeChart from '../../components/ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 // ─── RBA and Fed policy paths, with this year's decisions marked ───────────
 //
@@ -19,9 +20,9 @@ const toMs = (d) => Date.parse(`${d}T00:00:00Z`)
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10)
 const fmtDay = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 
-const RBA_COLOUR = '#C9A84C'
+const RBA_COLOUR = PAL.gold
 const FED_COLOUR = '#5B9BD5'
-const DECISION_COLOUR = { HIKE: '#2D8A50', CUT: '#CC4444', HOLD: '#C9A84C' }
+const DECISION_COLOUR = { HIKE: PAL.up, CUT: PAL.down, HOLD: PAL.gold }
 
 const MARK_YEAR = VERIFIED_CONSTANTS.rba.lastDecision.slice(0, 4)
 
@@ -88,7 +89,7 @@ function DecisionCard({ picked, onClose }) {
         <span className="text-terminal-text-bright">{d.vote}</span>
       </div>
       <div className="mt-1 pt-1 border-t border-terminal-border/50 text-terminal-text leading-snug">{d.reason}</div>
-      <div className="mt-1 text-[9px] text-terminal-text-dim/60">Source: {isRba ? 'RBA decision statement' : 'FOMC statement'}</div>
+      <div className="mt-1 text-[11px] text-terminal-text-dim/60">Source: {isRba ? 'RBA decision statement' : 'FOMC statement'}</div>
     </div>
   )
 }
@@ -128,14 +129,14 @@ export default function PolicyPathChart({ years }) {
           setPicked(on ? null : { bank, d, cx, cy, w })
         }}>
         <circle cx={cx} cy={cy} r={6.5} fill="transparent" />
-        <circle cx={cx} cy={cy} r={on ? 5.5 : 4} fill={bank === 'RBA' ? c : '#0B1628'} stroke={bank === 'RBA' ? '#0B1628' : c} strokeWidth={bank === 'RBA' ? 1 : 2} />
+        <circle cx={cx} cy={cy} r={on ? 5.5 : 4} fill={bank === 'RBA' ? c : PAL.panel} stroke={bank === 'RBA' ? PAL.panel : c} strokeWidth={bank === 'RBA' ? 1 : 2} />
       </g>
     )
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 text-[9px] text-terminal-text-dim mb-0.5 px-1">
+      <div className="flex items-center gap-3 text-[11px] text-terminal-text-dim mb-0.5 px-1">
         <span className="flex items-center gap-1"><span style={{ width: 12, height: 2, background: RBA_COLOUR }} />RBA cash rate</span>
         <span className="flex items-center gap-1"><span style={{ width: 12, borderTop: `2px dashed ${FED_COLOUR}` }} />Fed (upper bound)</span>
         <span className="flex items-center gap-1">
@@ -153,10 +154,10 @@ export default function PolicyPathChart({ years }) {
                 <stop offset="95%" stopColor={RBA_COLOUR} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            <XAxis dataKey="t" type="number" scale="time" domain={[from, to]} ticks={ticks} tick={{ fontSize: 8 }}
+            <CartesianGrid stroke={PAL.header} vertical={false} />
+            <XAxis dataKey="t" type="number" scale="time" domain={[from, to]} ticks={ticks} tick={{ fontSize: 11 }}
               tickFormatter={(t) => new Date(t).toLocaleDateString('en-AU', { month: 'short', year: '2-digit', timeZone: 'UTC' })} />
-            <YAxis tick={{ fontSize: 8 }} tickFormatter={(v) => `${v}%`} domain={[0, 6]} ticks={[0, 1, 2, 3, 4, 5, 6]} width={30} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} domain={[0, 6]} ticks={[0, 1, 2, 3, 4, 5, 6]} width={30} />
             {!picked && <Tooltip content={<HoverTooltip />} />}
             {/* Fed first so the RBA layer, and its dots, sit on top where the two
                 banks met within a day of each other (17/18 Mar). */}

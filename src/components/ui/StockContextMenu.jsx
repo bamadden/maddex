@@ -64,7 +64,7 @@ export default function StockContextMenu({ menu, onClose }) {
     >
       <div className="px-3 py-2 border-b border-terminal-border">
         <div className="text-2xs font-bold text-terminal-text-bright truncate">{asset.name ?? ticker}</div>
-        <div className="text-[9px] text-terminal-gold tracking-wider">{ticker}</div>
+        <div className="text-[11px] text-terminal-gold tracking-wider">{ticker}</div>
       </div>
       {items.map((it) => (
         <button

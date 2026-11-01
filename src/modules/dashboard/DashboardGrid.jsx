@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { dashboardService } from '../../services/dashboardService'
 import WidgetContent from './WidgetContent'
+import { PAL } from '../../styles/palette.js'
 
 // The grid. Placements come from dashboardService; this file only draws them.
 //
@@ -46,7 +47,7 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
         gridRow: columns === 1 ? 'auto' : `${widget.row + 1} / span ${widget.h}`,
         // …in reading order (row, then column), whatever order they were saved in.
         order: columns === 1 ? widget.row * 100 + widget.col : undefined,
-        background: '#060D1A',
+        background: PAL.bg,
         position: 'relative',
         // 140 in a single column: a phone shows one widget per row, so each gets
         // the full width and needs less height to be readable than it does
@@ -71,8 +72,8 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
               borderRadius: 2,
               padding: '2px 6px',
               fontFamily: '"IBM Plex Mono", monospace',
-              fontSize: 8,
-              color: '#C9A84C',
+              fontSize: 11,
+              color: PAL.gold,
               letterSpacing: '0.1em',
               whiteSpace: 'nowrap',
             }}
@@ -85,7 +86,7 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
             aria-label={`Remove ${meta?.name ?? widget.widgetId}`}
             style={{
               background: 'rgba(168,50,50,0.85)', border: 'none', borderRadius: 2,
-              color: '#fff', width: 20, height: 20, cursor: 'pointer', fontSize: 10,
+              color: '#fff', width: 20, height: 20, cursor: 'pointer', fontSize: 11,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >✕</button>
@@ -124,7 +125,7 @@ function EmptyCells({ layout, onAdd }) {
             border: '1px dashed rgba(201,168,76,0.12)',
             cursor: 'pointer',
             fontFamily: '"IBM Plex Mono", monospace',
-            fontSize: 9,
+            fontSize: 11,
             letterSpacing: '0.1em',
             color: 'rgba(201,168,76,0.45)',
           }}

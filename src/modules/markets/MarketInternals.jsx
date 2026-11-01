@@ -6,6 +6,7 @@ import { ASX_UNIVERSE, SECTOR_OF, useAsxUniverseQuotes } from './useAsxUniverse'
 import { getMockFMPHistory } from '../../services/mockData'
 import { fetchYFHistory, USING_MOCK_DATA } from '../../services/api'
 import { DemoBadge } from '../../components/ui/ModuleStates'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Market internals ───────────────────────────────────────────────────────
 //
@@ -74,17 +75,17 @@ function realisedVol(closes, n = 20) {
 }
 
 const VOL_BANDS = [
-  { max: 20, label: 'LOW', note: 'Calm — complacency risk', colour: '#2D8A50' },
-  { max: 30, label: 'NORMAL', note: 'Typical market conditions', colour: '#C9A84C' },
-  { max: Infinity, label: 'ELEVATED', note: 'Fear in the market', colour: '#A83232' },
+  { max: 20, label: 'LOW', note: 'Calm — complacency risk', colour: PAL.up },
+  { max: 30, label: 'NORMAL', note: 'Typical market conditions', colour: PAL.gold },
+  { max: Infinity, label: 'ELEVATED', note: 'Fear in the market', colour: PAL.down },
 ]
 
 function Stat({ label, children, sub }) {
   return (
     <div className="px-3 py-2.5 min-w-0">
-      <div className="font-mono text-[8px] tracking-[0.18em] text-terminal-text-dim mb-1.5">{label}</div>
+      <div className="font-mono text-[11px] tracking-[0.18em] text-terminal-text-dim mb-1.5">{label}</div>
       {children}
-      {sub && <div className="font-mono text-[9px] text-terminal-text-dim/70 mt-1">{sub}</div>}
+      {sub && <div className="font-mono text-[11px] text-terminal-text-dim/70 mt-1">{sub}</div>}
     </div>
   )
 }
@@ -93,7 +94,7 @@ function MaRow({ n, pct }) {
   if (pct == null) return null
   const colour = pct >= 50 ? 'var(--color-gain)' : 'var(--color-loss)'
   return (
-    <div className="flex items-center gap-2 font-mono text-[10px]">
+    <div className="flex items-center gap-2 font-mono text-[11px]">
       <span className="w-14 text-terminal-text-dim">{n}-DAY</span>
       <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(100,130,160,0.2)' }}>
         <div className="h-full" style={{ width: `${pct}%`, background: colour }} />
@@ -145,13 +146,13 @@ export default function MarketInternals() {
   return (
     <div className="border-b border-terminal-border bg-terminal-panel">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pt-2">
-        <span className="font-mono text-[10px] font-bold tracking-widest text-terminal-gold whitespace-nowrap">MARKET INTERNALS</span>
-        <span className="font-mono text-[9px] text-terminal-text-dim min-w-0">{UNIVERSE.length} ASX stocks · computed from daily closes{USING_MOCK_DATA ? ' · demo moves carry a scripted sector tilt' : ''}</span>
+        <span className="font-mono text-[11px] font-bold tracking-widest text-terminal-gold whitespace-nowrap">MARKET INTERNALS</span>
+        <span className="font-mono text-[11px] text-terminal-text-dim min-w-0">{UNIVERSE.length} ASX stocks · computed from daily closes{USING_MOCK_DATA ? ' · demo moves carry a scripted sector tilt' : ''}</span>
         {USING_MOCK_DATA && <span className="ml-auto"><DemoBadge /></span>}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-terminal-border/60">
         <Stat label="ADVANCE / DECLINE" sub={ratio != null ? `A/D ratio ${ratio.toFixed(2)} — ${ratio >= 1 ? 'more rising than falling' : 'more falling than rising'}` : null}>
-          <button onClick={() => setShowSectors((v) => !v)} className="float-right font-mono text-[8px] tracking-widest text-terminal-gold/70 hover:text-terminal-gold -mt-5">
+          <button onClick={() => setShowSectors((v) => !v)} className="float-right font-mono text-[11px] tracking-widest text-terminal-gold/70 hover:text-terminal-gold -mt-5">
             {showSectors ? 'HIDE SECTORS' : 'BY SECTOR ▸'}
           </button>
           <div className="flex items-baseline gap-2 font-mono text-[11px] tabular-nums">
@@ -167,8 +168,8 @@ export default function MarketInternals() {
         </Stat>
         <Stat label="52-WEEK HIGHS / LOWS" sub="Within 0.5% of the 52-week extreme">
           <div className="flex items-baseline gap-4 font-mono tabular-nums">
-            <span><b className="text-lg" style={{ color: 'var(--color-gain)' }}>{m.highs}</b> <span className="text-[9px] text-terminal-text-dim">NEW HIGHS</span></span>
-            <span><b className="text-lg" style={{ color: 'var(--color-loss)' }}>{m.lows}</b> <span className="text-[9px] text-terminal-text-dim">NEW LOWS</span></span>
+            <span><b className="text-lg" style={{ color: 'var(--color-gain)' }}>{m.highs}</b> <span className="text-[11px] text-terminal-text-dim">NEW HIGHS</span></span>
+            <span><b className="text-lg" style={{ color: 'var(--color-loss)' }}>{m.lows}</b> <span className="text-[11px] text-terminal-text-dim">NEW LOWS</span></span>
           </div>
         </Stat>
         <Stat label="ABOVE MOVING AVERAGE" sub={m.above200 != null ? `Below 200-day: ${(100 - m.above200).toFixed(0)}% of stocks — ${m.above200 >= 50 ? 'the long-term trend is still up for most' : 'most are in long-term downtrends'}` : null}>
@@ -180,10 +181,10 @@ export default function MarketInternals() {
         </Stat>
         <Stat label="VIX EQUIVALENT · ASX 200 20D VOL" sub={band ? `${band.note} · 0–20 low · 20–30 normal · 30+ elevated` : 'Not enough history'}>
           <div className="flex items-baseline gap-2 font-mono">
-            <b className="text-lg tabular-nums" style={{ color: band?.colour ?? '#8BA3C4' }}>{vol != null ? vol.toFixed(1) : '—'}</b>
-            {band && <span className="text-[9px] font-bold tracking-widest" style={{ color: band.colour }}>{band.label}</span>}
+            <b className="text-lg tabular-nums" style={{ color: band?.colour ?? PAL.dim }}>{vol != null ? vol.toFixed(1) : '—'}</b>
+            {band && <span className="text-[11px] font-bold tracking-widest" style={{ color: band.colour }}>{band.label}</span>}
           </div>
-          <div className="font-mono text-[8px] text-terminal-text-dim/60 mt-0.5">Realised (measured), annualised — read like the VIX; no implied-vol (A-VIX) feed connected</div>
+          <div className="font-mono text-[11px] text-terminal-text-dim/60 mt-0.5">Realised (measured), annualised — read like the VIX; no implied-vol (A-VIX) feed connected</div>
         </Stat>
       </div>
       {showSectors && (
@@ -192,7 +193,7 @@ export default function MarketInternals() {
             .map(([sector, v]) => ({ sector, ...v, pct: v.adv + v.dec ? (v.adv / (v.adv + v.dec)) * 100 : 0 }))
             .sort((x, y) => y.pct - x.pct)
             .map((s) => (
-              <div key={s.sector} className="flex items-center gap-2 font-mono text-[10px]">
+              <div key={s.sector} className="flex items-center gap-2 font-mono text-[11px]">
                 <span className="w-28 truncate text-terminal-text-dim">{SECTOR_ABBR[s.sector] ?? s.sector}</span>
                 <div className="flex-1 h-1.5 rounded-full overflow-hidden flex" style={{ background: 'var(--color-loss)' }}>
                   <div style={{ width: `${s.pct}%`, background: 'var(--color-gain)' }} />

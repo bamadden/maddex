@@ -9,6 +9,7 @@ import { fetchEquityQuotes } from '../../services/dataService'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { useStore } from '../../store/useStore'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Alert centre ────────────────────────────────────────────────────────────
 //
@@ -32,11 +33,11 @@ const ALL_SYMBOLS = [
 
 const ICON = { PRICE: '⚡', SESSION_MOVE: '±', VOLUME_SPIKE: '▮', RANGE_52W: '⤒', NEWS_MENTION: '≡', RSI_EXTREME: '∿', ECONOMIC_EVENT: '◈', PORTFOLIO_PNL: '◆' }
 const TONE = {
-  far:   { bar: '#4A6080', text: '#637899' },
-  close: { bar: '#C9A84C', text: '#C9A84C' },
+  far:   { bar: PAL.muted, text: PAL.muted },
+  close: { bar: PAL.gold, text: PAL.gold },
   near:  { bar: '#F59E0B', text: '#F59E0B' },
   fired: { bar: '#22C55E', text: '#22C55E' },
-  none:  { bar: 'transparent', text: '#637899' },
+  none:  { bar: 'transparent', text: PAL.muted },
 }
 const TYPE_NAME = {
   PRICE_ABOVE: 'Price above', PRICE_BELOW: 'Price below', PRICE: 'Price', SESSION_MOVE: '% move', VOLUME_SPIKE: 'Volume',
@@ -125,7 +126,7 @@ function ProximityBar({ pct, fired }) {
         <span className={`absolute inset-y-0 left-0 ${proximityTone(pct) === 'near' && !fired ? 'animate-pulse' : ''}`}
           style={{ width: `${fired ? 100 : Math.min(100, pct)}%`, background: tone.bar }} />
       </span>
-      {(fired || pct >= 100) && <span style={{ color: TONE.fired.text, fontSize: 10 }}>✓</span>}
+      {(fired || pct >= 100) && <span style={{ color: TONE.fired.text, fontSize: 11 }}>✓</span>}
     </span>
   )
 }
@@ -157,7 +158,7 @@ function AlertRow({ a, price, onDelete, onToggle, onEdit }) {
 
   return (
     <div className={`flex items-center gap-2 py-1 ${a.paused ? 'opacity-50' : ''}`}>
-      <span className="w-4 text-center flex-shrink-0 text-2xs" style={{ color: fired ? TONE.fired.text : '#C9A84C' }} aria-hidden="true">
+      <span className="w-4 text-center flex-shrink-0 text-2xs" style={{ color: fired ? TONE.fired.text : PAL.gold }} aria-hidden="true">
         {a.type === 'RANGE_52W' && a.condition === 'low' ? '⤓' : ICON[a.type] ?? '⚑'}
       </span>
       <div className="flex-1 min-w-0">
@@ -344,11 +345,11 @@ export default function AlertsModule({ onClose, initialSymbol = '' }) {
 
           {groups.length === 0 ? (
             <div className="flex flex-col items-center gap-1.5 py-8 text-center">
-              <span className="w-11 h-11 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 18 }} aria-hidden="true">⚡</span>
+              <span className="w-11 h-11 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 20 }} aria-hidden="true">⚡</span>
               <div className="text-xs text-terminal-text-bright font-semibold mt-1">No alerts yet</div>
               <div className="text-2xs text-terminal-text-dim">Price levels, daily % moves, volume spikes, 52-week highs and news mentions.</div>
               {!adding && (
-                <button onClick={() => setAdding(true)} className="mt-2 px-3 py-1.5 text-[10px] font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors">+ ADD ALERT</button>
+                <button onClick={() => setAdding(true)} className="mt-2 px-3 py-1.5 text-[11px] font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors">+ ADD ALERT</button>
               )}
             </div>
           ) : (

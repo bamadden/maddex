@@ -4,16 +4,17 @@ import { useMarketSentiment, sentimentTooltip } from '../../../hooks/useMarketSe
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { currentRegime } from '../../../services/marketRegime'
+import { PAL } from '../../../styles/palette.js'
 
 // Five bands rather than three. The old widget coloured everything above 60
 // the same green, which put "cautiously bullish" and "strongly bullish" in one
 // bucket — the two readings a person would act on differently.
 const BANDS = [
-  { min: 0,  max: 20,  colour: '#A83232', label: 'BEARISH' },
+  { min: 0,  max: 20,  colour: PAL.down, label: 'BEARISH' },
   { min: 20, max: 40,  colour: '#C4653A', label: 'CAUTIOUS' },
-  { min: 40, max: 60,  colour: '#C9A84C', label: 'NEUTRAL' },
+  { min: 40, max: 60,  colour: PAL.gold, label: 'NEUTRAL' },
   { min: 60, max: 80,  colour: '#6FA34A', label: 'CONSTRUCTIVE' },
-  { min: 80, max: 100, colour: '#2D8A50', label: 'BULLISH' },
+  { min: 80, max: 100, colour: PAL.up, label: 'BULLISH' },
 ]
 
 const bandFor = (score) => BANDS.find((b) => score >= b.min && score < b.max) ?? BANDS[BANDS.length - 1]
@@ -123,7 +124,7 @@ export default function MarketScoreWidget() {
             // 28px and 600 weight. The score is the single number this widget
             // exists to deliver; at 26 regular it was competing with the
             // index levels two cells down rather than leading them.
-            style={{ fontSize: 28, fontWeight: 600, color: band?.colour ?? '#8BA3C4' }}
+            style={{ fontSize: 28, fontWeight: 600, color: band?.colour ?? PAL.dim }}
             title={sentimentTooltip(ms)}
             data-sentiment-score={score ?? undefined}
           >
@@ -131,11 +132,11 @@ export default function MarketScoreWidget() {
           </div>
           <div
             className="font-mono text-[11px] mt-1 truncate font-semibold"
-            style={{ color: '#8BA3C4', letterSpacing: '0.08em' }}
+            style={{ color: PAL.dim, letterSpacing: '0.08em' }}
           >
             {score != null ? ms.sentiment.label.toUpperCase() : ms.status === 'loading' ? 'READING MARKET DATA…' : 'NO MARKET DATA YET'}
           </div>
-          <div className="font-mono text-[9px] mt-0.5" style={{ color: '#637899' }} title={sentimentTooltip(ms)}>
+          <div className="font-mono text-[11px] mt-0.5" style={{ color: PAL.muted }} title={sentimentTooltip(ms)}>
             MARKET SENTIMENT · COMPUTED{ms.demoInputs ? ' · DEMO ASX INPUTS' : ''}{ms.stale ? ' · STALE INPUTS' : ''}
           </div>
         </div>
@@ -149,27 +150,27 @@ export default function MarketScoreWidget() {
       <div className="flex-1 min-h-0 flex flex-col justify-between gap-2">
         <div className="min-w-0">
           {driver && (
-            <div className="font-sans text-[10px] leading-snug line-clamp-2" style={{ color: '#8BA3C4' }} title="MaddenAI's daily read of the headlines (words only; it does not set the score)">
-              <span className="font-mono text-[9px] tracking-widest" style={{ color: '#637899' }}>HEADLINES · </span>{driver}
+            <div className="font-sans text-[11px] leading-snug line-clamp-2" style={{ color: PAL.dim }} title="MaddenAI's daily read of the headlines (words only; it does not set the score)">
+              <span className="font-mono text-[11px] tracking-widest" style={{ color: PAL.muted }}>HEADLINES · </span>{driver}
             </div>
           )}
           {/* The other drivers the model named — from the same read of the
               headlines, never synthesised here. */}
           {(read?.drivers ?? []).filter((d) => d && d !== driver).slice(0, 3).map((d) => (
-            <div key={d} className="font-sans text-[10px] leading-snug mt-1 flex gap-1.5 min-w-0" style={{ color: '#8BA3C4' }}>
-              <span style={{ color: band?.colour ?? '#4A6080' }}>•</span><span className="line-clamp-1">{d}</span>
+            <div key={d} className="font-sans text-[11px] leading-snug mt-1 flex gap-1.5 min-w-0" style={{ color: PAL.dim }}>
+              <span style={{ color: band?.colour ?? PAL.muted }}>•</span><span className="line-clamp-1">{d}</span>
             </div>
           ))}
-          <div className="mt-2 flex items-center gap-1.5 font-mono" style={{ fontSize: 8 }}>
-            <span style={{ color: '#4A6080', letterSpacing: '0.14em' }}>REGIME</span>
+          <div className="mt-2 flex items-center gap-1.5 font-mono" style={{ fontSize: 11 }}>
+            <span style={{ color: PAL.muted, letterSpacing: '0.14em' }}>REGIME</span>
             <span className="font-bold" style={{ color: regime.colour, letterSpacing: '0.1em' }}>{regime.regime}</span>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <button onClick={() => goModule('markets')} className="font-mono text-[9px] tracking-widest" style={{ color: '#4A6080' }}>
+          <button onClick={() => goModule('markets')} className="font-mono text-[11px] tracking-widest" style={{ color: PAL.muted }}>
             MARKETS →
           </button>
-          {stamp && <span className="font-mono text-[8px] truncate" style={{ color: '#3A4E68' }}>{stamp}</span>}
+          {stamp && <span className="font-mono text-[11px] truncate" style={{ color: PAL.muted }}>{stamp}</span>}
         </div>
       </div>
     </WidgetBody>

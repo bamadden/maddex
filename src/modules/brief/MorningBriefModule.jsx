@@ -26,6 +26,7 @@ import { NewsletterEditions, NewsletterInline } from '../../components/newslette
 import { getCachedWeeklyReview, listWeeklyHistory, reviewWeek } from '../../services/weeklyReviewService'
 import { WatchlistToday, ScoreBreakdown } from './BriefExtras'
 import { downloadBriefImage } from './briefImage'
+import { PAL } from '../../styles/palette.js'
 
 // The weekend state.
 //
@@ -71,7 +72,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
       ) : (
         <button onClick={onOpenWeekly}
           className="w-full text-left border border-terminal-gold/40 bg-terminal-gold/[0.04] px-4 py-3 hover:bg-terminal-gold/10 transition-colors">
-          <div className="font-mono text-terminal-gold font-bold tracking-widest" style={{ fontSize: 9 }}>THIS WEEK IN MARKETS</div>
+          <div className="font-mono text-terminal-gold font-bold tracking-widest" style={{ fontSize: 11 }}>THIS WEEK IN MARKETS</div>
           <div className="text-2xs text-terminal-text-dim mt-1">
             No review for {week.label} yet. Open the weekly review to write it →
           </div>
@@ -148,7 +149,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
                 <span className="text-2xs text-terminal-text flex-1 min-w-0 truncate">{e.event}</span>
                 <span
                   className="text-2xs flex-shrink-0 font-mono"
-                  style={{ color: eventStars(e) >= 5 ? '#A83232' : eventStars(e) >= 4 ? '#C9A84C' : '#637899' }}
+                  style={{ color: eventStars(e) >= 5 ? PAL.down : eventStars(e) >= 4 ? PAL.gold : PAL.muted }}
                 >{starString(eventStars(e))}</span>
               </div>
             ))}
@@ -177,7 +178,7 @@ const scoreToAngle = (s) => 180 + (s / 100) * 180
 function ScoreGauge({ score, label }) {
   const cx = 110, cy = 105, r = 88, strokeW = 16
   const needle = polar(cx, cy, r - strokeW / 2 - 6, scoreToAngle(score))
-  const bandColor = BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? '#8BA3C4'
+  const bandColor = BANDS.find((b) => score >= b.from && (score <= b.to || b.to === 100))?.color ?? PAL.dim
 
   return (
     <div className="flex flex-col items-center">
@@ -197,8 +198,8 @@ function ScoreGauge({ score, label }) {
           )
         })}
         {/* Needle */}
-        <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke="#E8EDF5" strokeWidth={2.5} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={5} fill="#E8EDF5" />
+        <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke={PAL.bright} strokeWidth={2.5} strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r={5} fill={PAL.bright} />
       </svg>
       <div className="text-center -mt-2">
         <div className="text-4xl font-bold" style={{ color: bandColor }}>{score}</div>
@@ -248,13 +249,13 @@ function PreviousBriefs({ currentDay, excludeWeek }) {
                 className={`w-full flex items-center gap-2 text-left hover:bg-terminal-accent/10 transition-colors ${weekly ? 'px-3 py-2.5' : 'px-2.5 py-1.5'}`}
               >
                 {weekly && (
-                  <span className="font-mono font-bold tracking-widest text-terminal-bg bg-terminal-gold px-1.5 py-px" style={{ fontSize: 8 }}>WEEKLY</span>
+                  <span className="font-mono font-bold tracking-widest text-terminal-bg bg-terminal-gold px-1.5 py-px" style={{ fontSize: 11 }}>WEEKLY</span>
                 )}
                 <span className={`text-terminal-text-bright font-semibold ${weekly ? 'text-xs' : 'text-2xs'}`}>
                   {weekly ? `Week of ${brief.label}` : label(day)}
                 </span>
                 {!weekly && brief.maddenAIScore != null && (
-                  <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 9, color: scoreColour(brief.maddenAIScore), border: `1px solid ${scoreColour(brief.maddenAIScore)}55` }}>
+                  <span className="font-mono font-bold px-1.5 py-px rounded-sm" style={{ fontSize: 11, color: scoreColour(brief.maddenAIScore), border: `1px solid ${scoreColour(brief.maddenAIScore)}55` }}>
                     {brief.maddenAIScore} · {brief.scoreLabel}
                   </span>
                 )}
@@ -268,7 +269,7 @@ function PreviousBriefs({ currentDay, excludeWeek }) {
                   <div className="text-2xs text-terminal-text-bright font-semibold mb-1.5">{brief.headline}</div>
                   {(brief.sections ?? []).map((sec) => (
                     <div key={sec.title} className="mb-2.5">
-                      <div className="text-[9px] text-terminal-gold font-bold tracking-widest mb-0.5">{sec.title}</div>
+                      <div className="text-[11px] text-terminal-gold font-bold tracking-widest mb-0.5">{sec.title}</div>
                       <div className="text-xs text-terminal-text-dim leading-relaxed"><SectionText text={sec.content} /></div>
                     </div>
                   ))}
@@ -399,19 +400,19 @@ export default function MorningBriefModule() {
               <button
                 onClick={() => load({ force: true })}
                 disabled={status === 'loading'}
-                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40"
+                className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40"
                 style={{ border: '1px solid rgba(201,168,76,0.2)' }}
               >{status === 'loading' ? 'GENERATING…' : '↻ REGENERATE'}</button>
               <button
                 onClick={share}
-                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
+                className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
                 style={{ border: '1px solid rgba(201,168,76,0.2)' }}
               >{copied ? '✓ COPIED' : '⧉ SHARE'}</button>
               <button
                 onClick={shareImage}
                 disabled={imaging}
                 title="Download the brief as a 1200×630 image card"
-                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
+                className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
                 style={{ border: '1px solid rgba(201,168,76,0.45)' }}
               >{imaging ? 'RENDERING…' : '⬇ SHARE AS IMAGE'}</button>
             </div>
@@ -446,7 +447,7 @@ export default function MorningBriefModule() {
 
         {status === 'empty' && (
           <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 26 }} aria-hidden="true">☀</span>
+            <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 28 }} aria-hidden="true">☀</span>
             <div className="text-terminal-text-bright text-base font-semibold tracking-wide mt-1">Your brief isn't ready yet</div>
             <div className="text-terminal-text-dim text-sm max-w-sm leading-relaxed">
               Morning briefs generate automatically at 7am on weekdays. Or generate one now.
@@ -495,13 +496,13 @@ export default function MorningBriefModule() {
             {/* Masthead */}
             <header className="pt-6 pb-5 flex items-end justify-between gap-4 flex-wrap">
               <div>
-                <div className="font-mono text-terminal-gold uppercase" style={{ fontSize: 9, letterSpacing: '0.28em' }}>Morning Intelligence Brief</div>
-                <h1 className="font-mono font-bold text-terminal-text-bright mt-1.5" style={{ fontSize: 26, letterSpacing: '0.04em' }}>
+                <div className="font-mono text-terminal-gold uppercase" style={{ fontSize: 11, letterSpacing: '0.28em' }}>Morning Intelligence Brief</div>
+                <h1 className="font-mono font-bold text-terminal-text-bright mt-1.5" style={{ fontSize: 28, letterSpacing: '0.04em' }}>
                   {new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase()}
                 </h1>
               </div>
               {brief.generatedAt && (
-                <div className="font-mono text-terminal-text-dim text-right" style={{ fontSize: 10 }}>
+                <div className="font-mono text-terminal-text-dim text-right" style={{ fontSize: 11 }}>
                   Generated {new Date(brief.generatedAt).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', timeZone: 'Australia/Sydney' })}{' '}
                   {sydneyTzAbbr(new Date(brief.generatedAt).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))}
                 </div>
@@ -515,7 +516,7 @@ export default function MorningBriefModule() {
                 <div className="font-sans text-terminal-text-dim mt-2 max-w-lg" style={{ fontSize: 13 }}>{brief.scoreDriver ?? brief.scoreRationale}</div>
               )}
               <ScoreBreakdown brief={brief} />
-              <div className="font-sans text-terminal-text-bright font-semibold mt-4 max-w-2xl leading-snug" style={{ fontSize: 18 }}>{brief.headline}</div>
+              <div className="font-sans text-terminal-text-bright font-semibold mt-4 max-w-2xl leading-snug" style={{ fontSize: 20 }}>{brief.headline}</div>
               <button
                 onClick={() => dispatchAskAI({ instruction: `Elaborate on today's market brief: "${brief.headline}". Give more detail on what's driving this.` }, { rawPrompt: true })}
                 className="mt-3 text-2xs text-terminal-gold border border-terminal-gold/40 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
@@ -551,13 +552,13 @@ export default function MorningBriefModule() {
 
             {/* Footer */}
             <footer className="mt-6 pt-3 border-t border-terminal-border flex items-center justify-between gap-3 flex-wrap">
-              <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+              <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
                 AI-GENERATED SUMMARY · FIGURES FROM VERIFIED AND LIVE DATA ONLY · GENERAL INFORMATION · NOT ADVICE
                 {brief.generatedAt && <> · {new Date(brief.generatedAt).toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</>}
               </div>
               <button
                 onClick={() => load({ force: true })}
-                className="font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
+                className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
                 style={{ border: '1px solid rgba(201,168,76,0.2)' }}
               >↻ REGENERATE</button>
             </footer>

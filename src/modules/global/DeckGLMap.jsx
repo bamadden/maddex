@@ -21,6 +21,7 @@ import MapDetailPanel from './MapDetailPanel'
 import MapLocationSearch from './MapLocationSearch'
 import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
+import { PAL } from '../../styles/palette.js'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 //
@@ -87,18 +88,18 @@ const STYLE_OPTIONS = [
 // the label, so the legend and the map cannot drift apart — the panel reads
 // this table rather than repeating the colours.
 const LAYER_CATALOGUE = [
-  { id: 'exchanges',    label: 'Exchange Markets',  dot: '#C9A84C', on: true },
+  { id: 'exchanges',    label: 'Exchange Markets',  dot: PAL.gold, on: true },
   { id: 'trade',        label: 'Trade Flows',       dot: '#4A9EDB', on: true },
   { id: 'events',       label: 'Rate Decisions',    dot: '#E8C766', on: true },
-  { id: 'districts',    label: 'Financial Districts', dot: '#C9A84C', on: true },
-  { id: 'shipping',     label: 'Shipping Risk',     dot: '#CC4444', on: false },
+  { id: 'districts',    label: 'Financial Districts', dot: PAL.gold, on: true },
+  { id: 'shipping',     label: 'Shipping Risk',     dot: PAL.down, on: false },
   { id: 'commodities',  label: 'Commodity Sites',   dot: '#D9A441', on: false },
-  { id: 'seismic',      label: 'Seismic Activity',  dot: '#A83232', on: false },
+  { id: 'seismic',      label: 'Seismic Activity',  dot: PAL.down, on: false },
   { id: 'geopolitical', label: 'Geopolitical',      dot: '#FF6D00', on: false },
   { id: 'cables',       label: 'Data Cables',       dot: '#4ADBD0', on: false },
   { id: 'military',     label: 'Strategic Assets',  dot: '#8C8CFF', on: false },
-  { id: 'countries',    label: 'Market Performance', dot: '#2D8A50', on: false },
-  { id: 'marketcap',    label: 'Market Cap Columns', dot: '#C9A84C', on: false },
+  { id: 'countries',    label: 'Market Performance', dot: PAL.up, on: false },
+  { id: 'marketcap',    label: 'Market Cap Columns', dot: PAL.gold, on: false },
   { id: 'density',      label: 'Economic Density',  dot: '#7BE495', on: false },
   // Off by default with everything except exchanges and trade flows. The
   // opening frame should be a map, arcs and reticles — three things — rather
@@ -1077,7 +1078,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     : { position: 'relative', width: '100%', height: '100%' }
 
   return (
-    <div ref={wrapRef} style={{ ...shell, background: '#060D1A', overflow: 'hidden' }}
+    <div ref={wrapRef} style={{ ...shell, background: PAL.bg, overflow: 'hidden' }}
       onMouseEnter={() => setMapHovered(true)} onMouseLeave={() => setMapHovered(false)}>
       <MapLocationSearch
         mapHovered={mapHovered}
@@ -1205,7 +1206,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         title={fullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen map'}
         style={{ position: 'absolute', top: 12, right: (selected ? panelWidth + 24 : 12) + insetR, zIndex: Z.CONTROL,
           background: 'rgba(6,13,26,0.88)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2,
-          color: '#8BA3C4', fontSize: 13, lineHeight: 1, padding: '6px 9px', cursor: 'pointer',
+          color: PAL.dim, fontSize: 13, lineHeight: 1, padding: '6px 9px', cursor: 'pointer',
           backdropFilter: 'blur(8px)' }}
       >⤢</button>
 
@@ -1220,7 +1221,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         maxWidth: 'calc(100% - 24px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${quakeState === 'error' ? 'rgba(201,168,76,0.3)' : 'rgba(168,50,50,0.4)'}`,
         borderRadius: 3, padding: '4px 10px', fontFamily: '"IBM Plex Mono", monospace',
-        fontSize: 9, letterSpacing: '0.1em', color: quakeState === 'error' ? '#8BA3C4' : '#CC4444' }}>
+        fontSize: 11, letterSpacing: '0.1em', color: quakeState === 'error' ? PAL.dim : PAL.down }}>
         {quakeState === 'loading' ? '◌ LOADING SEISMIC FEED…'
           : quakeState === 'error' ? '⚠ SEISMIC FEED UNAVAILABLE'
           : `🌍 ${quakes.length} QUAKES / WEEK (M4.5+) · ${majorQuakes.length} MAJOR (M6+)`}
@@ -1239,7 +1240,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
       <div style={{
         position: 'absolute', bottom: 72, left: 12 + insetL, zIndex: Z.HUD,
         pointerEvents: 'none', whiteSpace: 'nowrap',
-        fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+        fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
         letterSpacing: '0.3em', color: 'rgba(201,168,76,0.25)',
         textShadow: '0 1px 3px rgba(6,13,26,0.9)',
       }}>
@@ -1272,7 +1273,7 @@ function MissionClock({ insetR = 0 }) {
     <div style={{
       position: 'absolute', top: 16, right: 16 + insetR, zIndex: Z.HUD,
       pointerEvents: 'none', textAlign: 'right',
-      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+      fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
       letterSpacing: '0.15em', color: 'rgba(201,168,76,0.5)',
       textShadow: '0 1px 3px rgba(6,13,26,0.9)',
     }}>
@@ -1304,7 +1305,7 @@ function CoordinateReadout({ viewState, offsetRight }) {
     <div style={{
       position: 'absolute', bottom: 14, right: offsetRight,
       zIndex: Z.HUD, pointerEvents: 'none', whiteSpace: 'nowrap',
-      fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+      fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
       letterSpacing: '0.2em', color: 'rgba(201,168,76,0.5)',
       textShadow: '0 1px 3px rgba(6,13,26,0.9)',
     }}>
@@ -1354,7 +1355,7 @@ function HudFrame({ insetL = 0, insetR = 0 }) {
 function DataStatus({ sources, bottom, left = 12 }) {
   const active = sources.filter((s) => s.ok).length
   const allOk = active === sources.length
-  const colour = active === 0 ? '#CC4444' : allOk ? '#2D8A50' : '#C9A84C'
+  const colour = active === 0 ? PAL.down : allOk ? PAL.up : PAL.gold
   return (
     <div
       title={sources.map((s) => `${s.ok ? '●' : '○'} ${s.label}`).join('\n')}
@@ -1362,7 +1363,7 @@ function DataStatus({ sources, bottom, left = 12 }) {
         position: 'absolute', bottom, left, zIndex: Z.CHROME,
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${colour}44`,
         borderRadius: 3, padding: '4px 10px', whiteSpace: 'nowrap',
-        fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
+        fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
         letterSpacing: '0.1em', color: colour,
       }}
     >
@@ -1374,8 +1375,8 @@ function DataStatus({ sources, bottom, left = 12 }) {
 // ── Tooltip ────────────────────────────────────────────────────────────────
 function MapTooltip({ tooltip }) {
   const { object, x, y, type } = tooltip
-  const gold = { color: '#C9A84C', fontWeight: 700, marginBottom: 5 }
-  const dim = { fontSize: 10, color: '#8BA3C4', lineHeight: 1.5 }
+  const gold = { color: PAL.gold, fontWeight: 700, marginBottom: 5 }
+  const dim = { fontSize: 11, color: PAL.dim, lineHeight: 1.5 }
 
   const body = {
     exchange: () => (
@@ -1384,32 +1385,32 @@ function MapTooltip({ tooltip }) {
         <div style={{ marginBottom: 3 }}>{object.index}</div>
         {object.value != null ? (
           <>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3 }}>{object.value.toLocaleString('en-AU', { maximumFractionDigits: 1 })}</div>
-            <div style={{ color: object.change >= 0 ? '#2D8A50' : '#A83232', marginBottom: 5 }}>
-              {object.change >= 0 ? '▲' : '▼'} {Math.abs(object.change).toFixed(2)}% <span style={{ color: '#637899', fontSize: 9 }}>DEMO</span>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{object.value.toLocaleString('en-AU', { maximumFractionDigits: 1 })}</div>
+            <div style={{ color: object.change >= 0 ? PAL.up : PAL.down, marginBottom: 5 }}>
+              {object.change >= 0 ? '▲' : '▼'} {Math.abs(object.change).toFixed(2)}% <span style={{ color: PAL.muted, fontSize: 11 }}>DEMO</span>
             </div>
           </>
-        ) : <div style={{ color: '#637899', marginBottom: 5 }}>no index feed</div>}
-        <div style={{ fontSize: 10, color: isExchangeOpen(object) ? '#2D8A50' : '#637899' }}>
+        ) : <div style={{ color: PAL.muted, marginBottom: 5 }}>no index feed</div>}
+        <div style={{ fontSize: 11, color: isExchangeOpen(object) ? PAL.up : PAL.muted }}>
           {isExchangeOpen(object) ? '● OPEN NOW' : '○ CLOSED'}
         </div>
       </>
     ),
     autrade: () => (
       <>
-        <div style={{ ...gold, color: object.dir === 'export' ? '#C9A84C' : '#4A9EDB' }}>
+        <div style={{ ...gold, color: object.dir === 'export' ? PAL.gold : '#4A9EDB' }}>
           {object.dir === 'export' ? `AU EXPORTS → ${object.country.toUpperCase()}` : `AU IMPORTS ← ${object.country.toUpperCase()}`}
         </div>
         <div style={{ marginBottom: 2 }}>A${object.bn.toFixed(1)}b · {object.share.toFixed(1)}% of {object.dir === 'export' ? 'exports' : 'imports'}</div>
         <div style={dim}>{object.main}</div>
-        <div style={{ fontSize: 9, color: '#4A6080', marginTop: 3 }}>ABS, {AU_TRADE?.period}</div>
+        <div style={{ fontSize: 11, color: PAL.muted, marginTop: 3 }}>ABS, {AU_TRADE?.period}</div>
       </>
     ),
     ausite: () => (
       <>
         <div style={gold}>{object.name.toUpperCase()}</div>
         <div style={{ marginBottom: 2 }}>{object.commodity} · {object.region}</div>
-        <div style={{ fontSize: 10, color: '#4A6080', marginTop: 2 }}>{object.asx.join(', ')} · click for detail</div>
+        <div style={{ fontSize: 11, color: PAL.muted, marginTop: 2 }}>{object.asx.join(', ')} · click for detail</div>
       </>
     ),
     auimpact: () => (
@@ -1425,23 +1426,23 @@ function MapTooltip({ tooltip }) {
         {object.value != null && (
           <div style={dim}>{object.id?.startsWith('AU-') ? `A$${object.value}b AU exports (ABS 2024-25)` : `A$${object.value}B annually (illustrative)`}</div>
         )}
-        {object.disrupted && <div style={{ color: '#A83232', marginTop: 4, fontSize: 10 }}>⚠ DISRUPTED</div>}
+        {object.disrupted && <div style={{ color: PAL.down, marginTop: 4, fontSize: 11 }}>⚠ DISRUPTED</div>}
       </>
     ),
     disruption: () => (
       <>
-        <div style={{ color: '#A83232', fontWeight: 700, marginBottom: 4 }}>⚠ {object.severity} — {object.name}</div>
+        <div style={{ color: PAL.down, fontWeight: 700, marginBottom: 4 }}>⚠ {object.severity} — {object.name}</div>
         <div style={dim}>{object.detail.slice(0, 110)}…</div>
-        <div style={{ color: '#C9A84C', fontSize: 10, marginTop: 4 }}>{object.impact}</div>
+        <div style={{ color: PAL.gold, fontSize: 11, marginTop: 4 }}>{object.impact}</div>
       </>
     ),
     earthquake: () => (
       <>
-        <div style={{ color: object.magnitude >= 6 ? '#A83232' : '#C9A84C', fontWeight: 700, marginBottom: 4 }}>
+        <div style={{ color: object.magnitude >= 6 ? PAL.down : PAL.gold, fontWeight: 700, marginBottom: 4 }}>
           M{object.magnitude?.toFixed(1)} EARTHQUAKE
         </div>
         <div style={dim}>{object.place}</div>
-        <div style={{ fontSize: 10, color: '#4A6080', marginTop: 2 }}>Depth {Math.round(object.depth)}km</div>
+        <div style={{ fontSize: 11, color: PAL.muted, marginTop: 2 }}>Depth {Math.round(object.depth)}km</div>
       </>
     ),
     commodity: () => (
@@ -1449,28 +1450,28 @@ function MapTooltip({ tooltip }) {
         <div style={gold}>{object.commodity}</div>
         <div style={{ marginBottom: 2 }}>{object.country}</div>
         <div style={dim}>{object.production} {object.unit}</div>
-        <div style={{ fontSize: 10, color: '#4A6080', marginTop: 3 }}>{object.companies.join(', ')}</div>
+        <div style={{ fontSize: 11, color: PAL.muted, marginTop: 3 }}>{object.companies.join(', ')}</div>
       </>
     ),
     geopolitical: () => (
       <>
-        <div style={{ color: '#A83232', fontWeight: 700, marginBottom: 4 }}>{object.title}</div>
+        <div style={{ color: PAL.down, fontWeight: 700, marginBottom: 4 }}>{object.title}</div>
         <div style={{ ...dim, marginBottom: 4 }}>{object.summary}</div>
-        <div style={{ fontSize: 10, color: '#C9A84C' }}>ASX: {object.asxExposure}</div>
+        <div style={{ fontSize: 11, color: PAL.gold }}>ASX: {object.asxExposure}</div>
       </>
     ),
     cable: () => (
       <>
         <div style={{ color: '#6496FF', fontWeight: 700, marginBottom: 4 }}>{object.name}</div>
         <div style={dim}>Capacity {object.capacity}</div>
-        <div style={{ fontSize: 10, color: '#4A6080' }}>{object.owner}</div>
+        <div style={{ fontSize: 11, color: PAL.muted }}>{object.owner}</div>
       </>
     ),
     military: () => (
       <>
         <div style={{ color: '#8C8CFF', fontWeight: 700, marginBottom: 4 }}>✦ {object.name}</div>
         <div style={{ ...dim, marginBottom: 2 }}>{object.country} · {object.type}</div>
-        <div style={{ fontSize: 10, color: '#4A6080', lineHeight: 1.5 }}>{object.significance}</div>
+        <div style={{ fontSize: 11, color: PAL.muted, lineHeight: 1.5 }}>{object.significance}</div>
       </>
     ),
   }[type]
@@ -1496,7 +1497,7 @@ function MapTooltip({ tooltip }) {
       position: 'fixed', left, top, zIndex: Z.TOOLTIP, maxWidth: 230,
       background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 4,
       padding: '10px 14px', fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
-      color: '#E8EDF5', pointerEvents: 'none', lineHeight: 1.4,
+      color: PAL.bright, pointerEvents: 'none', lineHeight: 1.4,
       boxShadow: 'var(--shadow-floating)',
     }}>
       {body()}
@@ -1510,9 +1511,9 @@ const btn = (active) => ({
   borderRadius: 2,
   padding: '5px 10px',
   fontFamily: '"IBM Plex Mono", monospace',
-  fontSize: 9,
+  fontSize: 11,
   letterSpacing: '0.1em',
-  color: active ? '#C9A84C' : '#637899',
+  color: active ? PAL.gold : PAL.muted,
   cursor: 'pointer',
   textAlign: 'left',
   whiteSpace: 'nowrap',
@@ -1551,8 +1552,8 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
             border: '1px solid rgba(201,168,76,0.25)', borderLeft: 'none',
             borderRadius: '0 3px 3px 0',
             padding: '7px 9px',
-            fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
-            letterSpacing: '0.14em', color: '#C9A84C', cursor: 'pointer',
+            fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
+            letterSpacing: '0.14em', color: PAL.gold, cursor: 'pointer',
             backdropFilter: 'blur(8px)',
           }}
         >
@@ -1582,12 +1583,12 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '7px 10px', borderBottom: '1px solid rgba(201,168,76,0.18)',
-            fontFamily: '"IBM Plex Mono", monospace', fontSize: 9,
-            letterSpacing: '0.14em', color: '#C9A84C', flexShrink: 0,
+            fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
+            letterSpacing: '0.14em', color: PAL.gold, flexShrink: 0,
           }}>
             <span>INTELLIGENCE LAYERS</span>
             <button onClick={() => setOpen(false)} aria-label="Hide layers"
-              style={{ background: 'none', border: 'none', color: '#637899', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0 }}>✕</button>
+              style={{ background: 'none', border: 'none', color: PAL.muted, cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0 }}>✕</button>
           </div>
 
           <div
@@ -1607,8 +1608,8 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
                     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                     padding: '4px 10px', background: 'none', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
-                    fontFamily: '"IBM Plex Mono", monospace', fontSize: 10,
-                    color: on ? '#E8EDF5' : '#637899',
+                    fontFamily: '"IBM Plex Mono", monospace', fontSize: 11,
+                    color: on ? PAL.bright : PAL.muted,
                   }}
                 >
                   {/* Drawn rather than a native checkbox so it matches the
@@ -1617,7 +1618,7 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
                     width: 11, height: 11, flexShrink: 0, borderRadius: 2,
                     border: `1px solid ${on ? 'rgba(201,168,76,0.8)' : 'rgba(99,120,153,0.45)'}`,
                     background: on ? 'rgba(201,168,76,0.85)' : 'transparent',
-                    color: '#060D1A', fontSize: 9, lineHeight: '9px', textAlign: 'center',
+                    color: PAL.bg, fontSize: 11, lineHeight: '9px', textAlign: 'center',
                   }}>{on ? '✓' : ''}</span>
                   <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.label}</span>
                   {/* The legend reads its colour from the same table the map
@@ -1632,20 +1633,20 @@ function LayerPanel({ layerOn, onToggleLayer, mapStyle, onStyleChange, auFocus, 
           </div>
 
           <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', padding: '5px 10px 6px', flexShrink: 0 }}>
-            <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 8, letterSpacing: '0.14em', color: '#4A6080', marginBottom: 3 }}>
+            <div style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, letterSpacing: '0.14em', color: PAL.muted, marginBottom: 3 }}>
               MAP STYLE
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
               {STYLE_OPTIONS.map((st) => (
                 <button key={st.id} onClick={() => onStyleChange(st.id)}
-                  style={{ ...btn(mapStyle === st.id), padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>
+                  style={{ ...btn(mapStyle === st.id), padding: '4px 5px', fontSize: 11, textAlign: 'center' }}>
                   {st.label}
                 </button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 2, marginTop: 3 }}>
-              <button onClick={onAuFocus} style={{ ...btn(auFocus), flex: 1, padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>🇦🇺 AU</button>
-              <button onClick={onGlobal} style={{ ...btn(false), flex: 1, padding: '4px 5px', fontSize: 8, textAlign: 'center' }}>🌐 GLOBAL</button>
+              <button onClick={onAuFocus} style={{ ...btn(auFocus), flex: 1, padding: '4px 5px', fontSize: 11, textAlign: 'center' }}>🇦🇺 AU</button>
+              <button onClick={onGlobal} style={{ ...btn(false), flex: 1, padding: '4px 5px', fontSize: 11, textAlign: 'center' }}>🌐 GLOBAL</button>
             </div>
           </div>
         </div>
@@ -1667,20 +1668,20 @@ function AuIntelPanel({ onSite, onRoute, insetR = 0 }) {
   const rows = t[side]
   const total = side === 'exports' ? t.totalExportsBn : t.totalImportsBn
   const max = Math.max(...rows.map((r) => r.bn))
-  const tone = side === 'exports' ? '#C9A84C' : '#4A9EDB'
+  const tone = side === 'exports' ? PAL.gold : '#4A9EDB'
   const mono = { fontFamily: '"IBM Plex Mono", monospace' }
   return (
     <div style={{ position: 'absolute', top: 52, right: 12 + insetR, width: 252, zIndex: Z.CONTROL, background: 'rgba(6,13,26,0.92)',
       border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2, padding: '10px 12px', backdropFilter: 'blur(8px)', ...mono }}>
-      <div style={{ fontSize: 9, letterSpacing: '0.16em', color: '#C9A84C', fontWeight: 700 }}>AUSTRALIA ECONOMIC INTELLIGENCE</div>
+      <div style={{ fontSize: 11, letterSpacing: '0.16em', color: PAL.gold, fontWeight: 700 }}>AUSTRALIA ECONOMIC INTELLIGENCE</div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
-        <span style={{ fontSize: 8, letterSpacing: '0.14em', color: '#8BA3C4' }}>TRADE PARTNERS</span>
+        <span style={{ fontSize: 11, letterSpacing: '0.14em', color: PAL.dim }}>TRADE PARTNERS</span>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
           {['exports', 'imports'].map((k) => (
-            <button key={k} onClick={() => setSide(k)} style={{ ...mono, fontSize: 8, padding: '1px 5px', cursor: 'pointer', borderRadius: 2,
-              border: `1px solid ${side === k ? (k === 'exports' ? '#C9A84C' : '#4A9EDB') : 'rgba(99,120,153,0.35)'}`,
-              color: side === k ? (k === 'exports' ? '#C9A84C' : '#4A9EDB') : '#637899', background: 'transparent' }}>{k.toUpperCase()}</button>
+            <button key={k} onClick={() => setSide(k)} style={{ ...mono, fontSize: 11, padding: '1px 5px', cursor: 'pointer', borderRadius: 2,
+              border: `1px solid ${side === k ? (k === 'exports' ? PAL.gold : '#4A9EDB') : 'rgba(99,120,153,0.35)'}`,
+              color: side === k ? (k === 'exports' ? PAL.gold : '#4A9EDB') : PAL.muted, background: 'transparent' }}>{k.toUpperCase()}</button>
           ))}
         </span>
       </div>
@@ -1689,29 +1690,29 @@ function AuIntelPanel({ onSite, onRoute, insetR = 0 }) {
           <div key={r.country} role="button" tabIndex={0} style={{ marginBottom: 6, cursor: 'pointer' }} title={`${r.main} — click for the route card`}
             onClick={() => onRoute?.(r.country, side)}
             onKeyDown={(e) => { if (e.key === 'Enter') onRoute?.(r.country, side) }}>
-            <div style={{ display: 'flex', fontSize: 10, color: '#E6EDF6' }}>
+            <div style={{ display: 'flex', fontSize: 11, color: '#E6EDF6' }}>
               <span>{r.country}</span>
               <span style={{ marginLeft: 'auto', color: tone, fontWeight: 700 }}>{((r.bn / total) * 100).toFixed(1)}%</span>
             </div>
             <div style={{ height: 4, background: 'rgba(99,120,153,0.2)', borderRadius: 2, overflow: 'hidden', margin: '2px 0' }}>
               <div style={{ width: `${(r.bn / max) * 100}%`, height: '100%', background: tone }} />
             </div>
-            <div style={{ fontSize: 8, color: '#637899' }}>A${r.bn.toFixed(1)}b · {r.main}</div>
+            <div style={{ fontSize: 11, color: PAL.muted }}>A${r.bn.toFixed(1)}b · {r.main}</div>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 7.5, color: '#4A6080', lineHeight: 1.4 }}>
+      <div style={{ fontSize: 11, color: PAL.muted, lineHeight: 1.4 }}>
         Share of A${total.toFixed(1)}b total {side}, {t.period}. ABS (goods and services). Shares approximate — see source notes.
       </div>
 
-      <div style={{ fontSize: 8, letterSpacing: '0.14em', color: '#8BA3C4', marginTop: 10 }}>KEY RESOURCE REGIONS</div>
+      <div style={{ fontSize: 11, letterSpacing: '0.14em', color: PAL.dim, marginTop: 10 }}>KEY RESOURCE REGIONS</div>
       <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {AU_KEY_SITES.map((s) => (
           <button key={s.id} onClick={() => onSite(s)} style={{ ...mono, display: 'flex', gap: 6, alignItems: 'baseline', background: 'transparent', border: 'none',
-            padding: '2px 0', cursor: 'pointer', textAlign: 'left', color: '#E6EDF6', fontSize: 9 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C9A84C', flexShrink: 0, display: 'inline-block' }} />
+            padding: '2px 0', cursor: 'pointer', textAlign: 'left', color: '#E6EDF6', fontSize: 11 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: PAL.gold, flexShrink: 0, display: 'inline-block' }} />
             <span style={{ fontWeight: 700 }}>{s.name}</span>
-            <span style={{ color: '#637899', marginLeft: 'auto', fontSize: 8 }}>{s.commodity.split(' (')[0]}</span>
+            <span style={{ color: PAL.muted, marginLeft: 'auto', fontSize: 11 }}>{s.commodity.split(' (')[0]}</span>
           </button>
         ))}
       </div>
@@ -1728,12 +1729,12 @@ function RiskViewToggle({ value, onChange }) {
     <div style={{ position: 'absolute', bottom: 34, left: '50%', transform: 'translateX(-50%)', zIndex: Z.CONTROL, display: 'flex', alignItems: 'center', gap: 4,
       background: 'rgba(6,13,26,0.9)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 2, padding: '4px 6px', ...mono }}>
       {[['global', 'GLOBAL RISK'], ['au', 'AU IMPACT']].map(([k, label]) => (
-        <button key={k} onClick={() => onChange(k)} style={{ ...mono, fontSize: 9, letterSpacing: '0.1em', padding: '2px 8px', cursor: 'pointer', borderRadius: 2,
-          border: `1px solid ${value === k ? '#C9A84C' : 'rgba(99,120,153,0.35)'}`, color: value === k ? '#C9A84C' : '#8BA3C4',
+        <button key={k} onClick={() => onChange(k)} style={{ ...mono, fontSize: 11, letterSpacing: '0.1em', padding: '2px 8px', cursor: 'pointer', borderRadius: 2,
+          border: `1px solid ${value === k ? PAL.gold : 'rgba(99,120,153,0.35)'}`, color: value === k ? PAL.gold : PAL.dim,
           background: value === k ? 'rgba(201,168,76,0.12)' : 'transparent', fontWeight: value === k ? 700 : 400 }}>{label}</button>
       ))}
       {value === 'au' && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 4, fontSize: 8, color: '#8BA3C4' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 4, fontSize: 11, color: PAL.dim }}>
           LOW <span style={{ width: 50, height: 5, background: 'linear-gradient(90deg, rgb(205,196,170), rgb(214,174,82), rgb(201,150,30))', display: 'inline-block' }} /> HIGH
         </span>
       )}

@@ -8,6 +8,7 @@ import {
   TRADE_TIER_FILL, TRADE_TIER_STROKE, pointAlongRoute,
 } from '../../data/globeRoutes'
 import { EXCHANGES, subsolarPoint, DEFAULT_ROTATION } from '../../data/globeExchanges'
+import { PAL } from '../../styles/palette.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static data
@@ -186,11 +187,11 @@ function earthFillColor(numericId) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CRYPTO_TIER_COLORS = {
-  'very-high': '#2D8A50',
+  'very-high': PAL.up,
   high: '#1a5c35',
   medium: '#1A3A6A',
   low: '#6B2323',
-  banned: '#A83232',
+  banned: PAL.down,
 }
 const CRYPTO_TIER_INFO = {
   'very-high': { label: 'Very High Adoption', legal: 'Legal' },
@@ -260,12 +261,12 @@ function isExchangeOpen(ex) {
 }
 
 function heatColor(pct) {
-  if (pct == null) return '#0B1628'
+  if (pct == null) return PAL.panel
   if (pct > 1) return '#1a5c35'
-  if (pct >= 0) return '#2D8A50'
+  if (pct >= 0) return PAL.up
   if (pct >= -0.3) return '#1A3A6A'
   if (pct >= -1) return '#6B2323'
-  return '#A83232'
+  return PAL.down
 }
 
 // True when [lon, lat] sits on the hemisphere currently facing the viewer.
@@ -626,7 +627,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
       ctx.beginPath(); path(feature)
       ctx.fillStyle = isEarth ? earthFillColor(numericId)
         : isMarkets ? marketFillColor(numericId)
-        : '#060D1A'
+        : PAL.bg
       ctx.fill()
 
       if (heatOn) {
@@ -819,13 +820,13 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
         ctx.lineTo(px, py + 4)
         ctx.lineTo(px - 4, py)
         ctx.closePath()
-        ctx.fillStyle = '#C9A84C'
+        ctx.fillStyle = PAL.gold
         ctx.fill()
         ctx.lineWidth = 1
         ctx.strokeStyle = 'rgba(6,13,26,0.6)'
         ctx.stroke()
         ctx.font = '9px "IBM Plex Mono", monospace'
-        ctx.fillStyle = '#C9A84C'
+        ctx.fillStyle = PAL.gold
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
         ctx.fillText(`₿ ${city.name}`, px + 7, py)
@@ -870,7 +871,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
         const r = isHov ? 5.2 : 4
         ctx.beginPath()
         ctx.arc(px, py, r, 0, Math.PI * 2)
-        ctx.fillStyle = open ? '#C9A84C' : '#3D5070'
+        ctx.fillStyle = open ? PAL.gold : '#3D5070'
         ctx.fill()
         ctx.lineWidth = 1
         ctx.strokeStyle = 'rgba(6,13,26,0.6)'
@@ -893,7 +894,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           ctx.rect(pillX, pillY, pillW, pillH)
           ctx.fill()
           ctx.stroke()
-          ctx.fillStyle = '#C9A84C'
+          ctx.fillStyle = PAL.gold
           ctx.textAlign = 'left'
           ctx.textBaseline = 'middle'
           ctx.fillText(ex.label, px + gap, py)
@@ -1308,7 +1309,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
         <button
           type="button"
           onClick={() => setLayerPanelCollapsed(false)}
-          className="absolute bottom-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2 py-1 font-mono text-[8px] tracking-widest text-terminal-gold hover:border-terminal-gold pointer-events-auto"
+          className="absolute bottom-3 z-10 bg-terminal-panel/90 border border-terminal-border px-2 py-1 font-mono text-[11px] tracking-widest text-terminal-gold hover:border-terminal-gold pointer-events-auto"
           style={{ left: 12 + insetL }}
         >
           LAYERS ▸
@@ -1323,7 +1324,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           style={{ left: 12 + insetL, background: 'rgba(6,13,26,0.8)' }}
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="font-mono text-[8px] tracking-widest text-terminal-gold">LAYERS</span>
+            <span className="font-mono text-[11px] tracking-widest text-terminal-gold">LAYERS</span>
             <button
               type="button"
               onClick={() => setLayerPanelCollapsed(true)}
@@ -1335,7 +1336,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           {/* Projection. A globe is honest about the planet but bad at
               comparing two markets on opposite sides of it, which is most
               pairs that matter here. */}
-          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">PROJECTION</div>
+          <div className="text-[11px] font-mono text-terminal-gold tracking-widest mb-1">PROJECTION</div>
           <div className="flex gap-1 mb-2.5">
             {PROJECTIONS.map((proj) => (
               <button
@@ -1345,7 +1346,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
                   setProjectionId(proj.id)
                   try { localStorage.setItem('maddex_globe_projection', proj.id) } catch { /* best-effort */ }
                 }}
-                className={`flex-1 font-mono text-[8px] tracking-widest px-1 py-1 transition-colors ${
+                className={`flex-1 font-mono text-[11px] tracking-widest px-1 py-1 transition-colors ${
                   projectionId === proj.id
                     ? 'bg-terminal-gold text-terminal-bg'
                     : 'bg-terminal-bg border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
@@ -1356,14 +1357,14 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
             ))}
           </div>
 
-          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">BASE LAYERS</div>
+          <div className="text-[11px] font-mono text-terminal-gold tracking-widest mb-1">BASE LAYERS</div>
           <div className="flex gap-1 mb-2.5">
             {BASE_LAYERS.map((layer) => (
               <button
                 key={layer}
                 type="button"
                 onClick={() => selectBase(layer)}
-                className={`flex-1 font-mono text-[8px] tracking-widest px-1.5 py-1 transition-colors ${
+                className={`flex-1 font-mono text-[11px] tracking-widest px-1.5 py-1 transition-colors ${
                   baseLayer === layer
                     ? 'bg-terminal-gold text-terminal-bg'
                     : 'bg-terminal-bg border border-terminal-border text-terminal-text-dim hover:border-terminal-gold'
@@ -1374,13 +1375,13 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
             ))}
           </div>
 
-          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">DATA OVERLAYS</div>
+          <div className="text-[11px] font-mono text-terminal-gold tracking-widest mb-1">DATA OVERLAYS</div>
           <div className="flex flex-col gap-1.5 mb-2.5">
             {DATA_OVERLAY_KEYS.map((key) => {
               const ovl = overlays[key]
               return (
                 <div key={key}>
-                  <label className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+                  <label className="flex items-center gap-1.5 font-mono text-[11px] tracking-widest text-terminal-text-dim cursor-pointer">
                     <input
                       type="checkbox"
                       checked={ovl.active}
@@ -1404,12 +1405,12 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
             })}
           </div>
 
-          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">ROUTE OVERLAYS</div>
+          <div className="text-[11px] font-mono text-terminal-gold tracking-widest mb-1">ROUTE OVERLAYS</div>
           <div className="flex flex-col gap-1.5 mb-2.5">
             {ROUTE_OVERLAY_KEYS.map((key) => {
               const ovl = overlays[key]
               return (
-                <label key={key} className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+                <label key={key} className="flex items-center gap-1.5 font-mono text-[11px] tracking-widest text-terminal-text-dim cursor-pointer">
                   <input
                     type="checkbox"
                     checked={ovl.active}
@@ -1422,12 +1423,12 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
             })}
           </div>
 
-          <div className="text-[8px] font-mono text-terminal-gold tracking-widest mb-1">VISUAL OVERLAYS</div>
+          <div className="text-[11px] font-mono text-terminal-gold tracking-widest mb-1">VISUAL OVERLAYS</div>
           <div className="flex flex-col gap-1.5">
             {VISUAL_OVERLAY_KEYS.map((key) => {
               const ovl = overlays[key]
               return (
-                <label key={key} className="flex items-center gap-1.5 font-mono text-[8px] tracking-widest text-terminal-text-dim cursor-pointer">
+                <label key={key} className="flex items-center gap-1.5 font-mono text-[11px] tracking-widest text-terminal-text-dim cursor-pointer">
                   <input
                     type="checkbox"
                     checked={ovl.active}
@@ -1459,7 +1460,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
             key={pill.key}
             type="button"
             onClick={pill.onClick}
-            className={`font-mono text-[9px] tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-md transition-colors ${
+            className={`font-mono text-[11px] tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-md transition-colors ${
               pill.active
                 ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
                 : 'text-terminal-text-dim border-terminal-border-gold hover:text-terminal-gold hover:border-terminal-gold'
@@ -1473,7 +1474,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           type="button"
           onClick={focusAustralia}
           title="Rotate to Australia and highlight it"
-          className={`font-mono text-[9px] tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-md transition-colors ${
+          className={`font-mono text-[11px] tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-md transition-colors ${
             pinnedCountry === 36
               ? 'bg-terminal-gold text-terminal-bg border-terminal-gold font-bold'
               : 'text-terminal-text-dim border-terminal-border-gold hover:text-terminal-gold hover:border-terminal-gold'
@@ -1494,7 +1495,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearchKeyDown}
           placeholder="Search country..."
-          className="w-full font-mono text-[10px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
+          className="w-full font-mono text-[11px] px-2 py-1 bg-terminal-panel border border-terminal-border text-terminal-text-bright placeholder:text-terminal-text-dim focus:outline-none focus:border-terminal-gold"
         />
         {searchMatches.length > 0 && (
           <div className="mt-1 bg-terminal-panel border border-terminal-border max-h-40 overflow-y-auto">
@@ -1503,7 +1504,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
                 key={`${item.type}:${item.id}`}
                 type="button"
                 onClick={() => selectSearchResult(item)}
-                className="block w-full text-left px-2 py-1 font-mono text-[10px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
+                className="block w-full text-left px-2 py-1 font-mono text-[11px] text-terminal-text-dim hover:bg-terminal-accent/30 hover:text-terminal-gold"
               >
                 <span className="text-terminal-text-dim/60 mr-1">
                   {item.type === 'country' ? '🌍' : item.type === 'exchange' ? '🏛' : item.kind === 'SHIPPING' ? '🚢' : '✈'}
@@ -1590,23 +1591,23 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
 
 const LEGEND_SWATCHES = {
   MARKETS: [
-    ['#2D8A50', 'Open exchange'],
-    ['#4A6080', 'Closed exchange'],
+    [PAL.up, 'Open exchange'],
+    [PAL.muted, 'Closed exchange'],
   ],
   HEAT: [
-    ['#A83232', '< -1%'], ['#6B2323', '-1 to -0.3%'], ['#1A3A6A', 'Flat'], ['#2D8A50', '0 to 1%'], ['#1a5c35', '> 1%'],
+    [PAL.down, '< -1%'], ['#6B2323', '-1 to -0.3%'], ['#1A3A6A', 'Flat'], [PAL.up, '0 to 1%'], ['#1a5c35', '> 1%'],
   ],
   CRYPTO: [
-    ['#2D8A50', 'Very High'], ['#1a5c35', 'High'], ['#1A3A6A', 'Medium'], ['#6B2323', 'Low'], ['#A83232', 'Banned'],
+    [PAL.up, 'Very High'], ['#1a5c35', 'High'], ['#1A3A6A', 'Medium'], ['#6B2323', 'Low'], [PAL.down, 'Banned'],
   ],
   SHIPPING: [
-    ['#2D7DD2', 'Active route'], ['#A83232', 'Disrupted'], ['#C9A84C', 'Tension zone'],
+    [PAL.blue, 'Active route'], [PAL.down, 'Disrupted'], [PAL.gold, 'Tension zone'],
   ],
   FREIGHT: [
-    ['#C9A84C', 'Air cargo route'],
+    [PAL.gold, 'Air cargo route'],
   ],
   TRADE_IMPACT: [
-    ['#A83232', 'High tension'], ['#C9A84C', 'Elevated'], ['#2D7DD2', 'Monitoring'],
+    [PAL.down, 'High tension'], [PAL.gold, 'Elevated'], [PAL.blue, 'Monitoring'],
   ],
 }
 const LEGEND_TITLES = {
@@ -1623,7 +1624,7 @@ function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
       <button
         type="button"
         onClick={onToggleCollapse}
-        className="font-mono text-[8px] tracking-widest text-terminal-gold bg-[rgba(6,13,26,0.92)] border border-terminal-border rounded-sm px-2 py-1 hover:border-terminal-gold"
+        className="font-mono text-[11px] tracking-widest text-terminal-gold bg-[rgba(6,13,26,0.92)] border border-terminal-border rounded-sm px-2 py-1 hover:border-terminal-gold"
       >
         LEGEND ▸
       </button>
@@ -1633,7 +1634,7 @@ function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
   return (
     <div className="bg-[rgba(6,13,26,0.92)] border border-terminal-border rounded-sm p-3 min-w-[160px] font-mono">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[8px] tracking-widest text-terminal-gold">LEGEND</span>
+        <span className="text-[11px] tracking-widest text-terminal-gold">LEGEND</span>
         <button
           type="button"
           onClick={onToggleCollapse}
@@ -1644,12 +1645,12 @@ function GlobeLegend({ overlays, collapsed, onToggleCollapse }) {
       <div className="flex flex-col gap-2">
         {active.map((key) => (
           <div key={key}>
-            <div className="text-[8px] text-terminal-text-dim tracking-widest mb-1">{LEGEND_TITLES[key]}</div>
+            <div className="text-[11px] text-terminal-text-dim tracking-widest mb-1">{LEGEND_TITLES[key]}</div>
             <div className="flex flex-wrap items-center gap-1.5">
               {LEGEND_SWATCHES[key].map(([swatch, label]) => (
                 <div key={label} className="flex items-center gap-1">
                   <span style={{ width: 8, height: 8, background: swatch, display: 'inline-block', flexShrink: 0 }} />
-                  <span className="text-[8px] text-terminal-text-dim whitespace-nowrap">{label}</span>
+                  <span className="text-[11px] text-terminal-text-dim whitespace-nowrap">{label}</span>
                 </div>
               ))}
             </div>
@@ -1687,11 +1688,11 @@ function CompassRose({ angle, onSnap }) {
         width="48" height="48" viewBox="-24 -24 48 48"
         style={{ transform: `rotate(${angle}deg)`, transition: 'transform 100ms linear' }}
       >
-        <line x1="0" y1="-21" x2="0" y2="21" stroke="#637899" strokeWidth="0.5" opacity="0.5" />
-        <line x1="-21" y1="0" x2="21" y2="0" stroke="#637899" strokeWidth="0.5" opacity="0.5" />
+        <line x1="0" y1="-21" x2="0" y2="21" stroke={PAL.muted} strokeWidth="0.5" opacity="0.5" />
+        <line x1="-21" y1="0" x2="21" y2="0" stroke={PAL.muted} strokeWidth="0.5" opacity="0.5" />
 
         {COMPASS_DIRS.map((d) => {
-          const color = d.big ? '#C9A84C' : '#637899'
+          const color = d.big ? PAL.gold : PAL.muted
           const angleRad = Math.atan2(d.y, d.x)
           const tipX = d.x + Math.cos(angleRad) * (d.big ? 5 : 3.5)
           const tipY = d.y + Math.sin(angleRad) * (d.big ? 5 : 3.5)

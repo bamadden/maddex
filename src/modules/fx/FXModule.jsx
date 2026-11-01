@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
@@ -31,6 +32,7 @@ import UpcomingDecisions from './UpcomingDecisions'
 import AudTwiCard from './AudTwiCard'
 import { useAudStrength, meanMove } from './useAudStrength'
 import SafeChart from '../../components/ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed once
 // the user actually switches to the 3D surface view.
@@ -46,12 +48,12 @@ const asAtLabel = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU
 
 const YIELD_CURVES = {
   AU: {
-    label: 'AU GOV BONDS', color: '#C9A84C', src: `Market close · ${asAtLabel(BOND_CURVES_AS_OF.AU)}`,
+    label: 'AU GOV BONDS', color: PAL.gold, src: `Market close · ${asAtLabel(BOND_CURVES_AS_OF.AU)}`,
     points: curveForRates('AU'),
     prev: {},
   },
   US: {
-    label: 'US TREASURIES', color: '#2D7DD2', src: `US Treasury par curve · ${asAtLabel(BOND_CURVES_AS_OF.US)}`,
+    label: 'US TREASURIES', color: PAL.blue, src: `US Treasury par curve · ${asAtLabel(BOND_CURVES_AS_OF.US)}`,
     points: curveForRates('US'),
     prev: {},
   },
@@ -74,7 +76,7 @@ const YIELD_CURVES = {
     prev: { '3M':0.30,'6M':0.38,'1Y':0.50,'2Y':0.68,'5Y':1.00,'10Y':1.38,'30Y':2.12 },
   },
   DE: {
-    label: 'DE BUNDS', color: '#2D8A50', src: 'Bundesbank · Jul 2026',
+    label: 'DE BUNDS', color: PAL.up, src: 'Bundesbank · Jul 2026',
     points: [
       { m:'3M', y:2.18 }, { m:'6M', y:2.12 }, { m:'1Y', y:2.05 },
       { m:'2Y', y:2.02 }, { m:'5Y', y:2.15 }, { m:'10Y',y:2.48 },
@@ -247,7 +249,7 @@ function FxHistoryModal({ pair, onClose }) {
               {change >= 0 ? '+' : ''}{change.toFixed(2)}% (30d)
             </span>
           )}
-          {isFetching && <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>}
+          {isFetching && <InlineLoading label="Loading" />}
           <button onClick={onClose} className="ml-auto text-terminal-text-dim hover:text-terminal-text text-lg">✕</button>
         </div>
         <div className="flex-1 p-4">
@@ -264,14 +266,14 @@ function FxHistoryModal({ pair, onClose }) {
               <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="fxGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}   />
+                    <stop offset="5%"  stopColor={PAL.gold} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={PAL.gold} stopOpacity={0}   />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#0F1E35" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9 }} interval={4} />
+                <CartesianGrid stroke={PAL.header} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
                 <YAxis
-                  tick={{ fontSize: 9 }}
+                  tick={{ fontSize: 11 }}
                   tickFormatter={v => v.toFixed(4)}
                   domain={[yMin, yMax]}
                   width={55}
@@ -280,11 +282,11 @@ function FxHistoryModal({ pair, onClose }) {
                 <Area
                   type="monotone"
                   dataKey="rate"
-                  stroke="#C9A84C"
+                  stroke={PAL.gold}
                   strokeWidth={2}
                   fill="url(#fxGrad)"
                   dot={false}
-                  activeDot={{ r: 4, fill: '#C9A84C' }}
+                  activeDot={{ r: 4, fill: PAL.gold }}
                   isAnimationActive={false}
                 />
               </AreaChart>
@@ -318,7 +320,7 @@ function YieldTooltip({ active, payload, label }) {
         if (key === 'AUscenario') {
           return (
             <div key={key} className="flex items-center gap-2">
-              <span style={{ color: '#E8A33D' }} className="font-bold">{p.name}</span>
+              <span style={{ color: PAL.amber }} className="font-bold">{p.name}</span>
               <span className="text-terminal-text-bright font-semibold">{p.value.toFixed(2)}%</span>
               <span className="text-terminal-text-dim">illustrative</span>
             </div>
@@ -351,9 +353,9 @@ function RbaRateComparisonBar() {
   // the bar cannot drift from them.
   const { rba, au } = VERIFIED_CONSTANTS
   const rows = [
-    { label: 'RBA CASH RATE', value: rba.cashRate, color: '#C9A84C' },
-    { label: 'AU CPI YoY',    value: au.cpi,       color: '#2D7DD2' },
-    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? null, color: '#2D8A50' },
+    { label: 'RBA CASH RATE', value: rba.cashRate, color: PAL.gold },
+    { label: 'AU CPI YoY',    value: au.cpi,       color: PAL.blue },
+    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? null, color: PAL.up },
   ].filter(r => r.value != null)
   const max = Math.max(...rows.map(r => r.value)) * 1.15
   const realRate = (rba.cashRate - au.cpi).toFixed(2)
@@ -669,7 +671,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
       {/* 2s10s for each curve, under the header where the legend colours are. */}
       <div className="flex items-center gap-3 px-2 py-1 flex-shrink-0"
         style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
-        <span className="text-2xs text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 8 }}>2s10s SPREAD</span>
+        <span className="text-2xs text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 11 }}>2s10s SPREAD</span>
         {[['AU', auStats, YIELD_CURVES.AU.color], ['US', usStats, YIELD_CURVES.US.color]].map(([lbl, st, col]) => (
           <span key={lbl} className="flex items-center gap-1.5">
             <span className="text-2xs font-bold" style={{ color: col }}>{lbl}</span>
@@ -696,16 +698,16 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
           >{label}</button>
         ))}
         {ghost && hasPrev ? (
-          <span className="ml-auto flex items-center gap-2 text-terminal-text-dim/60" style={{ fontSize: 8 }}>
+          <span className="ml-auto flex items-center gap-2 text-terminal-text-dim/60" style={{ fontSize: 11 }}>
             <span className="flex items-center gap-1">
-              <span style={{ width: 12, height: 2, background: '#C9A84C', display: 'inline-block' }} />today
+              <span style={{ width: 12, height: 2, background: PAL.gold, display: 'inline-block' }} />today
             </span>
             <span className="flex items-center gap-1">
-              <span style={{ width: 12, height: 2, background: '#C9A84C', opacity: 0.3, display: 'inline-block' }} />previous
+              <span style={{ width: 12, height: 2, background: PAL.gold, opacity: 0.3, display: 'inline-block' }} />previous
             </span>
           </span>
         ) : (
-          <span className="ml-auto text-terminal-text-dim/45 truncate" style={{ fontSize: 8 }}
+          <span className="ml-auto text-terminal-text-dim/45 truncate" style={{ fontSize: 11 }}
             title="No 3-, 6- or 12-month yield series is held in this build, so no older ghost curve can be drawn without inventing one.">
             {hasPrev ? 'no 3M/6M/1Y series held — only the previous curve' : `as at ${YIELD_CURVES.AU.src.split(' · ')[1]} · no verified prior curve held`}
           </span>
@@ -714,7 +716,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
 
       {scenariosAvailable && (
         <div className="flex items-center gap-1 px-2 py-1 flex-shrink-0 flex-wrap" style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
-          <span className="text-terminal-text-dim/60 tracking-wider mr-1" style={{ fontSize: 8 }}>RBA {new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()}</span>
+          <span className="text-terminal-text-dim/60 tracking-wider mr-1" style={{ fontSize: 11 }}>RBA {new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()}</span>
           {SCENARIOS.map(([k, label]) => (
             <button
               key={k}
@@ -725,7 +727,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
             >{label}</button>
           ))}
           {shift != null && (
-            <span className="ml-auto text-terminal-text-dim/60 font-mono" style={{ fontSize: 8 }}
+            <span className="ml-auto text-terminal-text-dim/60 font-mono" style={{ fontSize: 11 }}
               title="Illustrative. The front end moves by the share of a 25bp hike the market had not priced (hike) or had priced (hold), fading with tenor. Assumed weights, not a fitted model.">
               <span style={{ display: 'inline-block', width: 12, borderTop: '2px dotted #E8A33D', verticalAlign: 'middle', marginRight: 4 }} />
               ILLUSTRATIVE · 3M {shift >= 0 ? '+' : ''}{Math.round(shift * 100)}bp, fading to 0 at 30Y · from ~{nd.marketHikePct}% priced
@@ -737,9 +739,9 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            <XAxis dataKey="tenor" tick={{ fontSize: 8 }} />
-            <YAxis tick={{ fontSize: 8 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
+            <CartesianGrid stroke={PAL.header} vertical={false} />
+            <XAxis dataKey="tenor" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
             <Tooltip content={<YieldTooltip />} />
             {/* Ghosts first, so today's curves paint over them. */}
             {ghost && (
@@ -753,7 +755,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
             <Line type="monotone" dataKey="AU" stroke={YIELD_CURVES.AU.color} strokeWidth={2} dot={{ fill: YIELD_CURVES.AU.color, r: 2.5 }} connectNulls isAnimationActive={false} />
             <Line type="monotone" dataKey="US" stroke={YIELD_CURVES.US.color} strokeWidth={2} strokeDasharray="5 3" dot={{ fill: YIELD_CURVES.US.color, r: 2.5 }} connectNulls isAnimationActive={false} />
             {shift != null && (
-              <Line type="monotone" dataKey="AUscenario" name={scenario === 'hike' ? 'AU if RBA hikes' : 'AU if RBA holds'} stroke="#E8A33D"
+              <Line type="monotone" dataKey="AUscenario" name={scenario === 'hike' ? 'AU if RBA hikes' : 'AU if RBA holds'} stroke={PAL.amber}
                 strokeWidth={1.75} strokeDasharray="2 3" dot={false} connectNulls isAnimationActive={false} />
             )}
           </LineChart>
@@ -813,7 +815,7 @@ function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
       <div className="panel-header flex items-center gap-2">
         <span className="text-terminal-gold">FX RATES</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">AUD BASE</span>
-        {isFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse ml-auto">LOADING...</span>}
+        {isFetching && <InlineLoading label="Loading" className="ml-auto" />}
       </div>
       <div className="grid grid-cols-2">
         {top10.map(p => {
@@ -892,7 +894,7 @@ function CurrencyStrengthIndex() {
       {mean != null && (
         <div className="mt-2 pt-2 border-t border-terminal-border/50 flex items-center justify-between">
           <span className="text-2xs text-terminal-text-dim">MEAN ACROSS MAJORS</span>
-          <span className="text-xs font-bold tabular-nums" style={{ color: mean >= 0 ? '#2D8A50' : '#CC4444' }}>
+          <span className="text-xs font-bold tabular-nums" style={{ color: mean >= 0 ? PAL.up : PAL.down }}>
             {mean >= 0 ? '+' : ''}{mean.toFixed(2)}%
           </span>
         </div>

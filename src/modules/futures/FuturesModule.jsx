@@ -10,6 +10,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import TabBar from '../../components/ui/TabBar'
 import Tooltip from '../../components/ui/Tooltip'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Futures, options and market structure ──────────────────────────────────
 //
@@ -29,7 +30,7 @@ const TABS = [
 
 const money = (v, dp = 2) => (v == null ? '—' : `A$${v.toLocaleString('en-AU', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`)
 const num = (v, fb = 0) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : fb)
-const tone = (v) => (v > 0 ? '#2D8A50' : v < 0 ? '#CC4444' : '#637899')
+const tone = (v) => (v > 0 ? PAL.up : v < 0 ? PAL.down : PAL.muted)
 const signed = (v, dp = 2) => `${v >= 0 ? '+' : ''}${v.toFixed(dp)}`
 
 // ─── Futures tab ────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ function ContractDetail({ c, onClose }) {
 
   const stat = (l, v, tip) => (
     <div>
-      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em' }}>{l}</div>
+      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>{l}</div>
       {tip
         ? <Tooltip content={tip}><div className="font-mono text-terminal-text-bright" style={{ fontSize: 11 }}>{v}</div></Tooltip>
         : <div className="font-mono text-terminal-text-bright" style={{ fontSize: 11 }}>{v}</div>}
@@ -57,7 +58,7 @@ function ContractDetail({ c, onClose }) {
           <span className="font-mono font-bold text-terminal-gold tracking-widest" style={{ fontSize: 11 }}>
             {c.name} · {c.expiry}
           </span>
-          <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 18 }}>
+          <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 20 }}>
             {c.unit ? c.unit.replace('/', ' ').split(' ')[0] : ''}{c.livePrice.toLocaleString('en-AU', { minimumFractionDigits: c.dp ?? 2, maximumFractionDigits: c.dp ?? 2 })}
           </span>
           <span className="font-mono font-bold tabular-nums" style={{ fontSize: 11, color: tone(c.liveChange) }}>
@@ -83,19 +84,19 @@ function ContractDetail({ c, onClose }) {
 
         {notional && (
           <div className="mb-2 px-2 py-1.5" style={{ background: 'rgba(204,68,68,0.08)', border: '1px solid rgba(204,68,68,0.3)' }}>
-            <span className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>
+            <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
               One contract controls a notional position of about{' '}
               <b className="text-terminal-text-bright">{c.currency === 'AUD' ? 'A$' : 'US$'}{Math.round(notional).toLocaleString()}</b>
               {' '}on roughly{' '}
               <b className="text-terminal-text-bright">{c.currency === 'AUD' ? 'A$' : 'US$'}{c.margin.toLocaleString()}</b> of margin —
-              about <b style={{ color: '#CC4444' }}>{(notional / c.margin).toFixed(0)}×</b> leverage. A 1% move against you
+              about <b style={{ color: PAL.down }}>{(notional / c.margin).toFixed(0)}×</b> leverage. A 1% move against you
               costs roughly {(((notional * 0.01) / c.margin) * 100).toFixed(0)}% of the margin.
             </span>
           </div>
         )}
 
         {c.context && (
-          <div className="text-terminal-text-dim leading-relaxed mb-2" style={{ fontSize: 10, maxWidth: 700 }}>{c.context}</div>
+          <div className="text-terminal-text-dim leading-relaxed mb-2" style={{ fontSize: 11, maxWidth: 700 }}>{c.context}</div>
         )}
 
         <button
@@ -119,8 +120,8 @@ function FuturesTab() {
     <div>
       <div className="px-3 py-1.5 border-b flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(204,68,68,0.08)', borderColor: 'rgba(204,68,68,0.3)' }}>
-        <span className="font-mono font-bold tracking-widest text-terminal-red" style={{ fontSize: 8 }}>INDICATIVE DATA</span>
-        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
+        <span className="font-mono font-bold tracking-widest text-terminal-red" style={{ fontSize: 11 }}>INDICATIVE DATA</span>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           For information only. Futures carry significant risk including losses exceeding your initial investment.
         </span>
       </div>
@@ -159,23 +160,23 @@ function FuturesTab() {
                     <td className="px-3 py-1.5 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>
                       {c.name}
                       {c.anchor && (
-                        <span className="ml-2 font-normal text-terminal-text-dim tracking-wider" style={{ fontSize: 8 }}
+                        <span className="ml-2 font-normal text-terminal-text-dim tracking-wider" style={{ fontSize: 11 }}
                           title="Anchored to the dated settlement in verifiedConstants; movement since is simulated">
                           {c.anchor}
                         </span>
                       )}
                       {c.unanchored && (
-                        <span className="ml-2 font-normal text-terminal-gold/70 tracking-wider" style={{ fontSize: 8 }} title={c.context}>
+                        <span className="ml-2 font-normal text-terminal-gold/70 tracking-wider" style={{ fontSize: 11 }} title={c.context}>
                           {c.unanchored}
                         </span>
                       )}
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>{c.expiry}</td>
+                    <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{c.expiry}</td>
                     <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>
                       {c.unit?.startsWith('US$') ? 'US$' : ''}
                       {c.livePrice.toLocaleString('en-AU', { minimumFractionDigits: c.dp ?? 2, maximumFractionDigits: c.dp ?? 2 })}
                     </td>
-                    <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10, color: tone(c.liveChange) }}>
+                    <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: tone(c.liveChange) }}>
                       {signed(c.liveChange, c.dp ?? 2)}
                     </td>
                     {g.key === 'rates' && (
@@ -183,7 +184,7 @@ function FuturesTab() {
                         {impliedRate(c.livePrice).toFixed(2)}%
                       </td>
                     )}
-                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>
+                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>
                       {c.volume.toLocaleString()}
                     </td>
                   </tr>
@@ -191,7 +192,7 @@ function FuturesTab() {
               </tbody>
             </table>
             {g.key === 'rates' && (
-              <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 9 }}>
+              <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
                 In a live market, implied rates show where traders expect rates to sit at each expiry: against the
                 RBA&apos;s cash rate of <b className="text-terminal-gold">{VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%</b>, a strip
                 that rises across later expiries is pricing hikes, and one that falls is pricing cuts. This build has
@@ -203,7 +204,7 @@ function FuturesTab() {
         )
       })}
 
-      <div className="px-3 py-2 text-terminal-text-dim/60 leading-relaxed" style={{ fontSize: 9 }}>
+      <div className="px-3 py-2 text-terminal-text-dim/60 leading-relaxed" style={{ fontSize: 11 }}>
         Futures involve significant risk including leverage and the potential for losses exceeding your initial
         investment. Margin means small price movements create large gains and losses. Trading futures in Australia
         requires the appropriate authorisation under the ASIC framework. Data shown is indicative only. Not advice.
@@ -265,7 +266,7 @@ function OptionsTab() {
 
   const field = (label, value, set, suffix, opts) => (
     <label className="block mb-2">
-      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 8, letterSpacing: '0.14em' }}>{label}</span>
+      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 11, letterSpacing: '0.14em' }}>{label}</span>
       <div className="flex items-center gap-1 mt-0.5">
         {opts ? (
           <select value={value} onChange={(e) => set(e.target.value)}
@@ -276,7 +277,7 @@ function OptionsTab() {
           <input type="number" value={value} step="0.01" onChange={(e) => set(e.target.value)}
             className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-terminal-text-bright outline-none focus:border-terminal-gold tabular-nums" style={{ fontSize: 12 }} />
         )}
-        {suffix && <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 9 }}>{suffix}</span>}
+        {suffix && <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>{suffix}</span>}
       </div>
     </label>
   )
@@ -285,8 +286,8 @@ function OptionsTab() {
     <div>
       <div className="px-3 py-1.5 border-b flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(204,68,68,0.08)', borderColor: 'rgba(204,68,68,0.3)' }}>
-        <span className="font-mono font-bold tracking-widest text-terminal-red" style={{ fontSize: 8 }}>THEORETICAL · EDUCATIONAL</span>
-        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
+        <span className="font-mono font-bold tracking-widest text-terminal-red" style={{ fontSize: 11 }}>THEORETICAL · EDUCATIONAL</span>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           Every price on this tab is a Black-Scholes model output, not a market quote.
         </span>
       </div>
@@ -301,10 +302,10 @@ function OptionsTab() {
               <button key={e.label} onClick={() => setExpiryIdx(i)}
                 className="font-mono uppercase tracking-wider transition-colors"
                 style={{
-                  fontSize: 9, padding: '2px 8px', borderRadius: 2,
-                  border: `1px solid ${expiryIdx === i ? '#C9A84C' : 'rgba(201,168,76,0.12)'}`,
+                  fontSize: 11, padding: '2px 8px', borderRadius: 2,
+                  border: `1px solid ${expiryIdx === i ? PAL.gold : 'rgba(201,168,76,0.12)'}`,
                   background: expiryIdx === i ? 'rgba(201,168,76,0.15)' : 'transparent',
-                  color: expiryIdx === i ? '#C9A84C' : '#4A6080',
+                  color: expiryIdx === i ? PAL.gold : PAL.muted,
                 }}>{e.label}</button>
             ))}
           </div>
@@ -314,21 +315,21 @@ function OptionsTab() {
             at-the-money ones, and downside puts higher still — the curve is the
             market charging more for tail risk. */}
         <div className="px-3 pt-2">
-          <div className="font-mono text-terminal-text-dim/50 mb-1" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+          <div className="font-mono text-terminal-text-dim/50 mb-1" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
             IMPLIED VOLATILITY SMILE · {expiry.label}
           </div>
           <svg width="100%" viewBox="0 0 800 90" style={{ display: 'block' }}>
             <polyline
               points={chain.map((c, i) => `${20 + (i / (chain.length - 1)) * 760},${76 - ((c.iv - ivMin) / ((ivMax - ivMin) || 1)) * 60}`).join(' ')}
-              fill="none" stroke="#C9A84C" strokeWidth={1.5} />
+              fill="none" stroke={PAL.gold} strokeWidth={1.5} />
             {chain.map((c, i) => (
               <circle key={c.strike} cx={20 + (i / (chain.length - 1)) * 760}
                 cy={76 - ((c.iv - ivMin) / ((ivMax - ivMin) || 1)) * 60}
-                r={c.atm ? 4 : 2.5} fill={c.atm ? '#E6EDF6' : '#C9A84C'} />
+                r={c.atm ? 4 : 2.5} fill={c.atm ? '#E6EDF6' : PAL.gold} />
             ))}
             {chain.map((c, i) => (
               <text key={c.strike} x={20 + (i / (chain.length - 1)) * 760} y={88} textAnchor="middle"
-                fill={c.atm ? '#C9A84C' : '#4A6080'} style={{ fontSize: 8, fontFamily: '"IBM Plex Mono", monospace' }}>{c.strike}</text>
+                fill={c.atm ? PAL.gold : PAL.muted} style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}>{c.strike}</text>
             ))}
           </svg>
         </div>
@@ -336,9 +337,9 @@ function OptionsTab() {
         <table className="terminal-table w-full mt-1">
           <thead>
             <tr>
-              <th className="px-2 text-right" colSpan={4} style={{ color: '#2D8A50' }}>CALLS</th>
+              <th className="px-2 text-right" colSpan={4} style={{ color: PAL.up }}>CALLS</th>
               <th className="px-2 text-center">STRIKE</th>
-              <th className="px-2 text-left" colSpan={4} style={{ color: '#CC4444' }}>PUTS</th>
+              <th className="px-2 text-left" colSpan={4} style={{ color: PAL.down }}>PUTS</th>
             </tr>
             <tr>
               <th className="px-2 text-right">IV</th><th className="px-2 text-right">DELTA</th>
@@ -352,22 +353,22 @@ function OptionsTab() {
             {chain.map((c) => (
               <tr key={c.strike} className="border-b border-terminal-border/25"
                 style={c.atm ? { background: 'rgba(201,168,76,0.12)' } : undefined}>
-                <td className="px-2 py-1 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{c.iv.toFixed(1)}%</td>
-                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 10, color: '#2D8A50' }}>{c.call.delta.toFixed(2)}</td>
-                <td className="px-2 py-1 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{c.call.volume}</td>
-                <td className="px-2 py-1 text-right font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 10 }}>{c.call.price.toFixed(2)}</td>
-                <td className="px-2 py-1 text-center font-mono font-bold" style={{ fontSize: 11, color: c.atm ? '#C9A84C' : '#E6EDF6' }}>
-                  {c.strike}{c.atm && <span className="ml-1" style={{ fontSize: 7, letterSpacing: '0.1em' }}>ATM</span>}
+                <td className="px-2 py-1 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{c.iv.toFixed(1)}%</td>
+                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 11, color: PAL.up }}>{c.call.delta.toFixed(2)}</td>
+                <td className="px-2 py-1 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{c.call.volume}</td>
+                <td className="px-2 py-1 text-right font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{c.call.price.toFixed(2)}</td>
+                <td className="px-2 py-1 text-center font-mono font-bold" style={{ fontSize: 11, color: c.atm ? PAL.gold : '#E6EDF6' }}>
+                  {c.strike}{c.atm && <span className="ml-1" style={{ fontSize: 11, letterSpacing: '0.1em' }}>ATM</span>}
                 </td>
-                <td className="px-2 py-1 font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 10 }}>{c.put.price.toFixed(2)}</td>
-                <td className="px-2 py-1 font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{c.put.volume}</td>
-                <td className="px-2 py-1 font-mono tabular-nums" style={{ fontSize: 10, color: '#CC4444' }}>{c.put.delta.toFixed(2)}</td>
-                <td className="px-2 py-1 font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{c.iv.toFixed(1)}%</td>
+                <td className="px-2 py-1 font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{c.put.price.toFixed(2)}</td>
+                <td className="px-2 py-1 font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{c.put.volume}</td>
+                <td className="px-2 py-1 font-mono tabular-nums" style={{ fontSize: 11, color: PAL.down }}>{c.put.delta.toFixed(2)}</td>
+                <td className="px-2 py-1 font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{c.iv.toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 8 }}>
+        <div className="px-3 py-1.5 text-terminal-text-dim/50 leading-snug" style={{ fontSize: 11 }}>
           THEO is the Black-Scholes value at the implied volatility on that row, not a bid or an offer — this build
           has no options feed. Volumes are shaped to peak at the money, as a real chain does.
         </div>
@@ -388,22 +389,22 @@ function OptionsTab() {
             {field('OPTION TYPE', type, setType, null, [{ value: 'call', label: 'CALL' }, { value: 'put', label: 'PUT' }])}
           </div>
           <div className="p-3 flex-1 min-w-0">
-            <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.14em' }}>THEORETICAL PRICE</div>
+            <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>THEORETICAL PRICE</div>
             <div className="font-mono font-bold text-terminal-gold tabular-nums leading-none" style={{ fontSize: 28, marginTop: 4 }}>
               {money(bs.price)}
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3 mb-3" style={{ maxWidth: 320 }}>
               <div>
-                <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>INTRINSIC VALUE</div>
+                <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>INTRINSIC VALUE</div>
                 <div className="font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 13 }}>{money(bs.intrinsic)}</div>
               </div>
               <div>
-                <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>TIME VALUE</div>
+                <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>TIME VALUE</div>
                 <div className="font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 13 }}>{money(bs.timeValue)}</div>
               </div>
             </div>
 
-            <div className="font-mono text-terminal-gold/70 mb-1.5" style={{ fontSize: 8, letterSpacing: '0.14em' }}>GREEKS</div>
+            <div className="font-mono text-terminal-gold/70 mb-1.5" style={{ fontSize: 11, letterSpacing: '0.14em' }}>GREEKS</div>
             <div className="space-y-1">
               {[
                 ['DELTA', bs.delta.toFixed(4), `Moves ${money(Math.abs(bs.delta))} per A$1 move in the underlying`],
@@ -413,9 +414,9 @@ function OptionsTab() {
                 ['RHO',   bs.rho.toFixed(4),   `Gains ${money(Math.abs(bs.rho), 4)} per 1 percentage point rise in rates`],
               ].map(([k, v, plain]) => (
                 <div key={k} className="flex items-baseline gap-2">
-                  <span className="font-mono text-terminal-gold" style={{ fontSize: 9, width: 46 }}>{k}</span>
+                  <span className="font-mono text-terminal-gold" style={{ fontSize: 11, width: 46 }}>{k}</span>
                   <span className="font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11, width: 62 }}>{v}</span>
-                  <span className="text-terminal-text-dim" style={{ fontSize: 10 }}>{plain}</span>
+                  <span className="text-terminal-text-dim" style={{ fontSize: 11 }}>{plain}</span>
                 </div>
               ))}
             </div>
@@ -429,15 +430,15 @@ function OptionsTab() {
                 <div className="pt-2 space-y-2">
                   {GREEK_HELP.map(([k, text]) => (
                     <div key={k}>
-                      <div className="font-mono font-bold text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.1em' }}>{k}</div>
-                      <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 10, maxWidth: 620 }}>{text}</div>
+                      <div className="font-mono font-bold text-terminal-gold" style={{ fontSize: 11, letterSpacing: '0.1em' }}>{k}</div>
+                      <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11, maxWidth: 620 }}>{text}</div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 8, maxWidth: 620 }}>
+            <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 11, maxWidth: 620 }}>
               Theta is quoted per DAY and vega and rho per ONE percentage point, which is how a holder experiences
               them — the raw annualised forms are correct and useless. Black-Scholes assumes European exercise, no
               dividends and constant volatility; ASX equity options are American and most underlyings pay dividends,
@@ -468,16 +469,16 @@ function StructureTab() {
     return { lvr, trigger, fall, interest: l * (num(mrate) / 100), safe: lvr < num(limit) }
   }, [portfolio, loan, limit, mrate])
 
-  const shortTone = (p) => (p > 10 ? '#CC4444' : p >= 5 ? '#D69E2E' : '#637899')
-  const sigTone = { BULLISH: '#2D8A50', NEUTRAL: '#C9A84C', BEARISH: '#CC4444' }
+  const shortTone = (p) => (p > 10 ? PAL.down : p >= 5 ? '#D69E2E' : PAL.muted)
+  const sigTone = { BULLISH: PAL.up, NEUTRAL: PAL.gold, BEARISH: PAL.down }
 
   const field = (label, value, set, suffix) => (
     <label className="block mb-2">
-      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 8, letterSpacing: '0.14em' }}>{label}</span>
+      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 11, letterSpacing: '0.14em' }}>{label}</span>
       <div className="flex items-center gap-1 mt-0.5">
         <input type="number" value={value} onChange={(e) => set(e.target.value)}
           className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-terminal-text-bright outline-none focus:border-terminal-gold tabular-nums" style={{ fontSize: 12 }} />
-        {suffix && <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 9 }}>{suffix}</span>}
+        {suffix && <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>{suffix}</span>}
       </div>
     </label>
   )
@@ -504,7 +505,7 @@ function StructureTab() {
           <tbody>
             {SHORT_INTEREST.map((s, i) => (
               <tr key={s.ticker} className="border-b border-terminal-border/25">
-                <td className="px-3 py-1.5 font-mono text-terminal-text-dim/50" style={{ fontSize: 10 }}>{i + 1}</td>
+                <td className="px-3 py-1.5 font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>{i + 1}</td>
                 <td className="px-2 py-1.5 font-mono font-bold text-terminal-gold" style={{ fontSize: 11 }}>{s.ticker}</td>
                 <td className="px-2 py-1.5 text-terminal-text-bright" style={{ fontSize: 11 }}>{s.company}</td>
                 <td className="px-2 py-1.5 text-right">
@@ -512,14 +513,14 @@ function StructureTab() {
                     fontSize: 11, borderRadius: 2, color: shortTone(s.shortPct), background: `${shortTone(s.shortPct)}1F`,
                   }}>{s.shortPct.toFixed(1)}%</span>
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>
+                <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>
                   {s.daysToCover.toFixed(1)}d
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 9 }}>
+        <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
           DAYS TO COVER is short interest divided by average daily volume — how long it would take shorts to buy
           back at normal turnover. A high figure is what makes a short squeeze possible. Rising short interest is
           often read as bearish institutional positioning, but shorts also hedge long books, so it is a signal to
@@ -545,21 +546,21 @@ function StructureTab() {
                   <tr key={l.lender} className="border-b border-terminal-border/25">
                     <td className="px-3 py-1.5 text-terminal-text-bright" style={{ fontSize: 11 }}>{l.lender}</td>
                     <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-gold" style={{ fontSize: 11 }}>{l.rate.toFixed(2)}%</td>
-                    <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{l.maxLvr}%</td>
-                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>
+                    <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{l.maxLvr}%</td>
+                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>
                       A${l.minLoan.toLocaleString()}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="px-3 py-1.5 text-terminal-text-dim/50" style={{ fontSize: 8 }}>
+            <div className="px-3 py-1.5 text-terminal-text-dim/50" style={{ fontSize: 11 }}>
               Indicative rates. Verify with the lender — margin rates move with the cash rate and vary by balance.
             </div>
           </div>
 
           <div className="p-3 flex-1 min-w-0">
-            <div className="font-mono text-terminal-gold/70 mb-2" style={{ fontSize: 8, letterSpacing: '0.14em' }}>MARGIN CALL CALCULATOR</div>
+            <div className="font-mono text-terminal-gold/70 mb-2" style={{ fontSize: 11, letterSpacing: '0.14em' }}>MARGIN CALL CALCULATOR</div>
             <div className="flex gap-3 flex-wrap">
               <div style={{ width: 150 }}>
                 {field('PORTFOLIO VALUE', portfolio, setPortfolio, 'A$')}
@@ -570,22 +571,22 @@ function StructureTab() {
                 {field('INTEREST RATE', mrate, setMrate, '%')}
               </div>
               <div className="flex-1 min-w-0" style={{ minWidth: 200 }}>
-                <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em' }}>CURRENT LVR</div>
-                <div className="font-mono font-bold tabular-nums" style={{ fontSize: 24, color: m.safe ? '#2D8A50' : '#CC4444' }}>
+                <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>CURRENT LVR</div>
+                <div className="font-mono font-bold tabular-nums" style={{ fontSize: 28, color: m.safe ? PAL.up : PAL.down }}>
                   {m.lvr.toFixed(1)}%
                 </div>
-                <div className="font-mono" style={{ fontSize: 10, color: m.safe ? '#2D8A50' : '#CC4444' }}>
+                <div className="font-mono" style={{ fontSize: 11, color: m.safe ? PAL.up : PAL.down }}>
                   {m.safe ? 'Within the limit' : 'ABOVE THE LIMIT — margin call territory'}
                 </div>
                 <div className="mt-2 space-y-1">
-                  <div className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>
+                  <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
                     Margin call if the portfolio falls to{' '}
                     <b className="text-terminal-text-bright">{money(m.trigger, 0)}</b>
                   </div>
-                  <div className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>
-                    That is a fall of <b style={{ color: '#CC4444' }}>{m.fall.toFixed(1)}%</b> from here
+                  <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
+                    That is a fall of <b style={{ color: PAL.down }}>{m.fall.toFixed(1)}%</b> from here
                   </div>
-                  <div className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>
+                  <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
                     Annual interest cost <b className="text-terminal-gold">{money(m.interest, 0)}</b>
                   </div>
                 </div>
@@ -593,8 +594,8 @@ function StructureTab() {
             </div>
 
             <div className="mt-3 px-2 py-2" style={{ background: 'rgba(204,68,68,0.1)', border: '1px solid rgba(204,68,68,0.4)' }}>
-              <div className="font-mono font-bold text-terminal-red mb-1" style={{ fontSize: 9, letterSpacing: '0.1em' }}>⚠ MARGIN LENDING RISK</div>
-              <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 10 }}>
+              <div className="font-mono font-bold text-terminal-red mb-1" style={{ fontSize: 11, letterSpacing: '0.1em' }}>⚠ MARGIN LENDING RISK</div>
+              <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11 }}>
                 Margin lending amplifies losses as well as gains. A falling market can trigger a margin call
                 requiring additional funds or forced asset sales — and it does so precisely when prices are worst
                 and selling hurts most. The interest is payable whether the portfolio rises or falls. Seek
@@ -628,18 +629,18 @@ function StructureTab() {
                 <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{100 - p.inst}%</td>
                 <td className="px-2 py-1.5">
                   <div className="flex h-1.5 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <div style={{ width: `${p.inst}%`, background: '#C9A84C' }} />
-                    <div style={{ width: `${100 - p.inst}%`, background: '#4A6080' }} />
+                    <div style={{ width: `${p.inst}%`, background: PAL.gold }} />
+                    <div style={{ width: `${100 - p.inst}%`, background: PAL.muted }} />
                   </div>
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ fontSize: 10, color: sigTone[p.signal] }}>
+                <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ fontSize: 11, color: sigTone[p.signal] }}>
                   ● {p.signal}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 9 }}>
+        <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
           Illustrative figures in the shape of a Commitment of Traders report. No COT-style feed is connected to
           this build, so these are not measurements — treat the panel as an explanation of what positioning data
           looks like, not as a read on where money currently sits. General information only.

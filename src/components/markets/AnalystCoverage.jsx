@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { assessStance, cachedStance } from '../../services/aiStance'
+import { PAL } from '../../styles/palette.js'
 
 // ANALYST COVERAGE for stocks with no live consensus data. Says plainly what
 // is missing (coverage counts and targets need a live consensus feed) and
 // offers the one thing the terminal can give honestly: MaddenAI's own stance,
 // labelled AI-ESTIMATE.
 
-const TONE = { CONSTRUCTIVE: '#2D8A50', BALANCED: '#C9A84C', CAUTIOUS: '#A83232' }
+const TONE = { CONSTRUCTIVE: PAL.up, BALANCED: PAL.gold, CAUTIOUS: PAL.down }
 
 export default function AnalystCoverage({ symbol, name }) {
   const [stance, setStance] = useState(() => cachedStance(symbol))
@@ -27,7 +28,7 @@ export default function AnalystCoverage({ symbol, name }) {
         {stance ? (
           <span className="flex items-center gap-1.5">
             <span className="font-bold px-1.5" style={{ color: TONE[stance.stance], border: `1px solid ${TONE[stance.stance]}66` }}>{stance.stance}</span>
-            <span className="text-[9px] font-bold px-1 border border-terminal-text-dim/40 text-terminal-text-dim">AI-ESTIMATE</span>
+            <span className="text-[11px] font-bold px-1 border border-terminal-text-dim/40 text-terminal-text-dim">AI-ESTIMATE</span>
           </span>
         ) : (
           <button onClick={run} disabled={state === 'loading'}

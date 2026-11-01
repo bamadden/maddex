@@ -1,3 +1,4 @@
+import { PAL } from '../../styles/palette.js'
 
 // The first thing anyone sees.
 //
@@ -59,7 +60,7 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
           // invalidates the whole declaration, taking the gradient with it.
           // This is also the one surface that must render before any theme is
           // applied, so a literal is correct here regardless.
-          backgroundColor: '#0B1628',
+          backgroundColor: PAL.panel,
           backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0) 32%)',
           // THE ENTRANCE NEVER GATES VISIBILITY.
           //
@@ -82,7 +83,7 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
               time anyone sees the product, and the mark is what they will
               see in the corner of every screen after it. */}
           <img src="/icons/icon-mark-192.png" alt="" aria-hidden="true" className="mx-auto" style={{ width: 64, height: 64, objectFit: 'contain' }} />
-          <div className="text-terminal-gold font-bold mt-4" style={{ fontSize: 15, letterSpacing: '0.42em', paddingLeft: '0.42em' }}>
+          <div className="text-terminal-gold font-bold mt-4" style={{ fontSize: 14, letterSpacing: '0.42em', paddingLeft: '0.42em' }}>
             WELCOME TO MADDEX
           </div>
           <div className="mx-auto mt-3 h-px w-12" style={{ background: 'rgba(201,168,76,0.5)' }} aria-hidden="true" />
@@ -94,7 +95,7 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
         <div className="px-8 py-6 space-y-5">
           {FEATURES.map((f) => (
             <div key={f.title} className="flex gap-4">
-              <span className="flex-shrink-0 font-bold tabular-nums pt-px" style={{ color: '#C9A84C', fontSize: 11, letterSpacing: '0.08em' }} aria-hidden="true">{f.glyph}</span>
+              <span className="flex-shrink-0 font-bold tabular-nums pt-px" style={{ color: PAL.gold, fontSize: 11, letterSpacing: '0.08em' }} aria-hidden="true">{f.glyph}</span>
               <div className="min-w-0">
                 <div className="text-xs font-bold text-terminal-text-bright tracking-wide">{f.title}</div>
                 <div className="text-xs text-terminal-text-dim leading-relaxed mt-1 font-sans" style={{ fontSize: 13 }}>{f.body}</div>
@@ -108,7 +109,7 @@ export default function WelcomeModal({ onGetStarted, onSignIn }) {
             onClick={onGetStarted}
             autoFocus
             className="w-full py-3 font-bold tracking-[0.24em] text-terminal-bg transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-gold"
-            style={{ fontSize: 12, background: '#C9A84C' }}
+            style={{ fontSize: 12, background: PAL.gold }}
           >GET STARTED →</button>
           <div className="text-2xs text-terminal-text-dim/70 text-center mt-2.5">
             Five quick steps — a watchlist, MaddenAI, an alert. About two minutes.

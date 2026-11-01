@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { PAL } from '../../styles/palette.js'
 
 // Right-click menu for a sidebar nav item.
 //
@@ -79,9 +80,9 @@ export default function NavContextMenu({ x, y, moduleLabel, onSelect, onClose })
           padding: '7px 12px',
           borderBottom: '1px solid rgba(201,168,76,0.15)',
           fontFamily: '"IBM Plex Mono", monospace',
-          fontSize: 9,
+          fontSize: 11,
           letterSpacing: '0.18em',
-          color: '#C9A84C',
+          color: PAL.gold,
         }}
       >
         {moduleLabel}
@@ -105,7 +106,7 @@ export default function NavContextMenu({ x, y, moduleLabel, onSelect, onClose })
             cursor: 'pointer',
             fontFamily: '"IBM Plex Mono", monospace',
             fontSize: 11,
-            color: '#8BA3C4',
+            color: PAL.dim,
           }}
         >
           <span style={{ width: 13, textAlign: 'center', flexShrink: 0, opacity: 0.75 }}>{item.icon}</span>

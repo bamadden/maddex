@@ -2,6 +2,7 @@ import { RATE_SENSITIVITY } from '../../data/sectorTaxonomy'
 import { AU_ETFS } from '../../data/etfData'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
+import { PAL } from '../../styles/palette.js'
 
 // Rate sensitivity for a holding, from the shared sector table
 // (sectorTaxonomy.RATE_SENSITIVITY) — read by the Analytics tab's rate
@@ -77,8 +78,8 @@ export function portfolioRate(holdings) {
 // lose, and the mix roughly offsets. Offshore holdings are NEUTRAL too,
 // since the RBA reaches them only through the currency.
 export const RATE_IMPACT_STYLE = {
-  POSITIVE: { colour: '#2D8A50' },
-  NEUTRAL:  { colour: '#C9A84C' },
+  POSITIVE: { colour: PAL.up },
+  NEUTRAL:  { colour: PAL.gold },
   NEGATIVE: { colour: '#D9773B' },
 }
 

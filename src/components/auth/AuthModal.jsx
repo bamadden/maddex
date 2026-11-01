@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import BrandLockup from '../ui/BrandLockup'
 import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
+import { PAL } from '../../styles/palette.js'
 
 const COUNTRIES = [
   'Australia', 'United States', 'United Kingdom', 'Canada', 'New Zealand',
@@ -62,7 +64,7 @@ function passwordStrength(pw) {
 const STRENGTH_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong']
 // Weak -> strong, on the same green/gold/red axis every other severity
 // reading in the terminal uses, so "red is bad" means one thing everywhere.
-const STRENGTH_COLORS = ['', '#A83232', '#CC4444', '#C9A84C', '#2D8A50']
+const STRENGTH_COLORS = ['', PAL.down, PAL.down, PAL.gold, PAL.up]
 
 function PasswordStrength({ password }) {
   if (!password) return null
@@ -74,7 +76,7 @@ function PasswordStrength({ password }) {
           <div
             key={i}
             className="h-0.5 flex-1 transition-all duration-300"
-            style={{ backgroundColor: i <= score ? STRENGTH_COLORS[score] : '#0F1E35' }}
+            style={{ backgroundColor: i <= score ? STRENGTH_COLORS[score] : PAL.header }}
           />
         ))}
       </div>
@@ -251,7 +253,7 @@ export default function AuthModal({ deletedMessage }) {
       <div className="w-full max-w-[420px] border border-terminal-gold bg-terminal-panel shadow-2xl mx-4">
         {/* Header */}
         <div className="py-6 px-6 text-center border-b border-terminal-border">
-          <div className="text-terminal-gold text-2xl font-bold tracking-[0.3em]">▲ MADDEX</div>
+          <div className="flex justify-center"><BrandLockup size={40} /></div>
           <div className="text-terminal-text-dim text-2xs tracking-[0.4em] mt-1">FINANCIAL INTELLIGENCE</div>
         </div>
 

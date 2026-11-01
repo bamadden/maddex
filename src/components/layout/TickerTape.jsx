@@ -14,6 +14,7 @@ import { classOfResult, badgeText } from '../../utils/dataClass'
 import { useStore } from '../../store/useStore'
 import { useAudRates } from '../../hooks/useAudRates'
 import { fmt, formatMarketCap } from '../../utils/format'
+import { PAL } from '../../styles/palette.js'
 
 // All 10 benchmark indices — same set/order as IndicesTable's benchmark bar —
 // shown at the start of the tape, ahead of individual stocks.
@@ -40,8 +41,8 @@ const classTag = (result, demo) => {
 
 // Inline style tokens for sub-element colouring not covered by Tailwind classes
 const S = {
-  pipe:   { color: '#C9A84C', opacity: 0.7 },
-  dlabel: { color: '#C9A84C', fontWeight: 700, letterSpacing: '0.08em', fontSize: 10 },
+  pipe:   { color: PAL.gold, opacity: 0.7 },
+  dlabel: { color: PAL.gold, fontWeight: 700, letterSpacing: '0.08em', fontSize: 11 },
 }
 
 function pctColor(p) {

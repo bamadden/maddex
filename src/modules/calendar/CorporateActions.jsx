@@ -33,13 +33,13 @@ export default function CorporateActions() {
     <div className="mt-6 border border-terminal-border">
       <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center gap-2 flex-wrap">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">CORPORATE ACTIONS</span>
-        <span className="text-[9px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold" title="Dates from company calendars and the ASX; companies can move them">INDICATIVE</span>
+        <span className="text-[11px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold" title="Dates from company calendars and the ASX; companies can move them">INDICATIVE</span>
         <span className="text-2xs text-terminal-text-dim">from company calendars and the ASX · as at {fmtDate(CORPORATE_ACTIONS_AS_OF)}</span>
       </div>
       <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-terminal-border/50">
         {[{ key: 'all', label: 'ALL' }, ...ACTION_TYPES].map((t) => (
           <button key={t.key} onClick={() => setFilter(t.key)}
-            className={`text-[9px] font-bold px-1.5 py-0.5 border transition-colors ${filter === t.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'text-terminal-text-dim border-terminal-border hover:border-terminal-gold/50'}`}
+            className={`text-[11px] font-bold px-1.5 py-0.5 border transition-colors ${filter === t.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'text-terminal-text-dim border-terminal-border hover:border-terminal-gold/50'}`}
           >{t.label}</button>
         ))}
       </div>
@@ -62,7 +62,7 @@ export default function CorporateActions() {
                   return (
                     <div key={key(r)}>
                       <button onClick={() => setOpen(isOpen ? null : key(r))} className="w-full flex items-center gap-2 text-left hover:text-terminal-gold">
-                        <span className="text-[9px] font-bold w-20 flex-shrink-0" style={{ color: t.colour }}>{t.short}</span>
+                        <span className="text-[11px] font-bold w-20 flex-shrink-0" style={{ color: t.colour }}>{t.short}</span>
                         <span className="text-2xs font-mono text-terminal-text-bright w-10 flex-shrink-0">{r.ticker.replace(/\.AX$/, '')}</span>
                         <span className="text-2xs text-terminal-text truncate">{r.company}</span>
                       </button>
@@ -75,9 +75,9 @@ export default function CorporateActions() {
                                 name: r.company, ticker: r.ticker, date: r.date,
                                 instruction: `${r.company} (${r.ticker.replace(/\.AX$/, '')}): ${r.detail} What should an Australian investor understand about this event, and what usually matters around it? General information only.`,
                               }, { rawPrompt: true })}
-                              className="text-[9px] font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
+                              className="text-[11px] font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                             >ASK MADDENAI</button>
-                            <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-terminal-gold/80 hover:underline">{r.source} ↗</a>
+                            <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-terminal-gold/80 hover:underline">{r.source} ↗</a>
                           </div>
                         </div>
                       )}

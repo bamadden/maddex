@@ -11,7 +11,7 @@ export default function SentimentTick() {
   const bullish = s.score >= 50
   return (
     <Tooltip content={`Market sentiment ${s.score} / 100 — ${s.label}\n${sentimentTooltip(ms)}`}>
-    <span data-sentiment-score={s.score} className={`text-[9px] font-mono font-bold whitespace-nowrap flex-shrink-0 ${bullish ? 'text-terminal-gold' : 'text-terminal-red'}`}>
+    <span data-sentiment-score={s.score} className={`text-[11px] font-mono font-bold whitespace-nowrap flex-shrink-0 ${bullish ? 'text-terminal-gold' : 'text-terminal-red'}`}>
       {s.score}{bullish ? ' ▲' : ' ▼'}
     </span>
     </Tooltip>

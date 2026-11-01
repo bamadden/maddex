@@ -17,24 +17,24 @@ const fmtStamp = (iso) => {
   return `${day}, ${time} ${sydneyTzAbbr(d.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))}`
 }
 
-const REGEN_BTN = 'font-mono text-[9px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40'
+const REGEN_BTN = 'font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40'
 
 export function WeeklyReviewBody({ review, kicker = 'WEEK IN REVIEW', onRegenerate, busy = false }) {
   return (
     <div>
       <header className="pt-6 pb-4 flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <div className="font-mono text-terminal-gold uppercase" style={{ fontSize: 9, letterSpacing: '0.28em' }}>{kicker}</div>
-          <h1 className="font-mono font-bold text-terminal-text-bright mt-1.5" style={{ fontSize: 24, letterSpacing: '0.04em' }}>{review.label}</h1>
+          <div className="font-mono text-terminal-gold uppercase" style={{ fontSize: 11, letterSpacing: '0.28em' }}>{kicker}</div>
+          <h1 className="font-mono font-bold text-terminal-text-bright mt-1.5" style={{ fontSize: 28, letterSpacing: '0.04em' }}>{review.label}</h1>
         </div>
-        <div className="flex items-center gap-2 font-mono" style={{ fontSize: 10 }}>
-          <span className="px-1.5 py-0.5 text-terminal-gold font-bold tracking-widest" style={{ fontSize: 8, border: '1px solid rgba(201,168,76,0.45)' }}>✦ MADDENAI</span>
+        <div className="flex items-center gap-2 font-mono" style={{ fontSize: 11 }}>
+          <span className="px-1.5 py-0.5 text-terminal-gold font-bold tracking-widest" style={{ fontSize: 11, border: '1px solid rgba(201,168,76,0.45)' }}>✦ MADDENAI</span>
           {review.generatedAt && <span className="text-terminal-text-dim">Generated {fmtStamp(review.generatedAt)}</span>}
         </div>
       </header>
 
       {review.headline && (
-        <div className="font-sans text-terminal-text-bright font-semibold leading-snug mb-4" style={{ fontSize: 18 }}>{review.headline}</div>
+        <div className="font-sans text-terminal-text-bright font-semibold leading-snug mb-4" style={{ fontSize: 20 }}>{review.headline}</div>
       )}
 
       <div className="flex flex-col gap-3">
@@ -42,7 +42,7 @@ export function WeeklyReviewBody({ review, kicker = 'WEEK IN REVIEW', onRegenera
       </div>
 
       <footer className="mt-6 pt-3 border-t border-terminal-border flex items-center justify-between gap-3 flex-wrap">
-        <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+        <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
           AI-GENERATED SUMMARY · FIGURES FROM VERIFIED AND LIVE DATA ONLY · EQUITY MOVES NOT COVERED (DEMO PRICES) · GENERAL INFORMATION · NOT ADVICE
         </div>
         {onRegenerate && (
@@ -89,7 +89,7 @@ export default function WeeklyReviewTab({ history }) {
 
       {!review && status !== 'loading' && (
         <div className="py-16 flex flex-col items-center gap-3 text-center">
-          <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 24 }} aria-hidden="true">✦</span>
+          <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 28 }} aria-hidden="true">✦</span>
           <div className="text-terminal-text-bright text-base font-semibold tracking-wide mt-1">
             {status === 'error' ? (noCredit ? 'Review not generated' : 'Review unavailable') : `No review yet for ${week.label}`}
           </div>

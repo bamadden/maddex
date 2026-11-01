@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import {
@@ -18,6 +19,7 @@ import SectorDeepDive from './SectorDeepDive'
 import { screenSector } from './screenSector'
 import { getMockFMPRow } from '../../services/mockData'
 import SafeChart from '../../components/ui/SafeChart'
+import { PAL } from '../../styles/palette.js'
 
 // Code-split — three.js/@react-three pull in a large bundle only needed
 // once the user actually switches to the 3D view.
@@ -447,9 +449,9 @@ const ASX_WEIGHTS = {
 
 // Smooth continuous gradient: deep red → neutral navy → deep green, clamped
 // to ±3%. Used for the heatmap tiles.
-const HEAT_RED     = [168, 50, 50]   // #A83232
+const HEAT_RED     = [168, 50, 50]   // #EB6B66
 const HEAT_NEUTRAL = [26, 47, 74]    // #1A2F4A
-const HEAT_GREEN    = [45, 138, 80]  // #2D8A50
+const HEAT_GREEN    = [45, 138, 80]  // #3FB06B
 function lerp(a, b, t) { return a + (b - a) * t }
 function rgbToCss([r, g, b], alpha = 1) { return `rgba(${r},${g},${b},${alpha})` }
 function pctToHeatGradient(pct) {
@@ -500,10 +502,10 @@ function RateEnvironmentChip() {
 // How a sector has tended to respond to rising rates — the small pill on each
 // tile. The full sentence is the tooltip.
 function RatePill({ s, sector }) {
-  const tone = s.level === 'POSITIVE' ? '#2D8A50' : s.level === 'HIGH' ? '#CC4444' : s.level === 'MEDIUM' ? '#E8A33D' : '#8BA3C4'
+  const tone = s.level === 'POSITIVE' ? PAL.up : s.level === 'HIGH' ? PAL.down : s.level === 'MEDIUM' ? PAL.amber : PAL.dim
   return (
     <span
-      className="text-[7px] font-mono font-bold leading-none flex-shrink-0 px-1 py-0.5 rounded-sm"
+      className="text-[11px] font-mono font-bold leading-none flex-shrink-0 px-1 py-0.5 rounded-sm"
       style={{ color: tone, border: `1px solid ${tone}55`, background: 'rgba(0,0,0,0.25)', letterSpacing: '0.06em' }}
       title={`${sector} and rising rates — ${s.level === 'POSITIVE' ? 'tends to benefit' : `${s.level.toLowerCase()} sensitivity`}: ${s.why}. Typical relationship (estimate), not a forecast.`}
     >{s.pill}</span>
@@ -844,7 +846,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
         <span className="text-2xs font-bold text-terminal-text-dim tracking-wider">
           SHOWING {indexLabel.toUpperCase()} SECTORS
         </span>
-        {isFetching && <span className="text-2xs text-terminal-text-dim animate-pulse">LOADING...</span>}
+        {isFetching && <InlineLoading label="Loading" />}
         {isLive && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)}
         {isError && !isFetching && (
           <button onClick={refetch} className="text-2xs text-terminal-red hover:text-terminal-gold">⚠ RETRY</button>
@@ -952,7 +954,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                       {SECTOR_ABBR[sector]}
                     </div>
                     <div className="text-sm font-bold text-terminal-text-dim/20">—</div>
-                    <div className="text-2xs text-terminal-text-dim/18" style={{ fontSize: '9px' }}>Not in index</div>
+                    <div className="text-2xs text-terminal-text-dim/18" style={{ fontSize: '11px' }}>Not in index</div>
                   </div>
                 )
               }
@@ -998,8 +1000,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   onContextMenu={(e) => handleSectorContextMenu(e, sector)}
                 >
                   {/* Top-left: sector glyph + abbreviated name */}
-                  <div className="flex items-center gap-1 text-[8px] font-mono text-terminal-text-dim tracking-wider leading-tight flex-shrink-0 min-w-0">
-                    <span aria-hidden="true" className="text-[10px] leading-none flex-shrink-0 opacity-80">
+                  <div className="flex items-center gap-1 text-[11px] font-mono text-terminal-text-dim tracking-wider leading-tight flex-shrink-0 min-w-0">
+                    <span aria-hidden="true" className="text-[11px] leading-none flex-shrink-0 opacity-80">
                       {SECTOR_ICON[sector]}
                     </span>
                     <span className="truncate">{SECTOR_ABBR[sector]}</span>
@@ -1017,7 +1019,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                     <button
                       onClick={(e) => { e.stopPropagation(); onOpenDeepDive?.(sector) }}
                       title={`${sector} deep dive`}
-                      className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[9px] text-terminal-text-dim hover:text-terminal-gold bg-black/30 hover:bg-black/50 transition-colors"
+                      className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[11px] text-terminal-text-dim hover:text-terminal-gold bg-black/30 hover:bg-black/50 transition-colors"
                     >⛶</button>
                   )}
 
@@ -1025,7 +1027,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   <div className="flex-1 flex items-center justify-center min-h-0">
                     <div
                       className="font-bold leading-tight tabular-nums"
-                      style={{ color: text, fontSize: row === 'row-span-2' ? 22 : 16 }}
+                      style={{ color: text, fontSize: row === 'row-span-2' ? 20 : 16 }}
                     >
                       {pct != null
                         ? `${arrow} ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
@@ -1036,7 +1038,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
 
                   {/* Bottom row: secondary metric (left) + breadth (bottom-right) */}
                   <div className="flex items-end justify-between flex-shrink-0 gap-1">
-                    <span className="text-[8px] font-mono leading-tight" style={{ color: secColor, opacity: 0.85 }}>
+                    <span className="text-[11px] font-mono leading-tight" style={{ color: secColor, opacity: 0.85 }}>
                       {secChange != null
                         ? `${secChange >= 0 ? '+' : ''}${secChange.toFixed(1)}% ${secondaryMetric}`
                         : `— ${secondaryMetric}`
@@ -1046,7 +1048,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                       <RatePill s={RATE_SENSITIVITY[sector]} sector={sector} />
                     )}
                     {breadth && (
-                      <span className="text-[8px] font-mono leading-tight flex-shrink-0">
+                      <span className="text-[11px] font-mono leading-tight flex-shrink-0">
                         <span style={{ color: 'var(--color-gain)' }}>▲{breadth.up}</span>
                         {' '}
                         <span style={{ color: 'var(--color-loss)' }}>▼{breadth.down}</span>
@@ -1059,7 +1061,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   {isHovered && chipStocks.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {chipStocks.map(([sym]) => (
-                        <span key={sym} className="text-[9px] px-1 py-0 bg-black/30 border border-white/10 text-terminal-text-dim rounded-sm">
+                        <span key={sym} className="text-[11px] px-1 py-0 bg-black/30 border border-white/10 text-terminal-text-dim rounded-sm">
                           {sym.replace('.AX', '')}
                         </span>
                       ))}
@@ -1121,11 +1123,11 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                     </div>
                   )}
                   {rows.map(r => (
-                    <div key={r.sector} className="flex items-center gap-2 text-[10px] font-mono">
+                    <div key={r.sector} className="flex items-center gap-2 text-[11px] font-mono">
                       <span className="text-terminal-text-dim w-24 flex-shrink-0 truncate">{SECTOR_ABBR[r.sector]}</span>
                       <div className="flex-1 flex items-center gap-1">
                         <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                          <div style={{ width: `${(Math.abs(r.day) / maxAbs) * 100}%`, height: '100%', background: r.day >= 0 ? '#3aaa63' : '#a83232' }} />
+                          <div style={{ width: `${(Math.abs(r.day) / maxAbs) * 100}%`, height: '100%', background: r.day >= 0 ? PAL.up : PAL.down }} />
                         </div>
                         <span className={`w-14 text-right ${r.day >= 0 ? 'pos' : 'neg'}`}>{r.day >= 0 ? '+' : ''}{r.day.toFixed(2)}%</span>
                       </div>
@@ -1175,7 +1177,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           <div className="w-[45%] border-l border-terminal-border flex flex-col panel-fade relative">
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
-              {constFetching && <span className="text-2xs text-terminal-text-dim font-normal animate-pulse">LOADING...</span>}
+              {constFetching && <InlineLoading label="Loading" />}
               {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)}
               {isASX && RATE_SENSITIVITY[selected] && <RatePill s={RATE_SENSITIVITY[selected]} sector={selected} />}
               <button
@@ -1246,7 +1248,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                 </div>
               ) : composite != null ? (() => {
                 const last = composite.points[composite.points.length - 1]?.pct ?? 0
-                const col = last >= 0 ? '#2d8a50' : '#a83232'
+                const col = last >= 0 ? PAL.up : PAL.down
                 return (
                   <SafeChart width="100%" height={118}>
                     <AreaChart data={composite.points} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
@@ -1256,27 +1258,27 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                           <stop offset="95%" stopColor={col} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid stroke="#0F1E35" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
-                      <YAxis tick={{ fontSize: 8 }} domain={['auto','auto']} width={36}
+                      <CartesianGrid stroke={PAL.header} vertical={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                      <YAxis tick={{ fontSize: 11 }} domain={['auto','auto']} width={36}
                         tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
                       <Tooltip content={<CompositeTooltip />} />
                       <Area type="monotone" dataKey="pct" stroke={col} strokeWidth={1.5}
                         fill="url(#sectorCompositeGrad)" dot={false} isAnimationActive={false} connectNulls />
-                      <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
+                      <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} tickFormatter={() => ''} />
                     </AreaChart>
                   </SafeChart>
                 )
               })() : (
                 <>
                   {histFetching && (
-                    <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING CHART...</div>
+                    <InlineLoading label="Loading chart" className="flex items-center justify-center h-full" />
                   )}
                   {!histFetching && chartData.length < 2 && (
                     <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/50">No chart data</div>
                   )}
                   {chartData.length >= 2 && (() => {
-                    const col = proxyQuotes?.[proxySym]?.pct >= 0 ? '#2d8a50' : '#a83232'
+                    const col = proxyQuotes?.[proxySym]?.pct >= 0 ? PAL.up : PAL.down
                     return (
                       <SafeChart width="100%" height={118}>
                         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
@@ -1286,13 +1288,13 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                               <stop offset="95%" stopColor={col} stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid stroke="#0F1E35" vertical={false} />
-                          <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
-                          <YAxis tick={{ fontSize: 8 }} domain={['auto','auto']} width={36} />
+                          <CartesianGrid stroke={PAL.header} vertical={false} />
+                          <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 11 }} domain={['auto','auto']} width={36} />
                           <Tooltip content={<ChartTooltip />} />
                           <Area type="monotone" dataKey="price" stroke={col} strokeWidth={1.5}
                             fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />
-                          <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
+                          <Brush dataKey="date" height={16} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} tickFormatter={() => ''} />
                         </AreaChart>
                       </SafeChart>
                     )
@@ -1304,14 +1306,14 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             {/* Composite methodology note, or explicit fallback notice */}
             {composite != null && (
               <div className="px-2 py-1 border-b border-terminal-border/50 flex-shrink-0">
-                <span className="text-terminal-text-dim text-[8px]">
+                <span className="text-terminal-text-dim text-[11px]">
                   Equal-weighted composite of {constituentSyms.map(displaySym).join(' · ')}
                 </span>
               </div>
             )}
             {compositeUnavailable && (
               <div className="px-2 py-1 border-b border-terminal-border/50 flex-shrink-0">
-                <span className="text-terminal-red/70 text-[8px]">
+                <span className="text-terminal-red/70 text-[11px]">
                   Composite unavailable — showing {proxySym ? displaySym(proxySym) : 'proxy'} only
                 </span>
               </div>
@@ -1621,14 +1623,14 @@ function IndexView({ selectedIndex, openModal }) {
             const isPastRebalance = meta.nextRebalance < today
             return (
               <div style={{ padding: '6px 8px' }}>
-                <div style={{ fontSize: '9px', color: 'var(--mt-muted)', textAlign: 'right' }}>
+                <div style={{ fontSize: '11px', color: 'var(--mt-muted)', textAlign: 'right' }}>
                   Composition as at {meta.lastUpdated} · Next rebalance ~{meta.nextRebalance} ·{' '}
                   <a href={meta.sourceUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--mt-gold)' }}>
                     Source: {meta.source}
                   </a>
                 </div>
                 {isPastRebalance && (
-                  <div style={{ color: '#f59e0b', fontSize: '9px', marginTop: '4px', textAlign: 'right' }}>
+                  <div style={{ color: '#f59e0b', fontSize: '11px', marginTop: '4px', textAlign: 'right' }}>
                     ⚠ Composition may be outdated · Rebalance date has passed
                   </div>
                 )}
@@ -1647,7 +1649,7 @@ function IndexView({ selectedIndex, openModal }) {
                   <button
                     key={val}
                     onClick={() => setIdxPeriod(val)}
-                    className={`px-1 text-[8px] rounded transition-colors ${
+                    className={`px-1 text-[11px] rounded transition-colors ${
                       idxPeriod === val ? 'bg-terminal-gold text-terminal-bg font-bold' : 'text-terminal-text-dim hover:text-terminal-gold'
                     }`}
                   >{lbl}</button>
@@ -1656,23 +1658,23 @@ function IndexView({ selectedIndex, openModal }) {
             </div>
             <div style={{ height: 90 }}>
               {idxHistLoading && (
-                <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/50 animate-pulse">LOADING...</div>
+                <InlineLoading label="Loading" className="flex items-center justify-center h-full" />
               )}
               {!idxHistLoading && idxChartData.length >= 2 && (
                 <SafeChart width="100%" height={90}>
                   <AreaChart data={idxChartData} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
                     <defs>
                       <linearGradient id="idxGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
+                        <stop offset="5%"  stopColor={PAL.gold} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="date" hide />
                     <YAxis hide domain={['auto','auto']} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="price" stroke="#C9A84C" strokeWidth={1.2}
+                    <Area type="monotone" dataKey="price" stroke={PAL.gold} strokeWidth={1.2}
                       fill="url(#idxGrad)" dot={false} isAnimationActive={false} connectNulls />
-                    <Brush dataKey="date" height={14} stroke="rgba(201,168,76,0.3)" fill="#0B1628" tickFormatter={() => ''} />
+                    <Brush dataKey="date" height={14} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} tickFormatter={() => ''} />
                   </AreaChart>
                 </SafeChart>
               )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { SOURCE_URL } from '../../services/officialStats'
+import { PAL } from '../../styles/palette.js'
 
 // "● LIVE CHECK" beside a figure that is reconciled against its agency.
 // Green when the official data matches, amber on drift, grey when the check
@@ -21,7 +22,7 @@ export default function LiveCheckBadge({ field, className = '' }) {
 
   const row = check?.rows?.find((r) => r.field === field)
   if (!row) return null
-  const tone = row.status === 'match' ? '#2D8A50' : row.status === 'drift' ? '#C9A84C' : '#637899'
+  const tone = row.status === 'match' ? PAL.up : row.status === 'drift' ? PAL.gold : PAL.muted
   const label = row.status === 'match' ? '● LIVE CHECK' : row.status === 'drift' ? '⚠ DRIFT' : '○ UNCHECKED'
   const dp = row.dp ?? 1
   const toggle = (e) => { e.stopPropagation(); e.preventDefault(); setOpen((v) => !v) }
@@ -33,13 +34,13 @@ export default function LiveCheckBadge({ field, className = '' }) {
         onClick={toggle}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggle(e) }}
         className="font-mono font-bold tracking-wider cursor-pointer whitespace-nowrap"
-        style={{ fontSize: 7, color: tone, border: `1px solid ${tone}66`, padding: '0 3px', borderRadius: 2 }}
+        style={{ fontSize: 11, color: tone, border: `1px solid ${tone}66`, padding: '0 3px', borderRadius: 2 }}
         title="Checked against the official source — click for details"
       >{label}</span>
       {open && (
         <span
           className="absolute left-0 top-full mt-1 z-[95] w-64 text-left font-mono p-2.5 shadow-2xl normal-case tracking-normal"
-          style={{ background: 'rgba(7,20,40,0.98)', border: `1px solid ${tone}66`, fontSize: 10 }}
+          style={{ background: 'rgba(7,20,40,0.98)', border: `1px solid ${tone}66`, fontSize: 11 }}
           onClick={(e) => e.stopPropagation()}
         >
           <span className="block font-bold" style={{ color: tone }}>

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import VERIFIED_CONSTANTS, { daysSinceVerified, pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { runOfficialCheck } from '../../services/officialCheckStore'
+import { PAL } from '../../styles/palette.js'
 
 // DATA HEALTH — the top of Settings → Data Sources: every feed's age, the
 // official-statistics check, today's AI content, what is due next, and the
@@ -29,7 +30,7 @@ const sydDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Austral
 const fmtDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 
 function Row({ ok, label, value }) {
-  const tone = ok === true ? '#2D8A50' : ok === false ? '#D9773B' : '#4A6080'
+  const tone = ok === true ? PAL.up : ok === false ? '#D9773B' : PAL.muted
   return (
     <div className="flex items-baseline gap-2 text-2xs py-0.5">
       <span style={{ color: tone }}>{ok === true ? '●' : ok === false ? '▲' : '○'}</span>
@@ -113,13 +114,13 @@ export default function DataHealthPanel() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
         <div>
-          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 8 }}>LIVE FEEDS</div>
+          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 11 }}>LIVE FEEDS</div>
           {feeds.map((f) => <Row key={f.label} ok={f.at == null ? null : f.fresh} label={f.label} value={f.at ? ago(f.at, now) : 'not loaded yet'} />)}
           <Row ok={news?.status === 'success' ? true : news?.status === 'error' ? false : null} label="News"
             value={news?.dataUpdatedAt ? `${ago(news.dataUpdatedAt, now)} · ${newsData?.articles?.length ?? 0} articles` : 'not loaded yet'} />
         </div>
         <div>
-          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 8 }}>
+          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 11 }}>
             OFFICIAL STATS{check?.fetchedAt ? ` · checked ${ago(check.fetchedAt, now)}` : ''}
           </div>
           {(check?.rows ?? []).map((r) => (
@@ -129,11 +130,11 @@ export default function DataHealthPanel() {
           {!check?.rows?.length && <div className="text-2xs text-terminal-text-dim">Not checked yet this session.</div>}
         </div>
         <div>
-          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 8 }}>AI CONTENT</div>
+          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 11 }}>AI CONTENT</div>
           {ai.map((a) => <Row key={a.label} ok={a.ok} label={a.label} value={a.value} />)}
         </div>
         <div>
-          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 8 }}>UPCOMING</div>
+          <div className="font-mono text-terminal-text-dim tracking-widest mb-1" style={{ fontSize: 11 }}>UPCOMING</div>
           <Row ok={null} label="Next AU CPI" value={c.au.cpiNextRelease ? fmtDay(c.au.cpiNextRelease) : '—'} />
           {nd && <Row ok={null} label="Next RBA decision" value={`${fmtDay(nd.date)}${ndDays != null && ndDays >= 0 ? ` (${ndDays} day${ndDays === 1 ? '' : 's'})` : ''}`} />}
           <Row ok={null} label="Next FOMC" value={c.fed.nextMeeting ? fmtDay(c.fed.nextMeeting) : '—'} />

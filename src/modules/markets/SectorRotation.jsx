@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { getMockFMPHistory } from '../../services/mockData'
 import { ASX_SECTOR_STOCKS } from '../../data/sectorTaxonomy'
+import { PAL } from '../../styles/palette.js'
 
 // SECTOR ROTATION — four-week momentum by ASX sector.
 //
@@ -48,7 +49,7 @@ function summary(rows) {
     + (rateLag.length ? ` Rate-sensitive ${rateLag.join(' and ')} ${rateLag.length > 1 ? 'are' : 'is'} among the laggards.` : '')
 }
 
-const TREND = { accelerating: ['▲', '#2D8A50'], decelerating: ['▼', '#A83232'], stable: ['→', '#8BA3C4'] }
+const TREND = { accelerating: ['▲', PAL.up], decelerating: ['▼', PAL.down], stable: ['→', PAL.dim] }
 
 export default function SectorRotation() {
   const rows = useMemo(() => sectorMomentum(), [])
@@ -59,7 +60,7 @@ export default function SectorRotation() {
     <div className="flex-shrink-0 border-b border-terminal-border px-3 py-2">
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">SECTOR ROTATION — 4-WEEK MOMENTUM</span>
-        <span className="text-[9px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold">DEMO</span>
+        <span className="text-[11px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold">DEMO</span>
         <span className="text-2xs text-terminal-text-dim/60">equal-weighted, from simulated daily closes · trend = last 2 weeks vs prior 2</span>
       </div>
       <div className="space-y-1">
@@ -72,7 +73,7 @@ export default function SectorRotation() {
               <div className="h-2 bg-terminal-border/30 relative">
                 <div className="absolute inset-y-0 left-0" style={{ width: `${w}%`, background: r.fourWeek >= 0 ? 'rgba(45,138,80,0.7)' : 'rgba(168,50,50,0.7)' }} />
               </div>
-              <span className="text-right tabular-nums" style={{ color: r.fourWeek >= 0 ? '#2D8A50' : '#A83232' }}>
+              <span className="text-right tabular-nums" style={{ color: r.fourWeek >= 0 ? PAL.up : PAL.down }}>
                 {r.fourWeek >= 0 ? '+' : ''}{r.fourWeek.toFixed(1)}%
               </span>
               <span style={{ color: colour }}>{glyph} {r.trend}</span>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { isKnownTicker } from '../../services/watchlistPrefs'
+import { PAL } from '../../styles/palette.js'
 
 // Watchlist additions: the hover quick view, the bulk-action bar and the
 // import dialog. Kept out of WatchlistModule.jsx, which is already the
@@ -28,18 +29,18 @@ export function HoverPreview({ row, sector, x, y, onAnalyse, onAlert, onChart, o
       role="tooltip"
     >
       <div className="text-terminal-text-bright font-bold truncate" style={{ fontSize: 11 }}>{String(row.name).toUpperCase()}</div>
-      <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: 9 }}>{exch}: {row.symbol}{sector ? ` · ${sector}` : ''}</div>
+      <div className="text-terminal-text-dim mt-0.5" style={{ fontSize: 11 }}>{exch}: {row.symbol}{sector ? ` · ${sector}` : ''}</div>
       <div className="mt-2.5 flex items-baseline gap-2" style={{ fontSize: 11 }}>
-        <span className="text-terminal-text-dim" style={{ fontSize: 9 }}>Last</span>
+        <span className="text-terminal-text-dim" style={{ fontSize: 11 }}>Last</span>
         <span className="text-terminal-text-bright font-bold tabular-nums">{money(row.price)}</span>
         {row.pct != null && (
-          <span className="tabular-nums" style={{ color: up ? '#2D8A50' : '#A83232', fontSize: 10 }}>
+          <span className="tabular-nums" style={{ color: up ? PAL.up : PAL.down, fontSize: 11 }}>
             {up ? '▲' : '▼'} {row.change != null ? `${up ? '+' : '−'}${Math.abs(row.change).toFixed(2)} ` : ''}({up ? '+' : ''}{row.pct.toFixed(2)}%)
           </span>
         )}
       </div>
       {pos != null && (
-        <div className="mt-2" style={{ fontSize: 9 }}>
+        <div className="mt-2" style={{ fontSize: 11 }}>
           <div className="flex items-center gap-2">
             <span className="text-terminal-text-dim w-6">52W</span>
             <span className="tabular-nums text-terminal-text-dim">{money(row.week52Low)}</span>
@@ -50,14 +51,14 @@ export function HoverPreview({ row, sector, x, y, onAnalyse, onAlert, onChart, o
           </div>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2" style={{ fontSize: 9 }}>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2" style={{ fontSize: 11 }}>
         <span className="text-terminal-text-dim">P/E <span className="text-terminal-text-bright tabular-nums">{row.pe != null ? `${row.pe.toFixed(1)}x` : '—'}</span></span>
         <span className="text-terminal-text-dim">Yield <span className="text-terminal-gold tabular-nums">{row.divYield != null ? `${row.divYield.toFixed(1)}%` : '—'}</span></span>
         <span className="text-terminal-text-dim col-span-2">Vol <span className="text-terminal-text-bright tabular-nums">{volFmt(row.volume)}</span>{row.volRatio != null && <span className="tabular-nums"> ({row.volRatio.toFixed(1)}× avg)</span>}</span>
       </div>
       <div className="flex gap-1.5 mt-2.5">
         {[['ANALYSE', onAnalyse], ['ALERT', onAlert], ['CHART', onChart]].map(([l, fn]) => (
-          <button key={l} onClick={fn} className="flex-1 font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-1" style={{ fontSize: 9 }}>{l}</button>
+          <button key={l} onClick={fn} className="flex-1 font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-1" style={{ fontSize: 11 }}>{l}</button>
         ))}
       </div>
     </div>

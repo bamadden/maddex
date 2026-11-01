@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
+import { PAL } from '../../styles/palette.js'
 
 // Three panels for the Global intel rail. Each is built from data the module
 // already fetches or from the clock — nothing here adds a request, and nothing
@@ -20,7 +21,7 @@ function distanceKm([lon1, lat1], [lon2, lat2]) {
   return Math.round(2 * R * Math.asin(Math.sqrt(a)))
 }
 
-const magTone = (m) => (m >= 6.5 ? '#A83232' : m >= 5.5 ? '#C9A84C' : '#8BA3C4')
+const magTone = (m) => (m >= 6.5 ? PAL.down : m >= 5.5 ? PAL.gold : PAL.dim)
 
 
 export function SeismicSection({ earthquakes, onFocus, bare = false }) {
@@ -154,7 +155,7 @@ export function MarketSessionSection() {
     })
   }, [now])
 
-  const tone = { OPEN: '#2D8A50', PRE: '#C9A84C', CLOSED: '#637899', WEEKEND: '#4A6080' }
+  const tone = { OPEN: PAL.up, PRE: PAL.gold, CLOSED: PAL.muted, WEEKEND: PAL.muted }
 
   return (
     <div className="border-b border-terminal-border">
@@ -194,9 +195,9 @@ function momentumOf(series) {
     else if (recent[i] < recent[i - 1]) down++
   }
   const n = recent.length - 1
-  if (up >= Math.ceil(n * 0.6)) return { key: 'up', glyph: '▲▲', label: `up ${up} of last ${n}`, tone: '#2D8A50' }
-  if (down >= Math.ceil(n * 0.6)) return { key: 'down', glyph: '▼▼', label: `down ${down} of last ${n}`, tone: '#A83232' }
-  return { key: 'flat', glyph: '—', label: `mixed (${up} up, ${down} down)`, tone: '#637899' }
+  if (up >= Math.ceil(n * 0.6)) return { key: 'up', glyph: '▲▲', label: `up ${up} of last ${n}`, tone: PAL.up }
+  if (down >= Math.ceil(n * 0.6)) return { key: 'down', glyph: '▼▼', label: `down ${down} of last ${n}`, tone: PAL.down }
+  return { key: 'flat', glyph: '—', label: `mixed (${up} up, ${down} down)`, tone: PAL.muted }
 }
 
 export function MomentumBadge({ series }) {

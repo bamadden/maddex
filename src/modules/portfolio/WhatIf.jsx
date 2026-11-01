@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { dispatchAskAI } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Portfolio what-if analyser ────────────────────────────────────────────
 //
@@ -72,11 +73,11 @@ const money = (v) => `A$${Math.round(v).toLocaleString()}`
 // another red implies a judgement this tool does not make.
 function Delta({ before, after, lowerIsBetter = false, neutral = false }) {
   const diff = after - before
-  if (Math.abs(diff) < 1e-9) return <span style={{ color: '#637899' }}>→</span>
+  if (Math.abs(diff) < 1e-9) return <span style={{ color: PAL.muted }}>→</span>
   const arrow = diff > 0 ? '▲' : '▼'
-  if (neutral) return <span style={{ color: '#8BA3C4' }}>{arrow}</span>
+  if (neutral) return <span style={{ color: PAL.dim }}>{arrow}</span>
   const good = lowerIsBetter ? diff < 0 : diff > 0
-  return <span style={{ color: good ? '#2D8A50' : '#CC4444', fontWeight: 700 }}>{arrow}</span>
+  return <span style={{ color: good ? PAL.up : PAL.down, fontWeight: 700 }}>{arrow}</span>
 }
 
 export default function WhatIf({ holdings, onOpenAI }) {
@@ -210,7 +211,7 @@ export default function WhatIf({ holdings, onOpenAI }) {
                 {trades.map((t, i) => (
                   <div key={i} className="flex items-center gap-2 text-2xs px-2 py-1"
                     style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)' }}>
-                    <span className="font-bold" style={{ color: t.action === 'BUY' ? '#2D8A50' : '#CC4444' }}>{t.action}</span>
+                    <span className="font-bold" style={{ color: t.action === 'BUY' ? PAL.up : PAL.down }}>{t.action}</span>
                     <span className="text-terminal-text-bright">{t.units} × {t.symbol}</span>
                     <span className="text-terminal-text-dim">@ A${t.price.toFixed(2)}</span>
                     <span className="text-terminal-text-dim ml-auto tabular-nums">{money(t.units * t.price)}</span>
@@ -241,7 +242,7 @@ export default function WhatIf({ holdings, onOpenAI }) {
                   <tr key={r.label} className="border-b border-terminal-border/30">
                     <td className={`py-1 ${r.muted ? 'text-terminal-text-dim' : 'text-terminal-text'}`}>
                       {r.label}
-                      {r.note && <div className="text-[9px] text-terminal-text-dim/60">{r.note}</div>}
+                      {r.note && <div className="text-[11px] text-terminal-text-dim/60">{r.note}</div>}
                     </td>
                     <td className="py-1 text-right tabular-nums text-terminal-text-dim">{r.b}</td>
                     <td className="py-1 text-center">
@@ -260,7 +261,7 @@ export default function WhatIf({ holdings, onOpenAI }) {
             )}
 
             <div style={{
-              fontFamily: '"IBM Plex Mono", monospace', fontSize: 9, color: '#4A6080',
+              fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, color: PAL.muted,
               letterSpacing: '0.1em', marginTop: 10, paddingTop: 8,
               borderTop: '1px solid rgba(201,168,76,0.1)',
             }}>

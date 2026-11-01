@@ -5,6 +5,7 @@ import { getMockFMPRow } from '../../services/mockData'
 import { useStore } from '../../store/useStore'
 import { screenSector } from '../markets/screenSector'
 import { searchLocation, zoomFor, readJson, writeJson } from '../../services/geocodeService'
+import { PAL } from '../../styles/palette.js'
 
 // Location search for the intel map. Geocoding (and the Nominatim usage
 // policy that shapes it) lives in services/geocodeService.js.
@@ -127,15 +128,15 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
           style={{ fontSize: 11 }}
           aria-label="Search the map"
         />
-        {status === 'searching' && <span className="text-terminal-gold animate-pulse" style={{ fontSize: 9 }}>…</span>}
+        {status === 'searching' && <span className="text-terminal-gold animate-pulse" style={{ fontSize: 11 }}>…</span>}
         {(hasPin || query) && (
-          <button onMouseDown={(e) => e.preventDefault()} onClick={clear} className="text-terminal-text-dim hover:text-terminal-gold" style={{ fontSize: 9 }}>✕ CLEAR</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={clear} className="text-terminal-text-dim hover:text-terminal-gold" style={{ fontSize: 11 }}>✕ CLEAR</button>
         )}
       </div>
 
       {open && (list.length > 0 || status === 'empty' || status === 'error' || (query.trim() && status === 'idle' && !results.length)) && (
         <div className="mt-1 overflow-hidden" style={{ background: 'rgba(6,13,26,0.96)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 3 }}>
-          {showHistory && <div className="px-2.5 pt-1.5 text-terminal-text-dim/60" style={{ fontSize: 8, letterSpacing: '0.14em' }}>RECENT</div>}
+          {showHistory && <div className="px-2.5 pt-1.5 text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.14em' }}>RECENT</div>}
           {list.map((item, i) => (
             <button
               key={item.history ?? `${item.lat},${item.lon},${i}`}
@@ -143,25 +144,25 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
               onMouseEnter={() => setActive(i)}
               onClick={() => (item.history ? (setQuery(item.history), run(item.history)) : choose(item))}
               className="block w-full text-left px-2.5 py-1.5 truncate"
-              style={{ fontSize: 10, color: i === active ? '#C9A84C' : '#B8CCE4', background: i === active ? 'rgba(201,168,76,0.08)' : 'transparent' }}
+              style={{ fontSize: 11, color: i === active ? PAL.gold : '#B8CCE4', background: i === active ? 'rgba(201,168,76,0.08)' : 'transparent' }}
             >
               {item.history ? `↺ ${item.history}` : item.display_name}
-              {!item.history && <span className="ml-1.5 text-terminal-text-dim/50" style={{ fontSize: 8 }}>{(item.addresstype ?? item.type ?? '').toUpperCase()}</span>}
+              {!item.history && <span className="ml-1.5 text-terminal-text-dim/50" style={{ fontSize: 11 }}>{(item.addresstype ?? item.type ?? '').toUpperCase()}</span>}
             </button>
           ))}
-          {status === 'empty' && <div className="px-2.5 py-2 text-terminal-text-dim" style={{ fontSize: 10 }}>No places found.</div>}
-          {status === 'error' && <div className="px-2.5 py-2 text-terminal-red" style={{ fontSize: 10 }}>Geocoder unavailable — try again shortly.</div>}
+          {status === 'empty' && <div className="px-2.5 py-2 text-terminal-text-dim" style={{ fontSize: 11 }}>No places found.</div>}
+          {status === 'error' && <div className="px-2.5 py-2 text-terminal-red" style={{ fontSize: 11 }}>Geocoder unavailable — try again shortly.</div>}
           {query.trim() && status === 'idle' && !results.length && !showHistory && (
-            <div className="px-2.5 py-2 text-terminal-text-dim/70" style={{ fontSize: 9 }}>Press Enter to search · or type coordinates like −33.86, 151.21</div>
+            <div className="px-2.5 py-2 text-terminal-text-dim/70" style={{ fontSize: 11 }}>Press Enter to search · or type coordinates like −33.86, 151.21</div>
           )}
         </div>
       )}
 
       {card && (
         <div className="mt-2 px-3 py-2.5" style={{ background: 'rgba(6,13,26,0.94)', border: '1px solid rgba(201,168,76,0.35)', borderLeft: '3px solid #C9A84C', borderRadius: 3 }}>
-          <div className="text-terminal-gold font-bold tracking-widest" style={{ fontSize: 10 }}>{card.title}</div>
-          <div className="text-terminal-text mt-0.5" style={{ fontSize: 10 }}>{card.context}</div>
-          <div className="text-terminal-text-dim/60 truncate mt-0.5" style={{ fontSize: 8 }}>{card.place}</div>
+          <div className="text-terminal-gold font-bold tracking-widest" style={{ fontSize: 11 }}>{card.title}</div>
+          <div className="text-terminal-text mt-0.5" style={{ fontSize: 11 }}>{card.context}</div>
+          <div className="text-terminal-text-dim/60 truncate mt-0.5" style={{ fontSize: 11 }}>{card.place}</div>
           <div className="flex items-center gap-3 mt-1.5">
             <button
               onClick={() => (card.ask
@@ -170,11 +171,11 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
                   name: card.title, sector: 'Location intelligence', date: todayAEST(),
                   instruction: `What is the financial significance of ${card.title} (${card.context}) for an Australian investor? Describe it in words; do not state prices or figures you have not been given.`,
                 }))}
-              className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.12em' }}
+              className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 11, letterSpacing: '0.12em' }}
             >ASK MADDENAI ▶</button>
             {card.sector && (
               <button onClick={() => screenSector(card.sector, setActiveModule)}
-                className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.12em' }}
+                className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 11, letterSpacing: '0.12em' }}
               >SEE RELATED STOCKS ▶</button>
             )}
           </div>

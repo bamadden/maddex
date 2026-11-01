@@ -1,6 +1,7 @@
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { useAudStrength, meanMove, STRENGTH_MAJORS } from './useAudStrength'
+import { PAL } from '../../styles/palette.js'
 
 // ─── AUD trade-weighted index ───────────────────────────────────────────────
 //
@@ -47,15 +48,15 @@ export default function AudTwiCard() {
     >
       <div className="flex items-start gap-5 flex-wrap">
         <div className="min-w-0">
-          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 9, letterSpacing: '0.18em' }}>
+          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11, letterSpacing: '0.18em' }}>
             AUD TRADE-WEIGHTED INDEX
           </div>
-          <div className="font-mono font-bold text-terminal-gold leading-none tabular-nums" style={{ fontSize: 24, marginTop: 5 }}>
+          <div className="font-mono font-bold text-terminal-gold leading-none tabular-nums" style={{ fontSize: 28, marginTop: 5 }}>
             {au.twi.toFixed(1)}
           </div>
           <div className="flex items-center gap-2 mt-2">
             <VerifiedBadge dataKey="au" alwaysShow />
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 8 }}>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
               {au.twiSource?.split('/')[0] ?? 'rba.gov.au'} · as at {fmtDate(au.twiAsOf)}
             </span>
           </div>
@@ -64,7 +65,7 @@ export default function AudTwiCard() {
         <div className="w-px self-stretch" style={{ background: 'rgba(201,168,76,0.12)' }} />
 
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 9, letterSpacing: '0.18em' }}>
+          <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11, letterSpacing: '0.18em' }}>
             AUD VS SIX MAJORS · 30 DAYS
             {isFetching && <span className="text-terminal-text-dim/60 ml-1 animate-pulse">…</span>}
           </div>
@@ -72,17 +73,17 @@ export default function AudTwiCard() {
             <>
               <div
                 className="font-mono font-bold leading-none tabular-nums"
-                style={{ fontSize: 20, marginTop: 5, color: mean >= 0 ? '#2D8A50' : '#CC4444' }}
+                style={{ fontSize: 20, marginTop: 5, color: mean >= 0 ? PAL.up : PAL.down }}
               >
                 {mean >= 0 ? '▲ +' : '▼ '}{mean.toFixed(2)}%
               </div>
-              <div className="font-mono text-terminal-text-dim/60 mt-2 leading-snug" style={{ fontSize: 8, maxWidth: 340 }}>
+              <div className="font-mono text-terminal-text-dim/60 mt-2 leading-snug" style={{ fontSize: 11, maxWidth: 340 }}>
                 Unweighted mean across {counted} of {STRENGTH_MAJORS.length} majors, from live Frankfurter history.
                 Not the TWI&apos;s own change — the index is trade-weighted and this is not.
               </div>
             </>
           ) : (
-            <div className="font-mono text-terminal-text-dim/50 mt-2 leading-snug" style={{ fontSize: 9, maxWidth: 300 }}>
+            <div className="font-mono text-terminal-text-dim/50 mt-2 leading-snug" style={{ fontSize: 11, maxWidth: 300 }}>
               {isFetching ? 'Loading 30-day history…' : 'Unavailable — Frankfurter did not return history.'}
             </div>
           )}
@@ -90,7 +91,7 @@ export default function AudTwiCard() {
 
         <div
           className="font-mono text-right text-terminal-text-dim/45 leading-snug ml-auto"
-          style={{ fontSize: 8, maxWidth: 190 }}
+          style={{ fontSize: 11, maxWidth: 190 }}
         >
           One verified snapshot, not a series — so no daily change and no
           high/low ranking is shown for the index itself.

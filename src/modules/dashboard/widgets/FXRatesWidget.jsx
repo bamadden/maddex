@@ -4,6 +4,7 @@ import { classOfLiveSource } from '../../../utils/dataClass'
 import { liveDataService } from '../../../services/liveDataService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // AUD/USD leads and is drawn larger — it is the pair an Australian investor
 // checks first, and the one that reprices every US holding in the portfolio.
@@ -53,10 +54,10 @@ export default function FXRatesWidget() {
           clips the last pair instead of the headline. */}
       <div className="flex items-baseline justify-between gap-2 flex-shrink-0">
         <span className="flex items-baseline gap-1.5 min-w-0">
-          <span className="font-mono tabular-nums leading-none" style={{ fontSize: 20, color: '#E8EDF5' }}>
+          <span className="font-mono tabular-nums leading-none" style={{ fontSize: 20, color: PAL.bright }}>
             {lead != null ? lead.toFixed(LEAD[3]) : '—'}
           </span>
-          <span className="font-mono truncate" style={{ fontSize: 8, color: '#4A6080', letterSpacing: '0.08em' }}>
+          <span className="font-mono truncate" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.08em' }}>
             🇦🇺{LEAD[2]} AUD/{LEAD[1]}
           </span>
         </span>
@@ -72,10 +73,10 @@ export default function FXRatesWidget() {
             onClick={() => goModule('fx')}
             className="flex items-center justify-between gap-2 w-full flex-shrink-0 hover:opacity-80 transition-opacity"
           >
-            <span className="font-mono text-[9px] truncate min-w-0" style={{ color: '#8BA3C4' }}>
+            <span className="font-mono text-[11px] truncate min-w-0" style={{ color: PAL.dim }}>
               <span style={{ marginRight: 3 }}>{flag}</span>AUD/{code}
             </span>
-            <span className="font-mono text-[9px] tabular-nums flex-shrink-0" style={{ color: '#E8EDF5' }}>
+            <span className="font-mono text-[11px] tabular-nums flex-shrink-0" style={{ color: PAL.bright }}>
               {rates[key] != null ? rates[key].toFixed(dp) : '—'}
             </span>
           </button>

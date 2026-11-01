@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
 import { useStore } from '../../store/useStore'
 import { USING_MOCK_DATA } from '../../services/api'
+import { PAL } from '../../styles/palette.js'
 
 // Thin always-on status strip at the very bottom of the terminal.
 //
@@ -94,8 +95,8 @@ export default function StatusBar({ lastUpdated }) {
         background: '#030912',
         borderTop: '1px solid rgba(201,168,76,0.06)',
         fontFamily: '"IBM Plex Mono", Menlo, Monaco, Consolas, monospace',
-        fontSize: 9,
-        color: '#4A6080',
+        fontSize: 11,
+        color: PAL.muted,
       }}
     >
       <span className="truncate min-w-0">{crumbs.join(' › ')}</span>

@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // Portfolio transaction history.
 //
 // Holdings answer "what do I own"; transactions answer "what did I do, and
@@ -22,9 +23,9 @@ const KEY = 'maddex_transactions'
 export const TX_TYPES = ['BUY', 'SELL', 'DIVIDEND', 'SPLIT']
 
 export const TX_TONE = {
-  BUY:      { border: '#2D8A50', label: 'BUY' },
-  SELL:     { border: '#A83232', label: 'SELL' },
-  DIVIDEND: { border: '#C9A84C', label: 'DIVIDEND' },
+  BUY:      { border: PAL.up, label: 'BUY' },
+  SELL:     { border: PAL.down, label: 'SELL' },
+  DIVIDEND: { border: PAL.gold, label: 'DIVIDEND' },
   SPLIT:    { border: '#4A7FB5', label: 'SPLIT' },
 }
 

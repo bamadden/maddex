@@ -1,4 +1,5 @@
 import { useState, useRef, useLayoutEffect, useCallback } from 'react'
+import { PAL } from '../../styles/palette.js'
 
 // Tab bar with a single sliding underline.
 //
@@ -57,7 +58,7 @@ export default function TabBar({ tabs, activeKey, onChange, className = '', size
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 fontWeight: isActive ? 600 : 400,
-                color: isActive ? '#C9A84C' : '#4A6080',
+                color: isActive ? PAL.gold : PAL.muted,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -76,7 +77,7 @@ export default function TabBar({ tabs, activeKey, onChange, className = '', size
                   className="tabular-nums"
                   style={{
                     marginLeft: 6, fontSize: Math.max(8, size - 2),
-                    color: isActive ? '#C9A84C' : '#4A6080',
+                    color: isActive ? PAL.gold : PAL.muted,
                     opacity: isActive ? 0.85 : 0.6,
                   }}
                 >({tab.count})</span>
@@ -91,7 +92,7 @@ export default function TabBar({ tabs, activeKey, onChange, className = '', size
           position: 'absolute',
           bottom: 0,
           height: 2,
-          background: '#C9A84C',
+          background: PAL.gold,
           left: line.left,
           width: line.width,
           transition: 'left 0.2s ease, width 0.2s ease',

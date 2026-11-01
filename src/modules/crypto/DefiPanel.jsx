@@ -3,11 +3,12 @@ import { classOfLiveSource } from '../../utils/dataClass'
 import DataBadge from '../../components/ui/DataBadge'
 import { defiService, ONCHAIN_EXPLAINERS } from '../../services/defiService'
 import Donut from '../../components/charts/Donut'
+import { PAL } from '../../styles/palette.js'
 
 // 'Bridge' was here, but defiService excludes bridges from the list (with CEXs
 // and chains), so its pill could only ever show an empty table.
 const CATEGORIES = ['ALL', 'Dexes', 'Lending', 'Liquid Staking', 'Restaking', 'Yield', 'CDP']
-const CAT_COLOURS = ['#C9A84C', '#2D7DD2', '#2D8A50', '#9945FF', '#E8A33D', '#14b8a6', '#4A6080']
+const CAT_COLOURS = [PAL.gold, PAL.blue, PAL.up, '#9945FF', PAL.amber, '#14b8a6', PAL.muted]
 const CAT_LABEL = { Dexes: 'DEX', Lending: 'LENDING', 'Liquid Staking': 'LIQUID STAKING', Restaking: 'RESTAKING', 'Liquid Restaking': 'LIQUID RESTAKING', CDP: 'CDP', Yield: 'YIELD', Derivatives: 'DERIVATIVES', RWA: 'REAL-WORLD ASSETS', 'Basis Trading': 'BASIS TRADING', Other: 'OTHER' }
 const gweiFmt = (g) => (g == null ? '—' : g < 1 ? `${g.toFixed(3)} gwei` : `${g.toFixed(1)} gwei`)
 
@@ -20,7 +21,7 @@ const usd = (n, dp = 2) => {
 }
 
 const pct = (v) => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`)
-const toneOf = (v) => (v == null ? '#637899' : v >= 0 ? '#2D8A50' : '#A83232')
+const toneOf = (v) => (v == null ? PAL.muted : v >= 0 ? PAL.up : PAL.down)
 
 // Provenance badge, identical in meaning to the ones the rest of the terminal
 // uses: LIVE only when the response actually came from the network.
@@ -39,7 +40,7 @@ function Metric({ label, value, sub, tone, title }) {
   return (
     <div className="border border-terminal-border p-2.5 min-w-0" title={title}>
       <div className="text-2xs text-terminal-text-dim tracking-widest truncate">{label}</div>
-      <div className="text-base font-bold tabular-nums mt-0.5 truncate" style={{ color: tone ?? '#E8EDF5' }}>{value}</div>
+      <div className="text-base font-bold tabular-nums mt-0.5 truncate" style={{ color: tone ?? PAL.bright }}>{value}</div>
       {sub && <div className="text-2xs text-terminal-text-dim/60 truncate">{sub}</div>}
     </div>
   )
@@ -273,7 +274,7 @@ export default function DefiPanel() {
             <Metric
               label="NEXT DIFFICULTY ADJUSTMENT"
               value={btc.data?.retargetChangePct != null ? `${btc.data.retargetChangePct >= 0 ? '+' : ''}${btc.data.retargetChangePct.toFixed(2)}%` : '—'}
-              tone={btc.data?.retargetChangePct == null ? undefined : btc.data.retargetChangePct >= 0 ? '#E8A33D' : '#2D8A50'}
+              tone={btc.data?.retargetChangePct == null ? undefined : btc.data.retargetChangePct >= 0 ? PAL.amber : PAL.up}
               sub={btc.data?.retargetAt ? `in ~${Math.max(0, (btc.data.retargetAt - now) / 86_400_000).toFixed(1)} days · ${btc.data.retargetBlocks?.toLocaleString() ?? '—'} blocks · projected` : '—'}
               title={ONCHAIN_EXPLAINERS.retarget}
             />

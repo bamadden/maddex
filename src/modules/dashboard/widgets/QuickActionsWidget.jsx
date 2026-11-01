@@ -1,6 +1,7 @@
 import {} from './_shared'
 import { goModule } from './navigate'
 import { useContainerWidth } from '../../../hooks/useContainerWidth'
+import { PAL } from '../../../styles/palette.js'
 
 const ACTIONS = [
   { label: 'MARKETS',   icon: '📈', to: 'markets' },
@@ -40,12 +41,12 @@ export default function QuickActionsWidget() {
           // 44px is the minimum comfortable touch target. It applies at every
           // size — a cramped button is no easier to hit with a mouse, it is
           // just more forgivable.
-          style={{ background: '#060D1A', minHeight: 44 }}
+          style={{ background: PAL.bg, minHeight: 44 }}
         >
           <span className={isNarrow ? 'text-[16px] leading-none' : 'text-[13px] leading-none'}>{a.icon}</span>
           <span
             className="font-mono tracking-widest"
-            style={{ color: '#637899', fontSize: isNarrow ? 9 : 8 }}
+            style={{ color: PAL.muted, fontSize: isNarrow ? 11 : 11 }}
           >{a.label}</span>
         </button>
       ))}

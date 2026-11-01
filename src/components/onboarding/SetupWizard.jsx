@@ -4,6 +4,7 @@ import { fetchEquityQuotes } from '../../services/dataService'
 import { USING_MOCK_DATA } from '../../services/api'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from '../../services/mockData'
 import { AU_ETFS } from '../../data/etfData'
+import { PAL } from '../../styles/palette.js'
 
 // ─── First-run setup ────────────────────────────────────────────────────────
 //
@@ -191,7 +192,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
       <Scrim hole={hole} pad={step === 4 ? 4 : 2} />
 
       <div
-        style={{ ...cardPos, width: 440, maxWidth: 'calc(100vw - 32px)', backgroundColor: '#0B1628',
+        style={{ ...cardPos, width: 440, maxWidth: 'calc(100vw - 32px)', backgroundColor: PAL.panel,
           backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0) 34%)',
           border: '1px solid rgba(201,168,76,0.4)', animation: 'maddex-welcome-in 300ms cubic-bezier(0.22, 1, 0.36, 1)' }}
         className="shadow-2xl"
@@ -199,18 +200,18 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
         {/* Arrow from the card to the spotlit element */}
         {step === 4 && hole && (
           <span aria-hidden="true" className="absolute -top-[7px] w-3 h-3 rotate-45"
-            style={{ right: Math.max(14, 440 - (hole.left + hole.width / 2 - (cardPos.left ?? 0)) - 6), background: '#0B1628', borderLeft: '1px solid rgba(201,168,76,0.4)', borderTop: '1px solid rgba(201,168,76,0.4)' }} />
+            style={{ right: Math.max(14, 440 - (hole.left + hole.width / 2 - (cardPos.left ?? 0)) - 6), background: PAL.panel, borderLeft: '1px solid rgba(201,168,76,0.4)', borderTop: '1px solid rgba(201,168,76,0.4)' }} />
         )}
 
         <div className="flex items-center justify-between px-6 pt-5">
-          <span className="text-[9px] tracking-[0.22em] text-terminal-gold">SETUP · STEP {step} OF {TOTAL}</span>
+          <span className="text-[11px] tracking-[0.22em] text-terminal-gold">SETUP · STEP {step} OF {TOTAL}</span>
           {step < TOTAL && (
-            <button onClick={() => finish('dismissed')} className="text-[9px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">EXIT SETUP</button>
+            <button onClick={() => finish('dismissed')} className="text-[11px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">EXIT SETUP</button>
           )}
         </div>
         <div className="flex gap-1 px-6 mt-2" aria-hidden="true">
           {Array.from({ length: TOTAL }, (_, i) => (
-            <span key={i} className="h-[2px] flex-1 transition-colors" style={{ background: i < step ? '#C9A84C' : 'rgba(99,120,153,0.3)' }} />
+            <span key={i} className="h-[2px] flex-1 transition-colors" style={{ background: i < step ? PAL.gold : 'rgba(99,120,153,0.3)' }} />
           ))}
         </div>
 
@@ -239,7 +240,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                       className={`w-full flex items-center gap-3 px-3 py-1.5 text-left text-xs hover:bg-terminal-gold/10 ${picked === m.sym ? 'bg-terminal-gold/10' : ''}`}>
                       <span className="w-16 font-bold text-terminal-text-bright">{m.sym}</span>
                       <span className="flex-1 truncate text-terminal-text-dim">{m.name}</span>
-                      <span className="text-[9px] text-terminal-text-dim/60">{onWatchlist(m.sym) ? '✓ WATCHING' : m.ex}</span>
+                      <span className="text-[11px] text-terminal-text-dim/60">{onWatchlist(m.sym) ? '✓ WATCHING' : m.ex}</span>
                     </button>
                   ))}
                 </div>
@@ -252,11 +253,11 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 </div>
               )}
               <div className="mt-4">
-                <div className="text-[9px] tracking-[0.18em] text-terminal-text-dim/70 mb-1.5">POPULAR</div>
+                <div className="text-[11px] tracking-[0.18em] text-terminal-text-dim/70 mb-1.5">POPULAR</div>
                 <div className="flex flex-wrap gap-1.5">
                   {SUGGESTED.map((s) => (
                     <button key={s} onClick={() => (onWatchlist(s) ? null : addStock(s))} disabled={onWatchlist(s)}
-                      className={`px-2 py-1 text-[10px] border transition-colors ${onWatchlist(s)
+                      className={`px-2 py-1 text-[11px] border transition-colors ${onWatchlist(s)
                         ? 'border-terminal-green/40 text-terminal-green/80 cursor-default'
                         : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold hover:text-terminal-gold'}`}
                     >{onWatchlist(s) ? '✓ ' : '+ '}{s}</button>
@@ -264,7 +265,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 </div>
               </div>
               <div className="flex items-center justify-between mt-6">
-                <button onClick={next} className="text-[10px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">SKIP</button>
+                <button onClick={next} className="text-[11px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">SKIP</button>
                 <Primary onClick={next}>CONTINUE →</Primary>
               </div>
             </>
@@ -281,7 +282,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 <Primary onClick={() => { setWantsPortfolio(true); record('portfolio', 'open'); next() }}>YES — ADD HOLDINGS</Primary>
                 <Secondary onClick={() => { setWantsPortfolio(false); next() }}>NOT YET — SHOW ME AROUND</Secondary>
               </div>
-              <p className="text-[10px] text-terminal-text-dim/60 mt-3 leading-relaxed">
+              <p className="text-[11px] text-terminal-text-dim/60 mt-3 leading-relaxed">
                 Choosing yes opens the add-holding form when setup finishes. You can also import a broker CSV there.
               </p>
             </>
@@ -312,7 +313,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 </div>
               )}
               <div className="flex items-center justify-between mt-6">
-                <button onClick={next} className="text-[10px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">SKIP</button>
+                <button onClick={next} className="text-[11px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">SKIP</button>
                 <Primary onClick={next} disabled={aiState === 'waiting'}>CONTINUE →</Primary>
               </div>
             </>
@@ -338,7 +339,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                       {['above', 'below'].map((d) => (
                         <button key={d} role="radio" aria-checked={direction === d}
                           onClick={() => { setDirection(d); priceTouched.current = false }}
-                          className={`px-2.5 py-2 text-[10px] font-bold tracking-wider ${direction === d ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                          className={`px-2.5 py-2 text-[11px] font-bold tracking-wider ${direction === d ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
                         >{d.toUpperCase()}</button>
                       ))}
                     </div>
@@ -350,7 +351,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                     </div>
                   </div>
                   {lastPrice != null && (
-                    <div className="text-[10px] text-terminal-text-dim mt-1.5">
+                    <div className="text-[11px] text-terminal-text-dim mt-1.5">
                       Last {fmtAud(lastPrice)}{USING_MOCK_DATA ? ' · demo data until a live feed is connected' : ''}
                     </div>
                   )}
@@ -358,7 +359,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 </>
               )}
               <div className="flex items-center justify-between mt-6">
-                <button onClick={next} className="text-[10px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">SKIP</button>
+                <button onClick={next} className="text-[11px] tracking-[0.18em] text-terminal-text-dim hover:text-terminal-text">SKIP</button>
                 <Primary onClick={next}>CONTINUE →</Primary>
               </div>
             </>
@@ -384,7 +385,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 {[['/', 'Command bar'], ['A', 'MaddenAI'], ['?', 'All shortcuts']].map(([k, l]) => (
                   <div key={k}>
                     <kbd className="inline-block min-w-[26px] px-1.5 py-0.5 border border-terminal-gold/40 text-terminal-gold text-xs">{k}</kbd>
-                    <div className="text-[9px] text-terminal-text-dim mt-1 tracking-wider">{l.toUpperCase()}</div>
+                    <div className="text-[11px] text-terminal-text-dim mt-1 tracking-wider">{l.toUpperCase()}</div>
                   </div>
                 ))}
               </div>

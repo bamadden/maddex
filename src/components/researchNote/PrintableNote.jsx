@@ -1,4 +1,5 @@
 import { displayTicker, NOTE_DISCLAIMER, NOTE_KIND_LABEL, parseProse } from '../../services/researchNoteService'
+import { PAL } from '../../styles/palette.js'
 
 // The on-screen preview of the research note, in document colours.
 //
@@ -22,13 +23,13 @@ const SANS = 'Inter, "Helvetica Neue", Arial, sans-serif'
 const STANCE_TONE = {
   CONSTRUCTIVE: '#2D7A4A',
   BALANCED: '#A8862F',
-  CAUTIOUS: '#A83232',
+  CAUTIOUS: PAL.down,
 }
 
 function Section({ title, children }) {
   return (
     <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${RULE}` }}>
-      <div style={{ fontFamily: SANS, fontSize: 10, letterSpacing: '0.14em', fontWeight: 700, color: INK, fontVariant: 'small-caps', marginBottom: 8 }}>
+      <div style={{ fontFamily: SANS, fontSize: 11, letterSpacing: '0.14em', fontWeight: 700, color: INK, fontVariant: 'small-caps', marginBottom: 8 }}>
         {title.toUpperCase()}
       </div>
       {children}
@@ -69,27 +70,27 @@ export default function PrintableNote({ note, forwardRef }) {
     <div ref={forwardRef} style={{ width: 794, background: '#FFFFFF', color: INK, fontFamily: SANS, paddingBottom: 28 }}>
       <div style={{ background: GOLD, color: '#FFFFFF', padding: '14px 56px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.3em' }}>MADDEX RESEARCH</span>
-        <span style={{ fontSize: 9, letterSpacing: '0.14em' }}>GENERAL INFORMATION ONLY</span>
+        <span style={{ fontSize: 11, letterSpacing: '0.14em' }}>GENERAL INFORMATION ONLY</span>
       </div>
 
       <div style={{ padding: '26px 56px 0 56px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, paddingBottom: 18, borderBottom: `2px solid ${INK}` }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.01em' }}>{a.name ?? a.symbol}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.01em' }}>{a.name ?? a.symbol}</div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 8 }}>
               {[displayTicker(a), note.sector, note.exchange].filter(Boolean).join('  ·  ')}
             </div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{date}  ·  General Information Only</div>
           </div>
           <div style={{ width: 236, flexShrink: 0, background: PANEL, border: `1px solid ${RULE}`, padding: '10px 14px' }}>
-            <div style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: MUTED }}>STANCE</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: MUTED }}>STANCE</div>
             <div style={{ display: 'inline-block', marginTop: 6, background: tone, color: '#FFFFFF', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999 }}>
               {stance}
             </div>
             {rationale && (
-              <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11.5, lineHeight: 1.45, color: MUTED, marginTop: 7 }}>{rationale}</div>
+              <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11, lineHeight: 1.45, color: MUTED, marginTop: 7 }}>{rationale}</div>
             )}
-            <div style={{ fontSize: 8, color: MUTED, marginTop: 7 }}>Not a recommendation — general information only</div>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: 7 }}>Not a recommendation — general information only</div>
           </div>
         </div>
 
@@ -111,11 +112,11 @@ export default function PrintableNote({ note, forwardRef }) {
         {note.conclusion && <Section title="Conclusion"><Prose text={note.conclusion} /></Section>}
 
         <div style={{ marginTop: 24, background: PANEL, border: `1px solid ${RULE}`, padding: '10px 14px' }}>
-          <div style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em', color: MUTED, marginBottom: 4 }}>IMPORTANT INFORMATION</div>
-          <div style={{ fontFamily: SERIF, fontSize: 10.5, lineHeight: 1.55, color: MUTED }}>{NOTE_DISCLAIMER}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: MUTED, marginBottom: 4 }}>IMPORTANT INFORMATION</div>
+          <div style={{ fontFamily: SERIF, fontSize: 11, lineHeight: 1.55, color: MUTED }}>{NOTE_DISCLAIMER}</div>
         </div>
 
-        <div style={{ marginTop: 18, paddingTop: 8, borderTop: `1.5px solid ${GOLD}`, display: 'flex', justifyContent: 'space-between', fontSize: 9, letterSpacing: '0.1em', color: MUTED }}>
+        <div style={{ marginTop: 18, paddingTop: 8, borderTop: `1.5px solid ${GOLD}`, display: 'flex', justifyContent: 'space-between', fontSize: 11, letterSpacing: '0.1em', color: MUTED }}>
           <span>MADDEX INTELLIGENCE · GENERAL INFORMATION ONLY · maddex.com.au</span>
         </div>
       </div>

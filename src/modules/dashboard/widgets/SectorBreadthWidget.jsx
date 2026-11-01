@@ -3,6 +3,7 @@ import { fetchEquityQuotes } from '../../../services/dataService'
 import { ASX_SECTOR_STOCKS, SECTOR_ABBR } from '../../../data/sectorTaxonomy'
 import {WidgetBody} from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // One representative stock per sector. A full sector aggregate is the
 // Markets module's job; this is a glance, and fetching 100 symbols for a
@@ -28,7 +29,7 @@ export default function SectorBreadthWidget() {
           const up = (pct ?? 0) >= 0
           return (
             <button key={sector} onClick={() => goModule('markets')} className="flex items-center gap-2 min-w-0">
-              <span className="font-mono text-[9px] truncate min-w-0 flex-1 text-left" style={{ color: '#8BA3C4' }}>
+              <span className="font-mono text-[11px] truncate min-w-0 flex-1 text-left" style={{ color: PAL.dim }}>
                 {SECTOR_ABBR?.[sector] ?? sector}
               </span>
               <span style={{ width: 34, height: 3, borderRadius: 2, background: 'rgba(99,120,153,0.18)', position: 'relative', flexShrink: 0 }}>
@@ -36,10 +37,10 @@ export default function SectorBreadthWidget() {
                   position: 'absolute', left: up ? '50%' : undefined, right: up ? undefined : '50%',
                   top: 0, height: 3, borderRadius: 2,
                   width: `${Math.min(50, Math.abs(pct ?? 0) * 16)}%`,
-                  background: up ? '#2D8A50' : '#A83232',
+                  background: up ? PAL.up : PAL.down,
                 }} />
               </span>
-              <span className="font-mono text-[8px] tabular-nums flex-shrink-0" style={{ width: 34, textAlign: 'right', color: up ? '#2D8A50' : '#A83232' }}>
+              <span className="font-mono text-[11px] tabular-nums flex-shrink-0" style={{ width: 34, textAlign: 'right', color: up ? PAL.up : PAL.down }}>
                 {pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}` : '—'}
               </span>
             </button>

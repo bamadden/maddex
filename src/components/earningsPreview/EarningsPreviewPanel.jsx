@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { generateEarningsPreview } from '../../services/earningsPreviewService'
 import { daysUntil } from '../../services/earningsCalendar'
+import { PAL } from '../../styles/palette.js'
 
 export default function EarningsPreviewPanel({ ticker, earningsDate, companyName, onClose }) {
   const [status, setStatus] = useState('loading') // loading | ready | error | unavailable
@@ -100,8 +101,8 @@ export default function EarningsPreviewPanel({ ticker, earningsDate, companyName
               <div
                 style={{
                   fontFamily: '"IBM Plex Mono", monospace',
-                  fontSize: 9,
-                  color: '#4A6080',
+                  fontSize: 11,
+                  color: PAL.muted,
                   letterSpacing: '0.1em',
                   padding: '8px 0 0',
                   borderTop: '1px solid rgba(201,168,76,0.08)',

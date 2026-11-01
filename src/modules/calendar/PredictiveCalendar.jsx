@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { getMockFMPHistory } from '../../services/mockData'
+import { PAL } from '../../styles/palette.js'
 
 // Two Calendar sections:
 //
@@ -66,7 +67,7 @@ export function PredictedEvents({ events = [] }) {
     <div className="border border-terminal-border mt-4">
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">PREDICTED</span>
-        <span className="text-2xs font-bold px-1.5" style={{ color: '#8BA3C4', border: '1px dashed rgba(139,163,196,0.5)' }}>NOT YET CONFIRMED</span>
+        <span className="text-2xs font-bold px-1.5" style={{ color: PAL.dim, border: '1px dashed rgba(139,163,196,0.5)' }}>NOT YET CONFIRMED</span>
         <span className="text-2xs text-terminal-text-dim/60">from the ABS&apos;s usual release pattern — check the ABS release calendar</span>
       </div>
       {rows.map((p) => (
@@ -135,7 +136,7 @@ export function EventImpactHistory() {
                 <td className="px-3 py-1 text-terminal-text">{r.label}{tab !== 'rba' && <span className="text-terminal-text-dim/50"> · {r.approx ? '≈' : ''}{fmt(r.date)}</span>}</td>
                 <td className="px-2 text-right font-mono text-terminal-text-bright">{r.result}{r.extra && <span className="text-terminal-text-dim"> {r.extra}</span>}</td>
                 <td className="px-2 text-right text-terminal-text-dim/50">—</td>
-                <td className="px-3 text-right font-mono" style={{ color: mv == null ? undefined : mv >= 0 ? '#2D8A50' : '#CC4444' }}>
+                <td className="px-3 text-right font-mono" style={{ color: mv == null ? undefined : mv >= 0 ? PAL.up : PAL.down }}>
                   {mv == null ? <span className="text-terminal-text-dim/50">—</span> : <>{mv >= 0 ? '+' : ''}{mv.toFixed(2)}% <span className="text-terminal-text-dim/50">(demo)</span></>}
                 </td>
               </tr>
@@ -143,7 +144,7 @@ export function EventImpactHistory() {
           })}
         </tbody>
       </table>
-      <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 9 }}>
+      <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
         Results from the verified ABS and RBA series. ≈ marks a release date estimated from the ABS pattern. Past consensus forecasts are not recorded, so
         that column is blank. The ASX 200 move is from the demo index history — illustrative, not the real market reaction.
       </div>

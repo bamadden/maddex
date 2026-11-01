@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import Tooltip from '../../components/ui/Tooltip'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Growth / inflation quadrant ────────────────────────────────────────────
 //
@@ -52,10 +53,10 @@ const QUADRANTS = [
 function quadrantFor(gdp, cpi) {
   const weak = gdp < TREND_GDP
   const hot = cpi > TARGET_MID
-  if (weak && hot) return { key: 'stag', label: 'STAGFLATION', tone: '#CC4444', sub: 'Below-trend growth with inflation above the band midpoint' }
-  if (!weak && hot) return { key: 'over', label: 'OVERHEATING', tone: '#C9A84C', sub: 'Growth at or above trend with inflation running hot' }
-  if (weak && !hot) return { key: 'rec', label: 'CONTRACTIONARY', tone: '#CC4444', sub: 'Below-trend growth with inflation contained' }
-  return { key: 'gold', label: 'GOLDILOCKS', tone: '#2D8A50', sub: 'Growth at or above trend with inflation contained' }
+  if (weak && hot) return { key: 'stag', label: 'STAGFLATION', tone: PAL.down, sub: 'Below-trend growth with inflation above the band midpoint' }
+  if (!weak && hot) return { key: 'over', label: 'OVERHEATING', tone: PAL.gold, sub: 'Growth at or above trend with inflation running hot' }
+  if (weak && !hot) return { key: 'rec', label: 'CONTRACTIONARY', tone: PAL.down, sub: 'Below-trend growth with inflation contained' }
+  return { key: 'gold', label: 'GOLDILOCKS', tone: PAL.up, sub: 'Growth at or above trend with inflation contained' }
 }
 
 export default function RegimeQuadrant() {
@@ -103,19 +104,19 @@ export default function RegimeQuadrant() {
           {QUADRANTS.map((q) => (
             <text
               key={q.key} x={q.x} y={q.y}
-              fill={quadrant.key === q.key ? '#C9A84C' : '#4A6080'}
-              style={{ fontSize: 9, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em', fontWeight: quadrant.key === q.key ? 700 : 400 }}
+              fill={quadrant.key === q.key ? PAL.gold : PAL.muted}
+              style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em', fontWeight: quadrant.key === q.key ? 700 : 400 }}
             >{q.label}</text>
           ))}
 
           {/* Axes, labelled with what "centre" actually means. A crosshair with
               no stated origin is a chart that cannot be checked. */}
-          <text x={MID} y={SIZE + 14} textAnchor="middle" fill="#4A6080"
-            style={{ fontSize: 9, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em' }}>
+          <text x={MID} y={SIZE + 14} textAnchor="middle" fill={PAL.muted}
+            style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em' }}>
             GROWTH →
           </text>
-          <text x={-MID} y={-8} textAnchor="middle" transform="rotate(-90)" fill="#4A6080"
-            style={{ fontSize: 9, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em' }}>
+          <text x={-MID} y={-8} textAnchor="middle" transform="rotate(-90)" fill={PAL.muted}
+            style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em' }}>
             ↑ INFLATION
           </text>
 
@@ -124,21 +125,21 @@ export default function RegimeQuadrant() {
           {trail.length > 0 && (
             <polyline
               points={[...trail, current].map((p) => `${xFor(p.gdpAnnual)},${yFor(p.cpi)}`).join(' ')}
-              fill="none" stroke="#C9A84C" strokeOpacity={0.25} strokeWidth={1} strokeDasharray="3 3"
+              fill="none" stroke={PAL.gold} strokeOpacity={0.25} strokeWidth={1} strokeDasharray="3 3"
             />
           )}
           {trail.map((p, i) => (
             <g key={p.period} onMouseEnter={() => setHover(p)} onMouseLeave={() => setHover(null)}>
               <circle
                 cx={xFor(p.gdpAnnual)} cy={yFor(p.cpi)} r={5}
-                fill="#C9A84C" opacity={trailOpacity(i, trail.length)}
+                fill={PAL.gold} opacity={trailOpacity(i, trail.length)}
               />
               <circle cx={xFor(p.gdpAnnual)} cy={yFor(p.cpi)} r={9} fill="transparent" />
             </g>
           ))}
 
-          <circle cx={cx} cy={cy} r={8} fill="#C9A84C" />
-          <circle cx={cx} cy={cy} r={13} fill="none" stroke="#C9A84C" strokeOpacity={0.35} />
+          <circle cx={cx} cy={cy} r={8} fill={PAL.gold} />
+          <circle cx={cx} cy={cy} r={13} fill="none" stroke={PAL.gold} strokeOpacity={0.35} />
         </svg>
       </div>
 
@@ -146,52 +147,52 @@ export default function RegimeQuadrant() {
         <div className="font-mono font-bold tracking-widest" style={{ fontSize: 12, color: quadrant.tone }}>
           {quadrant.label}
         </div>
-        <div className="font-mono text-terminal-text-dim leading-snug mt-1" style={{ fontSize: 10 }}>
+        <div className="font-mono text-terminal-text-dim leading-snug mt-1" style={{ fontSize: 11 }}>
           {quadrant.sub}
         </div>
 
         <div className="mt-3 space-y-1">
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9, width: 60 }}>GROWTH</span>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, width: 60 }}>GROWTH</span>
             <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 11 }}>
               {current.gdpAnnual}%
             </span>
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
               vs ~{TREND_GDP}% trend · {au.gdpPeriod}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9, width: 60 }}>INFLATION</span>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, width: 60 }}>INFLATION</span>
             <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 11 }}>
               {au.cpi.toFixed(1)}%
             </span>
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
               vs {au.rbaTargetBand} band · {au.cpiPeriod}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9, width: 60 }}>POLICY</span>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, width: 60 }}>POLICY</span>
             <span className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 11 }}>
               {rba.cashRate.toFixed(2)}%
             </span>
-            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>cash rate</span>
+            <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>cash rate</span>
           </div>
         </div>
 
         {trail.length > 0 && (
           <div className="mt-3 pt-2" style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-            <div className="font-mono text-terminal-text-dim/50 mb-1" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+            <div className="font-mono text-terminal-text-dim/50 mb-1" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
               PATH · LAST {trail.length} QUARTERS
             </div>
             {[...trail].reverse().map((p) => (
-              <div key={p.period} className="flex items-baseline gap-2 font-mono" style={{ fontSize: 9 }}>
+              <div key={p.period} className="flex items-baseline gap-2 font-mono" style={{ fontSize: 11 }}>
                 <span className="text-terminal-text-dim/60" style={{ width: 46 }}>{p.period}</span>
                 <span className="text-terminal-text-dim">growth <b className="text-terminal-text">{p.gdpAnnual}%</b></span>
                 <span className="text-terminal-text-dim">CPI <b className="text-terminal-text">{p.cpi}%</b></span>
               </div>
             ))}
             <Tooltip content={`Every point plotted is a published ABS reading — three quarters of annual CPI and annual GDP. Nothing is interpolated, and a quarter missing either figure gets no dot.\n\nSource: ${au.auQuarterlyPathSource ?? 'abs.gov.au'}`}>
-              <div className="font-mono text-terminal-text-dim/40 mt-1.5 leading-snug" style={{ fontSize: 8 }}>
+              <div className="font-mono text-terminal-text-dim/40 mt-1.5 leading-snug" style={{ fontSize: 11 }}>
                 Axes centred on ~{TREND_GDP}% trend growth and the {au.rbaTargetBand} band midpoint.
                 Path from {au.auQuarterlyPathSource ?? 'abs.gov.au'}.
               </div>
@@ -200,7 +201,7 @@ export default function RegimeQuadrant() {
         )}
 
         {hover && (
-          <div className="font-mono text-terminal-gold mt-2" style={{ fontSize: 9 }}>
+          <div className="font-mono text-terminal-gold mt-2" style={{ fontSize: 11 }}>
             {hover.period}: growth {hover.gdpAnnual}% · CPI {hover.cpi}%
           </div>
         )}

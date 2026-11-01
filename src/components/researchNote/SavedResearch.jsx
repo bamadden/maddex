@@ -3,6 +3,7 @@ import { deleteNoteFromHistory, noteId, NOTE_KIND_LABEL } from '../../services/r
 import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { useStore } from '../../store/useStore'
 import { getWeeklyNotes, setWeeklyNotesEnabled, weeklyNoteSymbols, WEEKLY_NOTES_CHANGED, WEEKLY_NOTE_COUNT } from '../../services/noteScheduler'
+import { PAL } from '../../styles/palette.js'
 
 // SAVED RESEARCH — the last ten research notes, in the MaddenAI panel.
 //
@@ -12,7 +13,7 @@ import { getWeeklyNotes, setWeeklyNotesEnabled, weeklyNoteSymbols, WEEKLY_NOTES_
 
 const ResearchNoteGenerator = lazy(() => import('./ResearchNoteGenerator'))
 
-const STANCE_TONE = { CONSTRUCTIVE: '#2D8A50', BALANCED: '#C9A84C', CAUTIOUS: '#A83232' }
+const STANCE_TONE = { CONSTRUCTIVE: PAL.up, BALANCED: PAL.gold, CAUTIOUS: PAL.down }
 
 // [SCHEDULE WEEKLY NOTE] — fresh notes on the top watchlist stocks each
 // Monday (services/noteScheduler).
@@ -30,9 +31,9 @@ function WeeklyNotesBar() {
       <button
         onClick={() => setWeeklyNotesEnabled(!s.enabled)}
         aria-pressed={s.enabled}
-        className={`text-[9px] font-bold font-mono tracking-wider border px-2 py-0.5 transition-colors ${s.enabled ? 'border-terminal-green/60 text-terminal-green bg-terminal-green/10' : 'border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg'}`}
+        className={`text-[11px] font-bold font-mono tracking-wider border px-2 py-0.5 transition-colors ${s.enabled ? 'border-terminal-green/60 text-terminal-green bg-terminal-green/10' : 'border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg'}`}
       >{s.enabled ? '✓ WEEKLY NOTES ON' : '⏱ SCHEDULE WEEKLY NOTE'}</button>
-      <span className="text-[9px] font-mono text-terminal-text-dim/70 leading-snug flex-1 min-w-0">
+      <span className="text-[11px] font-mono text-terminal-text-dim/70 leading-snug flex-1 min-w-0">
         {s.enabled
           ? (syms.length
               ? <>Every Monday before the open: {syms.join(', ')}.{s.lastRunAt && <> Last run {new Date(s.lastRunAt).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.</>}</>
@@ -70,26 +71,26 @@ export default function SavedResearch() {
       <div className="overflow-auto max-h-56">
         {notes.map((n) => {
           const stance = n.stance ?? NOTE_KIND_LABEL[n.kind] ?? 'BALANCED'
-          const tone = STANCE_TONE[stance] ?? '#8BA3C4'
+          const tone = STANCE_TONE[stance] ?? PAL.dim
           return (
             <div key={noteId(n)} className="group flex items-center gap-2 border-b border-terminal-border/40 last:border-0 px-3 py-1.5 hover:bg-terminal-surface2">
               <button onClick={() => setOpen(n)} className="flex-1 min-w-0 text-left" title="Open this note">
                 <div className="text-xs text-terminal-text-bright truncate">
                   {n.asset.name ?? n.asset.symbol} {!/^(PORTFOLIO$|RBA-)/.test(n.asset.symbol) && <span className="text-terminal-text-dim font-mono">{String(n.asset.symbol).replace(/\.AX$/i, '')}</span>}
                 </div>
-                <div className="text-[9px] text-terminal-text-dim/60 font-mono">
+                <div className="text-[11px] text-terminal-text-dim/60 font-mono">
                   {new Date(n.generatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
               </button>
-              <span className="text-[9px] font-bold font-mono px-1.5 py-px flex-shrink-0" style={{ color: tone, border: `1px solid ${tone}66` }}>{stance}</span>
+              <span className="text-[11px] font-bold font-mono px-1.5 py-px flex-shrink-0" style={{ color: tone, border: `1px solid ${tone}66` }}>{stance}</span>
               <button
                 onClick={() => exportPdf(n)}
                 disabled={busy === noteId(n)}
-                className="text-[9px] font-bold font-mono text-terminal-gold/80 hover:text-terminal-gold border border-terminal-border px-1.5 py-px disabled:opacity-50"
+                className="text-[11px] font-bold font-mono text-terminal-gold/80 hover:text-terminal-gold border border-terminal-border px-1.5 py-px disabled:opacity-50"
               >PDF</button>
               <button
                 onClick={() => deleteNoteFromHistory(noteId(n))}
-                className="text-[9px] font-bold font-mono text-terminal-text-dim/60 hover:text-terminal-red px-1"
+                className="text-[11px] font-bold font-mono text-terminal-text-dim/60 hover:text-terminal-red px-1"
                 title="Delete from history"
               >DELETE</button>
             </div>

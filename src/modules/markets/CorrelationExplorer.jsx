@@ -5,6 +5,7 @@ import {
   CORRELATION_UNIVERSE, DEFAULT_ASSET_IDS, PERIODS,
   assetInfo, correlationFor, strengthLabel, whatThisMeans, cellColor, generateScatterPoints, diversificationScore, suggestDiversifier,
 } from '../../services/correlationService'
+import { PAL } from '../../styles/palette.js'
 
 const CELL = 44
 
@@ -17,7 +18,7 @@ function ScatterMini({ idA, idB, period }) {
       <line x1={size / 2} y1={0} x2={size / 2} y2={size} stroke="var(--t-border)" strokeWidth={1} />
       <line x1={0} y1={size / 2} x2={size} y2={size / 2} stroke="var(--t-border)" strokeWidth={1} />
       {points.map((p, i) => (
-        <circle key={i} cx={toPx(p.x)} cy={size - toPx(p.y)} r={1.6} fill="#C9A84C" opacity={0.8} />
+        <circle key={i} cx={toPx(p.x)} cy={size - toPx(p.y)} r={1.6} fill={PAL.gold} opacity={0.8} />
       ))}
     </svg>
   )
@@ -183,7 +184,7 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
                     key={colId}
                     onMouseEnter={(e) => handleCellHover(e, rowId, colId)}
                     onMouseLeave={() => setHovered(null)}
-                    style={{ width: CELL, height: 36, background: rowId === colId ? '#c9a84c' : cellColor(r) }}
+                    style={{ width: CELL, height: 36, background: rowId === colId ? PAL.gold : cellColor(r) }}
                     className="flex items-center justify-center text-2xs font-mono font-bold cursor-pointer border border-terminal-bg/40 hover:outline hover:outline-1 hover:outline-terminal-gold"
                   >
                     <span style={{ color: rowId === colId ? '#0a1220' : Math.abs(r) > 0.55 ? '#fff' : '#0a1220' }}>{r.toFixed(2)}</span>

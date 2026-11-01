@@ -4,6 +4,7 @@ import { OrbitControls, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { GAIN_BRIGHT, LOSS_BRIGHT, NEUTRAL, GOLD, normalise, BG_COLOR } from './shared3d'
 import { getMockFMPHistory } from '../../services/mockData'
+import { PAL } from '../../styles/palette.js'
 
 // A deterministic pseudo-random layout — stable across re-renders (no
 // physics engine needed per spec: holdings just gently float/pulse in
@@ -91,8 +92,8 @@ function Bubble({ holding, position, radius, color, onSelect, isSelected, dimmed
         <Html position={[0, radius + 0.35, 0]} center distanceFactor={11} occlude>
           <div style={{
             fontFamily: 'IBM Plex Mono, monospace',
-            fontSize: 10,
-            color: '#e8edf5',
+            fontSize: 11,
+            color: PAL.bright,
             background: 'rgba(6,13,26,0.85)',
             border: `1px solid ${color}`,
             borderRadius: 3,
@@ -154,7 +155,7 @@ function ReturnRibbon({ holdings }) {
       </line>
       <Html position={[points[points.length - 1].x + 0.6, points[points.length - 1].y, points[points.length - 1].z]} center distanceFactor={11}>
         <div style={{
-          fontFamily: 'IBM Plex Mono, monospace', fontSize: 9, color: GOLD,
+          fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: GOLD,
           background: 'rgba(6,13,26,0.85)', border: `1px solid ${GOLD}`, borderRadius: 3,
           padding: '2px 6px', whiteSpace: 'nowrap', pointerEvents: 'none',
         }}>30D PORTFOLIO RETURN</div>
@@ -237,7 +238,7 @@ function Scene({ holdings, mode, selectedSymbol, focused, setFocused }) {
             <bufferGeometry>
               <bufferAttribute attach="attributes-position" args={[new Float32Array([-5, 0, -5, 5, 0, -5, 5, 0, 5, -5, 0, 5, -5, 0, -5]), 3]} />
             </bufferGeometry>
-            <lineBasicMaterial color="#4a6080" transparent opacity={0.35} />
+            <lineBasicMaterial color={PAL.muted} transparent opacity={0.35} />
           </line>
         </>
       )}

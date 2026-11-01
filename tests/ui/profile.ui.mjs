@@ -93,6 +93,32 @@ try {
   if (/TIME TO DECISION (\d+ days? )?\d+ hr \d+ min|Decision due/.test(ov.countdown ?? '')) pass(`labelled countdown: ${ov.countdown}`)
   else fail(`no labelled decision countdown (${ov.countdown})`)
 
+  console.log('Keyboard: skip link and reachable stock rows')
+  await page.evaluate(() => document.activeElement?.blur())
+  await page.evaluate(() => document.body.focus())
+  const skip = await page.evaluate(() => { const a = document.querySelector('.skip-link'); a?.focus(); return a ? getComputedStyle(a).top : null })
+  if (skip && parseInt(skip, 10) >= 0) pass('skip link appears on focus')
+  else fail(`skip link not visible on focus (top ${skip})`)
+  await page.keyboard.press('Enter')
+  const mainFocused = await page.evaluate(() => document.activeElement?.id)
+  mainFocused === 'main-content' ? pass('Enter on the skip link moves focus to the module area') : fail(`focus went to ${mainFocused}`)
+  await runCommand(page, 'markets')
+  await page.waitForFunction(() => document.querySelectorAll('[data-kb-click]').length > 5, { timeout: 30_000 }).catch(() => {})
+  const rows = await page.evaluate(() => document.querySelectorAll('[data-kb-click][tabindex="0"]').length)
+  rows > 5 ? pass(`${rows} clickable rows on Markets are keyboard-reachable`) : fail(`only ${rows} keyboard-reachable rows on Markets`)
+  const opened = await page.evaluate(async () => {
+    const row = [...document.querySelectorAll('tr[data-kb-click]')].find((r) => /(BHP|CBA|RIO|NEM|CSL)/.test(r.textContent))
+    if (!row) return 'no stock row'
+    row.focus()
+    row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await new Promise((r) => setTimeout(r, 800))
+    const m = document.querySelector('[data-detail-modal]')
+    return m ? `detail for ${m.dataset.detailModal}` : 'no detail modal'
+  })
+  if (!/^no /.test(opened)) pass(`Enter on a stock row opens its detail (${opened.replace(/\s+/g, ' ').slice(0, 30)}…)`)
+  else fail(`Enter on a stock row: ${opened}`)
+  await page.keyboard.press('Escape')
+
   console.log('Desktop: profile content')
   await runCommand(page, 'des CBA')
   await page.waitForFunction(() => document.body.innerText.includes('FINANCIAL YEAR END'), { timeout: 30_000 }).catch(() => {})

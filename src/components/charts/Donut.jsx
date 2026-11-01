@@ -1,3 +1,4 @@
+import { PAL } from '../../styles/palette.js'
 // A ring chart from slices of { label, value, color }. SVG, no chart library:
 // the crypto holdings and DeFi category breakdowns both need one, and a
 // recharts PieChart for a static ring is a lot of bundle for a circle.
@@ -11,7 +12,7 @@ export default function Donut({ slices, size = 140, thickness = 22, centre = nul
   return (
     <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#0F1E35" strokeWidth={thickness} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={PAL.header} strokeWidth={thickness} />
         {slices.map((s, i) => (
           <circle key={s.label} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={thickness}
             strokeDasharray={`${lens[i]} ${c - lens[i]}`} strokeDashoffset={-starts[i]} transform={`rotate(-90 ${size / 2} ${size / 2})`}>

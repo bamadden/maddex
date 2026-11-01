@@ -2,6 +2,7 @@ import DataBadge from './DataBadge'
 import { classOfLiveSource } from '../../utils/dataClass'
 import Tooltip from './Tooltip'
 import { daysSinceVerified, isStale, provenance, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
+import { PAL } from '../../styles/palette.js'
 
 // Provenance marker for a manually-maintained figure.
 //
@@ -29,14 +30,14 @@ export default function VerifiedBadge({ dataKey, alwaysShow = false, className =
         className={className}
         style={{
           fontFamily: '"IBM Plex Mono", monospace',
-          fontSize: 8,
+          fontSize: 11,
           letterSpacing: '0.1em',
           padding: '1px 5px',
           borderRadius: 2,
           whiteSpace: 'nowrap',
           background: stale ? 'rgba(201,168,76,0.15)' : 'rgba(99,120,153,0.12)',
           border: `1px solid ${stale ? 'rgba(201,168,76,0.45)' : 'rgba(99,120,153,0.25)'}`,
-          color: stale ? '#C9A84C' : '#637899',
+          color: stale ? PAL.gold : PAL.muted,
         }}
       >
         {text}
@@ -92,14 +93,14 @@ export function AIContentBadge({ source = 'fallback', label = null, className = 
         className={className}
         style={{
           fontFamily: '"IBM Plex Mono", monospace',
-          fontSize: 8,
+          fontSize: 11,
           letterSpacing: '0.1em',
           padding: '1px 5px',
           borderRadius: 2,
           whiteSpace: 'nowrap',
           background: meta.dim ? 'rgba(201,168,76,0.12)' : 'rgba(99,120,153,0.12)',
           border: `1px solid ${meta.dim ? 'rgba(201,168,76,0.4)' : 'rgba(99,120,153,0.25)'}`,
-          color: meta.dim ? '#C9A84C' : '#637899',
+          color: meta.dim ? PAL.gold : PAL.muted,
         }}
       >
         {label ?? meta.text}

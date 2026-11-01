@@ -3,6 +3,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, Line
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import SafeChart from '../../components/ui/SafeChart'
 import { generateShortSummary, scoreToColor } from '../../services/maddenAiScoring'
+import { PAL } from '../../styles/palette.js'
 
 const PREV_SCORE_KEY     = 'maddex_sentiment_prev'
 const HISTORY_KEY        = 'maddex_sentiment_history'
@@ -26,9 +27,9 @@ function factorBarColor(score) {
 }
 
 function radarStroke(score) {
-  if (score >= 67) return 'var(--color-gain, #2d8a50)'
+  if (score >= 67) return 'var(--color-gain, #3FB06B)'
   if (score >= 34) return 'var(--color-neutral, #c9a84c)'
-  return 'var(--color-loss, #a83232)'
+  return 'var(--color-loss, #EB6B66)'
 }
 
 function radarFill(score) {
@@ -106,7 +107,7 @@ function ScoreGradientBar({ score }) {
       <div style={{
         height: 6,
         borderRadius: 3,
-        background: 'linear-gradient(to right, #a83232, #c9a84c, #2d8a50)',
+        background: 'linear-gradient(to right, #EB6B66, #c9a84c, #3FB06B)',
         position: 'relative',
       }}>
         <div style={{
@@ -116,7 +117,7 @@ function ScoreGradientBar({ score }) {
           top: -3,
           width: 2,
           height: 12,
-          background: '#C9A84C',
+          background: PAL.gold,
           borderRadius: 1,
         }} />
       </div>
@@ -212,21 +213,21 @@ function TrendSection({ currentScore }) {
     label: h.timestamp,
   }))
 
-  const lineColor = currentScore >= 67 ? '#2d8a50' : currentScore >= 34 ? '#c9a84c' : '#a83232'
+  const lineColor = currentScore >= 67 ? PAL.up : currentScore >= 34 ? PAL.gold : PAL.down
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
       {/* Tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginRight: 8 }}>TREND</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginRight: 8 }}>TREND</span>
         {TREND_TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             style={{
-              fontSize: 9, padding: '2px 7px', cursor: 'pointer', border: 'none',
+              fontSize: 11, padding: '2px 7px', cursor: 'pointer', border: 'none',
               background: t === tab ? 'rgba(201,168,76,0.15)' : 'transparent',
-              color: t === tab ? '#C9A84C' : 'var(--color-text-dim, #8BA3C4)',
+              color: t === tab ? PAL.gold : 'var(--color-text-dim, #8BA3C4)',
               fontFamily: 'IBM Plex Mono, monospace', fontWeight: t === tab ? 700 : 400,
             }}
           >
@@ -237,7 +238,7 @@ function TrendSection({ currentScore }) {
 
       {/* Chart */}
       {chartData.length < 2 ? (
-        <div style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic', padding: '12px 0' }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic', padding: '12px 0' }}>
           BUILDING HISTORY — scores recorded each session
         </div>
       ) : (
@@ -249,14 +250,14 @@ function TrendSection({ currentScore }) {
               scale="time"
               domain={['dataMin', 'dataMax']}
               tickFormatter={(v) => fmtTimestamp(v, tab)}
-              tick={{ fontSize: 8, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
+              tick={{ fontSize: 11, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
               tickCount={5}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               domain={[0, 100]}
-              tick={{ fontSize: 8, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
+              tick={{ fontSize: 11, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
               axisLine={false}
               tickLine={false}
               ticks={[0, 33, 66, 100]}
@@ -264,7 +265,7 @@ function TrendSection({ currentScore }) {
             <ReferenceLine y={33} stroke="rgba(168,50,50,0.3)"  strokeDasharray="3 3" />
             <ReferenceLine y={66} stroke="rgba(201,168,76,0.3)" strokeDasharray="3 3" />
             <Tooltip
-              contentStyle={{ background: '#0a0e1a', border: '1px solid #C9A84C', fontSize: 9, fontFamily: 'IBM Plex Mono, monospace' }}
+              contentStyle={{ background: '#0a0e1a', border: '1px solid #C9A84C', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
               labelFormatter={(v) => fmtTimestamp(v, tab)}
               formatter={(v) => [`${v}/100`, 'Score']}
             />
@@ -274,21 +275,21 @@ function TrendSection({ currentScore }) {
       )}
 
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>
         <span>Current: <b style={{ color: lineColor }}>{currentScore}/100</b></span>
         {prev && (
           <span>
-            Prev session: <b style={{ color: '#C9A84C' }}>{prev.score}/100</b>
+            Prev session: <b style={{ color: PAL.gold }}>{prev.score}/100</b>
             {' '}
-            <span style={{ color: currentScore >= prev.score ? '#2d8a50' : '#a83232' }}>
+            <span style={{ color: currentScore >= prev.score ? PAL.up : PAL.down }}>
               {currentScore >= prev.score ? '▲' : '▼'} {currentScore >= prev.score ? '+' : ''}{currentScore - prev.score}pts
             </span>
           </span>
         )}
-        {stats?.avg7d  != null && <span>7D avg: <b style={{ color: '#C9A84C' }}>{stats.avg7d}/100</b></span>}
-        {stats?.avg30d != null && <span>30D avg: <b style={{ color: '#C9A84C' }}>{stats.avg30d}/100</b></span>}
-        {stats?.ath    && <span>ATH: <b style={{ color: '#2d8a50' }}>{stats.ath.score}/100</b> ({stats.ath.date})</span>}
-        {stats?.atl    && <span>ATL: <b style={{ color: '#a83232' }}>{stats.atl.score}/100</b> ({stats.atl.date})</span>}
+        {stats?.avg7d  != null && <span>7D avg: <b style={{ color: PAL.gold }}>{stats.avg7d}/100</b></span>}
+        {stats?.avg30d != null && <span>30D avg: <b style={{ color: PAL.gold }}>{stats.avg30d}/100</b></span>}
+        {stats?.ath    && <span>ATH: <b style={{ color: PAL.up }}>{stats.ath.score}/100</b> ({stats.ath.date})</span>}
+        {stats?.atl    && <span>ATL: <b style={{ color: PAL.down }}>{stats.atl.score}/100</b> ({stats.atl.date})</span>}
       </div>
     </div>
   )
@@ -367,14 +368,14 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
           >
             {/* Radar chart */}
             <div style={{ flex: '0 0 auto' }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>COMPONENT SCORES</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>COMPONENT SCORES</div>
               <SafeChart width="100%" height={210}>
                 <RadarChart data={radarData} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
                   <Customized component={RadarZones} />
                   <PolarGrid stroke="rgba(30,70,140,0.35)" />
                   <PolarAngleAxis
                     dataKey="factor"
-                    tick={{ fill: 'var(--color-text-dim, #8BA3C4)', fontSize: 8, fontFamily: 'IBM Plex Mono, monospace' }}
+                    tick={{ fill: 'var(--color-text-dim, #8BA3C4)', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
                   />
                   <Radar
                     name="Score"
@@ -385,31 +386,31 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                     strokeWidth={1.5}
                   />
                   <Tooltip
-                    contentStyle={{ background: '#0a0e1a', border: '1px solid #C9A84C', fontSize: 9, fontFamily: 'IBM Plex Mono, monospace' }}
+                    contentStyle={{ background: '#0a0e1a', border: '1px solid #C9A84C', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
                     formatter={(v) => [`${v}/100`, 'Score']}
                   />
                 </RadarChart>
               </SafeChart>
               {/* Legend */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', fontSize: 8, color: 'var(--color-text-dim, #8BA3C4)' }}>
-                <span style={{ color: '#a83232' }}>● 0–33 BEARISH</span>
-                <span style={{ color: '#c9a84c' }}>● 34–66 NEUTRAL</span>
-                <span style={{ color: '#2d8a50' }}>● 67–100 BULLISH</span>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>
+                <span style={{ color: PAL.down }}>● 0–33 BEARISH</span>
+                <span style={{ color: PAL.gold }}>● 34–66 NEUTRAL</span>
+                <span style={{ color: PAL.up }}>● 67–100 BULLISH</span>
               </div>
             </div>
 
             {/* Signal summary */}
             <div style={{ flex: '1 1 0', minHeight: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>SIGNAL SUMMARY</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>SIGNAL SUMMARY</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {sentiment.factors.filter((f) => f.score >= 55).map((f) => (
-                  <div key={f.name} style={{ fontSize: 9, color: '#2d8a50' }}>▲ {f.name}</div>
+                  <div key={f.name} style={{ fontSize: 11, color: PAL.up }}>▲ {f.name}</div>
                 ))}
                 {sentiment.factors.filter((f) => f.score >= 45 && f.score < 55).map((f) => (
-                  <div key={f.name} style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>◆ {f.name}</div>
+                  <div key={f.name} style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>◆ {f.name}</div>
                 ))}
                 {sentiment.factors.filter((f) => f.score < 45).map((f) => (
-                  <div key={f.name} style={{ fontSize: 9, color: '#a83232' }}>▼ {f.name}</div>
+                  <div key={f.name} style={{ fontSize: 11, color: PAL.down }}>▼ {f.name}</div>
                 ))}
               </div>
             </div>
@@ -417,7 +418,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
 
           {/* Right: component breakdown */}
           <div style={{ overflow: 'hidden', padding: '10px 12px 8px' }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 6 }}>COMPONENT BREAKDOWN</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 6 }}>COMPONENT BREAKDOWN</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {sentiment.factors.map((f) => {
                 const desc = getFactorDescription(f.name, f.score, { asxChanges, fearGreed })
@@ -425,10 +426,10 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                 return (
                   <div key={f.name} style={{ padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                      <span style={{ fontSize: 10, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        <span style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)' }}>wt {f.weight}%</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: col }}>{f.score}/100</span>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>wt {f.weight}%</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: col }}>{f.score}/100</span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: desc ? 3 : 0 }}>
@@ -436,7 +437,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
                         <div style={{ width: `${f.score}%`, height: '100%', background: col, borderRadius: 2, opacity: 0.85 }} />
                       </div>
                     </div>
-                    {desc && <div style={{ fontSize: 9, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic' }}>{desc}</div>}
+                    {desc && <div style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic' }}>{desc}</div>}
                   </div>
                 )
               })}

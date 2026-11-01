@@ -3,6 +3,7 @@ import { buildSchedule } from '../../../services/dividendSchedule'
 import { getMockFMPRow } from '../../../services/mockData'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
+import { PAL } from '../../../styles/palette.js'
 
 // When the portfolio's income arrives — the same schedule the Portfolio
 // Analytics tab builds (services/dividendSchedule), valued at the demo prices
@@ -28,18 +29,18 @@ export default function DividendScheduleWidget() {
   return (
     <WidgetBody>
       <div className="flex items-baseline justify-between gap-2 flex-shrink-0 font-mono">
-        <span className="tabular-nums" style={{ fontSize: 18, color: '#E8EDF5' }}>{money(sched.totalAnnual)}<span style={{ fontSize: 9, color: '#4A6080' }}> /yr</span></span>
-        <span style={{ fontSize: 9, color: '#C9A84C' }}>+{money(sched.totalCredits)} franking</span>
+        <span className="tabular-nums" style={{ fontSize: 20, color: PAL.bright }}>{money(sched.totalAnnual)}<span style={{ fontSize: 11, color: PAL.muted }}> /yr</span></span>
+        <span style={{ fontSize: 11, color: PAL.gold }}>+{money(sched.totalCredits)} franking</span>
       </div>
       <div className="flex-1 min-h-0 flex items-end gap-1.5 mt-2">
         {months.map((m) => (
           <button key={m.month} onClick={() => goModule('portfolio')} className="flex-1 flex flex-col items-center justify-end h-full min-w-0" title={`${m.label}: ${money(m.total)}${m.payers.length ? ` — ${m.payers.map((p) => p.symbol).join(', ')}` : ''}`}>
-            <div className="w-full rounded-sm" style={{ height: `${Math.max(4, (m.total / max) * 100)}%`, background: m.total ? '#C9A84C' : 'rgba(74,96,128,0.25)' }} />
-            <span className="font-mono mt-1" style={{ fontSize: 8, color: '#4A6080' }}>{m.label}</span>
+            <div className="w-full rounded-sm" style={{ height: `${Math.max(4, (m.total / max) * 100)}%`, background: m.total ? PAL.gold : 'rgba(74,96,128,0.25)' }} />
+            <span className="font-mono mt-1" style={{ fontSize: 11, color: PAL.muted }}>{m.label}</span>
           </button>
         ))}
       </div>
-      <span className="font-mono text-[8px] flex-shrink-0 mt-1" style={{ color: '#4A6080' }}>
+      <span className="font-mono text-[11px] flex-shrink-0 mt-1" style={{ color: PAL.muted }}>
         {sched.next ? `Next: ${sched.next.label} · ` : ''}estimated from demo yields
       </span>
     </WidgetBody>

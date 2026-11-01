@@ -39,6 +39,7 @@ import { showLimitPrompt } from '../../services/plans'
 import { HoverPreview, BulkBar, ImportModal } from './WatchlistExtras'
 import { SECTOR_BY_SYMBOL } from '../portfolio/sectorMap'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -79,7 +80,7 @@ function Week52Bar({ price, low, high, target }) {
           <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[20px]">
             {tPct != null && (
               <div className="absolute top-1/2 -translate-y-1/2 w-px h-2.5" title="Price target"
-                style={{ left: `${tPct}%`, background: target.hit ? '#2D8A50' : '#8BA3C4' }} />
+                style={{ left: `${tPct}%`, background: target.hit ? PAL.up : PAL.dim }} />
             )}
             <div
               className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-terminal-gold border border-terminal-bg"
@@ -89,7 +90,7 @@ function Week52Bar({ price, low, high, target }) {
           <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(high)}</span>
         </div>
         {target?.price && (
-          <div className="text-[9px] text-right tabular-nums whitespace-nowrap">
+          <div className="text-[11px] text-right tabular-nums whitespace-nowrap">
             {target.hit
               ? <span className="text-terminal-green font-bold">TARGET HIT ✓</span>
               : target.gap != null && (
@@ -148,16 +149,16 @@ function AlertBell({ symbol, price, alerts, isOpen, onToggle }) {
       aria-expanded={isOpen}
       title={count ? `${count} alert${count > 1 ? 's' : ''} set — click to manage` : 'Set a price alert'}
       className="relative text-2xs transition-colors"
-      style={{ color: count ? '#C9A84C' : isOpen ? '#C9A84C' : 'rgba(74,96,128,0.55)' }}
+      style={{ color: count ? PAL.gold : isOpen ? PAL.gold : 'rgba(74,96,128,0.55)' }}
     >
       ⚡
       {count > 0 && (
         <span
           style={{
             position: 'absolute', top: -5, right: -7,
-            fontFamily: '"IBM Plex Mono", monospace', fontSize: 7, lineHeight: '11px',
+            fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, lineHeight: '11px',
             minWidth: 11, height: 11, padding: '0 2px', borderRadius: 6,
-            background: '#C9A84C', color: '#060D1A', fontWeight: 700, textAlign: 'center',
+            background: PAL.gold, color: PAL.bg, fontWeight: 700, textAlign: 'center',
           }}
         >{count}</span>
       )}
@@ -233,12 +234,12 @@ function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose, colSp
 
           {mine.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[9px] text-terminal-text-dim tracking-widest">ACTIVE</span>
+              <span className="text-[11px] text-terminal-text-dim tracking-widest">ACTIVE</span>
               {mine.map((a) => (
                 <span
                   key={a.id}
                   className="inline-flex items-center gap-1.5 text-2xs px-2 py-0.5 rounded-sm"
-                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C' }}
+                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', color: PAL.gold }}
                 >
                   {(a.direction ?? 'above').toUpperCase()} {fmt.aud(a.price)}
                   <button
@@ -1142,7 +1143,7 @@ export default function WatchlistModule() {
                   >
                     <span className="font-bold text-terminal-gold w-16 flex-shrink-0">{m.symbol}</span>
                     <span className="text-terminal-text-dim truncate flex-1 min-w-0">{m.name}</span>
-                    <span className="text-[9px] font-mono text-terminal-muted/70 flex-shrink-0">{m.exchange}</span>
+                    <span className="text-[11px] font-mono text-terminal-muted/70 flex-shrink-0">{m.exchange}</span>
                     <span className={`w-3 text-center flex-shrink-0 ${owned ? 'text-terminal-green' : 'text-terminal-gold'}`}>
                       {owned ? '✓' : '+'}
                     </span>
@@ -1203,9 +1204,9 @@ export default function WatchlistModule() {
           {/* One proportional bar. A count alone ("18 advancing") does not show
               the balance; the bar does, at a glance. */}
           <div className="flex h-1.5 w-20 overflow-hidden rounded-sm flex-shrink-0">
-            <div style={{ width: `${(overview.advancing / overview.total) * 100}%`, background: '#2D8A50' }} />
-            <div style={{ width: `${(overview.flat / overview.total) * 100}%`, background: '#4A6080' }} />
-            <div style={{ width: `${(overview.declining / overview.total) * 100}%`, background: '#A83232' }} />
+            <div style={{ width: `${(overview.advancing / overview.total) * 100}%`, background: PAL.up }} />
+            <div style={{ width: `${(overview.flat / overview.total) * 100}%`, background: PAL.muted }} />
+            <div style={{ width: `${(overview.declining / overview.total) * 100}%`, background: PAL.down }} />
           </div>
 
           <span className="text-2xs whitespace-nowrap">
@@ -1225,7 +1226,7 @@ export default function WatchlistModule() {
 
           <span className="text-2xs text-terminal-text-dim whitespace-nowrap">
             Avg:{' '}
-            <span className="tabular-nums font-bold" style={{ color: overview.avg >= 0 ? '#2D8A50' : '#A83232' }}>
+            <span className="tabular-nums font-bold" style={{ color: overview.avg >= 0 ? PAL.up : PAL.down }}>
               {overview.avg >= 0 ? '+' : ''}{overview.avg.toFixed(2)}%
             </span>
           </span>
@@ -1298,7 +1299,7 @@ export default function WatchlistModule() {
                   className="absolute right-0 top-full mt-1 bg-terminal-panel border border-terminal-border-gold shadow-2xl"
                   style={{ zIndex: 120, minWidth: 190 }}
                 >
-                  <div className="px-3 py-1.5 text-[9px] font-mono tracking-widest text-terminal-gold border-b border-terminal-border">
+                  <div className="px-3 py-1.5 text-[11px] font-mono tracking-widest text-terminal-gold border-b border-terminal-border">
                     COLUMNS
                   </div>
                   {COLUMNS.filter((c) => c.menu).map((c) => (
@@ -1315,7 +1316,7 @@ export default function WatchlistModule() {
                       </span>
                     </button>
                   ))}
-                  <div className="px-3 py-1.5 text-[9px] text-terminal-text-dim/50 border-t border-terminal-border leading-snug">
+                  <div className="px-3 py-1.5 text-[11px] text-terminal-text-dim/50 border-t border-terminal-border leading-snug">
                     Saved to this browser. SINCE ADDED is off by default — it needs
                     a price recorded when the ticker was added.
                   </div>
@@ -1328,15 +1329,15 @@ export default function WatchlistModule() {
 
       {overview?.since && (
         <div className="flex items-center gap-3 flex-shrink-0 font-mono text-2xs" style={{ padding: '3px 16px', background: '#030912', borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
-          <span className="text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 9 }}>SINCE ADDED</span>
+          <span className="text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 11 }}>SINCE ADDED</span>
           <span className="text-terminal-text-dim">▲ Best: <b className="text-terminal-text-bright">{overview.since.best.r.displaySymbol}</b>{' '}
-            <span style={{ color: overview.since.best.s.pct >= 0 ? '#2D8A50' : '#A83232' }}>{overview.since.best.s.pct >= 0 ? '+' : ''}{overview.since.best.s.pct.toFixed(1)}%</span></span>
+            <span style={{ color: overview.since.best.s.pct >= 0 ? PAL.up : PAL.down }}>{overview.since.best.s.pct >= 0 ? '+' : ''}{overview.since.best.s.pct.toFixed(1)}%</span></span>
           {overview.since.worst && (
             <span className="text-terminal-text-dim">▼ Worst: <b className="text-terminal-text-bright">{overview.since.worst.r.displaySymbol}</b>{' '}
-              <span style={{ color: overview.since.worst.s.pct >= 0 ? '#2D8A50' : '#A83232' }}>{overview.since.worst.s.pct >= 0 ? '+' : ''}{overview.since.worst.s.pct.toFixed(1)}%</span></span>
+              <span style={{ color: overview.since.worst.s.pct >= 0 ? PAL.up : PAL.down }}>{overview.since.worst.s.pct >= 0 ? '+' : ''}{overview.since.worst.s.pct.toFixed(1)}%</span></span>
           )}
-          <span className="text-terminal-text-dim/40" style={{ fontSize: 9 }}>{overview.since.n} of {rows.length} with a recorded add price</span>
-          <button onClick={() => setSelected(new Set(rows.map((r) => r.symbol)))} className="ml-auto text-terminal-text-dim hover:text-terminal-gold" style={{ fontSize: 9 }}>☐ SELECT ALL</button>
+          <span className="text-terminal-text-dim/40" style={{ fontSize: 11 }}>{overview.since.n} of {rows.length} with a recorded add price</span>
+          <button onClick={() => setSelected(new Set(rows.map((r) => r.symbol)))} className="ml-auto text-terminal-text-dim hover:text-terminal-gold" style={{ fontSize: 11 }}>☐ SELECT ALL</button>
         </div>
       )}
 
@@ -1381,7 +1382,7 @@ export default function WatchlistModule() {
         {watchlist.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center overflow-y-auto py-8">
             <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" aria-hidden="true"
-              style={{ fontSize: 26, lineHeight: 1 }}>☆</span>
+              style={{ fontSize: 28, lineHeight: 1 }}>☆</span>
             <div className="text-terminal-text-bright text-base font-semibold mt-2 tracking-wide">Your watchlist is empty</div>
             <div className="text-terminal-text-dim text-sm max-w-sm leading-relaxed">
               Add stocks to track prices, set alerts, and get news highlights
@@ -1395,7 +1396,7 @@ export default function WatchlistModule() {
                 so it offers a starting set rather than only a search box —
                 the fastest path out of empty is one click, not typing. */}
             <div className="mt-5 w-full max-w-[560px]">
-              <div className="text-[9px] font-mono tracking-widest text-terminal-muted/70 uppercase mb-2 text-left">
+              <div className="text-[11px] font-mono tracking-widest text-terminal-muted/70 uppercase mb-2 text-left">
                 Popular on Maddex
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1406,8 +1407,8 @@ export default function WatchlistModule() {
                     className="suggest-card text-left p-2"
                   >
                     <span className="block text-2xs font-bold text-terminal-gold">{sug.symbol}</span>
-                    <span className="block text-[10px] text-terminal-text-dim truncate">{sug.name}</span>
-                    <span className="block mt-1 text-[9px] font-mono text-terminal-muted/70">+ ADD</span>
+                    <span className="block text-[11px] text-terminal-text-dim truncate">{sug.name}</span>
+                    <span className="block mt-1 text-[11px] font-mono text-terminal-muted/70">+ ADD</span>
                   </button>
                 ))}
               </div>
@@ -1477,7 +1478,7 @@ export default function WatchlistModule() {
                         }}
                       >
                         <td colSpan={visibleColumns.length} className="px-2 py-1 text-2xs font-bold tracking-widest bg-terminal-header/60"
-                          style={{ color: c ?? '#C9A84C', borderLeft: c ? `3px solid ${c}` : undefined }}>
+                          style={{ color: c ?? PAL.gold, borderLeft: c ? `3px solid ${c}` : undefined }}>
                           {h.name}
                           {groupsInUse && <span className="ml-2 font-normal text-terminal-text-dim tracking-normal">{count}</span>}
                         </td>
@@ -1509,7 +1510,7 @@ export default function WatchlistModule() {
                       {visibleColumns.map((c) => (
                         <td
                           key={c.key}
-                          className={`px-2 py-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap ${
+                          className={`px-2 py-1 text-[11px] font-mono tracking-wider text-terminal-muted uppercase bg-terminal-header/40 whitespace-nowrap ${
                             c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''
                           }`}
                         >{CRYPTO_LABEL[c.key] ?? ''}</td>
@@ -1560,7 +1561,7 @@ export default function WatchlistModule() {
                             />
                             <span
                               className={`transition-opacity ${sortKey ? 'text-terminal-text-dim/15' : 'cursor-grab opacity-0 group-hover:opacity-100'}`}
-                              style={sortKey ? undefined : { color: '#4A6080' }}
+                              style={sortKey ? undefined : { color: PAL.muted }}
                               title={sortKey ? 'Clear sort to reorder — click the sorted header again' : 'Drag to reorder'}
                             >⠿</span>
                           </td>
@@ -1610,7 +1611,7 @@ export default function WatchlistModule() {
                             {row.name}
                             {noteOf(row.symbol) && (
                               <Tooltip content={noteOf(row.symbol)}>
-                                <span className="ml-1.5 opacity-60" style={{ fontSize: 10 }}>📝</span>
+                                <span className="ml-1.5 opacity-60" style={{ fontSize: 11 }}>📝</span>
                               </Tooltip>
                             )}
                           </td>
@@ -1655,7 +1656,7 @@ export default function WatchlistModule() {
                         )
                       case 'divYield':
                         return (
-                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right tabular-nums" style={{ color: row.divYield != null ? '#C9A84C' : undefined }}>
+                          <td key={c.key} className="px-2 py-1.5 text-2xs text-right tabular-nums" style={{ color: row.divYield != null ? PAL.gold : undefined }}>
                             {row.divYield != null ? `${row.divYield.toFixed(1)}%` : <span className="text-terminal-text-dim">—</span>}
                           </td>
                         )
@@ -1670,7 +1671,7 @@ export default function WatchlistModule() {
                             {since ? (
                               <span
                                 title={`From A$${since.entryPrice.toFixed(2)}${since.entryAt ? ` on ${new Date(since.entryAt).toLocaleDateString('en-AU')}` : ''}`}
-                                style={{ color: since.pct >= 0 ? '#2D8A50' : '#A83232', fontSize: 10 }}
+                                style={{ color: since.pct >= 0 ? PAL.up : PAL.down, fontSize: 11 }}
                               >
                                 {since.pct >= 0 ? '▲ +' : '▼ '}{Math.abs(since.pct).toFixed(2)}%
                                 {since.entryAt && (
@@ -1760,7 +1761,7 @@ export default function WatchlistModule() {
                             )}
                             <span
                               className="text-2xs ml-auto tabular-nums"
-                              style={{ color: noteDraft.length >= 190 ? '#C9A84C' : 'rgba(139,163,196,0.5)' }}
+                              style={{ color: noteDraft.length >= 190 ? PAL.gold : 'rgba(139,163,196,0.5)' }}
                             >{noteDraft.length}/200</span>
                           </div>
                         </div>
@@ -1799,7 +1800,7 @@ export default function WatchlistModule() {
       </div>
 
       {watchlist.length > 0 && (
-        <div className="flex items-center gap-3 px-4 py-1 border-t border-terminal-border/50 flex-shrink-0 font-mono text-terminal-text-dim/50" style={{ fontSize: 9 }}>
+        <div className="flex items-center gap-3 px-4 py-1 border-t border-terminal-border/50 flex-shrink-0 font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>
           {pendingDelete
             ? <span className="text-terminal-red font-bold">Press Delete again to remove {pendingDelete.replace(/\.AX$/, '')} · Esc to cancel</span>
             : <span>↑↓ navigate · Enter detail · A alert · N note · D open in Markets · Del remove · hover 2s for a quick view</span>}

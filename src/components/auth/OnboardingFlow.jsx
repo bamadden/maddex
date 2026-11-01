@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import BrandLockup from '../ui/BrandLockup'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { fetchYahooQuote } from '../../services/api'
@@ -65,7 +66,7 @@ export default function OnboardingFlow({ onComplete }) {
       <div className="fixed inset-0 z-[200] bg-terminal-bg flex flex-col items-center justify-center gap-6 font-mono"
         style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
       >
-        <div className="text-terminal-gold text-2xl font-bold tracking-[0.3em]">▲ MADDEX</div>
+        <div className="flex justify-center"><BrandLockup size={40} /></div>
         <div className="text-center space-y-2">
           <div className="text-terminal-text-bright text-lg font-bold">Welcome to Maddex, {firstName}</div>
           <div className="text-terminal-text-dim text-xs">Your professional financial intelligence terminal.</div>

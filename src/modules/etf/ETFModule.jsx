@@ -6,6 +6,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import Tooltip from '../../components/ui/Tooltip'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // ─── ETF Explorer ───────────────────────────────────────────────────────────
 //
@@ -23,14 +24,14 @@ const aum = (m) => (m >= 1000 ? `A$${(m / 1000).toFixed(1)}B` : `A$${m}M`)
 
 const pct = (v, dp = 1) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(dp)}%`)
 
-const catTone = (key) => ETF_CATEGORIES.find((c) => c.key === key)?.tone ?? '#8BA3C4'
+const catTone = (key) => ETF_CATEGORIES.find((c) => c.key === key)?.tone ?? PAL.dim
 
 // MER banding. Cheap is a fact about the fee, not a recommendation — but a
 // reader scanning twenty-one funds should be able to see the 0.04% and the
 // 1.38% without reading every row.
-const merTone = (m) => (m < 0.10 ? '#2D8A50' : m <= 0.30 ? '#C9A84C' : m <= 0.60 ? '#D69E2E' : '#CC4444')
-const yieldTone = (y) => (y > 4 ? '#2D8A50' : y >= 2 ? '#C9A84C' : '#637899')
-const retTone = (v) => (v == null ? '#637899' : v >= 0 ? '#2D8A50' : '#CC4444')
+const merTone = (m) => (m < 0.10 ? PAL.up : m <= 0.30 ? PAL.gold : m <= 0.60 ? '#D69E2E' : PAL.down)
+const yieldTone = (y) => (y > 4 ? PAL.up : y >= 2 ? PAL.gold : PAL.muted)
+const retTone = (v) => (v == null ? PAL.muted : v >= 0 ? PAL.up : PAL.down)
 
 const COLUMNS = [
   { key: 'ticker',   label: 'TICKER',  width: 74,   align: 'left' },
@@ -61,17 +62,17 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
           <div className="min-w-0">
             <div className="font-mono font-bold text-terminal-gold" style={{ fontSize: 20 }}>{etf.ticker}</div>
             <div className="text-terminal-text-bright leading-snug" style={{ fontSize: 12 }}>{etf.name}</div>
-            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 10 }}>{etf.provider}</div>
+            <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>{etf.provider}</div>
           </div>
           <button onClick={onClose} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold flex-shrink-0">✕</button>
         </div>
 
         <div className="flex items-baseline gap-2 mb-3">
-          <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 18 }}>
+          <span className="font-mono font-bold text-terminal-text-bright tabular-nums" style={{ fontSize: 20 }}>
             {money(etf.livePrice)}
           </span>
           <span className="font-mono font-bold px-1.5 py-0.5" style={{
-            fontSize: 9, borderRadius: 2,
+            fontSize: 11, borderRadius: 2,
             color: retTone(etf.dayPct),
             background: `${retTone(etf.dayPct)}22`,
           }}>{pct(etf.dayPct, 2)}</span>
@@ -81,7 +82,7 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
           {[['AUM', aum(etf.aum), null], ['MER', `${etf.mer.toFixed(2)}%`, merTone(etf.mer)], ['YIELD', `${etf.yield.toFixed(1)}%`, yieldTone(etf.yield)],
             ['1Y', pct(etf.oneYear), retTone(etf.oneYear)], ['3Y', pct(etf.threeYear), retTone(etf.threeYear)], ['5Y', pct(etf.fiveYear), retTone(etf.fiveYear)]].map(([l, v, tone]) => (
             <div key={l}>
-              <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em' }}>{l}</div>
+              <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>{l}</div>
               <div className="font-mono font-bold tabular-nums" style={{ fontSize: 12, color: tone ?? '#E6EDF6' }}>{v}</div>
             </div>
           ))}
@@ -92,16 +93,16 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
         )}
 
         <div className="mb-3">
-          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em' }}>TRACKS</div>
+          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>TRACKS</div>
           <div className="text-terminal-text" style={{ fontSize: 11 }}>{etf.benchmark ?? '—'}</div>
-          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em', marginTop: 6 }}>HOLDINGS</div>
+          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em', marginTop: 6 }}>HOLDINGS</div>
           <div className="text-terminal-text" style={{ fontSize: 11 }}>{etf.holdings ?? '—'}</div>
         </div>
 
         {etf.warning && (
           <div className="mb-3 px-2 py-2" style={{ background: 'rgba(204,68,68,0.1)', border: '1px solid rgba(204,68,68,0.4)' }}>
-            <div className="font-mono font-bold text-terminal-red mb-1" style={{ fontSize: 9, letterSpacing: '0.1em' }}>⚠ RISK</div>
-            <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 10 }}>{etf.warning}</div>
+            <div className="font-mono font-bold text-terminal-red mb-1" style={{ fontSize: 11, letterSpacing: '0.1em' }}>⚠ RISK</div>
+            <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11 }}>{etf.warning}</div>
           </div>
         )}
 
@@ -110,11 +111,11 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
             returns compound for you. "MER × amount × years" understates a
             twenty-year holding materially, and this does the real arithmetic. */}
         <div className="border-t border-terminal-border/40 pt-2 mb-3">
-          <div className="font-mono text-terminal-gold/70 mb-1.5" style={{ fontSize: 8, letterSpacing: '0.14em' }}>
+          <div className="font-mono text-terminal-gold/70 mb-1.5" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
             WHAT THE FEE COSTS YOU
           </div>
           <label className="block mb-2">
-            <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8 }}>INVESTMENT AMOUNT</span>
+            <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>INVESTMENT AMOUNT</span>
             <input
               type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
               className="w-full bg-terminal-bg border border-terminal-border px-2 py-1 text-terminal-text-bright outline-none focus:border-terminal-gold tabular-nums mt-0.5"
@@ -125,18 +126,18 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
             const row = at(y)
             return (
               <div key={y} className="flex items-baseline justify-between py-0.5">
-                <span className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>Year {y} · fees paid</span>
+                <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>Year {y} · fees paid</span>
                 <span className="font-mono font-bold text-terminal-red tabular-nums" style={{ fontSize: 11 }}>{money(row?.feesPaid ?? 0)}</span>
               </div>
             )
           })}
           <div className="flex items-baseline justify-between py-0.5 mt-1 pt-1" style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
             <Tooltip content="The gap between what the investment would be worth with no fee at all and what it is worth after fees — larger than the fees paid, because every dollar taken in fees also stops compounding.">
-              <span className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>20-year cost incl. lost growth</span>
+              <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>20-year cost incl. lost growth</span>
             </Tooltip>
             <span className="font-mono font-bold text-terminal-red tabular-nums" style={{ fontSize: 11 }}>{money(drag.lost)}</span>
           </div>
-          <div className="font-mono text-terminal-text-dim/40 mt-1 leading-snug" style={{ fontSize: 8 }}>
+          <div className="font-mono text-terminal-text-dim/40 mt-1 leading-snug" style={{ fontSize: 11 }}>
             Assumes 8% annual growth before fees. Fees are charged on the balance, so they compound.
           </div>
         </div>
@@ -194,11 +195,11 @@ function ComparePanel({ etfs, onClose, onRemove }) {
         <table className="w-full" style={{ minWidth: 480 }}>
           <thead>
             <tr>
-              <th className="text-left font-normal px-2 py-1" style={{ fontSize: 8, width: 120 }} />
+              <th className="text-left font-normal px-2 py-1" style={{ fontSize: 11, width: 120 }} />
               {etfs.map((e) => (
                 <th key={e.ticker} className="text-right px-2 py-1">
                   <div className="font-mono font-bold text-terminal-gold" style={{ fontSize: 12 }}>{e.ticker}</div>
-                  <div className="font-mono text-terminal-text-dim/50 font-normal normal-case" style={{ fontSize: 8 }}>{e.provider}</div>
+                  <div className="font-mono text-terminal-text-dim/50 font-normal normal-case" style={{ fontSize: 11 }}>{e.provider}</div>
                   <button onClick={() => onRemove(e.ticker)} className="text-2xs text-terminal-text-dim/40 hover:text-terminal-red font-normal">remove</button>
                 </th>
               ))}
@@ -209,12 +210,12 @@ function ComparePanel({ etfs, onClose, onRemove }) {
               const best = bestFor(row)
               return (
                 <tr key={row.key} className="border-b border-terminal-border/25">
-                  <td className="px-2 py-1 font-mono text-terminal-text-dim/60" style={{ fontSize: 9, letterSpacing: '0.1em' }}>{row.label}</td>
+                  <td className="px-2 py-1 font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.1em' }}>{row.label}</td>
                   {etfs.map((e) => {
                     const isBest = best != null && e[row.key] === best && etfs.length > 1
                     return (
                       <td key={e.ticker} className="px-2 py-1 text-right font-mono tabular-nums"
-                        style={{ fontSize: 11, color: isBest ? '#C9A84C' : '#8BA3C4', fontWeight: isBest ? 700 : 400 }}>
+                        style={{ fontSize: 11, color: isBest ? PAL.gold : PAL.dim, fontWeight: isBest ? 700 : 400 }}>
                         {row.fmt(e)}{isBest && ' ★'}
                       </td>
                     )
@@ -223,7 +224,7 @@ function ComparePanel({ etfs, onClose, onRemove }) {
               )
             })}
             <tr>
-              <td className="px-2 py-1 font-mono text-terminal-text-dim/60" style={{ fontSize: 9, letterSpacing: '0.1em' }}>20Y FEE COST · A$10K</td>
+              <td className="px-2 py-1 font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.1em' }}>20Y FEE COST · A$10K</td>
               {etfs.map((e) => (
                 <td key={e.ticker} className="px-2 py-1 text-right font-mono tabular-nums text-terminal-red" style={{ fontSize: 11 }}>
                   {money(feeDrag(10000, e.mer, 20).lost, 0)}
@@ -305,8 +306,8 @@ export default function ETFModule() {
 
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0"
         style={{ background: 'rgba(214,158,46,0.06)' }}>
-        <span className="font-mono font-bold tracking-widest" style={{ fontSize: 8, color: '#D69E2E' }}>INDICATIVE DATA</span>
-        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 9 }}>
+        <span className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: '#D69E2E' }}>INDICATIVE DATA</span>
+        <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           AUM, yields and returns are illustrative. Verify with the provider&apos;s PDS before investing.
         </span>
       </div>
@@ -325,10 +326,10 @@ export default function ETFModule() {
               onClick={() => setCategory(c.key)}
               className="font-mono uppercase tracking-wider transition-colors flex-shrink-0"
               style={{
-                fontSize: 8, padding: '3px 8px', borderRadius: 2,
+                fontSize: 11, padding: '3px 8px', borderRadius: 2,
                 border: `1px solid ${category === c.key ? c.tone : 'rgba(201,168,76,0.12)'}`,
                 background: category === c.key ? `${c.tone}26` : 'transparent',
-                color: category === c.key ? c.tone : '#4A6080',
+                color: category === c.key ? c.tone : PAL.muted,
               }}
             >{c.label}</button>
           ))}
@@ -337,10 +338,10 @@ export default function ETFModule() {
           onClick={() => { setCompareMode((v) => !v); if (compareMode) setCompare([]) }}
           className="font-mono uppercase tracking-wider transition-colors flex-shrink-0"
           style={{
-            fontSize: 9, padding: '3px 10px', borderRadius: 2,
-            border: `1px solid ${compareMode ? '#C9A84C' : 'rgba(201,168,76,0.12)'}`,
+            fontSize: 11, padding: '3px 10px', borderRadius: 2,
+            border: `1px solid ${compareMode ? PAL.gold : 'rgba(201,168,76,0.12)'}`,
             background: compareMode ? 'rgba(201,168,76,0.15)' : 'transparent',
-            color: compareMode ? '#C9A84C' : '#4A6080',
+            color: compareMode ? PAL.gold : PAL.muted,
           }}
         >⊞ COMPARE{compare.length ? ` (${compare.length}/4)` : ''}</button>
       </div>
@@ -348,8 +349,8 @@ export default function ETFModule() {
       {category === 'COMPLEX' && (
         <div className="px-3 py-2 border-b flex-shrink-0"
           style={{ background: 'rgba(204,68,68,0.1)', borderColor: 'rgba(204,68,68,0.4)' }}>
-          <span className="font-mono font-bold text-terminal-red" style={{ fontSize: 9, letterSpacing: '0.1em' }}>⚠ COMPLEX PRODUCTS</span>
-          <span className="text-terminal-text-dim ml-2" style={{ fontSize: 10 }}>
+          <span className="font-mono font-bold text-terminal-red" style={{ fontSize: 11, letterSpacing: '0.1em' }}>⚠ COMPLEX PRODUCTS</span>
+          <span className="text-terminal-text-dim ml-2" style={{ fontSize: 11 }}>
             These funds use leverage or inverse strategies and rebalance daily, so over any period longer than a
             day their return is not simply a multiple of the index. They are designed for short-term tactical use,
             not for holding.
@@ -364,15 +365,15 @@ export default function ETFModule() {
       {category === 'ALL' && !search && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 px-3 py-2 border-b border-terminal-border flex-shrink-0">
           {[
-            { label: 'LOWEST COST', e: featured.cheapest, value: `${featured.cheapest?.mer.toFixed(2)}% MER`, tone: '#2D8A50' },
-            { label: 'LARGEST FUND', e: featured.largest, value: aum(featured.largest?.aum ?? 0), tone: '#C9A84C' },
+            { label: 'LOWEST COST', e: featured.cheapest, value: `${featured.cheapest?.mer.toFixed(2)}% MER`, tone: PAL.up },
+            { label: 'LARGEST FUND', e: featured.largest, value: aum(featured.largest?.aum ?? 0), tone: PAL.gold },
             { label: 'HIGHEST YIELD', e: featured.highestYield, value: `${featured.highestYield?.yield.toFixed(1)}%`, tone: '#D69E2E' },
           ].map((f) => f.e && (
             <button key={f.label} onClick={() => setSelected(f.e.ticker)}
               className="border border-terminal-border px-3 py-2 text-left hover:bg-terminal-accent/10 transition-colors">
-              <div className="font-mono tracking-widest" style={{ fontSize: 8, color: f.tone }}>{f.label}</div>
+              <div className="font-mono tracking-widest" style={{ fontSize: 11, color: f.tone }}>{f.label}</div>
               <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="font-mono font-bold text-terminal-gold" style={{ fontSize: 15 }}>{f.e.ticker}</span>
+                <span className="font-mono font-bold text-terminal-gold" style={{ fontSize: 14 }}>{f.e.ticker}</span>
                 <span className="font-mono font-bold tabular-nums" style={{ fontSize: 12, color: f.tone }}>{f.value}</span>
                 {f.e.warning && (
                   <Tooltip content={f.e.warning}>
@@ -380,7 +381,7 @@ export default function ETFModule() {
                   </Tooltip>
                 )}
               </div>
-              <div className="text-terminal-text-dim/60 truncate" style={{ fontSize: 9 }}>{f.e.name}</div>
+              <div className="text-terminal-text-dim/60 truncate" style={{ fontSize: 11 }}>{f.e.name}</div>
             </button>
           ))}
         </div>
@@ -426,20 +427,20 @@ export default function ETFModule() {
                   <td className="px-2 py-1.5 font-mono font-bold text-terminal-gold" style={{ fontSize: 12 }}>
                     {e.ticker}
                     {e.complex && (
-                      <Tooltip content={e.warning}><span className="text-terminal-red ml-1" style={{ fontSize: 9 }}>⚠</span></Tooltip>
+                      <Tooltip content={e.warning}><span className="text-terminal-red ml-1" style={{ fontSize: 11 }}>⚠</span></Tooltip>
                     )}
                   </td>
                   <td className="px-2 py-1.5 truncate">
                     <div className="text-terminal-text-bright truncate" style={{ fontSize: 12 }}>{e.name}</div>
-                    <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 9 }}>{e.provider}</div>
+                    <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>{e.provider}</div>
                   </td>
                   <td className="px-2 py-1.5">
                     <span className="font-mono font-bold" style={{
-                      fontSize: 8, letterSpacing: '0.08em', padding: '2px 5px', borderRadius: 2,
+                      fontSize: 11, letterSpacing: '0.08em', padding: '2px 5px', borderRadius: 2,
                       color: catTone(e.category), background: `${catTone(e.category)}22`,
                     }}>{e.category.toUpperCase()}</span>
                   </td>
-                  <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{aum(e.aum)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{aum(e.aum)}</td>
                   <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 11, color: merTone(e.mer) }}>{e.mer.toFixed(2)}%</td>
                   <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: yieldTone(e.yield) }}>{e.yield.toFixed(1)}%</td>
                   <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: retTone(e.oneYear) }}>{pct(e.oneYear)}</td>
@@ -447,7 +448,7 @@ export default function ETFModule() {
                   <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{money(e.livePrice)}</td>
                   <td className="px-2 py-1.5 text-right">
                     <span className="font-mono font-bold tabular-nums px-1.5 py-0.5" style={{
-                      fontSize: 10, borderRadius: 2,
+                      fontSize: 11, borderRadius: 2,
                       color: retTone(e.dayPct), background: `${retTone(e.dayPct)}1F`,
                     }}>{pct(e.dayPct, 2)}</span>
                   </td>
@@ -461,7 +462,7 @@ export default function ETFModule() {
             </tbody>
           </table>
 
-          <div className="px-3 py-2 text-terminal-text-dim/50 leading-relaxed border-t border-terminal-border/40" style={{ fontSize: 9 }}>
+          <div className="px-3 py-2 text-terminal-text-dim/50 leading-relaxed border-t border-terminal-border/40" style={{ fontSize: 11 }}>
             ETF data shown is indicative and for educational purposes. AUM, yields and returns are approximate and
             move constantly. Verify current data directly with the provider before making any investment decision.
             Not financial advice.

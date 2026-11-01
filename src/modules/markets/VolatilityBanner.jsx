@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { BENCHMARK_ORDER } from './benchmarks'
+import { PAL } from '../../styles/palette.js'
 
 // Elevated-volatility banner. Hidden in normal conditions; amber when any
 // benchmark is down more than 2% on the day, red past 5%.
@@ -33,18 +34,18 @@ export default function VolatilityBanner() {
 
   if (!worst || worst.pct > -2) return null
   const severe = worst.pct <= -5
-  const colour = severe ? '#A83232' : '#C9A84C'
+  const colour = severe ? PAL.down : PAL.gold
   const fallers = indices.filter((i) => (quotes[i.symbol]?.pct ?? 0) <= -2)
   return (
     <div className="flex items-center gap-3 px-3 py-2 flex-shrink-0 font-mono"
       style={{ background: `${colour}1F`, borderBottom: `1px solid ${colour}66` }}>
-      <span className="font-bold tracking-widest text-[10px]" style={{ color: colour }}>
+      <span className="font-bold tracking-widest text-[11px]" style={{ color: colour }}>
         ⚠ {severe ? 'SEVERE MARKET STRESS' : 'ELEVATED VOLATILITY'}
       </span>
-      <span className="text-[10px] text-terminal-text-bright">
+      <span className="text-[11px] text-terminal-text-bright">
         {fallers.map((i) => `${i.label ?? i.name ?? i.symbol} ${quotes[i.symbol].pct.toFixed(1)}%`).join(' · ')}
       </span>
-      <span className="ml-auto text-[9px] text-terminal-text-dim">
+      <span className="ml-auto text-[11px] text-terminal-text-dim">
         {fallers.some((i) => US_MWCB.has(i.symbol)) ? 'US market-wide circuit breakers halt trading at −7%, −13% and −20% on the S&P 500' : 'Moves of this size are uncommon — check news before acting'}
         {USING_MOCK_DATA ? ' · DEMO DATA' : ''}
       </span>

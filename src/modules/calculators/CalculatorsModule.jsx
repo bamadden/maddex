@@ -11,6 +11,7 @@ import {
   fullTaxPosition, stampDuty, marginalRate,
 } from '../../data/auTaxRates'
 import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, repaymentChange } from './calcMath'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Financial calculators ──────────────────────────────────────────────────
 //
@@ -39,7 +40,7 @@ const TABS = [
 function Field({ label, value, onChange, suffix, type = 'number', options, step }) {
   return (
     <label className="block mb-2.5">
-      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 8, letterSpacing: '0.14em' }}>{label}</span>
+      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 11, letterSpacing: '0.14em' }}>{label}</span>
       <div className="flex items-center gap-1.5 mt-1">
         {options ? (
           <select
@@ -57,7 +58,7 @@ function Field({ label, value, onChange, suffix, type = 'number', options, step 
             style={{ fontSize: 13 }}
           />
         )}
-        {suffix && <span className="font-mono text-terminal-text-dim/50 flex-shrink-0" style={{ fontSize: 10 }}>{suffix}</span>}
+        {suffix && <span className="font-mono text-terminal-text-dim/50 flex-shrink-0" style={{ fontSize: 11 }}>{suffix}</span>}
       </div>
     </label>
   )
@@ -80,10 +81,10 @@ function Calc({ title, note, inputs, children }) {
   )
 }
 
-function Headline({ label, value, tone = '#C9A84C' }) {
+function Headline({ label, value, tone = PAL.gold }) {
   return (
     <div className="mb-3">
-      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.14em' }}>{label}</div>
+      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>{label}</div>
       <div className="font-mono font-bold tabular-nums leading-none" style={{ fontSize: 28, color: tone, marginTop: 4 }}>{value}</div>
     </div>
   )
@@ -92,7 +93,7 @@ function Headline({ label, value, tone = '#C9A84C' }) {
 function Metric({ label, value, tone, tip }) {
   const body = (
     <div>
-      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 8, letterSpacing: '0.12em' }}>{label}</div>
+      <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>{label}</div>
       <div className="font-mono font-bold tabular-nums" style={{ fontSize: 13, color: tone ?? '#E6EDF6' }}>{value}</div>
     </div>
   )
@@ -143,16 +144,16 @@ function CompoundCalc({ prefill }) {
     >
       <Headline label="FINAL VALUE" value={money(r.final)} />
       <div className="grid grid-cols-3 gap-3 mb-3">
-        <Metric label="TOTAL CONTRIBUTIONS" value={money(r.contributed)} tone="#8BA3C4" />
-        <Metric label="TOTAL RETURNS" value={money(r.returns)} tone="#2D8A50" />
-        <Metric label="RETURN ON CONTRIBUTIONS" value={`${r.roi.toFixed(1)}%`} tone={r.roi >= 0 ? '#2D8A50' : '#CC4444'} />
+        <Metric label="TOTAL CONTRIBUTIONS" value={money(r.contributed)} tone={PAL.dim} />
+        <Metric label="TOTAL RETURNS" value={money(r.returns)} tone={PAL.up} />
+        <Metric label="RETURN ON CONTRIBUTIONS" value={`${r.roi.toFixed(1)}%`} tone={r.roi >= 0 ? PAL.up : PAL.down} />
       </div>
       <div style={{ height: 180 }}>
         <SafeChart width="100%" height="100%">
           <AreaChart data={r.series} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            <XAxis dataKey="year" tick={{ fontSize: 8 }} />
-            <YAxis tick={{ fontSize: 8 }} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid stroke={PAL.header} vertical={false} />
+            <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
             <RTooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null
@@ -168,11 +169,11 @@ function CompoundCalc({ prefill }) {
               }}
             />
             <Area type="monotone" dataKey="contributed" stackId="1" stroke="#4A7FB5" fill="#4A7FB5" fillOpacity={0.35} isAnimationActive={false} />
-            <Area type="monotone" dataKey="returns" stackId="1" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.35} isAnimationActive={false} />
+            <Area type="monotone" dataKey="returns" stackId="1" stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.35} isAnimationActive={false} />
           </AreaChart>
         </SafeChart>
       </div>
-      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
         Contributions are treated as arriving at the END of each period, the conservative convention.
         Assuming they arrive at the start raises the total by roughly one period&apos;s growth.
       </div>
@@ -208,12 +209,12 @@ function DrpCalc() {
       <Headline label="PORTFOLIO VALUE WITH DRP" value={money(r.drpValue)} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Metric label="FINAL SHARES" value={Math.round(r.finalShares).toLocaleString()} />
-        <Metric label="IF TAKEN AS CASH" value={money(r.cashValue)} tone="#8BA3C4"
+        <Metric label="IF TAKEN AS CASH" value={money(r.cashValue)} tone={PAL.dim}
           tip="Shares held flat, with every dividend taken as cash and simply accumulated — not reinvested elsewhere." />
-        <Metric label="DRP ADVANTAGE" value={money(r.advantage)} tone={r.advantage >= 0 ? '#2D8A50' : '#CC4444'} />
-        <Metric label="CASH TAKEN" value={money(r.cashTaken)} tone="#8BA3C4" />
+        <Metric label="DRP ADVANTAGE" value={money(r.advantage)} tone={r.advantage >= 0 ? PAL.up : PAL.down} />
+        <Metric label="CASH TAKEN" value={money(r.cashTaken)} tone={PAL.dim} />
       </div>
-      <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 11 }}>
         Assumes a flat share price and a constant yield — no capital growth is assumed, so the advantage shown
         is the compounding of the shares alone. Dividends are taxable in the year received whether or not they
         are reinvested; tax is not modelled here.
@@ -250,11 +251,11 @@ function BrokerageCalc() {
     >
       <Headline label="TOTAL COST" value={money(r.total, 2)} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Metric label="SHARES VALUE" value={money(r.gross, 2)} tone="#8BA3C4" />
+        <Metric label="SHARES VALUE" value={money(r.gross, 2)} tone={PAL.dim} />
         <Metric label="EFFECTIVE PRICE" value={money(r.effective, 4)} tip="Total outlay divided by shares — what you actually paid per share." />
         <Metric label="BREAK-EVEN SELL" value={money(r.breakEven, 4)}
           tip="Covers brokerage on BOTH the buy and the sell. A break-even that only counts the buy leaves you short by one more brokerage charge." />
-        <Metric label="BROKERAGE % OF TRADE" value={`${r.pct.toFixed(3)}%`} tone={r.pct > 0.5 ? '#CC4444' : r.pct > 0.15 ? '#C9A84C' : '#2D8A50'} />
+        <Metric label="BROKERAGE % OF TRADE" value={`${r.pct.toFixed(3)}%`} tone={r.pct > 0.5 ? PAL.down : r.pct > 0.15 ? PAL.gold : PAL.up} />
       </div>
     </Calc>
   )
@@ -308,16 +309,16 @@ function SuperCalc() {
         <Metric label="MONTHLY INCOME (4% DRAWDOWN)" value={money(drawdown / 12)}
           tip="The 4% rule is a rule of thumb, not a guarantee — it comes from US historical data and assumes a balanced portfolio." />
         <Metric label="YEARS TO RETIREMENT" value={`${base.years}`} />
-        <Metric label="NET CONTRIBUTIONS" value={money(base.totalContrib)} tone="#8BA3C4"
+        <Metric label="NET CONTRIBUTIONS" value={money(base.totalContrib)} tone={PAL.dim}
           tip="After the 15% contributions tax. Gross contributions are higher." />
       </div>
 
       <div style={{ height: 150 }}>
         <SafeChart width="100%" height="100%">
           <AreaChart data={base.series} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke="#0F1E35" vertical={false} />
-            <XAxis dataKey="age" tick={{ fontSize: 8 }} />
-            <YAxis tick={{ fontSize: 8 }} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid stroke={PAL.header} vertical={false} />
+            <XAxis dataKey="age" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
             <RTooltip content={({ active, payload, label }) => (!active || !payload?.length) ? null : (
               <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
                 <div className="text-terminal-text-dim">Age {label}</div>
@@ -327,7 +328,7 @@ function SuperCalc() {
             {[40, 50, 60].filter((m) => m > num(age) && m < num(retireAge)).map((m) => (
               <ReferenceLine key={m} x={m} stroke="rgba(201,168,76,0.25)" strokeDasharray="3 3" />
             ))}
-            <Area type="monotone" dataKey="value" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.18} isAnimationActive={false} />
+            <Area type="monotone" dataKey="value" stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.18} isAnimationActive={false} />
           </AreaChart>
         </SafeChart>
       </div>
@@ -338,21 +339,21 @@ function SuperCalc() {
             <Field label="ADD EXTRA PER WEEK" value={boostWeekly} onChange={setBoostWeekly} suffix="A$" />
           </div>
           <div className="flex-1 min-w-0">
-            <Metric label="EXTRA AT RETIREMENT" value={money(boosted.final - base.final)} tone="#2D8A50" />
+            <Metric label="EXTRA AT RETIREMENT" value={money(boosted.final - base.final)} tone={PAL.up} />
           </div>
           <div className="flex-1 min-w-0">
-            <Metric label="EXTRA MONTHLY INCOME" value={money(((boosted.final - base.final) * 0.04) / 12)} tone="#2D8A50" />
+            <Metric label="EXTRA MONTHLY INCOME" value={money(((boosted.final - base.final) * 0.04) / 12)} tone={PAL.up} />
           </div>
         </div>
         {taxSaving > 0 && (
           <div className="mt-2 px-2 py-1.5" style={{ background: 'rgba(45,138,80,0.1)', border: '1px solid rgba(45,138,80,0.3)' }}>
-            <span className="font-mono text-terminal-green" style={{ fontSize: 10 }}>
+            <span className="font-mono text-terminal-green" style={{ fontSize: 11 }}>
               Concessional contributions are taxed at {SUPER.contributionsTax * 100}% against your ~{marginal.toFixed(0)}% marginal rate —
               a tax saving of <b>{money(taxSaving)}</b> on {money(boostAnnual)} contributed this year.
             </span>
           </div>
         )}
-        <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+        <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
           Salary is held flat and returns are assumed constant, neither of which happens. The concessional cap is
           {' '}{money(SUPER.concessionalCap)} for {TAX_YEAR} and includes employer SG — contributions above it are taxed
           differently and this projection does not model that. Source: {SUPER.source}.
@@ -391,14 +392,14 @@ function SuperTrackCalc() {
       <Headline
         label="ON TRACK FOR A COMFORTABLE RETIREMENT?"
         value={r.onTrack ? '✓ YES' : '✗ BEHIND'}
-        tone={r.onTrack ? '#2D8A50' : '#CC4444'}
+        tone={r.onTrack ? PAL.up : PAL.down}
       />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <Metric label="BENCHMARK AT YOUR AGE" value={money(r.target)} tone="#8BA3C4" />
+        <Metric label="BENCHMARK AT YOUR AGE" value={money(r.target)} tone={PAL.dim} />
         <Metric label="YOUR BALANCE" value={money(num(balance))} />
-        <Metric label={r.gap >= 0 ? 'AHEAD BY' : 'GAP'} value={money(Math.abs(r.gap))} tone={r.gap >= 0 ? '#2D8A50' : '#CC4444'} />
+        <Metric label={r.gap >= 0 ? 'AHEAD BY' : 'GAP'} value={money(Math.abs(r.gap))} tone={r.gap >= 0 ? PAL.up : PAL.down} />
       </div>
-      <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-3" style={{ fontSize: 11 }}>
         ASFA publishes a lump sum needed AT retirement ({money(ASFA.comfortableSingleLumpSum)} for a single), not a
         by-age ladder. The benchmark above is DERIVED by discounting that figure back to your age at a 4.5% real
         return — it is this terminal&apos;s arithmetic, not an ASFA figure. Benchmarks are general guides and assume
@@ -436,13 +437,13 @@ function RbaPresets({ rate, setRate }) {
       type="button"
       onClick={() => setRate(value)}
       className={`font-mono px-2 py-1 border transition-colors ${String(rate) === value ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10 font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'}`}
-      style={{ fontSize: 9, letterSpacing: '0.08em' }}
+      style={{ fontSize: 11, letterSpacing: '0.08em' }}
       title={`Sets the loan rate to ${value}% — cash rate + ${MORTGAGE_MARGIN.toFixed(2)}% assumed margin`}
     >{label}</button>
   )
   return (
     <div className="mb-2">
-      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 8, letterSpacing: '0.14em' }}>RBA {dayShort(nd.date).toUpperCase()} PRESETS</span>
+      <span className="font-mono text-terminal-gold/70" style={{ fontSize: 11, letterSpacing: '0.14em' }}>RBA {dayShort(nd.date).toUpperCase()} PRESETS</span>
       <div className="flex flex-wrap gap-1 mt-1">
         {btn(`CURRENT / IF HOLD ${nd.currentRate.toFixed(2)}%`, hold)}
         {btn(`IF HIKE ${nd.hikeRate.toFixed(2)}%`, hike)}
@@ -461,15 +462,15 @@ function RbaHikeNote({ loan, rate, term, per, label }) {
   const yours = repaymentChange(loan, base, d, term, per)
   const ref = [600_000, 800_000].map((p) => `${money(p)}: +${money(repaymentChange(p, nd.currentRate + MORTGAGE_MARGIN, d), 0)}/month`)
   return (
-    <div className="mb-3 border px-3 py-2 font-mono leading-snug" style={{ borderColor: 'rgba(232,163,61,0.4)', background: 'rgba(232,163,61,0.06)', fontSize: 10 }}>
-      <div className="font-bold" style={{ color: '#E8A33D' }}>
+    <div className="mb-3 border px-3 py-2 font-mono leading-snug" style={{ borderColor: 'rgba(232,163,61,0.4)', background: 'rgba(232,163,61,0.06)', fontSize: 11 }}>
+      <div className="font-bold" style={{ color: PAL.amber }}>
         If the RBA hikes to {nd.hikeRate.toFixed(2)}% on {dayShort(nd.date)} and lenders pass it on in full:
       </div>
       <div className="text-terminal-text-bright mt-1">
         Your {money(loan)} loan: +{money(yours, 2)} {label.toLowerCase()} ({base.toFixed(2)}% → {(base + d).toFixed(2)}%)
       </div>
       <div className="text-terminal-text-dim mt-0.5">{ref.join(' · ')} (30-year, at {(nd.currentRate + MORTGAGE_MARGIN).toFixed(2)}%)</div>
-      <div className="text-terminal-text-dim/60 mt-1" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/60 mt-1" style={{ fontSize: 11 }}>
         Calculated. Market pricing ~{nd.marketHikePct}% for a hike ({nd.marketSource}, {dayShort(nd.marketAsOf)}). Lenders set their own rates and timing.
       </div>
     </div>
@@ -503,14 +504,14 @@ function MortgageCalc() {
           <Field label="PROPERTY PRICE" value={price} onChange={setPrice} suffix="A$" />
           <Field label="DEPOSIT" value={depositPct} onChange={setDepositPct} suffix="%" />
           <div className="mb-2.5">
-            <span className="font-mono text-terminal-gold/70" style={{ fontSize: 8, letterSpacing: '0.14em' }}>LOAN AMOUNT</span>
+            <span className="font-mono text-terminal-gold/70" style={{ fontSize: 11, letterSpacing: '0.14em' }}>LOAN AMOUNT</span>
             <div className="font-mono font-bold text-terminal-text-bright tabular-nums mt-1" style={{ fontSize: 13 }}>
-              {money(r.loan)} <span className="text-terminal-text-dim/50" style={{ fontSize: 10 }}>· deposit {money(r.deposit)}</span>
+              {money(r.loan)} <span className="text-terminal-text-dim/50" style={{ fontSize: 11 }}>· deposit {money(r.deposit)}</span>
             </div>
           </div>
           <RbaPresets rate={rate} setRate={setRate} />
           <Field label="INTEREST RATE" value={rate} onChange={setRate} suffix="%" step="0.05" />
-          <div className="font-mono text-terminal-text-dim/60 -mt-1.5 mb-2.5 leading-snug" style={{ fontSize: 9 }}>
+          <div className="font-mono text-terminal-text-dim/60 -mt-1.5 mb-2.5 leading-snug" style={{ fontSize: 11 }}>
             RBA cash rate: {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% ({VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'HIKE' ? 'hiked' : VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'CUT' ? 'cut' : 'held'}{' '}
             {new Date(`${VERIFIED_CONSTANTS.rba.lastDecision}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}).
             Default assumes variable rates of roughly RBA + {MORTGAGE_MARGIN.toFixed(1)}% — an estimate; use your lender&apos;s actual rate.
@@ -524,15 +525,15 @@ function MortgageCalc() {
       <Headline label={`${label.toUpperCase()} REPAYMENT`} value={money(r.payment, 2)} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         <Metric label="TOTAL REPAYMENTS" value={money(r.totalPaid)} />
-        <Metric label="TOTAL INTEREST" value={money(r.totalInterest)} tone="#CC4444" />
-        <Metric label="INTEREST AS % OF LOAN" value={`${r.loan > 0 ? ((r.totalInterest / r.loan) * 100).toFixed(1) : '0'}%`} tone="#CC4444" />
+        <Metric label="TOTAL INTEREST" value={money(r.totalInterest)} tone={PAL.down} />
+        <Metric label="INTEREST AS % OF LOAN" value={`${r.loan > 0 ? ((r.totalInterest / r.loan) * 100).toFixed(1) : '0'}%`} tone={PAL.down} />
         <Metric label="PRINCIPAL EXCEEDS INTEREST" value={r.crossover ? `Year ${Math.ceil(r.crossover / r.per)}` : '—'}
           tip="Until this point more of every repayment goes to the bank than to the loan. On a 30-year loan it is usually well past halfway." />
       </div>
 
       <RbaHikeNote loan={r.loan} rate={num(rate)} term={num(term)} per={r.per} label={label} />
 
-      <div className="font-mono text-terminal-gold/70 mb-1" style={{ fontSize: 8, letterSpacing: '0.14em' }}>WHAT IF RATES CHANGE?</div>
+      <div className="font-mono text-terminal-gold/70 mb-1" style={{ fontSize: 11, letterSpacing: '0.14em' }}>WHAT IF RATES CHANGE?</div>
       <table className="terminal-table w-full">
         <thead>
           <tr>
@@ -550,12 +551,12 @@ function MortgageCalc() {
             const isCurrent = delta === 0
             return (
               <tr key={delta} className="border-b border-terminal-border/30" style={isCurrent ? { background: 'rgba(201,168,76,0.08)' } : undefined}>
-                <td className="px-2 py-1 font-mono tabular-nums" style={{ fontSize: 10, color: isCurrent ? '#C9A84C' : '#8BA3C4' }}>
+                <td className="px-2 py-1 font-mono tabular-nums" style={{ fontSize: 11, color: isCurrent ? PAL.gold : PAL.dim }}>
                   {rr.toFixed(2)}%{isCurrent && ' ← current'}
                 </td>
-                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 10 }}>{money(am.payment, 0)}</td>
-                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 10 }}>{money(am.totalInterest)}</td>
-                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 10, color: delta === 0 ? '#637899' : delta > 0 ? '#CC4444' : '#2D8A50' }}>
+                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 11 }}>{money(am.payment, 0)}</td>
+                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 11 }}>{money(am.totalInterest)}</td>
+                <td className="px-2 py-1 text-right font-mono tabular-nums" style={{ fontSize: 11, color: delta === 0 ? PAL.muted : delta > 0 ? PAL.down : PAL.up }}>
                   {delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${money(am.totalInterest - r.totalInterest)}`}
                 </td>
               </tr>
@@ -595,39 +596,39 @@ function StampDutyCalc() {
     >
       {r?.calculable ? (
         <>
-          <Headline label="STAMP DUTY PAYABLE" value={money(r.duty)} tone={r.exempt ? '#2D8A50' : '#C9A84C'} />
+          <Headline label="STAMP DUTY PAYABLE" value={money(r.duty)} tone={r.exempt ? PAL.up : PAL.gold} />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Metric label="SCALE APPLIED" value={r.exempt ? 'First home exemption' : r.scale} />
             <Metric label="AS % OF PRICE" value={`${num(price) > 0 ? ((r.duty / num(price)) * 100).toFixed(2) : '0'}%`} />
             <Metric label="TOTAL WITH DUTY" value={money(num(price) + r.duty)} />
           </div>
-          <div className="text-terminal-text-dim/60 leading-snug mt-3" style={{ fontSize: 9 }}>
+          <div className="text-terminal-text-dim/60 leading-snug mt-3" style={{ fontSize: 11 }}>
             {r.state.firstHomeNote}
           </div>
-          <div className="text-terminal-text-dim/50 leading-snug mt-1" style={{ fontSize: 8 }}>
+          <div className="text-terminal-text-dim/50 leading-snug mt-1" style={{ fontSize: 11 }}>
             Source: {r.state.source}. Checked against two published worked examples — $500,000 → $8,750 and
             $800,000 → $21,850 on the home concession — both reproduce exactly.
           </div>
         </>
       ) : (
         <>
-          <Headline label="STAMP DUTY PAYABLE" value="NOT CALCULATED" tone="#637899" />
-          <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 10, maxWidth: 520 }}>
+          <Headline label="STAMP DUTY PAYABLE" value="NOT CALCULATED" tone={PAL.muted} />
+          <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11, maxWidth: 520 }}>
             The complete band schedule for {r?.state?.name ?? 'this state'} is not recorded in this build, so no
             figure is produced. Stamp duty is a five-figure number people budget against, and a schedule that is
             right at the bottom and estimated above $400,000 — which is where essentially every purchase sits —
             would be confidently wrong exactly where it matters.
           </div>
           <div className="grid grid-cols-2 gap-3 mt-3">
-            {r?.state?.topRate != null && <Metric label="TOP MARGINAL RATE" value={`${(r.state.topRate * 100).toFixed(2)}%`} tone="#8BA3C4" />}
+            {r?.state?.topRate != null && <Metric label="TOP MARGINAL RATE" value={`${(r.state.topRate * 100).toFixed(2)}%`} tone={PAL.dim} />}
             {r?.state?.firstHomeFullExemptionTo != null && (
-              <Metric label="FIRST HOME EXEMPT TO" value={money(r.state.firstHomeFullExemptionTo)} tone="#2D8A50" />
+              <Metric label="FIRST HOME EXEMPT TO" value={money(r.state.firstHomeFullExemptionTo)} tone={PAL.up} />
             )}
           </div>
           {r?.state?.firstHomeNote && (
-            <div className="text-terminal-text-dim/60 leading-snug mt-3" style={{ fontSize: 9 }}>{r.state.firstHomeNote}</div>
+            <div className="text-terminal-text-dim/60 leading-snug mt-3" style={{ fontSize: 11 }}>{r.state.firstHomeNote}</div>
           )}
-          <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+          <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
             Use your state revenue office&apos;s own calculator for a figure you can rely on.
           </div>
         </>
@@ -665,21 +666,21 @@ function CgtCalc() {
         </>
       }
     >
-      <Headline label="NET PROFIT AFTER TAX" value={money(r.net)} tone={r.net >= 0 ? '#2D8A50' : '#CC4444'} />
+      <Headline label="NET PROFIT AFTER TAX" value={money(r.net)} tone={r.net >= 0 ? PAL.up : PAL.down} />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
-        <Metric label="CAPITAL GAIN" value={money(r.gain)} tone={r.gain >= 0 ? '#2D8A50' : '#CC4444'} />
+        <Metric label="CAPITAL GAIN" value={money(r.gain)} tone={r.gain >= 0 ? PAL.up : PAL.down} />
         <Metric label="HELD" value={`${r.heldDays.toLocaleString()} days`} />
-        <Metric label="CGT DISCOUNT" value={r.discounted ? '50% applied' : 'Not eligible'} tone={r.discounted ? '#2D8A50' : '#C9A84C'} />
+        <Metric label="CGT DISCOUNT" value={r.discounted ? '50% applied' : 'Not eligible'} tone={r.discounted ? PAL.up : PAL.gold} />
         <Metric label="TAXABLE GAIN" value={money(r.taxable)} />
-        <Metric label="TAX PAYABLE" value={money(r.tax)} tone="#CC4444" />
+        <Metric label="TAX PAYABLE" value={money(r.tax)} tone={PAL.down} />
         <Metric label="EFFECTIVE RATE ON GAIN" value={`${r.effective.toFixed(1)}%`} />
       </div>
-      <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 9 }}>
+      <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11 }}>
         {r.discounted
           ? `Held for more than twelve months, so only 50% of the gain is taxed — the CGT discount for Australian individuals. That is why the effective rate on the gain (${r.effective.toFixed(1)}%) is roughly half the marginal rate.`
           : 'Held for twelve months or less, so the whole gain is taxed at your marginal rate. Holding one more day past twelve months would halve the taxable amount.'}
       </div>
-      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
         The gain is added to your income and can push you into a higher bracket; this uses the single marginal rate
         you select rather than modelling that. Capital losses, the cost base beyond purchase price, and small-business
         concessions are not modelled.
@@ -697,7 +698,7 @@ function IncomeTaxCalc() {
     deductions: num(deductions), salarySacrifice: num(sacrifice),
   }), [gross, deductions, sacrifice])
 
-  const BRACKET_TONE = ['#2D8A50', '#C9A84C', '#D69E2E', '#E07B39', '#CC4444']
+  const BRACKET_TONE = [PAL.up, PAL.gold, '#D69E2E', '#E07B39', PAL.down]
   const top = 250000
 
   return (
@@ -712,18 +713,18 @@ function IncomeTaxCalc() {
         </>
       }
     >
-      <Headline label="AFTER-TAX INCOME" value={money(r.afterTax)} tone="#2D8A50" />
+      <Headline label="AFTER-TAX INCOME" value={money(r.afterTax)} tone={PAL.up} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         <Metric label="TAXABLE INCOME" value={money(r.taxable)} />
-        <Metric label="INCOME TAX" value={money(r.tax)} tone="#CC4444" />
-        <Metric label="MEDICARE LEVY" value={money(r.medicare)} tone="#CC4444" />
-        <Metric label="LOW INCOME OFFSET" value={r.lito > 0 ? `−${money(r.lito)}` : 'Not eligible'} tone={r.lito > 0 ? '#2D8A50' : '#637899'} />
-        <Metric label="TOTAL TAX" value={money(r.total)} tone="#CC4444" />
+        <Metric label="INCOME TAX" value={money(r.tax)} tone={PAL.down} />
+        <Metric label="MEDICARE LEVY" value={money(r.medicare)} tone={PAL.down} />
+        <Metric label="LOW INCOME OFFSET" value={r.lito > 0 ? `−${money(r.lito)}` : 'Not eligible'} tone={r.lito > 0 ? PAL.up : PAL.muted} />
+        <Metric label="TOTAL TAX" value={money(r.total)} tone={PAL.down} />
         <Metric label="EFFECTIVE RATE" value={`${r.effective.toFixed(1)}%`} />
         <Metric label="MARGINAL RATE" value={`${r.marginal.toFixed(0)}%`} />
       </div>
 
-      <div className="font-mono text-terminal-gold/70 mb-1" style={{ fontSize: 8, letterSpacing: '0.14em' }}>TAX BRACKETS · {TAX_YEAR}</div>
+      <div className="font-mono text-terminal-gold/70 mb-1" style={{ fontSize: 11, letterSpacing: '0.14em' }}>TAX BRACKETS · {TAX_YEAR}</div>
       <div className="flex h-4 rounded-sm overflow-hidden mb-1">
         {TAX_BRACKETS.map((b, i) => {
           const width = ((Math.min(b.to, top) - b.from) / top) * 100
@@ -732,18 +733,18 @@ function IncomeTaxCalc() {
       </div>
       <div className="relative mb-2" style={{ height: 14 }}>
         <div className="absolute" style={{ left: `${Math.min(99, (r.taxable / top) * 100)}%`, transform: 'translateX(-50%)' }}>
-          <div className="font-mono text-terminal-gold whitespace-nowrap" style={{ fontSize: 8 }}>▲ you · {money(r.taxable)}</div>
+          <div className="font-mono text-terminal-gold whitespace-nowrap" style={{ fontSize: 11 }}>▲ you · {money(r.taxable)}</div>
         </div>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         {TAX_BRACKETS.map((b, i) => (
-          <span key={b.from} className="font-mono text-terminal-text-dim" style={{ fontSize: 8 }}>
+          <span key={b.from} className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
             <span style={{ color: BRACKET_TONE[i] }}>■</span> {money(b.from)}
             {b.to === Infinity ? '+' : `–${money(b.to)}`} · {b.rate === 0 ? 'nil' : `${(b.rate * 100).toFixed(0)}%`}
           </span>
         ))}
       </div>
-      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
         Resident rates for {TAX_YEAR}. The second bracket fell from 16% to 15% on 1 July 2026. Medicare levy
         surcharge, HELP repayments and offsets other than LITO are not modelled. Source: {TAX_SOURCE}.
       </div>
@@ -776,7 +777,7 @@ function LoanComparison() {
         <>
           {loans.map((l, i) => (
             <div key={i} className="mb-3 pb-2 border-b border-terminal-border/40 last:border-b-0">
-              <div className="font-mono text-terminal-gold" style={{ fontSize: 9, letterSpacing: '0.14em' }}>LOAN {i + 1}</div>
+              <div className="font-mono text-terminal-gold" style={{ fontSize: 11, letterSpacing: '0.14em' }}>LOAN {i + 1}</div>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <Field label="PRINCIPAL" value={l.principal} onChange={(v) => set(i, 'principal', v)} suffix="A$" />
                 <Field label="RATE" value={l.rate} onChange={(v) => set(i, 'rate', v)} suffix="%" step="0.05" />
@@ -802,20 +803,20 @@ function LoanComparison() {
           {results.map((r, i) => (
             <tr key={i} className="border-b border-terminal-border/30"
               style={i === cheapest ? { background: 'rgba(201,168,76,0.1)' } : undefined}>
-              <td className="px-2 py-1.5 font-mono font-bold" style={{ fontSize: 10, color: i === cheapest ? '#C9A84C' : '#8BA3C4' }}>
+              <td className="px-2 py-1.5 font-mono font-bold" style={{ fontSize: 11, color: i === cheapest ? PAL.gold : PAL.dim }}>
                 LOAN {i + 1}{i === cheapest && ' ★'}
               </td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10 }}>{money(r.pay, 2)}</td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10 }}>{money(r.total)}</td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10, color: '#CC4444' }}>{money(r.cost)}</td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10, color: i === cheapest ? '#2D8A50' : '#CC4444' }}>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11 }}>{money(r.pay, 2)}</td>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11 }}>{money(r.total)}</td>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: PAL.down }}>{money(r.cost)}</td>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: i === cheapest ? PAL.up : PAL.down }}>
                 {i === cheapest ? '—' : `+${money(r.total - results[cheapest].total)}`}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
         Total cost is every repayment plus the upfront fee. A shorter term costs less overall while costing more
         each month — the two columns disagree on purpose, and both matter.
       </div>
@@ -864,20 +865,20 @@ function BrokerComparison() {
         <tbody>
           {rows.map((b, i) => (
             <tr key={b.name} className="border-b border-terminal-border/30" style={i === 0 ? { background: 'rgba(201,168,76,0.1)' } : undefined}>
-              <td className="px-2 py-1.5 font-mono font-bold" style={{ fontSize: 10, color: i === 0 ? '#C9A84C' : '#E6EDF6' }}>
+              <td className="px-2 py-1.5 font-mono font-bold" style={{ fontSize: 11, color: i === 0 ? PAL.gold : '#E6EDF6' }}>
                 {b.name}{i === 0 && ' ★'}
               </td>
-              <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 9 }}>{b.note}</td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10 }}>{money(b.cost, 2)}</td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 10, color: b.pctOfTrade > 0.4 ? '#CC4444' : b.pctOfTrade > 0.15 ? '#C9A84C' : '#2D8A50' }}>
+              <td className="px-2 py-1.5 font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{b.note}</td>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11 }}>{money(b.cost, 2)}</td>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: b.pctOfTrade > 0.4 ? PAL.down : b.pctOfTrade > 0.15 ? PAL.gold : PAL.up }}>
                 {b.pctOfTrade.toFixed(3)}%
               </td>
-              <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 10 }}>{money(b.cost * 2, 2)}</td>
+              <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{money(b.cost * 2, 2)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
         ROUND TRIP is buying and selling — the figure that actually decides whether a small parcel is worth it.
         Fees are indicative as at {BROKER_AS_AT} and change; several brokers also charge FX, custody or inactivity
         fees not shown here. Verify current fees directly with each broker.
@@ -911,7 +912,7 @@ export default function CalculatorsModule() {
         {tab === 'tax' && <><IncomeTaxCalc /><CgtCalc /></>}
         {tab === 'loans' && <><LoanComparison /><BrokerComparison /></>}
 
-        <div className="border border-terminal-border/50 px-3 py-2 text-terminal-text-dim/60 leading-relaxed" style={{ fontSize: 9 }}>
+        <div className="border border-terminal-border/50 px-3 py-2 text-terminal-text-dim/60 leading-relaxed" style={{ fontSize: 11 }}>
           {DISCLAIMER}
         </div>
       </div>

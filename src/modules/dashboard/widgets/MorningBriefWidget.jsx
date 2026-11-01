@@ -3,6 +3,7 @@ import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { getCachedBrief, isAuWeekend, auHour } from '../../../services/morningBriefService'
 import { scoreColour } from '../../../utils/briefScore'
+import { PAL } from '../../../styles/palette.js'
 
 // Today's morning brief, read from the brief module's own cache — no second
 // AI call. When there is no brief for today it says when one arrives and
@@ -34,11 +35,11 @@ export default function MorningBriefWidget() {
     const early = !weekend && auHour() < 7
     return (
       <WidgetBody className="justify-center items-center text-center">
-        <span className="font-mono text-[11px]" style={{ color: '#8BA3C4' }}>
+        <span className="font-mono text-[11px]" style={{ color: PAL.dim }}>
           ☀ {weekend ? 'Next brief Monday from 7am' : early ? 'Brief ready at 7am weekdays' : 'No brief yet today'}
         </span>
         {!weekend && (
-          <button onClick={() => goModule('brief')} className="mt-2 font-mono text-[9px] tracking-widest px-2.5 py-1 transition-colors" style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)' }}>
+          <button onClick={() => goModule('brief')} className="mt-2 font-mono text-[11px] tracking-widest px-2.5 py-1 transition-colors" style={{ color: PAL.gold, border: '1px solid rgba(201,168,76,0.4)' }}>
             GENERATE NOW →
           </button>
         )}
@@ -53,13 +54,13 @@ export default function MorningBriefWidget() {
       <div className="flex items-center gap-3 flex-shrink-0">
         <Gauge score={brief.maddenAIScore} />
         <div className="min-w-0">
-          <div className="font-mono tabular-nums leading-none" style={{ fontSize: 20, color: '#E8EDF5' }}>{brief.maddenAIScore ?? '—'}</div>
-          <div className="font-mono truncate mt-0.5" style={{ fontSize: 9, color: '#C9A84C', letterSpacing: '0.1em' }}>{String(brief.scoreLabel ?? '').toUpperCase()}</div>
+          <div className="font-mono tabular-nums leading-none" style={{ fontSize: 20, color: PAL.bright }}>{brief.maddenAIScore ?? '—'}</div>
+          <div className="font-mono truncate mt-0.5" style={{ fontSize: 11, color: PAL.gold, letterSpacing: '0.1em' }}>{String(brief.scoreLabel ?? '').toUpperCase()}</div>
         </div>
-        {time && <span className="ml-auto font-mono flex-shrink-0" style={{ fontSize: 8, color: '#4A6080' }}>{time}</span>}
+        {time && <span className="ml-auto font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted }}>{time}</span>}
       </div>
-      <div className="flex-1 min-h-0 font-sans text-[11px] leading-snug mt-2 line-clamp-4" style={{ color: '#8BA3C4' }}>{first}</div>
-      <button onClick={() => goModule('brief')} className="font-mono text-[9px] tracking-widest text-left flex-shrink-0 mt-1" style={{ color: '#C9A84C' }}>
+      <div className="flex-1 min-h-0 font-sans text-[11px] leading-snug mt-2 line-clamp-4" style={{ color: PAL.dim }}>{first}</div>
+      <button onClick={() => goModule('brief')} className="font-mono text-[11px] tracking-widest text-left flex-shrink-0 mt-1" style={{ color: PAL.gold }}>
         READ FULL BRIEF →
       </button>
     </WidgetBody>

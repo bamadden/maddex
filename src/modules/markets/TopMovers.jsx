@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { useQuery } from '@tanstack/react-query'
 import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA, fetchNews, EQUITY_SOURCE } from '../../services/api'
@@ -15,6 +16,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import { avgVolume20 } from '../../services/alertsService'
 import { askMaddenAI } from '../../utils/askAI'
+import { PAL } from '../../styles/palette.js'
 
 // Live-ticking price + change cells for one mover row (ASX symbols only —
 // their mock quote is already AUD-native, unlike US symbols which need the
@@ -82,7 +84,7 @@ function IntradaySpark({ symbol, price, pct, w = 50, h = 20 }) {
     return out
   }, [symbol, price, pct])
 
-  if (!pts) return <span className="text-terminal-muted/40 text-[9px]">—</span>
+  if (!pts) return <span className="text-terminal-muted/40 text-[11px]">—</span>
 
   const min = Math.min(...pts), max = Math.max(...pts)
   const span = max - min || 1
@@ -103,16 +105,16 @@ function IntradaySpark({ symbol, price, pct, w = 50, h = 20 }) {
 // happened. A matched headline is checkable; no match says so.
 function NewsCell({ article }) {
   if (!article) {
-    return <td className="px-1.5 py-0.5 text-[9px] text-terminal-text-dim/40 hidden xl:table-cell">no recent story</td>
+    return <td className="px-1.5 py-0.5 text-[11px] text-terminal-text-dim/40 hidden xl:table-cell">no recent story</td>
   }
   return (
     <td className="px-1.5 py-0.5 hidden xl:table-cell max-w-[220px]">
       <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
         title={`${article.headline} — ${article.source}`}
-        className="block text-[9px] text-terminal-text truncate hover:text-terminal-gold">
+        className="block text-[11px] text-terminal-text truncate hover:text-terminal-gold">
         {article.headline}
       </a>
-      <div className="text-[8px] text-terminal-text-dim/60">{article.source} · {timeAgo(article.pubDate)}</div>
+      <div className="text-[11px] text-terminal-text-dim/60">{article.source} · {timeAgo(article.pubDate)}</div>
     </td>
   )
 }
@@ -210,11 +212,11 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim" style={{ width: 24, minWidth: 24 }}>{i + 1}</td>
             <td className="px-1.5 py-0.5 text-xs font-bold text-terminal-gold whitespace-nowrap group" style={{ width: 60, minWidth: 60 }}>
               {displaySym(q.symbol)}
-              {watched.has(q.symbol.toUpperCase()) && <span className="ml-1 text-[8px] text-terminal-gold" title="In your watchlist">★</span>}
+              {watched.has(q.symbol.toUpperCase()) && <span className="ml-1 text-[11px] text-terminal-gold" title="In your watchlist">★</span>}
               <button
                 onClick={(e) => { e.stopPropagation(); askMaddenAI(`Analyse ${q.name ?? displaySym(q.symbol)} (${q.symbol}) — it is among today's ${q.dayChangePct >= 0 ? 'top gainers' : 'biggest losers'}${newsBy?.[displaySym(q.symbol)] ? `, and the latest headline naming it is "${newsBy[displaySym(q.symbol)].headline}"` : ', with no recent headline naming it'}. What could be driving the move and what should I watch?${USING_MOCK_DATA ? ' Prices here are demo data, so do not treat the size of the move as real.' : ''}`) }}
                 title={`Analyse ${displaySym(q.symbol)} with MaddenAI`}
-                className="ml-1 text-[8px] font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold px-1 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-terminal-gold hover:text-terminal-bg transition-opacity"
+                className="ml-1 text-[11px] font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold px-1 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-terminal-gold hover:text-terminal-bg transition-opacity"
               >ANALYSE</button>
             </td>
             <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[140px] hidden lg:table-cell">{q.name ?? '—'}</td>
@@ -232,7 +234,7 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
             <td className="px-1.5 py-0.5 text-2xs text-right text-terminal-text-dim hidden xl:table-cell" style={{ width: 70, minWidth: 70 }}>
               {q.vol != null ? fmt.large(q.vol) : '—'}
               {volRatio(q) != null && (
-                <div className="text-[8px]" style={{ color: volRatio(q) >= 1.5 ? '#C9A84C' : undefined }} title="Today's volume vs its 20-day average">{volRatio(q).toFixed(1)}× avg</div>
+                <div className="text-[11px]" style={{ color: volRatio(q) >= 1.5 ? PAL.gold : undefined }} title="Today's volume vs its 20-day average">{volRatio(q).toFixed(1)}× avg</div>
               )}
             </td>
           </tr>
@@ -345,7 +347,7 @@ export default function TopMovers() {
       <div data-tip="markets-movers" className="border-b md:border-b-0 md:border-r border-terminal-border">
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-gold whitespace-nowrap">ASX LEADERS</span>
-          {asxFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
+          {asxFetching && <InlineLoading label="Loading" />}
           {asxQuotes && !asxFetching && USING_MOCK_DATA && <DemoBadge />}
           {asxQuotes && !asxFetching && !USING_MOCK_DATA && asxDelayed && <StaleBadge cachedAt={asxResult?.cachedAt} />}
           {asxQuotes && !asxFetching && !USING_MOCK_DATA && !asxDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} />}
@@ -360,7 +362,7 @@ export default function TopMovers() {
       <div>
         <div className="panel-header flex items-center gap-2">
           <span className="text-terminal-blue-bright whitespace-nowrap">US LEADERS</span>
-          {usFetching && <span className="text-terminal-text-dim text-2xs font-normal animate-pulse">LOADING...</span>}
+          {usFetching && <InlineLoading label="Loading" />}
           {usQuotes && !usFetching && USING_MOCK_DATA && <DemoBadge />}
           {usQuotes && !usFetching && !USING_MOCK_DATA && usDelayed && <StaleBadge cachedAt={usResult?.cachedAt} />}
           {usQuotes && !usFetching && !USING_MOCK_DATA && !usDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} />}

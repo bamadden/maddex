@@ -20,6 +20,7 @@ import { dispatchAskAI } from '../../utils/askAI'
 import { logActivity } from '../../services/activityLogService'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
+import { PAL } from '../../styles/palette.js'
 
 const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿', CA: '🇨🇦' }
 const IMPORTANCE_COLOR = { high: 'text-terminal-red', medium: 'text-terminal-gold', low: 'text-terminal-muted' }
@@ -87,7 +88,7 @@ function MonthCalendar({ month, onMonthChange, selectedKey, onSelect, eventDays,
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <div key={i} className="text-[9px] text-terminal-text-dim/50 py-0.5">{d}</div>
+          <div key={i} className="text-[11px] text-terminal-text-dim/50 py-0.5">{d}</div>
         ))}
         {cells.map((d, i) => {
           if (d == null) return <div key={i} />
@@ -141,7 +142,7 @@ function UpcomingList({ events, onSelect, selectedKey }) {
     <div className="flex-1 overflow-y-auto thin-scrollbar">
       {Object.entries(groups).map(([label, items]) => items.length > 0 && (
         <div key={label}>
-          <div className="px-2 py-1 text-[9px] font-bold text-terminal-text-dim/60 tracking-widest bg-terminal-header/50 sticky top-0">{label}</div>
+          <div className="px-2 py-1 text-[11px] font-bold text-terminal-text-dim/60 tracking-widest bg-terminal-header/50 sticky top-0">{label}</div>
           {items.map((e, i) => {
             const key = toDateKey(e.dateObj)
             return (
@@ -158,7 +159,7 @@ function UpcomingList({ events, onSelect, selectedKey }) {
                 </span>
                 <span className="text-2xs text-terminal-text-bright flex-1 min-w-0 truncate">{e.label}</span>
                 <Stars event={e} />
-                <span className={`text-[9px] font-bold flex-shrink-0 ${IMPORTANCE_COLOR[e.importance] ?? 'text-terminal-muted'}`}>
+                <span className={`text-[11px] font-bold flex-shrink-0 ${IMPORTANCE_COLOR[e.importance] ?? 'text-terminal-muted'}`}>
                   ●{e.importance?.toUpperCase()}
                 </span>
               </button>
@@ -273,7 +274,7 @@ function EconomicEventCard({ event, onReminderChange }) {
         {event.importance === 'high' && <EventImpact event={event} />}
 
         <div className="space-y-1 mb-2">
-          <div className="text-[9px] text-terminal-text-dim/60 tracking-widest">MARKET SENSITIVITY</div>
+          <div className="text-[11px] text-terminal-text-dim/60 tracking-widest">MARKET SENSITIVITY</div>
           <SensitivityBar label={event.region === 'AU' ? 'AUD/USD' : 'USD Index'} dots={sensitivity} />
           <SensitivityBar label={event.region === 'AU' ? 'ASX Banks' : 'US Equities'} dots={Math.max(1, sensitivity - 1)} />
           <SensitivityBar label="Bonds" dots={sensitivity} />
@@ -390,7 +391,7 @@ function Stars({ event }) {
   return (
     <span
       className="font-mono tracking-tight flex-shrink-0"
-      style={{ fontSize: 10, color: n >= 5 ? '#A83232' : n >= 4 ? '#C9A84C' : '#637899' }}
+      style={{ fontSize: 11, color: n >= 5 ? PAL.down : n >= 4 ? PAL.gold : PAL.muted }}
       title={`Importance ${n}/5 — scored from the event type`}
     >{starString(n)}</span>
   )
@@ -550,7 +551,7 @@ function WeekView({ anchorDate, events, selectedKey, onSelect }) {
                 <div
                   key={i}
                   className="text-2xs leading-tight border-l-2 pl-1"
-                  style={{ borderColor: eventStars(e) >= 5 ? '#A83232' : eventStars(e) >= 4 ? '#C9A84C' : '#637899' }}
+                  style={{ borderColor: eventStars(e) >= 5 ? PAL.down : eventStars(e) >= 4 ? PAL.gold : PAL.muted }}
                 >
                   <div className="text-terminal-text-dim">{e.time && e.time !== '—' ? e.time : ''}</div>
                   <div className="text-terminal-text-bright line-clamp-2">{e.label}</div>
@@ -702,7 +703,7 @@ export default function CalendarModule() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`text-[9px] font-bold px-1.5 py-0.5 border transition-colors ${
+                className={`text-[11px] font-bold px-1.5 py-0.5 border transition-colors ${
                   filter === f.key ? 'bg-terminal-gold text-terminal-bg border-terminal-gold' : 'text-terminal-text-dim border-terminal-border hover:border-terminal-gold/50'
                 }`}
               >

@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // ─── Australian ETF universe ────────────────────────────────────────────────
 //
 // INDICATIVE. Every figure here — AUM, MER, yield, returns, price — is an
@@ -10,19 +11,19 @@
 // `complex` flag that drives a warning the UI cannot render without.
 
 export const ETF_CATEGORIES = [
-  { key: 'ALL',          label: 'ALL',              tone: '#C9A84C' },
-  { key: 'AU Equity',    label: 'AU EQUITY',        tone: '#C9A84C' },
+  { key: 'ALL',          label: 'ALL',              tone: PAL.gold },
+  { key: 'AU Equity',    label: 'AU EQUITY',        tone: PAL.gold },
   { key: 'US Equity',    label: 'US EQUITY',        tone: '#4A7FB5' },
-  { key: 'Global Equity', label: 'GLOBAL',          tone: '#637899' },
+  { key: 'Global Equity', label: 'GLOBAL',          tone: PAL.muted },
   { key: 'Multi-Asset',  label: 'MULTI-ASSET',      tone: '#7B2D8A' },
   { key: 'Fixed Income', label: 'FIXED INCOME',     tone: '#2D5A8A' },
   { key: 'Property',     label: 'PROPERTY',         tone: '#8A5A7D' },
   { key: 'Commodities',  label: 'COMMODITIES',      tone: '#8A6A2D' },
   { key: 'Thematic',     label: 'THEMATIC',         tone: '#a855f7' },
-  { key: 'ESG',          label: 'ESG',              tone: '#2D8A50' },
+  { key: 'ESG',          label: 'ESG',              tone: PAL.up },
   { key: 'Sector',       label: 'SECTOR',           tone: '#B05030' },
   { key: 'Income',       label: 'INCOME',           tone: '#D69E2E' },
-  { key: 'COMPLEX',      label: 'LEVERAGED/INVERSE', tone: '#CC4444' },
+  { key: 'COMPLEX',      label: 'LEVERAGED/INVERSE', tone: PAL.down },
 ]
 
 // Per-tick volatility, as a percentage of price. A bond ETF that jitters like a

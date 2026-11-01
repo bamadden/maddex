@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fmt } from '../../utils/format'
 import { GROUP_COLOURS } from '../../services/watchlistMeta'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Pieces of a watchlist row that are not price cells ─────────────────────
 //
@@ -53,7 +54,7 @@ export function RowActions({
                 className="w-full px-3 py-1.5 text-2xs text-left hover:bg-terminal-surface2">✎ {hasNote ? 'Edit note' : 'Add note'}</button>
               {!isCrypto && (
                 <>
-                  <div className="px-3 pt-1.5 pb-0.5 text-[9px] font-mono tracking-widest text-terminal-text-dim border-t border-terminal-border">MOVE TO GROUP</div>
+                  <div className="px-3 pt-1.5 pb-0.5 text-[11px] font-mono tracking-widest text-terminal-text-dim border-t border-terminal-border">MOVE TO GROUP</div>
                   {groups.map((g) => (
                     <button key={g.id} onClick={() => { setMenuOpen(false); onMoveGroup(g.id) }} disabled={g.id === groupId}
                       className="w-full px-3 py-1 text-2xs text-left hover:bg-terminal-surface2 flex items-center gap-2 disabled:opacity-40">
@@ -70,7 +71,7 @@ export function RowActions({
       </div>
       <button onClick={remove} title={confirm ? 'Click again to remove' : 'Remove from watchlist'}
         className={confirm
-          ? 'text-[9px] font-bold px-1 py-0.5 border border-terminal-red/60 text-terminal-red'
+          ? 'text-[11px] font-bold px-1 py-0.5 border border-terminal-red/60 text-terminal-red'
           : `${ACTION_BTN} text-terminal-text-dim hover:text-terminal-red`}>
         {confirm ? 'REMOVE?' : '✕'}
       </button>
@@ -107,7 +108,7 @@ export function TargetRow({ symbol, label, price, current, onSave, onClear, onCl
           <button onClick={onClose} className="btn-secondary btn-sm">CANCEL</button>
           {current && <button onClick={onClear} className="text-2xs px-2 py-0.5 border border-terminal-red/40 text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-colors">CLEAR</button>}
         </div>
-        <div className="text-[9px] text-terminal-text-dim/50 mt-1">
+        <div className="text-[11px] text-terminal-text-dim/50 mt-1">
           Saved to this browser. A target above today&apos;s price is hit when the price reaches it; one below is hit when the price falls to it.
         </div>
       </td>
@@ -137,7 +138,7 @@ export function GroupBar({ groups, counts, ungroupedCount, dragging, onDropTo, o
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap px-3 py-1.5 border-b border-terminal-border flex-shrink-0" style={{ background: '#040B16' }}>
-      <span className="text-[9px] font-mono tracking-widest text-terminal-text-dim mr-1">GROUPS</span>
+      <span className="text-[11px] font-mono tracking-widest text-terminal-text-dim mr-1">GROUPS</span>
       {groups.map((g) => {
         const c = GROUP_COLOURS[g.colour] ?? GROUP_COLOURS.gold
         return (
@@ -148,7 +149,7 @@ export function GroupBar({ groups, counts, ungroupedCount, dragging, onDropTo, o
             {g.name}
             <span className="text-terminal-text-dim tabular-nums">{counts[g.id] ?? 0}</span>
             {confirmDel === g.id ? (
-              <button onClick={() => { onDelete(g.id); setConfirmDel(null) }} className="text-terminal-red font-bold text-[9px]" title="Stocks in it become ungrouped">DELETE?</button>
+              <button onClick={() => { onDelete(g.id); setConfirmDel(null) }} className="text-terminal-red font-bold text-[11px]" title="Stocks in it become ungrouped">DELETE?</button>
             ) : (
               <button onClick={() => setConfirmDel(g.id)} className="text-terminal-text-dim/50 hover:text-terminal-red" title="Delete group">×</button>
             )}
@@ -157,7 +158,7 @@ export function GroupBar({ groups, counts, ungroupedCount, dragging, onDropTo, o
       })}
       <span {...drop(null)}
         className="inline-flex items-center gap-1 text-2xs px-2 py-0.5 border border-dashed transition-colors"
-        style={{ borderColor: over === null && dragging ? '#8BA3C4' : 'rgba(139,163,196,0.3)', color: '#8BA3C4' }}>
+        style={{ borderColor: over === null && dragging ? PAL.dim : 'rgba(139,163,196,0.3)', color: PAL.dim }}>
         UNGROUPED <span className="tabular-nums text-terminal-text-dim">{ungroupedCount}</span>
       </span>
       {adding ? (
@@ -175,7 +176,7 @@ export function GroupBar({ groups, counts, ungroupedCount, dragging, onDropTo, o
       ) : (
         <button onClick={() => setAdding(true)} className="text-2xs text-terminal-text-dim hover:text-terminal-gold">+ NEW GROUP</button>
       )}
-      <span className="ml-auto text-[9px] text-terminal-text-dim/40">Drag a row onto a group, or onto a row in another group</span>
+      <span className="ml-auto text-[11px] text-terminal-text-dim/40">Drag a row onto a group, or onto a row in another group</span>
     </div>
   )
 }

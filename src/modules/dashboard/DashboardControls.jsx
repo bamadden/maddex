@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { dashboardService } from '../../services/dashboardService'
+import { PAL } from '../../styles/palette.js'
 
 // Miniature of a layout, drawn from its own placements rather than a picture.
 // A preset that changes updates its own preview, and a custom layout gets one
@@ -64,7 +65,7 @@ export default function DashboardControls({ layout, onChange }) {
       }}
     >
       <div>
-        <div className="font-mono mb-2" style={{ fontSize: 8, letterSpacing: '0.2em', color: '#C9A84C' }}>
+        <div className="font-mono mb-2" style={{ fontSize: 11, letterSpacing: '0.2em', color: PAL.gold }}>
           PRESET LAYOUTS
         </div>
         <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
@@ -73,19 +74,19 @@ export default function DashboardControls({ layout, onChange }) {
             return (
               <button key={p.id} onClick={() => apply(p.id, !!p.custom)} style={cardStyle(active)} className="dash-preset-card">
                 <div className="flex items-center gap-2 mb-1">
-                  <span style={{ fontSize: 11, color: '#C9A84C' }}>{p.icon}</span>
-                  <span className="font-mono truncate" style={{ fontSize: 10, letterSpacing: '0.08em', color: active ? '#C9A84C' : '#E8EDF5' }}>
+                  <span style={{ fontSize: 11, color: PAL.gold }}>{p.icon}</span>
+                  <span className="font-mono truncate" style={{ fontSize: 11, letterSpacing: '0.08em', color: active ? PAL.gold : PAL.bright }}>
                     {p.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <LayoutPreview layout={p} active={active} />
-                  <span className="font-sans leading-snug" style={{ fontSize: 10, color: '#4A6080' }}>
+                  <span className="font-sans leading-snug" style={{ fontSize: 11, color: PAL.muted }}>
                     {p.description ?? `${p.widgets.length} widgets`}
                   </span>
                 </div>
                 {p.audience && (
-                  <div className="font-mono mt-1.5 leading-snug" style={{ fontSize: 8, color: '#8BA3C4', letterSpacing: '0.04em' }}>{p.audience}</div>
+                  <div className="font-mono mt-1.5 leading-snug" style={{ fontSize: 11, color: PAL.dim, letterSpacing: '0.04em' }}>{p.audience}</div>
                 )}
               </button>
             )
@@ -95,13 +96,13 @@ export default function DashboardControls({ layout, onChange }) {
 
       <div className="flex flex-wrap items-end gap-6">
         <div>
-          <div className="font-mono mb-1.5" style={{ fontSize: 8, letterSpacing: '0.2em', color: '#C9A84C' }}>COLUMNS</div>
+          <div className="font-mono mb-1.5" style={{ fontSize: 11, letterSpacing: '0.2em', color: PAL.gold }}>COLUMNS</div>
           <div className="flex border border-terminal-border w-fit">
             {[1, 2, 3, 4].map((n) => (
               <button
                 key={n}
                 onClick={() => { dashboardService.setColumns(n); onChange?.() }}
-                className={`font-mono text-[9px] font-bold px-3 py-1.5 border-r border-terminal-border last:border-r-0 transition-colors ${
+                className={`font-mono text-[11px] font-bold px-3 py-1.5 border-r border-terminal-border last:border-r-0 transition-colors ${
                   layout.columns === n ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'
                 }`}
               >{n}</button>
@@ -110,14 +111,14 @@ export default function DashboardControls({ layout, onChange }) {
         </div>
 
         <div>
-          <div className="font-mono mb-1.5" style={{ fontSize: 8, letterSpacing: '0.2em', color: '#C9A84C' }}>SAVE AS CUSTOM</div>
+          <div className="font-mono mb-1.5" style={{ fontSize: 11, letterSpacing: '0.2em', color: PAL.gold }}>SAVE AS CUSTOM</div>
           <div className="flex gap-1.5">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) { dashboardService.saveCustomLayout(name); setName(''); onChange?.() } }}
               placeholder="Layout name…"
-              className="bg-terminal-bg border border-terminal-border px-2 py-1 font-mono text-[10px] text-terminal-text-bright outline-none focus:border-terminal-gold"
+              className="bg-terminal-bg border border-terminal-border px-2 py-1 font-mono text-[11px] text-terminal-text-bright outline-none focus:border-terminal-gold"
               style={{ width: 150 }}
             />
             <button

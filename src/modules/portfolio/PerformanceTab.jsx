@@ -11,6 +11,7 @@ import { getMockFMPHistory } from '../../services/mockData'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { computeRisk } from './portfolioRisk'
 import Tooltip from '../../components/ui/Tooltip'
+import { PAL } from '../../styles/palette.js'
 
 // ─── Performance tab ────────────────────────────────────────────────────────
 //
@@ -70,11 +71,11 @@ function syntheticSeries(points, totalReturnPct, seed, wobble = 0.9) {
 }
 
 const SERIES = [
-  { key: 'port', label: 'My Portfolio', colour: '#C9A84C', width: 2, real: true },
+  { key: 'port', label: 'My Portfolio', colour: PAL.gold, width: 2, real: true },
   { key: 'asx',  label: 'ASX 200',      colour: '#4A7FB5', width: 1, index: '^AXJO', demo: true },
-  { key: 'spx',  label: 'S&P 500',      colour: '#637899', width: 1, index: '^GSPC', demo: true },
+  { key: 'spx',  label: 'S&P 500',      colour: PAL.muted, width: 1, index: '^GSPC', demo: true },
   { key: 'gold', label: 'Gold',         colour: '#D69E2E', width: 1, seed: 9182, ret: 2.2, wobble: 1.4 },
-  { key: 'cash', label: 'Cash',         colour: '#2D8A50', width: 1, computed: true },
+  { key: 'cash', label: 'Cash',         colour: PAL.up, width: 1, computed: true },
   { key: 'bond', label: 'AU 10Y Bond',  colour: '#9A7AB5', width: 1, computed: true },
   { key: 'bal',  label: 'Balanced Fund', colour: '#B58C6A', width: 1, computed: true },
 ]
@@ -249,10 +250,10 @@ function BenchmarkComparison({ holdings, yields }) {
               title={locked ? 'The subject of the chart — always shown' : `Toggle ${s.label}`}
               className="font-mono uppercase tracking-wider transition-colors"
               style={{
-                fontSize: 9, padding: '2px 8px', borderRadius: 2,
+                fontSize: 11, padding: '2px 8px', borderRadius: 2,
                 border: `1px solid ${isOn ? s.colour : 'rgba(201,168,76,0.12)'}`,
                 background: isOn ? `${s.colour}26` : 'transparent',
-                color: isOn ? s.colour : '#4A6080',
+                color: isOn ? s.colour : PAL.muted,
                 cursor: locked ? 'default' : 'pointer',
               }}
             >{s.label}{locked ? ' ●' : ''}</button>
@@ -277,10 +278,10 @@ function BenchmarkComparison({ holdings, yields }) {
                 <g key={i}>
                   <line
                     x1={padL} x2={W - padR} y1={y(v)} y2={y(v)}
-                    stroke={v === 100 ? 'rgba(201,168,76,0.35)' : '#0F1E35'}
+                    stroke={v === 100 ? 'rgba(201,168,76,0.35)' : PAL.header}
                     strokeDasharray={v === 100 ? '4 3' : undefined}
                   />
-                  <text x={4} y={y(v) + 3} fill="#4A6080" style={{ fontSize: 8, fontFamily: '"IBM Plex Mono", monospace' }}>
+                  <text x={4} y={y(v) + 3} fill={PAL.muted} style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}>
                     {v.toFixed(0)}
                   </text>
                 </g>
@@ -297,7 +298,7 @@ function BenchmarkComparison({ holdings, yields }) {
 
               {hoverIdx != null && (
                 <>
-                  <line x1={x(hoverIdx)} x2={x(hoverIdx)} y1={padT} y2={H - padB} stroke="#C9A84C" strokeOpacity={0.45} />
+                  <line x1={x(hoverIdx)} x2={x(hoverIdx)} y1={padT} y2={H - padB} stroke={PAL.gold} strokeOpacity={0.45} />
                   {active.map((s) => (
                     <circle key={s.key} cx={x(hoverIdx)} cy={y(model.rows[hoverIdx][s.key])} r={2.5} fill={s.colour} />
                   ))}
@@ -311,11 +312,11 @@ function BenchmarkComparison({ holdings, yields }) {
           <div className="flex items-center gap-4 flex-wrap px-3 py-1" style={{ minHeight: 22 }}>
             {hoverIdx != null ? (
               <>
-                <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>
+                <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
                   day {Math.round((hoverIdx / Math.max(1, model.n - 1)) * calDays)} of {calDays}
                 </span>
                 {active.map((s) => (
-                  <span key={s.key} className="font-mono flex items-center gap-1.5" style={{ fontSize: 9 }}>
+                  <span key={s.key} className="font-mono flex items-center gap-1.5" style={{ fontSize: 11 }}>
                     <span className="rounded-full" style={{ width: 5, height: 5, background: s.colour }} />
                     <span className="text-terminal-text-dim">{s.label}</span>
                     <span className="text-terminal-text-bright tabular-nums">{model.rows[hoverIdx][s.key].toFixed(1)}</span>
@@ -323,12 +324,12 @@ function BenchmarkComparison({ holdings, yields }) {
                 ))}
               </>
             ) : (
-              <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 9 }}>Hover the chart for a crosshair reading</span>
+              <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>Hover the chart for a crosshair reading</span>
             )}
           </div>
 
           {!bondSeries && (
-            <div className="px-3 font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>
+            <div className="px-3 font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>
               AU 10Y bond line unavailable — the RBA&apos;s yield table (F2) did not load.
             </div>
           )}
@@ -341,10 +342,10 @@ function BenchmarkComparison({ holdings, yields }) {
               return (
                 <span key={s.key} className="flex items-center gap-1.5" style={{ opacity: isOn ? 1 : 0.35 }}>
                   <span className="rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: s.colour }} />
-                  <span className="font-mono text-terminal-text-dim" style={{ fontSize: 10 }}>{s.label}</span>
+                  <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{s.label}</span>
                   <span
                     className="font-mono font-bold tabular-nums"
-                    style={{ fontSize: 10, color: ret >= 0 ? '#2D8A50' : '#CC4444' }}
+                    style={{ fontSize: 11, color: ret >= 0 ? PAL.up : PAL.down }}
                   >{ret >= 0 ? '+' : ''}{ret.toFixed(1)}%</span>
                   <Tooltip content={
                     s.real ? 'Built from your actual units against each holding’s own price history. Those prices are DEMO data in this build.'
@@ -356,7 +357,7 @@ function BenchmarkComparison({ holdings, yields }) {
                   }>
                     <span
                       className="font-mono tracking-wider"
-                      style={{ fontSize: 7, color: s.real ? '#2D8A50' : s.computed ? '#637899' : s.demo ? '#8BA3C4' : '#C9A84C' }}
+                      style={{ fontSize: 11, color: s.real ? PAL.up : s.computed ? PAL.muted : s.demo ? PAL.dim : PAL.gold }}
                     >{s.real ? 'YOUR DATA' : s.computed ? 'COMPUTED' : s.demo ? 'DEMO' : 'ILLUSTRATIVE'}</span>
                   </Tooltip>
                 </span>
@@ -380,7 +381,7 @@ function BenchmarkVerdict({ model, pick, onPick, period }) {
   const ahead = gap != null && gap >= 0
   return (
     <div className="mx-3 my-1.5 border border-terminal-border px-3 py-2 flex items-center gap-3 flex-wrap">
-      <span className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 8 }}>VS BENCHMARK</span>
+      <span className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 11 }}>VS BENCHMARK</span>
       <div className="flex gap-1 flex-wrap">
         {PICKS.map((p) => {
           const label = typeof p.label === 'function' ? p.label() : p.label
@@ -388,7 +389,7 @@ function BenchmarkVerdict({ model, pick, onPick, period }) {
           return (
             <button key={p.key} onClick={() => onPick(p.key)}
               className={`font-mono font-bold tracking-wider px-2 py-0.5 border transition-colors ${on ? 'border-terminal-gold bg-terminal-gold/15 text-terminal-gold' : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold'}`}
-              style={{ fontSize: 9 }}>{label}</button>
+              style={{ fontSize: 11 }}>{label}</button>
           )
         })}
       </div>
@@ -469,14 +470,14 @@ function AttributionWaterfall({ returns, fmtCur }) {
   const barW = (W - gap * (laid.length - 1)) / laid.length
 
   const colourFor = (s) =>
-    s.kind === 'anchor' ? '#8BA3C4'
-      : s.kind === 'dividend' ? '#C9A84C'
-        : s.delta >= 0 ? '#2D8A50' : '#A83232'
+    s.kind === 'anchor' ? PAL.dim
+      : s.kind === 'dividend' ? PAL.gold
+        : s.delta >= 0 ? PAL.up : PAL.down
 
   return (
     <div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-        <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="#0F1E35" />
+        <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke={PAL.header} />
         {laid.map((s, i) => {
           const bx = i * (barW + gap)
           const top = Math.min(y(s.from), y(s.to))
@@ -506,7 +507,7 @@ function AttributionWaterfall({ returns, fmtCur }) {
               <text
                 x={bx + barW / 2} y={top - 5} textAnchor="middle"
                 fill={colourFor(s)}
-                style={{ fontSize: 9, fontFamily: '"IBM Plex Mono", monospace', fontWeight: 700 }}
+                style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', fontWeight: 700 }}
               >
                 {s.kind === 'anchor'
                   ? fmtCur(s.running)
@@ -514,14 +515,14 @@ function AttributionWaterfall({ returns, fmtCur }) {
               </text>
               <text
                 x={bx + barW / 2} y={H - padB + 14} textAnchor="middle"
-                fill="#8BA3C4"
-                style={{ fontSize: 9, fontFamily: '"IBM Plex Mono", monospace' }}
+                fill={PAL.dim}
+                style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}
               >{s.label}</text>
               {hover === i && pctOfReturn != null && (
                 <text
                   x={bx + barW / 2} y={H - padB + 26} textAnchor="middle"
-                  fill="#C9A84C"
-                  style={{ fontSize: 8, fontFamily: '"IBM Plex Mono", monospace' }}
+                  fill={PAL.gold}
+                  style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}
                 >{pctOfReturn >= 0 ? '+' : ''}{pctOfReturn.toFixed(1)}% of return</text>
               )}
             </g>
@@ -530,7 +531,7 @@ function AttributionWaterfall({ returns, fmtCur }) {
       </svg>
       {/* Hover detail: the lots behind a bar, so a two-lot position shows
           both purchases and the average they combine to. */}
-      <div className="px-1 font-mono text-[9px] text-terminal-text-dim" style={{ minHeight: 30 }}>
+      <div className="px-1 font-mono text-[11px] text-terminal-text-dim" style={{ minHeight: 30 }}>
         {(() => {
           const s = hover != null ? laid[hover] : null
           if (!s || s.kind === 'anchor') return <span className="text-terminal-text-dim/40">Hover a bar for its lots and its contribution</span>
@@ -549,7 +550,7 @@ function AttributionWaterfall({ returns, fmtCur }) {
           )
         })()}
       </div>
-      <div className="text-terminal-text-dim/50 px-1 leading-snug" style={{ fontSize: 8 }}>
+      <div className="text-terminal-text-dim/50 px-1 leading-snug" style={{ fontSize: 11 }}>
         Cost is what you paid across every lot; each bar is that holding&apos;s unrealised gain or loss,
         units × (price − average cost of all lots). Dividends are recorded payments where the Transactions
         ledger has them, otherwise the current yield accrued since purchase.
@@ -563,16 +564,16 @@ function AttributionWaterfall({ returns, fmtCur }) {
 const SECTOR_COLOUR = {
   Materials: '#B05030',
   Financials: '#2D5A8A',
-  Health: '#2D8A50',
+  Health: PAL.up,
   IT: '#7B2D8A',
-  'Cons Disc': '#C9A84C',
+  'Cons Disc': PAL.gold,
   Staples: '#A08A3C',
   Energy: '#8A6A2D',
   Comms: '#5A7D9A',
   Industrials: '#6A6A8A',
   'Real Est': '#8A5A7D',
   Utilities: '#4A7D7D',
-  Other: '#4A6080',
+  Other: PAL.muted,
 }
 
 const SECTOR_LABEL = {
@@ -643,14 +644,14 @@ function SectorDonut({ holdings, mktTotal }) {
             style={{ transition: 'fill-opacity 120ms' }}
           />
         ))}
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="#4A6080"
-          style={{ fontSize: 8, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.16em' }}>PORTFOLIO</text>
+        <text x={cx} y={cy - 6} textAnchor="middle" fill={PAL.muted}
+          style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.16em' }}>PORTFOLIO</text>
         <text x={cx} y={cy + 9} textAnchor="middle" fill="#E6EDF6"
           style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', fontWeight: 700 }}>
           {(hover ? sectors.find((s) => s.sector === hover) : largest)?.label}
         </text>
-        <text x={cx} y={cy + 22} textAnchor="middle" fill="#C9A84C"
-          style={{ fontSize: 10, fontFamily: '"IBM Plex Mono", monospace' }}>
+        <text x={cx} y={cy + 22} textAnchor="middle" fill={PAL.gold}
+          style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace' }}>
           {((hover ? sectors.find((s) => s.sector === hover) : largest)?.pct ?? 0).toFixed(1)}%
         </text>
       </svg>
@@ -658,7 +659,7 @@ function SectorDonut({ holdings, mktTotal }) {
       <div className="flex-1 min-w-0" style={{ minWidth: 220 }}>
         {sectors.map((s) => {
           const diff = s.indexPct == null ? null : s.pct - s.indexPct
-          const tone = diff == null ? '#4A6080' : diff > 2 ? '#C9A84C' : diff < -2 ? '#637899' : '#2D8A50'
+          const tone = diff == null ? PAL.muted : diff > 2 ? PAL.gold : diff < -2 ? PAL.muted : PAL.up
           const verdict = diff == null ? null : diff > 2 ? 'OVERWEIGHT' : diff < -2 ? 'UNDERWEIGHT' : 'IN LINE'
           return (
             <div
@@ -669,20 +670,20 @@ function SectorDonut({ holdings, mktTotal }) {
               onMouseLeave={() => setHover(null)}
             >
               <span className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: s.colour }} />
-              <span className="font-mono text-terminal-text-bright" style={{ fontSize: 10 }}>{s.label}</span>
-              <span className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 10 }}>{s.pct.toFixed(1)}%</span>
+              <span className="font-mono text-terminal-text-bright" style={{ fontSize: 11 }}>{s.label}</span>
+              <span className="font-mono font-bold text-terminal-gold tabular-nums" style={{ fontSize: 11 }}>{s.pct.toFixed(1)}%</span>
               {s.indexPct != null ? (
                 <>
-                  <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 9 }}>
+                  <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
                     (ASX {s.indexPct.toFixed(1)}%)
                   </span>
-                  <span className="font-mono font-bold ml-auto flex-shrink-0" style={{ fontSize: 8, letterSpacing: '0.1em', color: tone }}>
+                  <span className="font-mono font-bold ml-auto flex-shrink-0" style={{ fontSize: 11, letterSpacing: '0.1em', color: tone }}>
                     {verdict}
                   </span>
                 </>
               ) : (
                 <Tooltip content="No published ASX 200 weight is recorded for this sector in this build, so no overweight/underweight call is made. Inventing the index half of the comparison would make the verdict meaningless.">
-                  <span className="font-mono text-terminal-text-dim/40 ml-auto flex-shrink-0" style={{ fontSize: 8, letterSpacing: '0.1em' }}>
+                  <span className="font-mono text-terminal-text-dim/40 ml-auto flex-shrink-0" style={{ fontSize: 11, letterSpacing: '0.1em' }}>
                     ASX WEIGHT NOT VERIFIED
                   </span>
                 </Tooltip>
@@ -690,7 +691,7 @@ function SectorDonut({ holdings, mktTotal }) {
             </div>
           )
         })}
-        <div className="text-terminal-text-dim/50 mt-1.5 leading-snug" style={{ fontSize: 8 }}>
+        <div className="text-terminal-text-dim/50 mt-1.5 leading-snug" style={{ fontSize: 11 }}>
           Index weights: {au.asx200SectorWeightsSource} · as at{' '}
           {new Date(`${au.asx200SectorWeightsAsOf}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.
           Only the sectors that factsheet stated are compared.
@@ -713,8 +714,8 @@ function Gauge({ min, max, value, colour }) {
         />
       </div>
       <div className="flex justify-between mt-0.5">
-        <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>{min}</span>
-        <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 8 }}>{max}</span>
+        <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>{min}</span>
+        <span className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>{max}</span>
       </div>
     </div>
   )
@@ -723,18 +724,18 @@ function Gauge({ min, max, value, colour }) {
 function RiskCard({ label, value, colour, min, max, gaugeValue, description, tip }) {
   return (
     <div className="border border-terminal-border p-3 flex flex-col">
-      <div className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 8 }}>{label}</div>
+      <div className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>{label}</div>
       <div className="font-mono font-bold tabular-nums text-center flex-1 flex items-center justify-center py-2"
-        style={{ fontSize: 24, color: colour }}>{value}</div>
+        style={{ fontSize: 28, color: colour }}>{value}</div>
       <Gauge min={min} max={max} value={gaugeValue} colour={colour} />
       <Tooltip content={tip}>
-        <div className="font-mono text-terminal-text-dim mt-1.5 leading-snug" style={{ fontSize: 9 }}>{description}</div>
+        <div className="font-mono text-terminal-text-dim mt-1.5 leading-snug" style={{ fontSize: 11 }}>{description}</div>
       </Tooltip>
     </div>
   )
 }
 
-const AMBER = '#D69E2E', GREEN = '#2D8A50', RED = '#CC4444'
+const AMBER = '#D69E2E', GREEN = PAL.up, RED = PAL.down
 
 function RiskMetrics({ holdings, mktTotal }) {
   const risk = useMemo(() => computeRisk(holdings, mktTotal), [holdings, mktTotal])
@@ -744,9 +745,9 @@ function RiskMetrics({ holdings, mktTotal }) {
       <div className="grid grid-cols-2 gap-3">
         {['BETA', 'VOLATILITY', 'SHARPE RATIO', 'MAX DRAWDOWN'].map((l) => (
           <div key={l} className="border border-terminal-border p-3">
-            <div className="font-mono font-bold tracking-widest text-terminal-gold/40" style={{ fontSize: 8 }}>{l}</div>
-            <div className="font-mono text-terminal-text-dim/30 text-center py-4" style={{ fontSize: 24 }}>—</div>
-            <div className="font-mono text-terminal-text-dim/40" style={{ fontSize: 9 }}>Add holdings to compute.</div>
+            <div className="font-mono font-bold tracking-widest text-terminal-gold/40" style={{ fontSize: 11 }}>{l}</div>
+            <div className="font-mono text-terminal-text-dim/30 text-center py-4" style={{ fontSize: 28 }}>—</div>
+            <div className="font-mono text-terminal-text-dim/40" style={{ fontSize: 11 }}>Add holdings to compute.</div>
           </div>
         ))}
       </div>

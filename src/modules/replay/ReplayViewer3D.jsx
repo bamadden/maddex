@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { GAIN_BRIGHT, LOSS_BRIGHT, GOLD, BG_COLOR } from '../../components/visualisations/shared3d'
+import { PAL } from '../../styles/palette.js'
 
 const BAR_WIDTH = 0.7
 const BAR_DEPTH = 0.7
@@ -41,7 +42,7 @@ function DayBar({ index, height, color, isLatest, date, level }) {
       {isLatest && (
         <Html position={[0, height + 0.5, 0]} center distanceFactor={13} occlude>
           <div style={{
-            fontFamily: 'IBM Plex Mono, monospace', fontSize: 10, color: '#0B1628',
+            fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: PAL.panel,
             background: GOLD, borderRadius: 3, padding: '2px 8px', whiteSpace: 'nowrap',
             fontWeight: 700, pointerEvents: 'none',
           }}>
@@ -59,13 +60,13 @@ function EventAnnotation({ x, text }) {
   return (
     <Html position={[x, 4.5, 0]} center distanceFactor={13} occlude={false}>
       <div style={{
-        fontFamily: 'IBM Plex Mono, monospace', fontSize: 10, color: '#e8edf5',
+        fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: PAL.bright,
         background: 'rgba(6,13,26,0.95)', border: `1px solid ${GOLD}`, borderRadius: 4,
         padding: '6px 10px', width: 200, pointerEvents: 'none',
         opacity: visible ? 1 : 0, transform: `scale(${visible ? 1 : 0.7}) translateY(${visible ? 0 : 10}px)`,
         transition: 'opacity 220ms ease-out, transform 220ms ease-out',
       }}>
-        <div style={{ color: GOLD, fontWeight: 700, letterSpacing: '0.1em', fontSize: 8, marginBottom: 3 }}>⚡ ON THIS DAY</div>
+        <div style={{ color: GOLD, fontWeight: 700, letterSpacing: '0.1em', fontSize: 11, marginBottom: 3 }}>⚡ ON THIS DAY</div>
         {text}
       </div>
     </Html>

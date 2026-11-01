@@ -1,4 +1,5 @@
 import { useRef, useMemo, useState } from 'react'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
@@ -12,6 +13,7 @@ import PriceChange from '../../components/ui/PriceChange'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 import { INDEX_DRIVERS } from '../../data/sectorTaxonomy'
+import { PAL } from '../../styles/palette.js'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -23,7 +25,7 @@ import { INDEX_DRIVERS } from '../../data/sectorTaxonomy'
 // the trend line pop against the card gradient without competing visually
 // with the green PriceChange text right next to it.
 function sparkColor(pct) {
-  if (pct > 0) return '#C9A84C'
+  if (pct > 0) return PAL.gold
   if (pct < 0) return 'var(--color-loss)'
   return '#6b7f99'
 }
@@ -136,7 +138,7 @@ function SparklineLarge({ points, color, label }) {
     <div>
       <div className="text-2xs text-terminal-text-dim mb-1">{label} · 7D</div>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-        <line x1={pad} y1={h/2} x2={w-pad} y2={h/2} stroke="#0F1E35" strokeWidth="1" />
+        <line x1={pad} y1={h/2} x2={w-pad} y2={h/2} stroke={PAL.header} strokeWidth="1" />
         <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
       <div className="flex justify-between text-2xs text-terminal-text-dim/60">
@@ -148,7 +150,7 @@ function SparklineLarge({ points, color, label }) {
 }
 
 const COMPARE_PERIODS = [['1mo','1M'],['3mo','3M'],['ytd','YTD'],['1y','1Y']]
-const COMPARE_COLORS = ['#C9A84C', '#4a90d9', '#2D8A50', '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#8BA3C4', '#0ea5e9']
+const COMPARE_COLORS = [PAL.gold, '#4a90d9', PAL.up, '#e84142', '#a855f7', '#f97316', '#14b8a6', '#ec4899', PAL.dim, '#0ea5e9']
 
 function CompareIndicesModal({ indices, onClose }) {
   const [period, setPeriod] = useState('3mo')
@@ -228,18 +230,18 @@ function CompareIndicesModal({ indices, onClose }) {
 
         <div className="flex-1 p-3 min-h-0">
           {chartData.length < 2 ? (
-            <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim animate-pulse">LOADING...</div>
+            <InlineLoading label="Loading" className="flex items-center justify-center h-full" />
           ) : (
             <SafeChart width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                <CartesianGrid stroke="#0F1E35" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} width={45} tickFormatter={(v) => v.toFixed(0)} />
+                <CartesianGrid stroke={PAL.header} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11 }} domain={['auto', 'auto']} width={45} tickFormatter={(v) => v.toFixed(0)} />
                 <Tooltip
-                  contentStyle={{ background: '#0B1628', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '10px' }}
+                  contentStyle={{ background: PAL.panel, border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
                   formatter={(v, name) => [v?.toFixed(1), indices.find(i => i.symbol === name)?.label ?? name]}
                 />
-                <Legend wrapperStyle={{ fontSize: 9 }} formatter={(name) => indices.find(i => i.symbol === name)?.label ?? name} />
+                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(name) => indices.find(i => i.symbol === name)?.label ?? name} />
                 {indices.map(({ symbol }, i) => active.has(symbol) && (
                   <Line key={symbol} type="monotone" dataKey={symbol} stroke={COMPARE_COLORS[i % COMPARE_COLORS.length]} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
                 ))}
@@ -272,12 +274,12 @@ function LiveIndexPrice({ symbol, q, sparkPoints, isStale, dataDate }) {
           className={`absolute inset-0 pointer-events-none ${flash === 'up' ? 'card-glow-up' : 'card-glow-down'}`}
         />
       )}
-      <div className={`text-[18px] font-mono font-semibold text-white leading-none whitespace-nowrap ${flashClass}`}>
+      <div className={`text-[20px] font-mono font-semibold text-white leading-none whitespace-nowrap ${flashClass}`}>
         {fmt.price(livePrice, 1)}
       </div>
       <div className="mt-1 flex items-center gap-1.5">
-        <PriceChange pct={livePct} size="text-[10px]" pill />
-        {isStale && <span className="text-[8px] text-terminal-gold/70 leading-tight">{dataDate}</span>}
+        <PriceChange pct={livePct} size="text-[11px]" pill />
+        {isStale && <span className="text-[11px] text-terminal-gold/70 leading-tight">{dataDate}</span>}
       </div>
       <div className="mt-1.5">
         <Sparkline points={sparkPoints} color={sparkColor(livePct)} />
@@ -400,7 +402,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                 >
                   <SparklineLarge points={sparkPoints} color={sparkColor(q?.pct)} label={label} />
                   {INDEX_DRIVERS[symbol] && (
-                    <div className="font-mono text-terminal-text-dim mt-1.5 pt-1.5 border-t border-terminal-border/50 leading-snug" style={{ fontSize: 9, maxWidth: 220 }}>
+                    <div className="font-mono text-terminal-text-dim mt-1.5 pt-1.5 border-t border-terminal-border/50 leading-snug" style={{ fontSize: 11, maxWidth: 220 }}>
                       <span className="text-terminal-gold/80 tracking-wider">SENSITIVE TO </span>{INDEX_DRIVERS[symbol]}
                     </div>
                   )}
@@ -418,7 +420,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
                   title={isOpen ? 'Market open' : 'Market closed'}
                 />
               )}
-              <div className="flex items-center gap-1 text-[8px] font-mono tracking-wider text-terminal-muted uppercase overflow-hidden text-ellipsis whitespace-nowrap pr-3">
+              <div className="flex items-center gap-1 text-[11px] font-mono tracking-wider text-terminal-muted uppercase overflow-hidden text-ellipsis whitespace-nowrap pr-3">
                 <span className="truncate">{label}</span>
               </div>
 

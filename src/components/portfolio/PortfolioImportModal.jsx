@@ -150,7 +150,7 @@ export default function PortfolioImportModal({ holdings, positionLimit = null, o
                 {MERGE.map((m) => (
                   <button key={m.id}
                     onClick={() => setMerge(Object.fromEntries(conflicts.map((k) => [k, m.id])))}
-                    className="text-[9px] px-1.5 py-0.5 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold tracking-wide"
+                    className="text-[11px] px-1.5 py-0.5 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold tracking-wide"
                   >{m.label}</button>
                 ))}
               </div>
@@ -164,7 +164,7 @@ export default function PortfolioImportModal({ holdings, positionLimit = null, o
                       {MERGE.map((m) => (
                         <button key={m.id} role="radio" aria-checked={current === m.id} title={m.hint}
                           onClick={() => setMerge((prev) => ({ ...prev, [k]: m.id }))}
-                          className={`text-[9px] px-2 py-1 border -ml-px first:ml-0 font-bold tracking-wide transition-colors ${
+                          className={`text-[11px] px-2 py-1 border -ml-px first:ml-0 font-bold tracking-wide transition-colors ${
                             current === m.id
                               ? 'border-terminal-gold text-terminal-bg bg-terminal-gold relative z-10'
                               : 'border-terminal-border text-terminal-text-dim hover:text-terminal-gold'

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { generatePortfolio } from '../../services/portfolioBuilderService'
+import { PAL } from '../../styles/palette.js'
 
 const PLACEHOLDER = 'e.g. Build me a diversified ASX portfolio with exposure to materials and financials, under A$10,000, with dividend yield over 3%'
 
-const PALETTE = ['#C9A84C', '#1e5fa8', '#9b59b6', '#3AAA63', '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
+const PALETTE = [PAL.gold, '#1e5fa8', '#9b59b6', PAL.up, '#e0685a', '#4ac9c9', '#d4a72c', '#7986cb', '#f06292', '#81c784']
 
 const PieTip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
@@ -164,7 +165,7 @@ export default function PortfolioBuilderModal({ onImport, onClose }) {
               </div>
 
               <div style={{
-                fontFamily: '"IBM Plex Mono", monospace', fontSize: 9, color: '#4A6080',
+                fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, color: PAL.muted,
                 letterSpacing: '0.1em', padding: '8px 0', borderTop: '1px solid rgba(201,168,76,0.08)',
               }}>
                 ⓘ AI ESTIMATE · ALLOCATION IDEA ONLY · NO PRICE, COST OR YIELD DATA · IMPORTS WITH ZERO UNITS · NOT ADVICE

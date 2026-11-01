@@ -1,4 +1,5 @@
 import { scoreColour } from '../../utils/briefScore'
+import { PAL } from '../../styles/palette.js'
 
 // SHARE AS IMAGE — the brief as a 1200×630 card (the size social platforms
 // preview), drawn on a canvas and downloaded as a PNG. Score gauge, headline,
@@ -6,7 +7,7 @@ import { scoreColour } from '../../utils/briefScore'
 // the general-information line, which travels with every copy.
 
 const W = 1200, H = 630
-const GOLD = '#C9A84C', BG = '#060D1A', TEXT = '#E8EDF5', DIM = '#8BA3C4'
+const GOLD = PAL.gold, BG = PAL.bg, TEXT = PAL.bright, DIM = PAL.dim
 
 function wrap(ctx, text, maxWidth, maxLines) {
   const words = String(text ?? '').split(/\s+/)

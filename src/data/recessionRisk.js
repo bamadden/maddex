@@ -1,5 +1,6 @@
 import { VERIFIED_CONSTANTS } from './verifiedConstants'
 import { BOND_CURVES, BOND_CURVES_AS_OF } from './bondCurves'
+import { PAL } from '../styles/palette.js'
 
 // ─── Recession risk monitor ─────────────────────────────────────────────────
 //
@@ -302,15 +303,15 @@ export const RUBRIC = [
 ]
 
 export const BAND_TONE = {
-  LOW: '#2D8A50',
-  MODERATE: '#C9A84C',
-  ELEVATED: '#A83232',
+  LOW: PAL.up,
+  MODERATE: PAL.gold,
+  ELEVATED: PAL.down,
 }
 
 export const STATE_TONE = {
-  GREEN: '#2D8A50',
-  AMBER: '#C9A84C',
-  RED: '#A83232',
+  GREEN: PAL.up,
+  AMBER: PAL.gold,
+  RED: PAL.down,
 }
 
 // Past Australian recessions, for chart context. Dates are historical record.

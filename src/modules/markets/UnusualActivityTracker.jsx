@@ -4,6 +4,7 @@ import { MOCK_ASX_STOCKS, getMockFMPRow, todayVolumeRatio } from '../../services
 import PriceChange from '../../components/ui/PriceChange'
 import { dispatchAskAI } from '../../utils/askAI'
 import { DemoBadge } from '../../components/ui/ModuleStates'
+import { PAL } from '../../styles/palette.js'
 
 // Volume vs average comes from todayVolumeRatio — the same measure the
 // scanner's volume tab uses, read off the daily bars. This panel used to roll
@@ -53,9 +54,9 @@ function classify(volumeRatio, priceChange) {
 // Header-bar colour per signal type. The bar is the loudest element on the
 // card, so the type is legible before any of the numbers are read.
 const SIGNAL_BAR = {
-  UNUSUAL_VOLUME:  { bg: '#C9A84C', fg: '#060D1A' },
-  HIGH_CONVICTION: { bg: '#2D8A50', fg: '#060D1A' },
-  ACCUMULATION:    { bg: '#3E5C7E', fg: '#E8EDF5' },
+  UNUSUAL_VOLUME:  { bg: PAL.gold, fg: PAL.bg },
+  HIGH_CONVICTION: { bg: PAL.up, fg: PAL.bg },
+  ACCUMULATION:    { bg: '#3E5C7E', fg: PAL.bright },
 }
 
 
@@ -106,7 +107,7 @@ export default function UnusualActivityTracker() {
               {/* Full-width type bar — the signal is the headline, not a
                   chip competing with the ticker beside it. */}
               <div
-                className="flex items-center gap-1.5 px-3 text-[9px] font-mono font-bold tracking-widest"
+                className="flex items-center gap-1.5 px-3 text-[11px] font-mono font-bold tracking-widest"
                 style={{ height: 24, backgroundColor: bar.bg, color: bar.fg }}
               >
                 <span aria-hidden="true">{s.icon}</span>
@@ -123,11 +124,11 @@ export default function UnusualActivityTracker() {
                 {/* Stats row — compact, evenly spaced, labels beneath values */}
                 <div className="flex items-center gap-4 mt-1.5">
                   <div>
-                    <div className="text-[8px] font-mono tracking-widest text-terminal-muted/70 uppercase">Volume</div>
+                    <div className="text-[11px] font-mono tracking-widest text-terminal-muted/70 uppercase">Volume</div>
                     <div className="text-2xs font-mono font-bold text-terminal-text-bright">{s.volumeRatio.toFixed(1)}× avg</div>
                   </div>
                   <div>
-                    <div className="text-[8px] font-mono tracking-widest text-terminal-muted/70 uppercase">Price</div>
+                    <div className="text-[11px] font-mono tracking-widest text-terminal-muted/70 uppercase">Price</div>
                     <PriceChange pct={s.priceChange} size="text-2xs" pill />
                   </div>
                 </div>

@@ -15,6 +15,7 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews } from '../../services/api'
+import { PAL } from '../../styles/palette.js'
 
 const TABS = [
   { key: 'OVERVIEW', label: 'OVERVIEW' },
@@ -467,15 +468,15 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                 <SafeChart width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" />
-                    <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
                     <Tooltip
                       contentStyle={{ background: 'var(--t-panel)', border: '1px solid var(--t-border)', fontSize: 11 }}
                       formatter={(v) => (typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—')}
                     />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Area type="monotone" dataKey="sector" name={sectorName} stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
-                    <Area type="monotone" dataKey="index" name={indexLabel} stroke="#4A6080" fill="#4A6080" fillOpacity={0.1} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Area type="monotone" dataKey="sector" name={sectorName} stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.15} />
+                    <Area type="monotone" dataKey="index" name={indexLabel} stroke={PAL.muted} fill={PAL.muted} fillOpacity={0.1} />
                   </AreaChart>
                 </SafeChart>
               </div>
@@ -682,15 +683,15 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                 <SafeChart width="100%" height="100%">
                   <AreaChart data={perfSeries}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" minTickGap={24} />
-                    <YAxis tick={{ fontSize: 9 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" minTickGap={24} />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
                     <Tooltip
                       contentStyle={{ background: 'var(--t-panel)', border: '1px solid var(--t-border)', fontSize: 11 }}
                       formatter={(v) => (typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—')}
                     />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Area type="monotone" dataKey="sector" name={sectorName} stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.15} />
-                    <Area type="monotone" dataKey="index" name={indexLabel} stroke="#4A6080" fill="#4A6080" fillOpacity={0.1} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Area type="monotone" dataKey="sector" name={sectorName} stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.15} />
+                    <Area type="monotone" dataKey="index" name={indexLabel} stroke={PAL.muted} fill={PAL.muted} fillOpacity={0.1} />
                   </AreaChart>
                 </SafeChart>
               </div>

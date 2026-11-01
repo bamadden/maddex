@@ -80,7 +80,10 @@ export default {
         // ~15 hardcoded text-[10px] usages as an invisible near-duplicate —
         // same problem as the two golds. Fixing the token unifies all 1391
         // text-2xs call sites without touching one of them.
-        '2xs': ['0.625rem', { lineHeight: '1rem' }],
+        // 11px: the floor for any text a reader needs (1 Nov 2026 type scale —
+        // 11 / 12 / 13 / 14 / 16 / 20 / 28, plus 36 and 48 for display).
+        // Was 10px; every text-2xs call site moves with it.
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
       animation: {
         'ticker-scroll': 'ticker 40s linear infinite',

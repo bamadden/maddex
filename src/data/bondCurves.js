@@ -1,3 +1,4 @@
+import { PAL } from '../styles/palette.js'
 // ─── Sovereign bond curves ──────────────────────────────────────────────────
 //
 // The full maturity spectrum for five government bond markets, 1M to 50Y.
@@ -15,10 +16,10 @@
 // they would have within a week of two people editing two tables.
 
 export const BOND_MARKETS = [
-  { key: 'AU', label: 'AU',  flag: '🇦🇺', name: 'Australian Government Bonds', colour: '#C9A84C', issuer: 'AOFM' },
+  { key: 'AU', label: 'AU',  flag: '🇦🇺', name: 'Australian Government Bonds', colour: PAL.gold, issuer: 'AOFM' },
   { key: 'US', label: 'US',  flag: '🇺🇸', name: 'US Treasuries',               colour: '#4A7FB5', issuer: 'US Treasury' },
   { key: 'UK', label: 'UK',  flag: '🇬🇧', name: 'UK Gilts',                    colour: '#a855f7', issuer: 'UK DMO' },
-  { key: 'DE', label: 'DE',  flag: '🇩🇪', name: 'German Bunds',                colour: '#2D8A50', issuer: 'Bundesbank' },
+  { key: 'DE', label: 'DE',  flag: '🇩🇪', name: 'German Bunds',                colour: PAL.up, issuer: 'Bundesbank' },
   { key: 'JP', label: 'JP',  flag: '🇯🇵', name: 'Japanese Government Bonds',   colour: '#14b8a6', issuer: 'MOF Japan' },
 ]
 

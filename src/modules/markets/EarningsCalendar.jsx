@@ -3,6 +3,7 @@ import { upcomingEarnings, daysUntil, EARNINGS_2026 } from '../../services/earni
 import { getPrep, togglePrepItem, prunePrep } from '../../services/earningsPrep'
 import { useStore } from '../../store/useStore'
 import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
+import { PAL } from '../../styles/palette.js'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -45,9 +46,9 @@ function PrepChecklist({ entry, onChange }) {
             <span
               className="flex-shrink-0 mt-px flex items-center justify-center"
               style={{
-                width: 12, height: 12, fontSize: 9,
-                border: `1px solid ${item.done ? '#C9A84C' : 'rgba(99,120,153,0.5)'}`,
-                color: '#C9A84C',
+                width: 12, height: 12, fontSize: 11,
+                border: `1px solid ${item.done ? PAL.gold : 'rgba(99,120,153,0.5)'}`,
+                color: PAL.gold,
               }}
             >{item.done ? '✓' : ''}</span>
             <span className={`text-2xs leading-snug ${item.done ? 'text-terminal-text-dim/50 line-through' : 'text-terminal-text'}`}>
@@ -127,7 +128,7 @@ export default function EarningsCalendar() {
         {season.active && (
           <span
             className="text-2xs font-bold tracking-widest px-1.5 py-0.5"
-            style={{ color: '#C9A84C', border: '1px solid rgba(201,168,76,0.4)' }}
+            style={{ color: PAL.gold, border: '1px solid rgba(201,168,76,0.4)' }}
           >EARNINGS SEASON · {season.count} THIS WEEK</span>
         )}
       </div>
@@ -184,13 +185,13 @@ export default function EarningsCalendar() {
                           className="rounded-full"
                           style={{
                             width: 3, height: 3,
-                            background: isWatched(e.ticker) ? '#C9A84C' : '#4A7FB5',
+                            background: isWatched(e.ticker) ? PAL.gold : '#4A7FB5',
                           }}
                         />
                       ))}
                     </span>
                   )}
-                  {anyWatched && <span style={{ fontSize: 6, color: '#C9A84C', lineHeight: 1 }}>★</span>}
+                  {anyWatched && <span style={{ fontSize: 11, color: PAL.gold, lineHeight: 1 }}>★</span>}
                 </button>
               )
             })}
@@ -213,7 +214,7 @@ export default function EarningsCalendar() {
                   </span>
                   <span className="text-2xs text-terminal-text-dim truncate flex-1">{e.company}</span>
                   <span className="text-2xs text-terminal-text-dim/60 flex-shrink-0">{e.type}</span>
-                  {e.source && <span className="text-[8px] font-bold tracking-wider text-terminal-green/80 border border-terminal-green/40 px-1 flex-shrink-0" title={e.source}>SOURCED</span>}
+                  {e.source && <span className="text-[11px] font-bold tracking-wider text-terminal-green/80 border border-terminal-green/40 px-1 flex-shrink-0" title={e.source}>SOURCED</span>}
                 </button>
               ))}
             </div>
@@ -234,7 +235,7 @@ export default function EarningsCalendar() {
               return (
                 <div key={`${e.ticker}-${e.date}`}>
                   <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-terminal-accent/10 border-l-2"
-                    style={{ borderColor: isWatched(e.ticker) ? '#C9A84C' : 'transparent' }}
+                    style={{ borderColor: isWatched(e.ticker) ? PAL.gold : 'transparent' }}
                   >
                     <span className="text-2xs text-terminal-text-dim w-14 flex-shrink-0 tabular-nums">
                       {new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
