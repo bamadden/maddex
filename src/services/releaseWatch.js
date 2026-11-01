@@ -18,7 +18,7 @@
 
 import VERIFIED_CONSTANTS from '../data/verifiedConstants'
 import { scheduledEvents, eventInstant } from './calendarService'
-import { runOfficialCheck, getOfficialCheck, subscribeOfficialCheck } from './officialStats'
+import { runOfficialCheck, getOfficialCheck, subscribeOfficialCheck } from './officialCheckStore'
 
 const BANNER_MS = 72 * 3600_000
 const FIRST_CHECK_MS = 2 * 60_000      // agency APIs lag the release page slightly

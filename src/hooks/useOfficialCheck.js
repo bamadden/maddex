@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getOfficialCheck, subscribeOfficialCheck } from '../services/officialStats'
+import { getOfficialCheck, subscribeOfficialCheck } from '../services/officialCheckStore'
 
 // The latest RBA/ABS reconciliation, live-updating when a check completes.
 export function useOfficialCheck() {

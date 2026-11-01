@@ -1,6 +1,6 @@
 import { useReleaseWatch } from '../../hooks/useReleaseWatch'
 import { dismissRelease } from '../../services/releaseWatch'
-import { runOfficialCheck } from '../../services/officialStats'
+import { runOfficialCheck } from '../../services/officialCheckStore'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 
 // "DATA NOW RELEASED" — shown in Macro, Calendar, Dashboard and Rates once a

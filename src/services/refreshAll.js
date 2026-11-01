@@ -1,4 +1,4 @@
-import { runOfficialCheck } from './officialStats'
+import { runOfficialCheck } from './officialCheckStore'
 
 // REFRESH ALL DATA (Apex) — every live feed and the official statistics check,
 // now rather than on schedule.

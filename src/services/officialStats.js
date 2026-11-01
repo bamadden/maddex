@@ -1,4 +1,5 @@
 import { VERIFIED_CONSTANTS, markConfirmed } from '../data/verifiedConstants.js'
+import { publishOfficialCheck } from './officialCheckStore.js'
 
 // ─── Official statistics, straight from the agencies ────────────────────────
 //
@@ -350,8 +351,6 @@ export async function checkUs(constants, { fetchImpl = fetch } = {}) {
 
 const CHECK_KEY = 'maddex_official_stats_v2' // v2 adds the US figures
 const CHECK_TTL = 6 * 60 * 60 * 1000
-const listeners = new Set()
-let latest = null
 
 function applyConfirmations(result) {
   const today = new Date(result.fetchedAt).toLocaleDateString('en-CA')
@@ -372,38 +371,30 @@ function applyConfirmations(result) {
   }
 }
 
-export function getOfficialCheck() { return latest }
-export function subscribeOfficialCheck(cb) { listeners.add(cb); return () => listeners.delete(cb) }
+// The result store (latest, subscribers) and the startup entry point live in
+// officialCheckStore.js, which the shell imports; this file — the fetchers
+// and reconciliation — loads on demand.
+export { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from './officialCheckStore.js'
 
-// One request in flight at a time — StrictMode mounts effects twice in dev,
-// and a click on CHECK NOW during the startup check should join it.
-let inflight = null
-export function runOfficialCheck(opts = {}) {
-  if (!inflight) inflight = doOfficialCheck(opts).finally(() => { inflight = null })
-  return inflight
-}
-
-async function doOfficialCheck({ force = false } = {}) {
+export async function doOfficialCheck({ force = false } = {}) {
   if (!force) {
     try {
       const cached = JSON.parse(localStorage.getItem(CHECK_KEY) ?? 'null')
       if (cached && Date.now() - cached.fetchedAt < CHECK_TTL) {
         // Re-reconcile against the constants as they are NOW — a cached
         // comparison would hide an edit made since.
-        latest = { ...cached, rows: reconcile(VERIFIED_CONSTANTS, cached.live) }
+        const latest = { ...cached, rows: reconcile(VERIFIED_CONSTANTS, cached.live) }
         applyConfirmations(latest)
-        listeners.forEach((cb) => cb(latest))
-        return latest
+        return publishOfficialCheck(latest)
       }
     } catch { /* fall through and fetch */ }
   }
   const live = await fetchOfficialStats()
-  latest = { live, fetchedAt: live.fetchedAt, rows: reconcile(VERIFIED_CONSTANTS, live) }
+  const latest = { live, fetchedAt: live.fetchedAt, rows: reconcile(VERIFIED_CONSTANTS, live) }
   try { localStorage.setItem(CHECK_KEY, JSON.stringify({ live, fetchedAt: live.fetchedAt })) } catch { /* quota */ }
   applyConfirmations(latest)
   const drift = latest.rows.filter((r) => r.status === 'drift')
   if (drift.length) console.warn('[MADDEN OFFICIAL] Constants out of date:', drift.map((r) => `${r.label} ${r.constant} → ${r.official} (${r.period})`).join('; '))
   else console.log('[MADDEN OFFICIAL] ✓ RBA/ABS figures match verifiedConstants')
-  listeners.forEach((cb) => cb(latest))
-  return latest
+  return publishOfficialCheck(latest)
 }

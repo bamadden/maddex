@@ -3,7 +3,7 @@ import NotificationPermissionPrompt from './components/ui/NotificationPermission
 import PlanOverlays from './components/billing/PlanOverlays'
 import { gatedModule } from './components/billing/ModuleGate'
 import { MODULE_FEATURE, trialEndedSeen, devTrialDay } from './services/plans'
-import { runOfficialCheck } from './services/officialStats'
+import { runOfficialCheck } from './services/officialCheckStore'
 import { startReleaseWatch } from './services/releaseWatch'
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore, lazy, Suspense } from 'react'
 import { workspaceService } from './services/workspaceService'

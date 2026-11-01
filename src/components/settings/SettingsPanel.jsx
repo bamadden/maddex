@@ -33,7 +33,7 @@ import {
   CATEGORIES as NOTIFY_CATEGORIES, getPrefs as getNotifyPrefs, setPref as setNotifyPref,
   permission as notifyPermission, requestPermission as requestNotifyPermission, fire as fireNotification,
 } from '../../services/browserNotify'
-import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialStats'
+import { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from '../../services/officialCheckStore'
 import { getImportHistory } from '../../services/portfolioCsv'
 import { TIER_LABEL, PRICES, openPricing, GATES, LIMITS, canAccess as planAllows, devPlanOverride, effectiveTier, showLimitPrompt } from '../../services/plans'
 import { getUsage, aiQueriesToday, subscribeUsage } from '../../services/usageService'

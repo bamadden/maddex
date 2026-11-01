@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import VERIFIED_CONSTANTS, { daysSinceVerified, pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
-import { runOfficialCheck } from '../../services/officialStats'
+import { runOfficialCheck } from '../../services/officialCheckStore'
 
 // DATA HEALTH — the top of Settings → Data Sources: every feed's age, the
 // official-statistics check, today's AI content, what is due next, and the
