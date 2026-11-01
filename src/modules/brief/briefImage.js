@@ -84,8 +84,9 @@ export async function downloadBriefImage(brief, dayLabel) {
 
   ctx.fillStyle = 'rgba(201,168,76,0.35)'; ctx.fillRect(56, H - 86, W - 112, 1)
   ctx.fillStyle = GOLD; ctx.font = `700 14px ${mono}`; ctx.fillText(`MADDEX · ${dayLabel}`, 56, H - 56)
-  ctx.textAlign = 'right'; ctx.fillStyle = DIM; ctx.font = `500 13px ${mono}`
-  ctx.fillText('maddex.com.au · general information only — not advice', W - 56, H - 56)
+  ctx.textAlign = 'right'; ctx.fillStyle = DIM; ctx.font = `500 12px ${mono}`
+  ctx.fillText(`Prepared with the assistance of AI · data as at ${dayLabel}`, W - 56, H - 62)
+  ctx.fillText('General information only — not financial advice. Does not consider your objectives, situation or needs.', W - 56, H - 44)
 
   const blob = await new Promise((res) => c.toBlob(res, 'image/png'))
   if (!blob) throw new Error('Could not render the image')

@@ -86,8 +86,6 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
     setShareLink(createShareLink('research', {
       assetName: asset.name,
       assetSymbol: asset.symbol,
-      stance: note.stance,
-      stanceRationale: note.stanceRationale,
       timeHorizon: note.timeHorizon,
       executiveSummary: note.executiveSummary,
       conclusion: note.conclusion,
@@ -174,7 +172,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
                     >REGENERATE</button>}
                     <button
                       onClick={handleCopy}
-                      title="Copy the stance and executive summary to share"
+                      title="Copy the executive summary, data date and disclaimer to share"
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
                     >{copied ? '✓ COPIED' : 'SHARE'}</button>
                     <button

@@ -1,6 +1,6 @@
 import { askClaudeJSON } from './api'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../data/verifiedConstants'
-import { COMPANY } from '../data/company'
+import { AI_ASSISTED, STANDARD_DISCLAIMER, NOT_LICENSED, reportFooter } from './disclosures'
 import { eventsForAI } from './calendarService'
 
 // Stable instruction template — the section list and JSON schema never vary,
@@ -34,7 +34,7 @@ const RESEARCH_SYSTEM = `You are MaddenAI producing a professional research note
 ABSOLUTE CONSTRAINT — NO INVENTED FIGURES
 You have not been given this security's price, market cap, multiples, earnings, segment revenue or estimates, and you cannot recall them reliably. Therefore:
 - No price targets, fair values, support or resistance levels, upside or downside percentages, multiples, margins, growth rates, segment revenue shares or any other number describing this security.
-- No BUY, HOLD, SELL, ACCUMULATE, REDUCE or equivalent rating. The stance is an assessment of the balance of considerations, not a recommendation.
+- No BUY, HOLD, SELL, ACCUMULATE, REDUCE, stance or any equivalent rating, and no view on whether to buy, sell or hold. The note describes and explains; it does not recommend.
 - Where you would reach for a figure, write the judgement instead: "the larger of its two segments", "a premium to domestic peers", "margins under pressure for several halves".
 - You MAY quote the figures under VERIFIED MACRO FIGURES in the user message, and only those. They describe the environment, not this security.
 - Widely-known, stable facts about the business are fine: what it sells, its segments, where it operates, who it competes with.
@@ -44,11 +44,9 @@ SECTIONS — return JSON with exactly these keys:
 {
   "sector": "GICS sector, e.g. Financials, Materials, Health Care",
   "exchange": "primary listing, e.g. ASX, NYSE, NASDAQ",
-  "stance": "CONSTRUCTIVE" | "BALANCED" | "CAUTIOUS",
-  "stanceRationale": "one sentence on why the considerations land there — no figures",
   "executiveSummary": "3-4 sentences, 60-85 words. The essential consideration; what an investor needs to know in 30 seconds.",
   "businessOverview": "80-110 words: what the company does, its key segments (by name and relative importance, no figures), its competitive position in plain English, and its geographic exposure.",
-  "investmentConsiderations": ["3 to 5 bullets of at most 30 words each, a deliberate mix of supportive and cautionary, each specific to this company"],
+  "investmentConsiderations": ["3 to 5 bullets of at most 30 words each, a balanced mix of supportive and cautionary facts, each specific to this company — described, never framed as a reason to act"],
   "macroContext": "90-120 words on how the current environment reaches THIS company's earnings. Banks: the cash rate and net interest margins. Miners: iron ore and Chinese demand. Offshore earners such as healthcare: the AUD/USD translation. Quote the verified figures that matter and name the mechanism.",
   "risks": ["exactly 3, at most 30 words each, specific and material to this company, not boilerplate"],
   "catalysts": ["exactly 3, at most 30 words each, specific upcoming events: results dates or reporting periods, commodity or data releases, RBA decisions. Use the scheduled dates in the user message where they apply."]
@@ -72,9 +70,10 @@ Return ONLY valid JSON, no markdown.`
 // gave the model a false anchor and made every conclusion drawn from it read
 // as though it described the real security.
 
-export const NOTE_DISCLAIMER = `This research note is general information only and does not constitute financial advice, a personal recommendation, or an offer to buy or sell any security. Past performance is not indicative of future results. The author may hold positions in securities mentioned. Always seek licensed financial advice before investing. ${COMPANY} does not hold an AFSL.`
-
-export const STANCES = ['CONSTRUCTIVE', 'BALANCED', 'CAUTIOUS']
+// The standard words (services/disclosures), plus that the note is not an
+// offer. Replaced a model-era line claiming "the author may hold positions":
+// the author is MaddenAI.
+export const NOTE_DISCLAIMER = `${AI_ASSISTED} ${STANDARD_DISCLAIMER} It is not an offer to buy or sell any security. ${NOT_LICENSED}`
 
 // Holds the model to the counts the prompt asks for, and fills the header
 // fields the model should not be trusted with. The exchange comes from the
@@ -90,7 +89,10 @@ export function normaliseNote(note) {
     executiveSummary: unlabel(note.executiveSummary),
     businessOverview: unlabel(note.businessOverview),
     macroContext: unlabel(note.macroContext),
-    stance: STANCES.includes(note.stance) ? note.stance : (note.stance ? 'BALANCED' : note.stance),
+    // Notes saved before 1 Nov 2026 carried a CONSTRUCTIVE/BALANCED/CAUTIOUS
+    // stance — in effect a rating. It is dropped, not shown.
+    stance: undefined,
+    stanceRationale: undefined,
     exchange: /\.AX$/i.test(a.symbol ?? '') ? 'ASX' : note.exchange,
     investmentConsiderations: note.investmentConsiderations?.slice(0, 5).map(unlabel),
     risks: note.risks?.slice(0, 3).map(unlabel),
@@ -257,8 +259,8 @@ export function parseProse(body) {
 
 // ─── Shareable text ──────────────────────────────────────────────────────────
 //
-// Plain text, for pasting into a message or an email. Carries the stance, the
-// summary and the general-information line — and deliberately not the full note, which is
+// Plain text, for pasting into a message or an email. Carries the summary,
+// the data date, the AI-assisted note and the disclaimer — and deliberately not the full note, which is
 // long enough that a paste would be unreadable and short enough on context to
 // be misquoted.
 export function noteToShareText(note) {
@@ -267,11 +269,10 @@ export function noteToShareText(note) {
   const date = new Date(note.generatedAt ?? Date.now()).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
   return [
     `MADDEX RESEARCH — ${(a.name ?? '').toUpperCase()} (${String(a.symbol ?? '').replace(/\.AX$/i, '')})`,
-    `${date} · Stance: ${note.stance ?? 'BALANCED'}`,
+    date,
     '',
     note.executiveSummary ?? '',
     '',
-    'Full note available at maddex.com.au',
-    'General information only — not financial advice.',
+    ...reportFooter({ asOf: Date.parse(note.generatedAt ?? '') || Date.now() }),
   ].join('\n')
 }

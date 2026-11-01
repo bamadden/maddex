@@ -27,12 +27,6 @@ const RULE = [216, 220, 227]
 const GOLD = [168, 134, 47]
 const PANEL = [247, 248, 250]
 
-const STANCE_TONE = {
-  CONSTRUCTIVE: [45, 122, 74],
-  BALANCED: [168, 134, 47],
-  CAUTIOUS: [168, 50, 50],
-}
-
 // Characters outside WinAnsi render as garbage in the standard fonts.
 const clean = (s) => String(s ?? '')
   .replace(/[→⟶]/g, '->').replace(/[←]/g, '<-').replace(/[≈~]/g, 'approx. ')
@@ -95,24 +89,18 @@ export function buildNotePdf(note) {
   font('helvetica', 'normal', 7, [255, 255, 255])
   pdf.text('GENERAL INFORMATION ONLY', PAGE_W - M, 8.4, { align: 'right' })
 
-  // ── Stance box (top right) ──
+  // ── Report box (top right): what it is, that AI assisted, that it is not
+  // a recommendation. (A CONSTRUCTIVE/BALANCED/CAUTIOUS stance sat here — in
+  // effect a rating — until 1 Nov 2026.)
   const boxW = 62, boxX = PAGE_W - M - boxW, boxY = 21
-  const stance = note.stance ?? NOTE_KIND_LABEL[note.kind] ?? 'BALANCED'
-  const tone = STANCE_TONE[stance] ?? MUTED
-  font('times', 'italic', 8.5, MUTED)
-  const rationale = pdf.splitTextToSize(clean(note.stanceRationale ?? (note.body ? 'Long-form MaddenAI analysis, kept from the chat panel.' : '')), boxW - 8)
-  const boxH = 17 + rationale.length * lineH(8.5, 1.35) + 6
+  const kind = NOTE_KIND_LABEL[note.kind] ?? 'RESEARCH NOTE'
+  const boxH = 22
   pdf.setFillColor(...PANEL); pdf.setDrawColor(...RULE); pdf.setLineWidth(0.3)
   pdf.rect(boxX, boxY, boxW, boxH, 'FD')
   font('helvetica', 'bold', 6.5, MUTED)
-  pdf.setCharSpace(0.5); pdf.text('STANCE', boxX + 4, boxY + 5.5); pdf.setCharSpace(0)
-  font('helvetica', 'bold', 8.5, [255, 255, 255])
-  const pillW = pdf.getTextWidth(stance) + 8
-  pdf.setFillColor(...tone); pdf.roundedRect(boxX + 4, boxY + 7.5, pillW, 6, 3, 3, 'F')
-  pdf.text(stance, boxX + 4 + pillW / 2, boxY + 11.6, { align: 'center' })
-  font('times', 'italic', 8.5, MUTED)
-  let ry = boxY + 18.5
-  for (const ln of rationale) { pdf.text(ln, boxX + 4, ry); ry += lineH(8.5, 1.35) }
+  pdf.setCharSpace(0.5); pdf.text(kind, boxX + 4, boxY + 5.5); pdf.setCharSpace(0)
+  font('helvetica', 'normal', 7, INK)
+  pdf.text('Prepared with the assistance of AI.', boxX + 4, boxY + 11)
   font('helvetica', 'normal', 6, MUTED)
   pdf.text('Not a recommendation — general information only', boxX + 4, boxY + boxH - 2.5)
 
@@ -125,7 +113,7 @@ export function buildNotePdf(note) {
   font('helvetica', 'normal', 9.5, MUTED)
   pdf.text(clean([displayTicker(a), note.sector, note.exchange].filter(Boolean).join('  ·  ')), M, y + 3)
   y += 5.5
-  pdf.text(clean(`${dateLabel(note.generatedAt)}  ·  General Information Only`), M, y + 3)
+  pdf.text(clean(`Data as at ${dateLabel(note.generatedAt)}  ·  General Information Only`), M, y + 3)
   y = Math.max(y + 8, boxY + boxH + 6)
   pdf.setDrawColor(...INK); pdf.setLineWidth(0.6); pdf.line(M, y, PAGE_W - M, y)
   y += 2

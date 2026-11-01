@@ -163,7 +163,8 @@ function draw(ctx, { holdings, totalPnl, pnlPct, mktTotal, currency, ownerName }
 
   ctx.fillStyle = COLOR.textDim
   ctx.font = '12px "IBM Plex Mono", monospace'
-  ctx.fillText('General information only — not financial advice.', 60, H - 45)
+  ctx.fillText(`Data as at ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' })} · equity prices are DEMO data.`, 60, H - 52)
+  ctx.fillText('General information only — not financial advice. Past performance is not a reliable indicator of future performance.', 60, H - 34)
 }
 
 // The shared snapshot page (Apex) is privacy-first: percentages only. Return

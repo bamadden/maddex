@@ -1,4 +1,5 @@
 import { getMockFMPRow } from '../../services/mockData'
+import { STANDARD_DISCLAIMER, NOT_LICENSED } from '../../services/disclosures'
 import {
   annualise, bondGrowth, cashGrowth, cgtEstimate, daysBetween, dividendsFor, heldTwelveMonths,
 } from '../../services/performanceMath'
@@ -118,7 +119,8 @@ export function performanceCsv(model, { today, taxRate, taxNote, bondAsOf }) {
   const p = model.portfolio
   const rows = [
     ['# Maddex performance report', today],
-    ['# Prices are DEMO data until a live equities feed is connected. General information only — not financial or tax advice.'],
+    ['# Prices are DEMO data until a live equities feed is connected. Not tax advice.'],
+    [`# Data as at ${today}. ${STANDARD_DISCLAIMER} ${NOT_LICENSED}`],
     [],
     ['PORTFOLIO SUMMARY'],
     ['Since', p.firstDate],

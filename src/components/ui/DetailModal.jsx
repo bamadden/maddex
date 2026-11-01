@@ -75,11 +75,6 @@ function coinDescription(symbol, name) {
   return COIN_DESCRIPTIONS[symbol] ?? `${name ?? symbol} is a digital asset traded on major cryptocurrency exchanges. Track its price, market cap, and trading volume alongside the rest of the top 20 by market cap.`
 }
 
-const REC_LABELS = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
-// STRONG BUY -> BUY -> HOLD -> SELL -> STRONG SELL, walked through the
-// terminal's own green, gold and red rather than five Tailwind swatches.
-const REC_COLORS = [PAL.up, '#5E9B76', PAL.gold, '#B07A7A', PAL.down]
-
 // ─── Candlestick Chart ────────────────────────────────────────────────────────
 
 function CandleChart({ data }) {
@@ -295,40 +290,6 @@ function DataRow({ label, value, cls = '' }) {
       <span className={`text-2xs font-semibold text-right truncate ${cls || 'text-terminal-text-bright'}`}>
         {value ?? '—'}
       </span>
-    </div>
-  )
-}
-
-// ─── Analyst consensus bar ───────────────────────────────────────────────────
-
-function AnalystBar({ recMean, analystCount }) {
-  if (!recMean) return <p className="text-2xs text-terminal-text-dim/50 py-1">No analyst coverage data</p>
-  const clamped = Math.max(1, Math.min(5, recMean))
-  const pct     = ((clamped - 1) / 4) * 100
-  const idx     = Math.min(4, Math.max(0, Math.round(clamped) - 1))
-  return (
-    <div className="w-full py-0.5">
-      <div className="flex h-2 rounded-sm overflow-hidden gap-px">
-        {REC_COLORS.map((c, i) => (
-          <div key={i} className="flex-1" style={{ backgroundColor: c, opacity: i === idx ? 1 : 0.18 }} />
-        ))}
-      </div>
-      <div className="relative h-2 mt-0.5">
-        <div className="absolute" style={{ left: `calc(${pct}% - 4px)`, top: -1 }}>
-          <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: `6px solid ${REC_COLORS[idx]}` }} />
-        </div>
-      </div>
-      <div className="flex justify-between mt-0.5 px-0.5">
-        {REC_LABELS.map((l) => (
-          <span key={l} className="text-terminal-text-dim/40 text-center leading-tight" style={{ fontSize: '11px', width: '20%' }}>
-            {l.split(' ').map((w, wi) => <span key={wi} className="block">{w}</span>)}
-          </span>
-        ))}
-      </div>
-      <div className="flex items-center justify-between mt-1.5">
-        <span className="text-xs font-bold" style={{ color: REC_COLORS[idx] }}>{REC_LABELS[idx]}</span>
-        <span className="text-2xs text-terminal-text-dim/60">{recMean.toFixed(2)} / 5 · {analystCount ?? '—'} analysts</span>
-      </div>
     </div>
   )
 }
@@ -907,28 +868,12 @@ export default function DetailModal() {
         <DataRow label="Avg Vol (10D)"  value={qs?.avgVolume10d ? fmt.large(qs.avgVolume10d) : '—'} />
       </Section>
 
-      {qs?.recMean == null && (
-        <Section title="ANALYST COVERAGE" noCols>
-          <AnalystCoverage symbol={symbol} name={name ?? symbol} />
-        </Section>
-      )}
-      {qs?.recMean != null && (
-        <Section title="ANALYST CONSENSUS" noCols>
-          <AnalystBar recMean={qs.recMean} analystCount={qs.analystCount} />
-          <div className="grid grid-cols-2 gap-x-6 mt-2 pt-2 border-t border-terminal-border/20">
-            <DataRow label="Target High" value={fmtAmt(qs.targetHigh)} cls="text-terminal-green" />
-            <DataRow label="Target Low"  value={fmtAmt(qs.targetLow)}  cls="text-terminal-red" />
-            <DataRow label="Target Mean" value={fmtAmt(qs.targetMean)} />
-            {qs.targetMean && displayPrice > 0 && (
-              <DataRow
-                label="Upside"
-                value={`${(((toQsAud(qs.targetMean) ?? displayPrice) / displayPrice - 1) * 100).toFixed(1)}%`}
-                cls={colorClass((toQsAud(qs.targetMean) ?? displayPrice) / displayPrice - 1)}
-              />
-            )}
-          </div>
-        </Section>
-      )}
+      {/* Broker buy/sell ratings and price targets are not
+          shown: Maddex does not publish ratings or targets, and no licensed
+          consensus feed is connected. */}
+      <Section title="ANALYST COVERAGE" noCols>
+        <AnalystCoverage />
+      </Section>
 
       {/* Peers sit above the company profile: "what else is like this" is a
           question people ask while still forming a view, whereas the profile

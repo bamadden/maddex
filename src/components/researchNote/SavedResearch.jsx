@@ -13,7 +13,6 @@ import { PAL } from '../../styles/palette.js'
 
 const ResearchNoteGenerator = lazy(() => import('./ResearchNoteGenerator'))
 
-const STANCE_TONE = { CONSTRUCTIVE: PAL.up, BALANCED: PAL.gold, CAUTIOUS: PAL.down }
 
 // [SCHEDULE WEEKLY NOTE] — fresh notes on the top watchlist stocks each
 // Monday (services/noteScheduler).
@@ -70,8 +69,9 @@ export default function SavedResearch() {
       <WeeklyNotesBar />
       <div className="overflow-auto max-h-56">
         {notes.map((n) => {
-          const stance = n.stance ?? NOTE_KIND_LABEL[n.kind] ?? 'BALANCED'
-          const tone = STANCE_TONE[stance] ?? PAL.dim
+          // The note's type, not a stance (stances were dropped 1 Nov 2026).
+          const stance = NOTE_KIND_LABEL[n.kind] ?? 'RESEARCH NOTE'
+          const tone = PAL.dim
           return (
             <div key={noteId(n)} className="group flex items-center gap-2 border-b border-terminal-border/40 last:border-0 px-3 py-1.5 hover:bg-terminal-surface2">
               <button onClick={() => setOpen(n)} className="flex-1 min-w-0 text-left" title="Open this note">

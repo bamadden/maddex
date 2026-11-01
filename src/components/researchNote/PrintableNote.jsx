@@ -1,5 +1,4 @@
 import { displayTicker, NOTE_DISCLAIMER, NOTE_KIND_LABEL, parseProse } from '../../services/researchNoteService'
-import { PAL } from '../../styles/palette.js'
 
 // The on-screen preview of the research note, in document colours.
 //
@@ -19,12 +18,6 @@ const GOLD = '#A8862F'
 const PANEL = '#F7F8FA'
 const SERIF = 'Georgia, "Times New Roman", serif'
 const SANS = 'Inter, "Helvetica Neue", Arial, sans-serif'
-
-const STANCE_TONE = {
-  CONSTRUCTIVE: '#2D7A4A',
-  BALANCED: '#A8862F',
-  CAUTIOUS: PAL.down,
-}
 
 function Section({ title, children }) {
   return (
@@ -59,9 +52,7 @@ function List({ items, numbered }) {
 export default function PrintableNote({ note, forwardRef }) {
   if (!note) return null
   const a = note.asset ?? {}
-  const stance = note.stance ?? NOTE_KIND_LABEL[note.kind] ?? 'BALANCED'
-  const rationale = note.stanceRationale ?? (note.body ? 'Long-form MaddenAI analysis, kept from the chat panel.' : null)
-  const tone = STANCE_TONE[stance] ?? MUTED
+  const kind = NOTE_KIND_LABEL[note.kind] ?? 'RESEARCH NOTE'
   // The note's own timestamp, not the clock — the same note always shows the
   // same date.
   const date = new Date(note.generatedAt ?? 0).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -80,16 +71,11 @@ export default function PrintableNote({ note, forwardRef }) {
             <div style={{ fontSize: 12, color: MUTED, marginTop: 8 }}>
               {[displayTicker(a), note.sector, note.exchange].filter(Boolean).join('  ·  ')}
             </div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{date}  ·  General Information Only</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>Data as at {date}  ·  General Information Only</div>
           </div>
           <div style={{ width: 236, flexShrink: 0, background: PANEL, border: `1px solid ${RULE}`, padding: '10px 14px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: MUTED }}>STANCE</div>
-            <div style={{ display: 'inline-block', marginTop: 6, background: tone, color: '#FFFFFF', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999 }}>
-              {stance}
-            </div>
-            {rationale && (
-              <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11, lineHeight: 1.45, color: MUTED, marginTop: 7 }}>{rationale}</div>
-            )}
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: MUTED }}>{kind}</div>
+            <div style={{ fontSize: 11, color: INK, marginTop: 6 }}>Prepared with the assistance of AI (MaddenAI).</div>
             <div style={{ fontSize: 11, color: MUTED, marginTop: 7 }}>Not a recommendation — general information only</div>
           </div>
         </div>

@@ -45,7 +45,7 @@ const RULES = [
   { id: 'imperative', re: new RegExp(`(?:^|[\\n•:—–]\\s*|^[-–]\\s*|\\b(?:yes|no|definitely|absolutely|so)[,.!]?\\s+)(buy|sell|hold|short|accumulate|trim|dump|load up|add to your|top up|switch to|rotate (?:into|out of)|go all in|get out of|stay out of)(?![-\\w])(?!\\s+(off|on|steady|up\\b|together))`, 'i') },
   { id: 'is-a-buy', re: /\b(is|looks|remains|stays|as)\s+(like\s+)?(a\s+)?(strong\s+|clear\s+|solid\s+)?(buy|sell|hold)\b(?![-\w])/i, negatable: true },
   { id: 'call', re: /\b(strong\s+)?(buy|sell|hold|accumulate|overweight|underweight|outperform|underperform)\s+(rating|recommendation|call|signal|zone)\b/i, negatable: true },
-  { id: 'rating', re: /\b(rate[ds]?|rating|verdict)\s*(it\s+|is\s+|:\s*)?(a\s+)?(strong\s+)?(buy|sell|hold)\b/i, negatable: true },
+  { id: 'rating', re: /\b(rate[ds]?|rating|verdict)\s*(it\s+|is\s+|:\s*|[A-Z][\w.&-]{1,10}\s+)?(a\s+)?(strong\s+)?(buy|sell|hold)\b/i, negatable: true },
   { id: 'good-time', re: new RegExp(`\\b(good|great|right|ideal|perfect|smart|wise|attractive)\\s+(time|moment|entry(\\s+point)?|price|level|opportunity)\\s+to\\s+${ACTION}\\b`, 'i'), negatable: true },
   { id: 'worth-buying', re: /\b(worth|time)\s+(buying|selling|holding|adding|owning|a punt)\b|\bbuy(ing)?\s+the\s+dip\b|\btake\s+profits?\b/i, negatable: true },
   { id: 'opportunity', re: /\b(buying|investment|entry|selling)\s+opportunit(y|ies)\b|\b(undervalued|cheap|bargain|oversold),?\s+(so|and)\s+(a\s+)?(buy|worth)\b/i, negatable: true },

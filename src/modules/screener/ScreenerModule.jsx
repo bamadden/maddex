@@ -10,6 +10,7 @@ import { fmt } from '../../utils/format'
 import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGenerator'
 import { useSubscription } from '../../hooks/useSubscription'
 import { takeModuleIntent } from '../../services/moduleIntent'
+import { reportFooter } from '../../services/disclosures'
 import { PAL } from '../../styles/palette.js'
 
 // Two derived fields the raw data does not carry, computed once here rather
@@ -958,7 +959,8 @@ export default function ScreenerModule() {
       ...(results.length > 15 ? [`…and ${results.length - 15} more`] : []),
       '',
       'Run this screen at maddex.com.au',
-      'Demo data · general information only.',
+      'Demo data. Match % is fit to the screen\'s criteria, not a rating.',
+      ...reportFooter({ asOf: Date.now(), ai: false }),
     ].join('\n')
     try {
       await navigator.clipboard.writeText(text)

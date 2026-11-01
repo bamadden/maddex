@@ -272,6 +272,10 @@ STYLE:
 - Reference the specific events that occurred this week, by name and day.
 - Australian lens throughout.
 
+CONTENT RULES (this review becomes the newsletter):
+- Describe and explain; do not recommend. No stock picks, no ratings, no price targets, no return forecasts.
+- Never tell the reader what to buy, sell or hold, and never frame anything as suitable for them.
+
 FIGURES:
 - Only quote figures from the data supplied. No invented price levels, index moves or economic prints.
 - A release listed without a result happened, but you were not given the number — say it was released, not what it showed.

@@ -168,7 +168,7 @@ export function briefProfileLines(p = getInvestorProfile()) {
   ].filter(Boolean).join(', ')
   const asks = [
     p.focus && LEAD_WITH[p.focus],
-    p.sectors.length && `In SECTOR FOCUS, start with the investor's preferred sectors (${p.sectors.map(title).join(', ')}) where the day gives a reason to; do not force one in without one.`,
+    p.sectors.length && `In SECTORS IN THE NEWS, include the reader's sectors of interest (${p.sectors.map(title).join(', ')}) where the day's news touches them; do not force one in without one.`,
     p.experience === 'BEGINNER' && 'Briefly explain any term a newer investor may not know.',
   ].filter(Boolean)
   return `READER PREFERENCES (tone and topics only — never a basis for suggesting an action): ${summary}\n${asks.map((a) => `- ${a}`).join('\n')}`
