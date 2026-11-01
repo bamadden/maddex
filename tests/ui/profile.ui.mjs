@@ -102,8 +102,8 @@ try {
 
   console.log('RBA banner → event ripple')
   await page.evaluate(() => localStorage.setItem('madden_portfolio_v2', JSON.stringify([
-    { id: 'u1', symbol: 'CBA', shares: 10, avgCost: 120, costCurrency: 'AUD', type: 'asx' },
-    { id: 'u2', symbol: 'BHP', shares: 10, avgCost: 40, costCurrency: 'AUD', type: 'asx' },
+    { id: 'u1', symbol: 'CBA', yfSym: 'CBA.AX', shares: 10, avgCost: 120, costCurrency: 'AUD', type: 'asx' },
+    { id: 'u2', symbol: 'BHP', yfSym: 'BHP.AX', shares: 10, avgCost: 40, costCurrency: 'AUD', type: 'asx' },
   ])))
   await runCommand(page, 'rates')
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.includes('WHICH HOLDINGS CONNECT')), { timeout: 30_000 }).catch(() => {})
@@ -134,6 +134,25 @@ try {
   await wait(300)
   const log = await page.evaluate(() => ({ cards: document.querySelectorAll('[role=tabpanel] article').length, approve: [...document.querySelectorAll('[role=tabpanel] button')].filter((b) => /APPROVE/.test(b.textContent)).length }))
   log.cards === triage.counts.AUTO_REJECTED && log.approve === 0 ? pass(`AUTO-REJECTED is a read-only log of ${log.cards}`) : fail(`AUTO-REJECTED: ${log.cards} cards, ${log.approve} approve buttons`)
+
+  console.log('One market sentiment score on every screen')
+  const seen = {}
+  const collect = async (where, n) => {
+    await page.waitForFunction((k) => document.querySelectorAll('[data-sentiment-score]').length >= k, { timeout: 30_000 }, n).catch(() => {})
+    seen[where] = await page.evaluate(() => [...document.querySelectorAll('[data-sentiment-score]')].map((e) => e.dataset.sentimentScore))
+    if (seen[where].length < n) {
+      console.log(`    (${where}: ${seen[where].length} of ${n}; on screen: ${await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.innerText ?? '?')} · ${await page.evaluate(() => document.body.innerText.slice(0, 200).replace(/\s+/g, ' '))})`)
+      await page.screenshot({ path: '/tmp/maddex-ui-sentiment.png' })
+    }
+  }
+  const nav = (label) => page.evaluate((l) => [...document.querySelectorAll('button.nav-row')].find((b) => (b.title || b.textContent).trim().startsWith(l))?.click(), label)
+  await nav('DASHBOARD'); await collect('dashboard (top bar, header, gauge)', 3)
+  await nav('MARKETS'); await collect('markets', 2)
+  await nav('NEWS'); await collect('news', 2)
+  const all = Object.values(seen).flat()
+  const dash = seen['dashboard (top bar, header, gauge)'] ?? []
+  if (all.length >= 7 && dash.length >= 3 && new Set(all).size === 1) pass(`same score in ${all.length} places (${all[0]}): ${Object.entries(seen).map(([k, v]) => `${k} ×${v.length}`).join(', ')}`)
+  else fail(`sentiment differs or is missing: ${JSON.stringify(seen)}`)
 
   console.log('MaddenAI is mocked')
   await runCommand(page, 'ai what does the profile show')

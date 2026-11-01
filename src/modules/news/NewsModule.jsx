@@ -15,7 +15,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { NewsletterBanner } from '../../components/newsletter/Newsletter'
 import { annotateArticles, clusterStories, marketSession, impactOf } from '../../services/newsIntelligence'
-import { useSentiment } from '../../hooks/useSentiment'
+import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import ContextPrompt from '../../components/ai/ContextPrompt'
@@ -1047,7 +1047,7 @@ function FilterBar({ searchTerm, setSearchTerm, activeCategory, onCategory, catC
 }
 
 // ─── INTELLIGENCE — the right column ────────────────────────────────────────
-function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, sentiment }) {
+function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, market }) {
   // Recomputed once a minute, not on every one-second tick of nowTs.
   const minute = Math.floor(nowTs / 60_000)
   const s = useMemo(() => overallSentiment(items, minute * 60_000), [items, minute])
@@ -1068,20 +1068,27 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, sent
         </div>
       )}
 
-      <div className="px-3 py-2 border-b border-terminal-border">
-        {head('Market sentiment', <span className="ml-auto font-mono font-bold" style={{ fontSize: 9, color: s.label === 'BULLISH' ? '#2D8A50' : s.label === 'BEARISH' ? '#a83232' : '#C9A84C' }}>{s.label}</span>)}
-        <div className="flex h-2 rounded-sm overflow-hidden" title={`${s.total} articles, keyword-scored, weighted by impact and recency`}>
+      {/* The one market sentiment score — the same number as the top bar,
+          Markets and the dashboard. */}
+      {market?.sentiment && (
+        <div className="px-3 py-2 border-b border-terminal-border" title={sentimentTooltip(market)}>
+          {head('Market sentiment', <span className="ml-auto font-mono font-bold" data-sentiment-score={market.sentiment.score} style={{ fontSize: 9, color: market.sentiment.color ?? '#C9A84C' }}>{market.sentiment.score} · {market.sentiment.label.toUpperCase()}</span>)}
+          <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 8 }}>Computed from market data{market.demoInputs ? ' · DEMO ASX inputs' : ''}</div>
+        </div>
+      )}
+
+      {/* A different measure: the tone of the headlines in this feed. */}
+      <div className="px-3 py-2 border-b border-terminal-border" title={`Headline tone: ${s.total} articles in this feed, scored by keyword and weighted by impact and recency. A different measure from market sentiment.`}>
+        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 9, color: s.label === 'BULLISH' ? '#2D8A50' : s.label === 'BEARISH' ? '#a83232' : '#C9A84C' }}>{s.label}</span>)}
+        <div className="flex h-2 rounded-sm overflow-hidden">
           <div style={{ width: `${s.bullPct}%`, background: '#2D8A50' }} />
           <div style={{ width: `${s.neutralPct}%`, background: '#C9A84C' }} />
           <div style={{ width: `${s.bearPct}%`, background: '#a83232' }} />
         </div>
         <div className="flex justify-between font-mono mt-1" style={{ fontSize: 8 }}>
-          <span style={{ color: '#2D8A50' }}>BULL {s.bullPct}%</span><span style={{ color: '#C9A84C' }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: '#a83232' }}>BEAR {s.bearPct}%</span>
+          <span style={{ color: '#2D8A50' }}>POSITIVE {s.bullPct}%</span><span style={{ color: '#C9A84C' }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: '#a83232' }}>NEGATIVE {s.bearPct}%</span>
         </div>
         {trend && <div className="font-mono mt-1" style={{ fontSize: 9, color: trend.c }}>{trend.t}</div>}
-        {sentiment?.score != null && (
-          <div className="font-mono mt-1 text-terminal-text-dim/70" style={{ fontSize: 8 }} title={sentiment.summary}>MaddenAI read: {sentiment.score} · {String(sentiment.label ?? '').toUpperCase()}</div>
-        )}
       </div>
 
       <div className="px-3 py-2 border-b border-terminal-border">
@@ -1240,7 +1247,7 @@ export default function NewsModule() {
   const listTopRef                    = useRef(null)
 
   const { newsFilter, setNewsFilter, clearNewsBadge, openModal, watchlist } = useStore()
-  const { sentiment, status: sentimentStatus } = useSentiment()
+  const market = useMarketSentiment()
 
   // Clear nav badge and tick clock
   useEffect(() => { clearNewsBadge() }, [clearNewsBadge])
@@ -1598,7 +1605,7 @@ export default function NewsModule() {
 
           {/* RIGHT 25% — intelligence */}
           <div className="flex flex-col overflow-y-auto" style={{ width: '25%', scrollbarWidth: 'none' }}>
-            <IntelColumn items={allArticles} annotatedAll={annotatedAll} nowTs={nowTs} topic={topic} setTopic={setTopic} onOpen={handleOpen} sentiment={sentimentStatus === 'ready' ? sentiment : null} />
+            <IntelColumn items={allArticles} annotatedAll={annotatedAll} nowTs={nowTs} topic={topic} setTopic={setTopic} onOpen={handleOpen} market={market} />
             <MovingOnNews items={allArticles} />
           </div>
         </div>

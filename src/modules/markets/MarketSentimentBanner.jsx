@@ -1,18 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, LineChart, Line, XAxis, YAxis, ReferenceLine } from 'recharts'
-import {
-  YF_INDICES, fetchFearGreed, transformFearGreed,
-} from '../../services/api'
-import { fetchIndexQuotesUnified, fetchCryptoMarketsUnified } from '../../services/dataService'
-import { useAsxUniverseQuotes } from './useAsxUniverse'
-import { useStore } from '../../store/useStore'
+import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import SafeChart from '../../components/ui/SafeChart'
-import {
-  calculateMarketSentimentScore, generateShortSummary, scoreToColor,
-} from '../../services/maddenAiScoring'
+import { generateShortSummary, scoreToColor } from '../../services/maddenAiScoring'
 
-const ALL_INDEX_SYMBOLS  = YF_INDICES.map((i) => i.symbol)
 const PREV_SCORE_KEY     = 'maddex_sentiment_prev'
 const HISTORY_KEY        = 'maddex_sentiment_history'
 const MAX_HISTORY        = 365
@@ -346,7 +337,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
         {/* ── Header ── */}
         <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
           <span className="text-2xs border border-terminal-gold/40 px-1.5 py-0.5 font-bold tracking-widest text-terminal-gold">SENTIMENT</span>
-          <span className="text-sm font-bold text-terminal-gold tracking-wider">MADDENAI MARKET SENTIMENT</span>
+          <span className="text-sm font-bold text-terminal-gold tracking-wider">MARKET SENTIMENT · COMPUTED FROM MARKET DATA</span>
           <span className="text-terminal-text-dim/40">◆</span>
           <span className="text-sm font-bold" style={{ color: scoreToColor(sentiment.score) }}>
             {sentiment.score}/100 {sentiment.label.toUpperCase()}
@@ -465,43 +456,10 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose }) {
 // ─── Banner ───────────────────────────────────────────────────────────────────
 export default function MarketSentimentBanner() {
   const [modalOpen, setModalOpen] = useState(false)
-  const { currency } = useStore()
-  const vsCurrency = currency.toLowerCase()
-
-  // Breadth over the same 72-name universe as Market Internals, so the two
-  // A/D figures on this screen are one figure.
-  const { data: asxResult } = useAsxUniverseQuotes()
-  const { data: indexResult } = useQuery({
-    queryKey: ['yfBatch', 'indices'],
-    queryFn:  () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS),
-    staleTime: 60_000, retry: 1,
-  })
-  const asxQuotes   = asxResult?.data
-  const indexQuotes = indexResult?.data
-  const { data: rawCrypto } = useQuery({
-    queryKey: ['cryptoMarkets', vsCurrency],
-    queryFn:  () => fetchCryptoMarketsUnified(vsCurrency),
-    staleTime: 60_000, retry: 1,
-  })
-  const { data: rawFearGreed } = useQuery({
-    queryKey: ['fearGreed'],
-    queryFn:  fetchFearGreed,
-    staleTime: 5 * 60_000, retry: 1,
-  })
-
-  const asxChanges    = asxQuotes    ? Object.values(asxQuotes).map((q) => q.dayChangePct) : null
-  const spxChange     = indexQuotes?.['^GSPC']?.pct ?? null
-  const cryptoList    = rawCrypto?.data ?? null
-  const cryptoChanges = cryptoList  ? cryptoList.map((c) => c.price_change_percentage_24h) : null
-  const btc           = cryptoList?.find((c) => c.symbol?.toUpperCase() === 'BTC')
-  const fearGreed     = rawFearGreed ? transformFearGreed(rawFearGreed) : null
-  const haveAnyData   = asxChanges || spxChange != null || cryptoChanges || fearGreed
-
-  const sentiment = haveAnyData ? calculateMarketSentimentScore({
-    fearGreed, asxChanges, spxChange,
-    btcChange: btc?.price_change_percentage_24h ?? null,
-    cryptoChanges,
-  }) : null
+  // The one market sentiment score (hooks/useMarketSentiment) — the same
+  // number the top bar, dashboard, News and Brief show.
+  const ms = useMarketSentiment()
+  const { sentiment, asxChanges, fearGreed } = ms
 
   const shortSummary = sentiment ? generateShortSummary({ marketSentimentScore: sentiment, asxChanges, fearGreed }) : ''
   const color        = sentiment ? scoreToColor(sentiment.score) : 'var(--color-neutral)'
@@ -517,7 +475,7 @@ export default function MarketSentimentBanner() {
   const handleOpen  = useCallback(() => setModalOpen(true),  [])
   const handleClose = useCallback(() => setModalOpen(false), [])
 
-  if (!haveAnyData || !sentiment) return null
+  if (!sentiment) return null
 
   return (
     <>
@@ -525,9 +483,9 @@ export default function MarketSentimentBanner() {
         className="border-b border-terminal-border bg-terminal-header flex-shrink-0 flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-terminal-accent/10 transition-colors"
         onClick={handleOpen}
       >
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0 whitespace-nowrap">MADDENAI</span>
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest flex-shrink-0 whitespace-nowrap" title={sentimentTooltip(ms)}>MARKET SENTIMENT</span>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0">◆</span>
-        <span className="text-2xs font-bold flex-shrink-0 whitespace-nowrap" style={{ color }}>
+        <span className="text-2xs font-bold flex-shrink-0 whitespace-nowrap" style={{ color }} data-sentiment-score={sentiment.score}>
           {sentiment.score}/100
         </span>
         <ScoreGradientBar score={sentiment.score} />

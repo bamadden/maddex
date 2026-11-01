@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useStore } from '../../store/useStore'
 import { intelligenceScore } from '../../services/intelligenceScore'
 
-// TERMINAL INTELLIGENCE chip for the Dashboard status bar: the score, and on
+// SETUP chip for the Dashboard status bar (was "INTELLIGENCE n/100", which read
+// as a market score): the score, and on
 // click what is missing, each with the step that earns its points.
 export default function IntelligenceScore() {
   const { watchlist, alerts, setActiveModule } = useStore()
@@ -21,12 +22,12 @@ export default function IntelligenceScore() {
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="font-mono font-bold tracking-widest px-2 py-0.5 whitespace-nowrap"
         style={{ fontSize: 9, color: tone, border: `1px solid ${tone}66`, borderRadius: 2 }}
-        title="How much of the terminal is set up for you">
-        INTELLIGENCE {score}/100
+        title="Setup: how much of the terminal is set up for you (watchlist, holdings, alerts…). Not a market measure.">
+        SETUP {score}%
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 w-72 bg-terminal-panel border border-terminal-border-gold shadow-xl p-2.5 font-sans">
-          <div className="font-mono text-terminal-gold tracking-widest mb-1.5" style={{ fontSize: 9 }}>TERMINAL INTELLIGENCE · {score}/100</div>
+          <div className="font-mono text-terminal-gold tracking-widest mb-1.5" style={{ fontSize: 9 }}>SETUP · {score}% COMPLETE</div>
           {parts.map((p) => (
             <div key={p.id} className="flex items-start gap-2 py-1 border-b border-terminal-border/30 last:border-0">
               <span style={{ color: p.done ? '#2D8A50' : '#4A6080', fontSize: 11 }}>{p.done ? '✓' : '○'}</span>

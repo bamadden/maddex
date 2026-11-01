@@ -4,6 +4,21 @@ import { marketSession } from '../../services/newsIntelligence'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { RegimeBadge } from '../../components/ui/RegimeBadge'
 import IntelligenceScore from './IntelligenceScore'
+import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
+
+// The market sentiment score, the same number as the top bar and Markets.
+function SentimentChip() {
+  const ms = useMarketSentiment()
+  const s = ms.sentiment
+  if (!s) return null
+  return (
+    <span className="font-mono font-bold tracking-widest px-2 py-0.5 whitespace-nowrap cursor-help"
+      style={{ fontSize: 9, color: s.color ?? '#C9A84C', border: '1px solid currentColor', borderRadius: 2 }}
+      title={sentimentTooltip(ms)} data-sentiment-score={s.score}>
+      SENTIMENT {s.score} · {s.label.toUpperCase()}
+    </span>
+  )
+}
 import { useStore } from '../../store/useStore'
 
 // The first line of the first screen.
@@ -95,6 +110,7 @@ export default function DashboardStatusBar() {
         <span className="hidden lg:inline-flex ml-2"><RegimeBadge onClick={() => setActiveModule?.('macro')} /></span>
       </div>
 
+      <span className="hidden md:inline-flex flex-shrink-0"><SentimentChip /></span>
       <span className="hidden md:inline-flex flex-shrink-0"><IntelligenceScore /></span>
 
       <span title={`Sydney/${tz} market time`} className="text-2xs text-terminal-text-bright tabular-nums flex-shrink-0 cursor-help">{timeStr}</span>

@@ -10,6 +10,7 @@ import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
+import { useMarketSentiment } from '../../hooks/useMarketSentiment'
 import { useQuery } from '@tanstack/react-query'
 import { getEconomicCalendar, upcomingEvents } from '../../services/calendarService'
 import { eventStars, starString } from '../../services/calendarExtras'
@@ -288,7 +289,8 @@ const TABS = [
 
 export default function MorningBriefModule() {
   const { watchlist } = useStore()
-  const { sentiment, status: sentimentStatus, error: sentimentError } = useSentiment()
+  const { sentiment, status: sentimentStatus } = useSentiment()
+  const market = useMarketSentiment()
   const [brief, setBrief] = useState(null)
   const [status, setStatus] = useState('loading') // loading | empty | locked | ready | error
   // Core reads the brief on three days a week; Prime and Apex every day.
@@ -522,7 +524,7 @@ export default function MorningBriefModule() {
 
             <div className="my-5" style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.55), transparent)' }} />
 
-            <div className="mb-4"><SentimentBar sentiment={sentiment} status={sentimentStatus} error={sentimentError} /></div>
+            <div className="mb-4"><SentimentBar market={market} read={sentimentStatus === 'ready' ? sentiment : null} /></div>
 
             <div className="mb-3"><WatchlistToday watchlist={watchlist} /></div>
 

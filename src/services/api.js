@@ -847,22 +847,13 @@ export const transformCoinOHLC = (data) => {
   }))
 }
 
+// Throws on failure. It used to return a made-up 30-day series of 42
+// ("Fear"), which then fed the market sentiment score as if it were real.
 export const fetchFearGreed = async () => {
-  try {
-    const { data } = await httpGet('https://api.alternative.me/fng/?limit=30', { timeout: 8000 })
-    console.log('[MADDEN API] Alternative.me fear/greed:', data?.data?.[0]?.value)
-    return data
-  } catch (e) {
-    console.warn('[MADDEN API] Alternative.me fear/greed failed, using mock value 42 (Fear):', e.message)
-    const now = Math.floor(Date.now() / 1000)
-    return {
-      data: Array.from({ length: 30 }, (_, i) => ({
-        value: '42',
-        value_classification: 'Fear',
-        timestamp: String(now - i * 86400),
-      })),
-    }
-  }
+  const { data } = await httpGet('https://api.alternative.me/fng/?limit=30', { timeout: 8000 })
+  console.log('[MADDEN API] Alternative.me fear/greed:', data?.data?.[0]?.value)
+  if (!data?.data?.length) throw new Error('Fear & Greed: empty response')
+  return data
 }
 
 export const fetchCryptoGlobal = async () => {

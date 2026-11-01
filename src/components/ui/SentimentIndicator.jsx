@@ -25,55 +25,36 @@ export function SentimentMiniGauge({ score, width = 60, height = 6 }) {
   )
 }
 
-// Compact score + label + mini gauge — for the TopBar, right after the
-// market status dots.
-export function SentimentCompact({ sentiment, status }) {
-  if (status === 'error' || (status === 'idle' && !sentiment)) return null
-  const score = sentiment?.score
-  const label = sentiment?.label ?? (status === 'loading' ? 'ANALYSING...' : '—')
-  const color = colorForScore(score)
-  return (
-    <span className="hidden xl:flex items-center gap-1.5 flex-shrink-0" title={`${label}${sentiment?.keyTheme ? ` — ${sentiment.keyTheme}` : ''}`}>
-      <span className="text-2xs font-bold font-mono" style={{ color }}>{score ?? '·'}</span>
-      <SentimentMiniGauge score={score} />
-    </span>
-  )
-}
-
-// Full sentiment bar — News module top.
-export function SentimentBar({ sentiment, status, error }) {
-  if (status === 'idle' || status === 'loading') {
+// Full sentiment bar — Morning Brief. The number is the one market sentiment
+// score (hooks/useMarketSentiment), computed from market data; MaddenAI's daily
+// read of the headlines (`read`) adds words only — bias, drivers, theme.
+export function SentimentBar({ market, read }) {
+  const m = market?.sentiment
+  if (!m) {
     return (
       <div className="border border-terminal-border px-3 py-2 flex items-center gap-2">
-        <span className="text-2xs text-terminal-gold tracking-widest animate-pulse">MADDENAI · READING THE MARKET...</span>
+        <span className="text-2xs text-terminal-text-dim tracking-widest">{market?.status === 'loading' ? 'MARKET SENTIMENT · READING MARKET DATA…' : 'MARKET SENTIMENT · NO MARKET DATA YET'}</span>
       </div>
     )
   }
-  if (status === 'error') {
-    return (
-      <div className="border border-terminal-red/30 px-3 py-2">
-        <span className="text-2xs text-terminal-red">{error}</span>
-      </div>
-    )
-  }
-  const score = sentiment?.score
-  const color = colorForScore(score)
-  const biasColor = sentiment?.asxBias === 'POSITIVE' ? 'text-terminal-green' : sentiment?.asxBias === 'NEGATIVE' ? 'text-terminal-red' : 'text-terminal-text-dim'
+  const color = colorForScore(m.score)
+  const biasColor = read?.asxBias === 'POSITIVE' ? 'text-terminal-green' : read?.asxBias === 'NEGATIVE' ? 'text-terminal-red' : 'text-terminal-text-dim'
   return (
     <div className="border border-terminal-border px-3 py-2 flex items-center gap-4 flex-wrap">
-      <div className="flex items-center gap-2">
-        <span className="text-lg font-bold" style={{ color }}>{score}</span>
-        <span className="text-2xs font-bold tracking-widest" style={{ color }}>{sentiment?.label}</span>
-        <SentimentMiniGauge score={score} width={90} height={8} />
+      <div className="flex items-center gap-2" title={market.method}>
+        <span className="text-2xs tracking-widest text-terminal-text-dim">MARKET SENTIMENT</span>
+        <span className="text-lg font-bold" style={{ color }}>{m.score}</span>
+        <span className="text-2xs font-bold tracking-widest" style={{ color }}>{m.label.toUpperCase()}</span>
+        <SentimentMiniGauge score={m.score} width={90} height={8} />
       </div>
-      <span className={`text-2xs font-bold ${biasColor}`}>ASX BIAS: {sentiment?.asxBias}</span>
-      {sentiment?.drivers?.length > 0 && (
+      {read?.asxBias && <span className={`text-2xs font-bold ${biasColor}`} title="MaddenAI's read of today's headlines">HEADLINES: ASX BIAS {read.asxBias}</span>}
+      {read?.drivers?.length > 0 && (
         <span className="text-2xs text-terminal-text-dim">
-          <span className="text-terminal-green">▲ {sentiment.drivers[0]}</span>
-          {sentiment.drivers[1] && <> · <span className="text-terminal-red">▼ {sentiment.drivers[1]}</span></>}
+          <span className="text-terminal-green">▲ {read.drivers[0]}</span>
+          {read.drivers[1] && <> · <span className="text-terminal-red">▼ {read.drivers[1]}</span></>}
         </span>
       )}
-      {sentiment?.keyTheme && <span className="text-2xs text-terminal-text flex-1 min-w-[200px]">{sentiment.keyTheme}</span>}
+      {read?.keyTheme && <span className="text-2xs text-terminal-text flex-1 min-w-[200px]">{read.keyTheme}</span>}
     </div>
   )
 }

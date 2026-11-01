@@ -216,10 +216,8 @@ export function generateShortSummary({ marketSentimentScore, asxChanges, fearGre
     else if (asxAvg > 0) parts.push(`ASX +${asxAvg.toFixed(1)}%`)
     else parts.push(`ASX ${asxAvg.toFixed(1)}%`)
   }
-  if (fgVal !== null && fgLbl) {
-    const fgShort = fgLbl.replace('Extreme ', 'Extreme ')
-    parts.push(`${fgShort} (${fgVal}/100)`)
-  }
+  // Named for what it is: the crypto index, not a market-wide fear reading.
+  if (fgVal !== null && fgLbl) parts.push(`Crypto Fear & Greed ${fgVal} (${fgLbl})`)
   if (parts.length === 0) {
     if (score >= 65) parts.push('Broad bullish momentum')
     else if (score >= 55) parts.push('Mildly positive conditions')

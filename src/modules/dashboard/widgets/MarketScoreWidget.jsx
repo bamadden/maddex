@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSentiment } from '../../../hooks/useSentiment'
+import { useMarketSentiment, sentimentTooltip } from '../../../hooks/useMarketSentiment'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { currentRegime } from '../../../services/marketRegime'
@@ -51,9 +52,13 @@ function freshness(generatedAt, now) {
 }
 
 export default function MarketScoreWidget() {
-  const { sentiment, status } = useSentiment()
-  const score = sentiment?.score
+  // The number is the one market sentiment score (useMarketSentiment), the
+  // same as the top bar, Markets and News. MaddenAI's daily read of the
+  // headlines (useSentiment) supplies only the words underneath.
+  const ms = useMarketSentiment()
+  const score = ms.sentiment?.score
   const band = score == null ? null : bandFor(score)
+  const { sentiment: read } = useSentiment()
 
   // The needle animates from the neutral midpoint to the real score on first
   // paint. Started off-value deliberately: the sweep is what tells the eye
@@ -80,8 +85,8 @@ export default function MarketScoreWidget() {
   // The driver line — what actually moved the score, taken from the model's
   // own read of the headlines. Never synthesised here: when the sentiment
   // service returned neither drivers nor a theme, the line is simply absent.
-  const driver = sentiment?.keyTheme ?? sentiment?.drivers?.[0] ?? sentiment?.summary ?? null
-  const stamp = freshness(sentiment?.generatedAt, now)
+  const driver = read?.keyTheme ?? read?.drivers?.[0] ?? (read?.source === 'keyword' ? null : read?.summary) ?? null
+  const stamp = freshness(read?.generatedAt, now)
   const [regime] = useState(() => currentRegime())
 
   return (
@@ -119,14 +124,19 @@ export default function MarketScoreWidget() {
             // exists to deliver; at 26 regular it was competing with the
             // index levels two cells down rather than leading them.
             style={{ fontSize: 28, fontWeight: 600, color: band?.colour ?? '#8BA3C4' }}
+            title={sentimentTooltip(ms)}
+            data-sentiment-score={score ?? undefined}
           >
-            {score ?? '·'}
+            {score ?? '—'}
           </div>
           <div
             className="font-mono text-[11px] mt-1 truncate font-semibold"
             style={{ color: '#8BA3C4', letterSpacing: '0.08em' }}
           >
-            {(sentiment?.label ?? (status === 'loading' ? 'Analysing…' : '—')).toUpperCase()}
+            {score != null ? ms.sentiment.label.toUpperCase() : ms.status === 'loading' ? 'READING MARKET DATA…' : 'NO MARKET DATA YET'}
+          </div>
+          <div className="font-mono text-[9px] mt-0.5" style={{ color: '#637899' }} title={sentimentTooltip(ms)}>
+            MARKET SENTIMENT · COMPUTED{ms.demoInputs ? ' · DEMO ASX INPUTS' : ''}{ms.stale ? ' · STALE INPUTS' : ''}
           </div>
         </div>
       </div>
@@ -139,13 +149,13 @@ export default function MarketScoreWidget() {
       <div className="flex-1 min-h-0 flex flex-col justify-between gap-2">
         <div className="min-w-0">
           {driver && (
-            <div className="font-sans text-[10px] leading-snug line-clamp-2" style={{ color: '#8BA3C4' }}>
-              {driver}
+            <div className="font-sans text-[10px] leading-snug line-clamp-2" style={{ color: '#8BA3C4' }} title="MaddenAI's daily read of the headlines (words only; it does not set the score)">
+              <span className="font-mono text-[9px] tracking-widest" style={{ color: '#637899' }}>HEADLINES · </span>{driver}
             </div>
           )}
           {/* The other drivers the model named — from the same read of the
               headlines, never synthesised here. */}
-          {(sentiment?.drivers ?? []).filter((d) => d && d !== driver).slice(0, 3).map((d) => (
+          {(read?.drivers ?? []).filter((d) => d && d !== driver).slice(0, 3).map((d) => (
             <div key={d} className="font-sans text-[10px] leading-snug mt-1 flex gap-1.5 min-w-0" style={{ color: '#8BA3C4' }}>
               <span style={{ color: band?.colour ?? '#4A6080' }}>•</span><span className="line-clamp-1">{d}</span>
             </div>

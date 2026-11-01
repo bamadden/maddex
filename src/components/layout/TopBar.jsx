@@ -10,7 +10,6 @@ import { useAuthStore } from '../../store/useAuthStore'
 import NotificationCenter from '../ui/NotificationCenter'
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
-import { useSentiment } from '../../hooks/useSentiment'
 import Tooltip from '../ui/Tooltip'
 import { WORKSPACE_MODULE_LIST, NAV_ONLY_MODULES } from '../../config/workspaceModules'
 
@@ -298,25 +297,9 @@ function DataFreshnessBadge() {
   )
 }
 
-// Sentiment reduced to score + direction; the BULLISH/BEARISH word and the
-// mini gauge moved into the tooltip.
-function SentimentTick({ sentiment, status }) {
-  if (status === 'error' || (status === 'idle' && !sentiment)) return null
-  const score = sentiment?.score
-  const label = sentiment?.label ?? (status === 'loading' ? 'Analysing…' : '—')
-  const bullish = typeof score === 'number' ? score >= 50 : null
-  return (
-    <Tooltip content={`MaddenAI Sentiment\n${score ?? '·'} / 100 — ${label}`}>
-    <span
-      className={`text-[9px] font-mono font-bold whitespace-nowrap flex-shrink-0 ${
-        bullish === null ? 'text-terminal-muted' : bullish ? 'text-terminal-gold' : 'text-terminal-red'
-      }`}
-    >
-      {score ?? '·'}{bullish === null ? '' : bullish ? ' ▲' : ' ▼'}
-    </span>
-    </Tooltip>
-  )
-}
+// The market sentiment score — lazy, so the scoring code and the 72-stock
+// universe stay out of the first-paint bundle (SentimentTick.jsx).
+const SentimentTick = lazy(() => import('./SentimentTick'))
 
 // Names the module you are looking at, and nothing else.
 //
@@ -376,7 +359,6 @@ export default function TopBar() {
   const [time, setTime] = useState(new Date())
   const { user, supabaseOffline } = useAuthStore()
   const { canUse } = useSubscription()
-  const { sentiment, status: sentimentStatus } = useSentiment()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsSection, setSettingsSection] = useState(undefined)
   const [showIdeas, setShowIdeas] = useState(false)
@@ -491,7 +473,7 @@ export default function TopBar() {
       <div className="flex items-center flex-shrink-0 pr-3">
         {[
           <MarketDots key="markets" now={time} />,
-          <SentimentTick key="sentiment" sentiment={sentiment} status={sentimentStatus} />,
+          <Suspense key="sentiment" fallback={null}><SentimentTick /></Suspense>,
           <span
             key="clock"
             title={LOCAL_CLOCK_TITLE}
