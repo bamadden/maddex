@@ -2,7 +2,7 @@ import { httpGet } from '../utils/httpGet'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { recordUsage } from './aiUsageService'
 import { ASX_TICKERS } from '../utils/asxTickers'
-import { licenceGuard } from '../data/sourceLicence'
+import { licenceGuard, licenceOff } from '../data/sourceLicence'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../utils/dateUtils.js'
 
@@ -32,6 +32,15 @@ const STOOQ_BASE = '/api/stooq'
 const FMP_BASE = 'https://financialmodelingprep.com/api/v3'
 const FMP_KEY  = import.meta.env.VITE_FMP_API_KEY || 'demo'
 
+// Every FMP request goes through here, and the licence switch is checked
+// first (data/sourceLicence: display needs an FMP display agreement). With
+// FMP off no request is made, whatever key is set; the LicenceError lands in
+// each caller's existing fallback to DEMO data.
+function fmpFetch(path, timeoutMs) {
+  licenceGuard('fmp')
+  return fetch(`${FMP_BASE}${path}${path.includes('?') ? '&' : '?'}apikey=${FMP_KEY}`, { signal: AbortSignal.timeout(timeoutMs) })
+}
+
 // No working equities key configured yet — Yahoo (IP rate-limited), FMP, and
 // Twelve Data were all tried this session; FMP/TD both gate ASX symbols and
 // batch quotes behind a paid plan even with a real key. Until a Polygon.io
@@ -41,15 +50,15 @@ const FMP_KEY  = import.meta.env.VITE_FMP_API_KEY || 'demo'
 // (USING_MOCK_DATA, read by ModuleStates.jsx's <DemoBadge/>). The instant a
 // real key is added to any of these env vars, this flips to live data with
 // no other code changes needed.
-const HAS_LIVE_DATA_KEY = !!(
-  import.meta.env.VITE_POLYGON_KEY ||
-  import.meta.env.VITE_TD_API_KEY ||
-  import.meta.env.VITE_FMP_API_KEY
-)
+//
+// Fail closed: the only live equity code path is FMP's API, so only an FMP
+// key with FMP's licence switched on turns it on. A Polygon or Twelve Data
+// key used to flip this too — sending FMP requests and badging them
+// "Polygon". Neither has a client here; they stay DEMO until one is built.
+const HAS_LIVE_DATA_KEY = !!import.meta.env.VITE_FMP_API_KEY && !licenceOff('fmp')
 export const USING_MOCK_DATA = !HAS_LIVE_DATA_KEY
 // Named on every equity and index badge (utils/dataClass).
-export const EQUITY_SOURCE = USING_MOCK_DATA ? 'simulated'
-  : import.meta.env.VITE_POLYGON_KEY ? 'Polygon' : import.meta.env.VITE_TD_API_KEY ? 'Twelve Data' : 'FMP'
+export const EQUITY_SOURCE = USING_MOCK_DATA ? 'simulated' : 'FMP'
 
 // Range→days mapping for the historical endpoint (FMP takes a day count, not
 // a Yahoo-style range string like '3mo').
@@ -70,10 +79,7 @@ async function fetchFMPQuote(symbol) {
   // UNAVAILABLE — the DEMO badge won't show in this specific path (it only
   // tracks key-presence, not live-connectivity), but the app stays usable.
   try {
-    const r = await fetch(
-      `${FMP_BASE}/quote/${encodeURIComponent(symbol)}?apikey=${FMP_KEY}`,
-      { signal: AbortSignal.timeout(8000) }
-    )
+    const r = await fmpFetch(`/quote/${encodeURIComponent(symbol)}`, 8000)
     if (!r.ok) throw new Error(`FMP ${r.status}`)
     const data = await r.json()
     if (!data?.[0]) throw new Error('No FMP data')
@@ -115,10 +121,7 @@ async function fetchFMPBatch(symbols) {
   }
   try {
     const joined = symbols.map(s => encodeURIComponent(s)).join(',')
-    const r = await fetch(
-      `${FMP_BASE}/quote/${joined}?apikey=${FMP_KEY}`,
-      { signal: AbortSignal.timeout(10000) }
-    )
+    const r = await fmpFetch(`/quote/${joined}`, 10000)
     if (!r.ok) throw new Error(`FMP batch ${r.status}`)
     const data = await r.json()
     if (!data?.length) throw new Error('Empty FMP batch response')
@@ -157,10 +160,7 @@ async function fetchFMPHistory(symbol, days = 93) {
     return getMockFMPHistory(symbol, days)
   }
   try {
-    const r = await fetch(
-      `${FMP_BASE}/historical-price-full/${encodeURIComponent(symbol)}?timeseries=${days}&apikey=${FMP_KEY}`,
-      { signal: AbortSignal.timeout(10000) }
-    )
+    const r = await fmpFetch(`/historical-price-full/${encodeURIComponent(symbol)}?timeseries=${days}`, 10000)
     if (!r.ok) throw new Error(`FMP history ${r.status}`)
     const data = await r.json()
     const hist = data.historical || []

@@ -63,3 +63,32 @@ test('the register covers every source, and every OFF switch', () => {
   for (const id of Object.keys(LICENCE_OFF)) assert.ok(doc.includes(`\`${id}\``), id)
   assert.match(doc, /30 Nov 2026/)
 })
+
+// FMP fails closed. Runs the real equity and calendar services in a child
+// process with every equity key set (MADDEX_TEST_ENV, tests/setup/resolve.mjs);
+// the child answers each fetch locally and reports the URLs attempted.
+test('FMP fails closed: with its licence switch off, no key makes a request to FMP', async () => {
+  const { execFileSync } = await import('node:child_process')
+  assert.ok(licenceOff('fmp'), 'this test assumes FMP is switched off')
+  const keysets = [
+    { VITE_FMP_API_KEY: 'probe-fmp' },
+    { VITE_POLYGON_KEY: 'probe-polygon' },
+    { VITE_TD_API_KEY: 'probe-td' },
+    { VITE_FMP_API_KEY: 'probe-fmp', VITE_POLYGON_KEY: 'probe-polygon', VITE_TD_API_KEY: 'probe-td' },
+  ]
+  for (const keys of keysets) {
+    const out = execFileSync(process.execPath, ['--import', './tests/setup/networkGuard.mjs', '--import', './tests/setup/resolve.mjs', 'tests/fixtures/fmpProbe.mjs'],
+      { env: { ...process.env, MADDEX_TEST_ENV: JSON.stringify(keys) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const probe = JSON.parse(out.trim().split('\n').at(-1))
+    const label = Object.keys(keys).join('+')
+    assert.deepEqual(probe.fmpRequests, [], `${label}: requests to FMP`)
+    assert.equal(probe.usingMock, true, `${label}: equities must stay DEMO`)
+    assert.equal(probe.equitySource, 'simulated', `${label}: badge source`)
+    assert.ok(Object.keys(probe.tried).length >= 6, `${label}: every equity and calendar path was exercised`)
+  }
+  // One door to FMP, and the switch is checked before it opens.
+  const api = read('src/services/api.js')
+  assert.match(api, /function fmpFetch\(path, timeoutMs\) \{\n {2}licenceGuard\('fmp'\)\n {2}return fetch\(`\$\{FMP_BASE\}/)
+  assert.equal(api.match(/\$\{FMP_BASE\}/g).length, 1, 'every FMP URL is built inside fmpFetch')
+  assert.match(api, /HAS_LIVE_DATA_KEY = !!import\.meta\.env\.VITE_FMP_API_KEY && !licenceOff\('fmp'\)/)
+})

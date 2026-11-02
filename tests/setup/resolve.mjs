@@ -3,11 +3,13 @@
 //     .js, .jsx and /index.js;
 //   - give modules under src/ a stand-in for Vite's import.meta.env (a
 //     production-mode env with placeholder Supabase values — no network
-//     call is made by creating the client).
+//     call is made by creating the client). A test can add variables (for
+//     example a market-data key) by starting a child process with
+//     MADDEX_TEST_ENV='{"VITE_FMP_API_KEY":"…"}'.
 import { register } from 'node:module'
 
 register('data:text/javascript,' + encodeURIComponent(`
-const ENV = JSON.stringify({ DEV: false, PROD: true, MODE: 'test', VITE_SUPABASE_URL: 'https://test.invalid', VITE_SUPABASE_ANON_KEY: 'test-anon-key' })
+const ENV = JSON.stringify({ DEV: false, PROD: true, MODE: 'test', VITE_SUPABASE_URL: 'https://test.invalid', VITE_SUPABASE_ANON_KEY: 'test-anon-key', ...JSON.parse(process.env.MADDEX_TEST_ENV || '{}') })
 export async function resolve(spec, ctx, next) {
   try { return await next(spec, ctx) } catch (err) {
     if (err?.code !== 'ERR_MODULE_NOT_FOUND' || !/^\\.{1,2}\\//.test(spec) || /\\.[cm]?jsx?$/.test(spec)) throw err
