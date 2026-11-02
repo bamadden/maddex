@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getEconomicCalendar, pendingEvents, eventInstant } from '../../../services/calendarService'
 import { WidgetBody, WidgetEmpty } from './_shared'
@@ -6,6 +5,7 @@ import { goModule } from './navigate'
 import ReleaseWatchBanner from '../../../components/ui/ReleaseWatchBanner'
 import { PAL } from '../../../styles/palette.js'
 import { formatDate } from '../../../utils/dateUtils'
+import { useNow } from '../../../hooks/useNow'
 
 const IMPACT = {
   high:   { label: 'HIGH',   colour: PAL.down },
@@ -44,20 +44,14 @@ export default function NextEventWidget() {
   const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
   // 90-day window, then take the first — the second argument is a day
   // range, not a count, so asking for 1 means "events in the next day".
-  const [now, setNow] = useState(() => Date.now())
+  // A countdown, so it ticks every second, from the shared ticker.
+  const now = useNow()
 
   // upcomingEvents keeps everything dated today, including this morning's
   // releases. Drop the ones that have already landed so the card never counts
   // down to zero on a print that is already out.
   const events = pendingEvents(data?.events ?? [], 90, now)
   const next = events[0]
-
-  // Ticks every second because this is a countdown; reading the clock in
-  // render would leave it frozen until something else re-rendered.
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
 
   // Loading is not "no events" — saying so while the calendar is still
   // arriving told mobile users the week was empty.

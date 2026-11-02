@@ -14,6 +14,7 @@ import Tooltip from '../ui/Tooltip'
 import BrandLockup from '../ui/BrandLockup'
 import { WORKSPACE_MODULE_LIST, NAV_ONLY_MODULES } from '../../config/workspaceModules'
 import { PAL } from '../../styles/palette.js'
+import { useNow } from '../../hooks/useNow'
 
 // 2,336 lines for a screen most sessions never open.
 const SettingsPanel = lazy(() => import('../settings/SettingsPanel'))
@@ -360,7 +361,7 @@ function ModuleCrumb() {
 }
 
 export default function TopBar() {
-  const [time, setTime] = useState(new Date())
+  const time = new Date(useNow()) // the shared ticker (hooks/useNow): every clock shows the same minute
   const { user, supabaseOffline } = useAuthStore()
   const { canUse } = useSubscription()
   const [showSettings, setShowSettings] = useState(false)
@@ -368,10 +369,6 @@ export default function TopBar() {
   const [showIdeas, setShowIdeas] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
 
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)

@@ -24,6 +24,7 @@ import { aiContentService } from '../../services/aiContentService'
 import { licenceOff } from '../../data/sourceLicence'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import { useNow } from '../../hooks/useNow'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 //
@@ -1281,11 +1282,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
 // rebuilds them — would re-render 60 times a minute for a changing string in
 // the corner. Isolated here, only these two lines repaint.
 function MissionClock({ insetR = 0 }) {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
+  const now = new Date(useNow())
 
   return (
     <div style={{

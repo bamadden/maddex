@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { marketSession } from '../../services/newsIntelligence'
 import { sydneyClock, formatDate } from '../../utils/dateUtils'
 import { displayService } from '../../services/displayService'
@@ -21,6 +20,7 @@ function SentimentChip() {
 }
 import { useStore } from '../../store/useStore'
 import { PAL } from '../../styles/palette.js'
+import { useNow } from '../../hooks/useNow'
 
 // The first line of the first screen.
 //
@@ -33,14 +33,9 @@ import { PAL } from '../../styles/palette.js'
 // bar run on.
 
 export default function DashboardStatusBar() {
-  const [now, setNow] = useState(() => new Date())
-
-  // One second, because the clock shows seconds. The whole bar is text on a
-  // fixed-width layout, so a per-second render costs nothing measurable.
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
+  // The shared ticker (hooks/useNow), so this clock and the top bar's change
+  // minute in the same render.
+  const now = new Date(useNow())
 
   const { setActiveModule } = useStore()
   const dateStr = formatDate(now, { weekday: true }).toUpperCase()

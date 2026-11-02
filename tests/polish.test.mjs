@@ -1,4 +1,4 @@
-// Interaction and layout fixes from the overhaul audit (P2-3, P2-6, P2-5, P2-7, P2-8,
+// Interaction and layout fixes from the overhaul audit (P2-3, P2-6, clocks, data key, P2-5, P2-7, P2-8,
 // P2-11, P2-13, P2-15, P3-5, P3-6). Source checks; the phone layout is also
 // checked in a browser in tests/ui.
 
@@ -72,4 +72,21 @@ test('P2-6: empty and failed panels use the shared NoData / Unavailable states',
   assert.match(states, /export function NoData\(/)
   assert.match(states, /export function Unavailable\(/)
   assert.doesNotMatch(read('src/components/ui/DataUnavailable.jsx'), /API call/)
+})
+
+test('one ticker: every one-second clock and countdown reads hooks/useNow', () => {
+  // RbaHeroCard keeps its own countdown: it is held unchanged until after the
+  // 3 Nov 2026 decision.
+  const HELD = /fx\/Rba(HeroCard|DecisionCard|DecisionPreview|HikeImpact)\.jsx$/
+  const files = fs.readdirSync('src', { recursive: true }).filter((f) => /\.jsx?$/.test(f) && !HELD.test(f))
+  const ownTicker = files.filter((f) => /setInterval\(\(\) => set\w+\((new Date|Date\.now)\(\)\), 1_?000\)/.test(read(`src/${f}`)))
+  assert.deepEqual(ownTicker, [])
+  for (const f of ['components/layout/TopBar.jsx', 'modules/dashboard/DashboardStatusBar.jsx', 'modules/global/DeckGLMap.jsx', 'modules/global/GlobalModule.jsx']) {
+    assert.match(read(`src/${f}`), /useNow\(/, f)
+  }
+})
+
+test('the data key opens even when a badge is clicked before it has loaded', () => {
+  assert.match(read('src/utils/dataClass.js'), /legendWanted = true\n {2}window\.dispatchEvent/)
+  assert.match(read('src/components/ui/DataLegend.jsx'), /useState\(isDataLegendWanted\)/)
 })

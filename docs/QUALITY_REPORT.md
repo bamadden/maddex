@@ -1,5 +1,80 @@
 # Maddex Terminal — Quality Report
 
+## UI check flake investigation — 2–3 November 2026
+
+**The original failure (2 Nov, P2-3 gate, about 20:22 AEDT): intermittent,
+unreproduced.** The gate kept only its summary line (`1 UI check(s) failed.`),
+so which check failed, and its message, were never recorded. The browser
+console that Vite forwarded for that window has no errors. It did not recur in
+10 plain reruns (3 straight after the same `dateUtils.js` reload). It may have
+been one of the causes fixed below, but there is no evidence either way, so it
+is not marked fixed. **Next time it leaves evidence:** every failed UI check
+now writes `tests/ui/artifacts/<run>/fail-N/` (check, section, URL, screenshot,
+page text, event trace of console, page errors, failed and 4xx/5xx requests
+and navigations), and the gate should keep the full UI log, not its last line.
+
+**Pressure matrix** (full suite, 20 runs per condition, 2 Nov 20:56 to
+3 Nov 01:15 AEDT; another project's Playwright run kept the load average at
+5–72 throughout):
+
+| Condition | Passed | Failures |
+|---|---|---|
+| A. Two suites at once on one dev server | 39 of 40 | data key did not open (load 68) |
+| B. CPU throttled 4x (CDP) | 19 of 20 | Chrome closed the page as the Mac went to sleep (`pmset`: Idle Sleep 21:41:05) |
+| C. Mocked responses delayed 200–500 ms | 17 of 20 | STALE badge × 3 (midnight, below) |
+| D. Freshly started dev server per run | 9 of 20 | STALE badge × 9 (midnight); clocks differ × 1; locked Portfolio × 1 (Mac asleep: failure stamped at the `DarkWake` time); 2 runs never started (the script's 30 s wait for Vite was too short) |
+
+**Fixed** (each check now fails against the old code and passes against the
+new; full suite 20 of 20 after the fixes, 3 Nov 10:18–10:51 AEDT, each run crossing a minute change):
+
+1. **Fixed: two clocks on separate timers.** The top bar and the dashboard each
+   ran a one-second `setInterval`, so at a minute change they disagreed for up
+   to a second ("00:37 AEDT" beside "00:38 AEDT"). Every on-screen clock and
+   countdown now reads one shared ticker (`src/hooks/useNow.js`). The check
+   moves the page to 1.5 s before a minute and reads both clocks every 50 ms
+   through the change. Not converted: the RBA decision card's own countdown
+   (`RbaHeroCard`, held until after 3 Nov).
+2. **Fixed: a data-key click lost before the key loaded.** The key is
+   lazy-loaded; a badge clicked before its chunk arrived dispatched an event
+   nobody heard, and the key never opened. The request is now remembered and
+   the key opens when it mounts. The check holds the chunk back until after
+   the click.
+3. **Fixed: the STALE check failed every night from 00:00 to 00:42 AEDT.** The
+   test seeds a cache 42 minutes old; after midnight that is the previous
+   Sydney day, and the badge correctly adds the date ("2 Nov 23:23 AEDT"),
+   which the test's pattern did not allow. A test bug, not an app bug.
+4. **Fixed: evidence lost when a page closed.** Screenshots and page text were
+   captured after the section closed its page; pages now close only after
+   their evidence is written.
+
+**Open, intermittent, unexplained: a command-bar Enter left unexecuted.** On
+the feeds-down test page, right after the data key is closed with Escape, the
+new AUD strength check typed `rates` and pressed Enter: in 5 of 8 runs on
+3 Nov (10:01–10:14 AEDT, some while builds loaded the CPU, one after) the
+text stayed in the command bar with its suggestion showing and nothing ran.
+The Enter path in `CommandBar.handleKeyDown` either selects the highlighted
+suggestion or executes, and both clear the input, so the keydown was never
+acted on; why is not known. Every other `runCommand` in the suite (about 20
+per run, never straight after a dialog closes) has not shown this. The check
+now opens Rates by its nav button, so the panel is still tested; the
+evidence (screenshots show the typed command and the suggestion) is kept
+locally from those runs. Next step: a focused check that types a command
+straight after closing the data key, with the keydown traced.
+
+**Environmental, not fixed:** the Mac's idle sleep (B4, D9) and the D-run
+start-up wait. Run long UI loops with `caffeinate -i`.
+
+**Found on the way:**
+- The AUD strength bars (Rates) showed six rows of "—" when the FX history
+  feed failed, with no failure marker, and "No rates" could never appear. An
+  empty answer, a failed feed and old data are now three states ("No rates",
+  "⚠ RATES UNAVAILABLE", STALE badge); a browser check takes the feed down.
+- FMP could be called with its licence switch off whenever an FMP, Polygon or
+  Twelve Data key was set. It now fails closed (`docs/DATA_SOURCES.md`). No key
+  is set in production, so no request was ever made there.
+
+---
+
 ## Overhaul pass — 1 November 2026
 
 **Head:** `6b6b504` · **First paint:** 278.6 KB gzip (budget 280) · **Lint:**

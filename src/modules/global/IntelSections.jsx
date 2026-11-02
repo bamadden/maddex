@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { timeAgo } from '../../utils/dateUtils'
 import { PAL } from '../../styles/palette.js'
+import { useNow } from '../../hooks/useNow'
 
 // Three panels for the Global intel rail. Each is built from data the module
 // already fetches or from the clock — nothing here adds a request, and nothing
@@ -124,11 +125,7 @@ const fmtGap = (mins) => {
 }
 
 export function MarketSessionSection() {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
+  const now = useNow()
 
   const rows = useMemo(() => {
     const d = new Date(now)

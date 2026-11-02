@@ -69,4 +69,13 @@ export function badgeText({ cls, source, at }) {
 }
 
 // Opens the data key (components/ui/DataLegend, mounted once in the shell).
-export const openDataLegend = () => window.dispatchEvent(new CustomEvent('maddex:data-legend'))
+// The key is lazy-loaded, so a click can land before it has mounted and is
+// listening: the request is remembered, and the key opens as soon as it
+// mounts. (Under load the click used to be lost and the key never opened.)
+let legendWanted = false
+export const openDataLegend = () => {
+  legendWanted = true
+  window.dispatchEvent(new CustomEvent('maddex:data-legend'))
+}
+export const isDataLegendWanted = () => legendWanted
+export const closeDataLegend = () => { legendWanted = false }

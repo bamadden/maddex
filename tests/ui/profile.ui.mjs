@@ -47,6 +47,9 @@ const fail = (msg) => {
   captures.push(capture(active, failures.length, msg).catch((e) => console.log(`    (evidence capture failed: ${e.message})`)))
 }
 const sectionLog = (title) => { section = title; console.log(title) }
+// Evidence first: a capture still running when its page closes loses the
+// screenshot and page text (it did, in the 2 Nov pressure runs).
+const closePage = async (p) => { await Promise.allSettled(captures); await p.close() }
 
 // Every page: an event trace for the evidence, and the CPU throttle.
 async function instrument(page) {
@@ -94,6 +97,17 @@ async function newPage(browser, { width, mobile = false }) {
     return req.continue()
   })
   page.on('pageerror', (e) => { active = page; fail(`page error: ${e.message.slice(0, 160)}`) })
+  // A shiftable clock, so "One clock" can put the page just before a minute
+  // boundary. Unshifted (the default) it is the real time.
+  await page.evaluateOnNewDocument(() => {
+    const Real = Date
+    let shift = 0
+    window.__setClockShift = (ms) => { shift = ms }
+    window.Date = class extends Real {
+      constructor(...a) { if (a.length) super(...a); else super(Real.now() + shift) }
+      static now() { return Real.now() + shift }
+    }
+  })
   await page.evaluateOnNewDocument(() => {
     for (const [k, v] of Object.entries({
       maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true',
@@ -129,7 +143,7 @@ try {
     const got = await shownTicker(mob)
     got === want ? pass(`${cmd} → ${got}`) : fail(`${cmd} → ${got ?? 'nothing'} (want ${want})`)
   }
-  await mob.close()
+  await closePage(mob)
 
   sectionLog('Desktop: lands on the Overview')
   const page = await newPage(browser, { width: 1440 })
@@ -250,11 +264,29 @@ try {
   sectionLog('One clock')
   await nav('DASHBOARD')
   await page.waitForFunction(() => document.querySelectorAll('[data-clock]').length >= 2, { timeout: 30_000 }).catch(() => {})
-  const clocks = await page.evaluate(() => [...document.querySelectorAll('[data-clock]')].map((e) => (e.parentElement.innerText.match(/\d{1,2}:\d{2}(\s*[ap]m)?\s*AE[DS]T/i)?.[0] ?? e.innerText).replace(/\s+/g, ' ').trim()))
-  if (clocks.length >= 2 && clocks.every((c) => /AE[DS]T/.test(c)) && new Set(clocks).size === 1) pass(`top bar and dashboard show ${clocks[0]}`)
-  else fail(`clocks differ or lack a zone: ${JSON.stringify(clocks)}`)
+  // Every run crosses a minute boundary: the page's clock is moved to 1.5 s
+  // before the next minute and both clocks are read every 50 ms for 3.5 s.
+  // Two clocks on separate timers disagreed here for up to a second
+  // ("00:37 AEDT" beside "00:38 AEDT", 2 Nov pressure runs).
+  const boundary = await page.evaluate(async () => {
+    const read = () => [...document.querySelectorAll('[data-clock]')].map((e) => (e.parentElement.innerText.match(/\d{1,2}:\d{2}(\s*[ap]m)?\s*AE[DS]T/i)?.[0] ?? e.innerText).replace(/\s+/g, ' ').trim())
+    window.__setClockShift(0)
+    const t = Date.now()
+    window.__setClockShift(60_000 - (t % 60_000) - 1500)
+    const samples = []
+    for (let i = 0; i < 70; i++) { samples.push(read()); await new Promise((r) => setTimeout(r, 50)) }
+    window.__setClockShift(0)
+    return samples
+  })
+  const shown = new Set(boundary.flat())
+  const split = boundary.find((c) => c.length < 2 || !c.every((x) => /AE[DS]T/.test(x)) || new Set(c).size !== 1)
+  if (!split && shown.size >= 2) pass(`top bar and dashboard agree through a minute change (${[...shown].join(' → ')}, ${boundary.length} reads)`)
+  else if (!split) fail(`the clock check never saw the minute change (${[...shown].join(', ')})`)
+  else fail(`clocks differ or lack a zone: ${JSON.stringify(split)}`)
 
   sectionLog('Data classes: STALE appears when a feed fails; the key opens')
+  const heldLegend = []
+  let legendReleased = false
   const off = await instrument(await browser.newPage())
   await off.setViewport({ width: 1440, height: 900 })
   await off.setRequestInterception(true)
@@ -263,6 +295,12 @@ try {
     if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; return req.abort() }
     if (u.pathname.startsWith('/api/claude') || u.pathname.startsWith('/api/ai-daily')) return mockDelay().then(() => req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' }))
     if (u.hostname === 'api.coingecko.com' || u.hostname === 'api.binance.com') return mockDelay().then(() => req.abort()) // both crypto feeds down
+    // Hold the lazy data key until the badge has been clicked: an early click
+    // used to be lost and the key never opened (seen under load, 2 Nov).
+    if (u.pathname.endsWith('/components/ui/DataLegend.jsx') && !legendReleased) return heldLegend.push(() => req.continue())
+    // The 30-day FX history is down too (latest rates still answer), for the
+    // AUD strength check below.
+    if (/frankfurter/.test(u.href) && /\d{4}-\d{2}-\d{2}\.\./.test(u.pathname)) return mockDelay().then(() => req.abort())
     return req.continue()
   })
   const cachedAt = Date.now() - 42 * 60_000
@@ -274,13 +312,33 @@ try {
   await off.waitForSelector('[data-command-bar]', { timeout: 60_000 })
   await off.evaluate(() => [...document.querySelectorAll('button.nav-row')].find((b) => /^CRYPTO/.test((b.title || b.textContent).trim()))?.click())
   const staleBadge = await off.waitForFunction(() => document.querySelector('[data-class="STALE"]')?.innerText, { timeout: 45_000 }).then((h) => h.jsonValue()).catch(() => null)
-  if (staleBadge && /STALE · CoinGecko · \d\d:\d\d AE[DS]T/.test(staleBadge)) pass(`crypto feeds down → ${staleBadge.replace(/[●\s]+/g, ' ').trim()}`)
+  // The badge adds the date when the cache is from an earlier Sydney day
+  // ("STALE · CoinGecko · 2 Nov 23:23 AEDT"): the cache below is 42 minutes
+  // old, so every run between 00:00 and 00:42 used to fail here.
+  if (staleBadge && /STALE · CoinGecko · (\d{1,2} [A-Z][a-z]{2} )?\d\d:\d\d AE[DS]T/.test(staleBadge)) pass(`crypto feeds down → ${staleBadge.replace(/[●\s]+/g, ' ').trim()}`)
   else fail(`no STALE badge with source and time when the crypto feeds failed (${staleBadge})`)
-  await off.click('[data-class="STALE"]').catch(() => {})
+  const heldBeforeClick = heldLegend.length
+  await off.click('[data-class="STALE"]').catch((e) => fail(`could not click the STALE badge: ${e.message}`))
+  legendReleased = true
+  heldLegend.splice(0).forEach((go) => go())
+  if (!heldBeforeClick) console.log('    (the data key chunk was not requested before the click; early-click case not exercised)')
   const legend = await off.waitForFunction(() => document.querySelector('[aria-labelledby="data-key-title"]')?.innerText, { timeout: 10_000 }).then((h) => h.jsonValue()).catch(() => '')
-  if (['LIVE', 'DELAYED', 'DEMO', 'STALE'].every((c) => legend.includes(c))) pass('the badge opens the data key with all four classes')
+  if (['LIVE', 'DELAYED', 'DEMO', 'STALE'].every((c) => legend.includes(c))) pass(`the badge opens the data key with all four classes${heldBeforeClick ? ', even when clicked before the key had loaded' : ''}`)
   else fail('data key did not open from the badge')
-  await off.close()
+  // A failed feed is not an empty one: the strength bars must show the shared
+  // failure state, never "No rates" (before 3 Nov they showed six dashes).
+  await off.keyboard.press('Escape') // close the data key opened above
+  // By the nav, not the command bar: here a typed "rates" + Enter was
+  // intermittently left unexecuted (open, docs/QUALITY_REPORT.md, 3 Nov).
+  await off.evaluate(() => [...document.querySelectorAll('button.nav-row')].find((b) => /^RATES/.test((b.title || b.textContent).trim()))?.click())
+  const strength = await off.waitForFunction(() => {
+    const el = document.querySelector('[data-strength-state]')
+    return el && !['loading', 'ok'].includes(el.dataset.strengthState) && el.dataset.strengthState
+  }, { timeout: 60_000 }).then((h) => h.jsonValue()).catch(() => null)
+  const strengthText = await off.evaluate(() => document.querySelector('[data-strength-state]')?.innerText ?? '')
+  if (strength === 'failed' && /RATES UNAVAILABLE/.test(strengthText) && !/No rates/.test(strengthText)) pass('FX history down → AUD strength shows ⚠ RATES UNAVAILABLE, not "No rates"')
+  else fail(`AUD strength with FX history down: state ${strength}, text "${strengthText.replace(/\s+/g, ' ').slice(0, 80)}"`)
+  await closePage(off)
 
   sectionLog('Onboarding: once, resumable, replayable')
   const ob = await instrument(await browser.newPage())
@@ -349,7 +407,7 @@ try {
     if (/DRAFT, PENDING LEGAL REVIEW/.test(banner)) pass(`/${slug} is marked DRAFT, pending legal review`)
     else fail(`/${slug} has no draft banner`)
   }
-  await ob.close()
+  await closePage(ob)
 
   sectionLog('Phone (390px): Markets fits, ALL lists every module')
   const ph = await newPage(browser, { width: 390, mobile: true })
@@ -373,7 +431,7 @@ try {
   listed >= 19 ? pass(`ALL lists ${listed} modules`) : fail(`ALL lists ${listed} modules`)
   await ph.evaluate(() => [...document.querySelectorAll('[data-all-modules] .grid button')].find((b) => b.textContent.includes('CALC'))?.click())
   await ph.waitForFunction(() => /CALCULATORS|CALC/.test(document.querySelector('main')?.innerText ?? ''), { timeout: 30_000 }).then(() => pass('picking a module there opens it')).catch(() => fail('ALL did not open the module'))
-  await ph.close()
+  await closePage(ph)
 
   sectionLog('Core plan: a locked module has a way back')
   const core = await newPage(browser, { width: 1440 })
@@ -387,14 +445,14 @@ try {
     await core.waitForFunction(() => !/BACK TO OVERVIEW/.test(document.body.innerText), { timeout: 10_000 })
       .then(() => pass('BACK TO OVERVIEW leaves the locked module')).catch(() => fail('BACK TO OVERVIEW did nothing'))
   }
-  await core.close()
+  await closePage(core)
 
   sectionLog('MaddenAI is mocked')
   active = page
   await runCommand(page, 'ai what does the profile show')
   await wait(3000)
   counts.mocked > 0 ? pass(`${counts.mocked} /api/claude request(s) answered by the mock; ${counts.shared} shared-content read(s) mocked`) : fail('the AI request never reached the mock')
-  await page.close()
+  await closePage(page)
 } finally {
   await Promise.allSettled(captures)
   await browser.close()

@@ -21,6 +21,7 @@ import { logActivity } from '../../services/activityLogService'
 import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
 import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
 import { PAL } from '../../styles/palette.js'
+import { useNow } from '../../hooks/useNow'
 
 const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿', CA: '🇨🇦' }
 const IMPORTANCE_COLOR = { high: 'text-terminal-red', medium: 'text-terminal-gold', low: 'text-terminal-muted' }
@@ -48,12 +49,7 @@ function toDateKey(d) {
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 function useCountdown(target) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (!target) return undefined
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [target])
+  const now = useNow()
   if (!target) return null
   const diff = target.getTime() - now
   if (diff <= 0) return null

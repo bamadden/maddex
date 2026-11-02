@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
-import { DATA_CLASSES, CLASS_ORDER } from '../../utils/dataClass'
+import { DATA_CLASSES, CLASS_ORDER, isDataLegendWanted, closeDataLegend } from '../../utils/dataClass'
 
 // The data key: what LIVE, DELAYED, DEMO and STALE mean. Opened by any
 // DataBadge, the status bar's DATA KEY button, or Help.
 export default function DataLegend() {
-  const [open, setOpen] = useState(false)
+  // Open on mount if a badge was clicked before this chunk loaded.
+  const [open, setOpenState] = useState(isDataLegendWanted)
+  const setOpen = (v) => { if (!v) closeDataLegend(); setOpenState(v) }
   useEffect(() => {
-    const on = () => setOpen(true)
-    const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const on = () => setOpenState(true)
+    const esc = (e) => { if (e.key === 'Escape') { closeDataLegend(); setOpenState(false) } }
     window.addEventListener('maddex:data-legend', on)
     window.addEventListener('keydown', esc)
     return () => { window.removeEventListener('maddex:data-legend', on); window.removeEventListener('keydown', esc) }

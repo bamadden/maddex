@@ -22,6 +22,7 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { PAL } from '../../styles/palette.js'
+import { useNow } from '../../hooks/useNow'
 
 // Code-split — d3 + topojson-client pull in a large bundle only needed once
 // the user actually opens the Global module.
@@ -1781,11 +1782,14 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
 
 // ─── Tab: Market Sessions ─────────────────────────────────────────────────────
 
-function MarketSessionsTab({ now }) {
+function MarketSessionsTab() {
+  // Sydney time with its zone, from the shared ticker — the same second as
+  // every other clock on screen.
+  const now = sydneyClock(new Date(useNow()), { seconds: true }).text
   // `now` is NOT unnecessary, whatever eslint says. getStatus, localTime and
   // countdown all read the clock internally, so none of them appears in this
   // dependency array — the linter sees a memo over constants and concludes the
-  // ticking prop is surplus. Remove it and every countdown in this tab freezes
+  // ticking value is surplus. Remove it and every countdown in this tab freezes
   // at the value it held on mount.
   const statuses = useMemo(() => EXCHANGES.map(ex => ({
     ...ex,
@@ -2382,10 +2386,9 @@ function WorldStatsSummary() {
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
 export default function GlobalModule() {
-  const [now, setNow] = useState(
-    () => sydneyClock(new Date(), { seconds: true }).text
-  )
-  const [nowMs, setNowMs] = useState(0)
+  // The shared ticker (hooks/useNow), in 30 s steps: the module is too heavy
+  // to repaint every second, and only the news cutoff reads it.
+  const nowMs = useNow(30_000)
   const [activeTab, setActiveTab]     = useState('summary')
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [selectedExchange, setSelectedExchange] = useState(null)
@@ -2538,18 +2541,6 @@ export default function GlobalModule() {
     initCountryDataRefresh(alpha2Set).catch(err => console.warn('[MADDEX] Country refresh error:', err))
   }, [])
 
-  // Time tick (30s)
-  useEffect(() => {
-    const update = () => {
-      // Sydney time with the right zone — this appended "AEST" to the
-      // machine's local time, wrong in summer and wrong outside Sydney.
-      setNow(sydneyClock(new Date(), { seconds: true }).text)
-      setNowMs(Date.now())
-    }
-    update()
-    const id = setInterval(update, 30_000)
-    return () => clearInterval(id)
-  }, [])
 
   // General news (for country panels)
   const { data: newsItems } = useQuery({
@@ -2734,7 +2725,7 @@ export default function GlobalModule() {
         ) : activeTab === 'geopolitical' ? (
           <GeoRiskTab newsItems={allNewsItems} isLoading={geoNewsLoading} onAskAI={handleAskAI} updatedAt={geoNewsUpdatedAt} />
         ) : activeTab === 'sessions' ? (
-          <MarketSessionsTab now={now} />
+          <MarketSessionsTab />
         ) : null}
       </div>
     </>

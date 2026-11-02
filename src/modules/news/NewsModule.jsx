@@ -22,6 +22,7 @@ import { loadSavedArticles, toggleSavedArticle, removeSavedArticle, savedKey, SA
 import ScoreNote from '../../components/ui/ScoreNote'
 import { toneWord } from '../../utils/tone'
 import { PAL } from '../../styles/palette.js'
+import { useNow } from '../../hooks/useNow'
 
 // MaddenAI's nudge on a HIGH-impact story that names a watchlist stock. At
 // most one NEW story every 30 minutes: the story already being offered stays
@@ -1254,7 +1255,7 @@ export default function NewsModule() {
   // every call, so ids aren't stable across refetches — headline is.
   const [newIds, setNewIds]           = useState(new Map())
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
-  const [nowTs, setNowTs]             = useState(() => Date.now())
+  const nowTs                         = useNow()
   // Timestamp of the most recent new-story arrival — the banner reads this
   // against the existing 1s `nowTs` ticker to auto-dismiss 10s later.
   // Set alongside setNewIds inside the merge effect below (not its own
@@ -1266,12 +1267,8 @@ export default function NewsModule() {
   const { newsFilter, setNewsFilter, clearNewsBadge, openModal, watchlist } = useStore()
   const market = useMarketSentiment()
 
-  // Clear nav badge and tick clock
+  // Clear nav badge
   useEffect(() => { clearNewsBadge() }, [clearNewsBadge])
-  useEffect(() => {
-    const t = setInterval(() => setNowTs(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
 
   // Sync CMD: NEWS filter
   useEffect(() => {
