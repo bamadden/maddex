@@ -8,27 +8,50 @@ import { fetchFxHistory } from '../../services/api'
 // Query dedupes on the key, so it is one set of requests, not two.
 export const STRENGTH_MAJORS = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'NZD']
 
+// One row per major from the settled fetches. A fetch that failed is marked
+// `failed`; one that answered without two usable rates has pct null and is
+// not a failure. If every fetch failed this throws, so the query reports an
+// error and React Query keeps the last good rows (shown as STALE) instead of
+// replacing them with dashes.
+export function strengthRows(ccys, settled) {
+  const rows = ccys.map((ccy, i) => {
+    const r = settled[i]
+    if (r?.status !== 'fulfilled' || !r.value?.rates) return { ccy, pct: null, failed: true }
+    const entries = Object.entries(r.value.rates)
+      .map(([date, rates]) => ({ date, rate: rates[ccy] }))
+      .filter((e) => e.rate != null)
+      .sort((a, b) => a.date.localeCompare(b.date))
+    if (entries.length < 2) return { ccy, pct: null, failed: false }
+    const first = entries[0].rate
+    const last = entries[entries.length - 1].rate
+    // AUD strengthening vs ccy means 1 AUD buys MORE of ccy over the period.
+    return { ccy, pct: ((last - first) / first) * 100, failed: false }
+  })
+  if (rows.every((r) => r.failed)) throw new Error('Frankfurter returned no history for any major')
+  return rows
+}
+
+// What a panel reading this query should show:
+//   loading  first fetch still running
+//   failed   no usable rows because the feed failed: the shared failure state
+//   stale    the last fetch failed, older good rows are on screen: STALE badge
+//   empty    the feed answered, with nothing usable: "No rates"
+//   ok       rows to draw (some may be "—")
+// A failed fetch is never "empty".
+export function strengthState({ data, isError, isPending }) {
+  const usable = (data ?? []).some((r) => typeof r.pct === 'number')
+  if (isError) return usable ? 'stale' : 'failed'
+  if (!data) return isPending ? 'loading' : 'failed'
+  if (usable) return 'ok'
+  return data.some((r) => r.failed) ? 'failed' : 'empty'
+}
+
 export function useAudStrength() {
   return useQuery({
     queryKey: ['fxStrength30d', STRENGTH_MAJORS],
-    queryFn: async () => {
-      const settled = await Promise.allSettled(
-        STRENGTH_MAJORS.map((ccy) => fetchFxHistory('AUD', ccy, 30)),
-      )
-      return STRENGTH_MAJORS.map((ccy, i) => {
-        const r = settled[i]
-        if (r.status !== 'fulfilled' || !r.value?.rates) return { ccy, pct: null }
-        const entries = Object.entries(r.value.rates)
-          .map(([date, rates]) => ({ date, rate: rates[ccy] }))
-          .filter((e) => e.rate != null)
-          .sort((a, b) => a.date.localeCompare(b.date))
-        if (entries.length < 2) return { ccy, pct: null }
-        const first = entries[0].rate
-        const last = entries[entries.length - 1].rate
-        // AUD strengthening vs ccy means 1 AUD buys MORE of ccy over the period.
-        return { ccy, pct: ((last - first) / first) * 100 }
-      })
-    },
+    queryFn: async () => strengthRows(STRENGTH_MAJORS, await Promise.allSettled(
+      STRENGTH_MAJORS.map((ccy) => fetchFxHistory('AUD', ccy, 30)),
+    )),
     staleTime: 30 * 60_000,
     retry: 1,
   })

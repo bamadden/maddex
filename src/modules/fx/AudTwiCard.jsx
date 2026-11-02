@@ -1,6 +1,7 @@
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
-import { useAudStrength, meanMove, STRENGTH_MAJORS } from './useAudStrength'
+import { useAudStrength, meanMove, STRENGTH_MAJORS, strengthState } from './useAudStrength'
+import { StaleBadge } from '../../components/ui/ModuleStates'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -32,7 +33,9 @@ const fmtDate = (iso) => (iso
 
 export default function AudTwiCard() {
   const au = VERIFIED_CONSTANTS.au
-  const { data, isFetching } = useAudStrength()
+  const results = useAudStrength()
+  const { data, isFetching, dataUpdatedAt } = results
+  const stale = strengthState(results) === 'stale'
   const mean = meanMove(data)
   const counted = (data ?? []).filter((r) => typeof r.pct === 'number').length
 
@@ -69,6 +72,7 @@ export default function AudTwiCard() {
           <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11, letterSpacing: '0.18em' }}>
             AUD VS SIX MAJORS · 30 DAYS
             {isFetching && <span className="text-terminal-text-dim/60 ml-1 animate-pulse">…</span>}
+            {stale && <StaleBadge cachedAt={dataUpdatedAt} source="Frankfurter" className="ml-2" />}
           </div>
           {mean != null ? (
             <>
@@ -79,7 +83,7 @@ export default function AudTwiCard() {
                 {mean >= 0 ? '▲ +' : '▼ '}{mean.toFixed(2)}%
               </div>
               <div className="font-mono text-terminal-text-dim/60 mt-2 leading-snug" style={{ fontSize: 11, maxWidth: 340 }}>
-                Unweighted mean across {counted} of {STRENGTH_MAJORS.length} majors, from live Frankfurter history.
+                Unweighted mean across {counted} of {STRENGTH_MAJORS.length} majors, from {stale ? 'the last Frankfurter history fetched' : 'live Frankfurter history'}.
                 Not the TWI&apos;s own change — the index is trade-weighted and this is not.
               </div>
             </>

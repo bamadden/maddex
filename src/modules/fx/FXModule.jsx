@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
-import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
+import { InlineLoading, NoData, Unavailable, StaleBadge } from '../../components/ui/ModuleStates'
 import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
@@ -30,7 +30,7 @@ import PolicyPathChart from './PolicyPathChart'
 import CentralBankCards from './CentralBankCards'
 import UpcomingDecisions from './UpcomingDecisions'
 import AudTwiCard from './AudTwiCard'
-import { useAudStrength, meanMove } from './useAudStrength'
+import { useAudStrength, meanMove, strengthState } from './useAudStrength'
 import SafeChart from '../../components/ui/SafeChart'
 import { PAL } from '../../styles/palette.js'
 
@@ -852,6 +852,7 @@ function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
 function CurrencyStrengthIndex() {
   const results = useAudStrength()
   const rows = results.data ?? []
+  const state = strengthState(results)
   const mean = meanMove(rows)
   const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.pct ?? 0)))
 
@@ -860,12 +861,15 @@ function CurrencyStrengthIndex() {
       <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">
         AUD STRENGTH VS MAJORS (30D)
         {results.isFetching && <span className="text-terminal-text-dim font-normal normal-case ml-1 animate-pulse">...</span>}
+        {state === 'stale' && <StaleBadge cachedAt={results.dataUpdatedAt} source="Frankfurter" className="ml-2" />}
       </div>
-      <div className="flex flex-col gap-1">
-        {rows.length === 0 && !results.isFetching && (
-          <NoData className="justify-start" label="No rates" />
-        )}
-        {rows.map(({ ccy, pct }) => (
+      <div className="flex flex-col gap-1" data-strength-state={state}>
+        {/* Empty and failed are different answers: "No rates" only when the
+            feed replied with nothing usable; a failed feed gets the shared
+            failure state. */}
+        {state === 'empty' && <NoData className="justify-start" label="No rates" />}
+        {state === 'failed' && !results.isFetching && <Unavailable what="rates" />}
+        {state !== 'empty' && state !== 'failed' && rows.map(({ ccy, pct }) => (
           <div key={ccy} className="flex items-center gap-1.5">
             <span className="text-2xs text-terminal-text-dim w-8 flex-shrink-0">{ccy}</span>
             <div className="flex-1 h-2.5 relative bg-terminal-surface2 rounded-sm overflow-hidden">
