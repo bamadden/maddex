@@ -23,6 +23,7 @@ import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 import { licenceOff } from '../../data/sourceLicence'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 //
@@ -967,7 +968,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         id: 'cb-event-labels',
         data: cbEvents,
         getPosition: (d) => d.position,
-        getText: (d) => `${d.site.bank} · ${new Date(`${d.date}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()}`,
+        getText: (d) => `${d.site.bank} · ${formatDate(d.date, { year: false }).toUpperCase()}`,
         getSize: 10,
         getColor: [232, 199, 102, 255],
         getTextAnchor: 'start',

@@ -12,6 +12,7 @@ import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { computeRisk } from './portfolioRisk'
 import Tooltip from '../../components/ui/Tooltip'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Performance tab ────────────────────────────────────────────────────────
 //
@@ -542,7 +543,7 @@ function AttributionWaterfall({ returns, fmtCur }) {
           return (
             <div className="leading-relaxed">
               {p.lots.map((l, i) => (
-                <div key={i}>LOT {i + 1}: {l.units} units @ {l.currency === 'USD' ? 'US$' : 'A$'}{Number(l.price).toFixed(2)} ({new Date(`${l.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })})</div>
+                <div key={i}>LOT {i + 1}: {l.units} units @ {l.currency === 'USD' ? 'US$' : 'A$'}{Number(l.price).toFixed(2)} ({formatDate(l.date)})</div>
               ))}
               {p.lots.length > 1 && <div>Combined: {p.units} units @ {fmtCur(p.avgCostAud)} avg</div>}
               <div className="text-terminal-gold">Contribution {s.contribution >= 0 ? '+' : '−'}{Math.abs(s.contribution * 100).toFixed(2)}% of portfolio value</div>
@@ -693,7 +694,7 @@ function SectorDonut({ holdings, mktTotal }) {
         })}
         <div className="text-terminal-text-dim/50 mt-1.5 leading-snug" style={{ fontSize: 11 }}>
           Index weights: {au.asx200SectorWeightsSource} · as at{' '}
-          {new Date(`${au.asx200SectorWeightsAsOf}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.
+          {formatDate(au.asx200SectorWeightsAsOf)}.
           Only the sectors that factsheet stated are compared.
         </div>
       </div>

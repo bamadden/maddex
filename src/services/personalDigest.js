@@ -15,11 +15,12 @@ import { SECTOR_BY_SYMBOL } from '../modules/portfolio/sectorMap'
 import { rateImpact } from '../modules/portfolio/rateSensitivity'
 import { currentRegime } from './marketRegime'
 import { getInvestorProfile } from './investorProfile'
+import { formatDate } from '../utils/dateUtils.js'
 
 const KEY = (day) => `maddex_digest_${day}`
 const SEEN_KEY = 'maddex_digest_seen'
 const sydDay = (d = new Date()) => d.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
-const fmtDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+const fmtDay = (iso) => formatDate(iso, { weekday: true, year: false })
 const bare = (s) => String(s).toUpperCase().replace(/\.AX$/, '')
 
 export const digestSeenToday = () => { try { return localStorage.getItem(SEEN_KEY) === sydDay() } catch { return true } }

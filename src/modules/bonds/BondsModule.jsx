@@ -9,6 +9,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import Tooltip from '../../components/ui/Tooltip'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Bonds ──────────────────────────────────────────────────────────────────
 //
@@ -171,7 +172,7 @@ function BondDetail({ market, row, onClose }) {
             {t.y} {t.y === 1 ? 'YEAR' : 'YEARS'} · {t.m} {t.m === 1 ? 'MONTH' : 'MONTHS'} · {t.d} {t.d === 1 ? 'DAY' : 'DAYS'}
           </div>
           <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
-            {t.totalDays.toLocaleString()} days · matures {t.date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {t.totalDays.toLocaleString()} days · matures {formatDate(t.date)}
           </div>
         </div>
 

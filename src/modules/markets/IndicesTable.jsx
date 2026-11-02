@@ -14,6 +14,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'r
 import SafeChart from '../../components/ui/SafeChart'
 import { INDEX_DRIVERS } from '../../data/sectorTaxonomy'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // The benchmark indices shown in this bar, in display order. Sourced from the
 // shared YF_INDICES list (also used by TickerTape/MarketSentimentBanner) — a
@@ -66,7 +67,7 @@ function fmtDataDate(ts) {
   const today = new Date()
   const isToday = d.toDateString() === today.toDateString()
   if (isToday) return null  // today's data — no label needed
-  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return formatDate(d, { year: false })
 }
 
 // Smoothed SVG sparkline with a soft gradient fill. The curve is a

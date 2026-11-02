@@ -4,6 +4,7 @@ import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import aiContentService from '../../services/aiContentService'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Central bank comparison cards ──────────────────────────────────────────
 //
@@ -58,7 +59,7 @@ const monthYear = (iso) => {
 const dayMonth = (iso) => {
   if (!iso) return '—'
   const d = new Date(`${iso}T00:00:00`)
-  return isNaN(d) ? '—' : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return isNaN(d) ? '—' : formatDate(d, { year: false })
 }
 
 // The RBA's last three decisions, derived from the published cash-rate path

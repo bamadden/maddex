@@ -5,6 +5,7 @@ import { showLimitPrompt } from '../../services/plans'
 import { SECTOR_BY_SYMBOL } from '../../modules/portfolio/sectorMap'
 import { USING_MOCK_DATA } from '../../services/api'
 import ShareLinkModal from '../ui/ShareLinkModal'
+import { formatDate } from '../../utils/dateUtils'
 
 const W = 900
 const H = 1200
@@ -50,7 +51,7 @@ function draw(ctx, { holdings, totalPnl, pnlPct, mktTotal, currency, ownerName }
   ctx.fillStyle = COLOR.textDim
   ctx.font = '16px "IBM Plex Mono", monospace'
   ctx.textAlign = 'right'
-  ctx.fillText(new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }), W - 60, 80)
+  ctx.fillText(formatDate(new Date()), W - 60, 80)
   ctx.textAlign = 'left'
 
   ctx.fillStyle = COLOR.text
@@ -163,7 +164,7 @@ function draw(ctx, { holdings, totalPnl, pnlPct, mktTotal, currency, ownerName }
 
   ctx.fillStyle = COLOR.textDim
   ctx.font = '12px "IBM Plex Mono", monospace'
-  ctx.fillText(`Data as at ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' })} · equity prices are DEMO data.`, 60, H - 52)
+  ctx.fillText(`Data as at ${formatDate(new Date())} · equity prices are DEMO data.`, 60, H - 52)
   ctx.fillText('General information only — not financial advice. Past performance is not a reliable indicator of future performance.', 60, H - 34)
 }
 

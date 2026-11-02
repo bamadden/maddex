@@ -12,6 +12,7 @@ import {
 } from '../../data/auTaxRates'
 import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, repaymentChange } from './calcMath'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Financial calculators ──────────────────────────────────────────────────
 //
@@ -424,7 +425,7 @@ function pendingHike() {
   const nd = pendingRbaDecision()
   return nd?.hikeRate ? nd : null
 }
-const dayShort = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+const dayShort = (iso) => formatDate(iso, { year: false })
 
 function RbaPresets({ rate, setRate }) {
   const nd = pendingHike()
@@ -513,7 +514,7 @@ function MortgageCalc() {
           <Field label="INTEREST RATE" value={rate} onChange={setRate} suffix="%" step="0.05" />
           <div className="font-mono text-terminal-text-dim/60 -mt-1.5 mb-2.5 leading-snug" style={{ fontSize: 11 }}>
             RBA cash rate: {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% ({VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'HIKE' ? 'hiked' : VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'CUT' ? 'cut' : 'held'}{' '}
-            {new Date(`${VERIFIED_CONSTANTS.rba.lastDecision}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}).
+            {formatDate(VERIFIED_CONSTANTS.rba.lastDecision)}).
             Default assumes variable rates of roughly RBA + {MORTGAGE_MARGIN.toFixed(1)}% — an estimate; use your lender&apos;s actual rate.
           </div>
           <Field label="LOAN TERM" value={term} onChange={setTerm} suffix="yr" />

@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { sydneyClock } from '../../utils/dateUtils'
+import { sydneyClock, formatDate } from '../../utils/dateUtils'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -487,7 +487,7 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit, initialSymbol = '' })
 function TotalsRow({ totals: t, fmtCur }) {
   const up = t.ret >= 0
   const tone = up ? 'text-terminal-green' : 'text-terminal-red'
-  const since = t.earliest ? new Date(`${t.earliest}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+  const since = t.earliest ? formatDate(t.earliest) : null
   const cell = (label, value, cls = 'text-terminal-text-bright', title) => (
     <div className="px-3 py-1.5 min-w-0" title={title}>
       <div className="font-mono text-terminal-text-dim/60 tracking-widest" style={{ fontSize: 11 }}>{label}</div>

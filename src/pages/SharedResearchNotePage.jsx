@@ -1,4 +1,5 @@
 import { useSharedRecord } from '../services/sharingService'
+import { formatDate } from '../utils/dateUtils'
 
 // Stance, not rating.
 //
@@ -62,7 +63,7 @@ export default function SharedResearchNotePage({ id }) {
               return (
                 <>
                   <div className="text-2xl font-bold text-terminal-text-bright mb-1">{n.assetName}</div>
-                  <div className="text-2xs text-terminal-text-dim mb-4">{n.assetSymbol} · shared {new Date(record.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                  <div className="text-2xs text-terminal-text-dim mb-4">{n.assetSymbol} · shared {formatDate(new Date(record.createdAt))}</div>
 
                   <div className="flex items-start gap-4 mb-6">
                     <span className={`text-lg font-bold border px-4 py-1.5 flex-shrink-0 ${stanceCls}`}>{stance}</span>

@@ -4,6 +4,7 @@ import { recordUsage } from './aiUsageService'
 import { ASX_TICKERS } from '../utils/asxTickers'
 import { licenceGuard } from '../data/sourceLicence'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../utils/dateUtils.js'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
 
@@ -911,7 +912,7 @@ export const transformCoinHistory = ({ prices, total_volumes: vols = [] }) => {
     .map((p, i) => [p, vols[i]?.[1] ?? null])
     .filter((_, i) => i % step === 0)
     .map(([[ts, price], volume]) => ({
-      date:  new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }),
+      date:  formatDate(new Date(ts), { year: false }),
       price: price >= 1 ? parseFloat(price.toFixed(2)) : parseFloat(price.toPrecision(4)),
       volume,
     }))

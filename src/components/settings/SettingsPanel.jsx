@@ -48,6 +48,7 @@ import { allVerifiedGroups, VERIFY_WARN_DAYS } from '../../data/verifiedConstant
 import DiagnosticsPanel from './DiagnosticsPanel'
 import DataHealthPanel from './DataHealthPanel'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
 // Older callers still ask for 'SUBSCRIPTION'.
@@ -1759,7 +1760,7 @@ function SecuritySection({ onDeleteRequest }) {
 // Log written by the portfolio CSV importer (portfolioCsv.logImport).
 function PortfolioImportsBlock() {
   const [history] = useState(getImportHistory)
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  const fmtDate = (iso) => formatDate(new Date(iso))
   return (
     <div className="space-y-2">
       <div className="text-xs font-bold text-terminal-text-bright">PORTFOLIO IMPORTS</div>
@@ -2391,7 +2392,7 @@ function DataSourcesSection() {
   const verifiedRows = useMemo(() => {
     const c = VERIFIED_CONSTANTS
     const C = c.commodities
-    const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
+    const day = (iso) => (iso ? formatDate(iso) : '—')
     const status = (group, field) => check?.rows?.find((r) => r.group === group && r.field === field)?.status ?? null
     const commodity = (label, key, fmt) => C[key] != null && { name: `${label} ${fmt(C[key])}`, detail: `settlement ${day(C.asOfBy?.[key] ?? C.asOf)} · ${C.sourceBy?.[key] ?? C.source}` }
     return [

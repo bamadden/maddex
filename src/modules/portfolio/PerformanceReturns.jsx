@@ -3,6 +3,7 @@ import Tooltip from '../../components/ui/Tooltip'
 import { TAX_RATES, MEDICARE_LEVY, MIN_ANNUALISE_DAYS } from '../../services/performanceMath'
 import { basisOf, taxNoteFor } from './performanceModel'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Performance summary, returns by holding, tax controls ─────────────────
 //
@@ -12,7 +13,7 @@ import { PAL } from '../../styles/palette.js'
 
 const fmtPct = (v, dp = 1) => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(dp)}%`)
 const tone = (v) => (v == null ? PAL.dim : v >= 0 ? PAL.up : PAL.down)
-const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+const fmtDay = (iso) => formatDate(iso)
 
 function Annualised({ value, days }) {
   if (days < MIN_ANNUALISE_DAYS) {

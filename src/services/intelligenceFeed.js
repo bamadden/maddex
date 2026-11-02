@@ -11,12 +11,13 @@
 
 import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../data/verifiedConstants'
 import { rateImpact } from '../modules/portfolio/rateSensitivity'
+import { formatDate } from '../utils/dateUtils.js'
 
 const DAY = 86_400_000
 const BANKS = ['fed', 'ecb', 'boj', 'boe', 'boc', 'rbnz', 'pboc', 'snb', 'riksbank']
 
 const sydDate = (ms) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
-const dayMonth = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+const dayMonth = (iso) => formatDate(iso, { year: false })
 const weekday = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short' })
 const daysBetween = (fromIso, toIso) => Math.round((Date.parse(`${toIso}T12:00:00`) - Date.parse(`${fromIso}T12:00:00`)) / DAY)
 
@@ -126,7 +127,7 @@ function globalCard(now) {
 
 export function intelligenceFeed({ now = Date.now(), holdings = [] } = {}) {
   return {
-    date: new Date(now).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase(),
+    date: formatDate(new Date(now)).toUpperCase(),
     cards: [rbaCard(now), cpiCard(holdings), globalCard(now)].filter(Boolean),
   }
 }

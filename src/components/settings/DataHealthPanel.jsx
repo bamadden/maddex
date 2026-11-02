@@ -4,6 +4,7 @@ import VERIFIED_CONSTANTS, { daysSinceVerified, pendingRbaDecision, rbaDecisionA
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { runOfficialCheck } from '../../services/officialCheckStore'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // DATA HEALTH — the top of Settings → Data Sources: every feed's age, the
 // official-statistics check, today's AI content, what is due next, and the
@@ -27,7 +28,7 @@ const ago = (ms, now) => {
 }
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null') } catch { return null } }
 const sydDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
-const fmtDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+const fmtDay = (iso) => formatDate(iso)
 
 function Row({ ok, label, value }) {
   const tone = ok === true ? PAL.up : ok === false ? '#D9773B' : PAL.muted

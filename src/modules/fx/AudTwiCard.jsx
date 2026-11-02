@@ -2,6 +2,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { useAudStrength, meanMove, STRENGTH_MAJORS } from './useAudStrength'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── AUD trade-weighted index ───────────────────────────────────────────────
 //
@@ -26,7 +27,7 @@ import { PAL } from '../../styles/palette.js'
 // dressed up as the TWI's own change.
 
 const fmtDate = (iso) => (iso
-  ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  ? formatDate(iso)
   : '—')
 
 export default function AudTwiCard() {

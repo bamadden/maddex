@@ -4,7 +4,7 @@
 // static list. Every date below is ISO, so "upcoming"/"past" is always
 // computed from today rather than hand-maintained.
 
-import { getRelativeDate, sydneyOffset } from '../utils/dateUtils'
+import { getRelativeDate, sydneyOffset, formatDate } from '../utils/dateUtils.js'
 import { licenceGuard } from '../data/sourceLicence'
 import VERIFIED_CONSTANTS from '../data/verifiedConstants'
 
@@ -164,7 +164,7 @@ export function eventsForAI(days = 7) {
   const rows = upcomingEvents(FALLBACK_EVENTS, days).filter((e) => e.importance === 'high')
   if (!rows.length) return ''
   const lines = rows.map((e) => {
-    const when = e.dateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+    const when = formatDate(e.dateObj, { weekday: true, year: false })
     const parts = [`${when}${e.time && e.time !== '—' ? ` ${e.time}` : ''} Sydney — ${e.event}`]
     if (e.forecast) parts.push(`consensus: ${e.forecast}`)
     if (e.prev) parts.push(`previous: ${e.prev}`)

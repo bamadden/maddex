@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
 import { InlineLoading } from '../../components/ui/ModuleStates'
-import { sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
 import RbaHikeImpact from './RbaHikeImpact'
@@ -44,7 +44,7 @@ const YieldCurve3D = lazy(() => import('../../components/visualisations/YieldCur
 // no verified month-ago curve is held, and an invented one would draw a move
 // that never happened. UK/JP/DE remain an illustrative July snapshot.
 
-const asAtLabel = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+const asAtLabel = (iso) => formatDate(iso)
 
 const YIELD_CURVES = {
   AU: {
@@ -429,7 +429,7 @@ const RBA_PERIODS = [['2Y', 2], ['5Y', 5], ['10Y', 10], ['ALL', Infinity]]
 // were added under it, which left them clipped.
 function RbaLead({ askAI }) {
   const nextRbaDate = useMemo(() => getNextMeeting(RBA_MEETINGS_2026), [])
-  const nextRbaLabel = nextRbaDate ? nextRbaDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'
+  const nextRbaLabel = nextRbaDate ? formatDate(nextRbaDate, { year: false }) : '—'
   return (
     <div className="flex flex-col flex-shrink-0 border-b border-terminal-border">
       <RbaHeroCard
@@ -510,11 +510,11 @@ function PolicyRow({ label, rate, verb, decidedOn, nextMeeting, now }) {
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-2xs text-terminal-text-dim/70">
           Last: <span className="text-terminal-text-bright font-semibold">{verb}</span>
-          {decidedOn ? ` · ${new Date(`${decidedOn}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}` : ''}
+          {decidedOn ? ` · ${formatDate(decidedOn, { year: false })}` : ''}
         </span>
         {next && (
           <span className="text-2xs text-terminal-text-dim/70 whitespace-nowrap">
-            Next: {next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            Next: {formatDate(next, { year: false })}
             <span className="text-terminal-gold/80"> ({days}d)</span>
           </span>
         )}
@@ -716,7 +716,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
 
       {scenariosAvailable && (
         <div className="flex items-center gap-1 px-2 py-1 flex-shrink-0 flex-wrap" style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
-          <span className="text-terminal-text-dim/60 tracking-wider mr-1" style={{ fontSize: 11 }}>RBA {new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()}</span>
+          <span className="text-terminal-text-dim/60 tracking-wider mr-1" style={{ fontSize: 11 }}>RBA {formatDate(nd.date, { year: false }).toUpperCase()}</span>
           {SCENARIOS.map(([k, label]) => (
             <button
               key={k}

@@ -18,7 +18,7 @@ import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
 import { upcomingEarnings } from '../../services/earningsCalendar'
 import { dispatchAskAI } from '../../utils/askAI'
 import { logActivity } from '../../services/activityLogService'
-import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
 import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
 import { PAL } from '../../styles/palette.js'
 
@@ -155,7 +155,7 @@ function UpcomingList({ events, onSelect, selectedKey }) {
               >
                 <span className="flex-shrink-0">{e.type === 'earnings' ? '📊' : (REGION_FLAGS[e.region] ?? '🌐')}</span>
                 <span className="text-2xs text-terminal-text-dim flex-shrink-0 w-14">
-                  {e.dateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  {formatDate(e.dateObj, { weekday: true, year: false })}
                 </span>
                 <span className="text-2xs text-terminal-text-bright flex-1 min-w-0 truncate">{e.label}</span>
                 <Stars event={e} />

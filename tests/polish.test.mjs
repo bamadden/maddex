@@ -1,4 +1,4 @@
-// Interaction and layout fixes from the overhaul audit (P2-5, P2-7, P2-8,
+// Interaction and layout fixes from the overhaul audit (P2-3, P2-5, P2-7, P2-8,
 // P2-11, P2-13, P2-15, P3-5, P3-6). Source checks; the phone layout is also
 // checked in a browser in tests/ui.
 
@@ -54,4 +54,12 @@ test('P3-5 / P3-6: phones get whole index cards, and an ALL button for every mod
   const nav = read('src/components/layout/NavBar.jsx')
   assert.match(nav, /aria-label="All modules"/)
   assert.match(nav, /data-all-modules/)
+})
+
+test('P2-3: day-month dates go through formatDate ("3 Nov 2026"), not en-AU\'s own "3 Sept"', () => {
+  // The RBA decision-day files are held unchanged until after 3 Nov 2026.
+  const HELD = /fx\/Rba(HeroCard|DecisionCard|DecisionPreview|HikeImpact)\.jsx$/
+  const files = fs.readdirSync('src', { recursive: true }).filter((f) => /\.(jsx?|mjs)$/.test(f) && !HELD.test(f))
+  const stray = files.filter((f) => /toLocaleDateString\('en-AU', \{ (weekday: 'short', )?day: 'numeric', month: 'short' /.test(read(`src/${f}`)))
+  assert.deepEqual(stray, [])
 })

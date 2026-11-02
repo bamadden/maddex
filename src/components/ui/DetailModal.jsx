@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
 import { InlineLoading } from './ModuleStates'
-import { sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
@@ -673,7 +673,7 @@ export default function DetailModal() {
     if (!ts) return '—'
     try {
       const d = new Date(typeof ts === 'number' ? ts * 1000 : ts)
-      return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+      return isNaN(d.getTime()) ? '—' : formatDate(d)
     } catch { return '—' }
   }
 
@@ -1174,7 +1174,7 @@ export default function DetailModal() {
               >
                 <span>◈</span>
                 <span className="font-bold">
-                  Earnings: {new Date(`${upcomingEarnings.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                  Earnings: {formatDate(upcomingEarnings.date, { year: false })}
                 </span>
                 <span className="text-terminal-text-dim">({daysUntil(upcomingEarnings.date)}d)</span>
               </div>

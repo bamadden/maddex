@@ -12,7 +12,7 @@ export function relativeDate(dateStr) {
   if (diff < 0) return `${Math.abs(diff)}d ago`
   if (diff < 7) return `in ${diff} days`
   if (diff < 14) return 'next week'
-  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return formatDate(date, { year: false })
 }
 
 export function isToday(dateStr) {
@@ -58,7 +58,7 @@ export function timeAgo(when, now = Date.now()) {
   const days = Math.floor(hrs / 24)
   if (days < 7)     return `${days}d ago`
   // Past a week "43d ago" stops being readable as a date. A calendar date is.
-  return new Date(then).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return formatDate(then, { year: false })
 }
 
 // ISO date `daysOffset` days from today — used to build mock/demo history

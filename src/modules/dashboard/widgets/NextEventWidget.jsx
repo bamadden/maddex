@@ -5,6 +5,7 @@ import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import ReleaseWatchBanner from '../../../components/ui/ReleaseWatchBanner'
 import { PAL } from '../../../styles/palette.js'
+import { formatDate } from '../../../utils/dateUtils'
 
 const IMPACT = {
   high:   { label: 'HIGH',   colour: PAL.down },
@@ -138,7 +139,7 @@ export default function NextEventWidget() {
               return (
                 <div key={`${e.date}-${e.event}`} className="flex items-baseline gap-2 min-w-0">
                   <span className="font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted, width: 64 }}>
-                    {t?.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {formatDate(t, { weekday: true, year: false })}
                   </span>
                   <span className="font-sans text-[11px] truncate" style={{ color: im?.label === 'HIGH' ? PAL.bright : PAL.dim }}>{e.title ?? e.event}</span>
                 </div>
@@ -149,7 +150,7 @@ export default function NextEventWidget() {
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-[11px]" style={{ color: PAL.muted }}>
-            {at?.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+            {formatDate(at, { weekday: true, year: false })}
             {/^\d{1,2}:\d{2}$/.test(next.time ?? '') ? ` · ${next.time}` : ''}
           </span>
           <button

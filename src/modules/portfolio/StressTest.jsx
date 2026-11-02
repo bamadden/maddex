@@ -6,12 +6,13 @@ import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { holdingRate } from './rateSensitivity'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // The coming RBA decision, for the hike scenario's label: "RBA HIKES TO
 // 4.85% (3 NOV)". Falls back to a generic label once no decision is pending.
 const ND = pendingRbaDecision()
 const RBA_HIKE_LABEL = ND?.hikeRate != null
-  ? `RBA HIKES TO ${ND.hikeRate.toFixed(2)}% (${new Date(`${ND.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }).toUpperCase()})`
+  ? `RBA HIKES TO ${ND.hikeRate.toFixed(2)}% (${formatDate(ND.date, { year: false }).toUpperCase()})`
   : 'RBA HIKES 25BP'
 
 // Illustrative beta estimates by sector, used only by the MARKET CRASH

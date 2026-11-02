@@ -391,7 +391,7 @@ decision.
 |---|---|
 | P2-1 hard-coded colours | **Mostly done** `a38f7c2`. 1,331 references now use `PAL`; 604 literals remain (215 distinct), mostly one-off chart, map and flag colours. |
 | P2-2 noisy DEMO badge | **Done** `e254613`, `b1e3236` |
-| P2-3 six date formats | **Partly done.** `formatDate()` ("29 Sep 2026") covers the shared helpers, the Overview, badges and regime text (22 uses). 215 `toLocaleDateString` calls remain in modules. |
+| P2-3 six date formats | **Done** for day-and-month dates: all go through `formatDate()` ("3 Nov 2026", "Tue 3 Nov"), 82 calls converted, and a test keeps it that way. Left as is: month-only labels ("Sep 2026" for monthly data), long-form headings, ISO keys used in code, and the held RBA panels (until after 3 Nov). 69 `en-AU` calls remain in those categories. |
 | P2-4 two logos | **Done** `a38f7c2` |
 | P2-5 module header rule; unexplained "M" button | **Done** `8bd7389`. The button reads ASK AI; subtitles list contents. |
 | P2-6 state handling | **Partly done.** `InlineLoading` replaces 22 loading strings. Empty and error states are not yet consolidated. |

@@ -1,6 +1,7 @@
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Global economic comparison ─────────────────────────────────────────────
 //
@@ -18,7 +19,7 @@ const STANCE = {
   CUT: { label: 'EASING', colour: '#4A9EDB' },
 }
 
-const short = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—')
+const short = (iso) => (iso ? formatDate(iso, { year: false }) : '—')
 
 export default function GlobalComparison() {
   const C = VERIFIED_CONSTANTS

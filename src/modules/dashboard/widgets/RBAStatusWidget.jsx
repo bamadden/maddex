@@ -4,6 +4,7 @@ import VerifiedBadge from '../../../components/ui/VerifiedBadge'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import { formatDate } from '../../../utils/dateUtils'
 
 // Figures come from verifiedConstants, never from a live guess — see that
 // file for why policy rates are maintained rather than fetched.
@@ -87,7 +88,7 @@ export default function RBAStatusWidget() {
             MACRO →
           </button>
           <span className="font-mono text-[11px]" style={{ color: PAL.dim }}>
-            {next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            {formatDate(next, { year: false })}
           </span>
         </div>
       </div>

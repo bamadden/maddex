@@ -1,4 +1,5 @@
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils.js'
 // Shared look and formatting for the Relationships screens.
 
 export const TYPE_COLOUR = {
@@ -12,6 +13,6 @@ export const STALE_TONE = '#C4653A'
 // Held and watched nodes: green, so gold stays reserved for the selection.
 export const HELD_TONE = PAL.up
 
-export const fmtDate = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
+export const fmtDate = (iso) => (iso ? formatDate(iso) : '—')
 export const nodeLabel = (n) => n.ticker ?? (n.type === 'person' ? n.name.split(' ').slice(-1)[0] : n.name)
 export const pageOf = (e) => e.page ?? (Number(String(e.source?.url ?? '').match(/#page=(\d+)/)?.[1]) || null)

@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { ACTION_TYPES, ASX_LISTINGS, CORPORATE_ACTIONS, CORPORATE_ACTIONS_AS_OF } from '../../data/corporateActions'
 import { dispatchAskAI } from '../../utils/askAI'
+import { formatDate } from '../../utils/dateUtils'
 
 // CORPORATE ACTIONS — dividends, results, AGMs, raisings, splits and new
 // listings, from the hand-entered, sourced list in data/corporateActions.
 // A category with nothing announced says so; nothing is filled in.
 
 const TYPE = Object.fromEntries(ACTION_TYPES.map((t) => [t.key, t]))
-const fmtDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+const fmtDate = (iso) => formatDate(iso, { weekday: true, year: false })
 const fmtAud = (n) => (n >= 1e6 ? `A$${(n / 1e6).toFixed(n % 1e6 ? 1 : 0)}M` : `A$${n.toLocaleString('en-AU')}`)
 
 export default function CorporateActions() {

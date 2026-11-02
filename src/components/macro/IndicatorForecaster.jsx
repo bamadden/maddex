@@ -6,6 +6,7 @@ import { AU_TRADE_BALANCE } from '../../data/placeholders'
 import { askClaudeJSON } from '../../services/api'
 import { AIContentBadge } from '../ui/VerifiedBadge'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Economic dashboard — twelve Australian indicators ──────────────────────
 //
@@ -29,7 +30,7 @@ import { PAL } from '../../styles/palette.js'
 const { au, rba, bonds } = VERIFIED_CONSTANTS
 const pct = (v, dp = 1) => (v == null ? '—' : `${v.toFixed(dp)}%`)
 const ym = (p) => { const [y, m] = p.split('-'); return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(m) - 1]}-${y.slice(2)}` }
-const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : null)
+const day = (iso) => (iso ? formatDate(iso) : null)
 
 // Cash rate at each decision, from the RBA decision list.
 const cashSeries = (rba.decisions ?? []).map((d) => ({ date: d.date.slice(0, 7), label: ym(d.date.slice(0, 7)), value: d.rate }))

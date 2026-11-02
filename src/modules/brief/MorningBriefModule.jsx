@@ -17,7 +17,7 @@ import { eventStars, starString } from '../../services/calendarExtras'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { useSentiment } from '../../hooks/useSentiment'
-import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
 import { clean } from './briefText'
 import { SectionText, BriefSection } from './BriefParts'
 import TabBar from '../../components/ui/TabBar'
@@ -102,7 +102,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
             {rba.lastDecisionVerb} on {rba.lastDecision}
           </div>
           <div className="text-2xs text-terminal-text mt-1">
-            Next meeting {new Date(`${rba.nextMeeting}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            Next meeting {formatDate(rba.nextMeeting, { year: false })}
             <span className="text-terminal-gold"> · {daysToRba}d</span>
           </div>
         </div>
@@ -114,7 +114,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
             {fed.lastDecisionVerb} on {fed.lastDecision}
           </div>
           <div className="text-2xs text-terminal-text mt-1">
-            Next {new Date(`${fed.nextMeeting}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            Next {formatDate(fed.nextMeeting, { year: false })}
           </div>
         </div>
 
@@ -271,7 +271,7 @@ export default function MorningBriefModule() {
     if (!brief || imaging) return
     setImaging(true)
     try {
-      await downloadBriefImage(brief, new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' }).toUpperCase())
+      await downloadBriefImage(brief, formatDate(new Date()).toUpperCase())
     } catch (e) { console.warn('[Brief] image export failed:', e.message) } finally { setImaging(false) }
   }
   // Weekly is a second tab rather than a second module: same reader, same

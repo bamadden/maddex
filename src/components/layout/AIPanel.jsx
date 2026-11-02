@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { marketSession } from '../../services/newsIntelligence'
-import { sydneyOffset } from '../../utils/dateUtils'
+import { sydneyOffset, formatDate } from '../../utils/dateUtils'
 import VERIFIED_CONSTANTS, { verifiedFactsForAI, pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights, INSIGHT_LIMIT } from '../../services/savedInsights'
 import { useQueryClient } from '@tanstack/react-query'
@@ -166,7 +166,7 @@ const PROFILE_PROMPT_MODULES = new Set(['dashboard', 'markets', 'news', 'portfol
 function decisionWeekPrompts(now = Date.now()) {
   const nd = pendingRbaDecision(now)
   if (!nd || now < rbaDecisionAt(nd.date, nd.time) - 7 * 86400_000) return null
-  const day = new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  const day = formatDate(nd.date, { year: false })
   const pct = nd.marketHikePct
   return [
     { label: pct != null ? `WHAT DOES ${pct}% HIKE PRICING MEAN?` : `${day.toUpperCase()} MARKET PRICING`, prompt: `What does ${pct != null ? `~${pct}% ` : ''}market pricing for a hike at the RBA's ${day} meeting actually mean — where does the reading come from, what drove it, and how much should anyone lean on it?`, dataKeys: ['aud'] },
@@ -187,7 +187,7 @@ function postDecisionPrompts(now = Date.now()) {
   if (!rba?.lastDecision) return null
   const at = new Date(`${rba.lastDecision}T14:30:00${sydneyOffset(rba.lastDecision)}`).getTime()
   if (now < at || now >= at + 7 * 86400_000) return null
-  const day = new Date(`${rba.lastDecision}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  const day = formatDate(rba.lastDecision, { year: false })
   return [
     { label: 'WHAT DID THE RBA JUST DECIDE?', prompt: `Using only the decision and statement details in your context, what did the RBA decide on ${day}, and what did its statement say?`, dataKeys: ['aud'] },
     { label: 'HOW DO INVESTORS REACT TO THIS?', prompt: `How do investors generally respond to a decision like the RBA's on ${day}? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
@@ -1455,7 +1455,7 @@ export default function AIPanel({ wide = false, onListening }) {
                       className="w-full text-left px-2 py-2 hover:bg-terminal-accent/10 transition-colors"
                     >
                       <div className="text-2xs text-terminal-text-dim/60">
-                        {new Date(ins.savedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                        {formatDate(new Date(ins.savedAt), { year: false })}
                       </div>
                       <div className="text-2xs text-terminal-text leading-snug mt-0.5">{ins.preview}</div>
                     </button>
@@ -1511,7 +1511,7 @@ export default function AIPanel({ wide = false, onListening }) {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-terminal-text-dim/60 font-mono">
-                      {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      {formatDate(new Date(conv.date), { year: false })}
                     </div>
                     <div className="text-2xs text-terminal-text-bright truncate">{conv.title || 'Untitled'}</div>
                   </div>
@@ -1556,7 +1556,7 @@ export default function AIPanel({ wide = false, onListening }) {
                 <div className="flex-1 min-w-0">
                   <div className="text-xs text-terminal-text-bright leading-snug line-clamp-2">{conv.title || 'Untitled'}</div>
                   <div className="text-[11px] text-terminal-text-dim/60 font-mono mt-0.5">
-                    {new Date(conv.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                    {formatDate(new Date(conv.date), { year: false })}
                     {' · '}{new Date(conv.date).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     {' · '}{conv.messages.filter((m) => m.role === 'assistant' && m.content).length} repl{conv.messages.filter((m) => m.role === 'assistant' && m.content).length === 1 ? 'y' : 'ies'}
                   </div>

@@ -1,3 +1,4 @@
+import { formatDate } from './dateUtils.js'
 // ─── Standardised "madden:ask-ai" prompt builder ──────────────────────────────
 // Every asset/headline/chokepoint "ASK AI" button across the terminal funnels
 // through here so AIPanel always receives the same header-field shape (for its
@@ -13,7 +14,7 @@ export const DEFAULT_INSTRUCTION =
   'the 2-3 most important drivers right now, and your near-term outlook. Be direct and specific.'
 
 export function todayAEST() {
-  return new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatDate(new Date())
 }
 
 function buildHeader({ name, ticker, exchange, price, change, sector, date }) {

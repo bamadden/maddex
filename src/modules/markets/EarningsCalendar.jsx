@@ -4,6 +4,7 @@ import { getPrep, togglePrepItem, prunePrep } from '../../services/earningsPrep'
 import { useStore } from '../../store/useStore'
 import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -238,7 +239,7 @@ export default function EarningsCalendar() {
                     style={{ borderColor: isWatched(e.ticker) ? PAL.gold : 'transparent' }}
                   >
                     <span className="text-2xs text-terminal-text-dim w-14 flex-shrink-0 tabular-nums">
-                      {new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      {formatDate(e.date, { year: false })}
                     </span>
                     <button
                       onClick={() => openModal?.({ symbol: e.ticker, name: e.company, type: 'asx' })}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useStore } from '../../store/useStore'
-import { timeAgo } from '../../utils/dateUtils'
+import { timeAgo, formatDate } from '../../utils/dateUtils'
 import { takeModuleIntent } from '../../services/moduleIntent'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { DemoBadge } from '../../components/ui/ModuleStates'
@@ -283,7 +283,7 @@ function RateSensitiveTab({ scanTime, settings }) {
       <SharedEmptyState
         icon="◎"
         title="No rate event today"
-        subtitle={`Rate-sensitive signals run on RBA decision and CPI release days.${next ? ` Next: ${next.label}, ${new Date(`${next.date}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.` : ''}`}
+        subtitle={`Rate-sensitive signals run on RBA decision and CPI release days.${next ? ` Next: ${next.label}, ${formatDate(next.date, { weekday: true, year: false })}.` : ''}`}
         className="min-h-0 py-8"
       />
     )

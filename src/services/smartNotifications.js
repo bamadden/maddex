@@ -15,7 +15,7 @@
 
 import VERIFIED_CONSTANTS, { pendingRbaDecision, rbaDecisionAt } from '../data/verifiedConstants'
 import { getCurrentTier, limitFor } from './plans'
-import { sydneyOffset } from '../utils/dateUtils'
+import { sydneyOffset, formatDate } from '../utils/dateUtils.js'
 import { useAuthStore } from '../store/useAuthStore'
 import { getMockFMPHistory } from './mockData'
 import { USING_MOCK_DATA } from './api'
@@ -66,7 +66,7 @@ export function typicalDailyMove(symbol) {
 }
 
 const bare = (s) => String(s).toUpperCase().replace(/\.AX$/, '')
-const day = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+const day = (iso) => formatDate(iso, { weekday: true, year: false })
 
 // ── Triggers ────────────────────────────────────────────────────────────────
 

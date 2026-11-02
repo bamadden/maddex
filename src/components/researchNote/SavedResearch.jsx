@@ -4,6 +4,7 @@ import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { useStore } from '../../store/useStore'
 import { getWeeklyNotes, setWeeklyNotesEnabled, weeklyNoteSymbols, WEEKLY_NOTES_CHANGED, WEEKLY_NOTE_COUNT } from '../../services/noteScheduler'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // SAVED RESEARCH — the last ten research notes, in the MaddenAI panel.
 //
@@ -35,7 +36,7 @@ function WeeklyNotesBar() {
       <span className="text-[11px] font-mono text-terminal-text-dim/70 leading-snug flex-1 min-w-0">
         {s.enabled
           ? (syms.length
-              ? <>Every Monday before the open: {syms.join(', ')}.{s.lastRunAt && <> Last run {new Date(s.lastRunAt).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}.</>}</>
+              ? <>Every Monday before the open: {syms.join(', ')}.{s.lastRunAt && <> Last run {formatDate(new Date(s.lastRunAt), { weekday: true, year: false })}.</>}</>
               : 'Add stocks to your watchlist — the top three get a note each Monday.')
           : `Fresh notes on your top ${WEEKLY_NOTE_COUNT} watchlist stocks every Monday, kept here. Uses your monthly note allowance.`}
       </span>
@@ -79,7 +80,7 @@ export default function SavedResearch() {
                   {n.asset.name ?? n.asset.symbol} {!/^(PORTFOLIO$|RBA-)/.test(n.asset.symbol) && <span className="text-terminal-text-dim font-mono">{String(n.asset.symbol).replace(/\.AX$/i, '')}</span>}
                 </div>
                 <div className="text-[11px] text-terminal-text-dim/60 font-mono">
-                  {new Date(n.generatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {formatDate(new Date(n.generatedAt))}
                 </div>
               </button>
               <span className="text-[11px] font-bold font-mono px-1.5 py-px flex-shrink-0" style={{ color: tone, border: `1px solid ${tone}66` }}>{stance}</span>

@@ -16,6 +16,7 @@ import { DemoBadge } from '../../components/ui/ModuleStates'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews } from '../../services/api'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 const TABS = [
   { key: 'OVERVIEW', label: 'OVERVIEW' },
@@ -558,7 +559,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                         {a.headline}
                       </div>
                       <div className="text-2xs text-terminal-text-dim/50 mt-0.5">
-                        {a.source}{a.pubDate ? ` · ${new Date(a.pubDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}` : ''}
+                        {a.source}{a.pubDate ? ` · ${formatDate(new Date(a.pubDate), { year: false })}` : ''}
                       </div>
                     </a>
                   ))}

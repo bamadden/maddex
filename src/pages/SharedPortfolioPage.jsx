@@ -1,5 +1,6 @@
 import { useSharedRecord } from '../services/sharingService'
 import { PAL } from '../styles/palette.js'
+import { formatDate } from '../utils/dateUtils'
 
 // Public, read-only portfolio snapshot — percentages only (see
 // PortfolioSnapshot's sharePayload). Routed by App.jsx before the app mounts,
@@ -48,7 +49,7 @@ export default function SharedPortfolioPage({ id }) {
           <>
             <div className="text-2xl font-bold text-terminal-text-bright mb-1">{p.ownerName}&apos;s portfolio</div>
             <div className="text-2xs text-terminal-text-dim mb-6">
-              Shared {new Date(record.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} · read-only · percentages only
+              Shared {formatDate(new Date(record.createdAt))} · read-only · percentages only
             </div>
 
             <div className="border border-terminal-border p-5 mb-4">

@@ -7,8 +7,9 @@
 // and attaching "RBA hike pricing" to Apple would be noise.
 
 import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../data/verifiedConstants'
+import { formatDate } from '../utils/dateUtils.js'
 
-const day = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '')
+const day = (iso) => (iso ? formatDate(iso, { year: false }) : '')
 
 // The pending RBA decision's pricing, while it is pending.
 function hikePricing(now = Date.now()) {

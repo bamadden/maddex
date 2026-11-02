@@ -8,6 +8,7 @@ import { useStore } from '../../store/useStore'
 import { screenSector } from '../markets/screenSector'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 const RISK_TONE = { LOW: PAL.up, MEDIUM: PAL.gold, ELEVATED: '#D9773B', HIGH: PAL.down }
 // Main WA export port, for the route distance (the arcs start from a map anchor).
@@ -335,7 +336,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.site.bank} · {data.site.city}</div>
             <div style={S.label}>When (Sydney time)</div>
             <div style={{ ...S.value, fontSize: 12 }}>
-              {new Date(`${data.date}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}{data.time && data.time !== '—' ? ` · ${data.time}` : ''}
+              {formatDate(data.date, { weekday: true, year: false })}{data.time && data.time !== '—' ? ` · ${data.time}` : ''}
             </div>
             {data.description && (
               <>

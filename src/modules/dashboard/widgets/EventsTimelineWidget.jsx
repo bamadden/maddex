@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getEconomicCalendar, pendingEvents } from '../../../services/calendarService'
 import { eventStars, starString } from '../../../services/calendarExtras'
 import { setModuleIntent } from '../../../services/moduleIntent'
-import { sydneyTzAbbr } from '../../../utils/dateUtils'
+import { sydneyTzAbbr, formatDate } from '../../../utils/dateUtils'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
@@ -25,7 +25,7 @@ function dayLabel(iso, todayIso) {
   const diff = Math.round((d - t) / 86400000)
   if (diff === 0) return 'TODAY'
   if (diff === 1) return 'TOMORROW'
-  return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
+  return formatDate(d, { weekday: true, year: false }).toUpperCase()
 }
 
 const timeLabel = (e) => {

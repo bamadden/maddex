@@ -5,6 +5,7 @@ import { RBA_RATE_HISTORY, FED_RATE_HISTORY } from '../../data/placeholders'
 import { RBA_PATH, FED_PATH, rateOn } from '../../data/policySpread'
 import SafeChart from '../../components/ui/SafeChart'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── RBA and Fed policy paths, with this year's decisions marked ───────────
 //
@@ -18,7 +19,7 @@ import { PAL } from '../../styles/palette.js'
 const DAY = 86400000
 const toMs = (d) => Date.parse(`${d}T00:00:00Z`)
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10)
-const fmtDay = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+const fmtDay = (d) => formatDate(d)
 
 const RBA_COLOUR = PAL.gold
 const FED_COLOUR = '#5B9BD5'

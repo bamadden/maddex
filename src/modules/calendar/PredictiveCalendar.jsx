@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { getMockFMPHistory } from '../../services/mockData'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // Two Calendar sections:
 //
@@ -18,7 +19,7 @@ import { PAL } from '../../styles/palette.js'
 
 const DAY = 86_400_000
 const ymd = (d) => d.toISOString().slice(0, 10)
-const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+const fmt = (iso) => formatDate(iso)
 const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function lastWeekday(y, m, dow) { // m 0-based

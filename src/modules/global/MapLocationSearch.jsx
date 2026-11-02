@@ -6,6 +6,7 @@ import { useStore } from '../../store/useStore'
 import { screenSector } from '../markets/screenSector'
 import { searchLocation, zoomFor, readJson, writeJson } from '../../services/geocodeService'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // Location search for the intel map. Geocoding (and the Nominatim usage
 // policy that shapes it) lives in services/geocodeService.js.
@@ -26,7 +27,7 @@ const FINANCIAL_PLACES = [
   { test: /\bapple\b|cupertino/i, title: 'APPLE INC HQ', context: 'NASDAQ: AAPL · Cupertino, California', lat: 37.3349, lon: -122.0090, zoom: 15,
     ask: 'What is the financial significance of Apple Inc for an Australian investor holding US tech?' },
   { test: /reserve bank|\brba\b|martin place/i, title: 'RESERVE BANK OF AUSTRALIA · MARTIN PLACE', lat: -33.8678, lon: 151.2107, zoom: 16,
-    context: `Cash rate ${C.rba.cashRate.toFixed(2)}% · next decision ${new Date(`${C.rba.nextMeeting}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`,
+    context: `Cash rate ${C.rba.cashRate.toFixed(2)}% · next decision ${formatDate(C.rba.nextMeeting, { year: false })}`,
     ask: 'Tell me about the RBA and its current policy stance.' },
   { test: /\bbhp\b|171 collins/i, title: 'BHP MELBOURNE HQ · 171 COLLINS ST', lat: -37.8152, lon: 144.9690, zoom: 16,
     context: `ASX: BHP.AX · Materials${BHP_CAP ? ` · ~A$${Math.round(BHP_CAP / 1e9)}B market cap (demo data)` : ''}`,

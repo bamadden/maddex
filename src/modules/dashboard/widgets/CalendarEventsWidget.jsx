@@ -3,6 +3,7 @@ import { getEconomicCalendar, pendingEvents } from '../../../services/calendarSe
 import {WidgetBody, WidgetEmpty} from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import { formatDate } from '../../../utils/dateUtils'
 
 export default function CalendarEventsWidget() {
   const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
@@ -19,7 +20,7 @@ export default function CalendarEventsWidget() {
           <button key={i} onClick={() => goModule('calendar')} className="text-left min-w-0">
             <div className="font-sans text-[11px] truncate" style={{ color: PAL.bright }}>{e.title ?? e.event}</div>
             <div className="font-mono text-[11px] mt-0.5" style={{ color: PAL.muted }}>
-              {new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
+              {formatDate(e.date, { weekday: true, year: false })}
               {/^\d{1,2}:\d{2}$/.test(e.time ?? '') ? ` · ${e.time}` : ''}
             </div>
           </button>

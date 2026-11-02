@@ -12,6 +12,7 @@
 
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from './mockData.js'
 import { AU_ETFS } from '../data/etfData.js'
+import { formatDate } from '../utils/dateUtils.js'
 
 export function escapeHtml(text) {
   return String(text ?? '')
@@ -144,7 +145,7 @@ export function toShareText(body, { question = null, date = new Date() } = {}) {
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
-  const stamp = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  const stamp = formatDate(date)
   return [
     `MaddenAI · ${stamp}`,
     question ? `Q: ${question}\n` : '',

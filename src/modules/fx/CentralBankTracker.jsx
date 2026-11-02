@@ -4,6 +4,7 @@ import { LAST_DECISIONS } from '../../services/centralBankSchedule'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import PolicySpreadMonitor from './PolicySpreadMonitor'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Central bank tracker ──────────────────────────────────────────────────
 //
@@ -59,7 +60,7 @@ function deriveDecisions(history, now, months = 18) {
 }
 
 const shortDate = (iso) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  formatDate(iso, { year: false })
 
 function RbaTimeline() {
   const [now] = useState(() => Date.now())

@@ -4,6 +4,7 @@ import { askClaude } from '../../services/api'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import RegimeQuadrant from './RegimeQuadrant'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Macro indicator deep dive ─────────────────────────────────────────────
 //
@@ -213,7 +214,7 @@ export function RbaSensitivityMatrix() {
   const year = rba.lastDecision.slice(0, 4)
   const hikes = (rba.decisions ?? []).filter((d) => d.date.startsWith(year) && d.decision === 'HIKE').length
   const pricing = nd?.marketHikePct != null
-    ? ` Markets price ~${nd.marketHikePct}% for a further hike to ${nd.hikeRate.toFixed(2)}% on ${new Date(`${nd.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${nd.marketSource}, ${nd.marketAsOf}).`
+    ? ` Markets price ~${nd.marketHikePct}% for a further hike to ${nd.hikeRate.toFixed(2)}% on ${formatDate(nd.date, { year: false })} (${nd.marketSource}, ${nd.marketAsOf}).`
     : ''
   const narrative = here.key === 'stag'
     ? `Australia sits in the stagflation-risk quadrant. Annual GDP growth of ${au.gdpAnnual}% (${au.gdpPeriod}) is below the ~${TREND_GDP}% trend, while CPI at ${au.cpi.toFixed(1)}% (${au.cpiPeriod}) is above the ${au.rbaTargetBand} target band. With inflation outside the band the RBA has put it ahead of growth: ${hikes} hike${hikes === 1 ? '' : 's'} in ${year}, to ${rba.cashRate.toFixed(2)}%.${pricing}`

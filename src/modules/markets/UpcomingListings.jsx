@@ -1,13 +1,14 @@
 import { ASX_LISTINGS, CORPORATE_ACTIONS_AS_OF, listingStatus } from '../../data/corporateActions'
 import { dispatchAskAI } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // UPCOMING LISTINGS — the ASX's own upcoming floats page, as read on the date
 // shown. A passed proposed date reads DATE PASSED, not LISTED: whether the
 // float completed is something to check, not assume.
 
 const STATUS_TONE = { UPCOMING: PAL.gold, 'DATE PASSED': PAL.muted, TBA: PAL.muted }
-const fmtDate = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : 'TBA')
+const fmtDate = (iso) => (iso ? formatDate(iso, { year: false }) : 'TBA')
 const fmtRaise = (n) => `A$${(n / 1e6).toFixed(n % 1e6 ? 1 : 0)}M`
 
 export default function UpcomingListings() {

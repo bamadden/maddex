@@ -1,4 +1,5 @@
 import { useSharedRecord } from '../services/sharingService'
+import { formatDate } from '../utils/dateUtils'
 
 function priceStr(symbol, price) {
   if (price == null) return '—'
@@ -32,7 +33,7 @@ export default function SharedWatchlistPage({ id }) {
           <>
             <div className="text-2xl font-bold text-terminal-text-bright mb-1">{record.payload.ownerName}'s Watchlist</div>
             <div className="text-2xs text-terminal-text-dim mb-6">
-              Shared {new Date(record.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} · read-only
+              Shared {formatDate(new Date(record.createdAt))} · read-only
             </div>
 
             <div className="border border-terminal-border divide-y divide-terminal-border/60">

@@ -73,7 +73,7 @@ export async function fetchRbaCashRate({ base = '/api/reservebank', fetchImpl = 
   return {
     value: parseFloat(last[2]),
     change: last[1],
-    period: `effective ${effective.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+    period: `effective ${formatDate(effective)}`,
     effectiveIso: effective.toLocaleDateString('en-CA'),
     source: 'rba.gov.au table A2',
   }
@@ -380,6 +380,7 @@ function applyConfirmations(result) {
 // officialCheckStore.js, which the shell imports; this file — the fetchers
 // and reconciliation — loads on demand.
 export { getOfficialCheck, subscribeOfficialCheck, runOfficialCheck } from './officialCheckStore.js'
+import { formatDate } from '../utils/dateUtils.js'
 
 export async function doOfficialCheck({ force = false } = {}) {
   if (!force) {

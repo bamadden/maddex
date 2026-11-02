@@ -40,6 +40,7 @@ import { HoverPreview, BulkBar, ImportModal } from './WatchlistExtras'
 import { SECTOR_BY_SYMBOL } from '../portfolio/sectorMap'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 function displaySymbol(symbol) {
   return symbol.replace(/\.AX$/, '').replace(/-USD$/, '')
@@ -1598,7 +1599,7 @@ export default function WatchlistModule() {
                               }
                               return (
                                 <span
-                                  title={`${e.company} ${e.type} results — ${new Date(`${e.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} (${d}d)`}
+                                  title={`${e.company} ${e.type} results — ${formatDate(e.date, { year: false })} (${d}d)`}
                                   className="text-2xs text-terminal-gold ml-1"
                                 >📅</span>
                               )
@@ -1676,7 +1677,7 @@ export default function WatchlistModule() {
                                 {since.pct >= 0 ? '▲ +' : '▼ '}{Math.abs(since.pct).toFixed(2)}%
                                 {since.entryAt && (
                                   <span className="text-terminal-text-dim/50 ml-1">
-                                    since {new Date(since.entryAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                                    since {formatDate(new Date(since.entryAt), { year: false })}
                                   </span>
                                 )}
                               </span>

@@ -7,6 +7,7 @@ import {
 import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── Upcoming decisions, next 90 days ───────────────────────────────────────
 //
@@ -129,7 +130,7 @@ export default function UpcomingDecisions({ days = 90 }) {
                   {VERIFIED_CONSTANTS[r.key]?.country ?? ''}
                 </td>
                 <td className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 11 }}>
-                  {new Date(`${r.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                  {formatDate(r.date, { year: false })}
                 </td>
                 {/* The rate going INTO the meeting — the number the expected
                     decision would move. A date and a stance with no level

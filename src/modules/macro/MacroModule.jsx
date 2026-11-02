@@ -539,7 +539,7 @@ function RBADashboard({ askAI }) {
   const diffMs   = RBA_NEXT_MEETING ? RBA_NEXT_MEETING - rbaNow : 0
   const daysLeft = Math.max(0, Math.floor(diffMs / 86400000))
   const nextMeetingBadge = nextRbaDateStr
-    ? new Date(`${nextRbaDateStr}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()
+    ? formatDate(nextRbaDateStr).toUpperCase()
     : '—'
 
   return (
@@ -643,7 +643,7 @@ function RBADashboard({ askAI }) {
             </div>
             <div className="flex justify-between">
               <span className="text-terminal-text-dim/60">
-                {new Date(`${VERIFIED_CONSTANTS.fed.nextMeeting}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {formatDate(VERIFIED_CONSTANTS.fed.nextMeeting)}
               </span>
               <span className="text-terminal-text-dim/60">{VERIFIED_CONSTANTS.fed.lastDecisionVerb}</span>
             </div>
@@ -1007,14 +1007,14 @@ function relativeDateLabel(isoDate) {
   if (diffDays === 1) return 'Tomorrow'
   if (diffDays === -1) return 'Yesterday'
   const weekday = target.toLocaleDateString('en-AU', { weekday: 'short' })
-  const dayMonth = target.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  const dayMonth = formatDate(target, { year: false })
   return `${weekday} ${dayMonth}`
 }
 
 function formatShortDate(isoDate) {
   const d = new Date(`${isoDate}T00:00:00`)
   if (isNaN(d)) return isoDate
-  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  return formatDate(d, { year: false })
 }
 
 const REMINDER_KEY = 'maddex_calendar_reminders'
@@ -1239,7 +1239,7 @@ function NextKeyRelease() {
         <div className="text-2xs font-bold tracking-widest text-terminal-red mt-0.5">● HIGH IMPACT</div>
         {after && (
           <div className="text-2xs text-terminal-text-dim mt-1.5">
-            Then: {after.event} · {new Date(`${after.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+            Then: {after.event} · {formatDate(after.date, { year: false })}
           </div>
         )}
       </div>

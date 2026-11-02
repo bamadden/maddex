@@ -4,6 +4,7 @@ import SafeChart from '../../components/ui/SafeChart'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { CATEGORY_STYLE, progressOf, reconstructPath } from '../../services/replayScenarios'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 
 const FRAMES = 120
 const SPEEDS = { '1x': 250, '5x': 50 }
@@ -115,7 +116,7 @@ export default function ScenarioPlayer({ scenario, onExit }) {
   })
 
   const dayLabel = scenario.window.kind === 'intraday'
-    ? `Day 1 of 1 · ${new Date(`${scenario.window.date}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} · ${current.label}`
+    ? `Day 1 of 1 · ${formatDate(scenario.window.date)} · ${current.label}`
     : current.label
 
   const btn = 'text-2xs px-2.5 py-1 border transition-colors font-bold tracking-wider'
@@ -203,7 +204,7 @@ export default function ScenarioPlayer({ scenario, onExit }) {
               {events.map((e, i) => (
                 <div key={`${e.at}-${i}`} className="panel-fade" style={{ borderLeft: `2px solid ${e.key ? PAL.gold : 'rgba(99,120,153,0.35)'}`, paddingLeft: 8 }}>
                   <div className="font-mono text-terminal-gold/80" style={{ fontSize: 11 }}>
-                    {scenario.window.kind === 'intraday' ? e.at : new Date(`${e.at}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {scenario.window.kind === 'intraday' ? e.at : formatDate(e.at)}
                   </div>
                   <div className={`text-2xs leading-snug ${e.key ? 'text-terminal-text-bright' : 'text-terminal-text'}`}>{e.text}</div>
                 </div>

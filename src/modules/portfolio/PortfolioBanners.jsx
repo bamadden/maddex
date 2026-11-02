@@ -4,7 +4,7 @@ import { upcomingEarnings } from '../../services/earningsCalendar'
 import { CORPORATE_ACTIONS } from '../../data/corporateActions'
 import { rbaPortfolioImpact } from '../../services/smartNotifications'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
-import { sydneyOffset } from '../../utils/dateUtils'
+import { sydneyOffset, formatDate } from '../../utils/dateUtils'
 import { PAL } from '../../styles/palette.js'
 
 // Two connections into the holdings tab:
@@ -15,7 +15,7 @@ import { PAL } from '../../styles/palette.js'
 //     each rate-sensitive holding (the sector table in rateSensitivity).
 
 const bare = (s) => String(s).toUpperCase().replace(/\.AX$/, '')
-const day = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+const day = (iso) => formatDate(iso, { weekday: true, year: false })
 
 export function PortfolioBanners({ holdings }) {
   const [now] = useState(() => Date.now())
