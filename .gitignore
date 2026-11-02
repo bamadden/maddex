@@ -33,3 +33,6 @@ supabase/.temp
 
 # Downloaded graph source documents and their extracted text (scripts/lib/sourceText.mjs)
 .cache/
+
+# UI test evidence (screenshots, traces) from failed runs
+tests/ui/artifacts

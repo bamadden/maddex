@@ -7,15 +7,61 @@
 // must never spend money or depend on the live model. Uses the system Chrome
 // (override with CHROME_PATH) and the dev server at UI_BASE (default
 // http://localhost:5173).
+//
+// Pressure switches, for chasing intermittent failures:
+//   UI_CPU_THROTTLE=4        slow every page's CPU 4x (CDP)
+//   UI_MOCK_DELAY=200-500    answer every mocked request after 200–500 ms
+// Every failed check leaves evidence in UI_ARTIFACTS (default
+// tests/ui/artifacts/<run>/): the message, a screenshot, the page text and an
+// event trace (console, page errors, failed and 4xx/5xx requests, navigations).
 
 import fs from 'node:fs'
+import path from 'node:path'
 import puppeteer from 'puppeteer-core'
 
 const BASE = process.env.UI_BASE ?? 'http://localhost:5173'
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+const CPU_THROTTLE = Number(process.env.UI_CPU_THROTTLE ?? 1)
+const [DELAY_MIN = 0, DELAY_MAX = DELAY_MIN] = (process.env.UI_MOCK_DELAY ?? '0').split('-').map(Number)
+const mockDelay = () => wait(DELAY_MIN + Math.random() * (DELAY_MAX - DELAY_MIN))
+const RUN_DIR = path.join(process.env.UI_ARTIFACTS ?? 'tests/ui/artifacts', new Date().toISOString().replace(/[:.]/g, '-'))
+
+// Evidence on failure. `active` is the page the current check is looking at.
+const traces = new Map()
+let active = null
+let section = ''
+const captures = []
+async function capture(page, n, msg) {
+  const dir = path.join(RUN_DIR, `fail-${n}`)
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'failure.txt'), `section: ${section}\ncheck: ${msg}\nat: ${new Date().toISOString()}\nurl: ${page?.url?.() ?? '?'}\ncpu throttle: ${CPU_THROTTLE}x · mock delay: ${DELAY_MIN}-${DELAY_MAX} ms\n`)
+  fs.writeFileSync(path.join(dir, 'trace.log'), (traces.get(page) ?? ['(no page)']).join('\n'))
+  if (!page || page.isClosed()) return
+  await page.screenshot({ path: path.join(dir, 'screenshot.png'), fullPage: false }).catch((e) => fs.writeFileSync(path.join(dir, 'screenshot-error.txt'), String(e)))
+  await page.evaluate(() => document.body.innerText).then((t) => fs.writeFileSync(path.join(dir, 'page.txt'), t)).catch(() => {})
+}
 const failures = []
-const fail = (msg) => { failures.push(msg); console.log(`  ✖ ${msg}`) }
+const fail = (msg) => {
+  failures.push(msg); console.log(`  ✖ ${msg}`)
+  captures.push(capture(active, failures.length, msg).catch((e) => console.log(`    (evidence capture failed: ${e.message})`)))
+}
+const sectionLog = (title) => { section = title; console.log(title) }
+
+// Every page: an event trace for the evidence, and the CPU throttle.
+async function instrument(page) {
+  const log = []
+  traces.set(page, log)
+  const push = (line) => { log.push(`${new Date().toISOString()} ${line}`); if (log.length > 500) log.shift() }
+  page.on('console', (m) => push(`console.${m.type()}: ${m.text().slice(0, 300)}`))
+  page.on('pageerror', (e) => push(`pageerror: ${e.message.slice(0, 300)}`))
+  page.on('requestfailed', (r) => push(`requestfailed: ${r.method()} ${r.url().slice(0, 200)} ${r.failure()?.errorText ?? ''}`))
+  page.on('response', (r) => { if (r.status() >= 400) push(`http ${r.status()}: ${r.url().slice(0, 200)}`) })
+  page.on('framenavigated', (f) => { if (f === page.mainFrame()) push(`navigated: ${f.url()}`) })
+  if (CPU_THROTTLE > 1) await (await page.createCDPSession()).send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE })
+  active = page
+  return page
+}
 const pass = (msg) => console.log(`  ✔ ${msg}`)
 
 try { await fetch(BASE, { signal: AbortSignal.timeout(5000) }) } catch {
@@ -32,22 +78,22 @@ const MOCK_STREAM = [
 
 const counts = { mocked: 0, shared: 0, anthropic: 0 }
 async function newPage(browser, { width, mobile = false }) {
-  const page = await browser.newPage()
+  const page = await instrument(await browser.newPage())
   await page.setViewport({ width, height: mobile ? 844 : 900, isMobile: mobile, hasTouch: mobile })
   await page.setRequestInterception(true)
   page.on('request', (req) => {
     const u = new URL(req.url())
     if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; fail(`request to ${u.href}`); return req.abort() }
-    if (u.pathname.startsWith('/api/claude')) { counts.mocked++; return req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM }) }
+    if (u.pathname.startsWith('/api/claude')) { counts.mocked++; return mockDelay().then(() => req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM })) }
     // The shared daily content (api/ai-daily.js) would generate for real on
     // the dev server: mocked too, with an empty payload the panels tolerate.
     if (u.pathname.startsWith('/api/ai-daily')) {
       counts.shared++
-      return req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: u.searchParams.get('kind'), day: u.searchParams.get('day'), generatedAt: new Date().toISOString(), data: null }) })
+      return mockDelay().then(() => req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ kind: u.searchParams.get('kind'), day: u.searchParams.get('day'), generatedAt: new Date().toISOString(), data: null }) }))
     }
     return req.continue()
   })
-  page.on('pageerror', (e) => fail(`page error: ${e.message.slice(0, 160)}`))
+  page.on('pageerror', (e) => { active = page; fail(`page error: ${e.message.slice(0, 160)}`) })
   await page.evaluateOnNewDocument(() => {
     for (const [k, v] of Object.entries({
       maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true',
@@ -75,7 +121,7 @@ const shownTicker = (page) => page.waitForFunction(() => /ASX:([A-Z]+)/.exec(doc
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new' })
 try {
-  console.log('Mobile (390px): typed DES/PROFILE commands open that company')
+  sectionLog('Mobile (390px): typed DES/PROFILE commands open that company')
   const mob = await newPage(browser, { width: 390, mobile: true })
   for (const [cmd, want] of [['des CBA', 'CBA'], ['profile WES', 'WES'], ['des TLS', 'TLS'], ['DES nab', 'NAB'], ['profile csl', 'CSL']]) {
     await runCommand(mob, cmd)
@@ -85,7 +131,7 @@ try {
   }
   await mob.close()
 
-  console.log('Desktop: lands on the Overview')
+  sectionLog('Desktop: lands on the Overview')
   const page = await newPage(browser, { width: 1440 })
   await page.waitForFunction(() => document.querySelectorAll('#ov-market, #ov-rba, #ov-holdings, #ov-watch, #ov-since').length === 5, { timeout: 30_000 }).catch(() => {})
   const ov = await page.evaluate(() => ({ panels: [...document.querySelectorAll('section[aria-labelledby^="ov-"] h2')].map((h) => h.textContent), countdown: document.querySelector('#ov-rba')?.closest('section')?.innerText.match(/TIME TO DECISION[^\n]*/)?.[0] }))
@@ -94,7 +140,8 @@ try {
   if (/TIME TO DECISION (\d+ days? )?\d+ hr \d+ min|Decision due/.test(ov.countdown ?? '')) pass(`labelled countdown: ${ov.countdown}`)
   else fail(`no labelled decision countdown (${ov.countdown})`)
 
-  console.log('Keyboard: skip link and reachable stock rows')
+  sectionLog('Keyboard: skip link and reachable stock rows')
+  active = page
   await page.evaluate(() => document.activeElement?.blur())
   await page.evaluate(() => document.body.focus())
   const skip = await page.evaluate(() => { const a = document.querySelector('.skip-link'); a?.focus(); return a ? getComputedStyle(a).top : null })
@@ -121,7 +168,7 @@ try {
   else fail(`Enter on a stock row: ${opened}`)
   await page.keyboard.press('Escape')
 
-  console.log('Desktop: profile content')
+  sectionLog('Desktop: profile content')
   await runCommand(page, 'des CBA')
   await page.waitForFunction(() => document.body.innerText.includes('FINANCIAL YEAR END'), { timeout: 30_000 }).catch(() => {})
   const text = await page.evaluate(() => document.body.innerText)
@@ -136,7 +183,7 @@ try {
   if (/REVENUE \(LATEST FY\)/.test(bhp) && !/BANK MEASURE/.test(bhp)) pass('BHP shows plain revenue')
   else fail('BHP revenue label wrong')
 
-  console.log('RBA banner → event ripple')
+  sectionLog('RBA banner → event ripple')
   await page.evaluate(() => localStorage.setItem('madden_portfolio_v2', JSON.stringify([
     { id: 'u1', symbol: 'CBA', yfSym: 'CBA.AX', shares: 10, avgCost: 120, costCurrency: 'AUD', type: 'asx' },
     { id: 'u2', symbol: 'BHP', yfSym: 'BHP.AX', shares: 10, avgCost: 40, costCurrency: 'AUD', type: 'asx' },
@@ -152,7 +199,7 @@ try {
   if (/YOUR HOLDINGS · 1 of 2 connected/.test(ripple)) pass('holdings: CBA connects, BHP does not')
   else fail(`holdings line wrong: ${(ripple.match(/YOUR HOLDINGS[^\n]*/) ?? ['none'])[0]}`)
 
-  console.log('Review queue (read only — nothing is approved)')
+  sectionLog('Review queue (read only — nothing is approved)')
   const triage = JSON.parse(fs.readFileSync(new URL('../../src/data/graph/proposals/triage.json', import.meta.url), 'utf8'))
   await page.evaluate(() => [...document.querySelectorAll('button.nav-row')].find((b) => /^REVIEW/.test((b.title || b.textContent).trim()))?.click())
   await page.waitForSelector('[role=tablist][aria-label="Review buckets"]', { timeout: 30_000 }).catch(() => {})
@@ -171,7 +218,7 @@ try {
   const log = await page.evaluate(() => ({ cards: document.querySelectorAll('[role=tabpanel] article').length, approve: [...document.querySelectorAll('[role=tabpanel] button')].filter((b) => /APPROVE/.test(b.textContent)).length }))
   log.cards === triage.counts.AUTO_REJECTED && log.approve === 0 ? pass(`AUTO-REJECTED is a read-only log of ${log.cards}`) : fail(`AUTO-REJECTED: ${log.cards} cards, ${log.approve} approve buttons`)
 
-  console.log('One market sentiment score on every screen')
+  sectionLog('One market sentiment score on every screen')
   const seen = {}
   const collect = async (where, n) => {
     await page.waitForFunction((k) => document.querySelectorAll('[data-sentiment-score]').length >= k, { timeout: 30_000 }, n).catch(() => {})
@@ -200,22 +247,22 @@ try {
   })
   method === 'ok' ? pass('score card: "Not a recommendation", method and inputs one click away') : fail(`score note: ${method ?? 'missing'}`)
 
-  console.log('One clock')
+  sectionLog('One clock')
   await nav('DASHBOARD')
   await page.waitForFunction(() => document.querySelectorAll('[data-clock]').length >= 2, { timeout: 30_000 }).catch(() => {})
   const clocks = await page.evaluate(() => [...document.querySelectorAll('[data-clock]')].map((e) => (e.parentElement.innerText.match(/\d{1,2}:\d{2}(\s*[ap]m)?\s*AE[DS]T/i)?.[0] ?? e.innerText).replace(/\s+/g, ' ').trim()))
   if (clocks.length >= 2 && clocks.every((c) => /AE[DS]T/.test(c)) && new Set(clocks).size === 1) pass(`top bar and dashboard show ${clocks[0]}`)
   else fail(`clocks differ or lack a zone: ${JSON.stringify(clocks)}`)
 
-  console.log('Data classes: STALE appears when a feed fails; the key opens')
-  const off = await browser.newPage()
+  sectionLog('Data classes: STALE appears when a feed fails; the key opens')
+  const off = await instrument(await browser.newPage())
   await off.setViewport({ width: 1440, height: 900 })
   await off.setRequestInterception(true)
   off.on('request', (req) => {
     const u = new URL(req.url())
     if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; return req.abort() }
-    if (u.pathname.startsWith('/api/claude') || u.pathname.startsWith('/api/ai-daily')) return req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' })
-    if (u.hostname === 'api.coingecko.com' || u.hostname === 'api.binance.com') return req.abort() // both crypto feeds down
+    if (u.pathname.startsWith('/api/claude') || u.pathname.startsWith('/api/ai-daily')) return mockDelay().then(() => req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' }))
+    if (u.hostname === 'api.coingecko.com' || u.hostname === 'api.binance.com') return mockDelay().then(() => req.abort()) // both crypto feeds down
     return req.continue()
   })
   const cachedAt = Date.now() - 42 * 60_000
@@ -235,15 +282,15 @@ try {
   else fail('data key did not open from the badge')
   await off.close()
 
-  console.log('Onboarding: once, resumable, replayable')
-  const ob = await browser.newPage()
+  sectionLog('Onboarding: once, resumable, replayable')
+  const ob = await instrument(await browser.newPage())
   await ob.setViewport({ width: 1440, height: 900 })
   await ob.setRequestInterception(true)
   ob.on('request', (req) => {
     const u = new URL(req.url())
     if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; return req.abort() }
-    if (u.pathname.startsWith('/api/claude')) { counts.mocked++; return req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM }) }
-    if (u.pathname.startsWith('/api/ai-daily')) return req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' })
+    if (u.pathname.startsWith('/api/claude')) { counts.mocked++; return mockDelay().then(() => req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM })) }
+    if (u.pathname.startsWith('/api/ai-daily')) return mockDelay().then(() => req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' }))
     return req.continue()
   })
   // A brand-new browser: only the plan is set.
@@ -304,7 +351,7 @@ try {
   }
   await ob.close()
 
-  console.log('Phone (390px): Markets fits, ALL lists every module')
+  sectionLog('Phone (390px): Markets fits, ALL lists every module')
   const ph = await newPage(browser, { width: 390, mobile: true })
   await runCommand(ph, 'markets')
   await ph.waitForFunction(() => !document.body.innerText.includes('LOADING MODULE') && /COMPARE INDICES/.test(document.body.innerText), { timeout: 60_000 }).catch(() => {})
@@ -328,7 +375,7 @@ try {
   await ph.waitForFunction(() => /CALCULATORS|CALC/.test(document.querySelector('main')?.innerText ?? ''), { timeout: 30_000 }).then(() => pass('picking a module there opens it')).catch(() => fail('ALL did not open the module'))
   await ph.close()
 
-  console.log('Core plan: a locked module has a way back')
+  sectionLog('Core plan: a locked module has a way back')
   const core = await newPage(browser, { width: 1440 })
   await core.evaluateOnNewDocument(() => localStorage.setItem('maddex_dev_plan', 'core')) // runs after newPage's apex seed
   await core.reload({ waitUntil: 'domcontentloaded' }); await core.waitForSelector('[data-command-bar]', { timeout: 60_000 }); await wait(2000)
@@ -342,15 +389,19 @@ try {
   }
   await core.close()
 
-  console.log('MaddenAI is mocked')
+  sectionLog('MaddenAI is mocked')
+  active = page
   await runCommand(page, 'ai what does the profile show')
   await wait(3000)
   counts.mocked > 0 ? pass(`${counts.mocked} /api/claude request(s) answered by the mock; ${counts.shared} shared-content read(s) mocked`) : fail('the AI request never reached the mock')
   await page.close()
 } finally {
+  await Promise.allSettled(captures)
   await browser.close()
 }
 
 counts.anthropic === 0 ? pass('no request reached anthropic.com') : fail(`${counts.anthropic} request(s) reached anthropic.com`)
+await Promise.allSettled(captures)
+if (failures.length) console.log(`\nEvidence: ${RUN_DIR}`)
 console.log(failures.length ? `\n${failures.length} UI check(s) failed.` : '\nAll UI checks passed.')
 process.exit(failures.length ? 1 : 0)
