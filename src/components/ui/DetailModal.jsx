@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
-import { InlineLoading } from './ModuleStates'
+import { InlineLoading, NoData } from './ModuleStates'
 import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -93,7 +93,7 @@ function CandleChart({ data }) {
   }, [])
 
   if (!data || data.length === 0) {
-    return <div ref={containerRef} className="w-full h-full flex items-center justify-center text-2xs text-terminal-text-dim">NO DATA</div>
+    return <div ref={containerRef} className="w-full h-full"><NoData className="h-full" /></div>
   }
 
   const height    = 200

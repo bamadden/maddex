@@ -1,4 +1,4 @@
-// Interaction and layout fixes from the overhaul audit (P2-3, P2-5, P2-7, P2-8,
+// Interaction and layout fixes from the overhaul audit (P2-3, P2-6, P2-5, P2-7, P2-8,
 // P2-11, P2-13, P2-15, P3-5, P3-6). Source checks; the phone layout is also
 // checked in a browser in tests/ui.
 
@@ -62,4 +62,14 @@ test('P2-3: day-month dates go through formatDate ("3 Nov 2026"), not en-AU\'s o
   const files = fs.readdirSync('src', { recursive: true }).filter((f) => /\.(jsx?|mjs)$/.test(f) && !HELD.test(f))
   const stray = files.filter((f) => /toLocaleDateString\('en-AU', \{ (weekday: 'short', )?day: 'numeric', month: 'short' /.test(read(`src/${f}`)))
   assert.deepEqual(stray, [])
+})
+
+test('P2-6: empty and failed panels use the shared NoData / Unavailable states', () => {
+  const files = fs.readdirSync('src', { recursive: true }).filter((f) => /\.jsx$/.test(f))
+  const handRolled = files.filter((f) => />\s*(NO DATA|No data( available)?|⚠ UNAVAILABLE)\s*</.test(read(`src/${f}`)))
+  assert.deepEqual(handRolled, [])
+  const states = read('src/components/ui/ModuleStates.jsx')
+  assert.match(states, /export function NoData\(/)
+  assert.match(states, /export function Unavailable\(/)
+  assert.doesNotMatch(read('src/components/ui/DataUnavailable.jsx'), /API call/)
 })

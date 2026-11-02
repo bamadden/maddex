@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
-import { InlineLoading } from '../../components/ui/ModuleStates'
+import { InlineLoading, NoData, Unavailable } from '../../components/ui/ModuleStates'
 import DefiPanel from './DefiPanel'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -549,7 +549,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
               </ComposedChart>
             </SafeChart>
           ) : (
-            <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim">NO DATA</div>
+            <NoData className="h-full" />
           )}
         </div>
       </div>
@@ -890,7 +890,7 @@ export default function CryptoModule() {
               ? <DataBadge cls="LIVE" source={rawMarketsResult?.meta?.provider} at={rawMarketsResult?.meta?.at ?? null} />
               : !rawMarkets && !marketsError && <InlineLoading label="Loading" />
             }
-            {!rawMarkets && marketsError && <span className="text-terminal-red text-2xs font-normal">⚠ UNAVAILABLE</span>}
+            {!rawMarkets && marketsError && <Unavailable />}
             {rawMarketsResult?.meta?.provider === 'CoinGecko' && (
               <a href={CREDIT.coingecko.url} target="_blank" rel="noopener noreferrer" data-credit="coingecko" className="text-terminal-text-dim hover:text-terminal-gold font-normal" style={{ fontSize: 11 }}>{CREDIT.coingecko.text}</a>
             )}

@@ -7,6 +7,7 @@ import { screenSector } from '../markets/screenSector'
 import { searchLocation, zoomFor, readJson, writeJson } from '../../services/geocodeService'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import { NoData } from '../../components/ui/ModuleStates'
 
 // Location search for the intel map. Geocoding (and the Nominatim usage
 // policy that shapes it) lives in services/geocodeService.js.
@@ -151,7 +152,7 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
               {!item.history && <span className="ml-1.5 text-terminal-text-dim/50" style={{ fontSize: 11 }}>{(item.addresstype ?? item.type ?? '').toUpperCase()}</span>}
             </button>
           ))}
-          {status === 'empty' && <div className="px-2.5 py-2 text-terminal-text-dim" style={{ fontSize: 11 }}>No places found.</div>}
+          {status === 'empty' && <NoData className="px-2.5 py-2 justify-start" label="No places found" />}
           {status === 'error' && <div className="px-2.5 py-2 text-terminal-red" style={{ fontSize: 11 }}>Geocoder unavailable — try again shortly.</div>}
           {query.trim() && status === 'idle' && !results.length && !showHistory && (
             <div className="px-2.5 py-2 text-terminal-text-dim/70" style={{ fontSize: 11 }}>Press Enter to search · or type coordinates like −33.86, 151.21</div>

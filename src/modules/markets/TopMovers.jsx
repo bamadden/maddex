@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { InlineLoading } from '../../components/ui/ModuleStates'
+import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { useQuery } from '@tanstack/react-query'
 import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA, fetchNews, EQUITY_SOURCE } from '../../services/api'
@@ -248,7 +248,7 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
           </tr>
         ))}
         {sorted.length === 0 && (
-          <tr><td colSpan={COLUMNS.length} className="px-2 py-2 text-2xs text-terminal-text-dim">No data</td></tr>
+          <tr><td colSpan={COLUMNS.length} className="px-2 py-2"><NoData /></td></tr>
         )}
       </tbody>
     </table>

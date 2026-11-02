@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
-import { InlineLoading } from '../../components/ui/ModuleStates'
+import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
@@ -863,7 +863,7 @@ function CurrencyStrengthIndex() {
       </div>
       <div className="flex flex-col gap-1">
         {rows.length === 0 && !results.isFetching && (
-          <div className="text-2xs text-terminal-text-dim/60">Unavailable</div>
+          <NoData className="justify-start" label="No rates" />
         )}
         {rows.map(({ ccy, pct }) => (
           <div key={ccy} className="flex items-center gap-1.5">

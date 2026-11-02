@@ -1,5 +1,5 @@
 import { useRef, useMemo, useState } from 'react'
-import { InlineLoading } from '../../components/ui/ModuleStates'
+import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
@@ -124,7 +124,7 @@ function Sparkline({ points, color }) {
 function SparklineLarge({ points, color, label }) {
   const w = 200, h = 100, pad = 8
   if (!points || points.length < 2) {
-    return <div className="flex items-center justify-center text-2xs text-terminal-text-dim/50" style={{ width: w, height: h }}>No data</div>
+    return <NoData style={{ width: w, height: h }} />
   }
   const prices = points.map(p => p.price)
   const min = Math.min(...prices)

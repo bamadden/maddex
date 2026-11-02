@@ -67,6 +67,27 @@ export function InlineLoading({ label = 'Loading', className = '' }) {
   )
 }
 
+// The one inline empty state, for a chart or list that came back with nothing:
+// dim, centred, "No data". Pass a label only when something more specific
+// helps ("No places found").
+export function NoData({ label = 'No data', className = '', style }) {
+  return (
+    <div role="status" className={`flex items-center justify-center text-2xs text-terminal-text-dim ${className}`} style={style}>
+      {label}
+    </div>
+  )
+}
+
+// The one inline error marker, beside a panel title when its feed failed:
+// "⚠ RATES UNAVAILABLE". Names what is missing; no API jargon.
+export function Unavailable({ what, className = '' }) {
+  return (
+    <span role="status" className={`text-2xs text-terminal-red font-normal tracking-widest ${className}`}>
+      ⚠ {what ? `${what.toUpperCase()} ` : ''}UNAVAILABLE
+    </span>
+  )
+}
+
 export function ModuleError({ module = 'MODULE', lastUpdated, onRetry, className = '' }) {
   const lastSeen = timeAgo(lastUpdated)
   return (

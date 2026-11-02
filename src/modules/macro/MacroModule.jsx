@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
-import { InlineLoading } from '../../components/ui/ModuleStates'
+import { InlineLoading, Unavailable } from '../../components/ui/ModuleStates'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import { sydneyTzAbbr, sydneyTzNow, sydneyOffset, formatDate } from '../../utils/dateUtils'
 import RecessionMonitor from './RecessionMonitor'
@@ -1763,7 +1763,7 @@ function CurrencyHeatmap() {
     <div className="border border-terminal-border p-2.5 bg-terminal-panel/40">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-2xs text-terminal-gold tracking-widest font-bold">CURRENCY HEATMAP</span>
-        {isError && <span className="text-2xs text-terminal-red">⚠ UNAVAILABLE</span>}
+        {isError && <Unavailable />}
       </div>
       <div className="grid grid-cols-3 gap-2">
         {display.map((r) => (

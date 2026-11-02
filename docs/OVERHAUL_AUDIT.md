@@ -394,7 +394,7 @@ decision.
 | P2-3 six date formats | **Done** for day-and-month dates: all go through `formatDate()` ("3 Nov 2026", "Tue 3 Nov"), 82 calls converted, and a test keeps it that way. Left as is: month-only labels ("Sep 2026" for monthly data), long-form headings, ISO keys used in code, and the held RBA panels (until after 3 Nov). 69 `en-AU` calls remain in those categories. |
 | P2-4 two logos | **Done** `a38f7c2` |
 | P2-5 module header rule; unexplained "M" button | **Done** `8bd7389`. The button reads ASK AI; subtitles list contents. |
-| P2-6 state handling | **Partly done.** `InlineLoading` replaces 22 loading strings. Empty and error states are not yet consolidated. |
+| P2-6 state handling | **Done.** `InlineLoading` replaces 22 loading strings; `NoData` and `Unavailable` (in `ModuleStates`) replace the hand-rolled "NO DATA" / "No data" / "⚠ UNAVAILABLE" states in 9 files; `DataUnavailable` no longer says "API call failed". A test fails on new hand-rolled ones. Sentence-form AI messages ("Commentary unavailable right now.") are left as written. |
 | P2-7 truncated names in Markets leaders | **Done** `20665e8` |
 | P2-8 Macro chart time axis | **Done** `a037626` |
 | P2-9 sentiment colours | **Done** `d2aad79` (one score, one colour scale) |

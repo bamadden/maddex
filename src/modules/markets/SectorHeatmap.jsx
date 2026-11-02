@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
-import { InlineLoading } from '../../components/ui/ModuleStates'
+import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { sydneyTzNow } from '../../utils/dateUtils'
 import {
@@ -1679,7 +1679,7 @@ function IndexView({ selectedIndex, openModal }) {
                 </SafeChart>
               )}
               {!idxHistLoading && idxChartData.length < 2 && (
-                <div className="flex items-center justify-center h-full text-2xs text-terminal-text-dim/40">No data</div>
+                <NoData className="h-full" />
               )}
             </div>
           </div>

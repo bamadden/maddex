@@ -18,6 +18,7 @@ import {
 } from './commandSearch'
 
 import { PAL } from '../../styles/palette.js'
+import { NoData } from '../ui/ModuleStates'
 
 // Phones get a placeholder that fits whole beside CMD> and the status.
 const NARROW = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 639px)').matches
@@ -683,7 +684,7 @@ function MoversPanel({ title, items, onClose, onSelect }) {
                 </tr>
               ))}
               {items.length === 0 && (
-                <tr><td colSpan={5} className="px-3 py-4 text-2xs text-terminal-text-dim text-center">No data available</td></tr>
+                <tr><td colSpan={5} className="px-3 py-4"><NoData /></td></tr>
               )}
             </tbody>
           </table>

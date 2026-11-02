@@ -7,7 +7,7 @@ export function DataUnavailable({ label = 'DATA UNAVAILABLE', onRetry, className
   return (
     <div className={`flex flex-col items-center justify-center gap-2 p-4 text-center ${className}`}>
       <span className="text-terminal-red text-2xs font-bold">&#9888; {label}</span>
-      <span className="text-terminal-text-dim text-2xs">API call failed or timed out</span>
+      <span className="text-terminal-text-dim text-2xs">The source didn't respond. Try again shortly.</span>
       {onRetry && (
         <button
           onClick={onRetry}
