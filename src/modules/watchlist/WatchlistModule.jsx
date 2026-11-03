@@ -1572,8 +1572,16 @@ export default function WatchlistModule() {
                           <td key={c.key} className="px-2 py-1.5 text-xs font-bold text-terminal-text-bright whitespace-nowrap"
                             style={(() => { const g = meta.groups.find((x) => x.id === groupOf(row.symbol)); return g ? { boxShadow: `inset 3px 0 0 ${GROUP_COLOURS[g.colour] ?? GROUP_COLOURS.gold}` } : undefined })()}>
                             {row.displaySymbol}
+                            {/* Each row names its data class in words (a green dot
+                                read as "live" even on demo equity prices). */}
                             {row.isLive
-                              ? <span className="text-2xs text-terminal-green ml-1">●</span>
+                              ? (() => {
+                                  const cls = row.type === 'crypto'
+                                    ? (cryptoResult?.stale ? 'STALE' : 'LIVE')
+                                    : USING_MOCK_DATA ? 'DEMO' : isDelayed ? 'STALE' : 'LIVE'
+                                  const tone = cls === 'LIVE' ? 'text-terminal-green' : cls === 'DEMO' ? 'text-terminal-gold' : 'text-terminal-red'
+                                  return <span className={`ml-1.5 font-mono font-normal tracking-wider ${tone}`} style={{ fontSize: 11 }} data-row-class={cls}>{cls}</span>
+                                })()
                               : anyFetching
                                 ? <span className="text-2xs text-terminal-text-dim ml-1">…</span>
                                 : null}

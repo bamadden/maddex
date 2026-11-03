@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import { InlineLoading } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
-import { sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyTzNow, formatDate, sydneyClock } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from 'recharts'
 import { fetchBatch, USING_MOCK_DATA, EQUITY_SOURCE } from '../../services/api'
@@ -255,7 +255,11 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
 
       {/* Score table */}
       <div className="border-t border-terminal-border flex-shrink-0 px-3 py-2">
-        <div className="text-2xs text-terminal-gold/70 font-bold tracking-widest mb-2">SECTOR SCORES</div>
+        <div className="flex items-center gap-2 mb-2 flex-wrap" data-sector-scores-label>
+          <span className="text-2xs text-terminal-gold/70 font-bold tracking-widest">SECTOR SCORES</span>
+          {USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={dataUpdatedAt || null} />}
+          <span className="text-2xs text-terminal-text-dim/70">Descriptive composite of the day&apos;s sector moves · not a recommendation{dataUpdatedAt ? ` · as at ${formatDate(dataUpdatedAt, { year: false })} ${sydneyClock(dataUpdatedAt).text}` : ''}</span>
+        </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
           {sorted.map(({ sector, score, dayPct }) => (
             <div

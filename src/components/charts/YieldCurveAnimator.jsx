@@ -65,6 +65,10 @@ export default function YieldCurveAnimator({ curve }) {
     else setPlaying(false)
   }
 
+  // Without a verified curve from 12 months ago there is nothing to animate:
+  // "12M ago" used to fall back to today's curve, so PLAY moved nothing while
+  // the header claimed a year-on-year comparison.
+  const hasPrev = Object.keys(curve.prev ?? {}).length > 0
   const allY = [...curve.points.map((p) => p.y), ...Object.values(curve.prev)]
   const yMin = Math.floor(Math.min(...allY) * 10) / 10 - 0.2
   const yMax = Math.ceil(Math.max(...allY) * 10) / 10 + 0.2
@@ -73,7 +77,9 @@ export default function YieldCurveAnimator({ curve }) {
     <div className="flex flex-col">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span style={{ color: curve.color }}>{curve.label}</span>
-        <span className="text-2xs text-terminal-text-dim normal-case font-normal">yield curve · 12M ago → now</span>
+        <span className="text-2xs text-terminal-text-dim normal-case font-normal" data-curve-source>
+          {hasPrev ? `yield curve · 12M ago → now · ${curve.src}` : `yield curve · ${curve.src}`}
+        </span>
         <span className={`ml-auto text-2xs px-1.5 py-0.5 border font-bold ${inverted ? 'border-terminal-red/40 text-terminal-red' : 'border-terminal-green/40 text-terminal-green'}`}>
           {inverted ? 'INVERTED' : 'NORMAL'}
         </span>
@@ -94,7 +100,12 @@ export default function YieldCurveAnimator({ curve }) {
         </SafeChart>
       </div>
 
-      <div className="px-3 pb-2 flex items-center gap-3">
+      {!hasPrev && (
+        <div className="px-3 pb-2 text-2xs text-terminal-text-dim/70" data-no-history>
+          No verified curve from 12 months ago is held, so there is no comparison to play. This shows the latest sourced curve only.
+        </div>
+      )}
+      {hasPrev && <div className="px-3 pb-2 flex items-center gap-3">
         <button
           onClick={togglePlay}
           className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold"
@@ -117,7 +128,7 @@ export default function YieldCurveAnimator({ curve }) {
         <span className="text-2xs text-terminal-text-dim font-mono w-24 text-right">
           {t <= 0.02 ? '12M AGO' : t >= 0.98 ? 'NOW' : `T-${Math.round((1 - t) * 12)}M`}
         </span>
-      </div>
+      </div>}
     </div>
   )
 }

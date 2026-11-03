@@ -752,7 +752,8 @@ export default function PortfolioModule() {
     .map((h) => ({
       name:  h.type === 'asx' ? h.symbol + '.AX' : h.symbol,
       value: h.mktVal,
-      pct:   mktTotal ? ((h.mktVal / mktTotal) * 100).toFixed(1) : '0.0',
+      // No total (no prices yet) means no share: shown as "—", never 0.0%.
+      pct:   mktTotal ? ((h.mktVal / mktTotal) * 100).toFixed(1) : null,
     }))
     .sort((a, b) => b.value - a.value)
 
@@ -1318,6 +1319,10 @@ export default function PortfolioModule() {
         <div className="flex flex-col overflow-y-auto">
           <div className="panel-header flex-shrink-0 flex items-center gap-2">
             <span>ALLOCATION</span>
+            {/* By market value at current prices — demo prices for equities
+                until a licensed ASX feed. Describes the mix; not advice. */}
+            {allocData.length > 0 && USING_MOCK_DATA && <DemoBadge />}
+            {allocData.length > 0 && <span className="text-2xs text-terminal-text-dim/70 font-normal normal-case" data-alloc-basis>by market value{USING_MOCK_DATA ? ' at demo equity prices' : ''}</span>}
             {allocData.length > 0 && (
               <div className="ml-auto flex items-center border border-terminal-border rounded-full overflow-hidden">
                 <button
@@ -1369,7 +1374,7 @@ export default function PortfolioModule() {
                       <div className="w-2 h-2 flex-shrink-0" style={{ backgroundColor: STOCK_PALETTE[i % STOCK_PALETTE.length] }} />
                       <span className="text-2xs">{d.name}</span>
                     </div>
-                    <span className="text-2xs text-terminal-text-dim">{d.pct}%</span>
+                    <span className="text-2xs text-terminal-text-dim">{d.pct == null ? '—' : `${d.pct}%`}</span>
                   </div>
                 ))}
               </div>

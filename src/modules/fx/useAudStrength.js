@@ -25,7 +25,7 @@ export function strengthRows(ccys, settled) {
     const first = entries[0].rate
     const last = entries[entries.length - 1].rate
     // AUD strengthening vs ccy means 1 AUD buys MORE of ccy over the period.
-    return { ccy, pct: ((last - first) / first) * 100, failed: false }
+    return { ccy, pct: ((last - first) / first) * 100, failed: false, from: entries[0].date, to: entries[entries.length - 1].date }
   })
   if (rows.every((r) => r.failed)) throw new Error('Frankfurter returned no history for any major')
   return rows
@@ -45,6 +45,9 @@ export function strengthState({ data, isError, isPending }) {
   if (usable) return 'ok'
   return data.some((r) => r.failed) ? 'failed' : 'empty'
 }
+
+// The ECB date of the newest rate any row was computed from.
+export const lastRateDate = (rows) => (rows ?? []).map((r) => r.to).filter(Boolean).sort().at(-1) ?? null
 
 export function useAudStrength() {
   return useQuery({

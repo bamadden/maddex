@@ -24,7 +24,7 @@ test('the real-rates panel labels each figure with measure, period and source', 
   assert.doesNotMatch(panel, /'AU CPI YoY'/)
   assert.match(panel, /label: 'AU CPI · MONTHLY, ANNUAL CHANGE'/)
   assert.match(panel, /12 months to \$\{au\.cpiPeriod\} · ABS monthly CPI, released \$\{formatDate\(au\.cpiLastRelease\)\}/)
-  assert.match(panel, /Market close \$\{asAtLabel\(BOND_CURVES_AS_OF\.AU\)\}/)
+  assert.match(panel, /RBA table F2, market close \$\{asAtLabel\(BOND_CURVES_AS_OF\.AU\)\}/)
   assert.match(panel, /As at the \$\{formatDate\(rba\.lastDecision\)\} decision · RBA/)
   assert.match(panel, /data-cpi-reconcile/)
   assert.match(panel, /au\.cpiQuarterYoY/)

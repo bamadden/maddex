@@ -70,3 +70,11 @@ export function spreadStats(years, toMs) {
   }
   return n ? { mean: sum / n, lo, hi, loDay, hiDay, from: iso(from.getTime()) } : null
 }
+
+// The next day either rate changes after `day` — a decision already
+// announced but not yet in force (the effective date is the day after the
+// announcement) — with the spread from then. Null when none is pending.
+export function nextSpreadChange(day) {
+  const next = [...RBA_PATH, ...FED_PATH].map((r) => r.date).filter((d) => d > day).sort()[0]
+  return next ? { date: next, bp: spreadOn(next), au: rateOn(RBA_PATH, next), us: rateOn(FED_PATH, next) } : null
+}

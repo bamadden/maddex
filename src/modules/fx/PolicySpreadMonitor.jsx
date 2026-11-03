@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip } from 'recharts'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { spreadOn, spreadSeries, spreadStats } from '../../data/policySpread'
+import { spreadOn, spreadSeries, spreadStats, nextSpreadChange, rateOn, RBA_PATH } from '../../data/policySpread'
+import { formatDate } from '../../utils/dateUtils'
 import SafeChart from '../../components/ui/SafeChart'
 import { PAL } from '../../styles/palette.js'
 
@@ -33,10 +34,16 @@ export default function PolicySpreadMonitor() {
   const { rba, fed } = VERIFIED_CONSTANTS
   const [now] = useState(() => Date.now())
 
-  const { today, series, five } = useMemo(() => {
-    const day = new Date(now).toISOString().slice(0, 10)
+  // Everything here is on effective dates (a decision takes effect the day
+  // after it is announced), as at today in Sydney. On 3 Nov 2026 the panel
+  // showed the announced 4.85% beside a +60bp spread still on 4.60%.
+  const { day, today, pending, auInForce, series, five } = useMemo(() => {
+    const day = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
     return {
+      day,
       today: spreadOn(day),
+      pending: nextSpreadChange(day),
+      auInForce: rateOn(RBA_PATH, day),
       series: spreadSeries(now - 365 * 86400000, now),
       five: spreadStats(5, now),
     }
@@ -51,13 +58,19 @@ export default function PolicySpreadMonitor() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">AU / US POLICY SPREAD</span>
-        <span className="text-[11px] text-terminal-text-dim">RBA − Fed upper bound</span>
+        <span className="text-[11px] text-terminal-text-dim">RBA − Fed upper bound · as at effective date {formatDate(day)}</span>
       </div>
+      {pending && pending.bp != null && (
+        <div className="px-3 py-1 border-b border-terminal-border/50 text-[11px] text-terminal-text-dim" data-spread-pending>
+          Changes to <b className="text-terminal-text-bright tabular-nums">{signedBp(pending.bp)}</b> on {formatDate(pending.date)}, when a decision already announced takes effect (RBA {pending.au?.toFixed(2)}%, Fed upper {pending.us?.toFixed(2)}%).
+        </div>
+      )}
 
       <div className="px-3 py-2 grid grid-cols-3 gap-2">
         <div>
           <div className="text-[11px] text-terminal-text-dim tracking-wider">AU POLICY RATE</div>
-          <div className="text-sm font-bold text-terminal-text-bright tabular-nums">{rba.cashRate.toFixed(2)}%</div>
+          <div className="text-sm font-bold text-terminal-text-bright tabular-nums">{(auInForce ?? rba.cashRate).toFixed(2)}%</div>
+          <div className="text-[11px] text-terminal-text-dim">{auInForce != null && auInForce !== rba.cashRate ? `in force; ${rba.cashRate.toFixed(2)}% from ${formatDate(pending?.date)}` : 'in force'}</div>
         </div>
         <div>
           <div className="text-[11px] text-terminal-text-dim tracking-wider">US POLICY RATE</div>

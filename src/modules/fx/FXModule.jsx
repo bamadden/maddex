@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
 import DataBadge from '../../components/ui/DataBadge'
 import { InlineLoading, NoData, Unavailable, StaleBadge } from '../../components/ui/ModuleStates'
-import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
+import { formatDate } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
 import RbaHikeImpact from './RbaHikeImpact'
@@ -31,7 +31,7 @@ import PolicyPathChart from './PolicyPathChart'
 import CentralBankCards from './CentralBankCards'
 import UpcomingDecisions from './UpcomingDecisions'
 import AudTwiCard from './AudTwiCard'
-import { useAudStrength, meanMove, strengthState } from './useAudStrength'
+import { useAudStrength, meanMove, strengthState, lastRateDate } from './useAudStrength'
 import SafeChart from '../../components/ui/SafeChart'
 import { PAL } from '../../styles/palette.js'
 
@@ -49,7 +49,7 @@ const asAtLabel = (iso) => formatDate(iso)
 
 const YIELD_CURVES = {
   AU: {
-    label: 'AU GOV BONDS', color: PAL.gold, src: `Market close · ${asAtLabel(BOND_CURVES_AS_OF.AU)}`,
+    label: 'AU GOV BONDS', color: PAL.gold, src: `RBA table F2 · ${asAtLabel(BOND_CURVES_AS_OF.AU)} · bills and 30Y indicative`,
     points: curveForRates('AU'),
     prev: {},
   },
@@ -139,7 +139,7 @@ const rateDecimals = (pair) => (pair.includes('JPY') || pair.includes('CNY') ? 2
 
 const CURRENCIES = ['AUD', 'USD', 'EUR', 'GBP', 'JPY', 'CNY', 'NZD', 'CAD', 'CHF']
 
-function CurrencyConverter({ rates }) {
+function CurrencyConverter({ rates, stale, cachedAt }) {
   const [amount, setAmount]   = useState('1000')
   const [fromCcy, setFromCcy] = useState('AUD')
   const [toCcy, setToCcy]     = useState('USD')
@@ -154,7 +154,11 @@ function CurrencyConverter({ rates }) {
 
   return (
     <div className="border-t border-terminal-border p-2 flex-shrink-0">
-      <div className="text-2xs text-terminal-gold font-bold mb-2 tracking-widest">CURRENCY CONVERTER</div>
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <span className="text-2xs text-terminal-gold font-bold tracking-widest">CURRENCY CONVERTER</span>
+        {/* Converts at the ECB's daily reference rate, dated by the ECB. */}
+        {rates && <DataBadge cls={stale ? 'STALE' : 'DELAYED'} source="ECB reference rate, via Frankfurter" at={stale ? cachedAt ?? null : rates.asOf ?? null} />}
+      </div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <input
           type="number" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Amount to convert"
@@ -363,7 +367,7 @@ function RbaRateComparisonBar() {
     { label: 'AU CPI · MONTHLY, ANNUAL CHANGE', value: au.cpi, color: PAL.blue,
       note: `12 months to ${au.cpiPeriod} · ABS monthly CPI, released ${formatDate(au.cpiLastRelease)}` },
     { label: 'AU 10Y GOVT BOND YIELD', value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? null, color: PAL.up,
-      note: `Market close ${asAtLabel(BOND_CURVES_AS_OF.AU)}` },
+      note: `RBA table F2, market close ${asAtLabel(BOND_CURVES_AS_OF.AU)}` },
   ].filter(r => r.value != null)
   const max = Math.max(...rows.map(r => r.value)) * 1.15
   const realRate = (rba.cashRate - au.cpi).toFixed(2)
@@ -885,6 +889,7 @@ function CurrencyStrengthIndex() {
       <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">
         AUD STRENGTH VS MAJORS (30D)
         {results.isFetching && <span className="text-terminal-text-dim font-normal normal-case ml-1 animate-pulse">...</span>}
+        {state === 'ok' && <DataBadge cls="DELAYED" source={`ECB reference rates, via Frankfurter · 30 days to ${formatDate(lastRateDate(rows))}`} className="ml-2" />}
         {state === 'stale' && <StaleBadge cachedAt={results.dataUpdatedAt} source="Frankfurter" className="ml-2" />}
       </div>
       <div className="flex flex-col gap-1" data-strength-state={state}>
@@ -968,7 +973,6 @@ export default function FXModule() {
   const audUsd     = rawRates?.USD ?? null
   const metals     = metalsRates ? extractMetals(metalsRates) : []
 
-  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
   // Yield curve chart data — AU vs US, the pairing SECTION 2 always shows
   const allTenors = useMemo(() => {
@@ -1065,14 +1069,17 @@ export default function FXModule() {
             <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD · 1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
           </div>
         )}
-        <CurrencyConverter rates={rawRates} />
+        <CurrencyConverter rates={rawRates} stale={fxDelayed} cachedAt={fxResult?.cachedAt} />
       </div>
       <div className="flex flex-col" style={{ width: '40%' }}>
         <CurrencyStrengthIndex />
         <div className="border-t border-terminal-border p-2 flex-shrink-0">
           <div className="panel-header -mx-2 -mt-2 mb-2">
             PRECIOUS METALS (AUD)
-            {metals.length > 0 && <span className="ml-2 text-terminal-green text-2xs font-normal normal-case">● LIVE</span>}
+            {/* ExchangeRate-API publishes these once a day: DELAYED, dated by
+                the provider's own update time (it said LIVE beside the time
+                the panel rendered). */}
+            {metals.length > 0 && <DataBadge cls="DELAYED" source="ExchangeRate-API" at={metalsRates?.updated ? Date.parse(metalsRates.updated) : null} className="ml-2" />}
           </div>
           {metals.length > 0 ? metals.map((m) => (
             <div key={m.name}
@@ -1088,11 +1095,8 @@ export default function FXModule() {
             </div>
           )) : (
             <div className="text-2xs text-terminal-text-dim/60 px-1 py-1 leading-relaxed">
-              Metal rates unavailable — Frankfurter and ExchangeRate-API did not return XAU/XAG.
+              Metal rates unavailable — ExchangeRate-API did not return XAU/XAG.
             </div>
-          )}
-          {metals.length > 0 && (
-            <div className="text-2xs text-terminal-text-dim/60 mt-1 px-1">{updatedTime} {sydneyTzNow()} · ExchangeRate-API</div>
           )}
         </div>
       </div>

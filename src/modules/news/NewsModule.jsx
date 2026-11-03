@@ -279,49 +279,9 @@ function overallSentiment(items, now) {
   }
 }
 
-// ─── Mock sparkline data — deterministic per-symbol synthetic 5D history,
-// seeded so it's stable within a page load. mockData.js only carries current
-// snapshot fields (price/changePct), not history arrays, so the trend line
-// is generated here: it walks from an implied start price to the current
-// price (consistent with changePct) with small seeded noise along the way. ──
-
-function strSeed(s) {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-  return Math.abs(h) || 1
-}
-function seededRandom(seed) {
-  let s = seed % 2147483647
-  if (s <= 0) s += 2147483646
-  return () => (s = (s * 16807) % 2147483647) / 2147483647
-}
-function generateSparkline(seedKey, currentPrice, changePct, points = 8) {
-  const rand = seededRandom(strSeed(seedKey))
-  const startPrice = currentPrice / (1 + changePct / 100)
-  const vals = []
-  for (let i = 0; i < points; i++) {
-    const t = i / (points - 1)
-    const trend = startPrice + (currentPrice - startPrice) * t
-    const noise = (rand() - 0.5) * Math.abs(currentPrice) * 0.015
-    vals.push(trend + noise)
-  }
-  vals[points - 1] = currentPrice
-  return vals
-}
-
-function MiniSparkline({ values, up, width = 80, height = 36 }) {
-  if (!values || values.length < 2) return null
-  const min = Math.min(...values), max = Math.max(...values)
-  const range = max - min || 1
-  const step = width / (values.length - 1)
-  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * height).toFixed(1)}`).join(' ')
-  const color = up ? PAL.gold : PAL.down
-  return (
-    <svg width={width} height={height} style={{ flexShrink: 0, display: 'block' }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
-    </svg>
-  )
-}
+// No sparkline beside a story's asset: the only history available was a
+// line generated from seeded noise between two prices, an invented path.
+// (Removed 3 Nov 2026.)
 
 // ─── Story → tracked-asset resolver — detects whether a headline mentions a
 // symbol the app tracks (BHP/CBA/BTC/XRP/ASX 200 etc.) so the top story and
@@ -368,7 +328,6 @@ function resolveStoryAsset(item) {
       label: cand.label,
       price, changePct,
       up: changePct >= 0,
-      values: generateSparkline(cand.label, price, changePct),
     }
   }
   return null
@@ -509,10 +468,12 @@ function TopStoryCard({ item, rank = 1, isUnread, searchTerm, isPulsing, onMarkR
             >{item.summary}</p>
           )}
         </div>
+        {/* Every asset here reads demo data (equities, indices and crypto
+            alike, via mockData), so the move is badged DEMO. */}
         {asset && (
-          <div className="flex-shrink-0 text-right">
-            <MiniSparkline values={asset.values} up={asset.up} width={60} height={30} />
+          <div className="flex-shrink-0 text-right flex flex-col items-end gap-0.5" data-story-asset>
             <div className={`text-[11px] font-mono ${asset.up ? 'pos' : 'neg'}`}>{asset.label} {asset.up ? '+' : ''}{asset.changePct.toFixed(2)}%</div>
+            <DemoBadge />
           </div>
         )}
       </div>

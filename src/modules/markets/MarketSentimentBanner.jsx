@@ -7,6 +7,8 @@ import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 import { CREDIT } from '../../data/credits'
+import { DemoBadge } from '../../components/ui/ModuleStates'
+import { USING_MOCK_DATA } from '../../services/api'
 
 const PREV_SCORE_KEY     = 'maddex_sentiment_prev'
 const HISTORY_KEY        = 'maddex_sentiment_history'
@@ -506,8 +508,11 @@ export default function MarketSentimentBanner() {
         <SentimentBadge label={sentiment.label} score={sentiment.score} />
         <span className="text-2xs text-terminal-text-dim flex-shrink-0 hidden lg:inline whitespace-nowrap">DESCRIPTIVE · NOT A RECOMMENDATION</span>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0 hidden md:inline">·</span>
-        <div className="hidden md:block">
+        {/* Breadth is counted over the 72 tracked ASX stocks, which are DEMO
+            prices until a licensed feed is connected. */}
+        <div className="hidden md:flex items-center gap-1.5" data-breadth>
           <BreadthGauge changes={asxChanges} />
+          {USING_MOCK_DATA && asxChanges?.length > 0 && <DemoBadge />}
         </div>
         <span className="text-terminal-text-dim/40 text-2xs flex-shrink-0 hidden sm:inline">·</span>
         <span className="text-2xs text-terminal-text-dim truncate min-w-0 flex-1 hidden sm:inline">{shortSummary}</span>

@@ -43,6 +43,7 @@ import SafeChart from '../../components/ui/SafeChart'
 import { RegimePanel } from '../../components/ui/RegimeBadge'
 import { toneWord } from '../../utils/tone'
 import { CREDIT, FREE_DATA_NOTICE } from '../../data/credits'
+import DataBadge from '../../components/ui/DataBadge'
 import { PAL } from '../../styles/palette.js'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
@@ -1675,16 +1676,18 @@ function MacroThemesSection() {
 // AU vs US yield curve — simple SVG line comparison, 2Y/5Y/10Y/30Y
 function YieldCurveVisual() {
   const maturities = ['2Y', '5Y', '10Y', '30Y']
-  const auPoints = maturities.map(m => AU_BONDS.find(b => b.maturity === m)?.yield ?? 0)
-  const usPoints = maturities.map(m => US_BONDS.find(b => b.maturity === m)?.yield ?? 0)
-  const allVals  = [...auPoints, ...usPoints]
+  // A missing yield is left out, never drawn as 0%.
+  const auPoints = maturities.map(m => AU_BONDS.find(b => b.maturity === m)?.yield ?? null)
+  const usPoints = maturities.map(m => US_BONDS.find(b => b.maturity === m)?.yield ?? null)
+  const allVals  = [...auPoints, ...usPoints].filter((v) => v != null)
   const minY = Math.min(...allVals) - 0.3
   const maxY = Math.max(...allVals) + 0.3
   const w = 320, h = 130, padL = 30, padR = 12, padT = 14, padB = 20
   const chartW = w - padL - padR, chartH = h - padT - padB
   const xAt = (i) => padL + (i / (maturities.length - 1)) * chartW
   const yAt = (v) => padT + chartH - ((v - minY) / (maxY - minY)) * chartH
-  const pathFor = (vals) => vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ')
+  const pathFor = (vals) => vals.map((v, i) => (v == null ? null : [i, v])).filter(Boolean)
+    .map(([i, v], k) => `${k === 0 ? 'M' : 'L'}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ')
 
   return (
     <div className="border border-terminal-border p-2.5 bg-terminal-panel/40">
@@ -1709,10 +1712,14 @@ function YieldCurveVisual() {
           const auAbove = auPoints[i] >= usPoints[i]
           return (
             <g key={`pts-${m}`}>
-              <circle cx={xAt(i)} cy={yAt(auPoints[i])} r="2.5" fill={PAL.gold} />
-              <text x={xAt(i)} y={yAt(auPoints[i]) + (auAbove ? -6 : 12)} textAnchor="middle" fontSize="11" fill={PAL.gold} fontFamily="IBM Plex Mono">{auPoints[i].toFixed(2)}</text>
-              <circle cx={xAt(i)} cy={yAt(usPoints[i])} r="2.5" fill={PAL.blue} />
-              <text x={xAt(i)} y={yAt(usPoints[i]) + (auAbove ? 12 : -6)} textAnchor="middle" fontSize="11" fill={PAL.blue} fontFamily="IBM Plex Mono">{usPoints[i].toFixed(2)}</text>
+              {auPoints[i] != null && <>
+                <circle cx={xAt(i)} cy={yAt(auPoints[i])} r="2.5" fill={PAL.gold} />
+                <text x={xAt(i)} y={yAt(auPoints[i]) + (auAbove ? -6 : 12)} textAnchor="middle" fontSize="11" fill={PAL.gold} fontFamily="IBM Plex Mono">{auPoints[i].toFixed(2)}</text>
+              </>}
+              {usPoints[i] != null && <>
+                <circle cx={xAt(i)} cy={yAt(usPoints[i])} r="2.5" fill={PAL.blue} />
+                <text x={xAt(i)} y={yAt(usPoints[i]) + (auAbove ? 12 : -6)} textAnchor="middle" fontSize="11" fill={PAL.blue} fontFamily="IBM Plex Mono">{usPoints[i].toFixed(2)}</text>
+              </>}
             </g>
           )
         })}
@@ -1720,6 +1727,10 @@ function YieldCurveVisual() {
           <text key={`lbl-${m}`} x={xAt(i)} y={h - 4} textAnchor="middle" fontSize="11" fill="#6b7f99" fontFamily="IBM Plex Mono">{m}</text>
         ))}
       </svg>
+      {/* Source and date of every point. AU 30Y is not in RBA table F2. */}
+      <div className="mt-1 text-[11px] text-terminal-text-dim/70 leading-snug" data-curve-source>
+        AU: RBA table F2, market close {formatDate(BOND_CURVES_AS_OF.AU)} (30Y indicative) · US: Treasury daily par curve, {formatDate(BOND_CURVES_AS_OF.US)}
+      </div>
     </div>
   )
 }
@@ -1757,6 +1768,13 @@ function CurrencyHeatmap() {
     })
   }, [data])
 
+  // The two ECB dates each change is measured between (not always
+  // consecutive days: the window spans weekends and holidays).
+  const range = useMemo(() => {
+    const dates = data?.rates ? Object.keys(data.rates).sort() : []
+    return dates.length > 1 ? { from: dates[0], to: dates[dates.length - 1] } : null
+  }, [data])
+
   const display = rows ?? HEATMAP_PAIRS.map(p => ({ label: p.label, rate: '—', pct: null }))
 
   return (
@@ -1764,6 +1782,7 @@ function CurrencyHeatmap() {
       <div className="flex items-center gap-2 mb-2">
         <span className="text-2xs text-terminal-gold tracking-widest font-bold">CURRENCY HEATMAP</span>
         {isError && <Unavailable />}
+        {range && <DataBadge cls="DELAYED" source={`ECB reference rates, via Frankfurter · change ${formatDate(range.from, { year: false })} → ${formatDate(range.to)}`} />}
       </div>
       <div className="grid grid-cols-3 gap-2">
         {display.map((r) => (
