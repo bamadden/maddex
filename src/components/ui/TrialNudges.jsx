@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../store/useStore'
 import { useProfile } from '../../hooks/useProfile'
-import { trialState, startUpgrade } from '../../services/plans'
+import { trialState, startUpgrade, upgradeCta } from '../../services/plans'
 import { getUsage, NUDGE_EVENT } from '../../services/usageService'
 import { loadAlerts } from '../../services/alertsService'
 
@@ -75,7 +75,7 @@ export default function TrialNudges() {
         )}
         {card.upgrade && (
           <button onClick={() => { startUpgrade(card.upgrade); close() }}
-            className="font-mono font-bold tracking-wider text-terminal-gold border border-terminal-gold/50 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg" style={{ fontSize: 11 }}>SEE {card.upgrade.toUpperCase()}</button>
+            className="font-mono font-bold tracking-wider text-terminal-gold border border-terminal-gold/50 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg" style={{ fontSize: 11 }}>{upgradeCta(card.upgrade)}</button>
         )}
       </div>
     </div>

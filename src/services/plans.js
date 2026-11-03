@@ -178,6 +178,15 @@ export const nextTier = (tier = getCurrentTier()) => (tier === 'core' ? 'prime' 
 
 export const openPricing = () => window.dispatchEvent(new CustomEvent('maddex:open-pricing'))
 
+// Payments are not live: no checkout exists (Stripe needs the company and
+// ABN registered). Until this is true, every button that starts an upgrade
+// says WAITLIST — startUpgrade() opens the waitlist, not a checkout — and
+// nothing reads as if money can change hands.
+export const PAYMENTS_LIVE = false
+export const upgradeCta = (tier) => PAYMENTS_LIVE
+  ? `UPGRADE TO ${String(TIER_LABEL[tier] ?? tier).toUpperCase()}`
+  : `JOIN ${String(TIER_LABEL[tier] ?? tier).toUpperCase()} WAITLIST`
+
 export function startUpgrade(tier, billing = 'monthly') {
   // TODO(stripe): replace with Stripe Checkout —
   //   stripe.redirectToCheckout({

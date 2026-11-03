@@ -30,7 +30,7 @@ import { eventsForAI } from '../../services/calendarService'
 import { getSessionTokens, HIGH_SESSION_TOKENS } from '../../services/aiUsageService'
 import { markMilestone } from '../../services/gettingStarted'
 import { aiQueriesToday, recordAiQuery } from '../../services/usageService'
-import { showLimitPrompt, startUpgrade } from '../../services/plans'
+import { showLimitPrompt, startUpgrade, upgradeCta } from '../../services/plans'
 import { useInvestorProfile } from '../../hooks/useInvestorProfile'
 import SavedResearch from '../researchNote/SavedResearch'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
@@ -334,7 +334,7 @@ function AccessActions({ access }) {
   }
   if (access.code === 'DAILY_LIMIT' && access.tier !== 'apex') {
     const next = access.tier === 'prime' ? 'apex' : 'prime'
-    return <button className={cls} onClick={() => startUpgrade(next)}>UPGRADE TO {next.toUpperCase()}</button>
+    return <button className={cls} onClick={() => startUpgrade(next)}>{upgradeCta(next)}</button>
   }
   return null
 }

@@ -10,7 +10,7 @@ import { shortcutService } from '../../services/shortcutService'
 import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../services/sidebarPref'
 import { MILESTONES, getProgress, subscribeProgress, shouldShowProgress, markCelebrated } from '../../services/gettingStarted'
 import { useSubscription } from '../../hooks/useSubscription'
-import { PRICES, openPricing, startUpgrade } from '../../services/plans'
+import { PRICES, openPricing, startUpgrade, PAYMENTS_LIVE } from '../../services/plans'
 import { useGraphReview } from '../../hooks/useGraphReview'
 import { PAL } from '../../styles/palette.js'
 
@@ -346,18 +346,18 @@ export default function NavBar() {
           quiet line. Apex (and a live trial, which is Apex): nothing. */}
       {plan === 'core' && (
         <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.12)' }}>
-          <button onClick={openPricing} title="Upgrade to Prime — unlock the full terminal"
+          <button onClick={openPricing} title={PAYMENTS_LIVE ? 'Upgrade to Prime — unlock the full terminal' : 'Prime — payments are not live yet; join the waitlist'}
             className={`nav-row ${ROW} ${GAP} ${iconPad} pr-3 w-full`} style={{ background: 'rgba(201,168,76,0.06)' }}>
             <span className="flex-shrink-0 text-terminal-gold" style={{ width: 18, textAlign: 'center', fontSize: 14 }} aria-hidden="true">★</span>
             <span className={`nav-label ${labelCls} flex-1 min-w-0 text-left leading-tight`}>
-              <span className="block text-terminal-gold font-bold tracking-wider" style={{ fontSize: 11 }}>UPGRADE TO PRIME</span>
-              <span className="block text-terminal-text-dim" style={{ fontSize: 11 }}>Unlock the full terminal · A${PRICES.prime.monthly}/month</span>
+              <span className="block text-terminal-gold font-bold tracking-wider" style={{ fontSize: 11 }}>{PAYMENTS_LIVE ? 'UPGRADE TO PRIME' : 'PRIME'}</span>
+              <span className="block text-terminal-text-dim" style={{ fontSize: 11 }}>{PAYMENTS_LIVE ? `Unlock the full terminal · A$${PRICES.prime.monthly}/month` : `Payments not live yet · A$${PRICES.prime.monthly}/month planned`}</span>
             </span>
             <span role="button" tabIndex={0}
               onClick={(e) => { e.stopPropagation(); startUpgrade('prime') }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startUpgrade('prime') } }}
               className={`nav-label ${labelCls} flex-shrink-0 px-2 py-0.5 bg-terminal-gold text-terminal-bg font-bold tracking-wider hover:bg-terminal-gold-bright`}
-              style={{ fontSize: 11 }}>UPGRADE</span>
+              style={{ fontSize: 11 }}>{PAYMENTS_LIVE ? 'UPGRADE' : 'WAITLIST'}</span>
           </button>
         </div>
       )}
@@ -366,7 +366,7 @@ export default function NavBar() {
           className={`flex-shrink-0 nav-row ${ROW} ${GAP} ${iconPad} pr-3 text-terminal-text-dim/70 hover:text-terminal-gold`}
           style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
           <span className="flex-shrink-0" style={{ width: 18, textAlign: 'center', fontSize: 12 }} aria-hidden="true">✦</span>
-          <span className={`nav-label ${labelCls}`} style={{ fontSize: 11, letterSpacing: '0.06em' }}>Upgrade to Apex for unlimited AI</span>
+          <span className={`nav-label ${labelCls}`} style={{ fontSize: 11, letterSpacing: '0.06em' }}>{PAYMENTS_LIVE ? 'Upgrade to Apex for unlimited AI' : 'Apex waitlist: unlimited AI'}</span>
         </button>
       )}
       <div className="flex-shrink-0 relative" style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>

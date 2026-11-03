@@ -104,3 +104,17 @@ test('API access is offered nowhere: no working API stands behind it (Phase 3)',
   assert.doesNotMatch(fs.readFileSync('src/components/layout/NavBar.jsx', 'utf8'), /API access/)
   assert.ok(!fs.existsSync('src/components/settings/APIDocsModal.jsx'))
 })
+
+test('payments are not live: every upgrade button says WAITLIST (Phase 3)', async () => {
+  const { PAYMENTS_LIVE, upgradeCta } = await import('../src/services/plans.js')
+  assert.equal(PAYMENTS_LIVE, false)
+  assert.equal(upgradeCta('prime'), 'JOIN PRIME WAITLIST')
+  assert.equal(upgradeCta('apex'), 'JOIN APEX WAITLIST')
+  assert.equal(upgradeCta('Apex'), 'JOIN APEX WAITLIST', 'a label passed by an older caller')
+  const files = ['src/components/billing/PlanModals.jsx', 'src/components/ui/UpgradePrompt.jsx', 'src/components/layout/AIPanel.jsx',
+    'src/components/layout/NavBar.jsx', 'src/modules/dashboard/TrialWelcomeBanner.jsx', 'src/components/ui/TrialNudges.jsx', 'src/components/auth/TrialExpiredModal.jsx']
+  for (const f of files) {
+    const src = fs.readFileSync(f, 'utf8').replace(/PAYMENTS_LIVE\s*\?\s*(`[^`]*`|'[^']*')/g, '')
+    assert.doesNotMatch(src, />\s*UPGRADE (TO|NOW)[^<]*</, `${f}: a hard-coded upgrade label`)
+  }
+})

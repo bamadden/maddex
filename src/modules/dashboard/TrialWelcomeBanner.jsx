@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useProfile } from '../../hooks/useProfile'
 import { useStore } from '../../store/useStore'
-import { startUpgrade, trialState, lostOnCore, PRICES } from '../../services/plans'
+import { startUpgrade, trialState, lostOnCore, PRICES, upgradeCta, PAYMENTS_LIVE } from '../../services/plans'
 import { getUsage } from '../../services/usageService'
 import { loadAlerts } from '../../services/alertsService'
 import { PAL } from '../../styles/palette.js'
@@ -69,7 +69,7 @@ export default function TrialWelcomeBanner() {
         <div className="flex items-center gap-3 ml-auto">
           <button onClick={later} className="text-[11px] tracking-widest text-terminal-text-dim/70 hover:text-terminal-text-bright">REMIND ME LATER</button>
           <button onClick={() => startUpgrade('prime')} className="text-[11px] tracking-widest px-3 py-1.5 font-bold bg-terminal-gold text-terminal-bg hover:opacity-90">
-            UPGRADE NOW — A${PRICES.prime.monthly}/month
+            {PAYMENTS_LIVE ? `UPGRADE NOW — A$${PRICES.prime.monthly}/month` : upgradeCta('prime')}
           </button>
         </div>
       </div>

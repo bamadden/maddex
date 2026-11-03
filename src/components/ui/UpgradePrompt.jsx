@@ -1,4 +1,4 @@
-import { TIER_LABEL, PRICES, FEATURE_COPY, openPricing, startUpgrade } from '../../services/plans'
+import { TIER_LABEL, PRICES, FEATURE_COPY, openPricing, startUpgrade, upgradeCta, PAYMENTS_LIVE } from '../../services/plans'
 import { PAL } from '../../styles/palette.js'
 
 // Shown over a locked feature. The parent must be (or contain) a
@@ -34,7 +34,7 @@ export function UpgradeCard({ featureKey, feature, requiredTier = 'prime', messa
       <button
         onClick={() => startUpgrade(requiredTier)}
         className="w-full mt-5 py-2.5 text-xs font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
-      >UPGRADE TO {label.toUpperCase()}{price ? ` — A$${price}/mo` : ''}</button>
+      >{PAYMENTS_LIVE ? `${upgradeCta(requiredTier)}${price ? ` — A$${price}/mo` : ''}` : upgradeCta(requiredTier)}</button>
       <button onClick={openPricing} className="mt-3 text-[11px] tracking-[0.16em] text-terminal-text-dim hover:text-terminal-gold underline underline-offset-4">
         SEE ALL PLANS
       </button>

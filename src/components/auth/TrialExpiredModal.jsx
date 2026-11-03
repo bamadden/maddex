@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/useAuthStore'
 import { PricingModal, ComingSoonModal } from '../billing/PlanModals'
-import { markTrialEndedSeen, PRICES, LIMITS } from '../../services/plans'
+import { markTrialEndedSeen, PRICES, LIMITS, PAYMENTS_LIVE } from '../../services/plans'
 import { PAL } from '../../styles/palette.js'
 
 // Shown once when a 7-day trial ends. Core is a free plan now, so this is a
@@ -45,12 +45,12 @@ export default function TrialExpiredModal({ onContinue }) {
           <span className="text-terminal-green font-bold">Your data is safe.</span>{' '}
           <span className="text-terminal-text">Your watchlist, portfolio and alerts are kept, whichever plan you choose.</span>
         </div>
-        <div className="text-[11px] tracking-[0.16em] text-terminal-text-dim mt-5 mb-2">CONTINUE ON CORE (FREE) OR UPGRADE</div>
+        <div className="text-[11px] tracking-[0.16em] text-terminal-text-dim mt-5 mb-2">{PAYMENTS_LIVE ? 'CONTINUE ON CORE (FREE) OR UPGRADE' : 'CONTINUE ON CORE (FREE) OR JOIN A WAITLIST'}</div>
         <div className="grid grid-cols-3 gap-2">
           {[
             { tier: 'core', label: 'CORE', price: 'FREE', note: `${LIMITS.core.aiPerDay} AI questions a day, ${LIMITS.core.watchlist}-stock watchlist`, onClick: continueOnCore },
-            { tier: 'prime', label: 'PRIME', price: `A$${PRICES.prime.monthly}/mo`, note: 'Portfolio, alerts, scanner, research notes', onClick: () => setUpgradeTier('prime'), featured: true },
-            { tier: 'apex', label: 'APEX', price: `A$${PRICES.apex.monthly}/mo`, note: 'Everything, unlimited MaddenAI', onClick: () => setUpgradeTier('apex') },
+            { tier: 'prime', label: 'PRIME', price: PAYMENTS_LIVE ? `A$${PRICES.prime.monthly}/mo` : `WAITLIST · A$${PRICES.prime.monthly}/mo planned`, note: 'Portfolio, alerts, scanner, research notes', onClick: () => setUpgradeTier('prime'), featured: true },
+            { tier: 'apex', label: 'APEX', price: PAYMENTS_LIVE ? `A$${PRICES.apex.monthly}/mo` : `WAITLIST · A$${PRICES.apex.monthly}/mo planned`, note: 'Everything, unlimited MaddenAI', onClick: () => setUpgradeTier('apex') },
           ].map((p) => (
             <button key={p.tier} onClick={p.onClick} autoFocus={p.tier === 'core'}
               className={`px-2 py-3 flex flex-col items-center gap-1 transition-colors ${p.featured ? 'bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright' : 'border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold/10'}`}>

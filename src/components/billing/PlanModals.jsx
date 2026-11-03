@@ -3,7 +3,7 @@ import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/useAuthStore'
 import {
-  TIERS, TIER_LABEL, PRICES, PLAN_CARDS, annualSaving, planFor, startUpgrade,
+  TIERS, TIER_LABEL, PRICES, PLAN_CARDS, annualSaving, planFor, startUpgrade, upgradeCta,
 } from '../../services/plans'
 import { UpgradeCard } from '../ui/UpgradePrompt'
 import { PAL } from '../../styles/palette.js'
@@ -109,7 +109,7 @@ export function PricingModal({ onClose }) {
                   ) : (
                     <button onClick={() => startUpgrade(t, billing)}
                       className="w-full py-2.5 text-xs font-bold tracking-[0.16em] bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
-                    >UPGRADE TO {TIER_LABEL[t].toUpperCase()}</button>
+                    >{upgradeCta(t)}</button>
                   )}
                 </div>
               </div>
