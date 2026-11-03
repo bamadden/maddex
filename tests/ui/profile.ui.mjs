@@ -197,12 +197,31 @@ try {
   if (/REVENUE \(LATEST FY\)/.test(bhp) && !/BANK MEASURE/.test(bhp)) pass('BHP shows plain revenue')
   else fail('BHP revenue label wrong')
 
-  sectionLog('RBA banner → event ripple')
+  sectionLog('RBA card → decisions table and event ripple (throwaway local profile)')
+  // The holdings below live only in this headless browser's own profile on
+  // the local dev server: no account is signed in, nothing reaches Supabase,
+  // and a real user's holdings are never read.
+  const signedIn = await page.evaluate(() => Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k)))
+  if (signedIn) fail('the holdings check must run signed out, in a throwaway local profile')
   await page.evaluate(() => localStorage.setItem('madden_portfolio_v2', JSON.stringify([
     { id: 'u1', symbol: 'CBA', yfSym: 'CBA.AX', shares: 10, avgCost: 120, costCurrency: 'AUD', type: 'asx' },
     { id: 'u2', symbol: 'BHP', yfSym: 'BHP.AX', shares: 10, avgCost: 40, costCurrency: 'AUD', type: 'asx' },
   ])))
   await runCommand(page, 'rates')
+  // The decisions table's newest row is the decision the RBA card shows:
+  // same rate, same announcement date.
+  await page.waitForSelector('[data-rba-decisions] tbody tr', { timeout: 30_000 }).catch(() => {})
+  const agree = await page.evaluate(() => {
+    const row = document.querySelector('[data-rba-decisions] tbody tr')
+    const cells = row ? [...row.querySelectorAll('td')].map((td) => td.innerText.trim()) : []
+    const hero = [...document.querySelectorAll('main div, main section')].find((e) => e.children.length > 2 && /^RBA CASH RATE/.test((e.innerText ?? '').trim()) && e.innerText.length < 600)?.innerText ?? ''
+    const rate = hero.match(/(\d\.\d\d)%/)?.[1]
+    const date = hero.match(/(\d{1,2}) ([A-Z]{3})[A-Z]* (\d{4})/)
+    return { cells, rate, date: date ? `${date[1]} ${date[2]} ${date[3]}` : null }
+  })
+  const [announced, , rateCell] = agree.cells
+  if (agree.rate && rateCell === `${agree.rate}%` && agree.date && announced?.toUpperCase() === agree.date) pass(`decisions table's newest row matches the RBA card: ${announced}, ${rateCell}`)
+  else fail(`decisions table vs RBA card: table ${JSON.stringify(agree.cells)}, card ${agree.rate}% on ${agree.date}`)
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.includes('WHICH HOLDINGS CONNECT')), { timeout: 30_000 }).catch(() => {})
   const clicked = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.includes('WHICH HOLDINGS CONNECT')); b?.click(); return !!b })
   if (!clicked) fail('no WHICH HOLDINGS CONNECT link on Rates')
@@ -210,7 +229,7 @@ try {
   const ripple = await page.evaluate(() => document.querySelector('aside')?.innerText ?? '')
   if (/rate decision at RBA cash rate/i.test(ripple) && /CONNECTED EXPOSURE, NOT FORECAST/.test(ripple)) pass('Rates → rate-decision ripple from the RBA cash rate')
   else fail('ripple did not open on the RBA cash rate')
-  if (/YOUR HOLDINGS · 1 of 2 connected/.test(ripple)) pass('holdings: CBA connects, BHP does not')
+  if (/YOUR HOLDINGS · 1 of 2 connected/.test(ripple)) pass('holdings (throwaway local profile): CBA connects, BHP does not')
   else fail(`holdings line wrong: ${(ripple.match(/YOUR HOLDINGS[^\n]*/) ?? ['none'])[0]}`)
 
   sectionLog('Review queue (read only — nothing is approved)')
