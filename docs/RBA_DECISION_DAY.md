@@ -40,13 +40,17 @@ statement itself.
 | `nextMeeting` | `'2026-12-08'` | `'2026-12-08'` |
 | `note` | one line in the statement's terms, plus the vote | same |
 | `nextMeetingNote` | `null`, or a dated, sourced line about 8 Dec | same |
-| `levelContext` | `'the highest since 2008'` ¹ | leave as is (`'the highest since 2011'`) |
+| `levelContext` | derived — do not edit (see ¹) | derived |
 | `source` | `'rba.gov.au (mr-26-XX)'` | same |
 | `asOf` / `lastVerified` | `'2026-11-03'` | same |
 
-¹ Table A2, read 31 Oct 2026: the 2010–11 peak was 4.75%. The last level
-above 4.85% was 5.25%, effective from 5 Nov 2008 until the cut to 4.25% on
-3 Dec 2008. If the move is anything other than +25bp, re-read A2.
+¹ Since 3 Nov 2026 `levelContext` is worked out from the RBA's record of
+the target (`src/data/rbaCashRatePath.js`): the last day the rate was above
+today's. If the target changed, add the new level there on its effective
+date (the day after the announcement), e.g. `['2026-11-04', 4.85]` — a test
+fails until its last row equals `rba.cashRate`. At 4.85% it reads "the
+highest since 2008" (5.25% until the 3 Dec 2008 cut); at 4.60%, "since 2011";
+after a cut, nothing.
 
 Then add the decision to the history, and replace the statement:
 

@@ -25,6 +25,7 @@
 
 import { sydneyOffset } from '../utils/dateUtils.js'
 import { MORTGAGE_MARGIN, repaymentChange } from '../modules/calculators/calcMath.js'
+import { levelContextFor } from './rbaCashRatePath.js'
 
 export const VERIFY_WARN_DAYS = 7
 
@@ -61,9 +62,10 @@ export const VERIFIED_CONSTANTS = {
       marketReaction: null,
       url: 'https://www.rba.gov.au/media-releases/2026/mr-26-27.html',
     },
-    // 4.60% is above every level since Nov 2011, when the rate was cut from
-    // 4.75% to 4.50% (and 4.50% to 4.25% that December). The 2023 peak was 4.35%.
-    levelContext: 'the highest since 2011',
+    // "the highest since 2011" at 4.60%, "since 2008" at 4.85% — worked out
+    // from the RBA's own record of the target (data/rbaCashRatePath), never
+    // typed in: the last day the rate was above today's. Null after a cut.
+    get levelContext() { return levelContextFor(this.cashRate, { asOf: this.lastDecision }) },
     // Minutes of the 28–29 Sep meeting, released Tue 13 Oct 2026. Wording
     // checked against the CommBank and FXStreet write-ups of the minutes; the
     // quoted phrase is the minutes' own.
