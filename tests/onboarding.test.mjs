@@ -4,6 +4,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { createOnboardingStore, mergeOnboarding, shouldShowTour, resumeStep, ONBOARDING_KEY } from '../src/services/onboardingSync.js'
 
 const memoryStorage = () => {
@@ -111,4 +112,9 @@ test('without an account (dev bypass) the device copy is the record', async () =
 test('merge: finished beats in progress; otherwise the furthest step wins', () => {
   assert.equal(mergeOnboarding({ tour: { status: 'done', step: 5 } }, { tour: { status: 'in_progress', step: 4 } }).tour.status, 'done')
   assert.equal(mergeOnboarding({ tour: { status: 'in_progress', step: 2 } }, { tour: { status: 'in_progress', step: 4 } }).tour.step, 4)
+})
+
+test('the crypto tip says when the data is not live (audit 11 #8)', () => {
+  const src = fs.readFileSync('src/services/onboardingState.js', 'utf8')
+  assert.match(src, /crypto: +\{ text: 'Crypto prices are LIVE from CoinGecko, refreshed every few minutes; if it does not answer, a STALE badge shows the last copy and its time\.' \}/)
 })

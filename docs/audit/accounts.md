@@ -14,7 +14,7 @@ legal exposure first). Status: findings only; nothing built yet.
 | 5 | Medium — "live" applied to mixed data (done) | "Refresh all live data", "FETCHING LIVE DATA…", "REFRESH ALL LIVE DATA" refresh demo equities, delayed FX and live crypto alike. | `App.jsx:275,294,710`, `ModuleStates.jsx:21`, `SettingsPanel.jsx:2494`, `TopBar.jsx:306`, `shortcutService.js:75,79` | "Refresh all data" / "Loading data…". Test: the word "live" only beside a LIVE-class source. |
 | 6 | Medium — "API access (beta, demo data)" | Listed for Apex; is there a working, documented endpoint? Not checked in this audit. | `PLAN_CARDS` | Verify; if none, mark `'soon'`. |
 | 7 | — (already in place) | The comparison footer already says "Equity prices run on demo data until a live feed is connected", for every plan. | `PlanModals.jsx` | None needed. |
-| 8 | Low — onboarding copy | "Crypto is live data — CoinGecko, updated every few minutes": true for the primary feed; the Binance fallback and STALE cache are not mentioned. | `services/onboardingState.js:75` | "…when CoinGecko answers; a STALE badge shows when it does not." |
+| 8 | Low — onboarding copy (done) | "Crypto is live data — CoinGecko, updated every few minutes": true for the primary feed; the Binance fallback and STALE cache are not mentioned. | `services/onboardingState.js:75` | "…when CoinGecko answers; a STALE badge shows when it does not." |
 | 9 | Low — upgrade flow | Upgrade opens "PAYMENTS ARE NOT LIVE YET" + waitlist (honest). The sign-in screen's "7-DAY FREE TRIAL · Full Apex access" is accurate; no checkout exists. Clean flow needs Stripe (Ben: account, keys). | `PlanModals.jsx` | Leave until payments; keep the waitlist copy. |
 
 ## Already in place (verified this session or earlier, with tests)

@@ -72,7 +72,7 @@ export const TOOLTIPS = {
   portfolio: { text: 'The TRANSACTIONS tab records buys, sells and dividends, and derives realised P&L.' },
   news:      { text: 'Stories about your watchlist are marked in gold and float to the top.' },
   calendar:  { text: 'Set a reminder on any event, or export the whole calendar as .ics.' },
-  crypto:    { text: 'Crypto is live data — CoinGecko, updated every few minutes.' },
+  crypto:    { text: 'Crypto prices are LIVE from CoinGecko, refreshed every few minutes; if it does not answer, a STALE badge shows the last copy and its time.' },
   scanner:   { text: 'Ask the command bar to "scan for oversold" to jump straight to a tab.' },
 }
 
