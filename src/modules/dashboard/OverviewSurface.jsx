@@ -69,7 +69,7 @@ function Stat({ label, value, sub, tone, title }) {
 function MarketState() {
   const { data: idx, dataUpdatedAt: idxAt } = useQuery({ queryKey: ['yfBatch', 'indices'], queryFn: () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS), staleTime: 60_000, retry: 1 })
   const { data: crypto } = useQuery({ queryKey: ['cryptoMarkets', 'aud'], queryFn: () => fetchCryptoMarketsUnified('aud'), staleTime: 60_000, retry: 1 })
-  const { data: fx, dataUpdatedAt: fxAt } = useQuery({ queryKey: ['fxRates'], queryFn: () => fetchFxRatesUnified('AUD'), staleTime: 5 * 60_000, retry: 1 })
+  const { data: fx } = useQuery({ queryKey: ['fxRates'], queryFn: () => fetchFxRatesUnified('AUD'), staleTime: 5 * 60_000, retry: 1 })
   const ms = useMarketSentiment()
   const btc = crypto?.data ? transformCryptoMarkets(crypto.data, 'aud').find((c) => c.symbol === 'BTC') : null
   const audUsd = fx?.data?.USD ?? null
@@ -77,7 +77,9 @@ function MarketState() {
     <Panel id="ov-market" title="MARKET STATE" className="col-span-full"
       badge={<>
         <DataBadge cls={classOfResult(idx, { demo: USING_MOCK_DATA })} source={`indices · ${EQUITY_SOURCE}`} at={idx?.stale ? idx.cachedAt : idxAt || null} />
-        <DataBadge cls={classOfResult(fx)} source="FX · Frankfurter" at={fx?.stale ? fx.cachedAt : fxAt || null} />
+        {/* ECB reference rates are set once a working day: DELAYED, dated by
+            the ECB's rate date (it said LIVE with the fetch time). */}
+        <DataBadge cls={classOfResult(fx, { delayed: true })} source="FX · ECB reference rate" at={fx?.stale ? fx.cachedAt : fx?.data?.asOf ?? null} />
         {crypto && <DataBadge cls={classOfResult(crypto)} source={`BTC · ${crypto.meta?.provider}`} at={crypto.stale ? crypto.cachedAt : crypto.meta?.at ?? null} />}
       </>}>
       <div className="grid gap-x-4 gap-y-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))' }}>

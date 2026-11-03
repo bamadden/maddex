@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
+import DataBadge from '../../components/ui/DataBadge'
 import { InlineLoading, NoData, Unavailable, StaleBadge } from '../../components/ui/ModuleStates'
 import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import RbaHeroCard from './RbaHeroCard'
@@ -813,13 +814,14 @@ function BondSpreadsTable() {
 
 // ─── FX rates grid — compact 2-col x 5-row, flag + pair + rate + 1D change ──
 
-function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
+function FxRatesGrid({ pairs, isFetching, onSelectPair, stale, asOf, cachedAt }) {
   const top10 = pairs.slice(0, 10)
   return (
     <div className="border-b border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
         <span className="text-terminal-gold">FX RATES</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">AUD BASE</span>
+        <DataBadge cls={stale ? 'STALE' : 'DELAYED'} source="ECB reference rate, via Frankfurter" at={stale ? cachedAt ?? null : asOf ?? null} />
         {isFetching && <InlineLoading label="Loading" className="ml-auto" />}
       </div>
       <div className="grid grid-cols-2">
@@ -827,7 +829,7 @@ function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
           const dec = rateDecimals(p.pair)
           const base = p.pair.split('/')[0]
           const flag = FLAG_BY_CCY[base] ?? '🏳'
-          const pct = p.pct ?? 0
+          const pct = p.pct
           return (
             <button
               key={p.pair}
@@ -837,9 +839,13 @@ function FxRatesGrid({ pairs, isFetching, onSelectPair }) {
               <span className="text-sm flex-shrink-0">{flag}</span>
               <span className="text-2xs font-bold text-terminal-text-bright flex-shrink-0 w-16">{p.pair}</span>
               <span className="text-2xs text-terminal-text-bright ml-auto">{p.mid?.toFixed(dec)}</span>
-              <span className={`text-2xs w-14 text-right flex-shrink-0 ${pct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(2)}%
-              </span>
+              {pct == null ? (
+                <span className="text-2xs w-14 text-right flex-shrink-0 text-terminal-text-dim" title="No change published: the ECB sets one reference rate a day">—</span>
+              ) : (
+                <span className={`text-2xs w-14 text-right flex-shrink-0 ${pct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {pct >= 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(2)}%
+                </span>
+              )}
             </button>
           )
         })}
@@ -1031,14 +1037,19 @@ export default function FXModule() {
         ) : !isLive ? (
           <FxRetryCountdown key={fxAttemptKey} onRetry={handleFxRetry} />
         ) : (
-          <FxRatesGrid pairs={pairs} isFetching={isFetching} onSelectPair={setHistoryPair} />
+          <FxRatesGrid pairs={pairs} isFetching={isFetching} onSelectPair={setHistoryPair} stale={fxDelayed} asOf={rawRates?.asOf} cachedAt={fxResult?.cachedAt} />
         )}
         {audUsd && (
           <div className="border-b border-terminal-border p-2 flex-shrink-0">
-            <div className="text-2xs text-terminal-gold font-bold mb-1">AUD/USD · LIVE</div>
+            {/* The ECB's daily reference rate: DELAYED, dated by the ECB's own
+                rate date. It said "LIVE", and the time beside it was when the
+                panel rendered, not when the rate was set. */}
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-2xs text-terminal-gold font-bold">AUD/USD</span>
+              <DataBadge cls={fxDelayed ? 'STALE' : 'DELAYED'} source="ECB reference rate, via Frankfurter" at={fxDelayed ? fxResult?.cachedAt ?? null : rawRates?.asOf ?? null} />
+            </div>
             <div className="text-2xl font-bold text-terminal-text-bright">{audUsd.toFixed(4)}</div>
             <div className="text-2xs text-terminal-text-dim mt-0.5">1 AUD = {audUsd.toFixed(4)} USD · 1 USD = {(1 / audUsd).toFixed(4)} AUD</div>
-            <div className="text-2xs text-terminal-text-dim mt-0.5">{updatedTime} {sydneyTzNow()} · Frankfurter{fxDelayed ? ' · STALE' : ''}</div>
           </div>
         )}
         <CurrencyConverter rates={rawRates} />

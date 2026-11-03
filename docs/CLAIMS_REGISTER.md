@@ -31,7 +31,7 @@ ship the claim.
 | # | Claim | Where | Evidence | Test | Status |
 |---|---|---|---|---|---|
 | D1 | Crypto prices are LIVE (CoinGecko; Binance fallback converted and labelled) | Crypto, tape, Overview, plans "Live crypto prices (CoinGecko)" | `dataService` providers; badge from `classOfResult` | `tests/cryptoCurrency.test.mjs` | True |
-| D2 | FX is the ECB's daily reference rate — **DELAYED, not live** | Tape "FX · DELAYED · ECB DAILY", status bar "FX DAILY", FX widget, plans "FX reference rates (ECB, daily)" | `api.fetchFxRates` → Frankfurter `/latest`; widget source open.er-api.com (daily) | `tests/claims.test.mjs` "FX is labelled daily, never live" | Corrected 1 Nov (was "Live FX rates", "FX LIVE") |
+| D2 | FX is the ECB's daily reference rate — **DELAYED, not live** | Tape "FX · DELAYED · ECB DAILY", status bar "FX DAILY", FX widget, Rates AUD/USD and FX grid, Dashboard Market State (all DELAYED with the ECB rate date), plans "FX reference rates (ECB, daily)" | `api.fetchFxRates` → Frankfurter `/latest`; widget source open.er-api.com (daily) | `tests/claims.test.mjs` "FX is labelled daily, never live" | Corrected 1 Nov (was "Live FX rates", "FX LIVE") |
 | D3 | Equity and index prices are DEMO until a licensed feed is connected | Every equity/index surface, status bar "EQUITIES DEMO", tape "INDICES · DEMO" | `services/mockData`, `USING_MOCK_DATA` | `tests/honesty.test.mjs`; UI tape | True |
 | D4 | Official statistics (RBA, ABS) are VERIFIED, with the publication date | Macro, Rates, Brief | `data/verifiedConstants.js`; `npm run check-stats` reconciles against agency APIs | `npm run check-stats` (11 series match, in the commit gate) | True |
 | D5 | The market sentiment score is computed in code from listed inputs, not by AI | Every sentiment card; method in ScoreNote | `services/maddenAiScoring.calculateMarketSentimentScore`; `data/methodology.js` | `tests/honesty.test.mjs` "the score is computed in code"; `tests/scores.test.mjs` | True |
@@ -81,6 +81,7 @@ ship the claim.
 ## Removed or softened (1 Nov 2026)
 
 - "Live FX rates", "FX LIVE", FX widget LIVE badge → ECB daily reference rates, DELAYED.
+- 3 Nov 2026: two places still said it. Rates "AUD/USD · LIVE" (with the panel's render time as if it were the data time) and Dashboard Market State "LIVE · FX · Frankfurter" → DELAYED, dated by the ECB's rate date. Every FX pair's "▲0.00%" was an invented zero (the ECB publishes no change) → "—". `tests/fxLabels.test.mjs`.
 - "Crypto, FX, commodities and global indices from live feeds" (welcome) → crypto live, FX daily, equities and indices DEMO.
 - "Every figure it quotes is one the terminal handed it" / "it does not produce numbers of its own" / "it never sources a number itself" → "instructed to quote only figures the terminal gives it"; AI can make mistakes.
 - "Every figure is labelled with one of four classes" (data key) → panels are labelled; unbadged panels state their source in their caption.

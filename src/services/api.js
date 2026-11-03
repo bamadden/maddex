@@ -1001,18 +1001,15 @@ export const FX_PAIR_DEFS = [
   { pair: 'USD/JPY', compute: (r) => r.JPY / r.USD, spread: 0.02   },
 ]
 
+// The ECB publishes one reference rate per currency per working day, with no
+// change and no bid/ask. So `change` and `pct` are null (shown as "—"), not
+// 0: every pair used to read "▲0.00%". The bid/ask built from an assumed
+// spread are gone too; nothing showed them, and they were not published.
 export const transformFxRates = (rates) =>
-  FX_PAIR_DEFS.map(({ pair, compute, spread }) => {
+  FX_PAIR_DEFS.map(({ pair, compute }) => {
     const mid = compute(rates)
     if (!mid || isNaN(mid)) return null
-    return {
-      pair,
-      bid: parseFloat((mid - spread / 2).toFixed(4)),
-      ask: parseFloat((mid + spread / 2).toFixed(4)),
-      mid: parseFloat(mid.toFixed(4)),
-      change: 0,
-      pct: 0,
-    }
+    return { pair, mid: parseFloat(mid.toFixed(4)), change: null, pct: null }
   }).filter(Boolean)
 
 // Frankfurter is not tried: it carries ECB fiat rates only, so XAU/XAG was a
