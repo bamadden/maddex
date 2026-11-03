@@ -34,33 +34,36 @@ export const VERIFIED_CONSTANTS = {
   rba: {
     label: 'RBA',
     country: 'Australia',
-    cashRate: 4.60,
-    lastDecision: '2026-09-29',
+    // UPDATED 2026-11-03 from the Board's statement, rba.gov.au media release
+    // mr-26-30 (3 Nov 2026, 2:30pm AEDT): "the Board decided to increase the
+    // cash rate target by 25 basis points to 4.85 per cent", by majority, six
+    // to three. Effective 4 Nov (the RBA's cash rate table records it then).
+    cashRate: 4.85,
+    lastDecision: '2026-11-03',
     lastDecisionVerb: 'HIKE',
-    previousRate: 4.35,
-    nextMeeting: '2026-11-03',
+    previousRate: 4.60,
+    nextMeeting: '2026-12-08',
     lastChange: '+25bp',
     nextMeetingTime: '2:30pm AEDT',
-    note: 'Fourth hike of 2026, unanimous. "Upside risks flagged in August are materialising."',
-    // Added 2026-10-28 after the Sep-quarter CPI. The RBA's 0.8% is its August
-    // SMP forecast (there is no October SMP; the next is with the 3 Nov
-    // decision). The ~85% is Bloomberg data as reported by ABC News — see
-    // rbaNextDecision for the reading itself.
-    nextMeetingNote: 'Sep quarter trimmed mean CPI 1.0% q/q, above the RBA\'s August forecast of 0.8%. Market pricing ~85% for a fifth hike of 2026, to 4.85% (Bloomberg via ABC News, 28 Oct).',
+    note: 'Fifth hike of 2026, by a 6–3 majority (three members voted to hold at 4.60%). "Given the revised inflation outlook and the continuing upside risks, the Board judged that a further tightening in financial conditions is warranted."',
+    // No dated, sourced line about the 8 Dec meeting yet.
+    nextMeetingNote: null,
     // AFTER EACH DECISION, fill this in as well as lastDecision / cashRate /
     // decisions. It is what MaddenAI's post-decision prompts read for the week
     // after (they switch on when lastDecision moves). keyPoints: three to five
     // short lines in the statement's own terms; marketReaction: one dated,
     // sourced sentence (AUD, ASX 200, 3-year yield) or null until there is one.
     latestStatement: {
-      date: '2026-09-29',
+      date: '2026-11-03',
       keyPoints: [
-        'Hiked 25bp to 4.60%, the fourth increase of 2026, unanimously',
-        'Upside inflation risks flagged in August are materialising',
-        'The Board will do what is necessary to return inflation to target, including further increases if needed',
+        'Increased the cash rate target by 25 basis points to 4.85 per cent, by majority: six members for the increase, three for leaving it at 4.60 per cent',
+        'Inflation remains elevated and broadly based; the inflation outlook has been revised materially higher',
+        'Inflation is not expected to reach the top of the 2–3 per cent target range until late 2027, around three quarters later than previously forecast',
+        'The economy is slowing, housing prices have fallen significantly and the unemployment rate has risen',
+        'The Board will be attentive to the data and the evolving assessment of the outlook and risks to guide its decisions',
       ],
       marketReaction: null,
-      url: 'https://www.rba.gov.au/media-releases/2026/mr-26-27.html',
+      url: 'https://www.rba.gov.au/media-releases/2026/mr-26-30.html',
     },
     // "the highest since 2011" at 4.60%, "since 2008" at 4.85% — worked out
     // from the RBA's own record of the target (data/rbaCashRatePath), never
@@ -99,10 +102,12 @@ export const VERIFIED_CONSTANTS = {
         reason: 'Oil shock smaller than feared so far; labour market easing a little faster than expected.' },
       { date: '2026-09-29', rate: 4.60, decision: 'HIKE', change: 25, vote: 'Unanimous',
         reason: 'Upside risks flagged in August are materialising; growth and inflation above forecast.' },
+      { date: '2026-11-03', rate: 4.85, decision: 'HIKE', change: 25, vote: '6–3 majority',
+        reason: 'Inflation outlook revised materially higher and broadly based; further tightening judged warranted.' },
     ],
-    source: 'rba.gov.au (mr-26-27)',
-    asOf: '2026-09-29',
-    lastVerified: '2026-10-18',
+    source: 'rba.gov.au (mr-26-30)',
+    asOf: '2026-11-03',
+    lastVerified: '2026-11-03',
   },
   fed: {
     label: 'Fed',

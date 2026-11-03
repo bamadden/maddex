@@ -9,20 +9,23 @@ import { VERIFIED_CONSTANTS } from '../src/data/verifiedConstants.js'
 import { RBA_RATE_HISTORY } from '../src/data/placeholders.js'
 
 test('the derived wording matches the record at the levels that matter today', () => {
-  assert.equal(highestSinceYear(4.60, { asOf: '2026-09-29' }), 2011)   // 4.75% until the 2 Nov 2011 cut
+  // The record as it stood after each decision.
+  const upTo = (iso) => RBA_TARGET_PATH.filter((p) => p.effective <= iso)
+  assert.equal(highestSinceYear(4.60, { asOf: '2026-09-29', path: upTo('2026-09-30') }), 2011)   // 4.75% until the 2 Nov 2011 cut
+  assert.equal(levelContextFor(4.60, { asOf: '2026-09-29', path: upTo('2026-09-30') }), 'the highest since 2011')
   assert.equal(highestSinceYear(4.85, { asOf: '2026-11-03' }), 2008)   // 5.25% until the 3 Dec 2008 cut
-  assert.equal(highestSinceYear(5.00, { asOf: '2026-11-03' }), 2008)
-  assert.equal(highestSinceYear(4.75, { asOf: '2026-11-03' }), 2008)   // 4.75% was the 2010–11 level, not above it
-  assert.equal(levelContextFor(4.60, { asOf: '2026-09-29' }), 'the highest since 2011')
+  assert.equal(levelContextFor(4.85, { asOf: '2026-11-03' }), 'the highest since 2008')
+  const at = (rate) => [...upTo('2026-09-30'), { effective: '2026-11-04', rate }]
+  assert.equal(highestSinceYear(5.00, { asOf: '2026-11-03', path: at(5.00) }), 2008)
+  assert.equal(highestSinceYear(4.75, { asOf: '2026-11-03', path: at(4.75) }), 2008) // 4.75% was the 2010–11 level, not above it
 })
 
 test('no "highest since" after a cut, or when the record never shows it higher', () => {
-  const cut = [...RBA_TARGET_PATH, { effective: '2026-11-04', rate: 4.35 }]
+  const cut = [...RBA_TARGET_PATH.filter((p) => p.effective <= '2026-09-30'), { effective: '2026-11-04', rate: 4.35 }]
   assert.equal(levelContextFor(4.35, { asOf: '2026-11-03', path: cut }), null) // 4.60% the day before
-  assert.equal(highestSinceYear(4.35, { asOf: '2026-11-03' }), null)   // 4.60% is in force: not today's rate
+  assert.equal(highestSinceYear(4.60, { asOf: '2026-11-03' }), null)   // 4.85% is in force: not today's rate
   assert.equal(highestSinceYear(7.50), null)                           // above everything recorded since 2008
-  const hike = [...RBA_TARGET_PATH, { effective: '2026-11-04', rate: 4.85 }]
-  assert.equal(levelContextFor(4.85, { asOf: '2026-11-03', path: hike }), 'the highest since 2008')
+
 })
 
 test('the record is in order, consistent with the cash-rate path, and ends at today\'s rate', () => {

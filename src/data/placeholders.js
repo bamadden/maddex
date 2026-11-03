@@ -254,6 +254,11 @@ export const RBA_BOARD_MEMBERS = [
 // next to it instead of running much longer.
 export const RBA_RECENT_STATEMENTS = [
   {
+    date: '3 Nov 2026',
+    decision: 'HIKE +25bp to 4.85% (6–3)',
+    key: '"Given the revised inflation outlook and the continuing upside risks, the Board judged that a further tightening in financial conditions is warranted."',
+  },
+  {
     date: '13 Oct 2026',
     decision: 'MINUTES of 29 Sep',
     key: 'Board briefly weighed a pause; inflation risks made the case to act promptly. Open to further hikes "if required".',
@@ -262,11 +267,6 @@ export const RBA_RECENT_STATEMENTS = [
     date: '29 Sep 2026',
     decision: 'HIKE +25bp to 4.60%',
     key: '"Inflation remains elevated and some of the upside risks flagged in August are materialising."',
-  },
-  {
-    date: '11 Aug 2026',
-    decision: 'HOLD at 4.35%',
-    key: 'Held, citing softer June CPI of 3.8% and Middle East uncertainty.',
   },
 ]
 

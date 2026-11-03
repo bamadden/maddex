@@ -25,8 +25,8 @@ export const ALERT_TYPES = [
 export const UPCOMING_EVENTS = [
   { label: 'AU CPI',                 date: '2026-10-28', time: '11:30' },
   { label: 'FOMC Rate Decision',     date: '2026-10-29', time: '05:00' },
-  { label: 'RBA Cash Rate Decision', date: '2026-11-03', time: '14:30' },
   { label: 'AU Labour Force',        date: '2026-11-19', time: '11:30' },
+  { label: 'RBA Cash Rate Decision', date: '2026-12-08', time: '14:30' },
 ]
 
 export function loadAlerts() {

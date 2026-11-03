@@ -23,6 +23,7 @@ export const RBA_TARGET_PATH = [
   ['2023-06-07', 4.10], ['2023-11-08', 4.35], ['2025-02-19', 4.10], ['2025-05-21', 3.85],
   ['2025-08-13', 3.60], ['2026-02-04', 3.85], ['2026-03-18', 4.10], ['2026-05-06', 4.35],
   ['2026-09-30', 4.60],
+  ['2026-11-04', 4.85], // 3 Nov hike, mr-26-30; effective the next day
 ].map(([effective, rate]) => ({ effective, rate }))
 
 const dayBefore = (iso) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10) }

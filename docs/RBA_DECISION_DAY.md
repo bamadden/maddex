@@ -71,6 +71,10 @@ latestStatement: {
 For a hold, use `change: 0` and `decision: 'HOLD'`. Leave `minutes` alone:
 the minutes of this meeting come out two weeks later, on Tue 17 Nov.
 
+Also: put the new statement at the top of `RBA_RECENT_STATEMENTS`
+(`src/data/placeholders.js`, keep three), and move the RBA row in
+`UPCOMING_EVENTS` (`src/services/alertsService.js`) to the next meeting.
+
 ### 2. `rbaNextDecision` — leave it
 
 It retires itself once `lastDecision` moves, so the ~85% reading is no
