@@ -929,7 +929,10 @@ export default function PortfolioModule() {
               </span>
               <div className="text-terminal-text-bright text-base font-semibold tracking-wide">Start tracking your portfolio</div>
               <div className="text-terminal-text-dim text-sm text-center max-w-sm leading-relaxed -mt-2">
-                Add holdings to see real-time P&amp;L, sector analysis, and dividend income
+                {/* It promised real-time profit and loss; equity prices are DEMO until a
+                    licensed ASX feed is connected, so say what the P&L is. */}
+                Add holdings to see P&amp;L, sector breakdown and dividend income
+                {USING_MOCK_DATA ? ' — at demo equity prices (labelled DEMO) until a licensed ASX feed is connected.' : '.'}
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowAddForm(true)}

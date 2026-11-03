@@ -81,6 +81,7 @@ ship the claim.
 ## Removed or softened (1 Nov 2026)
 
 - "Live FX rates", "FX LIVE", FX widget LIVE badge → ECB daily reference rates, DELAYED.
+- 3 Nov 2026: Portfolio empty state "Add holdings to see real-time P&L" → P&L at demo equity prices, labelled DEMO, until a licensed ASX feed (`docs/audit/accounts.md` #1).
 - 3 Nov 2026: two places still said it. Rates "AUD/USD · LIVE" (with the panel's render time as if it were the data time) and Dashboard Market State "LIVE · FX · Frankfurter" → DELAYED, dated by the ECB's rate date. Every FX pair's "▲0.00%" was an invented zero (the ECB publishes no change) → "—". `tests/fxLabels.test.mjs`.
 - "Crypto, FX, commodities and global indices from live feeds" (welcome) → crypto live, FX daily, equities and indices DEMO.
 - "Every figure it quotes is one the terminal handed it" / "it does not produce numbers of its own" / "it never sources a number itself" → "instructed to quote only figures the terminal gives it"; AI can make mistakes.

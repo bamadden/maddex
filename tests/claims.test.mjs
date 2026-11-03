@@ -55,3 +55,9 @@ test('the register exists and covers the audited items', () => {
   const reg = read('docs/CLAIMS_REGISTER.md')
   for (const id of ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'D2', 'I1', 'I2', 'P4', 'P5', 'G1', 'L1']) assert.match(reg, new RegExp(`\\| ${id} \\|`), id)
 })
+
+test('no "real-time" or "live" promise beside equity figures while equities are DEMO (audit 11 #1)', () => {
+  const pf = fs.readFileSync('src/modules/portfolio/PortfolioModule.jsx', 'utf8')
+  assert.doesNotMatch(pf, /real-time P&amp;L|real-time P&L|live P&amp;L|live P&L/i)
+  assert.match(pf, /at demo equity prices \(labelled DEMO\) until a licensed ASX feed is connected/)
+})
