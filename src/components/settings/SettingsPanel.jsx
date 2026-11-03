@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { NewsletterCard } from '../newsletter/Newsletter'
 import { getReminders, removeReminder } from '../../services/calendarExtras'
-import { emailAlertsEnabled, setEmailAlertsEnabled } from '../../services/alertEmailService'
+import { emailAlertsEnabled, setEmailAlertsEnabled, EMAIL_DELIVERY_AVAILABLE } from '../../services/alertEmailService'
 import { useAuthStore } from '../../store/useAuthStore'
 import { supabase } from '../../lib/supabase'
 import { useStore } from '../../store/useStore'
@@ -1383,7 +1383,7 @@ function NotificationsSection() {
     ['market_alerts_enabled', 'Market Open/Close Alerts', 'Exchange open and close notifications'],
     ['news_alerts_enabled', 'Breaking News Alerts', 'Market-moving news notifications'],
     ['rba_alerts_enabled', 'RBA Meeting Alerts', 'Reserve Bank of Australia event reminders'],
-    ['email_notifications', 'Email Notifications', 'Receive alerts via email'],
+    ...(EMAIL_DELIVERY_AVAILABLE ? [['email_notifications', 'Email Notifications', 'Receive alerts via email']] : []),
   ]
 
   return (
@@ -1416,13 +1416,16 @@ function NotificationsSection() {
 
       <FieldRow
         label="Email Alerts"
-        note={userEmail
-          ? `Triggered price alerts are also emailed to ${userEmail}. In-app alerts are unaffected — this is a second copy for when the tab is closed.`
-          : 'Sign in to receive triggered price alerts by email. In-app alerts work either way.'}
+        note={!EMAIL_DELIVERY_AVAILABLE
+          ? 'Not available yet: Maddex does not send email yet. Alerts appear in the app and as desktop notifications.'
+          : userEmail
+            ? `Triggered price alerts are also emailed to ${userEmail}. In-app alerts are unaffected — this is a second copy for when the tab is closed.`
+            : 'Sign in to receive triggered price alerts by email. In-app alerts work either way.'}
       >
         <Toggle
-          value={emailOn && Boolean(userEmail)}
-          onChange={() => { if (userEmail) setEmailOn(setEmailAlertsEnabled(!emailOn)) }}
+          value={EMAIL_DELIVERY_AVAILABLE && emailOn && Boolean(userEmail)}
+          disabled={!EMAIL_DELIVERY_AVAILABLE}
+          onChange={() => { if (EMAIL_DELIVERY_AVAILABLE && userEmail) setEmailOn(setEmailAlertsEnabled(!emailOn)) }}
         />
       </FieldRow>
 

@@ -8,11 +8,20 @@ import { supabase } from '../lib/supabase'
 
 const KEY = 'maddex_email_alerts'
 
+// Email does not send yet: no sender is confirmed in production (Resend's
+// key unconfirmed, 3 Nov 2026). Until this is true, nothing offers email
+// alerts — the plan comparison marks them planned, Settings shows "Not
+// available yet", and nothing is sent. Flip it only once an alert email has
+// been seen to arrive from production.
+export const EMAIL_DELIVERY_AVAILABLE = false
+
 export function emailAlertsEnabled() {
+  if (!EMAIL_DELIVERY_AVAILABLE) return false
   try { return localStorage.getItem(KEY) === 'on' } catch { return false }
 }
 
 export function setEmailAlertsEnabled(on) {
+  if (!EMAIL_DELIVERY_AVAILABLE) return false
   try { localStorage.setItem(KEY, on ? 'on' : 'off') } catch { /* quota */ }
   return on
 }

@@ -55,7 +55,7 @@ ship the claim.
 |---|---|---|---|---|---|
 | P1 | Prices and limits (Core free; Prime A$29; Apex A$79; AI 10/50/unlimited a day; watchlist 5; alerts 10) | Pricing, upgrade prompts | `services/plans.js` (single source) | `tests/claims.test.mjs` "plan copy matches the limits" | True in code. **Server enforcement of AI limits needs migration 009 in production — status unconfirmed** |
 | P2 | "7-day free trial — full Apex access" | Sign-up | migration 003: `trial_ends_at = now() + 7 days`; trial tier = Apex | — | True if migration 003 is applied (it is, per the 27 Oct probe) |
-| P3 | Email alerts (Prime) | Plans, alerts | `api/alert-email.js` via Resend | — | **Needs Ben: true only if `RESEND_API_KEY` is set in production** |
+| P3 | Email alerts (Prime) | Plans, alerts | `api/alert-email.js` via Resend | `tests/claims.test.mjs` | **Not offered (3 Nov 2026).** No sender is confirmed in production, so `EMAIL_DELIVERY_AVAILABLE` is false: Prime lists email alerts as PLANNED, Settings says "Not available yet", nothing is sent. Flip it once an alert email is seen to arrive from production. |
 | P4 | ~~"API access — Pull Maddex data into your own spreadsheets"~~ → "API access (beta, demo data)" | Plans, upgrade prompt | `api/terminal-api.js` serves the mock data layer and accepts any well-formed key (no tier check yet) | `tests/claims.test.mjs` | Softened 1 Nov |
 | P5 | ~~"Priority support"~~, ~~"Early access to new features"~~ | Plans | No support process or early-access mechanism exists | `tests/claims.test.mjs` | Removed 1 Nov |
 | P6 | "Live ASX prices" — marked SOON, not included | Plans | no feed connected | `tests/honesty.test.mjs` | True |

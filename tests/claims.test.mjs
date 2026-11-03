@@ -77,3 +77,20 @@ test('refresh and loading controls do not call mixed data "live" (audit 11 #5)',
     assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /Refresh(ing)? (all )?live data|REFRESH ALL LIVE DATA|FETCHING LIVE DATA/i, f)
   }
 })
+
+test('email alerts are not offered while no sender works (Phase 3)', async () => {
+  const svc = await import('../src/services/alertEmailService.js')
+  assert.equal(svc.EMAIL_DELIVERY_AVAILABLE, false)
+  assert.equal(svc.emailAlertsEnabled(), false)
+  assert.equal(svc.setEmailAlertsEnabled(true), false, 'cannot be switched on')
+  const before = globalThis.fetch
+  let called = false
+  globalThis.fetch = async () => { called = true; return new Response('{}') }
+  try { assert.deepEqual(await svc.sendAlertEmail({ symbol: 'CBA', direction: 'above', value: 1, currentPrice: 2 }), { sent: false, reason: 'disabled' }) } finally { globalThis.fetch = before }
+  assert.equal(called, false, 'nothing is sent')
+  const { PLAN_CARDS } = await import('../src/services/plans.js')
+  const email = Object.values(PLAN_CARDS).flatMap((c) => c.features).find(([l]) => /email alerts/i.test(l))
+  assert.equal(email?.[1], 'soon', 'shown as planned, not included')
+  const copy = [fs.readFileSync('src/services/plans.js', 'utf8'), fs.readFileSync('src/components/ui/TrialNudges.jsx', 'utf8')].join('\n')
+  assert.doesNotMatch(copy, /by email when it crosses|by email if you turn it on/)
+})

@@ -21,7 +21,7 @@ const read = (k) => { try { return JSON.parse(localStorage.getItem(k) ?? '[]') }
 
 const DISCOVERY = [
   { id: 'notes', day: 3, title: 'Try RESEARCH NOTES', body: 'A structured analysis of any ASX stock — business, financial quality, risks — saved to your research. Open a stock and press RESEARCH NOTE.', cta: 'OPEN MARKETS', module: 'markets', unused: () => getUsage().researchNotes === 0 },
-  { id: 'alerts', day: 4, title: 'Try PRICE ALERTS', body: 'Set a level on any watchlist stock and the terminal tells you when it is reached — in the app, and by email if you turn it on.', cta: 'OPEN WATCHLIST', module: 'watchlist', unused: (alerts) => alerts === 0 },
+  { id: 'alerts', day: 4, title: 'Try PRICE ALERTS', body: 'Set a level on any watchlist stock and the terminal tells you when it is reached — in the app and as a desktop notification.', cta: 'OPEN WATCHLIST', module: 'watchlist', unused: (alerts) => alerts === 0 },
   { id: 'portfolio', day: 5, title: 'Add your PORTFOLIO', body: 'Track your real holdings with P&L, sector and rate exposure, and dividend income — and your daily digest is written around them.', cta: 'ADD HOLDINGS', module: 'portfolio', unused: () => { try { return JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]').length === 0 } catch { return false } } },
 ]
 

@@ -68,7 +68,7 @@ export const MODULE_FEATURE = {
 // sentence on why it is worth having. Kept to things the feature really does.
 export const FEATURE_COPY = {
   portfolio:         { name: 'Portfolio tracking', why: 'Track P&L, sector exposure and dividend income across every holding — and ask MaddenAI about your actual book.' },
-  alerts:            { name: 'Price alerts', why: 'Maddex watches the price for you and alerts you on screen, by desktop notification or by email when it crosses.' },
+  alerts:            { name: 'Price alerts', why: 'Maddex watches the price for you and alerts you on screen or by desktop notification when it crosses.' },
   scanner:           { name: 'The market scanner', why: 'Breakouts, RSI extremes, unusual volume and gaps, swept across the ASX and US universe automatically.' },
   screener:          { name: 'The stock screener', why: 'Filter the market on valuation, yield and momentum, and rank what passes by how strongly it matches.' },
   global:            { name: 'The global intelligence map', why: 'Shipping chokepoints, trade flows, seismic activity and country risk on one map.' },
@@ -109,7 +109,7 @@ export const PLAN_CARDS = {
     features: [
       ['Full watchlist (unlimited)', true], ['Portfolio tracking', true], ['Price alerts (10 active)', true],
       ['Scanner + Screener', true], ['Global intel map', true], ['Bonds, ETFs, Futures modules', true],
-      ['MaddenAI (50 queries/day)', true], ['Morning brief (daily)', true], ['Email alerts', true],
+      ['MaddenAI (50 queries/day)', true], ['Morning brief (daily)', true], ['Email alerts', 'soon'],
       ['Research notes (5/month)', true], ['API access (beta, demo data)', false],
     ],
   },
