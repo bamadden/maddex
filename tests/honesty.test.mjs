@@ -147,3 +147,13 @@ test('the news filter matches whole words, so lifestyle stories stay out', () =>
   assert.doesNotMatch(news, /headline\.toUpperCase\(\)\.includes\(needle\)/)
   assert.match(news, /MOVERS IN THE NEWS<\/span>\s*<DemoBadge/)
 })
+
+test('volume cards state facts only, each with a DEMO badge and a data date (Phase 2.2)', () => {
+  const src = read('src/modules/markets/UnusualActivityTracker.jsx')
+  const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  assert.doesNotMatch(code, /worth watching|follow-through|suggests possible|institutional|accumulation|distribution|confirms the move|conviction|worth acting on/i)
+  assert.match(code, /Volume \$\{volumeRatio\.toFixed\(1\)\}× its 20-day average; price \$\{pct\(priceChange\)\} on the day\./)
+  const card = code.slice(code.indexOf('signals.map('))
+  assert.match(card, /<DemoBadge \/>\s*<span className="opacity-80">as at \{formatDate\(detectedAt, \{ year: false \}\)\} \{sydneyClock\(detectedAt\)\.text\}<\/span>/)
+  assert.match(code, /These are demo figures; do not suggest any action\./)
+})
