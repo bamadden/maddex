@@ -4,6 +4,8 @@
 // diverge from neutral. The labels describe what the data did — mostly up or
 // mostly down — in plain words; "bullish/bearish" read as a market call and
 // were replaced (legal-risk pass, 1 Nov 2026).
+
+import { CREDIT } from '../data/credits.js'
 export function scoreToLabel(score) {
   if (score >= 80) return 'Strongly positive'
   if (score >= 65) return 'Positive'
@@ -201,7 +203,8 @@ export function generateShortSummary({ marketSentimentScore, asxChanges, fearGre
     else parts.push(`ASX ${asxAvg.toFixed(1)}%`)
   }
   // Named for what it is: the crypto index, not a market-wide fear reading.
-  if (fgVal !== null && fgLbl) parts.push(`Crypto Fear & Greed ${fgVal} (${fgLbl})`)
+  // alternative.me's licence: the credit sits right next to the figure.
+  if (fgVal !== null && fgLbl) parts.push(`Crypto Fear & Greed ${fgVal} (${fgLbl} · ${CREDIT.alternativeme.text})`)
   if (parts.length === 0) {
     if (score >= 65) parts.push('Broad gains across markets')
     else if (score >= 55) parts.push('Mildly positive conditions')

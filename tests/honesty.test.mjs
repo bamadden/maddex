@@ -45,7 +45,7 @@ test('the score is computed in code: same inputs, same number', () => {
 })
 
 test('distinct measures carry distinct labels', () => {
-  assert.match(generateShortSummary({ marketSentimentScore: { score: 50 }, asxChanges: [0], fearGreed: { value: 34, label: 'Fear' } }), /Crypto Fear & Greed 34 \(Fear\)/)
+  assert.match(generateShortSummary({ marketSentimentScore: { score: 50 }, asxChanges: [0], fearGreed: { value: 34, label: 'Fear' } }), /Crypto Fear & Greed 34 \(Fear · Data from alternative\.me\)/)
   assert.match(read('src/modules/news/NewsModule.jsx'), /head\('Headline tone'/)
   assert.match(read('src/modules/dashboard/IntelligenceScore.jsx'), /SETUP \{score\}%/)
   assert.doesNotMatch(read('src/modules/dashboard/IntelligenceScore.jsx'), /INTELLIGENCE \{score\}/)

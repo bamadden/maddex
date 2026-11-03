@@ -92,3 +92,11 @@ test('FMP fails closed: with its licence switch off, no key makes a request to F
   assert.equal(api.match(/\$\{FMP_BASE\}/g).length, 1, 'every FMP URL is built inside fmpFetch')
   assert.match(api, /HAS_LIVE_DATA_KEY = !!import\.meta\.env\.VITE_FMP_API_KEY && !licenceOff\('fmp'\)/)
 })
+
+test('Crypto Fear & Greed carries the alternative.me credit wherever Markets shows it', async () => {
+  const { generateShortSummary } = await import('../src/services/maddenAiScoring.js')
+  const s = generateShortSummary({ marketSentimentScore: { score: 41 }, asxChanges: [0.1, -0.2], fearGreed: { value: 26, label: 'Fear' } })
+  assert.match(s, /Crypto Fear & Greed 26 \(Fear · Data from alternative\.me\)/)
+  const banner = read('src/modules/markets/MarketSentimentBanner.jsx')
+  assert.match(banner, /f\.name === 'Crypto Fear & Greed' && \(\s*<a href=\{CREDIT\.alternativeme\.url\}/)
+})

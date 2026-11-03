@@ -6,6 +6,7 @@ import { generateShortSummary, scoreToColor } from '../../services/maddenAiScori
 import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import { CREDIT } from '../../data/credits'
 
 const PREV_SCORE_KEY     = 'maddex_sentiment_prev'
 const HISTORY_KEY        = 'maddex_sentiment_history'
@@ -444,6 +445,10 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
                       </div>
                     </div>
                     {desc && <div style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)', fontStyle: 'italic' }}>{desc}</div>}
+                    {f.name === 'Crypto Fear & Greed' && (
+                      <a href={CREDIT.alternativeme.url} target="_blank" rel="noopener noreferrer" data-credit="alternativeme"
+                        style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)', textDecoration: 'underline dotted' }}>{CREDIT.alternativeme.text}</a>
+                    )}
                   </div>
                 )
               })}
