@@ -1794,7 +1794,7 @@ function ExportAllBlock() {
   return (
     <div className="space-y-3 border border-terminal-gold/30 p-3">
       <div className="flex items-center gap-2">
-        <div className="text-xs font-bold text-terminal-text-bright">EXPORT ALL DATA</div>
+        <div className="text-xs font-bold text-terminal-text-bright">EXPORT EVERYTHING (ZIP)</div>
         <span className="text-[11px] font-bold px-1 border border-terminal-gold/50 text-terminal-gold">APEX</span>
       </div>
       <div className="text-2xs text-terminal-text-dim">
@@ -1802,7 +1802,7 @@ function ExportAllBlock() {
       </div>
       <button onClick={run} disabled={state === 'working'}
         className="px-4 py-1.5 text-xs font-bold bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-50"
-      >{state === 'working' ? 'BUILDING ZIP…' : `EXPORT ALL DATA${canUse('exportAll') ? '' : ' ⊘'}`}</button>
+      >{state === 'working' ? 'BUILDING ZIP…' : `EXPORT EVERYTHING AS ZIP${canUse('exportAll') ? '' : ' ⊘'}`}</button>
       {state && typeof state === 'object' && <div className="text-2xs text-terminal-green">✓ Downloaded — {state.files} files, {state.notes} research note{state.notes === 1 ? '' : 's'}.</div>}
       {state === 'error' && <div className="text-2xs text-terminal-red">The export could not be built. Try again.</div>}
     </div>

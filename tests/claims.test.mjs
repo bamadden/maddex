@@ -118,3 +118,10 @@ test('payments are not live: every upgrade button says WAITLIST (Phase 3)', asyn
     assert.doesNotMatch(src, />\s*UPGRADE (TO|NOW)[^<]*</, `${f}: a hard-coded upgrade label`)
   }
 })
+
+test('Settings names the Apex ZIP export distinctly from the free privacy export (Phase 3)', () => {
+  const s = fs.readFileSync('src/components/settings/SettingsPanel.jsx', 'utf8')
+  assert.doesNotMatch(s, />EXPORT ALL DATA<|`EXPORT ALL DATA/)
+  assert.match(s, /EXPORT EVERYTHING AS ZIP/)
+  assert.match(s, /'EXPORT MY DATA'/)
+})

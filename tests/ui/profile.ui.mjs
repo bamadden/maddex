@@ -464,6 +464,16 @@ try {
     await core.waitForFunction(() => !/BACK TO OVERVIEW/.test(document.body.innerText), { timeout: 10_000 })
       .then(() => pass('BACK TO OVERVIEW leaves the locked module')).catch(() => fail('BACK TO OVERVIEW did nothing'))
   }
+  // Export and delete are rights, on every plan: on Core both are there and
+  // usable (read only — nothing is exported or deleted here).
+  await core.evaluate(() => [...document.querySelectorAll('button.nav-row')].find((b) => /^settings/i.test((b.title || b.textContent).trim()))?.click())
+  const openSection = (name) => core.evaluate((n) => [...document.querySelectorAll('nav button')].find((b) => b.textContent.trim() === n)?.click(), name)
+  await core.waitForFunction(() => /⚙ SETTINGS/.test(document.body.innerText), { timeout: 15_000 }).catch(() => {})
+  await openSection('DATA')
+  const exportBtn = await core.waitForFunction(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'EXPORT MY DATA' && !b.disabled), { timeout: 10_000 }).then(() => true).catch(() => false)
+  await openSection('SECURITY')
+  const deleteBtn = await core.waitForFunction(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'DELETE ACCOUNT' && !b.disabled), { timeout: 10_000 }).then(() => true).catch(() => false)
+  exportBtn && deleteBtn ? pass('Core plan: EXPORT MY DATA and DELETE ACCOUNT are there and usable') : fail(`Core plan: export ${exportBtn}, delete ${deleteBtn}`)
   await closePage(core)
 
   sectionLog('MaddenAI is mocked')
