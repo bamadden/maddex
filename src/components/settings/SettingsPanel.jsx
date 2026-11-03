@@ -362,9 +362,7 @@ function ProfileSection() {
       ...form,
       timezone: getTimezoneFromCountry(form.country),
     }
-    console.log('ProfileSection handleSave:', updates)
-    const { data, error } = await updateProfile(updates)
-    console.log('ProfileSection save result:', { data, error })
+    const { error } = await updateProfile(updates)
     if (!error) {
       // Reload from Supabase to confirm persistence
       await loadProfile()

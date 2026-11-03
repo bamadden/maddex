@@ -151,6 +151,17 @@ export default defineConfig(({ mode }) => {
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     },
 
+    // Production builds carry no console.log / info / debug: those calls are
+    // marked pure and dropped, so no debug line can ship a user's id, email,
+    // profile or token. console.warn / error stay (and must not log personal
+    // data either — tests/privacy.test.mjs; scripts/check-client-secrets.mjs
+    // scans the built bundle).
+    build: {
+      rolldownOptions: {
+        treeshake: { manualPureFunctions: ['console.log', 'console.info', 'console.debug'] },
+      },
+    },
+
     // MapLibre ships its style/tile parser as a separate web worker, and
     // Vite's dependency optimizer rewrites the package without emitting
     // that worker file:

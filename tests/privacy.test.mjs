@@ -86,3 +86,40 @@ test('the Privacy Policy matches what the code keeps, and who receives it', () =
   assert.match(read('supabase/migrations/010_retention.sql'), /INTERVAL '90 days'/)
   assert.ok(fs.existsSync('docs/DATA_BREACH_RESPONSE.md'))
 })
+
+// No log line may carry who the user is. In source, every console.* call's
+// arguments (string literals removed) must not pass a user id, email,
+// token, session or profile. Production builds also drop console.log /
+// info / debug (vite.config.js) and check-client-secrets scans the bundle.
+test('no log call passes a user identifier, email, token, session or profile', () => {
+  const IDENTITY = /\b(userId|user\??\.(id|email)|session(\??\.\w+)?|access_token|refresh_token|profile|profileCheck|updates)\b|\.(email|phone|user_metadata)\b/
+  const strip = (a) => a.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g, '""')
+  const args = (src, at) => {
+    let depth = 0, i = src.indexOf('(', at), q = null
+    for (let j = i; j < src.length; j++) {
+      const c = src[j]
+      if (q) { if (c === '\\') j++; else if (c === q) q = null; continue }
+      if (c === '"' || c === "'" || c === '`') { q = c; continue }
+      if (c === '(') depth++
+      else if (c === ')' && --depth === 0) return src.slice(i + 1, j)
+    }
+    return ''
+  }
+  const offenders = []
+  for (const dir of ['src', 'api']) {
+    for (const f of fs.readdirSync(dir, { recursive: true }).filter((x) => /\.(m?js|jsx)$/.test(x))) {
+      const src = fs.readFileSync(`${dir}/${f}`, 'utf8')
+      for (const m of src.matchAll(/console\.(log|info|debug|warn|error)\(/g)) {
+        const hit = strip(args(src, m.index)).match(IDENTITY)
+        if (hit) offenders.push(`${dir}/${f}:${src.slice(0, m.index).split('\n').length} console.${m[1]} passes ${hit[0]}`)
+      }
+    }
+  }
+  assert.deepEqual(offenders, [])
+})
+
+test('production builds drop console.log / info / debug', () => {
+  const cfg = fs.readFileSync('vite.config.js', 'utf8')
+  assert.match(cfg, /manualPureFunctions: \['console\.log', 'console\.info', 'console\.debug'\]/)
+  assert.match(fs.readFileSync('scripts/check-client-secrets.mjs', 'utf8'), /IDENTITY_DATA/)
+})
