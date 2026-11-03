@@ -11,7 +11,7 @@ import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
-import { RBA_RATE_HISTORY } from '../../data/placeholders'
+import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl } from '../../data/rbaDecisions'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { curveForRates, BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
@@ -384,36 +384,41 @@ function RbaRateComparisonBar() {
   )
 }
 
+// The last ten decisions as the RBA published them (data/rbaDecisions): the
+// statement's date, the rate and change from the RBA's cash rate table, and
+// a link to the statement. It used to take the last ten points of the
+// cash-rate path, which has no 2025 holds, showed effective dates under
+// "DATE", and compared the oldest row with itself (Nov 2023's hike read HOLD).
 function RbaDecisionHistory() {
-  const last10 = useMemo(() => {
-    const rows = RBA_RATE_HISTORY.slice(-10)
-    return rows.map((r, i) => {
-      const prev = i > 0 ? rows[i - 1].rate : rows[0].rate
-      const decision = r.rate > prev ? 'hike' : r.rate < prev ? 'cut' : 'hold'
-      return { ...r, decision }
-    }).reverse()
-  }, [])
+  const last10 = RBA_DECISIONS.slice(0, 10)
   return (
     <div className="p-2">
       <div className="text-2xs text-terminal-gold font-bold mb-1.5 tracking-widest">LAST 10 RBA DECISIONS</div>
-      <table className="terminal-table w-full">
+      <table className="terminal-table w-full" data-rba-decisions>
         <thead>
           <tr>
-            <th className="px-1 text-left">DATE</th>
+            <th className="px-1 text-left">ANNOUNCED</th>
             <th className="px-1 text-right">RATE</th>
             <th className="px-1 text-center">DECISION</th>
+            <th className="px-1 text-right">SOURCE</th>
           </tr>
         </thead>
         <tbody>
           {last10.map(r => (
-            <tr key={r.date}>
-              <td className="px-1 py-0.5 text-2xs text-terminal-text-dim">{r.date}</td>
+            <tr key={r.announced}>
+              <td className="px-1 py-0.5 text-2xs text-terminal-text-dim">{formatDate(r.announced)}</td>
               <td className="px-1 py-0.5 text-2xs text-right font-semibold text-terminal-text-bright">{r.rate.toFixed(2)}%</td>
-              <td className="px-1 py-0.5 text-center"><RateBadge dir={r.decision} /></td>
+              <td className="px-1 py-0.5 text-center"><RateBadge dir={decisionOf(r)} /></td>
+              <td className="px-1 py-0.5 text-2xs text-right">
+                <a href={rbaStatementUrl(r.mr)} target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim hover:text-terminal-gold underline decoration-dotted">{r.mr} ↗</a>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <div className="mt-1.5 text-2xs text-terminal-text-dim/70 leading-snug">
+        Date of each RBA statement; the rate takes effect the next day. Rates and changes from the RBA&apos;s cash rate target table, checked {formatDate(RBA_DECISIONS_CHECKED)}.
+      </div>
     </div>
   )
 }

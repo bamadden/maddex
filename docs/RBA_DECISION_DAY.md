@@ -75,6 +75,14 @@ Also: put the new statement at the top of `RBA_RECENT_STATEMENTS`
 (`src/data/placeholders.js`, keep three), and move the RBA row in
 `UPCOMING_EVENTS` (`src/services/alertsService.js`) to the next meeting.
 
+Then add the decision at the top of `src/data/rbaDecisions.js` (the "Last 10
+RBA decisions" table): `announced` from the statement, `effective` the next
+day, `rate` and `changeBp` as published, `mr` the media release number. A
+unit test fails until its first row matches `rba.lastDecision` and
+`rba.cashRate`. Once the RBA's cash rate table lists the decision (it shows
+the effective date, 4 Nov), `npm run check-rba` re-reads every row from
+rba.gov.au; until then it reports the new row as missing from the table.
+
 ### 2. `rbaNextDecision` — leave it
 
 It retires itself once `lastDecision` moves, so the ~85% reading is no
