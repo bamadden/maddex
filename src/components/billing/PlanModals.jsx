@@ -122,6 +122,11 @@ export function PricingModal({ onClose }) {
         <div className="text-center text-[11px] text-terminal-text-dim/50 mt-3">
           General information only — Maddex is not a financial adviser. Equity prices run on demo data until a live feed is connected.
         </div>
+        {/* Exporting or deleting your own data is not a plan feature: the
+            Apex line is the one-ZIP convenience export, not this. */}
+        <div className="text-center text-[11px] text-terminal-text-dim/50 mt-1" data-data-rights>
+          Every plan, including Core, can export or delete its personal data (Settings → Account).
+        </div>
       </div>
     </Backdrop>
   )

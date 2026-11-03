@@ -118,7 +118,7 @@ export const PLAN_CARDS = {
     lead: 'Everything in Prime, plus:',
     features: [
       ['Unlimited price alerts', true], ['MaddenAI (unlimited)', true], ['Research notes (unlimited)', true],
-      ['API access (beta, demo data)', true], ['Export all data', true],
+      ['API access (beta, demo data)', true], ['Export everything as one ZIP (research notes as PDF)', true],
     ],
   },
 }

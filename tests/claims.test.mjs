@@ -61,3 +61,12 @@ test('no "real-time" or "live" promise beside equity figures while equities are 
   assert.doesNotMatch(pf, /real-time P&amp;L|real-time P&L|live P&amp;L|live P&L/i)
   assert.match(pf, /at demo equity prices \(labelled DEMO\) until a licensed ASX feed is connected/)
 })
+
+test('the comparison does not sell data export or deletion as a plan feature (audit 11 #2)', async () => {
+  const { PLAN_CARDS } = await import('../src/services/plans.js')
+  const lines = Object.values(PLAN_CARDS).flatMap((c) => c.features.map(([l]) => l))
+  assert.ok(!lines.some((l) => /^export all data$/i.test(l)), 'ambiguous "Export all data" line')
+  assert.ok(lines.some((l) => /one ZIP/.test(l)), 'the Apex line names the ZIP export')
+  const modal = fs.readFileSync('src/components/billing/PlanModals.jsx', 'utf8')
+  assert.match(modal, /Every plan, including Core, can export or delete its personal data/)
+})
