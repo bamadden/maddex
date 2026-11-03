@@ -1,0 +1,122 @@
+{
+ "recordedWith": "@supabase/supabase-js 2.110.2",
+ "signedOut": {
+  "select": [
+   {
+    "url": "https://test.invalid/rest/v1/profiles?select=id%2Cplan&id=eq.u-1",
+    "method": "GET",
+    "body": null,
+    "headers": {
+     "accept-profile": "public",
+     "apikey": "test-anon-key",
+     "authorization": "Bearer test-anon-key"
+    }
+   }
+  ],
+  "insert": [
+   {
+    "url": "https://test.invalid/rest/v1/watchlist",
+    "method": "POST",
+    "body": "{\"user_id\":\"u-1\",\"symbol\":\"CBA\"}",
+    "headers": {
+     "apikey": "test-anon-key",
+     "authorization": "Bearer test-anon-key",
+     "content-profile": "public",
+     "content-type": "application/json"
+    }
+   }
+  ],
+  "delete": [
+   {
+    "url": "https://test.invalid/rest/v1/price_alerts?user_id=eq.u-1",
+    "method": "DELETE",
+    "body": null,
+    "headers": {
+     "apikey": "test-anon-key",
+     "authorization": "Bearer test-anon-key",
+     "content-profile": "public",
+     "content-type": "application/json"
+    }
+   }
+  ],
+  "rpc": [
+   {
+    "url": "https://test.invalid/rest/v1/rpc/get_shared_link",
+    "method": "POST",
+    "body": "{\"p_id\":\"abc\",\"p_kind\":\"watchlist\"}",
+    "headers": {
+     "apikey": "test-anon-key",
+     "authorization": "Bearer test-anon-key",
+     "content-profile": "public",
+     "content-type": "application/json"
+    }
+   }
+  ]
+ },
+ "signedIn": {
+  "select": [
+   {
+    "url": "https://test.invalid/rest/v1/profiles?select=id%2Cplan&id=eq.u-1",
+    "method": "GET",
+    "body": null,
+    "headers": {
+     "accept-profile": "public",
+     "apikey": "test-anon-key",
+     "authorization": "Bearer user-token-123"
+    }
+   }
+  ],
+  "insert": [
+   {
+    "url": "https://test.invalid/rest/v1/watchlist",
+    "method": "POST",
+    "body": "{\"user_id\":\"u-1\",\"symbol\":\"CBA\"}",
+    "headers": {
+     "apikey": "test-anon-key",
+     "authorization": "Bearer user-token-123",
+     "content-profile": "public",
+     "content-type": "application/json"
+    }
+   }
+  ],
+  "delete": [
+   {
+    "url": "https://test.invalid/rest/v1/price_alerts?user_id=eq.u-1",
+    "method": "DELETE",
+    "body": null,
+    "headers": {
+     "apikey": "test-anon-key",
+     "authorization": "Bearer user-token-123",
+     "content-profile": "public",
+     "content-type": "application/json"
+    }
+   }
+  ],
+  "rpc": [
+   {
+    "url": "https://test.invalid/rest/v1/rpc/get_shared_link",
+    "method": "POST",
+    "body": "{\"p_id\":\"abc\",\"p_kind\":\"watchlist\"}",
+    "headers": {
+     "apikey": "test-anon-key",
+     "authorization": "Bearer user-token-123",
+     "content-profile": "public",
+     "content-type": "application/json"
+    }
+   }
+  ]
+ },
+ "signIn": [
+  {
+   "url": "https://test.invalid/auth/v1/token?grant_type=password",
+   "method": "POST",
+   "body": "{\"email\":\"test@example.invalid\",\"password\":\"not-a-real-password\",\"gotrue_meta_security\":{}}",
+   "headers": {
+    "apikey": "test-anon-key",
+    "authorization": "Bearer test-anon-key",
+    "content-type": "application/json;charset=UTF-8",
+    "x-supabase-api-version": "2024-01-01"
+   }
+  }
+ ]
+}
