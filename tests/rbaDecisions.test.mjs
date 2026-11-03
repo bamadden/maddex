@@ -56,3 +56,20 @@ test('the table reads the published list, with a source link and the announcemen
   assert.match(table, />ANNOUNCED</)
   assert.doesNotMatch(table, /RBA_RATE_HISTORY|rows\[0\]\.rate/)
 })
+
+test('Nov 2023 was a hike, 25bp to 4.35% (mr-23-30), everywhere it is recorded', async () => {
+  const nov = RBA_DECISIONS.find((d) => d.announced === '2023-11-07')
+  assert.deepEqual(nov, { announced: '2023-11-07', effective: '2023-11-08', rate: 4.35, changeBp: 25, mr: 'mr-23-30' })
+  assert.equal(decisionOf(nov), 'hike')
+  const { RBA_RATE_HISTORY } = await import('../src/data/placeholders.js')
+  const path = RBA_RATE_HISTORY.find((r) => r.date === '2023-11-08')
+  assert.equal(path.decision, 'HIKE')
+  assert.equal(path.announced, '2023-11-07')
+  // Every point on the cash-rate path that the published record covers
+  // carries the published rate on the published effective date.
+  for (const r of RBA_RATE_HISTORY.filter((p) => p.date >= '2023-11-08')) {
+    const rec = RBA_DECISIONS.find((d) => d.effective === r.date)
+    assert.ok(rec, `path point ${r.date} is not an RBA effective date`)
+    assert.equal(r.rate, rec.rate, r.date)
+  }
+})

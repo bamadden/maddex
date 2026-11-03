@@ -209,7 +209,7 @@ export const RBA_RATE_HISTORY = [
   { date: '2023-03-08', rate: 3.60 },
   { date: '2023-05-03', rate: 3.85 },
   { date: '2023-06-07', rate: 4.10 },
-  { date: '2023-11-08', rate: 4.35 },
+  { date: '2023-11-08', rate: 4.35, announced: '2023-11-07', decision: 'HIKE', change: 25 }, // mr-23-30 (data/rbaDecisions)
   { date: '2025-02-19', rate: 4.10, announced: '2025-02-18' },
   { date: '2025-05-21', rate: 3.85, announced: '2025-05-20' },
   ...rba.decisions.map((d) => ({ date: dayAfter(d.date), rate: d.rate, decision: d.decision, change: d.change, announced: d.date })),

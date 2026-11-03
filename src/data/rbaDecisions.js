@@ -28,6 +28,20 @@ export const RBA_DECISIONS = [
   { announced: '2025-08-12', effective: '2025-08-13', rate: 3.60, changeBp: -25, mr: 'mr-25-22' },
   { announced: '2025-07-08', effective: '2025-07-09', rate: 3.85, changeBp: 0, mr: 'mr-25-17' },
   { announced: '2025-05-20', effective: '2025-05-21', rate: 3.85, changeBp: -25, mr: 'mr-25-13' },
+  { announced: '2025-04-01', effective: '2025-04-02', rate: 4.10, changeBp: 0, mr: 'mr-25-10' },
+  { announced: '2025-02-18', effective: '2025-02-19', rate: 4.10, changeBp: -25, mr: 'mr-25-03' },
+  { announced: '2024-12-10', effective: '2024-12-11', rate: 4.35, changeBp: 0, mr: 'mr-24-27' },
+  { announced: '2024-11-05', effective: '2024-11-06', rate: 4.35, changeBp: 0, mr: 'mr-24-24' },
+  { announced: '2024-09-24', effective: '2024-09-25', rate: 4.35, changeBp: 0, mr: 'mr-24-18' },
+  { announced: '2024-08-06', effective: '2024-08-07', rate: 4.35, changeBp: 0, mr: 'mr-24-15' },
+  { announced: '2024-06-18', effective: '2024-06-19', rate: 4.35, changeBp: 0, mr: 'mr-24-12' },
+  { announced: '2024-05-07', effective: '2024-05-08', rate: 4.35, changeBp: 0, mr: 'mr-24-08' },
+  { announced: '2024-03-19', effective: '2024-03-20', rate: 4.35, changeBp: 0, mr: 'mr-24-05' },
+  { announced: '2024-02-06', effective: '2024-02-07', rate: 4.35, changeBp: 0, mr: 'mr-24-01' },
+  { announced: '2023-12-05', effective: '2023-12-06', rate: 4.35, changeBp: 0, mr: 'mr-23-35' },
+  // A HIKE, 25bp to 4.35% (statement mr-23-30). The old table showed it as
+  // HOLD: it was the oldest of its ten rows and was compared with itself.
+  { announced: '2023-11-07', effective: '2023-11-08', rate: 4.35, changeBp: 25, mr: 'mr-23-30' },
 ]
 
 export const decisionOf = (d) => (d.changeBp > 0 ? 'hike' : d.changeBp < 0 ? 'cut' : 'hold')
