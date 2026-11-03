@@ -7,6 +7,7 @@ import { overdueChanges, upcomingChanges, graphContext } from '../src/data/dated
 import { PEOPLE, ALL_NODES } from '../src/data/graph/nodes.js'
 import { KEY_FACTS } from '../src/data/graph/keyFacts.js'
 import { readFileSync } from 'node:fs'
+import { excuseRow, excuseMisses, staleExceptions } from './statsExceptions.mjs'
 
 // The agencies' endpoints time out now and then; one retry for whichever
 // feeds came back empty clears most of it.
@@ -19,10 +20,11 @@ const rows = reconcile(VERIFIED_CONSTANTS, live)
 const pad = (s, n) => String(s ?? '—').padEnd(n)
 console.log(`\n${pad('FIGURE', 22)}${pad('CONSTANT', 11)}${pad('OFFICIAL', 11)}${pad('PERIOD', 26)}STATUS`)
 for (const r of rows) {
-  const mark = r.status === 'match' ? '✓ match' : r.status === 'drift' ? `⚠ DRIFT — update verifiedConstants.${r.group}` : '✕ unavailable'
+  const ex = excuseRow(r)
+  const mark = r.status === 'match' ? '✓ match' : ex ? `⏸ EXCUSED until ${ex.until} (Sydney) — ${ex.reason}` : r.status === 'drift' ? `⚠ DRIFT — update verifiedConstants.${r.group}` : '✕ unavailable'
   console.log(`${pad(r.label, 22)}${pad(r.constant, 11)}${pad(r.official, 11)}${pad(r.period, 26)}${mark}`)
 }
-const drift = rows.filter((r) => r.status === 'drift')
+const drift = rows.filter((r) => r.status === 'drift' && !excuseRow(r))
 const unavailable = rows.filter((r) => r.status !== 'match' && r.status !== 'drift').length
 const tail = unavailable ? ` ${unavailable} figure(s) could not be checked — feed unreachable, run again.` : ''
 console.log(drift.length ? `\n${drift.length} figure(s) out of date.${tail}` : unavailable === rows.length ? '\nNothing could be checked — every feed was unreachable.' : `\nAll reachable figures match the constants.${tail}`)
@@ -37,8 +39,13 @@ console.log('\nHISTORY SERIES')
 let histDrift = 0
 for (const h of hist) {
   if (h.error) { console.log(`${pad(h.label, 22)}✕ unavailable (${h.error})`); continue }
-  histDrift += h.misses.length
-  console.log(`${pad(h.label, 22)}${pad(`${h.points} pts`, 11)}${h.misses.length ? `⚠ ${h.misses.length} differ: ${h.misses.map((m) => `${m.period} ours ${m.ours} / official ${m.official ?? 'none'}`).join('; ')}` : '✓ all match'}`)
+  const { excused, failing } = excuseMisses(h.label, h.misses)
+  histDrift += failing.length
+  const parts = [
+    failing.length && `⚠ ${failing.length} differ: ${failing.map((m) => `${m.period} ours ${m.ours} / official ${m.official ?? 'none'}`).join('; ')}`,
+    excused.length && `⏸ ${excused.length} excused until ${excused[0].until} (Sydney): ${excused.map((m) => `${m.period} — ${m.reason}`).join('; ')}`,
+  ].filter(Boolean)
+  console.log(`${pad(h.label, 22)}${pad(`${h.points} pts`, 11)}${parts.length ? parts.join(' · ') : '✓ all match'}`)
 }
 // Known dated changes (src/data/datedChanges.js): warn when one has taken
 // effect and the terminal still shows the old value. A warning, not a
@@ -54,5 +61,8 @@ for (const c of overdue) {
 const next = upcomingChanges().slice(0, 3)
 if (!overdue.length) console.log('✓ none overdue')
 if (next.length) console.log(`  next: ${next.map((c) => `${c.what} (${c.effective.slice(0, 10)})`).join('; ')}`)
+
+// Exceptions that have expired or are no longer needed: delete them.
+for (const e of staleExceptions({ rows, hist })) console.log(`\nℹ remove the stats exception for ${e.label}${e.period ? ` ${e.period}` : ''} (until ${e.until}): ${e.until <= new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) ? 'expired — the drift now fails' : 'no longer needed'}`)
 
 process.exit(drift.length || histDrift ? 1 : 0)
