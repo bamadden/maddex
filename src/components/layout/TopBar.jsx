@@ -303,7 +303,7 @@ function DataFreshnessBadge({ interactive = true }) {
     <Tooltip content={`Refreshed ${refreshedLabel}\n${due ? 'Refresh due' : `Auto-refresh in ${remaining}s`}\nClick to refresh now`}>
     <button
       onClick={handleClick}
-      aria-label="Refresh live data"
+      aria-label="Refresh all data"
       className="flex items-center justify-center w-3.5 h-7 flex-shrink-0 group"
     >
       {dot}

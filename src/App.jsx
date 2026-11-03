@@ -272,7 +272,7 @@ const SHORTCUT_GROUPS = [
       { keys: ['?'], desc: 'Show this shortcut reference' },
       { keys: ['Esc'], desc: 'Close modal / panel / shortcuts' },
       { keys: ['A'], desc: 'Toggle the AI panel' },
-      { keys: ['R'], desc: 'Refresh all live data' },
+      { keys: ['R'], desc: 'Refresh all data' },
       { keys: ['Space'], desc: 'Pause / resume the ticker tape' },
     ],
   },
@@ -291,7 +291,7 @@ const SHORTCUT_GROUPS = [
       { keys: ['⌘', 'F'], desc: 'Focus the command bar (alt)' },
       { keys: ['⌘', 'B'], desc: 'Morning brief (works while typing)' },
       { keys: ['⌘', 'P'], desc: 'Portfolio' },
-      { keys: ['⌘', 'R'], desc: 'Refresh all live data (not a page reload)' },
+      { keys: ['⌘', 'R'], desc: 'Refresh all data (not a page reload)' },
       { keys: ['⌘', '⇧', 'R'], desc: 'Regenerate AI content' },
       { keys: ['⊡'], desc: 'Pop out into a floating window' },
       { keys: ['⤢'], desc: 'Toggle fullscreen' },
@@ -707,7 +707,7 @@ function Terminal() {
         // Loaded on use, to keep both services out of the first-paint bundle.
         else if (chord === 'cmd.refresh') {
           import('./services/refreshAll').then((m) => m.refreshAllData(queryClient)).catch(() => {})
-          addNotification('SYSTEM', '↻ Refreshing all live data')
+          addNotification('SYSTEM', '↻ Refreshing all data')
         } else if (chord === 'cmd.regenerate') {
           Promise.all([import('./services/aiContentService'), import('./services/refreshAll')])
             .then(([ai, rf]) => { ai.aiContentService.clearCache(); return rf.refreshAllData(queryClient) })

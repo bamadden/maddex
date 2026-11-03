@@ -18,7 +18,7 @@ export function ModuleLoader({ name, className = '' }) {
       {name && (
         <div className="flex items-center gap-2 mb-1">
           <span className="text-terminal-gold text-2xs font-bold tracking-[0.25em]">{name}</span>
-          <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">FETCHING LIVE DATA...</span>
+          <span className="text-terminal-text-dim text-2xs tracking-widest animate-pulse">LOADING DATA…</span>
         </div>
       )}
       <div className="skeleton h-6 w-1/3" />

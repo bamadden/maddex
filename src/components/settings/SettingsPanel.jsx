@@ -2491,7 +2491,7 @@ function DataSourcesSection() {
         <button
           onClick={refreshLive}
           className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-        >REFRESH ALL LIVE DATA</button>
+        >REFRESH ALL DATA</button>
         <span className="text-2xs text-terminal-text-dim self-center">
           Clears the local cache and reloads. AI content regenerates on its own daily schedule.
         </span>

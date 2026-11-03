@@ -70,3 +70,10 @@ test('the comparison does not sell data export or deletion as a plan feature (au
   const modal = fs.readFileSync('src/components/billing/PlanModals.jsx', 'utf8')
   assert.match(modal, /Every plan, including Core, can export or delete its personal data/)
 })
+
+test('refresh and loading controls do not call mixed data "live" (audit 11 #5)', () => {
+  // A refresh reloads demo equities, delayed FX and live crypto alike.
+  for (const f of ['src/App.jsx', 'src/components/ui/ModuleStates.jsx', 'src/components/settings/SettingsPanel.jsx', 'src/components/layout/TopBar.jsx', 'src/services/shortcutService.js']) {
+    assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /Refresh(ing)? (all )?live data|REFRESH ALL LIVE DATA|FETCHING LIVE DATA/i, f)
+  }
+})
