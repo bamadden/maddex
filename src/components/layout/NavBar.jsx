@@ -362,7 +362,7 @@ export default function NavBar() {
         </div>
       )}
       {plan === 'prime' && (
-        <button onClick={openPricing} title="Apex: unlimited MaddenAI, unlimited alerts, API access"
+        <button onClick={openPricing} title="Apex: unlimited MaddenAI, unlimited alerts"
           className={`flex-shrink-0 nav-row ${ROW} ${GAP} ${iconPad} pr-3 text-terminal-text-dim/70 hover:text-terminal-gold`}
           style={{ borderTop: '1px solid rgba(201,168,76,0.06)' }}>
           <span className="flex-shrink-0" style={{ width: 18, textAlign: 'center', fontSize: 12 }} aria-hidden="true">✦</span>

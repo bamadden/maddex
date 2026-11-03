@@ -11,12 +11,9 @@ import { getSidebarWidth, setSidebarWidth, onSidebarWidthChange } from '../../se
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { getQuietHours, setQuietHours } from '../../services/notificationPolicy'
 import { useLayoutMode, LAYOUT_MODES } from '../../hooks/useLayoutMode'
-import UpgradePrompt from '../ui/UpgradePrompt'
 import Tooltip from '../ui/Tooltip'
 import { RELEASES } from '../../data/releaseNotes'
 import { getInitials, getTimezoneFromCountry } from '../../lib/profileUtils'
-import { generateAPIKey } from '../../utils/apiKey'
-import APIDocsModal from './APIDocsModal'
 import { shortcutService, DEFAULT_SHORTCUTS, ACTION_LABELS } from '../../services/shortcutService'
 import { displayService } from '../../services/displayService'
 import { workspaceService } from '../../services/workspaceService'
@@ -50,7 +47,7 @@ import DataHealthPanel from './DataHealthPanel'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
-const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'API ACCESS', 'ABOUT']
+const SECTIONS = ['PROFILE', 'INVESTOR PROFILE', 'PREFERENCES', 'DISPLAY', 'SHORTCUTS', 'WORKSPACES', 'DATA & REFRESH', 'DATA SOURCES', 'NOTIFICATIONS', 'ALERTS', 'MADDENAI', 'SECURITY', 'DATA', 'PLAN & BILLING', 'ABOUT']
 // Older callers still ask for 'SUBSCRIPTION'.
 const SECTION_ALIASES = { SUBSCRIPTION: 'PLAN & BILLING' }
 
@@ -2103,108 +2100,13 @@ function PlanBillingSection() {
   )
 }
 
-// ─── API Access (Apex only) ────────────────────────────────────────────────────
+// ─── API Access: removed 3 Nov 2026 ──────────────────────────────────────────
+// Settings offered Apex subscribers an API key and docs for a "Terminal API".
+// No working API stood behind it: the documented URL (maddex-app.vercel.app)
+// returned 404, the docs site did not resolve, and the endpoint accepted any
+// key of the right shape without checking it against an account, serving
+// demo data. Not offered until it is real (docs/CLAIMS_REGISTER.md P4).
 
-const API_BASE_URL = 'https://maddex-app.vercel.app/api/terminal-api'
-
-function ApiUsageExample({ label, url }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <div className="space-y-1">
-      <div className="text-2xs text-terminal-text-dim">{label}</div>
-      <div className="flex items-center gap-2">
-        <code className="text-2xs text-terminal-text-bright bg-terminal-bg px-2 py-1.5 flex-1 overflow-x-auto whitespace-nowrap">{url}</code>
-        <button
-          onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-          className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors flex-shrink-0"
-        >{copied ? 'COPIED ✓' : 'COPY'}</button>
-      </div>
-    </div>
-  )
-}
-
-function ApiAccessSection() {
-  const { isApex, tier } = useSubscription()
-  const { profile, updateProfile } = useAuthStore()
-  const [keyVisible, setKeyVisible] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [docsOpen, setDocsOpen] = useState(false)
-  const apiKey = profile?.api_key
-
-  const handleGenerate = async () => {
-    setGenerating(true)
-    try {
-      await updateProfile({ api_key: generateAPIKey() })
-      setKeyVisible(true)
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  return (
-    <div className="space-y-5 relative" style={{ minHeight: 220 }}>
-      <SectionLabel>API Access</SectionLabel>
-      {isApex ? (
-        <div className="space-y-4">
-          <div className="border border-terminal-border p-4 space-y-3">
-            <div className="text-xs font-bold text-terminal-text-bright tracking-widest">TERMINAL API ACCESS</div>
-            <div className="text-2xs text-terminal-text-dim leading-relaxed">
-              Query Maddex market data programmatically from your own tools — quotes, history, indices, and sentiment.
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-2xs text-terminal-text-dim">Your API key</div>
-              {apiKey ? (
-                <div className="flex items-center gap-2">
-                  <code className="text-2xs text-terminal-text-bright bg-terminal-bg px-2 py-1.5 flex-1 font-mono">
-                    {keyVisible ? apiKey : `mdx_${'•'.repeat(32)}`}
-                  </code>
-                  <button
-                    onClick={() => setKeyVisible((v) => !v)}
-                    className="text-2xs text-terminal-text-dim border border-terminal-border px-2 py-1.5 hover:text-terminal-gold hover:border-terminal-gold transition-colors flex-shrink-0"
-                  >{keyVisible ? 'HIDE' : 'SHOW KEY'}</button>
-                  <button
-                    onClick={handleGenerate}
-                    disabled={generating}
-                    className="text-2xs text-terminal-red border border-terminal-red/40 px-2 py-1.5 hover:bg-terminal-red hover:text-terminal-bg transition-colors flex-shrink-0 disabled:opacity-40"
-                  >REGENERATE</button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
-                >{generating ? 'GENERATING...' : 'GENERATE API KEY'}</button>
-              )}
-            </div>
-
-            <div className="text-2xs text-terminal-text-dim">
-              Endpoint: <code className="text-terminal-gold">{API_BASE_URL}</code>
-            </div>
-          </div>
-
-          {apiKey && (
-            <div className="border border-terminal-border p-4 space-y-3">
-              <div className="text-2xs text-terminal-gold font-bold tracking-widest">USAGE EXAMPLES</div>
-              <ApiUsageExample label="Single quote" url={`GET ${API_BASE_URL}?endpoint=quote&symbol=BHP.AX`} />
-              <ApiUsageExample label="Batch quotes" url={`GET ${API_BASE_URL}?endpoint=batch&symbols=BHP.AX,CBA.AX,AAPL`} />
-              <div className="text-2xs text-terminal-text-dim/70">Pass your key as the <code className="text-terminal-gold">x-maddex-api-key</code> header on every request.</div>
-            </div>
-          )}
-
-          <button
-            onClick={() => setDocsOpen(true)}
-            className="text-2xs text-terminal-text border border-terminal-border px-3 py-1.5 hover:border-terminal-gold hover:text-terminal-gold transition-colors"
-          >VIEW FULL API DOCS →</button>
-
-          {docsOpen && <APIDocsModal onClose={() => setDocsOpen(false)} />}
-        </div>
-      ) : (
-        <UpgradePrompt feature="API Access" requiredTier="apex" currentTier={tier} />
-      )}
-    </div>
-  )
-}
 
 // ─── ABOUT ────────────────────────────────────────────────────────────────────
 
@@ -2789,7 +2691,6 @@ export default function SettingsPanel({ onClose, initialSection }) {
             />
           )}
           {active === 'PLAN & BILLING' && <PlanBillingSection />}
-          {active === 'API ACCESS'    && <ApiAccessSection />}
           {active === 'ABOUT'         && <AboutSection />}
         </div>
       </div>

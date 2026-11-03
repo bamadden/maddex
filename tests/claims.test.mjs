@@ -23,8 +23,7 @@ test('FX is labelled daily, never live', () => {
 })
 
 test('no unsupported plan features', () => {
-  assert.doesNotMatch(planText, /Priority support|Early access/)
-  assert.match(planText, /API access \(beta, demo data\)/)
+  assert.doesNotMatch(planText, /Priority support|Early access|API access/)
 })
 
 test('plan copy matches the limits', () => {
@@ -93,4 +92,15 @@ test('email alerts are not offered while no sender works (Phase 3)', async () =>
   assert.equal(email?.[1], 'soon', 'shown as planned, not included')
   const copy = [fs.readFileSync('src/services/plans.js', 'utf8'), fs.readFileSync('src/components/ui/TrialNudges.jsx', 'utf8')].join('\n')
   assert.doesNotMatch(copy, /by email when it crosses|by email if you turn it on/)
+})
+
+test('API access is offered nowhere: no working API stands behind it (Phase 3)', async () => {
+  const { PLAN_CARDS, GATES } = await import('../src/services/plans.js')
+  const lines = Object.values(PLAN_CARDS).flatMap((c) => c.features.map(([l]) => l))
+  assert.ok(!lines.some((l) => /\bAPI\b/i.test(l)), 'no plan lists API access')
+  assert.ok(!('apiAccess' in GATES))
+  const settings = fs.readFileSync('src/components/settings/SettingsPanel.jsx', 'utf8')
+  assert.doesNotMatch(settings, /'API ACCESS'|ApiAccessSection|GENERATE API KEY|APIDocsModal/)
+  assert.doesNotMatch(fs.readFileSync('src/components/layout/NavBar.jsx', 'utf8'), /API access/)
+  assert.ok(!fs.existsSync('src/components/settings/APIDocsModal.jsx'))
 })

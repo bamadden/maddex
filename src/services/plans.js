@@ -49,7 +49,6 @@ export const GATES = {
   futures:           ['prime', 'apex'],
   researchNotes:     ['prime', 'apex'],
   unlimitedMaddenAI: ['apex'],
-  apiAccess:         ['apex'],
   shareWatchlist:    ['apex'],
   sharePortfolio:    ['apex'],
   exportAll:         ['apex'],
@@ -78,7 +77,6 @@ export const FEATURE_COPY = {
   researchNotes:     { name: 'Research notes', why: 'MaddenAI writes a structured research note on any stock, and you keep your own notes alongside.' },
   unlimitedMaddenAI: { name: 'Unlimited MaddenAI', why: 'Ask as many questions as you like, every day — no daily cap on your analyst.' },
   moreMaddenAI:      { name: 'More MaddenAI', why: 'Prime gives you 50 MaddenAI questions a day, plus portfolio tracking, alerts and the scanner.' },
-  apiAccess:         { name: 'API access (beta)', why: 'Programmatic access to the terminal\'s data from your own tools — in beta, serving the same demo equity data as the terminal until a licensed feed is connected.' },
   shareWatchlist:    { name: 'Watchlist sharing', why: 'Send anyone a read-only link to your watchlist — tickers, prices and moves, never your alerts, notes or targets.' },
   sharePortfolio:    { name: 'Portfolio snapshot sharing', why: 'Share how your portfolio is allocated and performing in percentages — no dollar amounts, no holdings.' },
   exportAll:         { name: 'Export everything', why: 'One ZIP with your portfolio, transactions, watchlist, alerts, research notes as PDFs and settings.' },
@@ -110,7 +108,7 @@ export const PLAN_CARDS = {
       ['Full watchlist (unlimited)', true], ['Portfolio tracking', true], ['Price alerts (10 active)', true],
       ['Scanner + Screener', true], ['Global intel map', true], ['Bonds, ETFs, Futures modules', true],
       ['MaddenAI (50 queries/day)', true], ['Morning brief (daily)', true], ['Email alerts', 'soon'],
-      ['Research notes (5/month)', true], ['API access (beta, demo data)', false],
+      ['Research notes (5/month)', true],
     ],
   },
   apex: {
@@ -118,7 +116,7 @@ export const PLAN_CARDS = {
     lead: 'Everything in Prime, plus:',
     features: [
       ['Unlimited price alerts', true], ['MaddenAI (unlimited)', true], ['Research notes (unlimited)', true],
-      ['API access (beta, demo data)', true], ['Export everything as one ZIP (research notes as PDF)', true],
+      ['Export everything as one ZIP (research notes as PDF)', true],
     ],
   },
 }
