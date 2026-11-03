@@ -352,11 +352,18 @@ function YieldTooltip({ active, payload, label }) {
 function RbaRateComparisonBar() {
   // Reads the same verified figures the CPI and yield-curve panels show, so
   // the bar cannot drift from them.
+  // Each figure says what it is, for when, and where from. The CPI here is
+  // the ABS MONTHLY CPI, annual change to one month (4.3% to Sep 2026); the
+  // Sep QUARTER headline, 3.9% y/y (index 103.64 vs 99.73), is a different
+  // measure and was printed beside it with no label to tell them apart.
   const { rba, au } = VERIFIED_CONSTANTS
   const rows = [
-    { label: 'RBA CASH RATE', value: rba.cashRate, color: PAL.gold },
-    { label: 'AU CPI YoY',    value: au.cpi,       color: PAL.blue },
-    { label: 'AU 10Y YIELD',  value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? null, color: PAL.up },
+    { label: 'RBA CASH RATE', value: rba.cashRate, color: PAL.gold,
+      note: `As at the ${formatDate(rba.lastDecision)} decision · RBA` },
+    { label: 'AU CPI · MONTHLY, ANNUAL CHANGE', value: au.cpi, color: PAL.blue,
+      note: `12 months to ${au.cpiPeriod} · ABS monthly CPI, released ${formatDate(au.cpiLastRelease)}` },
+    { label: 'AU 10Y GOVT BOND YIELD', value: YIELD_CURVES.AU.points.find(p => p.m === '10Y')?.y ?? null, color: PAL.up,
+      note: `Market close ${asAtLabel(BOND_CURVES_AS_OF.AU)}` },
   ].filter(r => r.value != null)
   const max = Math.max(...rows.map(r => r.value)) * 1.15
   const realRate = (rba.cashRate - au.cpi).toFixed(2)
@@ -370,6 +377,7 @@ function RbaRateComparisonBar() {
               <span className="text-terminal-text-dim">{r.label}</span>
               <span className="font-bold text-terminal-text-bright">{r.value.toFixed(2)}%</span>
             </div>
+            <div className="text-2xs text-terminal-text-dim/60 mb-0.5" data-figure-note>{r.note}</div>
             <div className="w-full h-1.5 bg-terminal-surface2 rounded-full overflow-hidden">
               <div className="h-full rounded-full" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
             </div>
@@ -380,6 +388,9 @@ function RbaRateComparisonBar() {
         Real cash rate (RBA − CPI): <span className={realRate >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>
           {realRate >= 0 ? '+' : ''}{realRate}%
         </span> — {realRate >= 0 ? 'positive, policy is restrictive' : 'negative, policy is still accommodative'}
+      </div>
+      <div className="mt-1 text-2xs text-terminal-text-dim/60 leading-snug" data-cpi-reconcile>
+        The {au.cpiQuarterPeriod} headline CPI rose {au.cpiQuarterYoY}% over the year (ABS, quarterly index): a different measure, the whole quarter against the same quarter a year earlier, where {au.cpi}% is {au.cpiPeriod} against a year earlier.
       </div>
     </div>
   )
