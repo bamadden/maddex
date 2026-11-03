@@ -35,6 +35,14 @@ test('newest first, no gaps: each rate is the previous rate plus the published c
 test('the decision is the published change, never inferred from the rate path', () => {
   assert.deepEqual(RBA_DECISIONS.map(decisionOf).slice(0, 10),
     ['hike', 'hike', 'hold', 'hold', 'hike', 'hike', 'hike', 'hold', 'hold', 'hold'])
+  // Each decision is the published change; the row before it is the
+  // previous decision, never the row itself (the old table compared its
+  // oldest row with itself, so Nov 2023 and later Feb 2025 read HOLD).
+  for (let i = 0; i < RBA_DECISIONS.length - 1; i++) {
+    const cut = RBA_DECISIONS[i].changeBp < 0, hike = RBA_DECISIONS[i].changeBp > 0
+    assert.equal(decisionOf(RBA_DECISIONS[i]), hike ? 'hike' : cut ? 'cut' : 'hold')
+  }
+  assert.equal(decisionOf(RBA_DECISIONS.find((d) => d.announced === '2025-02-18')), 'cut')
 })
 
 test('the newest row is the decision the hero shows (update both on decision day)', () => {
@@ -54,6 +62,8 @@ test('the table reads the published list, with a source link and the announcemen
   assert.match(table, /href=\{rbaStatementUrl\(r\.mr\)\}/)
   assert.match(table, /formatDate\(r\.announced\)/)
   assert.match(table, />ANNOUNCED</)
+  assert.match(table, />EFFECTIVE</)
+  assert.match(table, /formatDate\(r\.effective\)/)
   assert.doesNotMatch(table, /RBA_RATE_HISTORY|rows\[0\]\.rate/)
 })
 

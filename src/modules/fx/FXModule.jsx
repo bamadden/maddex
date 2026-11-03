@@ -410,6 +410,7 @@ function RbaDecisionHistory() {
         <thead>
           <tr>
             <th className="px-1 text-left">ANNOUNCED</th>
+            <th className="px-1 text-left">EFFECTIVE</th>
             <th className="px-1 text-right">RATE</th>
             <th className="px-1 text-center">DECISION</th>
             <th className="px-1 text-right">SOURCE</th>
@@ -418,7 +419,8 @@ function RbaDecisionHistory() {
         <tbody>
           {last10.map(r => (
             <tr key={r.announced}>
-              <td className="px-1 py-0.5 text-2xs text-terminal-text-dim">{formatDate(r.announced)}</td>
+              <td className="px-1 py-0.5 text-2xs text-terminal-text-dim" data-announced={r.announced}>{formatDate(r.announced)}</td>
+              <td className="px-1 py-0.5 text-2xs text-terminal-text-dim/70">{formatDate(r.effective)}</td>
               <td className="px-1 py-0.5 text-2xs text-right font-semibold text-terminal-text-bright">{r.rate.toFixed(2)}%</td>
               <td className="px-1 py-0.5 text-center"><RateBadge dir={decisionOf(r)} /></td>
               <td className="px-1 py-0.5 text-2xs text-right">
@@ -429,7 +431,7 @@ function RbaDecisionHistory() {
         </tbody>
       </table>
       <div className="mt-1.5 text-2xs text-terminal-text-dim/70 leading-snug">
-        Date of each RBA statement; the rate takes effect the next day. Rates and changes from the RBA&apos;s cash rate target table, checked {formatDate(RBA_DECISIONS_CHECKED)}.
+        Announced: the date of each RBA statement. Effective: the date the RBA&apos;s cash rate table records it, the next day. Rates and changes from the RBA&apos;s cash rate target table, checked {formatDate(RBA_DECISIONS_CHECKED)}.
       </div>
     </div>
   )
