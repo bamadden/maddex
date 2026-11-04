@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DISCLAIMER_POINTS, NOT_LICENSED } from '../../services/disclosures'
+import { DISCLAIMER_POINTS, DISCLAIMER_SHORT, NOT_LICENSED } from '../../services/disclosures'
 import { LEGAL_STATUS } from '../../data/legalVersions'
 
 // The first-use acknowledgement and the terms acceptance (services/
@@ -71,15 +71,14 @@ export function TermsAcceptance({ onAccept, onSignOut }) {
 }
 
 // The persistent footer: every point of the disclaimer, on every screen.
-// One line on desktop (full text in the tooltip if it is cut); a short form
-// on phones, linking to the full Disclaimer.
+// The short form, never cut off: one line on a laptop, wrapping on a phone;
+// the full sentences in the tooltip and on the Disclaimer page.
 export function LegalFooter() {
   const full = DISCLAIMER_POINTS.join(' · ')
   return (
     <div data-legal-footer role="contentinfo" title={full}
-      className="flex-shrink-0 flex items-center gap-3 px-3 border-t border-terminal-border bg-terminal-bg text-terminal-text-dim font-mono" style={{ fontSize: 11, minHeight: 20 }}>
-      <span className="truncate hidden md:inline">{full}</span>
-      <span className="truncate md:hidden">General information only — not financial advice. AI can make mistakes.</span>
+      className="flex-shrink-0 flex items-center gap-3 px-3 py-0.5 border-t border-terminal-border bg-terminal-bg text-terminal-text-dim font-mono" style={{ fontSize: 11, minHeight: 20 }}>
+      <span data-legal-footer-text className="min-w-0 leading-snug">{DISCLAIMER_SHORT.join(' · ')}</span>
       <span className="ml-auto flex-shrink-0 flex gap-3">
         <a href="/disclaimer" target="_blank" rel="noopener noreferrer" className="hover:text-terminal-gold">Disclaimer</a>
         <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-terminal-gold hidden sm:inline">Terms</a>

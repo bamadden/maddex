@@ -19,6 +19,15 @@ export const DISCLAIMER_POINTS = [
 
 export const STANDARD_DISCLAIMER = DISCLAIMER_POINTS.join(' ')
 
+// The same four points, short enough that the footer shows all of them on
+// every screen (the full sentences cut off after the second on a laptop).
+export const DISCLAIMER_SHORT = [
+  'General information only',
+  'Not personal advice',
+  'Past performance is not a reliable indicator of future performance',
+  'AI can make mistakes',
+]
+
 export const NOT_LICENSED = 'Maddex does not hold an Australian Financial Services Licence and does not provide personal financial advice.'
 
 export const AI_ASSISTED = 'Prepared with the assistance of AI (MaddenAI) from the data shown; reviewed by no person unless stated.'

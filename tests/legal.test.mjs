@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { hasAcknowledged, recordAcknowledgement, acceptanceRecord, termsAccepted } from '../src/services/legalConsent.js'
-import { DISCLAIMER_VERSION, DISCLAIMER_POINTS } from '../src/services/disclosures.js'
+import { DISCLAIMER_VERSION, DISCLAIMER_POINTS, DISCLAIMER_SHORT } from '../src/services/disclosures.js'
 import { TERMS_VERSION, PRIVACY_VERSION, LEGAL_STATUS } from '../src/data/legalVersions.js'
 
 const read = (f) => fs.readFileSync(f, 'utf8')
@@ -13,6 +13,14 @@ const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? nu
 test('the disclaimer says every required thing', () => {
   const all = DISCLAIMER_POINTS.join(' ')
   for (const re of [/General information only/, /not financial advice/, /objectives, financial situation or needs/, /Past performance is not a reliable indicator/, /AI can make mistakes/, /Verify/]) assert.match(all, re)
+})
+
+test('the footer shows all four points in short form, never cut off', () => {
+  const short = DISCLAIMER_SHORT.join(' · ')
+  for (const re of [/General information only/, /Not personal advice/, /Past performance is not a reliable indicator of future performance/, /AI can make mistakes/]) assert.match(short, re)
+  const f = read('src/components/legal/LegalNotices.jsx')
+  assert.match(f, /<span data-legal-footer-text className="min-w-0 leading-snug">\{DISCLAIMER_SHORT\.join\(' · '\)\}<\/span>/)
+  assert.doesNotMatch(f.slice(f.indexOf('export function LegalFooter')), /truncate (hidden )?md:/)
 })
 
 test('first-use acknowledgement: once per device and version, also kept on the account', async () => {

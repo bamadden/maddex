@@ -382,9 +382,20 @@ try {
   if (/not financial advice/i.test(ackText) && /objectives, financial situation or needs/i.test(ackText) && /AI can make mistakes/i.test(ackText) && !/WELCOME TO MADDEX/.test(await dialogText().catch(() => ''))) pass('first visit: the disclaimer acknowledgement comes first')
   else fail('first visit: no disclaimer acknowledgement before the welcome')
   await ob.evaluate(() => [...document.querySelectorAll('[data-legal-ack] button')].find((b) => /I UNDERSTAND/.test(b.textContent))?.click())
-  const footer = await ob.evaluate(() => document.querySelector('[data-legal-footer]')?.getAttribute('title') ?? '')
-  if (/Past performance is not a reliable indicator/.test(footer)) pass('the disclaimer footer is on screen')
-  else fail('no disclaimer footer')
+  // All four points visible, none cut off, at this width and at phone width.
+  const footerShows = () => ob.evaluate(() => {
+    const t = document.querySelector('[data-legal-footer-text]')
+    if (!t) return ''
+    return t.scrollWidth <= t.clientWidth + 1 && t.getBoundingClientRect().height > 0 ? t.innerText : 'CUT OFF'
+  })
+  const allFour = (s) => /General information only/.test(s) && /Not personal advice/.test(s) && /Past performance is not a reliable indicator/.test(s) && /AI can make mistakes/.test(s)
+  const vp = ob.viewport()
+  const wide = await footerShows()
+  await ob.setViewport({ ...vp, width: 390 }); await wait(300)
+  const phone = await footerShows()
+  await ob.setViewport(vp); await wait(300)
+  if (allFour(wide) && allFour(phone)) pass('the disclaimer footer shows all four points, uncut, on desktop and phone')
+  else fail(`disclaimer footer incomplete: desktop "${wide}" · phone "${phone}"`)
   await ob.waitForFunction(() => /WELCOME TO MADDEX/.test(document.body.innerText), { timeout: 60_000 }).catch(() => {})
   if (/WELCOME TO MADDEX/.test(await dialogText())) pass('first visit: welcome shows')
   else fail('first visit: no welcome')
