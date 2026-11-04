@@ -82,7 +82,15 @@ export default function ContextualTip({ moduleId, suppressed = false }) {
     return () => { clearInterval(id); window.removeEventListener('resize', measure) }
   }, [visible, tip])
 
-  useEffect(() => { if (visible) cardRef.current?.querySelector('button')?.focus({ preventScroll: true }) }, [visible])
+  // The tip takes focus so a keyboard user can dismiss it, unless the person
+  // is typing (the command bar keeps focus after F1–F8 or a command): the
+  // tip used to land mid-word and swallow the rest of what they typed.
+  useEffect(() => {
+    if (!visible) return
+    const el = document.activeElement
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+    cardRef.current?.querySelector('button')?.focus({ preventScroll: true })
+  }, [visible])
 
   if (!tip || !eligible || !visible || suppressed) return null
 

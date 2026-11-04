@@ -6,6 +6,9 @@ import { ASX_SECTOR_STOCKS } from '../../data/sectorTaxonomy'
 import { BOND_MARKETS, BOND_CURVES } from '../../data/bondCurves'
 import { compound } from '../../modules/calculators/calcMath'
 
+// F1–F8 → module, as NavBar labels them (CommandBar binds the keys).
+export const FKEY_MODULE = { F1: 'markets', F2: 'portfolio', F3: 'crypto', F4: 'fx', F5: 'macro', F6: 'watchlist', F7: 'news', F8: 'global' }
+
 // ─── Symbol catalogue ───────────────────────────────────────────────────────
 // `aka` carries the names people actually type that are not in the
 // description — "commbank", "csl behring". Everything else is matched from the

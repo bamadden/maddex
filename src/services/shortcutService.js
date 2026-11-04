@@ -3,7 +3,7 @@
 // modifier combo) plus a `display` label shown in the Settings UI.
 //
 // DEFAULT_SHORTCUTS mirrors the terminal's REAL existing bindings (the
-// single-letter nav scheme + ⌘K/⌘F/? etc. already wired in App.jsx's
+// single-letter nav scheme + ⌘K/? etc. already wired in App.jsx's
 // keydown handler) rather than inventing a parallel ⌘1-9 scheme, so the
 // Settings customiser shows shortcuts that actually work. App.jsx's global
 // handler consults `shortcutService.shortcuts` for the entries below so a

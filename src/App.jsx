@@ -726,14 +726,6 @@ function Terminal() {
         return
       }
 
-      // Cmd/Ctrl+K and Cmd/Ctrl+F are both Mac-familiar aliases for focusing
-      // the command bar — same target as plain "/". Fixed, not customisable.
-      if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'f')) {
-        e.preventDefault()
-        focusCommandBar()
-        return
-      }
-
       // Workspace + AI PiP shortcuts (⌘⇧1-4 switch, ⌘⇧N new, ⌘⇧A toggle PiP)
       // — modifier-based, so checked ahead of the no-modifier block below.
       const wsAction = ['ws.1', 'ws.2', 'ws.3', 'ws.4', 'ws.new', 'ui.ai-pip']

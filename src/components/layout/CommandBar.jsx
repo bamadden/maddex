@@ -14,7 +14,7 @@ import { shortcutService } from '../../services/shortcutService'
 import { setModuleIntent, sendModuleIntent } from '../../services/moduleIntent'
 import {
   resolveAsset, searchCatalogue, parseSectorQuery, calcMatches, parseCompound,
-  parseBondQuery, timeSuggestions, sydneyClock,
+  parseBondQuery, timeSuggestions, sydneyClock, FKEY_MODULE,
 } from './commandSearch'
 
 import { PAL } from '../../styles/palette.js'
@@ -1110,18 +1110,24 @@ export default function CommandBar() {
     return () => { cancelled = true }
   }, [suggestions, debouncedValue, audUsd])
 
-  // ── Global keyboard focus ────────────────────────────────────────────────────
+  // ── Module function keys ────────────────────────────────────────────────────
+  // F1–F8 switch module (NavBar shows each key). They used to fire on every
+  // keydown without preventDefault, so F5 also reloaded the page and F1
+  // opened the browser's help, and they fired while typing in a form. Now:
+  // not while typing in another field (the bar itself is fine), not with a
+  // modifier held (⌘R/Ctrl+F5 stay the browser's), and the browser default
+  // is stopped. Escape is App.jsx's: it closes what is open, then blurs the
+  // bar so single-letter shortcuts work. This handler used to focus the bar
+  // on every Escape, pulling focus out of whatever had just closed.
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') { inputRef.current?.focus(); setSuggestions([]); return }
-      if (e.key === 'F1') setActiveModule('markets')
-      if (e.key === 'F2') setActiveModule('portfolio')
-      if (e.key === 'F3') setActiveModule('crypto')
-      if (e.key === 'F4') setActiveModule('fx')
-      if (e.key === 'F5') setActiveModule('macro')
-      if (e.key === 'F6') setActiveModule('watchlist')
-      if (e.key === 'F7') setActiveModule('news')
-      if (e.key === 'F8') setActiveModule('global')
+      const module = FKEY_MODULE[e.key]
+      if (!module || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+      const el = document.activeElement
+      const typing = el && el !== inputRef.current && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
+      if (typing) return
+      e.preventDefault()
+      setActiveModule(module)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
