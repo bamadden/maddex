@@ -70,3 +70,11 @@ test('legal pages are marked draft; nothing claims an ASIC licence or approval',
     assert.doesNotMatch(s, /\b(ASIC[- ](licensed|regulated|approved|registered|authorised)|(licensed|regulated|approved|authorised) by ASIC|(?<!(not|never) )holds? an (AFSL|Australian Financial Services Licen[cs]e))\b/i, f)
   }
 })
+
+test('the Privacy Policy draft says alert emails are not currently sent (5 Nov)', async () => {
+  const docs = read('src/data/legalDocs.js')
+  assert.match(docs, /Maddex does not currently send alert emails: alerts show in the terminal only\./)
+  assert.doesNotMatch(docs, /alert emails and newsletters|send the alerts and newsletters/)
+  const { EMAIL_DELIVERY_AVAILABLE } = await import('../src/services/alertEmailService.js')
+  assert.equal(EMAIL_DELIVERY_AVAILABLE, false, 'if alert emails are switched on, change the Privacy Policy with them')
+})

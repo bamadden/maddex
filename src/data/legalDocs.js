@@ -185,7 +185,7 @@ const PRIVACY = {
     {
       heading: 'What we do with it',
       body: [
-        `We use your information to provide the terminal, authenticate you, apply your plan, send the alerts and newsletters you ask for, respond to support requests and complaints, and keep the service secure and working.`,
+        `We use your information to provide the terminal, authenticate you, apply your plan, show the alerts you set, send the newsletters you ask for, respond to support requests and complaints, and keep the service secure and working.`,
         `We do not sell your personal information, and we do not use it for advertising. Maddex uses no analytics or advertising trackers.`,
       ],
     },
@@ -195,7 +195,7 @@ const PRIVACY = {
         `Supabase — authentication and database (your account, portfolio, watchlist, alerts, notes, usage and AI reply records).`,
         `Vercel — hosting, and the server functions your requests pass through (including MaddenAI requests). Vercel keeps request logs as part of running the service.`,
         `Anthropic — the AI model, which receives MaddenAI requests as described above, under its commercial terms.`,
-        `Resend — delivers alert emails and newsletters to your email address, if you turn them on.`,
+        `Resend — delivers the newsletter to your email address, if you subscribe. Maddex does not currently send alert emails: alerts show in the terminal only.`,
         `Market, economic, news and map providers named in the terminal receive requests from your browser or our server when data is fetched. They see the request and your IP address, not your account.`,
         `Some of these providers process data outside Australia, including in the United States.`,
       ],

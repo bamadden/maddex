@@ -43,10 +43,10 @@ Also on 5 Nov: the expired stats exceptions for the 3 Nov hike were removed
 1. **Apply migrations 010 (retention) and 011 (AI records)** in Supabase, and enable pg_cron for the purge jobs. Until 011 is applied, AI replies are not recorded (the server logs that).
 2. **Set `SUPABASE_SERVICE_KEY` in Vercel** (server-only). Without it: AI records cannot be written, and Delete account removes the user's data but not their login (the user is told, and support must remove it).
 3. **Rename `VITE_EXCHANGERATE_API_KEY` to `EXCHANGERATE_API_KEY`** in Vercel and `.env` (the server reads either; the `VITE_` name is a habit that leaks keys). Rotate that key: it was compiled into earlier client bundles.
-4. ~~Confirm `RESEND_API_KEY`~~ — done another way on 3 Nov: email alerts are not offered (claims register P3). To turn them on, confirm a sender and flip `EMAIL_DELIVERY_AVAILABLE`. The Privacy Policy draft still says Resend delivers alert emails "if you turn them on": left for the lawyer pass with the rest of the text.
+4. ~~Confirm `RESEND_API_KEY`~~ — done another way on 3 Nov: email alerts are not offered (claims register P3). To turn them on, confirm a sender and flip `EMAIL_DELIVERY_AVAILABLE`. The Privacy Policy draft says alert emails are not currently sent (5 Nov, Ben's decision); change it with the switch. Its version was not bumped (the change only narrows what is shared); bump it at the lawyer pass.
 5. **Confirm migration 009 is applied** in production — the plan's AI limits are only enforced server-side once it is.
 6. ~~The Bloomberg strings in the RBA panels~~ — removed 5 Nov.
-6a. **`api/terminal-api.js` still answers** on production for any well-formed key, with demo data, though API access is offered nowhere (claims register P4). Decide whether to disable it.
+6a. ~~`api/terminal-api.js` still answers~~ — retired 5 Nov on Ben's decision: every request gets 410 Gone (claims register P4). Live once pushed.
 7. **Lawyer review** of the Terms, Privacy Policy and Disclaimer drafts, then bump the versions in `data/legalVersions.js` so every account accepts the final text.
 8. **CARTO API key by 30 Nov 2026** — CARTO's terms changed on 29 Sep 2026; keyless basemap requests may be watermarked. Needs an account, which I cannot create.
 9. **CoinGecko capacity** — the free Demo plan allows 10,000 calls a month, and calls come from readers' browsers. Put crypto behind a cached server endpoint or buy a plan before launch.
