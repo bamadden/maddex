@@ -19,16 +19,7 @@ Last reviewed: 1 Nov 2026 (legal-risk hardening, item 9).
 | Bloomberg | Central bank governor sources ("boj.or.jp (Bloomberg, …)") | The primary source (the bank's own site) is named; the press corroboration is kept in code comments only. |
 | Bloomberg | Commodity and index-close source lines | Now "from published market reports". |
 | Bloomberg | Code comment ("Bloomberg-terminal-style avatar") | Not user-facing, removed for consistency. |
-
-## Scheduled (after the RBA decision on Tue 3 Nov 2026)
-
-These strings render in the RBA decision-day card and Rates banner, which are
-held unchanged until after 3 Nov. Change on 4 Nov to "market pricing, as
-reported by ABC News (28 Oct 2026)":
-
-- `VERIFIED_CONSTANTS.rbaNextDecision.marketSource`: "Bloomberg data, as reported by ABC News"
-- `VERIFIED_CONSTANTS.rbaNextDecision.source`: "Bloomberg via abc.net.au (28 Oct); rba.gov.au"
-- `VERIFIED_CONSTANTS.rba.nextMeetingNote`: "…(Bloomberg via ABC News, 28 Oct)"
+| Bloomberg | RBA decision card: `rbaNextDecision.marketSource` and `.source` ("Bloomberg data, as reported by ABC News") | Held until after the 3 Nov decision; since 5 Nov "Market pricing, as reported by ABC News (28 Oct 2026)". `rba.nextMeetingNote` no longer names it. |
 
 Internal code comments recording where a figure was corroborated (for example
 "Bloomberg: under $90 intraday") are research notes for maintainers, not

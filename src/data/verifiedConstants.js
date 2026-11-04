@@ -754,7 +754,7 @@ export const VERIFIED_CONSTANTS = {
     hikeRate: 4.85,
     marketHikePct: 85,
     marketImpliedRate: null,
-    marketSource: 'Bloomberg data, as reported by ABC News',
+    marketSource: 'Market pricing, as reported by ABC News (28 Oct 2026)',
     marketAsOf: '2026-10-28',
     marketContext: 'Up from 60% on ASX 30-day futures on 27 Oct (rbawatch.com.au), before the September quarter CPI.',
     // A peer central bank going against its own market pricing the same week —
@@ -766,7 +766,7 @@ export const VERIFIED_CONSTANTS = {
     statementQuote: 'The Board will continue to do what it considers necessary to bring inflation sustainably back to target, including increasing the cash rate target further if needed.',
     statementSource: 'RBA media release mr-26-27, 29 Sep 2026',
     statementUrl: 'https://www.rba.gov.au/media-releases/2026/mr-26-27.html',
-    source: 'Bloomberg via abc.net.au (28 Oct); rba.gov.au',
+    source: 'Market pricing via abc.net.au (28 Oct); rba.gov.au',
     asOf: '2026-10-28',
     lastVerified: '2026-10-28',
   },
