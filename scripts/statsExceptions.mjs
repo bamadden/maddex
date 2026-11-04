@@ -3,16 +3,11 @@
 // From the expiry the drift is a failure again. Never widen one: add a new
 // entry with its own reason, and delete it once the agency has caught up
 // (the check says when it is no longer needed).
-export const STATS_EXCEPTIONS = [
-  {
-    label: 'RBA cash rate', ours: 4.85, official: 4.6, until: '2026-11-05',
-    reason: 'RBA hiked to 4.85% on 3 Nov 2026 (mr-26-30), effective 4 Nov; Table A2 had not yet recorded it',
-  },
-  {
-    label: 'RBA decisions', period: '2026-11-03', until: '2026-11-05',
-    reason: 'the 3 Nov 2026 hike (mr-26-30) is not yet a row in Table A2, which records it on its effective date',
-  },
-]
+// Empty since 5 Nov 2026: Table A2 recorded the 3 Nov hike (mr-26-30) on its
+// effective date, and both entries for it expired then.
+//   { label, ours, official, until: 'YYYY-MM-DD', reason }  — a headline row
+//   { label, period, until, reason }                          — a history row
+export const STATS_EXCEPTIONS = []
 
 const sydneyToday = (now) => new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
 const live = (e, now) => sydneyToday(now) < e.until

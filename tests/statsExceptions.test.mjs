@@ -3,7 +3,21 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { STATS_EXCEPTIONS, excuseRow, excuseMisses, staleExceptions } from '../scripts/statsExceptions.mjs'
+import { STATS_EXCEPTIONS as LIVE, excuseRow as excuseRowWith, excuseMisses as excuseMissesWith, staleExceptions as staleWith } from '../scripts/statsExceptions.mjs'
+
+// The two entries that excused the 3 Nov 2026 hike until Table A2 caught up,
+// kept here as the fixture for the mechanism.
+const STATS_EXCEPTIONS = [
+  { label: 'RBA cash rate', ours: 4.85, official: 4.6, until: '2026-11-05', reason: 'RBA hiked to 4.85% on 3 Nov 2026 (mr-26-30), effective 4 Nov; Table A2 had not yet recorded it' },
+  { label: 'RBA decisions', period: '2026-11-03', until: '2026-11-05', reason: 'the 3 Nov 2026 hike (mr-26-30) is not yet a row in Table A2, which records it on its effective date' },
+]
+const excuseRow = (r, o) => excuseRowWith(r, { exceptions: STATS_EXCEPTIONS, ...o })
+const excuseMisses = (l, m, o) => excuseMissesWith(l, m, { exceptions: STATS_EXCEPTIONS, ...o })
+const staleExceptions = (o) => staleWith({ exceptions: STATS_EXCEPTIONS, ...o })
+
+test('no exception is in force: every live entry is unexpired and says why', () => {
+  for (const e of LIVE) assert.ok(e.until > new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) && e.reason.length > 20, e.label)
+})
 
 const row = { label: 'RBA cash rate', constant: 4.85, official: 4.6, status: 'drift' }
 const before = Date.parse('2026-11-04T23:59:00+11:00')   // 4 Nov, 11:59pm AEDT
@@ -36,5 +50,4 @@ test('expired or unneeded exceptions are flagged for removal', () => {
   assert.deepEqual(staleExceptions({ rows: [row], hist, now: before }), [])
   assert.equal(staleExceptions({ rows: [row], hist, now: after }).length, STATS_EXCEPTIONS.length)
   assert.equal(staleExceptions({ rows: [{ ...row, status: 'match' }], hist: [], now: before }).length, STATS_EXCEPTIONS.length)
-  for (const e of STATS_EXCEPTIONS) assert.ok(e.until <= '2026-11-05' && e.reason.length > 20, 'every exception is short-lived and says why')
 })
