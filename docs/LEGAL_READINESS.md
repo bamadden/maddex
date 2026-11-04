@@ -19,16 +19,34 @@ for the lawyer to finalise.
 | 6 | Data sources and licences | Terms of every source read (49 of 53 found). Off in code because their terms bar our use or need a licence: DefiLlama, OpenSky, Open-Meteo, IMF, FRED (browsers), Esri tiles, FMP, Twelve Data, and 13 of 17 news publishers (on: RBA, BBC News, Yahoo Finance; ABC under review). Required credits shown beside the data (CoinGecko, alternative.me, ECB, Exchange Rate API, RBA, ABS, USGS, OpenStreetMap/CARTO) plus the RBA's free-data notice. Equity prices stay DEMO. | `docs/DATA_SOURCES.md`, `src/data/sourceLicence.js`, `src/data/credits.js`; `tests/dataSources.test.mjs` |
 | 7 | Privacy and security | Data inventory in the Privacy Policy draft; Export my data and Delete account (including the login) for every user; AI usage retention 90 days; no prompts stored; third-party keys moved server-side; a bundle scan fails the gate if a secret reaches the client; breach checklist. | `services/accountData.js`, `api/account-delete.js`, `api/metals.js`, `scripts/check-client-secrets.mjs`, `docs/DATA_BREACH_RESPONSE.md`; `tests/privacy.test.mjs` |
 | 8 | AI records | Every AI reply recorded server-side with model, prompt template version, input data date and output-check result; prompts not stored (a hash only); retained 2 years. | `api/_aiRecords.js`, migration 011; `tests/aiRecords.test.mjs` |
-| 9 | Branding | Bloomberg removed from app and marketing copy (three strings in the held RBA panels scheduled for 4 Nov); every third-party name listed with its basis. | `docs/TRADEMARKS.md`; `tests/trademarks.test.mjs` |
+| 9 | Branding | Bloomberg removed from app and marketing copy, including the last two strings in the RBA card on 5 Nov; every third-party name listed with its basis. | `docs/TRADEMARKS.md`; `tests/trademarks.test.mjs` |
+
+## Re-check against the master brief, Phase 4 (5 Nov 2026)
+
+Each brief item checked against the code; gaps fixed, one commit each, full
+gate green at each.
+
+| Brief item | Status | Change on 5 Nov |
+|---|---|---|
+| 1. AI advice boundary: prompt, output check that blocks or rewrites and logs, ≥40 adversarial prompts | Done 1 Nov: 46 attacks across 10 framings (role-play, hypothetical, "ignore your rules"…), all pass offline; each block or rewrite logged in the browser (`[ADVICE GUARD]`, kept in production builds) and in the server AI record | None |
+| 2. Every score labelled: descriptive measure, method, inputs, date, "Not a recommendation" | Gaps found and fixed | ScoreNote added to the scanner momentum score, portfolio recession rubric (was "AU risk score"), country-risk list, screener MATCH %, sector strength and macro regime. Sector strength no longer counts a fixed 50 as "volume conviction" (30%) or shows 50 for a missing quote. Removed the hand-set, undated six-month regime history and the 3D "MACRO SCORE" drawn from the hand-set gauge (`079b6e8`) |
+| 3. Newsletters and reports: disclaimer, data-as-at, AI-assisted note, human approval before send | Done 1 Nov | None |
+| 4. CLAIMS_REGISTER, DATA_SOURCES, TRADEMARKS, LEGAL_READINESS; FMP fails closed | Done 1 Nov; FMP: every request goes through one guarded function, tested with keys set | Resend row brought up to date; Bloomberg strings removed (`73c184c`) |
+| 5. Privacy: inventory and recipients, AI prompt-log retention, no client secrets, breach checklist | Done 1 Nov: inventory and recipients in the Privacy Policy draft (checked against tables, browser keys and api/); prompts are never stored (hash only), no server code logs prompt text; usage 90 days, AI replies 2 years; bundle scan in the gate | None |
+| 6. Persistent footer and first-use acknowledgement with all four points | The footer cut off after the second point on a laptop and left out past performance on a phone | Short form of all four, never cut off; browser check at 1440px and 390px (`2a40353`) |
+
+Also on 5 Nov: the expired stats exceptions for the 3 Nov hike were removed
+(`da8fa78`); Table A2 has the new rate.
 
 ## Open — needs Ben
 
 1. **Apply migrations 010 (retention) and 011 (AI records)** in Supabase, and enable pg_cron for the purge jobs. Until 011 is applied, AI replies are not recorded (the server logs that).
 2. **Set `SUPABASE_SERVICE_KEY` in Vercel** (server-only). Without it: AI records cannot be written, and Delete account removes the user's data but not their login (the user is told, and support must remove it).
 3. **Rename `VITE_EXCHANGERATE_API_KEY` to `EXCHANGERATE_API_KEY`** in Vercel and `.env` (the server reads either; the `VITE_` name is a habit that leaks keys). Rotate that key: it was compiled into earlier client bundles.
-4. **Confirm `RESEND_API_KEY` is set** in production, or remove "Email alerts" from the Prime card (claims register P3).
+4. ~~Confirm `RESEND_API_KEY`~~ — done another way on 3 Nov: email alerts are not offered (claims register P3). To turn them on, confirm a sender and flip `EMAIL_DELIVERY_AVAILABLE`. The Privacy Policy draft still says Resend delivers alert emails "if you turn them on": left for the lawyer pass with the rest of the text.
 5. **Confirm migration 009 is applied** in production — the plan's AI limits are only enforced server-side once it is.
-6. **The three Bloomberg strings in the RBA panels** (`docs/TRADEMARKS.md` → Scheduled) on 4 Nov.
+6. ~~The Bloomberg strings in the RBA panels~~ — removed 5 Nov.
+6a. **`api/terminal-api.js` still answers** on production for any well-formed key, with demo data, though API access is offered nowhere (claims register P4). Decide whether to disable it.
 7. **Lawyer review** of the Terms, Privacy Policy and Disclaimer drafts, then bump the versions in `data/legalVersions.js` so every account accepts the final text.
 8. **CARTO API key by 30 Nov 2026** — CARTO's terms changed on 29 Sep 2026; keyless basemap requests may be watermarked. Needs an account, which I cannot create.
 9. **CoinGecko capacity** — the free Demo plan allows 10,000 calls a month, and calls come from readers' browsers. Put crypto behind a cached server endpoint or buy a plan before launch.

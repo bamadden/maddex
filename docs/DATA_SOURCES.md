@@ -81,7 +81,7 @@ BBC News headlines.
 | Service | Use | Terms | Status |
 |---|---|---|---|
 | Anthropic API | MaddenAI | Commercial Terms §A.1 permit powering products for customers | ON |
-| Resend | Alert emails, newsletter | Commercial service; requires recipients' consent | ON — alerts are opt-in |
+| Resend | Alert emails, newsletter | Commercial service; requires recipients' consent | OFF in the app since 3 Nov 2026 (`EMAIL_DELIVERY_AVAILABLE` false: no sender confirmed in production). The newsletter script sends only an approved edition. |
 | Supabase, Vercel | Database/auth, hosting | Commercial services | ON |
 
 ## Before launch (also in `docs/LEGAL_READINESS.md`)
