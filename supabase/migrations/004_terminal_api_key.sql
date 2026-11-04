@@ -1,7 +1,10 @@
--- Migration 004: Terminal API key (Apex tier)
--- Safe to run multiple times
+-- Migration 004: retired (5 Nov 2026). Nothing to apply.
+--
+-- It added profiles.api_key for the Terminal API. The API is retired
+-- (api/terminal-api.js answers 410 Gone), so this file now does nothing.
+-- Production already has the column (seen 5 Nov by a read-only probe; it
+-- was missing on 27 Oct): nothing reads or writes it, and it can be dropped
+-- later (drop column api_key from public.profiles).
+-- The file stays so the numbering of later migrations is unchanged.
 
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS api_key TEXT UNIQUE;
-
-CREATE INDEX IF NOT EXISTS idx_profiles_api_key ON public.profiles (api_key) WHERE api_key IS NOT NULL;
+SELECT 1;

@@ -85,7 +85,7 @@ as cut off.
 | Ben's Apex account has everything on the live site | ⚠️ **not tested** — needs Ben signed in. Quick check: Settings → Plan & Billing shows APEX; ↻ REFRESH ALL appears in the top bar; Settings → Data shows EXPORT ALL DATA without ⊘ |
 | New sign-ups | ✅ by inspection: 7-day trial with full Apex access (auth screen says so; `handle_new_user` sets `trial`, `trial_ends_at = now + 7d`) |
 | Gates can't be bypassed | ❌ client-side only, and see security findings 1 and 2 |
-| Apex API access works | ❌ `profiles.api_key` column does not exist in production (migration 004 not applied) — GENERATE API KEY fails. `api/terminal-api.js` also accepts any well-formed key (validation is a TODO) |
+| Apex API access works | Retired 5 Nov 2026: not offered on any plan, the endpoint answers 410 Gone, migration 004 is a no-op; the unused `profiles.api_key` column is in production (seen 5 Nov) |
 
 ---
 
@@ -103,7 +103,7 @@ as cut off.
   | 001 initial schema | ✅ tables present |
   | 002 experience_level | ✅ |
   | 003 subscription_tier | ✅ |
-  | 004 terminal api_key | ❌ column missing |
+  | 004 terminal api_key | applied by 5 Nov (column present, unused); retired, no-op since 5 Nov |
   | 005 waitlist | ✅ table present (the brief listed this as pending — it isn't) |
   | 006 newsletter unique (email, source) | ⚠️ can't be seen read-only — assume pending |
   | 007 shared_links | ❌ table and `get_shared_link` missing (404) |
@@ -194,7 +194,6 @@ as cut off.
 ### After soft launch
 - Live equity data provider; then re-rate Markets/Watchlist/Portfolio/Screener/Scanner.
 - Newsletter sending platform and edition archive; maddex.com.au/newsletter.
-- Terminal API: validate keys against `profiles.api_key`, real endpoints, rate limits.
 - Upgrade the model from `claude-sonnet-4-6` to the current Sonnet after a quality/cost check.
 - Server-side MaddenAI usage accounting per plan (pairs with the proxy fix).
 - Refresh hand-entered data on its cadence: CPI tomorrow, RBA 3 Nov, bank results early Nov, ASX floats weekly, SNB/Riksbank re-verify.

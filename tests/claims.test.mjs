@@ -105,6 +105,25 @@ test('API access is offered nowhere: no working API stands behind it (Phase 3)',
   assert.ok(!fs.existsSync('src/components/settings/APIDocsModal.jsx'))
 })
 
+test('the Terminal API endpoint is retired: 410 Gone for every request, no data (5 Nov)', async () => {
+  const { default: handler } = await import('../api/terminal-api.js')
+  for (const req of [
+    { method: 'GET', headers: {}, query: {} },
+    { method: 'GET', headers: { 'x-maddex-api-key': `mdx_${'0'.repeat(32)}` }, query: { endpoint: 'quote', symbol: 'BHP.AX' } },
+    { method: 'POST', headers: {}, query: {} },
+    { method: 'OPTIONS', headers: {}, query: {} },
+  ]) {
+    let status, body
+    const res = { setHeader() {}, status(c) { status = c; return this }, json(b) { body = b; return this } }
+    await handler(req, res)
+    assert.equal(status, 410, req.method)
+    assert.deepEqual(Object.keys(body), ['error'])
+  }
+  const src = fs.readFileSync('api/terminal-api.js', 'utf8')
+  assert.doesNotMatch(src, /mockData|Access-Control-Allow-Origin/)
+  assert.doesNotMatch(fs.readFileSync('supabase/migrations/004_terminal_api_key.sql', 'utf8'), /ALTER TABLE|CREATE INDEX/)
+})
+
 test('payments are not live: every upgrade button says WAITLIST (Phase 3)', async () => {
   const { PAYMENTS_LIVE, upgradeCta } = await import('../src/services/plans.js')
   assert.equal(PAYMENTS_LIVE, false)
