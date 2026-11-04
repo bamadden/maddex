@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { buildSchedule } from '../../services/dividendSchedule'
 import { fmt } from '../../utils/format'
 import { auRecessionRisk } from '../../data/recessionRisk'
@@ -162,6 +163,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
     return {
       label: restrictive ? 'RESTRICTIVE POLICY' : 'ACCOMMODATIVE POLICY',
       score: au.score,
+      asOf: au.asOf,
       realRate: real?.reading ?? '—',
       description: restrictive
         ? 'The cash rate sits above inflation, so policy is actively slowing the economy. Rate-sensitive and long-duration earnings face the most pressure; offshore-earning and defensive businesses are the least exposed to the domestic setting.'
@@ -397,9 +399,10 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
             <span className="text-2xs text-terminal-text-dim">Regime:</span>
             <span className="text-2xs font-bold text-terminal-text-bright">{regime.label}</span>
             <span className="text-2xs text-terminal-text-dim">
-              · AU risk score {regime.score}/100 · real policy rate {regime.realRate}
+              · AU recession rubric {regime.score}/100 · real policy rate {regime.realRate}
             </span>
           </div>
+          <ScoreNote method="recession" asOf={regime.asOf} />
 
           <div className="text-2xs text-terminal-text leading-relaxed">{regime.description}</div>
 

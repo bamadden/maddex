@@ -64,6 +64,28 @@ export const METHODS = {
     how: ['Each factor and its points are listed on the panel.'],
     not: 'A description of published conditions, not a forecast or an investment view.',
   },
+  'momentum-scan': {
+    name: 'Momentum scan score',
+    what: 'A weighted blend of each stock\'s price change over three windows, in percent: higher means it rose more.',
+    how: ['50% of the 5-day change, 30% of the 10-day, 20% of the 20-day.', 'Closing prices only; ranked highest first, top 20 shown.'],
+    not: 'A description of past price moves, not a forecast or a signal.',
+  },
+  'sector-strength': {
+    name: 'Sector strength composite',
+    what: 'A 0–100 summary of how one representative stock per sector is trading today.',
+    how: [
+      'Day move: 50 plus ten times the day\'s % change, held between 0 and 100 (weight 4 of 7).',
+      'Range position: where the price sits between its 52-week low (0) and high (100) (weight 3 of 7).',
+      'If one part is missing the other is used alone; with neither, the sector shows no score.',
+    ],
+    not: 'A description of today\'s trading in one stock per sector, not a view on the sector.',
+  },
+  'macro-regime': {
+    name: 'Macro regime read',
+    what: 'A label for the macro setting. MaddenAI writes it from the published figures passed to it (cash rates, CPI, GDP, unemployment); while that is unavailable, Maddex\'s own editorial reading is shown.',
+    how: ['The figures come from verified RBA, ABS and Fed releases, never from the model.', 'The label and its wording are judgement, marked AI or editorial in the panel.'],
+    not: 'A description of published conditions, not a forecast or an investment view.',
+  },
   'screen-match': {
     name: 'Screen match',
     what: 'How far a stock clears the thresholds of the screen you set, scaled 50–100: 50 means it just qualifies.',

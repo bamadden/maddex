@@ -9,36 +9,13 @@ import { GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS } from '../../data/sectorTaxon
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import SafeChart from '../../components/ui/SafeChart'
 import { PAL } from '../../styles/palette.js'
+import ScoreNote from '../../components/ui/ScoreNote'
+import { sectorStrength } from '../../services/sectorStrength'
 
 // Recharts renders these into SVG, where a bare 'monospace' resolves to the
 // browser default — Courier on some systems — which is a visibly different
 // typeface sitting inside a chart surrounded by IBM Plex Mono.
 const MONO = "'IBM Plex Mono', Menlo, Monaco, Consolas, monospace"
-
-// ─── Score calculation ────────────────────────────────────────────────────────
-
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
-
-function scoreStock(q) {
-  const dayChangePct = q?.dayChangePct ?? null
-  const price        = q?.price        ?? null
-  const prevClose    = q?.prevClose    ?? null
-  const high52       = q?.week52High   ?? null
-  const low52        = q?.week52Low    ?? null
-
-  const dayScore   = dayChangePct != null ? clamp(50 + dayChangePct * 10, 0, 100) : 50
-  const volScore   = 50  // avgVol not available from v8 endpoint
-  const rangeScore = price != null && high52 != null && low52 != null && high52 > low52
-    ? clamp(((price - low52) / (high52 - low52)) * 100, 0, 100) : 50
-
-  const current = Math.round(0.4 * dayScore + 0.3 * volScore + 0.3 * rangeScore)
-
-  const prevRangeScore = prevClose != null && high52 != null && low52 != null && high52 > low52
-    ? clamp(((prevClose - low52) / (high52 - low52)) * 100, 0, 100) : 50
-  const prev = Math.round(0.4 * 50 + 0.3 * 50 + 0.3 * prevRangeScore)
-
-  return { current, prev }
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,11 +57,7 @@ function RadarTooltip({ active, payload }) {
       <div className="text-terminal-gold font-bold mb-1">{d.sector}</div>
       <div className="flex justify-between gap-4">
         <span className="text-terminal-text-dim">Score</span>
-        <span className="font-bold" style={{ color: scoreColor(d.score) }}>{d.score}</span>
-      </div>
-      <div className="flex justify-between gap-4">
-        <span className="text-terminal-text-dim">Prev</span>
-        <span className="text-terminal-text-dim/60">{d.prevScore}</span>
+        <span className="font-bold" style={{ color: d.score == null ? undefined : scoreColor(d.score) }}>{d.score ?? '—'}</span>
       </div>
       {d.dayPct != null && (
         <div className="flex justify-between gap-4 mt-1 border-t border-terminal-border pt-1">
@@ -131,12 +104,10 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
   const chartData = useMemo(() => {
     return proxySectors.map(({ sector, sym }) => {
       const q = quotes?.[sym] ?? null
-      const { current, prev } = q ? scoreStock(q) : { current: null, prev: null }
       return {
         sector: SECTOR_ABBR[sector] ?? sector,
         fullSector: sector,
-        score:     current ?? 50,
-        prevScore: prev ?? 50,
+        score:     sectorStrength(q),
         proxy:     sym,
         dayPct:    q?.dayChangePct ?? null,
         price:     q?.price        ?? null,
@@ -172,7 +143,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
   }
   const indexLabel = indexLabels[selectedIndex] ?? selectedIndex.replace('^','')
 
-  const sorted = [...chartData].sort((a, b) => b.score - a.score)
+  const sorted = [...chartData].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
 
   return (
     <div className="flex flex-col bg-terminal-bg" style={{ height: 'auto' }}>
@@ -199,7 +170,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
       </div>
 
       <div className="px-2 pb-1 text-2xs text-terminal-text-dim/50 flex-shrink-0">
-        Price momentum (40%) · 52W range position (30%) · volume conviction (30%) · Click sector to drill down
+        Day move (4/7) · 52-week range position (3/7) · one representative stock per sector · Click sector to drill down
       </div>
 
       {/* Radar chart */}
@@ -208,7 +179,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
           <RadarChart
             cx="50%" cy="50%"
             outerRadius="75%"
-            data={chartData}
+            data={chartData.filter((d) => d.score != null)}
             margin={{ top: 20, right: 50, bottom: 20, left: 50 }}
             onClick={handleChartClick}
             style={{ cursor: 'pointer' }}
@@ -224,15 +195,6 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
               tick={{ fill: '#374151', fontSize: 11, fontFamily: MONO }}
               tickCount={5}
               stroke="rgba(30,70,140,0.2)"
-            />
-            <Radar
-              name="Previous close"
-              dataKey="prevScore"
-              stroke="rgba(74,144,217,0.45)"
-              strokeWidth={1}
-              fill="rgba(74,144,217,0.07)"
-              dot={false}
-              isAnimationActive={false}
             />
             <Radar
               name="Current session"
@@ -258,8 +220,8 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
         <div className="flex items-center gap-2 mb-2 flex-wrap" data-sector-scores-label>
           <span className="text-2xs text-terminal-gold/70 font-bold tracking-widest">SECTOR SCORES</span>
           {USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={dataUpdatedAt || null} />}
-          <span className="text-2xs text-terminal-text-dim/70">Descriptive composite of the day&apos;s sector moves · not a recommendation{dataUpdatedAt ? ` · as at ${formatDate(dataUpdatedAt, { year: false })} ${sydneyClock(dataUpdatedAt).text}` : ''}</span>
         </div>
+        <ScoreNote method="sector-strength" asOf={dataUpdatedAt ? `${formatDate(dataUpdatedAt, { year: false })} ${sydneyClock(dataUpdatedAt).text}` : null} className="mb-1.5" />
         <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
           {sorted.map(({ sector, score, dayPct }) => (
             <div
@@ -271,10 +233,10 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
               <div className="flex-1 h-1.5 bg-terminal-border/30 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${score}%`, backgroundColor: scoreColor(score), opacity: 0.7 }}
+                  style={{ width: `${score ?? 0}%`, backgroundColor: score == null ? 'transparent' : scoreColor(score), opacity: 0.7 }}
                 />
               </div>
-              <span className="text-2xs font-bold w-6 text-right" style={{ color: scoreColor(score) }}>{score}</span>
+              <span className="text-2xs font-bold w-6 text-right" style={{ color: score == null ? undefined : scoreColor(score) }}>{score ?? '—'}</span>
               {dayPct != null && (
                 <span className={`text-2xs w-14 text-right ${dayPct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
                   {dayPct >= 0 ? '+' : ''}{dayPct.toFixed(2)}%

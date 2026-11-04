@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import { METHODS } from '../src/data/methodology.js'
 import { scoreToLabel } from '../src/services/maddenAiScoring.js'
 import { toneWord, toneSign } from '../src/utils/tone.js'
+import { sectorStrength } from '../src/services/sectorStrength.js'
 
 const read = (f) => fs.readFileSync(f, 'utf8')
 
@@ -22,6 +23,12 @@ const CARDS = {
   'src/modules/markets/CorrelationExplorer.jsx': 'diversification',
   'src/modules/crypto/CryptoModule.jsx': 'crypto-momentum',
   'src/modules/global/MapDetailPanel.jsx': 'country-risk',
+  'src/modules/global/IntelPanel.jsx': 'country-risk',
+  'src/modules/scanner/MarketScannerModule.jsx': 'momentum-scan',
+  'src/modules/portfolio/PortfolioAnalytics.jsx': 'recession',
+  'src/modules/screener/ScreenerModule.jsx': 'screen-match',
+  'src/modules/markets/SectorStrengthRadar.jsx': 'sector-strength',
+  'src/modules/macro/MacroModule.jsx': 'macro-regime',
 }
 
 test('every score card carries the descriptive-measure note with its method', () => {
@@ -63,4 +70,20 @@ test('holdings-aware features describe exposure only', () => {
   for (const f of ['src/modules/relationships/RelationshipsModule.jsx', 'src/modules/relationships/RelPanels.jsx']) {
     assert.match(read(f), /CONNECTED EXPOSURE, NOT FORECAST · NOT A RECOMMENDATION/, f)
   }
+})
+
+test('the sector strength composite uses only what the quote carries', () => {
+  assert.equal(sectorStrength(null), null, 'no quote, no score (it used to show 50)')
+  assert.equal(sectorStrength({ dayChangePct: 1 }), 60, 'day move alone')
+  assert.equal(sectorStrength({ price: 75, week52Low: 50, week52High: 100 }), 50, 'range alone')
+  assert.equal(sectorStrength({ dayChangePct: 1, price: 100, week52Low: 50, week52High: 100 }), Math.round((4 * 60 + 3 * 100) / 7))
+  const r = read('src/modules/markets/SectorStrengthRadar.jsx')
+  assert.doesNotMatch(r, /volume conviction|prevScore|\?\? 50/)
+})
+
+test('no score is drawn from hand-set figures as if measured', () => {
+  const m = read('src/modules/macro/MacroModule.jsx')
+  assert.doesNotMatch(m, /MACRO_REGIME_HISTORY|REGIME HISTORY \(6MO\)/)
+  assert.doesNotMatch(read('src/components/visualisations/MacroDashboard3D.jsx'), /MACRO SCORE|Math\.round\(score\)/)
+  assert.doesNotMatch(read('src/modules/portfolio/PortfolioAnalytics.jsx'), /AU risk score/)
 })

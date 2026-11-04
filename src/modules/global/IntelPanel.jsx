@@ -6,6 +6,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { GEO_RISK_INDEX, riskBand, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
 import { INTEL_FILTERS, keepItem } from './intelFilter'
 import { PAL } from '../../styles/palette.js'
+import ScoreNote from '../../components/ui/ScoreNote'
 
 // ─── Global module: left intelligence panel pieces ─────────────────────────
 //
@@ -301,6 +302,7 @@ export function GeoRiskCards({ onFocus }) {
         Maddex internal assessment, scored by a documented rubric · reviewed {fmtDay(RISK_LAST_REVIEWED)}. Top five by
         AU impact. Click to fly there, again for the reasoning.
       </div>
+      <ScoreNote method="country-risk" asOf={fmtDay(RISK_LAST_REVIEWED)} />
     </div>
   )
 }

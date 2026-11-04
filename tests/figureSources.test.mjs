@@ -26,7 +26,7 @@ test('Markets: breadth and sector scores are badged DEMO with a date', () => {
   assert.match(read('src/modules/markets/MarketSentimentBanner.jsx'), /<BreadthGauge changes=\{asxChanges\} \/>\s*\{USING_MOCK_DATA && asxChanges\?\.length > 0 && <DemoBadge \/>\}/)
   const r = read('src/modules/markets/SectorStrengthRadar.jsx')
   assert.match(r, /SECTOR SCORES<\/span>\s*\{USING_MOCK_DATA \? <DemoBadge \/> : <DataBadge cls="LIVE"/)
-  assert.match(r, /Descriptive composite of the day&apos;s sector moves · not a recommendation/)
+  assert.match(r, /<ScoreNote method="sector-strength" asOf=\{dataUpdatedAt \? /)
 })
 
 test('Rates: converter, AUD strength, metals and curves carry class, source and date', () => {

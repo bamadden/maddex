@@ -10,7 +10,9 @@ import { PAL } from '../../styles/palette.js'
 // each macro indicator floating as its own panel in a ring around it,
 // connected back to the centre by thin lines.
 
-function CentralOrb({ score }) {
+// The orb shows the editorial regime label, not a number: the old "MACRO
+// SCORE" was the hand-set gauge angle rescaled to 0–100, read as measured.
+function CentralOrb({ score, label }) {
   const ref = useRef(null)
 
   useFrame((state) => {
@@ -36,11 +38,11 @@ function CentralOrb({ score }) {
       </mesh>
       <Html center distanceFactor={11}>
         <div style={{ pointerEvents: 'none', textAlign: 'center' }}>
-          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 28, color: 'white', fontWeight: 700, textShadow: `0 0 20px ${color}` }}>
-            {Math.round(score)}
+          <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 20, color: 'white', fontWeight: 700, textShadow: `0 0 20px ${color}` }}>
+            {label}
           </div>
           <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, color: GOLD, letterSpacing: '0.2em' }}>
-            MACRO SCORE
+            MACRO REGIME · EDITORIAL
           </div>
         </div>
       </Html>
@@ -92,7 +94,7 @@ function IndicatorPanel({ indicator, position, rotation }) {
   )
 }
 
-function Scene({ indicators, macroHealthScore }) {
+function Scene({ indicators, macroHealthScore, regimeLabel }) {
   const radius = 5
   return (
     <>
@@ -105,7 +107,7 @@ function Scene({ indicators, macroHealthScore }) {
 
       <OrbitControls enablePan={false} minDistance={5} maxDistance={20} />
 
-      <CentralOrb score={macroHealthScore} />
+      <CentralOrb score={macroHealthScore} label={regimeLabel} />
 
       {indicators.map((ind, i) => {
         const angle = (i / indicators.length) * Math.PI * 2
@@ -129,7 +131,7 @@ function Scene({ indicators, macroHealthScore }) {
 
 // indicators: [{ id, name, current, unit, trend: 'IMPROVING'|'DECLINING'|'STABLE' }]
 // macroHealthScore: 0-100
-export default function MacroDashboard3D({ indicators, macroHealthScore }) {
+export default function MacroDashboard3D({ indicators, macroHealthScore, regimeLabel }) {
   if (!indicators?.length) {
     return (
       <div className="h-full flex items-center justify-center text-2xs text-terminal-text-dim">
@@ -141,7 +143,7 @@ export default function MacroDashboard3D({ indicators, macroHealthScore }) {
     <div className="h-full w-full" style={{ background: BG_COLOR }}>
       <Canvas camera={{ position: [0, 0, 12], fov: 60 }} dpr={[1, 1.5]}>
         <Suspense fallback={null}>
-          <Scene indicators={indicators} macroHealthScore={macroHealthScore} />
+          <Scene indicators={indicators} macroHealthScore={macroHealthScore} regimeLabel={regimeLabel} />
         </Suspense>
       </Canvas>
     </div>

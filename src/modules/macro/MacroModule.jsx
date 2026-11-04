@@ -44,6 +44,7 @@ import { RegimePanel } from '../../components/ui/RegimeBadge'
 import { toneWord } from '../../utils/tone'
 import { CREDIT, FREE_DATA_NOTICE } from '../../data/credits'
 import DataBadge from '../../components/ui/DataBadge'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 
 // ─── Data freshness helpers ───────────────────────────────────────────────────
@@ -1325,36 +1326,10 @@ const MACRO_INDICATORS = [
   { label: 'POLICY',        status: 'TIGHTENING',  arrow: '▲', color: PAL.gold,           context: `RBA hiked to ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% and the Fed to ${VERIFIED_CONSTANTS.fed.rateRange} at their latest meetings — both moving further above neutral.` },
 ]
 
-// Same -90..+90 scale as MACRO_REGIME.angle — a hand-set monthly snapshot,
-// not a computed time series, for the same reason noted above.
-const MACRO_REGIME_HISTORY = [
-  { date: 'Mar', label: 'RISK-ON',       score: 45  },
-  { date: 'Apr', label: 'RISK-ON',       score: 35  },
-  { date: 'May', label: 'TRANSITIONING', score: 10  },
-  { date: 'Jun', label: 'TRANSITIONING', score: -5  },
-  { date: 'Jul', label: 'RISK-OFF',      score: -30 },
-  { date: 'Aug', label: 'RESTRICTIVE',   score: -20 },
-]
-const regimeColor = (score) => score > 15 ? 'var(--color-gain)' : score < -15 ? 'var(--color-loss)' : PAL.gold
-
-function RegimeHistoryTimeline() {
-  return (
-    <div className="mt-2 pt-2 border-t border-terminal-border/40">
-      <div className="text-2xs text-terminal-text-dim tracking-widest mb-1.5">REGIME HISTORY (6MO)</div>
-      <div className="flex items-end gap-1" style={{ height: 36 }}>
-        {MACRO_REGIME_HISTORY.map((r) => (
-          <div key={r.date} className="flex-1 flex flex-col items-center gap-0.5" title={`${r.date}: ${r.label}`}>
-            <div
-              className="w-full rounded-sm"
-              style={{ height: Math.max(4, ((r.score + 90) / 180) * 28), background: regimeColor(r.score) }}
-            />
-            <span className="text-[11px] text-terminal-text-dim">{r.date}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+// The six-month regime history strip that sat here was a hand-set monthly
+// snapshot (Mar–Aug) drawn as if measured: no source, no date, and months
+// out of date. Removed (legal pass, Phase 4); the regime read below says
+// what it is.
 
 // The regime read is prose and judgement, not a statistic, which is exactly
 // the split this terminal draws: MaddenAI characterises the regime, but every
@@ -1432,7 +1407,7 @@ function MacroRegimeGauge() {
         </div>
       )}
 
-      <RegimeHistoryTimeline />
+      <ScoreNote method="macro-regime" className="mt-2" />
     </div>
   )
 }
@@ -1891,7 +1866,7 @@ export default function MacroModule() {
     const rising = last > prev
     return rising === higherIsBetter ? 'IMPROVING' : 'DECLINING'
   }
-  const macroHealthScore = Math.round(((MACRO_REGIME.angle + 90) / 180) * 100)
+  const macroHealthScore = Math.round(((MACRO_REGIME.angle + 90) / 180) * 100)  // orb colour only
   const macroIndicators3D = [
     { id: 'rba',        name: 'RBA Cash Rate',        current: rbaRate,     unit: '%', trend: 'STABLE' },
     { id: 'fed',        name: 'Fed Funds Rate',       current: VERIFIED_CONSTANTS.fed.cashRate, unit: '%', trend: 'STABLE' },
@@ -1936,7 +1911,7 @@ export default function MacroModule() {
       {view3D && (
         <div style={{ height: 520 }} className="border-b border-terminal-border">
           <Suspense fallback={<Viz3DLoader />}>
-            <MacroDashboard3D indicators={macroIndicators3D} macroHealthScore={macroHealthScore} />
+            <MacroDashboard3D indicators={macroIndicators3D} macroHealthScore={macroHealthScore} regimeLabel={MACRO_REGIME.label} />
           </Suspense>
         </div>
       )}

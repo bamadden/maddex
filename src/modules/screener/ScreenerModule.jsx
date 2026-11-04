@@ -11,6 +11,7 @@ import ResearchNoteGenerator from '../../components/researchNote/ResearchNoteGen
 import { useSubscription } from '../../hooks/useSubscription'
 import { takeModuleIntent } from '../../services/moduleIntent'
 import { reportFooter } from '../../services/disclosures'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 
 // Two derived fields the raw data does not carry, computed once here rather
@@ -1261,6 +1262,7 @@ export default function ScreenerModule() {
           )}
 
           <div className="flex-1 overflow-auto">
+          {hasSearched && rankable && <ScoreNote method="screen-match" className="px-3 pt-1.5" />}
           {!hasSearched ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-terminal-text-dim text-2xs px-8 text-center">
               <div className="text-3xl mb-2">▲</div>

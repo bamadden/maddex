@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useStore } from '../../store/useStore'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { timeAgo, formatDate } from '../../utils/dateUtils'
 import { takeModuleIntent } from '../../services/moduleIntent'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -423,6 +424,7 @@ function MomentumTab({ settings }) {
     <div>
       <div className="px-3 py-2 text-[11px] text-terminal-text-dim">
         Score is a weighted blend of the three windows — 50% of the 5-day move, 30% of the 10-day, 20% of the 20-day.
+        <ScoreNote method="momentum-scan" className="mt-0.5" />
       </div>
       <table className="w-full text-2xs">
         <thead>
