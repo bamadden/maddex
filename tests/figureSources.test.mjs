@@ -72,3 +72,8 @@ test('News: the story asset move is badged DEMO, and no invented sparkline is dr
   assert.doesNotMatch(n, /generateSparkline|MiniSparkline|seededRandom/)
   assert.match(n, /\{asset\.changePct\.toFixed\(2\)\}%<\/div>\s*<DemoBadge \/>/)
 })
+
+test('Markets: no hand-typed ASX 200 constituent weights without a source and date', () => {
+  const h = read('src/modules/markets/SectorHeatmap.jsx')
+  assert.doesNotMatch(h, /ASX_WEIGHTS|'BHP\.AX':10\.2|\['weight','WEIGHT'/)
+})

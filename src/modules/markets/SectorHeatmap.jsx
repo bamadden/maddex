@@ -437,13 +437,6 @@ const INDEX_EXPECTED_COUNT = {
 }
 
 
-// Approximate weights for ASX 200 top 20
-const ASX_WEIGHTS = {
-  'BHP.AX':10.2,'CBA.AX':8.9,'CSL.AX':5.1,'ANZ.AX':3.2,'NAB.AX':3.8,
-  'WBC.AX':3.1,'WES.AX':3.5,'MQG.AX':3.2,'WOW.AX':2.1,'RIO.AX':2.9,
-  'GMG.AX':2.6,'FMG.AX':1.8,'TLS.AX':1.7,'REA.AX':1.5,'ALL.AX':1.4,
-  'MIN.AX':0.8,'STO.AX':0.9,'WDS.AX':1.2,'AGL.AX':0.5,'NEM.AX':0.9,
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1484,7 +1477,6 @@ function IndexView({ selectedIndex, openModal }) {
         currency,
         audPrice, audChange, aud52High, aud52Low,
         pct:    q?.pct    ?? null,
-        weight: ASX_WEIGHTS[sym] ?? null,
         q,
       }
     })
@@ -1502,7 +1494,6 @@ function IndexView({ selectedIndex, openModal }) {
       else if (sortCol === 'name')   { va = a.name;               vb = b.name               }
       else if (sortCol === 'price')  { va = a.audPrice  ?? -Infinity; vb = b.audPrice  ?? -Infinity }
       else if (sortCol === 'pct')    { va = a.pct       ?? -Infinity; vb = b.pct       ?? -Infinity }
-      else if (sortCol === 'weight') { va = a.weight    ?? -Infinity; vb = b.weight    ?? -Infinity }
       else { va = a.rank; vb = b.rank }
       if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       return sortDir === 'asc' ? va - vb : vb - va
@@ -1576,7 +1567,6 @@ function IndexView({ selectedIndex, openModal }) {
                   ['name','NAME',      'px-2 text-left hidden xl:table-cell'],
                   ['price','PRICE AUD','px-2 text-right'],
                   ['pct','CHG%',       'px-2 text-right'],
-                  ['weight','WEIGHT',  'px-2 text-right hidden lg:table-cell'],
                 ].map(([col, lbl, cls]) => (
                   <th key={col}
                     className={`py-1 cursor-pointer select-none hover:text-terminal-gold ${cls}`}
@@ -1607,9 +1597,6 @@ function IndexView({ selectedIndex, openModal }) {
                       {r.pct != null ? `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(2)}%` : (
                         <span className="inline-block w-12 h-2 bg-terminal-border/30 animate-pulse rounded" />
                       )}
-                    </td>
-                    <td className="py-1 px-2 text-2xs text-right text-terminal-text-dim hidden lg:table-cell">
-                      {r.weight != null ? `${r.weight}%` : '—'}
                     </td>
                   </tr>
                 )
