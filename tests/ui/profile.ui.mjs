@@ -156,6 +156,23 @@ try {
   const health = await page.evaluate(() => document.querySelector('[data-health-line]')?.innerText.replace(/\s+/g, ' ') ?? '')
   if (/DATA HEALTH/.test(health) && /Feeds: \d+ fresh/.test(health) && /Official stats:/.test(health)) pass(`data health line: ${health.slice(0, 90)}`)
   else fail(`no data health line (${health})`)
+  // Arrange: move HOLDINGS first, reload, still first; reset restores.
+  const panelOrder = () => page.evaluate(() => [...document.querySelectorAll('section[aria-labelledby^="ov-"]')].map((x) => x.getAttribute('aria-labelledby')))
+  await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => /ARRANGE$/.test(b.textContent.trim()))?.click())
+  await page.waitForSelector('[data-arranging]', { timeout: 5000 }).catch(() => {})
+  await page.evaluate(() => document.querySelector('[data-arrange="holdings"] button[aria-label$="earlier"]')?.click())
+  const moved = (await panelOrder()).join(',')
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.waitForFunction(() => document.querySelectorAll('section[aria-labelledby^="ov-"]').length >= 8, { timeout: 30_000 }).catch(() => {})
+  const kept = (await panelOrder()).join(',')
+  if (/^ov-market,ov-holdings,ov-rba/.test(moved) && kept === moved) pass('ARRANGE: Holdings moved before RBA & Macro, and kept after a reload')
+  else fail(`ARRANGE: moved ${moved} · after reload ${kept}`)
+  await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => /ARRANGE$/.test(b.textContent.trim()))?.click())
+  await page.waitForSelector('[data-arranging]', { timeout: 5000 }).catch(() => {})
+  await page.evaluate(() => [...document.querySelectorAll('[data-arranging] button')].find((b) => /RESET ORDER/.test(b.textContent))?.click())
+  await page.evaluate(() => [...document.querySelectorAll('[data-arranging] button')].find((b) => /DONE/.test(b.textContent))?.click())
+  const reset = (await panelOrder()).join(',')
+  ;/^ov-market,ov-rba,ov-holdings/.test(reset) && !(await page.$('[data-arranging]')) ? pass('RESET ORDER restores the default; DONE leaves arranging') : fail(`after reset: ${reset}`)
 
   sectionLog('Keyboard: skip link and reachable stock rows')
   active = page

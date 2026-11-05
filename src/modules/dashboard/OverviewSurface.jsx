@@ -23,6 +23,7 @@ import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHea
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { getCachedBrief, isAuWeekend, auHour, briefHourLabel } from '../../services/morningBriefService'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import { readOrder, saveOrder, clearOrder, moveId, OVERVIEW_PANELS } from './overviewOrder'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -38,7 +39,7 @@ const fmtNum = (v, dp = 1) => (v == null ? '—' : v.toLocaleString('en-AU', { m
 const fmtAud = (v, dp = 2) => (v == null ? '—' : `${v < 0 ? '−' : ''}A$${Math.abs(v).toLocaleString('en-AU', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`)
 const longDate = (iso) => formatDate(iso, { weekday: true })
 
-function Panel({ title, badge, action, onAction, className = '', children, id }) {
+function Panel({ title, badge, action, onAction, className = '', children, id, arrange }) {
   return (
     <section aria-labelledby={id} className={`min-w-0 min-h-0 flex flex-col border border-terminal-border bg-terminal-panel ${className}`}>
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 min-w-0">
@@ -46,6 +47,16 @@ function Panel({ title, badge, action, onAction, className = '', children, id })
         <span className="flex-1" />
         {badge && <span className="flex flex-wrap justify-end gap-1 order-last w-full sm:order-none sm:w-auto">{badge}</span>}
         {action && <button onClick={onAction} className="font-mono tracking-widest text-terminal-text-dim hover:text-terminal-gold whitespace-nowrap flex-shrink-0" style={{ fontSize: 11 }}>{action} →</button>}
+        {arrange && (
+          <span className="flex gap-1 flex-shrink-0" data-arrange={arrange.id}>
+            {[[-1, '◀', 'earlier'], [1, '▶', 'later']].map(([dir, glyph, word]) => (
+              <button key={dir} onClick={() => arrange.move(arrange.id, dir)} disabled={dir < 0 ? arrange.first : arrange.last}
+                aria-label={`Move ${title} ${word}`}
+                className="font-mono px-2 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg disabled:opacity-30 disabled:pointer-events-none"
+                style={{ fontSize: 11, minWidth: 28, minHeight: 24 }}>{glyph}</button>
+            ))}
+          </span>
+        )}
       </header>
       <div className="flex-1 min-h-0 overflow-auto px-3 py-2">{children}</div>
     </section>
@@ -122,7 +133,7 @@ function Countdown({ at }) {
   return <span className="tabular-nums text-terminal-text-bright" data-countdown>{d > 0 ? `${d} day${d === 1 ? '' : 's'} ` : ''}{h} hr {m} min</span>
 }
 
-function RbaMacro({ goTo }) {
+function RbaMacro({ goTo, arrange }) {
   const { rba, au } = VERIFIED_CONSTANTS
   const regime = useMemo(() => currentRegime(), [])
   const at = decisionInstant(rba)
@@ -133,7 +144,7 @@ function RbaMacro({ goTo }) {
     </div>
   )
   return (
-    <Panel id="ov-rba" title="RBA & MACRO" action="RATES" onAction={() => goTo('fx')}
+    <Panel id="ov-rba" arrange={arrange} title="RBA & MACRO" action="RATES" onAction={() => goTo('fx')}
       badge={<DataBadge cls="DELAYED" source="RBA, ABS" at={rba.lastDecision} />}>
       <div className="flex items-end gap-4 flex-wrap">
         <div>
@@ -175,10 +186,10 @@ function useHoldings() {
   return { holdings, stats, rows, data, dataUpdatedAt }
 }
 
-function Holdings({ h, goTo }) {
+function Holdings({ h, goTo, arrange }) {
   const th = 'text-right font-normal font-mono tracking-widest text-terminal-text-dim pb-1'
   return (
-    <Panel id="ov-holdings" title="HOLDINGS · BY TODAY'S MOVE" action="PORTFOLIO" onAction={() => goTo('portfolio')}
+    <Panel id="ov-holdings" arrange={arrange} title="HOLDINGS · BY TODAY'S MOVE" action="PORTFOLIO" onAction={() => goTo('portfolio')}
       badge={h.data && <DataBadge cls={classOfResult(h.data, { demo: USING_MOCK_DATA })} source={EQUITY_SOURCE} at={h.data.stale ? h.data.cachedAt : h.dataUpdatedAt || null} />}>
       {!h.holdings.length ? <Empty action="ADD HOLDINGS" onAction={() => goTo('portfolio')}>No holdings yet. Add what you own to see value, P&amp;L and rate exposure here.</Empty> : (
         <>
@@ -209,7 +220,7 @@ function Holdings({ h, goTo }) {
 }
 
 // ── Watchlist ───────────────────────────────────────────────────────────────
-function Watchlist({ goTo }) {
+function Watchlist({ goTo, arrange }) {
   const { watchlist } = useStore()
   const { usdToAud } = useAudRates()
   const syms = (watchlist ?? []).map((w) => w.symbol ?? w)
@@ -222,7 +233,7 @@ function Watchlist({ goTo }) {
   const more = all.length - equities.length
   const other = syms.length - all.length
   return (
-    <Panel id="ov-watch" title="WATCHLIST · BY TODAY'S MOVE" action="WATCHLIST" onAction={() => goTo('watchlist')}
+    <Panel id="ov-watch" arrange={arrange} title="WATCHLIST · BY TODAY'S MOVE" action="WATCHLIST" onAction={() => goTo('watchlist')}
       badge={data && <DataBadge cls={classOfResult(data, { demo: USING_MOCK_DATA })} source={EQUITY_SOURCE} at={data.stale ? data.cachedAt : dataUpdatedAt || null} />}>
       {!equities.length ? <Empty action="ADD STOCKS" onAction={() => goTo('watchlist')}>Your watchlist is empty.</Empty> : (
         <table className="w-full font-mono" style={{ fontSize: 12 }}>
@@ -251,13 +262,13 @@ function Watchlist({ goTo }) {
 }
 
 // ── Since your last visit ───────────────────────────────────────────────────
-function SinceLastVisit({ asx200, portfolioValue }) {
+function SinceLastVisit({ asx200, portfolioValue, arrange }) {
   const [prev] = useState(() => beginVisit())
   const [openedAt] = useState(() => Date.now())
   useEffect(() => { recordVisit({ asx200, portfolioValue }) }, [asx200, portfolioValue])
   const items = useMemo(() => sinceLastVisit(prev, { at: openedAt, asx200, portfolioValue }, { constants: VERIFIED_CONSTANTS, alerts: loadAlertHistory(), changes: DATED_CHANGES }), [prev, openedAt, asx200, portfolioValue])
   return (
-    <Panel id="ov-since" title="SINCE YOUR LAST VISIT" badge={prev?.at && <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{formatDate(prev.at, { weekday: true, year: false })} {sydneyClock(prev.at).text}</span>}>
+    <Panel id="ov-since" arrange={arrange} title="SINCE YOUR LAST VISIT" badge={prev?.at && <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>{formatDate(prev.at, { weekday: true, year: false })} {sydneyClock(prev.at).text}</span>}>
       {!prev?.at ? <Empty>First visit on this device. Changes from now on will be listed here next time.</Empty>
         : !items.length ? <Empty>Nothing has changed since your last visit.</Empty> : (
           <ul className="space-y-1" style={{ fontSize: 12 }}>
@@ -276,14 +287,14 @@ function SinceLastVisit({ asx200, portfolioValue }) {
 // ── Today's brief ───────────────────────────────────────────────────────────
 // Read from the Brief module's own cache: no AI call from here.
 
-function BriefSummary({ goTo }) {
+function BriefSummary({ goTo, arrange }) {
   const [brief, setBrief] = useState(() => getCachedBrief())
   useEffect(() => { const id = setInterval(() => setBrief(getCachedBrief()), 60_000); return () => clearInterval(id) }, [])
   const weekend = isAuWeekend()
   const has = brief && !brief.isWeekend
   const first = has ? (brief.headline || brief.sections?.[0]?.content || '') : ''
   return (
-    <Panel id="ov-brief" title="TODAY'S BRIEF" action="BRIEF" onAction={() => goTo('brief')}
+    <Panel id="ov-brief" arrange={arrange} title="TODAY'S BRIEF" action="BRIEF" onAction={() => goTo('brief')}
       badge={has && <AIContentBadge source="cache" />}>
       {!has ? (
         <Empty action={weekend ? null : 'OPEN BRIEF'} onAction={() => goTo('brief')}>
@@ -304,11 +315,11 @@ function BriefSummary({ goTo }) {
 }
 
 // ── Coming up ───────────────────────────────────────────────────────────────
-function ComingUp({ goTo }) {
+function ComingUp({ goTo, arrange }) {
   const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
   const events = pendingEvents(data?.events ?? [], 14).slice(0, 8)
   return (
-    <Panel id="ov-coming" title="COMING UP · 14 DAYS" action="CALENDAR" onAction={() => goTo('calendar')}
+    <Panel id="ov-coming" arrange={arrange} title="COMING UP · 14 DAYS" action="CALENDAR" onAction={() => goTo('calendar')}
       badge={data && (data.source === 'fallback'
         ? <DataBadge cls="STALE" source="built-in schedule" />
         : <DataBadge cls="LIVE" source="economic calendar" />)}>
@@ -367,20 +378,34 @@ function DataHealthLine() {
   )
 }
 
-export default function OverviewSurface() {
+export default function OverviewSurface({ arranging = false, onDoneArranging }) {
   const { setActiveModule } = useStore()
+  const [order, setOrder] = useState(() => readOrder())
+  const move = (id, dir) => setOrder((o) => { const next = moveId(o, id, dir); saveOrder(next); return next })
+  const reset = () => { clearOrder(); setOrder([...OVERVIEW_PANELS]) }
+  const arrangeFor = (id) => arranging ? { id, move, first: order[0] === id, last: order[order.length - 1] === id } : undefined
   const h = useHoldings()
   const { data: idx } = useQuery({ queryKey: ['yfBatch', 'indices'], queryFn: () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS), staleTime: 60_000, retry: 1 })
   return (
     <div className="flex-1 min-h-0 overflow-auto p-2">
+      {arranging && (
+        <div className="mb-2 flex flex-wrap items-center gap-3 px-3 py-1.5 border border-terminal-gold/50 font-mono" style={{ fontSize: 11 }} data-arranging>
+          <span className="tracking-widest text-terminal-gold">ARRANGING</span>
+          <span className="text-terminal-text">◀ ▶ on each panel moves it. Kept on this device.</span>
+          <button onClick={reset} className="ml-auto tracking-widest text-terminal-text-dim hover:text-terminal-gold">RESET ORDER</button>
+          <button onClick={onDoneArranging} className="tracking-widest text-terminal-gold hover:underline">DONE</button>
+        </div>
+      )}
       <div className="grid gap-2 overview-grid">
         <MarketState />
-        <RbaMacro goTo={setActiveModule} />
-        <Holdings h={h} goTo={setActiveModule} />
-        <Watchlist goTo={setActiveModule} />
-        <SinceLastVisit asx200={idx?.data?.['^AXJO']?.last ?? null} portfolioValue={h.stats?.value ?? null} />
-        <BriefSummary goTo={setActiveModule} />
-        <ComingUp goTo={setActiveModule} />
+        {order.map((id) => ({
+          rba: <RbaMacro key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
+          holdings: <Holdings key={id} h={h} goTo={setActiveModule} arrange={arrangeFor(id)} />,
+          watch: <Watchlist key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
+          since: <SinceLastVisit key={id} asx200={idx?.data?.['^AXJO']?.last ?? null} portfolioValue={h.stats?.value ?? null} arrange={arrangeFor(id)} />,
+          brief: <BriefSummary key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
+          coming: <ComingUp key={id} goTo={setActiveModule} arrange={arrangeFor(id)} />,
+        })[id])}
         <DataHealthLine />
       </div>
     </div>

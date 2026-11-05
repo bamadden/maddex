@@ -55,7 +55,7 @@ test("today's brief: read from the Brief cache, zones named, no outlook score", 
   assert.match(panel, /getCachedBrief\(\)/)
   assert.doesNotMatch(panel, /generateMorningBrief|askClaude|scoreLabel|OUTLOOK/, 'no AI call and no tone score from the Overview')
   assert.match(panel, /Written by MaddenAI from the data shown/)
-  assert.match(ov, /<BriefSummary goTo=\{setActiveModule\} \/>/)
+  assert.match(ov, /brief: <BriefSummary key=\{id\} goTo=\{setActiveModule\}/)
 })
 
 test('coming up: every time carries its zone; the built-in schedule is badged STALE, briefly', () => {
@@ -64,4 +64,18 @@ test('coming up: every time carries its zone; the built-in schedule is badged ST
   assert.match(panel, /sydneyClock\(t\)\.text/)
   assert.doesNotMatch(panel, /sydneyClock\(t\)\.time/)
   assert.match(panel, /<DataBadge cls="STALE" source="built-in schedule" \/>/)
+})
+
+test('panel order: moves, survives a reload, ignores stale entries, resets', async () => {
+  const { normaliseOrder, moveId, readOrder, saveOrder, clearOrder, OVERVIEW_PANELS } = await import('../src/modules/dashboard/overviewOrder.js')
+  assert.deepEqual(moveId(OVERVIEW_PANELS, 'holdings', -1).slice(0, 2), ['holdings', 'rba'])
+  assert.deepEqual(moveId(OVERVIEW_PANELS, 'rba', -1), OVERVIEW_PANELS, 'the first cannot move earlier')
+  assert.deepEqual(moveId(OVERVIEW_PANELS, 'coming', 1), OVERVIEW_PANELS, 'the last cannot move later')
+  assert.deepEqual(normaliseOrder(['coming', 'gone', 'coming', 'rba']), ['coming', 'rba', 'holdings', 'watch', 'since', 'brief'], 'unknown and repeated ids dropped, new panels appended')
+  assert.deepEqual(normaliseOrder('junk'), OVERVIEW_PANELS)
+  const m = new Map(); const storage = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }
+  saveOrder(['brief', 'rba'], storage)
+  assert.deepEqual(readOrder(storage).slice(0, 2), ['brief', 'rba'])
+  clearOrder(storage)
+  assert.deepEqual(readOrder(storage), OVERVIEW_PANELS)
 })

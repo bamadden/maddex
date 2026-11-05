@@ -45,6 +45,7 @@ export default function DashboardModule() {
   const [view, setViewState] = useState(readView)
   const setView = (v) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v) } catch { /* private mode */ } }
   const custom = view === 'custom'
+  const [arranging, setArranging] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   // Measured, not a media query — the dashboard also renders in a split
   // pane and a popped-out window, where viewport width is not the
@@ -118,6 +119,12 @@ export default function DashboardModule() {
                   style={view === v ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}>{label}</button>
               ))}
             </div>
+            {!custom && (
+              <button onClick={() => setArranging((v) => !v)} aria-pressed={arranging}
+                className={`font-mono text-[11px] tracking-widest px-2 py-1 transition-colors ${arranging ? 'bg-terminal-gold text-terminal-bg' : 'text-terminal-text-dim hover:text-terminal-gold'}`}
+                style={arranging ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
+                title="Change the order of the Overview's panels">⇅ ARRANGE</button>
+            )}
             {/* Layout picker and edit mode are both hidden when narrow.
                 Choosing between 1x3, 2x2, 3x2, 3x3 and 4x3 grids is
                 meaningless when the grid renders as a single column
@@ -173,7 +180,7 @@ export default function DashboardModule() {
           editMode={editing}
           onAddAt={(col, row) => { setAddAt({ col, row }); }}
         />
-      ) : <OverviewSurface />}
+      ) : <OverviewSurface arranging={arranging} onDoneArranging={() => setArranging(false)} />}
 
       {addAt && (
         <WidgetPicker
