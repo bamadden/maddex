@@ -103,3 +103,19 @@ test('crypto: a missing 24h change, market cap, volume or Fear & Greed day is un
   assert.match(mod, /\{v \?\? '—'\}/, 'F&G history shows — for a missing day')
   assert.doesNotMatch(mod, /c\.pct24h \?\? 0/)
 })
+
+test('DefiLlama switched off: no saved copy is served as LIVE or STALE, and the panel says it is off', async () => {
+  const store = new Map([['maddex_defi_protocols_25', JSON.stringify({ data: [{ name: 'Old' }], at: Date.now() })], ['maddex_defi_stablecoins', JSON.stringify({ data: { total: 1 }, at: Date.now() - 864e5 })]])
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) }
+  const { licenceOff } = await import('../src/data/sourceLicence.js')
+  assert.ok(licenceOff('defillama'), 'precondition: DefiLlama is switched off')
+  const { defiService } = await import('../src/services/defiService.js')
+  for (const r of [await defiService.getProtocols(25), await defiService.getStablecoins(), await defiService.getChains(8), await defiService.getCategories(6)]) {
+    assert.deepEqual(r, { data: null, source: 'off', at: null })
+  }
+  assert.equal(defiService.getDataStatus().find((f) => f.label === 'DeFi TVL').status, 'off')
+  const panel = fs.readFileSync('src/modules/crypto/DefiPanel.jsx', 'utf8')
+  assert.doesNotMatch(panel, /live public API/)
+  assert.match(panel, /switched off while its terms of use are reviewed/)
+  delete globalThis.localStorage
+})

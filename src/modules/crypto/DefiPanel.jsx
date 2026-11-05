@@ -29,7 +29,7 @@ const toneOf = (v) => (v == null ? PAL.muted : v >= 0 ? PAL.up : PAL.down)
 // re-renders on filter changes, and Date.now() in a render body makes the
 // component non-idempotent for a label that only needs minute precision.
 function SourceBadge({ source, at, now }) {
-  if (!source || source === 'failed') return null
+  if (!source || source === 'failed' || source === 'off') return null
   // The one vocabulary: within the refresh window is LIVE ("CACHED" was not
   // a class); a failed fetch showing the last copy is STALE.
   void now
@@ -75,7 +75,11 @@ export default function DefiPanel() {
     return category === 'ALL' ? list : list.filter((p) => p.category === category)
   }, [protocols.data, category])
 
-  const loading = !protocols.data && !chains.data && !btc.data
+  // DefiLlama is switched off for licence reasons (data/sourceLicence): the
+  // service answers 'off' and the panel says so instead of an empty table.
+  const defiOff = [protocols, chains, cats].every((r) => r.source === 'off')
+  const stablesOff = stables.source === 'off'
+  const loading = !defiOff && !protocols.data && !chains.data && !btc.data
 
   return (
     <div className="h-full overflow-y-auto p-3 space-y-3">
@@ -92,7 +96,7 @@ export default function DefiPanel() {
           ))}
         </div>
         <span className="text-2xs text-terminal-text-dim">
-          {tab === 'defi' ? 'DefiLlama' : 'mempool.space'} · live public API, no key
+          {tab === 'defi' ? (defiOff ? 'DefiLlama · switched off' : 'DefiLlama · public API') : 'mempool.space and PublicNode · public APIs'}
         </span>
       </div>
 
@@ -102,7 +106,14 @@ export default function DefiPanel() {
         </div>
       )}
 
-      {tab === 'defi' && !loading && (
+      {tab === 'defi' && defiOff && (
+        <div className="border border-terminal-border p-4 text-2xs text-terminal-text-dim leading-relaxed" data-defi-off>
+          DeFi data comes from DefiLlama, which is switched off while its terms of use are reviewed. No DeFi figures
+          are shown, including any copy saved earlier in this browser. Bitcoin and Ethereum network data are on the ON-CHAIN tab.
+        </div>
+      )}
+
+      {tab === 'defi' && !defiOff && !loading && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
             <Metric
@@ -114,7 +125,7 @@ export default function DefiPanel() {
             <Metric
               label="STABLECOIN SUPPLY"
               value={usd(stables.data?.total)}
-              sub={stables.data?.change1d != null ? `${pct(stables.data.change1d)} 24h` : '—'}
+              sub={stablesOff ? 'source switched off' : stables.data?.change1d != null ? `${pct(stables.data.change1d)} 24h` : '—'}
               tone={stables.data?.change1d == null ? undefined : toneOf(stables.data.change1d)}
               title={ONCHAIN_EXPLAINERS.stablecoins}
             />
@@ -281,7 +292,7 @@ export default function DefiPanel() {
             <Metric
               label="STABLECOIN SUPPLY"
               value={usd(stables.data?.total)}
-              sub={stables.data?.change1d != null ? `${pct(stables.data.change1d)} 24h` : '—'}
+              sub={stablesOff ? 'source switched off' : stables.data?.change1d != null ? `${pct(stables.data.change1d)} 24h` : '—'}
               tone={stables.data?.change1d == null ? undefined : toneOf(stables.data.change1d)}
               title={ONCHAIN_EXPLAINERS.stablecoins}
             />
@@ -332,7 +343,7 @@ export default function DefiPanel() {
                 of a definition, and this panel does not make one. */}
             <div className="text-2xs text-terminal-text-dim/50 pt-1 border-t border-terminal-border/30 leading-relaxed">
               These describe how the network works, not what any current level implies for
-              price. Stablecoin supply from DefiLlama; Bitcoin network data from
+              price. Stablecoin supply from DefiLlama{stablesOff ? ' (switched off, so not shown)' : ''}; Bitcoin network data from
               mempool.space; Ethereum from a public node (PublicNode). The ETH staking rate is not
               shown — no free source publishes it reliably.
             </div>

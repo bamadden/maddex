@@ -1,4 +1,4 @@
-import { licenceGuard } from '../data/sourceLicence'
+import { licenceGuard, licenceOff } from '../data/sourceLicence'
 // DeFi and on-chain intelligence, from live public APIs.
 //
 // THE BRIEF FOR THIS ASKED FOR MOCK DATA WITH AN "INDICATIVE" BADGE.
@@ -40,7 +40,12 @@ function writeCache(key, data) {
 
 // Returns { data, source, at } in the same shape liveDataService uses, so the
 // UI badges provenance identically to every other live panel in the app.
-async function withCache(key, fetchFn) {
+//
+// A source switched off for licence reasons (data/sourceLicence) returns
+// source 'off' before any cache is read: a copy saved in this browser while
+// it was on is neither shown as LIVE nor served as STALE.
+async function withCache(key, fetchFn, licence = null) {
+  if (licence && licenceOff(licence)) return { data: null, source: 'off', at: null }
   const cached = readCache(key)
   if (cached) return { data: cached.data, source: 'cache', at: cached.at }
   try {
@@ -78,6 +83,7 @@ export const defiService = {
       let at = null
       try { at = JSON.parse(localStorage.getItem(CACHE_PREFIX + key) ?? 'null')?.at ?? null } catch { /* unreadable */ }
       const ageMins = at ? Math.round((Date.now() - at) / 60000) : null
+      if (key === 'protocols_25' && licenceOff('defillama')) return { key: `defi_${key}`, label, kind: 'live', ageMins: null, status: 'off' }
       return { key: `defi_${key}`, label, kind: 'live', ageMins, status: ageMins == null ? 'never' : ageMins < 1 ? 'fresh' : ageMins < 60 ? 'recent' : 'stale' }
     })
   },
@@ -101,7 +107,7 @@ export const defiService = {
       const head = rows.slice(0, top)
       const rest = rows.slice(top).reduce((s, r) => s + r.tvl, 0)
       return { total, rows: rest > 0 ? [...head, { name: 'Other', tvl: rest }] : head }
-    })
+    }, 'defillama')
   },
 
   async getProtocols(limit = 25) {
@@ -123,7 +129,7 @@ export const defiService = {
           url: p.url ?? null,
           logo: p.logo ?? null,
         }))
-    })
+    }, 'defillama')
   },
 
   // Chain-level TVL, for the totals bar.
@@ -136,7 +142,7 @@ export const defiService = {
         top: live.slice(0, limit).map((c) => ({ name: c.name, tvl: c.tvl, symbol: c.tokenSymbol ?? null })),
         chainCount: live.length,
       }
-    })
+    }, 'defillama')
   },
 
   // Bitcoin network state. Three separate endpoints, settled individually so
@@ -243,7 +249,7 @@ export const defiService = {
         change1d: totalPrev > 0 ? ((total - totalPrev) / totalPrev) * 100 : null,
         top: assets.slice(0, 6),
       }
-    })
+    }, 'defillama')
   },
 }
 

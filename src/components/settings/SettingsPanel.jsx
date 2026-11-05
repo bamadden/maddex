@@ -871,6 +871,7 @@ const STATUS_STYLE = {
   today:     { text: 'TODAY',      color: PAL.up },
   yesterday: { text: 'YESTERDAY',  color: PAL.gold },
   none:      { text: 'NOT LOADED', color: PAL.muted },
+  off:       { text: 'SWITCHED OFF', color: PAL.muted },
 }
 
 function StatusPill({ status }) {
