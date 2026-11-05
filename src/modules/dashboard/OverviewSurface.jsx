@@ -310,7 +310,7 @@ function ComingUp({ goTo }) {
   return (
     <Panel id="ov-coming" title="COMING UP · 14 DAYS" action="CALENDAR" onAction={() => goTo('calendar')}
       badge={data && (data.source === 'fallback'
-        ? <DataBadge cls="STALE" source="built-in schedule (live calendar unavailable)" />
+        ? <DataBadge cls="STALE" source="built-in schedule" />
         : <DataBadge cls="LIVE" source="economic calendar" />)}>
       {isLoading ? <Empty>Loading the calendar…</Empty> : !events.length ? <Empty>No scheduled events in the next 14 days.</Empty> : (
         <table className="w-full" style={{ fontSize: 12 }}>
@@ -321,7 +321,7 @@ function ComingUp({ goTo }) {
                 <tr key={`${e.date}-${e.event ?? e.title}`} className="border-t border-terminal-border/40 first:border-0">
                   <td className="py-1 pr-2 font-mono text-terminal-text-dim whitespace-nowrap" style={{ fontSize: 11 }}>
                     {formatDate(e.date, { weekday: true, year: false })}
-                    {t && /^\d{1,2}:\d{2}$/.test(e.time ?? '') ? ` ${sydneyClock(t).time}` : ''}
+                    {t && /^\d{1,2}:\d{2}$/.test(e.time ?? '') ? ` ${sydneyClock(t).text}` : ''}
                   </td>
                   <td className="text-terminal-text-bright">{e.event ?? e.title}</td>
                   <td className="text-right font-mono tracking-widest text-terminal-text-dim uppercase" style={{ fontSize: 11 }}>{e.importance ?? ''}</td>

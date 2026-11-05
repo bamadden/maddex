@@ -57,3 +57,11 @@ test("today's brief: read from the Brief cache, zones named, no outlook score", 
   assert.match(panel, /Written by MaddenAI from the data shown/)
   assert.match(ov, /<BriefSummary goTo=\{setActiveModule\} \/>/)
 })
+
+test('coming up: every time carries its zone; the built-in schedule is badged STALE, briefly', () => {
+  const ov = read('src/modules/dashboard/OverviewSurface.jsx')
+  const panel = ov.slice(ov.indexOf('function ComingUp'), ov.indexOf('export default function OverviewSurface'))
+  assert.match(panel, /sydneyClock\(t\)\.text/)
+  assert.doesNotMatch(panel, /sydneyClock\(t\)\.time/)
+  assert.match(panel, /<DataBadge cls="STALE" source="built-in schedule" \/>/)
+})
