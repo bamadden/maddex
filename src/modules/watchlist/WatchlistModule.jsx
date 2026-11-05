@@ -656,7 +656,7 @@ export default function WatchlistModule() {
         ...base,
         name:        c.name ?? symbol,
         price:       c.price,
-        change:      c.price * (c.pct24h / 100),
+        change:      c.pct24h == null || c.price == null ? null : c.price * (c.pct24h / 100),
         pct:         c.pct24h,
         // 7-day change and the USD cross are crypto-only columns; equities
         // use those same positions for CHG$ and the 52-week bar.

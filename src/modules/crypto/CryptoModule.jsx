@@ -157,11 +157,14 @@ function SectorPerformanceList({ markets }) {
       .map(([name, syms]) => {
         const coins = syms.map(s => bySymbol[s]).filter(Boolean)
         if (!coins.length) return null
-        const avg = coins.reduce((sum, c) => sum + (c.pct24h ?? 0), 0) / coins.length
-        return { name, avg, count: coins.length }
+        // Coins without a 24h change are left out of the average, never 0%.
+        const known = coins.filter(c => c.pct24h != null)
+        if (!known.length) return { name, avg: null, count: 0 }
+        const avg = known.reduce((sum, c) => sum + c.pct24h, 0) / known.length
+        return { name, avg, count: known.length }
       })
       .filter(Boolean)
-      .sort((a, b) => b.avg - a.avg)
+      .sort((a, b) => (b.avg ?? -Infinity) - (a.avg ?? -Infinity))
   }, [markets])
   return (
     <div style={P.wrap}>
@@ -173,8 +176,8 @@ function SectorPerformanceList({ markets }) {
               <span style={{ fontSize: 11, color: 'rgba(100,130,160,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {s.name} <span style={{ color: 'rgba(100,130,160,0.4)' }}>({s.count})</span>
               </span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: s.avg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', flexShrink: 0 }}>
-                {s.avg >= 0 ? '▲' : '▼'}{Math.abs(s.avg).toFixed(2)}%
+              <span style={{ fontSize: 11, fontWeight: 700, color: s.avg == null ? 'rgba(100,130,160,0.55)' : s.avg >= 0 ? 'var(--color-gain)' : 'var(--color-loss)', flexShrink: 0 }}>
+                {s.avg == null ? '—' : `${s.avg >= 0 ? '▲' : '▼'}${Math.abs(s.avg).toFixed(2)}%`}
               </span>
             </div>
           ))}
@@ -256,9 +259,9 @@ function FearGreedPanel({ data }) {
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: 11, marginTop: 4 }}>
         {[['YESTERDAY', prev], ['7D AGO', weekAgo], ['30D AGO', monthAgo]].map(([k, v]) => (
-          <div key={k} style={{ textAlign: 'center' }}>
+          <div key={k} style={{ textAlign: 'center' }} title={v == null ? 'Not in the published history' : undefined}>
             <div style={{ color: 'rgba(100,130,160,0.55)', fontSize: 11 }}>{k}</div>
-            <div style={{ color: colourAt(v), fontWeight: 700 }}>{v}</div>
+            <div style={{ color: v == null ? 'rgba(100,130,160,0.55)' : colourAt(v), fontWeight: 700 }} data-fg-history>{v ?? '—'}</div>
           </div>
         ))}
       </div>
@@ -441,8 +444,8 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
       <div className="px-3 py-3 border-b border-terminal-border/50">
         <div className="text-xl font-bold text-terminal-text-bright font-mono tabular-nums">{money(coin.price)}</div>
         {otherLabel && <div className="text-2xs text-terminal-text-dim mt-0.5">{otherLabel}</div>}
-        <div className={`text-xs font-semibold mt-1 ${coin.pct24h >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-          {coin.pct24h >= 0 ? '▲' : '▼'} {Math.abs(coin.pct24h).toFixed(2)}% (24h)
+        <div className={`text-xs font-semibold mt-1 ${coin.pct24h == null ? 'text-terminal-text-dim' : coin.pct24h >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+          {coin.pct24h == null ? '24h change unavailable' : <>{coin.pct24h >= 0 ? '▲' : '▼'} {Math.abs(coin.pct24h).toFixed(2)}% (24h)</>}
         </div>
         {rangePct != null && (
           <div className="mt-2.5">
@@ -751,7 +754,9 @@ export default function CryptoModule() {
 
   const rawMarkets = rawMarketsResult?.data
   const markets    = rawMarkets   ? transformCryptoMarkets(rawMarkets, vsCurrency) : null
-  const fearGreed  = rawFearGreed ? transformFearGreed(rawFearGreed)               : null
+  const fgRead     = rawFearGreed ? transformFearGreed(rawFearGreed)               : null
+  // A reading without today's value is no reading: shown as unavailable.
+  const fearGreed  = fgRead?.value != null ? fgRead : null
   const chartData  = rawHistory   ? transformCoinHistory(rawHistory)               : null
 
   const momentum = useMemo(() => {
@@ -823,7 +828,7 @@ export default function CryptoModule() {
       name:   coin.name,
       ticker: coin.symbol,
       price:  `${currPrefix}${coin.price.toLocaleString('en-AU', { maximumFractionDigits: 2 })}`,
-      change: `${coin.pct24h >= 0 ? '+' : ''}${coin.pct24h.toFixed(2)}% (24h)`,
+      change: coin.pct24h == null ? undefined : `${coin.pct24h >= 0 ? '+' : ''}${coin.pct24h.toFixed(2)}% (24h)`,
       sector: 'Crypto',
       date:   todayAEST(),
     })

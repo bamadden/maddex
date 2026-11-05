@@ -4,6 +4,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { loadCryptoMarkets, fetchCryptoMarketsUnified, _resetCryptoSnapshots, usdConversion } from '../src/services/dataService.js'
 import { transformCryptoMarkets } from '../src/services/api.js'
 import { formatCryptoPrice, describeCryptoSource, pricePrefix } from '../src/utils/cryptoSource.js'
@@ -86,4 +87,19 @@ test('price prefixes', () => {
   assert.equal(pricePrefix('USD'), 'US$')
   assert.equal(formatCryptoPrice(0.4412, 'AUD'), 'A$0.4412')
   assert.equal(formatCryptoPrice(null, 'AUD'), '—')
+})
+
+test('crypto: a missing 24h change, market cap, volume or Fear & Greed day is unavailable, never 0% or 50', async () => {
+  const { transformCryptoMarkets, transformFearGreed } = await import('../src/services/api.js')
+  const [c] = transformCryptoMarkets([{ id: 'x', symbol: 'xyz', name: 'X', current_price: 1 }])
+  assert.equal(c.pct24h, null); assert.equal(c.mktCap, '—'); assert.equal(c.vol24h, '—')
+  const fg = transformFearGreed({ data: [{ value: '41', value_classification: 'Fear' }, { value: '39' }] })
+  assert.deepEqual([fg.value, fg.prev, fg.weekAgo, fg.monthAgo], [41, 39, null, null])
+  assert.equal(transformFearGreed({ data: [{}] }).value, null)
+  const { calculateMarketSentimentScore, calculateCryptoMomentumIndex } = await import('../src/services/maddenAiScoring.js')
+  assert.equal(calculateMarketSentimentScore({ fearGreed: { value: null } }), null, 'no F&G reading is not 50')
+  assert.ok(!(calculateCryptoMomentumIndex({ coins: [{ symbol: 'BTC', change24h: 1 }], fearGreed: { value: null } }).factors ?? []).some((f) => /Fear/.test(f.name)))
+  const mod = fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8')
+  assert.match(mod, /\{v \?\? '—'\}/, 'F&G history shows — for a missing day')
+  assert.doesNotMatch(mod, /c\.pct24h \?\? 0/)
 })

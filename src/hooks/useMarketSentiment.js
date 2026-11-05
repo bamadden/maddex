@@ -50,7 +50,8 @@ export function useMarketSentiment() {
     const cryptoList = crypto?.data ?? null
     const cryptoChanges = cryptoList ? cryptoList.map((c) => c.price_change_percentage_24h).filter((v) => v != null) : null
     const btc = cryptoList?.find((c) => c.symbol?.toUpperCase() === 'BTC')
-    const fearGreed = rawFearGreed ? transformFearGreed(rawFearGreed) : null
+    const fgRead = rawFearGreed ? transformFearGreed(rawFearGreed) : null
+    const fearGreed = fgRead?.value != null ? fgRead : null
     const haveAny = !!(asxChanges?.length || spxChange != null || cryptoChanges?.length || fearGreed)
     const loading = asxLoading || idxLoading || cryptoLoading || fgLoading
     const sentiment = haveAny ? calculateMarketSentimentScore({

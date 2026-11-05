@@ -67,7 +67,7 @@ export function calculateMarketSentimentScore(data) {
   const factors = []
   const sim = new Set(data.simulated ?? [])
 
-  if (data.fearGreed?.value !== undefined) {
+  if (typeof data.fearGreed?.value === 'number') {
     factors.push({ name: 'Crypto Fear & Greed', score: data.fearGreed.value, weight: 12 })
   }
 
@@ -152,7 +152,7 @@ export function calculateCryptoMomentumIndex({ coins, fearGreed }) {
   const breadth = gainerRatio(coins.map((c) => c.change24h))
   if (breadth !== null) factors.push({ name: 'Market Breadth', score: breadth * 100, weight: 20 })
 
-  if (fearGreed?.value !== undefined) {
+  if (typeof fearGreed?.value === 'number') {
     factors.push({ name: 'Fear & Greed Index', score: fearGreed.value, weight: 20 })
   }
 

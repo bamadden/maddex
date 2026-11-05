@@ -203,7 +203,7 @@ function CoinPoint({ coin, position, radius, color, showLabel, onHover, hovered,
             {hovered && (
               <>
                 <div style={{ color, fontWeight: 600 }}>
-                  {coin.pct24h >= 0 ? '▲' : '▼'} {Math.abs(coin.pct24h).toFixed(2)}% 24H
+                  {coin.pct24h == null ? '24H —' : `${coin.pct24h >= 0 ? '▲' : '▼'} ${Math.abs(coin.pct24h).toFixed(2)}% 24H`}
                 </div>
                 <div style={{ color: PAL.dim }}>
                   MCAP {(coin.marketCap / 1e9).toFixed(1)}B · VOL {(coin.volume / 1e9).toFixed(2)}B
@@ -289,7 +289,8 @@ function Scene({ coins, selected, setSelected }) {
     coins.forEach((coin) => {
       out[coin.symbol] = [
         scaleAxisLog(coin.marketCap, minCap, maxCap, half),
-        scaleAxis(coin.pct24h, -maxPct, maxPct, half),
+        // A missing change sits on the zero line; its label and tooltip say "—".
+        scaleAxis(coin.pct24h ?? 0, -maxPct, maxPct, half),
         scaleAxisLog(coin.volume, minVol, maxVol, half),
       ]
     })
@@ -315,7 +316,7 @@ function Scene({ coins, selected, setSelected }) {
       {coins.map((coin) => {
         const position = positionsBySymbol[coin.symbol]
         const radius = normalise(Math.log(Math.max(coin.marketCap, 1)), Math.log(Math.max(maxCap, 1)), 0.12, 0.55)
-        const color = coin.symbol === 'BTC' ? GOLD : coin.pct24h >= 0 ? GAIN_BRIGHT : LOSS_BRIGHT
+        const color = coin.symbol === 'BTC' ? GOLD : coin.pct24h == null ? '#64829F' : coin.pct24h >= 0 ? GAIN_BRIGHT : LOSS_BRIGHT
         return (
           <CoinPoint
             key={coin.symbol}
@@ -375,8 +376,8 @@ export default function CryptoLandscape3D({ coins }) {
             <div className="text-2xs text-terminal-text-dim">{selected.name || selected.symbol}</div>
           </div>
           <div className="text-right">
-            <div className={`text-xs font-bold ${selected.pct24h >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-              {selected.pct24h >= 0 ? '+' : ''}{selected.pct24h?.toFixed(2)}%
+            <div className={`text-xs font-bold ${selected.pct24h == null ? 'text-terminal-text-dim' : selected.pct24h >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {selected.pct24h == null ? '24h change unavailable' : `${selected.pct24h >= 0 ? '+' : ''}${selected.pct24h.toFixed(2)}%`}
             </div>
             <div className="text-2xs text-terminal-text-dim">24H</div>
           </div>

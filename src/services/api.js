@@ -879,14 +879,14 @@ export const transformCryptoMarkets = (items, currency = 'aud') =>
     symbol:    c.symbol.toUpperCase(),
     name:      c.name,
     price:     c.current_price,
-    pct24h:    c.price_change_percentage_24h ?? 0,
     // Missing is missing (the Binance fallback has no 7-day change), not 0%.
+    pct24h:    c.price_change_percentage_24h ?? null,
     pct7d:     c.price_change_percentage_7d_in_currency ?? null,
     pct30d:    c.price_change_percentage_30d_in_currency ?? null,
     marketCap: c.market_cap ?? null,
-    mktCap:    formatLargeNum(c.market_cap ?? 0),
+    mktCap:    c.market_cap == null ? '—' : formatLargeNum(c.market_cap),
     volume:    c.total_volume ?? null,
-    vol24h:    formatLargeNum(c.total_volume ?? 0),
+    vol24h:    c.total_volume == null ? '—' : formatLargeNum(c.total_volume),
     // The row's own currency wins: a fallback row that could not be
     // converted stays in US$ even when AUD was asked for.
     currency:  (c.currency ?? currency).toUpperCase(),
@@ -918,12 +918,17 @@ export const transformCoinHistory = ({ prices, total_volumes: vols = [] }) => {
     }))
 }
 
+// A day missing from the history is null (shown as "—"), never 50.
+const fgAt = (row) => {
+  const v = parseInt(row?.value, 10)
+  return Number.isFinite(v) ? v : null
+}
 export const transformFearGreed = ({ data }) => ({
-  value:    parseInt(data[0].value, 10),
-  label:    data[0].value_classification,
-  prev:     parseInt(data[1]?.value ?? 50, 10),
-  weekAgo:  parseInt(data[7]?.value ?? 50, 10),
-  monthAgo: parseInt(data[29]?.value ?? 50, 10),
+  value:    fgAt(data[0]),
+  label:    data[0]?.value_classification ?? null,
+  prev:     fgAt(data[1]),
+  weekAgo:  fgAt(data[7]),
+  monthAgo: fgAt(data[29]),
 })
 
 // ─── Frankfurter FX (via proxy → /api/frankfurter, direct fallback) ──────────

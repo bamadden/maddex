@@ -11,8 +11,8 @@ findings were checked in the code before building.
 |---|---|---|---|---|
 | 1 | High: honesty, licence | DefiLlama is switched off, but a cached copy is returned before the licence check and badged LIVE ('cache' → LIVE), and on a licence error an old copy is served as STALE. | `defiService.js:44–55`; `utils/dataClass.js:57` | Next |
 | 2 | High: honesty | The DeFi panel says "live public API, no key" and shows "Nothing in this category right now" instead of saying the source is switched off; the stablecoin tile and note too. | `DefiPanel.jsx:95, 187, 282, 335` | Next |
-| 3 | High: honesty | Missing Fear & Greed history shown as 50 (neutral): yesterday, 7d and 30d. | `api.js:924–926` | Next |
-| 4 | High: honesty | Missing 24h change becomes 0%, missing market cap and volume "0". | `api.js:882, 887, 889`; `CryptoModule.jsx:113, 160, 421` | Next |
+| 3 | High: honesty | Missing Fear & Greed history shown as 50 (neutral): yesterday, 7d and 30d. | `api.js:924–926` | Done 5 Nov: a missing day is null and shows "—"; a reading without today's value counts as no reading |
+| 4 | High: honesty | Missing 24h change becomes 0%, missing market cap and volume "0". | `api.js:882, 887, 889`; `CryptoModule.jsx:113, 160, 421` | Done 5 Nov: null, shown as "—" or "24h change unavailable"; sector averages leave missing coins out |
 | 5 | High: legal | Halving card: "Past halvings have preceded strong rallies". | `CryptoExtras.jsx:62` | Next |
 | 6 | High: legal, honesty | Momentum factor "Volume Conviction" defaults to 50 when volume is missing and is absent from the published method. | `maddenAiScoring.js:147, 154`; `methodology.js` | Next |
 | 7 | High: honesty | My Crypto counts unpriced coins as A$0, which reads as a loss; footer always "Priced live from CoinGecko". | `CryptoExtras.jsx:114, 118, 200` | Next |
