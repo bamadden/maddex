@@ -11,7 +11,7 @@ import {
   EXCHANGES, TRADE_ROUTES, SHIPPING_DISRUPTIONS, COMMODITY_SITES,
   GEOPOLITICAL_EVENTS, UNDERSEA_CABLES, MILITARY_BASES, MAJOR_CITIES,
   SEVERITY_COLOUR, isExchangeOpen,
-  overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS,
+  overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS, mapStatusLine, MAP_SOURCE_CLASS,
   AU_KEY_SITES, AU_IMPACT, FINANCIAL_DISTRICTS, CENTRAL_BANK_SITES,
 } from './intelMapData'
 import { pendingEvents, scheduledEvents } from '../../services/calendarService'
@@ -1076,15 +1076,15 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   // the Natural Earth outlines resolved. A hardcoded "7 SOURCES ACTIVE" would
   // be decoration that says 7 while a feed is down.
   const feedStatus = useMemo(() => [
-    { label: 'USGS seismic',        ok: quakeState === 'ready' },
-    { label: 'Basemap tiles',       ok: Boolean(MAP_STYLES[mapStyle]) },
-    { label: 'Exchange sessions',   ok: true },
-    { label: 'Trade routes',        ok: TRADE_ROUTES.length > 0 },
-    { label: 'Intel narrative (AI)', ok: narrativeSource === 'live' || narrativeSource === 'cache' },
+    { label: 'USGS seismic',        cls: 'LIVE', ok: quakeState === 'ready' },
+    { label: 'Basemap tiles',       cls: 'TILES', ok: Boolean(MAP_STYLES[mapStyle]) },
+    { label: 'Exchange sessions',   cls: 'REFERENCE', ok: true },
+    { label: 'Trade routes, disruption zones, events', cls: 'REFERENCE', ok: TRADE_ROUTES.length > 0 },
+    { label: 'Intel narrative (AI)', cls: 'AI', ok: narrativeSource === 'live' || narrativeSource === 'cache' },
     // Outlines are fetched only when a layer needs them (see useCountries), so
     // they count only then. Listed always, they read as a failed feed — "4/6
     // SOURCES ACTIVE" — on every visit that never asked for them.
-    ...(layerOn.countries || layerOn.density ? [{ label: 'Country outlines', ok: Boolean(countries) }] : []),
+    ...(layerOn.countries || layerOn.density ? [{ label: 'Country outlines', cls: 'TILES', ok: Boolean(countries) }] : []),
   ], [quakeState, mapStyle, narrativeSource, countries, layerOn.countries, layerOn.density])
 
   const shell = fullscreen
@@ -1367,13 +1367,17 @@ function HudFrame({ insetL = 0, insetR = 0 }) {
 // Reports what is actually feeding the map right now, counted from the live
 // services rather than hardcoded — a "7 SOURCES ACTIVE" that says 7 whatever
 // happens is the same class of decoration as an invented figure.
+//
+// Only a real feed counts as live. Hand-entered layers (exchange sessions,
+// trade routes, disruption zones, events) and AI narrative are named for what
+// they are, not added to a "sources active" count (mapStatusLine).
 function DataStatus({ sources, bottom, left = 12 }) {
-  const active = sources.filter((s) => s.ok).length
-  const allOk = active === sources.length
-  const colour = active === 0 ? PAL.down : allOk ? PAL.up : PAL.gold
+  const { text, liveOk, liveTotal } = mapStatusLine(sources)
+  const colour = liveTotal && !liveOk ? PAL.down : PAL.gold
   return (
     <div
-      title={sources.map((s) => `${s.ok ? '●' : '○'} ${s.label}`).join('\n')}
+      data-map-status
+      title={sources.map((s) => `${s.ok ? '●' : '○'} ${s.label} · ${MAP_SOURCE_CLASS[s.cls] ?? s.cls}`).join('\n')}
       style={{
         position: 'absolute', bottom, left, zIndex: Z.CHROME,
         background: 'rgba(6,13,26,0.9)', border: `1px solid ${colour}44`,
@@ -1382,7 +1386,7 @@ function DataStatus({ sources, bottom, left = 12 }) {
         letterSpacing: '0.1em', color: colour,
       }}
     >
-      ● {active === 0 ? 'NO LIVE SOURCES' : `LIVE DATA · ${active}/${sources.length} SOURCES ACTIVE`}
+      ● {text}
     </div>
   )
 }

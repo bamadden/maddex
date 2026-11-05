@@ -69,3 +69,13 @@ test('bilateral trade: ABS values for Australia\'s pairs only; nothing generated
   const mod = read('src/modules/global/GlobalModule.jsx')
   assert.doesNotMatch(mod, /seededHash|partnerTradeStats|Illustrative bilateral estimates/)
 })
+
+test('map status names only a real feed as live; hand-entered layers and AI text are not counted', async () => {
+  const { mapStatusLine } = await import('../src/modules/global/intelMapData.js')
+  const src = [{ label: 'USGS seismic', cls: 'LIVE', ok: true }, { label: 'Exchange sessions', cls: 'REFERENCE', ok: true }, { label: 'Intel narrative (AI)', cls: 'AI', ok: true }]
+  assert.equal(mapStatusLine(src).text, 'LIVE: USGS · OTHER LAYERS HAND-ENTERED')
+  assert.equal(mapStatusLine([{ ...src[0], ok: false }, src[1]]).text, 'LIVE FEED DOWN: USGS · OTHER LAYERS HAND-ENTERED')
+  const map = read('src/modules/global/DeckGLMap.jsx')
+  assert.doesNotMatch(map, /`LIVE DATA ·|SOURCES ACTIVE`/)
+  for (const m of map.matchAll(/\{ label: '[^']+',\s+(cls: '\w+')?/g)) assert.ok(m[1], `feed without a class: ${m[0]}`)
+})

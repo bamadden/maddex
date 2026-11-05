@@ -311,6 +311,17 @@ export function overlayNarrative(rows, aiRows, fields) {
   })
 }
 
+// The map's status line. Only a real feed (USGS) is counted as live; the
+// other layers are named by class, never added to a live-source count.
+export const MAP_SOURCE_CLASS = { LIVE: 'live feed', REFERENCE: 'hand-entered reference', AI: 'AI-written text', TILES: 'map tiles' }
+export function mapStatusLine(sources) {
+  const live = sources.filter((s) => s.cls === 'LIVE')
+  const liveOk = live.filter((s) => s.ok).length
+  const head = live.length === 0 ? 'NO LIVE FEED' : liveOk === live.length ? `LIVE: ${live.map((s) => s.label.split(' ')[0].toUpperCase()).join(', ')}` : `LIVE FEED DOWN: ${live.filter((s) => !s.ok).map((s) => s.label.split(' ')[0].toUpperCase()).join(', ')}`
+  const rest = sources.some((s) => s.cls === 'REFERENCE') ? ' · OTHER LAYERS HAND-ENTERED' : ''
+  return { text: head + rest, liveOk: liveOk === live.length, liveTotal: live.length }
+}
+
 export const SHIPPING_NARRATIVE_FIELDS = ['title', 'detail', 'impact', 'auExports', 'trend']
 export const GEO_NARRATIVE_FIELDS = ['summary', 'marketImpact', 'asxExposure', 'trend']
 
