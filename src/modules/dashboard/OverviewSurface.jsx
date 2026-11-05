@@ -18,7 +18,7 @@ import { formatCryptoPrice } from '../../utils/cryptoSource'
 import DataBadge from '../../components/ui/DataBadge'
 import PriceChange from '../../components/ui/PriceChange'
 import ScoreNote from '../../components/ui/ScoreNote'
-import { computePortfolioSnapshot, holdingRows } from './portfolioSnapshot'
+import { computePortfolioSnapshot, holdingRows, byMove } from './portfolioSnapshot'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -167,14 +167,14 @@ function useHoldings() {
   const { data, dataUpdatedAt } = useQuery({ queryKey: ['dashPortfolio', symbols], queryFn: () => fetchEquityQuotes(symbols), enabled: symbols.length > 0, staleTime: 60_000, retry: 1 })
   const { usdToAud } = useAudRates()
   const stats = useMemo(() => computePortfolioSnapshot(priceable, data?.data ?? {}, usdToAud), [priceable, data, usdToAud])
-  const rows = useMemo(() => holdingRows(priceable, data?.data ?? {}, usdToAud), [priceable, data, usdToAud])
+  const rows = useMemo(() => byMove(holdingRows(priceable, data?.data ?? {}, usdToAud)), [priceable, data, usdToAud])
   return { holdings, stats, rows, data, dataUpdatedAt }
 }
 
 function Holdings({ h, goTo }) {
   const th = 'text-right font-normal font-mono tracking-widest text-terminal-text-dim pb-1'
   return (
-    <Panel id="ov-holdings" title="HOLDINGS" action="PORTFOLIO" onAction={() => goTo('portfolio')}
+    <Panel id="ov-holdings" title="HOLDINGS · BY TODAY'S MOVE" action="PORTFOLIO" onAction={() => goTo('portfolio')}
       badge={h.data && <DataBadge cls={classOfResult(h.data, { demo: USING_MOCK_DATA })} source={EQUITY_SOURCE} at={h.data.stale ? h.data.cachedAt : h.dataUpdatedAt || null} />}>
       {!h.holdings.length ? <Empty action="ADD HOLDINGS" onAction={() => goTo('portfolio')}>No holdings yet. Add what you own to see value, P&amp;L and rate exposure here.</Empty> : (
         <>
@@ -209,10 +209,16 @@ function Watchlist({ goTo }) {
   const { watchlist } = useStore()
   const { usdToAud } = useAudRates()
   const syms = (watchlist ?? []).map((w) => w.symbol ?? w)
-  const equities = syms.filter((s) => /\.AX$/.test(s) || /^[A-Z]{1,5}$/.test(s)).slice(0, 14)
-  const { data, dataUpdatedAt } = useQuery({ queryKey: ['dashWatchlist', equities], queryFn: () => fetchEquityQuotes(equities), enabled: equities.length > 0, staleTime: 60_000, retry: 1 })
+  // Quotes for every equity on the list, so the movers are chosen from all
+  // of it; the panel shows the 14 largest moves and says how many more.
+  const all = syms.filter((s) => /\.AX$/.test(s) || /^[A-Z]{1,5}$/.test(s))
+  const { data, dataUpdatedAt } = useQuery({ queryKey: ['dashWatchlist', all], queryFn: () => fetchEquityQuotes(all), enabled: all.length > 0, staleTime: 60_000, retry: 1 })
+  const ranked = byMove(all, (s) => data?.data?.[s]?.pct ?? null)
+  const equities = ranked.slice(0, 14)
+  const more = all.length - equities.length
+  const other = syms.length - all.length
   return (
-    <Panel id="ov-watch" title="WATCHLIST" action="WATCHLIST" onAction={() => goTo('watchlist')}
+    <Panel id="ov-watch" title="WATCHLIST · BY TODAY'S MOVE" action="WATCHLIST" onAction={() => goTo('watchlist')}
       badge={data && <DataBadge cls={classOfResult(data, { demo: USING_MOCK_DATA })} source={EQUITY_SOURCE} at={data.stale ? data.cachedAt : dataUpdatedAt || null} />}>
       {!equities.length ? <Empty action="ADD STOCKS" onAction={() => goTo('watchlist')}>Your watchlist is empty.</Empty> : (
         <table className="w-full font-mono" style={{ fontSize: 12 }}>
@@ -230,6 +236,11 @@ function Watchlist({ goTo }) {
             })}
           </tbody>
         </table>
+      )}
+      {(more > 0 || other > 0) && (
+        <div className="mt-1 font-mono text-terminal-text-dim" style={{ fontSize: 11 }} data-watch-more>
+          {[more > 0 && `${more} more on the list`, other > 0 && `${other} non-equity (crypto, FX) not shown here`].filter(Boolean).join(' · ')}
+        </div>
       )}
     </Panel>
   )

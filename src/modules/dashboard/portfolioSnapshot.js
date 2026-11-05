@@ -77,3 +77,13 @@ export function holdingRows(priceable, rows, usdToAud) {
   const total = out.reduce((s, r) => s + (r.value ?? 0), 0)
   return out.map((r) => ({ ...r, weight: r.value != null && total ? (r.value / total) * 100 : null })).sort((a, b) => (b.value ?? -1) - (a.value ?? -1))
 }
+
+// Rows by the size of the day's move, either way, largest first; rows with
+// no move yet go last, in their existing order. The Overview's holdings and
+// watchlist are movers lists, so the day's biggest moves lead.
+export function byMove(rows, pctOf = (r) => r.pct) {
+  return rows
+    .map((r, i) => ({ r, i, m: pctOf(r) }))
+    .sort((a, b) => (a.m == null) - (b.m == null) || Math.abs(b.m ?? 0) - Math.abs(a.m ?? 0) || a.i - b.i)
+    .map((x) => x.r)
+}
