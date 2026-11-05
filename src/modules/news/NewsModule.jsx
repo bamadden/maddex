@@ -15,6 +15,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { annotateArticles, clusterStories, marketSession, impactOf } from '../../services/newsIntelligence'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
+import SentimentClass from '../../components/ui/SentimentClass'
 import { gatherBriefContext, buildNewsBriefPrompt } from '../../services/briefContext'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import ContextPrompt from '../../components/ai/ContextPrompt'
@@ -1051,7 +1052,7 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, mark
       {market?.sentiment && (
         <div className="px-3 py-2 border-b border-terminal-border" title={sentimentTooltip(market)}>
           {head('Market sentiment', <span className="ml-auto font-mono font-bold" data-sentiment-score={market.sentiment.score} style={{ fontSize: 11, color: market.sentiment.color ?? PAL.gold }}>{market.sentiment.score} · {market.sentiment.label.toUpperCase()}</span>)}
-          <div className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>Computed from market data{market.demoInputs ? ' · DEMO ASX inputs' : ''}</div>
+          <div className="font-mono text-terminal-text-dim/70 flex items-center gap-1.5" style={{ fontSize: 11 }}>{market.demo ? 'Demo composite: simulated ASX and S&P 500 inputs' : 'Computed by Maddex'}<SentimentClass ms={market} /></div>
           <ScoreNote method="sentiment" inputs={market.inputs} asOf={market.asOf} className="mt-1" />
         </div>
       )}

@@ -4,6 +4,7 @@ import { displayService } from '../../services/displayService'
 import { RegimeBadge } from '../../components/ui/RegimeBadge'
 import IntelligenceScore from './IntelligenceScore'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
+import SentimentClass from '../../components/ui/SentimentClass'
 
 // The market sentiment score, the same number as the top bar and Markets.
 function SentimentChip() {
@@ -11,10 +12,13 @@ function SentimentChip() {
   const s = ms.sentiment
   if (!s) return null
   return (
+    <span className="inline-flex items-center gap-1">
     <span className="font-mono font-bold tracking-widest px-2 py-0.5 whitespace-nowrap cursor-help"
       style={{ fontSize: 11, color: s.color ?? PAL.gold, border: '1px solid currentColor', borderRadius: 2 }}
       title={sentimentTooltip(ms)} data-sentiment-score={s.score}>
       SENTIMENT {s.score} · {s.label.toUpperCase()}
+    </span>
+    <SentimentClass ms={ms} />
     </span>
   )
 }

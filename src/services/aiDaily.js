@@ -193,7 +193,7 @@ export const SENTIMENT_FEEDS = [
 ]
 
 function sentimentPrompt(headlines) {
-  return `Analyse these financial news headlines and return a market sentiment read, in words, for Australian investors. Do not give a number: the terminal computes its own sentiment score from market data.
+  return `Analyse these financial news headlines and return a market sentiment read, in words, for Australian investors. Do not give a number: the terminal computes its own sentiment score in code.
 Some feeds carry general news. Ignore any headline with no plausible market relevance (crime, accidents, sport, entertainment, health stories that move no stock) — read only what an investor could position around, and name only such headlines as drivers.
 
 Headlines:

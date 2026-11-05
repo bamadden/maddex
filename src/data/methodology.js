@@ -19,9 +19,9 @@ export const METHODS = {
       'Bitcoin daily % change, scaled (weight 12)',
       'Crypto Fear & Greed index, as published by alternative.me (weight 12)',
       'Crypto breadth — share of tracked coins that rose (weight 8)',
-      'Missing inputs are left out and the weights re-normalised over the rest.',
+      'Missing inputs are left out, never counted as 0% or 50, and the weights re-normalised over the rest. With no inputs there is no score.',
     ],
-    not: 'It describes what has happened. It does not predict what markets will do and is not a signal to buy or sell. Equity inputs are DEMO data until a licensed price feed is connected.',
+    not: 'It describes what has happened. It does not predict what markets will do and is not a signal to buy or sell. While no licensed equity feed is connected, the ASX and S&P 500 inputs (50 of the 82 weight points) are simulated DEMO prices, so the score is a demo composite and is badged DEMO wherever it appears.',
   },
   outlook: {
     name: 'MaddenAI outlook (words)',

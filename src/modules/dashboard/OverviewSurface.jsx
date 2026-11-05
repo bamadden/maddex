@@ -10,6 +10,7 @@ import { currentRegime } from '../../services/marketRegime'
 import { loadAlertHistory } from '../../services/alertsService'
 import { beginVisit, recordVisit, sinceLastVisit } from '../../services/lastVisit'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
+import SentimentClass from '../../components/ui/SentimentClass'
 import { useAudRates } from '../../hooks/useAudRates'
 import { requireYFSym } from '../../utils/tickerGuard'
 import { sydneyClock, sydneyOffset, formatDate } from '../../utils/dateUtils'
@@ -105,8 +106,8 @@ function MarketState() {
         <Stat label="AUD/USD" value={audUsd != null ? audUsd.toFixed(4) : '—'} sub={<span className="text-terminal-text-dim">ECB reference</span>} />
         <Stat label="BTC" value={btc ? formatCryptoPrice(btc.price, btc.currency) : '—'} sub={<PriceChange pct={btc?.pct24h ?? null} size="text-[11px]" />} />
         <div title={sentimentTooltip(ms)}>
-          <Stat label="SENTIMENT" value={<span data-sentiment-score={ms.sentiment?.score} style={{ color: ms.sentiment?.color }}>{ms.sentiment?.score ?? '—'}</span>}
-            sub={<span className="text-terminal-text-dim">{ms.sentiment ? `${ms.sentiment.label} · computed` : ms.status === 'loading' ? 'reading data…' : 'no data yet'}</span>} />
+          <Stat label="SENTIMENT" value={<span className="inline-flex items-center gap-1.5"><span data-sentiment-score={ms.sentiment?.score} style={{ color: ms.sentiment?.color }}>{ms.sentiment?.score ?? '—'}</span><SentimentClass ms={ms} /></span>}
+            sub={<span className="text-terminal-text-dim">{ms.sentiment ? `${ms.sentiment.label} · ${ms.demo ? 'demo composite' : 'computed'}` : ms.status === 'loading' ? 'reading data…' : 'no data yet'}</span>} />
         </div>
       </div>
       {ms.sentiment && <ScoreNote method="sentiment" inputs={ms.inputs} asOf={ms.asOf} className="px-2 pb-1.5" />}

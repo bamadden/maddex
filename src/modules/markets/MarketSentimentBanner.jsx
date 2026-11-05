@@ -7,6 +7,7 @@ import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 import { CREDIT } from '../../data/credits'
+import SentimentClass from '../../components/ui/SentimentClass'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import { USING_MOCK_DATA } from '../../services/api'
 
@@ -91,8 +92,9 @@ function histStats(hist) {
 }
 
 function getFactorDescription(name, score, { asxChanges, fearGreed }) {
-  const gainers = asxChanges?.filter((c) => (c ?? 0) > 0).length ?? 0
-  const total   = asxChanges?.length ?? 0
+  const known   = (asxChanges ?? []).filter((c) => typeof c === 'number' && Number.isFinite(c))
+  const gainers = known.filter((c) => c > 0).length
+  const total   = known.length
   const fgLbl   = fearGreed?.label ?? null
   switch (name) {
     case 'Crypto Fear & Greed':   return fgLbl ? `${fgLbl} — crypto ${score < 40 ? 'risk-off' : score > 60 ? 'risk-on' : 'cautious'}` : null
@@ -343,7 +345,8 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
         {/* ── Header ── */}
         <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
           <span className="text-2xs border border-terminal-gold/40 px-1.5 py-0.5 font-bold tracking-widest text-terminal-gold">SENTIMENT</span>
-          <span className="text-sm font-bold text-terminal-gold tracking-wider">MARKET SENTIMENT · COMPUTED FROM MARKET DATA</span>
+          <span className="text-sm font-bold text-terminal-gold tracking-wider">{ms?.demo ? 'MARKET SENTIMENT · DEMO COMPOSITE' : 'MARKET SENTIMENT · COMPUTED BY MADDEX'}</span>
+          <SentimentClass ms={ms} />
           <span className="text-terminal-text-dim/40">◆</span>
           <span className="text-sm font-bold" style={{ color: scoreToColor(sentiment.score) }}>
             {sentiment.score}/100 {sentiment.label.toUpperCase()}
@@ -435,7 +438,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
                 return (
                   <div key={f.name} style={{ padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>{f.demo && <span data-class="DEMO" style={{ fontSize: 11, color: PAL.gold, marginLeft: 6 }}>DEMO</span>}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                         <span style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>wt {f.weight}%</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: col }}>{f.score}/100</span>
@@ -475,7 +478,7 @@ export default function MarketSentimentBanner() {
   const ms = useMarketSentiment()
   const { sentiment, asxChanges, fearGreed } = ms
 
-  const shortSummary = sentiment ? generateShortSummary({ marketSentimentScore: sentiment, asxChanges, fearGreed }) : ''
+  const shortSummary = sentiment ? generateShortSummary({ marketSentimentScore: sentiment, asxChanges, fearGreed, demo: ms.demo }) : ''
   const color        = sentiment ? scoreToColor(sentiment.score) : 'var(--color-neutral)'
 
   // Persist score to history + prev-session key
@@ -502,6 +505,7 @@ export default function MarketSentimentBanner() {
         <span className="text-2xs font-bold flex-shrink-0 whitespace-nowrap" style={{ color }} data-sentiment-score={sentiment.score}>
           {sentiment.score}/100
         </span>
+        <SentimentClass ms={ms} className="flex-shrink-0" />
         {/* Phones keep the score and its label; the bar, breadth and summary
             are in DETAILS. */}
         <div className="hidden sm:block"><ScoreGradientBar score={sentiment.score} /></div>

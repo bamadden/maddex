@@ -41,8 +41,9 @@ function weeklyMomentumToScore(changePct) {
 
 function gainerRatio(changes) {
   if (!changes?.length) return null
-  const gainers = changes.filter((c) => (c ?? 0) > 0).length
-  return gainers / changes.length
+  const known = changes.filter((c) => typeof c === 'number' && Number.isFinite(c))
+  if (!known.length) return null
+  return known.filter((c) => c > 0).length / known.length
 }
 
 // ── OVERALL MARKET SENTIMENT SCORE ────────────────────────────────────────────
@@ -56,9 +57,15 @@ function gainerRatio(changes) {
 //   spxChange:     number | null           — S&P 500 (^GSPC) 24h % change
 //   btcChange:     number | null           — BTC 24h % change
 //   cryptoChanges: number[]                — 24h % change per tracked crypto asset
+//   simulated:     string[]                — input keys that are DEMO data
+//                                            ('asx', 'spx'); their factors are
+//                                            marked demo: true
 // }
+// A missing change is left out, never counted as 0%. With no inputs at all
+// there is no score: null, not 50.
 export function calculateMarketSentimentScore(data) {
   const factors = []
+  const sim = new Set(data.simulated ?? [])
 
   if (data.fearGreed?.value !== undefined) {
     factors.push({ name: 'Crypto Fear & Greed', score: data.fearGreed.value, weight: 12 })
@@ -66,16 +73,17 @@ export function calculateMarketSentimentScore(data) {
 
   const asxBreadth = gainerRatio(data.asxChanges)
   if (asxBreadth !== null) {
-    factors.push({ name: 'ASX Market Breadth', score: asxBreadth * 100, weight: 20 })
+    factors.push({ name: 'ASX Market Breadth', score: asxBreadth * 100, weight: 20, demo: sim.has('asx') })
   }
 
-  if (data.asxChanges?.length) {
-    const avgChange = data.asxChanges.reduce((s, c) => s + (c ?? 0), 0) / data.asxChanges.length
-    factors.push({ name: 'ASX Price Momentum', score: momentumToScore(avgChange), weight: 15 })
+  const asxKnown = (data.asxChanges ?? []).filter((c) => typeof c === 'number' && Number.isFinite(c))
+  if (asxKnown.length) {
+    const avgChange = asxKnown.reduce((s, c) => s + c, 0) / asxKnown.length
+    factors.push({ name: 'ASX Price Momentum', score: momentumToScore(avgChange), weight: 15, demo: sim.has('asx') })
   }
 
   if (data.spxChange !== undefined && data.spxChange !== null) {
-    factors.push({ name: 'S&P 500 Momentum', score: momentumToScore(data.spxChange), weight: 15 })
+    factors.push({ name: 'S&P 500 Momentum', score: momentumToScore(data.spxChange), weight: 15, demo: sim.has('spx') })
   }
 
   if (data.btcChange !== undefined && data.btcChange !== null) {
@@ -87,18 +95,22 @@ export function calculateMarketSentimentScore(data) {
     factors.push({ name: 'Crypto Market Breadth', score: cryptoBreadth * 100, weight: 8 })
   }
 
-  if (factors.length === 0) return { score: 50, label: 'Neutral', confidence: 0, factors: [] }
+  if (factors.length === 0) return null
 
   const totalWeight = factors.reduce((s, f) => s + f.weight, 0)
   const weightedSum = factors.reduce((s, f) => s + f.score * f.weight, 0)
   const finalScore = Math.round(Math.max(0, Math.min(100, weightedSum / totalWeight)))
   const confidence = Math.round((factors.length / 6) * 100)
+  const demoWeight = factors.filter((f) => f.demo).reduce((s, f) => s + f.weight, 0)
 
   return {
     score: finalScore,
     label: scoreToLabel(finalScore),
     color: scoreToColor(finalScore),
     confidence,
+    // Share of the weight resting on DEMO inputs (0–100). Above 0 the score
+    // is a demo composite and every screen badges it DEMO.
+    demoShare: Math.round((demoWeight / totalWeight) * 100),
     factors: factors.map((f) => ({
       ...f,
       score: Math.round(f.score),
@@ -188,24 +200,24 @@ export function explainScore(scoreObject) {
 }
 
 // ── SHORT BANNER SUMMARY — max ~60 chars ─────────────────────────────────────
-export function generateShortSummary({ marketSentimentScore, asxChanges, fearGreed }) {
-  const score = marketSentimentScore?.score ?? 50
+export function generateShortSummary({ marketSentimentScore, asxChanges, fearGreed, demo = false }) {
+  const score = marketSentimentScore?.score
   const fgVal = fearGreed?.value ?? null
   const fgLbl = fearGreed?.label ?? null
-  const asxAvg = asxChanges?.length
-    ? asxChanges.reduce((s, c) => s + (c ?? 0), 0) / asxChanges.length
-    : null
+  const asxKnown = (asxChanges ?? []).filter((c) => typeof c === 'number' && Number.isFinite(c))
+  const asxAvg = asxKnown.length ? asxKnown.reduce((s, c) => s + c, 0) / asxKnown.length : null
+  const tag = demo ? ' (DEMO)' : ''
 
   let parts = []
   if (asxAvg !== null) {
-    if (Math.abs(asxAvg) < 0.3) parts.push('ASX flat')
-    else if (asxAvg > 0) parts.push(`ASX +${asxAvg.toFixed(1)}%`)
-    else parts.push(`ASX ${asxAvg.toFixed(1)}%`)
+    if (Math.abs(asxAvg) < 0.3) parts.push(`ASX flat${tag}`)
+    else if (asxAvg > 0) parts.push(`ASX +${asxAvg.toFixed(1)}%${tag}`)
+    else parts.push(`ASX ${asxAvg.toFixed(1)}%${tag}`)
   }
   // Named for what it is: the crypto index, not a market-wide fear reading.
   // alternative.me's licence: the credit sits right next to the figure.
   if (fgVal !== null && fgLbl) parts.push(`Crypto Fear & Greed ${fgVal} (${fgLbl} · ${CREDIT.alternativeme.text})`)
-  if (parts.length === 0) {
+  if (parts.length === 0 && score != null) {
     if (score >= 65) parts.push('Broad gains across markets')
     else if (score >= 55) parts.push('Mildly positive conditions')
     else if (score >= 45) parts.push('Mixed moves')
@@ -213,37 +225,4 @@ export function generateShortSummary({ marketSentimentScore, asxChanges, fearGre
     else parts.push('Broad declines across markets')
   }
   return parts.join(' — ')
-}
-
-// ── AI SNAPSHOT TEXT ──────────────────────────────────────────────────────────
-// Plain-English daily snapshot for a Home/Markets banner.
-export function generateSnapshotText({ marketSentimentScore, cryptoMomentumIndex, asxChanges, fearGreed }) {
-  const mss = marketSentimentScore?.score ?? 50
-  const cmi = cryptoMomentumIndex?.score ?? 50
-  const fgVal = fearGreed?.value ?? 50
-  const fgLbl = fearGreed?.label ?? 'Neutral'
-
-  const asxAvg = asxChanges?.length
-    ? asxChanges.reduce((s, c) => s + (c ?? 0), 0) / asxChanges.length
-    : 0
-  const asxGainers = asxChanges?.filter((c) => (c ?? 0) > 0).length ?? 0
-  const asxLosers = asxChanges?.filter((c) => (c ?? 0) < 0).length ?? 0
-
-  let snapshot
-  // Computed in code from market data — not written by MaddenAI.
-  if (mss >= 65) snapshot = 'Market data shows broad-based gains. '
-  else if (mss >= 55) snapshot = 'Market data shows mildly positive conditions. '
-  else if (mss >= 45) snapshot = 'Market data is mixed. '
-  else if (mss >= 35) snapshot = 'Market data shows mild declines. '
-  else snapshot = 'Market data shows broad-based declines. '
-
-  if (asxAvg > 0.5) snapshot += `ASX tracking well with ${asxGainers} of ${asxChanges.length} tracked stocks advancing. `
-  else if (asxAvg < -0.5) snapshot += `ASX under pressure with ${asxLosers} of ${asxChanges.length} tracked stocks in the red. `
-  else if (asxChanges?.length) snapshot += 'ASX broadly flat, with gains and losses evenly distributed. '
-
-  if (cmi >= 65) snapshot += `Crypto momentum is strong (${cmi}/100). `
-  else if (cmi <= 35) snapshot += `Crypto momentum is weak (${cmi}/100). `
-
-  if (fearGreed) snapshot += `Market sentiment: ${fgLbl} (Fear & Greed: ${fgVal}/100).`
-  return snapshot.trim()
 }

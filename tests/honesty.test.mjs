@@ -157,3 +157,26 @@ test('volume cards state facts only, each with a DEMO badge and a data date (Pha
   assert.match(card, /<DemoBadge \/>\s*<span className="opacity-80">as at \{formatDate\(detectedAt, \{ year: false \}\)\} \{sydneyClock\(detectedAt\)\.text\}<\/span>/)
   assert.match(code, /These are demo figures; do not suggest any action\./)
 })
+
+test('sentiment: simulated inputs make it a DEMO composite, badged on every screen; missing is never 0 or 50', async () => {
+  const inputs = { fearGreed: { value: 34 }, asxChanges: [0.5, -0.2, 1.1], spxChange: 0.3, btcChange: 0.4, cryptoChanges: [0.4, 1] }
+  const demo = calculateMarketSentimentScore({ ...inputs, simulated: ['asx', 'spx'] })
+  assert.equal(demo.demoShare, Math.round(50 / 82 * 100))
+  assert.ok(demo.factors.filter((f) => f.demo).map((f) => f.name).join() === 'ASX Market Breadth,ASX Price Momentum,S&P 500 Momentum')
+  assert.equal(calculateMarketSentimentScore(inputs).demoShare, 0)
+  assert.equal(calculateMarketSentimentScore({}), null, 'no inputs: no score, not 50')
+  assert.equal(calculateMarketSentimentScore({ asxChanges: [null, undefined] }), null, 'missing changes are not 0%')
+  const withGap = calculateMarketSentimentScore({ asxChanges: [1, null, 1] }).factors.find((f) => f.name === 'ASX Market Breadth')
+  assert.equal(withGap.score, 100, 'a missing change is left out, not counted as a faller')
+  assert.match(generateShortSummary({ marketSentimentScore: demo, asxChanges: [1.2], demo: true }), /ASX \+1\.2% \(DEMO\)/)
+  assert.equal(generateShortSummary({ marketSentimentScore: null, asxChanges: [null] }), '')
+  for (const f of ['src/components/layout/SentimentTick.jsx', 'src/modules/markets/MarketSentimentBanner.jsx', 'src/modules/dashboard/DashboardStatusBar.jsx',
+    'src/modules/dashboard/widgets/MarketScoreWidget.jsx', 'src/modules/news/NewsModule.jsx', 'src/modules/dashboard/OverviewSurface.jsx', 'src/components/ui/SentimentIndicator.jsx']) {
+    const src = read(f)
+    assert.match(src, /<SentimentClass ms=/, `${f} badges the score`)
+    assert.doesNotMatch(src, /(COMPUTED|Computed) from market data/, f)
+  }
+  const badge = read('src/components/ui/SentimentClass.jsx')
+  assert.match(badge, /cls="DEMO" compact/, 'compact: the class shows at every width')
+  assert.doesNotMatch(read('src/hooks/useMarketSentiment.js'), /from market data/)
+})

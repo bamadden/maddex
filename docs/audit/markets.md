@@ -8,7 +8,7 @@ building. (Equity prices are DEMO until a licensed feed is chosen.)
 
 | # | Impact | Finding | Evidence | Status |
 |---|---|---|---|---|
-| 1 | High: honesty | The sentiment score takes 35% of its weight from simulated ASX moves, is headed "COMPUTED FROM MARKET DATA", and its only DEMO badge (beside the breadth gauge) is hidden below `md`. | `MarketSentimentBanner.jsx:346, 513`; `maddenAiScoring.js:68` | Next |
+| 1 | High: honesty | The sentiment score takes 35% of its weight from simulated ASX moves, is headed "COMPUTED FROM MARKET DATA", and its only DEMO badge (beside the breadth gauge) is hidden below `md`. | `MarketSentimentBanner.jsx:346, 513`; `maddenAiScoring.js:68` | Done 5 Nov: the S&P 500 input is also simulated, so 50 of 82 weight points (61%) are DEMO, not 35%. The score is now named a DEMO composite and carries a compact DEMO badge on all seven screens at every width; "computed from market data" removed; a missing change is left out, never 0%, and no inputs gives no score rather than 50 |
 | 2 | High: legal | AI prompts ask for "sector outlook, and implications for investors", "key stocks to watch, and the outlook for the next few weeks", "what should I watch?". | `SectorHeatmap.jsx:817`; `SectorDeepDive.jsx:743`; `TopMovers.jsx:225` | Done 5 Nov: all six Markets prompts (also CorrelationExplorer, UpcomingListings) describe only; a test reads every prompt and runs it through adviceIntent |
 | 3 | High: legal | "money moving from weaker to stronger" states flows as fact from price changes. | `SectorHeatmap.jsx:1121` | Next |
 | 4 | High: honesty | Hand-typed "approximate" ASX 200 weights shown as a WEIGHT column, no source or date. | `SectorHeatmap.jsx:440, 1612` | Next |

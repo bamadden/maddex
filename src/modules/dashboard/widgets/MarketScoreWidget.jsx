@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSentiment } from '../../../hooks/useSentiment'
 import { useMarketSentiment, sentimentTooltip } from '../../../hooks/useMarketSentiment'
+import SentimentClass from '../../../components/ui/SentimentClass'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { currentRegime } from '../../../services/marketRegime'
@@ -137,8 +138,9 @@ export default function MarketScoreWidget() {
             {score != null ? ms.sentiment.label.toUpperCase() : ms.status === 'loading' ? 'READING MARKET DATA…' : 'NO MARKET DATA YET'}
           </div>
           <div className="font-mono text-[11px] mt-0.5" style={{ color: PAL.muted }} title={sentimentTooltip(ms)}>
-            MARKET SENTIMENT · COMPUTED{ms.demoInputs ? ' · DEMO ASX INPUTS' : ''}{ms.stale ? ' · STALE INPUTS' : ''}
+            {ms.demo ? 'MARKET SENTIMENT · DEMO COMPOSITE' : 'MARKET SENTIMENT · COMPUTED BY MADDEX'}{ms.stale ? ' · STALE INPUTS' : ''}
           </div>
+          <SentimentClass ms={ms} className="mt-1" />
           <ScoreNote method="sentiment" inputs={ms.inputs} asOf={ms.asOf} className="mt-1" />
         </div>
       </div>

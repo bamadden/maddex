@@ -1,3 +1,4 @@
+import SentimentClass from './SentimentClass'
 import { PAL } from '../../styles/palette.js'
 import ScoreNote from './ScoreNote'
 // Same 5-band colour scale as MorningBriefModule's score gauge (0-30 red /
@@ -28,7 +29,7 @@ export function SentimentMiniGauge({ score, width = 60, height = 6 }) {
 }
 
 // Full sentiment bar — Morning Brief. The number is the one market sentiment
-// score (hooks/useMarketSentiment), computed from market data; MaddenAI's daily
+// score (hooks/useMarketSentiment), computed in code; MaddenAI's daily
 // read of the headlines (`read`) adds words only — bias, drivers, theme.
 export function SentimentBar({ market, read }) {
   const m = market?.sentiment
@@ -48,6 +49,7 @@ export function SentimentBar({ market, read }) {
         <span className="text-lg font-bold" style={{ color }}>{m.score}</span>
         <span className="text-2xs font-bold tracking-widest" style={{ color }}>{m.label.toUpperCase()}</span>
         <SentimentMiniGauge score={m.score} width={90} height={8} />
+        <SentimentClass ms={market} />
       </div>
       {read?.asxBias && <span className={`text-2xs font-bold ${biasColor}`} title="MaddenAI's read of the tone of today's headlines for the ASX — words only, not a forecast">HEADLINE TONE (ASX): {read.asxBias}</span>}
       {read?.drivers?.length > 0 && (
