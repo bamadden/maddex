@@ -79,3 +79,17 @@ test('map status names only a real feed as live; hand-entered layers and AI text
   assert.doesNotMatch(map, /`LIVE DATA ·|SOURCES ACTIVE`/)
   for (const m of map.matchAll(/\{ label: '[^']+',\s+(cls: '\w+')?/g)) assert.ok(m[1], `feed without a class: ${m[0]}`)
 })
+
+test('map clock: Sydney time with its own zone, and the reader\'s zone clearly labelled', async () => {
+  const { sydneyClock, localClock } = await import('../src/utils/dateUtils.js')
+  const nov = new Date('2026-11-05T06:12:00Z')
+  assert.equal(sydneyClock(nov).text, '17:12 AEDT', 'November: Sydney is AEDT')
+  assert.equal(sydneyClock(new Date('2026-07-01T06:12:00Z')).text, '16:12 AEST', 'July: AEST')
+  assert.deepEqual(localClock(nov, 'Australia/Brisbane'), { time: '16:12', zone: 'Australia/Brisbane', offset: 'UTC+10', text: '16:12 Australia/Brisbane (UTC+10)' })
+  assert.equal(localClock(nov, 'Asia/Kolkata').offset, 'UTC+05:30')
+  assert.equal(localClock(nov, 'UTC').offset, 'UTC')
+  const map = read('src/modules/global/DeckGLMap.jsx')
+  assert.doesNotMatch(map, /timeZone: 'Australia\/Brisbane' \}\)\} AEST/, 'no Brisbane time labelled AEST')
+  assert.match(map, /SYDNEY \{sydneyClock\(now\)\.text\}/)
+  assert.match(map, /YOUR TIME \{local\.time\} · \{local\.zone/)
+})

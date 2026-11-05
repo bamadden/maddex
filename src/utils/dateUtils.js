@@ -97,6 +97,18 @@ export function sydneyClock(date = new Date(), { seconds = false, hour12 = false
   return { time, tz, text: `${time} ${tz}` }
 }
 
+// The reader's own zone, labelled so it cannot be mistaken for Sydney time:
+// "16:12", zone "Australia/Brisbane", offset "UTC+10". `zone` is the IANA name
+// the browser reports (or the one passed), `offset` its UTC offset that day.
+export function localClock(date = new Date(), zone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  const d = date instanceof Date ? date : new Date(date)
+  const time = d.toLocaleTimeString('en-AU', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  const gmt = new Intl.DateTimeFormat('en-AU', { timeZone: zone, timeZoneName: 'longOffset' })
+    .formatToParts(d).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT'
+  const offset = /^GMT([+-]00(:00)?)?$/.test(gmt) ? 'UTC' : gmt.replace('GMT', 'UTC').replace(/:00$/, '')
+  return { time, zone, offset, text: `${time} ${zone} (${offset})` }
+}
+
 // THE date format: "29 Sep 2026" (or "Tue 29 Sep 2026" with weekday). Fixed
 // three-letter months — en-AU's own formatter writes "Sept", and the app had
 // six formats on screen (2026-10-28, 29 SEPT 2026, Sep 2026…). Accepts an

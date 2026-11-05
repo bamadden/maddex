@@ -1865,7 +1865,7 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
   const lt = localTime(ex.tz)
   const cd = countdown(ex)
 
-  // AEST offset for trading hours
+  // Session hours in the exchange's own local time
   const openHHMM  = `${String(ex.open[0]).padStart(2,'0')}:${String(ex.open[1]).padStart(2,'0')}`
   const closeHHMM = `${String(ex.close[0]).padStart(2,'0')}:${String(ex.close[1]).padStart(2,'0')}`
 

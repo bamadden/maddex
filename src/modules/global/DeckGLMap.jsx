@@ -23,7 +23,7 @@ import { liveDataService } from '../../services/liveDataService'
 import { aiContentService } from '../../services/aiContentService'
 import { licenceOff } from '../../data/sourceLicence'
 import { PAL } from '../../styles/palette.js'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
 import { useNow } from '../../hooks/useNow'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
@@ -1281,8 +1281,12 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
 // that state lived on DeckGLMap the whole map — every layer, the useMemo that
 // rebuilds them — would re-render 60 times a minute for a changing string in
 // the corner. Isolated here, only these two lines repaint.
+// Sydney time with its own zone (AEDT in summer, AEST in winter), the
+// reader's zone when it differs (Brisbane has no daylight saving, so in
+// summer it is an hour behind Sydney), and UTC. Every line names its zone.
 function MissionClock({ insetR = 0 }) {
   const now = new Date(useNow())
+  const local = localClock(now)
 
   return (
     <div style={{
@@ -1292,9 +1296,14 @@ function MissionClock({ insetR = 0 }) {
       letterSpacing: '0.15em', color: 'rgba(201,168,76,0.5)',
       textShadow: '0 1px 3px rgba(6,13,26,0.9)',
     }}>
-      <div>{now.toUTCString().slice(0, 25)}</div>
+      <div data-map-clock-sydney>SYDNEY {sydneyClock(now).text}</div>
+      {local.zone !== 'Australia/Sydney' && (
+        <div data-map-clock-local style={{ color: 'rgba(201,168,76,0.4)', marginTop: 2 }}>
+          YOUR TIME {local.time} · {local.zone.replace(/_/g, ' ')} ({local.offset})
+        </div>
+      )}
       <div style={{ color: 'rgba(201,168,76,0.3)', marginTop: 2 }}>
-        UTC · {now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane' })} AEST
+        UTC {now.toISOString().slice(11, 16)}
       </div>
     </div>
   )
