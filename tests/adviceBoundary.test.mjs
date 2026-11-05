@@ -111,3 +111,18 @@ test('the system prompt draws the line', () => {
   for (const re of [/never recommend buying, selling or holding/i, /price targets/i, /return forecasts/i, /top picks/i, /objectives, financial situation or needs/i, /describe exposure/i]) assert.match(p, re)
   for (const re of [/Give a view\. If someone asks "will BTC go up"/, /Close with something actionable/, /position sizing/, /DO NOT OPEN WITH A REFUSAL/]) assert.doesNotMatch(p, re)
 })
+
+test('Markets AI prompts ask for description only: no outlook, stocks to watch or view on what to do', () => {
+  const dir = 'src/modules/markets/'
+  const prompts = []
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.jsx'))) {
+    const src = fs.readFileSync(dir + f, 'utf8')
+    for (const m of src.matchAll(/(?:instruction:\s*|askMaddenAI\()`([^`]*(?:`[^`]*`[^`]*)*?)`[,)\s]/g)) prompts.push([f, m[1]])
+  }
+  assert.ok(prompts.length >= 6, `found ${prompts.length}`)
+  for (const [f, p] of prompts) {
+    const stripped = p.replace(/no outlook|no stocks to watch|anything to watch|no view on[^.]*|do not[^.:]*|no suggestion of any action/gi, '')
+    assert.doesNotMatch(stripped, /outlook|to watch|should (I|an? \w+|they)\b|take from it|implications for investors|worth|buy|sell|target|next few weeks/i, `${f}: ${p.slice(0, 120)}`)
+    assert.equal(adviceIntent(p.replace(/\$\{[^}]*\}/g, 'X')), false, `${f} prompt reads as an advice request`)
+  }
+})

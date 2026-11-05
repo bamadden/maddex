@@ -211,7 +211,7 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
               </div>
               <button
                 onClick={() => dispatchAskAI({
-                  instruction: `Explain the correlation between ${assetInfo(hovered.a).label} and ${assetInfo(hovered.b).label} (r=${hovered.r.toFixed(2)}, ${period} lookback). Why might they move together (or apart) like this, and what should an Australian investor take from it?`,
+                  instruction: `Explain the correlation between ${assetInfo(hovered.a).label} and ${assetInfo(hovered.b).label} (r=${hovered.r.toFixed(2)}, ${period} lookback). Describe why they might move together (or apart) like this, and what a correlation of this size does and does not show. Describe only; do not suggest any action.`,
                 }, { rawPrompt: true })}
                 className="mt-2 w-full text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
               >MADDENAI INSIGHT →</button>

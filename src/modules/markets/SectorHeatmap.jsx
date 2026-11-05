@@ -814,7 +814,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
       change:      q?.pct != null ? `${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%` : null,
       sector:      sec,
       date:        todayAEST(),
-      instruction: `Analyse the ${sec} sector for ${indexLabel} performance today, using proxy stock ${ticker}. Key drivers, sector outlook, and implications for investors.`,
+      instruction: `Describe what has been moving the ${sec} sector on the ${indexLabel} today, using ${ticker} as its proxy: the drivers reported and the measures the sector is sensitive to. Describe only: no outlook or forecast, no view on any stock, and no suggestion of any action.`,
     })
   }
 

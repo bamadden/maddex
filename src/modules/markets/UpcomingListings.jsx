@@ -48,7 +48,7 @@ export default function UpcomingListings() {
                     <button
                       onClick={() => dispatchAskAI({
                         name: l.company, ticker: `${l.code}.AX`, date: l.date,
-                        instruction: `${l.company} (proposed ASX code ${l.code}) intends to list on the ASX${l.date ? ` on ${l.date}` : ''}, raising ${fmtRaise(l.raiseAud)} at A$${l.price.toFixed(2)} a share (${l.note.toLowerCase()}). What should an investor weigh when looking at a small-cap IPO like this, and what should they read in the prospectus? General information only.`,
+                        instruction: `${l.company} (proposed ASX code ${l.code}) intends to list on the ASX${l.date ? ` on ${l.date}` : ''}, raising ${fmtRaise(l.raiseAud)} at A$${l.price.toFixed(2)} a share (${l.note.toLowerCase()}). Describe what a prospectus for a small-cap listing like this typically covers and which disclosures it contains. General information only: no view on whether to apply.`,
                       }, { rawPrompt: true })}
                       className="text-[11px] font-bold text-terminal-gold hover:underline"
                     >ASK MADDENAI</button>

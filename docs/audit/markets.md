@@ -9,7 +9,7 @@ building. (Equity prices are DEMO until a licensed feed is chosen.)
 | # | Impact | Finding | Evidence | Status |
 |---|---|---|---|---|
 | 1 | High: honesty | The sentiment score takes 35% of its weight from simulated ASX moves, is headed "COMPUTED FROM MARKET DATA", and its only DEMO badge (beside the breadth gauge) is hidden below `md`. | `MarketSentimentBanner.jsx:346, 513`; `maddenAiScoring.js:68` | Next |
-| 2 | High: legal | AI prompts ask for "sector outlook, and implications for investors", "key stocks to watch, and the outlook for the next few weeks", "what should I watch?". | `SectorHeatmap.jsx:817`; `SectorDeepDive.jsx:743`; `TopMovers.jsx:225` | Next |
+| 2 | High: legal | AI prompts ask for "sector outlook, and implications for investors", "key stocks to watch, and the outlook for the next few weeks", "what should I watch?". | `SectorHeatmap.jsx:817`; `SectorDeepDive.jsx:743`; `TopMovers.jsx:225` | Done 5 Nov: all six Markets prompts (also CorrelationExplorer, UpcomingListings) describe only; a test reads every prompt and runs it through adviceIntent |
 | 3 | High: legal | "money moving from weaker to stronger" states flows as fact from price changes. | `SectorHeatmap.jsx:1121` | Next |
 | 4 | High: honesty | Hand-typed "approximate" ASX 200 weights shown as a WEIGHT column, no source or date. | `SectorHeatmap.jsx:440, 1612` | Next |
 | 5 | High: honesty | Missing prices passed to the stock modal as 0 ($0.00, 0.00%); missing sector moves as 0% in the 3D view and composite colour; missing ASX changes averaged as 0% into the score ("ASX flat"). | `SectorHeatmap.jsx:897, 1250, 1341, 1530`; `maddenAiScoring.js:73, 196` | Next |

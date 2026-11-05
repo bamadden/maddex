@@ -740,7 +740,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
       <div className="border-t border-terminal-border px-5 py-3 flex-shrink-0 flex justify-center">
         <button
           onClick={() => dispatchAskAI(
-            { sector: sectorName, instruction: `Give me a deep analysis of the ${sectorName} sector right now — what's driving it, key stocks to watch, and the outlook for the next few weeks.` },
+            { sector: sectorName, instruction: `Describe the ${sectorName} sector: what it contains, what has been reported as moving it recently, and the data releases and measures it is sensitive to. Describe only: no outlook or forecast, no stocks to watch, and no suggestion of any action.` },
             { rawPrompt: true, fullscreen: true },
           )}
           className="text-2xs text-terminal-gold border border-terminal-gold px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-widest"
