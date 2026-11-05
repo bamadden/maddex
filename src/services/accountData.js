@@ -16,7 +16,7 @@ import { supabase } from '../lib/supabase'
 // Tables a user owns, and the column that names the owner.
 export const OWN_TABLES = [
   ['profiles', 'id'], ['user_settings', 'user_id'], ['watchlist', 'user_id'], ['portfolio_holdings', 'user_id'],
-  ['price_alerts', 'user_id'], ['ai_notes', 'user_id'], ['shared_links', 'user_id'], ['ai_usage', 'user_id'], ['ai_records', 'user_id'],
+  ['price_alerts', 'user_id'], ['ai_notes', 'user_id'], ['shared_links', 'owner_id'], ['ai_usage', 'user_id'], ['ai_records', 'user_id'],
 ]
 // Deletable by the user under row-level security; the rest go through the server.
 const USER_DELETABLE = ['watchlist', 'portfolio_holdings', 'price_alerts', 'ai_notes', 'shared_links', 'user_settings', 'profiles']

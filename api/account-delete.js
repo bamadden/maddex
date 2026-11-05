@@ -10,7 +10,7 @@
 // user their data is gone and the login will be removed on request.
 
 const TABLES = [
-  ['ai_records', 'user_id'], ['ai_usage', 'user_id'], ['shared_links', 'user_id'], ['ai_notes', 'user_id'],
+  ['ai_records', 'user_id'], ['ai_usage', 'user_id'], ['shared_links', 'owner_id'], ['ai_notes', 'user_id'],
   ['price_alerts', 'user_id'], ['portfolio_holdings', 'user_id'], ['watchlist', 'user_id'],
   ['user_settings', 'user_id'], ['profiles', 'id'],
 ]

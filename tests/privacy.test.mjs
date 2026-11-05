@@ -123,3 +123,23 @@ test('production builds drop console.log / info / debug', () => {
   assert.match(cfg, /manualPureFunctions: \['console\.log', 'console\.info', 'console\.debug'\]/)
   assert.match(fs.readFileSync('scripts/check-client-secrets.mjs', 'utf8'), /IDENTITY_DATA/)
 })
+
+// Export and Delete account name each table's owner column; a wrong name
+// fails silently (Export showed share links as "unavailable" on 5 Nov
+// because the code asked for shared_links.user_id; migration 007 calls it
+// owner_id). Every owner column must exist in the migration that creates
+// its table.
+test('Export and Delete account use each table\'s real owner column', async () => {
+  const { OWN_TABLES } = await import('../src/services/accountData.js')
+  const del = fs.readFileSync('api/account-delete.js', 'utf8')
+  const delTables = [...del.slice(del.indexOf('const TABLES = ['), del.indexOf(']\n', del.indexOf('const TABLES = ['))).matchAll(/\['(\w+)', '(\w+)'\]/g)].map((m) => [m[1], m[2]])
+  assert.ok(delTables.length >= 9)
+  const sql = fs.readdirSync('supabase/migrations').map((f) => fs.readFileSync(`supabase/migrations/${f}`, 'utf8')).join('\n')
+  const columnsOf = (t) => {
+    const start = sql.search(new RegExp(`CREATE TABLE (IF NOT EXISTS )?public\\.${t}\\s*\\(`))
+    assert.ok(start >= 0, `no CREATE TABLE for ${t}`)
+    let depth = 0, i = sql.indexOf('(', start)
+    for (let j = i; j < sql.length; j++) { if (sql[j] === '(') depth++; else if (sql[j] === ')' && --depth === 0) return sql.slice(i, j) + sql.slice(j).split(/CREATE TABLE/)[0].match(/ADD COLUMN[^;]*/gi)?.join(' ') }
+  }
+  for (const [t, col] of [...OWN_TABLES, ...delTables]) assert.match(columnsOf(t), new RegExp(`\\b${col}\\b`), `${t}.${col}`)
+})
