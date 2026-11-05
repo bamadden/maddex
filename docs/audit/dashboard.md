@@ -16,7 +16,7 @@ customisable order.
 |---|---|
 | 1 Movers | Done 5 Nov: both sorted by the size of the day's move; the watchlist ranks all its equities and says how many more and how many non-equities are not shown |
 | 2 Data health | Done 5 Nov: a DATA HEALTH line under the Overview: the feeds its panels show (from the query cache: fresh, stale or not loaded) and the official-statistics check, DETAILS → Settings → Data Sources. Found on the way: Settings' LIVE FEEDS list reads older per-service caches that the unified data paths no longer write, so FX and crypto can show "not loaded" while on screen; licensed-off DeFi TVL is no longer listed. The Settings list should move to the query cache too (open) |
-| 3 Brief summary | Next |
+| 3 Brief summary | Done 5 Nov: TODAY'S BRIEF panel from the Brief module's cache (no AI call, no tone score), with time and zone, AI-written note; when there is none, when the next is written (7am AEST, and 8am AEDT while Sydney is on daylight time) |
 | 4 Time zones | Next |
 | 5 Panel order | Next |
 | 6 "Outlook" wording | For the Brief overhaul |

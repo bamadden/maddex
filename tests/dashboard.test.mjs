@@ -45,3 +45,15 @@ test('the Overview health line reads the queries its panels show', async () => {
   assert.deepEqual([h.fresh, h.stale, h.notLoaded], [1, ['FX (ECB)', 'Calendar', 'News'], 1])
   assert.match(read('src/modules/dashboard/OverviewSurface.jsx'), /queryHealth\(SCREEN_FEEDS\.map/)
 })
+
+test("today's brief: read from the Brief cache, zones named, no outlook score", async () => {
+  const { briefHourLabel } = await import('../src/services/morningBriefService.js')
+  assert.equal(briefHourLabel(new Date('2026-11-05T00:00:00Z')), '7am AEST (8am AEDT)')
+  assert.equal(briefHourLabel(new Date('2026-06-04T00:00:00Z')), '7am AEST')
+  const ov = read('src/modules/dashboard/OverviewSurface.jsx')
+  const panel = ov.slice(ov.indexOf('function BriefSummary'), ov.indexOf('// ── Coming up'))
+  assert.match(panel, /getCachedBrief\(\)/)
+  assert.doesNotMatch(panel, /generateMorningBrief|askClaude|scoreLabel|OUTLOOK/, 'no AI call and no tone score from the Overview')
+  assert.match(panel, /Written by MaddenAI from the data shown/)
+  assert.match(ov, /<BriefSummary goTo=\{setActiveModule\} \/>/)
+})

@@ -91,6 +91,15 @@ export function auHour(d = new Date()) {
   return Number(d.toLocaleString('en-AU', { timeZone: AU_MARKET_TZ, hour: 'numeric', hour12: false }))
 }
 
+// When briefs are written, in both zones a reader may be in: keyed to
+// Brisbane's day from 7am AEST, which is 8am in Sydney while Sydney is on
+// daylight time.
+export function briefHourLabel(now = new Date()) {
+  const at = new Date(`${now.toLocaleDateString('en-CA', { timeZone: AU_MARKET_TZ })}T07:00:00+10:00`)
+  const sydHour = Number(at.toLocaleString('en-AU', { timeZone: 'Australia/Sydney', hour: 'numeric', hour12: false }))
+  return sydHour === 8 ? '7am AEST (8am AEDT)' : '7am AEST'
+}
+
 export function getWeekendMessage() {
   return {
     headline: 'Markets are closed for the weekend — see you Monday.',

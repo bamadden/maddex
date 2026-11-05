@@ -21,6 +21,8 @@ import ScoreNote from '../../components/ui/ScoreNote'
 import { computePortfolioSnapshot, holdingRows, byMove } from './portfolioSnapshot'
 import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHealth'
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
+import { getCachedBrief, isAuWeekend, auHour, briefHourLabel } from '../../services/morningBriefService'
+import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -271,12 +273,42 @@ function SinceLastVisit({ asx200, portfolioValue }) {
   )
 }
 
+// ── Today's brief ───────────────────────────────────────────────────────────
+// Read from the Brief module's own cache: no AI call from here.
+
+function BriefSummary({ goTo }) {
+  const [brief, setBrief] = useState(() => getCachedBrief())
+  useEffect(() => { const id = setInterval(() => setBrief(getCachedBrief()), 60_000); return () => clearInterval(id) }, [])
+  const weekend = isAuWeekend()
+  const has = brief && !brief.isWeekend
+  const first = has ? (brief.headline || brief.sections?.[0]?.content || '') : ''
+  return (
+    <Panel id="ov-brief" title="TODAY'S BRIEF" action="BRIEF" onAction={() => goTo('brief')}
+      badge={has && <AIContentBadge source="cache" />}>
+      {!has ? (
+        <Empty action={weekend ? null : 'OPEN BRIEF'} onAction={() => goTo('brief')}>
+          {weekend ? `No brief at the weekend. The next one is Monday from ${briefHourLabel()}.`
+            : auHour() < 7 ? `Today's brief is written from ${briefHourLabel()}.`
+            : 'No brief yet today. Open Brief to have MaddenAI write it from the day\'s data.'}
+        </Empty>
+      ) : (
+        <div className="flex flex-col gap-1.5 h-full" data-brief-summary>
+          <p className="text-terminal-text-bright leading-snug line-clamp-5" style={{ fontSize: 12 }}>{first}</p>
+          <div className="mt-auto font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
+            Written by MaddenAI from the data shown{brief.generatedAt ? ` · ${formatDate(brief.generatedAt, { weekday: true, year: false })} ${sydneyClock(brief.generatedAt).text}` : ''} · general information, not advice
+          </div>
+        </div>
+      )}
+    </Panel>
+  )
+}
+
 // ── Coming up ───────────────────────────────────────────────────────────────
 function ComingUp({ goTo }) {
   const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
   const events = pendingEvents(data?.events ?? [], 14).slice(0, 8)
   return (
-    <Panel id="ov-coming" title="COMING UP · 14 DAYS" action="CALENDAR" onAction={() => goTo('calendar')} className="overview-wide"
+    <Panel id="ov-coming" title="COMING UP · 14 DAYS" action="CALENDAR" onAction={() => goTo('calendar')}
       badge={data && (data.source === 'fallback'
         ? <DataBadge cls="STALE" source="built-in schedule (live calendar unavailable)" />
         : <DataBadge cls="LIVE" source="economic calendar" />)}>
@@ -347,6 +379,7 @@ export default function OverviewSurface() {
         <Holdings h={h} goTo={setActiveModule} />
         <Watchlist goTo={setActiveModule} />
         <SinceLastVisit asx200={idx?.data?.['^AXJO']?.last ?? null} portfolioValue={h.stats?.value ?? null} />
+        <BriefSummary goTo={setActiveModule} />
         <ComingUp goTo={setActiveModule} />
         <DataHealthLine />
       </div>

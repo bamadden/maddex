@@ -149,7 +149,7 @@ try {
   const page = await newPage(browser, { width: 1440 })
   await page.waitForFunction(() => document.querySelectorAll('#ov-market, #ov-rba, #ov-holdings, #ov-watch, #ov-since').length === 5, { timeout: 30_000 }).catch(() => {})
   const ov = await page.evaluate(() => ({ panels: [...document.querySelectorAll('section[aria-labelledby^="ov-"] h2')].map((h) => h.textContent), countdown: document.querySelector('#ov-rba')?.closest('section')?.innerText.match(/TIME TO DECISION[^\n]*/)?.[0] }))
-  if (['MARKET STATE', 'RBA & MACRO', "HOLDINGS · BY TODAY'S MOVE", "WATCHLIST · BY TODAY'S MOVE", 'SINCE YOUR LAST VISIT'].every((t) => ov.panels.includes(t))) pass(`Overview panels: ${ov.panels.join(', ')}`)
+  if (['MARKET STATE', 'RBA & MACRO', "HOLDINGS · BY TODAY'S MOVE", "WATCHLIST · BY TODAY'S MOVE", 'SINCE YOUR LAST VISIT', "TODAY'S BRIEF"].every((t) => ov.panels.includes(t))) pass(`Overview panels: ${ov.panels.join(', ')}`)
   else fail(`Overview panels missing: ${JSON.stringify(ov.panels)}`)
   if (/TIME TO DECISION (\d+ days? )?\d+ hr \d+ min|Decision due/.test(ov.countdown ?? '')) pass(`labelled countdown: ${ov.countdown}`)
   else fail(`no labelled decision countdown (${ov.countdown})`)
