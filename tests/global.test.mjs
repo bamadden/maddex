@@ -56,3 +56,16 @@ test('AI map narrative cannot carry a figure', async () => {
   assert.equal(out[0].detail, 'Tankers diverted.')
   assert.equal(out[0].impact, 'base', 'a model string with a digit is dropped')
 })
+
+test('bilateral trade: ABS values for Australia\'s pairs only; nothing generated for other pairs', async () => {
+  const { partnerTrade, auTradeWith } = await import('../src/services/bilateralTrade.js')
+  const cn = partnerTrade('Australia', 'China')
+  assert.equal(cn.exportsBn, 188.7); assert.equal(cn.importsBn, 120.0); assert.match(cn.source, /^ABS/); assert.equal(cn.period, '2024-25')
+  assert.deepEqual(partnerTrade('China', 'Australia'), cn, 'the same pair read from either side')
+  assert.equal(partnerTrade('Australia', 'USA').importsBn, 96.8, 'aliases resolve')
+  assert.equal(partnerTrade('Australia', 'India').importsBn, null, 'outside the ABS top five: null, shown as —, never 0')
+  assert.equal(partnerTrade('Germany', 'France'), null)
+  assert.equal(auTradeWith('China', { auTrade: undefined }), null)
+  const mod = read('src/modules/global/GlobalModule.jsx')
+  assert.doesNotMatch(mod, /seededHash|partnerTradeStats|Illustrative bilateral estimates/)
+})

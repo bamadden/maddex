@@ -22,6 +22,7 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { SHIPPING_ROUTES as SHIPPING_ROUTE_TABLE, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
+import { partnerTrade } from '../../services/bilateralTrade'
 import { PAL } from '../../styles/palette.js'
 import { useNow } from '../../hooks/useNow'
 
@@ -316,25 +317,6 @@ function findRoute(id, kind) {
   return (kind === 'SHIPPING' ? SHIPPING_ROUTES : FREIGHT_ROUTES).find(r => r.id === id)
 }
 
-// Deterministic (not random-on-every-render) pseudo-stats for a country/
-// partner pair — illustrative, in the same spirit as the app's other
-// synthetic overlays (crypto adoption tiers, heat colouring), used only
-// because no per-partner bilateral trade dataset exists for ~190 countries.
-function seededHash(str) {
-  let h = 0
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0
-  return h
-}
-function partnerTradeStats(countryId, partnerName) {
-  const h = seededHash(`${countryId}:${partnerName}`)
-  const value = 2 + (h % 380) / 10 // A$2.0B - A$39.9B
-  const balanceSign = (h >> 8) % 2 === 0 ? 1 : -1
-  const balance = balanceSign * value * (0.1 + ((h >> 4) % 40) / 100)
-  const trend = ['growing', 'stable', 'declining'][(h >> 12) % 3]
-  return { value, balance, trend }
-}
-const TREND_ARROW = { growing: '▲', stable: '→', declining: '▼' }
-const TREND_COLOR = { growing: 'text-terminal-green', stable: 'text-terminal-text-dim', declining: 'text-terminal-red' }
 
 const RISK_BASE_SCORE = { 'VERY LOW': 10, LOW: 25, MODERATE: 40, MEDIUM: 45, HIGH: 65, 'VERY HIGH': 80, CRITICAL: 95 }
 function computeTradeRiskScore({ riskRating, hasDisruptedRoute, riskyPartnerCount }) {
@@ -744,7 +726,8 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
   const shippingRoutes   = routeMap.shipping.map(id => findRoute(id, 'SHIPPING')).filter(Boolean)
   const freightRoutes    = routeMap.freight.map(id => findRoute(id, 'FREIGHT')).filter(Boolean)
   const disruptedRoutes  = shippingRoutes.filter(r => r.status === 'DISRUPTED' || r.status === 'CONGESTED')
-  const enhancedPartners = (partners ?? []).slice(0, 5).map(p => ({ name: p, flag: flagForPartnerName(p), ...partnerTradeStats(n, p) }))
+  const enhancedPartners = (partners ?? []).slice(0, 5).map(p => ({ name: p, flag: flagForPartnerName(p), trade: partnerTrade(COUNTRY_NAMES[n], p) }))
+  const tradeSource      = enhancedPartners.find(p => p.trade)?.trade ?? null
   const riskyPartnerCount = (partners ?? []).filter(p => {
     const pid = NAME_TO_ID[p]
     return pid != null && (CONFLICT_COUNTRIES.has(pid) || STRESS_COUNTRIES.has(pid))
@@ -1062,18 +1045,21 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
           ) : (
             <div className="mb-2">
               {enhancedPartners.map(p => (
-                <div key={p.name} className="flex items-center justify-between text-2xs py-0.5">
+                <div key={p.name} className="flex items-center justify-between text-2xs py-0.5" data-partner>
                   <span className="text-terminal-text">{p.flag} {p.name}</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-terminal-text-dim">A${p.value.toFixed(1)}B</span>
-                    <span className={p.balance >= 0 ? 'text-terminal-green' : 'text-terminal-red'}>
-                      {p.balance >= 0 ? '+' : ''}{p.balance.toFixed(1)}B
+                  {p.trade && (
+                    <span className="text-terminal-text-dim tabular-nums">
+                      {COUNTRY_NAMES[n] === 'Australia' ? 'AU exports' : 'from AU'} {p.trade.exportsBn != null ? `A$${p.trade.exportsBn.toFixed(1)}B` : '—'}
+                      {' · '}{COUNTRY_NAMES[n] === 'Australia' ? 'imports' : 'to AU'} {p.trade.importsBn != null ? `A$${p.trade.importsBn.toFixed(1)}B` : '—'}
                     </span>
-                    <span className={TREND_COLOR[p.trend]} title={p.trend}>{TREND_ARROW[p.trend]}</span>
-                  </div>
+                  )}
                 </div>
               ))}
-              <div className="text-2xs text-terminal-text-dim/40 italic mt-0.5">Illustrative bilateral estimates — value / net balance / trend</div>
+              <div className="text-2xs text-terminal-text-dim/60 mt-0.5" data-partner-source>
+                {tradeSource
+                  ? `Values: ${tradeSource.source} (${tradeSource.period}); "—" where the partner is outside the ABS top five. Other pairs: no bilateral values held.`
+                  : 'Partners as listed in Maddex\'s country reference. No bilateral trade values are held for this country.'}
+              </div>
             </div>
           )}
 
