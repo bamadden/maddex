@@ -16,7 +16,7 @@ then what fails to find, then polish.
 | 1–3, 2a Keys and focus | Done 5 Nov |
 | 4–7, 4a, 10 Search | Done 5 Nov: every module findable (tested against App's list), one-typo module names, a SETTINGS group (Settings, Export my data, Delete account, Display, Shortcuts, Plan & billing, Data sources…), topics (rba, cpi, gold, earnings…) list their module without navigating, index aliases (xjo, asx200, spx, sp500, vix, nikkei, dow), "settings"/"maddenai" open their panels; 70-query regression set in `tests/commandBar.test.mjs`. Not done: "oil", "iron ore", "lithium" (no module holds them; they go to MaddenAI) |
 | 8 Wording | Done 5 Nov: "Overnight session", "Scanner — largest moves today", "US session" (no "live", no "signals"); tested at every hour, both seasons |
-| 9 Accessibility | Next |
+| 9 Accessibility | Done 5 Nov: the input is a combobox (expanded, controls, active descendant); both lists are listboxes with labelled groups; key-hint footers hidden from screen readers; browser check |
 | 11 ETF catalogue | Later |
 
 ## Findings

@@ -859,10 +859,10 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
   if (!suggestions.length) return null
   const grouped = groupByCategory(suggestions)
   return (
-    <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70] max-h-96 overflow-auto">
+    <div id="cmd-listbox" role="listbox" aria-label="Command bar results" className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70] max-h-96 overflow-auto">
       {grouped.map(({ category, items }) => (
-        <div key={category}>
-          <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest sticky top-0">
+        <div key={category} role="group" aria-label={CATEGORY_LABEL[category] ?? category}>
+          <div aria-hidden="true" className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest sticky top-0">
             {CATEGORY_LABEL[category] ?? category}
           </div>
           {items.map((s) => {
@@ -871,6 +871,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
             return (
               <div
                 key={s.sym}
+                id={`cmd-opt-${i}`}
                 role="option"
                 aria-selected={i === suggestIdx}
                 ref={i === suggestIdx ? activeRef : null}
@@ -912,7 +913,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
           })}
         </div>
       ))}
-      <div className="px-3 py-1 border-t border-terminal-border/40 flex items-center sticky bottom-0 bg-terminal-panel">
+      <div aria-hidden="true" className="px-3 py-1 border-t border-terminal-border/40 flex items-center sticky bottom-0 bg-terminal-panel">
         <KeyHints context="suggestions" />
       </div>
     </div>
@@ -925,10 +926,10 @@ const IdleList = memo(function IdleList({ items, activeIdx, onSelect }) {
   if (!items.length) return null
   const grouped = groupByCategory(items)
   return (
-    <div className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
+    <div id="cmd-listbox" role="listbox" aria-label="Recent and suggested" className="absolute bottom-full left-0 right-0 border-t border-terminal-gold/30 bg-terminal-panel border border-terminal-border shadow-2xl z-[70]">
       {grouped.map(({ category, items: rows }) => (
-        <div key={category}>
-          <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest">
+        <div key={category} role="group" aria-label={category}>
+          <div aria-hidden="true" className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold/70 font-bold tracking-widest">
             {category}
           </div>
           {rows.map((r) => {
@@ -936,6 +937,9 @@ const IdleList = memo(function IdleList({ items, activeIdx, onSelect }) {
             return (
               <div
                 key={r.sym}
+                id={`cmd-opt-${i}`}
+                role="option"
+                aria-selected={i === activeIdx}
                 className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer text-2xs transition-colors ${
                   i === activeIdx
                     ? 'bg-terminal-blue-bright/20 border-l-2 border-terminal-blue-bright'
@@ -950,7 +954,7 @@ const IdleList = memo(function IdleList({ items, activeIdx, onSelect }) {
           })}
         </div>
       ))}
-      <div className="px-3 py-1 border-t border-terminal-border/40 flex items-center bg-terminal-panel">
+      <div aria-hidden="true" className="px-3 py-1 border-t border-terminal-border/40 flex items-center bg-terminal-panel">
         <KeyHints context="recent" />
       </div>
     </div>
@@ -1723,6 +1727,12 @@ export default function CommandBar() {
           <input
             ref={inputRef}
             data-command-bar
+            role="combobox"
+            aria-label="Command bar: ticker, command or question"
+            aria-autocomplete="list"
+            aria-expanded={activeList.length > 0}
+            aria-controls="cmd-listbox"
+            aria-activedescendant={suggestIdx >= 0 && activeList[suggestIdx] ? `cmd-opt-${suggestIdx}` : undefined}
             className="cmd-input input-terminal flex-1 text-xs"
             value={inputValue}
             onChange={handleChange}

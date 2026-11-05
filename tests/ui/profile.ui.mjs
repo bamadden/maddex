@@ -213,6 +213,15 @@ try {
   await page.keyboard.type('export my data'); await wait(700)
   const offered = await page.evaluate(() => [...document.querySelectorAll('[role=option]')].some((o) => /EXPORT MY DATA/.test(o.textContent) && /Settings → DATA/.test(o.textContent)))
   offered ? pass('"export my data" offers Settings → DATA') : fail('"export my data": no Settings → DATA row')
+  await page.keyboard.press('ArrowDown'); await wait(200)
+  const aria = await page.evaluate(() => {
+    const i = document.querySelector('[data-command-bar]')
+    const id = i.getAttribute('aria-activedescendant')
+    const opt = id && document.getElementById(id)
+    return { role: i.getAttribute('role'), expanded: i.getAttribute('aria-expanded'), list: document.getElementById(i.getAttribute('aria-controls'))?.getAttribute('role'), selected: opt?.getAttribute('aria-selected'), text: opt?.textContent?.trim().slice(0, 30) }
+  })
+  if (aria.role === 'combobox' && aria.expanded === 'true' && aria.list === 'listbox' && aria.selected === 'true') pass(`screen readers: combobox → listbox, active option "${aria.text}"`)
+  else fail(`command bar ARIA: ${JSON.stringify(aria)}`)
   await page.keyboard.press('Escape')
 
   sectionLog('Desktop: profile content')

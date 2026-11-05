@@ -105,3 +105,10 @@ test('idle suggestions claim nothing live or closed, and no signals', async () =
     for (const s of timeSuggestions({ now: at, mover: 'BHP', alertCount: 2 })) assert.doesNotMatch(s.label, /\blive\b|Wall St closed|signals?\b/i, `${at.toISOString()}: ${s.label}`)
   }
 })
+
+test('the bar is a combobox that names its listbox and active option', () => {
+  const bar = read('src/components/layout/CommandBar.jsx')
+  for (const re of [/role="combobox"/, /aria-controls="cmd-listbox"/, /aria-activedescendant=\{suggestIdx >= 0/, /aria-expanded=\{activeList\.length > 0\}/]) assert.match(bar, re)
+  assert.equal(bar.match(/id="cmd-listbox" role="listbox"/g).length, 2, 'results and the idle list')
+  assert.equal(bar.match(/id=\{`cmd-opt-\$\{i\}`\}/g).length, 2)
+})
