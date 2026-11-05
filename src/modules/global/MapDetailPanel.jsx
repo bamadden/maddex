@@ -9,6 +9,7 @@ import { screenSector } from '../markets/screenSector'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import { routeFor, brentReading, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
 
 const RISK_TONE = { LOW: PAL.up, MEDIUM: PAL.gold, ELEVATED: '#D9773B', HIGH: PAL.down }
 // Main WA export port, for the route distance (the arcs start from a map anchor).
@@ -204,8 +205,19 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
               <ScoreNote method="country-risk" className="mt-1" />
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.detail}</div>
 
-            <div style={S.label}>Market impact</div>
+            {routeFor(data.id) && (
+              <div style={{ ...S.muted, fontSize: 11, color: PAL.muted, marginBottom: 12 }} data-route-status>
+                Route status {routeFor(data.id).status}: {ROUTE_STATUS_SOURCE}, as entered {formatDate(routeFor(data.id).asOf)}
+              </div>
+            )}
+
+            <div style={S.label}>What it affects</div>
             <div style={{ ...S.muted, ...S.gold, marginBottom: 12 }}>{data.impact}</div>
+            {data.showBrent && brentReading() && (
+              <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }} data-brent-reading>
+                Brent US${brentReading().value.toFixed(2)}/bbl on {formatDate(brentReading().asOf)} · {brentReading().source} · hand-entered, not live
+              </div>
+            )}
 
             <div style={S.label}>Affected routes</div>
             <div style={{ marginBottom: 12 }}>

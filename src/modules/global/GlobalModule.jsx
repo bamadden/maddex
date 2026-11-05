@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
-import { timeAgo, sydneyClock } from '../../utils/dateUtils'
+import { timeAgo, sydneyClock, formatDate } from '../../utils/dateUtils'
 import { SeismicSection } from './IntelSections'
 import { IntelTicker, IntelFilterBar, MarketHoursCompact, CommodityIntel, GeoRiskCards } from './IntelPanel'
 import { readIntelFilter, saveIntelFilter } from './intelFilter'
@@ -21,6 +21,7 @@ import TabBar from '../../components/ui/TabBar'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { SHIPPING_ROUTES as SHIPPING_ROUTE_TABLE, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
 import { PAL } from '../../styles/palette.js'
 import { useNow } from '../../hooks/useNow'
 
@@ -416,78 +417,8 @@ for (const ex of EXCHANGES) {
 
 // ─── Chokepoints ──────────────────────────────────────────────────────────────
 
-const CHOKEPOINTS = [
-  {
-    name:'Strait of Hormuz', lat:26.5,  lon:56.5,  status:'MONITORED',
-    keywords:['Iran','Hormuz','Persian Gulf','tanker'],
-    cargoValue:'US$1.2B/day',  commodity:'Crude Oil / LNG',
-    note:'20% of global oil transit — US-Iran tensions elevated, IRGC harassment incidents',
-    impact:'~35Mt crude oil/day',
-    history:'Disrupted 1980-88 (Tanker War), 2019 (Iran seizures). AU imports ~60% Middle East crude.',
-    asxStocks:['WDS.AX','STO.AX','BPT.AX','VEA.AX'],
-    asxNote:'AU energy companies with Middle East LNG exposure',
-  },
-  {
-    name:'Suez Canal', lat:30.4, lon:32.3, status:'DISRUPTED',
-    keywords:['Suez','Red Sea','Houthi','Yemen','Bab-el-Mandeb'],
-    cargoValue:'US$12B/day',   commodity:'Mixed Cargo / Container',
-    note:'Houthi attacks forcing rerouting via Cape of Good Hope — +10-14 day transit',
-    impact:'~15% of global trade',
-    history:'Blocked 1967-75 (Six-Day War). Current Houthi campaign since Nov 2023 adds A$1,500-2,000/TEU.',
-    asxStocks:['MQG.AX','BXB.AX','WTC.AX','QAN.AX'],
-    asxNote:'AU logistics, freight, and airline stocks exposed to cost inflation',
-  },
-  {
-    name:'Strait of Malacca', lat:2.5, lon:101.0, status:'OPEN',
-    keywords:['Malacca','piracy','Singapore strait','Indonesia'],
-    cargoValue:'US$5.3B/day',  commodity:'Oil / LNG / Container',
-    note:'Normal operations — key corridor for AU iron ore/LNG to northeast Asia',
-    impact:'~25% of traded goods',
-    history:'Piracy peak 2003-04 — now patrol by Littoral Security Initiative. AU iron ore, coal, LNG transit daily.',
-    asxStocks:['BHP.AX','RIO.AX','FMG.AX','WDS.AX'],
-    asxNote:'AU bulk commodity exporters: critical transit route for China-bound shipments',
-  },
-  {
-    name:'Panama Canal', lat:9.1, lon:-79.7, status:'OPEN',
-    keywords:['Panama Canal','drought','congestion','vessel'],
-    cargoValue:'US$270B/year', commodity:'Container / LNG / Bulk',
-    note:'Water levels recovering after 2024-25 drought disruption — canal at normal capacity',
-    impact:'~6% of global trade',
-    history:'2024 drought restricted to 24 ships/day (from 36). LNG prices spiked 18% during restrictions.',
-    asxStocks:['WDS.AX','BXB.AX','AMC.AX'],
-    asxNote:'AU LNG exporters and packaging companies with US-Asia container flow exposure',
-  },
-  {
-    name:'Taiwan Strait', lat:25.0, lon:121.0, status:'MONITORED',
-    keywords:['Taiwan','PLAN','China military','Taiwan strait','exercises'],
-    cargoValue:'US$5.5T/year',  commodity:'Semiconductor / Container',
-    note:'PLA exercise activity intermittent — critical semiconductor supply route',
-    impact:'50% global chip production',
-    history:'1995-96 Third Taiwan Crisis. Blockade scenario would cut ~92% of advanced chips globally for 6-12 months.',
-    asxStocks:['WTC.AX','XRO.AX','CPU.AX','TNE.AX'],
-    asxNote:'AU tech companies dependent on semiconductor supply chains through Taiwan',
-  },
-  {
-    name:'Bosphorus Strait', lat:41.1, lon:29.0, status:'OPEN',
-    keywords:['Bosphorus','Black Sea','Turkey strait','Russia grain'],
-    cargoValue:'US$1.4B/day',  commodity:'Grain / Oil / Steel',
-    note:'Turkey exercising Montreux Convention — Russian warship limits apply',
-    impact:'Russian grain exports',
-    history:'Closed to warships since Mar 2022 under Montreux. Russian grain exports rerouted. AU wheat prices influenced.',
-    asxStocks:['GNC.AX','AWB.AX','ILU.AX'],
-    asxNote:'AU grain traders and agricultural companies with global wheat/barley pricing exposure',
-  },
-  {
-    name:'Cape of Good Hope', lat:-34.0, lon:18.5, status:'MONITORED',
-    keywords:['Cape','South Africa','rerouting','Good Hope'],
-    cargoValue:'US$2.1B/day',  commodity:'Container / Bulk / Oil',
-    note:'Traffic surged 350% since Houthi disruptions — port congestion developing',
-    impact:'Suez Canal overflow route',
-    history:'Main route pre-Suez (1869). Currently handling 500+ extra vessels/month diverted from Red Sea.',
-    asxStocks:['MQG.AX','BXB.AX','TCL.AX'],
-    asxNote:'Freight cost pass-through to AU logistics, toll infrastructure, and global supply chain operators',
-  },
-]
+// Status, notes and dates live in data/shippingRoutes.js, shared with the map.
+const CHOKEPOINTS = SHIPPING_ROUTE_TABLE
 
 // ─── Commodity Flows (for map overlay) ───────────────────────────────────────
 
@@ -1216,13 +1147,12 @@ function MaritimeTab({ newsItems }) {
       const text = (n.headline + ' ' + (n.summary ?? '')).toLowerCase()
       return cp.keywords.some(kw => text.includes(kw.toLowerCase()))
     }).slice(0, 2)
-    return { ...cp, status: computeChokeStatus(cp, related), related, updatedAgo: timeAgo(related[0]?.pubDate) }
+    return { ...cp, baseline: cp.status, status: computeChokeStatus(cp, related), related, updatedAgo: timeAgo(related[0]?.pubDate) }
   }), [newsItems])
 
   const disrupted  = chokeStatuses.filter(c => c.status === 'DISRUPTED').length
   const monitored  = chokeStatuses.filter(c => c.status === 'MONITORED').length
   const open       = chokeStatuses.filter(c => c.status === 'OPEN').length
-  const totalValue = '$25.4T'
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -1236,11 +1166,7 @@ function MaritimeTab({ newsItems }) {
       </div>
 
       {/* Summary bar */}
-      <div className="grid grid-cols-4 border-b border-terminal-border flex-shrink-0 text-center">
-        <div className="py-1.5 border-r border-terminal-border">
-          <div className="text-xs font-bold text-terminal-gold">{totalValue}</div>
-          <div className="text-2xs text-terminal-text-dim">Annual cargo</div>
-        </div>
+      <div className="grid grid-cols-3 border-b border-terminal-border flex-shrink-0 text-center">
         <div className="py-1.5 border-r border-terminal-border">
           <div className={`text-xs font-bold ${disrupted > 0 ? 'text-terminal-red' : 'text-terminal-text-dim'}`}>{disrupted}</div>
           <div className="text-2xs text-terminal-text-dim">Disrupted</div>
@@ -1257,7 +1183,7 @@ function MaritimeTab({ newsItems }) {
 
       {disrupted > 0 && (
         <div className="px-3 py-1.5 bg-terminal-red/10 border-b border-terminal-red/30 flex-shrink-0 text-2xs text-terminal-red font-bold">
-          ⚠ ACTIVE DISRUPTION — {chokeStatuses.filter(c => c.status === 'DISRUPTED').map(c => c.name).join(', ')} — Monitor AU energy/commodity exposure
+          ⚠ ACTIVE DISRUPTION — {chokeStatuses.filter(c => c.status === 'DISRUPTED').map(c => c.name).join(', ')}
         </div>
       )}
       <div className="flex-1 overflow-auto">
@@ -1275,8 +1201,7 @@ function MaritimeTab({ newsItems }) {
                 </div>
                 <div className="text-2xs text-terminal-text-dim mt-0.5 leading-snug">{cp.note}</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-2xs text-terminal-gold">{cp.cargoValue}</span>
-                  <span className="text-2xs text-terminal-text-dim">· {cp.commodity}</span>
+                  <span className="text-2xs text-terminal-text-dim">{cp.commodity}</span>
                   {cp.updatedAgo && (
                     <span className="text-2xs text-terminal-text-dim/60 ml-auto">UPDATED {cp.updatedAgo.toUpperCase()}</span>
                   )}
@@ -1287,8 +1212,10 @@ function MaritimeTab({ newsItems }) {
 
             {expanded === cp.name && (
               <div className="px-4 pb-2 space-y-1.5">
-                <div className="text-2xs text-terminal-text-dim">
-                  <span className="text-terminal-gold">Impact:</span> {cp.impact}
+                <div className="text-2xs text-terminal-text-dim" data-route-status-source>
+                  {cp.status === cp.baseline
+                    ? `Status: ${ROUTE_STATUS_SOURCE}, as entered ${formatDate(cp.asOf)}`
+                    : `Status: matched in today's headlines (entered as ${cp.baseline} on ${formatDate(cp.asOf)}, ${ROUTE_STATUS_SOURCE})`}
                 </div>
                 {cp.history && (
                   <div className="text-2xs text-terminal-text-dim/80 border-l-2 border-terminal-border/60 pl-2">
@@ -1332,7 +1259,7 @@ function MaritimeTab({ newsItems }) {
                       name:        cp.name,
                       sector:      cp.commodity,
                       date:        todayAEST(),
-                      instruction: `Analyse the market impact of ${cp.name} (${cp.status}) on Australian investors. Cargo value: ${cp.cargoValue}. ${cp.note}. Key ASX stocks affected: ${cp.asxStocks?.join(', ')}. Include supply chain risks, AU commodity exposure, and freight cost outlook.`,
+                      instruction: `Describe the ${cp.name} shipping route and why it matters to Australian trade. Recorded status: ${cp.baseline} (${ROUTE_STATUS_SOURCE}, ${formatDate(cp.asOf)}). ${cp.note}. Companies Maddex links to the route: ${cp.asxStocks?.map(s => s.replace('.AX', '')).join(', ')}. Describe only; do not forecast prices or freight costs, and do not suggest any action.`,
                     })}
                     className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                   >ASK AI</button>
@@ -1560,12 +1487,20 @@ function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
 function CommodityFlowsTab({ onAskAI }) {
   const [selected, setSelected] = useState(null)
 
+  // Rows held in verifiedConstants take its value, date and source, so Brent
+  // here matches the map and the Markets panels. No dated daily change is held
+  // for them, so their change shows as "—". The other rows are the May 2026
+  // reference table as entered.
+  const held = (key) => {
+    const c = VERIFIED_CONSTANTS.commodities
+    return { price: c[key], chg: null, src: `${c.sourceBy?.[key] ?? c.source}, ${formatDate(c.asOfBy?.[key] ?? c.asOf)} · hand-entered` }
+  }
   const COMMODITY_TABLE = [
-    { name:'Iron Ore (62% Fe)',   route:'AU → China',        unit:'USD/t',     price:98.50,  chg:-1.8, src:'Platts, May 2026',   risk:'LOW',    vol:'160Mt/yr', coinId:null },
-    { name:'LNG Spot (JKM)',      route:'AU → Japan/Korea',  unit:'USD/MMBtu', price:11.20,  chg:+2.3, src:'Platts, May 2026',   risk:'LOW',    vol:'22Mt/yr',  coinId:null },
-    { name:'Thermal Coal (5500)', route:'AU → India/Japan',  unit:'USD/t',     price:114.00, chg:-0.5, src:'Argus, May 2026',    risk:'LOW',    vol:'45Mt/yr',  coinId:null },
+    { name:'Iron Ore (62% Fe)',   route:'AU → China',        unit:'USD/t',     ...held('ironOreUSD'),   risk:'LOW',    vol:'160Mt/yr', coinId:null },
+    { name:'LNG Spot (JKM)',      route:'AU → Japan/Korea',  unit:'USD/MMBtu', ...held('lngUSDPerMMBtu'),   risk:'LOW',    vol:'22Mt/yr',  coinId:null },
+    { name:'Thermal Coal (Newcastle)', route:'AU → India/Japan',  unit:'USD/t',     ...held('thermalCoalUSD'),    risk:'LOW',    vol:'45Mt/yr',  coinId:null },
     { name:'Coking Coal (HCC)',   route:'AU → China/India',  unit:'USD/t',     price:198.00, chg:+0.8, src:'Argus, May 2026',    risk:'MEDIUM', vol:'70Mt/yr',  coinId:null },
-    { name:'Crude Oil (Brent)',   route:'Middle East → Asia', unit:'USD/bbl',  price:76.50,  chg:-0.7, src:'ICE, May 2026',      risk:'HIGH',   vol:'15Mb/day', coinId:null },
+    { name:'Crude Oil (Brent)',   route:'Middle East → Asia', unit:'USD/bbl',  ...held('brentUSD'),      risk:'HIGH',   vol:'15Mb/day', coinId:null },
     { name:'Iron Ore (IOCJ)',     route:'Brazil → China',    unit:'USD/t',     price:101.00, chg:-0.2, src:'Platts, May 2026',   risk:'LOW',    vol:'200Mt/yr', coinId:null },
     { name:'Soybeans (CBOT)',     route:'Brazil → China',    unit:'USD/bu',    price:10.42,  chg:+0.4, src:'CBOT, May 2026',     risk:'LOW',    vol:'85Mt/yr',  coinId:null },
     { name:'Wheat (SRW CBOT)',    route:'AU/US → SE Asia',   unit:'USD/bu',    price:5.42,   chg:-0.3, src:'CBOT, May 2026',     risk:'LOW',    vol:'30Mt/yr',  coinId:null },
@@ -1581,7 +1516,7 @@ function CommodityFlowsTab({ onAskAI }) {
     <div className="flex flex-col h-full overflow-hidden">
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
         COMMODITY FLOWS
-        <span className="ml-auto text-2xs font-normal normal-case text-terminal-text-dim">May 2026</span>
+        <span className="ml-auto text-2xs font-normal normal-case text-terminal-text-dim">Dates per row</span>
       </div>
 
       {/* Summary bar */}
@@ -1620,9 +1555,11 @@ function CommodityFlowsTab({ onAskAI }) {
                   {c.unit.startsWith('EUR') ? '€' : 'US$'}{c.price.toFixed(2)}
                   <span className="text-terminal-text-dim/60 text-2xs ml-0.5">{c.unit.split('/')[1]}</span>
                 </div>
-                <div className={`text-2xs font-semibold ${c.chg > 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {c.chg > 0 ? '+' : ''}{c.chg.toFixed(1)}%
-                </div>
+                {c.chg == null
+                  ? <div className="text-2xs text-terminal-text-dim" title="No dated change held for this row">—</div>
+                  : <div className={`text-2xs font-semibold ${c.chg > 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                      {c.chg > 0 ? '+' : ''}{c.chg.toFixed(1)}%
+                    </div>}
               </div>
             </div>
 
@@ -1642,7 +1579,7 @@ function CommodityFlowsTab({ onAskAI }) {
                     name:        c.name,
                     sector:      'Commodities',
                     price:       `${c.unit.startsWith('EUR') ? '€' : 'US$'}${c.price.toFixed(2)}${c.unit.split('/')[1] ? ` /${c.unit.split('/')[1]}` : ''}`,
-                    change:      `${c.chg > 0 ? '+' : ''}${c.chg.toFixed(1)}%`,
+                    change:      c.chg == null ? undefined : `${c.chg > 0 ? '+' : ''}${c.chg.toFixed(1)}%`,
                     date:        todayAEST(),
                     instruction: `Analyse supply chain disruption risk and market impact for ${c.name} (${c.route}, ${c.vol}).`,
                   }) }}
@@ -1654,7 +1591,7 @@ function CommodityFlowsTab({ onAskAI }) {
         ))}
 
         <div className="px-3 py-1 text-2xs text-terminal-text-dim/50 border-t border-terminal-border">
-          Prices: Platts/Argus/CBOT reference · Volumes: Dept Resources 2025-26 · As at Jun 2026
+          Each price names its source and date · Volumes: Dept Resources 2025-26
         </div>
       </div>
     </div>

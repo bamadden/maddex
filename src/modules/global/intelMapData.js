@@ -81,39 +81,40 @@ export const AU_TRADE_ROUTES = TRADE_ROUTES.filter((r) => r.id.startsWith('AU-')
 export const SHIPPING_DISRUPTIONS = [
   { id: 'hormuz', name: 'Strait of Hormuz', coordinates: [56.3, 26.6], radius: 300000, severity: 'CRITICAL', severityScore: 98,
     title: 'Hormuz Closure — Iran War',
-    detail: 'Largely closed since the US–Israel war on Iran began on 28 Feb. Iran has mined the strait and claims sovereignty over it; October has seen near-daily strikes on tankers. Before the war it carried about a quarter of seaborne oil and a fifth of LNG.',
-    impact: 'Largest oil supply disruption on record. Brent above US$100; Asian LNG at its highest since 2022.',
+    detail: 'Largely closed since the US–Israel war on Iran began on 28 Feb. Iran has mined the strait and claims sovereignty over it; October has seen near-daily strikes on tankers.',
+    impact: 'Gulf crude and Qatari LNG cargoes are cut off from their usual route.',
+    showBrent: true,
     affectedRoutes: ['Gulf crude', 'Qatar LNG', 'Oil tankers'],
     commodities: ['Crude Oil', 'LNG', 'Fertiliser'],
     asxImpact: [{ ticker: 'WDS', why: 'LNG price windfall as Qatari supply is cut off' }, { ticker: 'WHC', why: 'Coal demand as Asian buyers substitute for gas' }, { ticker: 'QAN', why: 'Jet fuel cost' }],
     startDate: '2026-02-28' },
   { id: 'red-sea', name: 'Red Sea', coordinates: [43.0, 13.5], radius: 450000, severity: 'CRITICAL', severityScore: 92,
     title: 'Houthi Attacks — Red Sea',
-    detail: 'Ongoing attacks on commercial shipping. Major carriers diverting around the Cape of Good Hope. Adds roughly 14 days and about US$1M in fuel to EU-Asia routes.',
-    impact: 'Freight rates +340% on Asia-Europe routes',
+    detail: 'Ongoing attacks on commercial shipping. Major carriers diverting around the Cape of Good Hope, a longer route between Europe and Asia.',
+    impact: 'Longer voyages bear on Asia–Europe freight costs.',
     affectedRoutes: ['EU-Asia', 'Oil tankers', 'Container ships'],
     commodities: ['Containers', 'Crude Oil', 'LNG'],
     asxImpact: [{ ticker: 'WDS', why: 'LNG shipping cost and route risk' }, { ticker: 'STO', why: 'Oil price sensitivity' }],
     startDate: '2023-11-19' },
   { id: 'taiwan', name: 'Taiwan Strait', coordinates: [120.5, 24.5], radius: 220000, severity: 'HIGH', severityScore: 74,
     title: 'Taiwan Strait — Military Tension',
-    detail: 'Elevated PLA naval activity. Roughly half of global container traffic transits this strait annually, and the semiconductor supply chain runs through it.',
-    impact: 'Insurance premiums elevated. Rerouting preparation underway.',
+    detail: 'Intermittent PLA exercise activity. A main lane for container traffic and for the semiconductor supply chain.',
+    impact: 'Shipping insurance and routing are sensitive to exercise activity.',
     affectedRoutes: ['Trans-Pacific', 'Intra-Asia'],
     commodities: ['Semiconductors', 'Containers', 'Electronics'],
     asxImpact: [{ ticker: 'WTC', why: 'Logistics software exposure' }, { ticker: 'BHP', why: 'China demand channel' }],
     startDate: '2024-01-01' },
   { id: 'malacca', name: 'Strait of Malacca', coordinates: [103.5, 1.5], radius: 120000, severity: 'MEDIUM', severityScore: 48,
     title: 'Strait of Malacca — Piracy Risk',
-    detail: 'Elevated piracy risk on a lane carrying 80,000+ ships a year. The primary bottleneck for Australian LNG heading to North Asia.',
-    impact: 'Minor delays. Security escorts recommended.',
+    detail: 'Open; piracy reports in one of the busiest shipping lanes. A main route for Australian LNG heading to North Asia.',
+    impact: 'Piracy reports; traffic moving.',
     affectedRoutes: ['AU-Asia LNG', 'Oil tankers'],
     commodities: ['LNG', 'Crude Oil'],
     asxImpact: [{ ticker: 'WDS', why: 'Primary LNG export lane' }],
     startDate: '2024-06-01' },
   { id: 'suez', name: 'Suez Canal', coordinates: [32.5, 30.5], radius: 80000, severity: 'MEDIUM', severityScore: 55,
     title: 'Suez Canal — Reduced Traffic',
-    detail: 'Traffic down about 42% against pre-conflict levels as vessels divert. Canal authority revenue falling sharply.',
+    detail: 'Traffic reduced as vessels divert from the Red Sea; canal authority revenue has fallen.',
     impact: 'Knock-on effects for global freight rates',
     affectedRoutes: ['EU-Asia', 'EU-East Africa'],
     commodities: ['Containers', 'Crude Oil'],
@@ -121,8 +122,8 @@ export const SHIPPING_DISRUPTIONS = [
     startDate: '2023-12-01' },
   { id: 'panama', name: 'Panama Canal', coordinates: [-79.9, 9.1], radius: 60000, severity: 'LOW', severityScore: 30,
     title: 'Panama Canal — Water Levels',
-    detail: 'Low water levels limiting daily transits from 38 vessels to about 24. El Niño impacts persisting.',
-    impact: 'US-Asia shipping diverted. Minor delays.',
+    detail: 'Operating normally after the drought-related transit limits of 2023–24.',
+    impact: 'No current restriction recorded.',
     affectedRoutes: ['US East Coast-Asia', 'LNG tankers'],
     commodities: ['LNG', 'Containers', 'Grain'],
     asxImpact: [],
@@ -303,7 +304,9 @@ export function overlayNarrative(rows, aiRows, fields) {
     const m = findMatch(row, aiRows)
     if (!m) return row
     const patch = {}
-    for (const f of fields) if (typeof m[f] === 'string' && m[f].trim()) patch[f] = m[f]
+    // Prose only: a model-written string holding a digit is dropped, so the
+    // AI can never put a figure, date or share on the map.
+    for (const f of fields) if (typeof m[f] === 'string' && m[f].trim() && !/\d/.test(m[f])) patch[f] = m[f]
     return Object.keys(patch).length ? { ...row, ...patch, aiNarrative: true } : row
   })
 }

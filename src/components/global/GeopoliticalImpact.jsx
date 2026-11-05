@@ -1,5 +1,7 @@
 import { STATUS_BADGE, RISK_LEVEL, EXPOSURE_LABEL, portfolioExposure, costChannels } from '../../services/geopoliticalImpactService'
 import { dispatchAskAI } from '../../utils/askAI'
+import { ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
+import { formatDate } from '../../utils/dateUtils'
 
 const STATUS_COLOR = { ACTIVE: 'text-terminal-red border-terminal-red', MONITORING: 'text-terminal-gold border-terminal-gold', RESOLVED: 'text-terminal-green border-terminal-green' }
 const RISK_COLOR = { CRITICAL: 'text-terminal-red', HIGH: 'text-terminal-red', MEDIUM: 'text-terminal-gold', LOW: 'text-terminal-green' }
@@ -27,7 +29,10 @@ export default function GeopoliticalImpact({ chokepoint, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="text-2xs text-terminal-text-dim">{chokepoint.note}</div>
+          <div className="text-2xs text-terminal-text-dim">
+            {chokepoint.note}
+            {chokepoint.asOf && <div className="text-terminal-text-dim/60 mt-0.5">Status: {ROUTE_STATUS_SOURCE}, as entered {formatDate(chokepoint.asOf)}</div>}
+          </div>
 
           <div>
             <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1.5">YOUR HOLDINGS' LINKS TO THIS ROUTE</div>

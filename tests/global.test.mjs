@@ -26,3 +26,33 @@ test('cost channels carry no sizes, probabilities or forecasts', () => {
   assert.match(ui, /not an estimate of gains or losses, and not a recommendation/)
   assert.match(ui, /do not forecast prices or suggest any action/)
 })
+
+test('route status has one dated source; route notes and map zones carry no unsourced figures', async () => {
+  const { SHIPPING_ROUTES, routeFor, brentReading } = await import('../src/data/shippingRoutes.js')
+  for (const r of SHIPPING_ROUTES) {
+    assert.match(r.asOf, /^\d{4}-\d{2}-\d{2}$/, `${r.name} has an entry date`)
+    assert.ok(['OPEN', 'MONITORED', 'DISRUPTED'].includes(r.status), r.name)
+    for (const t of [r.note, r.history, r.asxNote]) assert.doesNotMatch(t, /%|\$|\d+\s*(day|Mt|mb|bn|B\b|T\b)|surged|\+\d/i, `${r.name}: ${t}`)
+    assert.ok(!('cargoValue' in r) && !('impact' in r), `${r.name}: no hand-typed cargo values`)
+  }
+  assert.equal(routeFor('hormuz').status, 'DISRUPTED', 'Hormuz reads the same everywhere')
+  const intel = read('src/modules/global/intelMapData.js')
+  const zones = intel.slice(intel.indexOf('export const SHIPPING_DISRUPTIONS'), intel.indexOf('export const COMMODITY_SITES'))
+  for (const line of zones.split('\n').filter((l) => /^\s+(detail|impact):/.test(l))) {
+    assert.doesNotMatch(line, /%|US\$|A\$|\d{2,}\s*(vessels|ships|days)|\+\d|quarter|fifth|half of/i, line.trim())
+  }
+  const b = brentReading()
+  assert.equal(typeof b.value, 'number'); assert.match(b.asOf, /^\d{4}-\d{2}-\d{2}$/); assert.ok(b.source)
+  assert.equal(brentReading({ commodities: {} }), null, 'no Brent held: nothing shown, never 0')
+  const mod = read('src/modules/global/GlobalModule.jsx')
+  assert.doesNotMatch(mod, /\$25\.4T|price:76\.50|Monitor AU energy\/commodity exposure|freight cost outlook/)
+  assert.match(mod, /\.\.\.held\('brentUSD'\)/, 'Commodity Flows Brent is the dated constant')
+})
+
+test('AI map narrative cannot carry a figure', async () => {
+  const { overlayNarrative } = await import('../src/modules/global/intelMapData.js')
+  const rows = [{ id: 'hormuz', name: 'Strait of Hormuz', detail: 'base', impact: 'base' }]
+  const out = overlayNarrative(rows, [{ id: 'hormuz', name: 'Strait of Hormuz', detail: 'Tankers diverted.', impact: 'Freight rates +340%' }], ['detail', 'impact'])
+  assert.equal(out[0].detail, 'Tankers diverted.')
+  assert.equal(out[0].impact, 'base', 'a model string with a digit is dropped')
+})
