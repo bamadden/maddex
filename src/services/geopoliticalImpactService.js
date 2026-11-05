@@ -1,19 +1,9 @@
-import { getMockFMPRow } from './mockData'
-
-function hashStr(s) {
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-  return h >>> 0
-}
-function mulberry32(seed) {
-  let a = seed
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+// Which holdings are linked to a shipping route, and through what — a
+// description of exposure, never an estimate of gain or loss. Until 5 Nov
+// this showed each holding's "estimated impact" in A$: a seeded random
+// shock (3–6% for HIGH) applied to DEMO prices, plus forecasts of oil
+// moves, CPI effects and RBA odds. All of that is gone (Phase 5 audit,
+// docs/audit/global.md).
 
 export const STATUS_BADGE = { DISRUPTED: 'ACTIVE', MONITORED: 'MONITORING', OPEN: 'RESOLVED' }
 export const RISK_LEVEL = { DISRUPTED: 'HIGH', MONITORED: 'MEDIUM', OPEN: 'LOW' }
@@ -55,50 +45,46 @@ function exposureFor(symbolBare, chokepoint) {
   return table[sector] ?? 'LOW'
 }
 
-const EXPOSURE_SHOCK = { HIGH: [-0.06, -0.03], MEDIUM: [-0.02, -0.01], LOW: [0, 0] }
+// How the link was found, not how large it is.
+export const EXPOSURE_LABEL = {
+  NAMED: 'NAMED FOR THIS ROUTE',
+  SECTOR: 'SECTOR LINK',
+  NONE: 'NO DIRECT LINK FOUND',
+}
 
-// Reads the real portfolio (madden_portfolio_v2) and computes each ASX
-// holding's exposure to a given chokepoint disruption.
-export function portfolioImpact(chokepoint) {
+function linkFor(symbolBare, chokepoint) {
+  if (chokepoint.asxStocks?.includes(`${symbolBare}.AX`)) return 'NAMED'
+  return exposureFor(symbolBare, chokepoint) === 'LOW' ? 'NONE' : 'SECTOR'
+}
+
+// Reads the portfolio (madden_portfolio_v2): each ASX holding and the kind of
+// link Maddex's editorial mapping finds between it and the route.
+export function portfolioExposure(chokepoint, storage = globalThis.localStorage) {
   let holdings = []
-  try { holdings = JSON.parse(localStorage.getItem('madden_portfolio_v2') ?? '[]') } catch { /* empty */ }
-  const asxHoldings = holdings.filter((h) => h.type === 'asx')
-
-  const rows = asxHoldings.map((h) => {
-    const exposure = exposureFor(h.symbol, chokepoint)
-    const q = getMockFMPRow(`${h.symbol}.AX`)
-    const value = q ? q.regularMarketPrice * h.shares : null
-    const [lo, hi] = EXPOSURE_SHOCK[exposure]
-    const rng = mulberry32(hashStr(`${chokepoint.name}_${h.symbol}`))
-    const shockPct = lo + rng() * (hi - lo)
-    const impactValue = value != null ? value * shockPct : null
-    return { symbol: h.symbol, name: h.name, exposure, value, shockPct, impactValue }
+  try { holdings = JSON.parse(storage.getItem('madden_portfolio_v2') ?? '[]') } catch { /* empty */ }
+  return holdings.filter((h) => h.type === 'asx').map((h) => {
+    const exposure = linkFor(h.symbol, chokepoint)
+    const sector = SECTOR_BY_SYMBOL[h.symbol] ?? null
+    const reason = exposure === 'NAMED'
+      ? (chokepoint.asxNote ?? `Listed among the ASX companies linked to ${chokepoint.name}.`)
+      : exposure === 'SECTOR'
+        ? `${sector} is a sector linked to trade through ${chokepoint.name}${chokepoint.commodity ? ` (${chokepoint.commodity.toLowerCase()})` : ''}.`
+        : 'No direct link to this route in Maddex\'s mapping.'
+    return { symbol: h.symbol, name: h.name, exposure, sector, reason }
   })
-
-  const totalValue = rows.reduce((s, r) => s + (r.value ?? 0), 0)
-  const totalImpact = rows.reduce((s, r) => s + (r.impactValue ?? 0), 0)
-  return { rows, totalValue, totalImpact, totalImpactPct: totalValue > 0 ? (totalImpact / totalValue) * 100 : 0 }
 }
 
 const IS_ENERGY_ROUTE = new Set(['Strait of Hormuz', 'Suez Canal', 'Strait of Malacca', 'Panama Canal'])
 
-export function macroImpact(chokepoint) {
-  const isEnergy = IS_ENERGY_ROUTE.has(chokepoint.name)
-  const severity = RISK_LEVEL[chokepoint.status]
-
-  const oilSensitivity = isEnergy
-    ? `${chokepoint.name} disruptions historically correlate with a ${severity === 'HIGH' ? '10-15%' : '3-6%'} move in oil price over the following 3 months.`
-    : `${chokepoint.name} has limited direct oil-price sensitivity — its impact flows mainly through freight and container costs rather than energy markets.`
-
-  const inflationImpact = chokepoint.status === 'DISRUPTED'
-    ? 'Shipping cost increases typically flow through to AU CPI with a 2-3 month lag. Estimate +0.2-0.4% to AU CPI if the disruption continues 6+ months.'
-    : chokepoint.status === 'MONITORED'
-      ? 'Currently a watch item rather than an active cost pass-through — no material AU CPI impact yet unless conditions escalate.'
-      : 'Route is operating normally — no current inflation impact.'
-
-  const rbaImplication = chokepoint.status === 'DISRUPTED'
-    ? 'If shipping/energy costs add to inflation, this reduces the probability of near-term RBA rate cuts. A sustained disruption could shift market-implied cut probability materially lower.'
-    : 'No material shift to RBA policy expectations from this alone at current severity.'
-
-  return { oilSensitivity, inflationImpact, rbaImplication }
+// How a disruption on the route reaches Australian prices: channels only,
+// with no sizes, probabilities or forecasts.
+export function costChannels(chokepoint) {
+  const energy = IS_ENERGY_ROUTE.has(chokepoint.name)
+  return [
+    energy
+      ? { title: 'ENERGY', text: `${chokepoint.name} carries crude oil and LNG cargoes, so disruption there bears on global energy prices.` }
+      : { title: 'ENERGY', text: `${chokepoint.name} is not a major energy route; its effects run mainly through freight and container costs.` },
+    { title: 'FREIGHT AND IMPORT PRICES', text: 'Longer routes and higher insurance raise shipping costs, which feed into the prices of imported goods.' },
+    { title: 'WHERE IT IS MEASURED', text: 'Import prices and the CPI are published by the ABS; the RBA reports on inflation in its statements and minutes.' },
+  ]
 }
