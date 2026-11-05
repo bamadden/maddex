@@ -15,6 +15,7 @@ import { setModuleIntent, sendModuleIntent } from '../../services/moduleIntent'
 import {
   resolveAsset, searchCatalogue, parseSectorQuery, calcMatches, parseCompound,
   parseBondQuery, timeSuggestions, sydneyClock, FKEY_MODULE,
+  MODULES, searchModules, searchSettings, moduleNamed,
 } from './commandSearch'
 
 import { PAL } from '../../styles/palette.js'
@@ -40,48 +41,16 @@ const CMD_SUGGESTIONS = [
   { sym:'HELP',            label:'HELP / ?',          type:'cmd', desc:'Show all commands' },
 ]
 
-// MODULES search category
-const MODULE_LIST = [
-  { key:'markets',   label:'MARKETS',   desc:'ASX 200, S&P 500, global equities' },
-  { key:'portfolio', label:'PORTFOLIO', desc:'Your holdings, P&L, allocation' },
-  { key:'crypto',    label:'CRYPTO',    desc:'Top coins, market cap, fear & greed' },
-  { key:'fx',        label:'RATES',     desc:'FX pairs, yield curves, metals' },
-  { key:'macro',     label:'MACRO',     desc:'RBA, AU/US indicators, economic calendar' },
-  { key:'watchlist', label:'WATCHLIST', desc:'Your tracked tickers' },
-  { key:'news',      label:'NEWS',      desc:'Market-moving headlines' },
-  { key:'global',    label:'GLOBAL',    desc:'Global risk & intelligence' },
-  { key:'screener',  label:'SCREENER',  desc:'AI-assisted stock screening' },
-  { key:'calendar',  label:'CALENDAR',  desc:'Economic & earnings calendar' },
-  { key:'bonds',     label:'BONDS',     desc:'Sovereign curves, bond maths' },
-  { key:'etf',       label:'ETFs',      desc:'ETF explorer, fee drag, comparison' },
-  { key:'futures',   label:'FUTURES',   desc:'Futures, options chain, short interest' },
-  { key:'calculators', label:'CALC',    desc:'Compound, super, CGT, mortgage, tax' },
-  { key:'relationships', label:'RELATIONSHIPS', desc:'Company graph — ownership, exposure, peers, every edge sourced' },
-  { key:'company',   label:'COMPANY',   desc:'Company profile — DES BHP: ownership, connections, sourced facts' },
-]
+// MODULES search category: the one list in commandSearch.js (every module
+// App renders, with aliases and topics).
+const MODULE_LIST = MODULES.map(({ key, label, desc }) => ({ key, label, desc }))
 
 // Stocks to scan for TOP/LOSERS commands
 const TOP_SCAN_AU = ['BHP.AX','CBA.AX','CSL.AX','ANZ.AX','WBC.AX','NAB.AX','WOW.AX','WES.AX','RIO.AX','FMG.AX','MQG.AX','TLS.AX','WDS.AX','STO.AX','MIN.AX','PLS.AX','QAN.AX','GMG.AX']
 const TOP_SCAN_US = ['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','BAC','XOM','V','AMD','NFLX','DIS','BA']
 const TOP_SCAN_ALL = [...TOP_SCAN_AU, ...TOP_SCAN_US]
 
-const NAV_MAP = {
-  markets:   ['markets','mkt','indices','heat'],
-  portfolio: ['portfolio','holdings','pnl'],
-  crypto:    ['crypto','defi','cry','crypt'],
-  fx:        ['fx','forex','rates','yield'],
-  macro:     ['macro','economic','gdp','cpi','rba','mac'],
-  watchlist: ['watchlist','wl','watch'],
-  news:      ['news','feed','headlines'],
-  global:    ['global','glb','globe'],
-  calendar:  ['calendar','cal','events'],
-  bonds:     ['bonds','bond','bnd','yields','gilts','treasuries'],
-  etf:       ['etf','etfs'],
-  futures:   ['futures','fut','derivatives'],
-  calculators: ['calc','calcs','calculator','calculators'],
-  relationships: ['relationships','rel','graph','network','links'],
-  company:   ['company','profile','des'],
-}
+const NAV_MAP = Object.fromEntries(MODULES.map((m) => [m.key, m.aliases]))
 
 const HELP_SECTIONS = [
   { title:'NAVIGATION', items:[
@@ -187,13 +156,11 @@ function displaySymbol(raw) {
 // Module names as a person would say them, mapped to module ids. Checked
 // against NAV_MAP's aliases first, so this only has to carry the names that
 // are not already aliases.
+// 'settings' and 'ai' are not modules: execute() opens the Settings panel
+// and the MaddenAI panel for them (they used to render Markets).
 const SPOKEN_MODULES = {
-  brief: 'brief', 'morning brief': 'brief', 'my brief': 'brief', 'weekly review': 'brief',
-  scanner: 'scanner', scan: 'scanner', screener: 'screener', screen: 'screener',
-  dashboard: 'dashboard', home: 'dashboard',
-  calendar: 'calendar', settings: 'settings', replay: 'replay',
-  'ai analyst': 'ai', 'maddenai': 'ai',
-  calculators: 'calculators', etfs: 'etf', rates: 'fx', markets: 'markets',
+  settings: 'settings', preferences: 'settings',
+  'ai analyst': 'ai', 'maddenai': 'ai', 'madden ai': 'ai',
 }
 
 function moduleIdFor(name) {
@@ -203,7 +170,7 @@ function moduleIdFor(name) {
   for (const [module, aliases] of Object.entries(NAV_MAP)) {
     if (aliases.includes(n)) return module
   }
-  return null
+  return moduleNamed(n)   // one typo away: "portfolo", "calender"
 }
 
 const analysisQuery = (sym) =>
@@ -509,7 +476,6 @@ function getSuggestions(input) {
   const raw = input.trim()
   if (!raw || isHelpQuery(raw)) return []
   const Q = raw.toUpperCase()
-  const lower = raw.toLowerCase()
   const nl = parseNaturalLanguage(raw)
 
   const sector = parseSectorQuery(raw)
@@ -525,9 +491,11 @@ function getSuggestions(input) {
     market: b.market, maturity: b.maturity,
   }))
 
-  const modules = MODULE_LIST
-    .filter((m) => m.label.startsWith(Q) || m.key.startsWith(lower) || (lower.length >= 2 && NAV_MAP[m.key]?.some((a) => a === lower)))
+  const modules = searchModules(raw).slice(0, PER_CATEGORY)
     .map((m) => ({ sym:m.key, label:m.label, desc:m.desc, type:'module', category:'MODULES' }))
+
+  const settings = searchSettings(raw).slice(0, 3)
+    .map((t) => ({ sym:`settings:${t.label}`, label:t.label, desc: t.section ? `Settings → ${t.section}` : 'Open Settings', type:'settings', category:'SETTINGS', section:t.section }))
 
   const calcs = nl?.kind === 'calc' ? [] : calcMatches(raw).map((c) => ({
     sym: `calc:${c.key}`, label: c.label, desc: c.desc, type: 'calc', category: 'CALC', tab: c.tab,
@@ -542,7 +510,7 @@ function getSuggestions(input) {
     ...perCat(found.filter((s) => s.category === 'STOCKS')),
     ...perCat(found.filter((s) => s.category === 'CRYPTO')),
     ...perCat(found.filter((s) => s.category === 'FX')),
-    ...bonds, ...modules, ...calcs, ...commands,
+    ...bonds, ...modules, ...settings, ...calcs, ...commands,
   ].slice(0, sector ? 8 : MATCH_LIMIT)
 
   // "bonds" parses as navigation and also lists the BONDS module, and "10y"
@@ -876,7 +844,7 @@ function nextGroupStart(items, idx, dir) {
 
 const TYPE_ICON = {
   asx: '📈', us: '📈', index: '📈', crypto: '₿', fx: '💱', bond: '🏛',
-  module: '▶', action: '⚡', cmd: '⚡', ai: '🤖', calc: '🔢',
+  module: '▶', action: '⚡', cmd: '⚡', ai: '🤖', calc: '🔢', settings: '⚙',
 }
 
 const CATEGORY_LABEL = { MADDENAI: 'MADDENAI', CALC: 'CALCULATORS' }
@@ -1243,6 +1211,12 @@ export default function CommandBar() {
   // block in this session."
   //
   // One event, one code path, one answer.
+  // Settings is a panel, not a module: open it at a section (or its top).
+  const openSettings = (section) => {
+    window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: section ? { section } : {} }))
+    flash(`→ SETTINGS${section ? ` · ${section}` : ''}`, 'text-terminal-green', 1500)
+  }
+
   const routeToAI = (raw) => {
     flash(`ROUTING TO AI — "${raw.trim().substring(0, 40)}${raw.length > 40 ? '…' : ''}"`, 'text-terminal-gold', 2000)
     window.dispatchEvent(new CustomEvent('madden:ask-ai', {
@@ -1585,6 +1559,8 @@ export default function CommandBar() {
           return
 
         case 'nav':
+          if (nl.module === 'settings') { openSettings(null); return }
+          if (nl.module === 'ai') { setChatOpen(true); return }
           setActiveModule(nl.module)
           if (nl.module === 'news') setNewsFilter('')
           flash(`→ ${nl.module.toUpperCase()}`, 'text-terminal-green', 1500)
@@ -1687,6 +1663,10 @@ export default function CommandBar() {
       case 'cmd':
         setInputValue('')
         execute(item.label)
+        return
+      case 'settings':
+        setInputValue('')
+        openSettings(item.section)
         return
       case 'recent':
       case 'suggested':

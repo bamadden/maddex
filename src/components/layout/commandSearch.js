@@ -50,14 +50,14 @@ export const KNOWN_SYMBOLS = [
   { sym:'XOM',     label:'XOM',    type:'us',    desc:'ExxonMobil · NYSE' },
   { sym:'V',       label:'V',      type:'us',    desc:'Visa · NYSE' },
   // Indices
-  { sym:'^AXJO',   label:'^AXJO',  type:'index', desc:'ASX 200 · Index' },
-  { sym:'^GSPC',   label:'^GSPC',  type:'index', desc:'S&P 500 · Index' },
+  { sym:'^AXJO',   label:'^AXJO',  type:'index', desc:'ASX 200 · Index', aka:['XJO', 'ASX200'] },
+  { sym:'^GSPC',   label:'^GSPC',  type:'index', desc:'S&P 500 · Index', aka:['SPX', 'SP500', 'S&P500'] },
   { sym:'^IXIC',   label:'^IXIC',  type:'index', desc:'NASDAQ Composite · Index' },
-  { sym:'^DJI',    label:'^DJI',   type:'index', desc:'Dow Jones Industrial · Index' },
+  { sym:'^DJI',    label:'^DJI',   type:'index', desc:'Dow Jones Industrial · Index', aka:['Dow'] },
   { sym:'^FTSE',   label:'^FTSE',  type:'index', desc:'FTSE 100 · Index' },
-  { sym:'^N225',   label:'^N225',  type:'index', desc:'Nikkei 225 · Index' },
+  { sym:'^N225',   label:'^N225',  type:'index', desc:'Nikkei 225 · Index', aka:['Nikkei'] },
   { sym:'^HSI',    label:'^HSI',   type:'index', desc:'Hang Seng · Index' },
-  { sym:'^VIX',    label:'^VIX',   type:'index', desc:'CBOE Volatility · Index' },
+  { sym:'^VIX',    label:'^VIX',   type:'index', desc:'CBOE Volatility · Index', aka:['VIX'] },
   // Crypto
   { sym:'BTC',     label:'BTC',    type:'crypto', desc:'Bitcoin · Crypto' },
   { sym:'ETH',     label:'ETH',    type:'crypto', desc:'Ethereum · Crypto' },
@@ -296,6 +296,90 @@ function bondRow(market, maturity) {
   if (!BOND_CURVES[market]?.some((r) => r.maturity === maturity)) return null
   const info = BOND_MARKETS.find((b) => b.key === market)
   return { market, maturity, label: `${market} ${maturity}`, desc: `${info.name} · ${maturity}` }
+}
+
+// ─── Modules, topics and settings ───────────────────────────────────────────
+// Every module the terminal renders (App.jsx MODULE_MAP, less the dev-only
+// graph review), with the words people type for it. `topics` are subjects a
+// module holds ("rba", "gold"): they find the module but never resolve a
+// typed command to it, so "rba" lists MACRO while "rba decision" still goes
+// to the parser.
+
+export const MODULES = [
+  { key: 'dashboard',     label: 'DASHBOARD',     desc: 'Overview: market state, RBA, holdings, watchlist', aliases: ['dashboard', 'dash', 'home', 'overview'] },
+  { key: 'markets',       label: 'MARKETS',       desc: 'ASX 200, S&P 500, global equities',  aliases: ['markets', 'mkt', 'indices', 'heat'], topics: ['equities', 'sectors', 'heatmap', 'breadth'] },
+  { key: 'portfolio',     label: 'PORTFOLIO',     desc: 'Your holdings, P&L, allocation',     aliases: ['portfolio', 'port', 'holdings', 'pnl'] },
+  { key: 'crypto',        label: 'CRYPTO',        desc: 'Top coins, market cap, fear & greed', aliases: ['crypto', 'defi', 'cry', 'crypt'], topics: ['fear and greed', 'coins'] },
+  { key: 'fx',            label: 'RATES',         desc: 'FX pairs, yield curves, metals',     aliases: ['rates', 'fx', 'forex', 'yield'], topics: ['gold', 'silver', 'metals', 'currencies', 'aud'] },
+  { key: 'macro',         label: 'MACRO',         desc: 'RBA, AU/US indicators, economic calendar', aliases: ['macro', 'economic', 'mac'], topics: ['rba', 'cash rate', 'cpi', 'inflation', 'gdp', 'unemployment', 'recession', 'fed'] },
+  { key: 'watchlist',     label: 'WATCHLIST',     desc: 'Your tracked tickers',               aliases: ['watchlist', 'wl', 'watch'] },
+  { key: 'news',          label: 'NEWS',          desc: 'Market-moving headlines',            aliases: ['news', 'feed', 'headlines'] },
+  { key: 'global',        label: 'GLOBAL',        desc: 'Global risk and intelligence map',   aliases: ['global', 'glb', 'globe', 'map'], topics: ['geopolitics', 'country risk'] },
+  { key: 'brief',         label: 'BRIEF',         desc: 'Morning brief and weekly review',    aliases: ['brief', 'morning brief', 'my brief', 'weekly review'] },
+  { key: 'calendar',      label: 'CALENDAR',      desc: 'Economic and earnings calendar',     aliases: ['calendar', 'cal', 'events'], topics: ['earnings', 'dividends', 'agm'] },
+  { key: 'scanner',       label: 'SCANNER',       desc: 'Largest moves, gaps, volume, momentum', aliases: ['scanner', 'scan'] },
+  { key: 'screener',      label: 'SCREENER',      desc: 'Screen stocks by your own criteria', aliases: ['screener', 'screen', 'filter'] },
+  { key: 'replay',        label: 'REPLAY',        desc: 'Replay past market events',          aliases: ['replay', 'history'] },
+  { key: 'bonds',         label: 'BONDS',         desc: 'Sovereign curves, bond maths',       aliases: ['bonds', 'bond', 'bnd', 'gilts', 'treasuries'], topics: ['yield curve'] },
+  { key: 'etf',           label: 'ETFs',          desc: 'ETF explorer, fee drag, comparison', aliases: ['etf', 'etfs'] },
+  { key: 'futures',       label: 'FUTURES',       desc: 'Futures, options chain, short interest', aliases: ['futures', 'fut', 'derivatives'], topics: ['options', 'short interest'] },
+  { key: 'calculators',   label: 'CALC',          desc: 'Compound, super, CGT, mortgage, tax', aliases: ['calculators', 'calculator', 'calc', 'calcs'] },
+  { key: 'relationships', label: 'RELATIONSHIPS', desc: 'Company graph: ownership, exposure, peers, every edge sourced', aliases: ['relationships', 'rel', 'graph', 'network', 'links'] },
+  { key: 'company',       label: 'COMPANY',       desc: 'Company profile (DES BHP): ownership, connections, sourced facts', aliases: ['company', 'profile', 'des'] },
+]
+
+// Settings sections people look for by name. Opening one is navigation:
+// nothing is changed until the person acts in Settings.
+export const SETTINGS_ITEMS = [
+  { label: 'SETTINGS',          section: null,              words: ['settings', 'preferences', 'options', 'account'] },
+  { label: 'EXPORT MY DATA',    section: 'DATA',            words: ['export my data', 'export data', 'download my data', 'my data'] },
+  { label: 'DELETE ACCOUNT',    section: 'SECURITY',        words: ['delete account', 'delete my account', 'close account'] },
+  { label: 'DISPLAY',           section: 'DISPLAY',         words: ['display', 'theme', 'dark mode', 'light mode', 'font size'] },
+  { label: 'KEYBOARD SHORTCUTS', section: 'SHORTCUTS',      words: ['shortcuts', 'keyboard shortcuts', 'keys', 'hotkeys'] },
+  { label: 'PLAN & BILLING',    section: 'PLAN & BILLING',  words: ['plan', 'billing', 'subscription', 'upgrade', 'waitlist'] },
+  { label: 'ALERT SETTINGS',    section: 'ALERTS',          words: ['alert settings', 'notifications'] },
+  { label: 'DATA SOURCES',      section: 'DATA SOURCES',    words: ['data sources', 'sources', 'licences', 'credits'] },
+  { label: 'MADDENAI SETTINGS', section: 'MADDENAI',        words: ['ai settings', 'maddenai settings'] },
+  { label: 'PROFILE',           section: 'PROFILE',         words: ['profile settings', 'my profile'] },
+]
+
+// A typo budget for words: none under five letters ("calen" is a prefix, not
+// a typo), one from five, two from eight.
+const typoBudget = (n) => (n >= 8 ? 2 : n >= 5 ? 1 : 0)
+const nearly = (q, w) => {
+  const b = typoBudget(q.length)
+  return b > 0 && Math.abs(q.length - w.length) <= b && osa(q, w) <= b
+}
+
+// Modules for a query: by label, id or alias prefix, by an exact topic, or
+// within a typo of an alias ("portfolo", "calender").
+export function searchModules(raw) {
+  const q = norm(raw)
+  if (!q) return []
+  const Q = q.toUpperCase()
+  const hits = []
+  for (const m of MODULES) {
+    let s = 0
+    if (m.label === Q || m.key === q || m.aliases.includes(q)) s = 100
+    else if (m.label.startsWith(Q) || m.key.startsWith(q) || (q.length >= 3 && m.aliases.some((a) => a.startsWith(q)))) s = 90
+    else if (m.topics?.includes(q)) s = 80
+    else if (m.aliases.some((a) => nearly(q, a))) s = 60
+    if (s) hits.push({ ...m, score: s })
+  }
+  return hits.sort((a, b) => b.score - a.score)
+}
+
+// The module a typed word names outright (alias or label), or one typo away.
+// Topics are not names: "gold" lists RATES but does not navigate.
+export function moduleNamed(raw) {
+  const hit = searchModules(raw)[0]
+  return hit && (hit.score === 100 || hit.score === 60) ? hit.key : null
+}
+
+export function searchSettings(raw) {
+  const q = norm(raw)
+  if (q.length < 3) return []
+  return SETTINGS_ITEMS.filter((s) => s.words.some((w) => w === q || (q.length >= 4 && w.startsWith(q)) || nearly(q, w)))
 }
 
 // ─── Time-of-day suggestions ────────────────────────────────────────────────
