@@ -1389,7 +1389,7 @@ input.cmd-input:focus,
   .overview-grid {
     height: 100%;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 0.8fr) auto;
   }
   .overview-grid > section { min-height: 0; }
   .overview-grid > .overview-wide { grid-column: span 2; }

@@ -5,21 +5,13 @@ import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { runOfficialCheck } from '../../services/officialCheckStore'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import { feedHealth } from '../../services/dataHealth'
 
 // DATA HEALTH — the top of Settings → Data Sources: every feed's age, the
 // official-statistics check, today's AI content, what is due next, and the
 // two actions (check everything now; see which constants need a human).
 // Every time shown is read from the cache the service itself wrote.
 
-const FEEDS = [
-  ['FX rates', 'maddex_live_fx_rates', 'timestamp', 60],
-  ['Crypto', 'maddex_live_crypto_prices', 'timestamp', 30],
-  ['Fear & Greed', 'maddex_live_fear_greed', 'timestamp', 24 * 60],
-  ['Gold', 'maddex_live_gold_price', 'timestamp', 60],
-  ['DeFi TVL', 'maddex_defi_protocols_25', 'at', 120],
-  ['BTC mempool', 'maddex_defi_btc_onchain_v2', 'at', 60],
-  ['Earthquakes', 'maddex_live_earthquakes_4.5', 'timestamp', 180],
-]
 
 const ago = (ms, now) => {
   if (ms == null) return null
@@ -50,11 +42,8 @@ export default function DataHealthPanel() {
   const [showStale, setShowStale] = useState(false)
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id) }, [])
 
-  const feeds = useMemo(() => FEEDS.map(([label, key, field, freshMins]) => {
-    const at = read(key)?.[field] ?? null
-    return { label, at, fresh: at != null && now - at < freshMins * 60_000 * 3 }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [tick, busy])
+  const feeds = useMemo(() => feedHealth({ now }), [tick, busy])
   const news = queryClient.getQueryState(['news'])
   const newsData = queryClient.getQueryData(['news'])
 

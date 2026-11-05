@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { YF_INDICES, USING_MOCK_DATA, EQUITY_SOURCE, transformCryptoMarkets } from '../../services/api'
 import { fetchIndexQuotesUnified, fetchCryptoMarketsUnified, fetchFxRatesUnified, fetchEquityQuotes } from '../../services/dataService'
@@ -19,6 +19,8 @@ import DataBadge from '../../components/ui/DataBadge'
 import PriceChange from '../../components/ui/PriceChange'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { computePortfolioSnapshot, holdingRows, byMove } from './portfolioSnapshot'
+import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHealth'
+import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -301,6 +303,38 @@ function ComingUp({ goTo }) {
   )
 }
 
+// ── Data health ─────────────────────────────────────────────────────────────
+// One line: are the feeds behind this screen fresh, and do the hand-entered
+// official figures still match the agencies? The detail is Settings → Data
+// Sources, one click away.
+function DataHealthLine() {
+  const check = useOfficialCheck()
+  const qc = useQueryClient()
+  const [tick, setTick] = useState(0)
+  // Re-read whenever any query settles, so the line moves with the panels.
+  useEffect(() => qc.getQueryCache().subscribe((e) => { if (e?.type === 'updated') setTick((t) => t + 1) }), [qc])
+  const h = useMemo(() => healthSummary(queryHealth(SCREEN_FEEDS.map(([label, key]) => ({ label, state: qc.getQueryState(key) && { ...qc.getQueryState(key), data: qc.getQueryData(key) } }))), check),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tick, check])
+  const open = () => window.dispatchEvent(new CustomEvent('madden:open-settings', { detail: { section: 'DATA SOURCES' } }))
+  const tone = h.ok ? 'var(--color-up, #3FB06B)' : '#D9773B'
+  const parts = [
+    `Feeds: ${h.fresh} fresh`,
+    h.stale.length ? `${h.stale.length} stale (${h.stale.join(', ')})` : null,
+    h.notLoaded ? `${h.notLoaded} not loaded yet` : null,
+    h.stats ? `Official stats: ${h.stats.match} of ${h.stats.total} match${h.stats.drift ? `, ${h.stats.drift} differ` : ''}${h.stats.unavailable ? `, ${h.stats.unavailable} unavailable` : ''}${h.stats.at ? ` (checked ${sydneyClock(h.stats.at).text})` : ''}`
+      : 'Official stats: not checked yet this session',
+  ].filter(Boolean)
+  return (
+    <section aria-labelledby="ov-health" className="col-span-full flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 border border-terminal-border bg-terminal-panel font-mono" style={{ fontSize: 11 }} data-health-line>
+      <h2 id="ov-health" className="font-semibold tracking-widest text-terminal-gold">DATA HEALTH</h2>
+      <span style={{ color: tone }} aria-hidden="true">{h.ok ? '●' : '▲'}</span>
+      <span className="text-terminal-text min-w-0">{parts.join(' · ')}</span>
+      <button onClick={open} className="ml-auto tracking-widest text-terminal-text-dim hover:text-terminal-gold whitespace-nowrap">DETAILS →</button>
+    </section>
+  )
+}
+
 export default function OverviewSurface() {
   const { setActiveModule } = useStore()
   const h = useHoldings()
@@ -314,6 +348,7 @@ export default function OverviewSurface() {
         <Watchlist goTo={setActiveModule} />
         <SinceLastVisit asx200={idx?.data?.['^AXJO']?.last ?? null} portfolioValue={h.stats?.value ?? null} />
         <ComingUp goTo={setActiveModule} />
+        <DataHealthLine />
       </div>
     </div>
   )

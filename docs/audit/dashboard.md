@@ -15,7 +15,7 @@ customisable order.
 | Item | Status |
 |---|---|
 | 1 Movers | Done 5 Nov: both sorted by the size of the day's move; the watchlist ranks all its equities and says how many more and how many non-equities are not shown |
-| 2 Data health | Next |
+| 2 Data health | Done 5 Nov: a DATA HEALTH line under the Overview: the feeds its panels show (from the query cache: fresh, stale or not loaded) and the official-statistics check, DETAILS → Settings → Data Sources. Found on the way: Settings' LIVE FEEDS list reads older per-service caches that the unified data paths no longer write, so FX and crypto can show "not loaded" while on screen; licensed-off DeFi TVL is no longer listed. The Settings list should move to the query cache too (open) |
 | 3 Brief summary | Next |
 | 4 Time zones | Next |
 | 5 Panel order | Next |

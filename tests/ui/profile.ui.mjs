@@ -153,6 +153,9 @@ try {
   else fail(`Overview panels missing: ${JSON.stringify(ov.panels)}`)
   if (/TIME TO DECISION (\d+ days? )?\d+ hr \d+ min|Decision due/.test(ov.countdown ?? '')) pass(`labelled countdown: ${ov.countdown}`)
   else fail(`no labelled decision countdown (${ov.countdown})`)
+  const health = await page.evaluate(() => document.querySelector('[data-health-line]')?.innerText.replace(/\s+/g, ' ') ?? '')
+  if (/DATA HEALTH/.test(health) && /Feeds: \d+ fresh/.test(health) && /Official stats:/.test(health)) pass(`data health line: ${health.slice(0, 90)}`)
+  else fail(`no data health line (${health})`)
 
   sectionLog('Keyboard: skip link and reachable stock rows')
   active = page
