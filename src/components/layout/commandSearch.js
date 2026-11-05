@@ -394,8 +394,9 @@ export function sydneyClock(now = new Date()) {
 
 // What to offer under an empty bar. Each item carries the command it runs, so
 // selecting one goes through execute() like anything typed. Copy is kept to
-// what is true at that hour: Wall Street has closed by a Sydney morning, and
-// in a Sydney evening the US session is still hours away.
+// what is true at that hour, whatever the season: the US session ends between
+// 6am and 8am Sydney time depending on daylight saving, so a Sydney morning
+// says "overnight" rather than "closed", and nothing claims to be live.
 export function timeSuggestions({ now = new Date(), mover = null, alertCount = 0 } = {}) {
   const { hour, weekend } = sydneyClock(now)
   if (weekend) {
@@ -408,7 +409,7 @@ export function timeSuggestions({ now = new Date(), mover = null, alertCount = 0
   if (hour >= 6 && hour < 10) {
     return [
       { icon: '📰', label: 'Check morning brief', command: 'brief' },
-      { icon: '📊', label: 'Wall St closed — check overnight indices', command: 'markets' },
+      { icon: '📊', label: 'Overnight session — global indices', command: 'markets' },
       { icon: '💼', label: 'Portfolio overnight move', command: 'portfolio' },
     ]
   }
@@ -417,7 +418,7 @@ export function timeSuggestions({ now = new Date(), mover = null, alertCount = 0
       mover
         ? { icon: '📈', label: `${mover} — biggest move on your watchlist today`, command: mover }
         : { icon: '📈', label: 'ASX open — watchlist moves', command: 'watchlist' },
-      { icon: '📊', label: 'Check scanner for signals', command: 'scanner' },
+      { icon: '📊', label: 'Scanner — largest moves today', command: 'scanner' },
       { icon: '⚡', label: alertCount ? `${alertCount} active alert${alertCount === 1 ? '' : 's'}` : 'Active alerts', action: 'alerts' },
     ]
   }
@@ -430,7 +431,7 @@ export function timeSuggestions({ now = new Date(), mover = null, alertCount = 0
   }
   return [
     hour < 6
-      ? { icon: '🌐', label: 'US session live — global indices', command: 'markets' }
+      ? { icon: '🌐', label: 'US session — global indices', command: 'markets' }
       : { icon: '🌐', label: 'US pre-market — futures', command: 'futures' },
     { icon: '📅', label: "Tomorrow's events", command: 'calendar' },
     { icon: '⭐', label: 'Review your watchlist', command: 'watchlist' },

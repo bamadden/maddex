@@ -96,3 +96,12 @@ test('"settings" and "maddenai" open their panels instead of rendering Markets',
   assert.match(bar, /if \(nl\.module === 'settings'\) \{ openSettings\(null\); return \}/)
   assert.match(bar, /if \(nl\.module === 'ai'\) \{ setChatOpen\(true\); return \}/)
 })
+
+test('idle suggestions claim nothing live or closed, and no signals', async () => {
+  const { timeSuggestions } = await import('../src/components/layout/commandSearch.js')
+  const days = ['2026-11-05', '2026-06-04', '2026-11-07']   // AEDT weekday, AEST weekday, Saturday
+  for (const d of days) for (let h = 0; h < 24; h++) {
+    const at = new Date(`${d}T${String(h).padStart(2, '0')}:30:00+11:00`)
+    for (const s of timeSuggestions({ now: at, mover: 'BHP', alertCount: 2 })) assert.doesNotMatch(s.label, /\blive\b|Wall St closed|signals?\b/i, `${at.toISOString()}: ${s.label}`)
+  }
+})
