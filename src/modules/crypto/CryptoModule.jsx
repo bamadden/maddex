@@ -716,7 +716,7 @@ export default function CryptoModule() {
   }, [])
   const vsCurrency = currency.toLowerCase()
 
-  const { data: rawMarketsResult, isError: marketsError, isFetching: marketsFetching, refetch: refetchMarkets } = useQuery({
+  const { data: rawMarketsResult, isError: marketsError, isFetching: marketsFetching, refetch: refetchMarkets, dataUpdatedAt: marketsAt } = useQuery({
     queryKey: ['cryptoMarkets', vsCurrency],
     queryFn:  () => fetchCryptoMarketsUnified(vsCurrency),
     staleTime: 60_000,
@@ -928,7 +928,8 @@ export default function CryptoModule() {
 
           {showMine ? (
             <div className="absolute inset-0" style={{ top: titleBarHeight + 2 }}>
-              <MyCryptoPanel markets={markets} currPrefix={currPrefix} colorFor={coinColor} />
+              <MyCryptoPanel markets={markets} currPrefix={currPrefix} colorFor={coinColor}
+                source={rawMarkets ? { cls: marketsDelayed ? 'STALE' : 'LIVE', provider: rawMarketsResult?.meta?.provider ?? 'CoinGecko', at: marketsDelayed ? rawMarketsResult?.cachedAt ?? null : marketsAt || null } : null} />
             </div>
           ) : showDefi ? (
             // Absolutely positioned for the same reason the 3D canvas is —

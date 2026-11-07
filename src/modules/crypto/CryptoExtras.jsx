@@ -81,7 +81,7 @@ const save = (rows) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(ro
 
 const money = (v, prefix) => `${v < 0 ? '−' : ''}${prefix}${Math.abs(v).toLocaleString('en-AU', { maximumFractionDigits: Math.abs(v) < 10 ? 4 : 2, minimumFractionDigits: 2 })}`
 
-export function MyCryptoPanel({ markets, currPrefix, colorFor = () => PAL.gold }) {
+export function MyCryptoPanel({ markets, currPrefix, source = null, colorFor = () => PAL.gold }) {
   // A cost entered in AUD is only comparable with an AUD price. Rows record
   // the currency they were entered in (legacy rows, from before this, were
   // AUD — the module's default); a row in the other currency is valued but
@@ -115,11 +115,15 @@ export function MyCryptoPanel({ markets, currPrefix, colorFor = () => PAL.gold }
     const gain = value != null && sameCcy ? value - costBasis : null
     return { ...r, sameCcy, price: m?.price ?? null, value, gain, pct: gain != null && costBasis > 0 ? (gain / costBasis) * 100 : null }
   })
-  const total = priced.reduce((s, r) => s + (r.value ?? 0), 0)
-  const comparable = priced.filter((r) => r.sameCcy)
-  const totalCost = comparable.reduce((s, r) => s + r.avgCost * r.units, 0)
-  const otherCcy = priced.length - comparable.length
-  const totalGain = comparable.reduce((s, r) => s + (r.value ?? 0), 0) - totalCost
+  // A holding with no price right now is left out of every total, never
+  // counted as worth 0 (which read as a loss of its whole cost).
+  const valued = priced.filter((r) => r.value != null)
+  const unpriced = priced.length - valued.length
+  const total = valued.length ? valued.reduce((s, r) => s + r.value, 0) : null
+  const comparable = valued.filter((r) => r.sameCcy)
+  const totalCost = comparable.length ? comparable.reduce((s, r) => s + r.avgCost * r.units, 0) : null
+  const otherCcy = priced.filter((r) => !r.sameCcy).length
+  const totalGain = totalCost != null ? comparable.reduce((s, r) => s + r.value, 0) - totalCost : null
   const slices = priced.filter((r) => r.value > 0).sort((a, b) => b.value - a.value)
     .map((r) => ({ label: r.symbol, value: r.value, color: colorFor(r.symbol) }))
   const tone = (v) => (v == null ? PAL.dim : v >= 0 ? 'var(--color-gain)' : 'var(--color-loss)')
@@ -129,9 +133,9 @@ export function MyCryptoPanel({ markets, currPrefix, colorFor = () => PAL.gold }
     <div className="h-full overflow-y-auto p-3 space-y-3">
       <div className="grid grid-cols-3 gap-2">
         {[
-          ['TOTAL VALUE', money(total, currPrefix), null],
-          ['COST BASIS', money(totalCost, currPrefix), null],
-          ['GAIN / LOSS', `${totalGain >= 0 ? '+' : ''}${money(totalGain, currPrefix)}${totalCost > 0 ? ` (${((totalGain / totalCost) * 100).toFixed(1)}%)` : ''}`, totalGain],
+          ['TOTAL VALUE', total != null ? money(total, currPrefix) : '—', null],
+          ['COST BASIS', totalCost != null ? money(totalCost, currPrefix) : '—', null],
+          ['GAIN / LOSS', totalGain != null ? `${totalGain >= 0 ? '+' : ''}${money(totalGain, currPrefix)}${totalCost > 0 ? ` (${((totalGain / totalCost) * 100).toFixed(1)}%)` : ''}` : '—', totalGain],
         ].map(([label, value, t]) => (
           <div key={label} className="border border-terminal-border px-3 py-2">
             <div className="text-[11px] text-terminal-text-dim tracking-widest">{label}</div>
@@ -144,7 +148,7 @@ export function MyCryptoPanel({ markets, currPrefix, colorFor = () => PAL.gold }
         <div className="flex items-center gap-5 border border-terminal-border p-3 flex-wrap">
           <Donut
             size={150} thickness={24} label="Crypto holdings by value" slices={slices}
-            centre={<><span className="text-[11px] text-terminal-text-dim tracking-widest">TOTAL</span><span className="text-xs font-bold text-terminal-text-bright tabular-nums">{money(total, currPrefix)}</span></>}
+            centre={<><span className="text-[11px] text-terminal-text-dim tracking-widest">TOTAL</span><span className="text-xs font-bold text-terminal-text-bright tabular-nums">{total != null ? money(total, currPrefix) : '—'}</span></>}
           />
           <div className="flex-1 min-w-[160px] space-y-1">
             {slices.map((s) => (
@@ -201,7 +205,8 @@ export function MyCryptoPanel({ markets, currPrefix, colorFor = () => PAL.gold }
         </table>
       )}
       <div className="text-[11px] text-terminal-text-dim/60">
-        Priced live from CoinGecko in {ccy}. Costs are kept in the currency they were entered in{otherCcy > 0 ? ` — ${otherCcy} holding${otherCcy === 1 ? ' was' : 's were'} entered in ${ccy === 'AUD' ? 'USD' : 'AUD'}; switch currency to see ${otherCcy === 1 ? 'its' : 'their'} gain/loss` : ''}. Stored in this browser only. Not financial advice.
+        {unpriced > 0 && <span data-unpriced style={{ color: PAL.gold }}>{unpriced} holding{unpriced === 1 ? ' has' : 's have'} no price right now and {unpriced === 1 ? 'is' : 'are'} left out of the totals. </span>}
+        {source ? <><DataBadge cls={source.cls} source={source.provider} at={source.at} /> Prices in {ccy}. </> : <>No prices loaded. </>}Totals cover priced holdings entered in {ccy}. Costs are kept in the currency they were entered in{otherCcy > 0 ? ` — ${otherCcy} holding${otherCcy === 1 ? ' was' : 's were'} entered in ${ccy === 'AUD' ? 'USD' : 'AUD'}; switch currency to see ${otherCcy === 1 ? 'its' : 'their'} gain/loss` : ''}. Stored in this browser only. Not financial advice.
       </div>
     </div>
   )

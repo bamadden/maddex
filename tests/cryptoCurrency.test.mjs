@@ -146,3 +146,12 @@ test('crypto momentum: a missing input is left out, never 50 or a 0% move; every
   assert.match(text, /BTC 24h volume over its market cap/)
   assert.doesNotMatch(fs.readFileSync('src/services/maddenAiScoring.js', 'utf8'), /Volume Conviction|change24h \|\| 0/)
 })
+
+test('My Crypto: an unpriced holding is left out of the totals, never counted as worth 0; the footer badge follows the feed', () => {
+  const src = fs.readFileSync('src/modules/crypto/CryptoExtras.jsx', 'utf8')
+  assert.doesNotMatch(src, /r\.value \?\? 0/)
+  assert.doesNotMatch(src, /Priced live from CoinGecko/)
+  assert.match(src, /left out of the totals/)
+  assert.match(src, /<DataBadge cls=\{source\.cls\}/)
+  assert.match(fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8'), /cls: marketsDelayed \? 'STALE' : 'LIVE'/)
+})
