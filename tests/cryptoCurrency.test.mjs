@@ -182,3 +182,17 @@ test('coin history uses CoinGecko\'s own id from the markets row, never a lower-
   assert.match(src, /fetchCoinHistory\(selectedId,/)
   assert.match(src, /enabled:\s+!!selectedId/)
 })
+
+test('Crypto accessibility: sort headers are buttons with aria-sort; glyph buttons and My Crypto fields are labelled', () => {
+  for (const f of ['src/modules/crypto/CryptoModule.jsx', 'src/modules/crypto/CryptoExtras.jsx']) {
+    const src = fs.readFileSync(f, 'utf8')
+    for (const m of src.matchAll(/<button\b((?:[^>]|=>)*?)>([^<]{0,6})<\/button>/gs)) {
+      if (m[2].trim() && !/[A-Za-z0-9]/.test(m[2])) assert.match(m[1], /aria-label=/, `${f}: unlabelled "${m[2].trim()}"`)
+    }
+  }
+  const mod = fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8')
+  assert.match(mod, /aria-sort=/)
+  assert.doesNotMatch(mod, /<th\s+key=\{col\.key\}\s+onClick/)
+  const extras = fs.readFileSync('src/modules/crypto/CryptoExtras.jsx', 'utf8')
+  for (const l of ['aria-label="Coin"', 'aria-label="Units held"', 'Average cost per unit']) assert.ok(extras.includes(l), l)
+})

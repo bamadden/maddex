@@ -456,7 +456,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
             <div className="text-sm font-bold text-terminal-text-bright truncate">{coin.symbol}</div>
           </div>
         </div>
-        <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm flex-shrink-0">✕</button>
+        <button onClick={onClose} aria-label="Close coin detail" className="text-terminal-text-dim hover:text-terminal-text text-sm flex-shrink-0">✕</button>
       </div>
 
       <div className="px-3 py-3 border-b border-terminal-border/50">
@@ -1068,6 +1068,8 @@ function ColumnSelector({ visibleCols, onToggle }) {
       <button
         onClick={() => setOpen(v => !v)}
         title="Show/hide columns"
+        aria-label="Show or hide columns"
+        aria-expanded={open}
         className="text-terminal-text-dim hover:text-terminal-gold text-2xs px-1.5 py-0.5 border border-terminal-border hover:border-terminal-gold/40 transition-colors"
       >⚙</button>
       {open && (
@@ -1128,12 +1130,16 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
           {cols.map(col => (
             <th
               key={col.key}
-              onClick={() => toggleSort(col.key)}
-              style={{ ...HEAD, textAlign: col.align, width: col.width, minWidth: col.width, cursor: 'pointer' }}
+              aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+              style={{ ...HEAD, textAlign: col.align, width: col.width, minWidth: col.width }}
               className={col.cell === 'sm' ? 'hidden sm:table-cell' : col.cell === 'md' ? 'hidden md:table-cell' : col.cell === 'lg' ? 'hidden lg:table-cell' : col.cell === 'xl' ? 'hidden xl:table-cell' : ''}
             >
-              {col.label}
-              {sortKey === col.key && <span style={{ color: PAL.gold, marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+              {/* A real button, so the sort is reachable by Tab and Enter. */}
+              <button type="button" onClick={() => toggleSort(col.key)} style={{ textTransform: 'inherit', font: 'inherit', color: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' }}
+                aria-label={col.label ? `Sort by ${col.label}` : 'Sort'}>
+                {col.label}
+                {sortKey === col.key && <span aria-hidden="true" style={{ color: PAL.gold, marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+              </button>
             </th>
           ))}
           <th style={{ ...HEAD, textAlign: 'right', width: 28, cursor: 'default' }} onClick={(e) => e.stopPropagation()}>

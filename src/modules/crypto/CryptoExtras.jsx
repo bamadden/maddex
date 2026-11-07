@@ -165,12 +165,12 @@ export function MyCryptoPanel({ markets, currPrefix, source = null, colorFor = (
 
       <div className="flex items-center gap-1.5 flex-wrap border border-terminal-border p-2">
         <span className="text-[11px] text-terminal-gold font-bold tracking-widest mr-1">ADD HOLDING</span>
-        <select value={coin} onChange={(e) => setCoin(e.target.value)} className={input}>
+        <select value={coin} onChange={(e) => setCoin(e.target.value)} aria-label="Coin" className={input}>
           {(markets ?? []).map((m) => <option key={m.symbol} value={m.symbol}>{m.symbol}</option>)}
         </select>
-        <input value={units} onChange={(e) => setUnits(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="units" inputMode="decimal" className={`${input} w-24`} />
+        <input value={units} onChange={(e) => setUnits(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="units" aria-label="Units held" inputMode="decimal" className={`${input} w-24`} />
         <span className="text-2xs text-terminal-text-dim">@ {currPrefix}</span>
-        <input value={cost} onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="avg cost / unit" inputMode="decimal" className={`${input} w-32`}
+        <input value={cost} onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="avg cost / unit" aria-label={`Average cost per unit, ${currPrefix}`} inputMode="decimal" className={`${input} w-32`}
           onKeyDown={(e) => e.key === 'Enter' && add()} />
         <button onClick={add} className="text-2xs font-bold tracking-widest border border-terminal-gold text-terminal-gold px-3 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ADD</button>
       </div>
@@ -197,7 +197,7 @@ export function MyCryptoPanel({ markets, currPrefix, source = null, colorFor = (
                 <td className="py-1.5 px-2 text-right tabular-nums" style={{ color: tone(r.gain) }}>{r.gain != null ? `${r.gain >= 0 ? '+' : ''}${money(r.gain, currPrefix)}` : '—'}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums" style={{ color: tone(r.pct) }}>{r.pct != null ? `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(1)}%` : '—'}</td>
                 <td className="py-1.5 px-2 text-right">
-                  <button onClick={() => update(rows.filter((x) => !(x.symbol === r.symbol && (x.ccy ?? 'AUD') === (r.ccy ?? 'AUD'))))} className="text-terminal-text-dim hover:text-terminal-red" title="Remove">✕</button>
+                  <button onClick={() => update(rows.filter((x) => !(x.symbol === r.symbol && (x.ccy ?? 'AUD') === (r.ccy ?? 'AUD'))))} className="text-terminal-text-dim hover:text-terminal-red" title="Remove" aria-label={`Remove ${r.symbol}`}>✕</button>
                 </td>
               </tr>
             ))}
