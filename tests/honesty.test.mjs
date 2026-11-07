@@ -208,3 +208,17 @@ test('Markets: badges come from the one vocabulary; no "check news before acting
   assert.doesNotMatch(read(dir + 'sectorDrivers.js'), /asOf: 'live'|typically outperform/)
   assert.doesNotMatch(read(dir + 'MarketInternals.jsx'), /VIX EQUIVALENT|read like the VIX/)
 })
+
+test('Markets accessibility: no browser prompt; glyph-only buttons and calendar days are labelled', () => {
+  const dir = 'src/modules/markets/'
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.jsx') && f !== 'MarketBreadth.jsx')) {
+    const src = read(dir + f)
+    assert.doesNotMatch(src, /window\.(prompt|confirm|alert)\(/, f)
+    for (const m of src.matchAll(/<button\b((?:[^>]|=>)*?)>([^<]{0,6})<\/button>/gs)) {
+      if (m[2].trim() && !/[A-Za-z0-9]/.test(m[2])) assert.match(m[1], /aria-label=/, `${f}: unlabelled "${m[2].trim()}" button`)
+    }
+  }
+  const cal = read(dir + 'EarningsCalendar.jsx')
+  for (const l of ['Previous month', 'Next month', 'reporting`']) assert.ok(cal.includes(l), l)
+  assert.match(read(dir + 'SectorHeatmap.jsx'), /onFocus=\{\(\) => setHovered\(sector\)\}/)
+})

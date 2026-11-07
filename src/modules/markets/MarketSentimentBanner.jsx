@@ -352,7 +352,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
             {sentiment.score}/100 {sentiment.label.toUpperCase()}
           </span>
           <div className="ml-auto">
-            <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
+            <button onClick={onClose} aria-label="Close sentiment breakdown" className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
           </div>
         </div>
 

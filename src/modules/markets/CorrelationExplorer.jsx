@@ -115,7 +115,7 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
           <span className="text-xl font-bold text-terminal-gold">CORRELATION EXPLORER</span>
           <span className="text-2xs text-terminal-text-dim">{assetIds.length} assets · {period}</span>
         </div>
-        <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
+        <button onClick={onClose} aria-label="Close correlation explorer" className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
       </div>
 
       {/* Diversification score */}
@@ -166,6 +166,7 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
                   onClick={() => removeAsset(id)}
                   className="absolute -top-1 right-0 text-terminal-text-dim/40 hover:text-terminal-red opacity-0 group-hover:opacity-100 text-2xs"
                   title={`Remove ${assetInfo(id).label}`}
+                  aria-label={`Remove ${assetInfo(id).label}`}
                 >×</button>
               </div>
             ))}

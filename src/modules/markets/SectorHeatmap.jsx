@@ -815,17 +815,19 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
 
   const { addAlert } = useStore()
   const [contextMenu, setContextMenu] = useState(null) // { x, y, sector }
+  // The sector alert level, typed inside the menu (no browser prompt).
+  const [alertDraft, setAlertDraft] = useState(null)
   const handleSectorContextMenu = (e, sector) => {
     e.preventDefault()
     setContextMenu({ x: e.clientX, y: e.clientY, sector })
   }
-  const closeContextMenu = () => setContextMenu(null)
+  const closeContextMenu = () => { setContextMenu(null); setAlertDraft(null) }
   useEffect(() => {
     if (!contextMenu) return
-    const close = () => setContextMenu(null)
+    const close = () => { setContextMenu(null); setAlertDraft(null) }
     window.addEventListener('click', close)
     window.addEventListener('scroll', close, true)
-    const onEsc = (e) => { if (e.key === 'Escape') setContextMenu(null) }
+    const onEsc = (e) => { if (e.key === 'Escape') close() }
     window.addEventListener('keydown', onEsc)
     return () => {
       window.removeEventListener('click', close)
@@ -971,6 +973,8 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                 <div
                   key={sector}
                   className={`relative p-2 cursor-pointer select-none transition-all duration-150 flex flex-col ${col} ${row}`}
+                  aria-label={`${sector}: ${pct == null ? 'no price' : `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% on the day`}. Opens its stocks; the menu key sets an alert`}
+                  aria-pressed={isSelected}
                   style={{
                     backgroundColor: bg,
                     border: isSelected ? '2px solid #C9A84C' : '1px solid rgba(0,0,0,0.3)',
@@ -991,6 +995,9 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                   }}
                   onMouseEnter={() => setHovered(sector)}
                   onMouseLeave={() => setHovered(null)}
+                  // Focus shows the deep-dive button too, so Tab can reach it.
+                  onFocus={() => setHovered(sector)}
+                  onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHovered(null) }}
                   onClick={() => setSelected(isSelected ? null : sector)}
                   onContextMenu={(e) => handleSectorContextMenu(e, sector)}
                 >
@@ -1014,6 +1021,7 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                     <button
                       onClick={(e) => { e.stopPropagation(); onOpenDeepDive?.(sector) }}
                       title={`${sector} deep dive`}
+                      aria-label={`Open the ${sector} deep dive`}
                       className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[11px] text-terminal-text-dim hover:text-terminal-gold bg-black/30 hover:bg-black/50 transition-colors"
                     >⛶</button>
                   )}
@@ -1152,18 +1160,37 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                 onClick={() => { askAISector(contextMenu.sector); closeContextMenu() }}
                 className="w-full text-left px-3 py-1.5 text-2xs text-terminal-text hover:bg-terminal-surface2 hover:text-terminal-gold transition-colors"
               >Ask MaddenAI about {contextMenu.sector}</button>
-              <button
-                onClick={() => {
-                  const sym = sectorConfig[contextMenu.sector]?.sym
-                  const q = sym ? proxyQuotes?.[sym] : null
-                  const target = window.prompt(`Alert on ${sym ?? contextMenu.sector} (sector proxy) when price reaches:`, q?.price != null ? q.price.toFixed(2) : '')
-                  if (target && !isNaN(parseFloat(target)) && sym) {
-                    addAlert(sym, target, q?.price != null && parseFloat(target) < q.price ? 'below' : 'above')
-                  }
-                  closeContextMenu()
-                }}
-                className="w-full text-left px-3 py-1.5 text-2xs text-terminal-text hover:bg-terminal-surface2 hover:text-terminal-gold transition-colors"
-              >Set sector alert</button>
+              {(() => {
+                const sym = sectorConfig[contextMenu.sector]?.sym
+                const q = sym ? proxyQuotes?.[sym] : null
+                if (!sym) return null
+                if (alertDraft == null) return (
+                  <button
+                    onClick={() => setAlertDraft(q?.price != null ? q.price.toFixed(2) : '')}
+                    className="w-full text-left px-3 py-1.5 text-2xs text-terminal-text hover:bg-terminal-surface2 hover:text-terminal-gold transition-colors"
+                  >Set sector alert</button>
+                )
+                const level = parseFloat(alertDraft)
+                return (
+                  <form
+                    className="px-3 py-1.5 flex items-center gap-1.5"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (!Number.isFinite(level)) return
+                      addAlert(sym, String(level), q?.price != null && level < q.price ? 'below' : 'above')
+                      closeContextMenu()
+                    }}
+                  >
+                    <label htmlFor="sector-alert-level" className="text-2xs text-terminal-text-dim whitespace-nowrap">{displaySym(sym)} at</label>
+                    <input
+                      id="sector-alert-level" autoFocus inputMode="decimal" value={alertDraft}
+                      onChange={(e) => setAlertDraft(e.target.value)}
+                      className="w-20 bg-terminal-bg border border-terminal-border px-1 text-2xs text-terminal-text-bright"
+                    />
+                    <button type="submit" disabled={!Number.isFinite(level)} className="text-2xs font-bold text-terminal-gold disabled:opacity-40">SET</button>
+                  </form>
+                )
+              })()}
             </div>
           )}
         </div>

@@ -212,7 +212,7 @@ function CompareIndicesModal({ indices, onClose }) {
               >{lbl}</button>
             ))}
           </div>
-          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none ml-2">✕</button>
+          <button onClick={onClose} aria-label="Close index comparison" className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none ml-2">✕</button>
         </div>
 
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-terminal-border flex-shrink-0 flex-wrap">

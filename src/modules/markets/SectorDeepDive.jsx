@@ -423,7 +423,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
               className="text-2xs font-bold border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 transition-colors"
             >SCREEN THIS SECTOR ▶</button>
           )}
-          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
+          <button onClick={onClose} aria-label="Close sector deep dive" className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
         </div>
       </div>
 

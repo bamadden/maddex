@@ -140,6 +140,7 @@ export default function EarningsCalendar() {
           <div className="flex items-center justify-between mb-2">
             <button
               onClick={() => setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1))}
+              aria-label="Previous month"
               className="text-terminal-text-dim hover:text-terminal-gold px-1"
             >←</button>
             <span className="text-2xs text-terminal-gold font-bold tracking-widest">
@@ -147,6 +148,7 @@ export default function EarningsCalendar() {
             </span>
             <button
               onClick={() => setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1))}
+              aria-label="Next month"
               className="text-terminal-text-dim hover:text-terminal-gold px-1"
             >→</button>
           </div>
@@ -166,6 +168,8 @@ export default function EarningsCalendar() {
                   key={key}
                   onClick={() => setSelectedDate(list.length ? key : null)}
                   disabled={!list.length}
+                  aria-label={`${d.getDate()} ${MONTH_NAMES[d.getMonth()]}: ${list.length ? `${list.length} reporting` : 'none reporting'}`}
+                  aria-pressed={key === selectedDate}
                   className={`aspect-square flex flex-col items-center justify-center transition-colors ${
                     key === selectedDate ? 'bg-terminal-gold/20 border border-terminal-gold'
                       : key === todayKey ? 'border border-terminal-gold/40'

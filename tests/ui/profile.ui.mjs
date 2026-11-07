@@ -208,6 +208,33 @@ try {
   await wait(300)
   const stolen = await page.evaluate(() => document.activeElement?.matches?.('[data-command-bar]') ?? false)
   stolen ? fail('Escape closing the detail moved focus into the command bar') : pass('Escape closes the detail without pulling focus into the command bar')
+  // Sector alert: typed inside the tile's menu, never a browser prompt
+  // (a prompt blocks the page and cannot be labelled).
+  let dialog = null
+  const onDialog = (d) => { dialog = d.message(); d.dismiss() }
+  page.on('dialog', onDialog)
+  const menu = await page.evaluate(async () => {
+    const tile = [...document.querySelectorAll('[aria-label*="Opens its stocks"]')][0]
+    if (!tile) return 'no labelled sector tile'
+    tile.focus()
+    const deepDive = !!tile.querySelector('button[aria-label^="Open the"]')
+    tile.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }))
+    await new Promise((r) => setTimeout(r, 200))
+    const set = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Set sector alert')
+    if (!set) return 'no Set sector alert item'
+    set.click()
+    await new Promise((r) => setTimeout(r, 200))
+    const input = document.getElementById('sector-alert-level')
+    const label = document.querySelector('label[for="sector-alert-level"]')?.textContent
+    return input && label ? `ok${deepDive ? '' : ' (deep-dive button not shown on focus)'}` : 'no labelled level input'
+  })
+  if (menu === 'ok' && !dialog) {
+    await page.keyboard.press('Escape')
+    await wait(200)
+    const closed = await page.evaluate(() => !document.getElementById('sector-alert-level'))
+    closed ? pass('sector alert: level typed in a labelled field in the menu; Escape closes it; no browser prompt') : fail('sector alert form stayed open after Escape')
+  } else fail(`sector alert: ${menu}${dialog ? `; browser dialog "${dialog}"` : ''}`)
+  page.off('dialog', onDialog)
 
   sectionLog('Keyboard: F5 switches to Macro without reloading the page')
   await page.evaluate(() => { document.activeElement?.blur(); window.__noReload = 1 })
