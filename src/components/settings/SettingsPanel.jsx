@@ -1458,6 +1458,7 @@ const CREDIT_STATES = {
   rate_limit:  { label: 'RATE LIMITED', colour: PAL.gold, note: 'Too many requests — this usually clears in a minute.' },
   error:       { label: 'API ERROR',   colour: PAL.down, note: 'Could not reach the API.' },
   checking:    { label: 'CHECKING…',   colour: PAL.muted, note: '' },
+  unchecked:   { label: 'NOT CHECKED', colour: PAL.muted, note: 'Press CHECK NOW to test the AI connection.' },
   unknown:     { label: 'UNKNOWN',     colour: PAL.muted, note: 'Unexpected response shape.' },
 }
 
@@ -1494,15 +1495,10 @@ function MaddenAISection() {
   const [prefs, setPrefs] = useState(() => getAiPreferences())
   const [historyCount, setHistoryCount] = useState(() => listConversations().length)
   const [clearConfirm, setClearConfirm] = useState(false)
-  const [credits, setCredits] = useState('checking')
+  // Checked on request only: opening Settings makes no AI request.
+  const [credits, setCredits] = useState('unchecked')
   const [usage, setUsage] = useState(() => getUsageSummary())
   const [cacheCleared, setCacheCleared] = useState(null)
-
-  useEffect(() => {
-    let alive = true
-    checkCredits().then((s) => { if (alive) setCredits(s) })
-    return () => { alive = false }
-  }, [])
 
   const clearAiCache = () => {
     const before = Object.keys(localStorage).filter((k) => k.startsWith('maddex_ai_daily_') || k.startsWith('maddex_ai_content_')).length

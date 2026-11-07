@@ -792,11 +792,14 @@ function MorningBriefing() {
     }
   }, [today])
 
-  // Generated when the panel is opened, not when the News module is: the
-  // panel is collapsed by default, and generating a brief nobody expanded was
-  // one paid completion per reader per day for nothing.
+  // Generated when the reader opens the panel in this visit, never when the
+  // News module loads. The open state is remembered, so a panel left open
+  // last time used to generate on arrival: an AI request on load. Arriving
+  // open with no brief for today shows a WRITE button instead.
+  const openedHere = useRef(false)
+  const toggle = () => { openedHere.current = true; setExpanded((v) => !v) }
   useEffect(() => {
-    if (expanded && !text && !loading && !error) {
+    if (openedHere.current && expanded && !text && !loading && !error) {
       const t = setTimeout(generate, 0)
       return () => clearTimeout(t)
     }
@@ -808,8 +811,8 @@ function MorningBriefing() {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setExpanded((v) => !v)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpanded((v) => !v) }}
+        onClick={toggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggle() }}
         className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-terminal-accent/10 transition-colors cursor-pointer"
       >
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">MORNING BRIEF</span>
@@ -834,7 +837,7 @@ function MorningBriefing() {
       {expanded && (
         <div className="px-3 pb-3 text-xs text-terminal-text leading-relaxed panel-fade">
           {error ? (
-            <div className="text-terminal-red text-2xs">⚠ {error} — <button onClick={generate} className="underline hover:text-terminal-gold">retry</button></div>
+            <div data-ai-unavailable className="text-terminal-gold text-2xs">{error} <button onClick={generate} className="underline hover:text-terminal-gold">Try again</button></div>
           ) : text ? (
             <>
               {renderBriefParagraphs(text)}
@@ -855,8 +858,10 @@ function MorningBriefing() {
                 ⓘ AI-GENERATED SUMMARY · FIGURES FROM LIVE DATA ONLY · GENERAL INFORMATION · NOT ADVICE
               </div>
             </>
-          ) : (
+          ) : loading ? (
             <div className="text-terminal-text-dim text-2xs animate-pulse">MaddenAI is drafting today's briefing…</div>
+          ) : (
+            <button onClick={generate} className="text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">WRITE TODAY'S BRIEFING</button>
           )}
         </div>
       )}

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { deleteNoteFromHistory, noteId, NOTE_KIND_LABEL } from '../../services/researchNoteService'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { useStore } from '../../store/useStore'
-import { getWeeklyNotes, setWeeklyNotesEnabled, weeklyNoteSymbols, WEEKLY_NOTES_CHANGED, WEEKLY_NOTE_COUNT } from '../../services/noteScheduler'
+import { getWeeklyNotes, setWeeklyNotesEnabled, weeklyNoteSymbols, weekKey, runWeeklyNotes, WEEKLY_NOTES_CHANGED, WEEKLY_NOTE_COUNT } from '../../services/noteScheduler'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -15,11 +15,22 @@ import { formatDate } from '../../utils/dateUtils'
 const ResearchNoteGenerator = lazy(() => import('./ResearchNoteGenerator'))
 
 
-// [SCHEDULE WEEKLY NOTE] — fresh notes on the top watchlist stocks each
-// Monday (services/noteScheduler).
+// [SCHEDULE WEEKLY NOTE] — fresh notes on the top watchlist stocks once a
+// week (services/noteScheduler). Written when the reader presses WRITE, not
+// in the background at startup: no AI request is made on load (App.jsx).
 function WeeklyNotesBar() {
   const { watchlist } = useStore()
   const [s, setS] = useState(getWeeklyNotes)
+  const [run, setRun] = useState({ busy: false, error: null })
+  const due = s.enabled && s.lastWeek !== weekKey()
+  const write = async () => {
+    setRun({ busy: true, error: null })
+    try {
+      const r = await runWeeklyNotes(watchlist ?? [])
+      setS(getWeeklyNotes())
+      setRun({ busy: false, error: r ? null : 'No notes written. MaddenAI may be unavailable, or this month\'s note allowance is used; please try again later.' })
+    } catch (e) { setRun({ busy: false, error: e.message }) }
+  }
   useEffect(() => {
     const on = () => setS(getWeeklyNotes())
     window.addEventListener(WEEKLY_NOTES_CHANGED, on)
@@ -36,10 +47,18 @@ function WeeklyNotesBar() {
       <span className="text-[11px] font-mono text-terminal-text-dim/70 leading-snug flex-1 min-w-0">
         {s.enabled
           ? (syms.length
-              ? <>Every Monday before the open: {syms.join(', ')}.{s.lastRunAt && <> Last run {formatDate(new Date(s.lastRunAt), { weekday: true, year: false })}.</>}</>
-              : 'Add stocks to your watchlist — the top three get a note each Monday.')
-          : `Fresh notes on your top ${WEEKLY_NOTE_COUNT} watchlist stocks every Monday, kept here. Uses your monthly note allowance.`}
+              ? <>Once a week: {syms.join(', ')}.{s.lastRunAt && <> Last written {formatDate(new Date(s.lastRunAt), { weekday: true, year: false })}.</>}</>
+              : 'Add stocks to your watchlist — the top three get a note each week.')
+          : `Fresh notes on your top ${WEEKLY_NOTE_COUNT} watchlist stocks once a week, kept here. Uses your monthly note allowance.`}
+        {run.error && <span data-ai-unavailable className="block text-terminal-gold">{run.error}</span>}
       </span>
+      {due && syms.length > 0 && (
+        <button
+          onClick={write}
+          disabled={run.busy}
+          className="text-[11px] font-bold font-mono tracking-wider border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
+        >{run.busy ? 'WRITING…' : "WRITE THIS WEEK'S NOTES"}</button>
+      )}
     </div>
   )
 }

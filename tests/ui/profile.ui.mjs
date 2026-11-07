@@ -80,14 +80,17 @@ const MOCK_STREAM = [
 ].map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
 
 const counts = { mocked: 0, shared: 0, anthropic: 0 }
-async function newPage(browser, { width, mobile = false }) {
+// `clockAt` starts the page's clock at that instant (ms); `storage` adds
+// localStorage entries before the app loads. `onAi` sees every /api/claude
+// request (the AI-on-load check counts them).
+async function newPage(browser, { width, mobile = false, clockAt = null, storage = {}, onAi = null }) {
   const page = await instrument(await browser.newPage())
   await page.setViewport({ width, height: mobile ? 844 : 900, isMobile: mobile, hasTouch: mobile })
   await page.setRequestInterception(true)
   page.on('request', (req) => {
     const u = new URL(req.url())
     if (/(^|\.)anthropic\.com$/.test(u.hostname)) { counts.anthropic++; fail(`request to ${u.href}`); return req.abort() }
-    if (u.pathname.startsWith('/api/claude')) { counts.mocked++; return mockDelay().then(() => req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM })) }
+    if (u.pathname.startsWith('/api/claude')) { counts.mocked++; onAi?.(req); return mockDelay().then(() => req.respond({ status: 200, contentType: 'text/event-stream', body: MOCK_STREAM })) }
     // The shared daily content (api/ai-daily.js) would generate for real on
     // the dev server: mocked too, with an empty payload the panels tolerate.
     if (u.pathname.startsWith('/api/ai-daily')) {
@@ -99,22 +102,23 @@ async function newPage(browser, { width, mobile = false }) {
   page.on('pageerror', (e) => { active = page; fail(`page error: ${e.message.slice(0, 160)}`) })
   // A shiftable clock, so "One clock" can put the page just before a minute
   // boundary. Unshifted (the default) it is the real time.
-  await page.evaluateOnNewDocument(() => {
+  await page.evaluateOnNewDocument((at) => {
     const Real = Date
-    let shift = 0
+    let shift = at == null ? 0 : at - Real.now()
     window.__setClockShift = (ms) => { shift = ms }
     window.Date = class extends Real {
       constructor(...a) { if (a.length) super(...a); else super(Real.now() + shift) }
       static now() { return Real.now() + shift }
     }
-  })
-  await page.evaluateOnNewDocument(() => {
+  }, clockAt)
+  await page.evaluateOnNewDocument((extra) => {
     for (const [k, v] of Object.entries({
       maddex_welcomed: '2026-01-01', maddex_onboarding_complete: 'true', maddex_dashboard_setup_done: 'true',
       maddex_notif_prompt_dismissed: 'true', maddex_whats_new_version: 'v0.2.0-beta', maddex_dev_plan: 'apex',
       maddex_disclaimer_ack: JSON.stringify({ version: 'disclaimer-2026-11-01', at: '2026-11-01T00:00:00Z' }), 
+      ...extra,
     })) localStorage.setItem(k, v)
-  })
+  }, storage)
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
   await page.waitForSelector('[data-command-bar]', { timeout: 60_000 })
   await wait(2500)
@@ -548,6 +552,42 @@ try {
   const deleteBtn = await core.waitForFunction(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'DELETE ACCOUNT' && !b.disabled), { timeout: 10_000 }).then(() => true).catch(() => false)
   exportBtn && deleteBtn ? pass('Core plan: EXPORT MY DATA and DELETE ACCOUNT are there and usable') : fail(`Core plan: export ${exportBtn}, delete ${deleteBtn}`)
   await closePage(core)
+
+  // No AI request on load. Each module is opened in turn on a fresh page and
+  // every /api/claude request is counted: any at all fails, with the script
+  // that started it. Run at the two times the old background generators
+  // fired — Saturday after the Friday close (weekly review) and a weekday
+  // 7:30am Sydney (morning brief) — with weekly notes switched on, the News
+  // brief left open and a watchlist set, so a regression cannot hide behind
+  // the clock or an empty profile. Shared daily reads (/api/ai-daily) are
+  // allowed; they are generated once a day server-side.
+  sectionLog('No AI request on load')
+  for (const [label, at] of [['Sat 7 Nov 10:30 AEDT', Date.parse('2026-11-07T10:30:00+11:00')], ['Mon 9 Nov 07:30 AEDT', Date.parse('2026-11-09T07:30:00+11:00')]]) {
+    const seen = []
+    const onAi = (req) => {
+      const frames = req.initiator()?.stack?.callFrames ?? []
+      seen.push(frames.slice(0, 4).map((f) => `${f.functionName || '(anon)'}@${f.url.split('/').pop().split('?')[0]}`).join(' < ') || req.initiator()?.type || 'unknown')
+    }
+    const lp = await newPage(browser, {
+      width: 1440, clockAt: at, onAi,
+      storage: { maddex_weekly_notes: JSON.stringify({ enabled: true }), maddex_news_brief_open: '1' },
+    })
+    active = lp
+    await wait(4000)
+    const loadCount = seen.length
+    const modules = await lp.evaluate(() => [...document.querySelectorAll('[data-tour="nav-sidebar"] button.nav-row')].map((b) => (b.title || b.textContent).trim()).filter((t) => t && !/^(AI ANALYST|ASK AI)/i.test(t)))
+    for (const m of modules) {
+      await lp.evaluate((l) => [...document.querySelectorAll('[data-tour="nav-sidebar"] button.nav-row')].find((b) => (b.title || b.textContent).trim() === l)?.click(), m)
+      await wait(1800)
+      if (seen.length) { seen[seen.length - 1] += ` (first seen after opening ${m})`; break }
+    }
+    // The weekly notes start 15s after load in the old code: wait that out.
+    await wait(Math.max(0, 16_000 - 1800 * modules.length))
+    modules.length > 10 && seen.length === 0
+      ? pass(`${label}: ${modules.length} modules opened, no /api/claude request (${loadCount} at load)`)
+      : fail(`${label}: ${seen.length} AI request(s) without a user action across ${modules.length} modules: ${seen.join(' | ')}`)
+    await closePage(lp)
+  }
 
   sectionLog('MaddenAI is mocked')
   active = page

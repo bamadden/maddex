@@ -5,6 +5,7 @@ import { ASX_TICKERS } from '../utils/asxTickers'
 import { licenceGuard, licenceOff } from '../data/sourceLicence'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../utils/dateUtils.js'
+import { whenVisible } from '../utils/whenVisible'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
 
@@ -1605,11 +1606,19 @@ function extractAnthropicErrorMessage(text) {
 // telling them to pay for something they cannot. Those become one neutral
 // line; everything else keeps the vendor's message, which is usually useful
 // ("prompt is too long", "overloaded").
-const UNAVAILABLE = 'MaddenAI is temporarily unavailable. Please try again later.'
-function userFacingAiError(status, message) {
-  if ([401, 402, 403].includes(status)) return UNAVAILABLE
-  if (/credit balance|billing|purchase credits|api key|x-api-key|authentication|permission/i.test(message ?? '')) return UNAVAILABLE
-  return message ?? 'AI service is currently unavailable — please try again shortly.'
+//
+// 7 Nov 2026: no vendor wording reaches the reader at all. A raw message
+// ("credit balance is too low", "prompt is too long") is the operator's to
+// read in the server log, not the reader's; each failure maps to one of
+// three plain lines.
+export const AI_UNAVAILABLE = 'MaddenAI is unavailable right now. Everything else in Maddex works as normal; please try again later.'
+const AI_BUSY = 'MaddenAI is busy right now. Please try again in a minute.'
+const AI_TOO_LONG = 'That request is too long for MaddenAI. Please try a shorter question.'
+export function userFacingAiError(status, message) {
+  const m = message ?? ''
+  if (status === 429 || status === 529 || /overloaded|rate limit/i.test(m)) return AI_BUSY
+  if (/prompt is too long|too many tokens|context length/i.test(m)) return AI_TOO_LONG
+  return AI_UNAVAILABLE
 }
 
 // /api/claude requires the signed-in user's Supabase token and enforces the
@@ -1661,8 +1670,13 @@ export const askClaude = async (messages, onToken, options = {}) => {
   const template = options.template ?? (options.systemPrompt ? (options.purpose ?? 'feature') : 'maddex-system')
   const dataDate = options.dataDate ?? await import('../data/verifiedConstants').then(({ VERIFIED_CONSTANTS }) =>
     Object.values(VERIFIED_CONSTANTS).map((g) => g?.lastVerified).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? '')).sort().at(-1) ?? '').catch(() => '')
+  // Nothing is requested while the tab is hidden: a request started from a
+  // background tab waits until the reader is looking.
+  await whenVisible()
   const token = await sessionToken()
-  const response = await fetch('/api/claude', {
+  let response
+  try {
+    response = await fetch('/api/claude', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -1680,7 +1694,12 @@ export const askClaude = async (messages, onToken, options = {}) => {
       system:     systemPrompt,
       messages,
     }),
-  })
+    })
+  } catch {
+    // Offline, or the request never reached the server.
+    console.warn('[MaddenAI] unavailable: the request did not reach the server')
+    throw new Error(AI_UNAVAILABLE)
+  }
   if (!response.ok) {
     const errText = await response.text()
     let info = null
@@ -1693,7 +1712,8 @@ export const askClaude = async (messages, onToken, options = {}) => {
         code: info.code, status: 429, tier: info.tier, limit: info.limit, purpose: info.purpose, upgradeRequired: info.upgradeRequired,
       })
     }
-    console.error('[MADDEN API] Claude API error:', errText)
+    // One line, no vendor text: the reason is in the server log.
+    console.warn(`[MaddenAI] unavailable (HTTP ${response.status})`)
     throw new Error(userFacingAiError(response.status, extractAnthropicErrorMessage(errText)))
   }
   const reader     = response.body.getReader()
@@ -1780,8 +1800,8 @@ export async function askClaudeJSON(prompt, options = {}) {
   try {
     parsed = JSON.parse(cleaned)
   } catch (e) {
-    console.error('[MADDEN API] Failed to parse Claude JSON response:', cleaned)
-    throw new Error(`MaddenAI returned an unexpected response — please try again. (${e.message})`, { cause: e })
+    console.warn('[MaddenAI] reply was not valid JSON')
+    throw new Error('MaddenAI could not finish that one. Please try again.', { cause: e })
   }
   // The advice check, string by string (adviceGuard.guardJson).
   const flags = []

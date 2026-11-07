@@ -1140,7 +1140,7 @@ export default function AIPanel({ wide = false, onListening }) {
         // The message is already user-facing (api.js userFacingAiError). The
         // key hint is for whoever is running the dev server, not for users —
         // it used to be appended in production too.
-        content: err.message + (import.meta.env.DEV && !access ? '\n\n[dev] Check ANTHROPIC_API_KEY and the account\'s credit balance.' : ''),
+        content: err.message,
         error: true,
         access,
       })

@@ -300,9 +300,6 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
   const { usdToAud } = useAudRates()
   const [text, setText]       = useState(null)
   const [loading, setLoading] = useState(false)
-  // A run-once latch, not display state. Nothing renders it, so holding it in
-  // useState bought a committed re-render purely to record "already started".
-  const triggeredRef = useRef(false)
 
   const generate = useCallback(async () => {
     setLoading(true)
@@ -338,8 +335,6 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
         qs.roe              ? `ROE: ${(qs.roe * 100).toFixed(1)}%` : null,
         qs.beta             ? `Beta: ${qs.beta.toFixed(2)}` : null,
         qs.divYield         ? `Div Yield: ${(qs.divYield * 100).toFixed(2)}%` : null,
-        qs.recKey           ? `Consensus: ${qs.recKey}` : null,
-        qs.targetMean       ? `Target: ${big(qs.targetMean)}` : null,
         qs.ma50             ? `50D MA: ${fmt.aud(conv(qs.ma50), { clarify: true })}` : null,
         qs.ma200            ? `200D MA: ${fmt.aud(conv(qs.ma200), { clarify: true })}` : null,
         qs.week52Change     ? `52W Chg: ${(qs.week52Change * 100).toFixed(1)}%` : null,
@@ -351,11 +346,12 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
       `Price: ${fmt.aud(priceAud, { clarify: true })} | Day: ${fmt.pct(pct)}${rangeCtx}`,
       fundamentalCtx || null,
       '',
-      'Provide a comprehensive analysis (max 200 words):',
-      '1. ASSESSMENT — valuation and market position',
-      '2. TECHNICALS — key levels, momentum, trend strength',
-      '3. OUTLOOK — near-term catalysts or headwinds',
-      '4. RISK — main risks for AUD-based investors',
+      'Describe this asset in at most 200 words:',
+      '1. BUSINESS — what it is and where it operates',
+      '2. PRICE — the day\'s move and the 52-week range given above',
+      '3. RECENT — what has been reported about it recently',
+      '4. RISKS — the main risks it faces as a business',
+      'Use only the figures given. Describe only: no forecasts, no price levels to watch, and no view on whether to buy, sell or hold.',
     ].filter(v => v !== null).join('\n')
 
     try {
@@ -367,10 +363,8 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
     }
   }, [asset, displayPrice, display52High, display52Low, qs, usdToAud])
 
-  useEffect(() => {
-    if (!triggeredRef.current) { triggeredRef.current = true; generate() }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
+  // Written when the reader asks (7 Nov 2026). Opening an asset used to
+  // start a paid completion at once, whether or not anyone read it.
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -380,12 +374,15 @@ function AIFundamentalsPanel({ asset, displayPrice, display52High, display52Low,
           disabled={loading}
           className="text-2xs text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40"
         >
-          {loading ? 'GENERATING...' : '↻ REFRESH'}
+          {loading ? 'GENERATING...' : text == null ? '' : '↻ REFRESH'}
         </button>
       </div>
       <div className="min-h-[60px]">
+        {text == null && !loading && (
+          <button onClick={generate} className="text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ASK MADDENAI ABOUT {asset.symbol}</button>
+        )}
         {loading && !text && (
-          <div className="text-2xs text-terminal-gold/70 animate-pulse">Analysing {asset.symbol}...</div>
+          <div className="text-2xs text-terminal-gold/70 animate-pulse">Writing about {asset.symbol}...</div>
         )}
         {text && (
           <p className="text-2xs text-terminal-text leading-relaxed">

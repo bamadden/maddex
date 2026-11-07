@@ -344,7 +344,7 @@ function ShortcutModal({ onClose }) {
 const NEWS_SEEN_TS_KEY = 'madden_news_seen_ts'
 
 function Terminal() {
-  const { activeModule, setActiveModule, modalAsset, closeModal, compareAssets, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification, watchlist } = useStore()
+  const { activeModule, setActiveModule, modalAsset, closeModal, compareAssets, chatOpen, setChatOpen, aiMode, setAiMode, setNewsBadgeCount, clearNewsBadge, addNotification } = useStore()
   // Welcome and the setup tour show ONCE PER USER: the state is kept in the
   // account and mirrored on the device (hooks/useOnboarding,
   // services/onboardingSync). A part-finished setup resumes at its step; a
@@ -468,78 +468,16 @@ function Terminal() {
   // rather than wired into each of ~100 call sites.
   useEffect(() => initGlobalRipples(), [])
 
-  // Morning brief, generated in the background at startup.
-  //
-  // Deliberately fire-and-forget and never awaited: the brief is a ~2000-token
-  // model call and blocking app load on it would trade a visible second of
-  // startup for a feature the reader has not asked for yet. autoGenerateBrief
-  // holds the guards — already cached, weekend, outside the 6-10am AEST
-  // window — so this stays a single call with no conditions of its own.
-  //
-  // The ref stops React 18 StrictMode's double-invoke from firing two
-  // generations for the same morning.
-  const briefAttempted = useRef(false)
-  useEffect(() => {
-    if (briefAttempted.current) return
-    briefAttempted.current = true
-    // Imported on use: both services (and the geopolitics table the weekly
-    // review reads) would otherwise sit in the first-paint bundle only to
-    // start a background job.
-    import('./services/morningBriefService')
-      .then((m) => m.autoGenerateBrief(watchlist))
-      .then((brief) => {
-        if (brief && !brief.isWeekend) addNotification('MORNING_BRIEF', '☀ Your morning brief is ready', { browser: { title: '☀ Morning brief ready', body: brief.headline ?? 'Your morning brief is ready', module: 'brief' } })
-      })
-      .catch((err) => console.warn('[Brief] auto-generation skipped:', err.message))
-  }, [watchlist, addNotification])
-
-  // Weekly research notes (services/noteScheduler): on the first load of
-  // each week, when the user has switched them on. The scheduler holds every
-  // guard — off, already run this week, plan, allowance — so this is one call.
-  const notesAttempted = useRef(false)
-  useEffect(() => {
-    if (notesAttempted.current || !watchlist?.length) return
-    const id = setTimeout(() => {
-      notesAttempted.current = true
-      import('./services/noteScheduler')
-        .then((m) => m.runWeeklyNotes(watchlist))
-        .then((r) => {
-          if (r) addNotification('SYSTEM', `📋 Weekly research notes ready: ${r.symbols.map((x) => x.replace(/\.AX$/i, '')).join(', ')}`, { browser: { title: '📋 Weekly research notes ready', body: r.symbols.join(', '), module: 'dashboard' } })
-        })
-        .catch((err) => console.warn('[Weekly notes] skipped:', err.message))
-    }, 15_000)
-    return () => clearTimeout(id)
-  }, [watchlist, addNotification])
-
-  // Weekly review, after the Friday close. Checked at startup and every 15
-  // minutes, because unlike the 7am brief the trigger time falls while the
-  // terminal is likely already open. autoGenerateWeeklyReview holds the guards
-  // (before the close, already cached), so most ticks return at once. The
-  // in-flight ref stops a slow generation being started twice.
-  //
-  // Cost control (31 Oct 2026): automatic only on plans that include the
-  // weekly review in full (trial, Prime, Apex), and only while the tab is
-  // visible. Core readers generate it on demand from the Brief.
-  const { tier: weeklyTier } = useSubscription()
-  const weeklyAuto = ['trial', 'prime', 'apex'].includes(weeklyTier)
-  const weeklyInFlight = useRef(false)
-  useEffect(() => {
-    if (!weeklyAuto) return undefined
-    const tick = () => {
-      if (weeklyInFlight.current || document.hidden) return
-      weeklyInFlight.current = true
-      import('./services/weeklyReviewService')
-        .then((m) => m.autoGenerateWeeklyReview())
-        .then((review) => {
-          if (review) addNotification('MORNING_BRIEF', '📰 Your weekly market review is ready', { browser: { title: '📰 Weekly review ready', body: review.headline ?? 'This week in markets', module: 'brief' } })
-        })
-        .catch((err) => console.warn('[Weekly review] auto-generation skipped:', err.message))
-        .finally(() => { weeklyInFlight.current = false })
-    }
-    tick()
-    const id = setInterval(tick, 15 * 60_000)
-    return () => clearInterval(id)
-  }, [addNotification, weeklyAuto])
+  // No AI request at startup (7 Nov 2026). The morning brief, the weekly
+  // research notes and the weekly review used to be generated here in the
+  // background, each a paid completion from the reader's own browser on a
+  // visit where they had asked for none of them. The weekly review, after
+  // the Friday close, was the call seen failing on load on Sat 7 Nov
+  // ("credit balance is too low"). Each is now written when the reader asks,
+  // from its own screen; the only AI content fetched without a click is the
+  // shared daily set (/api/ai-daily, generated once a day server-side, read
+  // through aiDailyClient, which waits for the tab to be visible).
+  // tests/aiOnLoad.test.mjs and the browser suite hold this.
 
   // Freshness clock for the status strip. React Query fires this whenever any
   // query resolves, so the strip reports real data age rather than a timer

@@ -73,8 +73,6 @@ export default function WeeklyReviewTab({ history }) {
     }
   }
 
-  const noCredit = /credit balance/i.test(error ?? '')
-
   return (
     <article className="max-w-[920px] mx-auto px-5 pb-8">
       {status === 'loading' && !review && (
@@ -91,12 +89,12 @@ export default function WeeklyReviewTab({ history }) {
         <div className="py-16 flex flex-col items-center gap-3 text-center">
           <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 28 }} aria-hidden="true">✦</span>
           <div className="text-terminal-text-bright text-base font-semibold tracking-wide mt-1">
-            {status === 'error' ? (noCredit ? 'Review not generated' : 'Review unavailable') : `No review yet for ${week.label}`}
+            {status === 'error' ? 'Review not generated' : `No review yet for ${week.label}`}
           </div>
           <div className="text-terminal-text-dim text-sm max-w-md leading-relaxed">
             {status === 'error'
-              ? (noCredit ? 'Add Anthropic API credits to generate the weekly review.' : error)
-              : 'The weekly review is written automatically after the Friday close, 4:30pm Sydney time, and stays up through the weekend. Or write this one now.'}
+              ? <span data-ai-unavailable>{error}</span>
+              : "The weekly review covers the week to the Friday close, 4:30pm Sydney time. It is written when you ask for it."}
           </div>
           <button onClick={generate}
             className="mt-2 px-5 py-2 text-xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors">
@@ -106,7 +104,7 @@ export default function WeeklyReviewTab({ history }) {
       )}
 
       {review && status === 'error' && (
-        <div className="mt-3 text-2xs text-terminal-red">{noCredit ? 'Regenerate failed: Anthropic API credits needed.' : `Regenerate failed: ${error}`}</div>
+        <div data-ai-unavailable className="mt-3 text-2xs text-terminal-gold">{`Not regenerated: ${error}`}</div>
       )}
 
       {history && <div className="mt-6">{history}</div>}

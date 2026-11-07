@@ -71,6 +71,8 @@ export async function runWeeklyNotes(watchlist, now = Date.now()) {
       console.warn(`[Weekly notes] ${sym} skipped:`, e.message)
     }
   }
-  save({ ...getWeeklyNotes(), lastSymbols: done })
+  // Nothing written (MaddenAI unavailable): the week stays due, so the
+  // reader can try again.
+  save(done.length ? { ...getWeeklyNotes(), lastSymbols: done } : { ...getWeeklyNotes(), lastWeek: s.lastWeek, lastRunAt: s.lastRunAt, lastSymbols: [] })
   return done.length ? { symbols: done } : null
 }

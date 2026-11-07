@@ -416,7 +416,7 @@ export default function MorningBriefModule() {
             <span className="w-14 h-14 rounded-full border border-terminal-gold/40 text-terminal-gold flex items-center justify-center" style={{ fontSize: 28 }} aria-hidden="true">☀</span>
             <div className="text-terminal-text-bright text-base font-semibold tracking-wide mt-1">Your brief isn't ready yet</div>
             <div className="text-terminal-text-dim text-sm max-w-sm leading-relaxed">
-              Morning briefs generate automatically at 7am on weekdays. Or generate one now.
+              Each weekday's brief is written when you ask for it, from that morning's data.
             </div>
             <button
               onClick={() => load({ force: true })}
@@ -427,26 +427,15 @@ export default function MorningBriefModule() {
 
         {status === 'error' && (
           <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <span className="text-2xl">{/credit balance/i.test(error ?? '') ? '🤖' : '⚠'}</span>
-            <div className="text-terminal-red text-2xs font-bold tracking-widest">
-              {/credit balance/i.test(error ?? '') ? 'BRIEF NOT GENERATED' : 'BRIEF UNAVAILABLE'}
-            </div>
-            <div className="text-terminal-text-dim text-2xs max-w-sm">
-              {/credit balance/i.test(error ?? '') ? 'Add Anthropic API credits to generate your daily market brief.' : error}
-            </div>
+            <span className="text-2xl" aria-hidden="true">🤖</span>
+            <div className="text-terminal-gold text-2xs font-bold tracking-widest">BRIEF NOT GENERATED</div>
+            {/* error is already the plain line from services/api (userFacingAiError). */}
+            <div data-ai-unavailable className="text-terminal-text-dim text-2xs max-w-sm">{error}</div>
             <div className="flex items-center gap-2 mt-1">
               <button
                 onClick={() => load({ force: true })}
                 className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
               >RETRY</button>
-              {/credit balance/i.test(error ?? '') && (
-                <a
-                  href="https://console.anthropic.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-2xs font-bold text-terminal-bg bg-terminal-gold px-3 py-0.5 hover:bg-terminal-gold-bright transition-colors"
-                >ADD CREDITS →</a>
-              )}
             </div>
           </div>
         )}
