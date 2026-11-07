@@ -113,7 +113,7 @@ const LAYER_CATALOGUE = [
   { id: 'cables',       label: 'Data Cables',       dot: '#4ADBD0', on: false },
   { id: 'military',     label: 'Strategic Assets',  dot: '#8C8CFF', on: false },
   { id: 'countries',    label: 'Market Performance', dot: PAL.up, on: false },
-  { id: 'marketcap',    label: 'Market Cap Columns', dot: PAL.gold, on: false },
+  { id: 'marketcap',    label: 'Exchange Columns', dot: PAL.gold, on: false },
   { id: 'density',      label: 'Economic Density',  dot: '#7BE495', on: false },
   // Off by default with everything except exchanges and trade flows. The
   // opening frame should be a map, arcs and reticles — three things — rather
@@ -644,11 +644,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
       }))
     }
 
-    // ── Market cap columns ───────────────────────────────────────────────
-    // Height is the cube root of market cap, not the raw value. NYSE is over
-    // twenty times the ASX; drawn linearly it is a spike that dwarfs every
-    // other exchange into invisibility, which tells you one fact and hides
-    // fourteen.
+    // ── Exchange columns ─────────────────────────────────────────────────
     if (show('marketcap')) {
       all.push(new ColumnLayer({
         id: 'marketcap-columns',
@@ -658,7 +654,9 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         extruded: true,
         elevationScale: 1,
         getPosition: (d) => [d.lon, d.lat],
-        getElevation: (d) => Math.cbrt(d.marketCap) * 900,
+        // One height for all: the heights came from typed, undated market
+        // caps. The columns mark the exchanges, coloured by the index move.
+        getElevation: 120000,
         getFillColor: (d) => (d.change == null ? [99, 120, 153, 180] : d.change >= 0 ? [45, 138, 80, 205] : [168, 50, 50, 205]),
         getLineColor: [201, 168, 76, 120],
         pickable: true,

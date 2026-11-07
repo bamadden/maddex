@@ -173,16 +173,9 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
 
             <SessionTimeline exchange={data} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-              <div>
-                <div style={S.label}>Daily volume</div>
-                <div style={{ ...S.value, marginBottom: 0, fontSize: 12 }}>A${(data.volume / 1e9).toFixed(1)}B</div>
-              </div>
-              <div>
-                <div style={S.label}>Market cap</div>
-                <div style={{ ...S.value, marginBottom: 0, fontSize: 12 }}>A${(data.marketCap / 1e12).toFixed(1)}T</div>
-              </div>
-            </div>
+            {/* Daily volume and market cap were typed, undated, and every
+                exchange's was shown in A$: removed until a dated, sourced
+                copy (e.g. WFE statistics) is held. */}
 
             <div style={S.label}>Top constituents</div>
             <TickerPills tickers={data.topStocks} watchlist={watchlist} />

@@ -130,3 +130,10 @@ test('Global: a source switched off for licence reasons is not polled and says i
   assert.match(mod, /if \(off\) return <SwitchedOff what="Weather"/)
   assert.match(mod, /enabled: !off && lat != null/)
 })
+
+test('Global: no typed exchange volume or market cap, and no hard-coded air-freight index', () => {
+  assert.doesNotMatch(fs.readFileSync('src/modules/global/intelMapData.js', 'utf8'), /\bvolume: [\d.]+e\d|marketCap: [\d.]+e\d/)
+  assert.doesNotMatch(fs.readFileSync('src/modules/global/MapDetailPanel.jsx', 'utf8'), /data\.volume|data\.marketCap/)
+  assert.doesNotMatch(fs.readFileSync('src/modules/global/DeckGLMap.jsx', 'utf8'), /d\.marketCap/)
+  assert.doesNotMatch(fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8'), /Freightos Baltic Air Index · hardcoded|>127\.4</)
+})

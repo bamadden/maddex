@@ -1437,21 +1437,8 @@ function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
           ))}
         </div>
 
-        {/* Freight cost index */}
-        <div className="p-2">
-          <div className="text-terminal-text-dim uppercase mb-1.5 tracking-wider">Air Freight Cost Index</div>
-          <div className="flex items-center gap-3">
-            <div className="text-center">
-              <div className="text-lg font-bold text-terminal-gold">127.4</div>
-              <div className="text-terminal-text-dim">Jun 2026</div>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-1 text-terminal-green text-xs">▲ +3.2% <span className="text-terminal-text-dim">vs May</span></div>
-              <div className="text-terminal-text-dim/60 mt-0.5">Index base = 100 (Jan 2020). Elevated due to fuel costs + demand normalisation.</div>
-            </div>
-          </div>
-          <div className="text-terminal-text-dim/40 mt-2">Source: Freightos Baltic Air Index · hardcoded Jun 2026</div>
-        </div>
+        {/* The "Air Freight Cost Index" (127.4, Jun 2026) was typed and
+            labelled "hardcoded" on screen: removed until a licensed feed. */}
       </div>
     </div>
   )
