@@ -119,3 +119,12 @@ test('DefiLlama switched off: no saved copy is served as LIVE or STALE, and the 
   assert.match(panel, /switched off while its terms of use are reviewed/)
   delete globalThis.localStorage
 })
+
+test('halving card: estimate and its source only, no performance history; a missing block-time average is said', async () => {
+  const card = fs.readFileSync('src/modules/crypto/CryptoExtras.jsx', 'utf8')
+  assert.doesNotMatch(card, /rall(y|ies)|past performance|preceded/i)
+  assert.match(card, /source="mempool\.space"/)
+  assert.match(card, /10-minute target block time/)
+  const svc = fs.readFileSync('src/services/defiService.js', 'utf8')
+  assert.match(svc, /avgMeasured: measured/)
+})

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { defiService } from '../../services/defiService'
 import Donut from '../../components/charts/Donut'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
+import { classOfLiveSource } from '../../utils/dataClass'
 
 // ─── Bitcoin halving countdown ──────────────────────────────────────────────
 //
@@ -36,6 +38,7 @@ export function HalvingCard() {
   const days = Math.max(0, Math.round((eta - now) / 86400000))
   const epochPct = ((HALVING_INTERVAL - remaining) / HALVING_INTERVAL) * 100
   const subsidyNow = 50 / 2 ** Math.floor(d.height / HALVING_INTERVAL)
+  const measured = d.avgMeasured !== false
 
   return (
     <div className="px-3 py-3.5" style={{ background: 'linear-gradient(180deg, rgba(247,147,26,0.14), rgba(247,147,26,0.02))', borderLeft: '3px solid #F7931A' }}>
@@ -43,6 +46,7 @@ export function HalvingCard() {
         <span className="text-[11px] font-bold tracking-widest" style={{ color: '#f7931a' }}>NEXT BTC HALVING</span>
         <span className="text-[11px] text-terminal-text-dim">block {nextHeight.toLocaleString()}</span>
       </div>
+      <div className="mt-1"><DataBadge cls={classOfLiveSource(state.source)} source="mempool.space" at={state.at ?? null} compact /></div>
       <div className="text-2xs text-terminal-text-dim mt-0.5">Estimated: <span className="text-terminal-text-bright font-bold">{eta.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}</span></div>
       <div className="flex items-baseline gap-2 mt-1">
         <span className="font-mono font-bold tabular-nums" style={{ fontSize: 36, lineHeight: 1, color: '#F7931A', textShadow: '0 0 18px rgba(247,147,26,0.35)' }}>{days.toLocaleString()}</span>
@@ -59,8 +63,8 @@ export function HalvingCard() {
         Block rewards halve from {subsidyNow} to {subsidyNow / 2} BTC.
       </div>
       <div className="text-[11px] text-terminal-text-dim/80 mt-1 leading-snug">
-        Past halvings have preceded strong rallies, but four cycles is a small sample. Date estimated from the live block
-        height and recent block times. General information only — past performance is not indicative of future performance.
+        The date is an estimate: blocks remaining × {measured ? 'the recent average block time' : "the protocol's 10-minute target block time (no recent average was available)"},
+        both from mempool.space. It moves as block times change. General information only.
       </div>
     </div>
   )

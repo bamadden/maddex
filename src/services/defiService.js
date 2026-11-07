@@ -188,7 +188,10 @@ export const defiService = {
       const height = tip.status === 'fulfilled' ? Number(tip.value) : null
       const avgMs = adj.status === 'fulfilled' ? Number(adj.value?.timeAvg) : null
       if (!Number.isFinite(height)) throw new Error('mempool tip unavailable')
-      return { height, avgBlockMs: Number.isFinite(avgMs) && avgMs > 0 ? avgMs : 600000 }
+      // Without a measured average the estimate uses the protocol's 10-minute
+      // target, and says so (avgMeasured false).
+      const measured = Number.isFinite(avgMs) && avgMs > 0
+      return { height, avgBlockMs: measured ? avgMs : 600000, avgMeasured: measured }
     })
   },
 
