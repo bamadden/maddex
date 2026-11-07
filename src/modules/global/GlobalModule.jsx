@@ -484,6 +484,9 @@ function countdown(ex) {
   } catch { return null }
 }
 
+// Word tags, not assessments: a headline is tagged by the first list whose
+// words it contains. The screen says so wherever a tag is shown.
+const TAG_NOTE = 'Tags come from words in the headline (CRITICAL: war, missile, attack; HIGH: sanction, coup, troops; MEDIUM: tariff, protest, election). A word match, not an assessment of the event.'
 const SEVERITY_RE = {
   CRITICAL: /\bwar\b|invasion|nuclear|strikes?|bombing|airstrike|missile|attack/i,
   HIGH:     /sanction|embargo|coup|siege|offensive|troops?|military operation/i,
@@ -1598,6 +1601,7 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
           <div className={`text-xs font-bold ${medCount > 0 ? 'text-terminal-gold' : 'text-terminal-text-dim'}`}>{medCount}</div>
           <div className="text-2xs text-terminal-text-dim">Medium</div>
         </div>
+        <div className="col-span-4 px-2 py-1 border-t border-terminal-border/50 text-2xs text-terminal-text-dim/70 text-left" data-tag-note>{TAG_NOTE}</div>
       </div>
 
       {/* Filter bar */}
@@ -1631,7 +1635,7 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
             onClick={() => n.link && window.open(n.link, '_blank', 'noopener')}
           >
             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-              <span className={`text-2xs font-bold ${SEVERITY_COLOR[n.severity]}`}>[{n.severity}]</span>
+              <span className={`text-2xs font-bold ${SEVERITY_COLOR[n.severity]}`} title={TAG_NOTE}>[{n.severity}]</span>
               <span className={`text-2xs font-semibold ${IMPACT_COLOR[n.impact]}`}>{n.impact}</span>
               <span className="text-2xs text-terminal-text-dim">· {n.region}</span>
               <span className="text-2xs text-terminal-text-dim ml-auto">{n.source} · {n.time}</span>
@@ -2158,10 +2162,11 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQu
           <GeoRiskCards onFocus={onFocusPoint} />
         </CollapsibleSection>
 
-        <CollapsibleSection id="alerts" title="ACTIVE INTELLIGENCE" hidden={!show('GEO')}>
+        <CollapsibleSection id="alerts" title="TAGGED HEADLINES" hidden={!show('GEO')}>
           <div className="flex flex-col gap-1.5">
+            <div className="text-2xs text-terminal-text-dim/60" data-tag-note>Headlines with a CRITICAL or HIGH word tag. {TAG_NOTE.split('. ').slice(-1)[0]}</div>
             {alerts.length === 0 && (
-              <div className="text-2xs text-terminal-text-dim/60 py-1">No active disruptions</div>
+              <div className="text-2xs text-terminal-text-dim/60 py-1">No headline carries a CRITICAL or HIGH word tag.</div>
             )}
             {alerts.map((a, i) => (
               <div
@@ -2685,8 +2690,8 @@ export default function GlobalModule() {
 
       {/* Critical-event alert banner */}
       {criticalAlert && (
-        <div className="flex items-center gap-3 px-3 py-1 bg-terminal-red/15 border-b border-terminal-red/50 flex-shrink-0 animate-pulse">
-          <span className="text-terminal-red text-2xs font-bold tracking-widest flex-shrink-0">⚠ CRITICAL EVENT</span>
+        <div className="flex items-center gap-3 px-3 py-1 bg-terminal-red/15 border-b border-terminal-red/50 flex-shrink-0" title={TAG_NOTE}>
+          <span className="text-terminal-red text-2xs font-bold tracking-widest flex-shrink-0">HEADLINE · LAST HOUR · CRITICAL WORD TAG</span>
           <span className="text-2xs text-terminal-text truncate">{criticalAlert.headline}</span>
           <span className="text-2xs text-terminal-text-dim flex-shrink-0">{timeAgo(criticalAlert.pubDate)} · {criticalAlert.source}</span>
         </div>

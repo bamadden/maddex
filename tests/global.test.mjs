@@ -137,3 +137,10 @@ test('Global: no typed exchange volume or market cap, and no hard-coded air-frei
   assert.doesNotMatch(fs.readFileSync('src/modules/global/DeckGLMap.jsx', 'utf8'), /d\.marketCap/)
   assert.doesNotMatch(fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8'), /Freightos Baltic Air Index · hardcoded|>127\.4</)
 })
+
+test('Global: keyword severity is shown as a word tag, never as an assessment of the event', () => {
+  const mod = fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8')
+  assert.match(mod, /A word match, not an assessment of the event/)
+  assert.doesNotMatch(mod, /⚠ CRITICAL EVENT|title="ACTIVE INTELLIGENCE"|No active disruptions/)
+  assert.ok((mod.match(/data-tag-note/g) ?? []).length >= 2)
+})
