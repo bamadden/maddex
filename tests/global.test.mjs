@@ -121,3 +121,12 @@ test('Global: no typed 0–100 severity or trade-risk score; editorial labels sa
   assert.doesNotMatch(mod, /Trade Risk Score|computeTradeRiskScore|return 'MODERATE'/)
   assert.match(mod, /<ScoreNote method="country-risk" asOf=\{formatDate\(RISK_LAST_REVIEWED\)\} \/>/)
 })
+
+test('Global: a source switched off for licence reasons is not polled and says it is off', () => {
+  const mod = fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8')
+  const sky = mod.slice(mod.indexOf("queryKey: ['opensky']"), mod.indexOf("queryKey: ['opensky']") + 400)
+  assert.match(sky, /enabled:\s+!licenceOff\('opensky'\)/)
+  assert.match(mod, /licenceOff\('opensky'\)\) return <div[^\n]*<SwitchedOff what="Live air traffic"/)
+  assert.match(mod, /if \(off\) return <SwitchedOff what="Weather"/)
+  assert.match(mod, /enabled: !off && lat != null/)
+})

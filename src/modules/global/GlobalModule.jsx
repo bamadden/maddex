@@ -8,6 +8,7 @@ import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFi
 import { riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
+import { licenceOff } from '../../data/sourceLicence'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useCountryData } from '../../hooks/useCountryData'
@@ -1286,7 +1287,18 @@ const AU_FREIGHT_COMMODITIES = [
   { name:'Automotive',      dir:'IN',  note:'Parts, luxury vehicles from EU/Japan' },
 ]
 
+// A source switched off for licence reasons (data/sourceLicence) says so,
+// rather than its panel vanishing without a word.
+function SwitchedOff({ what, why }) {
+  return (
+    <div className="text-2xs text-terminal-text-dim/70" data-switched-off>
+      {what}: switched off. {why}, so it is not shown until a licence is in place.
+    </div>
+  )
+}
+
 function LiveAirTraffic({ flightData }) {
+  if (licenceOff('opensky')) return <div className="p-2 border-b border-terminal-border"><SwitchedOff what="Live air traffic" why="OpenSky's terms need a written licence for commercial use" /></div>
   if (!flightData?.total) return null
   return (
     <div className="p-2 border-b border-terminal-border">
@@ -1786,13 +1798,15 @@ function MarketSessionsTab() {
 // Open-Meteo current conditions for a financial centre's lat/lon — no key
 // required, fetched once per exchange selection and cached for 30min.
 function WeatherWidget({ lat, lon, city }) {
+  const off = licenceOff('openmeteo')
   const { data, isLoading } = useQuery({
     queryKey: ['weather', lat, lon],
     queryFn:  () => fetchCurrentWeather(lat, lon),
     staleTime: 30 * 60_000,
     retry: 1,
-    enabled: lat != null && lon != null,
+    enabled: !off && lat != null && lon != null,
   })
+  if (off) return <SwitchedOff what="Weather" why="Open-Meteo's free API is for non-commercial use only" />
   if (isLoading) return <div className="text-2xs text-terminal-text-dim/50">Loading weather…</div>
   if (!data) return null
   return (
@@ -2448,6 +2462,9 @@ export default function GlobalModule() {
   const { data: flightRaw } = useQuery({
     queryKey: ['opensky'],
     queryFn:  fetchFlightData,
+    // Switched off for licence reasons: not polled at all (it used to fail
+    // every 5 minutes, then retry).
+    enabled:  !licenceOff('opensky'),
     staleTime: 5 * 60_000,
     refetchInterval: 5 * 60_000,
     retry: 1,
