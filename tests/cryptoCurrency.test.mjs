@@ -175,3 +175,10 @@ test('Crypto metrics and the price chart carry a badge with source and time; the
   assert.equal(transformFearGreed({ data: [{ value: '25', value_classification: 'Extreme Fear', timestamp: '1794009600' }] }).asOf, 1794009600000)
   assert.equal(transformFearGreed({ data: [{ value: '25' }] }).asOf, null)
 })
+
+test('coin history uses CoinGecko\'s own id from the markets row, never a lower-cased symbol guess', () => {
+  const src = fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8')
+  assert.doesNotMatch(src, /selectedCoin\.toLowerCase\(\)/)
+  assert.match(src, /fetchCoinHistory\(selectedId,/)
+  assert.match(src, /enabled:\s+!!selectedId/)
+})

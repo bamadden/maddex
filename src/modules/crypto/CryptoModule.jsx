@@ -763,15 +763,21 @@ export default function CryptoModule() {
     retry: 1,
   })
 
+  const rawMarkets = rawMarketsResult?.data
+  // CoinGecko's own id from the markets row. A symbol outside the fixed map
+  // used to be lower-cased into a guessed id, which 404s (then retried) for
+  // most of the top 20: two wasted calls on a 10k-a-month plan.
+  const selectedId = rawMarkets?.find((c) => c.symbol?.toUpperCase() === selectedCoin)?.id ?? COIN_IDS[selectedCoin] ?? null
+
   const days = TF_DAYS[timeframe] ?? 90
   const { data: rawHistory, isFetching: chartLoading, isError: historyError, refetch: refetchHistory, dataUpdatedAt: historyAt } = useQuery({
-    queryKey: ['coinHistory', selectedCoin, vsCurrency, days],
-    queryFn:  () => fetchCoinHistory(COIN_IDS[selectedCoin] ?? selectedCoin.toLowerCase(), vsCurrency, days),
+    queryKey: ['coinHistory', selectedId, vsCurrency, days],
+    queryFn:  () => fetchCoinHistory(selectedId, vsCurrency, days),
+    enabled:  !!selectedId,
     staleTime: 5 * 60_000,
     retry: 1,
   })
 
-  const rawMarkets = rawMarketsResult?.data
   const markets    = rawMarkets   ? transformCryptoMarkets(rawMarkets, vsCurrency) : null
   const fgRead     = rawFearGreed ? transformFearGreed(rawFearGreed)               : null
   // A reading without today's value is no reading: shown as unavailable.
@@ -837,7 +843,7 @@ export default function CryptoModule() {
     const usdPrice = isAudTable ? (haveRate ? audToUsd(coin.price) : null) : coin.price
     openModal?.({
       symbol: coin.symbol, name: coin.name, price: audPrice,
-      pct: coin.pct24h, change: null, type: 'crypto', coinId: COIN_IDS[coin.symbol],
+      pct: coin.pct24h, change: null, type: 'crypto', coinId: coin.id ?? COIN_IDS[coin.symbol],
       extra: { currency: 'USD', nativePrice: usdPrice },
     })
   }
