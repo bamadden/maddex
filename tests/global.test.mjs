@@ -93,3 +93,12 @@ test('map clock: Sydney time with its own zone, and the reader\'s zone clearly l
   assert.match(map, /SYDNEY \{sydneyClock\(now\)\.text\}/)
   assert.match(map, /YOUR TIME \{local\.time\} · \{local\.zone/)
 })
+
+test('Commodity Flows: only rows with a held, dated price; no typed volumes, risk grades or momentum', () => {
+  const src = fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8')
+  const panel = src.slice(src.indexOf('const COMMODITY_TABLE'), src.indexOf('COMMODITY_TABLE.map'))
+  assert.doesNotMatch(panel, /price:\s*\d/, 'no typed prices')
+  assert.doesNotMatch(panel, /vol:|risk:|~A\$76B|Momentum|Most at-risk/)
+  assert.match(panel, /trade\.totalExportsBn/)
+  assert.doesNotMatch(src, /disruption risk and market impact/)
+})

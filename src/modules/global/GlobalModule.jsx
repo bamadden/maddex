@@ -1481,22 +1481,20 @@ function CommodityFlowsTab({ onAskAI }) {
     const c = VERIFIED_CONSTANTS.commodities
     return { price: c[key], chg: null, src: `${c.sourceBy?.[key] ?? c.source}, ${formatDate(c.asOfBy?.[key] ?? c.asOf)} · hand-entered` }
   }
+  // Only rows whose price is held in verifiedConstants with its own date and
+  // source. Rows typed here from May 2026 quotes (coking coal, IOCJ, CBOT
+  // soybeans and wheat, TTF, US Gulf LNG) with a day's change, a volume and a
+  // hand-set "disruption risk" were removed on 7 Nov: none had a dated source
+  // held, and the volumes were wrong (iron ore to China is several times the
+  // 160Mt/yr shown).
   const COMMODITY_TABLE = [
-    { name:'Iron Ore (62% Fe)',   route:'AU → China',        unit:'USD/t',     ...held('ironOreUSD'),   risk:'LOW',    vol:'160Mt/yr', coinId:null },
-    { name:'LNG Spot (JKM)',      route:'AU → Japan/Korea',  unit:'USD/MMBtu', ...held('lngUSDPerMMBtu'),   risk:'LOW',    vol:'22Mt/yr',  coinId:null },
-    { name:'Thermal Coal (Newcastle)', route:'AU → India/Japan',  unit:'USD/t',     ...held('thermalCoalUSD'),    risk:'LOW',    vol:'45Mt/yr',  coinId:null },
-    { name:'Coking Coal (HCC)',   route:'AU → China/India',  unit:'USD/t',     price:198.00, chg:+0.8, src:'Argus, May 2026',    risk:'MEDIUM', vol:'70Mt/yr',  coinId:null },
-    { name:'Crude Oil (Brent)',   route:'Middle East → Asia', unit:'USD/bbl',  ...held('brentUSD'),      risk:'HIGH',   vol:'15Mb/day', coinId:null },
-    { name:'Iron Ore (IOCJ)',     route:'Brazil → China',    unit:'USD/t',     price:101.00, chg:-0.2, src:'Platts, May 2026',   risk:'LOW',    vol:'200Mt/yr', coinId:null },
-    { name:'Soybeans (CBOT)',     route:'Brazil → China',    unit:'USD/bu',    price:10.42,  chg:+0.4, src:'CBOT, May 2026',     risk:'LOW',    vol:'85Mt/yr',  coinId:null },
-    { name:'Wheat (SRW CBOT)',    route:'AU/US → SE Asia',   unit:'USD/bu',    price:5.42,   chg:-0.3, src:'CBOT, May 2026',     risk:'LOW',    vol:'30Mt/yr',  coinId:null },
-    { name:'Natural Gas (TTF)',   route:'Russia → China',    unit:'EUR/MWh',   price:32.50,  chg:+1.2, src:'TTF Hub, May 2026',  risk:'HIGH',   vol:'38bcm/yr', coinId:null },
-    { name:'LNG (US Gulf)',       route:'US → Global',       unit:'USD/MMBtu', price:9.80,   chg:+0.6, src:'Henry Hub+, May 2026',risk:'LOW',   vol:'90Mt/yr',  coinId:null },
-  ]
+    { name:'Iron Ore (62% Fe)',   route:'AU → China',        unit:'USD/t',     ...held('ironOreUSD') },
+    { name:'LNG Spot (JKM)',      route:'AU → Japan/Korea',  unit:'USD/MMBtu', ...held('lngUSDPerMMBtu') },
+    { name:'Thermal Coal (Newcastle)', route:'AU → India/Japan',  unit:'USD/t',     ...held('thermalCoalUSD') },
+    { name:'Crude Oil (Brent)',   route:'Middle East → Asia', unit:'USD/bbl',  ...held('brentUSD') },
+  ].filter((c) => typeof c.price === 'number')
 
-  const riskColor = { LOW:'text-terminal-green', MEDIUM:'text-terminal-gold', HIGH:'text-terminal-red' }
-
-  const atRisk = COMMODITY_TABLE.filter(c => c.risk === 'HIGH').map(c => c.name.split(' ')[0]).join(', ')
+  const trade = VERIFIED_CONSTANTS.auTrade
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -1505,20 +1503,11 @@ function CommodityFlowsTab({ onAskAI }) {
         <span className="ml-auto text-2xs font-normal normal-case text-terminal-text-dim">Dates per row</span>
       </div>
 
-      {/* Summary bar */}
-      <div className="grid grid-cols-3 border-b border-terminal-border flex-shrink-0 text-center">
-        <div className="py-1.5 border-r border-terminal-border">
-          <div className="text-xs font-bold text-terminal-gold">~A$76B</div>
-          <div className="text-2xs text-terminal-text-dim">AU export value/yr</div>
-        </div>
-        <div className="py-1.5 border-r border-terminal-border">
-          <div className="text-xs font-bold text-terminal-red">{atRisk}</div>
-          <div className="text-2xs text-terminal-text-dim">Most at-risk</div>
-        </div>
-        <div className="py-1.5">
-          <div className="text-xs font-bold text-terminal-gold">↑ Momentum</div>
-          <div className="text-2xs text-terminal-text-dim">LNG, Coal up</div>
-        </div>
+      {/* Australia's total exports, from the ABS release the trade panel uses. */}
+      <div data-commodity-summary className="px-3 py-1.5 border-b border-terminal-border flex-shrink-0 text-2xs text-terminal-text-dim">
+        AU exports, goods and services, {trade.period}:{' '}
+        <span className="font-bold text-terminal-gold tabular-nums">A${trade.totalExportsBn.toFixed(1)}b</span>
+        {' '}· ABS · prices below are hand-entered, not live
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -1551,14 +1540,6 @@ function CommodityFlowsTab({ onAskAI }) {
 
             {selected === i && (
               <div className="px-3 pb-2 space-y-1">
-                <div className="flex justify-between text-2xs">
-                  <span className="text-terminal-text-dim">Volume</span>
-                  <span className="text-terminal-gold font-semibold">{c.vol}</span>
-                </div>
-                <div className="flex justify-between text-2xs">
-                  <span className="text-terminal-text-dim">Disruption risk</span>
-                  <span className={`font-bold ${riskColor[c.risk]}`}>{c.risk}</span>
-                </div>
                 <div className="text-2xs text-terminal-text-dim/60">{c.src}</div>
                 <button
                   onClick={e => { e.stopPropagation(); onAskAI({
@@ -1567,7 +1548,7 @@ function CommodityFlowsTab({ onAskAI }) {
                     price:       `${c.unit.startsWith('EUR') ? '€' : 'US$'}${c.price.toFixed(2)}${c.unit.split('/')[1] ? ` /${c.unit.split('/')[1]}` : ''}`,
                     change:      c.chg == null ? undefined : `${c.chg > 0 ? '+' : ''}${c.chg.toFixed(1)}%`,
                     date:        todayAEST(),
-                    instruction: `Analyse supply chain disruption risk and market impact for ${c.name} (${c.route}, ${c.vol}).`,
+                    instruction: `Describe the ${c.route} trade route for ${c.name}: what moves along it and what events have affected it. Use only the figures given; do not add prices, volumes, forecasts or views on markets or stocks.`,
                   }) }}
                   className="mt-1 text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                 >ASK AI</button>
