@@ -102,3 +102,11 @@ test('Commodity Flows: only rows with a held, dated price; no typed volumes, ris
   assert.match(panel, /trade\.totalExportsBn/)
   assert.doesNotMatch(src, /disruption risk and market impact/)
 })
+
+test('map event text describes links; no trading-flavoured labels or unsourced shares', async () => {
+  const { SHIPPING_DISRUPTIONS, GEOPOLITICAL_EVENTS } = await import('../src/modules/global/intelMapData.js')
+  const text = JSON.stringify([SHIPPING_DISRUPTIONS.map((z) => z.asxImpact), GEOPOLITICAL_EVENTS.map((e) => [e.marketImpact, e.auTrade])])
+  assert.doesNotMatch(text, /windfall|stocks? bid|at risk|momentum|monitor|recommend|escort|sensitiv|elevated/i)
+  assert.doesNotMatch(text, /\d+%/, 'no shares without a source')
+  assert.doesNotMatch(read('src/data/geopoliticalRisk.js'), /windfall/)
+})

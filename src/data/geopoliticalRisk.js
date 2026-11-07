@@ -98,7 +98,7 @@ const REGIONS = [
     },
     auImpact: 85,
     auImpactNote: 'The largest external shock to Australia this year after China. Australia imports most of its liquid fuel, so the oil price lands directly in petrol, freight and CPI — the RBA cited Middle East energy prices in its 2026 hikes. It cuts both ways: with Qatari LNG trapped behind Hormuz, Asian LNG and Newcastle coal prices have surged, lifting Woodside, Santos, Whitehaven and New Hope. Australian LNG ships to North Asia and does not transit the Red Sea; the Bab al-Mandab attacks reach Australia through Europe-bound freight costs.',
-    summary: 'Eight months into the Iran war, Hormuz is still largely closed: October has seen near-daily strikes on tankers, and the Houthis have reopened the Red Sea front. For Australia this is an inflation shock and an energy-exporter windfall at the same time.',
+    summary: 'Eight months into the Iran war, Hormuz is still largely closed: October has seen near-daily strikes on tankers, and the Houthis have reopened the Red Sea front. For Australia it raises inflation and, at the same time, the prices its energy exporters receive.',
   },
   {
     id: 'china',
