@@ -133,3 +133,20 @@ test('sector rotation note describes price change only and never states fund flo
   assert.doesNotMatch(src, /money moving/i)
   assert.match(src, /price change only, not a measure of fund flows/)
 })
+
+test('Global AI prompts ask for description only: no investor implications, market impact or outlook', () => {
+  const dir = 'src/modules/global/'
+  // Line by line: every line that hands text to the AI, whatever its quoting.
+  const prompts = []
+  for (const f of fs.readdirSync(dir).filter((f) => /\.jsx?$/.test(f))) {
+    for (const line of fs.readFileSync(dir + f, 'utf8').split('\n')) {
+      if (/askAI\(|askMaddenAI\(|instruction:|\bask: '/.test(line) && /[`'][A-Z][a-z]/.test(line)) prompts.push([f, line.trim()])
+    }
+  }
+  assert.ok(prompts.length >= 12, `found ${prompts.length}`)
+  for (const [f, p] of prompts) {
+    const stripped = p.replace(/no forecasts?|no view on[^.]*|do not[^.:]*/gi, '')
+    assert.doesNotMatch(stripped, /outlook|investors?\b|market impact|implications|exposed|leverage|to watch|worth|\b(buy|sell|hold)\b|target|forecast|placed/i, `${f}: ${p.slice(0, 120)}`)
+    assert.equal(adviceIntent(p.replace(/\$\{[^}]*\}/g, 'X')), false, `${f} prompt reads as an advice request`)
+  }
+})

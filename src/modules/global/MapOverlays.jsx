@@ -56,7 +56,7 @@ export function DistrictCard({ district: d, insetL = 0 }) {
       )}
 
       <button
-        onClick={() => askMaddenAI(`What's driving ${d.indexLabel ? `the ${d.indexLabel} and ` : ''}the financial markets centred on ${d.name.toLowerCase()} right now, and what does it mean for Australian investors?`)}
+        onClick={() => askMaddenAI(`Describe what has been reported today about ${d.indexLabel ? `the ${d.indexLabel} and ` : ''}the financial markets centred on ${d.name.toLowerCase()}, and how they connect to Australia. Describe only: no forecasts and no view on markets or stocks.`)}
         className="btn-secondary btn-sm"
         style={{ width: '100%', marginTop: 10 }}
       >ASK MADDENAI ABOUT {d.name.split(/[ ,/]/)[0]} MARKETS</button>

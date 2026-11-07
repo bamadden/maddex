@@ -189,7 +189,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={S.label}>Top constituents</div>
             <TickerPills tickers={data.topStocks} watchlist={watchlist} />
 
-            <button onClick={() => askAI(`What is driving the ${data.index} on the ${data.id} today? Cover the main sector moves and what an Australian investor should take from it.`)}
+            <button onClick={() => askAI(`Describe what has been reported about the ${data.index} on the ${data.id} today, including the main sector moves. Describe only: no forecasts and no view on markets or stocks.`)}
               className="btn-secondary btn-sm" style={{ marginTop: 12, width: '100%' }}>
               ASK MADDENAI
             </button>
@@ -289,7 +289,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={S.label}>ASX exposure</div>
             <div style={{ ...S.muted, ...S.gold, marginBottom: 12 }}>{data.asxExposure}</div>
 
-            <button onClick={() => askAI(`Explain the current state of "${data.title}" and what it means for Australian investors — which ASX sectors and stocks are most exposed, and what would change the picture.`)}
+            <button onClick={() => askAI(`Explain the current state of "${data.title}" as reported, and how it connects to Australia: the trade links and the ASX sectors with operations or sales involved. Describe only: no forecasts and no view on markets or stocks.`)}
               className="btn-secondary btn-sm" style={{ width: '100%' }}>
               ASK MADDENAI
             </button>
@@ -334,7 +334,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                   ))}
                 </>
               )}
-              <button onClick={() => askAI(`Tell me about Australia's ${exp ? 'export' : 'import'} trade ${exp ? 'with' : 'from'} ${partner}: A$${data.bn.toFixed(1)}b in ${VERIFIED_CONSTANTS.auTrade?.period} (ABS), mainly ${data.main}. What are the main risks to this route right now, and which ASX-listed companies are most exposed?`)}
+              <button onClick={() => askAI(`Tell me about Australia's ${exp ? 'export' : 'import'} trade ${exp ? 'with' : 'from'} ${partner}: A$${data.bn.toFixed(1)}b in ${VERIFIED_CONSTANTS.auTrade?.period} (ABS), mainly ${data.main}. Describe what moves along this route and what has been reported about it recently. Describe only: no forecasts and no view on markets or stocks.`)}
                 className="btn-secondary btn-sm" style={{ marginTop: 6, width: '100%' }}>
                 ASK MADDENAI ABOUT THIS ROUTE
               </button>
@@ -356,7 +356,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                 <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{data.description}</div>
               </>
             )}
-            <button onClick={() => askAI(`The ${data.event} is due ${data.date}. Using the central-bank figures in your context, what is expected, and what would a surprise mean for the AUD and ASX?`)}
+            <button onClick={() => askAI(`The ${data.event} is due ${data.date}. Using the central-bank figures in your context, describe the bank's last decision and what it said at the time. Describe only: no forecasts and no view on markets or stocks.`)}
               className="btn-secondary btn-sm" style={{ width: '100%' }}>
               ASK MADDENAI
             </button>
@@ -403,7 +403,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                 SEE RELATED STOCKS ▶ ({SITE_EXTRAS[data.id].sector.toUpperCase()})
               </button>
             )}
-            <button onClick={() => askAI(`How exposed are Australia's ${data.commodity.toLowerCase()} exports from ${data.name} to the current global picture, and which ASX-listed producers have the most leverage to it?`)}
+            <button onClick={() => askAI(`Describe Australia's ${data.commodity.toLowerCase()} exports from ${data.name}: where they go, which ASX-listed companies produce there, and what has been reported about the trade recently. Describe only: no forecasts and no view on markets or stocks.`)}
               className="btn-secondary btn-sm" style={{ marginTop: 12, width: '100%' }}>
               ASK MADDENAI
             </button>
@@ -452,7 +452,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
               </div>
             )}
 
-            <button onClick={() => askAI(`Give me a read on the ${data.commodity} market right now — price drivers, supply picture, and which ASX-listed names have the most leverage to it.`)}
+            <button onClick={() => askAI(`Describe the ${data.commodity} market: where it is produced, who buys it, and which ASX-listed companies produce it. Describe only: no forecasts and no view on markets or stocks.`)}
               className="btn-secondary btn-sm" style={{ marginTop: 12, width: '100%' }}>
               ASK MADDENAI
             </button>

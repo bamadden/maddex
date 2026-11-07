@@ -795,7 +795,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
               exchange:    exName,
               sector:      region,
               date:        todayAEST(),
-              instruction: `Provide a professional analysis of ${name} for Australian investors. Include: economic outlook, key risks, trade relationship with Australia, ASX stocks with exposure, and AUD implications.`,
+              instruction: `Describe ${name}: its economy, its trade relationship with Australia, ASX-listed companies with operations or sales there, and its currency. Use only the figures given. Describe only: no forecasts and no view on markets or stocks.`,
             })}
             className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
           >ASK AI ◆</button>
@@ -1109,7 +1109,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
                     name:        item.headline,
                     sector:      'News',
                     date:        todayAEST(),
-                    instruction: 'Analyse the market impact of this headline for Australian investors and the ASX.',
+                    instruction: 'Explain what this headline reports and which parts of the Australian economy and which ASX sectors it connects to. Describe only: no forecasts and no view on markets or stocks.',
                   })}
                   className="mt-0.5 text-2xs text-terminal-gold/60 hover:text-terminal-gold"
                 >ASK AI →</button>
@@ -1669,7 +1669,7 @@ function GeoRiskTab({ newsItems, isLoading, onAskAI, updatedAt }) {
                 name:        n.headline,
                 sector:      n.region,
                 date:        todayAEST(),
-                instruction: 'Analyse the market impact of this headline for Australian investors and the ASX.',
+                instruction: 'Explain what this headline reports and which parts of the Australian economy and which ASX sectors it connects to. Describe only: no forecasts and no view on markets or stocks.',
               }) }}
               className="mt-1 text-2xs text-terminal-gold/60 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"
             >ASK AI →</button>
@@ -1873,7 +1873,7 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
                 name:        ex.name,
                 ticker:      ex.id,
                 date:        todayAEST(),
-                instruction: `Analyse current conditions on the ${ex.name} (${ex.id}) and implications for Australian investors. Consider: current trading session, key listed stocks (${(ex.topStocks ?? []).slice(0,3).join(', ')}), currency (${ex.currency}), and main index (${ex.index}).`,
+                instruction: `Describe the ${ex.name} (${ex.id}): its trading session, main index (${ex.index}), currency (${ex.currency}) and best-known listed companies (${(ex.topStocks ?? []).slice(0,3).join(', ')}). Use only the figures given. Describe only: no forecasts and no view on markets or stocks.`,
               })}
               className="text-2xs border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >ASK AI</button>

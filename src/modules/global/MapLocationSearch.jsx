@@ -26,20 +26,20 @@ const PILBARA_ORE = C.commodities?.ironOreUSD
 const BHP_CAP = getMockFMPRow('BHP.AX')?.marketCap
 const FINANCIAL_PLACES = [
   { test: /\bapple\b|cupertino/i, title: 'APPLE INC HQ', context: 'NASDAQ: AAPL · Cupertino, California', lat: 37.3349, lon: -122.0090, zoom: 15,
-    ask: 'What is the financial significance of Apple Inc for an Australian investor holding US tech?' },
+    ask: 'Describe Apple Inc: what it makes, where it sells and what it has reported recently. Describe only: no forecasts and no view on markets or stocks.' },
   { test: /reserve bank|\brba\b|martin place/i, title: 'RESERVE BANK OF AUSTRALIA · MARTIN PLACE', lat: -33.8678, lon: 151.2107, zoom: 16,
     context: `Cash rate ${C.rba.cashRate.toFixed(2)}% · next decision ${formatDate(C.rba.nextMeeting, { year: false })}`,
     ask: 'Tell me about the RBA and its current policy stance.' },
   { test: /\bbhp\b|171 collins/i, title: 'BHP MELBOURNE HQ · 171 COLLINS ST', lat: -37.8152, lon: 144.9690, zoom: 16,
     context: `ASX: BHP.AX · Materials${BHP_CAP ? ` · ~A$${Math.round(BHP_CAP / 1e9)}B market cap (demo data)` : ''}`,
-    ask: 'Analyse BHP Group.' },
+    ask: 'Describe BHP Group: what it produces, where it operates and what it has reported recently. Describe only: no forecasts and no view on markets or stocks.' },
   { test: /\basx\b|sydney exchange|bridge street,? sydney|australian securities exchange/i, title: 'ASX', context: 'Australian Securities Exchange · 20 Bridge St, Sydney', lat: -33.8636, lon: 151.2106, zoom: 16 },
   { test: /wall street|\bnyse\b|new york stock exchange/i, title: 'NYSE', context: 'New York Stock Exchange · Wall Street', lat: 40.7069, lon: -74.0113, zoom: 16 },
   { test: /london stock exchange|paternoster/i, title: 'LSE', context: 'London Stock Exchange · City of London', lat: 51.5150, lon: -0.0992, zoom: 16 },
   { test: /tokyo stock exchange|kabutocho|nihonbashi/i, title: 'TSE', context: 'Tokyo Stock Exchange · Nihonbashi, Tokyo', lat: 35.6828, lon: 139.7790, zoom: 16 },
   { test: /iron ore|pilbara|port hedland|newman/i, title: 'PILBARA IRON ORE REGION · WESTERN AUSTRALIA', lat: -22.3, lon: 118.6, zoom: 6,
     context: `BHP, Rio Tinto and Fortescue operations · iron ore export earnings A$116b in 2024-25 (Resources and Energy Quarterly)${PILBARA_ORE ? ` · iron ore US$${PILBARA_ORE.toFixed(2)}/t (${C.commodities.asOfBy?.ironOreUSD})` : ''}`,
-    ask: 'How is the Pilbara iron ore industry placed right now, and which ASX producers have the most leverage to the iron ore price?', sector: 'Materials' },
+    ask: 'Describe the Pilbara iron ore industry: who operates there, where the ore goes, and what has been reported recently. Describe only: no forecasts and no view on markets or stocks.', sector: 'Materials' },
 ]
 const placeFor = (query) => FINANCIAL_PLACES.find((p) => p.test.test(query)) ?? null
 const financialFor = (query, result) =>
@@ -171,7 +171,7 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
                 ? askMaddenAI(card.ask)
                 : dispatchAskAI({
                   name: card.title, sector: 'Location intelligence', date: todayAEST(),
-                  instruction: `What is the financial significance of ${card.title} (${card.context}) for an Australian investor? Describe it in words; do not state prices or figures you have not been given.`,
+                  instruction: `Describe the financial significance of ${card.title} (${card.context}), including its links to Australia. Describe it in words; do not state prices or figures you have not been given, and give no forecasts and no view on markets or stocks.`,
                 }))}
               className="text-terminal-gold/80 hover:text-terminal-gold" style={{ fontSize: 11, letterSpacing: '0.12em' }}
             >ASK MADDENAI ▶</button>
