@@ -1,4 +1,5 @@
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { formatDate } from '../../utils/dateUtils'
 import { IRON_ORE_HISTORY } from '../../data/placeholders'
 
 // What actually moves each ASX sector.
@@ -43,7 +44,8 @@ export function sectorDrivers(sectorName, ctx = {}) {
   const fx = ctx.fx ?? null
 
   const audUsd = fx?.AUDUSD != null
-    ? { value: fx.AUDUSD.toFixed(4), asOf: 'live', source: 'open.er-api.com' }
+    // A daily reference rate, dated by the provider's own update time.
+    ? { value: fx.AUDUSD.toFixed(4), asOf: fx.updated ? formatDate(fx.updated) : null, source: 'open.er-api.com daily reference rate' }
     : null
 
   const ironOre = {
@@ -229,7 +231,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
       {
         name: 'Unemployment',
         reading: { value: `${au.unemployment}%`, asOf: au.unemploymentLastRelease, source: au.source },
-        impact: 'Staples typically outperform when the labour market weakens — the defensive rotation destination.',
+        impact: 'Staples sales depend on household budgets, which move with employment and wages.',
       },
     ],
 

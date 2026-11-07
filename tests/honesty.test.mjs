@@ -197,3 +197,14 @@ test('Markets: "updated" times are fetch times with a zone, and every LIVE badge
   }
   assert.match(read('src/modules/markets/IndicesTable.jsx'), /<DataBadge cls="LIVE"/)
 })
+
+test('Markets: badges come from the one vocabulary; no "check news before acting", no "live" daily FX, no VIX label on realised vol', () => {
+  const dir = 'src/modules/markets/'
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.jsx'))) {
+    const src = read(dir + f)
+    assert.doesNotMatch(src, /border-terminal-gold\/50 text-terminal-gold">(DEMO|INDICATIVE)</, f)
+    assert.doesNotMatch(src, /DEMO DATA'|before acting/, f)
+  }
+  assert.doesNotMatch(read(dir + 'sectorDrivers.js'), /asOf: 'live'|typically outperform/)
+  assert.doesNotMatch(read(dir + 'MarketInternals.jsx'), /VIX EQUIVALENT|read like the VIX/)
+})

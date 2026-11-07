@@ -4,6 +4,7 @@ import { YF_INDICES, USING_MOCK_DATA } from '../../services/api'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { BENCHMARK_ORDER } from './benchmarks'
 import { PAL } from '../../styles/palette.js'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 
 // Elevated-volatility banner. Hidden in normal conditions; amber when any
 // benchmark is down more than 2% on the day, red past 5%.
@@ -46,9 +47,9 @@ export default function VolatilityBanner() {
         {fallers.map((i) => `${i.label ?? i.name ?? i.symbol} ${quotes[i.symbol].pct.toFixed(1)}%`).join(' · ')}
       </span>
       <span className="ml-auto text-[11px] text-terminal-text-dim">
-        {fallers.some((i) => US_MWCB.has(i.symbol)) ? 'US market-wide circuit breakers halt trading at −7%, −13% and −20% on the S&P 500' : 'Moves of this size are uncommon — check news before acting'}
-        {USING_MOCK_DATA ? ' · DEMO DATA' : ''}
+        {fallers.some((i) => US_MWCB.has(i.symbol)) ? 'US market-wide circuit breakers halt trading at −7%, −13% and −20% on the S&P 500' : 'Shown when an index falls 2% or more on the day'}
       </span>
+      {USING_MOCK_DATA && <DemoBadge />}
     </div>
   )
 }

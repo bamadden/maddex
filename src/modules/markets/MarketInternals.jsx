@@ -179,12 +179,12 @@ export default function MarketInternals() {
             <MaRow n={20} pct={m.above20} />
           </div>
         </Stat>
-        <Stat label="VIX EQUIVALENT · ASX 200 20D VOL" sub={band ? `${band.note} · 0–20 low · 20–30 normal · 30+ elevated` : 'Not enough history'}>
+        <Stat label="ASX 200 REALISED VOL · 20D" sub={band ? `${band.note} · 0–20 low · 20–30 normal · 30+ elevated` : 'Not enough history'}>
           <div className="flex items-baseline gap-2 font-mono">
             <b className="text-lg tabular-nums" style={{ color: band?.colour ?? PAL.dim }}>{vol != null ? vol.toFixed(1) : '—'}</b>
             {band && <span className="text-[11px] font-bold tracking-widest" style={{ color: band.colour }}>{band.label}</span>}
           </div>
-          <div className="font-mono text-[11px] text-terminal-text-dim/60 mt-0.5">Realised (measured), annualised — read like the VIX; no implied-vol (A-VIX) feed connected</div>
+          <div className="font-mono text-[11px] text-terminal-text-dim/60 mt-0.5">Realised: measured from daily closes, annualised. Not implied volatility (the A-VIX); no implied-vol feed is connected</div>
         </Stat>
       </div>
       {showSectors && (

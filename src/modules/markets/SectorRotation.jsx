@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { getMockFMPHistory } from '../../services/mockData'
 import { ASX_SECTOR_STOCKS } from '../../data/sectorTaxonomy'
 import { PAL } from '../../styles/palette.js'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 
 // SECTOR ROTATION — four-week momentum by ASX sector.
 //
@@ -60,7 +61,7 @@ export default function SectorRotation() {
     <div className="flex-shrink-0 border-b border-terminal-border px-3 py-2">
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">SECTOR ROTATION — 4-WEEK MOMENTUM</span>
-        <span className="text-[11px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold">DEMO</span>
+        <DemoBadge />
         <span className="text-2xs text-terminal-text-dim/60">equal-weighted, from simulated daily closes · trend = last 2 weeks vs prior 2</span>
       </div>
       <div className="space-y-1">

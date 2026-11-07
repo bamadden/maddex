@@ -2,6 +2,7 @@ import { ASX_LISTINGS, CORPORATE_ACTIONS_AS_OF, listingStatus } from '../../data
 import { dispatchAskAI } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import DataBadge from '../../components/ui/DataBadge'
 
 // UPCOMING LISTINGS — the ASX's own upcoming floats page, as read on the date
 // shown. A passed proposed date reads DATE PASSED, not LISTED: whether the
@@ -17,7 +18,7 @@ export default function UpcomingListings() {
     <div className="flex-shrink-0 border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">UPCOMING LISTINGS</span>
-        <span className="text-[11px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold">INDICATIVE</span>
+        <DataBadge cls="DELAYED" source="ASX upcoming floats page, entered by hand" at={CORPORATE_ACTIONS_AS_OF} />
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">
           ASX upcoming floats page, read {fmtDate(CORPORATE_ACTIONS_AS_OF)} ·{' '}
           <a href={rows[0]?.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-terminal-gold/80 hover:underline">asx.com.au ↗</a>
