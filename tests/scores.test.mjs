@@ -22,7 +22,7 @@ const CARDS = {
   'src/modules/macro/RecessionMonitor.jsx': 'recession',
   'src/modules/markets/CorrelationExplorer.jsx': 'diversification',
   'src/modules/crypto/CryptoModule.jsx': 'crypto-momentum',
-  'src/modules/global/MapDetailPanel.jsx': 'country-risk',
+  'src/modules/global/GlobalModule.jsx': 'country-risk',
   'src/modules/global/IntelPanel.jsx': 'country-risk',
   'src/modules/scanner/MarketScannerModule.jsx': 'momentum-scan',
   'src/modules/portfolio/PortfolioAnalytics.jsx': 'recession',

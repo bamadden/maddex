@@ -110,3 +110,14 @@ test('map event text describes links; no trading-flavoured labels or unsourced s
   assert.doesNotMatch(text, /\d+%/, 'no shares without a source')
   assert.doesNotMatch(read('src/data/geopoliticalRisk.js'), /windfall/)
 })
+
+test('Global: no typed 0–100 severity or trade-risk score; editorial labels say what they are; the rubric average links its method', () => {
+  const data = fs.readFileSync('src/modules/global/intelMapData.js', 'utf8')
+  assert.doesNotMatch(data, /severityScore|riskScore/)
+  const panel = fs.readFileSync('src/modules/global/MapDetailPanel.jsx', 'utf8')
+  assert.doesNotMatch(panel, /ScoreNote method="country-risk"/)
+  assert.match(panel, /Maddex editorial label/)
+  const mod = fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8')
+  assert.doesNotMatch(mod, /Trade Risk Score|computeTradeRiskScore|return 'MODERATE'/)
+  assert.match(mod, /<ScoreNote method="country-risk" asOf=\{formatDate\(RISK_LAST_REVIEWED\)\} \/>/)
+})

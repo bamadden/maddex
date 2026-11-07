@@ -6,7 +6,6 @@ import { sessionCountdown, formatCountdown, SEVERITY_COLOUR, ROUTE_NOTES, SITE_E
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
 import { screenSector } from '../markets/screenSector'
-import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 import { routeFor, brentReading, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
@@ -31,18 +30,17 @@ const S = {
   pill:  { display: 'inline-block', fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, padding: '2px 6px', borderRadius: 2, marginRight: 4, marginBottom: 4 },
 }
 
-// Horizontal 0-100 meter. A number alone doesn't say whether 74 is bad;
-// a filled bar against a track does.
-function Meter({ score, colour }) {
+// A categorical label typed by Maddex for each zone and event. The 0–100
+// numbers that sat here (98, 88…) were typed too, not scored by the
+// country-risk rubric whose method they linked to, so they are gone.
+function EditorialStatus({ severity }) {
+  if (!severity) return null
+  const colour = `rgb(${(SEVERITY_COLOUR[severity] ?? [201, 168, 76]).join(',')})`
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-        <span style={{ ...S.label, marginBottom: 0 }}>Severity</span>
-        <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 14, fontWeight: 700, color: colour }}>{score}</span>
-      </div>
-      <div style={{ height: 4, background: 'rgba(99,120,153,0.2)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ width: `${score}%`, height: '100%', background: colour, transition: 'width .3s ease' }} />
-      </div>
+    <div style={{ marginBottom: 12 }} data-editorial-status>
+      <span style={{ ...S.label, marginBottom: 0 }}>Status </span>
+      <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 13, fontWeight: 700, color: colour }}>{severity}</span>
+      <div style={{ ...S.muted, fontSize: 11 }}>Maddex editorial label from the reported events below; not a measured score.</div>
     </div>
   )
 }
@@ -201,8 +199,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={{ color: PAL.down, fontFamily: '"IBM Plex Mono", monospace', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
               ⚠ {data.title}
             </div>
-            <Meter score={data.severityScore} colour={`rgb(${(SEVERITY_COLOUR[data.severity] ?? [201,168,76]).join(',')})`} />
-              <ScoreNote method="country-risk" className="mt-1" />
+            <EditorialStatus severity={data.severity} />
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.detail}</div>
 
             {routeFor(data.id) && (
@@ -260,8 +257,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
               {data.type}
             </span>
             <div style={{ marginTop: 10 }}>
-              <Meter score={data.riskScore} colour={`rgb(${(SEVERITY_COLOUR[data.severity] ?? [201,168,76]).join(',')})`} />
-              <ScoreNote method="country-risk" className="mt-1" />
+              <EditorialStatus severity={data.severity} />
             </div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.summary}</div>
 

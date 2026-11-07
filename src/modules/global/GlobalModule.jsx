@@ -5,7 +5,8 @@ import { IntelTicker, IntelFilterBar, MarketHoursCompact, CommodityIntel, GeoRis
 import { readIntelFilter, saveIntelFilter } from './intelFilter'
 import { useQuery } from '@tanstack/react-query'
 import { fetchGeoNews, fetchNews, fetchFlightData, transformFlightData, filterFinanceRelevant } from '../../services/api'
-import { riskBand, avgGeoRisk } from '../../data/geopoliticalRisk'
+import { riskBand, avgGeoRisk, RISK_LAST_REVIEWED } from '../../data/geopoliticalRisk'
+import ScoreNote from '../../components/ui/ScoreNote'
 import { fetchCurrentWeather, weatherCodeLabel } from '../../services/globalDataService'
 import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
@@ -270,7 +271,8 @@ function getRiskRating(n) {
   if (CONFLICT_COUNTRIES.has(n)) return 'CRITICAL'
   if (STRESS_COUNTRIES.has(n))   return 'VERY HIGH'
   if (PARTNER_COUNTRIES.has(n))  return 'LOW'
-  return 'MODERATE'
+  // Not listed: no rating, rather than a default "MODERATE".
+  return null
 }
 
 const RISK_COLOR = {
@@ -317,19 +319,6 @@ function findRoute(id, kind) {
   return (kind === 'SHIPPING' ? SHIPPING_ROUTES : FREIGHT_ROUTES).find(r => r.id === id)
 }
 
-
-const RISK_BASE_SCORE = { 'VERY LOW': 10, LOW: 25, MODERATE: 40, MEDIUM: 45, HIGH: 65, 'VERY HIGH': 80, CRITICAL: 95 }
-function computeTradeRiskScore({ riskRating, hasDisruptedRoute, riskyPartnerCount }) {
-  let score = RISK_BASE_SCORE[riskRating] ?? 35
-  if (hasDisruptedRoute) score += 15
-  score += Math.min(10, riskyPartnerCount * 5)
-  return Math.max(0, Math.min(100, score))
-}
-function riskScoreColor(score) {
-  if (score >= 67) return { bar: 'bg-terminal-red', text: 'text-terminal-red' }
-  if (score >= 34) return { bar: 'bg-terminal-gold', text: 'text-terminal-gold' }
-  return { bar: 'bg-terminal-green', text: 'text-terminal-green' }
-}
 
 // ─── Exchanges — full global list with coordinates ────────────────────────────
 
@@ -728,12 +717,6 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
   const disruptedRoutes  = shippingRoutes.filter(r => r.status === 'DISRUPTED' || r.status === 'CONGESTED')
   const enhancedPartners = (partners ?? []).slice(0, 5).map(p => ({ name: p, flag: flagForPartnerName(p), trade: partnerTrade(COUNTRY_NAMES[n], p) }))
   const tradeSource      = enhancedPartners.find(p => p.trade)?.trade ?? null
-  const riskyPartnerCount = (partners ?? []).filter(p => {
-    const pid = NAME_TO_ID[p]
-    return pid != null && (CONFLICT_COUNTRIES.has(pid) || STRESS_COUNTRIES.has(pid))
-  }).length
-  const tradeRiskScore = computeTradeRiskScore({ riskRating, hasDisruptedRoute: disruptedRoutes.length > 0, riskyPartnerCount })
-  const riskScoreColors = riskScoreColor(tradeRiskScore)
 
   // Live local time — ticks every second
   const lt = useLocalTime(tz)
@@ -787,7 +770,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
             {isConflict && <span className="text-2xs px-1.5 py-0.5 bg-terminal-red/20 text-terminal-red border border-terminal-red/30">⚠ CONFLICT ZONE</span>}
             {isStress && !isConflict && <span className="text-2xs px-1.5 py-0.5 bg-orange-900/20 text-orange-400 border border-orange-400/30">⚠ SANCTIONED</span>}
             {isPartner && <span className="text-2xs px-1.5 py-0.5 bg-terminal-green/10 text-terminal-green border border-terminal-green/30">★ AU TRADE PARTNER</span>}
-            <span className={`text-2xs px-1.5 py-0.5 border border-current/30 ${RISK_COLOR[riskRating] ?? 'text-terminal-text-dim'}`}>RISK: {riskRating}</span>
+            {riskRating && <span title="Maddex editorial label, not the scored country-risk index" className={`text-2xs px-1.5 py-0.5 border border-current/30 ${RISK_COLOR[riskRating] ?? 'text-terminal-text-dim'}`}>RISK: {riskRating}</span>}
           </div>
           <button
             onClick={() => onAskAI({
@@ -1077,14 +1060,8 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
             </div>
           )}
 
-          {/* (d) Trade risk score */}
-          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Trade Risk Score</div>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-terminal-border/40 rounded-sm overflow-hidden">
-              <div className={`h-full ${riskScoreColors.bar}`} style={{ width: `${tradeRiskScore}%` }} />
-            </div>
-            <span className={`text-2xs font-bold ${riskScoreColors.text}`}>{tradeRiskScore}/100</span>
-          </div>
+          {/* The 0–100 trade risk score that sat here was a typed base per
+              rating plus fixed bumps, with 35 for an unknown rating: removed. */}
         </div>
 
         {/* ── Overview (ECONOMY tab) ── */}
@@ -2278,6 +2255,7 @@ function WorldStatsSummary() {
         <StatBlock label="Countries" value={COUNTRIES.length} />
         <StatBlock label="Avg Geo Risk" value={avgRisk} accent={riskBand(avgRisk).tw} />
       </div>
+      <ScoreNote method="country-risk" asOf={formatDate(RISK_LAST_REVIEWED)} />
     </div>
   )
 }
