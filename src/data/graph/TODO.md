@@ -91,7 +91,8 @@ companies from each latest annual report, marked DISCLOSED. Nine of ten done:
 - [x] Macquarie CEO resolved: Shemara Wikramanayake (Macquarie 2026 Annual
   Report). **On 7 Nov 2026** replace her with Greg Ward. She retires on
   6 Nov, and Ward takes over from 7 Nov subject to approvals (Macquarie
-  release, 23 Jul 2026). Confirm the approvals were received.
+  release, 23 Jul 2026). Done 7 Nov: Macquarie's Executive Committee page
+  lists Ward as MD & CEO; the edge is swapped.
 
 - [ ] Only chair and CEO so far; full boards would surface interlocks.
 

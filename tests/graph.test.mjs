@@ -269,10 +269,14 @@ test('approving the out-of-date "Chaney director of Wesfarmers" proposal would f
   assert.equal(fieldUpdated(ctx, { path: 'graph.boards.Michael Chaney', expect: { excludes: 'WES' } }), false)
 })
 
-test('the Macquarie CEO change on 7 Nov is modelled, and is due only from that morning', () => {
+test('the Macquarie CEO change on 7 Nov is modelled, and is made: Greg Ward, with his own source', () => {
   const c = DATED_CHANGES.find((x) => x.id === 'mqg-ceo-2026-11-07')
   assert.equal(c.effective, '2026-11-07T00:00:00+11:00')
   const ctx = { graph: graphContext(PEOPLE, [], ALL_NODES) }
-  assert.ok(!overdueChanges(ctx, Date.parse('2026-11-06T12:59:00Z')).some((x) => x.id === c.id))
-  assert.ok(overdueChanges(ctx, Date.parse('2026-11-06T13:00:00Z')).some((x) => x.id === c.id)) // still Wikramanayake in nodes.js
+  assert.equal(ctx.graph.ceo.MQG, 'Greg Ward')
+  assert.ok(!overdueChanges(ctx, Date.parse('2026-11-07T13:00:00Z')).some((x) => x.id === c.id))
+  // Before the swap, the same check flagged it from that morning.
+  const before = { graph: { ...ctx.graph, ceo: { ...ctx.graph.ceo, MQG: 'Shemara Wikramanayake' } } }
+  assert.ok(!overdueChanges(before, Date.parse('2026-11-06T12:59:00Z')).some((x) => x.id === c.id))
+  assert.ok(overdueChanges(before, Date.parse('2026-11-06T13:00:00Z')).some((x) => x.id === c.id))
 })

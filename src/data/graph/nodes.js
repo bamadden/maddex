@@ -137,10 +137,13 @@ export const PEOPLE = [
   ['Steven Gregg', [['WBC', 'Chair']]], ['Anthony Miller', [['WBC', 'Managing Director & CEO']]],
   ["Paul O'Sullivan", [['ANZ', 'Chair']]], ['Nuno Matos', [['ANZ', 'CEO']]],
   ['Glenn Stevens', [['MQG', 'Chair']]],
-  // Macquarie 2026 Annual Report (8 May 2026), PDF p46; Macquarie release of
-  // 23 Jul 2026: retires 6 Nov 2026, Greg Ward to succeed from 7 Nov subject
-  // to approvals. Swap the edge on 7 Nov (TODO.md).
-  ['Shemara Wikramanayake', [['MQG', 'Managing Director & CEO (retires 6 Nov 2026; Greg Ward from 7 Nov, subject to approvals)']]],
+  // Greg Ward from 7 Nov 2026, succeeding Shemara Wikramanayake (retired
+  // 6 Nov; Macquarie release, 23 Jul 2026). Macquarie's Executive Committee
+  // page lists him as MD & CEO, read 7 Nov 2026.
+  ['Greg Ward', [['MQG', 'Managing Director & CEO', {
+    source: { label: 'Macquarie — Executive Committee (company website)', url: 'https://www.macquarie.com/au/en/about/company/executive-committee.html', date: '2026-11-07' },
+    quote: 'Managing Director and Chief Executive Officer of Macquarie Group Limited',
+  }]]],
   ['Brian McNamee', [['CSL', 'Chair']]],
   // WES chair: Michael Chaney left the board at the 29 Oct 2026 AGM (final
   // director's interest notice lodged 30 Oct). Ken MacKenzie's chairmanship

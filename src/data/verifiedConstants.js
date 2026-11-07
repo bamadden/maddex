@@ -186,10 +186,15 @@ export const VERIFIED_CONSTANTS = {
     source: 'ecb.europa.eu', asOf: '2026-10-29', lastVerified: '2026-10-30',
   },
   boe: {
-    label: 'BOE', country: 'United Kingdom', cashRate: 3.75,
-    lastDecision: '2026-09-17', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-05',
-    // Re-checked 2026-10-27: held 6–3 on 17 Sep (Greene, Mann, Pill for 4.00%).
-    source: 'bankofengland.co.uk', asOf: '2026-09-17', lastVerified: '2026-10-27',
+    label: 'BOE', country: 'United Kingdom', cashRate: 4.00,
+    lastDecision: '2026-11-05', lastDecisionVerb: 'HIKE', nextMeeting: '2026-12-17',
+    previousRate: 3.75, lastChange: '+25bp',
+    note: 'Raised 8–1 (Mann for 4.25%)',
+    // UPDATED 2026-11-07: Bank Rate raised 0.25 points to 4% on 5 Nov, vote
+    // 8–1, Mann for a 0.5-point rise to 4.25%; meeting ended 4 Nov. Next
+    // decision 17 Dec (bankofengland.co.uk, November 2026 Monetary Policy
+    // Summary). Before: held 6–3 on 17 Sep (Greene, Mann, Pill for 4.00%).
+    source: 'bankofengland.co.uk', asOf: '2026-11-05', lastVerified: '2026-11-07',
   },
   boj: {
     label: 'BOJ', country: 'Japan', cashRate: 1.25,
@@ -609,14 +614,16 @@ export const VERIFIED_CONSTANTS = {
   us: {
     cpi: 3.7, cpiPrevious: 3.4, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-14',
     cpiCore: 2.6, cpiCorePrevious: 2.4,
-    unemployment: 4.2, unemploymentPrevious: 4.1, unemploymentPeriod: 'Sep 2026', unemploymentRelease: '2026-10-02',
+    // UPDATED 2026-11-07 from the BLS public API (LNS14000000, CES0000000001):
+    // the October report, released Fri 6 Nov. Payrolls 159,293k in Oct vs
+    // 159,128k in Sep (+165k); Sep revised to +60k from +29k. Both preliminary.
+    unemployment: 4.1, unemploymentPrevious: 4.2, unemploymentPeriod: 'Oct 2026', unemploymentRelease: '2026-11-06',
     // Q3 2026 ADVANCE estimate, 3.4% annualised (BEA, 29 Oct 2026 — the
     // agency's API via check-stats and bea.gov). Q2's third estimate was 2.2%.
     // The second estimate's date is not recorded here; BEA's schedule has it.
     gdpQoQAnnualised: 3.4, gdpPrevious: 2.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-29', gdpNextRelease: null,
-    // Payroll change, thousands. Aug is the revised figure as of the Sep
-    // report (Jul and Aug were revised down a combined 60k).
-    nfpThousands: 29, nfpPrevious: 133, nfpRelease: '2026-10-02',
+    // Payroll change, thousands. Sep is the revised figure as of the Oct report.
+    nfpThousands: 165, nfpPrevious: 60, nfpRelease: '2026-11-06',
     fedFundsRelease: '2026-10-28',
     // Seasonally adjusted unemployment rate, monthly, for the Sahm-style
     // factor in recessionRisk.js. October 2025 is null: the federal
@@ -632,8 +639,9 @@ export const VERIFIED_CONSTANTS = {
       { period: '2026-01', value: 4.3 }, { period: '2026-02', value: 4.4 }, { period: '2026-03', value: 4.3 },
       { period: '2026-04', value: 4.3 }, { period: '2026-05', value: 4.3 }, { period: '2026-06', value: 4.2 },
       { period: '2026-07', value: 4.1 }, { period: '2026-08', value: 4.1 }, { period: '2026-09', value: 4.2 },
+      { period: '2026-10', value: 4.1 },
     ],
-    source: 'bls.gov / bea.gov', asOf: '2026-10-14', lastVerified: '2026-10-19',
+    source: 'bls.gov / bea.gov', asOf: '2026-11-06', lastVerified: '2026-11-07',
   },
   // UPDATED 2026-10-28 for the Macro global comparison — CPI, EU, UK and
   // China had sat at May/June readings. Each from the statistics office's own
