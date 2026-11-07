@@ -1106,13 +1106,14 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               return (
                 <div className="flex flex-col gap-1">
                   {showRotation && (
-                    <div className="flex items-center gap-2 text-2xs px-2 py-1.5 mb-1 border border-terminal-gold/25 bg-terminal-gold/5 rounded">
+                    // Price change only: a gap between two sectors' returns
+                    // says nothing about where money moved.
+                    <div data-rotation-note className="flex items-center gap-2 flex-wrap text-2xs px-2 py-1.5 mb-1 border border-terminal-gold/25 bg-terminal-gold/5 rounded">
+                      <span className="text-terminal-text-dim">Over {secondaryMetric}, weakest</span>
                       <span className="text-terminal-red font-bold">{SECTOR_ABBR[weakest.sector]}</span>
-                      <span className="text-terminal-gold">→</span>
+                      <span className="text-terminal-text-dim">· strongest</span>
                       <span className="text-terminal-green font-bold">{SECTOR_ABBR[strongest.sector]}</span>
-                      <span className="text-terminal-text-dim ml-1">
-                        rotation over {secondaryMetric} — money moving from weaker to stronger
-                      </span>
+                      <span className="text-terminal-text-dim ml-1">— price change only, not a measure of fund flows</span>
                     </div>
                   )}
                   {rows.map(r => (

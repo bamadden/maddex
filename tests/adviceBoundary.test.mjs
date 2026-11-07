@@ -126,3 +126,10 @@ test('Markets AI prompts ask for description only: no outlook, stocks to watch o
     assert.equal(adviceIntent(p.replace(/\$\{[^}]*\}/g, 'X')), false, `${f} prompt reads as an advice request`)
   }
 })
+
+test('sector rotation note describes price change only and never states fund flows as fact', async () => {
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync('src/modules/markets/SectorHeatmap.jsx', 'utf8')
+  assert.doesNotMatch(src, /money moving/i)
+  assert.match(src, /price change only, not a measure of fund flows/)
+})
