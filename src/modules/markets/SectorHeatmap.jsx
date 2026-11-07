@@ -471,7 +471,8 @@ function nativeToAud(price, currency, rates) {
   if (price == null || !rates) return null
   if (!currency || currency === 'AUD') return price
   // GBp (pence) = 1/100 GBP — Yahoo Finance reports many LSE stocks in pence
-  if (currency === 'GBp') return (price / 100) / (rates.GBP ?? 0.512)
+  // No GBP rate gives no A$ figure, never one at a typed rate.
+  if (currency === 'GBp') return rates.GBP ? (price / 100) / rates.GBP : null
   const rate = rates[currency]
   if (!rate) return null
   return price / rate
@@ -887,7 +888,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                     .map((s) => ({
                       name: s,
                       abbr: SECTOR_ABBR[s],
-                      pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? 0,
+                      pct: proxyQuotes?.[sectorConfig[s].sym]?.pct ?? null,
                       marketCap: proxyQuotes?.[sectorConfig[s].sym]?.marketCap ?? null,
                     }))}
                 />
@@ -1241,8 +1242,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                   BUILDING SECTOR COMPOSITE...
                 </div>
               ) : composite != null ? (() => {
-                const last = composite.points[composite.points.length - 1]?.pct ?? 0
-                const col = last >= 0 ? PAL.up : PAL.down
+                const last = composite.points[composite.points.length - 1]?.pct
+                const col = last == null ? PAL.muted : last >= 0 ? PAL.up : PAL.down
                 return (
                   <SafeChart width="100%" height={118}>
                     <AreaChart data={composite.points} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
@@ -1332,7 +1333,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
                         <tr
                           key={sym}
                           className="cursor-pointer hover:bg-terminal-accent/20 transition-colors"
-                          onClick={() => openModal?.({ symbol: sym, name, price: q?.last ?? 0, pct: q?.pct ?? 0, type:'asx', extra:{} })}
+                          onClick={() => openModal?.({ symbol: sym, name, price: q?.last ?? null, pct: q?.pct ?? null, type:'asx', extra:{} })}
                         >
                           <td className="px-2 py-0.5">
                             <div className="text-xs font-bold text-terminal-text-bright">{displaySym(sym)}</div>
@@ -1519,8 +1520,8 @@ function IndexView({ selectedIndex, openModal }) {
     openModal?.({
       symbol: sym,
       name:   r.name,
-      price:  r.audPrice ?? 0,
-      pct:    r.pct ?? 0,
+      price:  r.audPrice ?? null,
+      pct:    r.pct ?? null,
       change: r.audChange,
       type:   isASX ? 'asx' : 'us',
       extra:  {

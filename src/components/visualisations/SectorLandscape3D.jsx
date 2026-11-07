@@ -42,7 +42,7 @@ function SectorBar({ sector, x, z, height, color, onHover }) {
         }}>
           <div style={{ fontWeight: 700, letterSpacing: '0.04em' }}>{sector.abbr}</div>
           <div style={{ color, fontWeight: 600 }}>
-            {sector.pct >= 0 ? '▲' : '▼'} {Math.abs(sector.pct).toFixed(2)}%
+            {sector.pct == null ? '—' : `${sector.pct >= 0 ? '▲' : '▼'} ${Math.abs(sector.pct).toFixed(2)}%`}
           </div>
         </div>
       </Html>

@@ -180,3 +180,11 @@ test('sentiment: simulated inputs make it a DEMO composite, badged on every scre
   assert.match(badge, /cls="DEMO" compact/, 'compact: the class shows at every width')
   assert.doesNotMatch(read('src/hooks/useMarketSentiment.js'), /from market data/)
 })
+
+test('Markets: a missing price or move is passed on as missing, never as 0 ($0.00, 0.00%)', () => {
+  const src = read('src/modules/markets/SectorHeatmap.jsx')
+  // Only the bar-scale maximum may treat a missing period as 0; it draws nothing.
+  const zeros = src.split('\n').filter((l) => /\b(price|pct|last|audPrice)\b[^\n]*\?\?\s*0\b/.test(l) && !/maxAbs/.test(l))
+  assert.deepEqual(zeros, [])
+  assert.match(read('src/components/visualisations/SectorLandscape3D.jsx'), /sector\.pct == null \? '—'/)
+})
