@@ -128,3 +128,21 @@ test('halving card: estimate and its source only, no performance history; a miss
   const svc = fs.readFileSync('src/services/defiService.js', 'utf8')
   assert.match(svc, /avgMeasured: measured/)
 })
+
+test('crypto momentum: a missing input is left out, never 50 or a 0% move; every factor is in the published method', async () => {
+  const { calculateCryptoMomentumIndex, CRYPTO_MOMENTUM_WEIGHTS } = await import('../src/services/maddenAiScoring.js')
+  assert.equal(calculateCryptoMomentumIndex({ coins: [], fearGreed: null }), null, 'no inputs, no score')
+  assert.equal(calculateCryptoMomentumIndex({ coins: [{ symbol: 'BTC' }], fearGreed: null }), null)
+  // BTC volume missing: no volume factor, rather than a neutral 50.
+  const noVol = calculateCryptoMomentumIndex({ coins: [{ symbol: 'BTC', change24h: 3 }], fearGreed: null })
+  assert.ok(!noVol.factors.some((f) => /volume/i.test(f.name)))
+  // A coin without a 24h change does not pull the 24h factor toward 0%.
+  const a = calculateCryptoMomentumIndex({ coins: [{ symbol: 'BTC', change24h: 4 }], fearGreed: null })
+  const b = calculateCryptoMomentumIndex({ coins: [{ symbol: 'BTC', change24h: 4 }, { symbol: 'DOGE', change24h: null }], fearGreed: null })
+  assert.equal(a.factors[0].score, b.factors[0].score)
+  const method = (await import('../src/data/methodology.js')).METHODS?.['crypto-momentum'] ?? fs.readFileSync('src/data/methodology.js', 'utf8')
+  const text = JSON.stringify(method)
+  for (const w of Object.values(CRYPTO_MOMENTUM_WEIGHTS)) assert.match(text, new RegExp(`weight ${w}\\b`))
+  assert.match(text, /BTC 24h volume over its market cap/)
+  assert.doesNotMatch(fs.readFileSync('src/services/maddenAiScoring.js', 'utf8'), /Volume Conviction|change24h \|\| 0/)
+})

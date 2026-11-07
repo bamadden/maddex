@@ -203,6 +203,7 @@ const P = {
 
 function MaddenAIPanel({ momentum }) {
   if (!momentum) return <div style={P.wrap}><div style={P.title}>CRYPTO MOMENTUM INDEX</div><div style={P.empty}>CALCULATING...</div></div>
+  if (momentum === 'none') return <div style={P.wrap}><div style={P.title}>CRYPTO MOMENTUM INDEX</div><div style={P.empty} data-no-score>No score: the coin feed gave no price changes and there is no Fear &amp; Greed reading.</div></div>
   const color = scoreToColor(momentum.score)
   // Computed in code, not by MaddenAI. The bull/neutral/bear split that sat
   // under the score was derived from the score itself by formula — it showed
@@ -768,7 +769,7 @@ export default function CryptoModule() {
       volume24h: c.total_volume,
       marketCap: c.market_cap,
     }))
-    return calculateCryptoMomentumIndex({ coins, fearGreed })
+    return calculateCryptoMomentumIndex({ coins, fearGreed }) ?? 'none'
   }, [rawMarkets, fearGreed])
 
   // Approximate total-market-cap 7d trend from constituent coins' own 7d

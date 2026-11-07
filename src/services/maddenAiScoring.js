@@ -120,50 +120,57 @@ export function calculateMarketSentimentScore(data) {
 }
 
 // ── CRYPTO MOMENTUM INDEX ─────────────────────────────────────────────────────
-// Multi-factor crypto sentiment: market-cap-weighted 24h/7d momentum, breadth,
-// fear/greed, and a BTC volume/mcap conviction signal — not just "did BTC go up".
+// Multi-factor summary of recent crypto price moves: market-cap-weighted
+// 24h/7d change, breadth, Fear & Greed, and BTC's 24h volume against its
+// market cap. A missing input is left out, never scored as neutral (50) or as
+// a 0% move; with no inputs there is no score (null). The published method is
+// data/methodology.js 'crypto-momentum'; keep the two in step.
 //
 // coins: [{ symbol, change24h, change7d, volume24h, marketCap }]
 // fearGreed: { value } | null
-export function calculateCryptoMomentumIndex({ coins, fearGreed }) {
-  if (!coins?.length) return { score: 50, label: 'Neutral', confidence: 0 }
+export const CRYPTO_MOMENTUM_WEIGHTS = { day: 25, week: 20, breadth: 20, fearGreed: 20, btcVolume: 15 }
+const CRYPTO_FACTOR_COUNT = Object.keys(CRYPTO_MOMENTUM_WEIGHTS).length
+const known = (v) => typeof v === 'number' && Number.isFinite(v)
 
+export function calculateCryptoMomentumIndex({ coins, fearGreed }) {
+  const W = CRYPTO_MOMENTUM_WEIGHTS
   const factors = []
   const mcapWeights = { BTC: 5, ETH: 3, BNB: 2, SOL: 2, XRP: 1, ADA: 1 }
-
-  let weighted24h = 0, total24hW = 0
-  coins.forEach((c) => {
-    const w = mcapWeights[c.symbol] || 1
-    weighted24h += momentumToScore(c.change24h || 0) * w
-    total24hW += w
-  })
-  factors.push({ name: '24h Momentum (mcap-weighted)', score: weighted24h / total24hW, weight: 25 })
-
-  let weighted7d = 0, total7dW = 0
-  coins.forEach((c) => {
-    if (c.change7d !== undefined && c.change7d !== null) {
+  const weighted = (key, toScore) => {
+    let sum = 0, total = 0
+    for (const c of coins ?? []) {
+      if (!known(c[key])) continue
       const w = mcapWeights[c.symbol] || 1
-      weighted7d += weeklyMomentumToScore(c.change7d) * w
-      total7dW += w
+      sum += toScore(c[key]) * w
+      total += w
     }
-  })
-  if (total7dW > 0) factors.push({ name: '7-Day Trend', score: weighted7d / total7dW, weight: 20 })
+    return total > 0 ? sum / total : null
+  }
 
-  const breadth = gainerRatio(coins.map((c) => c.change24h))
-  if (breadth !== null) factors.push({ name: 'Market Breadth', score: breadth * 100, weight: 20 })
+  const day = weighted('change24h', momentumToScore)
+  if (day != null) factors.push({ name: '24h Momentum (mcap-weighted)', score: day, weight: W.day })
+
+  const week = weighted('change7d', weeklyMomentumToScore)
+  if (week != null) factors.push({ name: '7-Day Trend', score: week, weight: W.week })
+
+  const breadth = gainerRatio((coins ?? []).map((c) => c.change24h))
+  if (breadth !== null) factors.push({ name: 'Market Breadth', score: breadth * 100, weight: W.breadth })
 
   if (typeof fearGreed?.value === 'number') {
-    factors.push({ name: 'Fear & Greed Index', score: fearGreed.value, weight: 20 })
+    factors.push({ name: 'Fear & Greed Index', score: fearGreed.value, weight: W.fearGreed })
   }
 
-  let volumeScore = 50
-  const btc = coins.find((c) => c.symbol === 'BTC')
-  if (btc?.volume24h && btc?.marketCap) {
+  // BTC's 24h volume over its market cap, signed by the day's direction: a
+  // heavy-volume day reads further from 50 than a light one.
+  const btc = (coins ?? []).find((c) => c.symbol === 'BTC')
+  if (known(btc?.volume24h) && known(btc?.marketCap) && btc.marketCap > 0 && known(btc?.change24h)) {
     const ratio = btc.volume24h / btc.marketCap
-    if (ratio > 0.07) volumeScore = btc.change24h >= 0 ? 75 : 25
-    else if (ratio > 0.04) volumeScore = btc.change24h >= 0 ? 62 : 38
+    const up = btc.change24h >= 0
+    const score = ratio > 0.07 ? (up ? 75 : 25) : ratio > 0.04 ? (up ? 62 : 38) : 50
+    factors.push({ name: 'BTC volume / market cap', score, weight: W.btcVolume })
   }
-  factors.push({ name: 'Volume Conviction', score: volumeScore, weight: 15 })
+
+  if (factors.length === 0) return null
 
   const totalWeight = factors.reduce((s, f) => s + f.weight, 0)
   const weightedSum = factors.reduce((s, f) => s + f.score * f.weight, 0)
@@ -173,7 +180,7 @@ export function calculateCryptoMomentumIndex({ coins, fearGreed }) {
     score: finalScore,
     label: scoreToLabel(finalScore),
     color: scoreToColor(finalScore),
-    confidence: Math.round((factors.length / 5) * 100),
+    confidence: Math.round((factors.length / CRYPTO_FACTOR_COUNT) * 100),
     factors: factors.map((f) => ({ ...f, score: Math.round(f.score) })),
   }
 }

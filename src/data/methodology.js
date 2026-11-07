@@ -54,8 +54,15 @@ export const METHODS = {
   },
   'crypto-momentum': {
     name: 'Crypto momentum index',
-    what: 'A 0–100 summary of how the tracked coins moved over 24 hours and 7 days, weighted by market cap, with breadth and the Fear & Greed index.',
-    how: ['24h and 7d % changes, scaled and market-cap weighted.', 'Share of tracked coins that rose.', 'Crypto Fear & Greed index (alternative.me).'],
+    what: 'A 0–100 summary of how the tracked coins moved over 24 hours and 7 days, weighted by market cap, with breadth, the Fear & Greed index and BTC\'s trading volume.',
+    how: [
+      '24h % change, scaled and weighted by size (BTC 5, ETH 3, BNB and SOL 2, others 1): weight 25.',
+      '7-day % change, weighted the same way: weight 20.',
+      'Share of tracked coins that rose over 24 hours: weight 20.',
+      'Crypto Fear & Greed index (alternative.me), as published: weight 20.',
+      'BTC 24h volume over its market cap: above 7% scores 75 on an up day or 25 on a down day, above 4% scores 62 or 38, otherwise 50: weight 15.',
+      'A missing input is left out and the others are reweighted; it is never scored as 50 or as a 0% move. With no inputs there is no score.',
+    ],
     not: 'A description of recent price moves, not a forecast or a signal.',
   },
   'country-risk': {
