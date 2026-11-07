@@ -155,3 +155,11 @@ test('My Crypto: an unpriced holding is left out of the totals, never counted as
   assert.match(src, /<DataBadge cls=\{source\.cls\}/)
   assert.match(fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8'), /cls: marketsDelayed \? 'STALE' : 'LIVE'/)
 })
+
+test('BTC dominance compares with the previous Sydney day only, never with today\'s own first reading', () => {
+  const src = fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8')
+  assert.doesNotMatch(src, /pp vs yesterday/)
+  assert.doesNotMatch(src, /hist\.length \? hist\[hist\.length - 1\]\.pct/)
+  assert.match(src, /e\.date === yday/)
+  assert.match(src, /first reading this browser saw/)
+})

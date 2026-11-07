@@ -18,6 +18,7 @@ import { dispatchAskAI, askMaddenAI, todayAEST } from '../../utils/askAI'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
 import { StaleBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
+import { formatDate } from '../../utils/dateUtils'
 import { SkeletonCoinRow } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import PriceChange from '../../components/ui/PriceChange'
@@ -296,7 +297,7 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
   const chg = globalData?.market_cap_change_percentage_24h_usd
   const btc = globalData?.market_cap_percentage?.btc
   const yday = btcDomYesterday()
-  const dDom = btc != null && yday != null ? btc - yday : null
+  const dDom = btc != null && yday != null ? btc - yday.pct : null
   const fg = fearGreed
   const fgTone = fg == null ? undefined : fg.value >= 55 ? 'var(--color-gain)' : fg.value <= 45 ? 'var(--color-loss)' : PAL.gold
   const up = (v) => (v >= 0 ? 'var(--color-gain)' : 'var(--color-loss)')
@@ -308,8 +309,8 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
         {capSparkline?.length > 1 && <Sparkline prices={capSparkline} w={70} h={20} />}
       </MetricCard>
       <MetricCard label="BTC DOMINANCE" value={btc != null ? `${btc.toFixed(1)}%` : '—'}
-        sub={dDom != null ? `${dDom >= 0 ? '▲' : '▼'} ${Math.abs(dDom).toFixed(2)}pp vs yesterday` : 'share of total market cap'} subTone={dDom != null ? up(dDom) : undefined}
-        title="Bitcoin's share of total crypto market cap (CoinGecko). Yesterday's reading is the one this browser last saw." />
+        sub={dDom != null ? `${dDom >= 0 ? '▲' : '▼'} ${Math.abs(dDom).toFixed(2)}pp vs ${formatDate(yday.date, { year: false })} (first reading this browser saw)` : 'share of total market cap'} subTone={dDom != null ? up(dDom) : undefined}
+        title="Bitcoin's share of total crypto market cap (CoinGecko). The comparison is with the first reading this browser saw on the previous Sydney day; with none, no change is shown." />
       <MetricCard label="FEAR & GREED" value={fg ? fg.value : '—'}
         sub={fg ? `${fg.label.toUpperCase()} · yesterday ${fg.prev} · ${CREDIT.alternativeme.text}` : CREDIT.alternativeme.text} subTone={fgTone}
         title="alternative.me Crypto Fear & Greed Index, 0–100, with its own classification" />
@@ -321,7 +322,9 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
 
 // Yesterday's BTC dominance isn't in CoinGecko's /global snapshot — persisted
 // locally (same pattern as MarketSentimentBanner's score history) so a
-// "vs yesterday" delta can be shown without an extra API call.
+// change can be shown without an extra API call. Each entry is the first
+// reading this browser saw on that Sydney day, so the comparison is with the
+// previous Sydney day's entry only, and is labelled as this browser's reading.
 const BTC_DOM_KEY = 'maddex_btc_dominance_history'
 function readBtcDomHistory() {
   try { return JSON.parse(localStorage.getItem(BTC_DOM_KEY) ?? '[]') } catch { return [] }
@@ -329,16 +332,20 @@ function readBtcDomHistory() {
 function writeBtcDomHistory(pct) {
   try {
     const hist = readBtcDomHistory()
-    const today = new Date().toISOString().slice(0, 10)
+    const today = sydneyDay(Date.now())
     if (hist[hist.length - 1]?.date === today) return
     hist.push({ date: today, pct })
     if (hist.length > 90) hist.splice(0, hist.length - 90)
     localStorage.setItem(BTC_DOM_KEY, JSON.stringify(hist))
   } catch { /* ignore */ }
 }
+const sydneyDay = (ms) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+// The previous Sydney day's entry, or null. It used to return the newest
+// entry, which after the first fetch of the day was today's own reading, so
+// the change read 0.00pp.
 function btcDomYesterday() {
-  const hist = readBtcDomHistory()
-  return hist.length ? hist[hist.length - 1].pct : null
+  const yday = sydneyDay(Date.now() - 864e5)
+  return readBtcDomHistory().find((e) => e.date === yday) ?? null
 }
 
 function DominancePanel({ globalData }) {
