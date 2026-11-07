@@ -290,7 +290,7 @@ function MetricCard({ label, value, sub, subTone, children, title }) {
   )
 }
 
-function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
+function CryptoMetricRow({ globalData, globalAt, fearGreed, currency, capSparkline }) {
   const ccy = currency === 'AUD' ? 'aud' : 'usd'
   const sym = currency === 'AUD' ? 'A$' : 'US$'
   const big = (v) => (v == null ? '—' : v >= 1e12 ? `${sym}${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `${sym}${(v / 1e9).toFixed(1)}B` : `${sym}${Math.round(v).toLocaleString()}`)
@@ -304,9 +304,15 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-terminal-border flex-shrink-0" style={{ background: 'rgba(201,168,76,0.03)' }}>
       <MetricCard label="TOTAL CRYPTO MARKET CAP" value={big(globalData?.total_market_cap?.[ccy])}
-        sub={chg != null ? `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}% 24h` : 'CoinGecko'} subTone={chg != null ? up(chg) : undefined}
+        // CoinGecko gives the 24h change of the US$ market cap only.
+        sub={chg != null ? `${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}% 24h${currency === 'AUD' ? ' (in US$)' : ''}` : 'CoinGecko'} subTone={chg != null ? up(chg) : undefined}
         title="CoinGecko /global">
-        {capSparkline?.length > 1 && <Sparkline prices={capSparkline} w={70} h={20} />}
+        {capSparkline?.length > 1 && (
+          <span title="7-day line: the top 20 coins' combined market cap, rebuilt from their own 7-day price lines. An approximation of the total." aria-label="7-day approximation from the top 20 coins" role="img" className="inline-flex items-center gap-1">
+            <span className="text-[11px] text-terminal-text-dim/60">TOP 20 · 7D</span>
+            <Sparkline prices={capSparkline} w={70} h={20} />
+          </span>
+        )}
       </MetricCard>
       <MetricCard label="BTC DOMINANCE" value={btc != null ? `${btc.toFixed(1)}%` : '—'}
         sub={dDom != null ? `${dDom >= 0 ? '▲' : '▼'} ${Math.abs(dDom).toFixed(2)}pp vs ${formatDate(yday.date, { year: false })} (first reading this browser saw)` : 'share of total market cap'} subTone={dDom != null ? up(dDom) : undefined}
@@ -316,6 +322,10 @@ function CryptoMetricRow({ globalData, fearGreed, currency, capSparkline }) {
         title="alternative.me Crypto Fear & Greed Index, 0–100, with its own classification" />
       <MetricCard label="24H VOLUME" value={big(globalData?.total_volume?.[ccy])}
         sub={globalData?.active_cryptocurrencies ? `${globalData.active_cryptocurrencies.toLocaleString()} coins tracked` : 'CoinGecko'} />
+      <div className="col-span-2 lg:col-span-4 flex flex-wrap items-center gap-2 px-4 py-1 border-t border-terminal-border/50" data-metric-badges>
+        {globalData && <DataBadge cls="LIVE" source="CoinGecko /global · market cap, dominance, volume" at={globalData.updated_at > 0 ? globalData.updated_at * 1000 : globalAt || null} />}
+        {fg && <DataBadge cls="DELAYED" source="alternative.me · daily index" at={fg.asOf ?? null} />}
+      </div>
     </div>
   )
 }
@@ -411,7 +421,7 @@ function pearsonCorrelation(a, b) {
 
 // ── RIGHT: coin detail slide-in ─────────────────────────────────────────────
 
-function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, chartLoading, historyError, onRetryHistory, timeframe, onTimeframeChange, btcCorrelation, onAskAI, onExpand, onClose }) {
+function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, chartLoading, historyAt, historyError, onRetryHistory, timeframe, onTimeframeChange, btcCorrelation, onAskAI, onExpand, onClose }) {
   if (!coin) return null
   // Rows arrive in the module's selected currency (AUD by default) — every
   // figure below is in that currency. The panel used to label them all "US$"
@@ -534,6 +544,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
             ))}
           </div>
         </div>
+        {chartData?.length > 1 && !chartLoading && <div className="mb-1"><DataBadge cls="LIVE" source="CoinGecko" at={historyAt || null} /></div>}
         <div style={{ height: 120 }}>
           {historyError && !chartData ? (
             <DataUnavailable label="CHART UNAVAILABLE" onRetry={onRetryHistory} className="h-full" />
@@ -745,7 +756,7 @@ export default function CryptoModule() {
     retry: 1,
   })
 
-  const { data: globalData } = useQuery({
+  const { data: globalData, dataUpdatedAt: globalAt } = useQuery({
     queryKey: ['cryptoGlobal'],
     queryFn:  fetchCryptoGlobal,
     staleTime: 5 * 60_000,
@@ -753,7 +764,7 @@ export default function CryptoModule() {
   })
 
   const days = TF_DAYS[timeframe] ?? 90
-  const { data: rawHistory, isFetching: chartLoading, isError: historyError, refetch: refetchHistory } = useQuery({
+  const { data: rawHistory, isFetching: chartLoading, isError: historyError, refetch: refetchHistory, dataUpdatedAt: historyAt } = useQuery({
     queryKey: ['coinHistory', selectedCoin, vsCurrency, days],
     queryFn:  () => fetchCoinHistory(COIN_IDS[selectedCoin] ?? selectedCoin.toLowerCase(), vsCurrency, days),
     staleTime: 5 * 60_000,
@@ -872,7 +883,7 @@ export default function CryptoModule() {
         ))}
       </div>
 
-      <CryptoMetricRow globalData={globalData} fearGreed={fearGreed} currency={currency} capSparkline={capSparkline} />
+      <CryptoMetricRow globalData={globalData} globalAt={globalAt} fearGreed={fearGreed} currency={currency} capSparkline={capSparkline} />
 
       <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* ── LEFT: market overview sidebar, resizable (drag right edge),
@@ -900,7 +911,7 @@ export default function CryptoModule() {
             <span>{rawMarketsResult?.meta?.provider === 'Binance' ? `${rawMarkets?.length ?? ''} MAJOR COINS` : 'TOP 20 BY MKT CAP'} ({priceCcy})</span>
             {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} source={rawMarketsResult?.meta?.provider} />}
             {rawMarkets && !marketsDelayed
-              ? <DataBadge cls="LIVE" source={rawMarketsResult?.meta?.provider} at={rawMarketsResult?.meta?.at ?? null} />
+              ? <DataBadge cls="LIVE" source={rawMarketsResult?.meta?.provider} at={rawMarketsResult?.meta?.at ?? marketsAt ?? null} />
               : !rawMarkets && !marketsError && <InlineLoading label="Loading" />
             }
             {!rawMarkets && marketsError && <Unavailable />}
@@ -994,6 +1005,7 @@ export default function CryptoModule() {
               audToUsd={haveRate ? audToUsd : null}
               chartData={chartData}
               chartLoading={chartLoading}
+              historyAt={historyAt}
               historyError={historyError}
               onRetryHistory={refetchHistory}
               timeframe={timeframe}

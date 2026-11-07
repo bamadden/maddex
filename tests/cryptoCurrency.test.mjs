@@ -163,3 +163,15 @@ test('BTC dominance compares with the previous Sydney day only, never with today
   assert.match(src, /e\.date === yday/)
   assert.match(src, /first reading this browser saw/)
 })
+
+test('Crypto metrics and the price chart carry a badge with source and time; the US$ change and the top-20 line say what they are', async () => {
+  const src = fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8')
+  assert.match(src, /<DataBadge cls="LIVE" source="CoinGecko \/global/)
+  assert.match(src, /<DataBadge cls="DELAYED" source="alternative\.me · daily index" at=\{fg\.asOf/)
+  assert.match(src, /<DataBadge cls="LIVE" source="CoinGecko" at=\{historyAt/)
+  assert.match(src, /' \(in US\$\)'/)
+  assert.match(src, /TOP 20 · 7D/)
+  const { transformFearGreed } = await import('../src/services/api.js')
+  assert.equal(transformFearGreed({ data: [{ value: '25', value_classification: 'Extreme Fear', timestamp: '1794009600' }] }).asOf, 1794009600000)
+  assert.equal(transformFearGreed({ data: [{ value: '25' }] }).asOf, null)
+})

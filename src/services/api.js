@@ -930,6 +930,8 @@ export const transformFearGreed = ({ data }) => ({
   prev:     fgAt(data[1]),
   weekAgo:  fgAt(data[7]),
   monthAgo: fgAt(data[29]),
+  // The index's own date for today's reading (unix seconds), or null.
+  asOf:     Number(data[0]?.timestamp) > 0 ? Number(data[0].timestamp) * 1000 : null,
 })
 
 // ─── Frankfurter FX (via proxy → /api/frankfurter, direct fallback) ──────────
