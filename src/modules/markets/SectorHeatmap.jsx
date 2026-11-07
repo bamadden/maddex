@@ -819,19 +819,27 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
   const [alertDraft, setAlertDraft] = useState(null)
   const handleSectorContextMenu = (e, sector) => {
     e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY, sector })
+    setContextMenu({ x: e.clientX, y: e.clientY, sector, tile: e.currentTarget })
   }
   const closeContextMenu = () => { setContextMenu(null); setAlertDraft(null) }
   useEffect(() => {
     if (!contextMenu) return
     const close = () => { setContextMenu(null); setAlertDraft(null) }
     window.addEventListener('click', close)
-    window.addEventListener('scroll', close, true)
+    // Only a scroll that moves the tile closes the menu. Panels scroll on
+    // their own as they update (and scroll anchoring nudges the pane), which
+    // closed it within moments of opening.
+    const at = contextMenu.tile?.getBoundingClientRect()
+    const onScroll = () => {
+      const now = contextMenu.tile?.getBoundingClientRect()
+      if (!at || !now || Math.abs(now.top - at.top) > 4 || Math.abs(now.left - at.left) > 4) close()
+    }
+    window.addEventListener('scroll', onScroll, true)
     const onEsc = (e) => { if (e.key === 'Escape') close() }
     window.addEventListener('keydown', onEsc)
     return () => {
       window.removeEventListener('click', close)
-      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('keydown', onEsc)
     }
   }, [contextMenu])

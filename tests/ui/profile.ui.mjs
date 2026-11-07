@@ -214,9 +214,11 @@ try {
   const onDialog = (d) => { dialog = d.message(); d.dismiss() }
   page.on('dialog', onDialog)
   const menu = await page.evaluate(async () => {
-    const tile = [...document.querySelectorAll('[aria-label*="Opens its stocks"]')][0]
+    const tile = [...document.querySelectorAll('[aria-label*="Opens its stocks"]')].find((t) => !/no price/.test(t.getAttribute('aria-label')))
     if (!tile) return 'no labelled sector tile'
     tile.focus()
+    // Focus scrolls the tile into view; open the menu once that settles.
+    await new Promise((r) => setTimeout(r, 800))
     const deepDive = !!tile.querySelector('button[aria-label^="Open the"]')
     tile.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }))
     await new Promise((r) => setTimeout(r, 200))
@@ -618,8 +620,11 @@ try {
 
   sectionLog('MaddenAI is mocked')
   active = page
+  // A request from a hidden tab waits until it is shown (services/api.js),
+  // and this page may be behind the ones opened since.
+  await page.bringToFront()
   await runCommand(page, 'ai what does the profile show')
-  await wait(3000)
+  for (let i = 0; i < 20 && counts.mocked === 0; i++) await wait(500)
   counts.mocked > 0 ? pass(`${counts.mocked} /api/claude request(s) answered by the mock; ${counts.shared} shared-content read(s) mocked`) : fail('the AI request never reached the mock')
   await closePage(page)
 } finally {
