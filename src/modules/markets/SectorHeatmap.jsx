@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
-import { sydneyTzNow } from '../../utils/dateUtils'
+import { sydneyClock } from '../../utils/dateUtils'
 import {
   GICS_SECTORS, SECTOR_ABBR, INDEX_SECTORS, ASX_SECTOR_STOCKS, INDEX_LABELS, INDEX_METADATA, RATE_SENSITIVITY,
 } from '../../data/sectorTaxonomy'
@@ -625,7 +625,7 @@ function MetricToggle({ metric, setMetric }) {
 
 // ─── Sectors View ─────────────────────────────────────────────────────────────
 
-function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal, onOpenDeepDive }) {
+function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMetric, isFetching, isError, refetch, selectedIndex, openModal, onOpenDeepDive }) {
   const [selected, setSelected] = useState(null)
   const { setActiveModule } = useStore()
   const [hovered, setHovered] = useState(null)
@@ -669,7 +669,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   const constituentStocks = selected && isASX ? (ASX_SECTOR_STOCKS[selected] ?? []) : []
   const constituentSyms = constituentStocks.map(([s]) => s)
 
-  const { data: constQuotes, isFetching: constFetching } = useQuery({
+  const { data: constQuotes, isFetching: constFetching, dataUpdatedAt: constAt } = useQuery({
     queryKey: ['yahooBatch', 'sectorConst', selectedIndex, selected],
     queryFn:  () => fetchYahooBatch(constituentSyms),
     enabled:  constituentSyms.length > 0,
@@ -782,7 +782,8 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
   const downCount = constArr.filter(q => q.pct < 0).length
 
   const isLive = !!proxyQuotes && !isError
-  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+  // The time the quotes were fetched, not the time the panel was drawn.
+  const updatedTime = proxyAt ? sydneyClock(proxyAt).text : null
   const indexLabel = INDEX_LABELS[selectedIndex] ?? 'Index'
 
   function getSecondaryChange(sym) {
@@ -841,7 +842,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
           SHOWING {indexLabel.toUpperCase()} SECTORS
         </span>
         {isFetching && <InlineLoading label="Loading" />}
-        {isLive && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)}
+        {isLive && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={proxyAt || null} />)}
         {isError && !isFetching && (
           <button onClick={refetch} className="text-2xs text-terminal-red hover:text-terminal-gold">⚠ RETRY</button>
         )}
@@ -1073,7 +1074,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
               // In demo mode ASX day moves carry a scripted sector tilt (mockData
               // SECTOR_MACRO_BIAS) — say so, so a red Financials tile is not read
               // as something the market did.
-              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO — simulated sector moves, not market data' : `Live · ${updatedTime} ${sydneyTzNow()}`}`
+              ? `GICS sector proxy prices · ${USING_MOCK_DATA ? 'DEMO — simulated sector moves, not market data' : `Live${updatedTime ? ` · fetched ${updatedTime}` : ''}`}`
               : 'Official GICS sectors · proxy stock prices · Click tile to drill down'}
           </div>
 
@@ -1173,7 +1174,7 @@ function SectorsView({ sectorConfig, proxyQuotes, histData, secondaryMetric, isF
             <div className="panel-header flex items-center gap-2 flex-shrink-0">
               <span className="text-terminal-gold truncate text-xs">{selected.toUpperCase()}</span>
               {constFetching && <InlineLoading label="Loading" />}
-              {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)}
+              {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={constAt || null} />)}
               {isASX && RATE_SENSITIVITY[selected] && <RatePill s={RATE_SENSITIVITY[selected]} sector={selected} />}
               <button
                 onClick={askAISector}
@@ -1733,7 +1734,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
     [sectorConfig]
   )
 
-  const { data: proxyQuotes, isFetching, isError, refetch } = useQuery({
+  const { data: proxyQuotes, isFetching, isError, refetch, dataUpdatedAt: proxyAt } = useQuery({
     queryKey: ['yahooBatch', 'sectorProxy', selectedIndex],
     queryFn:  () => fetchYahooBatch(proxySyms),
     staleTime: 60_000,
@@ -1779,6 +1780,7 @@ export default function SectorHeatmap({ selectedIndex = '^AXJO', openModal }) {
           <SectorsView
             sectorConfig={sectorConfig}
             proxyQuotes={proxyQuotes}
+            proxyAt={proxyAt}
             histData={histData}
             secondaryMetric={secondaryMetric}
             isFetching={isFetching}

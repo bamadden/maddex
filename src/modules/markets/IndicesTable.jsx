@@ -1,7 +1,8 @@
 import { useRef, useMemo, useState } from 'react'
 import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA } from '../../services/api'
+import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA, EQUITY_SOURCE } from '../../services/api'
+import DataBadge from '../../components/ui/DataBadge'
 import { fetchIndexQuotesUnified } from '../../services/dataService'
 import { BENCHMARK_ORDER } from './benchmarks'
 import { useAudRates } from '../../hooks/useAudRates'
@@ -331,7 +332,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
   // Shared queryKey with TickerTape/MarketSentimentBanner (same cached fetch)
   // and read passively by AIPanel via queryClient.getQueryData — all three
   // fetchers must return the same dataService-wrapped shape.
-  const { data: quotesResult, isError, isFetching, refetch } = useQuery({
+  const { data: quotesResult, isError, isFetching, refetch, dataUpdatedAt: quotesAt } = useQuery({
     queryKey:  ['yfBatch', 'indices'],
     queryFn:   () => fetchIndexQuotesUnified(indices.map(i => i.symbol)),
     staleTime: 60_000,
@@ -357,7 +358,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
     <div className="bg-terminal-panel border-b border-terminal-border font-mono relative">
       <div className="flex items-center justify-end gap-2 px-2 pt-1 pb-0.5">
         <span className="sm:hidden mr-auto text-2xs text-terminal-text-dim">{indices.length} indices · swipe →</span>
-        {USING_MOCK_DATA ? <DemoBadge /> : isDelayed && <StaleBadge cachedAt={quotesResult?.cachedAt} />}
+        {USING_MOCK_DATA ? <DemoBadge /> : isDelayed ? <StaleBadge cachedAt={quotesResult?.cachedAt} /> : quotes && <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={quotesAt || null} />}
         <button
           onClick={() => setCompareOpen(true)}
           className="text-2xs px-2 py-0.5 border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors"

@@ -188,3 +188,12 @@ test('Markets: a missing price or move is passed on as missing, never as 0 ($0.0
   assert.deepEqual(zeros, [])
   assert.match(read('src/components/visualisations/SectorLandscape3D.jsx'), /sector\.pct == null \? '—'/)
 })
+
+test('Markets: "updated" times are fetch times with a zone, and every LIVE badge carries one', () => {
+  for (const f of ['SectorHeatmap.jsx', 'TopMovers.jsx', 'IndicesTable.jsx']) {
+    const src = read(`src/modules/markets/${f}`)
+    assert.doesNotMatch(src, /updatedTime = new Date\(\)/, f)
+    for (const badge of src.match(/<DataBadge cls="LIVE"[^>]*>/g) ?? []) assert.match(badge, /\bat=\{/, `${f}: ${badge}`)
+  }
+  assert.match(read('src/modules/markets/IndicesTable.jsx'), /<DataBadge cls="LIVE"/)
+})

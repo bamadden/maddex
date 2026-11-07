@@ -4,7 +4,7 @@ import DataBadge from '../../components/ui/DataBadge'
 import { useQuery } from '@tanstack/react-query'
 import { toAUD, ASX_STOCKS, US_STOCKS, USING_MOCK_DATA, fetchNews, EQUITY_SOURCE } from '../../services/api'
 import { annotateArticles } from '../../services/newsIntelligence'
-import { timeAgo } from '../../utils/dateUtils'
+import { timeAgo, sydneyClock } from '../../utils/dateUtils'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { fmt, formatMarketCap } from '../../utils/format'
 import { DataUnavailable } from '../../components/ui/DataUnavailable'
@@ -314,9 +314,8 @@ function MoverTable({ quotes, label, isLoading, isError, refetch, audUsd, newsBy
 
 export default function TopMovers() {
   const { audUsd } = useAudRates()
-  const updatedTime = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
-  const { data: asxResult, isError: asxError, isFetching: asxFetching, refetch: refetchASX } = useQuery({
+  const { data: asxResult, isError: asxError, isFetching: asxFetching, refetch: refetchASX, dataUpdatedAt: asxAt } = useQuery({
     queryKey:  ['yahooMoversBatch', 'asx'],
     queryFn:   () => fetchEquityQuotes(ASX_STOCKS),
     staleTime: 60_000,
@@ -325,7 +324,7 @@ export default function TopMovers() {
   const asxQuotes  = asxResult?.data
   const asxDelayed = asxResult?.stale === true
 
-  const { data: usResult, isError: usError, isFetching: usFetching, refetch: refetchUS } = useQuery({
+  const { data: usResult, isError: usError, isFetching: usFetching, refetch: refetchUS, dataUpdatedAt: usAt } = useQuery({
     queryKey:  ['yahooMoversBatch', 'us'],
     queryFn:   () => fetchEquityQuotes(US_STOCKS),
     staleTime: 60_000,
@@ -358,10 +357,10 @@ export default function TopMovers() {
           {asxFetching && <InlineLoading label="Loading" />}
           {asxQuotes && !asxFetching && USING_MOCK_DATA && <DemoBadge />}
           {asxQuotes && !asxFetching && !USING_MOCK_DATA && asxDelayed && <StaleBadge cachedAt={asxResult?.cachedAt} />}
-          {asxQuotes && !asxFetching && !USING_MOCK_DATA && !asxDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} />}
+          {asxQuotes && !asxFetching && !USING_MOCK_DATA && !asxDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={asxAt || null} />}
           {asxError && !asxFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
-            {asxTrackedCap ? `${formatMarketCap(asxTrackedCap)} tracked · ` : ''}{updatedTime} · {ASX_STOCKS.length} stocks
+            {asxTrackedCap ? `${formatMarketCap(asxTrackedCap)} tracked · ` : ''}{asxAt ? `fetched ${sydneyClock(asxAt).text} · ` : ''}{ASX_STOCKS.length} stocks
           </span>
         </div>
         <MoverTable quotes={asxQuotes} label="ASX" isLoading={asxFetching && !asxQuotes}
@@ -373,10 +372,10 @@ export default function TopMovers() {
           {usFetching && <InlineLoading label="Loading" />}
           {usQuotes && !usFetching && USING_MOCK_DATA && <DemoBadge />}
           {usQuotes && !usFetching && !USING_MOCK_DATA && usDelayed && <StaleBadge cachedAt={usResult?.cachedAt} />}
-          {usQuotes && !usFetching && !USING_MOCK_DATA && !usDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} />}
+          {usQuotes && !usFetching && !USING_MOCK_DATA && !usDelayed && <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={usAt || null} />}
           {usError && !usFetching && <span className="text-terminal-red text-2xs font-normal">⚠ ERROR</span>}
           <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">
-            {usTrackedCap ? `${formatMarketCap(usTrackedCap)} tracked · ` : ''}{updatedTime} · {US_STOCKS.length} stocks
+            {usTrackedCap ? `${formatMarketCap(usTrackedCap)} tracked · ` : ''}{usAt ? `fetched ${sydneyClock(usAt).text} · ` : ''}{US_STOCKS.length} stocks
           </span>
         </div>
         <MoverTable quotes={usQuotes} label="US" isLoading={usFetching && !usQuotes}
