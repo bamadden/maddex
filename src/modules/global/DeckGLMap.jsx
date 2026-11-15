@@ -10,7 +10,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   EXCHANGES, TRADE_ROUTES, SHIPPING_DISRUPTIONS, COMMODITY_SITES,
   GEOPOLITICAL_EVENTS, UNDERSEA_CABLES, MILITARY_BASES, MAJOR_CITIES,
-  SEVERITY_COLOUR, isExchangeOpen,
+  STATUS_COLOUR, EVENT_KIND_COLOUR, isExchangeOpen,
   overlayNarrative, SHIPPING_NARRATIVE_FIELDS, GEO_NARRATIVE_FIELDS, mapStatusLine, MAP_SOURCE_CLASS,
   AU_KEY_SITES, AU_IMPACT, FINANCIAL_DISTRICTS, CENTRAL_BANK_SITES,
 } from './intelMapData'
@@ -26,6 +26,7 @@ import { PAL } from '../../styles/palette.js'
 import { formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
 import { useNow } from '../../hooks/useNow'
 import DataBadge from '../../components/ui/DataBadge'
+import { routeFor } from '../../data/shippingRoutes'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 //
@@ -749,8 +750,8 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         data: shippingRows,
         getPosition: (d) => d.coordinates,
         getRadius: (d) => d.radius,
-        getFillColor: (d) => [...(SEVERITY_COLOUR[d.severity] ?? [120, 120, 120]), 40],
-        getLineColor: (d) => [...(SEVERITY_COLOUR[d.severity] ?? [120, 120, 120]), 180],
+        getFillColor: (d) => [...(STATUS_COLOUR[routeFor(d.id)?.status] ?? [120, 120, 120]), 40],
+        getLineColor: (d) => [...(STATUS_COLOUR[routeFor(d.id)?.status] ?? [120, 120, 120]), 180],
         lineWidthMinPixels: 1.5,
         stroked: true,
         pickable: true,
@@ -763,7 +764,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         getPosition: (d) => d.coordinates,
         getText: (d) => `⚠ ${d.name}`,
         getSize: 11,
-        getColor: (d) => (d.severity === 'CRITICAL' ? [255, 90, 90, 255] : [201, 168, 76, 220]),
+        getColor: (d) => (routeFor(d.id)?.status === 'DISRUPTED' ? [255, 90, 90, 255] : [201, 168, 76, 220]),
         getTextAnchor: 'middle',
         fontFamily: '"IBM Plex Mono", monospace',
         characterSet: 'auto',
@@ -862,42 +863,15 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
 
     // ── Geopolitical ──────────────────────────────────────────────────────
     if (show('geopolitical')) {
-      // Threat radar on the severe events only.
-      //
-      // Three concentric rings, each expanding on its own phase offset, drawn
-      // beneath the event marker. Restricted to CRITICAL and HIGH: putting a
-      // pulsing halo on every geopolitical row would make a map of ten events
-      // look like a map of ten emergencies, which is the opposite of what a
-      // severity encoding is for.
-      const severe = geoRows.filter((d) => d.severity === 'CRITICAL' || d.severity === 'HIGH')
-      for (let ring = 0; ring < 3; ring++) {
-        // Each ring runs the same 0→1 sweep, offset by a third of the cycle.
-        const phase = ((pulse / 28) + ring / 3) % 1
-        all.push(new ScatterplotLayer({
-          id: `geo-threat-ring-${ring}`,
-          data: severe,
-          getPosition: (d) => [d.lon, d.lat],
-          getRadius: (d) => (d.severity === 'CRITICAL' ? 420000 : 280000) * (0.35 + phase * 0.65),
-          getFillColor: [0, 0, 0, 0],
-          getLineColor: (d) => [
-            ...(SEVERITY_COLOUR[d.severity] ?? [201, 168, 76]),
-            Math.round(150 * (1 - phase)),
-          ],
-          lineWidthMinPixels: 1,
-          stroked: true,
-          filled: false,
-          pickable: false,
-          updateTriggers: { getRadius: phase, getLineColor: phase },
-        }))
-      }
-
+      // No pulsing "threat radar": it marked the events typed CRITICAL or
+      // HIGH, and those ratings had no source (removed 16 Nov 2026).
       all.push(new ScatterplotLayer({
         id: 'geo-events',
         data: geoRows,
         getPosition: (d) => [d.lon, d.lat],
         getRadius: 90000,
-        getFillColor: (d) => [...(SEVERITY_COLOUR[d.severity] ?? [201, 168, 76]), 55],
-        getLineColor: (d) => [...(SEVERITY_COLOUR[d.severity] ?? [201, 168, 76]), 210],
+        getFillColor: [...EVENT_KIND_COLOUR, 55],
+        getLineColor: [...EVENT_KIND_COLOUR, 210],
         lineWidthMinPixels: 2,
         stroked: true,
         pickable: true,
@@ -1459,7 +1433,7 @@ function MapTooltip({ tooltip }) {
     ),
     disruption: () => (
       <>
-        <div style={{ color: PAL.down, fontWeight: 700, marginBottom: 4 }}>⚠ {object.severity} — {object.name}</div>
+        <div style={{ color: PAL.down, fontWeight: 700, marginBottom: 4 }}>⚠ {routeFor(object.id)?.status ?? 'STATUS NOT RECORDED'} — {object.name}</div>
         <div style={dim}>{object.detail.slice(0, 110)}…</div>
         <div style={{ color: PAL.gold, fontSize: 11, marginTop: 4 }}>{object.impact}</div>
       </>

@@ -79,7 +79,7 @@ export const TRADE_ROUTES = [
 export const AU_TRADE_ROUTES = TRADE_ROUTES.filter((r) => r.id.startsWith('AU-'))
 
 export const SHIPPING_DISRUPTIONS = [
-  { id: 'hormuz', name: 'Strait of Hormuz', coordinates: [56.3, 26.6], radius: 300000, severity: 'CRITICAL',
+  { id: 'hormuz', name: 'Strait of Hormuz', coordinates: [56.3, 26.6], radius: 300000,
     title: 'Hormuz Closure — Iran War',
     detail: 'Largely closed since the US–Israel war on Iran began on 28 Feb. Iran has mined the strait and claims sovereignty over it; October has seen near-daily strikes on tankers.',
     impact: 'Gulf crude and Qatari LNG cargoes are cut off from their usual route.',
@@ -88,7 +88,7 @@ export const SHIPPING_DISRUPTIONS = [
     commodities: ['Crude Oil', 'LNG', 'Fertiliser'],
     asxImpact: [{ ticker: 'WDS', why: 'LNG producer; Qatari LNG is cut off from its usual route' }, { ticker: 'WHC', why: 'Coal producer; some Asian buyers burn coal in place of gas' }, { ticker: 'QAN', why: 'Jet fuel is a main cost' }],
     startDate: '2026-02-28' },
-  { id: 'red-sea', name: 'Red Sea', coordinates: [43.0, 13.5], radius: 450000, severity: 'CRITICAL',
+  { id: 'red-sea', name: 'Red Sea', coordinates: [43.0, 13.5], radius: 450000,
     title: 'Houthi Attacks — Red Sea',
     detail: 'Ongoing attacks on commercial shipping. Major carriers diverting around the Cape of Good Hope, a longer route between Europe and Asia.',
     impact: 'Longer voyages bear on Asia–Europe freight costs.',
@@ -96,7 +96,7 @@ export const SHIPPING_DISRUPTIONS = [
     commodities: ['Containers', 'Crude Oil', 'LNG'],
     asxImpact: [{ ticker: 'WDS', why: 'LNG shipping cost and route risk' }, { ticker: 'STO', why: 'Oil and gas producer' }],
     startDate: '2023-11-19' },
-  { id: 'taiwan', name: 'Taiwan Strait', coordinates: [120.5, 24.5], radius: 220000, severity: 'HIGH',
+  { id: 'taiwan', name: 'Taiwan Strait', coordinates: [120.5, 24.5], radius: 220000,
     title: 'Taiwan Strait — Military Tension',
     detail: 'Intermittent PLA exercise activity. A main lane for container traffic and for the semiconductor supply chain.',
     impact: 'Shipping insurance and routing are sensitive to exercise activity.',
@@ -104,7 +104,7 @@ export const SHIPPING_DISRUPTIONS = [
     commodities: ['Semiconductors', 'Containers', 'Electronics'],
     asxImpact: [{ ticker: 'WTC', why: 'Logistics software exposure' }, { ticker: 'BHP', why: 'China demand channel' }],
     startDate: '2024-01-01' },
-  { id: 'malacca', name: 'Strait of Malacca', coordinates: [103.5, 1.5], radius: 120000, severity: 'MEDIUM',
+  { id: 'malacca', name: 'Strait of Malacca', coordinates: [103.5, 1.5], radius: 120000,
     title: 'Strait of Malacca — Piracy Risk',
     detail: 'Open; piracy reports in one of the busiest shipping lanes. A main route for Australian LNG heading to North Asia.',
     impact: 'Piracy reports; traffic moving.',
@@ -112,7 +112,7 @@ export const SHIPPING_DISRUPTIONS = [
     commodities: ['LNG', 'Crude Oil'],
     asxImpact: [{ ticker: 'WDS', why: 'Primary LNG export lane' }],
     startDate: '2024-06-01' },
-  { id: 'suez', name: 'Suez Canal', coordinates: [32.5, 30.5], radius: 80000, severity: 'MEDIUM',
+  { id: 'suez', name: 'Suez Canal', coordinates: [32.5, 30.5], radius: 80000,
     title: 'Suez Canal — Reduced Traffic',
     detail: 'Traffic reduced as vessels divert from the Red Sea; canal authority revenue has fallen.',
     impact: 'Knock-on effects for global freight rates',
@@ -120,7 +120,7 @@ export const SHIPPING_DISRUPTIONS = [
     commodities: ['Containers', 'Crude Oil'],
     asxImpact: [{ ticker: 'QAN', why: 'Fuel cost pass-through' }],
     startDate: '2023-12-01' },
-  { id: 'panama', name: 'Panama Canal', coordinates: [-79.9, 9.1], radius: 60000, severity: 'LOW',
+  { id: 'panama', name: 'Panama Canal', coordinates: [-79.9, 9.1], radius: 60000,
     title: 'Panama Canal — Water Levels',
     detail: 'Operating normally after the drought-related transit limits of 2023–24.',
     impact: 'No current restriction recorded.',
@@ -143,36 +143,31 @@ export const COMMODITY_SITES = [
 ]
 
 export const GEOPOLITICAL_EVENTS = [
-  { id: 'ukraine',     lon: 32.0,  lat: 49.0,  title: 'Russia-Ukraine War',       severity: 'CRITICAL', type: 'CONFLICT',
+  { id: 'ukraine',     lon: 32.0,  lat: 49.0,  title: 'Russia-Ukraine War', type: 'CONFLICT',
     summary: 'Ongoing conflict. Wheat and fertiliser disruption. Energy prices elevated.',
     marketImpact: 'Bears on EU energy costs, food prices and defence spending',
     asxExposure: 'WDS, STO (LNG demand), GNC (wheat)',
-    alliances: ['NATO (indirect)', 'Five Eyes intelligence sharing'],
-    auTrade: { level: 'LOW', note: 'Limited direct trade; exposure is via commodity prices' } },
-  { id: 'taiwan-geo',  lon: 120.9, lat: 23.7, title: 'China-Taiwan Tensions',     severity: 'HIGH',     type: 'GEOPOLITICAL',
+    alliances: ['NATO (indirect)', 'Five Eyes intelligence sharing'], },
+  { id: 'taiwan-geo',  lon: 120.9, lat: 23.7, title: 'China-Taiwan Tensions',     type: 'GEOPOLITICAL',
     summary: 'Elevated military activity. Semiconductor supply chain risk.',
     marketImpact: 'Bears on technology supply chains, including TSMC chip output',
     asxExposure: 'Tech sector, WTC (supply chain software)',
-    alliances: ['AUKUS', 'Quad', 'Five Eyes'],
-    auTrade: { level: 'HIGH', note: 'A blockade would disrupt the lane carrying most AU-North Asia trade' } },
-  { id: 'middle-east', lon: 34.8,  lat: 31.5, title: 'Middle East Conflict',      severity: 'HIGH',     type: 'CONFLICT',
+    alliances: ['AUKUS', 'Quad', 'Five Eyes'], },
+  { id: 'middle-east', lon: 34.8,  lat: 31.5, title: 'Middle East Conflict',     type: 'CONFLICT',
     summary: 'Regional escalation risk. Oil supply disruption threat.',
     marketImpact: 'Bears on oil prices and on demand for assets seen as safe havens',
     asxExposure: 'WDS, STO (oil price), gold miners',
-    alliances: ['US-led coalition'],
-    auTrade: { level: 'MEDIUM', note: 'Indirect — oil price and Red Sea shipping' } },
-  { id: 'china-econ',  lon: 116.4, lat: 39.9, title: 'China Economic Slowdown',   severity: 'MEDIUM',   type: 'ECONOMIC',
+    alliances: ['US-led coalition'], },
+  { id: 'china-econ',  lon: 116.4, lat: 39.9, title: 'China Economic Slowdown',   type: 'ECONOMIC',
     summary: 'Property sector stress. Consumer confidence low.',
     marketImpact: 'Bears on demand for Australian commodity exports',
     asxExposure: 'BHP, RIO, FMG, S32 — direct exposure',
-    alliances: ['RCEP', 'ChAFTA (bilateral)'],
-    auTrade: { level: 'HIGH', note: "Australia's largest export market (ABS, 2024-25)" } },
-  { id: 'us-election', lon: -77.0, lat: 38.9, title: 'US Policy Risk',            severity: 'MEDIUM',   type: 'POLITICAL',
+    alliances: ['RCEP', 'ChAFTA (bilateral)'], },
+  { id: 'us-election', lon: -77.0, lat: 38.9, title: 'US Policy Risk',   type: 'POLITICAL',
     summary: 'Trade policy uncertainty. Tariff risk.',
     marketImpact: 'Bears on the US dollar and trade-exposed sectors',
     asxExposure: 'US-listed ADRs, tech sector',
-    alliances: ['ANZUS', 'AUKUS', 'Five Eyes'],
-    auTrade: { level: 'MEDIUM', note: 'Second-largest two-way trade partner' } },
+    alliances: ['ANZUS', 'AUKUS', 'Five Eyes'], },
 ]
 
 // Paths are [lat, lon] pairs as sourced; the map layer flips them to the
@@ -223,12 +218,17 @@ export const MAJOR_CITIES = [
   { lon: 174.8, lat: -36.8, pop: 1.7 }, { lon: 121.0, lat: 14.6, pop: 13.5 },
 ]
 
-export const SEVERITY_COLOUR = {
-  CRITICAL: [168, 50, 50],
-  HIGH:     [200, 100, 50],
-  MEDIUM:   [201, 168, 76],
-  LOW:      [100, 140, 200],
+// Colours for the shipping zones, by the route status in data/shippingRoutes
+// (dated, sourced). Geopolitical events are coloured by their kind alone: no
+// severity is attached to them (16 Nov 2026). The CRITICAL / HIGH / MEDIUM
+// labels typed here, and the ones MaddenAI was asked to assign each day,
+// were ratings with no source; they are gone.
+export const STATUS_COLOUR = {
+  DISRUPTED: [168, 50, 50],
+  MONITORED: [201, 168, 76],
+  OPEN:      [100, 140, 200],
 }
+export const EVENT_KIND_COLOUR = [140, 150, 170]
 
 // Whether an exchange is trading right now, in its own local time.
 export function isExchangeOpen(exchange) {
@@ -322,8 +322,8 @@ export function mapStatusLine(sources) {
   return { text: head + rest, liveOk: liveOk === live.length, liveTotal: live.length }
 }
 
-export const SHIPPING_NARRATIVE_FIELDS = ['title', 'detail', 'impact', 'auExports', 'trend']
-export const GEO_NARRATIVE_FIELDS = ['summary', 'marketImpact', 'asxExposure', 'trend']
+export const SHIPPING_NARRATIVE_FIELDS = ['title', 'detail', 'impact', 'auExports']
+export const GEO_NARRATIVE_FIELDS = ['summary', 'marketImpact']
 
 // ─── Australia focus ────────────────────────────────────────────────────────
 //

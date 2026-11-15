@@ -79,3 +79,19 @@ test('conversation starters and the default ASK AI text describe; no rankings, f
   assert.match(DEFAULT_INSTRUCTION, /Describe only/)
   assert.doesNotMatch(fs.readFileSync('src/utils/askAI.js', 'utf8'), /\$\{date\} AEST/)
 })
+
+test('daily Global prompts ask for description: no model-made severity, trend or dependence ratings', async () => {
+  const src = fs.readFileSync('src/services/aiDaily.js', 'utf8')
+  for (const kind of ['geo_risks', 'shipping_status']) {
+    const body = src.slice(src.indexOf(`${kind}: narrative(`), src.indexOf('`),', src.indexOf(`${kind}: narrative(`)))
+    assert.doesNotMatch(body, /CRITICAL|HIGH\|MEDIUM|ESCALATING|WORSENING|auTradeDependence|"severity"|"trend"|asxExposure/, kind)
+    assert.match(body, /Describe only\. Do not rate/, kind)
+  }
+  const map = await import('../src/modules/global/intelMapData.js')
+  for (const r of [...map.SHIPPING_DISRUPTIONS, ...map.GEOPOLITICAL_EVENTS]) {
+    assert.equal(r.severity, undefined, `${r.id} carries a severity rating`)
+    assert.equal(r.auTrade?.level, undefined, `${r.id} carries a trade-dependence rating`)
+  }
+  assert.deepEqual(map.GEO_NARRATIVE_FIELDS, ['summary', 'marketImpact'])
+  assert.ok(!map.SHIPPING_NARRATIVE_FIELDS.includes('trend'))
+})

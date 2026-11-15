@@ -225,6 +225,11 @@ export const DAILY_KINDS = {
     build: () => ({ system: MACRO_SYSTEM, user: buildUserContent() }),
     parse: parseThemes,
   },
+  // Description only (16 Nov 2026). This asked MaddenAI to rate each event
+  // CRITICAL / HIGH / MEDIUM / LOW, to rate Australia's trade dependence and
+  // to call a trend (ESCALATING …): ratings made by the model, with no source.
+  // Only `summary` and `marketImpact` are ever used (GEO_NARRATIVE_FIELDS),
+  // and a string holding a digit is dropped there.
   geo_risks: narrative(() => `Describe 5 ongoing geopolitical developments with links to Australia's economy and trade.
 
 Return a JSON array:
@@ -232,36 +237,27 @@ Return a JSON array:
   "id": "<slug>",
   "title": "<event name>",
   "location": "<city or region>",
-  "coordinates": [<longitude>, <latitude>],
-  "severity": "CRITICAL|HIGH|MEDIUM|LOW",
   "type": "CONFLICT|ECONOMIC|POLITICAL|NATURAL",
-  "summary": "<2 sentences>",
-  "marketImpact": "<the transmission channel to markets, in words>",
-  "asxExposure": "<specific ASX sectors or tickers and why>",
-  "auTradeDependence": "HIGH|MEDIUM|LOW",
-  "trend": "ESCALATING|STABLE|DE-ESCALATING"
+  "summary": "<2 sentences: what has been reported, in plain terms>",
+  "marketImpact": "<the channels through which events like this are usually described as reaching markets, in words>"
 }]
 
-Coordinates should be the approximate centre of the region.
-Describe severity and impact qualitatively — no invented statistics.`),
+Describe only. Do not rate, rank or score the events, do not say whether they are getting worse or better, do not forecast, and do not name stocks. Use no numbers.`),
+  // Description only (16 Nov 2026): no model-made severity or trend. Each
+  // route's status comes from data/shippingRoutes (dated, sourced).
   shipping_status: narrative(() => `Describe the currently significant global shipping chokepoints and disruptions.
 
 Return a JSON array:
 [{
   "id": "<slug>",
   "name": "<chokepoint name>",
-  "coordinates": [<longitude>, <latitude>],
-  "severity": "CRITICAL|HIGH|MEDIUM|LOW",
   "title": "<short headline>",
-  "detail": "<2-3 sentences on the current situation>",
-  "impact": "<effect on freight and trade, in words>",
-  "affectedRoutes": ["<route>"],
-  "commodities": ["<commodity>"],
-  "auExports": "<how this affects Australian exports>",
-  "trend": "WORSENING|STABLE|IMPROVING"
+  "detail": "<2-3 sentences on what has been reported>",
+  "impact": "<the channels through which this reaches freight and trade, in words>",
+  "auExports": "<which Australian exports use the route, in words>"
 }]
 
-Describe magnitude in words rather than percentages you cannot verify.`),
+Describe only. Do not rate or score the disruptions, do not say whether they are getting worse or better, and do not forecast. Use no numbers.`),
   intel_ticker: narrative(() => `Generate 12 brief market-intelligence lines for an Australian investor,
 suitable for a scrolling terminal ticker.
 

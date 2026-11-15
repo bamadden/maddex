@@ -2,7 +2,7 @@ import { dispatchAskAI } from '../../utils/askAI'
 import { graphNodeForTicker, graphNodeForCommodity } from '../../data/graph/nodes'
 import { openInRelationships } from '../../utils/openRelationships'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { sessionCountdown, formatCountdown, SEVERITY_COLOUR, ROUTE_NOTES, SITE_EXTRAS, greatCircleKm } from './intelMapData'
+import { sessionCountdown, formatCountdown, ROUTE_NOTES, SITE_EXTRAS, greatCircleKm } from './intelMapData'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
 import { screenSector } from '../markets/screenSector'
@@ -29,21 +29,6 @@ const S = {
   gold:  { color: PAL.gold },
   muted: { color: PAL.dim, fontSize: 11, lineHeight: 1.6 },
   pill:  { display: 'inline-block', fontFamily: '"IBM Plex Mono", monospace', fontSize: 11, padding: '2px 6px', borderRadius: 2, marginRight: 4, marginBottom: 4 },
-}
-
-// A categorical label typed by Maddex for each zone and event. The 0–100
-// numbers that sat here (98, 88…) were typed too, not scored by the
-// country-risk rubric whose method they linked to, so they are gone.
-function EditorialStatus({ severity }) {
-  if (!severity) return null
-  const colour = `rgb(${(SEVERITY_COLOUR[severity] ?? [201, 168, 76]).join(',')})`
-  return (
-    <div style={{ marginBottom: 12 }} data-editorial-status>
-      <span style={{ ...S.label, marginBottom: 0 }}>Status </span>
-      <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 13, fontWeight: 700, color: colour }}>{severity}</span>
-      <div style={{ ...S.muted, fontSize: 11 }}>Maddex editorial label from the reported events below; not a measured score.</div>
-    </div>
-  )
 }
 
 // Where "now" sits inside the trading day — a bar reads faster than a pair
@@ -193,7 +178,6 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={{ color: PAL.down, fontFamily: '"IBM Plex Mono", monospace', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
               ⚠ {data.title}
             </div>
-            <EditorialStatus severity={data.severity} />
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.detail}</div>
 
             {routeFor(data.id) && (
@@ -250,24 +234,10 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <span style={{ ...S.pill, background: 'rgba(99,120,153,0.15)', border: '1px solid rgba(99,120,153,0.3)', color: PAL.dim }}>
               {data.type}
             </span>
-            <div style={{ marginTop: 10 }}>
-              <EditorialStatus severity={data.severity} />
-            </div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.summary}</div>
 
             <div style={S.label}>Market impact</div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.marketImpact}</div>
-
-            <div style={S.label}>Australian trade dependence</div>
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ ...S.pill,
-                background: data.auTrade.level === 'HIGH' ? 'rgba(168,50,50,0.18)' : data.auTrade.level === 'MEDIUM' ? 'rgba(201,168,76,0.18)' : 'rgba(45,138,80,0.18)',
-                border: `1px solid ${data.auTrade.level === 'HIGH' ? 'rgba(168,50,50,0.5)' : data.auTrade.level === 'MEDIUM' ? 'rgba(201,168,76,0.5)' : 'rgba(45,138,80,0.5)'}`,
-                color: data.auTrade.level === 'HIGH' ? PAL.down : data.auTrade.level === 'MEDIUM' ? PAL.gold : PAL.up }}>
-                {data.auTrade.level}
-              </span>
-              <div style={{ ...S.muted, fontSize: 11, marginTop: 4 }}>{data.auTrade.note}</div>
-            </div>
 
             <div style={S.label}>Alliance context</div>
             <div style={{ marginBottom: 12 }}>

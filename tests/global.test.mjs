@@ -121,7 +121,10 @@ test('Global: no typed 0–100 severity or trade-risk score; editorial labels sa
   assert.doesNotMatch(data, /severityScore|riskScore/)
   const panel = fs.readFileSync('src/modules/global/MapDetailPanel.jsx', 'utf8')
   assert.doesNotMatch(panel, /ScoreNote method="country-risk"/)
-  assert.match(panel, /Maddex editorial label/)
+  // No status rating at all on zones or events (16 Nov 2026); a zone shows
+  // its dated route status from data/shippingRoutes.
+  assert.doesNotMatch(panel, /EditorialStatus|auTrade\.level/)
+  assert.match(panel, /data-route-status/)
   const mod = fs.readFileSync('src/modules/global/GlobalModule.jsx', 'utf8')
   assert.doesNotMatch(mod, /Trade Risk Score|computeTradeRiskScore|return 'MODERATE'/)
   assert.match(mod, /<ScoreNote method="country-risk" asOf=\{formatDate\(RISK_LAST_REVIEWED\)\} \/>/)
