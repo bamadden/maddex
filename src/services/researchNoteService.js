@@ -138,7 +138,7 @@ export async function generateResearchNote(asset) {
     `- AU GDP: ${au.gdpQoQ}% QoQ, ${au.gdpAnnual}% annual (${au.gdpPeriod})`,
     `- Iron ore: US$${commodities.ironOreUSD}/t (as at ${commodities.asOf})`,
     `- Brent crude: US$${commodities.brentUSD}/bbl (as at ${commodities.asOf})`,
-    `- ASX 200 market P/E ${au.asx200PE}, dividend yield ${au.asx200DivYield}% (as at ${au.asxMetricsRelease})`,
+    ...(au.asx200PE != null ? [`- ASX 200 market P/E ${au.asx200PE}, dividend yield ${au.asx200DivYield}% (as at ${au.asxMetricsRelease})`] : []),
     `- AU household spending: ${au.householdSpendingMoM.toFixed(1)}% m/m, ${au.householdSpendingYoY}% y/y (${au.householdSpendingPeriod}, ABS)`,
     `- NAB business confidence: ${au.nabConfidence} (${au.nabPeriod}); conditions ${au.nabConditions}`,
     ...(nd ? [`- Next RBA decision ${nd.date}: market pricing ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, as at ${nd.marketAsOf})`] : []),

@@ -440,14 +440,14 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
               <StatCard
                 label="SECTOR P/E"
                 value={sectorPE != null ? sectorPE.toFixed(1) : '—'}
-                compare={sectorPE != null ? `ASX 200 ${mktPE} · ${sectorPE > mktPE ? 'premium' : 'discount'}` : 'no coverage'}
-                tone={sectorPE == null ? undefined : sectorPE > mktPE ? 'text-terminal-red' : 'text-terminal-green'}
+                compare={sectorPE == null ? 'no coverage' : mktPE == null ? 'no ASX 200 figure held' : `ASX 200 ${mktPE} · ${sectorPE > mktPE ? 'above' : 'below'}`}
+                tone={undefined}
               />
               <StatCard
                 label="DIV YIELD"
                 value={sectorYield != null ? `${sectorYield.toFixed(2)}%` : '—'}
-                compare={sectorYield != null ? `ASX 200 ${mktYield}%` : 'no coverage'}
-                tone={sectorYield == null ? undefined : sectorYield >= mktYield ? 'text-terminal-green' : 'text-terminal-text-bright'}
+                compare={sectorYield == null ? 'no coverage' : mktYield == null ? 'no ASX 200 figure held' : `ASX 200 ${mktYield}%`}
+                tone={undefined}
               />
               <StatCard
                 label="YTD"

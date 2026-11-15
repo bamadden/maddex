@@ -214,7 +214,11 @@ function policyFactor(cashRate, cpi) {
   }
 }
 
-function inflationFactor(cpi, bandTop) {
+// `target` names what the reading is compared with, in words: the US row
+// compares CPI with the Fed's 2% goal, which the Fed sets for PCE inflation,
+// so it says so rather than calling 2% a CPI target (16 Nov 2026). The note
+// states the gap; it no longer says what policy can or cannot do next.
+function inflationFactor(cpi, bandTop, target = `the ${bandTop}% top of the target band`) {
   const over = cpi - bandTop
   const t = clamp(over / 2)
   return {
@@ -222,11 +226,9 @@ function inflationFactor(cpi, bandTop) {
     label: 'Inflation vs target',
     weight: 10,
     points: round(10 * t),
-    reading: `${cpi}% (target ≤${bandTop}%)`,
+    reading: `${cpi}% CPI (compared with ${bandTop}%)`,
     state: over >= 1 ? 'RED' : over > 0 ? 'AMBER' : 'GREEN',
-    note: over > 0
-      ? `${over.toFixed(1)}pp above the top of the band — constrains any policy response to weakness.`
-      : 'Within the target band, which leaves room to cut if growth deteriorates.',
+    note: over > 0 ? `${over.toFixed(1)}pp above ${target}.` : `At or below ${target}.`,
   }
 }
 
@@ -249,7 +251,7 @@ export function auRecessionRisk(now = Date.now()) {
       growthFactor(au.gdpAnnual),
       tighteningFactor(rba.decisions, now),
       policyFactor(rba.cashRate, au.cpi),
-      inflationFactor(au.cpi, 3),
+      inflationFactor(au.cpi, 3, "the top of the RBA's 2–3% target band"),
     ]),
   }
 }
@@ -271,7 +273,7 @@ export function usRecessionRisk(now = Date.now()) {
       growthFactor(us.gdpQoQAnnualised, `GDP growth (${us.gdpPeriod}, annualised)`),
       tighteningFactor(fed.decisions, now),
       policyFactor(fed.cashRate, us.cpi),
-      inflationFactor(us.cpi, 2),
+      inflationFactor(us.cpi, 2, "the Fed's 2% goal, which the Fed sets for PCE inflation, not CPI"),
     ]),
   }
 }

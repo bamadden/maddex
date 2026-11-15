@@ -203,7 +203,7 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
     // VALUE: a lower P/E than the market is a value tilt, so the sign is
     // inverted relative to the raw comparison.
     const pe = weightedAvg((h) => h.pe)
-    if (pe && pe.coverage >= 0.4) {
+    if (pe && pe.coverage >= 0.4 && mktPE != null) {
       const rel = (mktPE - pe.value) / mktPE
       out.push({
         key: 'value',
@@ -213,14 +213,14 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
         mineLabel: `${pe.value.toFixed(1)}x P/E`,
         marketLabel: `${mktPE}x`,
         note: rel > 0
-          ? 'You hold cheaper earnings than the index on average. Value tilts have historically done better when rates rise.'
-          : 'You pay more per dollar of earnings than the index. That is typical of growth-tilted books.',
+          ? 'The weighted P/E of these holdings is below the index figure.'
+          : 'The weighted P/E of these holdings is above the index figure.',
       })
     }
 
     // YIELD
     const dy = weightedAvg((h) => h.divYield)
-    if (dy && dy.coverage >= 0.4) {
+    if (dy && dy.coverage >= 0.4 && mktYield != null) {
       const rel = (dy.value - mktYield) / mktYield
       out.push({
         key: 'yield',
@@ -230,8 +230,8 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
         mineLabel: `${dy.value.toFixed(2)}%`,
         marketLabel: `${mktYield}%`,
         note: rel > 0
-          ? 'More income than the index, which usually means more of the return arrives as franked dividends rather than capital growth.'
-          : 'Less income than the index — more of any return has to come from price.',
+          ? 'The weighted dividend yield of these holdings is above the index figure.'
+          : 'The weighted dividend yield of these holdings is below the index figure.',
       })
     }
 

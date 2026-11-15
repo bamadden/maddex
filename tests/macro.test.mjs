@@ -31,3 +31,31 @@ test('Rates: no EXPECTED stance per bank', () => {
   assert.doesNotMatch(read('src/data/placeholders.js'), /CB_EXPECTATION\s*=/)
   assert.doesNotMatch(code('src/modules/fx/UpcomingDecisions.jsx'), />EXPECTED</)
 })
+
+test('AU macro cards name the period measured and the release date; no typed priors or hand-set beat arrows', async () => {
+  const P = await import('../src/data/placeholders.js')
+  assert.equal(P.GLOBAL_MACRO, undefined)
+  for (const r of P.AU_MACRO) {
+    assert.ok(r.period, `${r.name} has no period`)
+    assert.ok(!('beat' in r), `${r.name} carries a beat flag`)
+    assert.ok(r.prev == null || /\d/.test(r.prev))
+  }
+  const src = fs.readFileSync('src/data/placeholders.js', 'utf8')
+  assert.doesNotMatch(src, /prev: '[-+]?\d/, 'no typed previous reading')
+  const mod = fs.readFileSync('src/modules/macro/MacroModule.jsx', 'utf8')
+  assert.match(mod, /\{ind\.period\}<\/span> · released \{formatDate\(ind\.date/)
+  assert.doesNotMatch(mod, /ind\.beat|as at \{monthYear\(ind\.date\)\}/)
+  assert.doesNotMatch(fs.readFileSync('src/components/macro/IndicatorForecaster.jsx', 'utf8'), /preferred underlying measure/)
+})
+
+test('US CPI is compared with the Fed goal and says the goal is for PCE; inflation notes state the gap only', () => {
+  const s = fs.readFileSync('src/data/recessionRisk.js', 'utf8')
+  assert.match(s, /which the Fed sets for PCE inflation, not CPI/)
+  assert.doesNotMatch(s, /room to cut|constrains any policy response/)
+})
+
+test('no stale market comparators: ASX P/E, dividend yield and CoreLogic are null until re-sourced', async () => {
+  const { VERIFIED_CONSTANTS: V } = await import('../src/data/verifiedConstants.js')
+  for (const k of ['asx200PE', 'asx200DivYield', 'corelogicHpiMoM']) assert.equal(V.au[k], null, k)
+  assert.doesNotMatch(fs.readFileSync('src/modules/portfolio/PortfolioAnalytics.jsx', 'utf8'), /historically done better|has to come from price/)
+})

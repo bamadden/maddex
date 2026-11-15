@@ -21,7 +21,7 @@ import { curveForRates } from './bondCurves'
 import { RBA_DECISIONS } from './rbaDecisions'
 import { RBA_TARGET_PATH } from './rbaCashRatePath'
 
-const { rba, fed, au, us, cn, eu, uk, jp } = VERIFIED_CONSTANTS
+const { rba, fed, au } = VERIFIED_CONSTANTS
 
 const pct = (n) => `${Number(n).toFixed(1)}%`
 const pct2 = (n) => `${Number(n).toFixed(2)}%`
@@ -75,45 +75,27 @@ export const CENTRAL_BANK_RATES = CB_ORDER.map(([key, bank, country]) => {
 // Official ABS/RBA statistics — dates reflect the publication date of each figure
 // Sources: abs.gov.au | rba.gov.au
 
-// `prev` and `beat` describe the move from the previous print, not the print
-// itself, so they stay literal here — they are context about a transition
-// rather than a current figure that can go stale-wrong.
+// Each reading names its reference PERIOD (what it measures) and the date
+// it was RELEASED, which are different things: September's CPI came out on
+// 28 Oct, and these cards used to read "as at Oct 2026" for it (16 Nov 2026).
+// `prev` is the previous reading as published, or null when none is held:
+// the typed priors that stood here ('0.3%', '1.0%' for GDP) are gone, as are
+// the "beat" arrows, which were hand-set with no consensus source. The
+// CoreLogic, ASX P/E and dividend-yield rows (months old, no dated source)
+// and the unused GLOBAL_MACRO table (typed priors, hand-set beats) were
+// removed.
+const gdpPrev = au.gdpHistory?.at(-2)?.value
 export const AU_MACRO = [
-  { name: 'RBA Cash Rate',       value: pct2(rba.cashRate),  prev: pct2(rba.previousRate), date: rba.lastDecision,      beat: null,  src: rba.source,           vkey: 'rba' },
-  { name: 'AU CPI YoY',          value: pct(au.cpi),         prev: pct(au.cpiPrevious),   date: au.cpiLastRelease,     beat: false, src: 'abs.gov.au/6401.0',  vkey: 'au' },
-  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: pct(au.cpiTrimmedMeanPrevious), date: au.cpiLastRelease,          beat: true,  src: 'abs.gov.au/6401.0',  vkey: 'au' },
-  { name: 'AU Unemployment',     value: pct(au.unemployment), prev: pct(au.unemploymentPrevious),             date: au.unemploymentLastRelease, beat: null, src: 'abs.gov.au/6202.0', vkey: 'au' },
-  { name: 'AU GDP QoQ',          value: pct(au.gdpQoQ),      prev: '0.3%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
-  { name: 'AU GDP Annual',       value: pct(au.gdpAnnual),   prev: '1.0%',                date: au.gdpLastRelease,     beat: true,  src: 'abs.gov.au/5206.0',  vkey: 'au' },
-  { name: 'AU Goods Trade Bal',  value: audM(au.tradeBalanceBn), prev: audM(au.tradeBalancePrevBn), date: au.tradeBalanceRelease, beat: null, src: 'abs.gov.au/statistics/economy/international-trade/international-trade-goods/latest-release', vkey: 'au' },
-  { name: 'NAB Business Conf',   value: String(au.nabConfidence), prev: String(au.nabConfidencePrev), date: au.nabRelease, beat: null, src: 'nab.com.au', vkey: 'au' },
-  { name: 'AU Household Spend MoM', value: pct(au.householdSpendingMoM), prev: pct(au.householdSpendingPrevMoM), date: au.householdSpendingRelease, beat: null, src: 'abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/latest-release', vkey: 'au' },
-  { name: 'CoreLogic HPI MoM',   value: `+${au.corelogicHpiMoM}%`, prev: '+0.4%',         date: au.corelogicRelease,   beat: null,  src: 'corelogic.com.au',   vkey: 'au' },
-  { name: 'ASX200 P/E',          value: String(au.asx200PE), prev: '18.8',                date: au.asxMetricsRelease,  beat: null,  src: 'asx.com.au',         vkey: 'au' },
-  { name: 'ASX200 Div Yield',    value: pct(au.asx200DivYield), prev: '3.9%',             date: au.asxMetricsRelease,  beat: null,  src: 'asx.com.au',         vkey: 'au' },
+  { name: 'RBA Cash Rate',       value: pct2(rba.cashRate),  prev: pct2(rba.previousRate), period: 'target in force', date: rba.lastDecision, src: rba.source, vkey: 'rba' },
+  { name: 'AU CPI YoY',          value: pct(au.cpi),         prev: pct(au.cpiPrevious),   period: au.cpiPeriod, date: au.cpiLastRelease, src: 'abs.gov.au/6401.0', vkey: 'au' },
+  { name: 'AU CPI Trimmed Mean', value: pct(au.cpiTrimmedMean), prev: pct(au.cpiTrimmedMeanPrevious), period: au.cpiPeriod, date: au.cpiLastRelease, src: 'abs.gov.au/6401.0', vkey: 'au' },
+  { name: 'AU Unemployment',     value: pct(au.unemployment), prev: pct(au.unemploymentPrevious), period: au.unemploymentPeriod, date: au.unemploymentLastRelease, src: 'abs.gov.au/6202.0', vkey: 'au' },
+  { name: 'AU GDP QoQ',          value: pct(au.gdpQoQ),      prev: gdpPrev != null ? pct(gdpPrev) : null, period: au.gdpPeriod, date: au.gdpLastRelease, src: 'abs.gov.au/5206.0', vkey: 'au' },
+  { name: 'AU GDP Annual',       value: pct(au.gdpAnnual),   prev: null, period: au.gdpPeriod, date: au.gdpLastRelease, src: 'abs.gov.au/5206.0', vkey: 'au' },
+  { name: 'AU Goods Trade Bal',  value: audM(au.tradeBalanceBn), prev: audM(au.tradeBalancePrevBn), period: au.tradeBalancePeriod, date: au.tradeBalanceRelease, src: 'abs.gov.au/statistics/economy/international-trade/international-trade-goods/latest-release', vkey: 'au' },
+  { name: 'NAB Business Conf',   value: String(au.nabConfidence), prev: String(au.nabConfidencePrev), period: au.nabPeriod, date: au.nabRelease, src: 'nab.com.au', vkey: 'au' },
 ]
 
-// GLOBAL_MACRO — official statistical agency releases, derived as above.
-export const GLOBAL_MACRO = [
-  // `beat` is null on the US rows: no consensus source is held for them, so
-  // no beat/miss arrow. NFP's miss (+29k against roughly +90k expected) was
-  // reported across the wires on 2 Oct.
-  { name: 'US CPI YoY',      value: pct(us.cpi),               prev: pct(us.cpiPrevious),  date: us.cpiRelease,          beat: null,  region: 'US', src: 'bls.gov',             vkey: 'us' },
-  { name: 'US Core CPI YoY', value: pct(us.cpiCore),           prev: pct(us.cpiCorePrevious), date: us.cpiRelease,       beat: null,  region: 'US', src: 'bls.gov',             vkey: 'us' },
-  { name: 'US GDP QoQ Ann',  value: pct(us.gdpQoQAnnualised),  prev: pct(us.gdpPrevious),  date: us.gdpRelease,          beat: null,  region: 'US', src: 'bea.gov',             vkey: 'us' },
-  { name: 'US Unemployment', value: pct(us.unemployment),      prev: pct(us.unemploymentPrevious), date: us.unemploymentRelease, beat: null, region: 'US', src: 'bls.gov',      vkey: 'us' },
-  { name: 'US NFP',          value: `${us.nfpThousands}K`,     prev: `${us.nfpPrevious}K`, date: us.nfpRelease,          beat: false, region: 'US', src: 'bls.gov',             vkey: 'us' },
-  { name: 'US Fed Funds',    value: fed.rateRange,             prev: `${fed.decisions.at(-2).rateRange}%`, date: us.fedFundsRelease, beat: null, region: 'US', src: fed.source,           vkey: 'fed' },
-  { name: 'CN CPI YoY',      value: pct(cn.cpi),               prev: pct(cn.cpiPrevious), date: cn.cpiRelease,  beat: null,  region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
-  { name: 'CN GDP YoY',      value: pct(cn.gdpYoY),            prev: pct(cn.gdpYoYPrevious), date: cn.gdpRelease, beat: null, region: 'CN', src: 'stats.gov.cn',       vkey: 'cn' },
-  { name: 'CN PMI Mfg',      value: String(cn.pmiManufacturing), prev: '50.4', date: cn.pmiRelease,         beat: false, region: 'CN', src: 'stats.gov.cn',        vkey: 'cn' },
-  { name: 'EZ CPI YoY',      value: pct(eu.cpi),               prev: pct(eu.cpiPrevious), date: eu.cpiRelease,  beat: null,  region: 'EU', src: 'ec.europa.eu',        vkey: 'eu' },
-  { name: 'UK CPI YoY',      value: pct(uk.cpi),               prev: pct(uk.cpiPrevious), date: uk.cpiRelease,  beat: null,  region: 'UK', src: 'ons.gov.uk',          vkey: 'uk' },
-  { name: 'UK GDP QoQ',      value: pct(uk.gdpQoQ),            prev: pct(uk.gdpQoQPrevious), date: uk.gdpRelease ?? uk.asOf, beat: null, region: 'UK', src: 'ons.gov.uk', vkey: 'uk' },
-  { name: 'JP CPI YoY',      value: pct(jp.cpi),               prev: pct(jp.cpiPrevious), date: jp.cpiRelease,  beat: null,  region: 'JP', src: 'stat.go.jp',          vkey: 'jp' },
-]
-
-export const MACRO_INDICATORS = GLOBAL_MACRO
 
 // ─── AU Historical Data (ABS official releases) ───────────────────────────────
 // Note: the economic calendar previously hardcoded here has moved to

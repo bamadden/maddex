@@ -1980,15 +1980,10 @@ export default function MacroModule() {
                 {ind.name === 'RBA Cash Rate' ? rbaRateStr : ind.value}
               </div>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="text-2xs text-terminal-text-dim">PREV: {ind.prev}</span>
-                {ind.beat !== null && (
-                  <span className={`text-2xs font-bold ${ind.beat ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                    {ind.beat ? '▲' : '▼'}
-                  </span>
-                )}
+                <span className="text-2xs text-terminal-text-dim">PREV: {ind.prev ?? '—'}</span>
               </div>
               <div className="text-2xs text-terminal-text-dim mt-0.5">
-                as at {monthYear(ind.date)} · <SourceLink src={ind.src} />
+                <span data-macro-period>{ind.period}</span> · released {formatDate(ind.date, { year: false })} · <SourceLink src={ind.src} />
               </div>
               {NEXT_RELEASE[ind.name] && (
                 <div className="text-2xs text-terminal-gold/70 mt-0.5">NEXT: {NEXT_RELEASE[ind.name]}</div>
@@ -2015,7 +2010,7 @@ export default function MacroModule() {
         </div>
 
         <div className="px-3 py-1 text-2xs text-terminal-text-dim/60 border-b border-terminal-border flex items-center gap-4 flex-wrap">
-          <span>AU MACRO: ABS/RBA OFFICIAL RELEASES · DATES = RELEASE DATES</span>
+          <span>AU MACRO: ABS, RBA AND NAB RELEASES · EACH CARD: THE PERIOD MEASURED, THEN THE RELEASE DATE</span>
           <span>RBA: <a href="https://www.rba.gov.au/monetary-policy/rba-board-minutes/" target="_blank" rel="noopener noreferrer" className="text-terminal-blue-bright hover:underline">rba.gov.au ↗</a> · ABS: abs.gov.au</span>
           <span className="ml-auto">Rate decisions announced day of meeting at 2:30pm Sydney time</span>
         </div>

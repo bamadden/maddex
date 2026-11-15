@@ -97,7 +97,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
       },
       {
         name: 'Housing prices (CoreLogic)',
-        reading: { value: `${au.corelogicHpiMoM >= 0 ? '+' : ''}${au.corelogicHpiMoM}% MoM`, asOf: au.corelogicRelease, source: 'corelogic.com.au' },
+        reading: au.corelogicHpiMoM == null ? null : { value: `${au.corelogicHpiMoM >= 0 ? '+' : ''}${au.corelogicHpiMoM}% MoM`, asOf: au.corelogicRelease, source: 'corelogic.com.au' },
         impact: 'Mortgages dominate major-bank loan books, so housing drives both credit growth and arrears.',
       },
       {

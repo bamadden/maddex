@@ -43,7 +43,7 @@ const INDICATORS = [
   },
   {
     key: 'trimmed', label: 'Trimmed mean (annual)', unit: '%', value: au.cpiTrimmedMean, prev: au.cpiTrimmedMeanPrevious, period: au.cpiPeriod,
-    next: au.cpiNextRelease, src: 'ABS monthly CPI', hint: 'the RBA’s preferred underlying measure', upIsBad: true,
+    next: au.cpiNextRelease, src: 'ABS monthly CPI', hint: 'monthly; excludes the largest price rises and falls (ABS)', upIsBad: true,
     series: au.cpiHistory.filter((r) => r.type === 'monthly' && r.trimmed != null).map((r) => ({ label: ym(r.period), value: r.trimmed })),
   },
   {

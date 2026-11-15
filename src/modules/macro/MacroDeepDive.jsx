@@ -153,7 +153,8 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-2xs text-terminal-text-dim mb-2">
-          <span>RELEASED <b className="text-terminal-text ml-1">{indicator.date}</b></span>
+          {indicator.period && <span>PERIOD <b className="text-terminal-text ml-1">{indicator.period}</b></span>}
+          <span>RELEASED <b className="text-terminal-text ml-1">{formatDate(indicator.date)}</b></span>
           {nextRelease && <span>NEXT <b className="text-terminal-gold ml-1">{nextRelease}</b></span>}
           <span>SOURCE <b className="text-terminal-text ml-1">{indicator.src}</b></span>
           {target && <span>{target.detail}</span>}

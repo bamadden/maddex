@@ -474,11 +474,14 @@ export const VERIFIED_CONSTANTS = {
     nabConditionsPrev: -1,
     nabPeriod: 'Oct 2026',
     nabRelease: '2026-11-10',
-    corelogicHpiMoM: 0.5,
-    corelogicRelease: '2026-06-02',
-    asx200PE: 19.2,
-    asx200DivYield: 3.7,
-    asxMetricsRelease: '2026-05-31',
+    // CoreLogic home values and the ASX 200 P/E and dividend yield: null
+    // (16 Nov 2026). The figures held were from June and May, with no dated
+    // source page; panels that compare with them say no figure is held.
+    corelogicHpiMoM: null,
+    corelogicRelease: null,
+    asx200PE: null,
+    asx200DivYield: null,
+    asxMetricsRelease: null,
 
     // The RBA trade-weighted index — the AUD against a basket of Australia's
     // trading partners, weighted by trade share. It lived as a bare literal in
