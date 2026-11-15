@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip } from 'recharts'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { spreadOn, spreadSeries, spreadStats, nextSpreadChange, rateOn, RBA_PATH } from '../../data/policySpread'
+import { spreadSeries, spreadStats, nextSpreadChange, spreadInForce, sydneyToday } from '../../data/policySpread'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import { formatDate } from '../../utils/dateUtils'
 import SafeChart from '../../components/ui/SafeChart'
 import { PAL } from '../../styles/palette.js'
@@ -15,15 +16,15 @@ import { PAL } from '../../styles/palette.js'
 // suggested showing as an AI estimate. See that file for why it isn't one.
 
 const signedBp = (bp) => `${bp > 0 ? '+' : bp < 0 ? '−' : ''}${Math.abs(Math.round(bp))}bp`
-const monthYear = (day) => new Date(`${day}T00:00:00`).toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })
-const dayMonth = (day) => new Date(`${day}T00:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: '2-digit' })
+// Calendar dates, read as dates (not as instants in the browser's zone).
+const monthYear = (day) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-AU', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 function SparkTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
     <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
-      <div className="text-terminal-text-dim">{dayMonth(p.date)}</div>
+      <div className="text-terminal-text-dim">{formatDate(p.date)}</div>
       <div className="font-bold text-terminal-text-bright">{signedBp(p.bp)}</div>
       <div className="text-terminal-text-dim">RBA {p.au.toFixed(2)}% · Fed {p.us.toFixed(2)}%</div>
     </div>
@@ -37,19 +38,24 @@ export default function PolicySpreadMonitor() {
   // Everything here is on effective dates (a decision takes effect the day
   // after it is announced), as at today in Sydney. On 3 Nov 2026 the panel
   // showed the announced 4.85% beside a +60bp spread still on 4.60%.
-  const { day, today, pending, auInForce, series, five } = useMemo(() => {
-    const day = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  // The series and the five-year window end on the same Sydney day as the
+  // headline figure (they used to end on the UTC day, a day behind each
+  // morning before 10–11am Sydney).
+  const { day, pending, inForce, series, five } = useMemo(() => {
+    const day = sydneyToday(now)
+    const end = Date.parse(`${day}T00:00:00Z`)
     return {
       day,
-      today: spreadOn(day),
       pending: nextSpreadChange(day),
-      auInForce: rateOn(RBA_PATH, day),
-      series: spreadSeries(now - 365 * 86400000, now),
-      five: spreadStats(5, now),
+      inForce: spreadInForce(day),
+      series: spreadSeries(end - 365 * 86400000, end),
+      five: spreadStats(5, end),
     }
   }, [now])
 
-  if (today == null) return null
+  if (inForce == null) return null
+  const today = inForce.bp
+  const auInForce = inForce.au
   const premium = today >= 0
   const yearAgo = series[0]?.bp
   const atHigh = five && today >= five.hi
@@ -58,7 +64,10 @@ export default function PolicySpreadMonitor() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">AU / US POLICY SPREAD</span>
-        <span className="text-[11px] text-terminal-text-dim">RBA − Fed upper bound · as at effective date {formatDate(day)}</span>
+        <span className="flex items-center gap-2 flex-wrap justify-end">
+          <span className="text-[11px] text-terminal-text-dim" data-spread-since>RBA − Fed upper bound · as at effective date {formatDate(day)} · this level since {formatDate(inForce.since)}</span>
+          <HandEnteredBadge dataKey="rba" />
+        </span>
       </div>
       {pending && pending.bp != null && (
         <div className="px-3 py-1 border-b border-terminal-border/50 text-[11px] text-terminal-text-dim" data-spread-pending>
@@ -79,7 +88,7 @@ export default function PolicySpreadMonitor() {
         </div>
         <div>
           <div className="text-[11px] text-terminal-text-dim tracking-wider">SPREAD</div>
-          <div className="text-sm font-bold tabular-nums" style={{ color: premium ? PAL.up : PAL.down }}>{signedBp(today)}</div>
+          <div className="text-sm font-bold tabular-nums" className="text-terminal-text-bright">{signedBp(today)}</div>
           <div className="text-[11px] text-terminal-text-dim">{premium ? 'AU premium' : 'AU discount'}</div>
         </div>
       </div>
@@ -114,8 +123,7 @@ export default function PolicySpreadMonitor() {
           {' '}{atHigh
             ? `today's ${signedBp(today)} is the widest AU premium in that window, first reached in ${monthYear(five.hiDay)}.`
             : `today's ${signedBp(today)} compares with that average.`}
-          {' '}A wider AU premium is, all else equal, supportive for the AUD.
-          <div className="text-terminal-text-dim/50 mt-1">
+                    <div className="text-terminal-text-dim/50 mt-1">
             Computed daily from the verified RBA and FOMC decision histories (effective dates). Not an estimate.
           </div>
         </div>

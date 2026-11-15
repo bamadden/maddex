@@ -18,7 +18,7 @@ test('AU–US spread: as at its effective date, and the date it changes (Ben b)'
   const p = read('src/modules/fx/PolicySpreadMonitor.jsx')
   assert.match(p, /as at effective date \{formatDate\(day\)\}/)
   assert.match(p, /Changes to <b[^>]*>\{signedBp\(pending\.bp\)\}<\/b> on \{formatDate\(pending\.date\)\}/)
-  assert.match(p, /toLocaleDateString\('en-CA', \{ timeZone: 'Australia\/Sydney' \}\)/, 'today is a Sydney date, not UTC')
+  assert.match(p, /const day = sydneyToday\(now\)/, 'today is a Sydney date, not UTC')
   assert.doesNotMatch(p, /toISOString\(\)\.slice\(0, 10\)/)
 })
 

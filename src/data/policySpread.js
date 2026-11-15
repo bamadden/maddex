@@ -78,3 +78,23 @@ export function nextSpreadChange(day) {
   const next = [...RBA_PATH, ...FED_PATH].map((r) => r.date).filter((d) => d > day).sort()[0]
   return next ? { date: next, bp: spreadOn(next), au: rateOn(RBA_PATH, next), us: rateOn(FED_PATH, next) } : null
 }
+
+// Today's date in Sydney (YYYY-MM-DD): the day the decision histories are
+// read on, since both banks' changes are dated by Sydney-published records.
+export const sydneyToday = (now = Date.now()) => new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+
+// The effective date on which the spread in force on `day` took effect: the
+// last day either rate changed so that the gap moved. Null before both begin.
+export function spreadSince(day) {
+  const dayBefore = (d) => iso(Date.parse(`${d}T00:00:00Z`) - DAY)
+  const dates = [...new Set([...RBA_PATH, ...FED_PATH].map((r) => r.date).filter((d) => d <= day))].sort().reverse()
+  for (const d of dates) if (spreadOn(d) !== spreadOn(dayBefore(d))) return spreadOn(d) == null ? null : d
+  return null
+}
+
+// The spread in force on `day`, with the date it took effect, for any panel
+// that shows it (one computation, so two panels cannot disagree).
+export function spreadInForce(day) {
+  const bp = spreadOn(day)
+  return bp == null ? null : { bp, since: spreadSince(day), au: rateOn(RBA_PATH, day), us: rateOn(FED_PATH, day) }
+}

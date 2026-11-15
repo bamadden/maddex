@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
 import DataBadge from '../../components/ui/DataBadge'
 import { InlineLoading, NoData, Unavailable, StaleBadge } from '../../components/ui/ModuleStates'
 import { formatDate } from '../../utils/dateUtils'
+import { spreadInForce, sydneyToday } from '../../data/policySpread'
 import RbaHeroCard from './RbaHeroCard'
 import RbaDecisionPreview from './RbaDecisionPreview'
 import RbaHikeImpact from './RbaHikeImpact'
@@ -531,7 +532,11 @@ function MarketPricingPanel() {
   // rateRange, a display string, in a render body: it would work until someone
   // changed an en dash to a hyphen, and then it would be quietly wrong rather
   // than broken.
-  const auUsSpread = rba.cashRate - fed.cashRate
+  // The spread IN FORCE, from the same computation as the spread monitor
+  // (data/policySpread), dated by the day it took effect. The announced
+  // rates above can differ from it for the day between an announcement and
+  // its effective date.
+  const spread = spreadInForce(sydneyToday(now))
   return (
     <div className="p-2 border-t border-terminal-border flex-shrink-0">
       <div className="flex items-center gap-2 mb-2">
@@ -564,11 +569,11 @@ function MarketPricingPanel() {
       <div className="mt-2 pt-2 border-t border-terminal-border/50">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-2xs text-terminal-text-dim">AU − US spread</span>
-          <span className="text-2xs font-bold tabular-nums" style={{ color: auUsSpread >= 0 ? 'var(--color-gain)' : 'var(--color-loss)' }}>
-            {auUsSpread >= 0 ? '+' : '−'}{Math.abs(auUsSpread).toFixed(2)}pp
+          <span className="text-2xs font-bold tabular-nums text-terminal-text-bright">
+            {spread == null ? '—' : `${spread.bp > 0 ? '+' : spread.bp < 0 ? '−' : ''}${(Math.abs(spread.bp) / 100).toFixed(2)}pp`}
           </span>
         </div>
-        <div className="text-2xs text-terminal-text-dim/50">RBA cash rate vs Fed target upper bound</div>
+        <div className="text-2xs text-terminal-text-dim/50" data-spread-since>RBA cash rate vs Fed target upper bound{spread?.since ? `, as at effective date ${formatDate(sydneyToday(now))}; this level since ${formatDate(spread.since)}` : ''}</div>
       </div>
 
       <div className="mt-2 pt-2 border-t border-terminal-border/50">
