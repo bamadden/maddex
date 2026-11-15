@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import DataBadge from '../../components/ui/DataBadge'
 import { MAX_AGE_DAYS } from '../../data/freshness'
@@ -40,8 +41,10 @@ export default function AudTwiCard() {
   const mean = meanMove(data)
   const counted = (data ?? []).filter((r) => typeof r.pct === 'number').length
 
+  const [now] = useState(() => Date.now())
+
   if (au?.twi == null) return null
-  const twiStale = !au.twiAsOf || (Date.now() - Date.parse(`${au.twiAsOf}T00:00:00Z`)) / 86_400_000 > MAX_AGE_DAYS.price
+  const twiStale = !au.twiAsOf || (now - Date.parse(`${au.twiAsOf}T00:00:00Z`)) / 86_400_000 > MAX_AGE_DAYS.price
 
   return (
     <div
