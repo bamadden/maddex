@@ -52,9 +52,9 @@ export const FALLBACK_THEMES = [
 // What the themes above mean for three kinds of investor — qualitative, and
 // shown when the AI call is unavailable.
 export const FALLBACK_IMPLICATIONS = {
-  materials: 'Commodity prices and Chinese demand matter more to miners than the local cash rate; the AUD is the main domestic channel.',
-  financials: 'Higher rates tend to widen bank margins, but rising unemployment is the risk to watch through arrears and bad debts.',
-  defensive: 'Defensive sectors with steady demand have tended to hold up better in tightening cycles, though bond-like income names compete with higher cash rates.',
+  materials: 'Miners\' revenue is set mainly by commodity prices and Chinese demand; the AUD is the main domestic channel.',
+  financials: 'Bank margins move with rates; arrears and bad debts move with unemployment.',
+  defensive: 'Steady-demand businesses\' earnings depend less on the cycle; income-paying shares are compared with the cash rate.',
 }
 
 // Returns { themes, implications, source: 'cache' | 'live' | 'stale' | 'fallback' }.

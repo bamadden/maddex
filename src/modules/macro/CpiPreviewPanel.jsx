@@ -52,7 +52,7 @@ export default function CpiPreviewPanel() {
         <span className="ml-auto flex items-center gap-2">
           <a href={a.cpiQuarterUrl} target="_blank" rel="noopener noreferrer" className="text-2xs text-terminal-gold hover:underline">ABS.GOV.AU ↗</a>
           <button
-            onClick={() => askMaddenAI('Using only the September quarter CPI figures and market pricing in your context, what does the result mean for the RBA on 3 November, the AUD and ASX sectors?')}
+            onClick={() => askMaddenAI('Using only the September quarter CPI figures in your context, describe the result against the previous quarter and the RBA\'s target band. Describe only: no forecast of the RBA decision, the AUD or markets, and no recommendation.')}
             className="text-2xs font-bold border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 transition-colors"
           >ASK MADDENAI ▶</button>
         </span>

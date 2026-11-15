@@ -48,3 +48,16 @@ export const decisionOf = (d) => (d.changeBp > 0 ? 'hike' : d.changeBp < 0 ? 'cu
 
 // mr-26-27 → https://www.rba.gov.au/media-releases/2026/mr-26-27.html
 export const rbaStatementUrl = (mr) => `https://www.rba.gov.au/media-releases/20${mr.slice(3, 5)}/${mr}.html`
+
+// One year's decisions in words, from the record above, for prompts that need
+// the history: "3 Feb raised to 3.85%; 17 Mar raised to 4.10%; ... ". Built,
+// never typed, so it cannot fall behind a decision (a typed copy missed the
+// 3 Nov 2026 hike).
+export function rbaYearInWords(year, decisions = RBA_DECISIONS) {
+  const d = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return decisions
+    .filter((x) => x.announced.startsWith(String(year)))
+    .sort((a, b) => a.announced.localeCompare(b.announced))
+    .map((x) => `${d(x.announced)} ${x.changeBp > 0 ? 'raised to' : x.changeBp < 0 ? 'cut to' : 'held at'} ${x.rate.toFixed(2)}%`)
+    .join('; ')
+}

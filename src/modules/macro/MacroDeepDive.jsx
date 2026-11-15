@@ -87,7 +87,7 @@ function useIndicatorRead(indicator, nextRelease) {
 
     const t = setTimeout(() => { if (alive) setState({ status: 'loading', text: '', source: 'live' }) }, 0)
 
-    const prompt = `Interpret one Australian economic indicator for an investor.
+    const prompt = `Describe one Australian economic indicator.
 
 Indicator: ${indicator.name}
 Latest reading: ${indicator.value} (released ${indicator.date})
@@ -95,7 +95,7 @@ Previous reading: ${indicator.prev}
 ${nextRelease ? `Next release: ${nextRelease}` : ''}
 RBA cash rate: ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%; inflation target band ${VERIFIED_CONSTANTS.au.rbaTargetBand}
 
-In 2-3 sentences, say what this reading means for RBA policy, the AUD, and which ASX sectors it touches.
+In 2-3 sentences, describe the reading against the previous one and how the RBA has described this kind of indicator in setting policy. Describe only: no forecast of policy, the AUD or markets, and no recommendation.
 Quote only the figures given above. State no other number — no forecast, no estimate, no level for any market.
 Plain prose, no markdown, no headings.`
 

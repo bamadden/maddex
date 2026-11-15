@@ -12,7 +12,7 @@ import {
   transformFxRates, fetchMetalsRates, extractMetals, fetchFxHistory,
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
-import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl } from '../../data/rbaDecisions'
+import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl, rbaYearInWords } from '../../data/rbaDecisions'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { curveForRates, BOND_CURVES_AS_OF, BOND_CURVE_SOURCES } from '../../data/bondCurves'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
@@ -432,7 +432,7 @@ function RbaLead({ askAI }) {
       <RbaHeroCard
         onAskAI={() => askAI({
           name: 'RBA Cash Rate', price: `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% p.a.`, sector: 'Interest Rates', date: todayAEST(),
-          instruction: `What is the RBA likely to do at the next meeting on ${nextRbaLabel} and why? Current cash rate ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%.`,
+          instruction: `Describe the RBA's policy position going into its ${nextRbaLabel} meeting. Cash rate ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%; decisions in ${new Date().getFullYear()} (RBA record): ${rbaYearInWords(new Date().getFullYear())}. Describe what the latest statement said about inflation, the labour market and the path of policy, quoting it. Describe only: no forecast of the decision and no probabilities.`,
         })}
       />
       <RbaDecisionPreview />

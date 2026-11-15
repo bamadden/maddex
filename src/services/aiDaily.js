@@ -48,20 +48,20 @@ Return ONE JSON object:
       "horizon": "IMMEDIATE" | "SHORT-TERM" | "MEDIUM-TERM",
       "sectors": ["MATERIALS", "ENERGY"],
       "keyQuote": "One sentence that captures the theme",
-      "analysis": "3-4 sentences: what is happening, what drives it, what it means for Australian investors"
+      "analysis": "3-4 sentences: what is happening, what drives it, and the channels through which it reaches Australia (described, not forecast)"
     }
   ],
   "implications": {
-    "materials": "One line for investors holding Materials",
-    "financials": "One line for investors holding Financials",
-    "defensive": "One line for defensive investors"
+    "materials": "One line describing how the theme reaches Materials companies",
+    "financials": "One line describing how the theme reaches Financials companies",
+    "defensive": "One line describing how the theme reaches steady-demand (defensive) companies"
   }
 }
 
 "horizon" is when the theme bites: IMMEDIATE (this week's decisions and data), SHORT-TERM (the next few months), MEDIUM-TERM (a year or more).
 "sectors" is 1-3 of: MATERIALS, ENERGY, FINANCIALS, HEALTH, TECH, CONSUMER, PROPERTY, UTILITIES, INDUSTRIALS, COMMS — only sectors the theme genuinely transmits through.
 
-Each implication is ONE sentence of at most 30 words. They are QUALITATIVE: the direction of the pressure and the mechanism. No price levels, targets, return estimates or recommendations to buy or sell — general information, not advice.
+Each implication is ONE sentence of at most 30 words, describing the mechanism only: no direction call, no view for holders. No price levels, targets, return estimates or recommendations to buy or sell — general information, not advice.
 
 You write ANALYSIS AND NARRATIVE, never invented statistics. You may quote any figure supplied to you in the user message, but you must NOT state a market level, policy rate, index value, currency cross, earnings number or economic print that was not supplied. Where a number would be needed and none was given, describe the direction or condition in words instead. Do not compare a figure with a target, average or norm you were not given (no "above long-run averages", no "short of target" unless that target is in the user message), and use the supplied changes for direction — do not call a price "elevated" or "weak" against them.
 
@@ -193,7 +193,7 @@ export const SENTIMENT_FEEDS = [
 ]
 
 function sentimentPrompt(headlines) {
-  return `Analyse these financial news headlines and return a market sentiment read, in words, for Australian investors. Do not give a number: the terminal computes its own sentiment score in code.
+  return `Analyse these financial news headlines and return a description, in words, of the tone of these headlines as they relate to Australian markets. Do not give a number: the terminal computes its own sentiment score in code.
 Some feeds carry general news. Ignore any headline with no plausible market relevance (crime, accidents, sport, entertainment, health stories that move no stock) — read only what an investor could position around, and name only such headlines as drivers.
 
 Headlines:
@@ -225,7 +225,7 @@ export const DAILY_KINDS = {
     build: () => ({ system: MACRO_SYSTEM, user: buildUserContent() }),
     parse: parseThemes,
   },
-  geo_risks: narrative(() => `List the 5 most significant ongoing geopolitical risks for Australian investors.
+  geo_risks: narrative(() => `Describe 5 ongoing geopolitical developments with links to Australia's economy and trade.
 
 Return a JSON array:
 [{
@@ -289,7 +289,7 @@ with a single relevant emoji:
 
 Describe conditions and direction — do not state prices, index levels or
 percentages unless they appear in the verified figures above.`),
-  macro_regime: narrative(() => `Characterise the current macro regime for an Australian investor.
+  macro_regime: narrative(() => `Describe the current macro conditions in Australia from the verified figures supplied.
 
 Return a JSON object:
 {
@@ -299,10 +299,10 @@ Return a JSON object:
   "riskAppetite": "RISK_ON|RISK_OFF|NEUTRAL",
   "description": "<2 sentences characterising the regime>",
   "implications": {
-    "equities": "<one line>",
-    "bonds": "<one line>",
-    "commodities": "<one line>",
-    "aud": "<one line>"
+    "equities": "<one line describing the channel to equities; no direction call>",
+    "bonds": "<one line describing the channel to bonds; no direction call>",
+    "commodities": "<one line describing the channel to commodities; no direction call>",
+    "aud": "<one line describing the channel to the AUD; no direction call>"
   },
   "keyTension": "<the single biggest unresolved question in this regime>"
 }
@@ -313,8 +313,9 @@ decision. All figures are verified.
 
 ${policyRows()}
 
-For each, write ONE sentence (maximum 22 words) characterising the bank's
-current policy bias — the direction of travel and what is holding it there.
+For each, write ONE sentence (maximum 22 words) describing what the bank's
+latest decision and statement said, in the statement's own terms. Describe
+only: no forecast of the next move and no probability.
 
 Return a JSON object keyed by the lowercase bank id exactly as given above:
 {"rba": "<sentence>", "fed": "<sentence>", ...}

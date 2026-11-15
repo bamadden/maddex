@@ -34,6 +34,7 @@ const GlobalGrowthMap = lazy(() => import('./GlobalGrowthMap'))
 import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES, FALLBACK_IMPLICATIONS } from '../../services/macroThemeService'
 import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS, COUNTRY_STATS } from '../../data/verifiedConstants'
+import { rbaYearInWords } from '../../data/rbaDecisions'
 import { BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import { AIContentBadge, HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
@@ -567,7 +568,7 @@ function RBADashboard({ askAI }) {
             price:       `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% p.a.`,
             sector:      'Interest Rates',
             date:        todayAEST(),
-            instruction: `What is the RBA likely to do at the next meeting on ${nextMeetingBadge} and why? Current cash rate ${LAST_DECISIONS.RBA.rate} after a ${LAST_DECISIONS.RBA.decision} at the ${LAST_DECISIONS.RBA.date} meeting (${LAST_DECISIONS.RBA.note}). 2026 so far: hikes in Feb, Mar and May reversed the 2025 easing cycle, holds in Jun and Aug, then the September hike. Describe the case for and against a move in words — do not state a market-implied probability, which you have not been given.`,
+            instruction: `Describe the RBA's policy position going into its ${nextMeetingBadge} meeting. Cash rate ${LAST_DECISIONS.RBA.rate} after a ${LAST_DECISIONS.RBA.decision} at the ${LAST_DECISIONS.RBA.date} meeting. Decisions in ${new Date().getFullYear()} (RBA record): ${rbaYearInWords(new Date().getFullYear())}. Describe what the latest statement said about inflation, the labour market and the path of policy, quoting it. Describe only: no forecast of the decision and no probabilities.`,
           })}
           className="ml-auto mr-16 text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-2 py-0.5 transition-colors"
         >
@@ -1144,8 +1145,8 @@ function EnhancedEvents() {
                       <div className="text-terminal-gold font-bold mb-1">AU MARKET IMPACT</div>
                       <div className="text-terminal-text-dim leading-relaxed">
                         {evt.importance === 'high'
-                          ? 'HIGH IMPACT — typically moves AUD, ASX 200 futures, and rate-sensitive sectors (REITs, banks, utilities). Watch for immediate repricing.'
-                          : 'MEDIUM IMPACT — may influence sector rotation and AUD cross rates. Monitor for deviation from consensus.'}
+                          ? 'HIGH IMPORTANCE — releases of this kind are followed closely by the AUD, ASX 200 futures and rate-sensitive sectors.'
+                          : 'MEDIUM IMPORTANCE — releases of this kind are followed by the AUD and some sectors.'}
                       </div>
                     </div>
                   </div>
@@ -1514,7 +1515,7 @@ function MacroThemeCard({ theme, expanded, onToggle, source }) {
                 e.stopPropagation()
                 dispatchAskAI({
                   name: theme.title, sector: theme.category, date: todayAEST(),
-                  instruction: `Give a deeper analysis of this macro theme for Australian investors: "${theme.title}" — ${theme.summary} Tone so far: ${toneWord(theme.impact).toLowerCase()}. Describe; do not forecast or recommend.`,
+                  instruction: `Describe this macro theme as it relates to Australia: "${theme.title}" — ${theme.summary} Tone so far: ${toneWord(theme.impact).toLowerCase()}. Describe; do not forecast or recommend.`,
                 })
               }}
               className="text-2xs text-terminal-gold/70 hover:text-terminal-gold border border-terminal-gold/20 hover:border-terminal-gold/60 px-1.5 py-0.5 transition-colors"
@@ -1611,15 +1612,15 @@ function MacroThemesSection() {
       {!isLoading && !refreshing && implications && (
         <div className="mt-2 border border-terminal-border p-2.5" style={{ background: 'rgba(201,168,76,0.03)' }}>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-2xs text-terminal-gold font-bold tracking-widest">PORTFOLIO IMPLICATIONS</span>
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">SECTOR CHANNELS</span>
             <AIContentBadge source={badgeSource} label="ESTIMATE" />
           </div>
           {[['Materials', implications.materials], ['Financials', implications.financials], ['defensive', implications.defensive]].map(([k, v]) => (
             <div key={k} className="text-2xs leading-relaxed text-terminal-text">
-              <span className="text-terminal-text-bright font-bold">For {k} investors:</span> <span className="text-terminal-text-dim">{v}</span>
+              <span className="text-terminal-text-bright font-bold">{k[0].toUpperCase() + k.slice(1)}:</span> <span className="text-terminal-text-dim">{v}</span>
             </div>
           ))}
-          <div className="text-[11px] text-terminal-text-dim/50 mt-1">Direction and mechanism only — no price levels or recommendations. General information, not advice.</div>
+          <div className="text-[11px] text-terminal-text-dim/50 mt-1">How each sector is connected to rates and the economy, described. Not a recommendation. General information, not advice.</div>
         </div>
       )}
     </div>

@@ -50,3 +50,15 @@ test('scanner prompts explain what was measured; they never ask whether a move w
     assert.match(a, /Describe only: no forecast, no price and no suggestion of any action\./, a.slice(0, 80))
   }
 })
+
+test('Rates and Macro prompts describe: no "likely to do", "for an investor", positioning or direction of travel', () => {
+  const files = ['src/modules/fx/FXModule.jsx', 'src/modules/macro/MacroModule.jsx', 'src/modules/macro/MacroDeepDive.jsx', 'src/components/macro/IndicatorForecaster.jsx', 'src/modules/macro/CpiPreviewPanel.jsx', 'src/services/aiDaily.js', 'src/services/marketRegime.js', 'src/services/macroThemeService.js']
+  const banned = /likely to do|for an investor|for Australian investors|investors holding|direction of travel|what it means for Australian investors|For \{k\} investors|PORTFOLIO IMPLICATIONS|defensives and bonds usually lead|most supportive backdrop for equities|Watch for immediate repricing/
+  for (const f of files) assert.doesNotMatch(fs.readFileSync(f, 'utf8'), banned, f)
+})
+
+test('the RBA history in prompts is built from the decision record, so it cannot miss a decision', async () => {
+  const { rbaYearInWords } = await import('../src/data/rbaDecisions.js')
+  assert.match(rbaYearInWords(2026), /3 Nov raised to 4\.85%$/)
+  for (const f of ['src/modules/fx/FXModule.jsx', 'src/modules/macro/MacroModule.jsx']) assert.match(fs.readFileSync(f, 'utf8'), /rbaYearInWords\(new Date\(\)\.getFullYear\(\)\)/, f)
+})

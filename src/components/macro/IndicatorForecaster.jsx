@@ -101,7 +101,7 @@ async function commentOn(ind) {
   const cacheKey = `${CACHE_PREFIX}${ind.key}_${new Date().toLocaleDateString('en-CA')}_${ind.value}`
   try { const c = localStorage.getItem(cacheKey); if (c) return JSON.parse(c) } catch { /* regenerate */ }
   const recent = ind.series?.slice(-6).map((r) => `${r.label}: ${r.value}`).join(', ')
-  const prompt = `You are MaddenAI. Comment on this Australian economic indicator for an investor. Use ONLY the figures given — do not state any other number, and do not forecast the next reading.
+  const prompt = `You are MaddenAI. Describe this Australian economic indicator. Use ONLY the figures given — do not state any other number, and do not forecast the next reading.
 
 Indicator: ${ind.label} (${ind.hint})
 Latest: ${fmt(ind, ind.value)} for ${ind.period}${ind.prev != null ? `; previous ${fmt(ind, ind.prev)}` : ''}
@@ -109,7 +109,7 @@ ${recent ? `Recent readings: ${recent}` : ''}
 Context: RBA cash rate ${rba.cashRate.toFixed(2)}%; CPI ${au.cpi}% (${au.cpiPeriod}); unemployment ${au.unemployment}% (${au.unemploymentPeriod}).
 
 Return JSON only:
-{ "read": "2 sentences on what this reading says", "rbaAngle": "1 sentence on what it means for RBA policy" }`
+{ "read": "2 sentences describing this reading against the previous ones", "rbaAngle": "1 sentence on how the RBA has described this input in its statements; no forecast of policy" }`
   const out = await askClaudeJSON(prompt, { maxTokens: 300 })
   try { localStorage.setItem(cacheKey, JSON.stringify(out)) } catch { /* best-effort */ }
   return out

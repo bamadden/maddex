@@ -85,10 +85,10 @@ export function regimePrompts() {
 
 export const TREND_GDP = 2.25
 export const REGIME_STYLE = {
-  'STAGFLATION RISK': { colour: PAL.amber, note: 'The RBA is tightening into a slowing economy — rate-sensitive and consumer sectors carry the most pressure.' },
-  OVERHEATING: { colour: PAL.down, note: 'Growth is holding up while the RBA tightens — the risk is further hikes until demand cools.' },
-  'RECESSION RISK': { colour: '#8B2222', note: 'The RBA is easing into a slowing economy — defensives and bonds usually lead.' },
-  GOLDILOCKS: { colour: PAL.up, note: 'Easier policy with growth intact — the most supportive backdrop for equities.' },
+  'STAGFLATION RISK': { colour: PAL.amber, note: 'Policy rate rising while growth is below trend and CPI above target.' },
+  OVERHEATING: { colour: PAL.down, note: 'Policy rate rising while growth is at or above trend.' },
+  'RECESSION RISK': { colour: '#8B2222', note: 'Policy rate falling while growth is below trend.' },
+  GOLDILOCKS: { colour: PAL.up, note: 'Policy rate falling while growth is at or above trend.' },
   'ON HOLD': { colour: PAL.dim, note: 'No RBA move in nine months — the label waits for a direction.' },
 }
 
