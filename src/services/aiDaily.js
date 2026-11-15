@@ -13,7 +13,7 @@
 // Dependency-free apart from the verified constants, so the serverless
 // function and the browser import the same file.
 
-import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../data/verifiedConstants.js'
+import { VERIFIED_CONSTANTS, COUNTRY_STATS, pendingRbaDecision } from '../data/verifiedConstants.js'
 
 const V = VERIFIED_CONSTANTS
 
@@ -82,7 +82,9 @@ const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-AU', 
 // generated the morning of an RBA hike stayed on screen until midnight
 // describing the hold that preceded it.
 function factsBlock() {
-  const { rba, fed, ecb, boj, boe, au, us, cn, eu, uk, jp, commodities } = VERIFIED_CONSTANTS
+  const { rba, fed, ecb, boj, boe, au, us, commodities } = VERIFIED_CONSTANTS
+  const S = COUNTRY_STATS
+  const cs = (code, name) => `${name} GDP ${S[code].gdp.value}% (${S[code].gdp.measure.split(',')[0]}, ${S[code].gdp.period}), CPI ${S[code].cpi.value}% (${S[code].cpi.period})`
   const year = rba.lastDecision.slice(0, 4)
   const hikes = rba.decisions.filter((d) => d.date.startsWith(year) && d.decision === 'HIKE').length
   return [
@@ -98,7 +100,7 @@ function factsBlock() {
     `- US Fed funds ${fed.rateRange} (${fed.lastDecisionVerb} on ${fmtDay(fed.lastDecision)}${fed.note ? `; ${fed.note}` : ''}); next meeting ${fmtDay(fed.nextMeeting)}`,
     `- Other central banks: ECB ${ecb.cashRate.toFixed(2)}% (${ecb.lastDecisionVerb} ${fmtDay(ecb.lastDecision)}), BOJ ${boj.cashRate.toFixed(2)}% (${boj.lastDecisionVerb} ${fmtDay(boj.lastDecision)}), BOE ${boe.cashRate.toFixed(2)}% (${boe.lastDecisionVerb} ${fmtDay(boe.lastDecision)})`,
     `- US CPI ${us.cpi}% (${us.cpiPeriod}, up from ${us.cpiPrevious}%), core ${us.cpiCore}%; unemployment ${us.unemployment}% (${us.unemploymentPeriod}, from ${us.unemploymentPrevious}%); payrolls +${us.nfpThousands}k; GDP ${us.gdpQoQAnnualised}% annualised (${us.gdpPeriod})`,
-    `- China CPI ${cn.cpi}% (${cn.cpiPeriod}), GDP +${cn.gdpYoY}% y/y (${cn.gdpPeriod}); euro area HICP ${eu.cpi}% (${eu.cpiPeriod}); UK CPI ${uk.cpi}% (${uk.cpiPeriod}); Japan CPI ${jp.cpi}% (${jp.cpiPeriod})`,
+    `- ${cs('CN', 'China')}; ${cs('EA', 'euro area')}; ${cs('GB', 'UK')}; ${cs('JP', 'Japan')}`,
     `- Iron ore US$${commodities.ironOreUSD}/t, Brent US$${commodities.brentUSD}/bbl, thermal coal US$${commodities.thermalCoalUSD}/t — indicative, as at ${fmtDay(commodities.asOf)}; describe commodity direction in words rather than leaning on these levels`,
     // Direction, measured: the theme model called a two-year-low iron ore
     // price "elevated" when it had only the level to go on.

@@ -59,3 +59,48 @@ test('no stale market comparators: ASX P/E, dividend yield and CoreLogic are nul
   for (const k of ['asx200PE', 'asx200DivYield', 'corelogicHpiMoM']) assert.equal(V.au[k], null, k)
   assert.doesNotMatch(fs.readFileSync('src/modules/portfolio/PortfolioAnalytics.jsx', 'utf8'), /historically done better|has to come from price/)
 })
+
+test('no stored "next release" or "next meeting" date has already passed (a missed release fails here)', () => {
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  const past = []
+  for (const [g, o] of Object.entries(V)) {
+    if (!o || typeof o !== 'object') continue
+    for (const [k, v] of Object.entries(o)) if (/NextRelease$|^nextMeeting$/.test(k) && typeof v === 'string' && v.slice(0, 10) < today) past.push(`${g}.${k} ${v}`)
+  }
+  assert.deepEqual(past, [])
+})
+
+test('one regime vocabulary, one CPI line, no policy "lean", no unsourced trend or NAIRU figure', async () => {
+  const R = await import('../src/services/marketRegime.js')
+  assert.equal(R.CPI_REFERENCE, 3)
+  assert.match(R.RBA_GROWTH_ASSESSMENT.url, /^https:\/\/www\.rba\.gov\.au\//)
+  const files = ['src/modules/macro/RegimeQuadrant.jsx', 'src/modules/macro/MacroDeepDive.jsx', 'src/services/marketRegime.js', 'src/components/ui/RegimeBadge.jsx']
+  for (const f of files) {
+    const s = code(f)
+    assert.doesNotMatch(s, /STAGFLATION|GOLDILOCKS|OVERHEATING|RECESSION RISK|CONTRACTION|~\$\{TREND_GDP\}% trend|lean: '/, f)
+  }
+  assert.match(read('src/modules/macro/RegimeQuadrant.jsx'), /<ScoreNote method="regime"/)
+  for (const f of ['src/modules/macro/MacroModule.jsx', 'src/components/macro/IndicatorForecaster.jsx']) assert.doesNotMatch(read(f), /4\.25%|NAIRU estimate/, f)
+})
+
+test('the RBA board is the Monetary Policy Board as read from rba.gov.au, with no typed start years', () => {
+  assert.equal(PH.RBA_BOARD_MEMBERS.length, 9)
+  assert.ok(PH.RBA_BOARD_MEMBERS.every((m) => !('since' in m)))
+  for (const n of ['Michele Bullock', 'Andrew Hauser', 'Jenny Wilkinson', 'Marnie Baker', 'Bruce Preston']) assert.ok(PH.RBA_BOARD_MEMBERS.some((m) => m.name === n), n)
+  for (const n of ['Carol Schwartz', 'Mark Barnaba', 'Elana Rubin']) assert.ok(!PH.RBA_BOARD_MEMBERS.some((m) => m.name === n), n)
+})
+
+test('the global comparison and AI context read COUNTRY_STATS; no second copy of foreign GDP or CPI', () => {
+  for (const k of ['cn', 'eu', 'uk', 'jp']) assert.equal(V[k], undefined, k)
+  assert.match(read('src/modules/macro/GlobalComparison.jsx'), /COUNTRY_STATS\[code\]/)
+  assert.match(read('src/services/aiDaily.js'), /cs\('EA', 'euro area'\)/)
+})
+
+test('Macro countdowns and reminders run on Sydney time; the FOMC is shown in Sydney time with the reader\'s zone', () => {
+  const s = read('src/modules/macro/MacroModule.jsx')
+  assert.doesNotMatch(s, /2:00pm \$\{|'EDT' : 'EST'|setHours\(h \|\| 0/)
+  assert.match(s, /announcement\(key, d\)/)
+  assert.match(s, /zonedInstant\(isoDate, t, 'Australia\/Sydney'\)/)
+  assert.match(s, /const todayIso = new Date\(\)\.toLocaleDateString\('en-CA', \{ timeZone: 'Australia\/Sydney' \}\)/)
+  assert.doesNotMatch(read('src/modules/macro/MacroDeepDive.jsx'), /Australia\/Brisbane/)
+})

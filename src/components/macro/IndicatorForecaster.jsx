@@ -52,7 +52,7 @@ const INDICATORS = [
   },
   {
     key: 'unemp', label: 'Unemployment', unit: '%', value: au.unemployment, prev: au.unemploymentPrevious, period: au.unemploymentPeriod,
-    next: au.unemploymentNextRelease, src: 'ABS Labour Force', hint: 'NAIRU estimate ~4.25%', upIsBad: true,
+    next: au.unemploymentNextRelease, src: 'ABS Labour Force', hint: 'RBA publishes no NAIRU figure', upIsBad: true,
     series: au.unemploymentHistory.map((r) => ({ label: ym(r.period), value: r.value })),
   },
   {

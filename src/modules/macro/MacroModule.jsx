@@ -1,14 +1,14 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
 import { InlineLoading, Unavailable } from '../../components/ui/ModuleStates'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
-import { sydneyTzAbbr, sydneyTzNow, sydneyOffset, formatDate } from '../../utils/dateUtils'
+import { sydneyTzAbbr, sydneyTzNow, formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
 import RecessionMonitor from './RecessionMonitor'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import {
   AU_MACRO,
   AU_CPI_HISTORY, AU_UNEMP_HISTORY, AU_GDP_HISTORY,
-  RBA_RATE_HISTORY, RBA_BOARD_MEMBERS, RBA_RECENT_STATEMENTS,
+  RBA_RATE_HISTORY, RBA_BOARD_MEMBERS, RBA_BOARD_READ, RBA_BOARD_SOURCE, RBA_RECENT_STATEMENTS,
   AU_CONSUMER_SENTIMENT, AU_BUSINESS_CONFIDENCE, AU_TRADE_BALANCE,
   AU_BONDS, US_BONDS, monthLabel, MACRO_SERIES_AS_OF,
 } from '../../data/placeholders'
@@ -18,7 +18,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import { IndicatorDeepDive, RbaSensitivityMatrix } from './MacroDeepDive'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import {
-  RBA_MEETINGS_2026, FOMC_MEETINGS_2026, LAST_DECISIONS, getNextMeeting,
+  RBA_MEETINGS_2026, FOMC_MEETINGS_2026, LAST_DECISIONS, getNextMeeting, announcement, zonedInstant,
 } from '../../services/centralBankSchedule'
 import { getEconomicCalendar, upcomingEvents, getPreviousEvents, pendingEvents, eventInstant } from '../../services/calendarService'
 import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
@@ -239,8 +239,8 @@ const CHART_CONFIGS = {
     data: null,
     color: 'var(--color-gain)',
     unit: '%',
-    refLine: 4.25,
-    refLabel: 'NAIRU estimate 4.25%',
+    refLine: null,
+    refLabel: null,
     legend: 'Seasonally adjusted, monthly',
   },
   gdp: {
@@ -430,31 +430,32 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
 // Highlight calendar events dated today (handles 'DD MMM' format like '14 JUN')
 // ─── Meeting Countdown ────────────────────────────────────────────────────────
 
-// Next meeting date string from a published schedule, today included.
-function nextMeetingDateStr(dates) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return dates.find((d) => new Date(`${d}T00:00:00`) >= today) ?? null
+// Next decision from a published schedule: the first whose announcement
+// (the bank's own time and zone, services/centralBankSchedule) is still to
+// come. It used to count to browser-local midnight and label the FOMC
+// "2:00pm EST", a New York time beside Sydney times (16 Nov 2026).
+function nextAnnouncement(key, dates, now = Date.now()) {
+  for (const d of dates) {
+    const a = announcement(key, d)
+    if (a.at != null && a.at > now) return { iso: d, at: a.at }
+  }
+  return null
 }
-
-const nextRbaDateStr  = nextMeetingDateStr(RBA_MEETINGS_2026)
-const nextFomcDateStr = nextMeetingDateStr(FOMC_MEETINGS_2026)
-
-// RBA announces at 2:30pm Sydney time; FOMC at 2:00pm New York time. Both
-// cities observe daylight saving, so the UTC instant is resolved per date.
-const nyOffset = (iso) => {
-  try {
-    const n = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'longOffset' })
-      .formatToParts(new Date(`${iso}T12:00:00Z`)).find((p) => p.type === 'timeZoneName')?.value
-    return n?.match(/GMT([+-]\d{2}:\d{2})/)?.[1] ?? '-05:00'
-  } catch { return '-05:00' }
+const nextRba = nextAnnouncement('rba', RBA_MEETINGS_2026)
+const nextFomc = nextAnnouncement('fed', FOMC_MEETINGS_2026)
+const nextRbaDateStr = nextRba?.iso ?? null
+const whenNote = (n) => {
+  if (!n) return ''
+  const local = localClock(new Date(n.at))
+  const syd = `${formatDate(new Date(n.at), { weekday: true, year: false })} ${sydneyClock(new Date(n.at)).text}`
+  return local.zone === 'Australia/Sydney' ? syd : `${syd}; your time ${local.text}`
 }
-const RBA_NEXT_MEETING  = nextRbaDateStr  ? new Date(`${nextRbaDateStr}T14:30:00${sydneyOffset(nextRbaDateStr)}`) : null
-const FOMC_NEXT_MEETING = nextFomcDateStr ? new Date(`${nextFomcDateStr}T14:00:00${nyOffset(nextFomcDateStr)}`) : null
+const RBA_NEXT_MEETING  = nextRba ? new Date(nextRba.at) : null
+const FOMC_NEXT_MEETING = nextFomc ? new Date(nextFomc.at) : null
 
 const MEETINGS = [
-  { label: 'RBA',  name: 'Rate Decision', date: RBA_NEXT_MEETING,  color: 'text-terminal-gold',        note: `2:30pm ${nextRbaDateStr ? sydneyTzAbbr(nextRbaDateStr) : 'AET'}` },
-  { label: 'FOMC', name: 'Rate Decision', date: FOMC_NEXT_MEETING, color: 'text-terminal-blue-bright', note: `2:00pm ${nextFomcDateStr && nyOffset(nextFomcDateStr) === '-04:00' ? 'EDT' : 'EST'}` },
+  { label: 'RBA',  name: 'Rate Decision', date: RBA_NEXT_MEETING,  color: 'text-terminal-gold',        note: whenNote(nextRba) },
+  { label: 'FOMC', name: 'Rate Decision', date: FOMC_NEXT_MEETING, color: 'text-terminal-blue-bright', note: whenNote(nextFomc) },
 ]
 
 // A ticking clock, so anything counting down actually counts down.
@@ -476,7 +477,8 @@ function useNow(intervalMs = 3600000) {
 function MeetingCountdown({ meeting }) {
   const now = useNow()
   const diff = meeting.date - now
-  if (diff <= 0) return <span className={`text-2xs font-bold ${meeting.color}`}>{meeting.label}: TODAY {meeting.note}</span>
+  if (!meeting.date) return null
+  if (diff <= 0) return <span className={`text-2xs font-bold ${meeting.color}`}>{meeting.label}: ANNOUNCED {meeting.note}</span>
   const days  = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
   const text  = days > 0 ? `${days}d ${hours}h` : `${hours}h`
@@ -495,11 +497,12 @@ function MeetingCountdown({ meeting }) {
 
 function getCountdown(isoDate, timeStr) {
   if (!isoDate) return null
-  const [h, min] = (timeStr && timeStr !== '—' ? timeStr : '00:00').split(':').map(Number)
-  const d = new Date(`${isoDate}T00:00:00`)
-  if (isNaN(d)) return null
-  d.setHours(h || 0, min || 0, 0, 0)
-  const diff = d - Date.now()
+  // Calendar times are Sydney local (calendarService), so the instant is
+  // resolved in Sydney, not in the browser's zone.
+  const t = timeStr && /^\d{1,2}:\d{2}$/.test(timeStr) ? timeStr : '00:00'
+  const at = zonedInstant(isoDate, t, 'Australia/Sydney')
+  if (!Number.isFinite(at)) return null
+  const diff = at - Date.now()
   if (diff <= 0) return null
   const days  = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
@@ -666,12 +669,12 @@ function RBADashboard({ askAI }) {
               {RBA_BOARD_MEMBERS.map(m => (
                 <div key={m.name} className="border-b border-terminal-border/30 py-0.5">
                   <div className="text-2xs font-semibold text-terminal-text-bright">{m.name}</div>
-                  <div className="flex justify-between">
-                    <span className="text-2xs text-terminal-text-dim">{m.role}</span>
-                    <span className="text-2xs text-terminal-text-dim/60">since {m.since}</span>
-                  </div>
+                  <div className="text-2xs text-terminal-text-dim">{m.role}</div>
                 </div>
               ))}
+              <div className="text-2xs text-terminal-text-dim/60 pt-1" data-board-source>
+                Monetary Policy Board, <a href={RBA_BOARD_SOURCE} target="_blank" rel="noopener noreferrer" className="underline hover:text-terminal-gold">rba.gov.au</a>, read {formatDate(RBA_BOARD_READ)}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-hidden">
@@ -1035,7 +1038,7 @@ function EnhancedEvents() {
   // reminder list itself so toggling a reminder off/on doesn't re-notify.
   useEffect(() => {
     if (!allEvents.length || !reminders.length) return
-    const todayIso = new Date().toLocaleDateString('en-CA')
+    const todayIso = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) // calendar dates are Sydney's
     let notified = []
     try { notified = JSON.parse(localStorage.getItem(REMINDER_NOTIFIED_KEY) ?? '[]') } catch { /* ignore */ }
     const dueToday = allEvents.filter(e => e.date === todayIso && reminders.includes(reminderKey(e)))
@@ -2049,7 +2052,7 @@ export default function MacroModule() {
               <MiniChart data={AU_UNEMP_HISTORY} dataKey="value" color="var(--color-gain)" unit="%" onClick={() => setExpandedChart('unemp')} />
             </div>
             <div className="px-2 py-1 text-2xs text-terminal-text-dim border-t border-terminal-border flex-shrink-0">
-              NAIRU ESTIMATE ~4.25%
+              NAIRU: NO FIGURE PUBLISHED BY THE RBA
             </div>
           </div>
 

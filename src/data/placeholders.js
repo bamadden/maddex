@@ -196,16 +196,23 @@ export const FED_RATE_HISTORY = fed.decisions.map((d) => ({
 // the unattributed vote count introduced in 2024 is a count, not a roll call.
 // There is no source that could make this column true, which is why it was
 // removed rather than sourced or labelled.
+//
+// Read from rba.gov.au/about-rba/boards/monetary-policy-board.html on
+// RBA_BOARD_READ. The list held before was the pre-2025 Reserve Bank Board
+// (five of its nine names are not on the Monetary Policy Board) with typed
+// "since" years; names and roles only now, as the page gives them.
+export const RBA_BOARD_READ = '2026-11-16'
+export const RBA_BOARD_SOURCE = 'https://www.rba.gov.au/about-rba/boards/monetary-policy-board.html'
 export const RBA_BOARD_MEMBERS = [
-  { name: 'Michele Bullock',    role: 'Governor (Chair)',        since: '2023' },
-  { name: 'Andrew Hauser',      role: 'Deputy Governor',         since: '2024' },
-  { name: 'Jenny Wilkinson',    role: 'Treasury Representative', since: '2023' },
-  { name: 'Carol Schwartz',     role: 'External Member',         since: '2018' },
-  { name: 'Ian Harper',         role: 'External Member',         since: '2016' },
-  { name: 'Mark Barnaba',       role: 'External Member',         since: '2018' },
-  { name: 'Elana Rubin',        role: 'External Member',         since: '2016' },
-  { name: 'Iain Ross',          role: 'External Member',         since: '2016' },
-  { name: 'Renée Roberts',      role: 'External Member',         since: '2023' },
+  { name: 'Michele Bullock',     role: 'Chair, RBA Governor' },
+  { name: 'Andrew Hauser',       role: 'Deputy Chair, RBA Deputy Governor' },
+  { name: 'Jenny Wilkinson',     role: 'Ex officio, Secretary to the Treasury' },
+  { name: 'Marnie Baker',        role: 'Non-executive member' },
+  { name: 'Melinda Cilento',     role: 'Non-executive member' },
+  { name: 'Renée Fry-McKibbin',  role: 'Non-executive member' },
+  { name: 'Carolyn Hewson',      role: 'Non-executive member' },
+  { name: 'Bruce Preston',       role: 'Non-executive member' },
+  { name: 'Iain Ross',           role: 'Non-executive member' },
 ]
 
 // Trimmed to the last 3 (most recent first) — deliberately, so this column

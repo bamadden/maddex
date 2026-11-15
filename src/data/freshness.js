@@ -34,6 +34,7 @@ export const FRESHNESS = [
   { id: 'cb-announce-times', what: 'Central-bank announcement times', kind: 'schedule', file: 'src/services/centralBankSchedule.js', date: 'ANNOUNCE_AT_CHECKED' },
   { id: 'geo-risk', what: 'Country risk ratings', kind: 'editorial', file: 'src/data/geopoliticalRisk.js', date: 'RISK_LAST_REVIEWED' },
   { id: 'rba-decisions', what: 'RBA decision record', kind: 'history', file: 'src/data/rbaDecisions.js', date: 'RBA_DECISIONS_CHECKED' },
+  { id: 'rba-board', what: 'RBA Monetary Policy Board members', kind: 'reference', file: 'src/data/placeholders.js', date: 'RBA_BOARD_READ' },
   { id: 'rba-path', what: 'RBA cash-rate path since 2008', kind: 'history', file: 'src/data/rbaCashRatePath.js', date: 'RBA_PATH_READ' },
   { id: 'company-facts', what: 'Company facts (Relationships)', kind: 'statistic', file: 'src/data/graph/companyFacts.js', date: 'FACTS_AS_OF' },
   { id: 'key-facts', what: 'Key facts (Relationships)', kind: 'statistic', file: 'src/data/graph/keyFacts.js', date: 'KEY_FACTS_READ' },

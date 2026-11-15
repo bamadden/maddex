@@ -1,5 +1,5 @@
-import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
-import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
+import VERIFIED_CONSTANTS, { COUNTRY_STATS, COUNTRY_STATS_CHECKED } from '../../data/verifiedConstants'
+import DataBadge from '../../components/ui/DataBadge'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -23,21 +23,29 @@ const short = (iso) => (iso ? formatDate(iso, { year: false }) : '—')
 
 export default function GlobalComparison() {
   const C = VERIFIED_CONSTANTS
-  const { au, us, eu, uk, jp, cn } = C
+  const { au, us } = C
+  // The euro area, UK, Japan and China read COUNTRY_STATS, the one verified
+  // record of each economy's latest GDP and CPI (also the Global panel's),
+  // with each figure's own measure and period (16 Nov 2026). Their separate
+  // copies here were a release behind: euro-area and UK GDP still Q2.
+  const cs = (code, name, flag, key, bank, bankName, src) => {
+    const s = COUNTRY_STATS[code]
+    return { flag, name, key, growth: s?.gdp?.value ?? null, gLabel: s?.gdp ? `${s.gdp.measure.split(',')[0]} ${s.gdp.period}` : '—', cpi: s?.cpi?.value ?? null, cLabel: s?.cpi?.period ?? '—', bank, bankName, src }
+  }
   const rows = [
     { flag: '🇦🇺', name: 'Australia', key: 'au', growth: au.gdpAnnual, gLabel: `y/y ${au.gdpPeriod.replace(' quarter', '')}`, cpi: au.cpi, cLabel: au.cpiPeriod, bank: C.rba, bankName: 'RBA', src: 'ABS · RBA', home: true },
     { flag: '🇺🇸', name: 'United States', key: 'us', growth: us.gdpQoQAnnualised, gLabel: `q/q ann. ${us.gdpPeriod}`, cpi: us.cpi, cLabel: us.cpiPeriod, bank: C.fed, bankName: 'Fed', src: 'BEA · BLS · Fed' },
-    { flag: '🇪🇺', name: 'Euro area', key: 'eu', growth: eu.gdpYoY, gLabel: `y/y ${eu.gdpPeriod}`, cpi: eu.cpi, cLabel: eu.cpiPeriod, bank: C.ecb, bankName: 'ECB', src: 'Eurostat · ECB' },
-    { flag: '🇬🇧', name: 'United Kingdom', key: 'uk', growth: uk.gdpYoY, gLabel: `y/y ${uk.gdpPeriod}`, cpi: uk.cpi, cLabel: uk.cpiPeriod, bank: C.boe, bankName: 'BoE', src: 'ONS · BoE' },
-    { flag: '🇯🇵', name: 'Japan', key: 'jp', growth: jp.gdpQoQAnnualised, gLabel: `q/q ann. ${jp.gdpPeriod}`, cpi: jp.cpi, cLabel: jp.cpiPeriod, bank: C.boj, bankName: 'BoJ', src: 'Stats Bureau · Cabinet Office · BoJ' },
-    { flag: '🇨🇳', name: 'China', key: 'cn', growth: cn.gdpYoY, gLabel: `y/y ${cn.gdpPeriod}`, cpi: cn.cpi, cLabel: cn.cpiPeriod, bank: C.pboc, bankName: 'PBOC 1Y LPR', src: 'NBS · PBOC' },
+    cs('EA', 'Euro area', '🇪🇺', 'eu', C.ecb, 'ECB', 'Eurostat · ECB'),
+    cs('GB', 'United Kingdom', '🇬🇧', 'uk', C.boe, 'BoE', 'ONS · BoE'),
+    cs('JP', 'Japan', '🇯🇵', 'jp', C.boj, 'BoJ', 'Cabinet Office · Statistics Bureau · BoJ'),
+    cs('CN', 'China', '🇨🇳', 'cn', C.pboc, 'PBOC 1Y LPR', 'NBS · PBOC'),
   ]
 
   return (
     <div className="border border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">GLOBAL ECONOMIC COMPARISON</span>
-        <HandEnteredBadge dataKey="eu" />
+        <DataBadge cls="DELAYED" source="statistics offices and central banks, checked" at={COUNTRY_STATS_CHECKED} />
         <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">latest official prints · stance = last decision</span>
       </div>
       <div className="overflow-x-auto">
@@ -85,7 +93,7 @@ export default function GlobalComparison() {
         </table>
       </div>
       <div className="px-3 py-1.5 text-[11px] text-terminal-text-dim/60 leading-snug">
-        Growth: the US and Japan headline annualised quarterly growth; the others year-on-year — not directly comparable. Inflation is each
+        Growth: the US headlines annualised quarterly growth; the others are year-on-year, so the US figure is not directly comparable. Inflation is each
         economy&apos;s headline CPI (HICP for the euro area). Policy stances are each bank's latest decision, updated as the constants are.
       </div>
     </div>

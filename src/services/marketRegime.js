@@ -66,30 +66,67 @@ export function regimePrompts() {
 // context and the morning brief: the POLICY direction (is the RBA tightening
 // or easing) against the GROWTH direction (is the economy slowing or not).
 //
-//   TIGHTENING + SLOWING  → STAGFLATION RISK   amber
-//   TIGHTENING + GROWING  → OVERHEATING        red
-//   EASING     + SLOWING  → RECESSION RISK     dark red
-//   EASING     + GROWING  → GOLDILOCKS         green
+//   TIGHTENING + SLOWING  → HIKING · SLOWER GROWTH
+//   TIGHTENING + GROWING  → HIKING · FIRMER GROWTH
+//   EASING     + SLOWING  → CUTTING · SLOWER GROWTH
+//   EASING     + GROWING  → CUTTING · FIRMER GROWTH
 //
-// "Recession risk" rather than "recession": a slowing economy with a central
-// bank cutting is the setting a recession starts from, not proof of one.
+// Plain descriptions (16 Nov 2026). The names used before (STAGFLATION RISK,
+// OVERHEATING, RECESSION RISK, GOLDILOCKS) carried judgements the rules do
+// not make, and the Macro quadrant used a third set of names.
 //
 // The rules, so the label can be checked:
 //   Policy  — the direction of the RBA's most recent move, if it came within
 //             the last nine months; with no move in that window, ON HOLD.
-//   Growth  — SLOWING if annual GDP growth is below trend (2.25%, the axis the
-//             Macro quadrant uses) or unemployment has risen 0.2pt or more
-//             over six months; otherwise GROWING.
+//   Growth  — SLOWING if annual GDP growth is below GROWTH_REFERENCE or
+//             unemployment has risen 0.2pt or more over six months;
+//             otherwise GROWING.
 // CPI against the 2–3% band and the Fed's stance are shown beside the label
 // as inputs; they colour the reading but do not change the quadrant.
 
-export const TREND_GDP = 2.25
+// The growth line: 2.25% annual GDP growth, a fixed reference Maddex uses to
+// split "slower" from "firmer" growth. It is a method choice, not an estimate
+// of potential growth: the RBA publishes no figure for that. Its own
+// assessment, in words, is RBA_GROWTH_ASSESSMENT, shown beside the label.
+// (Until 16 Nov 2026 this was called "trend growth", a figure with no source.)
+export const GROWTH_REFERENCE = 2.25
+export const RBA_GROWTH_ASSESSMENT = {
+  text: 'GDP growth has slowed this year to a little below its potential growth rate',
+  source: 'RBA, Statement on Monetary Policy, November 2026',
+  url: 'https://www.rba.gov.au/publications/smp/2026/nov/outlook.html',
+  read: '2026-11-16',
+}
+// The RBA's NAIRU, in its words: no figure is published in the Statement,
+// so none is shown (a typed "~4.25%" stood on three panels until 16 Nov 2026).
+export const RBA_NAIRU_NOTE = {
+  text: 'the RBA raised its assessment of the NAIRU a little in November 2026 and calls the estimate very uncertain; it publishes no single figure in the Statement',
+  source: 'RBA, Statement on Monetary Policy, November 2026',
+  url: 'https://www.rba.gov.au/publications/smp/2026/nov/outlook.html',
+  read: '2026-11-16',
+}
+
+// The inflation line everywhere: the top of the RBA's 2–3% band.
+export const CPI_REFERENCE = 3
+
 export const REGIME_STYLE = {
-  'STAGFLATION RISK': { colour: PAL.amber, note: 'Policy rate rising while growth is below trend and CPI above target.' },
-  OVERHEATING: { colour: PAL.down, note: 'Policy rate rising while growth is at or above trend.' },
-  'RECESSION RISK': { colour: '#8B2222', note: 'Policy rate falling while growth is below trend.' },
-  GOLDILOCKS: { colour: PAL.up, note: 'Policy rate falling while growth is at or above trend.' },
-  'ON HOLD': { colour: PAL.dim, note: 'No RBA move in nine months — the label waits for a direction.' },
+  'HIKING · SLOWER GROWTH': { colour: PAL.amber, note: 'The RBA\'s last move was a rise; growth is below the 2.25% reference line, or unemployment has risen.' },
+  'HIKING · FIRMER GROWTH': { colour: PAL.amber, note: 'The RBA\'s last move was a rise; growth is at or above the 2.25% reference line.' },
+  'CUTTING · SLOWER GROWTH': { colour: PAL.dim, note: 'The RBA\'s last move was a cut; growth is below the 2.25% reference line, or unemployment has risen.' },
+  'CUTTING · FIRMER GROWTH': { colour: PAL.dim, note: 'The RBA\'s last move was a cut; growth is at or above the 2.25% reference line.' },
+  'ON HOLD': { colour: PAL.dim, note: 'No RBA move in nine months.' },
+}
+
+// Growth against the reference line and CPI against the top of the band:
+// the Macro quadrant's four cells, in the same words.
+export const QUADRANT_LABELS = {
+  'slow-hot': 'SLOWER GROWTH · CPI ABOVE THE BAND',
+  'firm-hot': 'FIRMER GROWTH · CPI ABOVE THE BAND',
+  'slow-cool': 'SLOWER GROWTH · CPI IN OR BELOW THE BAND',
+  'firm-cool': 'FIRMER GROWTH · CPI IN OR BELOW THE BAND',
+}
+export function growthInflationQuadrant(gdpAnnual, cpi) {
+  const key = `${gdpAnnual < GROWTH_REFERENCE ? 'slow' : 'firm'}-${cpi > CPI_REFERENCE ? 'hot' : 'cool'}`
+  return { key, label: QUADRANT_LABELS[key] }
 }
 
 const monthsBetween = (a, b) => (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / (30.44 * 86_400_000)
@@ -113,8 +150,8 @@ function unemploymentTrendAt(asOf, c) {
 
 function label(policy, slowing) {
   if (policy === 'HOLD') return 'ON HOLD'
-  if (policy === 'TIGHTENING') return slowing ? 'STAGFLATION RISK' : 'OVERHEATING'
-  return slowing ? 'RECESSION RISK' : 'GOLDILOCKS'
+  if (policy === 'TIGHTENING') return slowing ? 'HIKING · SLOWER GROWTH' : 'HIKING · FIRMER GROWTH'
+  return slowing ? 'CUTTING · SLOWER GROWTH' : 'CUTTING · FIRMER GROWTH'
 }
 
 // gdpAnnual / cpi: the readings known at asOf (callers pass the quarter's own
@@ -122,7 +159,7 @@ function label(policy, slowing) {
 export function classifyRegime({ asOf, gdpAnnual, cpi }, c = VERIFIED_CONSTANTS) {
   const { policy, last } = policyAt(asOf, c)
   const u = unemploymentTrendAt(asOf, c)
-  const belowTrend = gdpAnnual != null && gdpAnnual < TREND_GDP
+  const belowTrend = gdpAnnual != null && gdpAnnual < GROWTH_REFERENCE
   const slowing = belowTrend || u.trend === 'RISING'
   const regime = label(policy, slowing)
   const band = [2, 3]
@@ -133,7 +170,7 @@ export function classifyRegime({ asOf, gdpAnnual, cpi }, c = VERIFIED_CONSTANTS)
     inputs: {
       rba: policy === 'HOLD' ? 'Holding' : policy === 'TIGHTENING' ? `Hiking (last ${formatDate(last.date)})` : `Cutting (last ${formatDate(last.date)})`,
       cpi: cpi == null ? '—' : cpi > band[1] ? `Above target (${cpi.toFixed(1)}%)` : cpi < band[0] ? `Below target (${cpi.toFixed(1)}%)` : `In the band (${cpi.toFixed(1)}%)`,
-      gdp: gdpAnnual == null ? '—' : `${belowTrend ? 'Below' : 'At or above'} trend (${gdpAnnual}% vs ${TREND_GDP}%)`,
+      gdp: gdpAnnual == null ? '—' : `${belowTrend ? 'Below' : 'At or above'} the reference line (${gdpAnnual}% vs ${GROWTH_REFERENCE}%)`,
       unemployment: u.now == null ? '—' : `${u.trend[0]}${u.trend.slice(1).toLowerCase()} (${u.back}% → ${u.now}% over 6 months)`,
     },
   }

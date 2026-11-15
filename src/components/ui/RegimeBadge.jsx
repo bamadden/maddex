@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { currentRegime, regimeHistory, TREND_GDP } from '../../services/marketRegime'
+import { currentRegime, regimeHistory, GROWTH_REFERENCE, RBA_GROWTH_ASSESSMENT } from '../../services/marketRegime'
 import ScoreNote from './ScoreNote'
 
 // The market-regime label (services/marketRegime classifyRegime) in two sizes:
@@ -21,7 +21,7 @@ export function RegimePanel() {
   const [{ r, hist }] = useState(() => ({ r: currentRegime(), hist: regimeHistory() }))
   const rows = [
     ['RBA', r.inputs.rba], ['Fed', r.inputs.fed], ['CPI vs 2–3% target', r.inputs.cpi],
-    [`GDP vs trend (${TREND_GDP}%)`, r.inputs.gdp], ['Unemployment', r.inputs.unemployment],
+    [`GDP vs ${GROWTH_REFERENCE}% line`, r.inputs.gdp], ['Unemployment', r.inputs.unemployment],
   ]
   return (
     <div className="border-b border-terminal-border px-4 py-3" style={{ background: `${r.colour}0A` }}>
@@ -53,7 +53,7 @@ export function RegimePanel() {
         </div>
       </div>
       <div className="text-terminal-text-dim/60 mt-2 leading-snug" style={{ fontSize: 11 }}>
-        Policy = direction of the RBA&apos;s last move within nine months. Slowing = GDP below {TREND_GDP}% trend, or unemployment up 0.2pt+ over six months.
+        Policy = direction of the RBA&apos;s last move within nine months. Slower growth = annual GDP growth below {GROWTH_REFERENCE}% (a fixed Maddex reference line, not an estimate of potential growth), or unemployment up 0.2pt+ over six months. The RBA&apos;s own words: &ldquo;{RBA_GROWTH_ASSESSMENT.text}&rdquo; ({RBA_GROWTH_ASSESSMENT.source}).
         {hist.some((h) => h.gdpProvisional) && ' * Quarter\'s GDP not yet published — the latest figure is used.'} Derived from verified ABS and RBA data; a description, not a forecast.
       </div>
       <ScoreNote method="regime" className="mt-1" />

@@ -452,16 +452,17 @@ export const VERIFIED_CONSTANTS = {
     tradeBalanceNextRelease: '2026-12-03',
 
     // Retail Trade ended in 2025; the ABS's monthly read on consumer demand is
-    // now the Monthly Household Spending Indicator. August 2026, released
-    // 29 Sep: "Remained flat at 0.0% month-on-month" (current price, SA), up
-    // 6.8% on August 2025. July was +1.1%. ABS Data API: HSI_M
-    // 8.TOT.CUR.20.AUS.M (m/m) and 9.TOT.CUR.20.AUS.M (y/y).
-    householdSpendingMoM: 0.0,
-    householdSpendingPrevMoM: 1.1,
+    // now the Monthly Household Spending Indicator. September 2026, released
+    // 4 Nov (abs.gov.au latest release, read 16 Nov 2026): "rose 0.6%
+    // month-on-month on a current price, seasonally adjusted basis", 6.8% on
+    // September 2025. August was 0.0% as first published (29 Sep). Next:
+    // October 2026 on 30 Nov. ABS Data API: HSI_M.
+    householdSpendingMoM: 0.6,
+    householdSpendingPrevMoM: 0.0,
     householdSpendingYoY: 6.8,
-    householdSpendingPeriod: 'Aug 2026',
-    householdSpendingRelease: '2026-09-29',
-    householdSpendingNextRelease: '2026-11-04',
+    householdSpendingPeriod: 'Sep 2026',
+    householdSpendingRelease: '2026-11-04',
+    householdSpendingNextRelease: '2026-11-30',
 
     // NAB Monthly Business Survey, October 2026, released 10 Nov (nab.com.au,
     // read 15 Nov): "Business confidence edged down 1pt to -15 index points
@@ -665,39 +666,10 @@ export const VERIFIED_CONSTANTS = {
     ],
     source: 'bls.gov / bea.gov', asOf: '2026-11-06', lastVerified: '2026-11-07',
   },
-  // UPDATED 2026-10-28 for the Macro global comparison — CPI, EU, UK and
-  // China had sat at May/June readings. Each from the statistics office's own
-  // release (via its press page or the wires reporting it):
-  //   China  NBS: CPI Sep +0.9% y/y (Aug 0.8), 15 Oct; GDP Q3 +4.5% y/y
-  //          (Q2 4.3), +1.2% q/q, 19 Oct. PMI still the May reading.
-  //   Euro   Eurostat: HICP Sep 3.8% (Aug 3.2; energy ~18.9%), final 16 Oct;
-  //          GDP Q2 +1.2% y/y, +0.6% q/q (7 Sep estimate). Q3 flash 30 Oct.
-  //   UK     ONS: CPI Sep 3.5% (Aug 3.1), 21 Oct, next 18 Nov; GDP Q2
-  //          +0.4% q/q (Q1 0.6), +1.2% y/y. Q3 first estimate 12 Nov.
-  //   Japan  Statistics Bureau: CPI Sep 2.1% (Aug 1.9), 23 Oct JST; Cabinet
-  //          Office GDP Q2 revised +0.4% q/q, 1.4% annualised (Sep).
-  // A brief offered EU ~2.8%, UK ~2.5%, China ~0.5% CPI and ~4.8% growth.
-  cn: {
-    cpi: 0.9, cpiPrevious: 0.8, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-15',
-    gdpYoY: 4.5, gdpYoYPrevious: 4.3, gdpQoQ: 1.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-19',
-    pmiManufacturing: 50.3, pmiRelease: '2026-05-31',
-    source: 'stats.gov.cn', asOf: '2026-10-19', lastVerified: '2026-10-28',
-  },
-  eu: {
-    cpi: 3.8, cpiPrevious: 3.2, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-16',
-    gdpYoY: 1.2, gdpQoQ: 0.6, gdpPeriod: 'Q2 2026', gdpRelease: '2026-09-07', gdpNextRelease: '2026-10-30',
-    source: 'ec.europa.eu (Eurostat)', asOf: '2026-10-16', lastVerified: '2026-10-28',
-  },
-  uk: {
-    cpi: 3.5, cpiPrevious: 3.1, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-21', cpiNextRelease: '2026-11-18',
-    gdpQoQ: 0.4, gdpQoQPrevious: 0.6, gdpYoY: 1.2, gdpPeriod: 'Q2 2026', gdpRelease: null, gdpNextRelease: '2026-11-12',
-    source: 'ons.gov.uk', asOf: '2026-10-21', lastVerified: '2026-10-28',
-  },
-  jp: {
-    cpi: 2.1, cpiPrevious: 1.9, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-23',
-    gdpQoQ: 0.4, gdpQoQAnnualised: 1.4, gdpPeriod: 'Q2 2026', gdpRelease: '2026-09-08',
-    source: 'stat.go.jp / esri.cao.go.jp', asOf: '2026-10-23', lastVerified: '2026-10-28',
-  },
+  // Euro area, UK, Japan and China: COUNTRY_STATS below is the one record of
+  // their latest GDP and CPI (16 Nov 2026). The separate cn / eu / uk / jp
+  // groups that stood here were a release behind (euro-area and UK GDP
+  // still Q2) and were removed once nothing read them.
 
   // ── Commodities and freight ───────────────────────────────────────────────
   // Gold is deliberately absent: it comes live from liveDataService via PAXG.

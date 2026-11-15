@@ -5,6 +5,7 @@ import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import RegimeQuadrant from './RegimeQuadrant'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import { GROWTH_REFERENCE, CPI_REFERENCE, RBA_GROWTH_ASSESSMENT, QUADRANT_LABELS, growthInflationQuadrant } from '../../services/marketRegime'
 
 // ─── Macro indicator deep dive ─────────────────────────────────────────────
 //
@@ -57,7 +58,7 @@ function rbaRelevance(name = '') {
 }
 
 const CACHE_PREFIX = 'maddex_macro_read_' 
-const dayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Brisbane' })
+const dayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
 
 // One short interpretation per indicator per day.
 //
@@ -190,41 +191,32 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
 // readings, the decisions this year and the dated market pricing — not
 // generated, so it cannot state a figure the constants do not hold.
 //
-// The stagflation lean used to read HOLD, while the RBA was hiking. With
-// inflation outside the target band the textbook trade-off resolves toward
-// inflation, which is what the Board has done; the cell now says so.
-const TREND_GDP = 2.25 // Australia's approximate trend growth, the usual dividing line
-
+// The four cells in the shared words (services/marketRegime), with what
+// each combination means in the published figures. No policy "lean": each
+// cell used to name the decision it implied (HIKE, CUT, HOLD), which is a
+// forecast of the Board (removed 16 Nov 2026).
 const QUADRANT_GUIDE = [
-  { key: 'stag', label: 'STAGFLATION RISK', growth: false, infl: true, lean: 'HIKE / HOLD', tone: PAL.down,
-    note: 'The hardest case — growth below trend, inflation above target. Inflation outside the band usually wins: the RBA tightens despite the slowdown.' },
-  { key: 'over', label: 'OVERHEATING', growth: true, infl: true, lean: 'HIKE', tone: PAL.amber,
-    note: 'Demand running ahead of capacity — the textbook case for tightening.' },
-  { key: 'rec', label: 'CONTRACTION', growth: false, infl: false, lean: 'CUT', tone: '#4A9EDB',
-    note: 'Weak growth and inflation in or below the band — room to support activity.' },
-  { key: 'gold', label: 'GOLDILOCKS', growth: true, infl: false, lean: 'HOLD', tone: PAL.up,
-    note: 'Growth at trend without price pressure — policy can sit still.' },
-]
+  { key: 'slow-hot', note: 'Annual GDP growth below 2.25% while CPI is above the top of the 2–3% band.' },
+  { key: 'firm-hot', note: 'Annual GDP growth at or above 2.25% while CPI is above the top of the band.' },
+  { key: 'slow-cool', note: 'Annual GDP growth below 2.25% with CPI in or below the band.' },
+  { key: 'firm-cool', note: 'Annual GDP growth at or above 2.25% with CPI in or below the band.' },
+].map((q) => ({ ...q, label: QUADRANT_LABELS[q.key] }))
 
 export function RbaSensitivityMatrix() {
   const { au, rba } = VERIFIED_CONSTANTS
   const nd = pendingRbaDecision()
-  const inflationHigh = au.cpi > 3
-  const growthHigh = au.gdpAnnual >= TREND_GDP
-  const here = QUADRANT_GUIDE.find((q) => q.growth === growthHigh && q.infl === inflationHigh)
+  const here = QUADRANT_GUIDE.find((q) => q.key === growthInflationQuadrant(au.gdpAnnual, au.cpi).key)
   const year = rba.lastDecision.slice(0, 4)
   const hikes = (rba.decisions ?? []).filter((d) => d.date.startsWith(year) && d.decision === 'HIKE').length
   const pricing = nd?.marketHikePct != null
     ? ` Markets price ~${nd.marketHikePct}% for a further hike to ${nd.hikeRate.toFixed(2)}% on ${formatDate(nd.date, { year: false })} (${nd.marketSource}, ${nd.marketAsOf}).`
     : ''
-  const narrative = here.key === 'stag'
-    ? `Australia sits in the stagflation-risk quadrant. Annual GDP growth of ${au.gdpAnnual}% (${au.gdpPeriod}) is below the ~${TREND_GDP}% trend, while CPI at ${au.cpi.toFixed(1)}% (${au.cpiPeriod}) is above the ${au.rbaTargetBand} target band. With inflation outside the band the RBA has put it ahead of growth: ${hikes} hike${hikes === 1 ? '' : 's'} in ${year}, to ${rba.cashRate.toFixed(2)}%.${pricing}`
-    : `Australia sits in the ${here.label.toLowerCase()} quadrant: annual GDP growth ${au.gdpAnnual}% (${au.gdpPeriod}) against a ~${TREND_GDP}% trend, CPI ${au.cpi.toFixed(1)}% (${au.cpiPeriod}) against the ${au.rbaTargetBand} band, cash rate ${rba.cashRate.toFixed(2)}%.${pricing}`
+  const narrative = `Annual GDP growth ${au.gdpAnnual}% (${au.gdpPeriod}) against the ${GROWTH_REFERENCE}% reference line; CPI ${au.cpi.toFixed(1)}% (${au.cpiPeriod}) against the ${au.rbaTargetBand} band. The RBA's own assessment: "${RBA_GROWTH_ASSESSMENT.text}" (${RBA_GROWTH_ASSESSMENT.source}). Cash rate ${rba.cashRate.toFixed(2)}% after ${hikes} rise${hikes === 1 ? '' : 's'} in ${year}.${pricing}`
 
   return (
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border flex-wrap gap-2">
-        <span className="text-2xs font-bold text-terminal-gold tracking-widest">GROWTH / INFLATION POSITION · RBA SENSITIVITY</span>
+        <span className="text-2xs font-bold text-terminal-gold tracking-widest">GROWTH / INFLATION POSITION</span>
         <span className="text-[11px] text-terminal-text-dim">
           CPI {au.cpi.toFixed(1)}% · GDP {au.gdpAnnual}% · cash rate {rba.cashRate.toFixed(2)}%
         </span>
@@ -238,12 +230,11 @@ export function RbaSensitivityMatrix() {
             const active = q.key === here.key
             return (
               <div key={q.key} className="px-2.5 py-1.5" style={{
-                border: active ? `1px solid ${q.tone}AA` : '1px solid rgba(99,120,153,0.2)',
-                background: active ? `${q.tone}14` : 'transparent',
+                border: active ? '1px solid rgba(201,168,76,0.6)' : '1px solid rgba(99,120,153,0.2)',
+                background: active ? 'rgba(201,168,76,0.08)' : 'transparent',
               }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xs font-bold tracking-widest" style={{ color: active ? q.tone : PAL.muted }}>{q.label}</span>
-                  <span className="text-[11px] font-mono" style={{ color: active ? PAL.bright : PAL.muted }}>→ {q.lean}</span>
+                  <span className="text-2xs font-bold tracking-widest" style={{ color: active ? PAL.gold : PAL.muted }}>{q.label}</span>
                   {active && <span className="ml-auto text-[11px] text-terminal-gold tracking-widest font-bold">YOU ARE HERE</span>}
                 </div>
                 <div className="text-[11px] mt-0.5 leading-snug" style={{ color: active ? PAL.dim : 'rgba(99,120,153,0.6)' }}>{q.note}</div>
@@ -260,8 +251,8 @@ export function RbaSensitivityMatrix() {
           <p className="text-2xs text-terminal-text leading-relaxed">{narrative}</p>
         </div>
         <div className="text-[11px] text-terminal-text-dim/60 leading-snug mt-1.5">
-          Quadrant boundaries: ~{TREND_GDP}% trend growth; inflation above the top of the band counts as high. The lean is
-          what the framework implies, not a forecast of the Board&apos;s decision.
+          Cells split at {GROWTH_REFERENCE}% annual growth (a fixed Maddex reference, not an estimate of potential growth) and
+          at {CPI_REFERENCE}% CPI, the top of the band. A description of published figures, not a forecast and not a recommendation.
         </div>
       </div>
     </div>

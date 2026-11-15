@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import Tooltip from '../../components/ui/Tooltip'
 import { PAL } from '../../styles/palette.js'
+import ScoreNote from '../../components/ui/ScoreNote'
+import { formatDate } from '../../utils/dateUtils'
+import { GROWTH_REFERENCE, CPI_REFERENCE, RBA_GROWTH_ASSESSMENT, growthInflationQuadrant } from '../../services/marketRegime'
 
 // ─── Growth / inflation quadrant ────────────────────────────────────────────
 //
@@ -22,18 +25,20 @@ import { PAL } from '../../styles/palette.js'
 const SIZE = 280
 const MID = SIZE / 2
 
-// Axis anchors. Trend growth is the usual dividing line for "at or below
-// capacity"; the target band's midpoint is the RBA's own centre of gravity.
-// Both are stated so the reader can see what "centre" means rather than
-// taking the crosshair on faith.
-const TREND_GDP = 2.25
-const TARGET_MID = 2.5
+// Axis centres: the same two lines every regime label uses
+// (services/marketRegime): 2.25% annual growth, a fixed Maddex reference
+// (not an estimate of potential growth), and 3%, the top of the RBA's band.
+// Until 16 Nov 2026 this chart centred on a "~2.25% trend" and the band
+// MIDPOINT, so it and the panel beside it split inflation at different
+// levels and named the cells differently.
+const TREND_GDP = GROWTH_REFERENCE
+const TARGET_MID = CPI_REFERENCE
 
 // Half-width of each axis in its own units — how far from centre the edge of
 // the box is. Chosen so a normal cycle uses most of the plane without a
 // single unusual quarter pinning to the wall.
 const GDP_SPAN = 2.75      // centre ±2.75pp → 2.25% growth sits mid, -0.5% at the far left
-const CPI_SPAN = 2.5       // centre ±2.5pp  → 2.5% CPI sits mid, 5.0% at the top
+const CPI_SPAN = 2.5       // centre ±2.5pp  → 3% CPI sits mid, 5.5% at the top
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
@@ -42,22 +47,13 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 const xFor = (gdp) => clamp(MID + ((gdp - TREND_GDP) / GDP_SPAN) * MID, 12, SIZE - 12)
 const yFor = (cpi) => clamp(MID - ((cpi - TARGET_MID) / CPI_SPAN) * MID, 12, SIZE - 12)
 
+// Cell names in two short lines, from the shared labels.
 const QUADRANTS = [
-  { key: 'stag',  label: 'STAGFLATION', x: 20,  y: 22,       fill: 'rgba(168,50,50,0.06)',  rect: [0, 0, MID, MID] },
-  { key: 'over',  label: 'OVERHEATING', x: 168, y: 22,       fill: 'rgba(201,168,76,0.06)', rect: [MID, 0, MID, MID] },
-  { key: 'rec',   label: 'RECESSION',   x: 20,  y: SIZE - 12, fill: 'rgba(168,50,50,0.08)',  rect: [0, MID, MID, MID] },
-  { key: 'gold',  label: 'GOLDILOCKS',  x: 160, y: SIZE - 12, fill: 'rgba(45,138,80,0.06)',  rect: [MID, MID, MID, MID] },
+  { key: 'slow-hot',  lines: ['SLOWER GROWTH', 'CPI ABOVE BAND'],    x: 12,  y: 22,       fill: 'rgba(201,168,76,0.05)', rect: [0, 0, MID, MID] },
+  { key: 'firm-hot',  lines: ['FIRMER GROWTH', 'CPI ABOVE BAND'],    x: 152, y: 22,       fill: 'rgba(201,168,76,0.05)', rect: [MID, 0, MID, MID] },
+  { key: 'slow-cool', lines: ['SLOWER GROWTH', 'CPI IN/BELOW BAND'], x: 12,  y: SIZE - 24, fill: 'rgba(99,120,153,0.05)', rect: [0, MID, MID, MID] },
+  { key: 'firm-cool', lines: ['FIRMER GROWTH', 'CPI IN/BELOW BAND'], x: 152, y: SIZE - 24, fill: 'rgba(99,120,153,0.05)', rect: [MID, MID, MID, MID] },
 ]
-
-// Which quadrant a reading falls in, and what that combination is called.
-function quadrantFor(gdp, cpi) {
-  const weak = gdp < TREND_GDP
-  const hot = cpi > TARGET_MID
-  if (weak && hot) return { key: 'stag', label: 'STAGFLATION', tone: PAL.down, sub: 'Below-trend growth with inflation above the band midpoint' }
-  if (!weak && hot) return { key: 'over', label: 'OVERHEATING', tone: PAL.gold, sub: 'Growth at or above trend with inflation running hot' }
-  if (weak && !hot) return { key: 'rec', label: 'CONTRACTIONARY', tone: PAL.down, sub: 'Below-trend growth with inflation contained' }
-  return { key: 'gold', label: 'GOLDILOCKS', tone: PAL.up, sub: 'Growth at or above trend with inflation contained' }
-}
 
 export default function RegimeQuadrant() {
   const [hover, setHover] = useState(null)
@@ -74,7 +70,7 @@ export default function RegimeQuadrant() {
     // The trail is the quarters BEFORE the current one — if the last recorded
     // quarter is the same reading the headline carries, it is not drawn twice.
     const trail = path.filter((p) => !(p.cpi === current.cpi && p.gdpAnnual === current.gdpAnnual))
-    return { trail: trail.slice(-3), current, quadrant: quadrantFor(current.gdpAnnual, current.cpi) }
+    return { trail: trail.slice(-3), current, quadrant: growthInflationQuadrant(current.gdpAnnual, current.cpi) }
   }, [au])
 
   const { trail, current, quadrant } = model
@@ -106,7 +102,7 @@ export default function RegimeQuadrant() {
               key={q.key} x={q.x} y={q.y}
               fill={quadrant.key === q.key ? PAL.gold : PAL.muted}
               style={{ fontSize: 11, fontFamily: '"IBM Plex Mono", monospace', letterSpacing: '0.1em', fontWeight: quadrant.key === q.key ? 700 : 400 }}
-            >{q.label}</text>
+            >{q.lines.map((l, i) => <tspan key={l} x={q.x} dy={i === 0 ? 0 : 12}>{l}</tspan>)}</text>
           ))}
 
           {/* Axes, labelled with what "centre" actually means. A crosshair with
@@ -144,11 +140,11 @@ export default function RegimeQuadrant() {
       </div>
 
       <div className="min-w-0 flex-1" style={{ minWidth: 210 }}>
-        <div className="font-mono font-bold tracking-widest" style={{ fontSize: 12, color: quadrant.tone }}>
+        <div className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 12 }} data-quadrant-label>
           {quadrant.label}
         </div>
-        <div className="font-mono text-terminal-text-dim leading-snug mt-1" style={{ fontSize: 11 }}>
-          {quadrant.sub}
+        <div className="font-mono text-terminal-text-dim leading-snug mt-1" style={{ fontSize: 11 }} data-rba-growth>
+          RBA: &ldquo;{RBA_GROWTH_ASSESSMENT.text}&rdquo; (<a href={RBA_GROWTH_ASSESSMENT.url} target="_blank" rel="noopener noreferrer" className="hover:text-terminal-gold underline">{RBA_GROWTH_ASSESSMENT.source}</a>, read {formatDate(RBA_GROWTH_ASSESSMENT.read)}).
         </div>
 
         <div className="mt-3 space-y-1">
@@ -158,7 +154,7 @@ export default function RegimeQuadrant() {
               {current.gdpAnnual}%
             </span>
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
-              vs ~{TREND_GDP}% trend · {au.gdpPeriod}
+              vs {TREND_GDP}% reference line · {au.gdpPeriod}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -167,7 +163,7 @@ export default function RegimeQuadrant() {
               {au.cpi.toFixed(1)}%
             </span>
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
-              vs {au.rbaTargetBand} band · {au.cpiPeriod}
+              vs {CPI_REFERENCE}%, top of the {au.rbaTargetBand} band · {au.cpiPeriod}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
@@ -193,12 +189,14 @@ export default function RegimeQuadrant() {
             ))}
             <Tooltip content={`Every point plotted is a published ABS reading — three quarters of annual CPI and annual GDP. Nothing is interpolated, and a quarter missing either figure gets no dot.\n\nSource: ${au.auQuarterlyPathSource ?? 'abs.gov.au'}`}>
               <div className="font-mono text-terminal-text-dim/40 mt-1.5 leading-snug" style={{ fontSize: 11 }}>
-                Axes centred on ~{TREND_GDP}% trend growth and the {au.rbaTargetBand} band midpoint.
+                Axes centred on {TREND_GDP}% growth (a fixed Maddex reference, not an estimate of potential growth) and {CPI_REFERENCE}% CPI, the top of the {au.rbaTargetBand} band.
                 Path from {au.auQuarterlyPathSource ?? 'abs.gov.au'}.
               </div>
             </Tooltip>
           </div>
         )}
+
+        <ScoreNote method="regime" asOf={formatDate(VERIFIED_CONSTANTS.au.lastVerified)} className="mt-2" />
 
         {hover && (
           <div className="font-mono text-terminal-gold mt-2" style={{ fontSize: 11 }}>
