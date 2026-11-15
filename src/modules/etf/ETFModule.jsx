@@ -8,6 +8,7 @@ import { useStore } from '../../store/useStore'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
 import DataBadge from '../../components/ui/DataBadge'
+import { formatDate } from '../../utils/dateUtils'
 
 // ─── ETF Explorer ───────────────────────────────────────────────────────────
 //
@@ -31,7 +32,6 @@ const catTone = (key) => ETF_CATEGORIES.find((c) => c.key === key)?.tone ?? PAL.
 // reader scanning twenty-one funds should be able to see the 0.04% and the
 // 1.38% without reading every row.
 const merTone = (m) => (m < 0.10 ? PAL.up : m <= 0.30 ? PAL.gold : m <= 0.60 ? '#D69E2E' : PAL.down)
-const yieldTone = (y) => (y > 4 ? PAL.up : y >= 2 ? PAL.gold : PAL.muted)
 const retTone = (v) => (v == null ? PAL.muted : v >= 0 ? PAL.up : PAL.down)
 
 const COLUMNS = [
@@ -40,9 +40,6 @@ const COLUMNS = [
   { key: 'category', label: 'CATEGORY', width: 118, align: 'left' },
   { key: 'aum',      label: 'AUM',     width: 82,  align: 'right' },
   { key: 'mer',      label: 'MER',     width: 66,  align: 'right' },
-  { key: 'yield',    label: 'YIELD',   width: 66,  align: 'right' },
-  { key: 'oneYear',  label: '1Y',      width: 66,  align: 'right' },
-  { key: 'threeYear', label: '3Y',     width: 66,  align: 'right' },
   { key: 'livePrice', label: 'PRICE',  width: 84,  align: 'right' },
   { key: 'dayPct',   label: 'DAY ±',   width: 76,  align: 'right' },
 ]
@@ -52,8 +49,9 @@ const COLUMNS = [
 function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
   const [amount, setAmount] = useState('10000')
   const amt = parseFloat(amount) || 0
-  const drag = useMemo(() => feeDrag(amt, etf.mer, 20), [amt, etf.mer])
-  const at = (y) => drag.series.find((s) => s.year === y)
+  // No fee figure without a verified fee (the Vanguard funds, 15 Nov 2026).
+  const drag = useMemo(() => (etf.mer == null ? null : feeDrag(amt, etf.mer, 20)), [amt, etf.mer])
+  const at = (y) => drag?.series.find((s) => s.year === y)
 
   return (
     <div className="border-l border-terminal-border flex-shrink-0 overflow-y-auto"
@@ -80,8 +78,7 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-3">
-          {[['AUM', aum(etf.aum), null], ['MER', `${etf.mer.toFixed(2)}%`, merTone(etf.mer)], ['YIELD', `${etf.yield.toFixed(1)}%`, yieldTone(etf.yield)],
-            ['1Y', pct(etf.oneYear), retTone(etf.oneYear)], ['3Y', pct(etf.threeYear), retTone(etf.threeYear)], ['5Y', pct(etf.fiveYear), retTone(etf.fiveYear)]].map(([l, v, tone]) => (
+          {[['FUND SIZE', etf.aum == null ? '—' : aum(etf.aum), null], ['FEE', etf.mer == null ? '—' : `${etf.mer.toFixed(2)}%`, etf.mer == null ? null : merTone(etf.mer)]].map(([l, v, tone]) => (
             <div key={l}>
               <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>{l}</div>
               <div className="font-mono font-bold tabular-nums" style={{ fontSize: 12, color: tone ?? '#E6EDF6' }}>{v}</div>
@@ -96,8 +93,11 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
         <div className="mb-3">
           <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>TRACKS</div>
           <div className="text-terminal-text" style={{ fontSize: 11 }}>{etf.benchmark ?? '—'}</div>
-          <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em', marginTop: 6 }}>HOLDINGS</div>
-          <div className="text-terminal-text" style={{ fontSize: 11 }}>{etf.holdings ?? '—'}</div>
+          <div className="font-mono text-terminal-text-dim/60 mt-1.5" style={{ fontSize: 11 }} data-etf-source>
+            {etf.sourceUrl
+              ? <>Fee, index and size from <a href={etf.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">the issuer&apos;s page</a>{etf.aumAsOf ? `, size as at ${formatDate(etf.aumAsOf)}` : ''} (read {formatDate(etf.checked)}). Not a recommendation.</>
+              : (etf.unverified ?? 'Not verified against the issuer.')}
+          </div>
         </div>
 
         {etf.warning && (
@@ -128,7 +128,7 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
             return (
               <div key={y} className="flex items-baseline justify-between py-0.5">
                 <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>Year {y} · fees paid</span>
-                <span className="font-mono font-bold text-terminal-red tabular-nums" style={{ fontSize: 11 }}>{money(row?.feesPaid ?? 0)}</span>
+                <span className="font-mono font-bold text-terminal-red tabular-nums" style={{ fontSize: 11 }}>{drag ? money(row?.feesPaid ?? 0) : '—'}</span>
               </div>
             )
           })}
@@ -136,7 +136,7 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
             <Tooltip content="The gap between what the investment would be worth with no fee at all and what it is worth after fees — larger than the fees paid, because every dollar taken in fees also stops compounding.">
               <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>20-year cost incl. lost growth</span>
             </Tooltip>
-            <span className="font-mono font-bold text-terminal-red tabular-nums" style={{ fontSize: 11 }}>{money(drag.lost)}</span>
+            <span className="font-mono font-bold text-terminal-red tabular-nums" style={{ fontSize: 11 }}>{drag ? money(drag.lost) : '—'}</span>
           </div>
           <div className="font-mono text-terminal-text-dim/40 mt-1 leading-snug" style={{ fontSize: 11 }}>
             Assumes 8% annual growth before fees. Fees are charged on the balance, so they compound.
@@ -155,7 +155,7 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
           <button
             onClick={() => dispatchAskAI({
               name: `${etf.ticker} — ${etf.name}`, sector: etf.category, date: todayAEST(),
-              instruction: `Explain the ${etf.ticker} ETF (${etf.name}, ${etf.provider}) and whether it suits an Australian long-term investor. It tracks ${etf.benchmark ?? 'its stated index'}, charges ${etf.mer}% MER and yields ${etf.yield}%.${etf.complex ? ' It is a leveraged or inverse product — explain that risk plainly.' : ''} Do not state any figure I have not given you.`,
+              instruction: `Describe the ${etf.ticker} ETF (${etf.name}, ${etf.provider}): what it holds and how it works.${etf.benchmark ? ` It tracks ${etf.benchmark}.` : ''}${etf.mer != null ? ` Its fee is ${etf.mer}% a year (issuer, ${etf.checked}).` : ''}${etf.complex ? ' It is a leveraged or inverse product — explain that risk plainly.' : ''} Describe only: do not say whether it suits anyone, and do not state any figure I have not given you.`,
             })}
             className="text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1.5"
           >ASK MADDENAI ▶</button>
@@ -168,13 +168,8 @@ function DetailPanel({ etf, onClose, onWatch, inWatchlist }) {
 // ─── Comparison ─────────────────────────────────────────────────────────────
 
 const COMPARE_ROWS = [
-  { key: 'mer',       label: 'MER',        fmt: (e) => `${e.mer.toFixed(2)}%`,  best: 'min' },
-  { key: 'yield',     label: 'YIELD',      fmt: (e) => `${e.yield.toFixed(1)}%`, best: 'max' },
-  { key: 'oneYear',   label: '1Y RETURN',  fmt: (e) => pct(e.oneYear),  best: 'max' },
-  { key: 'threeYear', label: '3Y RETURN',  fmt: (e) => pct(e.threeYear), best: 'max' },
-  { key: 'fiveYear',  label: '5Y RETURN',  fmt: (e) => pct(e.fiveYear), best: 'max' },
-  { key: 'aum',       label: 'FUND SIZE',  fmt: (e) => aum(e.aum),      best: 'max' },
-  { key: 'holdings',  label: 'HOLDINGS',   fmt: (e) => e.holdings ?? '—', best: 'max' },
+  { key: 'mer',       label: 'FEE',        fmt: (e) => (e.mer == null ? '—' : `${e.mer.toFixed(2)}%`),  best: 'min' },
+  { key: 'aum',       label: 'FUND SIZE',  fmt: (e) => (e.aum == null ? '—' : aum(e.aum)),      best: 'max' },
 ]
 
 function ComparePanel({ etfs, onClose, onRemove }) {
@@ -228,7 +223,7 @@ function ComparePanel({ etfs, onClose, onRemove }) {
               <td className="px-2 py-1 font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.1em' }}>20Y FEE COST · A$10K</td>
               {etfs.map((e) => (
                 <td key={e.ticker} className="px-2 py-1 text-right font-mono tabular-nums text-terminal-red" style={{ fontSize: 11 }}>
-                  {money(feeDrag(10000, e.mer, 20).lost, 0)}
+                  {e.mer == null ? '—' : money(feeDrag(10000, e.mer, 20).lost, 0)}
                 </td>
               ))}
             </tr>
@@ -238,7 +233,7 @@ function ComparePanel({ etfs, onClose, onRemove }) {
         <button
           onClick={() => dispatchAskAI({
             name: etfs.map((e) => e.ticker).join(' vs '), sector: 'ETFs', date: todayAEST(),
-            instruction: `Compare these ETFs for an Australian long-term investor: ${etfs.map((e) => `${e.ticker} (${e.name}, ${e.mer}% MER, ${e.yield}% yield, tracks ${e.benchmark ?? 'its index'})`).join('; ')}. Consider fees, diversification and risk. Do not state any figure I have not given you.`,
+            instruction: `Describe how these ETFs differ: ${etfs.map((e) => `${e.ticker} (${e.name}${e.benchmark ? `, tracks ${e.benchmark}` : ''}${e.mer != null ? `, fee ${e.mer}%` : ''})`).join('; ')}. Cover what each holds, structure and costs. Describe only: do not say which suits anyone or rank them, and do not state any figure I have not given you.`,
           })}
           className="mt-3 text-2xs font-bold tracking-wide text-terminal-gold border border-terminal-gold/40 rounded-full hover:bg-terminal-gold hover:text-terminal-bg transition-colors px-3 py-1"
         >ASK MADDENAI TO COMPARE ▶</button>
@@ -279,11 +274,12 @@ export default function ETFModule() {
   }, [rows, search, category, sort])
 
   const featured = useMemo(() => {
+    // Only funds whose fee and size were read from the issuer. A "highest
+    // yield" card ran on typed yields and was removed (15 Nov 2026).
     const eligible = rows.filter((e) => !e.complex)
     return {
-      cheapest: [...eligible].sort((a, b) => a.mer - b.mer)[0],
-      largest: [...eligible].sort((a, b) => b.aum - a.aum)[0],
-      highestYield: [...rows].sort((a, b) => b.yield - a.yield)[0],
+      cheapest: [...eligible.filter((e) => e.mer != null)].sort((a, b) => a.mer - b.mer)[0],
+      largest: [...eligible.filter((e) => e.aum != null)].sort((a, b) => b.aum - a.aum)[0],
     }
   }, [rows])
 
@@ -364,11 +360,10 @@ export default function ETFModule() {
       )}
 
       {category === 'ALL' && !search && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 px-3 py-2 border-b border-terminal-border flex-shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-3 py-2 border-b border-terminal-border flex-shrink-0">
           {[
-            { label: 'LOWEST COST', e: featured.cheapest, value: `${featured.cheapest?.mer.toFixed(2)}% MER`, tone: PAL.up },
-            { label: 'LARGEST FUND', e: featured.largest, value: aum(featured.largest?.aum ?? 0), tone: PAL.gold },
-            { label: 'HIGHEST YIELD', e: featured.highestYield, value: `${featured.highestYield?.yield.toFixed(1)}%`, tone: '#D69E2E' },
+            { label: 'LOWEST FEE (VERIFIED)', e: featured.cheapest, value: `${featured.cheapest?.mer.toFixed(2)}% a year`, tone: PAL.up },
+            { label: 'LARGEST FUND (VERIFIED)', e: featured.largest, value: aum(featured.largest?.aum ?? 0), tone: PAL.gold },
           ].map((f) => f.e && (
             <button key={f.label} onClick={() => setSelected(f.e.ticker)}
               className="border border-terminal-border px-3 py-2 text-left hover:bg-terminal-accent/10 transition-colors">
@@ -441,11 +436,8 @@ export default function ETFModule() {
                       color: catTone(e.category), background: `${catTone(e.category)}22`,
                     }}>{e.category.toUpperCase()}</span>
                   </td>
-                  <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{aum(e.aum)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 11, color: merTone(e.mer) }}>{e.mer.toFixed(2)}%</td>
-                  <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: yieldTone(e.yield) }}>{e.yield.toFixed(1)}%</td>
-                  <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: retTone(e.oneYear) }}>{pct(e.oneYear)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: retTone(e.threeYear) }}>{pct(e.threeYear)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{e.aum == null ? '—' : aum(e.aum)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums" style={{ fontSize: 11, color: e.mer == null ? PAL.dim : merTone(e.mer) }}>{e.mer == null ? '—' : `${e.mer.toFixed(2)}%`}</td>
                   <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-text-bright" style={{ fontSize: 11 }}>{money(e.livePrice)}</td>
                   <td className="px-2 py-1.5 text-right">
                     <span className="font-mono font-bold tabular-nums px-1.5 py-0.5" style={{

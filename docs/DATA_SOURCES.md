@@ -186,6 +186,17 @@ suspension or large-scale diversion reported), MONITORED (open with active
 advisories or restrictions), OPEN (normal operation reported). Headlines no
 longer change a status; globe lane statuses derive from this table.
 
+## ETF fees, indices and fund sizes (ETFs module)
+
+Read **15 Nov 2026** from each issuer's own product page (`sourceUrl` on each
+row of `src/data/etfData.js`; fund size carries its own as-at date):
+BlackRock iShares (IOZ, IVV, IAF), Betashares (A200, NDQ, HACK, CLDD, ETHI,
+QRE, QFN, HVST, GEAR, BBOZ, BBUS), State Street SPDR (BOND) and Global X
+(GOLD, which the list had as "GLD", not an ASX code). The five Vanguard funds
+(VAS, VGS, VDHG, VAF, VAP) could not be read automatically and show "—".
+Returns, yields, holdings counts and evaluative notes were typed without a
+source and were removed. Prices remain a labelled DEMO simulation.
+
 ## News feeds (headline, short summary, link to the publisher)
 
 | Publisher | Terms | Commercial display? | Attribution | Status |

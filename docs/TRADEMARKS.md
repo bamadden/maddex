@@ -41,6 +41,16 @@ product copy, and are kept so the provenance can be re-checked.
 | Supabase, Vercel, Resend, Google (sign-in) | Privacy Policy; the Google sign-in button | Required disclosure; the sign-in button follows the provider's own branding rules |
 | ASIC, APRA, AUSTRAC, OAIC, AFCA | Regulators named in factual context and in the legal pages | Descriptive. Maddex never states or implies it is licensed, regulated or approved by any of them (tested in `tests/legal.test.mjs`). |
 
+## For the lawyer (15 Nov 2026)
+
+- **Index names in ETF data.** Issuers name the index each fund tracks, and
+  several are third-party marks: S&P/ASX 200, S&P 500, Nasdaq-100, Solactive,
+  iBoxx, and Bloomberg AusBond (iShares IAF). The ETF module shows the names as
+  the issuer gives them, except Bloomberg, which the app keeps out of copy:
+  IAF reads "an Australian composite bond index (named on the issuer's page)".
+  Question: is naming a tracked index on a fund's row nominative fair use, or
+  does each index need a licence or a notice?
+
 ## Rules for new copy
 
 1. Name a third party only to identify it or to credit a source.
