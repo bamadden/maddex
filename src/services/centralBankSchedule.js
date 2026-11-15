@@ -33,7 +33,7 @@ export const RBNZ_MEETINGS_2026     = ['2026-10-28', '2026-12-09']
 const pct = (v) => `${v.toFixed(2)}%`
 const fromVC = (k, extra = {}) => {
   const c = VERIFIED_CONSTANTS[k]
-  return { date: c.lastDecision, decision: c.lastDecisionVerb, rate: c.rateRange ?? pct(c.cashRate), ...(c.note ? { note: c.note } : {}), ...extra }
+  return { date: c.lastDecision, decision: c.lastDecisionVerb, rate: c.rateRange ?? pct(c.cashRate), source: c.source ?? null, checked: c.lastVerified ?? null, ...(c.note ? { note: c.note } : {}), ...extra }
 }
 export const LAST_DECISIONS = {
   RBA:      fromVC('rba'),

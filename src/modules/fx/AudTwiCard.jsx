@@ -1,5 +1,6 @@
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
+import DataBadge from '../../components/ui/DataBadge'
+import { MAX_AGE_DAYS } from '../../data/freshness'
 import { useAudStrength, meanMove, STRENGTH_MAJORS, strengthState } from './useAudStrength'
 import { StaleBadge } from '../../components/ui/ModuleStates'
 import { PAL } from '../../styles/palette.js'
@@ -40,6 +41,7 @@ export default function AudTwiCard() {
   const counted = (data ?? []).filter((r) => typeof r.pct === 'number').length
 
   if (au?.twi == null) return null
+  const twiStale = !au.twiAsOf || (Date.now() - Date.parse(`${au.twiAsOf}T00:00:00Z`)) / 86_400_000 > MAX_AGE_DAYS.price
 
   return (
     <div
@@ -59,7 +61,9 @@ export default function AudTwiCard() {
             {au.twi.toFixed(1)}
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <HandEnteredBadge dataKey="au" />
+            {/* The TWI's own source and date (it used to carry the ABS
+                badge of the group it sits in), STALE past the price limit. */}
+            <DataBadge cls={twiStale ? 'STALE' : 'DELAYED'} source="RBA F11.1" at={au.twiAsOf} />
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
               {au.twiSource?.split('/')[0] ?? 'rba.gov.au'} · as at {fmtDate(au.twiAsOf)}
             </span>

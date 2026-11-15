@@ -491,9 +491,14 @@ export const VERIFIED_CONSTANTS = {
     // no "+0.2% today" to compute and none is shown. The card states the level
     // and its date, and puts the live 30-day AUD move against the majors
     // beside it as the change figure that IS measured.
-    twi: 65.5,
-    twiAsOf: '2026-08-31',
-    twiSource: 'rba.gov.au/statistics/frequency/exchange-rates.html',
+    //
+    // Read from the RBA's daily table F11.1 on 16 Nov 2026 (published 13 Nov).
+    // The previous entry, 65.5 "as at 31 Aug", was the 31 Jul reading (31 Aug
+    // was 66.2). `npm run check-stats` re-reads the figure for twiAsOf, and a
+    // test fails once it is more than the price limit (30 days) old.
+    twi: 63.3,
+    twiAsOf: '2026-11-13',
+    twiSource: 'rba.gov.au/statistics/tables/csv/f11.1-data.csv',
 
     // ASX 200 GICS sector weights, for the portfolio's overweight/underweight
     // read against the index.

@@ -242,6 +242,16 @@ export async function checkHistories(constants, { base = '/api/reservebank', fet
   await settle('CPI quarterly', async () => compare('CPI quarterly', quarterly, await absSeries('ABS,CPI,1.1.0', '3.10001.10.50.Q', quarterly[0].period, fetchImpl)))
   await settle('Unemployment', async () => compare('Unemployment', au.unemploymentHistory, await absSeries('ABS,LF,1.0.0', 'M13.3.1599.20.AUS.M', au.unemploymentHistory[0].period, fetchImpl)))
   await settle('GDP QoQ', async () => compare('GDP QoQ', au.gdpHistory, await absSeries('ABS,ANA_AGG,1.0.0', 'M2.GPM.20.AUS.Q', au.gdpHistory[0].period, fetchImpl)))
+  await settle('AUD TWI', async () => {
+    // The trade-weighted index on its stated date, from the RBA's daily F11.1.
+    const r = await fetchImpl(`${base}/statistics/tables/csv/f11.1-data.csv`)
+    if (!r.ok) throw new Error(`RBA F11.1 HTTP ${r.status}`)
+    const rows = (await r.text()).split(/\r?\n/).map((l) => l.split(','))
+      .filter((c) => /^\d{2}-[A-Za-z]{3}-\d{4}$/.test(c[0]))
+      .map((c) => ({ period: new Date(`${c[0]} 00:00:00`).toLocaleDateString('en-CA'), value: parseFloat(c[2]) }))
+      .filter((c) => Number.isFinite(c.value))
+    compare('AUD TWI', [{ period: au.twiAsOf, value: au.twi }], rows)
+  })
   await settle('RBA decisions', async () => {
     // Every change in A2 must be a HIKE/CUT row the day before, and every
     // HIKE/CUT row must have its A2 change. Holds have nothing to match.

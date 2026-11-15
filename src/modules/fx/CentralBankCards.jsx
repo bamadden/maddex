@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
-import { AIContentBadge, HandEnteredBadge } from '../../components/ui/VerifiedBadge'
+import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import DataBadge from '../../components/ui/DataBadge'
 import aiContentService from '../../services/aiContentService'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
@@ -49,6 +50,8 @@ const DOT = { HIKE: PAL.down, CUT: PAL.up, HOLD: PAL.gold }
 // spelled out — so a row of cards ends up reading AUG / JULY / JUNE / MAY with
 // the pill after them landing in a different place on every card.
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+const OLDEST_CHECK = BANKS.map((b) => VERIFIED_CONSTANTS[b.key]?.lastVerified).filter(Boolean).sort()[0] ?? null
 
 const monthYear = (iso) => {
   if (!iso) return '—'
@@ -246,9 +249,10 @@ export default function CentralBankCards() {
     <div className="border-b border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
         <span className="text-terminal-gold">GLOBAL POLICY RATES</span>
-        {/* Every bank in this grid shares one verification date, so the badge
-            belongs on the header rather than repeated ten times. */}
-        <HandEnteredBadge dataKey="rba" />
+        {/* Each bank was checked on its own date against its own site; the
+            header carries the oldest, and each card names its source and
+            date (16 Nov 2026: the header used to carry the RBA's alone). */}
+        <DataBadge cls="DELAYED" source="each central bank's site, checked" at={OLDEST_CHECK} />
         <button
           onClick={() => setCycle((v) => !v)}
           aria-pressed={cycle}
@@ -308,6 +312,10 @@ export default function CentralBankCards() {
               </div>
 
               {cycle && <CycleLine c={c} />}
+
+              <div className="font-mono text-terminal-text-dim/60 mt-0.5 truncate" style={{ fontSize: 11 }} data-bank-source>
+                {c.source ?? 'source not recorded'} · checked {formatDate(c.lastVerified)}
+              </div>
 
               {!cycle && c.rateRange && (
                 <div className="font-mono text-terminal-text-dim/50 mt-0.5" style={{ fontSize: 11 }}>Target range {c.rateRange}</div>

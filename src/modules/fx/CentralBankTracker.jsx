@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import { LAST_DECISIONS } from '../../services/centralBankSchedule'
-import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
+import DataBadge from '../../components/ui/DataBadge'
 import PolicySpreadMonitor from './PolicySpreadMonitor'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
@@ -117,7 +117,7 @@ function DecisionsBoard() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">LAST DECISION BY BANK</span>
-        <HandEnteredBadge dataKey="rba" />
+        <DataBadge cls="DELAYED" source="each central bank's site, checked" at={rows.map((r) => r.checked).filter(Boolean).sort()[0] ?? null} />
       </div>
       <table className="w-full text-2xs">
         <thead>
@@ -139,6 +139,7 @@ function DecisionsBoard() {
                     {st.mark} {r.decision}
                   </span>
                   {r.note && <span className="text-terminal-text-dim/70 ml-2">{r.note}</span>}
+                  <div className="text-terminal-text-dim/60 mt-0.5" data-bank-source>{r.source ?? 'source not recorded'} · checked {formatDate(r.checked)}</div>
                 </td>
                 <td className="py-1 text-right tabular-nums text-terminal-text">{r.rate}</td>
                 <td className="px-3 py-1 text-right text-terminal-text-dim tabular-nums">{shortDate(r.date)}</td>
