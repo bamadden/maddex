@@ -80,7 +80,7 @@ function Week52Bar({ price, low, high, target }) {
           <span className="text-2xs text-terminal-text-dim/70 flex-shrink-0">{fmt.aud(low)}</span>
           <div className="relative flex-1 h-1 bg-terminal-border/40 min-w-[20px]">
             {tPct != null && (
-              <div className="absolute top-1/2 -translate-y-1/2 w-px h-2.5" title="Price target"
+              <div className="absolute top-1/2 -translate-y-1/2 w-px h-2.5" title="Your reference level"
                 style={{ left: `${tPct}%`, background: target.hit ? PAL.up : PAL.dim }} />
             )}
             <div

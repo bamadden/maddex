@@ -308,7 +308,7 @@ function RateSensitiveTab({ scanTime, settings }) {
           strength={r.strength}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} (${r.sector}) is ${r.changePct >= 0 ? 'up' : 'down'} ${Math.abs(r.changePct).toFixed(2)}% today, a ${event.kind === 'CPI DAY' ? 'CPI release' : 'RBA decision'} day (${event.label}). ${r.sectorLine}. How does this kind of business usually respond to rate expectations, and what would make this move more or less than a rate reaction? Do not state a price or a price target.`)}
+            `${tickerOf(r.symbol)} (${r.sector}) is ${r.changePct >= 0 ? 'up' : 'down'} ${Math.abs(r.changePct).toFixed(2)}% today, a ${event.kind === 'CPI DAY' ? 'CPI release' : 'RBA decision'} day (${event.label}). ${r.sectorLine}. Describe how this kind of business is generally exposed to interest rates. Describe only: no forecast, no price and no suggestion of any action.`)}
         />
       ))}
     </div>
@@ -345,7 +345,7 @@ function BreakoutsTab({ scanTime, settings }) {
           strength={Math.min(1, Math.max(0, ((r.volumeRatio ?? 1) - 1) / 4))}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} is breaking out — ${r.descriptor.toLowerCase()} — on ${r.volumeRatio.toFixed(1)}x average volume, up ${r.changePct.toFixed(2)}% today. Is a breakout on this kind of volume likely to hold, and what would confirm or invalidate it? Do not state a price or a price target.`)}
+            `${tickerOf(r.symbol)}: ${r.descriptor.toLowerCase()}, on ${r.volumeRatio.toFixed(1)}x average volume, up ${r.changePct.toFixed(2)}% today (demo data). Explain what the scanner's breakout definition measures and what it does not show. Describe only: no forecast, no price and no suggestion of any action.`)}
         />
       ))}
     </div>
@@ -367,7 +367,7 @@ function OversoldTab({ label, results, badge, badgeColor, verb, scanTime }) {
           strength={Math.min(1, Math.max(0, (r.rsi < 50 ? 30 - r.rsi : r.rsi - 70) / 30))}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} has an RSI of ${r.rsi.toFixed(1)}, technically ${verb}, trading at ${priceStr(r.symbol, r.price)} (${r.changePct >= 0 ? '+' : ''}${r.changePct.toFixed(2)}% today). Is this a genuine reversal setup or a stock that's ${verb} for a reason?`)}
+            `${tickerOf(r.symbol)} has an RSI of ${r.rsi.toFixed(1)}, technically ${verb}, trading at ${priceStr(r.symbol, r.price)} (${r.changePct >= 0 ? '+' : ''}${r.changePct.toFixed(2)}% today). Explain what RSI measures and what a reading at this level does and does not show. Describe only: no forecast, no price and no suggestion of any action.`)}
         />
       ))}
     </div>
@@ -482,7 +482,7 @@ function VolumeTab({ scanTime, settings }) {
           metricLabel={`${r.volumeRatio.toFixed(1)}x average`} metricValue={r.explanation}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} volume is ${r.volumeRatio.toFixed(1)}x its average with price ${r.changePct >= 0 ? 'up' : 'down'} ${Math.abs(r.changePct).toFixed(2)}% today. What's the most likely explanation, and is this worth acting on?`)}
+            `${tickerOf(r.symbol)} volume is ${r.volumeRatio.toFixed(1)}x its average with price ${r.changePct >= 0 ? 'up' : 'down'} ${Math.abs(r.changePct).toFixed(2)}% today. Explain the kinds of events that are generally reported alongside unusual volume, and what volume alone does not show. Describe only: no forecast, no price and no suggestion of any action.`)}
         />
       ))}
       <DivergenceSection settings={settings} />
@@ -503,7 +503,7 @@ function GapsTab({ scanTime, settings }) {
           metricLabel="Gap on open" metricValue={`${r.direction === 'UP' ? '+' : '−'}${Math.abs(r.gapPct).toFixed(1)}% vs prior close · ${Math.abs(r.sinceOpenPct) < 0.1 ? 'flat' : r.sinceOpenPct > 0 ? `+${r.sinceOpenPct.toFixed(1)}%` : `−${Math.abs(r.sinceOpenPct).toFixed(1)}%`} since the open`}
           price={r.price} changePct={r.changePct}
           onAnalyse={() => analyseSignal(r.symbol, r.name,
-            `${tickerOf(r.symbol)} gapped ${r.direction.toLowerCase()} ${Math.abs(r.gapPct).toFixed(1)}% on the open. What typically drives a gap of that size, and is it likely to fill? Do not state a price or a price target.`)}
+            `${tickerOf(r.symbol)} gapped ${r.direction.toLowerCase()} ${Math.abs(r.gapPct).toFixed(1)}% on the open. Explain what an opening gap is and the kinds of news generally reported alongside one. Describe only: no forecast, no price and no suggestion of any action.`)}
         />
       ))}
     </div>
@@ -572,7 +572,7 @@ function PatternCard({ candidate }) {
           <div className="flex items-center gap-2 pt-0.5">
             <button
               onClick={() => analyseSignal(candidate.symbol, candidate.name,
-                `${tickerOf(candidate.symbol)}'s recent prices resemble a ${pattern.patternName} pattern. Explain what the pattern is and how it is described in technical analysis. Do not predict the price, give a target, or say whether to act.`)}
+                `${tickerOf(candidate.symbol)}'s recent prices resemble a ${pattern.patternName} pattern. Explain what the pattern is and how it is described in technical analysis. Describe only: no forecast, no price and no suggestion of any action.`)}
               className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
             >ANALYSE</button>
             <span

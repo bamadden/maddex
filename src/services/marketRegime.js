@@ -53,9 +53,9 @@ export function regimePrompts() {
   const { marketRegime } = getMarketRegime()
   if (!marketRegime.includes('TIGHTENING')) return null
   return [
-    { label: 'RATE HIKES & ASX SECTORS', prompt: 'How are the RBA and Fed rate hikes affecting ASX sectors? Which sectors are most exposed to higher rates, and which have held up?', dataKeys: ['asx'] },
-    { label: `WHO BENEFITS FROM ${rate}?`, prompt: `Which kinds of ASX stocks tend to benefit from a ${rate} cash rate, and why? Explain the mechanism for each — margins, cash balances, pricing power.`, dataKeys: ['asx'] },
-    { label: 'BUY NOW OR WAIT?', prompt: 'In a tightening cycle like this one, what are the considerations for investing now versus waiting? Lay out both cases and what would tip the balance — not a personal recommendation.', dataKeys: ['asx', 'aud'] },
+    { label: 'RATE HIKES & ASX SECTORS', prompt: 'Describe how the RBA and Fed rate hikes reach ASX sectors, and which sectors are most exposed to higher rates, using only the figures given. Describe only: no forecast.', dataKeys: ['asx'] },
+    { label: `EARNINGS AND A ${rate} CASH RATE`, prompt: `Explain how a ${rate} cash rate reaches company earnings — margins, cash balances, borrowing costs, pricing power — by business model. Describe only: no stock picks and no suggestion of any action.`, dataKeys: ['asx'] },
+    { label: 'TIGHTENING CYCLES EXPLAINED', prompt: 'Explain what a tightening cycle is and how past RBA tightening cycles have reached borrowers, savers and company earnings. Describe only: no view on investing now or later.', dataKeys: ['asx', 'aud'] },
     { label: 'RISK OF MORE RBA HIKES', prompt: `What is the case for and against another RBA hike at the ${rba.nextMeeting} meeting, and what data between now and then matters most? Describe it in words — no market-implied probability.`, dataKeys: [] },
   ]
 }

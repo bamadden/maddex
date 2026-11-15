@@ -49,7 +49,7 @@ export function RowActions({
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1 bg-terminal-panel border border-terminal-border-gold shadow-2xl text-left" style={{ zIndex: 130, minWidth: 190 }}>
               <button onClick={() => { setMenuOpen(false); onTarget() }} disabled={isCrypto}
-                className="w-full px-3 py-1.5 text-2xs text-left hover:bg-terminal-surface2 disabled:opacity-40">◎ Set price target</button>
+                className="w-full px-3 py-1.5 text-2xs text-left hover:bg-terminal-surface2 disabled:opacity-40">◎ Set a reference level</button>
               <button onClick={() => { setMenuOpen(false); onNote() }}
                 className="w-full px-3 py-1.5 text-2xs text-left hover:bg-terminal-surface2">✎ {hasNote ? 'Edit note' : 'Add note'}</button>
               {!isCrypto && (
@@ -90,13 +90,13 @@ export function TargetRow({ symbol, label, price, current, onSave, onClear, onCl
     <tr>
       <td colSpan={colSpan} className="px-3 py-2 bg-terminal-header/40 border-b border-terminal-border/40">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-2xs font-bold text-terminal-gold tracking-widest">PRICE TARGET · {label}</span>
+          <span className="text-2xs font-bold text-terminal-gold tracking-widest">MY REFERENCE LEVEL · {label}</span>
           <span className="text-2xs text-terminal-text-dim">now {price != null ? fmt.aud(price) : '—'}</span>
           <label className="flex items-center gap-1 text-2xs text-terminal-text-dim">
-            My target: A$
+            Level: A$
             <input autoFocus type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onClose() }}
-              aria-label={`Price target for ${symbol}`}
+              aria-label={`Reference level for ${symbol}`}
               className="bg-terminal-bg border border-terminal-border text-terminal-text-bright text-2xs px-2 py-1 w-24 tabular-nums focus:border-terminal-gold focus:outline-none" />
           </label>
           {valid && price != null && (

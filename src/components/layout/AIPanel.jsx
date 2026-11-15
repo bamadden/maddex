@@ -82,64 +82,64 @@ const AU_UNEMP = `${VERIFIED_CONSTANTS.au.unemployment}%`
 
 const MODULE_PROMPTS = {
   markets: [
-    { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
-    { label: 'TOP SECTOR TODAY', prompt: "Which ASX sector is performing best today and why? What's driving it?", dataKeys: ['asx'] },
-    { label: "WHAT'S MOVING MARKETS?", prompt: 'What are the top 3 stories or catalysts moving markets right now?', dataKeys: ['asx', 'aud'] },
-    { label: 'IRON ORE OUTLOOK', prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.', dataKeys: ['aud'] },
+    { label: 'ASX TODAY', prompt: `Describe what the ASX 200 and its sectors have done today, using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['asx', 'aud'] },
+    { label: 'SECTORS TODAY', prompt: `Describe which ASX sectors have moved most today in the figures given, and what news was reported about them. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['asx'] },
+    { label: "TODAY'S MARKET NEWS", prompt: `Summarise the main market stories in the headlines given, naming each source, and the figures given for the ASX and AUD. Describe only: no forecast or recommendation.`, dataKeys: ['asx', 'aud'] },
+    { label: 'IRON ORE AND AUSTRALIA', prompt: `Describe how the iron ore market connects to Australian miners and the AUD, using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
   ],
   crypto: [
-    { label: 'BTC OUTLOOK', prompt: 'What is the current outlook for Bitcoin — key levels, sentiment, and near-term catalysts?', dataKeys: ['btc'] },
-    { label: 'CRYPTO SENTIMENT', prompt: 'Summarise current crypto market sentiment and what is driving it right now.', dataKeys: ['btc', 'eth'] },
-    { label: 'ETH VS BTC', prompt: 'Compare the current relative strength and outlook of Ethereum versus Bitcoin.', dataKeys: ['btc', 'eth'] },
-    { label: 'DEFI SECTOR OUTLOOK', prompt: 'What is the current outlook for the DeFi sector within crypto markets?', dataKeys: [] },
+    { label: 'BITCOIN TODAY', prompt: `Describe Bitcoin's recent price movement and the factors reported alongside it, using only the figures given. Describe only: no price levels to watch, no forecast.`, dataKeys: ['btc'] },
+    { label: 'CRYPTO SENTIMENT', prompt: `Summarise how crypto markets have moved and what has been reported about them, using only the figures and headlines given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['btc', 'eth'] },
+    { label: 'ETH AND BTC COMPARED', prompt: `Describe how Ethereum and Bitcoin differ, and how their prices have moved relative to each other in the figures given. Describe only: no view on which is stronger or what comes next.`, dataKeys: ['btc', 'eth'] },
+    { label: 'WHAT DEFI IS', prompt: `Describe what decentralised finance is, its main categories and its main risks. Describe only: no outlook, forecast or recommendation.`, dataKeys: [] },
   ],
   fx: [
     { label: RBA_MOVE_LABEL, prompt: `The RBA ${RBA_VERB_PAST} the cash rate to ${RBA_RATE} at its ${lastRbaLabel} meeting. What does that mean for Australian borrowers, savers and investors?`, dataKeys: ['asx', 'aud'] },
     { label: `${RBA_RATE} & ASX SECTORS`, prompt: `How does a ${RBA_RATE} cash rate affect ASX sectors — banks, REITs, consumer discretionary, miners and growth stocks?`, dataKeys: ['asx'] },
-    { label: 'WHEN WILL THE RBA CUT?', prompt: `What would need to happen for the RBA to start cutting from ${RBA_RATE}? Describe the conditions in words. State a probability only if dated market pricing is in your context, and give its date and source.`, dataKeys: ['aud'] },
-    { label: 'AUD IMPACT', prompt: `How does the RBA's latest decision (${RBA_VERB_PAST} to ${RBA_RATE}) bear on the AUD, given the Fed is at ${FED_RANGE}?`, dataKeys: ['aud'] },
+    { label: 'WHAT WOULD A CUT TAKE?', prompt: `What would need to happen for the RBA to start cutting from ${RBA_RATE}? Describe the conditions in words. State a probability only if dated market pricing is in your context, and give its date and source.`, dataKeys: ['aud'] },
+    { label: 'AUD AND THE RBA', prompt: `Describe the channels through which the RBA's latest decision (${RBA_VERB_PAST} to ${RBA_RATE}) and the Fed at ${FED_RANGE} are generally linked to the AUD. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
   ],
   macro: [
-    { label: 'RBA MOVE & THE ECONOMY', prompt: `What is the likely impact of the RBA's move to ${RBA_RATE} on the Australian economy — households, housing, business investment and jobs?`, dataKeys: ['aud'] },
-    { label: 'RECESSION RISK?', prompt: 'Is Australia heading for recession? Weigh growth, unemployment, inflation and the policy rate you have been given.', dataKeys: ['asx'] },
+    { label: 'RBA MOVE & THE ECONOMY', prompt: `Describe the channels through which the RBA's move to ${RBA_RATE} reaches households, housing, business investment and jobs. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
+    { label: 'GROWTH AND JOBS NOW', prompt: `Describe where Australian growth, unemployment, inflation and the policy rate stand, using only the figures given. Describe only: no forecast of a recession.`, dataKeys: ['asx'] },
     { label: `${AU_UNEMP} UNEMPLOYMENT`, prompt: `What does unemployment at ${AU_UNEMP} mean for the labour market and for the RBA's next decision?`, dataKeys: [] },
-    { label: 'AU VS US OUTLOOK', prompt: 'Compare the Australian and US economic outlooks — growth, inflation, labour market and policy.', dataKeys: ['aud'] },
+    { label: 'AU AND US COMPARED', prompt: `Compare Australian and US growth, inflation, unemployment and policy rates using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
   ],
   bonds: [
-    { label: 'YIELD CURVE SHAPE', prompt: 'Explain the current shape of the Australian and US yield curves and what it signals.', dataKeys: [] },
-    { label: 'AU VS US SPREAD', prompt: `What do the AU–US spreads mean — the policy spread (RBA ${RBA_RATE} vs Fed ${FED_RANGE}) and the 10-year bond spread — for the AUD and for investors?`, dataKeys: ['aud'] },
-    { label: 'CASH VS 10Y BONDS', prompt: `With the cash rate at ${RBA_RATE}, how does holding cash compare with locking in a 10-year Australian government bond? Cover duration risk.`, dataKeys: [] },
-    { label: 'BONDS VS CASH VS SHARES', prompt: 'At current rates, how do bonds, cash and equities compare for an Australian investor? General information only.', dataKeys: ['asx'] },
+    { label: 'YIELD CURVE SHAPE', prompt: `Describe the shape of the Australian and US yield curves from the figures given, and what a curve of that shape is generally taken to reflect. Describe only: no outlook, forecast or recommendation.`, dataKeys: [] },
+    { label: 'AU VS US SPREAD', prompt: `Explain the AU–US policy spread (RBA ${RBA_RATE} vs Fed ${FED_RANGE}) and the 10-year bond spread, and how such spreads are generally linked to the currency. Describe only: no forecast and no view for investors.`, dataKeys: ['aud'] },
+    { label: 'CASH VS 10Y BONDS', prompt: `With the cash rate at ${RBA_RATE}, explain how holding cash differs from holding a 10-year Australian government bond, including duration risk. General information: do not suggest which to choose.`, dataKeys: [] },
+    { label: 'BONDS, CASH AND SHARES', prompt: `Explain how bonds, cash and shares differ for an Australian investor: return sources, risks, liquidity and tax. General information: do not suggest an allocation.`, dataKeys: ['asx'] },
   ],
   etf: [
-    { label: 'ETFS IN A HIGH-RATE WORLD', prompt: `Which kinds of ETFs tend to suit a high-rate environment like a ${RBA_RATE} cash rate, and which struggle? Explain by category rather than recommending products.`, dataKeys: [] },
-    { label: 'VAS VS A200', prompt: 'VAS vs A200 — how do these two ASX 200/300 ETFs differ (index, fees, size, holdings), and what kind of investor does each suit?', dataKeys: [] },
+    { label: 'ETFS WHEN RATES ARE HIGH', prompt: `Explain how different categories of ETF have tended to behave when rates were high, as with a ${RBA_RATE} cash rate. By category only: do not suggest products or what suits anyone.`, dataKeys: [] },
+    { label: 'VAS VS A200', prompt: `Describe how VAS and A200 differ: index tracked, fees, size and holdings. Describe only: do not say which suits anyone.`, dataKeys: [] },
     { label: 'RATE HIKES & BOND ETFS', prompt: 'How do rate hikes affect bond ETFs — duration, price falls, and the yield you lock in afterwards?', dataKeys: [] },
-    { label: 'ETFS VS STOCKS', prompt: 'Should an Australian investor use ETFs or individual stocks? Cover cost, diversification, tax and effort.', dataKeys: [] },
+    { label: 'ETFS VS STOCKS', prompt: `Explain how ETFs and individual stocks differ for an Australian investor: cost, diversification, tax and effort. General information: do not say which to use.`, dataKeys: [] },
   ],
   futures: [
     { label: 'RATE FUTURES & THE RBA', prompt: 'How do ASX 30-day interbank cash rate futures imply an expected RBA decision? Explain the mechanics, and if a dated futures reading is in your context, work through it as the example.', dataKeys: [] },
     { label: 'SPI 200 FUTURES', prompt: 'Explain the SPI 200 futures contract — what it tracks, contract size, trading hours, and how investors use it.', dataKeys: ['asx'] },
-    { label: 'SHORT INTEREST SIGNALS', prompt: 'What is short interest, how is it reported on the ASX, and what can high short interest tell us (and not tell us)?', dataKeys: [] },
+    { label: 'SHORT INTEREST EXPLAINED', prompt: 'What is short interest, how is it reported on the ASX, and what can high short interest tell us (and not tell us)?', dataKeys: [] },
     { label: 'OPTIONS ON ASX STOCKS', prompt: 'How do exchange-traded options work for ASX stocks — calls, puts, premiums, expiry and the main risks?', dataKeys: [] },
   ],
   calculators: [
     { label: 'COMPOUND INTEREST', prompt: 'How does compound interest work, and why does time matter more than the rate?', dataKeys: [] },
     { label: 'NEGATIVE GEARING', prompt: 'What is negative gearing in Australia, how does it work for property and shares, and what are the risks?', dataKeys: [] },
     { label: 'CGT 50% DISCOUNT', prompt: 'Explain the Australian CGT 50% discount — who gets it, the 12-month rule, and a worked example.', dataKeys: [] },
-    { label: 'SUPER VS PROPERTY', prompt: 'Super vs property for building wealth in Australia — tax treatment, leverage, liquidity and risk. General information only.', dataKeys: [] },
+    { label: 'SUPER VS PROPERTY', prompt: `Explain how super and property differ in Australia: tax treatment, leverage, liquidity and risk. General information: do not say which to choose.`, dataKeys: [] },
   ],
   global: [
-    { label: 'GEOPOLITICAL RISKS', prompt: 'What are the top 3 geopolitical risks currently affecting Australian markets and the AUD?', dataKeys: ['asx', 'aud'] },
-    { label: 'IRON ORE OUTLOOK', prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.', dataKeys: ['aud'] },
-    { label: 'TRADE WAR IMPACT', prompt: "What is the current state of global trade tensions and their impact on Australia's economy?", dataKeys: [] },
-    { label: 'CHINA ECONOMY', prompt: "Summarise the current state of China's economy and its implications for Australian exporters.", dataKeys: ['aud'] },
+    { label: 'GEOPOLITICS IN THE NEWS', prompt: `Describe the geopolitical developments in the headlines given that relate to Australia and the AUD, with sources. Describe only: do not rank or forecast them.`, dataKeys: ['asx', 'aud'] },
+    { label: 'IRON ORE AND AUSTRALIA', prompt: `Describe how the iron ore market connects to Australian miners and the AUD, using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
+    { label: 'TRADE TENSIONS', prompt: `Describe the state of global trade tensions in the headlines given and the channels through which they reach Australia's economy. Describe only: no outlook, forecast or recommendation.`, dataKeys: [] },
+    { label: 'CHINA ECONOMY', prompt: `Describe the state of China's economy from the figures and headlines given, and how it connects to Australian exporters. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
   ],
   news: [
     { label: "TODAY'S KEY THEMES", prompt: "What are today's key market themes for Australian investors?", dataKeys: ['asx', 'aud'] },
-    { label: 'MARKET IMPACT SUMMARY', prompt: "Summarise the market impact of today's top news stories.", dataKeys: ['asx'] },
-    { label: 'RISKS TO WATCH', prompt: 'What are the key risks investors should watch based on current news flow?', dataKeys: ['asx', 'aud'] },
-    { label: 'ASX CATALYSTS TODAY', prompt: 'What are the key catalysts for the ASX today?', dataKeys: ['asx'] },
+    { label: 'TODAY\'S TOP STORIES', prompt: `Summarise today's top stories from the headlines given, naming each source. Describe only: do not say how markets will react.`, dataKeys: ['asx'] },
+    { label: 'RISKS IN THE NEWS', prompt: `Describe the risks mentioned in today's headlines, naming each source. Describe only, without ranking them.`, dataKeys: ['asx', 'aud'] },
+    { label: 'ASX EVENTS TODAY', prompt: `List the scheduled events and reported news for the ASX today from the context given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['asx'] },
   ],
 }
 
@@ -148,10 +148,10 @@ const MODULE_PROMPTS = {
 // generic set, or a set written for the saved investor profile.
 
 const DEFAULT_PROMPTS = [
-  { label: 'ASX OUTLOOK TODAY', prompt: 'What is the current outlook for the ASX 200 and key sector themes for Australian investors?', dataKeys: ['asx', 'aud'] },
+  { label: 'ASX TODAY', prompt: `Describe what the ASX 200 and its sectors have done today, using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['asx', 'aud'] },
   RBA_PROMPT,
-  { label: 'IRON ORE OUTLOOK', prompt: 'Analyse current iron ore market conditions and implications for Australian miners and the AUD.', dataKeys: ['aud'] },
-  { label: 'AUD/USD OUTLOOK', prompt: 'Analyse the current AUD/USD outlook considering RBA policy, commodity prices, and global risk sentiment.', dataKeys: ['aud'] },
+  { label: 'IRON ORE AND AUSTRALIA', prompt: `Describe how the iron ore market connects to Australian miners and the AUD, using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
+  { label: 'AUD/USD TODAY', prompt: `Describe AUD/USD's recent movement and the factors usually linked to it (RBA policy, commodity prices, global risk appetite), using only the figures given. Describe only: no outlook, forecast or recommendation.`, dataKeys: ['aud'] },
 ]
 
 // Modules whose own prompts are generic market openers. With an investor
@@ -172,8 +172,8 @@ function decisionWeekPrompts(now = Date.now()) {
     { label: pct != null ? `WHAT DOES ${pct}% HIKE PRICING MEAN?` : `${day.toUpperCase()} MARKET PRICING`, prompt: `What does ${pct != null ? `~${pct}% ` : ''}market pricing for a hike at the RBA's ${day} meeting actually mean — where does the reading come from, what drove it, and how much should anyone lean on it?`, dataKeys: ['aud'] },
     // "How should I position" is a personal-advice question; the prompt asks
     // how investors generally approach it.
-    { label: 'HOW TO POSITION FOR A HIKE?', prompt: `How do investors generally think about positioning ahead of a live RBA meeting like ${day}, with a hike largely priced? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
-    { label: 'WHO BENEFITS FROM HIGHER RATES?', prompt: 'Which kinds of ASX companies and sectors have tended to benefit from higher interest rates, which have tended to struggle, and why? Speak to sectors and business models, not specific buy recommendations.', dataKeys: ['asx'] },
+    { label: 'WHAT A HIKE CHANGES', prompt: `Describe what a 25bp RBA hike on ${day} would change for borrowers, savers and the AUD, channel by channel. General information: no positioning and no suggestion of any action.`, dataKeys: ['asx', 'aud'] },
+    { label: 'RATES AND SECTORS', prompt: `Describe which kinds of ASX companies have historically had earnings more or less exposed to higher interest rates, and why, by business model. Describe only: do not suggest any action.`, dataKeys: ['asx'] },
     { label: 'MY MORTGAGE IF THEY HIKE?', prompt: `What happens to a typical variable mortgage if the RBA hikes 25bp on ${day}? Use the mortgage figures in your context, and explain how and when lenders usually pass a move on.`, dataKeys: [] },
   ]
 }
@@ -190,8 +190,8 @@ function postDecisionPrompts(now = Date.now()) {
   const day = formatDate(rba.lastDecision, { year: false })
   return [
     { label: 'WHAT DID THE RBA JUST DECIDE?', prompt: `Using only the decision and statement details in your context, what did the RBA decide on ${day}, and what did its statement say?`, dataKeys: ['aud'] },
-    { label: 'HOW DO INVESTORS REACT TO THIS?', prompt: `How do investors generally respond to a decision like the RBA's on ${day}? General information, not personal advice.`, dataKeys: ['asx', 'aud'] },
-    { label: 'WHICH SECTORS NOW?', prompt: `After the RBA's ${day} decision, which ASX sectors are most exposed to it, in which direction, and why?`, dataKeys: ['asx'] },
+    { label: 'HOW MARKETS HAVE RESPONDED BEFORE', prompt: `Describe how the AUD and bond yields have generally moved after decisions like the RBA's on ${day}. Describe only: no forecast and no suggestion of any action.`, dataKeys: ['asx', 'aud'] },
+    { label: 'SECTORS EXPOSED TO RATES', prompt: `Describe which ASX sectors are most exposed to interest rates and through which channel, after the RBA's ${day} decision. Describe only: no calls on direction and no suggestion of any action.`, dataKeys: ['asx'] },
     { label: "WHAT'S NEXT FOR AU RATES?", prompt: "What comes next for Australian interest rates after this decision — the next meeting, the data that matters before it, and what the statement signalled?", dataKeys: [] },
   ]
 }
@@ -208,10 +208,11 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
   if (selectedSymbol) {
     const bare = selectedSymbol.replace('.AX', '')
     return [
-      { label: `ANALYSE ${bare}`, prompt: `Give a concise analysis of ${selectedSymbol} — current price action, key drivers, and near-term outlook.`, dataKeys: [] },
-      { label: `${bare} PRICE TARGETS`, prompt: `What are reasonable price targets for ${selectedSymbol} based on current technicals and fundamentals?`, dataKeys: [] },
-      { label: `NEWS ON ${bare}`, prompt: `What news or catalysts are currently driving ${selectedSymbol} right now?`, dataKeys: [] },
-      { label: `${bare} RISK FACTORS`, prompt: `What are the key risk factors investors should watch for ${selectedSymbol}?`, dataKeys: [] },
+      // Description only (15 Nov 2026): these asked for a "near-term outlook",
+      // "reasonable price targets" and risks "investors should watch".
+      { label: `DESCRIBE ${bare}`, prompt: `Describe ${selectedSymbol}: what the business does, where its revenue comes from, and its recent price movement using only the figures given. Describe only: no outlook, forecast or view on the shares.`, dataKeys: [] },
+      { label: `NEWS ON ${bare}`, prompt: `Summarise the recent headlines about ${selectedSymbol} that you were given, naming each source and date. Describe only: do not say how the shares may react.`, dataKeys: [] },
+      { label: `${bare} DISCLOSED RISKS`, prompt: `Describe the main risks that ${selectedSymbol}'s business is exposed to, as a company of its type would disclose them. Describe only: do not weigh them for an investor or suggest any action.`, dataKeys: [] },
     ]
   }
   // The Dashboard leads with the coming RBA decision in the week before it,
@@ -270,8 +271,8 @@ FINANCIAL QUALITY:
 COMPETITIVE POSITION:
 MACRO TAILWINDS AND HEADWINDS:
 RISK MATRIX:
-INVESTMENT CONSIDERATIONS:
-Under RISK MATRIX, list the main risks as "- Risk — likelihood (low/medium/high), impact (low/medium/high): one line why". Under INVESTMENT CONSIDERATIONS, 3-5 bullets mixing supportive and cautionary points. The rules on figures still apply: quote only figures you were given, and describe the company's own financials in words — no price targets, no ratings. Skip the FOLLOW_UPS line for this answer.
+QUESTIONS FOR FURTHER READING:
+Under RISK MATRIX, list the main risks as "- Risk — likelihood (low/medium/high), impact (low/medium/high): one line why". Under QUESTIONS FOR FURTHER READING, 3-5 questions a reader could check in the company's own reports or announcements. The rules on figures still apply: quote only figures you were given, and describe the company's own financials in words — no price targets, no ratings. Skip the FOLLOW_UPS line for this answer.
 
 `
 
@@ -318,9 +319,9 @@ function earningsSeasonPrompts(now = new Date()) {
   // November is the banks' season (September year-ends), not the August one.
   const banks = reporting.every((e) => /^(WBC|NAB|ANZ|CBA|MQG|BOQ|BEN)\.AX$/.test(e.ticker))
   return [
-    { label: banks ? 'BANK RESULTS PREVIEW' : 'EARNINGS SEASON PREVIEW', prompt: `Reporting in the next two weeks: ${who}. Give me an earnings season preview — what to watch in these results, given the current rate and macro backdrop.`, dataKeys: [] },
-    { label: 'WHICH REPORTERS MATTER MOST?', prompt: `Of ${who}, which results matter most for the ASX over the next two weeks, and why?`, dataKeys: [] },
-    { label: 'POSITIONING AROUND EARNINGS', prompt: 'How do investors typically think about positioning around company results — the risks of holding through a report and the questions to ask beforehand? General information only.', dataKeys: [] },
+    { label: banks ? 'BANK RESULTS PREVIEW' : 'EARNINGS SEASON PREVIEW', prompt: `Reporting in the next two weeks: ${who}. Describe what each company does, when it reports, and which figures in a results release relate to the current rate and macro backdrop. Describe only: no expectations, previews of results or suggestion of any action.`, dataKeys: [] },
+    { label: 'WHO REPORTS SOON', prompt: `Describe what each of ${who} does and when it reports. Describe only: do not rank them or say which matter for the market.`, dataKeys: [] },
+    { label: 'HOW RESULTS DAYS WORK', prompt: `Explain what a company results release contains and the questions a reader could look up in it. General information: do not discuss positioning or holding through a report.`, dataKeys: [] },
   ]
 }
 

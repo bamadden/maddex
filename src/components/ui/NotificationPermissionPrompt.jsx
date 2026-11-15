@@ -24,7 +24,7 @@ export default function NotificationPermissionPrompt({ suppressed = false }) {
       <div className="p-4">
         <div className="text-2xs font-bold tracking-widest text-terminal-gold mb-1.5">🔔 GET ALERTED IN THE BACKGROUND</div>
         <div className="text-2xs text-terminal-text leading-relaxed">
-          Enable notifications to get alerted when your price targets are hit, even when Maddex is running in the background.
+          Enable notifications to get alerted when your price alerts trigger, even when Maddex is running in the background.
         </div>
         <div className="flex gap-2 mt-3">
           <button

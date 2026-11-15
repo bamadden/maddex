@@ -665,7 +665,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                 ) : (
                   <>
                     <span className={`text-2xs font-bold tracking-widest ${perf.rel >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                      {perf.rel >= 0 ? '▲ OUTPERFORMING' : '▼ UNDERPERFORMING'}
+                      {perf.rel >= 0 ? '▲ ABOVE THE INDEX' : '▼ BELOW THE INDEX'}
                     </span>
                     <span className="text-base font-bold tabular-nums mt-0.5 text-terminal-text-bright">
                       {perf.rel >= 0 ? '+' : ''}{perf.rel.toFixed(2)}pp

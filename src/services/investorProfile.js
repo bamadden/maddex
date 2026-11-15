@@ -116,13 +116,13 @@ const PROMPTS = {
   INCOME: [
     q('DIVIDEND RELIABILITY', 'What makes a dividend reliable rather than just high? Explain payout ratios, earnings cover and franking, using only figures you have been given.'),
     q("BHP'S DIVIDEND", "Is BHP's dividend sustainable? Cover payout policy, the iron ore link and what would put it at risk."),
-    q('FRANKING CREDITS', 'How does franking credit work for me? Explain with a simple worked example and who benefits most.'),
+    q('FRANKING CREDITS', 'How do franking credits work? Explain with a simple worked example at different marginal tax rates. General information, not personal tax advice.'),
     q('INCOME SECTORS', 'Which ASX sectors have historically paid most of their earnings as dividends, and what drives that? Describe the sectors; no stock picks.'),
   ],
   GROWTH: [
     q('SMALL-CAP GROWTH', 'How do analysts assess growth companies under A$5B market cap, and what are the risks particular to small caps? No stock picks.'),
-    q('AU TECH OUTLOOK', 'Tech sector outlook for AU investors?'),
-    q('CSL VS PRO MEDICUS', 'CSL vs Pro Medicus — growth comparison? Cover business model, growth drivers and valuation risk in words.'),
+    q('AU TECH SECTOR', 'Describe the ASX technology sector: its main companies by business type, how it is weighted in the index, and the figures given. Describe only: no outlook or forecast.'),
+    q('CSL AND PRO MEDICUS', 'Describe how CSL and Pro Medicus differ: what each does, where its revenue comes from and its reported growth. Describe only: no view on valuation or which is better.'),
     q('WHERE IS ASX GROWTH?', 'Where is the ASX finding growth right now?'),
   ],
   BEGINNER: [
@@ -133,7 +133,7 @@ const PROMPTS = {
   ],
   PROFESSIONAL: [
     q('YIELD CURVE & BANKS', 'Yield curve implications for AU banks? Cover net interest margin and funding costs.'),
-    q('RBA FORWARD GUIDANCE', 'RBA forward guidance — read between the lines?'),
+    q('RBA FORWARD GUIDANCE', 'Describe what the RBA\'s latest statement said about the path of policy, quoting it. Describe only: do not read beyond what it said or forecast the next decision.'),
     q('IRON ORE ↔ AUD/USD', 'Iron ore correlation with AUD/USD — make the thesis and the cases where it breaks down.'),
     q('AU VS US RISK-ADJ.', 'Risk-adjusted return on AU vs US equities? Discuss the framework without inventing statistics.'),
   ],

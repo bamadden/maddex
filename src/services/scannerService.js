@@ -184,11 +184,9 @@ export function scanVolume() {
     const volumeRatio = todayVolumeRatio(symbol)
     if (volumeRatio == null || volumeRatio < VOLUME_MULTIPLE) continue
     const absChange = Math.abs(row.changePct)
-    const explanation = absChange < 0.5
-      ? `Heavy volume on a flat price — possible institutional ${row.changePct >= 0 ? 'accumulation' : 'distribution'}`
-      : volumeRatio > 3
-        ? 'Unusually high volume — worth watching for follow-through'
-        : `Volume confirming a ${absChange.toFixed(1)}% ${row.changePct >= 0 ? 'rise' : 'fall'}`
+    // What was measured, nothing more: no reading of intent ("institutional
+    // accumulation"), no call ("worth watching", "confirming") (15 Nov 2026).
+    const explanation = `Volume ${volumeRatio.toFixed(1)}× its average; price ${absChange < 0.05 ? 'unchanged' : `${row.changePct >= 0 ? 'up' : 'down'} ${absChange.toFixed(1)}%`} on the day`
     results.push({ ...row, volumeRatio, explanation })
   }
   return results.sort((a, b) => b.volumeRatio - a.volumeRatio)
