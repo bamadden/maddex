@@ -2622,20 +2622,30 @@ export default function SettingsPanel({ onClose, initialSection }) {
     await deleteAccount()
   }
 
+  // Each clears this device AND the account copy, scoped to the signed-in
+  // user, and says so. "Clear portfolio" and "clear notes" used to delete only
+  // the account rows, leaving everything on this device (16 Nov 2026).
+  const clearAccount = async (table) => {
+    if (!user) return
+    try { await supabase.from(table).delete().eq('user_id', user.id) } catch { /* the device copy is still cleared */ }
+  }
   const handleClearWatchlist = async () => {
     setConfirm(null)
     clearWatchlist()
-    await supabase.from('watchlist').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await clearAccount('watchlist')
   }
 
   const handleClearPortfolio = async () => {
     setConfirm(null)
-    await supabase.from('portfolio_holdings').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    try { localStorage.removeItem('madden_portfolio_v2') } catch { /* blocked storage */ }
+    await clearAccount('portfolio_holdings')
+    window.dispatchEvent(new CustomEvent('maddex:portfolio-cleared'))
   }
 
   const handleClearNotes = async () => {
     setConfirm(null)
-    await supabase.from('ai_notes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    try { localStorage.removeItem('madden_ai_notes') } catch { /* blocked storage */ }
+    await clearAccount('ai_notes')
   }
 
   return (
@@ -2715,7 +2725,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         <ConfirmDialog
           title="CLEAR WATCHLIST"
           confirmLabel="CLEAR"
-          message="This will remove all symbols from your watchlist. This cannot be undone."
+          message={`Removes every symbol from the watchlist on this device${user ? ' and in your account' : ''}. This cannot be undone.`}
           onConfirm={handleClearWatchlist}
           onCancel={() => setConfirm(null)}
         />
@@ -2724,7 +2734,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         <ConfirmDialog
           title="CLEAR PORTFOLIO"
           confirmLabel="CLEAR"
-          message="This will remove all holdings from your portfolio. This cannot be undone."
+          message={`Removes every holding on this device${user ? ' and in your account' : ''}. This cannot be undone.`}
           onConfirm={handleClearPortfolio}
           onCancel={() => setConfirm(null)}
         />
@@ -2770,7 +2780,7 @@ export default function SettingsPanel({ onClose, initialSection }) {
         <ConfirmDialog
           title="CLEAR AI NOTES"
           confirmLabel="DELETE NOTES"
-          message="This will delete all your saved AI notes. This cannot be undone."
+          message={`Deletes the saved AI notes on this device${user ? ' and in your account' : ''}. This cannot be undone.`}
           onConfirm={handleClearNotes}
           onCancel={() => setConfirm(null)}
         />

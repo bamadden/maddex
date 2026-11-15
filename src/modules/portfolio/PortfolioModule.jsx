@@ -10,7 +10,7 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useSubscription } from '../../hooks/useSubscription'
-import { supabase } from '../../lib/supabase'
+import PortfolioSyncBar from './PortfolioSyncBar'
 import { fmt, colorClass } from '../../utils/format'
 import { StatBox } from '../../components/ui/Panel'
 import { DemoBadge, Viz3DLoader } from '../../components/ui/ModuleStates'
@@ -563,7 +563,6 @@ export default function PortfolioModule() {
   const [showBuilder, setShowBuilder] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [allocView3D, setAllocView3D] = useState(false)
-  const [dbSynced, setDbSynced] = useState(false)
   const [activeTab, setActiveTab] = useState('holdings')
   const [sortKey, setSortKey] = useState(null)
   // ⋯ menu targets: a research note being generated, an alert being set.
@@ -586,28 +585,22 @@ export default function PortfolioModule() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings))
   }, [holdings])
 
-  // Load from Supabase on mount when logged in
+  // Settings → Clear portfolio empties this device's copy; the open module
+  // must follow, or its persist effect would write the holdings straight back.
   useEffect(() => {
-    if (!user || dbSynced) return
-    supabase.from('portfolio_holdings').select('*').order('added_at').then(({ data }) => {
-      if (data && data.length > 0) {
-        const mapped = data.map(r => ({
-          id: r.id,
-          symbol: r.symbol,
-          yfSym: toYahooSymbol(r.symbol, detectType(r.symbol)),
-          name: r.name || r.symbol,
-          shares: parseFloat(r.shares),
-          avgCost: parseFloat(r.avg_buy_price),
-          costCurrency: r.currency || 'AUD',
-          type: detectType(r.symbol),
-          addedAt: r.added_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
-        }))
-        setHoldings(mapped)
-      }
-      setDbSynced(true)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+    const onCleared = () => setHoldings([])
+    window.addEventListener('maddex:portfolio-cleared', onCleared)
+    return () => window.removeEventListener('maddex:portfolio-cleared', onCleared)
+  }, [])
+
+  // The account copy changes only through PortfolioSyncBar, after the reader
+  // confirms (16 Nov 2026). Opening the module used to replace this device's
+  // holdings with the account's, and every add, import and delete wrote to
+  // the account without a user_id, so those writes all failed in silence.
+  const loadFromAccount = (rows) => setHoldings((prev) => [
+    ...prev,
+    ...rows.map((r) => ({ ...r, id: `acct-${r.id}`, yfSym: toYahooSymbol(r.symbol, detectType(r.symbol)), type: detectType(r.symbol), addedAt: r.addedAt ?? new Date().toISOString().slice(0, 10) })),
+  ])
 
   const addHolding = async (h) => {
     markMilestone('portfolio')
@@ -618,21 +611,6 @@ export default function PortfolioModule() {
     })
     logActivity('portfolio', `Added ${h.shares} ${h.symbol} to portfolio`)
     setShowAddForm(false)
-    if (user) {
-      const { data, error } = await supabase.from('portfolio_holdings').insert({
-        symbol: h.symbol,
-        name: h.name,
-        shares: h.shares,
-        avg_buy_price: h.avgCost,
-        currency: h.costCurrency,
-      }).select().single()
-      // Swap the client-generated id for Supabase's real row id — without
-      // this, deleting a holding added this session targets an id that
-      // doesn't exist in the DB and silently does nothing.
-      if (!error && data?.id) {
-        setHoldings((prev) => prev.map((p) => (p.id === h.id ? { ...p, id: data.id } : p)))
-      }
-    }
   }
 
   // Sequential — addHolding is itself async (Supabase insert when logged
@@ -649,30 +627,15 @@ export default function PortfolioModule() {
   // would replace by symbol, which is exactly what ADD AS NEW LOT must not do.
   const importCsv = async ({ add, replaceKeys, skipped, replaced }) => {
     const keyOf = (h) => `${h.type}:${h.symbol}`
-    const removed = holdings.filter((h) => replaceKeys.has(keyOf(h)))
     markMilestone('portfolio')
     setHoldings((prev) => [...prev.filter((h) => !replaceKeys.has(keyOf(h))), ...add])
     logImport({ source: 'CSV', holdingsAdded: add.length, holdingsSkipped: skipped, holdingsReplaced: replaced })
     logActivity('portfolio', `Imported ${add.length} holding${add.length === 1 ? '' : 's'} from CSV`)
     setShowImport(false)
-    if (!user) return
-    if (removed.length) await supabase.from('portfolio_holdings').delete().in('id', removed.map((h) => h.id))
-    const { data, error } = await supabase.from('portfolio_holdings').insert(add.map((h) => ({
-      symbol: h.symbol, name: h.name, shares: h.shares, avg_buy_price: h.avgCost,
-      currency: h.costCurrency, added_at: h.addedAt,
-    }))).select()
-    // Same id swap as addHolding — rows come back in insert order.
-    if (!error && data?.length === add.length) {
-      const idMap = new Map(add.map((h, i) => [h.id, data[i].id]))
-      setHoldings((prev) => prev.map((p) => (idMap.has(p.id) ? { ...p, id: idMap.get(p.id) } : p)))
-    }
   }
 
   const deleteHolding = async (id) => {
     setHoldings((prev) => prev.filter((h) => h.id !== id))
-    if (user) {
-      await supabase.from('portfolio_holdings').delete().eq('id', id)
-    }
   }
 
   // Batch fetch for equity holdings.
@@ -910,6 +873,7 @@ export default function PortfolioModule() {
             </div>
           )}
         />
+        <PortfolioSyncBar user={user} holdings={holdings} onLoad={loadFromAccount} />
         {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
         {showImport && (
           <PortfolioImportModal
@@ -966,6 +930,7 @@ export default function PortfolioModule() {
 
   return (
     <div className="h-full grid grid-rows-[auto_auto_auto_1fr] overflow-hidden">
+      <div>
       <ModuleHeader
         title="PORTFOLIO"
         subtitle={`${positionCount} positions${holdings.length > positionCount ? ` · ${holdings.length} lots` : ''} · ${equityHoldings.length} equities tracked`}
@@ -1032,6 +997,8 @@ export default function PortfolioModule() {
       {/* Stats bar */}
       {/* auto-fit: eleven boxes on a fixed nine-column grid left a second row
           of two boxes and seven empty slots. */}
+      <PortfolioSyncBar user={user} holdings={holdings} onLoad={loadFromAccount} />
+      </div>
       <div className="grid border-b border-terminal-border flex-shrink-0" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))' }}>
         <StatBox
           label="PORTFOLIO VALUE"
