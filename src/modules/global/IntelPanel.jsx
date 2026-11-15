@@ -26,7 +26,7 @@ export function IntelFilterBar({ value, onChange }) {
   return (
     <div className="flex items-center gap-1 px-3 flex-shrink-0 border-b border-terminal-border" style={{ height: 28, background: '#030912' }}>
       {INTEL_FILTERS.map((f) => (
-        <button key={f} onClick={() => onChange(f)}
+        <button key={f} onClick={() => onChange(f)} aria-pressed={value === f}
           className="transition-colors"
           style={{
             fontFamily: MONO, fontSize: 11, letterSpacing: '0.12em', padding: '2px 6px', borderRadius: 2,
@@ -98,12 +98,22 @@ export function IntelTicker({ earthquakes, filter }) {
     } catch { /* keep the existing strip */ } finally { setRegenerating(false) }
   }
 
+  // A pause any reader can reach: hover alone left keyboard and touch
+  // readers with a strip they could not stop (WCAG 2.2.2).
+  const [paused, setPaused] = useState(false)
+
   if (!items.length) return null
   const run = [...items, ...items]
 
   return (
-    <div className="intel-ticker flex-shrink-0 overflow-hidden relative group"
+    <div className={`intel-ticker flex-shrink-0 overflow-hidden relative group ${paused ? 'is-paused' : ''}`}
       style={{ height: 40, background: '#020609', borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
+      <button onClick={() => setPaused((p) => !p)} aria-pressed={paused}
+        aria-label={paused ? 'Resume the headline ticker' : 'Pause the headline ticker'}
+        className="absolute left-0 top-0 h-full z-10 flex items-center pl-2 pr-4 opacity-30 hover:opacity-100 focus:opacity-100 transition-opacity"
+        style={{ background: 'linear-gradient(to left, transparent, #020609 45%)', color: PAL.gold, fontSize: 11, lineHeight: 1, border: 'none' }}>
+        {paused ? '▶' : '❚❚'}
+      </button>
       <button onClick={regenerate} disabled={regenerating}
         title="Regenerate the AI lines — clears today's cached generation. Live items refresh every 5 minutes on their own."
         aria-label="Regenerate intelligence ticker"

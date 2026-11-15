@@ -777,7 +777,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
               title="Toggle AUD/USD display"
             >{currencyMode === 'AUD' ? 'A$' : 'US$'}</button>
           )}
-          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
+          <button onClick={onClose} aria-label="Close country panel" className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
         </div>
       </div>
 
@@ -1756,7 +1756,7 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
             <div className="text-2xs text-terminal-text-dim">{ex.city} · {ex.country}</div>
           </div>
         </div>
-        <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
+        <button onClick={onClose} aria-label="Close exchange panel" className="text-terminal-text-dim hover:text-terminal-text text-sm">✕</button>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -2160,7 +2160,10 @@ function StatBlock({ label, value, accent }) {
 }
 
 function WorldStatsSummary() {
-  const openCount = useMemo(() => EXCHANGES.filter(ex => isOpenNow(getStatus(ex))).length, [])
+  // Recounted each minute: computed once, it kept the count from when the
+  // tab opened however long the reader stayed.
+  useNow(60_000)
+  const openCount = EXCHANGES.filter(ex => isOpenNow(getStatus(ex))).length
   const avgRisk = avgGeoRisk()
 
   return (
@@ -2337,7 +2340,6 @@ export default function GlobalModule() {
 
   // Startup: country data refresh + gap report
   useEffect(() => {
-    console.log(`[MADDEX] Country database: ${COUNTRIES.length} entries loaded`)
     const alpha2Set = new Set(COUNTRIES.map(c => c.alpha2))
     initCountryDataRefresh(alpha2Set).catch(err => console.warn('[MADDEX] Country refresh error:', err))
   }, [])
@@ -2634,12 +2636,14 @@ export default function GlobalModule() {
                   onClick={toggleLeftPin}
                   title={leftPinned ? 'Unpin panel' : 'Pin panel open'}
                   aria-pressed={leftPinned}
+                  aria-label="Pin intelligence panel open"
                   className="ml-auto transition-colors"
                   style={{ color: leftPinned ? PAL.gold : PAL.muted, fontSize: 11 }}
                 >📌</button>
                 <button
                   onClick={() => setLayout(layout === 'D' ? 'C' : 'A')}
                   title="Close panel"
+                  aria-label="Close intelligence panel"
                   className="text-terminal-text-dim hover:text-terminal-gold transition-colors"
                   style={{ fontSize: 11 }}
                 >✕</button>
@@ -2708,6 +2712,7 @@ export default function GlobalModule() {
                 <button
                   onClick={() => setLayout(layout === 'D' ? 'B' : 'A')}
                   title="Close panel (⌘])"
+                  aria-label="Close detail panel"
                   className="ml-auto text-terminal-text-dim hover:text-terminal-gold transition-colors"
                   style={{ fontSize: 11 }}
                 >✕</button>

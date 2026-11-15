@@ -961,7 +961,9 @@ body.ticker-paused .ticker-content {
   width: max-content;
   animation: intel-ticker-scroll 70s linear infinite;
 }
-.intel-ticker:hover .intel-ticker-track { animation-play-state: paused; }
+.intel-ticker:hover .intel-ticker-track,
+.intel-ticker:focus-within .intel-ticker-track,
+.intel-ticker.is-paused .intel-ticker-track { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .intel-ticker-track { animation: none; }
 }
