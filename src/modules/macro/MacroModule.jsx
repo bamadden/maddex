@@ -35,7 +35,7 @@ import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES, FALLBACK_IMPLICA
 import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { BOND_CURVES_AS_OF } from '../../data/bondCurves'
-import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import { AIContentBadge, HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import GlobalComparison from './GlobalComparison'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
@@ -623,7 +623,7 @@ function RBADashboard({ askAI }) {
           <div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
               <span className="text-terminal-gold font-bold whitespace-nowrap">NEXT DECISION</span>
-              <VerifiedBadge dataKey="rba" alwaysShow />
+              <HandEnteredBadge dataKey="rba" />
             </div>
             <div className="flex justify-between">
               <span className="text-terminal-text-dim">RBA</span>
@@ -1973,8 +1973,8 @@ export default function MacroModule() {
               when the RBA published the rate; this is when we last confirmed
               our copy of it is still the current one. A figure can be
               correctly dated and still be one we have stopped checking. */}
-          <VerifiedBadge dataKey="rba" alwaysShow />
-          <VerifiedBadge dataKey="au" alwaysShow />
+          <HandEnteredBadge dataKey="rba" />
+          <HandEnteredBadge dataKey="au" />
           <div className="flex items-center gap-4 ml-auto">
             {MEETINGS.map(m => <MeetingCountdown key={m.label} meeting={m} />)}
           </div>

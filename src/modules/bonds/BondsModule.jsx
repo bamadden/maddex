@@ -10,6 +10,7 @@ import Tooltip from '../../components/ui/Tooltip'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
+import DataBadge from '../../components/ui/DataBadge'
 
 // ─── Bonds ──────────────────────────────────────────────────────────────────
 //
@@ -156,7 +157,7 @@ function BondDetail({ market, row, onClose }) {
           </span>
           {row.indicative && (
             <Tooltip content="Not a sourced point. Interpolated between quoted maturities, or an ultra-long tenor that is thinly traded even in the real market.">
-              <span className="font-mono text-terminal-text-dim/60 italic" style={{ fontSize: 11 }}>INDICATIVE</span>
+              <span className="font-mono text-terminal-text-dim/60 italic" style={{ fontSize: 11 }}>interpolated</span>
             </Tooltip>
           )}
           <button onClick={onClose} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold">✕ CLOSE</button>
@@ -325,14 +326,14 @@ export default function BondsModule() {
         title="BONDS"
         subtitle="Sovereign debt · full maturity spectrum · 1M to 50Y"
         moduleId="bonds"
-        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● DEMO · SIMULATED TICKS</span>}
+        right={<DataBadge cls="DEMO" source="indicative snapshot · simulated ticks" />}
       />
 
       {/* Provenance first, not buried in a footer. Every yield below is
           indicative; the CPI the real-yield column uses is not. */}
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(201,168,76,0.04)' }}>
-        <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>INDICATIVE DATA</span>
+        <DataBadge cls="DEMO" source="indicative snapshot, not a feed" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           AU and US curves are anchored to quoted closes (AU {BOND_CURVES_AS_OF.AU}, US Treasury par curve {BOND_CURVES_AS_OF.US});
           UK, DE and JP are illustrative. Ticking is simulated, not a market feed. Real yields use verified AU CPI of {cpi.toFixed(1)}%.
@@ -479,7 +480,7 @@ export default function BondsModule() {
                       {r.maturity}
                       {r.indicative && (
                         <Tooltip content="Ultra-long bonds are thinly traded. Yields shown at these maturities are market estimates.">
-                          <span className="ml-1.5 font-normal not-italic" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.1em' }}>INDICATIVE</span>
+                          <span className="ml-1.5 font-normal not-italic" style={{ fontSize: 11, color: PAL.muted, letterSpacing: '0.1em' }}>estimate</span>
                         </Tooltip>
                       )}
                     </td>

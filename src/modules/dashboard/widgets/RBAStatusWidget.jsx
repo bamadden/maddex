@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../../data/verifiedConstants'
-import VerifiedBadge from '../../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../../components/ui/VerifiedBadge'
 import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
@@ -60,7 +60,7 @@ export default function RBAStatusWidget() {
             {rba.lastDecisionVerb} · {trend.text}
           </div>
         </div>
-        <VerifiedBadge dataKey="rba" alwaysShow />
+        <HandEnteredBadge dataKey="rba" />
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col justify-end gap-1.5">

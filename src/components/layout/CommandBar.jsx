@@ -20,6 +20,7 @@ import {
 
 import { PAL } from '../../styles/palette.js'
 import { NoData } from '../ui/ModuleStates'
+import DataBadge from '../ui/DataBadge'
 
 // Phones get a placeholder that fits whole beside CMD> and the status.
 const NARROW = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 639px)').matches
@@ -658,7 +659,7 @@ function MoversPanel({ title, items, onClose, onSelect }) {
           </table>
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">
-          Click any row to open full asset profile · {USING_MOCK_DATA ? '● DEMO DATA — prices simulated' : 'Source: Stooq / CoinGecko'}
+          Click any row to open full asset profile · {USING_MOCK_DATA ? <DataBadge cls="DEMO" source="simulated prices" compact /> : 'Source: Stooq / CoinGecko'}
         </div>
       </div>
     </div>
@@ -721,7 +722,7 @@ function CompareModal({ assets, onClose }) {
           ))}
         </div>
         <div className="px-3 py-1 border-t border-terminal-border text-2xs text-terminal-text-dim/50">
-          {USING_MOCK_DATA ? '● DEMO DATA — prices simulated' : 'Source: Stooq / CoinGecko'} · Prices in AUD
+          {USING_MOCK_DATA ? <DataBadge cls="DEMO" source="simulated prices" compact /> : 'Source: Stooq / CoinGecko'} · Prices in AUD
         </div>
       </div>
     </div>
@@ -899,7 +900,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
                 <span className="text-terminal-text-dim flex-1 truncate">{s.desc}</span>
                 {q && (
                   <span className="flex items-center gap-2 flex-shrink-0">
-                    {q.demo && <span className="text-terminal-gold/70 font-bold" style={{ fontSize: 11 }}>DEMO</span>}
+                    {q.demo && <DataBadge cls="DEMO" source="simulated" compact />}
                     <span className="text-terminal-text-bright font-semibold">
                       {q.price != null ? `A$${fmt.price(q.price)}` : '—'}
                     </span>

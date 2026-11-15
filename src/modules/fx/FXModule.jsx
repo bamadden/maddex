@@ -15,7 +15,7 @@ import { fetchFxRatesUnified } from '../../services/dataService'
 import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl } from '../../data/rbaDecisions'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { curveForRates, BOND_CURVES_AS_OF } from '../../data/bondCurves'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 // The full ten-bank schedule now lives in UpcomingDecisions, which owns the
 // 90-day calendar. This module only needs the RBA's own dates, for the hero
 // countdown and the compact dashboard's next-meeting label.
@@ -562,7 +562,7 @@ function MarketPricingPanel() {
     <div className="p-2 border-t border-terminal-border flex-shrink-0">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">POLICY SETTINGS</span>
-        <VerifiedBadge dataKey="rba" alwaysShow />
+        <HandEnteredBadge dataKey="rba" />
       </div>
 
       <PolicyRow

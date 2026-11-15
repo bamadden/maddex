@@ -3,7 +3,7 @@ import {
   auRecessionRisk, usRecessionRisk, combinedRisk,
   BAND_TONE, STATE_TONE, AU_RECESSIONS, RUBRIC,
 } from '../../data/recessionRisk'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import ScoreNote from '../../components/ui/ScoreNote'
 
 // Semicircle gauge, 0-100 left to right.
@@ -111,7 +111,7 @@ export default function RecessionMonitor() {
             <span className="text-2xs text-terminal-text-dim">
               {combined.region}: <span className="font-bold" style={{ color: BAND_TONE[combined.band] }}>{combined.score}</span>
             </span>
-            <VerifiedBadge dataKey="rba" alwaysShow />
+            <HandEnteredBadge dataKey="rba" />
           </div>
         </div>
 

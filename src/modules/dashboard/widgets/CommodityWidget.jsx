@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../../data/verifiedConstants'
 import { liveDataService } from '../../../services/liveDataService'
-import VerifiedBadge, { LiveBadge } from '../../../components/ui/VerifiedBadge'
+import { LiveBadge, HandEnteredBadge } from '../../../components/ui/VerifiedBadge'
 import { WidgetBody, WidgetRows, WidgetRow } from './_shared'
 
 // Gold is genuinely live; the rest are verified levels with no free feed.
@@ -26,7 +26,7 @@ export default function CommodityWidget() {
     <WidgetBody>
       <div className="flex items-center justify-end gap-1.5 flex-shrink-0 mb-1">
         {gold && <LiveBadge label="PAXG gold proxy · CoinGecko" source={source} at={at} />}
-        <VerifiedBadge dataKey="commodities" />
+        <HandEnteredBadge dataKey="commodities" />
       </div>
       <WidgetRows>
         {gold && <WidgetRow label="GOLD" value={`US$${gold.USD.toLocaleString()}`} change={gold.change24h} />}

@@ -1,7 +1,7 @@
 import DataBadge from './DataBadge'
 import { classOfLiveSource } from '../../utils/dataClass'
 import Tooltip from './Tooltip'
-import { daysSinceVerified, isStale, provenance, VERIFY_WARN_DAYS } from '../../data/verifiedConstants'
+import { daysSinceVerified, isStale, provenance, VERIFY_WARN_DAYS, VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { PAL } from '../../styles/palette.js'
 
 // Provenance marker for a manually-maintained figure.
@@ -107,4 +107,15 @@ export function AIContentBadge({ source = 'fallback', label = null, className = 
       </span>
     </Tooltip>
   )
+}
+
+// The same provenance in the one vocabulary (15 Nov 2026): DELAYED, the
+// source, and the date it was last checked. A hand-entered figure is a
+// scheduled publication copied by a person, not a feed; how old it may get
+// is enforced by the freshness guard (src/data/freshness.js), not by a
+// second badge style. VerifiedBadge above stays only in the held RBA files.
+export function HandEnteredBadge({ dataKey, className = '' }) {
+  const c = VERIFIED_CONSTANTS[dataKey]
+  if (!c) return null
+  return <DataBadge cls="DELAYED" source={`${c.source ?? 'hand-entered'}, checked`} at={c.lastVerified ?? null} className={className} />
 }

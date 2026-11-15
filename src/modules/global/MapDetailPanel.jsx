@@ -9,6 +9,7 @@ import { screenSector } from '../markets/screenSector'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 import { routeFor, brentReading, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
+import DataBadge from '../../components/ui/DataBadge'
 
 const RISK_TONE = { LOW: PAL.up, MEDIUM: PAL.gold, ELEVATED: '#D9773B', HIGH: PAL.down }
 // Main WA export port, for the route distance (the arcs start from a map anchor).
@@ -164,7 +165,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                 <div style={{ ...S.value, ...S.gold, fontSize: 20, marginBottom: 4 }}>{data.value.toLocaleString('en-AU', { maximumFractionDigits: 1 })}</div>
                 <div style={{ ...S.value, fontSize: 14, color: data.change >= 0 ? PAL.up : PAL.down }}>
                   {data.change >= 0 ? '▲' : '▼'} {Math.abs(data.change).toFixed(2)}%
-                  {data.demo && <span style={{ ...S.muted, fontSize: 11, marginLeft: 8 }}>DEMO</span>}
+                  {data.demo && <DataBadge cls="DEMO" source="simulated" compact className="ml-2" />}
                 </div>
               </>
             ) : (

@@ -12,10 +12,11 @@ import { dispatchAskAI } from '../../utils/askAI'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useMarketSentiment } from '../../hooks/useMarketSentiment'
 import { useQuery } from '@tanstack/react-query'
-import { getEconomicCalendar, upcomingEvents } from '../../services/calendarService'
+import { getEconomicCalendar, upcomingEvents, ECON_SCHEDULE_CHECKED } from '../../services/calendarService'
 import { eventStars, starString } from '../../services/calendarExtras'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
+import DataBadge from '../../components/ui/DataBadge'
 import { useSentiment } from '../../hooks/useSentiment'
 import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
 import { clean } from './briefText'
@@ -95,7 +96,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
         <div className="border border-terminal-border p-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-2xs text-terminal-gold font-bold tracking-widest">RBA</span>
-            <VerifiedBadge dataKey="rba" alwaysShow />
+            <HandEnteredBadge dataKey="rba" />
           </div>
           <div className="text-xl font-bold text-terminal-gold tabular-nums">{rba.cashRate.toFixed(2)}%</div>
           <div className="text-2xs text-terminal-text-dim mt-0.5">
@@ -108,7 +109,10 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
         </div>
 
         <div className="border border-terminal-border p-3">
-          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">US FED</div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">US FED</span>
+            <HandEnteredBadge dataKey="fed" />
+          </div>
           <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{fed.rateRange}</div>
           <div className="text-2xs text-terminal-text-dim mt-0.5">
             {fed.lastDecisionVerb} on {fed.lastDecision}
@@ -119,7 +123,10 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
         </div>
 
         <div className="border border-terminal-border p-3">
-          <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-1">AU CPI · MONTHLY INDICATOR</div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-2xs text-terminal-gold font-bold tracking-widest">AU CPI · MONTHLY INDICATOR</span>
+            <HandEnteredBadge dataKey="au" />
+          </div>
           <div className="text-xl font-bold text-terminal-text-bright tabular-nums">{au.cpi.toFixed(1)}%</div>
           <div className="text-2xs text-terminal-text-dim mt-0.5">{au.cpiPeriod}, year on year · quarterly: {au.cpiQuarterYoY}% ({au.cpiQuarterPeriod})</div>
           <div className="text-2xs text-terminal-text mt-1">
@@ -132,6 +139,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
         <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center justify-between">
           <span className="text-2xs text-terminal-gold font-bold tracking-widest">THE WEEK AHEAD</span>
           <span className="text-2xs text-terminal-text-dim">next 9 days · by importance</span>
+          <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} compact />
         </div>
         {weekAhead.length === 0 ? (
           <div className="px-3 py-6 text-center text-2xs text-terminal-text-dim">

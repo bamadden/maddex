@@ -25,6 +25,7 @@ import { licenceOff } from '../../data/sourceLicence'
 import { PAL } from '../../styles/palette.js'
 import { formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
 import { useNow } from '../../hooks/useNow'
+import DataBadge from '../../components/ui/DataBadge'
 
 // ── Basemaps ──────────────────────────────────────────────────────────────
 //
@@ -1414,7 +1415,7 @@ function MapTooltip({ tooltip }) {
           <>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{object.value.toLocaleString('en-AU', { maximumFractionDigits: 1 })}</div>
             <div style={{ color: object.change >= 0 ? PAL.up : PAL.down, marginBottom: 5 }}>
-              {object.change >= 0 ? '▲' : '▼'} {Math.abs(object.change).toFixed(2)}% <span style={{ color: PAL.muted, fontSize: 11 }}>DEMO</span>
+              {object.change >= 0 ? '▲' : '▼'} {Math.abs(object.change).toFixed(2)}% <DataBadge cls="DEMO" source="simulated" compact className="ml-1.5" />
             </div>
           </>
         ) : <div style={{ color: PAL.muted, marginBottom: 5 }}>no index feed</div>}

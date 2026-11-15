@@ -27,6 +27,7 @@ import AnalystCoverage from '../markets/AnalystCoverage'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Brush, Legend } from 'recharts'
 import SafeChart from './SafeChart'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from './DataBadge'
 
 const TIMEFRAMES  = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y', 'ALL']
 const CHART_TYPES = ['area', 'line', 'candle', 'pro']
@@ -1441,8 +1442,8 @@ export default function DetailModal() {
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-2">
               <span className="text-2xs text-terminal-text-dim/40">Updated {updatedTime} {sydneyTzNow()}</span>
-              {isLiveChart && <span className="text-2xs text-terminal-green">● LIVE</span>}
-              {!isLiveChart && isStockOrIdx && USING_MOCK_DATA && <span className="text-2xs text-terminal-gold">● DEMO</span>}
+              {isLiveChart && <DataBadge cls="LIVE" source="CoinGecko" compact />}
+              {!isLiveChart && isStockOrIdx && USING_MOCK_DATA && <DataBadge cls="DEMO" source="simulated" compact />}
             </div>
           </div>
         </div>

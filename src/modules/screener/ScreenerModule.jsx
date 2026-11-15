@@ -13,6 +13,7 @@ import { takeModuleIntent } from '../../services/moduleIntent'
 import { reportFooter } from '../../services/disclosures'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
 
 // Two derived fields the raw data does not carry, computed once here rather
 // than at every filter, sort and render:
@@ -575,7 +576,7 @@ function buildCsv(rows, { screenName, rankable }) {
   if (rankable) headers.push('Match %')
 
   const lines = [
-    '# INDICATIVE DATA — Not financial advice',
+    '# DEMO data — not financial advice',
     `# Maddex screen: ${screenName}`,
     `# Exported ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })} (Sydney)`,
     '# Demo dataset: prices are simulated and fundamentals illustrative — not live market data.',
@@ -983,7 +984,7 @@ export default function ScreenerModule() {
         title="MARKET SCREENER"
         subtitle={`ASX + US universe · ${ALL_STOCKS.length} stocks tracked · Prices simulated`}
         moduleId="screener"
-        right={<span className="flex items-center gap-1.5 text-2xs font-bold tracking-widest text-terminal-gold"><span className="w-1.5 h-1.5 rounded-full bg-terminal-gold pulse-gold" />DEMO · SIMULATED TICKS</span>}
+        right={<DataBadge cls="DEMO" source="simulated prices" />}
       />
       {/* Auto-scan strip */}
       <div className="flex items-center gap-3 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 font-mono" style={{ background: 'rgba(201,168,76,0.03)' }}>

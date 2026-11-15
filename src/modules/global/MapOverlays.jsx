@@ -3,6 +3,7 @@ import { EXCHANGES, isExchangeOpen } from './intelMapData'
 import { getMockFMPRow } from '../../services/mockData'
 import { askMaddenAI } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
 
 // The card for a financial district, shown when the map is zoomed into one
 // (zoom 13+, centred within about ten kilometres). Institutions are reference
@@ -51,7 +52,7 @@ export function DistrictCard({ district: d, insetL = 0 }) {
       {q && pct != null && (
         <div style={{ ...mono, fontSize: 11, color: PAL.dim, marginTop: 4 }}>
           Today&apos;s {d.indexLabel}: <span style={{ color: pct >= 0 ? PAL.up : PAL.down, fontWeight: 700 }}>{pct >= 0 ? '▲ +' : '▼ '}{pct.toFixed(2)}%</span>
-          <span style={{ color: PAL.muted, fontSize: 11, marginLeft: 6 }}>DEMO</span>
+          <DataBadge cls="DEMO" source="simulated" compact className="ml-1.5" />
         </div>
       )}
 

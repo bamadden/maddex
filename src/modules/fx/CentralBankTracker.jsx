@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
 import { LAST_DECISIONS } from '../../services/centralBankSchedule'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import PolicySpreadMonitor from './PolicySpreadMonitor'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
@@ -117,7 +117,7 @@ function DecisionsBoard() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">LAST DECISION BY BANK</span>
-        <VerifiedBadge dataKey="rba" alwaysShow />
+        <HandEnteredBadge dataKey="rba" />
       </div>
       <table className="w-full text-2xs">
         <thead>

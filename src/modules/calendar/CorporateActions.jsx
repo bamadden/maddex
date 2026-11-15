@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ACTION_TYPES, ASX_LISTINGS, CORPORATE_ACTIONS, CORPORATE_ACTIONS_AS_OF } from '../../data/corporateActions'
 import { dispatchAskAI } from '../../utils/askAI'
 import { formatDate } from '../../utils/dateUtils'
+import DataBadge from '../../components/ui/DataBadge'
 
 // CORPORATE ACTIONS — dividends, results, AGMs, raisings, splits and new
 // listings, from the hand-entered, sourced list in data/corporateActions.
@@ -34,8 +35,8 @@ export default function CorporateActions() {
     <div className="mt-6 border border-terminal-border">
       <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center gap-2 flex-wrap">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">CORPORATE ACTIONS</span>
-        <span className="text-[11px] font-bold px-1.5 border border-terminal-gold/50 text-terminal-gold" title="Dates from company calendars and the ASX; companies can move them">INDICATIVE</span>
-        <span className="text-2xs text-terminal-text-dim">from company calendars and the ASX · as at {fmtDate(CORPORATE_ACTIONS_AS_OF)}</span>
+        <DataBadge cls="DELAYED" source="company calendars and the ASX, as at" at={CORPORATE_ACTIONS_AS_OF} />
+        <span className="text-2xs text-terminal-text-dim">companies can move their dates</span>
       </div>
       <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-terminal-border/50">
         {[{ key: 'all', label: 'ALL' }, ...ACTION_TYPES].map((t) => (

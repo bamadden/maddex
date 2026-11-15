@@ -14,6 +14,7 @@ import { openInRelationships } from '../../utils/openRelationships'
 import { ConfidenceBadge, StaleBadge, WeightBadge } from '../relationships/RelPanels'
 import { TYPE_COLOUR, CONF_TONE, STALE_TONE, fmtDate } from '../relationships/theme'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
 
 // COMPANY PROFILE — one screen per company, in the spirit of a terminal's
 // DES/FA pages, built only from what the graph and the ASX profiles hold.
@@ -282,7 +283,7 @@ export default function CompanyProfileModule() {
           </div>
           <div>
             <div className="font-mono tracking-widest text-terminal-text-dim flex items-center gap-1.5" style={{ fontSize: 11 }}>
-              PRICE <span className="font-bold px-1" style={{ color: PAL.gold, border: '1px solid rgba(201,168,76,0.5)' }}>DEMO</span>
+              PRICE <DataBadge cls="DEMO" source="simulated" compact />
             </div>
             {quote ? (
               <button onClick={() => openModal({ symbol: node.ticker, name: node.name, price: quote.price, pct: quote.changePct, change: quote.price * (quote.changePct / 100), type: 'asx' })}

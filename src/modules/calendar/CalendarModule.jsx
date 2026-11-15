@@ -10,7 +10,7 @@ import {
   REMINDER_OFFSETS, addReminder, removeReminder, dismissReminder,
   remindersForEvent, pendingReminders,
 } from '../../services/calendarExtras'
-import { getEconomicCalendar, upcomingEvents } from '../../services/calendarService'
+import { getEconomicCalendar, upcomingEvents, ECON_SCHEDULE_CHECKED } from '../../services/calendarService'
 import { LAST_DECISIONS } from '../../services/centralBankSchedule'
 import { useReleaseWatch } from '../../hooks/useReleaseWatch'
 import { releaseKey } from '../../services/releaseWatch'
@@ -22,6 +22,7 @@ import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
 import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
 import { PAL } from '../../styles/palette.js'
 import { useNow } from '../../hooks/useNow'
+import DataBadge from '../../components/ui/DataBadge'
 
 const REGION_FLAGS = { AU: '🇦🇺', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', UK: '🇬🇧', EU: '🇪🇺', NZ: '🇳🇿', CA: '🇨🇦' }
 const IMPORTANCE_COLOR = { high: 'text-terminal-red', medium: 'text-terminal-gold', low: 'text-terminal-muted' }
@@ -633,7 +634,13 @@ export default function CalendarModule() {
         subtitle="Economic events · Earnings"
         onRefresh={refetch}
         isFetching={isFetching}
-        lastUpdated={dataUpdatedAt}
+        // The calendar feed is licensed off, so the events are the hand-entered
+        // schedule: its date is when it was checked, not when it was loaded
+        // ("just now" said the latter).
+        lastUpdated={calResult?.source === 'fallback' ? null : dataUpdatedAt}
+        right={calResult && (calResult.source === 'fallback'
+          ? <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} />
+          : <DataBadge cls="DELAYED" source="economic calendar" at={dataUpdatedAt || null} />)}
       />
       <ReleaseWatchBanner className="px-3 pt-2" />
       {season.active && (

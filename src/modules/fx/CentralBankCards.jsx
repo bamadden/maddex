@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
-import VerifiedBadge, { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import { AIContentBadge, HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import aiContentService from '../../services/aiContentService'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
@@ -248,7 +248,7 @@ export default function CentralBankCards() {
         <span className="text-terminal-gold">GLOBAL POLICY RATES</span>
         {/* Every bank in this grid shares one verification date, so the badge
             belongs on the header rather than repeated ten times. */}
-        <VerifiedBadge dataKey="rba" alwaysShow />
+        <HandEnteredBadge dataKey="rba" />
         <button
           onClick={() => setCycle((v) => !v)}
           aria-pressed={cycle}

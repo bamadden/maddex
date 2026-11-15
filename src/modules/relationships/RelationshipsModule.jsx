@@ -14,6 +14,7 @@ import { openCompanyProfile } from '../../utils/openRelationships'
 import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel } from './theme'
 import { ConfidenceBadge, StaleBadge, WeightBadge, EdgeDetail, PathFinder, ConnectedHoldings, RipplePanel } from './RelPanels'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
 
 // RELATIONSHIPS — the company graph.
 //
@@ -377,7 +378,7 @@ export default function RelationshipsModule() {
   return (
     <div className="h-full flex flex-col min-h-0">
       <ModuleHeader title="RELATIONSHIPS" subtitle="Company graph · every edge sourced" moduleId="relationships"
-        right={<span className="hidden sm:inline font-mono text-terminal-text-dim text-2xs">PHASE 1.5 · AS AT {fmtDate(GRAPH_AS_OF).toUpperCase()}</span>} />
+        right={<DataBadge cls="DELAYED" source="sourced edges, graph as at" at={GRAPH_AS_OF} />} />
 
       {/* Search + filters */}
       <div className="px-3 py-2 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0">

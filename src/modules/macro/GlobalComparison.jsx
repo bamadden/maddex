@@ -1,5 +1,5 @@
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -37,7 +37,7 @@ export default function GlobalComparison() {
     <div className="border border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">GLOBAL ECONOMIC COMPARISON</span>
-        <VerifiedBadge dataKey="eu" alwaysShow />
+        <HandEnteredBadge dataKey="eu" />
         <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">latest official prints · stance = last decision</span>
       </div>
       <div className="overflow-x-auto">

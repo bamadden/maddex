@@ -10,6 +10,7 @@ import { CREDIT } from '../../data/credits'
 import SentimentClass from '../../components/ui/SentimentClass'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import { USING_MOCK_DATA } from '../../services/api'
+import DataBadge from '../../components/ui/DataBadge'
 
 const PREV_SCORE_KEY     = 'maddex_sentiment_prev'
 const HISTORY_KEY        = 'maddex_sentiment_history'
@@ -440,7 +441,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
                 return (
                   <div key={f.name} style={{ padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>{f.demo && <span data-class="DEMO" style={{ fontSize: 11, color: PAL.gold, marginLeft: 6 }}>DEMO</span>}
+                      <span style={{ fontSize: 11, color: 'var(--color-text-bright, #e8ecf0)', fontWeight: 600 }}>{f.name}</span>{f.demo && <DataBadge cls="DEMO" source="simulated" compact className="ml-1.5" />}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                         <span style={{ fontSize: 11, color: 'var(--color-text-dim, #8BA3C4)' }}>wt {f.weight}%</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: col }}>{f.score}/100</span>

@@ -40,7 +40,7 @@ export function StaleBadge({ edge, now }) {
   const days = ageDays(edge, now)
   return (
     <span className="font-mono font-bold tracking-widest px-1 flex-shrink-0" title={`Figure dated ${fmtDate(edgeAsAt(edge))} — ${Math.floor(days / 30)} months old`}
-      style={{ fontSize: 11, color: STALE_TONE, border: `1px solid ${STALE_TONE}88` }}>STALE</span>
+      style={{ fontSize: 11, color: STALE_TONE, border: `1px solid ${STALE_TONE}88` }}>SOURCE OVER A YEAR OLD</span>
   )
 }
 

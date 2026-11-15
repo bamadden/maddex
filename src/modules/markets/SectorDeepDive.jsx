@@ -11,7 +11,7 @@ import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { sectorDrivers } from './sectorDrivers'
 import TabBar from '../../components/ui/TabBar'
 import SafeChart from '../../components/ui/SafeChart'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews } from '../../services/api'
@@ -168,7 +168,7 @@ function DriversTab({ sectorName, fx }) {
           <span className="text-2xs text-terminal-gold font-bold tracking-widest">
             WHAT DRIVES {sectorName.toUpperCase()}
           </span>
-          <VerifiedBadge dataKey="rba" alwaysShow />
+          <HandEnteredBadge dataKey="rba" />
         </div>
         <div className="text-2xs text-terminal-text-dim leading-relaxed">
           The mechanisms below are structural and do not change day to day. Readings come

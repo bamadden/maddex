@@ -7,6 +7,7 @@ import Tooltip from '../../components/ui/Tooltip'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
 
 // ─── ETF Explorer ───────────────────────────────────────────────────────────
 //
@@ -301,12 +302,12 @@ export default function ETFModule() {
         title="ETF EXPLORER"
         subtitle="21 Australian ETFs · fees, returns and what they actually cost"
         moduleId="etf"
-        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● DEMO · SIMULATED TICKS</span>}
+        right={<DataBadge cls="DEMO" source="indicative snapshot · simulated ticks" />}
       />
 
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0"
         style={{ background: 'rgba(214,158,46,0.06)' }}>
-        <span className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: '#D69E2E' }}>INDICATIVE DATA</span>
+        <DataBadge cls="DEMO" source="indicative snapshot, not a feed" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           AUM, yields and returns are illustrative. Verify with the provider&apos;s PDS before investing.
         </span>

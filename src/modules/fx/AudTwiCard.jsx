@@ -1,5 +1,5 @@
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import { useAudStrength, meanMove, STRENGTH_MAJORS, strengthState } from './useAudStrength'
 import { StaleBadge } from '../../components/ui/ModuleStates'
 import { PAL } from '../../styles/palette.js'
@@ -59,7 +59,7 @@ export default function AudTwiCard() {
             {au.twi.toFixed(1)}
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <VerifiedBadge dataKey="au" alwaysShow />
+            <HandEnteredBadge dataKey="au" />
             <span className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11 }}>
               {au.twiSource?.split('/')[0] ?? 'rba.gov.au'} · as at {fmtDate(au.twiAsOf)}
             </span>

@@ -11,6 +11,7 @@ import TabBar from '../../components/ui/TabBar'
 import Tooltip from '../../components/ui/Tooltip'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
 
 // ─── Futures, options and market structure ──────────────────────────────────
 //
@@ -120,7 +121,7 @@ function FuturesTab() {
     <div>
       <div className="px-3 py-1.5 border-b flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(204,68,68,0.08)', borderColor: 'rgba(204,68,68,0.3)' }}>
-        <span className="font-mono font-bold tracking-widest text-terminal-red" style={{ fontSize: 11 }}>INDICATIVE DATA</span>
+        <DataBadge cls="DEMO" source="indicative snapshot, not a feed" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           For information only. Futures carry significant risk including losses exceeding your initial investment.
         </span>
@@ -662,7 +663,7 @@ export default function FuturesModule() {
         title="FUTURES & DERIVATIVES"
         subtitle="Futures · Options · Market structure — intelligence, not a trading interface"
         moduleId="futures"
-        right={<span className="text-terminal-gold text-2xs font-normal normal-case">● DEMO · SIMULATED TICKS</span>}
+        right={<DataBadge cls="DEMO" source="indicative snapshot · simulated ticks" />}
       />
       <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
       <div className="flex-1 overflow-y-auto">

@@ -20,7 +20,7 @@ import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 import TabBar from '../../components/ui/TabBar'
-import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import DataBadge from '../../components/ui/DataBadge'
 import { pastCycle } from './macroAge'
 import { liveDataService } from '../../services/liveDataService'
@@ -2066,7 +2066,7 @@ function PortfolioExposure({ watchlist }) {
 //
 // Each section names the filters it belongs to. LIVE keeps the sections whose
 // figures update in real time (market hours, gold, seismic, FX).
-function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQuake, onFocusPoint }) {
+function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, quakesAt, onFocusQuake, onFocusPoint }) {
   const { gold } = useGoldPrice()
   const [filter, setFilter] = useState(readIntelFilter)
   const pickFilter = (f) => { setFilter(f); saveIntelFilter(f) }
@@ -2092,11 +2092,12 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQu
         </CollapsibleSection>
 
         <CollapsibleSection id="commodity-intel" title="COMMODITY INTELLIGENCE" hidden={!show('MACRO', 'MARKETS', 'LIVE')}
-          badge={<VerifiedBadge dataKey="commodities" alwaysShow />}>
+          badge={<HandEnteredBadge dataKey="commodities" />}>
           <CommodityIntel gold={gold} onFocus={onFocusPoint} />
         </CollapsibleSection>
 
-        <CollapsibleSection id="geo-risk" title="GEOPOLITICAL RISK" hidden={!show('GEO')}>
+        <CollapsibleSection id="geo-risk" title="GEOPOLITICAL RISK" hidden={!show('GEO')}
+          badge={<DataBadge cls="DELAYED" source="Maddex editorial, reviewed" at={RISK_LAST_REVIEWED} compact />}>
           <GeoRiskCards onFocus={onFocusPoint} />
         </CollapsibleSection>
 
@@ -2129,7 +2130,7 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQu
         </CollapsibleSection>
 
         <CollapsibleSection id="seismic" title="SEISMIC ACTIVITY" hidden={!show('SEISMIC', 'LIVE')}
-          badge={<span className="text-[11px] text-terminal-text-dim/50 font-mono">USGS · M4.5+ · 7D</span>}>
+          badge={earthquakes ? <DataBadge cls="LIVE" source="USGS · M4.5+ · 7 days" at={quakesAt || null} compact /> : null}>
           <SeismicSection earthquakes={earthquakes} onFocus={onFocusQuake} bare />
         </CollapsibleSection>
 
@@ -2137,7 +2138,7 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, onFocusQu
           <PortfolioExposure watchlist={watchlist} />
         </CollapsibleSection>
 
-        <CollapsibleSection id="freight" title="FREIGHT" hidden={!show('MACRO', 'MARKETS')} badge={<VerifiedBadge dataKey="freight" alwaysShow />}>
+        <CollapsibleSection id="freight" title="FREIGHT" hidden={!show('MACRO', 'MARKETS')} badge={<HandEnteredBadge dataKey="freight" />}>
           <div>
             {SHIPPING_INDEX.map((s) => (
               <div key={s.name} className="flex items-center justify-between py-1 gap-2">
@@ -2405,7 +2406,7 @@ export default function GlobalModule() {
   // USGS M4.5+, last 7 days — the same feed (and cache) the intel map's
   // seismic layer and header count read, so every seismic figure on this
   // screen agrees.
-  const { data: earthquakes } = useQuery({
+  const { data: earthquakes, dataUpdatedAt: quakesAt } = useQuery({
     queryKey: ['usgsQuakes45w'],
     queryFn:  async () => (await liveDataService.getEarthquakes(4.5)).data ?? [],
     staleTime: 10 * 60_000,
@@ -2504,6 +2505,7 @@ export default function GlobalModule() {
   const feedPanel = (
     <IntelFeedPanel
       newsItems={allNewsItems}
+      quakesAt={quakesAt}
       audRates={rates}
       onFocusPoint={handleFocusPoint}
       watchlist={watchlist}
