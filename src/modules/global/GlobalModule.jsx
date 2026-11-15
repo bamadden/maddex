@@ -21,6 +21,8 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import GeopoliticalImpact from '../../components/global/GeopoliticalImpact'
 import TabBar from '../../components/ui/TabBar'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
+import DataBadge from '../../components/ui/DataBadge'
+import { pastCycle } from './macroAge'
 import { liveDataService } from '../../services/liveDataService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { SHIPPING_ROUTES as SHIPPING_ROUTE_TABLE, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
@@ -391,25 +393,29 @@ for (const ex of EXCHANGES) {
 
 // Status, notes and dates live in data/shippingRoutes.js, shared with the map.
 const CHOKEPOINTS = SHIPPING_ROUTE_TABLE
+// Oldest and newest entry dates, for the footer (the table is hand-entered).
+const CHOKEPOINT_ENTRIES = CHOKEPOINTS.map((c) => c.asOf).filter(Boolean).sort()
 
 // ─── Commodity Flows (for map overlay) ───────────────────────────────────────
 
 
 // ─── Geographic Markers ───────────────────────────────────────────────────────
 
+// A reference list, not a ranking: the rank typed beside each port had
+// no source (Sydney was ranked tenth in the world).
 const MAJOR_PORTS = [
-  { name:'Shanghai',    lat:31.2,  lon:121.5, type:'port',    rank:1  },
-  { name:'Singapore',   lat:1.26,  lon:103.8, type:'port',    rank:2  },
-  { name:'Rotterdam',   lat:51.9,  lon:4.5,   type:'port',    rank:3  },
-  { name:'Ningbo',      lat:29.9,  lon:121.6, type:'port',    rank:4  },
-  { name:'Busan',       lat:35.1,  lon:129.1, type:'port',    rank:5  },
-  { name:'Shenzhen',    lat:22.5,  lon:114.1, type:'port',    rank:6  },
-  { name:'Guangzhou',   lat:22.6,  lon:113.7, type:'port',    rank:7  },
-  { name:'Dubai',       lat:25.3,  lon:55.4,  type:'port',    rank:8  },
-  { name:'Port Hedland',lat:-20.3, lon:118.6, type:'port',    rank:9  },
-  { name:'Sydney',      lat:-33.9, lon:151.2, type:'port',    rank:10 },
-  { name:'Los Angeles', lat:33.7,  lon:-118.2,type:'port',    rank:11 },
-  { name:'Hamburg',     lat:53.5,  lon:10.0,  type:'port',    rank:12 },
+  { name:'Shanghai',    lat:31.2,  lon:121.5, type:'port' },
+  { name:'Singapore',   lat:1.26,  lon:103.8, type:'port' },
+  { name:'Rotterdam',   lat:51.9,  lon:4.5,   type:'port' },
+  { name:'Ningbo',      lat:29.9,  lon:121.6, type:'port' },
+  { name:'Busan',       lat:35.1,  lon:129.1, type:'port' },
+  { name:'Shenzhen',    lat:22.5,  lon:114.1, type:'port' },
+  { name:'Guangzhou',   lat:22.6,  lon:113.7, type:'port' },
+  { name:'Dubai',       lat:25.3,  lon:55.4,  type:'port' },
+  { name:'Port Hedland',lat:-20.3, lon:118.6, type:'port' },
+  { name:'Sydney',      lat:-33.9, lon:151.2, type:'port' },
+  { name:'Los Angeles', lat:33.7,  lon:-118.2,type:'port' },
+  { name:'Hamburg',     lat:53.5,  lon:10.0,  type:'port' },
 ]
 
 
@@ -631,6 +637,14 @@ function fmtPop(p) {
 // ─── Country Panel ────────────────────────────────────────────────────────────
 
 // Helper: row with label + value, always rendered
+// A hand-entered figure older than its publishing cycle (macroAge) has
+// probably been superseded; it is kept, dated, and marked.
+function OutOfDate({ label, kind }) {
+  if (!pastCycle(label, kind === 'rate' ? 'rate' : 'release')) return null
+  const what = kind === 'rate' ? 'later meetings since; not rechecked' : 'a newer release is likely; not yet entered'
+  return <span data-out-of-date className="block text-2xs text-orange-400" title={`Entered as ${label}. ${what}.`}>may be out of date</span>
+}
+
 function PRow({ label, value, cls }) {
   return (
     <div className="flex justify-between text-2xs py-0.5">
@@ -880,7 +894,10 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
 
         {/* ── Macro Statistics (ECONOMY tab) ── */}
         <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
-          {sec('Macro Statistics')}
+          <div className="flex items-center justify-between gap-2">
+            {sec('Macro Statistics')}
+            {detail?.macro && <DataBadge cls="DELAYED" source="hand-entered · period and agency on each line" compact />}
+          </div>
           {/* GDP Total — dual currency */}
           <div className="flex justify-between text-2xs py-0.5">
             <span className="text-terminal-text-dim">GDP Total</span>
@@ -911,6 +928,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
                 : <span className="text-terminal-text-bright">—</span>
               }
               {gdpLbl && <span className="text-terminal-text-dim/60 ml-1">{gdpLbl}</span>}
+              {gdpLbl && <OutOfDate label={gdpLbl} kind="gdp" />}
             </div>
           </div>
           <div className="flex justify-between text-2xs py-0.5">
@@ -921,6 +939,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
                 : <span className="text-terminal-text-bright">—</span>
               }
               {inflLbl && <span className="text-terminal-text-dim/60 ml-1">{inflLbl}</span>}
+              {inflLbl && <OutOfDate label={inflLbl} kind="cpi" />}
             </div>
           </div>
           <div className="flex justify-between text-2xs py-0.5">
@@ -931,6 +950,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
                 : <span className="text-terminal-text-bright">—</span>
               }
               {intRateLbl && <span className="text-terminal-text-dim/60 ml-1">{intRateLbl}</span>}
+              {intRateLbl && <OutOfDate label={intRateLbl} kind="rate" />}
               {intRateBank && !intRateLbl && <span className="text-terminal-text-dim/60 ml-1">{intRateBank}</span>}
             </div>
           </div>
@@ -1237,17 +1257,16 @@ function MaritimeTab({ newsItems }) {
         ))}
 
         <div className="px-3 py-2 border-b border-terminal-border/50">
-          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Major Cargo Hubs</div>
+          <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1.5">Selected Cargo Ports</div>
           {MAJOR_PORTS.slice(0, 5).map(p => (
             <div key={p.name} className="flex items-center justify-between text-2xs py-0.5">
               <span className="text-terminal-text">▪ {p.name}</span>
-              <span className="text-terminal-text-dim">Rank #{p.rank}</span>
             </div>
           ))}
         </div>
 
         <div className="px-3 py-1 text-2xs text-terminal-text-dim/50">
-          Status: Reuters/BBC live news keyword matching · Static fallback: Jun 2026
+          Status: {ROUTE_STATUS_SOURCE}, entered {formatDate(CHOKEPOINT_ENTRIES[0])} to {formatDate(CHOKEPOINT_ENTRIES.at(-1))} (each route shows its date); a headline keyword match can change the status shown
         </div>
       </div>
 
@@ -1260,33 +1279,16 @@ function MaritimeTab({ newsItems }) {
 
 // ─── Tab: Air Trade Routes ────────────────────────────────────────────────────
 
-const TOP_CARGO_ROUTES = [
-  { rank:1, route:'Hong Kong → Chicago (ORD)', vol:'1.2M T/yr', trend:'▲', note:'Electronics, pharma' },
-  { rank:2, route:'Incheon → Los Angeles',     vol:'1.1M T/yr', trend:'▲', note:'Semiconductors, auto parts' },
-  { rank:3, route:'Shanghai → Los Angeles',    vol:'0.95M T/yr', trend:'▲', note:'Consumer goods, e-commerce' },
-  { rank:4, route:'Dubai → London (LHR)',      vol:'0.88M T/yr', trend:'—', note:'Re-export hub, mixed cargo' },
-  { rank:5, route:'Frankfurt → Chicago',       vol:'0.75M T/yr', trend:'▼', note:'Machinery, automotive' },
-]
-
-const TOP_CARGO_AIRPORTS = [
-  { name:'Dubai (DXB)',      vol:'5.1M T', rank:1, trend:'▲' },
-  { name:'Hong Kong (HKG)', vol:'4.7M T', rank:2, trend:'▲' },
-  { name:'Memphis (MEM)',   vol:'4.4M T', rank:3, trend:'—', note:'FedEx hub' },
-  { name:'Shanghai (PVG)',  vol:'3.9M T', rank:4, trend:'▲' },
-  { name:'Incheon (ICN)',   vol:'3.1M T', rank:5, trend:'▲' },
-]
-
-const AU_AIRPORT_CARGO = [
-  { name:'Sydney (SYD)',    vol:'624K T', trend:'▲', note:'Largest AU gateway' },
-  { name:'Melbourne (MEL)', vol:'415K T', trend:'▲', note:'Growing e-commerce' },
-  { name:'Brisbane (BNE)',  vol:'218K T', trend:'▲', note:'Perishables/meat' },
-]
-
+// The route volumes (1.2M T/yr), airport tonnages, "Top 5" rankings and
+// trend arrows that stood here were typed without a source (Dubai was ranked
+// first by cargo tonnage, which ACI's published rankings do not show), and the
+// tab header dated them June 2026 with ACI and IATA as sources. Removed until
+// a sourced copy is held; the tab now lists the commodity mix only.
 const AU_FREIGHT_COMMODITIES = [
   { name:'Electronics',     dir:'IN',  note:'Mobile devices, components from Asia' },
   { name:'Pharmaceuticals', dir:'BOTH',note:'Clinical trials, vaccine cold chain' },
   { name:'Perishables',     dir:'OUT', note:'Beef, seafood, fresh produce to Asia' },
-  { name:'Mail & Express',  dir:'BOTH',note:'E-commerce volume surging post-2020' },
+  { name:'Mail & Express',  dir:'BOTH',note:'Parcels and express documents' },
   { name:'Automotive',      dir:'IN',  note:'Parts, luxury vehicles from EU/Japan' },
 ]
 
@@ -1324,109 +1326,21 @@ function LiveAirTraffic({ flightData }) {
   )
 }
 
-function AirTradeRoutesTab({ selectedArc, onArcClick, flightData }) {
+function AirTradeRoutesTab({ flightData }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="panel-header flex items-center gap-2 flex-shrink-0">
         AIR TRADE ROUTES
-        <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">Jun 2026 · ACI/IATA</span>
-      </div>
-
-      {/* Summary bar */}
-      <div className="grid grid-cols-3 border-b border-terminal-border flex-shrink-0 text-center">
-        <div className="py-1.5 border-r border-terminal-border">
-          <div className="text-xs font-bold text-terminal-gold">10</div>
-          <div className="text-2xs text-terminal-text-dim">Routes monitored</div>
-        </div>
-        <div className="py-1.5 border-r border-terminal-border">
-          <div className="text-xs font-bold text-terminal-text-bright">$6.8T</div>
-          <div className="text-2xs text-terminal-text-dim">Annual value</div>
-        </div>
-        <div className="py-1.5">
-          <div className="text-xs font-bold text-terminal-green">NORMAL</div>
-          <div className="text-2xs text-terminal-text-dim">Status</div>
-        </div>
+        <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case" data-air-note>Descriptive · no volumes held</span>
       </div>
 
       <div className="flex-1 overflow-auto text-2xs">
-
-        {/* Selected arc detail */}
-        {selectedArc ? (
-          <div className="p-2 border-b border-terminal-border" style={{ borderLeftWidth:3, borderLeftColor: selectedArc.color }}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-bold" style={{ color: selectedArc.color }}>{selectedArc.label}</span>
-              <button onClick={() => onArcClick?.(null)} className="text-terminal-text-dim hover:text-terminal-text">✕</button>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-terminal-text-dim mb-1">
-              <div><span className="text-terminal-text-bright">~{selectedArc.dailyFlights}</span> daily flights</div>
-              <div><span className="text-terminal-text-bright">{selectedArc.cargoSplit}</span></div>
-            </div>
-            <div className="text-terminal-text-dim mb-1">
-              {selectedArc.carriers.join(' · ')}
-            </div>
-            <div className="text-terminal-text-dim/80 border-t border-terminal-border/40 pt-1 mt-1">
-              {selectedArc.auNote}
-            </div>
-          </div>
-        ) : (
-          <div className="p-2 border-b border-terminal-border text-terminal-text-dim/60">
-            Click an arc on the globe for route details
-          </div>
-        )}
-
-        {/* Legend */}
-        <div className="flex gap-3 px-2 py-1.5 border-b border-terminal-border">
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:PAL.gold}}/>AU Origin/Dest</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:PAL.blue}}/>Intl Corridor</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-1.5 inline-block" style={{background:'#14b8a6'}}/>Cargo Heavy</span>
-        </div>
-
         <LiveAirTraffic flightData={flightData} />
-
-        {/* Top cargo routes globally */}
-        <div className="p-2 border-b border-terminal-border">
-          <div className="text-terminal-text-dim uppercase mb-1.5 tracking-wider">Top 5 Global Cargo Routes</div>
-          {TOP_CARGO_ROUTES.map(r => (
-            <div key={r.rank} className="flex items-center justify-between py-0.5 border-b border-terminal-border/20 last:border-0">
-              <span className="text-terminal-text-dim w-4 flex-shrink-0">{r.rank}.</span>
-              <span className="flex-1 text-terminal-text truncate mr-2">{r.route}</span>
-              <span className="text-terminal-gold font-semibold flex-shrink-0 mr-1">{r.vol}</span>
-              <span className={r.trend === '▲' ? 'text-terminal-green' : r.trend === '▼' ? 'text-terminal-red' : 'text-terminal-text-dim'}>{r.trend}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Top cargo airports */}
-        <div className="p-2 border-b border-terminal-border">
-          <div className="text-terminal-text-dim uppercase mb-1.5 tracking-wider">Top Cargo Airports (2025-26)</div>
-          {TOP_CARGO_AIRPORTS.map(a => (
-            <div key={a.name} className="flex items-center justify-between py-0.5">
-              <span className="text-terminal-text">{a.name}</span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-terminal-gold font-semibold">{a.vol}</span>
-                <span className={a.trend === '▲' ? 'text-terminal-green' : a.trend === '▼' ? 'text-terminal-red' : 'text-terminal-text-dim'}>{a.trend}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* AU airport volumes */}
-        <div className="p-2 border-b border-terminal-border">
-          <div className="text-terminal-text-dim uppercase mb-1.5 tracking-wider">Australian Airports — Cargo</div>
-          {AU_AIRPORT_CARGO.map(a => (
-            <div key={a.name} className="flex items-center justify-between py-0.5">
-              <div>
-                <span className="text-terminal-text">{a.name}</span>
-                <span className="text-terminal-text-dim/60 ml-2">{a.note}</span>
-              </div>
-              <span className="text-terminal-gold font-semibold">{a.vol}</span>
-            </div>
-          ))}
-        </div>
 
         {/* Key AU air freight commodities */}
         <div className="p-2 border-b border-terminal-border">
           <div className="text-terminal-text-dim uppercase mb-1.5 tracking-wider">AU Air Freight Commodities</div>
+          <div className="text-terminal-text-dim/60 mb-1">▲ mostly exported · ▼ mostly imported · ◆ both ways</div>
           {AU_FREIGHT_COMMODITIES.map(c => (
             <div key={c.name} className="flex items-start gap-2 py-0.5">
               <span className={`flex-shrink-0 font-bold ${c.dir === 'IN' ? 'text-terminal-blue-bright' : c.dir === 'OUT' ? 'text-terminal-gold' : 'text-terminal-green'}`}>
@@ -2280,7 +2194,6 @@ export default function GlobalModule() {
   const [activeTab, setActiveTab]     = useState('summary')
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [selectedExchange, setSelectedExchange] = useState(null)
-  const [selectedArc, setSelectedArc] = useState(null)
   // Mobile only (<768px) — the feed/globe/detail columns stack instead of
   // sitting side by side, so a small screen needs an explicit switcher.
   // Panel rails. Below 1700px both side panels are overlays; only one is
@@ -2606,11 +2519,7 @@ export default function GlobalModule() {
         ) : activeTab === 'maritime' ? (
           <MaritimeTab newsItems={allNewsItems} />
         ) : activeTab === 'air' ? (
-          <AirTradeRoutesTab
-            selectedArc={selectedArc}
-            onArcClick={setSelectedArc}
-            flightData={flightData}
-          />
+          <AirTradeRoutesTab flightData={flightData} />
         ) : activeTab === 'commodities' ? (
           <CommodityFlowsTab onAskAI={handleAskAI} />
         ) : activeTab === 'geopolitical' ? (
