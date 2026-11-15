@@ -18,6 +18,8 @@
 
 import { VERIFIED_CONSTANTS } from './verifiedConstants'
 import { curveForRates } from './bondCurves'
+import { RBA_DECISIONS } from './rbaDecisions'
+import { RBA_TARGET_PATH } from './rbaCashRatePath'
 
 const { rba, fed, au, us, cn, eu, uk, jp } = VERIFIED_CONSTANTS
 
@@ -163,39 +165,32 @@ export const DEMO_PORTFOLIO_HOLDINGS = []
 export const WATCHLIST_DEFAULT_SYMBOLS = ['BHP.AX', 'CBA.AX', 'CSL.AX', 'WOW.AX', 'AAPL', 'NVDA', 'BTC-USD']
 
 // ─── RBA Rate History (May 2022 onwards) ────────────────────────────────────
-// SOURCE: rba.gov.au, statistical table A2. One entry per decision, on its
-// EFFECTIVE date (the day after the announcement, as A2 records it), so it
-// reads one day later than the decision. Render as a step chart: rates do not
-// interpolate between decisions.
+// One point per Board decision on its EFFECTIVE date (the day after the
+// announcement, as the RBA's cash rate target table records it). Render as a
+// step chart: rates do not interpolate between decisions.
 //
-// The 2022–2023 hiking cycle and the first two 2025 cuts are fixed history
-// and stay literal. Everything from the Aug 2025 cut onwards is derived from
-// VERIFIED_CONSTANTS.rba.decisions, the one list that gets a row appended
-// after each meeting, so the chart cannot fall behind the cash-rate figure.
-// Holds are kept as points (the Tracker reads a repeated rate as a HOLD).
+// Built from the RBA's own record, never typed here (16 Nov 2026): the
+// 2022–23 changes from data/rbaCashRatePath (the cash rate target table),
+// and every decision from Nov 2023 on, holds included, from
+// data/rbaDecisions (statement and table). A typed copy here used to skip
+// eleven holds between Dec 2023 and Dec 2025, so the Rates timeline showed
+// Aug 2025 to Feb 2026 as consecutive meetings.
+const RBA_RECORD_FROM = RBA_DECISIONS.at(-1).effective
+export const RBA_RATE_HISTORY = [
+  ...RBA_TARGET_PATH
+    .filter((p) => p.effective >= '2022-05-04' && p.effective < RBA_RECORD_FROM)
+    .map((p) => ({ date: p.effective, rate: p.rate })),
+  ...[...RBA_DECISIONS].reverse().map((d) => ({
+    date: d.effective, rate: d.rate, announced: d.announced, change: d.changeBp,
+    decision: d.changeBp > 0 ? 'HIKE' : d.changeBp < 0 ? 'CUT' : 'HOLD',
+  })),
+]
+
 const dayAfter = (iso) => {
   const d = new Date(`${iso}T12:00:00Z`)
   d.setUTCDate(d.getUTCDate() + 1)
   return d.toISOString().slice(0, 10)
 }
-export const RBA_RATE_HISTORY = [
-  { date: '2022-05-04', rate: 0.35 },
-  { date: '2022-06-08', rate: 0.85 },
-  { date: '2022-07-06', rate: 1.35 },
-  { date: '2022-08-03', rate: 1.85 },
-  { date: '2022-09-07', rate: 2.35 },
-  { date: '2022-10-05', rate: 2.60 },
-  { date: '2022-11-02', rate: 2.85 },
-  { date: '2022-12-07', rate: 3.10 },
-  { date: '2023-02-08', rate: 3.35 },
-  { date: '2023-03-08', rate: 3.60 },
-  { date: '2023-05-03', rate: 3.85 },
-  { date: '2023-06-07', rate: 4.10 },
-  { date: '2023-11-08', rate: 4.35, announced: '2023-11-07', decision: 'HIKE', change: 25 }, // mr-23-30 (data/rbaDecisions)
-  { date: '2025-02-19', rate: 4.10, announced: '2025-02-18' },
-  { date: '2025-05-21', rate: 3.85, announced: '2025-05-20' },
-  ...rba.decisions.map((d) => ({ date: dayAfter(d.date), rate: d.rate, decision: d.decision, change: d.change, announced: d.date })),
-]
 
 // FED_RATE_HISTORY — the Fed's path on EFFECTIVE dates (the day after each
 // announcement), the same convention as RBA_RATE_HISTORY so the two can be

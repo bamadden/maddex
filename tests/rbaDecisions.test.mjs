@@ -83,3 +83,30 @@ test('Nov 2023 was a hike, 25bp to 4.35% (mr-23-30), everywhere it is recorded',
     assert.equal(r.rate, rec.rate, r.date)
   }
 })
+
+test('one RBA record: the cash-rate history, the target table and verifiedConstants agree with RBA_DECISIONS', async () => {
+  const { RBA_RATE_HISTORY } = await import('../src/data/placeholders.js')
+  const { RBA_TARGET_PATH } = await import('../src/data/rbaCashRatePath.js')
+  const { VERIFIED_CONSTANTS } = await import('../src/data/verifiedConstants.js')
+  // Every published decision is a point on the history, holds included.
+  for (const d of RBA_DECISIONS) {
+    const p = RBA_RATE_HISTORY.find((r) => r.date === d.effective)
+    assert.ok(p, `decision ${d.announced} missing from the history`)
+    assert.equal(p.rate, d.rate)
+    assert.equal(p.announced, d.announced)
+  }
+  // Every change in the record is a row in the target table.
+  for (const d of RBA_DECISIONS.filter((x) => x.changeBp !== 0)) {
+    assert.ok(RBA_TARGET_PATH.some((p) => p.effective === d.effective && p.rate === d.rate), `${d.effective} not in the target table`)
+  }
+  // The decisions the RBA card reads carry the same rate and move.
+  for (const v of VERIFIED_CONSTANTS.rba.decisions) {
+    const d = RBA_DECISIONS.find((x) => x.announced === v.date)
+    assert.ok(d, `verifiedConstants decision ${v.date} is not in RBA_DECISIONS`)
+    assert.equal(v.rate, d.rate, v.date)
+    assert.equal(v.change, d.changeBp, v.date)
+  }
+  assert.equal(RBA_DECISIONS[0].announced, VERIFIED_CONSTANTS.rba.decisions.at(-1).date, 'the newest decision is in both')
+  // History is in date order.
+  for (let i = 1; i < RBA_RATE_HISTORY.length; i++) assert.ok(RBA_RATE_HISTORY[i].date > RBA_RATE_HISTORY[i - 1].date)
+})
