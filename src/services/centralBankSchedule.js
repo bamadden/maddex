@@ -21,12 +21,10 @@ export const BOC_MEETINGS_2026      = ['2026-09-02', '2026-10-28', '2026-12-09',
 export const SNB_MEETINGS_2026      = ['2026-09-24', '2026-12-10', '2027-03-18', '2027-06-24']
 export const RIKSBANK_MEETINGS_2026 = ['2026-09-24', '2026-11-04', '2026-12-16', '2027-02-03', '2027-03-24', '2027-05-05', '2027-06-22']
 
-// Not read from a published calendar on 15 Nov: rbnz.govt.nz refused every
-// automated request, and the PBoC publishes no forward LPR dates (the 20 Nov
-// date follows its monthly LPR rule). The freshness guard flags both.
-export const MEETINGS_UNVERIFIED_CHECKED = null
-export const PBOC_MEETINGS_2026     = ['2026-09-21', '2026-10-20', '2026-11-20']
-export const RBNZ_MEETINGS_2026     = ['2026-10-28', '2026-12-09']
+// RBNZ and PBoC: no dates (removed 16 Nov 2026). rbnz.govt.nz refuses
+// automated requests (403), so its calendar could not be read, and the PBoC
+// publishes no forward LPR calendar. Both banks' last decisions stay, from
+// their own announcements; their next dates are not shown.
 
 // Most recently confirmed decision per bank. Derived from verifiedConstants —
 // the one place a decision gets hand-updated — keeping the original row shape.
@@ -48,21 +46,30 @@ export const LAST_DECISIONS = {
   RIKSBANK: fromVC('riksbank'),
 }
 
-// Announcement time in each bank's own zone, as its calendar page states it
-// (16 Nov 2026). The BoJ announces when its meeting ends, with no fixed
-// time, and the PBoC's LPR dates are not a published calendar: both null, and
-// shown by date alone.
+// Announcement time in each bank's own zone, read by fetch from the bank's
+// own page on ANNOUNCE_AT_CHECKED (the page and its words in ANNOUNCE_SOURCE;
+// also docs/DATA_SOURCES.md). The freshness guard holds the date. Null where
+// the bank's pages state no time: the BoJ announces when its meeting ends,
+// and the Bank of England's pages, read the same day, give dates only. Those
+// rows show the date with "time not stated".
+export const ANNOUNCE_AT_CHECKED = '2026-11-16'
 export const ANNOUNCE_AT = {
   rba:      ['14:30', 'Australia/Sydney'],
   fed:      ['14:00', 'America/New_York'],
   ecb:      ['14:15', 'Europe/Berlin'],
-  boe:      ['12:00', 'Europe/London'],
-  rbnz:     ['14:00', 'Pacific/Auckland'],
+  boe:      null,
   boc:      ['09:45', 'America/Toronto'],
   snb:      ['09:30', 'Europe/Zurich'],
   riksbank: ['09:30', 'Europe/Stockholm'],
   boj:      null,
-  pboc:     null,
+}
+export const ANNOUNCE_SOURCE = {
+  rba:      ['rba.gov.au/monetary-policy/int-rate-decisions/', 'a media release announcing the decision at 2.30 pm after each Board meeting'],
+  fed:      ['federalreserve.gov FOMC statement, 28 Oct 2026', 'For release at 2:00 p.m. EDT'],
+  ecb:      ['ecb.europa.eu/press/govcdec/mopo/', 'published in a press release at 14:15 CET on the day of the Governing Council monetary policy meeting'],
+  boc:      ['bankofcanada.ca/press/upcoming-events/', 'December 9, 2026 Interest Rate Announcement 09:45 (ET)'],
+  snb:      ['snb.ch event schedule', '10.12.2026 09:30 Monetary policy assessment'],
+  riksbank: ['riksbank.se calendar', 'Publication of monetary policy decision, including the policy rate … 09:30'],
 }
 
 // Minutes east of UTC for `zone` at instant `t`.

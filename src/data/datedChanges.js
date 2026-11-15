@@ -97,17 +97,6 @@ export const DATED_CHANGES = [
     howTo: 'docs/RBA_DECISION_DAY.md',
   },
   {
-    // 2pm Wellington (NZDT) on Wed 9 Dec — noon AEDT.
-    id: 'rbnz-2026-12-09',
-    what: 'RBNZ OCR decision, Wed 9 Dec 2026',
-    effective: '2026-12-09T14:00:00+13:00',
-    fields: [
-      { path: 'rbnz.lastDecision', expect: { gte: '2026-12-09' } },
-      { path: 'rbnz.nextMeeting', expect: { ne: '2026-12-09' } },
-    ],
-    source: 'rbnz.govt.nz',
-  },
-  {
     // 8–9 Dec meeting; the statement is at 2pm Washington on the 9th
     // (6am AEDT on the 10th).
     id: 'fed-2026-12-09',

@@ -176,7 +176,7 @@ function CardBody({ bank, c, now, bias, biasSource }) {
       <div>
         <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>NEXT MEETING</div>
         <div className="font-mono" style={{ fontSize: 11 }}>
-          <span className="text-terminal-text-bright">{dayMonth(c.nextMeeting)}</span>
+          <span className="text-terminal-text-bright">{c.nextMeeting ? dayMonth(c.nextMeeting) : 'not shown: no published date read'}</span>
           {daysAway != null && <span className="text-terminal-gold"> · {daysAway} {daysAway === 1 ? 'day' : 'days'} away</span>}
         </div>
       </div>

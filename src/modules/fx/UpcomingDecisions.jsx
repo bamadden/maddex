@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
-  BOJ_MEETINGS_2026, PBOC_MEETINGS_2026, RBNZ_MEETINGS_2026, BOC_MEETINGS_2026,
-  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026, MEETINGS_CHECKED, ANNOUNCE_AT, announcement, daysBetweenDays,
+  BOJ_MEETINGS_2026, BOC_MEETINGS_2026,
+  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026, MEETINGS_CHECKED, ANNOUNCE_AT, ANNOUNCE_AT_CHECKED, announcement, daysBetweenDays,
 } from '../../services/centralBankSchedule'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { PAL } from '../../styles/palette.js'
@@ -34,16 +34,14 @@ import { formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
 // with the first.
 
 const BANKS = [
-  { key: 'rba',      label: 'RBA',      flag: '🇦🇺', dates: RBA_MEETINGS_2026,      official: true  },
-  { key: 'fed',      label: 'Fed',      flag: '🇺🇸', dates: FOMC_MEETINGS_2026,     official: true  },
-  { key: 'ecb',      label: 'ECB',      flag: '🇪🇺', dates: ECB_MEETINGS_2026,      official: true  },
-  { key: 'boe',      label: 'BOE',      flag: '🇬🇧', dates: BOE_MEETINGS_2026,      official: true  },
-  { key: 'boj',      label: 'BOJ',      flag: '🇯🇵', dates: BOJ_MEETINGS_2026,      official: true },
-  { key: 'pboc',     label: 'PBOC',     flag: '🇨🇳', dates: PBOC_MEETINGS_2026,     official: false },
-  { key: 'rbnz',     label: 'RBNZ',     flag: '🇳🇿', dates: RBNZ_MEETINGS_2026,     official: false },
-  { key: 'boc',      label: 'BOC',      flag: '🇨🇦', dates: BOC_MEETINGS_2026,      official: true },
-  { key: 'snb',      label: 'SNB',      flag: '🇨🇭', dates: SNB_MEETINGS_2026,      official: true },
-  { key: 'riksbank', label: 'Riksbank', flag: '🇸🇪', dates: RIKSBANK_MEETINGS_2026, official: true },
+  { key: 'rba',      label: 'RBA',      flag: '🇦🇺', dates: RBA_MEETINGS_2026 },
+  { key: 'fed',      label: 'Fed',      flag: '🇺🇸', dates: FOMC_MEETINGS_2026 },
+  { key: 'ecb',      label: 'ECB',      flag: '🇪🇺', dates: ECB_MEETINGS_2026 },
+  { key: 'boe',      label: 'BOE',      flag: '🇬🇧', dates: BOE_MEETINGS_2026 },
+  { key: 'boj',      label: 'BOJ',      flag: '🇯🇵', dates: BOJ_MEETINGS_2026 },
+  { key: 'boc',      label: 'BOC',      flag: '🇨🇦', dates: BOC_MEETINGS_2026 },
+  { key: 'snb',      label: 'SNB',      flag: '🇨🇭', dates: SNB_MEETINGS_2026 },
+  { key: 'riksbank', label: 'Riksbank', flag: '🇸🇪', dates: RIKSBANK_MEETINGS_2026 },
 ]
 
 const PILL = {
@@ -118,26 +116,20 @@ export default function UpcomingDecisions({ days = 90 }) {
                 <td className="px-3 py-1" style={{ fontSize: 14 }}>{r.flag}</td>
                 <td className="py-1 font-mono font-bold text-terminal-text-bright" style={{ fontSize: 11 }}>
                   {r.label}
-                  {!r.official && (
-                    <span
-                      className="text-terminal-text-dim/70 ml-1 font-normal"
-                      title="Not read from the bank's published calendar (rbnz.govt.nz refuses automated requests; the PBoC publishes no forward LPR dates)"
-                    >· not confirmed</span>
-                  )}
                 </td>
                 <td className="py-1 font-mono text-terminal-text-dim/70 truncate" style={{ fontSize: 11 }}>
                   {VERIFIED_CONSTANTS[r.key]?.country ?? ''}
                 </td>
                 <td
                   className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 11 }}
-                  title={ANNOUNCE_AT[r.key] ? `${formatDate(r.date, { year: false })}, ${ANNOUNCE_AT[r.key][0]} ${ANNOUNCE_AT[r.key][1].split('/')[1].replace('_', ' ')} time` : 'No fixed announcement time'}
+                  title={ANNOUNCE_AT[r.key] ? `${formatDate(r.date, { year: false })}, ${ANNOUNCE_AT[r.key][0]} ${ANNOUNCE_AT[r.key][1].split('/')[1].replace('_', ' ')} time` : 'The bank\'s pages state no announcement time'}
                   data-decision-time
                 >
                   <div>{formatDate(r.sydneyDate, { weekday: true, year: false })}{r.at != null ? ` ${sydneyClock(r.at).text}` : ''}</div>
                   {r.at != null && localClock(r.at).zone !== 'Australia/Sydney' && (
                     <div className="text-terminal-text-dim/70">your time {localClock(r.at).text}</div>
                   )}
-                  {r.at == null && <div className="text-terminal-text-dim/70">time not fixed</div>}
+                  {r.at == null && <div className="text-terminal-text-dim/70">time not stated</div>}
                 </td>
                 {/* The rate going into the meeting, as the bank states it (the
                     Fed as its range). */}
@@ -167,9 +159,10 @@ export default function UpcomingDecisions({ days = 90 }) {
       </table>
 
       <div className="px-3 py-1.5 border-t border-terminal-border/40 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
-        Dates are each bank&apos;s own published calendar, read {formatDate(MEETINGS_CHECKED)}, except those marked
-        &ldquo;not confirmed&rdquo;; times are the announcement time in Sydney (hover for the bank&apos;s own).
-        AWAY counts Sydney calendar days. LAST DECISION is what the bank last did, from its own statement; Maddex
+        Dates are each bank&apos;s own published calendar, read {formatDate(MEETINGS_CHECKED)}; times are the
+        announcement time each bank states, read {formatDate(ANNOUNCE_AT_CHECKED)}, shown in Sydney (hover for the
+        bank&apos;s own). AWAY counts Sydney calendar days. The RBNZ and PBoC are not listed: their dates could
+        not be read from a published calendar. LAST DECISION is what the bank last did, from its own statement; Maddex
         shows no expected outcome for the next meeting.
       </div>
     </div>

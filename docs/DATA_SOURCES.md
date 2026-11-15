@@ -167,8 +167,23 @@ schedule, 30 days.
 | Bank of Canada | Rate announcements (09:45 ET) | https://www.bankofcanada.ca/2026/07/bank-canada-publishes-2027-schedule-policy-interest-rate-announcements-other-major-publications/ |
 | SNB | Monetary policy assessments (09:30 CET) | https://www.snb.ch/en/services-events/digital-services/event-schedule |
 | Riksbank | Policy rate decisions (09:30) | https://www.riksbank.se/en-gb/press-and-published/calendar/ |
-| RBNZ | **not verified** | rbnz.govt.nz refused automated requests; dates held are flagged |
-| PBoC | **not published** | No forward LPR calendar; the held date follows the monthly LPR rule and is flagged |
+| RBNZ | **removed 16 Nov 2026** | rbnz.govt.nz returns 403 to fetch; no RBNZ dates or times are shown |
+| PBoC | **removed 16 Nov 2026** | No forward LPR calendar is published; no PBoC dates are shown |
+
+**Announcement times** (`ANNOUNCE_AT`, `ANNOUNCE_AT_CHECKED`, freshness
+guard: schedule, 30 days), read by fetch on **16 Nov 2026** from each bank's
+own page, shown in Sydney time with the reader's zone:
+
+| Bank | Time (own zone) | Page and words |
+|---|---|---|
+| RBA | 14:30 Sydney | rba.gov.au/monetary-policy/int-rate-decisions/: "a media release announcing the decision at 2.30 pm" |
+| Federal Reserve | 14:00 New York | FOMC statement of 28 Oct 2026: "For release at 2:00 p.m. EDT" |
+| ECB | 14:15 Frankfurt | ecb.europa.eu/press/govcdec/mopo/: "published in a press release at 14:15 CET" |
+| Bank of Canada | 09:45 Ottawa | bankofcanada.ca/press/upcoming-events/: "Interest Rate Announcement 09:45 (ET)" |
+| SNB | 09:30 Zurich | snb.ch event schedule: "10.12.2026 09:30 Monetary policy assessment" |
+| Riksbank | 09:30 Stockholm | riksbank.se calendar: "Publication of monetary policy decision … 09:30" |
+| Bank of England | **not stated** | Its MPC pages give dates only; shown as "time not stated" |
+| Bank of Japan | **not stated** | Announced when the meeting ends; no fixed time |
 
 Corrections found: October AU CPI is released Wed 25 Nov (not 26); the SNB
 assessment is 10 Dec (17 Dec was held); the Riksbank raised to 2.00% on

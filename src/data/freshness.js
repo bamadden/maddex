@@ -31,7 +31,7 @@ export const FRESHNESS = [
   { id: 'corporate-actions', what: 'Dividend, results and AGM dates', kind: 'schedule', file: 'src/data/corporateActions.js', date: 'CORPORATE_ACTIONS_AS_OF' },
   { id: 'econ-schedule', what: 'Economic calendar (Dashboard, Calendar, alerts)', kind: 'schedule', file: 'src/services/calendarService.js', date: 'ECON_SCHEDULE_CHECKED' },
   { id: 'cb-meetings', what: 'Central-bank meeting lists', kind: 'schedule', file: 'src/services/centralBankSchedule.js', date: 'MEETINGS_CHECKED' },
-  { id: 'cb-meetings-unverified', what: 'RBNZ and PBoC meeting dates', kind: 'schedule', file: 'src/services/centralBankSchedule.js', date: 'MEETINGS_UNVERIFIED_CHECKED' },
+  { id: 'cb-announce-times', what: 'Central-bank announcement times', kind: 'schedule', file: 'src/services/centralBankSchedule.js', date: 'ANNOUNCE_AT_CHECKED' },
   { id: 'geo-risk', what: 'Country risk ratings', kind: 'editorial', file: 'src/data/geopoliticalRisk.js', date: 'RISK_LAST_REVIEWED' },
   { id: 'rba-decisions', what: 'RBA decision record', kind: 'history', file: 'src/data/rbaDecisions.js', date: 'RBA_DECISIONS_CHECKED' },
   { id: 'rba-path', what: 'RBA cash-rate path since 2008', kind: 'history', file: 'src/data/rbaCashRatePath.js', date: 'RBA_PATH_READ' },
@@ -87,6 +87,5 @@ export const FRESHNESS_EXEMPT = {
 // that date the problem fails the test again. Never extend one without the
 // check it names: fix the data, or add a new flag with a new reason.
 export const FRESHNESS_FLAGS = [
-  { id: 'cb-meetings-unverified', until: '2026-11-29', reason: "rbnz.govt.nz refuses automated requests and the PBoC publishes no forward LPR calendar; read RBNZ's dates in a browser, or show both as not confirmed" },
   { id: 'futures-data', until: '2026-11-29', reason: "18 of 30 contract rows (the CME Group contracts: CME, CBOT, NYMEX, COMEX) are not verified, because cmegroup.com refuses automated requests; read their specifications in a browser, or remove those rows on 29 Nov. The other 12 were read from ASX, ICE, HKEX, SGX and JPX on 15 Nov" },
 ]

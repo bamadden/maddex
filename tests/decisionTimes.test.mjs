@@ -32,3 +32,17 @@ test('the decisions table shows Sydney time, the reader\'s zone, and counts Sydn
   assert.doesNotMatch(s, /Math\.ceil\(\(ts - now\)/)
   assert.doesNotMatch(readFileSync(new URL('../src/data/verifiedConstants.js', import.meta.url), 'utf8'), /09:30 CET \(snb/)
 })
+
+test('every announcement time has its source page and words; unread banks have none', async () => {
+  const m = await import('../src/services/centralBankSchedule.js')
+  for (const [k, v] of Object.entries(m.ANNOUNCE_AT)) {
+    if (v) assert.ok(m.ANNOUNCE_SOURCE[k]?.[0] && m.ANNOUNCE_SOURCE[k]?.[1], `${k} has no source`)
+  }
+  assert.equal(m.ANNOUNCE_AT.boe, null)
+  assert.equal(m.ANNOUNCE_AT.rbnz, undefined)
+  assert.equal(m.RBNZ_MEETINGS_2026, undefined)
+  assert.equal(m.PBOC_MEETINGS_2026, undefined)
+  const { VERIFIED_CONSTANTS: V } = await import('../src/data/verifiedConstants.js')
+  assert.equal(V.rbnz.nextMeeting, null)
+  assert.equal(V.pboc.nextMeeting, null)
+})

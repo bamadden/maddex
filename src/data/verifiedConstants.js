@@ -215,7 +215,7 @@ export const VERIFIED_CONSTANTS = {
   },
   pboc: {
     label: 'PBOC', country: 'China', cashRate: 3.00,
-    lastDecision: '2026-10-20', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-20',
+    lastDecision: '2026-10-20', lastDecisionVerb: 'HOLD', nextMeeting: null, // no published forward LPR calendar (16 Nov 2026)
     // Was 3.10% with a Feb 2026 CUT — wrong on both counts. The 1Y LPR has
     // been 3.00% since the May 2025 cut; 20 Oct was the 17th straight hold.
     note: '1Y Loan Prime Rate (5Y LPR 3.50%)',
@@ -223,7 +223,7 @@ export const VERIFIED_CONSTANTS = {
   },
   rbnz: {
     label: 'RBNZ', country: 'New Zealand', cashRate: 2.75,
-    lastDecision: '2026-10-28', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-09',
+    lastDecision: '2026-10-28', lastDecisionVerb: 'HOLD', nextMeeting: null, // rbnz.govt.nz unreadable by fetch (403), date removed 16 Nov 2026
     note: 'Held 4–3 against a priced hike; Governor says further increases highly likely',
     // UPDATED 2026-10-28: Monetary Policy Review held the OCR at 2.75% by a
     // 4–3 vote; markets had priced ~90% for a hike to 3.00% (RNZ, Newsquawk,
