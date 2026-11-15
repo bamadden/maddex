@@ -130,16 +130,19 @@ export const SHIPPING_DISRUPTIONS = [
     startDate: '2023-09-01' },
 ]
 
+// Where each commodity is produced, and by whom: places and company names
+// only. The production volumes, shares of world supply and producer ranks
+// typed here had no source or date and were removed (16 Nov 2026).
 export const COMMODITY_SITES = [
-  { id: 'pilbara-iron',    lon: 117.7, lat: -22.5, commodity: 'Iron Ore',     country: 'Australia',    production: 900,  unit: 'Mt/yr',  globalSharePct: 38, auRank: 1, companies: ['BHP', 'RIO', 'FMG'],        asx: ['BHP', 'RIO', 'FMG'], color: [180, 80, 40] },
-  { id: 'qld-coal',        lon: 148.5, lat: -23.5, commodity: 'Thermal Coal', country: 'Australia',    production: 400,  unit: 'Mt/yr',  globalSharePct: 6,  auRank: 2, companies: ['WHC', 'NHC'],               asx: ['WHC', 'NHC'],        color: [60, 60, 60] },
-  { id: 'nw-lng',          lon: 115.8, lat: -21.9, commodity: 'LNG',          country: 'Australia',    production: 88,   unit: 'Mt/yr',  globalSharePct: 21, auRank: 2, companies: ['WDS', 'STO'],               asx: ['WDS', 'STO'],        color: [80, 140, 200] },
-  { id: 'kalgoorlie-gold', lon: 121.4, lat: -30.8, commodity: 'Gold',         country: 'Australia',    production: 320,  unit: 't/yr',   globalSharePct: 9,  auRank: 2, companies: ['NST', 'EVN', 'NEM'],        asx: ['NST', 'EVN'],        color: [255, 215, 0] },
-  { id: 'pilbara-lithium', lon: 119.2, lat: -21.5, commodity: 'Lithium',      country: 'Australia',    production: 84,   unit: 'kt/yr',  globalSharePct: 47, auRank: 1, companies: ['PLS', 'MIN', 'IGO'],        asx: ['PLS', 'MIN'],        color: [140, 200, 140] },
-  { id: 'chile-copper',    lon: -70.6, lat: -29.0, commodity: 'Copper',       country: 'Chile',        production: 5700, unit: 'kt/yr',  globalSharePct: 24, auRank: null, companies: ['Codelco', 'BHP', 'Anglo'], asx: ['BHP', 'S32'],        color: [200, 100, 50] },
-  { id: 'saudi-oil',       lon: 49.6,  lat: 26.3,  commodity: 'Crude Oil',    country: 'Saudi Arabia', production: 9800, unit: 'kbd',    globalSharePct: 11, auRank: null, companies: ['Saudi Aramco'],           asx: ['WDS', 'STO'],        color: [40, 40, 40] },
-  { id: 'china-re',        lon: 110.0, lat: 40.0,  commodity: 'Rare Earths',  country: 'China',        production: 240,  unit: 'kt/yr',  globalSharePct: 69, auRank: null, companies: ['China Northern RE'],      asx: ['LYC'],               color: [100, 200, 100] },
-  { id: 'ukraine-wheat',   lon: 32.0,  lat: 49.0,  commodity: 'Wheat',        country: 'Ukraine',      production: 33,   unit: 'Mt/yr',  globalSharePct: 4,  auRank: null, companies: ['Various'],                asx: ['GNC'],               color: [220, 180, 60], disrupted: true },
+  { id: 'pilbara-iron',    lon: 117.7, lat: -22.5, commodity: 'Iron Ore',     country: 'Australia',    companies: ['BHP', 'RIO', 'FMG'],        asx: ['BHP', 'RIO', 'FMG'], color: [180, 80, 40] },
+  { id: 'qld-coal',        lon: 148.5, lat: -23.5, commodity: 'Thermal Coal', country: 'Australia',    companies: ['WHC', 'NHC'],               asx: ['WHC', 'NHC'],        color: [60, 60, 60] },
+  { id: 'nw-lng',          lon: 115.8, lat: -21.9, commodity: 'LNG',          country: 'Australia',    companies: ['WDS', 'STO'],               asx: ['WDS', 'STO'],        color: [80, 140, 200] },
+  { id: 'kalgoorlie-gold', lon: 121.4, lat: -30.8, commodity: 'Gold',         country: 'Australia',    companies: ['NST', 'EVN', 'NEM'],        asx: ['NST', 'EVN'],        color: [255, 215, 0] },
+  { id: 'pilbara-lithium', lon: 119.2, lat: -21.5, commodity: 'Lithium',      country: 'Australia',    companies: ['PLS', 'MIN', 'IGO'],        asx: ['PLS', 'MIN'],        color: [140, 200, 140] },
+  { id: 'chile-copper',    lon: -70.6, lat: -29.0, commodity: 'Copper',       country: 'Chile',        companies: ['Codelco', 'BHP', 'Anglo'], asx: ['BHP', 'S32'],        color: [200, 100, 50] },
+  { id: 'saudi-oil',       lon: 49.6,  lat: 26.3,  commodity: 'Crude Oil',    country: 'Saudi Arabia', companies: ['Saudi Aramco'],           asx: ['WDS', 'STO'],        color: [40, 40, 40] },
+  { id: 'china-re',        lon: 110.0, lat: 40.0,  commodity: 'Rare Earths',  country: 'China',        companies: ['China Northern RE'],      asx: ['LYC'],               color: [100, 200, 100] },
+  { id: 'ukraine-wheat',   lon: 32.0,  lat: 49.0,  commodity: 'Wheat',        country: 'Ukraine',      companies: ['Various'],                asx: ['GNC'],               color: [220, 180, 60], disrupted: true },
 ]
 
 export const GEOPOLITICAL_EVENTS = [

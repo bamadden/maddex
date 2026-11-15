@@ -808,9 +808,9 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         id: 'commodity-columns',
         data: COMMODITY_SITES,
         getPosition: (d) => [d.lon, d.lat],
-        // Log scale: Saudi crude at 9,800 kbd against lithium at 84 kt/yr is
-        // a 100x spread, and a linear column would flatten everything else.
-        getElevation: (d) => Math.log(d.production + 1) * 80000,
+        // One height for every site: the column marks a place, not a volume
+        // (no sourced production figures are held).
+        getElevation: 400000,
         getFillColor: (d) => [...d.color, 200],
         getLineColor: (d) => [...d.color, 255],
         radius: 45000,
@@ -1451,7 +1451,6 @@ function MapTooltip({ tooltip }) {
       <>
         <div style={gold}>{object.commodity}</div>
         <div style={{ marginBottom: 2 }}>{object.country}</div>
-        <div style={dim}>{object.production} {object.unit}</div>
         <div style={{ fontSize: 11, color: PAL.muted, marginTop: 3 }}>{object.companies.join(', ')}</div>
       </>
     ),

@@ -246,3 +246,10 @@ test('chokepoint status is the reviewed label; a headline keyword match no longe
   assert.doesNotMatch(mod, /computeChokeStatus|CHOKE_DISRUPT_RE|CHOKE_REOPEN_RE|matched in today's headlines/)
   assert.match(mod, /data-chokepoint-sources/)
 })
+
+test('Global: commodity sites carry places and companies, not typed production, world shares or ranks', async () => {
+  const { COMMODITY_SITES } = await import('../src/modules/global/intelMapData.js')
+  assert.ok(COMMODITY_SITES.length > 0)
+  for (const c of COMMODITY_SITES) for (const k of ['production', 'globalSharePct', 'auRank']) assert.equal(c[k], undefined, `${c.id}.${k}`)
+  assert.doesNotMatch(fs.readFileSync('src/modules/global/MapDetailPanel.jsx', 'utf8'), /% of world supply|Annual production|global rank/)
+})

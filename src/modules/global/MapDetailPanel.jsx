@@ -377,24 +377,6 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             </div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.country}</div>
 
-            <div style={S.label}>Annual production</div>
-            <div style={{ ...S.value, ...S.gold, fontSize: 20, marginBottom: 8 }}>{data.production} {data.unit}</div>
-
-            <div style={S.label}>Share of global output</div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ height: 4, background: 'rgba(99,120,153,0.2)', borderRadius: 2, overflow: 'hidden', marginBottom: 3 }}>
-                <div style={{ width: `${data.globalSharePct}%`, height: '100%', background: `rgb(${data.color.join(',')})` }} />
-              </div>
-              <span style={{ ...S.muted, fontSize: 11 }}>{data.globalSharePct}% of world supply</span>
-            </div>
-
-            {data.auRank && (
-              <>
-                <div style={S.label}>Australia&apos;s global rank</div>
-                <div style={{ ...S.value, ...S.gold, fontSize: 14 }}>#{data.auRank} producer</div>
-              </>
-            )}
-
             <div style={S.label}>Major producers</div>
             <div style={{ marginBottom: 12 }}>
               {data.companies.map((c) => (
