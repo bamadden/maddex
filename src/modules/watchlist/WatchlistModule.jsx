@@ -18,13 +18,13 @@ import PriceChange from '../../components/ui/PriceChange'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useSubscription } from '../../hooks/useSubscription'
-import { supabase } from '../../lib/supabase'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
 import { earningsFor, daysUntil } from '../../services/earningsCalendar'
 import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
 import { ModuleError, StaleBadge, DemoBadge } from '../../components/ui/ModuleStates'
 import { SkeletonCard } from '../../components/ui/Skeleton'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import WatchlistSyncBar from './WatchlistSyncBar'
 import ShareLinkModal from '../../components/ui/ShareLinkModal'
 import { useLivePrice } from '../../hooks/useLivePrice'
 import { createShareLink } from '../../services/sharingService'
@@ -515,7 +515,6 @@ export default function WatchlistModule() {
   const [addError, setAddError]       = useState(null)
   const [validating, setValidating]   = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
-  const [synced, setSynced]           = useState(false)
   // Sort restored on mount. `null` is a restorable state, not an absence — it
   // means manual order, which is what drag-to-reorder produces.
   const [sortKey, setSortKey] = useState(() => loadSort(Object.keys(SORT_VALUE)).column)
@@ -584,18 +583,10 @@ export default function WatchlistModule() {
   const PRICE_GROUP = ['price', 'change', 'pct', 'week52']
   const priceAnchor = PRICE_GROUP.find((k) => isOn(k)) ?? null
 
-  // Load watchlist from Supabase on mount when logged in
-  useEffect(() => {
-    if (!user || synced) return
-    supabase.from('watchlist').select('*').order('position').then(({ data }) => {
-      if (data && data.length > 0) {
-        clearWatchlist()
-        data.forEach(row => addToWatchlist(row.symbol))
-      }
-      setSynced(true)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  // The account copy changes only through WatchlistSyncBar, after the reader
+  // confirms. Opening the module used to replace this device's list with the
+  // account's, and every add or remove mirrored itself (without a user_id, so
+  // each write failed in silence).
 
   // Equities/indices go through the existing Yahoo batch quote path; crypto
   // symbols (BTC, ETH, ...) resolve to Yahoo's "-USD" format but that batch
@@ -898,14 +889,11 @@ export default function WatchlistModule() {
     try {
       const { yfSym } = toYahoo(raw)
       if (!(await isKnownTicker(raw))) { setAddError(USING_MOCK_DATA ? 'NOT IN THE DEMO LIST — equity prices are demo until a market-data provider is connected' : 'TICKER NOT FOUND — check symbol and try again'); return }
-      const q = await fetchYahooQuote(yfSym)
+      await fetchYahooQuote(yfSym) // throws for an unknown ticker
       addToWatchlist(raw)
       logActivity('watchlist', `Added ${raw} to watchlist`)
       soundService.actionSuccess()
       setSearchInput('')
-      if (user) {
-        await supabase.from('watchlist').upsert({ symbol: raw, name: q.name ?? raw, position: watchlist.length }, { onConflict: 'user_id,symbol' })
-      }
     } catch {
       setAddError('TICKER NOT FOUND — check symbol and try again')
     } finally {
@@ -913,11 +901,8 @@ export default function WatchlistModule() {
     }
   }
 
-  const handleRemove = async (sym) => {
+  const handleRemove = (sym) => {
     removeFromWatchlist(sym)
-    if (user) {
-      await supabase.from('watchlist').delete().eq('symbol', sym)
-    }
   }
 
   const handleRowClick = (row) => {
@@ -1004,7 +989,6 @@ export default function WatchlistModule() {
   const importSymbols = async (symbols) => {
     for (const sym of symbols) {
       addToWatchlist(sym)
-      if (user) await supabase.from('watchlist').upsert({ symbol: sym, name: sym, position: watchlist.length }, { onConflict: 'user_id,symbol' })
     }
     logActivity('watchlist', `Imported ${symbols.length} ticker${symbols.length === 1 ? '' : 's'}`)
     setImportOpen(false)
@@ -1093,6 +1077,8 @@ export default function WatchlistModule() {
               : <DataBadge cls="LIVE" source={EQUITY_SOURCE} />)
         }
       />
+
+      <WatchlistSyncBar user={user} watchlist={watchlist} addToWatchlist={addToWatchlist} />
 
       {/* Search / add bar */}
       <div className="flex items-center border-b border-terminal-border flex-shrink-0">
