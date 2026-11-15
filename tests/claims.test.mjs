@@ -44,8 +44,9 @@ test('no absolute AI-figure claim', () => {
 })
 
 test('counts on screen match the data', () => {
-  assert.equal(AU_ETFS.length, 21)
-  assert.match(read('src/modules/etf/ETFModule.jsx'), /21 Australian ETFs/)
+  // The ETF count is read from the data, never typed.
+  assert.match(read('src/modules/etf/ETFModule.jsx'), /\$\{AU_ETFS\.length\} Australian ETFs/)
+  assert.doesNotMatch(read('src/modules/etf/ETFModule.jsx'), /\d+ Australian ETFs|fees, returns/)
   assert.equal(ASX_UNIVERSE.length, 72)
   assert.match(read('src/hooks/useMarketSentiment.js'), /72 stocks/)
 })

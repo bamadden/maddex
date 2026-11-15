@@ -208,7 +208,9 @@ row of `src/data/etfData.js`; fund size carries its own as-at date):
 BlackRock iShares (IOZ, IVV, IAF), Betashares (A200, NDQ, HACK, CLDD, ETHI,
 QRE, QFN, HVST, GEAR, BBOZ, BBUS), State Street SPDR (BOND) and Global X
 (GOLD, which the list had as "GLD", not an ASX code). The five Vanguard funds
-(VAS, VGS, VDHG, VAF, VAP) could not be read automatically and show "—".
+(VAS, VGS, VDHG, VAF, VAP) were **removed on 16 Nov 2026**: Vanguard's pages
+load fees in the browser, so a fetch reads none, and no fund is listed without
+a verified fee.
 Returns, yields, holdings counts and evaluative notes were typed without a
 source and were removed. Prices remain a labelled DEMO simulation.
 
@@ -222,9 +224,11 @@ Osaka). Corrected: AUD/CNH is A$80,000 with a RMB 8 tick (A$100,000 held),
 coking coal's tick is US$0.01 = US$1 (0.10 held), the bank-bill tick is "about
 A$24, varies with yield" (24.66 held), and the Nikkei row is the Osaka
 contract (SGX's is ¥500 × index). AUD/EUR and AUD/GBP were removed: CME lists
-EUR/AUD and GBP/AUD. The CME Group rows (CME, CBOT, NYMEX, COMEX) could not be
-read (cmegroup.com refuses automated requests) and say so on screen until
-verified or removed (freshness flag, 29 Nov). Prices are a labelled DEMO
+EUR/AUD and GBP/AUD. The 17 CME Group rows (CME, CBOT, NYMEX, COMEX: S&P 500,
+NASDAQ 100 and Dow E-minis, gold, silver, copper, WTI, natural gas, wheat,
+corn, soybeans, lithium, AUD/USD, AUD/JPY, Fed Funds) were **removed on
+16 Nov 2026**: cmegroup.com returns 403 to fetch, so they could not be
+verified. Prices are a labelled DEMO
 simulation; volumes, margins, short interest, lender rates and positioning
 were removed.
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
-import { ETF_CATEGORIES, ETF_DATA_AS_OF, feeDrag, isComplex } from '../../data/etfData'
+import { AU_ETFS, ETF_CATEGORIES, ETF_DATA_AS_OF, feeDrag, isComplex } from '../../data/etfData'
 import { useEtfPrices } from './useEtfPrices'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import Tooltip from '../../components/ui/Tooltip'
@@ -12,7 +12,7 @@ import { formatDate } from '../../utils/dateUtils'
 
 // ─── ETF Explorer ───────────────────────────────────────────────────────────
 //
-// Twenty-one Australian ETFs, filterable and sortable, with a fee-drag
+// The Australian ETFs whose fees were read from the issuer, filterable and sortable, with a fee-drag
 // calculator and a comparison tool.
 //
 // The module's real job is the two things a provider's own page never puts
@@ -296,7 +296,7 @@ export default function ETFModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="ETF EXPLORER"
-        subtitle="21 Australian ETFs · fees, returns and what they actually cost"
+        subtitle={`${AU_ETFS.length} Australian ETFs · fees, fund sizes and what a fee costs over time`}
         moduleId="etf"
         right={<DataBadge cls="DEMO" source="prices simulated" />}
       />
@@ -306,7 +306,7 @@ export default function ETFModule() {
         <DataBadge cls="DELAYED" source="fees, indices and fund sizes from each issuer, read" at={ETF_DATA_AS_OF} />
         <DataBadge cls="DEMO" source="prices simulated" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
-          Five Vanguard funds could not be read and show "—". No returns or yields are held. Read the issuer&apos;s PDS for full details.
+          Only funds whose fees were read from the issuer are listed. No returns or yields are held. Read the issuer&apos;s PDS for full details.
         </span>
       </div>
 

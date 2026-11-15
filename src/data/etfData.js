@@ -12,7 +12,9 @@ import { PAL } from '../styles/palette.js'
 
 // Fees, tracked index and fund size: read 15 Nov 2026 from each issuer's own
 // product page (`sourceUrl`; fund size has its own `aumAsOf`). The five
-// Vanguard funds could not be read and show "—". Typed returns, yields,
+// Vanguard funds (VAS, VGS, VDHG, VAF, VAP) were removed on 16 Nov 2026:
+// Vanguard's pages load their fees in the browser, so a fetch reads none, and
+// no fund is listed without a verified fee. Typed returns, yields,
 // holdings counts and evaluative notes were removed; `price` is only the
 // seed for the labelled DEMO price simulation.
 export const ETF_DATA_AS_OF = '2026-11-15'
@@ -44,10 +46,6 @@ export const VOL_BY_CATEGORY = {
 }
 
 export const AU_ETFS = [
-  { ticker: 'VAS', name: 'Vanguard Australian Shares Index', provider: 'Vanguard', category: 'AU Equity',
-    aum: null, mer: null, yield: null, price: 94.82, oneYear: null, threeYear: null, fiveYear: null,
-    holdings: null, benchmark: null,
-    unverified: 'Vanguard\'s site could not be read automatically on 15 Nov 2026' },
   { ticker: 'IOZ', name: 'iShares Core S&P/ASX 200', provider: 'BlackRock', category: 'AU Equity',
     aum: 10012.9, mer: 0.05, yield: null, price: 32.14, oneYear: null, threeYear: null, fiveYear: null,
     holdings: null, benchmark: 'S&P/ASX 200 Index',
@@ -64,18 +62,6 @@ export const AU_ETFS = [
     aum: 9238.5, mer: 0.48, yield: null, price: 42.18, oneYear: null, threeYear: null, fiveYear: null,
     holdings: null, benchmark: 'Nasdaq-100 Index',
     checked: '2026-11-15', aumAsOf: '2026-11-12', sourceUrl: 'https://www.betashares.com.au/fund/nasdaq-100-etf/' },
-  { ticker: 'VGS', name: 'Vanguard International Shares', provider: 'Vanguard', category: 'Global Equity',
-    aum: null, mer: null, yield: null, price: 118.42, oneYear: null, threeYear: null, fiveYear: null,
-    holdings: null, benchmark: null,
-    unverified: 'Vanguard\'s site could not be read automatically on 15 Nov 2026' },
-  { ticker: 'VDHG', name: 'Vanguard Diversified High Growth', provider: 'Vanguard', category: 'Multi-Asset',
-    aum: null, mer: null, yield: null, price: 62.84, oneYear: null, threeYear: null, fiveYear: null,
-    holdings: null, benchmark: null,
-    unverified: 'Vanguard\'s site could not be read automatically on 15 Nov 2026' },
-  { ticker: 'VAF', name: 'Vanguard Australian Fixed Interest', provider: 'Vanguard', category: 'Fixed Income',
-    aum: null, mer: null, yield: null, price: 48.24, oneYear: null, threeYear: null, fiveYear: null,
-    holdings: null, benchmark: null,
-    unverified: 'Vanguard\'s site could not be read automatically on 15 Nov 2026' },
   { ticker: 'IAF', name: 'iShares Core Composite Bond', provider: 'BlackRock', category: 'Fixed Income',
     aum: 3760.1, mer: 0.1, yield: null, price: 96.42, oneYear: null, threeYear: null, fiveYear: null,
     holdings: null, benchmark: 'An Australian composite bond index (named on the issuer\'s page)',
@@ -88,10 +74,6 @@ export const AU_ETFS = [
     aum: null, mer: 0.4, yield: null, price: 28.84, oneYear: null, threeYear: null, fiveYear: null,
     holdings: null, benchmark: 'Gold spot price',
     checked: '2026-11-15', aumAsOf: '2026-11-12', sourceUrl: 'https://www.globalxetfs.com.au/funds/gold/' },
-  { ticker: 'VAP', name: 'Vanguard Australian Property Securities', provider: 'Vanguard', category: 'Property',
-    aum: null, mer: null, yield: null, price: 84.18, oneYear: null, threeYear: null, fiveYear: null,
-    holdings: null, benchmark: null,
-    unverified: 'Vanguard\'s site could not be read automatically on 15 Nov 2026' },
   { ticker: 'HACK', name: 'BetaShares Global Cybersecurity', provider: 'BetaShares', category: 'Thematic',
     aum: 1649.3, mer: 0.67, yield: null, price: 14.82, oneYear: null, threeYear: null, fiveYear: null,
     holdings: null, benchmark: 'Nasdaq Consumer Technology Association Cybersecurity Index',

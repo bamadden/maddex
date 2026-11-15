@@ -8,7 +8,8 @@ import fs from 'node:fs'
 import { AU_ETFS as ETF_UNIVERSE } from '../src/data/etfData.js'
 
 test('every fee and fund size is the issuer\'s, dated and linked; nothing else is typed', () => {
-  assert.ok(ETF_UNIVERSE.length >= 20)
+  assert.ok(ETF_UNIVERSE.length >= 15)
+  assert.ok(!ETF_UNIVERSE.some((e) => e.mer == null), 'every listed fund has a verified fee')
   for (const e of ETF_UNIVERSE) {
     for (const k of ['yield', 'oneYear', 'threeYear', 'fiveYear', 'holdings']) assert.equal(e[k] ?? null, null, `${e.ticker}.${k}`)
     assert.ok(!('note' in e) && !('description' in e), `${e.ticker} carries no evaluative note`)

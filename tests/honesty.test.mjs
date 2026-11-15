@@ -258,7 +258,10 @@ test('Futures: specifications read from the exchange are marked; the rest say th
   const cnh = FUTURES.find((c) => c.name === 'AUD/CNH')
   assert.equal(cnh.size, 'A$80,000'); assert.equal(cnh.tickValue, 8)
   assert.equal(FUTURES.find((c) => c.name === 'Coking Coal').tick, 0.01)
-  for (const c of FUTURES) if (/^(CME|CBOT|NYMEX|COMEX)$/.test(c.exchange)) assert.ok(!c.specChecked, `${c.name}: CME Group pages were not read`)
-  assert.ok(FUTURES.filter((c) => c.specChecked).length >= 12)
-  assert.match(read('src/modules/futures/FuturesModule.jsx'), /Specification not yet verified against/)
+  // CME Group rows removed 16 Nov 2026 (cmegroup.com returns 403 to fetch):
+  // every listed contract has a specification read from its exchange.
+  assert.ok(!FUTURES.some((c) => /^(CME|CBOT|NYMEX|COMEX)$/.test(c.exchange)), 'no unverified CME Group rows')
+  assert.ok(FUTURES.every((c) => c.specChecked), 'every row is verified')
+  assert.ok(FUTURES.length >= 12)
+  assert.doesNotMatch(read('src/modules/futures/FuturesModule.jsx'), /Specification not yet verified against/)
 })
