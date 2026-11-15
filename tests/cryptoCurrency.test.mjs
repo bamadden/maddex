@@ -196,3 +196,16 @@ test('Crypto accessibility: sort headers are buttons with aria-sort; glyph butto
   const extras = fs.readFileSync('src/modules/crypto/CryptoExtras.jsx', 'utf8')
   for (const l of ['aria-label="Coin"', 'aria-label="Units held"', 'Average cost per unit']) assert.ok(extras.includes(l), l)
 })
+
+test('Crypto #12: 1D chart points carry a labelled Sydney time; AU facts show the date checked; no success logging', async () => {
+  const { transformCoinHistory } = await import('../src/services/api.js')
+  const ts = Date.UTC(2026, 10, 15, 3, 5)
+  const [p] = transformCoinHistory({ prices: [[ts, 100000]], total_volumes: [[ts, 5]] })
+  assert.equal(p.time, '14:05 AEDT')
+  const mod = fs.readFileSync('src/modules/crypto/CryptoModule.jsx', 'utf8')
+  assert.match(mod, /dataKey=\{timeframe === '1D' \? 'time' : 'date'\}/)
+  assert.match(mod, /intraday=\{timeframe === '1D'\}/)
+  assert.match(mod, /data-facts-checked>Checked against each source \{formatDate\(AU_FACTS_CHECKED\)\}/)
+  assert.doesNotMatch(mod, /console\.log/)
+  assert.doesNotMatch(fs.readFileSync('src/services/api.js', 'utf8'), /console\.log\('\[MADDEN API\] CoinGecko/)
+})

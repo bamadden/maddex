@@ -4,7 +4,7 @@ import { recordUsage } from './aiUsageService'
 import { ASX_TICKERS } from '../utils/asxTickers'
 import { licenceGuard, licenceOff } from '../data/sourceLicence'
 import { supabase } from '../lib/supabase'
-import { formatDate } from '../utils/dateUtils.js'
+import { formatDate, sydneyClock } from '../utils/dateUtils.js'
 import { whenVisible } from '../utils/whenVisible'
 
 // ─── Internal cache ───────────────────────────────────────────────────────────
@@ -804,14 +804,12 @@ export const fetchCryptoMarkets = async (currency = 'aud', page = 1) => {
       price_change_percentage: '24h,7d,30d',
     },
   })
-  console.log('[MADDEN API] CoinGecko /coins/markets:', data?.length, 'coins vs', currency)
   return { data, currency }
 }
 
 export const fetchTrendingCoins = async () => {
   await cgThrottle()
   const { data } = await httpGet(`${COINGECKO_BASE}/search/trending`)
-  console.log('[MADDEN API] CoinGecko trending:', data?.coins?.length, 'coins')
   return data
 }
 
@@ -828,7 +826,6 @@ export const fetchCoinHistory = async (coinId, currency = 'aud', days = 90) => {
   const { data } = await httpGet(`${COINGECKO_BASE}/coins/${coinId}/market_chart`, {
     params: { vs_currency: currency, days },
   })
-  console.log('[MADDEN API] CoinGecko /market_chart', coinId + ':', data?.prices?.length, 'points')
   return data
 }
 
@@ -837,7 +834,6 @@ export const fetchCoinOHLC = async (coinId, days = 30, currency = 'aud') => {
   const { data } = await httpGet(`${COINGECKO_BASE}/coins/${coinId}/ohlc`, {
     params: { vs_currency: currency, days },
   })
-  console.log('[MADDEN API] CoinGecko /ohlc', coinId + ':', data?.length, 'candles')
   return data
 }
 
@@ -866,7 +862,6 @@ export const fetchFearGreed = async () => {
 export const fetchCryptoGlobal = async () => {
   await cgThrottle()
   const { data } = await httpGet(`${COINGECKO_BASE}/global`)
-  console.log('[MADDEN API] CoinGecko /global: active_coins', data?.data?.active_cryptocurrencies)
   return data?.data
 }
 
@@ -914,6 +909,9 @@ export const transformCoinHistory = ({ prices, total_volumes: vols = [] }) => {
     .filter((_, i) => i % step === 0)
     .map(([[ts, price], volume]) => ({
       date:  formatDate(new Date(ts), { year: false }),
+      // Intraday points (the 1D chart) need the time as well, in labelled
+      // Sydney time.
+      time:  sydneyClock(new Date(ts)).text,
       price: price >= 1 ? parseFloat(price.toFixed(2)) : parseFloat(price.toPrecision(4)),
       volume,
     }))

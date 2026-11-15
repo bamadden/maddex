@@ -91,7 +91,7 @@ function Sparkline({ prices, w = 60, h = 28 }) {
 
 // ── Chart tooltip ──────────────────────────────────────────────────────────────
 
-function ChartTooltip({ active, payload, label, currency }) {
+function ChartTooltip({ active, payload, label, currency, intraday = false }) {
   if (!active || !payload?.length) return null
   // The detail chart carries volume bars too; the tooltip reports the price.
   const val = (payload.find((p) => p.dataKey === 'price') ?? payload[0]).value
@@ -100,7 +100,7 @@ function ChartTooltip({ active, payload, label, currency }) {
     : `US$${val.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
   return (
     <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
-      <div className="text-terminal-text-dim">{label}</div>
+      <div className="text-terminal-text-dim">{intraday && payload[0]?.payload?.time ? `${payload[0].payload.date} ${payload[0].payload.time}` : label}</div>
       <div className="text-terminal-gold font-semibold">{formatted}</div>
     </div>
   )
@@ -559,12 +559,12 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
                     <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                <XAxis dataKey={timeframe === '1D' ? 'time' : 'date'} tick={{ fontSize: 11 }} interval="preserveStartEnd" />
                 <YAxis yAxisId="p" hide domain={['auto', 'auto']} />
                 {/* Volume on its own axis, scaled so the tallest bar reaches a
                     quarter of the chart and sits under the price line. */}
                 <YAxis yAxisId="v" hide domain={[0, (max) => (max || 1) * 4]} />
-                <Tooltip content={<ChartTooltip currency={isAud ? 'AUD' : 'USD'} />} />
+                <Tooltip content={<ChartTooltip currency={isAud ? 'AUD' : 'USD'} intraday={timeframe === '1D'} />} />
                 <Bar yAxisId="v" dataKey="volume" fill="rgba(99,120,153,0.35)" isAnimationActive={false} />
                 <Area yAxisId="p" type="monotone" dataKey="price" stroke={PAL.gold} strokeWidth={1.5}
                   fill="url(#detailGrad)" dot={false} isAnimationActive={false} connectNulls />
@@ -677,10 +677,11 @@ const HEAD = { padding: '6px 8px', fontSize: '11px', color: PAL.gold, letterSpac
 
 // ── Crypto in Australia ──────────────────────────────────────────────────────
 //
-// Four facts, each with its source, checked 28 Oct 2026. The brief offered
+// Four facts, each with its source, checked on AU_FACTS_CHECKED. The brief offered
 // "~25% own crypto" and "ASIC regulates exchanges since 2024"; the latest
 // survey says about 31%, and exchanges have registered with AUSTRAC since 2018
 // while ASIC licensing arrives under the 2026 Digital Assets Framework.
+const AU_FACTS_CHECKED = '2026-10-28'
 const AU_CRYPTO_FACTS = [
   ['About 3 in 10 Australian adults own or have owned crypto', 'Independent Reserve Cryptocurrency Index 2025 (31%)'],
   ['Exchanges must register with AUSTRAC (since 2018); the Digital Assets Framework passed in April 2026 brings platforms that hold crypto for customers under ASIC financial services licensing', 'AUSTRAC; Corporations Amendment (Digital Assets Framework) Act 2026'],
@@ -692,6 +693,7 @@ function AuCryptoContext() {
   return (
     <div style={P.wrap}>
       <div style={P.title}>CRYPTO IN AUSTRALIA</div>
+      <div className="text-[11px] text-terminal-text-dim/60 mb-1.5" data-facts-checked>Checked against each source {formatDate(AU_FACTS_CHECKED)}</div>
       <ul className="space-y-2">
         {AU_CRYPTO_FACTS.map(([fact, src]) => (
           <li key={fact} className="text-[11px] leading-snug text-terminal-text">
@@ -727,9 +729,7 @@ export default function CryptoModule() {
 
   useEffect(() => {
     if (titleBarRef.current) {
-      const h = titleBarRef.current.offsetHeight
-      console.log('Crypto title bar height:', h)
-      setTitleBarHeight(h)
+      setTitleBarHeight(titleBarRef.current.offsetHeight)
     }
   }, [])
   const vsCurrency = currency.toLowerCase()
@@ -1225,7 +1225,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
               )}
               {show('sparkline') && (
                 <td style={{ ...CELL, textAlign: 'right' }} className="hidden xl:table-cell">
-                  <Sparkline prices={coin.sparkline} pct={coin.pct7d} w={60} h={24} />
+                  <Sparkline prices={coin.sparkline} w={60} h={24} />
                 </td>
               )}
               <td style={{ ...CELL, width: 28 }} />
