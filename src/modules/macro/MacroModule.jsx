@@ -10,7 +10,7 @@ import {
   AU_CPI_HISTORY, AU_UNEMP_HISTORY, AU_GDP_HISTORY,
   RBA_RATE_HISTORY, RBA_BOARD_MEMBERS, RBA_RECENT_STATEMENTS,
   AU_CONSUMER_SENTIMENT, AU_BUSINESS_CONFIDENCE, AU_TRADE_BALANCE,
-  IRON_ORE_HISTORY, CHINA_WATCH, AU_BONDS, US_BONDS, monthLabel,
+  AU_BONDS, US_BONDS, monthLabel, MACRO_SERIES_AS_OF,
 } from '../../data/placeholders'
 import { fetchFxHistory } from '../../services/api'
 import { Viz3DLoader } from '../../components/ui/ModuleStates'
@@ -33,7 +33,7 @@ const MacroDashboard3D = lazy(() => import('../../components/visualisations/Macr
 const GlobalGrowthMap = lazy(() => import('./GlobalGrowthMap'))
 import { getMacroThemes, clearMacroThemeCache, FALLBACK_THEMES, FALLBACK_IMPLICATIONS } from '../../services/macroThemeService'
 import { aiContentService } from '../../services/aiContentService'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, COUNTRY_STATS } from '../../data/verifiedConstants'
 import { BOND_CURVES_AS_OF } from '../../data/bondCurves'
 import { AIContentBadge, HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
@@ -754,9 +754,9 @@ function LeadingIndicators() {
     {
       title: 'AU CONSUMER SENTIMENT',
       subtitle: 'Westpac-Melbourne Inst.',
-      current: '82.4',
-      note: 'Jul 2026 — PESSIMISTIC (below 100)',
-      source: 'Westpac-MI',
+      current: String(AU_CONSUMER_SENTIMENT.at(-1)?.value ?? '—'),
+      note: `${AU_CONSUMER_SENTIMENT.at(-1)?.date ?? ''} · below 100: more pessimists than optimists`,
+      source: 'Westpac–Melbourne Institute (westpaciq.com.au)', asOf: MACRO_SERIES_AS_OF,
       chart: (
         <SafeChart width="100%" height="100%">
           <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
@@ -768,7 +768,7 @@ function LeadingIndicators() {
               // position:'right' places the label OUTSIDE the plot area, so it
               // ran off the SVG and rendered truncated. insideTopRight keeps it
               // over the line it annotates, which is where it belongs anyway.
-              label={{ value: 'NEUTRAL', fill: PAL.gold, fontSize: 11, position: 'insideTopRight' }} />
+              label={{ value: '100', fill: PAL.gold, fontSize: 11, position: 'insideTopRight' }} />
             <Line type="monotone" dataKey="value" stroke={PAL.down} strokeWidth={1.5}
               dot={false} isAnimationActive={false} />
             <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} tickFormatter={() => ''} />
@@ -781,13 +781,13 @@ function LeadingIndicators() {
       subtitle: 'NAB Monthly Survey',
       current: `${VERIFIED_CONSTANTS.au.nabConfidence > 0 ? '+' : ''}${VERIFIED_CONSTANTS.au.nabConfidence}`,
       note: `${VERIFIED_CONSTANTS.au.nabPeriod} — conditions ${VERIFIED_CONSTANTS.au.nabConditions}`,
-      source: 'NAB Survey',
+      source: 'NAB Monthly Business Survey (nab.com.au)', asOf: VERIFIED_CONSTANTS.au.nabRelease,
       chart: (
         <SafeChart width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid stroke={PAL.header} vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
-            <YAxis tick={{ fontSize: 11 }} domain={[-15, 12]} width={28} />
+            <YAxis tick={{ fontSize: 11 }} domain={[-30, 10]} width={28} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke={PAL.gold} strokeDasharray="3 3" />
             <Bar dataKey="value" isAnimationActive={false} radius={[1,1,0,0]}>
@@ -805,7 +805,7 @@ function LeadingIndicators() {
       subtitle: 'ABS International Trade in Goods · SA',
       current: `${VERIFIED_CONSTANTS.au.tradeBalanceBn >= 0 ? '+' : '−'}A$${Math.round(Math.abs(VERIFIED_CONSTANTS.au.tradeBalanceBn) * 1000)}M`,
       note: `${VERIFIED_CONSTANTS.au.tradeBalancePeriod} — ${VERIFIED_CONSTANTS.au.tradeBalanceBn >= 0 ? 'SURPLUS' : 'DEFICIT'}`,
-      source: 'ABS ITGS',
+      source: 'ABS International Trade in Goods (Data API)', asOf: VERIFIED_CONSTANTS.au.tradeBalanceRelease,
       chart: (
         <SafeChart width="100%" height="100%">
           <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
@@ -829,24 +829,18 @@ function LeadingIndicators() {
     },
     {
       title: 'IRON ORE PRICE',
-      subtitle: 'Singapore Exchange (SGX)',
-      current: 'USD 98/t',
-      note: 'Key AU export driver — impacts AUD & miners',
-      source: 'SGX / Platts',
+      subtitle: 'SGX 62% Fe futures close',
+      current: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? `US${VERIFIED_CONSTANTS.commodities.ironOreUSD.toFixed(2)}/t` : '—',
+      note: `${formatDate(VERIFIED_CONSTANTS.commodities.asOfBy?.ironOreUSD ?? VERIFIED_CONSTANTS.commodities.asOf)}`,
+      source: VERIFIED_CONSTANTS.commodities.sourceBy?.ironOreUSD ?? VERIFIED_CONSTANTS.commodities.source, asOf: VERIFIED_CONSTANTS.commodities.lastVerified,
+      // One dated reading, not a price history: the monthly series held
+      // here was labelled SGX / Platts (licensed data), typed and undated,
+      // with a "$90 support" line (removed 15 Nov 2026).
       chart: (
-        <SafeChart width="100%" height="100%">
-          <LineChart data={IRON_ORE_HISTORY} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={2} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${v}`} domain={[85, 115]} width={36} />
-            <Tooltip content={<SentimentTooltip />} />
-            <ReferenceLine y={90} stroke={PAL.down} strokeDasharray="3 3"
-              label={{ value: '$90 support', fill: PAL.down, fontSize: 11, position: 'insideTopRight' }} />
-            <Line type="monotone" dataKey="value" stroke={PAL.blue} strokeWidth={1.5}
-              dot={{ r: 2.5, fill: PAL.blue }} isAnimationActive={false} />
-            <Brush dataKey="date" height={12} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} tickFormatter={() => ''} />
-          </LineChart>
-        </SafeChart>
+        <div className="h-full flex items-center justify-center text-2xs text-terminal-text-dim/70 text-center px-2" data-iron-ore-note>
+          Maddex holds dated readings only, not a price history.
+          {VERIFIED_CONSTANTS.commodities.previous?.ironOreUSD != null && ` Previous reading: US$${VERIFIED_CONSTANTS.commodities.previous.ironOreUSD.toFixed(2)}/t (${formatDate(VERIFIED_CONSTANTS.commodities.previous.asOf)}).`}
+        </div>
       ),
     },
   ]
@@ -856,7 +850,7 @@ function LeadingIndicators() {
       <div className="panel-header">
         LEADING INDICATORS
         <span className="ml-2 text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">
-          Forward-looking signals
+          Survey and trade indicators, each with its source and date
         </span>
       </div>
       <div className="grid grid-cols-2 xl:grid-cols-4" style={{ gap: 16, padding: 16 }}>
@@ -890,8 +884,8 @@ function LeadingIndicators() {
             <div style={{ height: 122 }} ref={(el) => { cardRefs.current[c.title] = el }}>
               {c.chart}
             </div>
-            <div className="mt-1 text-2xs text-terminal-text-dim/60 border-t border-terminal-border pt-1">
-              SOURCE: {c.source}
+            <div className="mt-1 border-t border-terminal-border pt-1">
+              <DataBadge cls="DELAYED" source={c.source} at={c.asOf ?? null} compact />
             </div>
           </div>
         ))}
@@ -915,74 +909,52 @@ function LeadingIndicators() {
 
 // ─── Section 6: China Watch ───────────────────────────────────────────────────
 
+// China's official GDP and CPI as read from the NBS (verifiedConstants
+// COUNTRY_STATS), and China's share of Australia's goods and services exports
+// from the ABS (auTrade). The typed panel that stood here (GDP 4.8% Q1, CPI
+// 0.1% Apr, PMIs, iron ore imports and steel output, each with a typed
+// 12-point sparkline and lines such as "impacts AUD outlook") contradicted the
+// verified figures and was removed on 15 Nov 2026.
 function ChinaWatch({ askAI }) {
-  const trendIcon = (t) => t === 'up' ? '▲' : t === 'down' ? '▼' : '—'
-  const trendCls  = (t) => t === 'up' ? 'text-terminal-green' : t === 'down' ? 'text-terminal-red' : 'text-terminal-text-dim'
+  const cn = COUNTRY_STATS.CN
+  const t = VERIFIED_CONSTANTS.auTrade
+  const cnExports = t.exports.find((r) => r.country === 'China')?.bn ?? null
+  const share = cnExports != null && t.totalExportsBn ? Math.round((cnExports / t.totalExportsBn) * 1000) / 10 : null
+  const items = [
+    { name: 'China GDP growth', value: `${cn.gdp.value}%`, sub: `${cn.gdp.period} · ${cn.gdp.measure}`, src: cn.gdp.agency, at: cn.gdp.released, url: cn.gdp.url },
+    { name: 'China CPI', value: `${cn.cpi.value}%`, sub: `${cn.cpi.period} · ${cn.cpi.measure}`, src: cn.cpi.agency, at: cn.cpi.released, url: cn.cpi.url },
+    share != null && { name: 'Share of AU exports', value: `${share}%`, sub: `${t.period} · A$${cnExports}B of A$${t.totalExportsBn}B`, src: 'ABS', at: t.asOf, url: t.sourceUrl },
+  ].filter(Boolean)
 
   return (
     <div className="border-b border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
         <span className="text-red-400">CHINA WATCH</span>
         <span className="text-2xs text-terminal-text-dim font-normal normal-case tracking-normal">
-          Key indicators for Australian commodity and trade exposure
-        </span>
-        <span className="text-2xs text-terminal-text-dim/60 font-normal normal-case ml-2">
-          China ≈ 32% of Australian exports
+          Official figures, each with its agency and date
         </span>
         <button
           onClick={() => askAI({
             name:        'China',
             sector:      'Macro / Trade',
             date:        todayAEST(),
-            instruction: 'Analyse current China economic conditions and their impact on Australian markets, commodities, and the AUD. Include iron ore demand outlook, property sector risks, and implications for ASX-listed miners and energy companies.',
+            instruction: `Describe China's economy and its trade links with Australia using only these figures: GDP ${cn.gdp.value}% (${cn.gdp.measure}, ${cn.gdp.period}, NBS); CPI ${cn.cpi.value}% (${cn.cpi.period}, NBS)${share != null ? `; China took ${share}% of Australia's exports in ${t.period} (ABS)` : ''}. Describe only: no forecast, no outlook for commodities or the AUD, and no recommendation.`,
           })}
           className="ml-auto text-2xs border border-red-400/40 text-red-400/70 hover:border-red-400 hover:text-red-400 px-2 py-0.5 transition-colors"
         >
           AI ▶
         </button>
       </div>
-      <div className="grid grid-cols-2 xl:grid-cols-4 divide-x divide-terminal-border border-b border-terminal-border">
-        {CHINA_WATCH.slice(0, 4).map((ind) => (
-          <div key={ind.name} className="p-2 hover:bg-terminal-accent/10">
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-x divide-terminal-border">
+        {items.map((ind) => (
+          <div key={ind.name} className="p-2">
             <div className="text-2xs text-terminal-text-dim mb-0.5">{ind.name}</div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-terminal-text-bright">{ind.value}</span>
-              <span className={`text-2xs font-bold ${trendCls(ind.trend)}`}>
-                {trendIcon(ind.trend)} {ind.mom}
-              </span>
+            <div className="text-sm font-bold text-terminal-text-bright">{ind.value}</div>
+            <div className="text-2xs text-terminal-text-dim/70 mt-0.5">{ind.sub}</div>
+            <div className="mt-1 flex items-center gap-1.5">
+              <DataBadge cls="DELAYED" source={ind.src} at={ind.at} compact />
+              {ind.url && <a href={ind.url} target="_blank" rel="noopener noreferrer" className="text-2xs text-terminal-text-dim/60 underline">source</a>}
             </div>
-            <div className="mt-1" style={{ height: 32 }}>
-              <SafeChart width="100%" height={32}>
-                <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? PAL.up : ind.trend === 'down' ? '#b43c3c' : PAL.gold}
-                    strokeWidth={1.2} dot={false} isAnimationActive={false} />
-                </LineChart>
-              </SafeChart>
-            </div>
-            <div className="text-2xs text-terminal-text-dim/60 mt-0.5 truncate" title={ind.why}>{ind.why}</div>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 xl:grid-cols-3 divide-x divide-terminal-border">
-        {CHINA_WATCH.slice(4).map((ind) => (
-          <div key={ind.name} className="p-2 hover:bg-terminal-accent/10">
-            <div className="text-2xs text-terminal-text-dim mb-0.5">{ind.name}</div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-terminal-text-bright">{ind.value}</span>
-              <span className={`text-2xs font-bold ${trendCls(ind.trend)}`}>
-                {trendIcon(ind.trend)} {ind.mom}
-              </span>
-              <span className="text-2xs text-terminal-text-dim ml-auto">{ind.date}</span>
-            </div>
-            <div className="mt-1" style={{ height: 32 }}>
-              <SafeChart width="100%" height={32}>
-                <LineChart data={ind.history} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                  <Line type="monotone" dataKey="v" stroke={ind.trend === 'up' ? PAL.up : ind.trend === 'down' ? '#b43c3c' : PAL.gold}
-                    strokeWidth={1.2} dot={false} isAnimationActive={false} />
-                </LineChart>
-              </SafeChart>
-            </div>
-            <div className="text-2xs text-terminal-text-dim/60 mt-0.5 truncate" title={ind.why}>{ind.why}</div>
           </div>
         ))}
       </div>
@@ -1293,9 +1265,15 @@ function PreviousEventsPanel() {
 // Note the figures in `reason` are interpolated from VERIFIED_CONSTANTS
 // rather than typed out: this sentence used to name 4.35% and 4.50% in prose
 // that no longer moved when those constants did.
+// Facts only, from the constants: each bank's last decision as the bank
+// stated it, and the latest CPI and GDP readings. It used to read "The RBA and
+// Fed are both tightening above neutral" (the Fed held on 28 Oct), with a
+// typed RESTRICTIVE label (15 Nov 2026).
+const V = VERIFIED_CONSTANTS
+const verbPast = { HIKE: 'raised', CUT: 'cut', HOLD: 'held' }
 const MACRO_REGIME = {
-  label: 'RESTRICTIVE', angle: -20, color: PAL.gold,
-  reason: `The RBA (${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%) and Fed (${VERIFIED_CONSTANTS.fed.rateRange}) are both tightening above neutral. AU inflation is ${VERIFIED_CONSTANTS.au.cpi.toFixed(1)}% (${VERIFIED_CONSTANTS.au.cpiPeriod}) against slowing growth (${VERIFIED_CONSTANTS.au.gdpAnnual}% annual) and rising unemployment (${VERIFIED_CONSTANTS.au.unemployment}%) — a stagflationary tilt.`,
+  label: 'NO AI READ', angle: 0, color: PAL.dim,
+  reason: `RBA ${verbPast[V.rba.lastDecisionVerb] ?? 'set'} the cash rate at ${V.rba.cashRate.toFixed(2)}% (${formatDate(V.rba.lastDecision)}); Fed ${verbPast[V.fed.lastDecisionVerb] ?? 'set'} its range at ${V.fed.rateRange} (${formatDate(V.fed.lastDecision)}). AU monthly CPI ${V.au.cpi.toFixed(1)}% (${V.au.cpiPeriod}); GDP ${V.au.gdpAnnual}% y/y (${V.au.gdpPeriod}).`,
 }
 
 // How the AI's categorical regime maps onto the gauge. The needle runs
@@ -1320,10 +1298,11 @@ const TREND_COLOR = {
 // MACRO_REGIME above. No single live "3 indicator" feed exists, so when the
 // AI read is unavailable these are the periodically-updated editorial
 // defaults, with their figures interpolated from VERIFIED_CONSTANTS.
+const cpiDir = V.au.cpi > V.au.cpiPrevious ? 'RISING' : V.au.cpi < V.au.cpiPrevious ? 'FALLING' : 'STABLE'
 const MACRO_INDICATORS = [
-  { label: 'GLOBAL GROWTH', status: 'SLOWING',     arrow: '▼', color: 'var(--color-loss)', context: 'PMI readings below 50 in both China and Europe are weighing on global trade volumes.' },
-  { label: 'INFLATION',     status: 'RISING',      arrow: '▲', color: 'var(--color-loss)', context: `AU CPI re-accelerated to ${VERIFIED_CONSTANTS.au.cpi.toFixed(1)}% (${VERIFIED_CONSTANTS.au.cpiPeriod}) from ${VERIFIED_CONSTANTS.au.cpiPrevious.toFixed(1)}% — above the RBA's ${VERIFIED_CONSTANTS.au.rbaTargetBand} band.` },
-  { label: 'POLICY',        status: 'TIGHTENING',  arrow: '▲', color: PAL.gold,           context: `RBA hiked to ${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% and the Fed to ${VERIFIED_CONSTANTS.fed.rateRange} at their latest meetings — both moving further above neutral.` },
+  { label: 'AU CPI (MONTHLY)', status: cpiDir, arrow: TREND_ARROW[cpiDir], color: PAL.gold, context: `Monthly CPI ${V.au.cpi.toFixed(1)}% y/y (${V.au.cpiPeriod}), from ${V.au.cpiPrevious.toFixed(1)}% the month before (ABS).` },
+  { label: 'RBA', status: V.rba.lastDecisionVerb, arrow: '', color: PAL.gold, context: `Cash rate ${V.rba.cashRate.toFixed(2)}% after the ${formatDate(V.rba.lastDecision)} decision.` },
+  { label: 'FED', status: V.fed.lastDecisionVerb, arrow: '', color: PAL.gold, context: `Target range ${V.fed.rateRange} after the ${formatDate(V.fed.lastDecision)} decision.` },
 ]
 
 // The six-month regime history strip that sat here was a hand-set monthly
@@ -1434,7 +1413,6 @@ const CATEGORY_ICON = {
 // showing a chart that isn't actually about the theme.
 const THEME_CHART_MAP = {
   RBA:         { data: RBA_RATE_HISTORY, dataKey: 'rate', unit: '%', color: PAL.gold },
-  COMMODITIES: { data: IRON_ORE_HISTORY, dataKey: 'value', unit: '', color: PAL.blue },
 }
 
 // Sector pills. The model is asked for these now (see macroThemeService); the
@@ -1780,11 +1758,13 @@ function CurrencyHeatmap() {
 
 // Change against the prior reading. An unchanged reading is flat, not a
 // green ▼ — the unemployment header showed "▼ 0.0" for 4.7 → 4.7.
-function ChangeTag({ now, prev, goodWhenUp }) {
+// The change since the previous reading, in one neutral colour: a move is
+// described, not judged good or bad. "—" when either reading is missing.
+function ChangeTag({ now, prev }) {
+  if (now == null || prev == null) return <span className="ml-1 text-2xs text-terminal-text-dim">—</span>
   const d = Math.round((now - prev) * 10) / 10
-  if (!d) return <span className="ml-1 text-2xs text-terminal-text-dim">— 0.0</span>
-  const good = d > 0 === goodWhenUp
-  return <span className={`ml-1 text-2xs ${good ? 'text-terminal-green' : 'text-terminal-red'}`}>{d > 0 ? '▲' : '▼'} {Math.abs(d).toFixed(1)}</span>
+  if (!d) return <span className="ml-1 text-2xs text-terminal-text-dim">unchanged</span>
+  return <span className="ml-1 text-2xs text-terminal-text-bright">{d > 0 ? '▲' : '▼'} {Math.abs(d).toFixed(1)}</span>
 }
 
 // ─── Main Module ──────────────────────────────────────────────────────────────
@@ -1849,37 +1829,37 @@ export default function MacroModule() {
   const rbaRateStr = `${rbaRate.toFixed(2)}%`
 
   // AU indicator stats from ABS (updated in placeholders to latest known release)
-  const latestCPI   = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 1]?.value ?? 2.4
-  const prevCPI     = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 2]?.value ?? 2.4
-  const latestUnemp = AU_UNEMP_HISTORY[AU_UNEMP_HISTORY.length - 1]?.value ?? 4.1
-  const prevUnemp   = AU_UNEMP_HISTORY[AU_UNEMP_HISTORY.length - 2]?.value ?? 4.0
-  const latestGDP   = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 1]?.value ?? 0.6
-  const prevGDP     = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 2]?.value ?? 0.3
+  const latestCPI   = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 1]?.value ?? null
+  const prevCPI     = AU_CPI_HISTORY[AU_CPI_HISTORY.length - 2]?.value ?? null
+  const latestUnemp = AU_UNEMP_HISTORY[AU_UNEMP_HISTORY.length - 1]?.value ?? null
+  const prevUnemp   = AU_UNEMP_HISTORY[AU_UNEMP_HISTORY.length - 2]?.value ?? null
+  const latestGDP   = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 1]?.value ?? null
+  const prevGDP     = AU_GDP_HISTORY[AU_GDP_HISTORY.length - 2]?.value ?? null
 
   // 3D control room — every entry sourced from real values already computed/
   // imported elsewhere in this module (RBA/CPI/unemployment/GDP above, plus
   // the Leading Indicators series), not fabricated for the visualisation.
-  const trendFrom = (hist, higherIsBetter = true) => {
+  // Direction only, against the previous reading: RISING / FALLING /
+  // UNCHANGED. "IMPROVING" and "DECLINING" judged each move, and typed tiles
+  // (Global Growth SLOWING, Global Inflation RISING, Policy RESTRICTIVE) and
+  // a typed iron ore series stood beside them (removed 15 Nov 2026).
+  const trendFrom = (hist) => {
     const last = hist[hist.length - 1]?.value
     const prev = hist[hist.length - 2]?.value
-    if (last == null || prev == null || last === prev) return 'STABLE'
-    const rising = last > prev
-    return rising === higherIsBetter ? 'IMPROVING' : 'DECLINING'
+    if (last == null || prev == null) return null
+    return last > prev ? 'RISING' : last < prev ? 'FALLING' : 'UNCHANGED'
   }
   const macroHealthScore = Math.round(((MACRO_REGIME.angle + 90) / 180) * 100)  // orb colour only
   const macroIndicators3D = [
-    { id: 'rba',        name: 'RBA Cash Rate',        current: rbaRate,     unit: '%', trend: 'STABLE' },
-    { id: 'fed',        name: 'Fed Funds Rate',       current: VERIFIED_CONSTANTS.fed.cashRate, unit: '%', trend: 'STABLE' },
-    { id: 'cpi',        name: 'AU CPI',               current: latestCPI,   unit: '%', trend: trendFrom(AU_CPI_HISTORY, false) },
-    { id: 'unemp',      name: 'AU Unemployment',      current: latestUnemp, unit: '%', trend: trendFrom(AU_UNEMP_HISTORY, false) },
-    { id: 'gdp',        name: 'AU GDP Growth',        current: latestGDP,   unit: '%', trend: trendFrom(AU_GDP_HISTORY, true) },
-    { id: 'sentiment',  name: 'Consumer Sentiment',   current: AU_CONSUMER_SENTIMENT[AU_CONSUMER_SENTIMENT.length - 1]?.value ?? 0, unit: '', trend: trendFrom(AU_CONSUMER_SENTIMENT, true) },
-    { id: 'business',   name: 'Business Confidence',  current: AU_BUSINESS_CONFIDENCE[AU_BUSINESS_CONFIDENCE.length - 1]?.value ?? 0, unit: '', trend: trendFrom(AU_BUSINESS_CONFIDENCE, true) },
-    { id: 'trade',      name: 'Trade Balance',        current: AU_TRADE_BALANCE[AU_TRADE_BALANCE.length - 1]?.value ?? 0, unit: 'B', trend: trendFrom(AU_TRADE_BALANCE, true) },
-    { id: 'iron',       name: 'Iron Ore',             current: IRON_ORE_HISTORY[IRON_ORE_HISTORY.length - 1]?.value ?? 0, unit: '/t', trend: trendFrom(IRON_ORE_HISTORY, true) },
-    { id: 'growth',     name: 'Global Growth',        current: 'SLOWING',     unit: '', trend: 'DECLINING' },
-    { id: 'inflation',  name: 'Global Inflation',     current: 'RISING',      unit: '', trend: 'DECLINING' },
-    { id: 'policy',     name: 'Policy Stance',        current: 'RESTRICTIVE', unit: '', trend: 'STABLE' },
+    { id: 'rba',        name: 'RBA Cash Rate',        current: rbaRate,     unit: '%', trend: VERIFIED_CONSTANTS.rba.lastDecisionVerb ?? null },
+    { id: 'fed',        name: 'Fed Funds Rate',       current: VERIFIED_CONSTANTS.fed.cashRate, unit: '%', trend: VERIFIED_CONSTANTS.fed.lastDecisionVerb ?? null },
+    { id: 'cpi',        name: 'AU CPI',               current: latestCPI,   unit: '%', trend: trendFrom(AU_CPI_HISTORY) },
+    { id: 'unemp',      name: 'AU Unemployment',      current: latestUnemp, unit: '%', trend: trendFrom(AU_UNEMP_HISTORY) },
+    { id: 'gdp',        name: 'AU GDP Growth',        current: latestGDP,   unit: '%', trend: trendFrom(AU_GDP_HISTORY) },
+    { id: 'sentiment',  name: 'Consumer Sentiment',   current: AU_CONSUMER_SENTIMENT.at(-1)?.value ?? null, unit: '', trend: trendFrom(AU_CONSUMER_SENTIMENT) },
+    { id: 'business',   name: 'Business Confidence',  current: AU_BUSINESS_CONFIDENCE.at(-1)?.value ?? null, unit: '', trend: trendFrom(AU_BUSINESS_CONFIDENCE) },
+    { id: 'trade',      name: 'Trade Balance',        current: AU_TRADE_BALANCE.at(-1)?.value ?? null, unit: 'B', trend: trendFrom(AU_TRADE_BALANCE) },
+    { id: 'iron',       name: 'Iron Ore (US$/t)',     current: VERIFIED_CONSTANTS.commodities.ironOreUSD ?? null, unit: '', trend: null },
   ]
 
   return (
@@ -2047,8 +2027,8 @@ export default function MacroModule() {
             <div className="panel-header text-2xs cursor-pointer hover:text-terminal-gold transition-colors"
               onClick={() => setExpandedChart('cpi')}>
               AU CPI YoY ↗
-              <span className="text-terminal-text-bright ml-1">{latestCPI.toFixed(1)}%</span>
-              <ChangeTag now={latestCPI} prev={prevCPI} goodWhenUp={false} />
+              <span className="text-terminal-text-bright ml-1">{latestCPI == null ? '—' : `${latestCPI.toFixed(1)}%`}</span>
+              <ChangeTag now={latestCPI} prev={prevCPI} />
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
@@ -2056,7 +2036,7 @@ export default function MacroModule() {
             </div>
             <div className="px-2 py-1 text-2xs text-terminal-text-dim border-t border-terminal-border flex-shrink-0">
               RBA TARGET: 2–3% <span className={`ml-1 ${latestCPI > 3 ? 'text-terminal-red' : 'text-terminal-green'}`}>
-                {latestCPI > 3 ? 'ABOVE TARGET' : 'IN TARGET'}
+                {latestCPI == null ? '—' : latestCPI > 3 ? 'ABOVE THE 2–3% BAND' : latestCPI < 2 ? 'BELOW THE 2–3% BAND' : 'WITHIN THE 2–3% BAND'}
               </span>
             </div>
           </div>
@@ -2065,8 +2045,8 @@ export default function MacroModule() {
             <div className="panel-header text-2xs cursor-pointer hover:text-terminal-gold transition-colors"
               onClick={() => setExpandedChart('unemp')}>
               AU UNEMPLOYMENT ↗
-              <span className="text-terminal-text-bright ml-1">{latestUnemp.toFixed(1)}%</span>
-              <ChangeTag now={latestUnemp} prev={prevUnemp} goodWhenUp={false} />
+              <span className="text-terminal-text-bright ml-1">{latestUnemp == null ? '—' : `${latestUnemp.toFixed(1)}%`}</span>
+              <ChangeTag now={latestUnemp} prev={prevUnemp} />
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
@@ -2081,8 +2061,8 @@ export default function MacroModule() {
             <div className="panel-header text-2xs cursor-pointer hover:text-terminal-gold transition-colors"
               onClick={() => setExpandedChart('gdp')}>
               AU GDP QoQ ↗
-              <span className="text-terminal-text-bright ml-1">{latestGDP.toFixed(1)}%</span>
-              <ChangeTag now={latestGDP} prev={prevGDP} goodWhenUp />
+              <span className="text-terminal-text-bright ml-1">{latestGDP == null ? '—' : `${latestGDP.toFixed(1)}%`}</span>
+              <ChangeTag now={latestGDP} prev={prevGDP} />
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">

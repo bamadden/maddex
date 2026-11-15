@@ -64,7 +64,8 @@ function ConnectionLine({ target }) {
 
 function IndicatorPanel({ indicator, position, rotation }) {
   const [hovered, setHovered] = useState(false)
-  const trendColor = indicator.trend === 'IMPROVING' ? GAIN_BRIGHT : indicator.trend === 'DECLINING' ? LOSS_BRIGHT : GOLD
+  // Direction is shown, not judged: one neutral colour for every trend.
+  const trendColor = GOLD
 
   return (
     <group position={position} rotation={rotation}>
@@ -85,9 +86,9 @@ function IndicatorPanel({ indicator, position, rotation }) {
             {indicator.name.toUpperCase()}
           </div>
           <div style={{ fontSize: 20, color: 'white', fontWeight: 700 }}>
-            {indicator.current}{indicator.unit}
+            {indicator.current ?? '—'}{indicator.current != null ? indicator.unit : ''}
           </div>
-          <div style={{ fontSize: 11, color: trendColor }}>{indicator.trend}</div>
+          <div style={{ fontSize: 11, color: trendColor }}>{indicator.trend ?? '—'}</div>
         </div>
       </Html>
     </group>
@@ -129,7 +130,7 @@ function Scene({ indicators, macroHealthScore, regimeLabel }) {
   )
 }
 
-// indicators: [{ id, name, current, unit, trend: 'IMPROVING'|'DECLINING'|'STABLE' }]
+// indicators: [{ id, name, current, unit, trend: 'RISING'|'FALLING'|'UNCHANGED'|'HIKE'|'HOLD'|'CUT'|null }]
 // macroHealthScore: 0-100
 export default function MacroDashboard3D({ indicators, macroHealthScore, regimeLabel }) {
   if (!indicators?.length) {

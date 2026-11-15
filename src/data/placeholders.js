@@ -308,61 +308,7 @@ export const AU_TRADE_BALANCE = [
   { date: 'Sep-26', value: 2.826 },
 ]
 
-// Iron Ore Spot Price (USD/tonne) — last 12 months
-// SOURCE: Singapore Exchange (SGX) / S&P Global Platts
-export const IRON_ORE_HISTORY = [
-  { date: 'Jun-25', value: 102 }, { date: 'Jul-25', value: 98  },
-  { date: 'Aug-25', value: 96  }, { date: 'Sep-25', value: 100 },
-  { date: 'Oct-25', value: 105 }, { date: 'Nov-25', value: 103 },
-  { date: 'Dec-25', value: 100 }, { date: 'Jan-26', value: 98  },
-  { date: 'Feb-26', value: 97  }, { date: 'Mar-26', value: 100 },
-  { date: 'Apr-26', value: 99  }, { date: 'May-26', value: 98  },
-]
+// The iron ore series (labelled SGX / Platts, licensed data, typed and
+// undated) and the China Watch panel (typed figures contradicting the NBS)
+// that stood here were removed on 15 Nov 2026.
 
-// ─── China Watch ─────────────────────────────────────────────────────────────
-// Key Chinese economic indicators with 12-month sparkline data
-// SOURCE: NBS China (stats.gov.cn), General Administration of Customs, CISA
-export const CHINA_WATCH = [
-  {
-    name: 'China GDP (Ann)', value: '4.8%', trend: 'up', mom: '+0.3pp',
-    source: 'NBS China', date: 'Q1 2026',
-    why: 'Drives iron ore & LNG demand — key for BHP, FMG, WDS',
-    history: [4.5,4.6,4.9,5.2,4.7,4.6,4.6,4.9,5.2,5.0,4.8,4.8].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-  {
-    name: 'China CPI YoY', value: '0.1%', trend: 'up', mom: '+0.2pp',
-    source: 'NBS China', date: 'Apr 2026',
-    why: 'Low inflation signals weak domestic demand — impacts AUD outlook',
-    history: [-0.8,-0.7,-0.3,0.1,-0.1,0.6,0.4,0.3,0.2,0.1,-0.1,0.1].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-  {
-    name: 'PMI Manufacturing', value: '50.4', trend: 'up', mom: '+0.1',
-    source: 'NBS China', date: 'May 2026',
-    why: 'Above 50 = expansion in factory activity; key for commodity prices',
-    history: [49.1,49.5,50.8,51.4,50.5,49.9,50.1,50.4,50.6,50.3,50.4,50.4].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-  {
-    name: 'PMI Services', value: '53.2', trend: 'up', mom: '+0.4',
-    source: 'NBS China', date: 'May 2026',
-    why: 'Services expansion supports consumer recovery; less direct AU impact',
-    history: [52.9,54.2,53.0,51.5,52.1,53.0,52.0,52.3,54.5,53.4,52.8,53.2].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-  {
-    name: 'Iron Ore Imports', value: '102Mt', trend: 'down', mom: '-3Mt',
-    source: 'GAC China', date: 'Apr 2026',
-    why: 'Australia supplies ~60% of China\'s iron ore — critical for AU exports',
-    history: [98,102,108,95,89,93,97,105,112,110,105,102].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-  {
-    name: 'Steel Production', value: '88Mt', trend: 'flat', mom: '0Mt',
-    source: 'NBS / CISA', date: 'Apr 2026',
-    why: 'Drives iron ore demand; lower output = lower AU iron ore prices',
-    history: [82,85,90,88,84,86,90,92,88,87,88,88].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-  {
-    name: 'Property Price Index', value: '-3.2%', trend: 'down', mom: '-0.1pp',
-    source: 'NBS China', date: 'Apr 2026',
-    why: 'Property slump dampens steel/copper demand — headwind for AU miners',
-    history: [-1.4,-1.9,-2.2,-2.5,-2.8,-3.0,-3.2,-3.4,-3.5,-3.3,-3.2,-3.2].map((v,i)=>({ date: `${i+1}m`, v })),
-  },
-]
