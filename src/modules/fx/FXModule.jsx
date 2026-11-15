@@ -364,9 +364,9 @@ function RbaRateComparisonBar() {
         ))}
       </div>
       <div className="mt-2 text-2xs text-terminal-text-dim">
-        Real cash rate (RBA − CPI): <span className={realRate >= 0 ? 'text-terminal-green font-bold' : 'text-terminal-red font-bold'}>
+        Real cash rate (RBA − CPI): <span className="text-terminal-text-bright font-bold">
           {realRate >= 0 ? '+' : ''}{realRate}%
-        </span> — {realRate >= 0 ? 'positive, policy is restrictive' : 'negative, policy is still accommodative'}
+        </span> — the cash rate is {realRate >= 0 ? 'above' : 'below'} the latest annual CPI
       </div>
       <div className="mt-1 text-2xs text-terminal-text-dim/60 leading-snug" data-cpi-reconcile>
         The {au.cpiQuarterPeriod} headline CPI rose {au.cpiQuarterYoY}% over the year (ABS, quarterly index): a different measure, the whole quarter against the same quarter a year earlier, where {au.cpi}% is {au.cpiPeriod} against a year earlier.

@@ -29,3 +29,8 @@ test('both spread panels read the one computation, with a badge and descriptive 
   assert.doesNotMatch(fx, /rba\.cashRate - fed\.cashRate/)
   assert.doesNotMatch(mon + fx, /supportive for the AUD|toLocaleDateString\('en-AU', \{ day/)
 })
+
+test('Rates wording describes levels; no currency or stance calls', () => {
+  const all = ['modules/fx/CentralBankTracker.jsx', 'modules/fx/FXModule.jsx', 'modules/fx/PolicySpreadMonitor.jsx', 'modules/fx/UpcomingDecisions.jsx', 'modules/fx/CentralBankCards.jsx'].map(src).join('\n')
+  assert.doesNotMatch(all, /weigh on the currency|supportive for the AUD|policy is restrictive|still accommodative|rewards holding/i)
+})

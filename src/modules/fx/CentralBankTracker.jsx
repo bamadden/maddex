@@ -198,8 +198,8 @@ function SpreadMonitor({ curves }) {
       </div>
       <div className="px-3 pb-2 text-[11px] text-terminal-text-dim leading-relaxed">
         {auDiscount
-          ? 'Australian 10-year yields sit below US equivalents. A negative carry on AUD assets tends to weigh on the currency, all else equal — capital is paid more to sit in US duration.'
-          : 'Australian 10-year yields sit above US equivalents, which is historically supportive for the AUD: the yield pick-up rewards holding Australian duration.'}
+          ? 'The Australian 10-year yield is below the US 10-year yield on the curve dates shown.'
+          : 'The Australian 10-year yield is above the US 10-year yield on the curve dates shown.'}
       </div>
     </div>
   )
