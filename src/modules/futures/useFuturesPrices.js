@@ -23,6 +23,7 @@ export function useFuturesPrices() {
   return FUTURES.map((c) => {
     const s = live[c.id]
     const price = s ? s.value : c.price
-    return { ...c, livePrice: price, liveChange: c.change + (price - c.price), isLive: !!s }
+    // The simulated move since the DEMO seed; no typed day change is held.
+    return { ...c, livePrice: price, liveChange: price - c.price, isLive: !!s }
   })
 }

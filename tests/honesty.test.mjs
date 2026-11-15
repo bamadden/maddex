@@ -241,3 +241,13 @@ test('Markets #9: loaded count is out of what was requested; every earnings date
   assert.match(fmt, /if \(tab === '1D'\) return sydneyClock\(d\)\.text/)
   assert.doesNotMatch(fmt, /toLocaleTimeString/)
 })
+
+test('Futures: no typed short interest, lender rates, "smart money" positioning, volumes or margins', async () => {
+  const data = read('src/data/futuresData.js')
+  assert.doesNotMatch(data, /export const (SHORT_INTEREST|MARGIN_LENDERS|POSITIONING)\b/)
+  assert.doesNotMatch(data, /\b(volume|margin):\s*\d/)
+  const mod = read('src/modules/futures/FuturesModule.jsx')
+  assert.doesNotMatch(mod, /WHERE IS THE SMART MONEY|c\.margin|c\.volume|useState\('8\.45'\)/)
+  assert.match(mod, /asic\.gov\.au\/regulatory-resources\/markets\/short-selling/)
+  assert.doesNotMatch(read('src/data/placeholders.js'), /ASX_SECTOR_HEATMAP|mktCapWeight/)
+})

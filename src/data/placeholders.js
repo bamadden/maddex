@@ -25,22 +25,8 @@ const pct = (n) => `${Number(n).toFixed(1)}%`
 const pct2 = (n) => `${Number(n).toFixed(2)}%`
 const audM = (bn) => `${bn < 0 ? '-' : ''}A$${Math.abs(bn) < 1 ? `${Math.round(Math.abs(bn) * 1000)}M` : `${Math.abs(bn).toFixed(1)}B`}`
 
-// ASX 200 Sector Heatmap — mktCapWeight is % of ASX 200. The weights were
-// typed without a date or source; the freshness guard flags them.
-export const SECTOR_WEIGHTS_AS_OF = null
-export const ASX_SECTOR_HEATMAP = [
-  { name: 'Financials',       ticker: 'XFJ', pct: null, mktCapWeight: 30.1 },
-  { name: 'Materials',        ticker: 'XMJ', pct: null, mktCapWeight: 22.5 },
-  { name: 'Healthcare',       ticker: 'XHJ', pct: null, mktCapWeight: 10.2 },
-  { name: 'Industrials',      ticker: 'XIJ', pct: null, mktCapWeight:  7.3 },
-  { name: 'Consumer Staples', ticker: 'XSJ', pct: null, mktCapWeight:  6.8 },
-  { name: 'Information Tech', ticker: 'XIT', pct: null, mktCapWeight:  5.5 },
-  { name: 'Energy',           ticker: 'XEJ', pct: null, mktCapWeight:  4.8 },
-  { name: 'Consumer Disc',    ticker: 'XDJ', pct: null, mktCapWeight:  4.2 },
-  { name: 'Real Estate',      ticker: 'XPJ', pct: null, mktCapWeight:  3.8 },
-  { name: 'Utilities',        ticker: 'XUJ', pct: null, mktCapWeight:  2.4 },
-  { name: 'Comm Services',    ticker: 'XTJ', pct: null, mktCapWeight:  2.4 },
-]
+// The ASX 200 sector weights that stood here were typed without a date or
+// source and nothing read them: removed 15 Nov 2026.
 
 // AU / US yield curves — derived from bondCurves.js, the single source for
 // yields (see BOND_CURVES_AS_OF there for the as-at dates).
@@ -271,6 +257,11 @@ export const RBA_RECENT_STATEMENTS = [
     key: '"Inflation remains elevated and some of the upside risks flagged in August are materialising."',
   },
 ]
+
+// The typed macro series below (consumer sentiment, business confidence,
+// trade balance, iron ore, China watch) carry no as-of date; the freshness
+// guard flags them until Phase B verifies or removes each.
+export const MACRO_SERIES_AS_OF = null
 
 // ─── Leading Indicators ───────────────────────────────────────────────────────
 

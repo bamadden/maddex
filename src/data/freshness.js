@@ -40,7 +40,7 @@ export const FRESHNESS = [
   { id: 'graph', what: 'Relationship graph (edges age on their own, 365 days)', kind: 'reference', file: 'src/data/graph/nodes.js', date: 'GRAPH_AS_OF' },
   { id: 'country-db', what: 'Country reference (capitals, languages, currencies)', kind: 'reference', file: 'src/data/countryDatabase.js', date: 'COUNTRY_DB_AS_OF' },
   { id: 'country-stats', what: 'Country GDP growth and CPI (Global panel)', kind: 'statistic', file: 'src/data/verifiedConstants.js', date: 'COUNTRY_STATS_CHECKED' },
-  { id: 'sector-weights', what: 'ASX 200 sector weights', kind: 'statistic', file: 'src/data/placeholders.js', date: 'SECTOR_WEIGHTS_AS_OF' },
+  { id: 'macro-series', what: 'Macro leading-indicator series (placeholders.js)', kind: 'statistic', file: 'src/data/placeholders.js', date: 'MACRO_SERIES_AS_OF' },
   { id: 'etf-data', what: 'ETF fees, indices and fund sizes', kind: 'statistic', file: 'src/data/etfData.js', date: 'ETF_DATA_AS_OF' },
   { id: 'futures-data', what: 'Futures prices and margins (INDICATIVE)', kind: 'price', file: 'src/data/futuresData.js', date: 'FUTURES_AS_OF' },
   { id: 'tax-rates', what: 'Tax, super and duty rates', kind: 'reference', file: 'src/data/auTaxRates.js', date: 'TAX_YEAR_START' },
@@ -87,7 +87,7 @@ export const FRESHNESS_EXEMPT = {
 // that date the problem fails the test again. Never extend one without the
 // check it names: fix the data, or add a new flag with a new reason.
 export const FRESHNESS_FLAGS = [
+  { id: 'macro-series', until: '2026-11-29', reason: "typed consumer sentiment, business confidence, trade balance, iron ore and China series with no date; verify each against Westpac-MI, NAB, ABS and the iron ore source, or remove (Phase B)" },
   { id: 'cb-meetings-unverified', until: '2026-11-29', reason: "rbnz.govt.nz refuses automated requests and the PBoC publishes no forward LPR calendar; read RBNZ's dates in a browser, or show both as not confirmed" },
-  { id: 'sector-weights', until: '2026-11-29', reason: "ASX 200 sector weights typed without a date or source; read S&P/ASX's published weights" },
   { id: 'futures-data', until: '2026-11-29', reason: "INDICATIVE on screen; prices and margins undated; contract specs to be checked against ASX/CME" },
 ]

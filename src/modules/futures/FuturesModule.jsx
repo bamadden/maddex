@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import {
-  FUTURES_GROUPS, impliedRate, SHORT_INTEREST, MARGIN_LENDERS, POSITIONING,
+  FUTURES_GROUPS, impliedRate,
 } from '../../data/futuresData'
 import { blackScholes, smileIv } from './blackScholes'
 import { useFuturesPrices } from './useFuturesPrices'
@@ -80,7 +80,7 @@ function ContractDetail({ c, onClose }) {
           {stat('TICK VALUE', `${c.currency === 'AUD' ? 'A$' : c.currency === 'USD' ? 'US$' : ''}${c.tickValue.toLocaleString()}`,
             'What one tick is worth per contract — the number that turns a price move into money.')}
           {stat('SETTLEMENT', c.settlement, c.settlement === 'Physical' ? 'Physically settled — held to expiry, you take delivery of the commodity.' : 'Cash settled against the final index or reference price.')}
-          {stat('INITIAL MARGIN', `${c.currency === 'AUD' ? 'A$' : 'US$'}${c.margin.toLocaleString()}`, 'Indicative. The deposit required to hold one contract — the whole source of the leverage.')}
+          {stat('INITIAL MARGIN', 'Set by the clearing house', 'The deposit required to hold one contract, set and changed by the clearing house (ASX Clear (Futures), CME Clearing). Maddex holds no margin figures.')}
         </div>
 
         {notional && (
@@ -88,10 +88,8 @@ function ContractDetail({ c, onClose }) {
             <span className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
               One contract controls a notional position of about{' '}
               <b className="text-terminal-text-bright">{c.currency === 'AUD' ? 'A$' : 'US$'}{Math.round(notional).toLocaleString()}</b>
-              {' '}on roughly{' '}
-              <b className="text-terminal-text-bright">{c.currency === 'AUD' ? 'A$' : 'US$'}{c.margin.toLocaleString()}</b> of margin —
-              about <b style={{ color: PAL.down }}>{(notional / c.margin).toFixed(0)}×</b> leverage. A 1% move against you
-              costs roughly {(((notional * 0.01) / c.margin) * 100).toFixed(0)}% of the margin.
+              {' '}at the demo price. It is held on a margin deposit that is a small fraction of that, so a small
+              move in the price is a large share of the deposit. The clearing house sets the margin.
             </span>
           </div>
         )}
@@ -150,7 +148,6 @@ function FuturesTab() {
                   <th className="px-2 text-right">PRICE</th>
                   <th className="px-2 text-right">CHANGE</th>
                   {g.key === 'rates' && <th className="px-2 text-right">IMPLIED</th>}
-                  <th className="px-3 text-right">VOLUME</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,9 +182,6 @@ function FuturesTab() {
                         {impliedRate(c.livePrice).toFixed(2)}%
                       </td>
                     )}
-                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>
-                      {c.volume.toLocaleString()}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -458,7 +452,8 @@ function StructureTab() {
   const [portfolio, setPortfolio] = useState('100000')
   const [loan, setLoan] = useState('50000')
   const [limit, setLimit] = useState('70')
-  const [mrate, setMrate] = useState('8.45')
+  // Your lender's rate: no default, so no typed rate stands in for it.
+  const [mrate, setMrate] = useState('')
 
   const m = useMemo(() => {
     const p = num(portfolio), l = num(loan), lim = num(limit) / 100
@@ -467,13 +462,9 @@ function StructureTab() {
     // value is loan ÷ limit. Below that, the lender wants cash or sells for you.
     const trigger = lim > 0 ? l / lim : 0
     const fall = p > 0 ? ((p - trigger) / p) * 100 : 0
-    return { lvr, trigger, fall, interest: l * (num(mrate) / 100), safe: lvr < num(limit) }
+    return { lvr, trigger, fall, interest: mrate.trim() === '' ? null : l * (num(mrate) / 100), safe: lvr < num(limit) }
   }, [portfolio, loan, limit, mrate])
 
-  const shortTone = (p) => (p > 10 ? PAL.down : p >= 5 ? '#D69E2E' : PAL.muted)
-  // Which way positioning leans — a description of the (illustrative) data,
-  // not a signal to act.
-  const sigTone = { 'NET LONG': PAL.up, BALANCED: PAL.gold, 'NET SHORT': PAL.down }
 
   const field = (label, value, set, suffix) => (
     <label className="block mb-2">
@@ -488,78 +479,24 @@ function StructureTab() {
 
   return (
     <div>
-      <div className="border-b border-terminal-border">
-        <div className="panel-header flex items-center gap-2">
-          <span>ASX SHORT INTEREST</span>
-          <span className="text-2xs font-normal normal-case text-terminal-text-dim/50">
-            ASIC publishes short positions with a lag · INDICATIVE
-          </span>
-        </div>
-        <table className="terminal-table table-zebra w-full">
-          <thead>
-            <tr>
-              <th className="px-3 text-left" style={{ width: 50 }}>#</th>
-              <th className="px-2 text-left" style={{ width: 80 }}>TICKER</th>
-              <th className="px-2 text-left">COMPANY</th>
-              <th className="px-2 text-right" style={{ width: 110 }}>SHORT %</th>
-              <th className="px-3 text-right" style={{ width: 130 }}>DAYS TO COVER</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SHORT_INTEREST.map((s, i) => (
-              <tr key={s.ticker} className="border-b border-terminal-border/25">
-                <td className="px-3 py-1.5 font-mono text-terminal-text-dim/50" style={{ fontSize: 11 }}>{i + 1}</td>
-                <td className="px-2 py-1.5 font-mono font-bold text-terminal-gold" style={{ fontSize: 11 }}>{s.ticker}</td>
-                <td className="px-2 py-1.5 text-terminal-text-bright" style={{ fontSize: 11 }}>{s.company}</td>
-                <td className="px-2 py-1.5 text-right">
-                  <span className="font-mono font-bold tabular-nums px-1.5 py-0.5" style={{
-                    fontSize: 11, borderRadius: 2, color: shortTone(s.shortPct), background: `${shortTone(s.shortPct)}1F`,
-                  }}>{s.shortPct.toFixed(1)}%</span>
-                </td>
-                <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>
-                  {s.daysToCover.toFixed(1)}d
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
-          DAYS TO COVER is short interest divided by average daily volume — how long it would take shorts to buy
-          back at normal turnover. A high figure is what makes a short squeeze possible. Rising short interest is
-          often read as bearish institutional positioning, but shorts also hedge long books, so it is a signal to
-          investigate rather than a conclusion.
+      <div className="border-b border-terminal-border" data-short-interest>
+        <div className="panel-header">ASX SHORT INTEREST</div>
+        <div className="px-3 py-2 text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>
+          ASIC publishes aggregated short positions for every ASX-listed company each business day, with a
+          four-day lag. Maddex holds no copy of that data, so no figures are shown here: read the latest report at{' '}
+          <a href="https://asic.gov.au/regulatory-resources/markets/short-selling/short-position-reports-table/" target="_blank" rel="noopener noreferrer" className="underline">asic.gov.au</a>.
+          DAYS TO COVER is short interest divided by average daily volume. Short positions are also used to hedge
+          long holdings, so a high figure describes positioning; it does not explain it.
         </div>
       </div>
 
       <div className="border-b border-terminal-border">
         <div className="panel-header">AU MARGIN LENDING</div>
         <div className="flex flex-col lg:flex-row">
-          <div className="lg:border-r border-terminal-border" style={{ width: 'min(100%, 420px)' }}>
-            <table className="terminal-table w-full">
-              <thead>
-                <tr>
-                  <th className="px-3 text-left">LENDER</th>
-                  <th className="px-2 text-right">RATE</th>
-                  <th className="px-2 text-right">MAX LVR</th>
-                  <th className="px-3 text-right">MIN LOAN</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MARGIN_LENDERS.map((l) => (
-                  <tr key={l.lender} className="border-b border-terminal-border/25">
-                    <td className="px-3 py-1.5 text-terminal-text-bright" style={{ fontSize: 11 }}>{l.lender}</td>
-                    <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-gold" style={{ fontSize: 11 }}>{l.rate.toFixed(2)}%</td>
-                    <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{l.maxLvr}%</td>
-                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>
-                      A${l.minLoan.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="px-3 py-1.5 text-terminal-text-dim/50" style={{ fontSize: 11 }}>
-              Indicative rates. Verify with the lender — margin rates move with the cash rate and vary by balance.
-            </div>
+          <div className="lg:border-r border-terminal-border px-3 py-2 text-terminal-text-dim leading-snug" style={{ width: 'min(100%, 420px)', fontSize: 11 }}>
+            Margin lending rates, loan-to-value limits and minimum loans are set by each lender and change with the
+            cash rate. Maddex holds no lender's rates (the table that stood here was typed without a source), so the
+            calculator takes your own lender's figures.
           </div>
 
           <div className="p-3 flex-1 min-w-0">
@@ -571,7 +508,7 @@ function StructureTab() {
               </div>
               <div style={{ width: 130 }}>
                 {field('LVR LIMIT', limit, setLimit, '%')}
-                {field('INTEREST RATE', mrate, setMrate, '%')}
+                {field("YOUR LENDER'S RATE", mrate, setMrate, '%')}
               </div>
               <div className="flex-1 min-w-0" style={{ minWidth: 200 }}>
                 <div className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.12em' }}>CURRENT LVR</div>
@@ -590,7 +527,7 @@ function StructureTab() {
                     That is a fall of <b style={{ color: PAL.down }}>{m.fall.toFixed(1)}%</b> from here
                   </div>
                   <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
-                    Annual interest cost <b className="text-terminal-gold">{money(m.interest, 0)}</b>
+                    Annual interest cost <b className="text-terminal-gold">{m.interest == null ? 'enter your rate' : money(m.interest, 0)}</b>
                   </div>
                 </div>
               </div>
@@ -609,46 +546,6 @@ function StructureTab() {
         </div>
       </div>
 
-      <div className="border-b border-terminal-border">
-        <div className="panel-header flex items-center gap-2">
-          <span>WHERE IS THE SMART MONEY?</span>
-          <span className="text-2xs font-normal normal-case text-terminal-text-dim/50">INDICATIVE · illustrative positioning</span>
-        </div>
-        <table className="terminal-table w-full">
-          <thead>
-            <tr>
-              <th className="px-3 text-left">ASSET</th>
-              <th className="px-2 text-right">INSTITUTIONAL LONG</th>
-              <th className="px-2 text-right">RETAIL LONG</th>
-              <th className="px-2 text-left" style={{ width: 200 }}>SPLIT</th>
-              <th className="px-3 text-right">LEANS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {POSITIONING.map((p) => (
-              <tr key={p.asset} className="border-b border-terminal-border/25">
-                <td className="px-3 py-1.5 text-terminal-text-bright" style={{ fontSize: 11 }}>{p.asset}</td>
-                <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums text-terminal-gold" style={{ fontSize: 11 }}>{p.inst}%</td>
-                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-terminal-text-dim" style={{ fontSize: 11 }}>{100 - p.inst}%</td>
-                <td className="px-2 py-1.5">
-                  <div className="flex h-1.5 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <div style={{ width: `${p.inst}%`, background: PAL.gold }} />
-                    <div style={{ width: `${100 - p.inst}%`, background: PAL.muted }} />
-                  </div>
-                </td>
-                <td className="px-3 py-1.5 text-right font-mono font-bold" style={{ fontSize: 11, color: sigTone[p.signal] }}>
-                  ● {p.signal}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="px-3 py-1.5 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
-          Illustrative figures in the shape of a Commitment of Traders report. No COT-style feed is connected to
-          this build, so these are not measurements — treat the panel as an explanation of what positioning data
-          looks like, not as a read on where money currently sits. General information only.
-        </div>
-      </div>
     </div>
   )
 }
