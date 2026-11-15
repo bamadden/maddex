@@ -11,6 +11,7 @@ export const LICENCE_OFF = {
   opensky: 'OpenSky Network: commercial or live-product use needs a written licence',
   openmeteo: 'Open-Meteo free API: non-commercial use only; subscription apps need a paid plan',
   imf: 'IMF data: commercial reuse needs permission (copyright@imf.org)',
+  worldbank: 'World Bank API: its terms bar facilitating commercial use (under review)',
   fred: 'FRED: commercial use and caching need the St. Louis Fed\'s written consent',
   esri: 'Esri basemap tiles: need an ArcGIS subscription',
   fmp: 'Financial Modeling Prep: display in an app needs a display agreement',

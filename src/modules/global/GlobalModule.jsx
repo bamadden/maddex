@@ -13,7 +13,6 @@ import { useAudRates } from '../../hooks/useAudRates'
 import { useStore } from '../../store/useStore'
 import { useCountryData } from '../../hooks/useCountryData'
 import COUNTRIES from '../../data/countryDatabase'
-import { initCountryDataRefresh } from '../../services/countryApiService'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { SHIPPING_ROUTES, FREIGHT_ROUTES } from '../../data/globeRoutes'
 import { ModuleLoader, Viz3DLoader } from '../../components/ui/ModuleStates'
@@ -24,7 +23,7 @@ import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import DataBadge from '../../components/ui/DataBadge'
 import { pastCycle } from './macroAge'
 import { liveDataService } from '../../services/liveDataService'
-import { VERIFIED_CONSTANTS, POLICY_RATES, POLICY_RATES_CHECKED } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, POLICY_RATES, POLICY_RATES_CHECKED, COUNTRY_STATS, COUNTRY_STATS_CHECKED } from '../../data/verifiedConstants'
 import { SHIPPING_ROUTES as SHIPPING_ROUTE_TABLE, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
 import { partnerTrade } from '../../services/bilateralTrade'
 import { PAL } from '../../styles/palette.js'
@@ -138,167 +137,122 @@ const rateNotRead = (bank) => ({ rate: null, rateLbl: null, rateNotRead: `${bank
 
 // ─── Country Detail Data — July 2026 release values ──────────────────────────
 
-// Entered from the July 2026 releases (each line names its period). The
-// freshness guard holds hand-entered statistics to 60 days.
-const COUNTRY_DETAIL_AS_OF = '2026-07-31'
+// Currency, exchange, index and policy rate per country. GDP growth and CPI
+// (typed from the July 2026 releases) and the typed partner lists were
+// removed on 15 Nov 2026; verified figures come from COUNTRY_STATS.
 const COUNTRY_DETAIL = {
   // ── Core G20 + APAC ──
   36:  { currency:'AUD', tz:'Australia/Sydney',   exchange:'ASX',         index:'ASX 200',      flag:'🇦🇺',
-         macro:{ gdp:VERIFIED_CONSTANTS.au.gdpAnnual, gdpLbl:`${VERIFIED_CONSTANTS.au.gdpPeriod}, ABS`, cpi:VERIFIED_CONSTANTS.au.cpi, cpiLbl:`${VERIFIED_CONSTANTS.au.cpiPeriod}, ABS`, rate:VERIFIED_CONSTANTS.rba.cashRate, rateLbl:`${VERIFIED_CONSTANTS.rba.lastDecision}, RBA` },
-         partners:['China','Japan','South Korea','India','United States','United Kingdom'] },
+         macro:{ rate:VERIFIED_CONSTANTS.rba.cashRate, rateLbl:`${VERIFIED_CONSTANTS.rba.lastDecision}, RBA` }, },
   840: { currency:'USD', tz:'America/New_York',   exchange:'NYSE',        index:'S&P 500',      flag:'🇺🇸',
-         macro:{ gdp:2.8, gdpLbl:'Q1 2026, BEA', cpi:2.4, cpiLbl:'Apr 2026, BLS', rate:VERIFIED_CONSTANTS.fed.cashRate, rateLbl:`${VERIFIED_CONSTANTS.fed.lastDecision}, Fed` },
-         partners:['Mexico','Canada','China','Japan','Germany','United Kingdom'] },
+         macro:{ rate:VERIFIED_CONSTANTS.fed.cashRate, rateLbl:`${VERIFIED_CONSTANTS.fed.lastDecision}, Fed` }, },
   156: { currency:'CNY', tz:'Asia/Shanghai',      exchange:'SSE',         index:'CSI 300',      flag:'🇨🇳',
-         macro:{ gdp:4.8, gdpLbl:'Q1 2026, NBS', cpi:0.1, cpiLbl:'Apr 2026, NBS', rate:VERIFIED_CONSTANTS.pboc.cashRate, rateLbl:`${VERIFIED_CONSTANTS.pboc.lastDecision}, PBoC 1Y LPR` },
-         partners:['United States','Japan','South Korea','Germany','Australia','Vietnam'] },
+         macro:{ rate:VERIFIED_CONSTANTS.pboc.cashRate, rateLbl:`${VERIFIED_CONSTANTS.pboc.lastDecision}, PBoC 1Y LPR` }, },
   392: { currency:'JPY', tz:'Asia/Tokyo',         exchange:'TSE',         index:'Nikkei 225',   flag:'🇯🇵',
-         macro:{ gdp:0.8, gdpLbl:'Q4 2025, CAO', cpi:3.2, cpiLbl:'Apr 2026, Stat Bureau', rate:VERIFIED_CONSTANTS.boj.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boj.lastDecision}, BoJ` },
-         partners:['China','United States','South Korea','Australia','Germany','Vietnam'] },
+         macro:{ rate:VERIFIED_CONSTANTS.boj.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boj.lastDecision}, BoJ` }, },
   826: { currency:'GBP', tz:'Europe/London',      exchange:'LSE',         index:'FTSE 100',     flag:'🇬🇧',
-         macro:{ gdp:1.1, gdpLbl:'Q4 2025, ONS', cpi:2.6, cpiLbl:'Apr 2026, ONS', rate:VERIFIED_CONSTANTS.boe.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boe.lastDecision}, BoE` },
-         partners:['United States','Germany','France','Netherlands','China','Ireland'] },
+         macro:{ rate:VERIFIED_CONSTANTS.boe.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boe.lastDecision}, BoE` }, },
   276: { currency:'EUR', tz:'Europe/Berlin',      exchange:'XETRA',       index:'DAX 40',       flag:'🇩🇪',
-         macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, Destatis', rate:VERIFIED_CONSTANTS.ecb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.ecb.lastDecision}, ECB` },
-         partners:['United States','France','Netherlands','China','Poland','Italy'] },
+         macro:{ rate:VERIFIED_CONSTANTS.ecb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.ecb.lastDecision}, ECB` }, },
   124: { currency:'CAD', tz:'America/Toronto',    exchange:'TSX',         index:'TSX Composite', flag:'🇨🇦',
-         macro:{ gdp:1.5, gdpLbl:'Q4 2025, StatCan', cpi:2.3, cpiLbl:'Apr 2026, StatCan', rate:VERIFIED_CONSTANTS.boc.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boc.lastDecision}, BoC` },
-         partners:['United States','China','United Kingdom','Japan','Germany','Mexico'] },
+         macro:{ rate:VERIFIED_CONSTANTS.boc.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boc.lastDecision}, BoC` }, },
   554: { currency:'NZD', tz:'Pacific/Auckland',   exchange:'NZX',         index:'NZX 50',       flag:'🇳🇿',
-         macro:{ gdp:0.7, gdpLbl:'Q4 2025, Stats NZ', cpi:2.5, cpiLbl:'Q1 2026, Stats NZ', rate:VERIFIED_CONSTANTS.rbnz.cashRate, rateLbl:`${VERIFIED_CONSTANTS.rbnz.lastDecision}, RBNZ` },
-         partners:['China','Australia','United States','Japan','South Korea','Singapore'] },
+         macro:{ rate:VERIFIED_CONSTANTS.rbnz.cashRate, rateLbl:`${VERIFIED_CONSTANTS.rbnz.lastDecision}, RBNZ` }, },
   356: { currency:'INR', tz:'Asia/Kolkata',       exchange:'NSE',         index:'NIFTY 50',     flag:'🇮🇳',
-         macro:{ gdp:6.5, gdpLbl:'Q4 2025, MoSPI', cpi:4.6, cpiLbl:'Apr 2026, MoSPI', ...policyRate('rbi') },
-         partners:['United States','China','UAE','Saudi Arabia','Russia','Australia'] },
+         macro:{ ...policyRate('rbi') }, },
   410: { currency:'KRW', tz:'Asia/Seoul',         exchange:'KRX',         index:'KOSPI',        flag:'🇰🇷',
-         macro:{ gdp:2.0, gdpLbl:'Q1 2026, BoK', cpi:2.1, cpiLbl:'Apr 2026, Stat Korea', ...policyRate('bok') },
-         partners:['China','United States','Vietnam','Japan','Australia','Germany'] },
+         macro:{ ...policyRate('bok') }, },
   702: { currency:'SGD', tz:'Asia/Singapore',     exchange:'SGX',         index:'STI',          flag:'🇸🇬',
-         macro:{ gdp:3.8, gdpLbl:'Q1 2026, MTI', cpi:1.1, cpiLbl:'Apr 2026, Singstat', ...policyRate('mas') },
-         partners:['China','Malaysia','United States','Indonesia','Japan','South Korea'] },
+         macro:{ ...policyRate('mas') }, },
   // ── Americas ──
   76:  { currency:'BRL', tz:'America/Sao_Paulo',  exchange:'B3',          index:'Ibovespa',     flag:'🇧🇷',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, IBGE', cpi:5.5, cpiLbl:'Apr 2026, IBGE', ...policyRate('bcb') },
-         partners:['China','United States','Argentina','Netherlands','Chile','Germany'] },
+         macro:{ ...policyRate('bcb') }, },
   484: { currency:'MXN', tz:'America/Mexico_City',exchange:'BMV',         index:'IPC',          flag:'🇲🇽',
-         macro:{ gdp:1.2, gdpLbl:'Q4 2025, INEGI', cpi:3.8, cpiLbl:'Apr 2026, INEGI', ...policyRate('banxico') },
-         partners:['United States','China','Canada','Germany','South Korea','Japan'] },
+         macro:{ ...policyRate('banxico') }, },
   32:  { currency:'ARS', tz:'America/Argentina/Buenos_Aires',exchange:'BYMA',index:'Merval',   flag:'🇦🇷',
-         macro:{ gdp:-1.8, gdpLbl:'2025, INDEC', cpi:142.7, cpiLbl:'Apr 2026, INDEC', ...policyRate('bcra') },
-         partners:['Brazil','China','United States','Chile','Germany','Spain'] },
+         macro:{ ...policyRate('bcra') }, },
   152: { currency:'CLP', tz:'America/Santiago',   exchange:'BCS',         index:'IPSA',         flag:'🇨🇱',
-         macro:{ gdp:2.4, gdpLbl:'Q4 2025, INE', cpi:3.8, cpiLbl:'Apr 2026, INE', ...rateNotRead('BCCh') },
-         partners:['China','United States','Brazil','Japan','South Korea','Argentina'] },
+         macro:{ ...rateNotRead('BCCh') }, },
   170: { currency:'COP', tz:'America/Bogota',     exchange:'BVC',         index:'COLCAP',       flag:'🇨🇴',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, DANE', cpi:5.8, cpiLbl:'Apr 2026, DANE', ...rateNotRead('BanRep') },
-         partners:['United States','China','Panama','Ecuador','Mexico','Brazil'] },
+         macro:{ ...rateNotRead('BanRep') }, },
   // ── Middle East & Africa ──
   682: { currency:'SAR', tz:'Asia/Riyadh',        exchange:'Tadawul',     index:'TASI',         flag:'🇸🇦',
-         macro:{ gdp:1.8, gdpLbl:'Q4 2025, GASTAT', cpi:2.0, cpiLbl:'Apr 2026, GASTAT', ...policyRate('sama') },
-         partners:['China','Japan','South Korea','India','United States','Australia'] },
+         macro:{ ...policyRate('sama') }, },
   784: { currency:'AED', tz:'Asia/Dubai',         exchange:'ADX',         index:'DFM General',  flag:'🇦🇪',
-         macro:{ gdp:4.5, gdpLbl:'2025, StatCo', cpi:2.3, cpiLbl:'Mar 2026, StatCo', ...policyRate('cbuae') },
-         partners:['China','India','United States','Japan','Saudi Arabia','Germany'] },
+         macro:{ ...policyRate('cbuae') }, },
   818: { currency:'EGP', tz:'Africa/Cairo',       exchange:'EGX',         index:'EGX 30',       flag:'🇪🇬',
-         macro:{ gdp:4.2, gdpLbl:'FY25, CAPMAS', cpi:24.1, cpiLbl:'Apr 2026, CAPMAS', ...policyRate('cbe') },
-         partners:['China','United States','Saudi Arabia','UAE','Turkey','Italy'] },
+         macro:{ ...policyRate('cbe') }, },
   566: { currency:'NGN', tz:'Africa/Lagos',       exchange:'NGX',         index:'NGX All-Share', flag:'🇳🇬',
-         macro:{ gdp:3.2, gdpLbl:'Q4 2025, NBS', cpi:33.2, cpiLbl:'Apr 2026, NBS', ...policyRate('cbn') },
-         partners:['India','Spain','United States','China','Netherlands','South Africa'] },
+         macro:{ ...policyRate('cbn') }, },
   710: { currency:'ZAR', tz:'Africa/Johannesburg',exchange:'JSE',         index:'JSE All Share', flag:'🇿🇦',
-         macro:{ gdp:1.1, gdpLbl:'Q4 2025, StatSA', cpi:3.2, cpiLbl:'Apr 2026, StatSA', ...policyRate('sarb') },
-         partners:['China','United States','Germany','United Kingdom','Japan','India'] },
+         macro:{ ...policyRate('sarb') }, },
   // ── Europe ──
   250: { currency:'EUR', tz:'Europe/Paris',       exchange:'Euronext',    index:'CAC 40',       flag:'🇫🇷',
-         macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, INSEE', rate:VERIFIED_CONSTANTS.ecb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.ecb.lastDecision}, ECB` },
-         partners:['Germany','United States','Italy','Belgium','Spain','Netherlands'] },
+         macro:{ rate:VERIFIED_CONSTANTS.ecb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.ecb.lastDecision}, ECB` }, },
   792: { currency:'TRY', tz:'Europe/Istanbul',    exchange:'Borsa Istanbul',index:'BIST 100',   flag:'🇹🇷',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, Turkstat', cpi:38.1, cpiLbl:'Apr 2026, Turkstat', ...policyRate('tcmb') },
-         partners:['Russia','Germany','China','United States','Italy','United Kingdom'] },
+         macro:{ ...policyRate('tcmb') }, },
   756: { currency:'CHF', tz:'Europe/Zurich',      exchange:'SIX',         index:'SMI',          flag:'🇨🇭',
-         macro:{ gdp:1.5, gdpLbl:'Q4 2025, FSO', cpi:0.3, cpiLbl:'Apr 2026, FSO', rate:VERIFIED_CONSTANTS.snb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.snb.lastDecision}, SNB` },
-         partners:['Germany','United States','China','France','Italy','United Kingdom'] },
+         macro:{ rate:VERIFIED_CONSTANTS.snb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.snb.lastDecision}, SNB` }, },
   578: { currency:'NOK', tz:'Europe/Oslo',        exchange:'Oslo Bors',   index:'OBX',          flag:'🇳🇴',
-         macro:{ gdp:1.8, gdpLbl:'Q4 2025, SSB', cpi:2.6, cpiLbl:'Apr 2026, SSB', ...policyRate('norges') },
-         partners:['Germany','United Kingdom','Netherlands','United States','Sweden','China'] },
+         macro:{ ...policyRate('norges') }, },
   752: { currency:'SEK', tz:'Europe/Stockholm',   exchange:'Nasdaq Stockholm',index:'OMXS30',   flag:'🇸🇪',
-         macro:{ gdp:1.2, gdpLbl:'Q4 2025, SCB', cpi:1.8, cpiLbl:'Apr 2026, SCB', rate:VERIFIED_CONSTANTS.riksbank.cashRate, rateLbl:`${VERIFIED_CONSTANTS.riksbank.lastDecision}, Riksbank` },
-         partners:['Germany','Norway','United States','Denmark','Finland','Netherlands'] },
+         macro:{ rate:VERIFIED_CONSTANTS.riksbank.cashRate, rateLbl:`${VERIFIED_CONSTANTS.riksbank.lastDecision}, Riksbank` }, },
   643: { currency:'RUB', tz:'Europe/Moscow',      exchange:'MOEX',        index:'MOEX',         flag:'🇷🇺',
-         macro:{ gdp:2.2, gdpLbl:'2025, Rosstat', cpi:9.8, cpiLbl:'Apr 2026, Rosstat', ...policyRate('cbr') },
-         partners:['China','India','Turkey','Belarus','Kazakhstan','UAE'] },
+         macro:{ ...policyRate('cbr') }, },
   // ── Asia ──
   344: { currency:'HKD', tz:'Asia/Hong_Kong',     exchange:'HKEX',        index:'Hang Seng',    flag:'🇭🇰',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, CSD', cpi:1.8, cpiLbl:'Mar 2026, CSD', ...policyRate('hkma') },
-         partners:['China','United States','Japan','Taiwan','India','Singapore'] },
+         macro:{ ...policyRate('hkma') }, },
   158: { currency:'TWD', tz:'Asia/Taipei',        exchange:'TWSE',        index:'TAIEX',        flag:'🇹🇼',
-         macro:{ gdp:3.8, gdpLbl:'Q4 2025, DGBAS', cpi:2.1, cpiLbl:'Apr 2026, DGBAS', ...policyRate('cbc') },
-         partners:['China','United States','Japan','South Korea','Hong Kong','Singapore'] },
+         macro:{ ...policyRate('cbc') }, },
   704: { currency:'VND', tz:'Asia/Ho_Chi_Minh',   exchange:'HOSE',        index:'VN-Index',     flag:'🇻🇳',
-         macro:{ gdp:6.8, gdpLbl:'Q1 2026, GSO', cpi:3.2, cpiLbl:'Apr 2026, GSO', ...policyRate('sbv') },
-         partners:['China','United States','South Korea','Japan','Australia','Germany'] },
+         macro:{ ...policyRate('sbv') }, },
   764: { currency:'THB', tz:'Asia/Bangkok',       exchange:'SET',         index:'SET',          flag:'🇹🇭',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, NESDC', cpi:0.8, cpiLbl:'Apr 2026, MOC', ...policyRate('bot') },
-         partners:['China','United States','Japan','Vietnam','Singapore','Malaysia'] },
+         macro:{ ...policyRate('bot') }, },
   458: { currency:'MYR', tz:'Asia/Kuala_Lumpur',  exchange:'Bursa',       index:'FBMKLCI',      flag:'🇲🇾',
-         macro:{ gdp:4.5, gdpLbl:'Q4 2025, DOSM', cpi:1.8, cpiLbl:'Mar 2026, DOSM', ...policyRate('bnm') },
-         partners:['China','Singapore','United States','Japan','Thailand','Australia'] },
+         macro:{ ...policyRate('bnm') }, },
   608: { currency:'PHP', tz:'Asia/Manila',        exchange:'PSE',         index:'PSEi',         flag:'🇵🇭',
-         macro:{ gdp:5.8, gdpLbl:'Q1 2026, PSA', cpi:3.2, cpiLbl:'Apr 2026, PSA', ...policyRate('bsp') },
-         partners:['China','United States','Japan','Hong Kong','South Korea','Singapore'] },
+         macro:{ ...policyRate('bsp') }, },
   360: { currency:'IDR', tz:'Asia/Jakarta',       exchange:'IDX',         index:'JCI',          flag:'🇮🇩',
-         macro:{ gdp:4.9, gdpLbl:'Q1 2026, BPS', cpi:2.5, cpiLbl:'Apr 2026, BPS', ...policyRate('bi') },
-         partners:['China','Japan','United States','Singapore','India','Australia'] },
+         macro:{ ...policyRate('bi') }, },
   586: { currency:'PKR', tz:'Asia/Karachi',       exchange:'PSX',         index:'KSE 100',      flag:'🇵🇰',
-         macro:{ gdp:2.4, gdpLbl:'FY25, PBS', cpi:12.4, cpiLbl:'Apr 2026, PBS', ...policyRate('sbp') },
-         partners:['China','United Arab Emirates','United States','Saudi Arabia','Afghanistan','Germany'] },
+         macro:{ ...policyRate('sbp') }, },
   // ── Ukraine (conflict — data as available) ──
   804: { currency:'UAH', tz:'Europe/Kyiv',        exchange:'PFTS',        index:'UX',           flag:'🇺🇦',
-         macro:{ gdp:-4.0, gdpLbl:'2023, SSSU', cpi:12.0, cpiLbl:'Apr 2025, SSSU', ...policyRate('nbu') },
-         partners:['Germany','Poland','United States','Romania','Turkey','China'] },
+         macro:{ ...policyRate('nbu') }, },
 }
 
 // ─── Country classification sets ─────────────────────────────────────────────
 
-const CONFLICT_COUNTRIES = new Set([804, 275, 887, 729, 760, 104, 466, 706])  // Ukraine, Palestine, Yemen, Sudan, Syria, Myanmar, Mali, Somalia
-const STRESS_COUNTRIES   = new Set([643, 364, 408, 862, 112])                  // Russia, Iran, N.Korea, Venezuela, Belarus
-const PARTNER_COUNTRIES  = new Set([156, 392, 410, 356, 840, 826])             // China, Japan, S.Korea, India, US, UK
+// Australia's top-five export markets and import sources, ABS 2024-25
+// (verifiedConstants auTrade). The typed "conflict zone" and "sanctioned"
+// country sets that stood here had no source or date and were removed.
+const ABS_PARTNERS = new Set([...VERIFIED_CONSTANTS.auTrade.exports, ...VERIFIED_CONSTANTS.auTrade.imports].map((r) => r.country))
 
 // ─── Extended country data (capital, pop, economy brief, AU trade note) ───────
 
+// Capitals for countries the static database does not carry. The typed
+// population, economy and AU-trade prose and the undated risk labels that
+// stood here (figures like "GDP contracted 29%", no source) were removed on
+// 15 Nov 2026.
 const COUNTRY_EXTRA = {
-  36:  { capital:'Canberra', pop:'26.5M', economy:'Commodity-driven open economy. Top exports: iron ore, LNG, coal, gold, beef. Services dominate GDP at 70%. Mining investment cycle and China demand are primary growth levers.', auTrade:'N/A (domestic)', risk:'VERY LOW' },
-  840: { capital:'Washington D.C.', pop:'337M', economy:'World\'s largest economy. Services-led with dominant tech, finance, and defence sectors. Federal Reserve policy sets global risk tone. USD remains reserve currency.', auTrade:'AU exports US$14B: beef, wine, aluminium, gold. AU imports US$33B: aircraft, pharma, machinery. AUSFTA in place.', risk:'LOW' },
-  156: { capital:'Beijing', pop:'1.41B', economy:'World\'s second-largest economy. State-directed market model with manufacturing and export strengths. Property sector deleveraging and demographic headwinds are key risks. Yuan internationalisation ongoing.', auTrade:'AU\'s #1 trade partner — AU exports ~A$200B: iron ore (60%), LNG, coal, beef, wine. Trade relationship strained 2020-23, partially recovering.', risk:'MEDIUM' },
-  392: { capital:'Tokyo', pop:'124M', economy:`Advanced economy with manufacturing excellence in auto, robotics, and electronics. The BOJ is normalising after decades of ultra-loose policy — ${VERIFIED_CONSTANTS.boj.cashRate.toFixed(2)}%, the highest since 1995, with further hikes signalled. Yen weakness boosts exporters.`, auTrade:'AU exports ~A$55B: LNG, coal, beef, wheat. Long-term LNG contracts key. Japan #2 AU trade partner.', risk:'LOW' },
-  826: { capital:'London', pop:'67.6M', economy:'Financial services hub; post-Brexit adjusting. High inflation required aggressive BoE tightening. North Sea energy sector benefits from elevated prices. Labour productivity weak.', auTrade:'AU exports A$8B: gold, wine, beef, LNG. Strong financial and capital market ties. AUKUS partner.', risk:'LOW' },
-  276: { capital:'Berlin', pop:'84.7M', economy:'Europe\'s largest economy, export-led via auto, machinery, chemicals. Energy shock post-2022 hit hard — industrial competitiveness remains challenged. ECB policy dominant driver.', auTrade:'AU exports A$3B: coal, gold, wool, meat. Germany AU\'s 10th trade partner. EU-AU FTA negotiations ongoing.', risk:'LOW' },
-  124: { capital:'Ottawa', pop:'39.6M', economy:'Resource-rich open economy closely tied to US via USMCA. Oil sands, mining, and agriculture key. BoC raised rates in Oct 2026 for the first time since 2023 as energy costs lifted inflation. CAD tracks commodity prices.', auTrade:'AU exports A$2B: gold, coal, LNG. Competitor in global LNG and agricultural markets. CPTPP partners.', risk:'LOW' },
-  356: { capital:'New Delhi', pop:'1.44B', economy:'World\'s fastest-growing major economy. Services and manufacturing expanding. Demographics favourable. Inflation and current account deficit are recurring risks. RBI conservative.', auTrade:'AU exports A$18B: coal, gold, copper, education, LNG. Rapidly growing relationship. ECTA signed 2022.', risk:'LOW' },
-  410: { capital:'Seoul', pop:'51.7M', economy:'Export powerhouse — semiconductors, auto, shipbuilding, steel. POSCO and Samsung globally critical. K-pop and culture exports growing. Birth rate crisis threatens long-term growth.', auTrade:'AU exports A$22B: LNG, iron ore, coal, beef. Korea AU\'s 4th trade partner. KAFTA signed 2014.', risk:'LOW' },
-  702: { capital:'Singapore', pop:'5.9M', economy:'Financial hub and logistics centre for SE Asia. Entrepôt trade model. MAS manages inflation via exchange rate. Tech, biomedical, and financial services diversifying revenue base.', auTrade:'AU exports A$9B: gold, education, LNG, machinery. Major investment flows in both directions. Singapore #5 AU partner.', risk:'VERY LOW' },
-  682: { capital:'Riyadh', pop:'32.2M', economy:'Oil-dependent economy diversifying via Vision 2030. ARAMCO IPO and giga-projects (NEOM) central. Non-oil GDP growing 6%+. Subsidy reform and female workforce integration ongoing.', auTrade:'AU exports A$2B: wheat, barley, meat. Saudi investment in AU agriculture and infrastructure growing.', risk:'LOW' },
-  784: { capital:'Abu Dhabi', pop:'9.9M', economy:'UAE is the most diversified Gulf economy. Dubai financial hub. Abu Dhabi sovereign wealth (ADIA ~US$993B) deploys globally. Strong FDI attraction via free zones.', auTrade:'AU exports A$4B: gold, aluminium, LNG. Major airline transit hub (Etihad) connecting AU to Europe.', risk:'VERY LOW' },
-  76:  { capital:'Brasília', pop:'215M', economy:'Agriculture superpower (soy, corn, beef, coffee) and large industrial base. Fiscal consolidation ongoing under Lula. BRL volatility linked to commodity prices and US Fed.', auTrade:'AU competes in iron ore, coal, and agriculture markets. Bilateral trade A$3B. CPTPP negotiations.', risk:'MEDIUM' },
-  643: { capital:'Moscow', pop:'146M', economy:'Sanctions-hit economy rerouting trade via China, India, Turkey. Military spending surge drives short-term growth. Ruble managed. Long-term competitiveness damage accumulating.', auTrade:'Minimal — AU sanctions imposed 2022. AU energy sector benefits from Russian supply disruption to Europe.', risk:'VERY HIGH' },
-  804: { capital:'Kyiv', pop:'44M (pre-war)', economy:'Under sustained military attack since Feb 2022. GDP contracted 29% in 2022, partial recovery. Agriculture (grain) and defence manufacturing key recovery sectors.', auTrade:'Minimal direct trade. AU providing military aid ~A$1.3B+. AU grain sector impacted by Ukrainian wheat supply disruptions.', risk:'CRITICAL' },
+  36: { capital: 'Canberra' },
+  840: { capital: 'Washington D.C.' },
+  156: { capital: 'Beijing' },
+  392: { capital: 'Tokyo' },
+  826: { capital: 'London' },
+  276: { capital: 'Berlin' },
+  124: { capital: 'Ottawa' },
+  356: { capital: 'New Delhi' },
+  410: { capital: 'Seoul' },
+  702: { capital: 'Singapore' },
+  682: { capital: 'Riyadh' },
+  784: { capital: 'Abu Dhabi' },
+  76: { capital: 'Brasília' },
+  643: { capital: 'Moscow' },
+  804: { capital: 'Kyiv' },
 }
 
-function getRiskRating(n) {
-  const ex = COUNTRY_EXTRA[n]
-  if (ex?.risk) return ex.risk
-  if (CONFLICT_COUNTRIES.has(n)) return 'CRITICAL'
-  if (STRESS_COUNTRIES.has(n))   return 'VERY HIGH'
-  if (PARTNER_COUNTRIES.has(n))  return 'LOW'
-  // Not listed: no rating, rather than a default "MODERATE".
-  return null
-}
 
-const RISK_COLOR = {
-  'VERY LOW':'text-terminal-green', 'LOW':'text-terminal-green',
-  'MODERATE':'text-terminal-gold', 'MEDIUM':'text-terminal-gold',
-  'HIGH':'text-orange-400', 'VERY HIGH':'text-terminal-red', 'CRITICAL':'text-terminal-red',
-}
 
 // ─── Trade Intelligence (CountryPanel) ────────────────────────────────────────
 // Reuses the same SHIPPING_ROUTES/FREIGHT_ROUTES the globe renders, so the
@@ -590,34 +544,8 @@ const CHOKE_DOT   = { OPEN:'bg-terminal-green', MONITORED:'bg-terminal-gold anim
 
 // audUsd is null until a rate has loaded; a figure that needs converting is
 // then "—", never converted at a fixed rate.
-function fmtGdpTotal(usdMillions, audUsd, mode) {
-  if (usdMillions == null) return null
-  if (mode === 'AUD' && !(audUsd > 0)) return '—'
-  const v = mode === 'AUD' ? usdMillions / audUsd : usdMillions
-  const sym = mode === 'AUD' ? 'A$' : 'US$'
-  if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}T`
-  if (v >= 1_000)     return `${sym}${(v / 1_000).toFixed(1)}B`
-  return `${sym}${v.toFixed(0)}M`
-}
 
-function fmtPerCapita(usd, audUsd, mode) {
-  if (usd == null) return null
-  if (mode === 'AUD' && !(audUsd > 0)) return '—'
-  const v = mode === 'AUD' ? usd / audUsd : usd
-  const sym = mode === 'AUD' ? 'A$' : 'US$'
-  return `${sym}${Math.round(v).toLocaleString('en-AU')}`
-}
 
-function fmtAuTrade(audMillions, audUsd, mode) {
-  if (audMillions == null) return null
-  if (mode === 'USD' && !(audUsd > 0)) return '—'
-  // auTradeValue stored in AUD millions — convert to USD if needed
-  const v = mode === 'USD' ? audMillions * audUsd : audMillions
-  const sym = mode === 'USD' ? 'US$' : 'A$'
-  if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2)}T`
-  if (v >= 1_000)     return `${sym}${(v / 1_000).toFixed(1)}B`
-  return `${sym}${v.toFixed(0)}M`
-}
 
 
 function useLocalTime(tz) {
@@ -642,13 +570,6 @@ function useLocalTime(tz) {
   return time
 }
 
-function fmtPop(p) {
-  if (p == null) return null
-  if (p >= 1_000_000_000) return `${(p / 1e9).toFixed(2)}B`
-  if (p >= 1_000_000)     return `${(p / 1e6).toFixed(1)}M`
-  if (p >= 1_000)         return `${(p / 1e3).toFixed(0)}K`
-  return p.toLocaleString()
-}
 
 // ─── Country Panel ────────────────────────────────────────────────────────────
 
@@ -677,7 +598,7 @@ const COUNTRY_PANEL_TABS = [
   { id: 'trade',        label: 'TRADE' },
 ]
 
-function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
+function CountryPanel({ id, newsItems, audRates: _audRates, audUsd: _audUsd = null, currencyMode = 'AUD', onCurrencyToggle, onClose, onAskAI }) {
   const { openModal } = useStore()
   const [panelTab, setPanelTab] = useState('economy')
   const n      = parseInt(id)
@@ -698,21 +619,23 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
   const tz          = dbEntry?.timezone ?? detail?.tz ?? null
   const flag        = detail?.flag ?? enriched?.flag ?? flagEmoji(a2)
   const capital     = extra?.capital ?? enriched?.capital ?? null
-  const pop         = enriched?.population ?? null
-  const area        = enriched?.area ?? null
   const region      = enriched?.region ?? null
   const currCode    = detail?.currency ?? enriched?.currency?.code ?? null
   const currName    = enriched?.currency?.name ?? null
   const languages   = enriched?.languages ?? null
   const govType     = enriched?.governmentType ?? null
 
-  // Economy
-  const gdpTotal    = enriched?.gdpTotal    ?? null
-  const gdpPerCap   = enriched?.gdpPerCapita ?? null
-  const gdpGrowth   = detail?.macro?.gdp   ?? enriched?.gdpGrowth   ?? null
-  const gdpLbl      = detail?.macro?.gdpLbl ?? null
-  const inflation   = detail?.macro?.cpi   ?? enriched?.inflation   ?? null
-  const inflLbl     = detail?.macro?.cpiLbl ?? null
+  // Economy: GDP growth and CPI only as read from the national statistics
+  // agency (verifiedConstants COUNTRY_STATS); a euro member without its own
+  // entry shows the euro-area figure, labelled as such. Anything else shows
+  // a note, never a typed or default figure (15 Nov 2026).
+  const statsKey    = COUNTRY_STATS[a2] ? a2 : (enriched?.interestRateBank === 'European Central Bank' && COUNTRY_STATS.EA ? 'EA' : null)
+  const stats       = statsKey ? COUNTRY_STATS[statsKey] : null
+  const statLbl     = (x) => (x ? `${x.period}, ${x.agency}${statsKey === 'EA' ? ' (euro area)' : ''}` : null)
+  const gdpGrowth   = stats?.gdp?.value ?? null
+  const gdpLbl      = statLbl(stats?.gdp)
+  const inflation   = stats?.cpi?.value ?? null
+  const inflLbl     = statLbl(stats?.cpi)
   // Policy rate: only a figure checked against its bank (verifiedConstants).
   // The country database's own typed rates were removed on 15 Nov; a euro
   // member without its own row takes the verified ECB rate.
@@ -724,40 +647,24 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
   const intRateNone = detail?.macro?.rateNone ?? null
   const intRateNotRead = detail?.macro?.rateNotRead ?? null
   const intRateBank = enriched?.interestRateBank ?? null
-  const unemployment = enriched?.unemployment ?? null
 
-  // Trade
-  const topExports  = enriched?.topExports         ?? null
-  const topImports  = enriched?.topImports         ?? null
-  const partners    = detail?.partners ?? enriched?.topTradingPartners ?? null
-  const auTrade     = extra?.auTrade   ?? enriched?.auRelationship ?? null
-  const auTradeVal  = enriched?.auTradeValue        ?? null
+  // Trade: partners and values only from the ABS (verifiedConstants auTrade);
+  // the typed export, import and partner lists were unsourced rankings.
 
   // Exchange
   const exName      = detail?.exchange ?? null
   const exIndex     = detail?.index    ?? null
 
-  // Risk
-  const creditRating     = enriched?.creditRating     ?? null
-  const polStability     = enriched?.politicalStability ?? null
-  const econOutlook      = enriched?.economicOutlook    ?? null
-  const sanctionsStatus  = enriched?.sanctionsStatus    ?? null
-  const conflictStatus   = enriched?.conflictStatus     ?? null
-  const description      = extra?.economy ?? enriched?.description ?? null
-  const dataAsAt         = dbEntry?.dataAsAt ?? null
-
-  const isConflict = CONFLICT_COUNTRIES.has(n)
-  const isStress   = STRESS_COUNTRIES.has(n)
-  const isPartner  = PARTNER_COUNTRIES.has(n)
-  const riskRating = getRiskRating(n)
-  const hasData    = !!(enriched || detail)
+  const isPartner   = ABS_PARTNERS.has(COUNTRY_NAMES[n])
+  const hasData     = !!(enriched || detail)
 
   // ── Trade Intelligence ──
   const routeMap        = COUNTRY_ROUTE_MAP[n] ?? { shipping: [], freight: [] }
   const shippingRoutes   = routeMap.shipping.map(id => findRoute(id, 'SHIPPING')).filter(Boolean)
   const freightRoutes    = routeMap.freight.map(id => findRoute(id, 'FREIGHT')).filter(Boolean)
   const disruptedRoutes  = shippingRoutes.filter(r => r.status === 'DISRUPTED' || r.status === 'CONGESTED')
-  const enhancedPartners = (partners ?? []).slice(0, 5).map(p => ({ name: p, flag: flagForPartnerName(p), trade: partnerTrade(COUNTRY_NAMES[n], p) }))
+  const partnerNames     = COUNTRY_NAMES[n] === 'Australia' ? [...ABS_PARTNERS] : (isPartner ? ['Australia'] : [])
+  const enhancedPartners = partnerNames.map(p => ({ name: p, flag: flagForPartnerName(p), trade: partnerTrade(COUNTRY_NAMES[n], p) }))
   const tradeSource      = enhancedPartners.find(p => p.trade)?.trade ?? null
 
   // Live local time — ticks every second
@@ -809,10 +716,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
         {/* ── Status badges ── */}
         <div className="px-3 py-2 border-b border-terminal-border/50">
           <div className="flex flex-wrap gap-1.5 mb-1.5">
-            {isConflict && <span className="text-2xs px-1.5 py-0.5 bg-terminal-red/20 text-terminal-red border border-terminal-red/30">⚠ CONFLICT ZONE</span>}
-            {isStress && !isConflict && <span className="text-2xs px-1.5 py-0.5 bg-orange-900/20 text-orange-400 border border-orange-400/30">⚠ SANCTIONED</span>}
-            {isPartner && <span className="text-2xs px-1.5 py-0.5 bg-terminal-green/10 text-terminal-green border border-terminal-green/30">★ AU TRADE PARTNER</span>}
-            {riskRating && <span title="Maddex editorial label, not the scored country-risk index" className={`text-2xs px-1.5 py-0.5 border border-current/30 ${RISK_COLOR[riskRating] ?? 'text-terminal-text-dim'}`}>RISK: {riskRating}</span>}
+            {isPartner && <span title="Australia's top-five export markets and import sources, ABS 2024-25" className="text-2xs px-1.5 py-0.5 bg-terminal-green/10 text-terminal-green border border-terminal-green/30">ABS TOP-FIVE AU PARTNER</span>}
           </div>
           <button
             onClick={() => onAskAI({
@@ -826,22 +730,6 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
           >ASK AI ◆</button>
         </div>
 
-        {/* ── Quick Stats — 4-box at-a-glance row ── */}
-        {hasData && (
-          <div className="grid grid-cols-4 border-b border-terminal-border/50 text-center">
-            {[
-              ['Population',   fmtPop(pop)],
-              ['GDP',          fmtGdpTotal(gdpTotal, audUsd, currencyMode)],
-              ['Unemployment', unemployment != null ? `${unemployment}%` : null],
-              ['Inflation',    inflation != null ? `${inflation}%` : null],
-            ].map(([label, value]) => (
-              <div key={label} className="py-1.5 px-1 border-r border-terminal-border/50 last:border-r-0">
-                <div className="text-xs font-bold text-terminal-text-bright">{value ?? '—'}</div>
-                <div className="text-2xs text-terminal-text-dim/70">{label}</div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* ── No-data fallback ── */}
         {!hasData && (
@@ -880,13 +768,10 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
         <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
           {sec('Geography')}
           <PRow label="Capital"    value={capital} />
-          <PRow label="Population" value={fmtPop(pop)} />
-          <PRow label="Area"       value={area != null ? `${area.toLocaleString('en-AU')} km²` : null} />
           <PRow label="Region"     value={region} />
           <PRow label="Currency"   value={currCode ? `${currCode}${currName ? ` — ${currName}` : ''}` : null} />
           <PRow label="Languages"  value={languages?.length ? languages.join(', ') : null} />
           <PRow label="Government" value={govType} />
-          <PRow label="Neighbours" value={enriched?.neighbours?.length ? enriched.neighbours.join(', ') : null} />
         </div>
 
         {/* ── Local Time & Timezone (MARKETS tab) ── */}
@@ -920,29 +805,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
         <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
           <div className="flex items-center justify-between gap-2">
             {sec('Macro Statistics')}
-            {detail?.macro && <DataBadge cls="DELAYED" source="hand-entered · period and agency on each line · entered" at={COUNTRY_DETAIL_AS_OF} compact />}
-          </div>
-          {/* GDP Total — dual currency */}
-          <div className="flex justify-between text-2xs py-0.5">
-            <span className="text-terminal-text-dim">GDP Total</span>
-            {gdpTotal != null
-              ? <div className="text-right">
-                  <span className="font-bold text-terminal-text-bright">{fmtGdpTotal(gdpTotal, audUsd, currencyMode)}</span>
-                  <span className="text-terminal-text-dim/50 ml-1.5">({fmtGdpTotal(gdpTotal, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})</span>
-                </div>
-              : <span className="text-terminal-text-bright">—</span>
-            }
-          </div>
-          {/* GDP Per Capita — dual currency */}
-          <div className="flex justify-between text-2xs py-0.5">
-            <span className="text-terminal-text-dim">GDP / Capita</span>
-            {gdpPerCap != null
-              ? <div className="text-right">
-                  <span className="font-bold text-terminal-text-bright">{fmtPerCapita(gdpPerCap, audUsd, currencyMode)}</span>
-                  <span className="text-terminal-text-dim/50 ml-1.5">({fmtPerCapita(gdpPerCap, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})</span>
-                </div>
-              : <span className="text-terminal-text-bright">—</span>
-            }
+            {stats && <DataBadge cls="DELAYED" source="national statistics agencies, checked" at={COUNTRY_STATS_CHECKED} compact />}
           </div>
           <div className="flex justify-between text-2xs py-0.5">
             <span className="text-terminal-text-dim">GDP Growth</span>
@@ -951,7 +814,8 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
                 ? <span className={`font-bold ${gdpGrowth >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>{gdpGrowth >= 0 ? '+' : ''}{gdpGrowth}%</span>
                 : <span className="text-terminal-text-bright">—</span>
               }
-              {gdpLbl && <span className="text-terminal-text-dim/60 ml-1">{gdpLbl}</span>}
+              {gdpLbl && <span className="text-terminal-text-dim/60 ml-1" title={stats.gdp.measure}>{gdpLbl} · {stats.gdp.measure}</span>}
+              {stats?.gdp?.url && <a href={stats.gdp.url} target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim/60 ml-1 underline" data-stat-source>source</a>}
               {gdpLbl && <OutOfDate label={gdpLbl} kind="gdp" />}
             </div>
           </div>
@@ -962,7 +826,8 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
                 ? <span className={`font-bold ${inflation > 4 ? 'text-terminal-red' : inflation > 2.5 ? 'text-terminal-gold' : 'text-terminal-green'}`}>{inflation}%</span>
                 : <span className="text-terminal-text-bright">—</span>
               }
-              {inflLbl && <span className="text-terminal-text-dim/60 ml-1">{inflLbl}</span>}
+              {inflLbl && <span className="text-terminal-text-dim/60 ml-1" title={stats.cpi.measure}>{inflLbl} · {stats.cpi.measure}</span>}
+              {stats?.cpi?.url && <a href={stats.cpi.url} target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim/60 ml-1 underline" data-stat-source>source</a>}
               {inflLbl && <OutOfDate label={inflLbl} kind="cpi" />}
             </div>
           </div>
@@ -980,71 +845,16 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
               {intRateBank && !intRateLbl && !intRateNone && !intRateNotRead && <span className="text-terminal-text-dim/60 ml-1">{intRateBank}: rate not held</span>}
             </div>
           </div>
-          <PRow label="Unemployment" value={unemployment != null ? `${unemployment}%` : null} />
-          <PRow label="Data as at"   value={dataAsAt} cls="text-terminal-text-dim" />
-        </div>
-
-        {/* ── Risk Assessment (GEOPOLITICAL tab) ── */}
-        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'geopolitical' ? '' : 'hidden'}`}>
-          {sec('Risk Assessment')}
-          <PRow label="Political Stability" value={polStability} />
-          <PRow label="Economic Outlook"    value={econOutlook} />
-          <PRow
-            label="Sanctions"
-            value={sanctionsStatus ?? 'None'}
-            cls={sanctionsStatus && sanctionsStatus !== 'None' && sanctionsStatus !== 'none' ? 'text-terminal-red' : 'text-terminal-green'}
-          />
-          <PRow
-            label="Conflict Status"
-            value={conflictStatus ?? 'None'}
-            cls={isConflict ? 'text-terminal-red font-bold' : conflictStatus === 'MONITORED' ? 'text-terminal-gold' : 'text-terminal-green'}
-          />
-          {creditRating && (
-            <PRow
-              label="Credit Rating"
-              value={`${creditRating.moodys ?? 'NR'} / ${creditRating.sp ?? 'NR'} / ${creditRating.fitch ?? 'NR'}`}
-              cls="text-terminal-text-dim"
-            />
-          )}
-          {!creditRating && <PRow label="Credit Rating" value={null} />}
-        </div>
-
-        {/* ── Trade (TRADE tab) ── */}
-        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'trade' ? '' : 'hidden'}`}>
-          {sec('Trade')}
-          <PRow label="Top Exports" value={topExports?.length ? topExports.slice(0,3).join(', ') : null} />
-          <PRow label="Top Imports" value={topImports?.length ? topImports.slice(0,3).join(', ') : null} />
-          {/* Trading partners as chips */}
-          {partners?.length
-            ? <div className="flex justify-between text-2xs py-0.5">
-                <span className="text-terminal-text-dim flex-shrink-0">Top Partners</span>
-                <div className="flex flex-wrap gap-1 justify-end ml-2">
-                  {partners.slice(0,5).map(p => (
-                    <span key={p} className="text-2xs px-1 py-0 border border-terminal-border/60 text-terminal-text">{p}</span>
-                  ))}
-                </div>
-              </div>
-            : <PRow label="Top Partners" value={null} />
-          }
-        </div>
-
-        {/* ── AU Relationship (TRADE tab) ── */}
-        <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'trade' ? '' : 'hidden'}`}>
-          {sec('AU Trade Relationship')}
-          {auTrade
-            ? <div className="text-2xs text-terminal-text leading-relaxed mb-1">{auTrade}</div>
-            : <div className="text-2xs text-terminal-text-dim italic">No significant bilateral relationship on record.</div>
-          }
-          {auTradeVal != null && (
-            <div className="flex justify-between text-2xs mt-1 pt-1 border-t border-terminal-border/30">
-              <span className="text-terminal-text-dim">AU Bilateral Trade</span>
-              <div className="text-right">
-                <span className="font-bold text-terminal-text-bright">{fmtAuTrade(auTradeVal, audUsd, currencyMode)}</span>
-                <span className="text-terminal-text-dim/50 ml-1.5">({fmtAuTrade(auTradeVal, audUsd, currencyMode === 'AUD' ? 'USD' : 'AUD')})</span>
-              </div>
+          {!stats && (
+            <div className="text-2xs text-terminal-text-dim/70 pt-1" data-stats-note>
+              GDP growth and inflation are shown only once read from the national statistics agency. More countries will be added as they are verified.
             </div>
           )}
         </div>
+
+        {/* The Risk Assessment block (political stability, economic outlook,
+            sanctions and conflict defaulting to "None", typed credit ratings)
+            had no source or date and was removed on 15 Nov 2026. */}
 
         {/* ── Trade Intelligence (TRADE tab) ── */}
         <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'trade' ? '' : 'hidden'}`}>
@@ -1059,13 +869,12 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
               {shippingRoutes.map(r => (
                 <div key={r.id} className="flex justify-between text-2xs py-0.5">
                   <span className="text-terminal-text">🚢 {r.name}</span>
-                  <span className={r.status === 'ACTIVE' ? 'text-terminal-green' : r.status === 'DISRUPTED' ? 'text-terminal-red' : 'text-terminal-gold'}>{r.status}</span>
+                  {r.status && <span className="text-terminal-text-dim" title="Maddex editorial label, undated">{r.status} · Maddex label</span>}
                 </div>
               ))}
               {freightRoutes.map(r => (
                 <div key={r.id} className="flex justify-between text-2xs py-0.5">
                   <span className="text-terminal-text">✈ {r.name}</span>
-                  <span className="text-terminal-green">ACTIVE</span>
                 </div>
               ))}
             </div>
@@ -1091,7 +900,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
               <div className="text-2xs text-terminal-text-dim/60 mt-0.5" data-partner-source>
                 {tradeSource
                   ? `Values: ${tradeSource.source} (${tradeSource.period}); "—" where the partner is outside the ABS top five. Other pairs: no bilateral values held.`
-                  : 'Partners as listed in Maddex\'s country reference. No bilateral trade values are held for this country.'}
+                  : 'No bilateral trade values are held for this country.'}
               </div>
             </div>
           )}
@@ -1099,7 +908,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
           {/* (c) Active disruptions affecting this country */}
           <div className="text-2xs text-terminal-text-dim uppercase tracking-wide mb-1">Active Disruptions</div>
           {disruptedRoutes.length === 0 ? (
-            <div className="text-2xs text-terminal-green/80 mb-2">No active shipping disruptions materially affecting trade to/from {name} at this time.</div>
+            <div className="text-2xs text-terminal-text-dim/70 mb-2">No route mapped for {name} carries a Maddex "disrupted" label.</div>
           ) : (
             <div className="mb-2">
               {disruptedRoutes.map(r => (
@@ -1115,12 +924,6 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
         </div>
 
         {/* ── Overview (ECONOMY tab) ── */}
-        {description && (
-          <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
-            {sec('Overview')}
-            <div className="text-2xs text-terminal-text leading-relaxed">{description}</div>
-          </div>
-        )}
 
         {/* ── Recent News (GEOPOLITICAL tab) ── */}
         <div className={`px-3 py-2 ${panelTab === 'geopolitical' ? '' : 'hidden'}`}>
@@ -2363,11 +2166,9 @@ export default function GlobalModule() {
     })
   }, [])
 
-  // Startup: country data refresh + gap report
-  useEffect(() => {
-    const alpha2Set = new Set(COUNTRIES.map(c => c.alpha2))
-    initCountryDataRefresh(alpha2Set).catch(err => console.warn('[MADDEX] Country refresh error:', err))
-  }, [])
+  // No country-data refresh on open (15 Nov 2026): it fetched World Bank
+  // indicators from every reader's browser into a panel that now shows
+  // verified figures only.
 
 
   // General news (for country panels)

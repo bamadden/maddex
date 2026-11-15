@@ -37,7 +37,7 @@ badged DEMO until a licensed ASX feed is connected.
 | RBA statistical tables | Cash rate, decisions, yields, F-tables | rba.gov.au/copyright | Yes for commercial use; must not hide that RBA data is free; third-party-sourced tables need that party's consent | "Source: Reserve Bank of Australia" | — | **ON** — credit in Macro; free-data notice in Macro and the Disclaimer |
 | ABS Data API | CPI, unemployment, GDP | abs.gov.au copyright | Yes — CC BY 4.0 | Attribute to the ABS (exact wording on "Attributing ABS material" — not read) | No key; beta | **ON** — "Source: Australian Bureau of Statistics (CC BY 4.0)" in Macro. Confirm the exact attribution wording |
 | IMF DataMapper | Country macro data (Global, Macro) | imf.org/en/About/copyright-and-terms | No — commercial reuse needs permission | "Source: International Monetary Fund, …" | No automated bulk download | **OFF** (`imf`). Ask copyright@imf.org |
-| World Bank API | Country data | datacatalog.worldbank.org/public-licenses; API terms | Conflicting — data CC BY 4.0, but API terms bar facilitating commercial use | Credit and note changes | Reasonable volume | **REVIEW** — ask, or ship the CC BY datasets as static files |
+| World Bank API | Country data | datacatalog.worldbank.org/public-licenses; API terms | Conflicting — data CC BY 4.0, but API terms bar facilitating commercial use | Credit and note changes | Reasonable volume | **OFF** (`worldbank`, 15 Nov 2026) — no longer fetched; ask, or ship the CC BY datasets as static files |
 | USGS earthquake feeds | Seismic events on the map | usgs.gov copyrights-and-credits | Yes — public domain | Requested: "Credit: U.S. Geological Survey" | — | **ON** — credit on the seismic panel |
 | OpenSky Network | Aircraft positions | opensky-network.org/about/terms-of-use | No — commercial or live-product use needs a written licence | — | — | **OFF** (`opensky`) |
 | Open-Meteo | Weather at exchange cities | open-meteo.com/en/terms | No — free API non-commercial; subscription apps are commercial | "Weather data by Open-Meteo.com" next to the data | <10k/day | **OFF** (`openmeteo`). Paid plan available |
@@ -96,6 +96,55 @@ The rates these replaced were typed in May 2026 (Ukraine April 2025); 14 of the
 was not a policy rate. `countryDatabase.js` carried a second set of typed
 rates for about 40 countries, used when a country had no row here; it was
 removed, and a euro member without a row shows the verified ECB rate.
+
+## GDP growth and CPI by country (Global country panel)
+
+Hand-entered, each read on **15 Nov 2026** from the national statistics
+agency's own release, table or API (third-party sites only to find the page).
+Held in `COUNTRY_STATS` in `src/data/verifiedConstants.js`
+(`COUNTRY_STATS_CHECKED`, freshness guard: statistic, 60 days). GDP is shown
+year on year where the agency publishes it; the measure is named on every
+line. Australia and the US are reconciled with their agencies by
+`npm run check-stats`. Euro members without their own row show the euro-area
+figure, labelled. Agency releases are public statistics; no feed is called.
+
+| Country | Figure | Value | Measure | Period | Released | Agency and page read |
+|---|---|---|---|---|---|---|
+| Australia | GDP growth | 2.1% | y/y, chain volume | Jun 2026 quarter | 2026-09-03 | ABS: https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/latest-release |
+| Australia | CPI | 4.3% | CPI, 12 months (monthly) | Sep 2026 | 2026-10-28 | ABS: https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release |
+| United States | GDP growth | 3.4% | q/q annualised | Q3 2026 | 2026-10-29 | BEA: https://www.bea.gov/data/gdp/gross-domestic-product |
+| United States | CPI | 3.7% | CPI-U, 12 months | Sep 2026 | 2026-10-14 | BLS: https://www.bls.gov/cpi/ |
+| China | GDP growth | 4.5% | y/y, constant prices | Q3 2026 | 2026-10-21 | NBS: https://www.stats.gov.cn/english/PressRelease/202610/t20261021_1965671.html |
+| China | CPI | 0.7% | CPI, y/y | Oct 2026 | 2026-11-10 | NBS: https://www.stats.gov.cn/english/PressRelease/202611/t20261111_1965808.html |
+| Japan | GDP growth | 0.9% | y/y, real, original series (2nd preliminary) | Q2 2026 | 2026-09-08 | Cabinet Office: https://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2026/qe262_2/tables/ritu-jg2622.csv |
+| Japan | CPI | 2.1% | CPI all items, y/y | Sep 2026 | 2026-10-23 | Statistics Bureau: https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html |
+| United Kingdom | GDP growth | 1.9% | y/y (first quarterly estimate) | Q3 2026 | 2026-11-12 | ONS: https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpfirstquarterlyestimateuk/latest |
+| United Kingdom | CPI | 3.5% | CPI, 12 months | Sep 2026 | 2026-10-21 | ONS: https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/latest |
+| India | GDP growth | 7.8% | y/y, real (constant 2022-23 prices) | Apr–Jun 2026 (Q1 FY2026-27) | 2026-08-31 | MoSPI: https://www.mospi.gov.in/uploads/latestreleasesfiles/1788174301107-Press%20Note%20on%20GDP%20Estimates%20for%20Q1%202026-27.pdf |
+| India | CPI | 6.09% | CPI (Combined), y/y, provisional | Oct 2026 | 2026-11-12 | MoSPI: https://www.mospi.gov.in/uploads/latestReleases/latest_release_1794478693814_7c90e80f-9e64-4aa4-b44a-1dc727b0fed9_Press_Release_of_CPI_for_October_2026_.pdf |
+| Canada | GDP growth | 0.8% | q/q, real, seasonally adjusted | Q2 2026 | 2026-08-28 | Statistics Canada: https://www150.statcan.gc.ca/n1/daily-quotidien/260828/dq260828a-eng.htm |
+| Canada | CPI | 3.1% | CPI all-items, y/y | Sep 2026 | 2026-10-19 | Statistics Canada: https://www150.statcan.gc.ca/n1/daily-quotidien/261019/dq261019a-eng.htm |
+| New Zealand | GDP growth | 2.6% | y/y, chain volume (production) | Jun 2026 quarter | 2026-09-17 | Stats NZ: https://www.stats.govt.nz/information-releases/gross-domestic-product-june-2026-quarter/ |
+| New Zealand | CPI | 3.7% | CPI, 12 months (quarterly) | Sep 2026 quarter | 2026-10-22 | Stats NZ: https://www.stats.govt.nz/information-releases/consumers-price-index-september-2026-quarter/ |
+| South Korea | GDP growth | 3.4% | y/y, real (advance estimate) | Q3 2026 | 2026-10-27 | Bank of Korea: https://www.bok.or.kr/eng/bbs/E0000634/view.do?nttId=11065943&menuNo=400423&relate=Y&depth=400423&programType=newsDataEng |
+| South Korea | CPI | 2.8% | CPI all items, y/y | Oct 2026 | 2026-11-03 | Ministry of Data and Statistics: https://mods.go.kr/board.es?mid=a20101000000&bid=11751&act=view&list_no=447803 |
+| Singapore | GDP growth | 5.4% | y/y, real (advance estimate) | Q3 2026 | 2026-10-14 | MTI: https://www.mti.gov.sg/newsroom/singapore-s-gdp-grew-by-5-4-per-cent-in-the-third-quarter-of-2026 |
+| Singapore | CPI | 2.2% | CPI all items, y/y | Sep 2026 | 2026-10-23 | SingStat: https://tablebuilder.singstat.gov.sg/api/table/tabledata/M213781?search=All%20Items |
+| Brazil | GDP growth | 2% | y/y, real | Q2 2026 | 2026-09-01 | IBGE: https://apisidra.ibge.gov.br/values/t/5932/n1/all/v/6561,6564/p/last%202/c11255/90707 |
+| Brazil | CPI | 4.63% | IPCA, 12 months | Oct 2026 | 2026-11-12 | IBGE: https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63,2265/p/last%202 |
+| Mexico | GDP growth | 3.2% | y/y, real (timely estimate) | Q3 2026 | 2026-10-30 | INEGI: https://www.inegi.org.mx/contenidos/saladeprensa/boletines/2026/pibo/pib_eo2026_10.docx |
+| Mexico | CPI | 3.75% | INPC, annual | Oct 2026 | 2026-11-09 | INEGI: https://www.inegi.org.mx/contenidos/saladeprensa/boletines/2026/inpc/inpc_2q2026_11.docx |
+| Euro area | GDP growth | 1.3% | y/y, seasonally adjusted (flash) | Q3 2026 | 2026-11-13 | Eurostat: https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-13112026-ap |
+| Euro area | CPI | 4% | HICP, annual (flash) | Oct 2026 | 2026-11-04 | Eurostat: https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-04112026-ap |
+| Germany | GDP growth | 1.3% | y/y, price adjusted (first release) | Q3 2026 | 2026-10-30 | Destatis: https://www.destatis.de/EN/Press/2026/10/PE26_381_811.html |
+| Germany | CPI | 2.8% | CPI, y/y (final) | Oct 2026 | 2026-11-11 | Destatis: https://www.destatis.de/EN/Press/2026/11/PE26_392_611.html |
+| Indonesia | GDP growth, CPI | **not shown** | — | — | — | bps.go.id refused every automated request on 15 Nov; not verified, so not shown |
+
+Every other country shows no GDP or CPI, with a note that more will be added
+once verified. The country database's typed figures, ratings, outlook text
+and rankings were removed the same day, and the World Bank country fetch is
+switched off (`worldbank` in `src/data/sourceLicence.js`; its API terms are
+under review).
 
 ## News feeds (headline, short summary, link to the publisher)
 

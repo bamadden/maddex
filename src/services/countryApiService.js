@@ -124,6 +124,7 @@ async function fetchWbIndicator(fieldName, indicatorCode) {
 }
 
 async function fetchWorldBank() {
+  licenceGuard('worldbank')
   const cached = getCountryCache('wb')
   if (cached) return cached
 

@@ -165,7 +165,7 @@ test('Global: a hand-entered country figure older than its cycle is marked, neve
   const mod = read('src/modules/global/GlobalModule.jsx')
   for (const l of ['gdpLbl', 'inflLbl']) assert.match(mod, new RegExp(`<OutOfDate label=\\{${l}\\}`))
   assert.ok(mod.includes('<OutOfDate label={intRateChecked ? `${intRateChecked}, checked` : intRateLbl} kind="rate" />'), 'rates age from the date they were checked')
-  assert.match(mod, /<DataBadge cls="DELAYED" source="hand-entered · period and agency on each line · entered" at=\{COUNTRY_DETAIL_AS_OF\}/)
+  assert.match(mod, /<DataBadge cls="DELAYED" source="national statistics agencies, checked" at=\{COUNTRY_STATS_CHECKED\} compact \/>/)
 })
 
 test('Global: no undated "Static fallback" line, no typed air volumes, rankings or route status, no port ranks', () => {
@@ -209,4 +209,26 @@ test('Global: every policy rate shown was checked against its own bank; unverifi
   assert.doesNotMatch(mod, /enriched\?\.interestRate\b/)
   assert.doesNotMatch(read('src/data/countryDatabase.js'), /^\s*interestRate:/m)
   assert.doesNotMatch(read('src/hooks/useCountryData.js'), /interestRate:\s/)
+})
+
+test('Global country panel: GDP and CPI only as read from the agency, with a link; no typed figures, ratings, outlook or rankings remain', async () => {
+  const { COUNTRY_STATS, COUNTRY_STATS_CHECKED } = await import('../src/data/verifiedConstants.js')
+  const OWN = { AU: 'abs.gov.au', US: /bea\.gov|bls\.gov/, CN: 'stats.gov.cn', JP: /esri\.cao\.go\.jp|stat\.go\.jp/, GB: 'ons.gov.uk', EA: 'ec.europa.eu', DE: 'destatis.de', IN: 'mospi.gov.in', CA: 'statcan.gc.ca', NZ: 'stats.govt.nz', KR: /bok\.or\.kr|mods\.go\.kr/, SG: /mti\.gov\.sg|singstat\.gov\.sg/, BR: 'ibge.gov.br', MX: 'inegi.org.mx' }
+  assert.deepEqual(Object.keys(COUNTRY_STATS).sort(), Object.keys(OWN).sort())
+  assert.match(COUNTRY_STATS_CHECKED, /^\d{4}-\d{2}-\d{2}$/)
+  for (const [k, v] of Object.entries(COUNTRY_STATS)) for (const f of ['gdp', 'cpi']) {
+    const x = v[f]
+    assert.ok(Number.isFinite(x.value) && x.measure && x.period && /^\d{4}-\d{2}-\d{2}$/.test(x.released) && x.agency, `${k}.${f}`)
+    const host = new URL(x.url).hostname
+    assert.ok(typeof OWN[k] === 'string' ? host.endsWith(OWN[k]) : OWN[k].test(host), `${k}.${f} is read from its agency (${host})`)
+  }
+  const db = read('src/data/countryDatabase.js')
+  assert.doesNotMatch(db, /^\s*(population|area|gdpTotal|gdpPerCapita|gdpGrowth|inflation|unemployment|auTradeValue|politicalStability|economicOutlook|sanctionsStatus|conflictStatus|creditRating|topExports|topImports|topTradingPartners|description|auRelationship):/m)
+  const mod = read('src/modules/global/GlobalModule.jsx')
+  assert.match(mod, /data-stats-note>\s*GDP growth and inflation are shown only once read from the national statistics agency\. More countries will be added as they are verified\./)
+  assert.doesNotMatch(mod, /Economic Outlook|Political Stability|Credit Rating|CONFLICT ZONE|SANCTIONED|Top Exports|Top Partners|GDP \/ Capita|GDP Total|initCountryDataRefresh/)
+  const detail = mod.slice(mod.indexOf('const COUNTRY_DETAIL = {'), mod.indexOf('\n}\n', mod.indexOf('const COUNTRY_DETAIL = {')))
+  assert.doesNotMatch(detail, /\bgdp:\s*-?\d|\bcpi:\s*-?\d|partners:\[/)
+  assert.doesNotMatch(read('src/hooks/useCountryData.js'), /getCountryCache|wbData|imfData/)
+  assert.match(read('src/data/sourceLicence.js'), /worldbank:/)
 })

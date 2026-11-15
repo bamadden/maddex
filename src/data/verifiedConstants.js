@@ -964,6 +964,79 @@ export const POLICY_RATES = {
   nbu:    { bank: 'NBU', name: 'key policy rate', rate: 16.5, decided: '2026-10-29', effective: '2026-10-30', url: 'https://bank.gov.ua/en/news/all/natsionalniy-bank-ukrayini-pidvischiv-oblikovu-stavku-do-165' },
 }
 
+// ── GDP growth and CPI for the Global country panel ────────────────────────
+// Each read from the national statistics agency's own release (url), with
+// the measure as the agency headlines it. Australia and the US are the
+// blocks above (reconciled with the ABS, BLS and BEA by npm run check-stats).
+// A country not listed here shows no GDP or CPI: only verified figures are
+// shown (15 Nov 2026; docs/DATA_SOURCES.md lists every source).
+export const COUNTRY_STATS_CHECKED = '2026-11-15'
+const V = VERIFIED_CONSTANTS
+export const COUNTRY_STATS = {
+  AU: {
+    gdp: { value: V.au.gdpAnnual, measure: 'y/y, chain volume', period: V.au.gdpPeriod, released: V.au.gdpLastRelease, agency: 'ABS', url: 'https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/latest-release' },
+    cpi: { value: V.au.cpi, measure: 'CPI, 12 months (monthly)', period: V.au.cpiPeriod, released: V.au.cpiLastRelease, agency: 'ABS', url: V.au.cpiQuarterUrl },
+  },
+  US: {
+    gdp: { value: V.us.gdpQoQAnnualised, measure: 'q/q annualised', period: V.us.gdpPeriod, released: V.us.gdpRelease, agency: 'BEA', url: 'https://www.bea.gov/data/gdp/gross-domestic-product' },
+    cpi: { value: V.us.cpi, measure: 'CPI-U, 12 months', period: V.us.cpiPeriod, released: V.us.cpiRelease, agency: 'BLS', url: 'https://www.bls.gov/cpi/' },
+  },
+  CN: {
+    gdp: { value: 4.5, measure: 'y/y, constant prices', period: 'Q3 2026', released: '2026-10-21', agency: 'NBS', url: 'https://www.stats.gov.cn/english/PressRelease/202610/t20261021_1965671.html' },
+    cpi: { value: 0.7, measure: 'CPI, y/y', period: 'Oct 2026', released: '2026-11-10', agency: 'NBS', url: 'https://www.stats.gov.cn/english/PressRelease/202611/t20261111_1965808.html' },
+  },
+  JP: {
+    // Q3 GDP and October CPI not yet published on 15 Nov.
+    gdp: { value: 0.9, measure: 'y/y, real, original series (2nd preliminary)', period: 'Q2 2026', released: '2026-09-08', agency: 'Cabinet Office', url: 'https://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2026/qe262_2/tables/ritu-jg2622.csv' },
+    cpi: { value: 2.1, measure: 'CPI all items, y/y', period: 'Sep 2026', released: '2026-10-23', agency: 'Statistics Bureau', url: 'https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html' },
+  },
+  GB: {
+    gdp: { value: 1.9, measure: 'y/y (first quarterly estimate)', period: 'Q3 2026', released: '2026-11-12', agency: 'ONS', url: 'https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpfirstquarterlyestimateuk/latest' },
+    cpi: { value: 3.5, measure: 'CPI, 12 months', period: 'Sep 2026', released: '2026-10-21', agency: 'ONS', url: 'https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/latest' },
+  },
+  IN: {
+    gdp: { value: 7.8, measure: 'y/y, real (constant 2022-23 prices)', period: 'Apr–Jun 2026 (Q1 FY2026-27)', released: '2026-08-31', agency: 'MoSPI', url: 'https://www.mospi.gov.in/uploads/latestreleasesfiles/1788174301107-Press%20Note%20on%20GDP%20Estimates%20for%20Q1%202026-27.pdf' },
+    cpi: { value: 6.09, measure: 'CPI (Combined), y/y, provisional', period: 'Oct 2026', released: '2026-11-12', agency: 'MoSPI', url: 'https://www.mospi.gov.in/uploads/latestReleases/latest_release_1794478693814_7c90e80f-9e64-4aa4-b44a-1dc727b0fed9_Press_Release_of_CPI_for_October_2026_.pdf' },
+  },
+  CA: {
+    // StatCan publishes no y/y for the quarter; q/q is its headline.
+    gdp: { value: 0.8, measure: 'q/q, real, seasonally adjusted', period: 'Q2 2026', released: '2026-08-28', agency: 'Statistics Canada', url: 'https://www150.statcan.gc.ca/n1/daily-quotidien/260828/dq260828a-eng.htm' },
+    cpi: { value: 3.1, measure: 'CPI all-items, y/y', period: 'Sep 2026', released: '2026-10-19', agency: 'Statistics Canada', url: 'https://www150.statcan.gc.ca/n1/daily-quotidien/261019/dq261019a-eng.htm' },
+  },
+  NZ: {
+    gdp: { value: 2.6, measure: 'y/y, chain volume (production)', period: 'Jun 2026 quarter', released: '2026-09-17', agency: 'Stats NZ', url: 'https://www.stats.govt.nz/information-releases/gross-domestic-product-june-2026-quarter/' },
+    cpi: { value: 3.7, measure: 'CPI, 12 months (quarterly)', period: 'Sep 2026 quarter', released: '2026-10-22', agency: 'Stats NZ', url: 'https://www.stats.govt.nz/information-releases/consumers-price-index-september-2026-quarter/' },
+  },
+  KR: {
+    gdp: { value: 3.4, measure: 'y/y, real (advance estimate)', period: 'Q3 2026', released: '2026-10-27', agency: 'Bank of Korea', url: 'https://www.bok.or.kr/eng/bbs/E0000634/view.do?nttId=11065943&menuNo=400423&relate=Y&depth=400423&programType=newsDataEng' },
+    cpi: { value: 2.8, measure: 'CPI all items, y/y', period: 'Oct 2026', released: '2026-11-03', agency: 'Ministry of Data and Statistics', url: 'https://mods.go.kr/board.es?mid=a20101000000&bid=11751&act=view&list_no=447803' },
+  },
+  SG: {
+    gdp: { value: 5.4, measure: 'y/y, real (advance estimate)', period: 'Q3 2026', released: '2026-10-14', agency: 'MTI', url: 'https://www.mti.gov.sg/newsroom/singapore-s-gdp-grew-by-5-4-per-cent-in-the-third-quarter-of-2026' },
+    cpi: { value: 2.2, measure: 'CPI all items, y/y', period: 'Sep 2026', released: '2026-10-23', agency: 'SingStat', url: 'https://tablebuilder.singstat.gov.sg/api/table/tabledata/M213781?search=All%20Items' },
+  },
+  BR: {
+    gdp: { value: 2.0, measure: 'y/y, real', period: 'Q2 2026', released: '2026-09-01', agency: 'IBGE', url: 'https://apisidra.ibge.gov.br/values/t/5932/n1/all/v/6561,6564/p/last%202/c11255/90707' },
+    cpi: { value: 4.63, measure: 'IPCA, 12 months', period: 'Oct 2026', released: '2026-11-12', agency: 'IBGE', url: 'https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63,2265/p/last%202' },
+  },
+  MX: {
+    gdp: { value: 3.2, measure: 'y/y, real (timely estimate)', period: 'Q3 2026', released: '2026-10-30', agency: 'INEGI', url: 'https://www.inegi.org.mx/contenidos/saladeprensa/boletines/2026/pibo/pib_eo2026_10.docx' },
+    cpi: { value: 3.75, measure: 'INPC, annual', period: 'Oct 2026', released: '2026-11-09', agency: 'INEGI', url: 'https://www.inegi.org.mx/contenidos/saladeprensa/boletines/2026/inpc/inpc_2q2026_11.docx' },
+  },
+  // Indonesia: bps.go.id refused every automated request on 15 Nov, so its
+  // figures are not shown until they can be read from BPS.
+  // Euro area (Eurostat): shown for euro members without their own entry,
+  // labelled "euro area".
+  EA: {
+    gdp: { value: 1.3, measure: 'y/y, seasonally adjusted (flash)', period: 'Q3 2026', released: '2026-11-13', agency: 'Eurostat', url: 'https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-13112026-ap' },
+    cpi: { value: 4.0, measure: 'HICP, annual (flash)', period: 'Oct 2026', released: '2026-11-04', agency: 'Eurostat', url: 'https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-04112026-ap' },
+  },
+  DE: {
+    gdp: { value: 1.3, measure: 'y/y, price adjusted (first release)', period: 'Q3 2026', released: '2026-10-30', agency: 'Destatis', url: 'https://www.destatis.de/EN/Press/2026/10/PE26_381_811.html' },
+    cpi: { value: 2.8, measure: 'CPI, y/y (final)', period: 'Oct 2026', released: '2026-11-11', agency: 'Destatis', url: 'https://www.destatis.de/EN/Press/2026/11/PE26_392_611.html' },
+  },
+}
+
 export default VERIFIED_CONSTANTS
 
 // ─── For MaddenAI ────────────────────────────────────────────────────────────

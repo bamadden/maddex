@@ -1,106 +1,34 @@
 import { useMemo } from 'react'
 import COUNTRIES from '../data/countryDatabase'
-import { getCountryCache, getCacheAge } from '../services/countryApiService'
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 // Module-level lookup — built once
 const DB_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 
-function a3NameMap() { return getCountryCache('restA3Names') ?? {} }
-
-function freshnessStatus(cacheKey) {
-  const age = getCacheAge(cacheKey)
-  if (age == null) return 'hardcoded'
-  if (age < 7 * DAY_MS) return 'fresh'
-  return 'stale'
-}
-
+// A country's reference facts (data/countryDatabase). Figures are not merged
+// here any more (15 Nov 2026): the World Bank, IMF and REST Countries values
+// this hook layered over the typed database reached the Global panel with no
+// source or date shown, and the World Bank API's terms are still under
+// review. Verified GDP growth and CPI come from verifiedConstants
+// COUNTRY_STATS; policy rates from POLICY_RATES.
 export function useCountryData(alpha2) {
-  const base = useMemo(() => (alpha2 ? DB_BY_A2[alpha2] ?? null : null), [alpha2])
-
-  const restData  = useMemo(() => getCountryCache('rest')?.[alpha2]  ?? null, [alpha2])
-  const wbData    = useMemo(() => getCountryCache('wb')?.[alpha2]    ?? null, [alpha2])
-
-  // IMF is keyed by alpha3 — resolve via base record or REST data
-  const alpha3 = base?.alpha3 ?? restData?.alpha3 ?? null
-  const imfData = useMemo(
-    () => (alpha3 ? getCountryCache('imf_v2')?.[alpha3] ?? null : null),
-    [alpha3],
-  )
-
-  const data = useMemo(() => {
-    if (!base && !restData) return null
-
-    // Currency: Batch 1-3 entries store currency as string; Batch 4 as object
-    const rawCurrency = base?.currency ?? restData?.currency ?? null
-    const currency = typeof rawCurrency === 'object' && rawCurrency !== null
-      ? rawCurrency
-      : rawCurrency ? { code: rawCurrency, name: null, symbol: null } : null
-
+  return useMemo(() => {
+    const base = alpha2 ? DB_BY_A2[alpha2] ?? null : null
+    if (!base) return null
+    const raw = base.currency ?? null
+    const currency = typeof raw === 'object' && raw !== null ? raw : raw ? { code: raw, name: null, symbol: null } : null
     return {
-      // Identity
-      alpha2:    base?.alpha2 ?? restData?.alpha2 ?? alpha2,
-      alpha3:    alpha3,
-      name:      base?.name   ?? restData?.name,
-      flag:      base?.flag   ?? restData?.flag,
-      capital:   base?.capital ?? restData?.capital,
-
-      // Geography
-      area:      base?.area   ?? restData?.area,
-      region:    base?.region ?? restData?.region,
-      subregion: restData?.subregion ?? null,
-
-      // Demographics
-      population: restData?.population ?? wbData?.population ?? base?.population,
-
-      // Currency (normalised to object)
+      alpha2: base.alpha2,
+      alpha3: base.alpha3 ?? null,
+      name: base.name,
+      flag: base.flag,
+      capital: base.capital,
+      region: base.region,
       currency,
-      languages: base?.languages ?? restData?.languages,
-      timezones: restData?.timezones ?? null,
-      neighbours: (restData?.borders ?? []).map(a3 => a3NameMap()[a3] ?? a3),
-
-      // Economy — priority: IMF > WB > hardcoded DB
-      gdpTotal:     wbData?.gdpTotal     ?? base?.gdpTotal,
-      gdpPerCapita: wbData?.gdpPerCapita ?? base?.gdpPerCapita,
-      gdpGrowth:    imfData?.gdpGrowth   ?? wbData?.gdpGrowth   ?? base?.gdpGrowth,
-      inflation:    imfData?.inflation   ?? wbData?.inflation   ?? base?.inflation,
-      unemployment: wbData?.unemployment ?? base?.unemployment,
-
-      // Rates & trade
-      // No typed policy rate: the Global panel reads verified rates only.
-      interestRateBank: base?.interestRateBank,
-      auTradeValue:     base?.auTradeValue,
-      auRelationship:   base?.auRelationship,
-
-      // Trade partners
-      topExports:        base?.topExports,
-      topImports:        base?.topImports,
-      topTradingPartners: base?.topTradingPartners,
-
-      // Risk & governance
-      politicalStability: base?.politicalStability,
-      economicOutlook:    base?.economicOutlook,
-      sanctionsStatus:    base?.sanctionsStatus,
-      conflictStatus:     base?.conflictStatus,
-      governmentType:     base?.governmentType,
-      creditRating:       base?.creditRating,
-
-      description: base?.description,
-
-      // Data freshness for UI dots
-      _sources: {
-        rest:      !!restData,
-        worldBank: !!wbData,
-        imf:       !!imfData,
-        restStatus:      freshnessStatus('rest'),
-        worldBankStatus: freshnessStatus('wb'),
-        imfStatus:       freshnessStatus('imf_v2'),
-      },
+      languages: base.languages,
+      governmentType: base.governmentType,
+      interestRateBank: base.interestRateBank,
     }
-  }, [base, restData, wbData, imfData, alpha2, alpha3])
-
-  return data
+  }, [alpha2])
 }
 
 // Expose the lookup for callers that need batch access
