@@ -923,6 +923,40 @@ export function allVerifiedGroups() {
     }))
 }
 
+// ── Policy rates for the Global country panel ──────────────────────────────
+// Each checked on 15 Nov 2026 against the bank's own page (URL below), and
+// docs/DATA_SOURCES.md lists them. `decided` is the latest decision that set
+// or held the rate, `effective` where the bank states it. The ten largest
+// banks live in their own blocks above; these are the rest. A country whose
+// rate could not be read from its bank (Chile, Colombia) has no entry and
+// shows "—"; Singapore and Argentina have no policy rate at all (`none`).
+export const POLICY_RATES_CHECKED = '2026-11-15'
+export const POLICY_RATES = {
+  rbi:    { bank: 'RBI', name: 'repo rate', rate: 5.50, decided: '2026-10-07', url: 'https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=63742' },
+  bok:    { bank: 'BoK', name: 'Base Rate', rate: 3.00, decided: '2026-10-22', verb: 'held', url: 'https://www.bok.or.kr/eng/main/main.do' },
+  mas:    { bank: 'MAS', none: 'MAS sets no policy interest rate; it manages the S$ trade-weighted exchange rate (S$NEER)', decided: '2026-10-14', url: 'https://www.mas.gov.sg/monetary-policy/singapores-monetary-policy-framework' },
+  bcb:    { bank: 'BCB', name: 'Selic target', rate: 13.75, decided: '2026-11-04', verb: 'held', url: 'https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados_detalhes?nro_reuniao=282' },
+  banxico:{ bank: 'Banxico', name: 'overnight interbank rate target', rate: 6.25, decided: '2026-11-05', effective: '2026-11-06', url: 'https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7B43236252-D06E-5231-27E8-058810A86A52%7D.pdf' },
+  bcra:   { bank: 'BCRA', none: 'BCRA has had no monetary policy rate since June 2025; it targets monetary aggregates', decided: '2025-06-30', url: 'https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/informe-politica-monetaria-2026-T2.pdf' },
+  sama:   { bank: 'SAMA', name: 'repo rate', rate: 4.50, decided: '2026-09-16', url: 'https://www.sama.gov.sa/en-US/MediaCenter/News/Pages/news-1169.aspx' },
+  cbuae:  { bank: 'CBUAE', name: 'Base Rate', rate: 3.90, decided: '2026-09-16', effective: '2026-09-17', url: 'https://centralbank.ae/media/dv3bo3ed/cbuae-raises-the-base-rate-by-25-basis-points-en.pdf' },
+  cbe:    { bank: 'CBE', name: 'overnight deposit rate', rate: 20.00, decided: '2026-10-29', effective: '2026-11-01', url: 'https://www.cbe.org.eg/en/news-publications/news/2026/10/29/13/08/mpc-press-release-29-october-2026' },
+  cbn:    { bank: 'CBN', name: 'Monetary Policy Rate', rate: 23.00, decided: '2026-09-22', url: 'https://www.cbn.gov.ng/MonetaryPolicy/decisions.html' },
+  sarb:   { bank: 'SARB', name: 'policy rate', rate: 7.25, decided: '2026-09-23', effective: '2026-09-25', url: 'https://www.resbank.co.za/content/dam/sarb/publications/statements/monetary-policy-statements/2026/september/september-statement.pdf' },
+  tcmb:   { bank: 'TCMB', name: 'one-week repo rate', rate: 36.00, decided: '2026-10-22', url: 'https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/2026/ANO2026-45' },
+  norges: { bank: 'Norges Bank', name: 'policy rate', rate: 4.50, decided: '2026-09-23', url: 'https://www.norges-bank.no/en/news-events/news/Press-releases/2026/2026-09-24-rate/' },
+  cbr:    { bank: 'CBR', name: 'key rate', rate: 14.00, decided: '2026-10-23', verb: 'held', url: 'https://www.cbr.ru/eng/press/keypr/' },
+  hkma:   { bank: 'HKMA', name: 'Base Rate', rate: 4.25, decided: '2026-09-17', url: 'https://www.hkma.gov.hk/eng/news-and-media/press-releases/2026/09/20260917-3/' },
+  cbc:    { bank: 'CBC', name: 'discount rate', rate: 2.00, decided: '2026-09-17', verb: 'held', url: 'https://www.cbc.gov.tw/en/cp-448-192883-c5fa1-2.html' },
+  sbv:    { bank: 'SBV', name: 'refinancing rate', rate: 4.50, decided: '2023-06-16', url: 'https://www.sbv.gov.vn/en/l%C3%A3i-su%E1%BA%A5t1' },
+  bot:    { bank: 'BoT', name: 'policy rate', rate: 1.00, decided: '2026-10-28', verb: 'held', url: 'https://www.bot.or.th/en/news-and-media/news/mpc/news-20261028-5FWvBPSf.html' },
+  bnm:    { bank: 'BNM', name: 'Overnight Policy Rate', rate: 2.75, decided: '2026-11-05', verb: 'held', url: 'https://www.bnm.gov.my/-/monetary-policy-statement-05112026' },
+  bsp:    { bank: 'BSP', name: 'target RRP rate', rate: 5.50, decided: '2026-10-22', effective: '2026-10-23', url: 'https://www.bsp.gov.ph/statistics/keystat/sefi.pdf' },
+  bi:     { bank: 'BI', name: 'BI-Rate', rate: 5.75, decided: '2026-10-21', verb: 'held', url: 'https://www.bi.go.id/en/publikasi/ruang-media/news-release/Pages/sp_2823326.aspx' },
+  sbp:    { bank: 'SBP', name: 'policy rate', rate: 12.00, decided: '2026-10-26', effective: '2026-10-27', url: 'https://www.sbp.org.pk/assets/documents/press-release/PR-26-Oct-2026.pdf' },
+  nbu:    { bank: 'NBU', name: 'key policy rate', rate: 16.5, decided: '2026-10-29', effective: '2026-10-30', url: 'https://bank.gov.ua/en/news/all/natsionalniy-bank-ukrayini-pidvischiv-oblikovu-stavku-do-165' },
+}
+
 export default VERIFIED_CONSTANTS
 
 // ─── For MaddenAI ────────────────────────────────────────────────────────────

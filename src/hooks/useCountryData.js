@@ -68,7 +68,7 @@ export function useCountryData(alpha2) {
       unemployment: wbData?.unemployment ?? base?.unemployment,
 
       // Rates & trade
-      interestRate:     base?.interestRate,
+      // No typed policy rate: the Global panel reads verified rates only.
       interestRateBank: base?.interestRateBank,
       auTradeValue:     base?.auTradeValue,
       auRelationship:   base?.auRelationship,

@@ -24,7 +24,7 @@ import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import DataBadge from '../../components/ui/DataBadge'
 import { pastCycle } from './macroAge'
 import { liveDataService } from '../../services/liveDataService'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS, POLICY_RATES, POLICY_RATES_CHECKED } from '../../data/verifiedConstants'
 import { SHIPPING_ROUTES as SHIPPING_ROUTE_TABLE, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
 import { partnerTrade } from '../../services/bilateralTrade'
 import { PAL } from '../../styles/palette.js'
@@ -123,6 +123,19 @@ function flagForPartnerName(name) {
 
 const COUNTRIES_BY_A2 = Object.fromEntries(COUNTRIES.map(c => [c.alpha2, c]))
 
+// Policy rates checked against each bank's own page (verifiedConstants
+// POLICY_RATES). The label starts with the decision date, so macroAge can
+// read it; staleness is measured from when the rate was last checked.
+const policyRate = (key) => {
+  const p = POLICY_RATES[key]
+  return p.none
+    ? { rate: null, rateLbl: null, rateNone: p.none, rateUrl: p.url, rateChecked: POLICY_RATES_CHECKED }
+    : { rate: p.rate, rateLbl: `${p.decided}, ${p.bank} ${p.name}${p.verb === 'held' ? ' (held)' : ''}`, rateUrl: p.url, rateChecked: POLICY_RATES_CHECKED }
+}
+// A bank whose site could not be read on the check date: no rate is shown,
+// rather than an unverified one.
+const rateNotRead = (bank) => ({ rate: null, rateLbl: null, rateNotRead: `${bank}: not verified against the bank's own site on ${POLICY_RATES_CHECKED}, so not shown` })
+
 // ─── Country Detail Data — July 2026 release values ──────────────────────────
 
 const COUNTRY_DETAIL = {
@@ -152,93 +165,93 @@ const COUNTRY_DETAIL = {
          macro:{ gdp:0.7, gdpLbl:'Q4 2025, Stats NZ', cpi:2.5, cpiLbl:'Q1 2026, Stats NZ', rate:VERIFIED_CONSTANTS.rbnz.cashRate, rateLbl:`${VERIFIED_CONSTANTS.rbnz.lastDecision}, RBNZ` },
          partners:['China','Australia','United States','Japan','South Korea','Singapore'] },
   356: { currency:'INR', tz:'Asia/Kolkata',       exchange:'NSE',         index:'NIFTY 50',     flag:'🇮🇳',
-         macro:{ gdp:6.5, gdpLbl:'Q4 2025, MoSPI', cpi:4.6, cpiLbl:'Apr 2026, MoSPI', rate:6.00, rateLbl:'Apr 2026, RBI' },
+         macro:{ gdp:6.5, gdpLbl:'Q4 2025, MoSPI', cpi:4.6, cpiLbl:'Apr 2026, MoSPI', ...policyRate('rbi') },
          partners:['United States','China','UAE','Saudi Arabia','Russia','Australia'] },
   410: { currency:'KRW', tz:'Asia/Seoul',         exchange:'KRX',         index:'KOSPI',        flag:'🇰🇷',
-         macro:{ gdp:2.0, gdpLbl:'Q1 2026, BoK', cpi:2.1, cpiLbl:'Apr 2026, Stat Korea', rate:2.75, rateLbl:'May 2026, BoK' },
+         macro:{ gdp:2.0, gdpLbl:'Q1 2026, BoK', cpi:2.1, cpiLbl:'Apr 2026, Stat Korea', ...policyRate('bok') },
          partners:['China','United States','Vietnam','Japan','Australia','Germany'] },
   702: { currency:'SGD', tz:'Asia/Singapore',     exchange:'SGX',         index:'STI',          flag:'🇸🇬',
-         macro:{ gdp:3.8, gdpLbl:'Q1 2026, MTI', cpi:1.1, cpiLbl:'Apr 2026, Singstat', rate:3.04, rateLbl:'Apr 2026, MAS' },
+         macro:{ gdp:3.8, gdpLbl:'Q1 2026, MTI', cpi:1.1, cpiLbl:'Apr 2026, Singstat', ...policyRate('mas') },
          partners:['China','Malaysia','United States','Indonesia','Japan','South Korea'] },
   // ── Americas ──
   76:  { currency:'BRL', tz:'America/Sao_Paulo',  exchange:'B3',          index:'Ibovespa',     flag:'🇧🇷',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, IBGE', cpi:5.5, cpiLbl:'Apr 2026, IBGE', rate:13.75, rateLbl:'May 2026, BCB' },
+         macro:{ gdp:2.8, gdpLbl:'Q4 2025, IBGE', cpi:5.5, cpiLbl:'Apr 2026, IBGE', ...policyRate('bcb') },
          partners:['China','United States','Argentina','Netherlands','Chile','Germany'] },
   484: { currency:'MXN', tz:'America/Mexico_City',exchange:'BMV',         index:'IPC',          flag:'🇲🇽',
-         macro:{ gdp:1.2, gdpLbl:'Q4 2025, INEGI', cpi:3.8, cpiLbl:'Apr 2026, INEGI', rate:9.00, rateLbl:'May 2026, Banxico' },
+         macro:{ gdp:1.2, gdpLbl:'Q4 2025, INEGI', cpi:3.8, cpiLbl:'Apr 2026, INEGI', ...policyRate('banxico') },
          partners:['United States','China','Canada','Germany','South Korea','Japan'] },
   32:  { currency:'ARS', tz:'America/Argentina/Buenos_Aires',exchange:'BYMA',index:'Merval',   flag:'🇦🇷',
-         macro:{ gdp:-1.8, gdpLbl:'2025, INDEC', cpi:142.7, cpiLbl:'Apr 2026, INDEC', rate:32.00, rateLbl:'May 2026, BCRA' },
+         macro:{ gdp:-1.8, gdpLbl:'2025, INDEC', cpi:142.7, cpiLbl:'Apr 2026, INDEC', ...policyRate('bcra') },
          partners:['Brazil','China','United States','Chile','Germany','Spain'] },
   152: { currency:'CLP', tz:'America/Santiago',   exchange:'BCS',         index:'IPSA',         flag:'🇨🇱',
-         macro:{ gdp:2.4, gdpLbl:'Q4 2025, INE', cpi:3.8, cpiLbl:'Apr 2026, INE', rate:5.00, rateLbl:'May 2026, BCCh' },
+         macro:{ gdp:2.4, gdpLbl:'Q4 2025, INE', cpi:3.8, cpiLbl:'Apr 2026, INE', ...rateNotRead('BCCh') },
          partners:['China','United States','Brazil','Japan','South Korea','Argentina'] },
   170: { currency:'COP', tz:'America/Bogota',     exchange:'BVC',         index:'COLCAP',       flag:'🇨🇴',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, DANE', cpi:5.8, cpiLbl:'Apr 2026, DANE', rate:9.25, rateLbl:'May 2026, BanRep' },
+         macro:{ gdp:2.8, gdpLbl:'Q4 2025, DANE', cpi:5.8, cpiLbl:'Apr 2026, DANE', ...rateNotRead('BanRep') },
          partners:['United States','China','Panama','Ecuador','Mexico','Brazil'] },
   // ── Middle East & Africa ──
   682: { currency:'SAR', tz:'Asia/Riyadh',        exchange:'Tadawul',     index:'TASI',         flag:'🇸🇦',
-         macro:{ gdp:1.8, gdpLbl:'Q4 2025, GASTAT', cpi:2.0, cpiLbl:'Apr 2026, GASTAT', rate:5.50, rateLbl:'May 2026, SAMA' },
+         macro:{ gdp:1.8, gdpLbl:'Q4 2025, GASTAT', cpi:2.0, cpiLbl:'Apr 2026, GASTAT', ...policyRate('sama') },
          partners:['China','Japan','South Korea','India','United States','Australia'] },
   784: { currency:'AED', tz:'Asia/Dubai',         exchange:'ADX',         index:'DFM General',  flag:'🇦🇪',
-         macro:{ gdp:4.5, gdpLbl:'2025, StatCo', cpi:2.3, cpiLbl:'Mar 2026, StatCo', rate:4.40, rateLbl:'May 2026, CBUAE' },
+         macro:{ gdp:4.5, gdpLbl:'2025, StatCo', cpi:2.3, cpiLbl:'Mar 2026, StatCo', ...policyRate('cbuae') },
          partners:['China','India','United States','Japan','Saudi Arabia','Germany'] },
   818: { currency:'EGP', tz:'Africa/Cairo',       exchange:'EGX',         index:'EGX 30',       flag:'🇪🇬',
-         macro:{ gdp:4.2, gdpLbl:'FY25, CAPMAS', cpi:24.1, cpiLbl:'Apr 2026, CAPMAS', rate:27.25, rateLbl:'May 2026, CBE' },
+         macro:{ gdp:4.2, gdpLbl:'FY25, CAPMAS', cpi:24.1, cpiLbl:'Apr 2026, CAPMAS', ...policyRate('cbe') },
          partners:['China','United States','Saudi Arabia','UAE','Turkey','Italy'] },
   566: { currency:'NGN', tz:'Africa/Lagos',       exchange:'NGX',         index:'NGX All-Share', flag:'🇳🇬',
-         macro:{ gdp:3.2, gdpLbl:'Q4 2025, NBS', cpi:33.2, cpiLbl:'Apr 2026, NBS', rate:27.50, rateLbl:'May 2026, CBN' },
+         macro:{ gdp:3.2, gdpLbl:'Q4 2025, NBS', cpi:33.2, cpiLbl:'Apr 2026, NBS', ...policyRate('cbn') },
          partners:['India','Spain','United States','China','Netherlands','South Africa'] },
   710: { currency:'ZAR', tz:'Africa/Johannesburg',exchange:'JSE',         index:'JSE All Share', flag:'🇿🇦',
-         macro:{ gdp:1.1, gdpLbl:'Q4 2025, StatSA', cpi:3.2, cpiLbl:'Apr 2026, StatSA', rate:7.50, rateLbl:'May 2026, SARB' },
+         macro:{ gdp:1.1, gdpLbl:'Q4 2025, StatSA', cpi:3.2, cpiLbl:'Apr 2026, StatSA', ...policyRate('sarb') },
          partners:['China','United States','Germany','United Kingdom','Japan','India'] },
   // ── Europe ──
   250: { currency:'EUR', tz:'Europe/Paris',       exchange:'Euronext',    index:'CAC 40',       flag:'🇫🇷',
          macro:{ gdp:1.2, gdpLbl:'Q1 2026, Eurostat', cpi:2.2, cpiLbl:'May 2026, INSEE', rate:VERIFIED_CONSTANTS.ecb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.ecb.lastDecision}, ECB` },
          partners:['Germany','United States','Italy','Belgium','Spain','Netherlands'] },
   792: { currency:'TRY', tz:'Europe/Istanbul',    exchange:'Borsa Istanbul',index:'BIST 100',   flag:'🇹🇷',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, Turkstat', cpi:38.1, cpiLbl:'Apr 2026, Turkstat', rate:42.50, rateLbl:'May 2026, TCMB' },
+         macro:{ gdp:2.8, gdpLbl:'Q4 2025, Turkstat', cpi:38.1, cpiLbl:'Apr 2026, Turkstat', ...policyRate('tcmb') },
          partners:['Russia','Germany','China','United States','Italy','United Kingdom'] },
   756: { currency:'CHF', tz:'Europe/Zurich',      exchange:'SIX',         index:'SMI',          flag:'🇨🇭',
          macro:{ gdp:1.5, gdpLbl:'Q4 2025, FSO', cpi:0.3, cpiLbl:'Apr 2026, FSO', rate:VERIFIED_CONSTANTS.snb.cashRate, rateLbl:`${VERIFIED_CONSTANTS.snb.lastDecision}, SNB` },
          partners:['Germany','United States','China','France','Italy','United Kingdom'] },
   578: { currency:'NOK', tz:'Europe/Oslo',        exchange:'Oslo Bors',   index:'OBX',          flag:'🇳🇴',
-         macro:{ gdp:1.8, gdpLbl:'Q4 2025, SSB', cpi:2.6, cpiLbl:'Apr 2026, SSB', rate:4.50, rateLbl:'May 2026, Norges Bank' },
+         macro:{ gdp:1.8, gdpLbl:'Q4 2025, SSB', cpi:2.6, cpiLbl:'Apr 2026, SSB', ...policyRate('norges') },
          partners:['Germany','United Kingdom','Netherlands','United States','Sweden','China'] },
   752: { currency:'SEK', tz:'Europe/Stockholm',   exchange:'Nasdaq Stockholm',index:'OMXS30',   flag:'🇸🇪',
          macro:{ gdp:1.2, gdpLbl:'Q4 2025, SCB', cpi:1.8, cpiLbl:'Apr 2026, SCB', rate:VERIFIED_CONSTANTS.riksbank.cashRate, rateLbl:`${VERIFIED_CONSTANTS.riksbank.lastDecision}, Riksbank` },
          partners:['Germany','Norway','United States','Denmark','Finland','Netherlands'] },
   643: { currency:'RUB', tz:'Europe/Moscow',      exchange:'MOEX',        index:'MOEX',         flag:'🇷🇺',
-         macro:{ gdp:2.2, gdpLbl:'2025, Rosstat', cpi:9.8, cpiLbl:'Apr 2026, Rosstat', rate:21.00, rateLbl:'Apr 2026, CBR' },
+         macro:{ gdp:2.2, gdpLbl:'2025, Rosstat', cpi:9.8, cpiLbl:'Apr 2026, Rosstat', ...policyRate('cbr') },
          partners:['China','India','Turkey','Belarus','Kazakhstan','UAE'] },
   // ── Asia ──
   344: { currency:'HKD', tz:'Asia/Hong_Kong',     exchange:'HKEX',        index:'Hang Seng',    flag:'🇭🇰',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, CSD', cpi:1.8, cpiLbl:'Mar 2026, CSD', rate:4.75, rateLbl:'May 2026, HKMA' },
+         macro:{ gdp:2.8, gdpLbl:'Q4 2025, CSD', cpi:1.8, cpiLbl:'Mar 2026, CSD', ...policyRate('hkma') },
          partners:['China','United States','Japan','Taiwan','India','Singapore'] },
   158: { currency:'TWD', tz:'Asia/Taipei',        exchange:'TWSE',        index:'TAIEX',        flag:'🇹🇼',
-         macro:{ gdp:3.8, gdpLbl:'Q4 2025, DGBAS', cpi:2.1, cpiLbl:'Apr 2026, DGBAS', rate:2.00, rateLbl:'Mar 2026, CBC' },
+         macro:{ gdp:3.8, gdpLbl:'Q4 2025, DGBAS', cpi:2.1, cpiLbl:'Apr 2026, DGBAS', ...policyRate('cbc') },
          partners:['China','United States','Japan','South Korea','Hong Kong','Singapore'] },
   704: { currency:'VND', tz:'Asia/Ho_Chi_Minh',   exchange:'HOSE',        index:'VN-Index',     flag:'🇻🇳',
-         macro:{ gdp:6.8, gdpLbl:'Q1 2026, GSO', cpi:3.2, cpiLbl:'Apr 2026, GSO', rate:4.50, rateLbl:'May 2026, SBV' },
+         macro:{ gdp:6.8, gdpLbl:'Q1 2026, GSO', cpi:3.2, cpiLbl:'Apr 2026, GSO', ...policyRate('sbv') },
          partners:['China','United States','South Korea','Japan','Australia','Germany'] },
   764: { currency:'THB', tz:'Asia/Bangkok',       exchange:'SET',         index:'SET',          flag:'🇹🇭',
-         macro:{ gdp:2.8, gdpLbl:'Q4 2025, NESDC', cpi:0.8, cpiLbl:'Apr 2026, MOC', rate:2.00, rateLbl:'May 2026, BoT' },
+         macro:{ gdp:2.8, gdpLbl:'Q4 2025, NESDC', cpi:0.8, cpiLbl:'Apr 2026, MOC', ...policyRate('bot') },
          partners:['China','United States','Japan','Vietnam','Singapore','Malaysia'] },
   458: { currency:'MYR', tz:'Asia/Kuala_Lumpur',  exchange:'Bursa',       index:'FBMKLCI',      flag:'🇲🇾',
-         macro:{ gdp:4.5, gdpLbl:'Q4 2025, DOSM', cpi:1.8, cpiLbl:'Mar 2026, DOSM', rate:3.00, rateLbl:'May 2026, BNM' },
+         macro:{ gdp:4.5, gdpLbl:'Q4 2025, DOSM', cpi:1.8, cpiLbl:'Mar 2026, DOSM', ...policyRate('bnm') },
          partners:['China','Singapore','United States','Japan','Thailand','Australia'] },
   608: { currency:'PHP', tz:'Asia/Manila',        exchange:'PSE',         index:'PSEi',         flag:'🇵🇭',
-         macro:{ gdp:5.8, gdpLbl:'Q1 2026, PSA', cpi:3.2, cpiLbl:'Apr 2026, PSA', rate:5.50, rateLbl:'May 2026, BSP' },
+         macro:{ gdp:5.8, gdpLbl:'Q1 2026, PSA', cpi:3.2, cpiLbl:'Apr 2026, PSA', ...policyRate('bsp') },
          partners:['China','United States','Japan','Hong Kong','South Korea','Singapore'] },
   360: { currency:'IDR', tz:'Asia/Jakarta',       exchange:'IDX',         index:'JCI',          flag:'🇮🇩',
-         macro:{ gdp:4.9, gdpLbl:'Q1 2026, BPS', cpi:2.5, cpiLbl:'Apr 2026, BPS', rate:5.75, rateLbl:'May 2026, BI' },
+         macro:{ gdp:4.9, gdpLbl:'Q1 2026, BPS', cpi:2.5, cpiLbl:'Apr 2026, BPS', ...policyRate('bi') },
          partners:['China','Japan','United States','Singapore','India','Australia'] },
   586: { currency:'PKR', tz:'Asia/Karachi',       exchange:'PSX',         index:'KSE 100',      flag:'🇵🇰',
-         macro:{ gdp:2.4, gdpLbl:'FY25, PBS', cpi:12.4, cpiLbl:'Apr 2026, PBS', rate:12.00, rateLbl:'May 2026, SBP' },
+         macro:{ gdp:2.4, gdpLbl:'FY25, PBS', cpi:12.4, cpiLbl:'Apr 2026, PBS', ...policyRate('sbp') },
          partners:['China','United Arab Emirates','United States','Saudi Arabia','Afghanistan','Germany'] },
   // ── Ukraine (conflict — data as available) ──
   804: { currency:'UAH', tz:'Europe/Kyiv',        exchange:'PFTS',        index:'UX',           flag:'🇺🇦',
-         macro:{ gdp:-4.0, gdpLbl:'2023, SSSU', cpi:12.0, cpiLbl:'Apr 2025, SSSU', rate:14.5, rateLbl:'Apr 2025, NBU' },
+         macro:{ gdp:-4.0, gdpLbl:'2023, SSSU', cpi:12.0, cpiLbl:'Apr 2025, SSSU', ...policyRate('nbu') },
          partners:['Germany','Poland','United States','Romania','Turkey','China'] },
 }
 
@@ -697,8 +710,16 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
   const gdpLbl      = detail?.macro?.gdpLbl ?? null
   const inflation   = detail?.macro?.cpi   ?? enriched?.inflation   ?? null
   const inflLbl     = detail?.macro?.cpiLbl ?? null
-  const intRate     = detail?.macro?.rate  ?? enriched?.interestRate ?? null
-  const intRateLbl  = detail?.macro?.rateLbl ?? null
+  // Policy rate: only a figure checked against its bank (verifiedConstants).
+  // The country database's own typed rates were removed on 15 Nov; a euro
+  // member without its own row takes the verified ECB rate.
+  const ecbMember   = !detail?.macro && enriched?.interestRateBank === 'European Central Bank'
+  const intRate     = detail?.macro?.rate ?? (ecbMember ? VERIFIED_CONSTANTS.ecb.cashRate : null)
+  const intRateLbl  = detail?.macro?.rateLbl ?? (ecbMember ? `${VERIFIED_CONSTANTS.ecb.lastDecision}, ECB` : null)
+  const intRateUrl  = detail?.macro?.rateUrl ?? null
+  const intRateChecked = detail?.macro?.rateChecked ?? (ecbMember ? VERIFIED_CONSTANTS.ecb.lastVerified : null)
+  const intRateNone = detail?.macro?.rateNone ?? null
+  const intRateNotRead = detail?.macro?.rateNotRead ?? null
   const intRateBank = enriched?.interestRateBank ?? null
   const unemployment = enriched?.unemployment ?? null
 
@@ -947,11 +968,13 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd = null, curre
             <div className="text-right">
               {intRate != null
                 ? <span className="text-terminal-blue-bright font-bold">{intRate}%</span>
-                : <span className="text-terminal-text-bright">—</span>
+                : <span className="text-terminal-text-bright">{intRateNone ? 'No policy rate' : '—'}</span>
               }
               {intRateLbl && <span className="text-terminal-text-dim/60 ml-1">{intRateLbl}</span>}
-              {intRateLbl && <OutOfDate label={intRateLbl} kind="rate" />}
-              {intRateBank && !intRateLbl && <span className="text-terminal-text-dim/60 ml-1">{intRateBank}</span>}
+              {intRateUrl && <a href={intRateUrl} target="_blank" rel="noopener noreferrer" className="text-terminal-text-dim/60 ml-1 underline" data-rate-source>source</a>}
+              {intRateLbl && <OutOfDate label={intRateChecked ? `${intRateChecked}, checked` : intRateLbl} kind="rate" />}
+              {(intRateNone || intRateNotRead) && <span className="block text-2xs text-terminal-text-dim/60" data-rate-note>{intRateNone ?? intRateNotRead}</span>}
+              {intRateBank && !intRateLbl && !intRateNone && !intRateNotRead && <span className="text-terminal-text-dim/60 ml-1">{intRateBank}: rate not held</span>}
             </div>
           </div>
           <PRow label="Unemployment" value={unemployment != null ? `${unemployment}%` : null} />

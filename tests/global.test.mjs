@@ -163,7 +163,8 @@ test('Global: a hand-entered country figure older than its cycle is marked, neve
   assert.ok(!pastCycle('2025, INDEC', 'release', now), 'an annual figure lasts a year past its period')
   assert.ok(!pastCycle('as advised', 'rate', now), 'an unparsed label is left unmarked, not guessed')
   const mod = read('src/modules/global/GlobalModule.jsx')
-  for (const l of ['gdpLbl', 'inflLbl', 'intRateLbl']) assert.match(mod, new RegExp(`<OutOfDate label=\\{${l}\\}`))
+  for (const l of ['gdpLbl', 'inflLbl']) assert.match(mod, new RegExp(`<OutOfDate label=\\{${l}\\}`))
+  assert.ok(mod.includes('<OutOfDate label={intRateChecked ? `${intRateChecked}, checked` : intRateLbl} kind="rate" />'), 'rates age from the date they were checked')
   assert.match(mod, /<DataBadge cls="DELAYED" source="hand-entered · period and agency on each line"/)
 })
 
@@ -188,4 +189,24 @@ test('Global #13: open count follows the clock; close, pin and filter buttons ar
   assert.match(css, /\.intel-ticker:focus-within \.intel-ticker-track,\n\.intel-ticker\.is-paused \.intel-ticker-track \{ animation-play-state: paused; \}/)
   assert.match(read('src/modules/global/DeckGLMap.jsx'), /concat\(licenceOff\('esri'\) \? \[\] :/)
   assert.match(read('src/modules/global/DeckGLMap.jsx'), /useState\('dark'\)/, 'the basemap is not restored from storage, so a saved Esri choice cannot load')
+})
+
+test('Global: every policy rate shown was checked against its own bank; unverified ones are not shown; no typed rate remains', async () => {
+  const { POLICY_RATES, POLICY_RATES_CHECKED } = await import('../src/data/verifiedConstants.js')
+  const OWN = { rbi: 'rbi.org.in', bok: 'bok.or.kr', mas: 'mas.gov.sg', bcb: 'bcb.gov.br', banxico: 'banxico.org.mx', bcra: 'bcra.gob.ar', sama: 'sama.gov.sa', cbuae: 'centralbank.ae', cbe: 'cbe.org.eg', cbn: 'cbn.gov.ng', sarb: 'resbank.co.za', tcmb: 'tcmb.gov.tr', norges: 'norges-bank.no', cbr: 'cbr.ru', hkma: 'hkma.gov.hk', cbc: 'cbc.gov.tw', sbv: 'sbv.gov.vn', bot: 'bot.or.th', bnm: 'bnm.gov.my', bsp: 'bsp.gov.ph', bi: 'bi.go.id', sbp: 'sbp.org.pk', nbu: 'bank.gov.ua' }
+  assert.deepEqual(Object.keys(POLICY_RATES).sort(), Object.keys(OWN).sort())
+  assert.match(POLICY_RATES_CHECKED, /^\d{4}-\d{2}-\d{2}$/)
+  for (const [k, p] of Object.entries(POLICY_RATES)) {
+    assert.equal(new URL(p.url).hostname.replace(/^www\./, ''), OWN[k], `${k} is sourced from its own bank`)
+    assert.match(p.decided, /^\d{4}-\d{2}-\d{2}$/, k)
+    assert.ok(p.none ? p.rate == null : Number.isFinite(p.rate), k)
+  }
+  const mod = read('src/modules/global/GlobalModule.jsx')
+  const start = mod.indexOf('const COUNTRY_DETAIL = {')
+  const table = mod.slice(start, mod.indexOf('\n}\n', start))
+  assert.doesNotMatch(table, /rate:\s*[\d.]+/, 'no typed policy rate in the country table')
+  for (const bank of ['BCCh', 'BanRep']) assert.ok(table.includes(`rateNotRead('${bank}')`), bank)
+  assert.doesNotMatch(mod, /enriched\?\.interestRate\b/)
+  assert.doesNotMatch(read('src/data/countryDatabase.js'), /^\s*interestRate:/m)
+  assert.doesNotMatch(read('src/hooks/useCountryData.js'), /interestRate:\s/)
 })

@@ -51,6 +51,52 @@ badged DEMO until a licensed ASX feed is connected.
 | Financial Modeling Prep | Economic calendar; equity and index quotes and history (the only live equity code path) | financialmodelingprep.com terms | No — no commercial use; display in apps needs an agreement | — | — | **OFF, fails closed** (`fmp`). Every FMP request goes through `fmpFetch()` in `src/services/api.js`, which checks the switch first; the calendar checks it too. With the switch off no request is made whatever key is set, and equities stay DEMO. Until 3 Nov 2026 any of `VITE_FMP_API_KEY`, `VITE_POLYGON_KEY` or `VITE_TD_API_KEY` turned on FMP requests (a Polygon key also badged them "Polygon"); the live bundle checked on 3 Nov 2026 has none of these keys (the key compiles to `demo`, equities to DEMO), so production made no FMP requests. Tested in `tests/dataSources.test.mjs` with each key |
 | Twelve Data | Index constituents (planned) | twelvedata.com/terms | No — free tier: no commercial use or external display | — | — | **OFF** (`twelvedata`; no calls in code). `VITE_TD_API_KEY` no longer changes anything (it used to switch on FMP requests) |
 
+## Central-bank policy rates (Global country panel)
+
+Hand-entered, each read on **15 Nov 2026** from the bank's own website (press
+release, decision page or official PDF; third-party sites were used only to
+find the page). Held in `POLICY_RATES` in `src/data/verifiedConstants.js`
+(`POLICY_RATES_CHECKED`); the panel shows the rate, the decision date and a
+link to the page below, and marks it "may be out of date" 60 days after the
+check. The ten largest banks (RBA, Fed, ECB, BoE, BoJ, BoC, RBNZ, PBoC, SNB,
+Riksbank) are in their own blocks in the same file. Central-bank statements
+are public announcements; no feed is called, so no API terms apply.
+
+| Country | Rate | Value | Decision | Official page read |
+|---|---|---|---|---|
+| India | RBI repo rate | 5.50% | 2026-10-07 | https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=63742 |
+| South Korea | BoK Base Rate | 3.00% | 2026-10-22 (held) | https://www.bok.or.kr/eng/main/main.do |
+| Singapore | MAS | none: MAS sets no policy interest rate; it manages the S$ trade-weighted exchange rate (S$NEER) | 2026-10-14 | https://www.mas.gov.sg/monetary-policy/singapores-monetary-policy-framework |
+| Brazil | BCB Selic target | 13.75% | 2026-11-04 (held) | https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados_detalhes?nro_reuniao=282 |
+| Mexico | Banxico overnight interbank rate target | 6.25% | 2026-11-05, effective 2026-11-06 | https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7B43236252-D06E-5231-27E8-058810A86A52%7D.pdf |
+| Argentina | BCRA | none: BCRA has had no monetary policy rate since June 2025; it targets monetary aggregates | 2025-06-30 | https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/informe-politica-monetaria-2026-T2.pdf |
+| Saudi Arabia | SAMA repo rate | 4.50% | 2026-09-16 | https://www.sama.gov.sa/en-US/MediaCenter/News/Pages/news-1169.aspx |
+| UAE | CBUAE Base Rate | 3.90% | 2026-09-16, effective 2026-09-17 | https://centralbank.ae/media/dv3bo3ed/cbuae-raises-the-base-rate-by-25-basis-points-en.pdf |
+| Egypt | CBE overnight deposit rate | 20.00% | 2026-10-29, effective 2026-11-01 | https://www.cbe.org.eg/en/news-publications/news/2026/10/29/13/08/mpc-press-release-29-october-2026 |
+| Nigeria | CBN Monetary Policy Rate | 23.00% | 2026-09-22 | https://www.cbn.gov.ng/MonetaryPolicy/decisions.html |
+| South Africa | SARB policy rate | 7.25% | 2026-09-23, effective 2026-09-25 | https://www.resbank.co.za/content/dam/sarb/publications/statements/monetary-policy-statements/2026/september/september-statement.pdf |
+| Türkiye | TCMB one-week repo rate | 36.00% | 2026-10-22 | https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/2026/ANO2026-45 |
+| Norway | Norges Bank policy rate | 4.50% | 2026-09-23 | https://www.norges-bank.no/en/news-events/news/Press-releases/2026/2026-09-24-rate/ |
+| Russia | CBR key rate | 14.00% | 2026-10-23 (held) | https://www.cbr.ru/eng/press/keypr/ |
+| Hong Kong | HKMA Base Rate | 4.25% | 2026-09-17 | https://www.hkma.gov.hk/eng/news-and-media/press-releases/2026/09/20260917-3/ |
+| Taiwan | CBC discount rate | 2.00% | 2026-09-17 (held) | https://www.cbc.gov.tw/en/cp-448-192883-c5fa1-2.html |
+| Vietnam | SBV refinancing rate | 4.50% | 2023-06-16 | https://www.sbv.gov.vn/en/l%C3%A3i-su%E1%BA%A5t1 |
+| Thailand | BoT policy rate | 1.00% | 2026-10-28 (held) | https://www.bot.or.th/en/news-and-media/news/mpc/news-20261028-5FWvBPSf.html |
+| Malaysia | BNM Overnight Policy Rate | 2.75% | 2026-11-05 (held) | https://www.bnm.gov.my/-/monetary-policy-statement-05112026 |
+| Philippines | BSP target RRP rate | 5.50% | 2026-10-22, effective 2026-10-23 | https://www.bsp.gov.ph/statistics/keystat/sefi.pdf |
+| Indonesia | BI BI-Rate | 5.75% | 2026-10-21 (held) | https://www.bi.go.id/en/publikasi/ruang-media/news-release/Pages/sp_2823326.aspx |
+| Pakistan | SBP policy rate | 12.00% | 2026-10-26, effective 2026-10-27 | https://www.sbp.org.pk/assets/documents/press-release/PR-26-Oct-2026.pdf |
+| Ukraine | NBU key policy rate | 16.50% | 2026-10-29, effective 2026-10-30 | https://bank.gov.ua/en/news/all/natsionalniy-bank-ukrayini-pidvischiv-oblikovu-stavku-do-165 |
+| Chile | BCCh monetary policy rate | **not shown** | — | bcentral.cl blocked automated reading (Incapsula) on 15 Nov; not verified, so removed |
+| Colombia | BanRep policy rate | **not shown** | — | banrep.gov.co behind a bot check on 15 Nov; not verified, so removed |
+
+The rates these replaced were typed in May 2026 (Ukraine April 2025); 14 of the
+21 that still exist had changed, among them Türkiye 42.50→36.00, Russia
+21.00→14.00, Egypt 27.25→20.00 and Mexico 9.00→6.25. Singapore's "3.04 MAS"
+was not a policy rate. `countryDatabase.js` carried a second set of typed
+rates for about 40 countries, used when a country had no row here; it was
+removed, and a euro member without a row shows the verified ECB rate.
+
 ## News feeds (headline, short summary, link to the publisher)
 
 | Publisher | Terms | Commercial display? | Attribution | Status |
