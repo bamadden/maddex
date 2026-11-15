@@ -1,6 +1,5 @@
 // Three variants:
 // <DataUnavailable onRetry={fn} label="..." />  — general failure
-// <UpgradeRequired feature="..." />  — premium API required
 // <RateLimited service="..." onRetry={fn} />  — 429/quota exhausted
 
 export function DataUnavailable({ label = 'DATA UNAVAILABLE', onRetry, className = '' }) {
@@ -16,15 +15,6 @@ export function DataUnavailable({ label = 'DATA UNAVAILABLE', onRetry, className
           RETRY
         </button>
       )}
-    </div>
-  )
-}
-
-export function UpgradeRequired({ feature = 'This data' }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-1 p-4 text-center">
-      <span className="text-terminal-gold text-2xs font-bold">&#11014; UPGRADE REQUIRED</span>
-      <span className="text-terminal-text-dim text-2xs">{feature} requires a premium API subscription</span>
     </div>
   )
 }
