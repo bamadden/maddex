@@ -147,6 +147,16 @@ and rankings were removed the same day, and the World Bank country fetch is
 switched off (`worldbank` in `src/data/sourceLicence.js`; its API terms are
 under review).
 
+## Macro references read 16 Nov 2026 (Macro module)
+
+| Item | Source | What is held |
+|---|---|---|
+| RBA Monetary Policy Board | https://www.rba.gov.au/about-rba/boards/monetary-policy-board.html | Names and roles of the nine members (`RBA_BOARD_READ`); the earlier list was the pre-2025 Reserve Bank Board |
+| RBA growth and NAIRU assessment | https://www.rba.gov.au/publications/smp/2026/nov/outlook.html | The RBA's words only: growth "a little below its potential growth rate"; NAIRU raised "a little", no figure published. The 2.25% growth line is a stated Maddex reference, not an RBA estimate |
+| Household spending, Sep 2026 | https://www.abs.gov.au/statistics/economy/finance/monthly-household-spending-indicator/latest-release | +0.6% m/m, 6.8% y/y (current price, SA), released 4 Nov; next 30 Nov |
+| Monthly CPI | https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release | 6401.0 is the monthly CPI (reference period Sep 2026, released 28 Oct) |
+| Removed | — | ASX 200 P/E and dividend yield (May, no dated source page), CoreLogic home values (June) |
+
 ## Release and meeting calendars (Dashboard, Calendar, Rates)
 
 Read on **15 Nov 2026** from each publisher's own calendar. Held in
