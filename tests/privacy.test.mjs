@@ -143,3 +143,32 @@ test('Export and Delete account use each table\'s real owner column', async () =
   }
   for (const [t, col] of [...OWN_TABLES, ...delTables]) assert.match(columnsOf(t), new RegExp(`\\b${col}\\b`), `${t}.${col}`)
 })
+
+// Every table any migration creates must be covered by BOTH export and
+// delete: read by the browser (OWN_TABLES) or by api/account-export, and
+// deleted by api/account-delete. A new table fails here until it is added
+// to both (Phase C, 16 Nov 2026).
+test('export and delete cover every table the migrations create', async () => {
+  const { SERVER_TABLES } = await import('../src/services/accountData.js')
+  const { SERVER_EXPORT_TABLES } = await import('../api/account-export.js')
+  const migrations = fs.readdirSync('supabase/migrations').map((f) => fs.readFileSync(`supabase/migrations/${f}`, 'utf8')).join('\n')
+  const created = [...new Set([...migrations.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\.(\w+)/gi)].map((m) => m[1]))]
+  assert.ok(created.length >= 10, `found ${created.length}`)
+  const del = fs.readFileSync('api/account-delete.js', 'utf8')
+  for (const t of created) {
+    const exported = OWN_TABLES.some(([n]) => n === t) || (SERVER_TABLES.includes(t) && SERVER_EXPORT_TABLES.some(([n]) => n === t))
+    assert.ok(exported, `${t}: not in Export my data`)
+    assert.match(del, new RegExp(`\\['${t}',|rest/v1/${t}\\?`), `${t}: not deleted by api/account-delete`)
+  }
+})
+
+test('export reads the server-held tables through the signed-in export endpoint', async () => {
+  const client = fakeClient({})
+  const calls = []
+  const fetchImpl = async (u, o) => { calls.push([u, o.headers.authorization]); return { ok: true, json: async () => ({ tables: { waitlist: [{ email: 'a@example.com', source: 'newsletter' }] } }) } }
+  const d = await collectMyData(USER, { client, storage: mem({}), fetchImpl })
+  assert.deepEqual(calls, [['/api/account-export', 'Bearer tok']])
+  assert.deepEqual(d.tables.waitlist, [{ email: 'a@example.com', source: 'newsletter' }])
+  const failing = await collectMyData(USER, { client, storage: mem({}), fetchImpl: async () => ({ ok: false }) })
+  assert.match(failing.tables.waitlist.unavailable, /held on the server/)
+})

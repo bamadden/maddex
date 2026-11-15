@@ -21,6 +21,10 @@ export const OWN_TABLES = [
 // Deletable by the user under row-level security; the rest go through the server.
 const USER_DELETABLE = ['watchlist', 'portfolio_holdings', 'price_alerts', 'ai_notes', 'shared_links', 'user_settings', 'profiles']
 
+// Held about the user but readable only by the server (api/account-export),
+// and deleted by the server (api/account-delete).
+export const SERVER_TABLES = ['waitlist']
+
 export const LOCAL_PREFIXES = ['maddex_', 'madden_']
 
 export function localData(storage = globalThis.localStorage) {
@@ -45,7 +49,7 @@ export function clearLocalData(storage = globalThis.localStorage) {
   } catch { return 0 }
 }
 
-export async function collectMyData(user, { client = supabase, storage = globalThis.localStorage, now = new Date() } = {}) {
+export async function collectMyData(user, { client = supabase, storage = globalThis.localStorage, now = new Date(), fetchImpl = globalThis.fetch } = {}) {
   const tables = {}
   if (user) {
     await Promise.all(OWN_TABLES.map(async ([t, col]) => {
@@ -54,6 +58,14 @@ export async function collectMyData(user, { client = supabase, storage = globalT
         tables[t] = error ? { unavailable: error.message } : data
       } catch (e) { tables[t] = { unavailable: e.message } }
     }))
+    // The waitlist and newsletter rows, which the user cannot read under
+    // row-level security: read for them by api/account-export.
+    try {
+      const token = (await client.auth.getSession()).data?.session?.access_token
+      const r = await fetchImpl('/api/account-export', { method: 'POST', headers: token ? { authorization: `Bearer ${token}` } : {} })
+      const body = r.ok ? await r.json() : null
+      for (const t of SERVER_TABLES) tables[t] = body?.tables?.[t] ?? { unavailable: 'held on the server and could not be read just now; ask Maddex for a copy (see Contact in the Privacy Policy)' }
+    } catch { for (const t of SERVER_TABLES) tables[t] = { unavailable: 'held on the server and could not be read just now' } }
   }
   return {
     exported_at: now.toISOString(),
