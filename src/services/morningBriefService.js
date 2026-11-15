@@ -35,8 +35,8 @@ Generate a JSON object:
 {
   "headline": "One sentence naming the single most important thing about today",
   "scoreLabel": "POSITIVE" | "MIXED, LEANING POSITIVE" | "MIXED" | "MIXED, LEANING NEGATIVE" | "NEGATIVE" (the tone of the morning's news and data, in words; give no score and no market call — the terminal computes its own score),
-  "scoreRationale": "One sentence justifying that outlook specifically",
-  "scoreDriver": "One short line naming what is driving the outlook, e.g. 'Materials leading; the rate hike weighing on property'",
+  "scoreRationale": "One sentence on why that is the tone, from the supplied news and figures",
+  "scoreDriver": "One short line naming what set that tone, e.g. 'Materials higher; property lower after the rate decision'",
   "scoreBreakdown": [
     { "name": "MACRO ENVIRONMENT", "note": "One line, e.g. 'High inflation, moderate growth'" },
     { "name": "MARKET MOMENTUM", "note": "One line on breadth, trend and flows as far as the supplied figures allow" },

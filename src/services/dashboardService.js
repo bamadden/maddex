@@ -18,7 +18,7 @@ const WIDGET_CATALOGUE = [
   { id: 'activity-feed',         name: 'Activity Feed',      category: 'Portfolio', minW: 1, minH: 1, description: 'Recent terminal activity' },
   { id: 'fx-rates',              name: 'FX Rates',           category: 'Markets',   minW: 1, minH: 1, live: true, description: 'Live AUD pairs' },
   { id: 'crypto-overview',       name: 'Crypto Overview',    category: 'Crypto',    minW: 1, minH: 1, live: true, description: 'Top crypto prices' },
-  { id: 'rba-status',            name: 'RBA Status',         category: 'Macro',     minW: 1, minH: 1, description: 'Rate, next meeting, outlook' },
+  { id: 'rba-status',            name: 'RBA Status',         category: 'Macro',     minW: 1, minH: 1, description: 'Rate, last decision, next meeting' },
   { id: 'commodity-pulse',       name: 'Commodities',        category: 'Global',    minW: 1, minH: 1, description: 'Iron ore, gold, LNG prices' },
   { id: 'morning-brief-preview', name: 'Morning Brief',      category: 'AI',        minW: 1, minH: 1, description: 'Today\'s brief: score gauge and opening lines' },
   { id: 'bond-yield-widget',     name: 'Bond Yields',        category: 'Bonds',     minW: 1, minH: 1, description: 'AU 10Y and US 10Y yields and spread' },
@@ -112,7 +112,7 @@ PRESET_LAYOUTS.push(
   },
   {
     id: 'income', name: 'Income Investor', icon: '❖', columns: 2,
-    description: 'Dividends, yield against cash, and the rate outlook',
+    description: 'Dividends, yield against cash, and the cash rate',
     audience: 'For income investors — when the dividends land and what cash pays',
     widgets: [
       { widgetId: 'portfolio-snapshot',    col: 0, row: 0, w: 1, h: 1 },

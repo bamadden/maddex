@@ -62,3 +62,20 @@ test('the RBA history in prompts is built from the decision record, so it cannot
   assert.match(rbaYearInWords(2026), /3 Nov raised to 4\.85%$/)
   for (const f of ['src/modules/fx/FXModule.jsx', 'src/modules/macro/MacroModule.jsx']) assert.match(fs.readFileSync(f, 'utf8'), /rbaYearInWords\(new Date\(\)\.getFullYear\(\)\)/, f)
 })
+
+test('conversation starters and the default ASK AI text describe; no rankings, forecasts or portfolio advice', async () => {
+  const { GENERIC_STARTERS, getStarters } = await import('../src/services/aiStarters.js')
+  const { DEFAULT_INSTRUCTION } = await import('../src/utils/askAI.js')
+  const cards = [...GENERIC_STARTERS, ...['INCOME', 'GROWTH', 'BALANCED', 'SPECULATION'].flatMap((f) => getStarters({ focus: f, experience: 'beginner' }).cards)]
+  assert.equal(cards.length, 20)
+  const banned = /best risk-adjusted|right now|heading\?|\bsuits?\b|position sizing|what is missing|over-exposed|which offers the better|upside and downside cases|realistic downside|how should|priced in|outlook\b(?! and no| or)|technical levels/i
+  for (const c of cards) {
+    const t = `${c.title} ${c.subtitle} ${c.prompt}`.replace(/no outlook, no forecast/g, '')
+    assert.doesNotMatch(t, banned, c.title)
+    assert.match(c.prompt, /Describe only/, c.title)
+    assert.equal(adviceIntent(c.prompt), false, c.title)
+  }
+  assert.doesNotMatch(DEFAULT_INSTRUCTION.replace(/no outlook, no forecast/, ''), /outlook|technical levels|direct and specific/i)
+  assert.match(DEFAULT_INSTRUCTION, /Describe only/)
+  assert.doesNotMatch(fs.readFileSync('src/utils/askAI.js', 'utf8'), /\$\{date\} AEST/)
+})

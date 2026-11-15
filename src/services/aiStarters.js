@@ -13,15 +13,23 @@ import { experienceLabel } from './investorProfile.js'
 const RATE = `${VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}%`
 const title = (s) => s.charAt(0) + s.slice(1).toLowerCase()
 
+// Every card asks for description (16 Nov 2026). They used to ask "which ASX
+// stocks offer the best risk-adjusted yield right now", "where is the economy
+// heading", which investor each stock "suits", and to review the reader's
+// holdings for "position sizing" and "what is missing": rankings, forecasts
+// and personal advice. The holdings cards now ask for the composition as
+// given, never for a change to it.
+const DESCRIBE = 'Describe only: no outlook, no forecast and no suggestion of any action.'
+
 export const GENERIC_STARTERS = [
-  { icon: '⊞', title: 'Deep dive',        subtitle: 'BHP — the business, its drivers and its risks',
-    prompt: 'Analyse BHP.AX for me — the business, recent performance and its drivers, the metrics that matter for a miner, how it sits against its sector, the main risks, and what to watch next.' },
-  { icon: '◉', title: 'Macro read',       subtitle: `What a ${RATE} cash rate means for the ASX`,
-    prompt: 'Where is the Australian economy heading? Cover the RBA cash rate path, inflation, growth and unemployment, and what each means for ASX sectors, the AUD and bonds.' },
-  { icon: '⚖️', title: 'Compare',          subtitle: 'BHP vs RIO — which suits whom, and why',
-    prompt: 'Compare BHP and RIO. How do the two businesses actually differ, on which axes do they genuinely diverge, and what kind of investor does each suit?' },
-  { icon: '▦', title: 'Portfolio health', subtitle: 'Concentration risk and sector gaps',
-    prompt: 'Review my portfolio holdings for concentration risk and sector gaps. Where am I over-exposed, what is missing, and what are the main risks I should be aware of?' },
+  { icon: '⊞', title: 'Deep dive',        subtitle: 'BHP: the business, what it reports and its disclosed risks',
+    prompt: `Describe BHP.AX: the business, what it has reported recently, how it is usually measured as a miner, how it compares with its sector on the figures given, and the risks it discloses. ${DESCRIBE}` },
+  { icon: '◉', title: 'Macro read',       subtitle: `The ${RATE} cash rate and the latest figures`,
+    prompt: `Describe where the Australian economy stands on the latest published figures: the RBA cash rate and recent decisions, inflation, growth and unemployment, and the channels through which each is usually described as reaching ASX sectors, the AUD and bonds. ${DESCRIBE}` },
+  { icon: '⚖️', title: 'Compare',          subtitle: 'BHP and RIO: how the two businesses differ',
+    prompt: `Compare BHP and RIO as businesses: what each produces, where, and the figures each reports, and where the two genuinely differ. ${DESCRIBE} No verdict on which is better.` },
+  { icon: '▦', title: 'Portfolio make-up', subtitle: 'Weights by holding and sector',
+    prompt: `Describe the make-up of my holdings as given: the weight of each holding and each sector, and how concentrated the list is. ${DESCRIBE} Do not suggest adding, trimming or changing anything.` },
 ]
 
 // Two sectors to set against each other: the investor's own first two picks,
@@ -33,46 +41,45 @@ const DEFAULT_PAIR = {
   SPECULATION: ['ENERGY', 'MATERIALS'],
 }
 
+const makeUp = (what) => ({ icon: '▦', title: 'Portfolio make-up', subtitle: `My holdings by sector and ${what}`,
+  prompt: `Describe the make-up of my holdings as given: the weight of each holding and each sector, and ${what}. ${DESCRIBE} Do not suggest adding, trimming or changing anything.` })
+
 const BY_FOCUS = {
   INCOME: ([a, b]) => [
-    { icon: '◈', title: 'Dividend deep dive', subtitle: 'Which ASX stocks offer the best risk-adjusted yield right now?',
-      prompt: 'Which ASX stocks offer the best risk-adjusted yield right now? Weigh yield against payout ratio, earnings cover, franking and balance-sheet strength — a high yield on a falling share price is not the same as a reliable one.' },
-    { icon: '▦', title: 'Portfolio health check', subtitle: 'Review my holdings for concentration risk, sector gaps, and income gaps',
-      prompt: 'Review my holdings for concentration risk, sector gaps, and income gaps. Where is my income concentrated, how dependent is it on one sector, and what is missing?' },
-    { icon: '◉', title: 'Macro read for income', subtitle: `How does ${RATE} RBA rate affect dividend sustainability in AU banks?`,
-      prompt: `How does the ${RATE} RBA cash rate affect dividend sustainability in Australian banks? Cover net interest margins, bad-debt risk, capital requirements and payout ratios.` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — how do their dividends compare?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — how do the two sectors compare on dividends? Describe yield, payout reliability, franking and the cycle risk to each sector's dividends.` },
+    { icon: '◈', title: 'How dividends are measured', subtitle: 'Yield, payout ratio, cover and franking',
+      prompt: `Explain how dividends on ASX shares are described and measured: dividend yield, payout ratio, earnings cover and franking credits, and why a yield can rise because a share price has fallen. ${DESCRIBE} No stock names or rankings.` },
+    makeUp('where the dividend income in the list comes from by sector'),
+    { icon: '◉', title: 'Rates and bank dividends', subtitle: `The ${RATE} cash rate and how bank earnings are described`,
+      prompt: `Describe how a change in the RBA cash rate (now ${RATE}) is usually described as reaching Australian bank earnings and dividends: net interest margins, bad-debt charges, capital requirements and payout ratios. ${DESCRIBE}` },
+    { icon: '⚖️', title: 'Sector comparison', subtitle: `${title(a)} and ${title(b)}: dividends compared`,
+      prompt: `${title(a)} and ${title(b)} on the ASX: describe how the two sectors compare on dividends, on yield, payout history and franking, and the cycle risks each sector's dividends are exposed to. ${DESCRIBE}` },
   ],
   GROWTH: ([a, b]) => [
-    { icon: '◈', title: 'Growth screen', subtitle: 'Which ASX companies have the longest growth runway — and what is priced in?',
-      prompt: 'Which ASX companies have the longest growth runway, and how much of that growth is already priced in? Separate the business quality from the valuation risk.' },
-    { icon: '▦', title: 'Portfolio health check', subtitle: 'Review my holdings for concentration risk, sector gaps, and growth drivers',
-      prompt: 'Review my holdings for concentration risk, sector gaps, and growth drivers. Which positions carry the growth, how correlated are they, and what is missing?' },
-    { icon: '◉', title: 'Macro read for growth', subtitle: `How does a ${RATE} cash rate affect ASX growth valuations?`,
-      prompt: `How does a ${RATE} RBA cash rate affect the valuations of ASX growth stocks? Explain the discount-rate mechanism and which kinds of growth company are most exposed.` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — how do their growth drivers compare?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — how do the two sectors compare on growth? Describe earnings growth drivers and what could derail each.` },
+    { icon: '◈', title: 'How growth is measured', subtitle: 'Revenue and earnings growth, and what a valuation multiple means',
+      prompt: `Explain how growth in ASX companies is usually measured and described: revenue and earnings growth, reinvestment, and what a price-to-earnings multiple does and does not say. ${DESCRIBE} No stock names or rankings.` },
+    makeUp('which holdings are in growth sectors'),
+    { icon: '◉', title: 'Rates and valuations', subtitle: `How a ${RATE} cash rate is linked to growth valuations`,
+      prompt: `Explain the discount-rate mechanism by which interest rates are linked to the valuations of growth companies, with the RBA cash rate at ${RATE}, and which kinds of company it is usually described as affecting most. ${DESCRIBE}` },
+    { icon: '⚖️', title: 'Sector comparison', subtitle: `${title(a)} and ${title(b)}: growth drivers compared`,
+      prompt: `${title(a)} and ${title(b)} on the ASX: describe how the two sectors compare on growth, the earnings drivers each reports and the risks each discloses. ${DESCRIBE}` },
   ],
   BALANCED: ([a, b]) => [
-    { icon: '◈', title: 'Core and satellite', subtitle: 'How should a balanced ASX portfolio split core and satellite?',
-      prompt: 'How should a balanced Australian portfolio think about core holdings versus satellite positions — what belongs in each, and how do income and growth trade off?' },
-    { icon: '▦', title: 'Portfolio health check', subtitle: 'Review my holdings for balance between income and growth',
-      prompt: 'Review my holdings for concentration risk and sector gaps, and for the balance between income and growth. Where am I tilted, and what is missing?' },
-    { icon: '◉', title: 'Macro read', subtitle: `What a ${RATE} cash rate means for income and growth`,
-      prompt: `What does a ${RATE} RBA cash rate mean for both income and growth investments on the ASX? Which parts of a balanced portfolio does it help, and which does it hurt?` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — which offers the better balance now?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — which offers the better balance of income and growth now, and what are the main risks to each?` },
+    { icon: '◈', title: 'Core and satellite', subtitle: 'What the terms mean',
+      prompt: `Explain what "core" and "satellite" mean when portfolios are described, and how income and growth are distinguished. ${DESCRIBE} General terms only: no allocation for me or anyone.` },
+    makeUp('the split between income-paying and other holdings'),
+    { icon: '◉', title: 'Macro read', subtitle: `The ${RATE} cash rate, income and growth`,
+      prompt: `Describe the channels through which the RBA cash rate (now ${RATE}) is usually described as reaching income and growth investments on the ASX. ${DESCRIBE}` },
+    { icon: '⚖️', title: 'Sector comparison', subtitle: `${title(a)} and ${title(b)}: income and growth compared`,
+      prompt: `${title(a)} and ${title(b)} on the ASX: describe how the two sectors compare on income and growth, and the risks each is exposed to. ${DESCRIBE} No verdict on which is better.` },
   ],
   SPECULATION: ([a, b]) => [
-    { icon: '◈', title: 'Catalyst watch', subtitle: 'Near-term catalysts for ASX small caps — and the downside if they miss',
-      prompt: 'What kinds of near-term catalysts move ASX small caps, and what is the realistic downside when they do not land? Be explicit about risk.' },
-    { icon: '▦', title: 'Risk check', subtitle: 'Review my holdings for position sizing and downside risk',
-      prompt: 'Review my holdings for position sizing, concentration and downside risk. Where could one bad outcome do the most damage?' },
-    { icon: '◉', title: 'Macro read for risk', subtitle: `How does a ${RATE} cash rate change risk appetite?`,
-      prompt: `How does a ${RATE} RBA cash rate change the market's appetite for speculative ASX names? What would shift it either way?` },
-    { icon: '⚖️', title: 'Sector intelligence', subtitle: `${title(a)} vs ${title(b)} — what drives the volatility in each?`,
-      prompt: `${title(a)} vs ${title(b)} on the ASX — what drives the volatility in each sector, and what are the upside and downside cases each rests on?` },
+    { icon: '◈', title: 'Small-cap events', subtitle: 'The scheduled events ASX small caps report',
+      prompt: `Describe the kinds of scheduled events ASX small caps report (drilling results, approvals, contract decisions, capital raisings) and the risks they commonly disclose around them. ${DESCRIBE}` },
+    makeUp('the largest single holding'),
+    { icon: '◉', title: 'Rates and risk appetite', subtitle: `How a ${RATE} cash rate is linked to risk appetite`,
+      prompt: `Explain how interest rates, with the RBA cash rate at ${RATE}, are usually described as linked to demand for speculative shares. ${DESCRIBE}` },
+    { icon: '⚖️', title: 'Sector comparison', subtitle: `${title(a)} and ${title(b)}: what drives volatility in each`,
+      prompt: `${title(a)} and ${title(b)} on the ASX: describe what is usually described as driving price volatility in each sector. ${DESCRIBE}` },
   ],
 }
 

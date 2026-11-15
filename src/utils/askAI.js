@@ -1,4 +1,4 @@
-import { formatDate } from './dateUtils.js'
+import { formatDate, sydneyTzNow } from './dateUtils.js'
 // ─── Standardised "madden:ask-ai" prompt builder ──────────────────────────────
 // Every asset/headline/chokepoint "ASK AI" button across the terminal funnels
 // through here so AIPanel always receives the same header-field shape (for its
@@ -9,9 +9,12 @@ import { formatDate } from './dateUtils.js'
 
 const DISCLAIMER = 'General information only — not financial advice.'
 
+// Description only (16 Nov 2026): this used to ask for "key technical levels"
+// and "your near-term outlook" on every ASK AI button without its own text.
 export const DEFAULT_INSTRUCTION =
-  'Provide a concise professional analysis: current price action and key technical levels, ' +
-  'the 2-3 most important drivers right now, and your near-term outlook. Be direct and specific.'
+  'Describe this asset concisely: what it is, the price and the day\'s move as given above, ' +
+  'and the main factors usually described as affecting it. Describe only: no outlook, no forecast, ' +
+  'no price levels and no suggestion of any action.'
 
 export function todayAEST() {
   return formatDate(new Date())
@@ -25,7 +28,9 @@ function buildHeader({ name, ticker, exchange, price, change, sector, date }) {
   if (price) lines.push(`Current Price: ${price}`)
   if (change) lines.push(`Day Change: ${change}`)
   if (sector) lines.push(`Sector/Category: ${sector}`)
-  if (date) lines.push(`Date: ${date} AEST`)
+  // Sydney's date, labelled with the zone in force (AEDT in summer; this
+  // said AEST all year).
+  if (date) lines.push(`Date: ${date} (Sydney, ${sydneyTzNow()})`)
   return lines.join('\n')
 }
 
