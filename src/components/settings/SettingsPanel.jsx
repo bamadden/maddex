@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import DeviceOnlyNote from '../ui/DeviceOnlyNote'
 import { NewsletterCard } from '../newsletter/Newsletter'
 import { getReminders, removeReminder } from '../../services/calendarExtras'
 import { emailAlertsEnabled, setEmailAlertsEnabled, EMAIL_DELIVERY_AVAILABLE } from '../../services/alertEmailService'
@@ -766,6 +767,7 @@ function WorkspacesSection() {
   return (
     <div className="space-y-5">
       <SectionLabel>Workspaces</SectionLabel>
+      <DeviceOnlyNote what="workspaces" />
 
       <div className="space-y-1.5">
         {workspaces.map((ws) => {

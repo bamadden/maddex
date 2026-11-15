@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import DeviceOnlyNote from '../ui/DeviceOnlyNote'
 import { marketSession } from '../../services/newsIntelligence'
 import { sydneyOffset, formatDate } from '../../utils/dateUtils'
 import VERIFIED_CONSTANTS, { verifiedFactsForAI, pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
@@ -1439,6 +1440,7 @@ export default function AIPanel({ wide = false, onListening }) {
             </span>
             <button onClick={() => setShowInsights(false)} className="text-terminal-text-dim hover:text-terminal-gold text-xs">✕</button>
           </div>
+          <DeviceOnlyNote what="saved insights" className="px-2 py-1 border-b border-terminal-border/50" />
 
           {insights.length === 0 ? (
             <div className="flex-1 flex items-center justify-center px-4 text-center">
@@ -1599,6 +1601,7 @@ export default function AIPanel({ wide = false, onListening }) {
           <div className="px-3 py-1 bg-terminal-header text-2xs text-terminal-gold font-bold tracking-widest border-b border-terminal-border/50">
             SAVED NOTES
           </div>
+          <DeviceOnlyNote what="saved notes" className="px-3 py-1 border-b border-terminal-border/50" />
           {canUse('researchNotes') ? (
             <NotesPanel notes={notes} onDelete={deleteNote} />
           ) : (

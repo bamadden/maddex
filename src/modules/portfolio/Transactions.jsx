@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import {
   TX_TYPES, TX_TONE, getTransactions, addTransaction, deleteTransaction,
   syncTransactionsFromHoldings, realisedByTx, summarise, txValueAud,
@@ -298,6 +299,7 @@ export default function Transactions({ holdings = [] }) {
         </span>
       </div>
 
+      <DeviceOnlyNote what="transactions" className="mb-2" />
       {filtered.length === 0 ? (
         <div className="border border-terminal-border py-14 flex flex-col items-center justify-center gap-2 text-center px-6">
           <div className="text-terminal-text-bright text-xs font-semibold tracking-wide">

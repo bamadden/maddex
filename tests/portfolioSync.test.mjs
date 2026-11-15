@@ -42,3 +42,17 @@ test('the Portfolio module writes nothing to the account itself; Settings clears
   assert.doesNotMatch(set, /neq\('id', '00000000/)
   assert.match(set, /Removes every holding on this device/)
 })
+
+test('every list kept only in this browser says so, in the one shared sentence', () => {
+  const where = {
+    'src/modules/screener/ScreenerModule.jsx': 'saved screens',
+    'src/components/layout/AIPanel.jsx': 'saved notes',
+    'src/modules/portfolio/Transactions.jsx': 'transactions',
+    'src/components/researchNote/SavedResearch.jsx': 'saved research',
+    'src/modules/news/NewsModule.jsx': 'saved stories',
+    'src/modules/alerts/AlertsModule.jsx': 'alerts',
+    'src/components/settings/SettingsPanel.jsx': 'workspaces',
+  }
+  for (const [f, what] of Object.entries(where)) assert.match(fs.readFileSync(f, 'utf8'), new RegExp(`<DeviceOnlyNote what="${what}"`), f)
+  assert.match(fs.readFileSync('src/modules/watchlist/WatchlistSyncBar.jsx', 'utf8'), /Saved on this device only\./)
+})

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import { timeAgo as sharedTimeAgo } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
 import { fetchNews, NEWS_SOURCES, ASX_STOCKS, US_STOCKS, askClaude } from '../../services/api'
@@ -620,6 +621,7 @@ function SavedArticles({ items, searchTerm, onRemove, onAskAI }) {
       <div className="px-3 py-1.5 border-b border-terminal-border text-[11px] font-mono tracking-widest text-terminal-text-dim">
         {items.length} / {SAVED_MAX} SAVED{lc ? ` · ${shown.length} matching` : ''}
       </div>
+      <DeviceOnlyNote what="saved stories" className="px-3 py-1 border-b border-terminal-border/50" />
       {shown.map((a) => (
         <div key={savedKey(a)} className="flex items-start gap-3 px-3 py-2.5 border-b border-terminal-border">
           <SourceCircle source={a.source} size={14} />

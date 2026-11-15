@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import { priceStream } from '../../services/priceStreamService'
 import { Search } from 'lucide-react'
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS, getMockFMPRow } from '../../services/mockData'
@@ -1096,6 +1097,7 @@ export default function ScreenerModule() {
             >SAVED ({savedScreens.length})</button>
             {showSavedList && (
               <div className="absolute right-0 top-full mt-1 w-64 max-h-72 overflow-y-auto bg-terminal-header border border-terminal-border z-20">
+                <DeviceOnlyNote what="saved screens" className="px-2.5 py-1.5 border-b border-terminal-border/50" />
                 {savedScreens.length === 0 ? (
                   <div className="p-3 text-2xs text-terminal-text-dim text-center">No saved screens yet</div>
                 ) : savedScreens.map((s) => (

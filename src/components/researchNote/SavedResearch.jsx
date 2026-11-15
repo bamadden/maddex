@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
+import DeviceOnlyNote from '../ui/DeviceOnlyNote'
 import { deleteNoteFromHistory, noteId, NOTE_KIND_LABEL } from '../../services/researchNoteService'
 import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { useStore } from '../../store/useStore'
@@ -76,6 +77,7 @@ export default function SavedResearch() {
   if (!notes.length) {
     return (
       <>
+        <DeviceOnlyNote what="saved research" className="px-3 py-1 border-b border-terminal-border/40" />
         <WeeklyNotesBar />
         <div className="p-3 text-2xs text-terminal-text-dim/50 italic">
           No research notes yet — generate one from any stock's detail panel or the Screener.

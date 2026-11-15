@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import { useQuery } from '@tanstack/react-query'
 import {
   ALERT_TYPES, ALERTS_CHANGED, loadAlerts, createAlert, deleteAlert, updateAlert, clearTriggered,
@@ -339,6 +340,7 @@ export default function AlertsModule({ onClose, initialSymbol = '' }) {
             className="text-2xs font-bold tracking-widest text-terminal-gold border border-terminal-gold px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">+ ADD ALERT</button>
           <button onClick={onClose} aria-label="Close" className="text-terminal-text-dim hover:text-terminal-red text-sm leading-none ml-1">✕</button>
         </div>
+        <DeviceOnlyNote what="alerts" className="px-4 py-1 border-b border-terminal-border/50" />
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {adding && <AddAlertForm watchlist={watchlist} addAlert={addAlert} initialSymbol={initialSymbol} onDone={() => setAdding(false)} />}
