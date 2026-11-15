@@ -3,11 +3,13 @@ import { PAL } from '../styles/palette.js'
 //
 // The full maturity spectrum for five government bond markets, 1M to 50Y.
 //
-// WHAT THESE FIGURES ARE. INDICATIVE. They are a plausible, internally
-// consistent snapshot of each curve — not a feed, and not a set of verified
-// constants. Every surface that renders them says INDICATIVE, and the ultra-
-// long points (40Y, 50Y) carry a second marker because those maturities are
-// thinly traded and quoted yields there are estimates even in real markets.
+// WHAT THESE FIGURES ARE (15 Nov 2026). Each curve is its publisher's own
+// end-of-day reading (BOND_CURVE_SOURCES, dated in BOND_CURVES_AS_OF): RBA
+// table F2, the US Treasury par curve, the Bank of England spot curve, the
+// Bundesbank term structure and the MoF JGB rates. Only the maturities each
+// publishes are held; the typed bills, in-between tenors and 50Y points that
+// stood here before were removed, and nothing ticks on top (useBondYields).
+// The freshness guard holds each curve to 30 days.
 //
 // This file is the SINGLE SOURCE for bond yields in the terminal. The Rates
 // module previously carried its own eight-tenor AU and US curves; those now
@@ -26,7 +28,7 @@ export const BOND_MARKETS = [
 // Maturity in years, for the log-scaled x axis and for duration maths. Bills
 // are quoted in months and have to become a fraction of a year to plot.
 export const YEARS = {
-  '1M': 1 / 12, '2M': 2 / 12, '3M': 0.25, '6M': 0.5,
+  '1M': 1 / 12, '2M': 2 / 12, '3M': 0.25, '4M': 4 / 12, '6M': 0.5,
   '1Y': 1, '2Y': 2, '3Y': 3, '4Y': 4, '5Y': 5, '7Y': 7,
   '10Y': 10, '12Y': 12, '15Y': 15, '20Y': 20, '25Y': 25, '30Y': 30,
   '40Y': 40, '50Y': 50,
@@ -35,47 +37,80 @@ export const YEARS = {
 const b = (maturity, coupon, yieldPct, type, indicative = false) =>
   ({ maturity, coupon, yield: yieldPct, type, years: YEARS[maturity], indicative })
 
-export const BOND_CURVES_AS_OF = { AU: '2026-10-21', US: '2026-10-28', UK: null, DE: null, JP: null }
+export const BOND_CURVES_AS_OF = { AU: '2026-11-11', US: '2026-11-13', UK: '2026-11-12', DE: '2026-11-13', JP: '2026-11-12' }
+// What each curve is and where it was read.
+export const BOND_CURVE_SOURCES = {
+  AU: { series: 'RBA table F2 (indicative mid yields)', url: 'https://www.rba.gov.au/statistics/tables/' },
+  US: { series: 'US Treasury daily par yield curve', url: 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates' },
+  UK: { series: 'Bank of England nominal spot (zero-coupon) curve', url: 'https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/latest-yield-curve-data.zip' },
+  DE: { series: 'Bundesbank term structure of listed Federal securities (Svensson, zero-coupon)', url: 'https://api.statistiken.bundesbank.de/rest/data/BBSIS/D.I.ZST.ZI.EUR.S1311.B.A604.R10XX.R.A.A._Z._Z.A?lastNObservations=2&format=csv' },
+  JP: { series: 'Ministry of Finance JGB interest rates (constant maturity)', url: 'https://www.mof.go.jp/english/policy/jgbs/reference/interest_rate/jgbcme.csv' },
+}
 
 export const BOND_CURVES = {
-  // AU 2Y/3Y/5Y/10Y and every US tenor are sourced points, as at the date in
-  // BOND_CURVES_AS_OF (US: Treasury daily par curve, 28 Oct; AU: RBA table F2,
-  // 21 Oct, its latest published day). Updated 2026-10-29: the other AU
-  // tenors — bills, in-between bonds and 30Y, which F2 does not carry — were
-  // moved by the change in the nearest sourced tenor since 1 Oct and are
-  // marked indicative.
+  // AU: the four tenors RBA table F2 publishes (latest day 11 Nov 2026).
+  // US: the Treasury daily par yield curve, 13 Nov 2026. Both read
+  // 15 Nov 2026. Par yields: the coupon equals the yield. The typed AU bill,
+  // in-between and long-end points ("moved by the change in the nearest
+  // sourced tenor") were removed.
   AU: [
-    b('1M', 0, 4.51, 'TBill', true), b('2M', 0, 4.55, 'TBill', true), b('3M', 0, 4.59, 'TBill', true), b('6M', 0, 4.71, 'TBill', true),
-    b('1Y', 4.10, 4.83, 'TNote', true), b('2Y', 4.00, 4.92, 'TNote'), b('3Y', 4.00, 4.91, 'TNote'),
-    b('4Y', 4.25, 4.93, 'TNote', true), b('5Y', 4.25, 4.96, 'TNote'), b('7Y', 4.50, 5.08, 'TNote', true),
-    b('10Y', 4.50, 5.28, 'TBond'), b('12Y', 4.75, 5.36, 'TBond', true), b('15Y', 4.75, 5.45, 'TBond', true),
-    b('20Y', 4.75, 5.55, 'TBond', true), b('25Y', 5.00, 5.62, 'TBond', true), b('30Y', 5.00, 5.67, 'TBond', true),
-    b('40Y', 5.25, 5.73, 'TBond', true), b('50Y', 5.25, 5.77, 'TBond', true),
+    b('2Y', 4.808, 4.808, 'TBond'),
+    b('3Y', 4.733, 4.733, 'TBond'),
+    b('5Y', 4.757, 4.757, 'TBond'),
+    b('10Y', 5.044, 5.044, 'TBond'),
   ],
   US: [
-    b('1M', 0, 4.07, 'TBill'), b('2M', 0, 4.16, 'TBill'), b('3M', 0, 4.18, 'TBill'), b('6M', 0, 4.32, 'TBill'),
-    b('1Y', 4.10, 4.47, 'TNote'), b('2Y', 4.00, 4.67, 'TNote'), b('3Y', 4.00, 4.80, 'TNote'),
-    b('5Y', 4.13, 4.85, 'TNote'), b('7Y', 4.25, 4.95, 'TNote'),
-    b('10Y', 4.25, 5.05, 'TBond'), b('20Y', 4.75, 5.41, 'TBond'), b('30Y', 4.50, 5.37, 'TBond'),
+    b('1M', 4.1, 4.1, 'TBill'),
+    b('2M', 4.26, 4.26, 'TBill'),
+    b('3M', 4.32, 4.32, 'TBill'),
+    b('4M', 4.34, 4.34, 'TBill'),
+    b('6M', 4.42, 4.42, 'TBill'),
+    b('1Y', 4.65, 4.65, 'TNote'),
+    b('2Y', 4.88, 4.88, 'TNote'),
+    b('3Y', 4.92, 4.92, 'TNote'),
+    b('5Y', 4.98, 4.98, 'TNote'),
+    b('7Y', 5.05, 5.05, 'TNote'),
+    b('10Y', 5.15, 5.15, 'TBond'),
+    b('20Y', 5.52, 5.52, 'TBond'),
+    b('30Y', 5.47, 5.47, 'TBond'),
   ],
+  // UK, DE and JP read 15 Nov 2026 from the official publishers
+  // (BOND_CURVE_SOURCES): UK and DE are zero-coupon curves, so the coupon is
+  // 0; JP is the MoF's constant-maturity JGB yield (close to par), so the
+  // coupon equals the yield. Only the published maturities are shown; the
+  // typed bill and in-between points that stood here were removed.
   UK: [
-    b('1M', 0, 4.52, 'TBill'), b('3M', 0, 4.48, 'TBill'), b('6M', 0, 4.40, 'TBill'),
-    b('1Y', 4.00, 4.28, 'Gilt'), b('2Y', 4.00, 4.18, 'Gilt'), b('5Y', 4.25, 4.24, 'Gilt'),
-    b('7Y', 4.25, 4.32, 'Gilt'), b('10Y', 4.25, 4.48, 'Gilt'), b('15Y', 4.50, 4.68, 'Gilt'),
-    b('20Y', 4.75, 4.78, 'Gilt'), b('30Y', 4.75, 4.84, 'Gilt'),
-    b('40Y', 4.00, 4.72, 'Gilt', true), b('50Y', 3.75, 4.62, 'Gilt', true),
+    b('1Y', 0, 4.5013, 'Gilt'),
+    b('2Y', 0, 4.7395, 'Gilt'),
+    b('5Y', 0, 4.9249, 'Gilt'),
+    b('7Y', 0, 5.0447, 'Gilt'),
+    b('10Y', 0, 5.2617, 'Gilt'),
+    b('15Y', 0, 5.5714, 'Gilt'),
+    b('20Y', 0, 5.7278, 'Gilt'),
+    b('25Y', 0, 5.763, 'Gilt'),
+    b('30Y', 0, 5.7041, 'Gilt'),
+    b('40Y', 0, 5.3174, 'Gilt'),
   ],
   DE: [
-    b('3M', 0, 2.18, 'Bubill'), b('6M', 0, 2.14, 'Bubill'),
-    b('1Y', 2.00, 2.08, 'Schatz'), b('2Y', 2.00, 2.84, 'Schatz'), b('5Y', 2.25, 2.74, 'Bobl'),
-    b('10Y', 2.50, 2.62, 'Bund'), b('15Y', 2.50, 2.74, 'Bund'), b('20Y', 2.75, 2.82, 'Bund'),
-    b('30Y', 2.75, 2.88, 'Bund'),
+    b('1Y', 0, 3.0, 'Bund'),
+    b('2Y', 0, 3.13, 'Bund'),
+    b('5Y', 0, 3.18, 'Bund'),
+    b('10Y', 0, 3.43, 'Bund'),
+    b('15Y', 0, 3.62, 'Bund'),
+    b('20Y', 0, 3.72, 'Bund'),
+    b('30Y', 0, 3.83, 'Bund'),
   ],
   JP: [
-    b('3M', 0, 0.18, 'TDB'), b('6M', 0, 0.22, 'TDB'),
-    b('1Y', 0.10, 0.30, 'JGB'), b('2Y', 0.20, 0.42, 'JGB'), b('5Y', 0.40, 0.68, 'JGB'),
-    b('10Y', 1.00, 1.08, 'JGB'), b('20Y', 1.70, 1.86, 'JGB'), b('30Y', 2.00, 2.14, 'JGB'),
-    b('40Y', 2.20, 2.28, 'JGB', true),
+    b('1Y', 1.653, 1.653, 'JGB'),
+    b('2Y', 1.857, 1.857, 'JGB'),
+    b('5Y', 2.209, 2.209, 'JGB'),
+    b('7Y', 2.423, 2.423, 'JGB'),
+    b('10Y', 2.841, 2.841, 'JGB'),
+    b('15Y', 3.382, 3.382, 'JGB'),
+    b('20Y', 3.698, 3.698, 'JGB'),
+    b('25Y', 4.004, 4.004, 'JGB'),
+    b('30Y', 3.974, 3.974, 'JGB'),
+    b('40Y', 4.006, 4.006, 'JGB'),
   ],
 }
 

@@ -749,14 +749,13 @@ export const VERIFIED_CONSTANTS = {
   // The full curves live in bondCurves.js and agree with these.
   bonds: {
     label: 'Bonds',
-    // UPDATED 2026-10-29. AU: RBA table F2 (FCMYGBAG10D), latest published
-    // day 21 Oct — 5.277%; Trading Economics had 5.19% on 28 Oct, so yields
-    // have eased further since. US: Treasury daily par curve, 28 Oct 5.05%.
-    au10y: 5.28, au10yAsOf: '2026-10-21',
-    us10y: 5.05, us10yAsOf: '2026-10-28',
+    // UPDATED 2026-11-15. AU: RBA table F2 (f2-data.csv), latest published
+    // day 11 Nov — 10Y 5.044%. US: Treasury daily par curve, 13 Nov 5.15%.
+    au10y: 5.04, au10yAsOf: '2026-11-11',
+    us10y: 5.15, us10yAsOf: '2026-11-13',
     source: 'home.treasury.gov (US par curve) / RBA table F2 (AU)',
-    asOf: '2026-10-28',
-    lastVerified: '2026-10-29',
+    asOf: '2026-11-13',
+    lastVerified: '2026-11-15',
   },
 
   // ── Next RBA decision ─────────────────────────────────────────────────────

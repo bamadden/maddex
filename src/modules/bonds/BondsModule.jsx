@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import {
-  BOND_MARKETS, BOND_CURVES, BOND_CURVES_AS_OF, curveStats, priceFromYield, durationOf, dv01, ytm,
+  BOND_MARKETS, BOND_CURVES, BOND_CURVES_AS_OF, BOND_CURVE_SOURCES, curveStats, priceFromYield, durationOf, dv01, ytm,
 } from '../../data/bondCurves'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { useBondYields } from './useBondYields'
@@ -28,7 +28,7 @@ const SHAPE_TONE = {
   NORMAL: PAL.up, FLAT: PAL.gold, INVERTED: PAL.down, HUMPED: '#a855f7', '—': PAL.muted,
 }
 
-const bp = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(0)}bp`
+const bp = (v) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(0)}bp`)
 
 // ─── Yield curve chart ──────────────────────────────────────────────────────
 
@@ -326,17 +326,16 @@ export default function BondsModule() {
         title="BONDS"
         subtitle="Sovereign debt · full maturity spectrum · 1M to 50Y"
         moduleId="bonds"
-        right={<DataBadge cls="DEMO" source="indicative snapshot · simulated ticks" />}
+        right={<DataBadge cls="DELAYED" source="official end-of-day yields, latest" at={[...Object.values(BOND_CURVES_AS_OF)].filter(Boolean).sort().at(-1)} />}
       />
 
       {/* Provenance first, not buried in a footer. Every yield below is
           indicative; the CPI the real-yield column uses is not. */}
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(201,168,76,0.04)' }}>
-        <DataBadge cls="DEMO" source="indicative snapshot, not a feed" />
+        <DataBadge cls="DELAYED" source="official end-of-day yields" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
-          AU and US curves are anchored to quoted closes (AU {BOND_CURVES_AS_OF.AU}, US Treasury par curve {BOND_CURVES_AS_OF.US});
-          UK, DE and JP are illustrative. Ticking is simulated, not a market feed. Real yields use verified AU CPI of {cpi.toFixed(1)}%.
+          Each curve is the publisher's own end-of-day reading: {BOND_MARKETS.map((m) => `${m.label} ${BOND_CURVE_SOURCES[m.key].series}, ${formatDate(BOND_CURVES_AS_OF[m.key])}`).join('; ')}. Only published maturities are shown. Nothing ticks: these are not live prices. Real yields use verified AU CPI of {cpi.toFixed(1)}%.
         </span>
       </div>
 
@@ -496,7 +495,7 @@ export default function BondsModule() {
                         terminal, so the header says CHANGE and the tooltip says
                         which way the money went. */}
                     <td className="px-2 py-1.5 text-right font-mono tabular-nums" style={{ fontSize: 11, color: r.changeBp > 0.05 ? PAL.down : r.changeBp < -0.05 ? PAL.up : PAL.muted }}>
-                      <Tooltip content={r.changeBp >= 0 ? 'Yield up since the session seed — bond prices fall as yields rise.' : 'Yield down since the session seed — bond prices rise as yields fall.'}>
+                      <Tooltip content={r.changeBp == null ? 'No change is held: these are the published end-of-day yields.' : r.changeBp >= 0 ? 'Yield up — bond prices fall as yields rise.' : 'Yield down — bond prices rise as yields fall.'}>
                         <span>{bp(r.changeBp)}</span>
                       </Tooltip>
                     </td>

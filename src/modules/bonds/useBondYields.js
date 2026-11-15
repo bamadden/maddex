@@ -1,41 +1,13 @@
-import { useEffect, useState } from 'react'
-import { priceStream } from '../../services/priceStreamService'
-import { BOND_CURVES } from '../../data/bondCurves'
+import { BOND_CURVES, BOND_CURVES_AS_OF } from '../../data/bondCurves'
 
-// Live-ticking yields for one market.
+// One market's yields as published (bondCurves.js: official end-of-day
+// readings, each curve dated in BOND_CURVES_AS_OF).
 //
-// Volatility scales with the term. A one-month bill barely moves and a
-// thirty-year bond moves several times as much, so a flat per-tick step would
-// make the short end look as jumpy as the long end and the curve would shimmer
-// rather than breathe.
-const volFor = (years) => (years < 1 ? 0.12 : years < 5 ? 0.22 : years < 15 ? 0.35 : 0.5)
-
+// Until 15 Nov 2026 every yield ticked on a simulated random walk around its
+// sourced value, and the drift was shown as a basis-point "change". That was
+// invented movement on real data, so it is gone: no change is held, and
+// `changeBp` is null (shown as "—").
 export function useBondYields(marketKey) {
-  const rows = BOND_CURVES[marketKey] ?? []
-  const [live, setLive] = useState({})
-
-  useEffect(() => {
-    const unsubs = rows.map((r) =>
-      priceStream.subscribeSeries(
-        `bond:${marketKey}:${r.maturity}`,
-        { seed: r.yield, volPct: volFor(r.years), decimals: 3 },
-        (s) => setLive((prev) => (prev[r.maturity]?.value === s.value ? prev : { ...prev, [r.maturity]: s })),
-      ),
-    )
-    return () => unsubs.forEach((u) => u())
-    // rows is derived from marketKey, so the key is the real dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketKey])
-
-  // The live value where one has arrived, the static seed otherwise, so the
-  // table renders fully on the first frame rather than filling in.
-  return rows.map((r) => {
-    const s = live[r.maturity]
-    return {
-      ...r,
-      yield: s ? s.value : r.yield,
-      changeBp: s ? (s.value - r.yield) * 100 : 0,
-      isLive: !!s,
-    }
-  })
+  const asOf = BOND_CURVES_AS_OF[marketKey] ?? null
+  return (BOND_CURVES[marketKey] ?? []).map((r) => ({ ...r, changeBp: null, isLive: false, asOf }))
 }
