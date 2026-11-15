@@ -1656,29 +1656,19 @@ function ExchangePanel({ exchangeId, newsItems, onClose, onAskAI }) {
 
 // ─── LEFT: Live Intelligence Feed ──────────────────────────────────────────
 
-// Mock — no live shipping-rate feed wired up yet, same DEMO convention.
-// 7D trend values are illustrative; sparkline just needs relative shape.
-// Levels and changes come from VERIFIED_CONSTANTS.freight, not from a second
-// copy typed out here — the two had the same numbers today and no mechanism
-// to keep having them tomorrow.
-//
-// The sparkline trends stay literal. They are the shape of the last seven
-// readings, which is not a figure verifiedConstants carries, and a made-up
-// shape is less misleading than a made-up level: it carries no number a
-// reader could quote. The final point is pinned to the verified level so the
-// line always ends where the label says it does.
+// The Freightos Baltic Index, from Freightos's own page (verifiedConstants
+// freight): the latest weekly reading, its change on the week before, and
+// the last four weekly readings as the sparkline. The Baltic Dry row and the
+// typed seven-point "illustrative" trends were removed on 15 Nov 2026.
 const FREIGHT = VERIFIED_CONSTANTS.freight
-
+const FBX_WEEKS = FREIGHT.freightosWeekly
 const SHIPPING_INDEX = [
   {
-    name: 'BALTIC DRY (BDI)', vkey: 'freight',
-    value: FREIGHT.balticDryIndex, chg: FREIGHT.balticDryChangePct,
-    trend: [1780, 1795, 1760, 1810, 1830, 1805, FREIGHT.balticDryIndex],
-  },
-  {
-    name: 'FREIGHTOS (FBX)', vkey: 'freight',
-    value: FREIGHT.freightosFBX, chg: FREIGHT.freightosChangePct,
-    trend: [3480, 3460, 3510, 3470, 3440, 3455, FREIGHT.freightosFBX],
+    name: 'FREIGHTOS (FBX) · US$/40FT', vkey: 'freight',
+    value: FREIGHT.freightosFBX,
+    chg: FBX_WEEKS.length > 1 ? Math.round((FBX_WEEKS.at(-1).value / FBX_WEEKS.at(-2).value - 1) * 1000) / 10 : null,
+    chgLabel: FBX_WEEKS.length > 1 ? `vs ${formatDate(FBX_WEEKS.at(-2).date, { year: false })}` : null,
+    trend: FBX_WEEKS.map((w) => w.value),
   },
 ]
 
@@ -1944,8 +1934,8 @@ function IntelFeedPanel({ newsItems, audRates, watchlist, earthquakes, quakesAt,
                 <Sparkline points={s.trend} positive={s.chg >= 0} />
                 <span className="flex items-center gap-1 flex-shrink-0">
                   <span className="text-2xs text-terminal-text-bright tabular-nums">{s.value.toLocaleString()}</span>
-                  <span className={`text-2xs tabular-nums w-11 text-right ${s.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                    {s.chg >= 0 ? '▲' : '▼'}{Math.abs(s.chg).toFixed(1)}%
+                  <span className={`text-2xs tabular-nums text-right ${s.chg == null ? 'text-terminal-text-dim' : s.chg >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`} title={s.chgLabel ?? undefined}>
+                    {s.chg == null ? '—' : `${s.chg >= 0 ? '▲' : '▼'}${Math.abs(s.chg).toFixed(1)}% ${s.chgLabel}`}
                   </span>
                 </span>
               </div>

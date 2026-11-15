@@ -734,14 +734,19 @@ export const VERIFIED_CONSTANTS = {
     lastVerified: '2026-10-22',
   },
 
+  // UPDATED 2026-11-15 from Freightos's own FBX page (global container
+  // index, USD per 40ft). The Baltic Dry Index is not held: balticexchange.com
+  // serves a bot challenge, and its data is for subscribers.
   freight: {
-    balticDryIndex: 1847,
-    balticDryChangePct: 2.1,
-    freightosFBX: 3420,
-    freightosChangePct: -0.8,
-    source: 'balticexchange.com / freightos.com',
-    asOf: '2026-06-30',
-    lastVerified: '2026-09-06',
+    freightosFBX: 3485.2,
+    freightosWeekly: [
+      { date: '2026-10-23', value: 3560.2 }, { date: '2026-10-30', value: 3513.4 },
+      { date: '2026-11-06', value: 3451.8 }, { date: '2026-11-13', value: 3485.2 },
+    ],
+    source: 'freightos.com (FBX)',
+    sourceUrl: 'https://www.freightos.com/enterprise/terminal/freightos-baltic-index-global-container-pricing-index/',
+    asOf: '2026-11-13',
+    lastVerified: '2026-11-15',
   },
 
   // ── Sovereign 10Y benchmarks ───────────────────────────────────────────────

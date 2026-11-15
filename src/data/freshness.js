@@ -91,5 +91,4 @@ export const FRESHNESS_FLAGS = [
   { id: 'sector-weights', until: '2026-11-29', reason: "ASX 200 sector weights typed without a date or source; read S&P/ASX's published weights" },
   { id: 'etf-data', until: '2026-11-29', reason: "INDICATIVE on screen; no date was recorded; read each fund's PDS/fact sheet for fees and size, or drop the figures" },
   { id: 'futures-data', until: '2026-11-29', reason: "INDICATIVE on screen; prices and margins undated; contract specs to be checked against ASX/CME" },
-  { id: 'vc:freight', until: '2026-11-29', reason: "last verified 6 Sep; the Baltic and freight indices need a licensed source to re-check" },
 ]
