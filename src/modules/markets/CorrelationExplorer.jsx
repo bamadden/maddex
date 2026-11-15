@@ -7,6 +7,7 @@ import {
 } from '../../services/correlationService'
 import { PAL } from '../../styles/palette.js'
 import ScoreNote from '../../components/ui/ScoreNote'
+import DataBadge from '../../components/ui/DataBadge'
 
 const CELL = 44
 
@@ -114,6 +115,10 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
         <div className="flex items-baseline gap-3">
           <span className="text-xl font-bold text-terminal-gold">CORRELATION EXPLORER</span>
           <span className="text-2xs text-terminal-text-dim">{assetIds.length} assets · {period}</span>
+          {/* The matrix is generated (correlationService: a seeded hash around a
+              few pinned pairs), not measured from prices: no price history feed
+              is connected. Labelled as such everywhere it appears. */}
+          <DataBadge cls="DEMO" source="simulated correlations, not measured from prices" />
         </div>
         <button onClick={onClose} aria-label="Close correlation explorer" className="text-terminal-text-dim hover:text-terminal-red text-lg leading-none">✕</button>
       </div>
@@ -212,7 +217,7 @@ export default function CorrelationExplorer({ initialAssets, onClose }) {
               </div>
               <button
                 onClick={() => dispatchAskAI({
-                  instruction: `Explain the correlation between ${assetInfo(hovered.a).label} and ${assetInfo(hovered.b).label} (r=${hovered.r.toFixed(2)}, ${period} lookback). Describe why they might move together (or apart) like this, and what a correlation of this size does and does not show. Describe only; do not suggest any action.`,
+                  instruction: `Explain in general terms why ${assetInfo(hovered.a).label} and ${assetInfo(hovered.b).label} might move together or apart, and what a correlation coefficient does and does not show. The terminal's figure for this pair (r=${hovered.r.toFixed(2)}) is SIMULATED demo data, not measured from prices: say so, and do not treat it as their actual correlation. Describe only; do not suggest any action.`,
                 }, { rawPrompt: true })}
                 className="mt-2 w-full text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
               >MADDENAI INSIGHT →</button>

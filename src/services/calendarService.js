@@ -17,6 +17,10 @@ const CACHE_MS  = 6 * 60 * 60 * 1000 // 6 hours — calendar doesn't change ofte
 // Rolling fallback schedule (AU/US, highest-impact events through the known
 // RBA/FOMC calendar). Past entries fall out of `upcomingEvents()` on their
 // own — nothing here needs to be removed as time passes.
+// When the schedule below was last checked against its sources (the
+// freshness guard, src/data/freshness.js, holds it to 30 days).
+export const ECON_SCHEDULE_CHECKED = '2026-10-01'
+
 const FALLBACK_EVENTS = [
   // Dates checked 2026-10-01 against the ABS and BLS release calendars and
   // each central bank's published meeting schedule. Times are Sydney local
@@ -129,6 +133,10 @@ async function fetchLiveCalendar() {
       prev:       e.previous ?? '—',
     }))
 }
+
+// The hand-entered schedule, for the one other place that needs it (price
+// alerts on economic events), so it is never typed twice.
+export const ECON_SCHEDULE = FALLBACK_EVENTS
 
 // Returns { events, source }. `source` is 'cache' | 'live' | 'fallback' so
 // callers can badge the data as demo/fallback when the live fetch failed.

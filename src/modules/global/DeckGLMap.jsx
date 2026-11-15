@@ -181,11 +181,12 @@ const EXCHANGE_COUNTRY = {
 const RETICLE_CACHE = Object.create(null)
 
 function reticleIcon(isOpen, positive) {
-  const key = `${isOpen ? 'o' : 'c'}${positive ? 'u' : 'd'}`
+  const key = `${isOpen ? 'o' : 'c'}${positive == null ? 'n' : positive ? 'u' : 'd'}`
   const cached = RETICLE_CACHE[key]
   if (cached) return cached
 
-  const rgb = isOpen ? (positive ? '45,138,80' : '168,50,50') : '74,96,128'
+  // No day move held (the typed DEMO levels were removed): open reads gold.
+  const rgb = isOpen ? (positive == null ? '201,168,76' : positive ? '45,138,80' : '168,50,50') : '74,96,128'
   const core = isOpen ? 1 : 0.5
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">`
@@ -1024,7 +1025,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
       id: 'exchanges',
       data: EXCHANGES,
       getPosition: (d) => [d.lon, d.lat],
-      getIcon: (d) => reticleIcon(isExchangeOpen(d), d.change >= 0),
+      getIcon: (d) => reticleIcon(isExchangeOpen(d), d.change == null ? null : d.change >= 0),
       // Pixel-sized, not metres: a reticle is chrome and should stay legible
       // at every zoom rather than growing into a disc when you zoom in.
       sizeUnits: 'pixels',

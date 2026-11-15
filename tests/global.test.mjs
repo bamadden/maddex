@@ -165,7 +165,7 @@ test('Global: a hand-entered country figure older than its cycle is marked, neve
   const mod = read('src/modules/global/GlobalModule.jsx')
   for (const l of ['gdpLbl', 'inflLbl']) assert.match(mod, new RegExp(`<OutOfDate label=\\{${l}\\}`))
   assert.ok(mod.includes('<OutOfDate label={intRateChecked ? `${intRateChecked}, checked` : intRateLbl} kind="rate" />'), 'rates age from the date they were checked')
-  assert.match(mod, /<DataBadge cls="DELAYED" source="hand-entered · period and agency on each line"/)
+  assert.match(mod, /<DataBadge cls="DELAYED" source="hand-entered · period and agency on each line · entered" at=\{COUNTRY_DETAIL_AS_OF\}/)
 })
 
 test('Global: no undated "Static fallback" line, no typed air volumes, rankings or route status, no port ranks', () => {

@@ -25,7 +25,9 @@ const pct = (n) => `${Number(n).toFixed(1)}%`
 const pct2 = (n) => `${Number(n).toFixed(2)}%`
 const audM = (bn) => `${bn < 0 ? '-' : ''}A$${Math.abs(bn) < 1 ? `${Math.round(Math.abs(bn) * 1000)}M` : `${Math.abs(bn).toFixed(1)}B`}`
 
-// ASX 200 Sector Heatmap — mktCapWeight is % of ASX 200
+// ASX 200 Sector Heatmap — mktCapWeight is % of ASX 200. The weights were
+// typed without a date or source; the freshness guard flags them.
+export const SECTOR_WEIGHTS_AS_OF = null
 export const ASX_SECTOR_HEATMAP = [
   { name: 'Financials',       ticker: 'XFJ', pct: null, mktCapWeight: 30.1 },
   { name: 'Materials',        ticker: 'XMJ', pct: null, mktCapWeight: 22.5 },

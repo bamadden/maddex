@@ -1076,9 +1076,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
           setTooltip({ x: mx, y: my, text: `M${q.mag.toFixed(1)} · ${q.depthKm.toFixed(0)}km depth · ${q.place}` })
         }
       } else if (routeHit) {
-        const detail = routeHit.kind === 'SHIPPING' ? routeHit.route.teu : routeHit.route.tonnage
-        const status = routeHit.route.status ?? 'ACTIVE'
-        setTooltip({ x: mx, y: my, text: `${routeHit.route.name} · ${detail} · ${status}` })
+        setTooltip({ x: mx, y: my, text: `${routeHit.route.name}${routeHit.route.status ? ` · ${routeHit.route.status} (Maddex label, undated)` : ''}` })
       } else if (countryId) {
         const n = parseInt(countryId)
         let text = `Country #${n}`
@@ -1102,8 +1100,7 @@ export default function MaddexGlobe({ onCountryClick, onExchangeClick, earthquak
         const mid = route ? pointAlongRoute(route.points, 0.5) : null
         const p = mid && isPointVisible(mid[0], mid[1], rotationRef.current) ? projection(mid) : null
         if (route && p) {
-          const detail = pr.kind === 'SHIPPING' ? route.teu : route.tonnage
-          setTooltip({ x: p[0], y: p[1], text: `${route.name} · ${detail} · ${route.status ?? 'ACTIVE'}` })
+          setTooltip({ x: p[0], y: p[1], text: `${route.name}${route.status ? ` · ${route.status} (Maddex label, undated)` : ''}` })
         } else {
           setTooltip(null)
         }

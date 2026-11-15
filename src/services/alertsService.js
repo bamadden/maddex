@@ -4,6 +4,7 @@ import { recordAlertCreated, nudgeAlertCount } from './usageService'
 import { getMockFMPRow, getMockFMPHistory } from './mockData'
 import { offerPrompt } from './browserNotify'
 import { sydneyOffset } from '../utils/dateUtils'
+import { ECON_SCHEDULE } from './calendarService'
 
 const ALERTS_KEY = 'maddex_alerts_engine_v1'
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
@@ -19,15 +20,12 @@ export const ALERT_TYPES = [
   { key: 'PORTFOLIO_PNL',   label: 'Portfolio P&L',        unit: '%',  needsSymbol: false, needsCondition: false },
 ]
 
-// Near-term AU economic events an ECONOMIC_EVENT alert can fire ahead of —
-// same illustrative-calendar pattern as morningBriefService's keyEvents,
-// not a live feed.
-export const UPCOMING_EVENTS = [
-  { label: 'AU CPI',                 date: '2026-10-28', time: '11:30' },
-  { label: 'FOMC Rate Decision',     date: '2026-10-29', time: '05:00' },
-  { label: 'AU Labour Force',        date: '2026-11-19', time: '11:30' },
-  { label: 'RBA Cash Rate Decision', date: '2026-12-08', time: '14:30' },
-]
+// The high-importance events an ECONOMIC_EVENT alert can fire ahead of, from
+// the one hand-entered schedule (calendarService). This used to be a second
+// typed list of four events.
+export const UPCOMING_EVENTS = ECON_SCHEDULE
+  .filter((e) => e.importance === 'high' && /^\d\d:\d\d$/.test(e.time))
+  .map((e) => ({ label: e.event, date: e.date, time: e.time }))
 
 export function loadAlerts() {
   try { return JSON.parse(localStorage.getItem(ALERTS_KEY) ?? '[]') } catch { return [] }

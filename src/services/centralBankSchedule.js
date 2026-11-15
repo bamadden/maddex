@@ -24,6 +24,9 @@ export const PBOC_MEETINGS_2026     = ['2026-09-21', '2026-10-20', '2026-11-20']
 export const RBNZ_MEETINGS_2026     = ['2026-10-28', '2026-12-09']
 export const BOC_MEETINGS_2026      = ['2026-09-02', '2026-10-28', '2026-12-09']
 export const SNB_MEETINGS_2026      = ['2026-09-24', '2026-12-17']
+// The meeting lists above were approximated from each bank's cadence, not
+// read from its published calendar; the freshness guard flags them.
+export const MEETINGS_CHECKED = null
 export const RIKSBANK_MEETINGS_2026 = ['2026-09-24', '2026-11-04', '2026-12-16']
 
 // Most recently confirmed decision per bank. Derived from verifiedConstants —

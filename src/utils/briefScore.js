@@ -1,6 +1,8 @@
 import { PAL } from '../styles/palette.js'
 // MaddenAI market-score bands, shared by the Brief module's gauge and the
 // dashboard's brief widget so a score is the same colour in both places.
+// When the bands were last set (git, 1 Nov 2026).
+export const BRIEF_BANDS_SET = '2026-11-01'
 export const BRIEF_BANDS = [
   { from: 0,  to: 30,  color: PAL.down }, // BEARISH
   { from: 30, to: 50,  color: PAL.gold }, // CAUTIOUS (amber-ish gold)

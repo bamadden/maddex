@@ -19,6 +19,8 @@ const RBA_HIKE_LABEL = ND?.hikeRate != null
 // scenario (a uniform shock scaled by each holding's assumed sensitivity) —
 // this app has no real beta feed, so these are simplified, clearly-labelled
 // approximations, not sourced betas.
+// Set 2 Nov 2026 (the freshness guard holds methods to a year).
+const STRESS_BETAS_SET = '2026-11-02'
 const BETA_BY_SECTOR = {
   IT: 1.35, 'Cons Disc': 1.2, Materials: 1.15, Financials: 1.1, Energy: 1.1,
   Health: 0.9, Staples: 0.7, Utilities: 0.65, Comms: 1.0,
@@ -99,7 +101,7 @@ const SCENARIOS = [
   },
   {
     key: 'crash', label: 'MARKET CRASH -30%', borderColor: 'border-red-800 hover:border-red-700',
-    describe: 'Broad -30% market crash — every holding falls proportional to its estimated beta.',
+    describe: `Broad -30% market crash — every holding falls in proportion to an illustrative sector beta (Maddex's assumption, set ${STRESS_BETAS_SET}, not a measured beta).`,
     shock: (h) => -0.30 * betaFor(h),
   },
 ]

@@ -13,6 +13,8 @@
 // numbers would have overstated tax on a $95,000 income by roughly $2,600.
 
 export const TAX_YEAR = '2026-27'
+// First day of that year; the guard holds these rates to the year they apply to.
+export const TAX_YEAR_START = '2026-07-01'
 
 // Marginal brackets. `base` is the cumulative tax at the bottom of the band,
 // which is what makes the calculation a lookup rather than a loop — and lets

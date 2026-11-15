@@ -2,6 +2,9 @@
 // Data as of June 2026
 import { VERIFIED_CONSTANTS } from './verifiedConstants'
 
+// The header's "as of June 2026", as a date the freshness guard can read.
+export const COUNTRY_DB_AS_OF = '2026-06-30'
+
 export const COUNTRIES = [
   {
     name: 'United States',

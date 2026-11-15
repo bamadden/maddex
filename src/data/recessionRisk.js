@@ -293,6 +293,8 @@ export function combinedRisk(now = Date.now()) {
 
 // The rubric as data, so the panel's "how the score is built" list cannot
 // disagree with the weights above.
+// When the rubric was last set (git, 1 Nov 2026).
+export const RECESSION_RUBRIC_SET = '2026-11-01'
 export const RUBRIC = [
   ['Yield curve inverted (2s10s)', 25],
   ['Unemployment turning up (Sahm-style)', 20],

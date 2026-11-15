@@ -7,6 +7,7 @@
 // It exists so that "the highest since …" is worked out from the record,
 // not typed in: at 4.85% the answer is 2008 (5.25% until the 3 Dec 2008
 // cut), at 4.60% it is 2011 (4.75% until the 2 Nov 2011 cut).
+export const RBA_PATH_READ = '2026-11-03'
 export const RBA_TARGET_PATH = [
   ['2007-12-05', 6.75], // in force on 1 Jan 2008
   ['2008-02-06', 7.00], ['2008-03-05', 7.25], ['2008-09-03', 7.00], ['2008-10-08', 6.00],

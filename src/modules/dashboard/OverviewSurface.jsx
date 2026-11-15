@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { YF_INDICES, USING_MOCK_DATA, EQUITY_SOURCE, transformCryptoMarkets } from '../../services/api'
 import { fetchIndexQuotesUnified, fetchCryptoMarketsUnified, fetchFxRatesUnified, fetchEquityQuotes } from '../../services/dataService'
-import { getEconomicCalendar, pendingEvents, eventInstant } from '../../services/calendarService'
+import { getEconomicCalendar, pendingEvents, eventInstant, ECON_SCHEDULE_CHECKED } from '../../services/calendarService'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { DATED_CHANGES } from '../../data/datedChanges'
 import { currentRegime } from '../../services/marketRegime'
@@ -321,9 +321,11 @@ function ComingUp({ goTo, arrange }) {
   const events = pendingEvents(data?.events ?? [], 14).slice(0, 8)
   return (
     <Panel id="ov-coming" arrange={arrange} title="COMING UP · 14 DAYS" action="CALENDAR" onAction={() => goTo('calendar')}
+      // The economic-calendar feed is licensed off, so this is the hand-entered
+      // schedule: dated, scheduled, not a failed feed (STALE was wrong here).
       badge={data && (data.source === 'fallback'
-        ? <DataBadge cls="STALE" source="built-in schedule" />
-        : <DataBadge cls="LIVE" source="economic calendar" />)}>
+        ? <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} />
+        : <DataBadge cls="DELAYED" source="economic calendar" />)}>
       {isLoading ? <Empty>Loading the calendar…</Empty> : !events.length ? <Empty>No scheduled events in the next 14 days.</Empty> : (
         <table className="w-full" style={{ fontSize: 12 }}>
           <tbody>

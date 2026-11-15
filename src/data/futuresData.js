@@ -6,6 +6,10 @@
 // panel is actually for. A price without a contract size is a number; with one
 // it is a position worth two hundred thousand dollars.
 
+// INDICATIVE figures carry no as-of date: none was recorded when they were
+// typed. The freshness guard flags this until a dated, sourced copy is held.
+export const FUTURES_AS_OF = null
+
 export const FUTURES_GROUPS = [
   { key: 'equity',   label: 'EQUITY INDEX FUTURES', vol: 0.08 },
   { key: 'commodity', label: 'COMMODITY FUTURES',   vol: 0.12 },

@@ -8,30 +8,35 @@ import * as d3 from 'd3'
 // tripping the fast-refresh only-export-components rule.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Route statuses below are a Maddex editorial label with no recorded date
+// (the freshness guard flags them). The typed TEU/day and tonnes/yr volumes
+// that stood here had no source and were removed on 15 Nov 2026.
+export const ROUTE_STATUS_AS_OF = null
+
 export const SHIPPING_ROUTES = [
-  { id: 'trans-pacific',  name: 'Trans-Pacific',                      teu: '45,000 TEU/day',            status: 'ACTIVE',
+  { id: 'trans-pacific',  name: 'Trans-Pacific',            status: 'ACTIVE',
     points: [[121.47, 31.23], [-118.24, 34.05]] }, // Shanghai -> Los Angeles
-  { id: 'asia-europe',    name: 'Asia-Europe (via Suez)',              teu: '38,000 TEU/day',            status: 'DISRUPTED',
+  { id: 'asia-europe',    name: 'Asia-Europe (via Suez)',            status: 'DISRUPTED',
     points: [[103.82, 1.35], [43.3, 12.6], [32.55, 30.5], [4.48, 51.92]] }, // Singapore -> Bab-el-Mandeb -> Suez -> Rotterdam
-  { id: 'asia-australia', name: 'Asia-Australia',                      teu: '12,000 TEU/day',            status: 'ACTIVE',
+  { id: 'asia-australia', name: 'Asia-Australia',            status: 'ACTIVE',
     points: [[103.82, 1.35], [151.21, -33.87]] }, // Singapore -> Sydney
-  { id: 'trans-atlantic', name: 'Trans-Atlantic',                      teu: '18,000 TEU/day',            status: 'ACTIVE',
+  { id: 'trans-atlantic', name: 'Trans-Atlantic',            status: 'ACTIVE',
     points: [[-74.01, 40.71], [-0.13, 51.51]] }, // New York -> London
-  { id: 'indian-ocean',   name: 'Indian Ocean',                        teu: '9,000 TEU/day',             status: 'ACTIVE',
+  { id: 'indian-ocean',   name: 'Indian Ocean',             status: 'ACTIVE',
     points: [[72.84, 18.94], [31.02, -29.86], [144.96, -37.81]] }, // Mumbai -> Durban -> Melbourne
-  { id: 'cape-good-hope', name: 'Cape of Good Hope (Asia-Europe alt)', teu: '14,000 TEU/day',            status: 'CONGESTED',
+  { id: 'cape-good-hope', name: 'Cape of Good Hope (Asia-Europe alt)',            status: 'CONGESTED',
     points: [[103.82, 1.35], [18.42, -34.36], [4.48, 51.92]] }, // Singapore -> Cape -> Rotterdam
-  { id: 'red-sea-suez',   name: 'Red Sea / Suez Canal Corridor',       teu: '31,000 TEU/day (diverted)', status: 'DISRUPTED',
+  { id: 'red-sea-suez',   name: 'Red Sea / Suez Canal Corridor', status: 'DISRUPTED',
     points: [[43.3, 12.6], [35.0, 20.5], [32.55, 30.5]], warningAt: [43.3, 12.6] }, // Bab-el-Mandeb -> Suez
 ]
 
 // FREIGHT layer — major air-cargo corridors, great-circle endpoints.
 export const FREIGHT_ROUTES = [
-  { id: 'hkg-lax', name: 'Hong Kong – Los Angeles', tonnage: '2.3M tonnes/yr', points: [[113.92, 22.31], [-118.41, 33.94]] },
-  { id: 'fra-ord', name: 'Frankfurt – Chicago',     tonnage: '0.9M tonnes/yr', points: [[8.57, 50.03], [-87.90, 41.97]] },
-  { id: 'dxb-lhr', name: 'Dubai – London',          tonnage: '1.1M tonnes/yr', points: [[55.36, 25.25], [-0.45, 51.47]] },
-  { id: 'sin-syd', name: 'Singapore – Sydney',      tonnage: '0.6M tonnes/yr', points: [[103.99, 1.36], [151.18, -33.94]] },
-  { id: 'nrt-lax', name: 'Tokyo – Los Angeles',     tonnage: '0.8M tonnes/yr', points: [[140.39, 35.77], [-118.41, 33.94]] },
+  { id: 'hkg-lax', name: 'Hong Kong – Los Angeles', points: [[113.92, 22.31], [-118.41, 33.94]] },
+  { id: 'fra-ord', name: 'Frankfurt – Chicago', points: [[8.57, 50.03], [-87.90, 41.97]] },
+  { id: 'dxb-lhr', name: 'Dubai – London', points: [[55.36, 25.25], [-0.45, 51.47]] },
+  { id: 'sin-syd', name: 'Singapore – Sydney', points: [[103.99, 1.36], [151.18, -33.94]] },
+  { id: 'nrt-lax', name: 'Tokyo – Los Angeles', points: [[140.39, 35.77], [-118.41, 33.94]] },
 ]
 
 // Key disruption points, drawn as ⚠ markers whenever the SHIPPING overlay is on.

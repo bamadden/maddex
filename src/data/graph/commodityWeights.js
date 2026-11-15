@@ -11,6 +11,8 @@
 // Keyed '<TICKER>|<commodity node>'. Producers or commodities not here stay
 // INFERRED, with no weight.
 
+// When the weights were last set (git, 31 Oct 2026).
+export const COMMODITY_WEIGHTS_SET = '2026-10-31'
 export const COMMODITY_WEIGHTS = 
 {
   "BHP|cmd:copper": {

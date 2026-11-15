@@ -10,6 +10,10 @@ import { PAL } from '../styles/palette.js'
 // leveraged or inverse, and what that does to a holder. Those carry a
 // `complex` flag that drives a warning the UI cannot render without.
 
+// INDICATIVE figures carry no as-of date: none was recorded when they were
+// typed. The freshness guard flags this until a dated, sourced copy is held.
+export const ETF_DATA_AS_OF = null
+
 export const ETF_CATEGORIES = [
   { key: 'ALL',          label: 'ALL',              tone: PAL.gold },
   { key: 'AU Equity',    label: 'AU EQUITY',        tone: PAL.gold },

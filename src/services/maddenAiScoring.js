@@ -128,6 +128,8 @@ export function calculateMarketSentimentScore(data) {
 //
 // coins: [{ symbol, change24h, change7d, volume24h, marketCap }]
 // fearGreed: { value } | null
+// When the method below was last set (git, 7 Nov 2026); methods are held to a year.
+export const CRYPTO_MOMENTUM_SET = '2026-11-07'
 export const CRYPTO_MOMENTUM_WEIGHTS = { day: 25, week: 20, breadth: 20, fearGreed: 20, btcVolume: 15 }
 const CRYPTO_FACTOR_COUNT = Object.keys(CRYPTO_MOMENTUM_WEIGHTS).length
 const known = (v) => typeof v === 'number' && Number.isFinite(v)

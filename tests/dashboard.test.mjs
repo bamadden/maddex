@@ -58,12 +58,15 @@ test("today's brief: read from the Brief cache, zones named, no outlook score", 
   assert.match(ov, /brief: <BriefSummary key=\{id\} goTo=\{setActiveModule\}/)
 })
 
-test('coming up: every time carries its zone; the built-in schedule is badged STALE, briefly', () => {
+test('coming up: every time carries its zone; the hand-entered schedule is DELAYED with its checked date, never STALE', () => {
   const ov = read('src/modules/dashboard/OverviewSurface.jsx')
   const panel = ov.slice(ov.indexOf('function ComingUp'), ov.indexOf('export default function OverviewSurface'))
   assert.match(panel, /sydneyClock\(t\)\.text/)
   assert.doesNotMatch(panel, /sydneyClock\(t\)\.time/)
-  assert.match(panel, /<DataBadge cls="STALE" source="built-in schedule" \/>/)
+  // STALE means a feed failed just now; the calendar feed is licensed off, so
+  // the schedule is a dated hand-entered record (15 Nov 2026).
+  assert.match(panel, /<DataBadge cls="DELAYED" source="Maddex schedule, checked" at=\{ECON_SCHEDULE_CHECKED\} \/>/)
+  assert.doesNotMatch(panel, /cls="STALE"|cls="LIVE"/)
 })
 
 test('panel order: moves, survives a reload, ignores stale entries, resets', async () => {
