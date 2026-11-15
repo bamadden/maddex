@@ -1412,6 +1412,13 @@ function NotificationsSection() {
           got coming", which is the question you ask in settings. */}
       <UpcomingReminders />
 
+      {/* Email delivery is not built: no toggle for a feature that does not
+          exist, only a line saying where alerts go (15 Nov 2026). */}
+      {!EMAIL_DELIVERY_AVAILABLE ? (
+        <div className="text-2xs text-terminal-text-dim px-1 py-1" data-email-alerts-off>
+          Email alerts are not available yet. Alerts appear in the app and as desktop notifications.
+        </div>
+      ) : (
       <FieldRow
         label="Email Alerts"
         note={!EMAIL_DELIVERY_AVAILABLE
@@ -1426,6 +1433,7 @@ function NotificationsSection() {
           onChange={() => { if (EMAIL_DELIVERY_AVAILABLE && userEmail) setEmailOn(setEmailAlertsEnabled(!emailOn)) }}
         />
       </FieldRow>
+      )}
 
       <FieldRow label="Sound Effects" note="Subtle tones for alerts, AI responses, and actions — off by default">
         <div className="flex items-center gap-2">

@@ -36,15 +36,10 @@ export const US_BONDS = toBondRows('US')
 
 // Central bank policy rates, derived from VERIFIED_CONSTANTS.
 //
-// `direction` is the last decision that was actually taken; `expectation` is
-// the market-implied stance into the NEXT meeting. They are different things
-// and are deliberately kept apart — a bank that just held can still be
-// expected to cut. `expectation` is a judgement rather than a published
-// statistic, so it stays here rather than in verifiedConstants.
-const CB_EXPECTATION = {
-  rba: 'hold', fed: 'hike', ecb: 'hold', boe: 'hold', boj: 'hike',
-  pboc: 'hold', rbnz: 'hold', boc: 'hold', snb: 'hold', riksbank: 'hike',
-}
+// `direction` is the last decision that was actually taken. An undated,
+// unsourced "expectation" per bank (fed: hike, boj: hike, ...) stood here and
+// fed an EXPECTED column; it was a forecast with no source and was removed
+// on 15 Nov 2026.
 
 const CB_ORDER = [
   ['rba', 'Reserve Bank of Australia', 'AUD'],
@@ -70,7 +65,6 @@ export const CENTRAL_BANK_RATES = CB_ORDER.map(([key, bank, country]) => {
     nextMeeting: c.nextMeeting,
     src: c.source,
     ...(c.note ? { note: c.note } : {}),
-    expectation: CB_EXPECTATION[key],
     vkey: key,
   }
 })
@@ -258,80 +252,60 @@ export const RBA_RECENT_STATEMENTS = [
   },
 ]
 
-// The typed macro series below (consumer sentiment, business confidence,
-// trade balance, iron ore, China watch) carry no as-of date; the freshness
-// guard flags them until Phase B verifies or removes each.
-export const MACRO_SERIES_AS_OF = null
+// Consumer sentiment, business confidence and the goods trade balance below
+// were read from Westpac, NAB and the ABS on this date.
+export const MACRO_SERIES_AS_OF = '2026-11-15'
 
 // ─── Leading Indicators ───────────────────────────────────────────────────────
 
-// Westpac-Melbourne Institute Consumer Sentiment (Jan 2024 – Jun 2026)
-// Below 100 = pessimistic · SOURCE: Westpac-Melbourne Institute, released monthly
+// Westpac–Melbourne Institute Consumer Sentiment Index, Jan–Nov 2026, each
+// month read 15 Nov 2026 from westpaciq.com.au. Below 100 = more pessimists
+// than optimists. The 2024–25 points and the 2026 values typed before (Jan
+// held as 83.5; Westpac published 92.9) were removed.
 export const AU_CONSUMER_SENTIMENT = [
-  { date: 'Jan-24', value: 81.0 }, { date: 'Feb-24', value: 86.0 },
-  { date: 'Mar-24', value: 82.4 }, { date: 'Apr-24', value: 82.4 },
-  { date: 'May-24', value: 83.0 }, { date: 'Jun-24', value: 82.4 },
-  { date: 'Jul-24', value: 85.3 }, { date: 'Aug-24', value: 84.6 },
-  { date: 'Sep-24', value: 87.5 }, { date: 'Oct-24', value: 86.7 },
-  { date: 'Nov-24', value: 87.9 }, { date: 'Dec-24', value: 89.8 },
-  { date: 'Jan-25', value: 92.1 }, { date: 'Feb-25', value: 95.1 },
-  { date: 'Mar-25', value: 95.9 }, { date: 'Apr-25', value: 94.0 },
-  { date: 'May-25', value: 90.0 }, { date: 'Jun-25', value: 88.5 },
-  { date: 'Jul-25', value: 89.8 }, { date: 'Aug-25', value: 87.9 },
-  { date: 'Sep-25', value: 85.6 }, { date: 'Oct-25', value: 84.0 },
-  { date: 'Nov-25', value: 84.9 }, { date: 'Dec-25', value: 85.0 },
-  { date: 'Jan-26', value: 83.5 }, { date: 'Feb-26', value: 84.0 },
-  { date: 'Mar-26', value: 82.5 }, { date: 'Apr-26', value: 82.0 },
-  { date: 'May-26', value: 82.0 }, { date: 'Jun-26', value: 82.4 },
+  { date: 'Jan-26', value: 92.9 }, { date: 'Feb-26', value: 90.5 },
+  { date: 'Mar-26', value: 91.6 }, { date: 'Apr-26', value: 80.1 },
+  { date: 'May-26', value: 83.0 }, { date: 'Jun-26', value: 80.6 },
+  { date: 'Jul-26', value: 83.9 }, { date: 'Aug-26', value: 88.9 },
+  { date: 'Sep-26', value: 84.4 }, { date: 'Oct-26', value: 80.4 },
+  { date: 'Nov-26', value: 78.2 },
 ]
 
-// NAB Monthly Business Confidence Survey (Jan 2024 – Sep 2026)
-// Aug and Sep 2026 are from NAB's 13 Oct release ("fell 4 points to -13",
-// verifiedConstants.au.nabConfidence). Jun and Jul are not held, so they
-// are gaps rather than guesses.
-// Net balance; NAB puts the long-run average about +5 · SOURCE: NAB Business Survey, released monthly
+// NAB Monthly Business Survey, business confidence (net balance), Jan–Oct
+// 2026, each month read 15 Nov 2026 from nab.com.au; September as revised in
+// the October release. The typed values held before were wrong (March held
+// as +4; NAB published -29) and the 2024–25 points were removed.
 export const AU_BUSINESS_CONFIDENCE = [
-  { date: 'Jan-24', value: 2  }, { date: 'Feb-24', value: 5  },
-  { date: 'Mar-24', value: 0  }, { date: 'Apr-24', value: -2 },
-  { date: 'May-24', value: 1  }, { date: 'Jun-24', value: 3  },
-  { date: 'Jul-24', value: 4  }, { date: 'Aug-24', value: -1 },
-  { date: 'Sep-24', value: 3  }, { date: 'Oct-24', value: 5  },
-  { date: 'Nov-24', value: 7  }, { date: 'Dec-24', value: 5  },
-  { date: 'Jan-25', value: 8  }, { date: 'Feb-25', value: 6  },
-  { date: 'Mar-25', value: 4  }, { date: 'Apr-25', value: 2  },
-  { date: 'May-25', value: -1 }, { date: 'Jun-25', value: 1  },
-  { date: 'Jul-25', value: 3  }, { date: 'Aug-25', value: 4  },
-  { date: 'Sep-25', value: 5  }, { date: 'Oct-25', value: 3  },
-  { date: 'Nov-25', value: 4  }, { date: 'Dec-25', value: 4  },
-  { date: 'Jan-26', value: 3  }, { date: 'Feb-26', value: 5  },
-  { date: 'Mar-26', value: 4  }, { date: 'Apr-26', value: 2  },
-  { date: 'May-26', value: 4  }, { date: 'Jun-26', value: null },
-  { date: 'Jul-26', value: null }, { date: 'Aug-26', value: -9 },
-  { date: 'Sep-26', value: -13 },
+  { date: 'Jan-26', value: 3 }, { date: 'Feb-26', value: -1 },
+  { date: 'Mar-26', value: -29 }, { date: 'Apr-26', value: -24 },
+  { date: 'May-26', value: -14 }, { date: 'Jun-26', value: -5 },
+  { date: 'Jul-26', value: -6 }, { date: 'Aug-26', value: -8 },
+  { date: 'Sep-26', value: -14 }, { date: 'Oct-26', value: -15 },
 ]
 
-// ABS balance on goods, seasonally adjusted (Jan 2024 – Aug 2026, A$ billions)
-// Positive = surplus · SOURCE: ABS Data API, ITGS M1.170.20.AUS.M, fetched
-// 2026-10-27. Replaced a goods-and-services series that did not match the
+// ABS balance on goods, seasonally adjusted (Jan 2024 – Sep 2026, A$ billions)
+// Positive = surplus · SOURCE: ABS Data API, ITGS 1.2.0 M1.170.20.AUS.M, fetched
+// 2026-11-15 (August as revised). Replaced a goods-and-services series that did not match the
 // ABS (it showed a A$6.9B surplus for Mar 2026, a month the goods balance
 // was a A$2.1B deficit). The monthly release is goods only now.
 export const AU_TRADE_BALANCE = [
-  { date: 'Jan-24', value: 9.5 }, { date: 'Feb-24', value: 8.2 },
-  { date: 'Mar-24', value: 4.5 }, { date: 'Apr-24', value: 5.9 },
-  { date: 'May-24', value: 5.4 }, { date: 'Jun-24', value: 5.6 },
-  { date: 'Jul-24', value: 5.3 }, { date: 'Aug-24', value: 5.7 },
-  { date: 'Sep-24', value: 3.9 }, { date: 'Oct-24', value: 4.8 },
-  { date: 'Nov-24', value: 6.0 }, { date: 'Dec-24', value: 4.0 },
-  { date: 'Jan-25', value: 4.4 }, { date: 'Feb-25', value: 3.3 },
-  { date: 'Mar-25', value: 6.9 }, { date: 'Apr-25', value: 4.5 },
-  { date: 'May-25', value: 2.1 }, { date: 'Jun-25', value: 4.5 },
-  { date: 'Jul-25', value: 6.3 }, { date: 'Aug-25', value: 0.9 },
-  { date: 'Sep-25', value: 3.5 }, { date: 'Oct-25', value: 4.3 },
-  { date: 'Nov-25', value: 2.3 }, { date: 'Dec-25', value: 3.2 },
-  { date: 'Jan-26', value: 2.5 }, { date: 'Feb-26', value: 5.2 },
-  { date: 'Mar-26', value: -2.1 }, { date: 'Apr-26', value: 1.3 },
-  { date: 'May-26', value: -2.8 }, { date: 'Jun-26', value: 2.0 },
-  { date: 'Jul-26', value: 1.4 }, { date: 'Aug-26', value: 0.5 },
+  { date: 'Jan-24', value: 9.5 }, { date: 'Feb-24', value: 8.319 },
+  { date: 'Mar-24', value: 4.486 }, { date: 'Apr-24', value: 6.157 },
+  { date: 'May-24', value: 5.434 }, { date: 'Jun-24', value: 5.542 },
+  { date: 'Jul-24', value: 5.413 }, { date: 'Aug-24', value: 5.874 },
+  { date: 'Sep-24', value: 3.533 }, { date: 'Oct-24', value: 4.651 },
+  { date: 'Nov-24', value: 6.001 }, { date: 'Dec-24', value: 3.986 },
+  { date: 'Jan-25', value: 4.352 }, { date: 'Feb-25', value: 3.321 },
+  { date: 'Mar-25', value: 7.091 }, { date: 'Apr-25', value: 4.446 },
+  { date: 'May-25', value: 2.296 }, { date: 'Jun-25', value: 4.667 },
+  { date: 'Jul-25', value: 6.383 }, { date: 'Aug-25', value: 0.903 },
+  { date: 'Sep-25', value: 3.047 }, { date: 'Oct-25', value: 4.179 },
+  { date: 'Nov-25', value: 2.217 }, { date: 'Dec-25', value: 3.158 },
+  { date: 'Jan-26', value: 2.627 }, { date: 'Feb-26', value: 5.179 },
+  { date: 'Mar-26', value: -2.088 }, { date: 'Apr-26', value: 1.507 },
+  { date: 'May-26', value: -2.604 }, { date: 'Jun-26', value: 2.314 },
+  { date: 'Jul-26', value: 1.515 }, { date: 'Aug-26', value: 0.184 },
+  { date: 'Sep-26', value: 2.826 },
 ]
 
 // Iron Ore Spot Price (USD/tonne) — last 12 months

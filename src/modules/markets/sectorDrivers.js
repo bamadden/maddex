@@ -1,6 +1,5 @@
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { formatDate } from '../../utils/dateUtils'
-import { IRON_ORE_HISTORY } from '../../data/placeholders'
 
 // What actually moves each ASX sector.
 //
@@ -31,12 +30,11 @@ const C_SRC = 'verifiedConstants · commodities'
 // and inventing one is the same error as inventing the level.
 const dir = (cur, prev) => (prev == null || cur == null ? null : cur > prev ? 'up' : cur < prev ? 'down' : 'flat')
 
-const ironOrePrev = IRON_ORE_HISTORY.length >= 2
-  ? IRON_ORE_HISTORY[IRON_ORE_HISTORY.length - 2].value
-  : null
-const ironOreLatest = IRON_ORE_HISTORY.length
-  ? IRON_ORE_HISTORY[IRON_ORE_HISTORY.length - 1].value
-  : null
+// Iron ore direction from the two dated readings verifiedConstants holds
+// (current and `previous`), not from a separate typed series (which was
+// labelled SGX / Platts, licensed data, and removed on 15 Nov 2026).
+const ironOrePrev = VERIFIED_CONSTANTS.commodities.previous?.ironOreUSD ?? null
+const ironOreLatest = VERIFIED_CONSTANTS.commodities.ironOreUSD ?? null
 
 // ctx: { fx } — the live FX payload from liveDataService, or null while it
 // loads or if it failed. Drivers that need it degrade to null, not to a guess.

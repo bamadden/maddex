@@ -439,17 +439,17 @@ export const VERIFIED_CONSTANTS = {
     // confirm at next verification.
     gdpLastRelease: '2026-09-03',
 
-    // UPDATED 2026-10-27 — this read A$7.2B as at an April release. The ABS
-    // monthly trade release is now goods only ("International Trade in
-    // Goods"); services are quarterly, in the balance of payments. August
-    // 2026, released 1 Oct: the seasonally adjusted balance on goods "decreased
-    // $856m" to A$495m, from A$1,351m in July. ABS Data API: ITGS
-    // M1.170.20.AUS.M.
-    tradeBalanceBn: 0.495,
-    tradeBalancePrevBn: 1.351,
-    tradeBalancePeriod: 'Aug 2026',
-    tradeBalanceRelease: '2026-10-01',
-    tradeBalanceNextRelease: '2026-11-05',
+    // UPDATED 2026-11-15 from the ABS Data API (ITGS 1.2.0, M1.170.20.AUS.M,
+    // seasonally adjusted balance on goods): September 2026 A$2,826m,
+    // released 5 Nov; August revised to A$184m (A$495m when first released).
+    // Next: October 2026, Thu 3 Dec (ABS release calendar). The monthly
+    // release is goods only; services are quarterly, in the balance of
+    // payments.
+    tradeBalanceBn: 2.826,
+    tradeBalancePrevBn: 0.184,
+    tradeBalancePeriod: 'Sep 2026',
+    tradeBalanceRelease: '2026-11-05',
+    tradeBalanceNextRelease: '2026-12-03',
 
     // Retail Trade ended in 2025; the ABS's monthly read on consumer demand is
     // now the Monthly Household Spending Indicator. August 2026, released
@@ -463,16 +463,17 @@ export const VERIFIED_CONSTANTS = {
     householdSpendingRelease: '2026-09-29',
     householdSpendingNextRelease: '2026-11-04',
 
-    // NAB Monthly Business Survey, September 2026, released 13 Oct:
-    // "confidence fell 4 points to -13 index points", 18 points below its
-    // long-run average, a third straight monthly fall. "Business conditions
-    // were unchanged at -1 index point." Not on an API — check nab.com.au.
-    nabConfidence: -13,
-    nabConfidencePrev: -9,
-    nabConditions: -1,
+    // NAB Monthly Business Survey, October 2026, released 10 Nov (nab.com.au,
+    // read 15 Nov): "Business confidence edged down 1pt to -15 index points
+    // ... business conditions fell 1pt to -2 index points." The previous
+    // month as NAB states it: confidence -14 (revised from -13 as first
+    // published), conditions -1. Not on an API.
+    nabConfidence: -15,
+    nabConfidencePrev: -14,
+    nabConditions: -2,
     nabConditionsPrev: -1,
-    nabPeriod: 'Sep 2026',
-    nabRelease: '2026-10-13',
+    nabPeriod: 'Oct 2026',
+    nabRelease: '2026-11-10',
     corelogicHpiMoM: 0.5,
     corelogicRelease: '2026-06-02',
     asx200PE: 19.2,

@@ -87,7 +87,6 @@ export const FRESHNESS_EXEMPT = {
 // that date the problem fails the test again. Never extend one without the
 // check it names: fix the data, or add a new flag with a new reason.
 export const FRESHNESS_FLAGS = [
-  { id: 'macro-series', until: '2026-11-29', reason: "typed consumer sentiment, business confidence, trade balance, iron ore and China series with no date; verify each against Westpac-MI, NAB, ABS and the iron ore source, or remove (Phase B)" },
   { id: 'cb-meetings-unverified', until: '2026-11-29', reason: "rbnz.govt.nz refuses automated requests and the PBoC publishes no forward LPR calendar; read RBNZ's dates in a browser, or show both as not confirmed" },
   { id: 'futures-data', until: '2026-11-29', reason: "18 of 30 contract rows (the CME Group contracts: CME, CBOT, NYMEX, COMEX) are not verified, because cmegroup.com refuses automated requests; read their specifications in a browser, or remove those rows on 29 Nov. The other 12 were read from ASX, ICE, HKEX, SGX and JPX on 15 Nov" },
 ]

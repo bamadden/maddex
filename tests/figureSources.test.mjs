@@ -35,7 +35,9 @@ test('Rates: converter, AUD strength, metals and curves carry class, source and 
   assert.match(fx, /ECB reference rates, via Frankfurter · 30 days to \$\{formatDate\(lastRateDate\(rows\)\)\}/)
   assert.match(fx, /<DataBadge cls="DELAYED" source="ExchangeRate-API" at=\{metalsRates\?\.updated/)
   assert.doesNotMatch(code('src/modules/fx/FXModule.jsx'), /● LIVE|updatedTime/, 'no LIVE claim, no render time shown as data time')
-  assert.match(fx, /src: `RBA table F2 · \$\{asAtLabel\(BOND_CURVES_AS_OF\.AU\)\} · bills and 30Y indicative`/)
+  // Every curve, AU to DE, names its publisher's series and date (15 Nov 2026).
+  assert.match(fx, /src: `\$\{BOND_CURVE_SOURCES\[key\]\.series\} · \$\{asAtLabel\(BOND_CURVES_AS_OF\[key\]\)\}`/)
+  assert.doesNotMatch(fx, /Jul 2026|AU carry premium|'Steepening'/)
   const rows = strengthRows(['USD', 'EUR'], [
     { status: 'fulfilled', value: { rates: { '2026-10-01': { USD: 0.65 }, '2026-10-31': { USD: 0.66 } } } },
     { status: 'fulfilled', value: { rates: { '2026-10-02': { EUR: 0.60 }, '2026-10-30': { EUR: 0.61 } } } },

@@ -2,9 +2,8 @@ import { useMemo, useState } from 'react'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
   BOJ_MEETINGS_2026, PBOC_MEETINGS_2026, RBNZ_MEETINGS_2026, BOC_MEETINGS_2026,
-  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026,
+  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026, MEETINGS_CHECKED,
 } from '../../services/centralBankSchedule'
-import { CENTRAL_BANK_RATES } from '../../data/placeholders'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
@@ -33,9 +32,6 @@ import { formatDate } from '../../utils/dateUtils'
 // already recorded once, next to the rates it belongs with; a second copy in
 // this file would be a second thing to update and a second thing to disagree
 // with the first.
-const EXPECTED = Object.fromEntries(
-  CENTRAL_BANK_RATES.map((cb) => [cb.vkey, (cb.expectation ?? 'hold').toUpperCase()]),
-)
 
 const BANKS = [
   { key: 'rba',      label: 'RBA',      flag: '🇦🇺', dates: RBA_MEETINGS_2026,      official: true  },
@@ -77,7 +73,7 @@ export default function UpcomingDecisions({ days = 90 }) {
         first = false
         if (ts > horizon) continue
         out.push({
-          ...b, date: d, ts, isNext, expected: EXPECTED[b.key] ?? 'HOLD',
+          ...b, date: d, ts, isNext,
           daysAway: Math.ceil((ts - now) / 86400000),
         })
       }
@@ -103,13 +99,14 @@ export default function UpcomingDecisions({ days = 90 }) {
             <th className="text-left font-normal py-1 tracking-widest">&nbsp;</th>
             <th className="text-left font-normal py-1 tracking-widest" style={{ width: 100 }}>DATE</th>
             <th className="text-right font-normal py-1 tracking-widest" style={{ width: 90 }}>CURRENT</th>
-            <th className="text-left font-normal py-1 pl-6 tracking-widest" style={{ width: 130 }}>EXPECTED</th>
+            <th className="text-left font-normal py-1 pl-6 tracking-widest" style={{ width: 150 }}>LAST DECISION</th>
             <th className="text-right font-normal px-3 py-1 tracking-widest" style={{ width: 90 }}>AWAY</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => {
-            const st = PILL[r.expected] ?? PILL.HOLD
+            const vc = VERIFIED_CONSTANTS[r.key]
+            const st = PILL[vc?.lastDecisionVerb] ?? PILL.HOLD
             const soon = r.daysAway <= 14
             return (
               <tr
@@ -132,23 +129,19 @@ export default function UpcomingDecisions({ days = 90 }) {
                 <td className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 11 }}>
                   {formatDate(r.date, { year: false })}
                 </td>
-                {/* The rate going INTO the meeting — the number the expected
-                    decision would move. A date and a stance with no level
-                    between them makes the reader look it up again. */}
+                {/* The rate going into the meeting, as the bank states it (the
+                    Fed as its range). */}
                 <td className="py-1 text-right font-mono tabular-nums text-terminal-gold" style={{ fontSize: 11 }}>
-                  {VERIFIED_CONSTANTS[r.key]?.cashRate?.toFixed(2)}%
+                  {vc?.rateRange ?? (vc?.cashRate != null ? `${vc.cashRate.toFixed(2)}%` : '—')}
                 </td>
                 <td className="py-1 pl-6">
-                  {r.isNext ? (
-                    <span
-                      className="font-mono font-bold inline-block"
-                      style={{
-                        fontSize: 11, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2,
-                        color: st.colour, background: st.bg, border: `1px solid ${st.border}`,
-                      }}
-                    >{r.expected}</span>
+                  {r.isNext && vc?.lastDecisionVerb ? (
+                    <span className="font-mono inline-flex items-center gap-1.5" style={{ fontSize: 11 }}>
+                      <span className="font-bold inline-block" style={{ letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 2, color: st.colour, background: st.bg, border: `1px solid ${st.border}` }}>{vc.lastDecisionVerb}</span>
+                      <span className="text-terminal-text-dim">{formatDate(vc.lastDecision, { year: false })}</span>
+                    </span>
                   ) : (
-                    <span className="font-mono text-terminal-text-dim/35" style={{ fontSize: 11 }} title="No stance recorded for a bank's later meetings">—</span>
+                    <span className="font-mono text-terminal-text-dim/35" style={{ fontSize: 11 }}>—</span>
                   )}
                 </td>
                 <td
@@ -164,11 +157,9 @@ export default function UpcomingDecisions({ days = 90 }) {
       </table>
 
       <div className="px-3 py-1.5 border-t border-terminal-border/40 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
-        RBA, Fed, ECB and BOE dates are each bank&apos;s published calendar. The six marked
-        <span className="text-terminal-text-dim/80"> ~ </span>
-        follow that bank&apos;s known meeting cadence — treat those dates as approximate.
-        EXPECTED is this terminal&apos;s recorded stance into each bank&apos;s next meeting,
-        not a market-implied probability: no rate-futures feed is connected.
+        Dates are each bank&apos;s own published calendar, read {formatDate(MEETINGS_CHECKED)}, except those marked
+        &ldquo;not confirmed&rdquo;. LAST DECISION is what the bank last did, from its own statement; Maddex
+        shows no expected outcome for the next meeting.
       </div>
     </div>
   )

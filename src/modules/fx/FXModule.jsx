@@ -14,7 +14,7 @@ import {
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl } from '../../data/rbaDecisions'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
-import { curveForRates, BOND_CURVES_AS_OF } from '../../data/bondCurves'
+import { curveForRates, BOND_CURVES_AS_OF, BOND_CURVE_SOURCES } from '../../data/bondCurves'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 // The full ten-bank schedule now lives in UpcomingDecisions, which owns the
 // 90-day calendar. This module only needs the RBA's own dates, for the hero
@@ -40,51 +40,25 @@ import { PAL } from '../../styles/palette.js'
 const YieldCurve3D = lazy(() => import('../../components/visualisations/YieldCurve3D'))
 
 // ─── 5-Country Yield Curve Data ──────────────────────────────────────────────
-// AU and US derive from bondCurves.js (sourced points, see BOND_CURVES_AS_OF),
-// so this panel and the Bonds module cannot disagree. Their `prev` is empty:
-// no verified month-ago curve is held, and an invented one would draw a move
-// that never happened. UK/JP/DE remain an illustrative July snapshot.
+// Every curve derives from bondCurves.js: each publisher's own end-of-day
+// reading, dated in BOND_CURVES_AS_OF (BOND_CURVE_SOURCES names it), so this
+// panel and the Bonds module cannot disagree. `prev` is empty: no verified
+// month-ago curve is held, and an invented one would draw a move that never
+// happened. The UK, JP and DE curves here were a typed July snapshot, up to
+// 142bp off, with typed month-ago curves (removed 15 Nov 2026).
 
 const asAtLabel = (iso) => formatDate(iso)
+const curve = (key, label, color) => ({
+  label, color, src: `${BOND_CURVE_SOURCES[key].series} · ${asAtLabel(BOND_CURVES_AS_OF[key])}`,
+  points: curveForRates(key), prev: {},
+})
 
 const YIELD_CURVES = {
-  AU: {
-    label: 'AU GOV BONDS', color: PAL.gold, src: `RBA table F2 · ${asAtLabel(BOND_CURVES_AS_OF.AU)} · bills and 30Y indicative`,
-    points: curveForRates('AU'),
-    prev: {},
-  },
-  US: {
-    label: 'US TREASURIES', color: PAL.blue, src: `US Treasury par curve · ${asAtLabel(BOND_CURVES_AS_OF.US)}`,
-    points: curveForRates('US'),
-    prev: {},
-  },
-  UK: {
-    label: 'UK GILTS', color: '#a855f7', src: 'UK DMO · Jul 2026',
-    points: [
-      { m:'3M', y:4.45 }, { m:'6M', y:4.38 }, { m:'1Y', y:4.20 },
-      { m:'2Y', y:4.10 }, { m:'5Y', y:4.18 }, { m:'10Y',y:4.42 },
-      { m:'30Y',y:4.85 },
-    ],
-    prev: { '3M':4.50,'6M':4.42,'1Y':4.25,'2Y':4.15,'5Y':4.22,'10Y':4.48,'30Y':4.90 },
-  },
-  JP: {
-    label: 'JP BONDS (JGBs)', color: '#14b8a6', src: 'MOF Japan · Jul 2026',
-    points: [
-      { m:'3M', y:0.35 }, { m:'6M', y:0.42 }, { m:'1Y', y:0.55 },
-      { m:'2Y', y:0.72 }, { m:'5Y', y:1.05 }, { m:'10Y',y:1.42 },
-      { m:'30Y',y:2.18 },
-    ],
-    prev: { '3M':0.30,'6M':0.38,'1Y':0.50,'2Y':0.68,'5Y':1.00,'10Y':1.38,'30Y':2.12 },
-  },
-  DE: {
-    label: 'DE BUNDS', color: PAL.up, src: 'Bundesbank · Jul 2026',
-    points: [
-      { m:'3M', y:2.18 }, { m:'6M', y:2.12 }, { m:'1Y', y:2.05 },
-      { m:'2Y', y:2.02 }, { m:'5Y', y:2.15 }, { m:'10Y',y:2.48 },
-      { m:'30Y',y:2.82 },
-    ],
-    prev: { '3M':2.25,'6M':2.18,'1Y':2.10,'2Y':2.08,'5Y':2.20,'10Y':2.52,'30Y':2.88 },
-  },
+  AU: curve('AU', 'AU GOV BONDS', PAL.gold),
+  US: curve('US', 'US TREASURIES', PAL.blue),
+  UK: curve('UK', 'UK GILTS', '#a855f7'),
+  JP: curve('JP', 'JP BONDS (JGBs)', '#14b8a6'),
+  DE: curve('DE', 'DE BUNDS', PAL.up),
 }
 
 
@@ -803,23 +777,31 @@ function BondSpreadsTable() {
   const jp10 = YIELD_CURVES.JP.points.find(p => p.m === '10Y')?.y
   const de10 = YIELD_CURVES.DE.points.find(p => p.m === '10Y')?.y
 
+  // Differences between published end-of-day yields, each curve dated
+  // (BOND_CURVES_AS_OF). Plain description: which is higher, by how much.
+  const diff = (a, b) => (a == null || b == null ? null : a - b)
+  const higher = (v, x, y) => (v == null ? '—' : Math.abs(v) < 0.005 ? 'Equal' : v > 0 ? `${x} higher` : `${y} higher`)
   const rows = [
-    { name: 'AU vs US 10Y',  value: au10 - us10, note: Math.abs(au10 - us10) < 0.1 ? 'Near parity' : au10 > us10 ? 'AU pays more' : 'US pays more' },
-    { name: 'AU 2Y vs 10Y',  value: au10 - au2,  note: au10 - au2 > 0.15 ? 'Steepening' : au10 - au2 > 0 ? 'Mildly steep' : 'Flat/inverted' },
-    { name: 'AU vs UK 10Y',  value: au10 - uk10, note: au10 > uk10 ? 'AU pays more' : 'UK pays more' },
-    { name: 'AU vs JP 10Y',  value: au10 - jp10, note: 'AU carry premium vs Japan' },
-    { name: 'AU vs DE 10Y',  value: au10 - de10, note: au10 > de10 ? 'AU pays more' : 'DE pays more' },
+    { name: 'AU vs US 10Y',  value: diff(au10, us10), note: higher(diff(au10, us10), 'AU', 'US') },
+    { name: 'AU 10Y vs 2Y',  value: diff(au10, au2),  note: diff(au10, au2) == null ? '—' : diff(au10, au2) > 0 ? 'Positively sloped' : diff(au10, au2) < 0 ? 'Inverted' : 'Flat' },
+    { name: 'AU vs UK 10Y',  value: diff(au10, uk10), note: higher(diff(au10, uk10), 'AU', 'UK') },
+    { name: 'AU vs JP 10Y',  value: diff(au10, jp10), note: higher(diff(au10, jp10), 'AU', 'JP') },
+    { name: 'AU vs DE 10Y',  value: diff(au10, de10), note: higher(diff(au10, de10), 'AU', 'DE') },
   ]
+  const dates = [...new Set(Object.values(BOND_CURVES_AS_OF))].sort()
 
   return (
     <div className="border-t border-terminal-border flex-shrink-0">
-      <div className="panel-header">BOND SPREADS</div>
+      <div className="panel-header flex items-center gap-2">
+        BOND SPREADS
+        <DataBadge cls="DELAYED" source={`published end-of-day yields, ${dates.map((d) => formatDate(d, { year: false })).join(' to ')}`} compact />
+      </div>
       <table className="terminal-table w-full">
         <tbody>
           {rows.map(r => (
             <tr key={r.name}>
               <td className="px-2 py-1 text-2xs text-terminal-text-dim">{r.name}</td>
-              <td className={`px-1 py-1 text-2xs text-right font-bold ${r.value >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>{bp(r.value)}</td>
+              <td className="px-1 py-1 text-2xs text-right font-bold text-terminal-text-bright">{r.value == null ? '—' : bp(r.value)}</td>
               <td className="px-2 py-1 text-2xs text-terminal-text-dim/70">{r.note}</td>
             </tr>
           ))}
