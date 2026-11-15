@@ -249,13 +249,20 @@ export const VERIFIED_CONSTANTS = {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,
     lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-17',
     note: 'Next assessment date not confirmed — SNB meets quarterly',
-    source: 'snb.ch', asOf: '2026-09-24', lastVerified: '2026-10-01',
+    // Re-checked 2026-11-15: snb.ch shows "SNB policy rate 0.00%" (13.11.2026).
+    source: 'snb.ch', asOf: '2026-09-24', lastVerified: '2026-11-15',
   },
+  // UPDATED 2026-11-15 (freshness guard): raised 0.25 to 2.00% at the 3 Nov
+  // meeting, announced 4 Nov, applying from 11 Nov; next announcement 16 Dec
+  // ("Policy rate raised to 2 per cent", riksbank.se press release, and the
+  // riksbank.se home page). The 19 Nov date held here before was a guess.
   riksbank: {
-    label: 'Riksbank', country: 'Sweden', cashRate: 1.75,
-    lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-11-19',
-    note: 'Effective 30 Sep; next date per the Riksbank cadence, not confirmed',
-    source: 'riksbank.se', asOf: '2026-09-24', lastVerified: '2026-10-01',
+    label: 'Riksbank', country: 'Sweden', cashRate: 2.00,
+    lastDecision: '2026-11-04', lastDecisionVerb: 'HIKE', nextMeeting: '2026-12-16',
+    previousRate: 1.75,
+    note: 'Applies from 11 Nov (decided at the 3 Nov meeting)',
+    source: 'riksbank.se', sourceUrl: 'https://www.riksbank.se/en-gb/press-and-published/notices-and-press-releases/press-releases/2026/policy-rate-raised-to-2-per-cent/',
+    asOf: '2026-11-04', lastVerified: '2026-11-15',
   },
 
 
