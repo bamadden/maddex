@@ -42,7 +42,7 @@ export const FRESHNESS = [
   { id: 'country-stats', what: 'Country GDP growth and CPI (Global panel)', kind: 'statistic', file: 'src/data/verifiedConstants.js', date: 'COUNTRY_STATS_CHECKED' },
   { id: 'macro-series', what: 'Macro leading-indicator series (placeholders.js)', kind: 'statistic', file: 'src/data/placeholders.js', date: 'MACRO_SERIES_AS_OF' },
   { id: 'etf-data', what: 'ETF fees, indices and fund sizes', kind: 'statistic', file: 'src/data/etfData.js', date: 'ETF_DATA_AS_OF' },
-  { id: 'futures-data', what: 'Futures prices and margins (INDICATIVE)', kind: 'price', file: 'src/data/futuresData.js', date: 'FUTURES_AS_OF' },
+  { id: 'futures-data', what: 'Futures contract specifications (CME Group rows)', kind: 'price', file: 'src/data/futuresData.js', date: 'FUTURES_AS_OF' },
   { id: 'tax-rates', what: 'Tax, super and duty rates', kind: 'reference', file: 'src/data/auTaxRates.js', date: 'TAX_YEAR_START' },
   { id: 'crypto-momentum', what: 'Crypto momentum weights', kind: 'method', file: 'src/services/maddenAiScoring.js', date: 'CRYPTO_MOMENTUM_SET' },
   { id: 'brief-bands', what: 'Brief score bands', kind: 'method', file: 'src/utils/briefScore.js', date: 'BRIEF_BANDS_SET' },
@@ -89,5 +89,5 @@ export const FRESHNESS_EXEMPT = {
 export const FRESHNESS_FLAGS = [
   { id: 'macro-series', until: '2026-11-29', reason: "typed consumer sentiment, business confidence, trade balance, iron ore and China series with no date; verify each against Westpac-MI, NAB, ABS and the iron ore source, or remove (Phase B)" },
   { id: 'cb-meetings-unverified', until: '2026-11-29', reason: "rbnz.govt.nz refuses automated requests and the PBoC publishes no forward LPR calendar; read RBNZ's dates in a browser, or show both as not confirmed" },
-  { id: 'futures-data', until: '2026-11-29', reason: "INDICATIVE on screen; prices and margins undated; contract specs to be checked against ASX/CME" },
+  { id: 'futures-data', until: '2026-11-29', reason: "18 of 30 contract rows (the CME Group contracts: CME, CBOT, NYMEX, COMEX) are not verified, because cmegroup.com refuses automated requests; read their specifications in a browser, or remove those rows on 29 Nov. The other 12 were read from ASX, ICE, HKEX, SGX and JPX on 15 Nov" },
 ]

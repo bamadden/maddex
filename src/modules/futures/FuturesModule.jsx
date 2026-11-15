@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import {
-  FUTURES_GROUPS, impliedRate,
+  FUTURES_GROUPS, impliedRate, FUTURES_SPECS_CHECKED,
 } from '../../data/futuresData'
 import { blackScholes, smileIv } from './blackScholes'
 import { useFuturesPrices } from './useFuturesPrices'
@@ -11,6 +11,7 @@ import TabBar from '../../components/ui/TabBar'
 import Tooltip from '../../components/ui/Tooltip'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import { formatDate } from '../../utils/dateUtils'
 import DataBadge from '../../components/ui/DataBadge'
 
 // ─── Futures, options and market structure ──────────────────────────────────
@@ -73,11 +74,16 @@ function ContractDetail({ c, onClose }) {
           <button onClick={onClose} className="ml-auto text-2xs text-terminal-text-dim hover:text-terminal-gold">✕ CLOSE</button>
         </div>
 
+        <div className="font-mono mb-2" style={{ fontSize: 11, color: c.specChecked ? PAL.dim : '#D9773B' }} data-spec-status>
+          {c.specChecked
+            ? `Specification read from ${c.exchange}'s own contract page, ${formatDate(FUTURES_SPECS_CHECKED)}.`
+            : `Specification not yet verified against ${c.exchange}'s own page (its site could not be read). Check with the exchange.`}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-3">
           {stat('EXCHANGE', c.exchange)}
           {stat('CONTRACT SIZE', c.size)}
           {stat('TICK SIZE', c.tick, 'The smallest price increment the contract can move.')}
-          {stat('TICK VALUE', `${c.currency === 'AUD' ? 'A$' : c.currency === 'USD' ? 'US$' : ''}${c.tickValue.toLocaleString()}`,
+          {stat('TICK VALUE', `${c.currency === 'AUD' ? 'A$' : c.currency === 'USD' ? 'US$' : ''}${c.tickValueNote ?? c.tickValue.toLocaleString()}`,
             'What one tick is worth per contract — the number that turns a price move into money.')}
           {stat('SETTLEMENT', c.settlement, c.settlement === 'Physical' ? 'Physically settled — held to expiry, you take delivery of the commodity.' : 'Cash settled against the final index or reference price.')}
           {stat('INITIAL MARGIN', 'Set by the clearing house', 'The deposit required to hold one contract, set and changed by the clearing house (ASX Clear (Futures), CME Clearing). Maddex holds no margin figures.')}

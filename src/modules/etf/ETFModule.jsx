@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
-import { ETF_CATEGORIES, feeDrag, isComplex } from '../../data/etfData'
+import { ETF_CATEGORIES, ETF_DATA_AS_OF, feeDrag, isComplex } from '../../data/etfData'
 import { useEtfPrices } from './useEtfPrices'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import Tooltip from '../../components/ui/Tooltip'
@@ -298,14 +298,15 @@ export default function ETFModule() {
         title="ETF EXPLORER"
         subtitle="21 Australian ETFs · fees, returns and what they actually cost"
         moduleId="etf"
-        right={<DataBadge cls="DEMO" source="indicative snapshot · simulated ticks" />}
+        right={<DataBadge cls="DEMO" source="prices simulated" />}
       />
 
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0"
         style={{ background: 'rgba(214,158,46,0.06)' }}>
-        <DataBadge cls="DEMO" source="indicative snapshot, not a feed" />
+        <DataBadge cls="DELAYED" source="fees, indices and fund sizes from each issuer, read" at={ETF_DATA_AS_OF} />
+        <DataBadge cls="DEMO" source="prices simulated" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
-          AUM, yields and returns are illustrative. Verify with the provider&apos;s PDS before investing.
+          Five Vanguard funds could not be read and show "—". No returns or yields are held. Read the issuer&apos;s PDS for full details.
         </span>
       </div>
 

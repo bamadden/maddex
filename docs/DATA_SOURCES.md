@@ -197,6 +197,22 @@ QRE, QFN, HVST, GEAR, BBOZ, BBUS), State Street SPDR (BOND) and Global X
 Returns, yields, holdings counts and evaluative notes were typed without a
 source and were removed. Prices remain a labelled DEMO simulation.
 
+## Futures contract specifications (Futures module)
+
+Read **15 Nov 2026** from each exchange's own specification page: the ASX 24
+contract specifications PDF (SPI 200, 90 Day Bank Bills), ICE (Brent,
+globalCOAL Newcastle, FTSE 100), HKEX (Hang Seng, AUD/CNH), the SGX rulebook
+and bulk-commodities factsheet (iron ore, coking coal) and JPX (Nikkei 225,
+Osaka). Corrected: AUD/CNH is A$80,000 with a RMB 8 tick (A$100,000 held),
+coking coal's tick is US$0.01 = US$1 (0.10 held), the bank-bill tick is "about
+A$24, varies with yield" (24.66 held), and the Nikkei row is the Osaka
+contract (SGX's is ¥500 × index). AUD/EUR and AUD/GBP were removed: CME lists
+EUR/AUD and GBP/AUD. The CME Group rows (CME, CBOT, NYMEX, COMEX) could not be
+read (cmegroup.com refuses automated requests) and say so on screen until
+verified or removed (freshness flag, 29 Nov). Prices are a labelled DEMO
+simulation; volumes, margins, short interest, lender rates and positioning
+were removed.
+
 ## News feeds (headline, short summary, link to the publisher)
 
 | Publisher | Terms | Commercial display? | Attribution | Status |

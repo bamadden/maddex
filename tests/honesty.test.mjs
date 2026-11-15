@@ -251,3 +251,14 @@ test('Futures: no typed short interest, lender rates, "smart money" positioning,
   assert.match(mod, /asic\.gov\.au\/regulatory-resources\/markets\/short-selling/)
   assert.doesNotMatch(read('src/data/placeholders.js'), /ASX_SECTOR_HEATMAP|mktCapWeight/)
 })
+
+test('Futures: specifications read from the exchange are marked; the rest say they are not verified; non-existent AUD crosses removed', async () => {
+  const { FUTURES } = await import('../src/data/futuresData.js')
+  assert.ok(!FUTURES.some((c) => /^AUD\/(EUR|GBP)$/.test(c.name)), 'CME lists EUR/AUD and GBP/AUD, not AUD/EUR or AUD/GBP')
+  const cnh = FUTURES.find((c) => c.name === 'AUD/CNH')
+  assert.equal(cnh.size, 'A$80,000'); assert.equal(cnh.tickValue, 8)
+  assert.equal(FUTURES.find((c) => c.name === 'Coking Coal').tick, 0.01)
+  for (const c of FUTURES) if (/^(CME|CBOT|NYMEX|COMEX)$/.test(c.exchange)) assert.ok(!c.specChecked, `${c.name}: CME Group pages were not read`)
+  assert.ok(FUTURES.filter((c) => c.specChecked).length >= 12)
+  assert.match(read('src/modules/futures/FuturesModule.jsx'), /Specification not yet verified against/)
+})
