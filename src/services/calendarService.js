@@ -19,7 +19,7 @@ const CACHE_MS  = 6 * 60 * 60 * 1000 // 6 hours — calendar doesn't change ofte
 // own — nothing here needs to be removed as time passes.
 // When the schedule below was last checked against its sources (the
 // freshness guard, src/data/freshness.js, holds it to 30 days).
-export const ECON_SCHEDULE_CHECKED = '2026-10-01'
+export const ECON_SCHEDULE_CHECKED = '2026-11-15'
 
 const FALLBACK_EVENTS = [
   // Dates checked 2026-10-01 against the ABS and BLS release calendars and
@@ -53,20 +53,50 @@ const FALLBACK_EVENTS = [
   { date: '2026-11-04', time: '—',     event: 'US Midterm Election Results',         region: 'US', importance: 'high',
     description: 'Polls close on 3 Nov US time; results arrive through the AU day.' },
   { date: '2026-11-05', time: '23:00', event: 'Bank of England Rate Decision',       region: 'UK', importance: 'medium' },
+  // From 16 Nov: re-checked 15 Nov 2026 against each agency's and bank's own
+  // calendar (ABS release calendar, BLS and BEA schedules, the RBA, Fed, ECB,
+  // BoE, BoJ, BoC, SNB and Riksbank calendars; docs/DATA_SOURCES.md). Times
+  // are Sydney (AEDT); US releases at 08:30 ET fall at 00:30 AEDT the next
+  // day. Where a bank publishes no time, the time is "—" and the date is the
+  // bank's own. RBNZ is left out until its calendar can be read.
+  { date: '2026-11-18', time: '11:30', event: 'AU Wage Price Index (Sep qtr)',      region: 'AU', importance: 'medium' },
   { date: '2026-11-19', time: '11:30', event: 'AU Labour Force (Oct)',               region: 'AU', importance: 'high',
     sourceUrl: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['unemployment'],
     description: 'Unemployment was 4.7% in September, a five-year high.' },
+  { date: '2026-11-25', time: '11:30', event: 'AU CPI (Oct)',                        region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['cpi'] },
+  { date: '2026-11-26', time: '00:30', event: 'US GDP, Q3 second estimate',          region: 'US', importance: 'medium' },
+  { date: '2026-12-02', time: '11:30', event: 'AU National Accounts (Sep qtr)',      region: 'AU', importance: 'high' },
+  { date: '2026-12-05', time: '00:30', event: 'US Employment Situation (Nov)',       region: 'US', importance: 'high' },
   { date: '2026-12-08', time: '14:30', event: 'RBA Rate Decision',                   region: 'AU', importance: 'high',
     sourceUrl: 'https://www.rba.gov.au/media-releases/', sourceLabel: 'RBA.GOV.AU', watch: ['cashRate'],
     description: 'Cash rate 4.85% after the 3 Nov hike, the fifth of 2026 (6–3).' },
-  { date: '2026-12-09', time: '12:00', event: 'RBNZ OCR Decision',                   region: 'NZ', importance: 'medium',
-    description: 'OCR 2.75% after the 28 Oct hold (4–3); markets had priced a hike that meeting.' },
-  { date: '2026-12-10', time: '06:00', event: 'FOMC Rate Decision',                  region: 'US', importance: 'high',
+  { date: '2026-12-09', time: '—',     event: 'FOMC Rate Decision (9 Dec, Washington)', region: 'US', importance: 'high',
     description: 'Range 3.75–4.00% after the 28 Oct hold (10–2; Cook and Hammack wanted a hike). New projections.' },
-  { date: '2026-12-18', time: '—',     event: 'Bank of Japan Rate Decision',         region: 'JP', importance: 'medium',
-    description: 'Policy rate 1.25% after the 30 Oct hold (8–1, Takata for a hike); markets had a December hike largely priced before that meeting.' },
-  { date: '2026-12-18', time: '00:15', event: 'ECB Rate Decision',                   region: 'EU', importance: 'medium',
-    description: 'Deposit rate 2.50% after the 29 Oct hold; new staff projections. Lagarde\'s last meetings before she steps down on 7 Feb 2027.' },
+  { date: '2026-12-10', time: '01:45', event: 'Bank of Canada Rate Decision',        region: 'CA', importance: 'medium' },
+  { date: '2026-12-10', time: '19:30', event: 'SNB Monetary Policy Assessment',      region: 'CH', importance: 'low' },
+  { date: '2026-12-11', time: '00:30', event: 'US CPI (Nov)',                        region: 'US', importance: 'high' },
+  { date: '2026-12-16', time: '19:30', event: 'Riksbank Policy Rate Decision',       region: 'SE', importance: 'low' },
+  { date: '2026-12-17', time: '11:30', event: 'AU Labour Force (Nov)',               region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['unemployment'] },
+  { date: '2026-12-17', time: '—',     event: 'ECB Rate Decision (17 Dec, Frankfurt)', region: 'EU', importance: 'medium',
+    description: 'Deposit rate 2.50% after the 29 Oct hold; new staff projections.' },
+  { date: '2026-12-17', time: '—',     event: 'Bank of England Rate Decision (17 Dec, London)', region: 'UK', importance: 'medium' },
+  { date: '2026-12-18', time: '—',     event: 'Bank of Japan Rate Decision (18 Dec, Tokyo)', region: 'JP', importance: 'medium',
+    description: 'Policy rate 1.25% after the 30 Oct hold (8–1, Takata for a hike).' },
+  { date: '2026-12-24', time: '00:30', event: 'US GDP, Q3 third estimate',           region: 'US', importance: 'low' },
+  { date: '2027-01-06', time: '11:30', event: 'AU CPI (Nov)',                        region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['cpi'] },
+  { date: '2027-01-09', time: '00:30', event: 'US Employment Situation (Dec)',       region: 'US', importance: 'high' },
+  { date: '2027-01-14', time: '00:30', event: 'US CPI (Dec)',                        region: 'US', importance: 'high' },
+  { date: '2027-01-21', time: '11:30', event: 'AU Labour Force (Dec)',               region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['unemployment'] },
+  { date: '2027-01-22', time: '—',     event: 'Bank of Japan Rate Decision (22 Jan, Tokyo)', region: 'JP', importance: 'medium' },
+  { date: '2027-01-27', time: '11:30', event: 'AU CPI (Dec, incl. Dec quarter)',      region: 'AU', importance: 'high',
+    sourceUrl: 'https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release', sourceLabel: 'ABS.GOV.AU', watch: ['cpi'] },
+  { date: '2027-01-27', time: '—',     event: 'FOMC Rate Decision (27 Jan, Washington)', region: 'US', importance: 'high' },
+  { date: '2027-01-28', time: '01:45', event: 'Bank of Canada Rate Decision',        region: 'CA', importance: 'medium' },
+  { date: '2027-01-29', time: '00:30', event: 'US GDP, Q4 advance estimate',         region: 'US', importance: 'medium' },
 ]
 
 // Recent confirmed results. Kept separate from the forward calendar since

@@ -146,6 +146,45 @@ and rankings were removed the same day, and the World Bank country fetch is
 switched off (`worldbank` in `src/data/sourceLicence.js`; its API terms are
 under review).
 
+## Release and meeting calendars (Dashboard, Calendar, Rates)
+
+Read on **15 Nov 2026** from each publisher's own calendar. Held in
+`src/services/calendarService.js` (`ECON_SCHEDULE_CHECKED`) and
+`src/services/centralBankSchedule.js` (`MEETINGS_CHECKED`); freshness guard:
+schedule, 30 days.
+
+| Publisher | What | Calendar page read |
+|---|---|---|
+| ABS | CPI, Labour Force, National Accounts, Wage Price Index | https://www.abs.gov.au/release-calendar/future-releases/202611 (and /202612, /202701) |
+| BLS | CPI, Employment Situation (08:30 ET) | https://www.bls.gov/schedule/news_release/cpi.htm, https://www.bls.gov/schedule/news_release/empsit.htm |
+| BEA | GDP estimates (08:30) | https://www.bea.gov/news/schedule, https://www.bea.gov/news/schedule/next-year |
+| RBA | Board decisions (2.30 pm) | https://www.rba.gov.au/schedules-events/board-meeting-schedules.html |
+| Federal Reserve | FOMC decisions | https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm |
+| ECB | Monetary policy meetings | https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html |
+| Bank of England | MPC announcements | https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates |
+| Bank of Japan | Monetary policy meetings | https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm |
+| Bank of Canada | Rate announcements (09:45 ET) | https://www.bankofcanada.ca/2026/07/bank-canada-publishes-2027-schedule-policy-interest-rate-announcements-other-major-publications/ |
+| SNB | Monetary policy assessments (09:30 CET) | https://www.snb.ch/en/services-events/digital-services/event-schedule |
+| Riksbank | Policy rate decisions (09:30) | https://www.riksbank.se/en-gb/press-and-published/calendar/ |
+| RBNZ | **not verified** | rbnz.govt.nz refused automated requests; dates held are flagged |
+| PBoC | **not published** | No forward LPR calendar; the held date follows the monthly LPR rule and is flagged |
+
+Corrections found: October AU CPI is released Wed 25 Nov (not 26); the SNB
+assessment is 10 Dec (17 Dec was held); the Riksbank raised to 2.00% on
+4 Nov (1.75% was held).
+
+## Shipping chokepoint status (Global, Maritime tab)
+
+Maddex's editorial label per chokepoint, reviewed **15 Nov 2026** from dated
+reports listed on each row in `src/data/shippingRoutes.js` (`sources`):
+UKMTO and JMIC advisories as reported by Gulf News and Lloyd's List
+Intelligence, the Suez Canal Authority via Arab Finance, ReCAAP ISC,
+gCaptain (Panama Canal Authority; Reuters), the WSJ via The Moscow Times,
+and Alphaliner via Ship & Bunker. Labels: DISRUPTED (closure, attacks,
+suspension or large-scale diversion reported), MONITORED (open with active
+advisories or restrictions), OPEN (normal operation reported). Headlines no
+longer change a status; globe lane statuses derive from this table.
+
 ## News feeds (headline, short summary, link to the publisher)
 
 | Publisher | Terms | Commercial display? | Attribution | Status |

@@ -31,8 +31,8 @@ export const FRESHNESS = [
   { id: 'corporate-actions', what: 'Dividend, results and AGM dates', kind: 'schedule', file: 'src/data/corporateActions.js', date: 'CORPORATE_ACTIONS_AS_OF' },
   { id: 'econ-schedule', what: 'Economic calendar (Dashboard, Calendar, alerts)', kind: 'schedule', file: 'src/services/calendarService.js', date: 'ECON_SCHEDULE_CHECKED' },
   { id: 'cb-meetings', what: 'Central-bank meeting lists', kind: 'schedule', file: 'src/services/centralBankSchedule.js', date: 'MEETINGS_CHECKED' },
+  { id: 'cb-meetings-unverified', what: 'RBNZ and PBoC meeting dates', kind: 'schedule', file: 'src/services/centralBankSchedule.js', date: 'MEETINGS_UNVERIFIED_CHECKED' },
   { id: 'geo-risk', what: 'Country risk ratings', kind: 'editorial', file: 'src/data/geopoliticalRisk.js', date: 'RISK_LAST_REVIEWED' },
-  { id: 'globe-routes', what: 'Globe shipping and air-cargo route status', kind: 'editorial', file: 'src/data/globeRoutes.js', date: 'ROUTE_STATUS_AS_OF' },
   { id: 'rba-decisions', what: 'RBA decision record', kind: 'history', file: 'src/data/rbaDecisions.js', date: 'RBA_DECISIONS_CHECKED' },
   { id: 'rba-path', what: 'RBA cash-rate path since 2008', kind: 'history', file: 'src/data/rbaCashRatePath.js', date: 'RBA_PATH_READ' },
   { id: 'company-facts', what: 'Company facts (Relationships)', kind: 'statistic', file: 'src/data/graph/companyFacts.js', date: 'FACTS_AS_OF' },
@@ -79,6 +79,7 @@ export const FRESHNESS_EXEMPT = {
   'src/data/graph/edges.js': 'each edge dated and aged by data/graph/staleness (365 days)',
   'src/data/graph/nodes.js': 'registered as graph (GRAPH_AS_OF)',
   'src/services/alertsService.js': 'derived from the economic calendar (econ-schedule)',
+  'src/data/globeRoutes.js': 'lane statuses derive from the dated chokepoint table (chokepoint rows)',
   'src/services/correlationService.js': 'DEMO: a seeded matrix, badged DEMO on the Correlation Explorer and named as simulated to MaddenAI',
 }
 
@@ -86,18 +87,10 @@ export const FRESHNESS_EXEMPT = {
 // that date the problem fails the test again. Never extend one without the
 // check it names: fix the data, or add a new flag with a new reason.
 export const FRESHNESS_FLAGS = [
-  { id: 'econ-schedule', until: '2026-11-22', reason: "checked 1 Oct; re-check every date to come against the ABS, BLS, RBA, RBNZ and Fed calendars (Calendar batch). The Dashboard badge shows the checked date" },
-  { id: 'cb-meetings', until: '2026-11-29', reason: "meeting lists were approximated from each bank's cadence; read each bank's published 2026–27 calendar" },
-  { id: 'globe-routes', until: '2026-11-29', reason: "undated editorial route status; date it or derive it from the chokepoint table (shippingRoutes.js)" },
+  { id: 'cb-meetings-unverified', until: '2026-11-29', reason: "rbnz.govt.nz refuses automated requests and the PBoC publishes no forward LPR calendar; read RBNZ's dates in a browser, or show both as not confirmed" },
   { id: 'sector-weights', until: '2026-11-29', reason: "ASX 200 sector weights typed without a date or source; read S&P/ASX's published weights" },
   { id: 'etf-data', until: '2026-11-29', reason: "INDICATIVE on screen; no date was recorded; read each fund's PDS/fact sheet for fees and size, or drop the figures" },
   { id: 'futures-data', until: '2026-11-29', reason: "INDICATIVE on screen; prices and margins undated; contract specs to be checked against ASX/CME" },
-  { id: 'chokepoint:Suez Canal', until: '2026-11-29', reason: "editorial status entered 5 Sep; re-review from news reports" },
-  { id: 'chokepoint:Strait of Malacca', until: '2026-11-29', reason: "editorial status entered 5 Sep; re-review from news reports" },
-  { id: 'chokepoint:Panama Canal', until: '2026-11-29', reason: "editorial status entered 25 Jun; re-review from news reports" },
-  { id: 'chokepoint:Taiwan Strait', until: '2026-11-29', reason: "editorial status entered 5 Sep; re-review from news reports" },
-  { id: 'chokepoint:Bosphorus Strait', until: '2026-11-29', reason: "editorial status entered 25 Jun; re-review from news reports" },
-  { id: 'chokepoint:Cape of Good Hope', until: '2026-11-29', reason: "editorial status entered 25 Jun; re-review from news reports" },
   { id: 'bond-curve:UK', until: '2026-11-29', reason: "INDICATIVE curve with no date; read the DMO/BoE curve or drop it" },
   { id: 'bond-curve:DE', until: '2026-11-29', reason: "INDICATIVE curve with no date; read the Bundesbank curve or drop it" },
   { id: 'bond-curve:JP', until: '2026-11-29', reason: "INDICATIVE curve with no date; read the MoF JGB curve or drop it" },

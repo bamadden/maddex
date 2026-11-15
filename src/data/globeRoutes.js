@@ -8,26 +8,37 @@ import * as d3 from 'd3'
 // tripping the fast-refresh only-export-components rule.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Route statuses below are a Maddex editorial label with no recorded date
-// (the freshness guard flags them). The typed TEU/day and tonnes/yr volumes
-// that stood here had no source and were removed on 15 Nov 2026.
-export const ROUTE_STATUS_AS_OF = null
+import { SHIPPING_ROUTES as CHOKEPOINTS } from './shippingRoutes.js'
+
+// A lane's status is not typed here: it is the most severe status of the
+// chokepoints it passes through (shippingRoutes.js, each dated and sourced),
+// with that chokepoint's date; a lane through none has no status
+// (15 Nov 2026). The typed TEU/day and tonnes/yr volumes that stood here had
+// no source and were removed the same day.
+const SEVERITY = { DISRUPTED: 3, MONITORED: 2, OPEN: 1 }
+function laneStatus(via) {
+  const hits = via.map((n) => CHOKEPOINTS.find((c) => c.name === n)).filter(Boolean)
+  if (!hits.length) return { status: null, statusAsOf: null, statusVia: null }
+  const worst = hits.reduce((a, b) => ((SEVERITY[b.status] ?? 0) > (SEVERITY[a.status] ?? 0) ? b : a))
+  return { status: worst.status, statusAsOf: worst.asOf, statusVia: worst.name }
+}
+const lane = (o) => ({ ...o, ...laneStatus(o.via ?? []) })
 
 export const SHIPPING_ROUTES = [
-  { id: 'trans-pacific',  name: 'Trans-Pacific',            status: 'ACTIVE',
-    points: [[121.47, 31.23], [-118.24, 34.05]] }, // Shanghai -> Los Angeles
-  { id: 'asia-europe',    name: 'Asia-Europe (via Suez)',            status: 'DISRUPTED',
-    points: [[103.82, 1.35], [43.3, 12.6], [32.55, 30.5], [4.48, 51.92]] }, // Singapore -> Bab-el-Mandeb -> Suez -> Rotterdam
-  { id: 'asia-australia', name: 'Asia-Australia',            status: 'ACTIVE',
-    points: [[103.82, 1.35], [151.21, -33.87]] }, // Singapore -> Sydney
-  { id: 'trans-atlantic', name: 'Trans-Atlantic',            status: 'ACTIVE',
-    points: [[-74.01, 40.71], [-0.13, 51.51]] }, // New York -> London
-  { id: 'indian-ocean',   name: 'Indian Ocean',             status: 'ACTIVE',
-    points: [[72.84, 18.94], [31.02, -29.86], [144.96, -37.81]] }, // Mumbai -> Durban -> Melbourne
-  { id: 'cape-good-hope', name: 'Cape of Good Hope (Asia-Europe alt)',            status: 'CONGESTED',
-    points: [[103.82, 1.35], [18.42, -34.36], [4.48, 51.92]] }, // Singapore -> Cape -> Rotterdam
-  { id: 'red-sea-suez',   name: 'Red Sea / Suez Canal Corridor', status: 'DISRUPTED',
-    points: [[43.3, 12.6], [35.0, 20.5], [32.55, 30.5]], warningAt: [43.3, 12.6] }, // Bab-el-Mandeb -> Suez
+  lane({ id: 'trans-pacific',  name: 'Trans-Pacific', via: [],
+    points: [[121.47, 31.23], [-118.24, 34.05]] }), // Shanghai -> Los Angeles
+  lane({ id: 'asia-europe',    name: 'Asia-Europe (via Suez)', via: ['Strait of Malacca', 'Suez Canal'],
+    points: [[103.82, 1.35], [43.3, 12.6], [32.55, 30.5], [4.48, 51.92]] }), // Singapore -> Bab-el-Mandeb -> Suez -> Rotterdam
+  lane({ id: 'asia-australia', name: 'Asia-Australia', via: [],
+    points: [[103.82, 1.35], [151.21, -33.87]] }), // Singapore -> Sydney
+  lane({ id: 'trans-atlantic', name: 'Trans-Atlantic', via: [],
+    points: [[-74.01, 40.71], [-0.13, 51.51]] }), // New York -> London
+  lane({ id: 'indian-ocean',   name: 'Indian Ocean', via: [],
+    points: [[72.84, 18.94], [31.02, -29.86], [144.96, -37.81]] }), // Mumbai -> Durban -> Melbourne
+  lane({ id: 'cape-good-hope', name: 'Cape of Good Hope (Asia-Europe alt)', via: ['Strait of Malacca', 'Cape of Good Hope'],
+    points: [[103.82, 1.35], [18.42, -34.36], [4.48, 51.92]] }), // Singapore -> Cape -> Rotterdam
+  lane({ id: 'red-sea-suez',   name: 'Red Sea / Suez Canal Corridor', via: ['Suez Canal'],
+    points: [[43.3, 12.6], [35.0, 20.5], [32.55, 30.5]], warningAt: [43.3, 12.6] }), // Bab-el-Mandeb -> Suez
 ]
 
 // FREIGHT layer — major air-cargo corridors, great-circle endpoints.

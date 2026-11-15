@@ -32,7 +32,12 @@ test('route status has one dated source; route notes and map zones carry no unso
   for (const r of SHIPPING_ROUTES) {
     assert.match(r.asOf, /^\d{4}-\d{2}-\d{2}$/, `${r.name} has an entry date`)
     assert.ok(['OPEN', 'MONITORED', 'DISRUPTED'].includes(r.status), r.name)
-    for (const t of [r.note, r.history, r.asxNote]) assert.doesNotMatch(t, /%|\$|\d+\s*(day|Mt|mb|bn|B\b|T\b)|surged|\+\d/i, `${r.name}: ${t}`)
+    // A figure in the note is allowed only when the row cites dated sources
+    // (reviewed 15 Nov 2026); history and the ASX note stay figure-free.
+    assert.ok(r.sources?.length, `${r.name} cites its sources`)
+    for (const src of r.sources) assert.ok(src.publisher && /^\d{4}-\d{2}-\d{2}$/.test(src.date) && /^https:\/\//.test(src.url), `${r.name}: ${JSON.stringify(src)}`)
+    for (const t of [r.history, r.asxNote]) assert.doesNotMatch(t, /%|\$|\d+\s*(day|Mt|mb|bn|B\b|T\b)|surged|\+\d/i, `${r.name}: ${t}`)
+    assert.doesNotMatch(r.note, /surged|\+\d/i, `${r.name}: ${r.note}`)
     assert.ok(!('cargoValue' in r) && !('impact' in r), `${r.name}: no hand-typed cargo values`)
   }
   assert.equal(routeFor('hormuz').status, 'DISRUPTED', 'Hormuz reads the same everywhere')
@@ -172,7 +177,7 @@ test('Global: no undated "Static fallback" line, no typed air volumes, rankings 
   const mod = read('src/modules/global/GlobalModule.jsx')
   assert.doesNotMatch(mod, /Static fallback|Jun 2026 · ACI\/IATA|Rank #|TOP_CARGO_|AU_AIRPORT_CARGO|\$6\.8T|Routes monitored|Click an arc|dailyFlights/)
   assert.doesNotMatch(mod, /type:'port',\s*rank:/)
-  assert.match(mod, /\{ROUTE_STATUS_SOURCE\}, entered \{formatDate\(CHOKEPOINT_ENTRIES\[0\]\)\}/)
+  assert.match(mod, /\{ROUTE_STATUS_SOURCE\}, reviewed \{formatDate\(CHOKEPOINT_ENTRIES\[0\]\)\}/)
 })
 
 test('Global #13: open count follows the clock; close, pin and filter buttons are named; the ticker can be paused without a mouse; Esri cannot be chosen while off', () => {
@@ -231,4 +236,10 @@ test('Global country panel: GDP and CPI only as read from the agency, with a lin
   assert.doesNotMatch(detail, /\bgdp:\s*-?\d|\bcpi:\s*-?\d|partners:\[/)
   assert.doesNotMatch(read('src/hooks/useCountryData.js'), /getCountryCache|wbData|imfData/)
   assert.match(read('src/data/sourceLicence.js'), /worldbank:/)
+})
+
+test('chokepoint status is the reviewed label; a headline keyword match no longer changes it', () => {
+  const mod = read('src/modules/global/GlobalModule.jsx')
+  assert.doesNotMatch(mod, /computeChokeStatus|CHOKE_DISRUPT_RE|CHOKE_REOPEN_RE|matched in today's headlines/)
+  assert.match(mod, /data-chokepoint-sources/)
 })

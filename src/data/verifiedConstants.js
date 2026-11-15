@@ -247,8 +247,10 @@ export const VERIFIED_CONSTANTS = {
   },
   snb: {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,
-    lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-17',
-    note: 'Next assessment date not confirmed — SNB meets quarterly',
+    // nextMeeting from snb.ch's event schedule (15 Nov 2026): 10 Dec, 09:30
+    // CET. The 17 Dec held here before was a guess from the quarterly cadence.
+    lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-10',
+    note: 'Next assessment 10 Dec 2026, 09:30 CET (snb.ch)',
     // Re-checked 2026-11-15: snb.ch shows "SNB policy rate 0.00%" (13.11.2026).
     source: 'snb.ch', asOf: '2026-09-24', lastVerified: '2026-11-15',
   },

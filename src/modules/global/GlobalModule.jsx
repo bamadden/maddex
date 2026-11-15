@@ -488,20 +488,10 @@ function detectImpact(text) {
   return 'GLOBAL'
 }
 
-// ─── Dynamic chokepoint status from live news ────────────────────────────────
-// cp.status in CHOKEPOINTS is the last-known baseline. Live news can escalate
-// it to DISRUPTED or de-escalate it back to OPEN; with no fresh signal we keep
-// the baseline rather than guessing.
-const CHOKE_DISRUPT_RE = /block|clos|attack|strikes?|halt|suspend|sink|seiz|explod|sank/i
-const CHOKE_REOPEN_RE  = /reopen|resum|lift(ed|s)?|clear(ed)?|restor|normal/i
-
-function computeChokeStatus(cp, related) {
-  if (!related.length) return cp.status
-  const text = related.map((r) => `${r.headline} ${r.summary ?? ''}`).join(' ').toLowerCase()
-  if (CHOKE_REOPEN_RE.test(text))  return 'OPEN'
-  if (CHOKE_DISRUPT_RE.test(text)) return 'DISRUPTED'
-  return 'MONITORED'
-}
+// Chokepoint status is the reviewed label in shippingRoutes.js, with its
+// dated sources. A headline keyword match used to overwrite it ("attack" →
+// DISRUPTED, "resum" → OPEN); matching headlines are now listed as related
+// news only (15 Nov 2026).
 
 
 
@@ -963,7 +953,7 @@ function MaritimeTab({ newsItems }) {
       const text = (n.headline + ' ' + (n.summary ?? '')).toLowerCase()
       return cp.keywords.some(kw => text.includes(kw.toLowerCase()))
     }).slice(0, 2)
-    return { ...cp, baseline: cp.status, status: computeChokeStatus(cp, related), related, updatedAgo: timeAgo(related[0]?.pubDate) }
+    return { ...cp, baseline: cp.status, related, updatedAgo: timeAgo(related[0]?.pubDate) }
   }), [newsItems])
 
   const disrupted  = chokeStatuses.filter(c => c.status === 'DISRUPTED').length
@@ -1016,6 +1006,13 @@ function MaritimeTab({ newsItems }) {
                   <span className={`text-2xs font-bold flex-shrink-0 ${CHOKE_COLOR[cp.status]}`}>{cp.status}</span>
                 </div>
                 <div className="text-2xs text-terminal-text-dim mt-0.5 leading-snug">{cp.note}</div>
+                {cp.sources?.length > 0 && (
+                  <div className="text-2xs text-terminal-text-dim/60 mt-0.5" data-chokepoint-sources>
+                    {cp.sources.map((src, i) => (
+                      <span key={src.url}>{i > 0 && ' · '}<a href={src.url} target="_blank" rel="noopener noreferrer" className="underline">{src.publisher}</a>, {formatDate(src.date)}</span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-2xs text-terminal-text-dim">{cp.commodity}</span>
                   {cp.updatedAgo && (
@@ -1029,9 +1026,7 @@ function MaritimeTab({ newsItems }) {
             {expanded === cp.name && (
               <div className="px-4 pb-2 space-y-1.5">
                 <div className="text-2xs text-terminal-text-dim" data-route-status-source>
-                  {cp.status === cp.baseline
-                    ? `Status: ${ROUTE_STATUS_SOURCE}, as entered ${formatDate(cp.asOf)}`
-                    : `Status: matched in today's headlines (entered as ${cp.baseline} on ${formatDate(cp.asOf)}, ${ROUTE_STATUS_SOURCE})`}
+                  {`Status: ${ROUTE_STATUS_SOURCE}, reviewed ${formatDate(cp.asOf)}`}
                 </div>
                 {cp.history && (
                   <div className="text-2xs text-terminal-text-dim/80 border-l-2 border-terminal-border/60 pl-2">
@@ -1095,7 +1090,7 @@ function MaritimeTab({ newsItems }) {
         </div>
 
         <div className="px-3 py-1 text-2xs text-terminal-text-dim/50">
-          Status: {ROUTE_STATUS_SOURCE}, entered {formatDate(CHOKEPOINT_ENTRIES[0])} to {formatDate(CHOKEPOINT_ENTRIES.at(-1))} (each route shows its date); a headline keyword match can change the status shown
+          Status: {ROUTE_STATUS_SOURCE}, reviewed {formatDate(CHOKEPOINT_ENTRIES[0])}{CHOKEPOINT_ENTRIES[0] !== CHOKEPOINT_ENTRIES.at(-1) ? ` to ${formatDate(CHOKEPOINT_ENTRIES.at(-1))}` : ''}; each route lists its sources. Headlines that mention a route are shown as related news and do not change its status
         </div>
       </div>
 
