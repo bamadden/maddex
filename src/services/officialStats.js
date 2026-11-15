@@ -151,12 +151,16 @@ export async function fetchUsOfficial({ fredBase = '/api/fred', fetchImpl = fetc
   const settled = await Promise.allSettled(['CPIAUCNS', 'CPILFENS', 'UNRATE', 'A191RL1Q225SBEA', 'DFEDTARU'].map(get))
   const [cpi, core, ur, gdp, tgt] = settled.map((r) => (r.status === 'fulfilled' && r.value.length ? r.value : null))
   if (![cpi, core, ur, gdp, tgt].some(Boolean)) throw new Error('FRED unreachable')
-  // CPI year on year from the unadjusted index, as BLS headlines it.
+  // CPI year on year from the unadjusted index, as BLS headlines it: the
+  // newest month that has a year-earlier index. October 2025 was never
+  // collected (the 2025 lapse in appropriations), so October 2026 has no
+  // 12-month change and September stays the newest one that exists.
   const yoy = (rows) => {
-    if (!rows) return null
-    const last = rows[rows.length - 1]
-    const prior = rows.find((o) => o.date === `${+last.date.slice(0, 4) - 1}${last.date.slice(4)}`)
-    return prior ? { value: r1((last.value / prior.value - 1) * 100), period: periodLabel(last.date.slice(0, 7)) } : null
+    for (const last of [...(rows ?? [])].reverse()) {
+      const prior = rows.find((o) => o.date === `${+last.date.slice(0, 4) - 1}${last.date.slice(4)}`)
+      if (prior) return { value: r1((last.value / prior.value - 1) * 100), period: periodLabel(last.date.slice(0, 7)) }
+    }
+    return null
   }
   const last = (rows, period) => (rows ? { value: rows[rows.length - 1].value, period: period(rows[rows.length - 1].date) } : null)
   return {
@@ -297,8 +301,9 @@ export async function checkUs(constants, { fetchImpl = fetch } = {}) {
       return a != null && b != null ? r1((a / b - 1) * 100) : null
     }
     // Headline figures: the newest month BLS has must be the one the
-    // constants describe, at the same value.
-    const [cpiPeriod] = latest('CUUR0000SA0')
+    // constants describe, at the same value. For CPI that is the newest month
+    // with a 12-month change (see fetchUsOfficial: October 2025 is missing).
+    const [cpiPeriod] = [...series.CUUR0000SA0.keys()].filter((p) => yoy('CUUR0000SA0', p) != null).sort((a, b) => b.localeCompare(a))
     const [luPeriod, lu] = latest('LNS14000000')
     const [nfpPeriod, nfpLevel] = latest('CES0000000001')
     const prevMonth = (p) => { const d = new Date(`${p}-15T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7) }

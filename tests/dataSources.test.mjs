@@ -100,3 +100,15 @@ test('Crypto Fear & Greed carries the alternative.me credit wherever Markets sho
   const banner = read('src/modules/markets/MarketSentimentBanner.jsx')
   assert.match(banner, /f\.name === 'Crypto Fear & Greed' && \(\s*<a href=\{CREDIT\.alternativeme\.url\}/)
 })
+
+test('US CPI year on year uses the newest month that has a year-earlier index (October 2025 was never collected)', async () => {
+  const { fetchUsOfficial } = await import('../src/services/officialStats.js')
+  const csv = { CPIAUCNS: [['2025-09-01', 324.8], ['2026-09-01', 336.94], ['2026-10-01', 337.511]] }
+  const fetchImpl = async (url) => {
+    const id = new URL(url, 'http://x').searchParams.get('id')
+    const rows = csv[id] ?? [['2026-10-01', 4.1]]
+    return new Response(`DATE,${id}\n${rows.map((r) => r.join(',')).join('\n')}\n`)
+  }
+  const us = await fetchUsOfficial({ fredBase: 'http://fred.test', fetchImpl })
+  assert.deepEqual(us.cpi, { value: 3.7, period: 'Sept 2026' })
+})

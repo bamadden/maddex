@@ -611,6 +611,10 @@ export const VERIFIED_CONSTANTS = {
   // Sep 2026 336.940 / Sep 2025 324.800 = +3.7%; core 339.287 / 330.804 = +2.6%.
   // The block this replaced said CPI 2.4% for May 2026; the same index puts
   // May at +4.2%, so that figure was wrong as well as old.
+  // Checked 2026-11-15: BLS has published the October 2026 index (337.511) but
+  // October 2025 is marked "Data unavailable due to the 2025 lapse in
+  // appropriations", so October has no 12-month change and September's +3.7%
+  // stays the newest one. November's (Nov 2025 exists) is the next to enter.
   us: {
     cpi: 3.7, cpiPrevious: 3.4, cpiPeriod: 'Sep 2026', cpiRelease: '2026-10-14',
     cpiCore: 2.6, cpiCorePrevious: 2.4,
