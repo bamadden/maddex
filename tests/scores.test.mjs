@@ -49,7 +49,7 @@ test('sentiment labels describe direction, never a call', () => {
   assert.equal(toneSign('MIXED, LEANING NEGATIVE'), -1)
   for (const f of ['src/services/aiDaily.js', 'src/services/morningBriefService.js']) assert.doesNotMatch(read(f), /"(STRONGLY |CAUTIOUSLY )?BULLISH"/, f)
   assert.doesNotMatch(read('src/services/maddenAiScoring.js'), /MaddenAI detects|bullish momentum|bearish conditions/i)
-  assert.doesNotMatch(read('src/modules/markets/MarketBreadth.jsx'), /'BULLISH'|'BEARISH'/)
+  assert.ok(!fs.existsSync('src/modules/markets/MarketBreadth.jsx'), 'the unused breadth panel stays deleted')
   assert.doesNotMatch(read('src/data/futuresData.js'), /signal: 'BULLISH'/)
 })
 

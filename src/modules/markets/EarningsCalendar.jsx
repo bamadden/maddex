@@ -230,10 +230,15 @@ export default function EarningsCalendar() {
         <div className="flex-1 min-w-0 p-3">
           <div className="flex items-baseline justify-between gap-2 mb-2">
             <span className="text-2xs text-terminal-gold font-bold tracking-widest">NEXT REPORTS</span>
-            <span className="text-2xs text-terminal-text-dim/60">estimates illustrative, not sourced</span>
+            <span className="text-2xs text-terminal-text-dim/60">dates from each company&apos;s calendar</span>
           </div>
 
           <div className="space-y-px max-h-[300px] overflow-y-auto">
+            {upcoming.length === 0 && (
+              <div className="text-2xs text-terminal-text-dim px-2 py-1.5" data-no-upcoming>
+                No upcoming results date is held. Maddex lists only dates taken from a company&apos;s own financial calendar.
+              </div>
+            )}
             {upcoming.map((e) => {
               const days = daysUntil(e.date)
               const open = prepTicker === `${e.ticker}|${e.date}`
@@ -274,16 +279,12 @@ export default function EarningsCalendar() {
               65%, Financials 72%) and an implied move from options pricing.
               Neither has a source in this app — there is no earnings-history
               feed and no options data — and a beat rate is precisely the sort of
-              statistic someone would weight a position on. The EPS estimates
-              already carry an "illustrative, not sourced" label; adding two more
-              unsourced figures beside them would make the panel look researched
-              when it is not. */}
+              statistic someone would weight a position on. The illustrative EPS
+              estimates were removed on 15 Nov for the same reason. */}
           <div className="text-2xs text-terminal-text-dim/50 mt-2 leading-relaxed">
-            Upcoming dates marked ✓ are from each company&apos;s own financial calendar; the
-            August-season dates are approximate. Companies move dates — confirm on the ASX
-            announcements platform. EPS and revenue estimates are illustrative placeholders,
-            not broker consensus. No historical beat rate or implied move is shown — neither
-            has a data source connected.
+            Dates marked ✓ are from each company&apos;s own financial calendar. Companies move
+            dates — confirm on the ASX announcements platform. No EPS or revenue estimate,
+            historical beat rate or implied move is shown — none has a data source connected.
           </div>
         </div>
       </div>

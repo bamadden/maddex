@@ -340,16 +340,7 @@ function EarningsEventCard({ event, onReminderChange }) {
         </div>
         <div className="mb-2 pb-2 border-b border-terminal-border/30" />
 
-        {!isAgm && <div className="grid grid-cols-2 gap-2 text-2xs mb-2 pb-2 border-b border-terminal-border/30">
-          <div>
-            <div className="text-terminal-text-dim/60">EPS ESTIMATE</div>
-            <div className="text-terminal-text-bright font-semibold">{event.epsEst != null ? `A$${event.epsEst.toFixed(2)}/share` : '—'}</div>
-          </div>
-          <div>
-            <div className="text-terminal-text-dim/60">REVENUE ESTIMATE</div>
-            <div className="text-terminal-text-bright font-semibold">{event.revEst != null ? `A$${(event.revEst / 1000).toFixed(1)}B` : '—'}</div>
-          </div>
-        </div>}
+        {/* No EPS or revenue estimate: none has a source (removed 15 Nov). */}
 
         <div className="flex items-center gap-2">
           <button

@@ -5,7 +5,7 @@ import SafeChart from '../../components/ui/SafeChart'
 import { generateShortSummary, scoreToColor } from '../../services/maddenAiScoring'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { PAL } from '../../styles/palette.js'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, sydneyClock } from '../../utils/dateUtils'
 import { CREDIT } from '../../data/credits'
 import SentimentClass from '../../components/ui/SentimentClass'
 import { DemoBadge } from '../../components/ui/ModuleStates'
@@ -69,8 +69,10 @@ function filterHistory(hist, tab) {
 
 function fmtTimestamp(ts, tab) {
   const d = new Date(ts)
-  if (tab === '1D') return d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
-  if (tab === '1W') return d.toLocaleDateString('en-AU', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  // Sydney time, labelled (the one clock): the reader's own zone unlabelled
+  // read as AEDT to someone in Brisbane.
+  if (tab === '1D') return sydneyClock(d).text
+  if (tab === '1W') return `${d.toLocaleDateString('en-AU', { weekday: 'short', timeZone: 'Australia/Sydney' })} ${sydneyClock(d).text}`
   if (tab === '1M') return formatDate(d, { year: false })
   return d.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
 }

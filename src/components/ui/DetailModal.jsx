@@ -1166,7 +1166,7 @@ export default function DetailModal() {
             )}
             {upcomingEarnings && (
               <div
-                title={`${upcomingEarnings.type} results — estimates only`}
+                title={`${upcomingEarnings.type} results · ${upcomingEarnings.source ?? 'date not sourced'}`}
                 className="flex items-center gap-1.5 border border-terminal-gold/40 text-terminal-gold px-2 py-0.5 text-2xs whitespace-nowrap"
               >
                 <span>◈</span>

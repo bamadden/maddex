@@ -431,10 +431,9 @@ const STOCK_NAMES = {
 
 
 // Display denominator in loading indicator — reflects the index size, not just our symbol list
-const INDEX_EXPECTED_COUNT = {
-  '^AXJO':200,'^AORD':500,'^GSPC':100,'^IXIC':100,'^DJI':30,
-  '^FTSE':100,'^GDAXI':40,'^N225':50,'^HSI':50,'^NZ50':50,'000001.SS':50,
-}
+// The loaded count is out of the constituents requested, not out of a typed
+// index size (that table gave the S&P 500 as 100 members, and the ASX 200
+// view requests its 20 largest).
 
 
 
@@ -633,8 +632,7 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
   const [landscapeMode, setLandscapeMode] = useState('sectors') // 'sectors' | 'cityscape'
 
   // Per-stock rows for the cityscape — every ASX stock across all 11 GICS
-  // sectors, priced via the shared mock quote generator (same source
-  // MarketBreadth's sector-breakdown modal uses), so buildings exist even
+  // sectors, priced via the shared mock quote generator, so buildings exist even
   // for sectors/stocks the sector-proxy quotes above don't cover.
   const cityscapeStocks = useMemo(() => {
     if (landscapeMode !== 'cityscape') return []
@@ -1577,11 +1575,11 @@ function IndexView({ selectedIndex, openModal }) {
         <span className="text-2xs text-terminal-text-dim">INDEX — {indexLabel}</span>
         {isLoading && (
           <span className="text-2xs text-terminal-text-dim animate-pulse">
-            LOADING {loadCount}/{INDEX_EXPECTED_COUNT[selectedIndex] ?? constituents.length} STOCKS...
+            LOADING {loadCount} OF {constituents.length} REQUESTED...
           </span>
         )}
         {!isLoading && loaded.length > 0 && (
-          <span className="text-terminal-green text-2xs">● {loaded.length}/{INDEX_EXPECTED_COUNT[selectedIndex] ?? constituents.length} LOADED</span>
+          <span className="text-terminal-text-dim text-2xs" data-loaded-count>{loaded.length} OF {constituents.length} REQUESTED LOADED</span>
         )}
         <div className="ml-auto flex items-center gap-2">
           <input

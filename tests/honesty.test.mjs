@@ -211,7 +211,7 @@ test('Markets: badges come from the one vocabulary; no "check news before acting
 
 test('Markets accessibility: no browser prompt; glyph-only buttons and calendar days are labelled', () => {
   const dir = 'src/modules/markets/'
-  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.jsx') && f !== 'MarketBreadth.jsx')) {
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.jsx'))) {
     const src = read(dir + f)
     assert.doesNotMatch(src, /window\.(prompt|confirm|alert)\(/, f)
     for (const m of src.matchAll(/<button\b((?:[^>]|=>)*?)>([^<]{0,6})<\/button>/gs)) {
@@ -221,4 +221,23 @@ test('Markets accessibility: no browser prompt; glyph-only buttons and calendar 
   const cal = read(dir + 'EarningsCalendar.jsx')
   for (const l of ['Previous month', 'Next month', 'reporting`']) assert.ok(cal.includes(l), l)
   assert.match(read(dir + 'SectorHeatmap.jsx'), /onFocus=\{\(\) => setHovered\(sector\)\}/)
+})
+
+test('Markets #9: loaded count is out of what was requested; every earnings date carries its source; sentiment times say their zone', async () => {
+  const heat = read('src/modules/markets/SectorHeatmap.jsx')
+  assert.doesNotMatch(heat, /INDEX_EXPECTED_COUNT/)
+  assert.match(heat, /\{loaded\.length\} OF \{constituents\.length\} REQUESTED LOADED/)
+  const { EARNINGS_2026 } = await import('../src/services/earningsCalendar.js')
+  assert.ok(EARNINGS_2026.length > 0)
+  for (const e of EARNINGS_2026) {
+    assert.ok(e.source && e.sourceUrl, `${e.ticker} ${e.date} has no source`)
+    assert.ok(!('epsEst' in e) && !('revEst' in e), `${e.ticker} carries an estimate`)
+  }
+  assert.doesNotMatch(read('src/modules/calendar/CalendarModule.jsx'), /EPS ESTIMATE|REVENUE ESTIMATE/)
+  assert.doesNotMatch(read('src/components/ui/DetailModal.jsx'), /results — estimates only/)
+  assert.match(read('src/modules/markets/EarningsCalendar.jsx'), /data-no-upcoming/)
+  const banner = read('src/modules/markets/MarketSentimentBanner.jsx')
+  const fmt = banner.slice(banner.indexOf('function fmtTimestamp'), banner.indexOf('function histStats'))
+  assert.match(fmt, /if \(tab === '1D'\) return sydneyClock\(d\)\.text/)
+  assert.doesNotMatch(fmt, /toLocaleTimeString/)
 })
