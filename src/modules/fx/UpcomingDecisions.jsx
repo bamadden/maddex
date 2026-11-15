@@ -42,12 +42,12 @@ const BANKS = [
   { key: 'fed',      label: 'Fed',      flag: '🇺🇸', dates: FOMC_MEETINGS_2026,     official: true  },
   { key: 'ecb',      label: 'ECB',      flag: '🇪🇺', dates: ECB_MEETINGS_2026,      official: true  },
   { key: 'boe',      label: 'BOE',      flag: '🇬🇧', dates: BOE_MEETINGS_2026,      official: true  },
-  { key: 'boj',      label: 'BOJ',      flag: '🇯🇵', dates: BOJ_MEETINGS_2026,      official: false },
+  { key: 'boj',      label: 'BOJ',      flag: '🇯🇵', dates: BOJ_MEETINGS_2026,      official: true },
   { key: 'pboc',     label: 'PBOC',     flag: '🇨🇳', dates: PBOC_MEETINGS_2026,     official: false },
   { key: 'rbnz',     label: 'RBNZ',     flag: '🇳🇿', dates: RBNZ_MEETINGS_2026,     official: false },
-  { key: 'boc',      label: 'BOC',      flag: '🇨🇦', dates: BOC_MEETINGS_2026,      official: false },
-  { key: 'snb',      label: 'SNB',      flag: '🇨🇭', dates: SNB_MEETINGS_2026,      official: false },
-  { key: 'riksbank', label: 'Riksbank', flag: '🇸🇪', dates: RIKSBANK_MEETINGS_2026, official: false },
+  { key: 'boc',      label: 'BOC',      flag: '🇨🇦', dates: BOC_MEETINGS_2026,      official: true },
+  { key: 'snb',      label: 'SNB',      flag: '🇨🇭', dates: SNB_MEETINGS_2026,      official: true },
+  { key: 'riksbank', label: 'Riksbank', flag: '🇸🇪', dates: RIKSBANK_MEETINGS_2026, official: true },
 ]
 
 const PILL = {
@@ -121,9 +121,9 @@ export default function UpcomingDecisions({ days = 90 }) {
                   {r.label}
                   {!r.official && (
                     <span
-                      className="text-terminal-text-dim/40 ml-1"
-                      title="Follows this bank's known meeting cadence rather than a published calendar"
-                    >~</span>
+                      className="text-terminal-text-dim/70 ml-1 font-normal"
+                      title="Not read from the bank's published calendar (rbnz.govt.nz refuses automated requests; the PBoC publishes no forward LPR dates)"
+                    >· not confirmed</span>
                   )}
                 </td>
                 <td className="py-1 font-mono text-terminal-text-dim/70 truncate" style={{ fontSize: 11 }}>
