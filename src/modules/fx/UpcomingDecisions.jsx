@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react'
 import {
   RBA_MEETINGS_2026, FOMC_MEETINGS_2026, ECB_MEETINGS_2026, BOE_MEETINGS_2026,
   BOJ_MEETINGS_2026, PBOC_MEETINGS_2026, RBNZ_MEETINGS_2026, BOC_MEETINGS_2026,
-  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026, MEETINGS_CHECKED,
+  SNB_MEETINGS_2026, RIKSBANK_MEETINGS_2026, MEETINGS_CHECKED, ANNOUNCE_AT, announcement, daysBetweenDays,
 } from '../../services/centralBankSchedule'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { PAL } from '../../styles/palette.js'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
 
 // ─── Upcoming decisions, next 90 days ───────────────────────────────────────
 //
@@ -59,23 +59,25 @@ export default function UpcomingDecisions({ days = 90 }) {
   const [now] = useState(() => Date.now())
 
   const rows = useMemo(() => {
-    const horizon = now + days * 86400000
+    // Every row in Sydney time: the announcement instant from the bank's own
+    // time and zone, the countdown in Sydney calendar days (it used to count
+    // from the browser's midnight, and to show foreign dates as bank-local).
+    const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
     const out = []
     for (const b of BANKS) {
       let first = true
       for (const d of [...(b.dates ?? [])].sort()) {
-        const ts = new Date(`${d}T00:00:00`).getTime()
-        if (ts <= now) continue
+        const { at, sydneyDate } = announcement(b.key, d)
+        if (at != null ? at <= now : sydneyDate < today) continue
+        const ts = at ?? Date.parse(`${sydneyDate}T00:00:00Z`)
+        const daysAway = daysBetweenDays(today, sydneyDate)
         // `first` tracks the bank's next meeting overall, so a bank whose next
         // meeting falls outside the window does not hand its stance to a later
         // one that happens to land inside it.
         const isNext = first
         first = false
-        if (ts > horizon) continue
-        out.push({
-          ...b, date: d, ts, isNext,
-          daysAway: Math.ceil((ts - now) / 86400000),
-        })
+        if (daysAway > days) continue
+        out.push({ ...b, date: d, at, sydneyDate, ts, isNext, daysAway })
       }
     }
     return out.sort((a, b) => a.ts - b.ts)
@@ -97,7 +99,7 @@ export default function UpcomingDecisions({ days = 90 }) {
             <th className="text-left font-normal px-3 py-1 tracking-widest" style={{ width: 34 }}></th>
             <th className="text-left font-normal py-1 tracking-widest" style={{ width: 90 }}>BANK</th>
             <th className="text-left font-normal py-1 tracking-widest">&nbsp;</th>
-            <th className="text-left font-normal py-1 tracking-widest" style={{ width: 100 }}>DATE</th>
+            <th className="text-left font-normal py-1 tracking-widest" style={{ width: 150 }}>WHEN (SYDNEY)</th>
             <th className="text-right font-normal py-1 tracking-widest" style={{ width: 90 }}>CURRENT</th>
             <th className="text-left font-normal py-1 pl-6 tracking-widest" style={{ width: 150 }}>LAST DECISION</th>
             <th className="text-right font-normal px-3 py-1 tracking-widest" style={{ width: 90 }}>AWAY</th>
@@ -126,8 +128,16 @@ export default function UpcomingDecisions({ days = 90 }) {
                 <td className="py-1 font-mono text-terminal-text-dim/70 truncate" style={{ fontSize: 11 }}>
                   {VERIFIED_CONSTANTS[r.key]?.country ?? ''}
                 </td>
-                <td className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 11 }}>
-                  {formatDate(r.date, { year: false })}
+                <td
+                  className="py-1 font-mono tabular-nums text-terminal-text" style={{ fontSize: 11 }}
+                  title={ANNOUNCE_AT[r.key] ? `${formatDate(r.date, { year: false })}, ${ANNOUNCE_AT[r.key][0]} ${ANNOUNCE_AT[r.key][1].split('/')[1].replace('_', ' ')} time` : 'No fixed announcement time'}
+                  data-decision-time
+                >
+                  <div>{formatDate(r.sydneyDate, { weekday: true, year: false })}{r.at != null ? ` ${sydneyClock(r.at).text}` : ''}</div>
+                  {r.at != null && localClock(r.at).zone !== 'Australia/Sydney' && (
+                    <div className="text-terminal-text-dim/70">your time {localClock(r.at).text}</div>
+                  )}
+                  {r.at == null && <div className="text-terminal-text-dim/70">time not fixed</div>}
                 </td>
                 {/* The rate going into the meeting, as the bank states it (the
                     Fed as its range). */}
@@ -148,7 +158,7 @@ export default function UpcomingDecisions({ days = 90 }) {
                   className="px-3 py-1 text-right font-mono tabular-nums"
                   style={{ fontSize: 11, color: soon ? PAL.gold : PAL.muted, fontWeight: soon ? 700 : 400 }}
                 >
-                  {r.daysAway} {r.daysAway === 1 ? 'day' : 'days'}
+                  {r.daysAway === 0 ? 'today' : `${r.daysAway} ${r.daysAway === 1 ? 'day' : 'days'}`}
                 </td>
               </tr>
             )
@@ -158,7 +168,8 @@ export default function UpcomingDecisions({ days = 90 }) {
 
       <div className="px-3 py-1.5 border-t border-terminal-border/40 text-terminal-text-dim/60 leading-snug" style={{ fontSize: 11 }}>
         Dates are each bank&apos;s own published calendar, read {formatDate(MEETINGS_CHECKED)}, except those marked
-        &ldquo;not confirmed&rdquo;. LAST DECISION is what the bank last did, from its own statement; Maddex
+        &ldquo;not confirmed&rdquo;; times are the announcement time in Sydney (hover for the bank&apos;s own).
+        AWAY counts Sydney calendar days. LAST DECISION is what the bank last did, from its own statement; Maddex
         shows no expected outcome for the next meeting.
       </div>
     </div>

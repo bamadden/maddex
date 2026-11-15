@@ -250,7 +250,7 @@ export const VERIFIED_CONSTANTS = {
     // nextMeeting from snb.ch's event schedule (15 Nov 2026): 10 Dec, 09:30
     // CET. The 17 Dec held here before was a guess from the quarterly cadence.
     lastDecision: '2026-09-24', lastDecisionVerb: 'HOLD', nextMeeting: '2026-12-10',
-    note: 'Next assessment 10 Dec 2026, 09:30 CET (snb.ch)',
+    note: 'Next assessment 10 Dec 2026, 09:30 CET, 19:30 AEDT (snb.ch)',
     // Re-checked 2026-11-15: snb.ch shows "SNB policy rate 0.00%" (13.11.2026).
     source: 'snb.ch', asOf: '2026-09-24', lastVerified: '2026-11-15',
   },

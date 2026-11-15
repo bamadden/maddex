@@ -48,14 +48,59 @@ export const LAST_DECISIONS = {
   RIKSBANK: fromVC('riksbank'),
 }
 
-// Nearest future date in a meeting-date array, or null if none remain.
-export function getNextMeeting(meetingDates) {
-  const now = Date.now()
-  const future = meetingDates
-    .map((d) => new Date(`${d}T00:00:00`))
-    .filter((d) => d.getTime() > now)
-    .sort((a, b) => a - b)
-  return future[0] ?? null
+// Announcement time in each bank's own zone, as its calendar page states it
+// (16 Nov 2026). The BoJ announces when its meeting ends, with no fixed
+// time, and the PBoC's LPR dates are not a published calendar: both null, and
+// shown by date alone.
+export const ANNOUNCE_AT = {
+  rba:      ['14:30', 'Australia/Sydney'],
+  fed:      ['14:00', 'America/New_York'],
+  ecb:      ['14:15', 'Europe/Berlin'],
+  boe:      ['12:00', 'Europe/London'],
+  rbnz:     ['14:00', 'Pacific/Auckland'],
+  boc:      ['09:45', 'America/Toronto'],
+  snb:      ['09:30', 'Europe/Zurich'],
+  riksbank: ['09:30', 'Europe/Stockholm'],
+  boj:      null,
+  pboc:     null,
+}
+
+// Minutes east of UTC for `zone` at instant `t`.
+function offsetMinutes(zone, t) {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' })
+    .formatToParts(new Date(t)).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT'
+  const m = name.match(/GMT([+-])(\d{2}):(\d{2})/)
+  return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0
+}
+
+// The instant (ms) a wall-clock time on a date in `zone` falls on.
+export function zonedInstant(date, time, zone) {
+  const [y, mo, d] = date.split('-').map(Number)
+  const [h, mi] = time.split(':').map(Number)
+  const wall = Date.UTC(y, mo - 1, d, h, mi)
+  let t = wall
+  for (let i = 0; i < 2; i++) t = wall - offsetMinutes(zone, t) * 60_000
+  return t
+}
+
+// When a bank's decision on `date` (its own calendar date) is announced:
+// { at: ms, sydneyDate } or, with no fixed time, { at: null, sydneyDate: date }.
+export function announcement(key, date) {
+  const a = ANNOUNCE_AT[key]
+  if (!a) return { at: null, sydneyDate: date }
+  const at = zonedInstant(date, a[0], a[1])
+  return { at, sydneyDate: new Date(at).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) }
+}
+
+// Sydney calendar days from `fromDay` to `toDay` (both YYYY-MM-DD).
+export const daysBetweenDays = (fromDay, toDay) => Math.round((Date.parse(`${toDay}T00:00:00Z`) - Date.parse(`${fromDay}T00:00:00Z`)) / 86_400_000)
+
+// Nearest meeting date that has not yet passed in Sydney, or null. (It used
+// to roll over at the browser's midnight.)
+export function getNextMeeting(meetingDates, now = Date.now()) {
+  const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  const next = [...meetingDates].sort().find((d) => d >= today)
+  return next ? new Date(`${next}T00:00:00`) : null
 }
 
 export function getDaysUntil(date) {
