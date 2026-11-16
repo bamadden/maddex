@@ -9,6 +9,7 @@
 // aggregate lots per symbol where they need one figure (see mergeLots).
 
 import { MOCK_ASX_STOCKS, MOCK_US_STOCKS } from './mockData.js'
+import { sydneyISO } from '../utils/dateUtils.js'
 import { AU_ETFS } from '../data/etfData.js'
 
 // Symbol classification lives here so the add form and the importer agree on
@@ -113,7 +114,7 @@ export function parseDate(s) {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
-const localToday = () => new Date().toLocaleDateString('en-CA')
+const localToday = () => sydneyISO()
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -257,7 +258,7 @@ export function holdingsToCsv(lots, { sectorOf = () => '', date = new Date() } =
   return lines.join('\n') + '\n'
 }
 
-export const exportFilename = (date = new Date()) => `maddex-portfolio-${date.toLocaleDateString('en-CA')}.csv`
+export const exportFilename = (date = new Date()) => `maddex-portfolio-${sydneyISO(date)}.csv`
 
 export function downloadText(text, filename) {
   const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' })

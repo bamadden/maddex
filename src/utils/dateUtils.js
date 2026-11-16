@@ -129,3 +129,8 @@ export function formatDate(input, { weekday = false, year = true } = {}) {
   const wd = WDAY[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
   return `${weekday ? `${wd} ` : ''}${d} ${MON[m - 1]}${year ? ` ${y}` : ''}`
 }
+
+// A date's calendar day in Sydney, as YYYY-MM-DD: the "today" for dates the
+// app stores and compares (a browser in another zone, or UTC, is a day out
+// for part of every day).
+export const sydneyISO = (d = new Date()) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })

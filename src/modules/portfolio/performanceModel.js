@@ -1,4 +1,3 @@
-import { getMockFMPRow } from '../../services/mockData'
 import { STANDARD_DISCLAIMER, NOT_LICENSED } from '../../services/disclosures'
 import {
   annualise, bondGrowth, cashGrowth, cgtEstimate, daysBetween, dividendsFor, heldTwelveMonths,
@@ -18,8 +17,9 @@ import {
 //   - the CGT discount is decided lot by lot, since one position can hold a
 //     parcel past twelve months and another short of it.
 
-const yieldOf = (h) =>
-  h.divYield ?? getMockFMPRow(h.type === 'asx' ? `${h.symbol}.AX` : h.symbol)?.dividendYield ?? 0
+// The holding's own quoted yield, or none (16 Nov 2026: this fell back to a
+// mock-data yield, then to 0, with no DEMO label on the estimate it fed).
+const yieldOf = (h) => h.divYield ?? null
 
 const lotKey = (h) => `${h.type}:${h.symbol}`
 

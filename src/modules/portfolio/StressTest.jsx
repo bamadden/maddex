@@ -200,7 +200,7 @@ export default function StressTest({ holdings, fmtCur }) {
         `Current value A$${totalCurrent.toFixed(0)}, stressed value A$${totalStressed.toFixed(0)} ` +
         `(${totalImpact >= 0 ? '+' : ''}A$${totalImpact.toFixed(0)}, ${totalImpactPct.toFixed(1)}%). ` +
         `Holdings and impact: ${JSON.stringify((impact ?? []).map((h) => ({ symbol: h.symbol, sector: SECTOR_BY_SYMBOL[h.symbol] ?? h.type, impactPct: (h.shockPct * 100).toFixed(1) })))}. ` +
-        'Explain what is driving the largest exposures and suggest, in general terms, what the investor might consider. General information only, not advice.',
+        'Describe which holdings and sectors account for the largest share of the modelled change, and how the scenario\'s shocks were applied. Describe only: no forecast, no price and no suggestion of any action.',
     }, { rawPrompt: true })
   }
 

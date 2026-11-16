@@ -53,8 +53,8 @@ export function PortfolioBanners({ holdings }) {
               ? impact.rows.slice(0, 5).map((r) => <span key={r.symbol} className="mr-3"><b>{r.symbol}</b> <span style={{ color: r.impact === 'POSITIVE' ? PAL.up : '#D9773B' }}>{r.impact === 'POSITIVE' ? '+ NIM / income benefit' : '− rate pressure'}</span></span>)
               : 'None of your holdings is strongly rate-sensitive.'}
           </span>
-          <button onClick={() => askMaddenAI('The RBA has just made a decision (figures in your context). Using my portfolio holdings, walk through the impact on each rate-sensitive position and what to watch next.')}
-            className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 hover:bg-terminal-gold hover:text-terminal-bg">ANALYSE IMPACT ▶</button>
+          <button onClick={() => askMaddenAI('The RBA has just made a decision (figures in your context). Describe which of my holdings are in rate-sensitive sectors and the channels through which a cash-rate change is usually described as reaching those sectors. Describe only: no forecast, no price and no suggestion of any action.')}
+            className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 hover:bg-terminal-gold hover:text-terminal-bg">RATE-SENSITIVE HOLDINGS ▶</button>
         </div>
       )}
       {events.length > 0 && (
@@ -62,7 +62,7 @@ export function PortfolioBanners({ holdings }) {
           <span className="font-mono font-bold tracking-widest text-terminal-gold" style={{ fontSize: 11 }}>UPCOMING</span>
           {events.slice(0, 4).map((e) => {
             const p = pos.get(bare(e.ticker))
-            const prompt = `${e.company} (${e.ticker}) ${e.what === 'results' ? 'reports results' : e.what === 'AGM' ? 'holds its AGM' : 'goes ex-dividend'} on ${day(e.date)}. I hold ${p.units.toLocaleString('en-AU')} shares at an average cost of A$${(p.cost / p.units).toFixed(2)}. What should I know before then?`
+            const prompt = `${e.company} (${e.ticker}) ${e.what === 'results' ? 'reports results' : e.what === 'AGM' ? 'holds its AGM' : 'goes ex-dividend'} on ${day(e.date)}. I hold ${p.units.toLocaleString('en-AU')} shares at an average cost of A$${(p.cost / p.units).toFixed(2)}. Describe what this event is and what the company has published about it. Describe only: no forecast, no price and no suggestion of any action.`
             return (
               <button key={`${e.ticker}-${e.date}-${e.what}`} onClick={() => askMaddenAI(prompt)}
                 title={`${e.sourced ? 'From the company\'s financial calendar' : 'Approximate date'} — click to ask MaddenAI`}

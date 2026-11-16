@@ -76,8 +76,10 @@ function Delta({ before, after, lowerIsBetter = false, neutral = false }) {
   if (Math.abs(diff) < 1e-9) return <span style={{ color: PAL.muted }}>→</span>
   const arrow = diff > 0 ? '▲' : '▼'
   if (neutral) return <span style={{ color: PAL.dim }}>{arrow}</span>
-  const good = lowerIsBetter ? diff < 0 : diff > 0
-  return <span style={{ color: good ? PAL.up : PAL.down, fontWeight: 700 }}>{arrow}</span>
+  // Direction only, in one colour: whether more or less concentration is
+  // "better" is the reader's judgement, not this tool's (16 Nov 2026).
+  void lowerIsBetter
+  return <span style={{ color: PAL.dim, fontWeight: 700 }}>{arrow}</span>
 }
 
 export default function WhatIf({ holdings, onOpenAI }) {
@@ -137,11 +139,11 @@ export default function WhatIf({ holdings, onOpenAI }) {
     const book = current.map((p) => `${p.symbol} ${pct(p.value / (before.total || 1))}`).join(', ')
     dispatchAskAI({
       instruction:
-        `I am considering the following trade(s): ${summary}. `
+        `I have modelled the following hypothetical trade(s): ${summary}. `
         + `My current portfolio by weight is: ${book}. `
         + `After the trade my largest position would move from ${pct(before.largest)} to ${pct(after.largest)} `
         + `and concentration from ${before.concentration.label} to ${after.concentration.label}. `
-        + 'What should I consider? Do not state a price target or tell me whether to place the trade.',
+        + 'Describe how the weights and concentration figures above change and what those measures mean. Describe only: no forecast, no price and no suggestion of any action.',
     }, { rawPrompt: true })
     onOpenAI?.()
   }
@@ -215,7 +217,7 @@ export default function WhatIf({ holdings, onOpenAI }) {
                     <span className="text-terminal-text-bright">{t.units} × {t.symbol}</span>
                     <span className="text-terminal-text-dim">@ A${t.price.toFixed(2)}</span>
                     <span className="text-terminal-text-dim ml-auto tabular-nums">{money(t.units * t.price)}</span>
-                    <button onClick={() => setTrades((x) => x.filter((_, j) => j !== i))}
+                    <button onClick={() => setTrades((x) => x.filter((_, j) => j !== i))} aria-label={`Remove ${t.symbol} trade`}
                       className="text-terminal-text-dim hover:text-terminal-red">✕</button>
                   </div>
                 ))}

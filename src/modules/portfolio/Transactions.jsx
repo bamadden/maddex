@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { sydneyISO } from '../../utils/dateUtils'
 import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import {
   TX_TYPES, TX_TONE, getTransactions, addTransaction, deleteTransaction,
@@ -22,7 +23,7 @@ const FILTERS = [
 ]
 
 const aud = (n) => `A$${Math.abs(Math.round(n)).toLocaleString()}`
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => sydneyISO()
 
 function SummaryStat({ label, value, sub, tone }) {
   return (
@@ -171,7 +172,7 @@ export default function Transactions({ holdings = [] }) {
 
   const filtered = useMemo(() => {
     const days = RANGES.find((r) => r.key === range)?.days
-    const cutoff = days ? new Date(mountedAt - days * 86400000).toISOString().slice(0, 10) : null
+    const cutoff = days ? sydneyISO(mountedAt - days * 86400000) : null
     return txs.filter((t) => {
       if (filter !== 'ALL' && t.type !== filter) return false
       if (ticker !== 'ALL' && t.symbol !== ticker) return false

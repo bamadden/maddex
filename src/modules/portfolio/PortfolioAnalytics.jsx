@@ -73,10 +73,10 @@ function DividendSection({ holdings, fmtCur }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ background: 'rgba(201,168,76,0.12)' }}>
         {[
           ['ESTIMATED ANNUAL INCOME', fmtCur(sched.totalAnnual), PAL.gold, `${fmtCur(sched.monthlyAverage)} a month on average`],
-          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', PAL.up, 'Income ÷ what you paid'],
+          ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', PAL.gold, 'Income ÷ what you paid'],
           ['YIELD ON VALUE', sched.yieldOnValue != null ? `${sched.yieldOnValue.toFixed(2)}%` : '—', null,
             sched.yieldOnValue != null && td != null ? `vs 1-yr term deposit ${td.toFixed(2)}% (RBA F4)` : 'Income ÷ value today'],
-          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), PAL.up, 'Per year, at the 30% company rate'],
+          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), PAL.gold, 'Per year, at the 30% company rate'],
         ].map(([label, value, tone, sub]) => (
           <div key={label} style={{ background: PAL.panel, padding: '10px 12px' }}>
             <div className="text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 11 }}>{label}</div>
@@ -344,9 +344,9 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
                     <span className="text-2xs font-bold text-terminal-text-bright">{f.label}</span>
                     <span
                       className="text-2xs font-bold tabular-nums"
-                      style={{ color: f.direction === 'over' ? PAL.up : f.direction === 'under' ? PAL.down : PAL.muted }}
+                      style={{ color: PAL.dim }}
                     >
-                      {f.direction === 'over' ? '▲ OVERWEIGHT' : f.direction === 'under' ? '▼ UNDERWEIGHT' : '→ NEUTRAL'}
+                      {f.direction === 'over' ? '▲ ABOVE THE INDEX' : f.direction === 'under' ? '▼ BELOW THE INDEX' : '→ IN LINE'}
                     </span>
                   </div>
 

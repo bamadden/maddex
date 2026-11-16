@@ -5,7 +5,7 @@ import { showLimitPrompt } from '../../services/plans'
 import { SECTOR_BY_SYMBOL } from '../../modules/portfolio/sectorMap'
 import { USING_MOCK_DATA } from '../../services/api'
 import ShareLinkModal from '../ui/ShareLinkModal'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, sydneyISO } from '../../utils/dateUtils'
 
 const W = 900
 const H = 1200
@@ -208,7 +208,7 @@ export default function PortfolioSnapshot({ holdings, totalPnl, pnlPct, mktTotal
     if (!canvas) return
     const a = document.createElement('a')
     a.href = canvas.toDataURL('image/png')
-    a.download = `Maddex_Portfolio_${new Date().toISOString().slice(0, 10)}.png`
+    a.download = `Maddex_Portfolio_${sydneyISO()}.png`
     a.click()
   }
 
@@ -220,7 +220,7 @@ export default function PortfolioSnapshot({ holdings, totalPnl, pnlPct, mktTotal
       >
         <div className="flex items-center justify-between px-4 py-2 border-b border-terminal-border bg-terminal-header flex-shrink-0">
           <span className="text-terminal-gold font-bold tracking-widest text-sm">SHARE YOUR PERFORMANCE</span>
-          <button onClick={onClose} className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
+          <button onClick={onClose} aria-label="Close" className="text-terminal-text-dim hover:text-terminal-gold text-lg leading-none">✕</button>
         </div>
         <div className="p-4 overflow-auto flex-1 flex flex-col items-center gap-3">
           <canvas ref={canvasRef} width={W} height={H} style={{ width: 340, height: (340 * H) / W }} className="border border-terminal-border" />

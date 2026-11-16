@@ -1,6 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { sydneyClock, formatDate } from '../../utils/dateUtils'
-import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
+import { sydneyClock, formatDate, sydneyISO } from '../../utils/dateUtils'
 import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchYFQuote, USING_MOCK_DATA } from '../../services/api'
@@ -22,7 +21,6 @@ import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGri
 import StressTest from './StressTest'
 import PerformanceTab from './PerformanceTab'
 import PortfolioAnalytics from './PortfolioAnalytics'
-import PortfolioBuilderModal from '../../components/portfolioBuilder/PortfolioBuilderModal'
 import PortfolioSnapshot from '../../components/portfolio/PortfolioSnapshot'
 import { logActivity } from '../../services/activityLogService'
 import { SkeletonCard } from '../../components/ui/Skeleton'
@@ -232,47 +230,32 @@ function BreakdownBars({ title, rows }) {
 // actual sector mix — clearly labelled as an example, not a substitute.
 const COMMON_SECTORS = ['Financials', 'Materials', 'Health Care', 'Information Technology', 'Consumer Discretionary', 'Energy', 'Real Estate', 'Industrials']
 
+// Composition, computed from the holdings while no AI analysis is shown: the
+// largest sector's share and the ASX sectors not held. The "diversification
+// score" (100 minus 0.8 x the top sector's share, floored at 15), the "top
+// risk" wording and a macro paragraph about rate "pressure" that stood here
+// were removed (16 Nov 2026): an invented score and a forecast.
 function MockAnalysisPreview({ bySector }) {
   const top = bySector[0]
-  const diversificationScore = Math.max(15, Math.round(100 - (top?.pct ?? 0) * 0.8))
   const present = new Set(bySector.map((s) => s.label))
-  const underweight = COMMON_SECTORS.find((s) => !present.has(s)) ?? null
-  const concentrated = top && top.pct >= 40
-
+  const notHeld = COMMON_SECTORS.filter((s) => !present.has(s))
   return (
-    <div className="w-full max-w-lg text-left">
-      <div className="flex items-center gap-2 mb-3 px-3 py-1.5 bg-terminal-gold/10 border border-terminal-gold/40 text-terminal-gold text-2xs font-semibold">
-        ⚠ EXAMPLE ANALYSIS — add AI credits to generate your personalised analysis
+    <div className="w-full max-w-lg text-left" data-composition>
+      <div className="mb-3 px-3 py-1.5 border border-terminal-border text-terminal-text-dim text-2xs font-semibold tracking-widest">
+        COMPOSITION · COMPUTED FROM YOUR HOLDINGS
       </div>
       <div className="space-y-3 text-2xs">
-        <div>
-          <div className="text-terminal-text-dim/60 tracking-widest mb-1">DIVERSIFICATION SCORE</div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-mono font-bold text-terminal-gold">{diversificationScore}/100</span>
-            <span className="text-terminal-text-dim">
-              {diversificationScore >= 70 ? 'Well diversified across sectors' : diversificationScore >= 45 ? 'Moderately concentrated' : 'Highly concentrated — few holdings drive most of the return'}
-            </span>
+        {top && (
+          <div>
+            <div className="text-terminal-text-dim/60 tracking-widest mb-1">LARGEST SECTOR</div>
+            <div className="text-terminal-text-bright">{top.label}: {top.pct.toFixed(0)}% of the value shown.</div>
           </div>
-        </div>
-        <div>
-          <div className="text-terminal-text-dim/60 tracking-widest mb-1">TOP RISK</div>
-          <div className="text-terminal-text-bright">
-            {concentrated
-              ? `Concentration in ${top.label} (${top.pct.toFixed(0)}% of portfolio value) — a sector-specific shock would disproportionately affect returns.`
-              : 'No single sector dominates the portfolio — concentration risk is currently limited.'}
-          </div>
-        </div>
+        )}
         <div>
           <div className="text-terminal-text-dim/60 tracking-widest mb-1">SECTORS NOT HELD</div>
-          <div className="text-terminal-text-bright">{underweight
-            ? `${underweight} — a sector with a meaningful weight in the ASX 200 that these holdings do not include. A description of the holdings, not a suggestion to change them.`
-            : 'The holdings include every major ASX 200 sector.'}</div>
+          <div className="text-terminal-text-bright">{notHeld.length ? notHeld.join(', ') : 'None of the eight largest ASX 200 sectors is missing.'}</div>
         </div>
-        <div>
-          <div className="text-terminal-text-dim/60 tracking-widest mb-1">MACRO ALIGNMENT</div>
-          <div className="text-terminal-text-bright">RBA at {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% after a {VERIFIED_CONSTANTS.rba.lastDecisionVerb.toLowerCase()} on {VERIFIED_CONSTANTS.rba.lastDecision}, with further increases still possible — rate-sensitive sectors (Real Estate, consumer discretionary) carry the most pressure; commodity-heavy portfolios stay exposed to China demand.</div>
-        </div>
-        <div className="text-terminal-text-dim">Describes exposure only — not a recommendation to buy, sell or hold anything.</div>
+        <div className="text-terminal-text-dim">A description of the holdings, not a suggestion to change them, and not a recommendation.</div>
       </div>
     </div>
   )
@@ -357,7 +340,7 @@ function AddHoldingForm({ onAdd, onCancel, atLimit, limit, initialSymbol = '' })
       }
       const msg      = (e.message ?? '').toLowerCase()
       const notFound = msg.includes('no data') || msg.includes('404') || msg.includes('error')
-      setVerr(notFound ? 'TICKER NOT FOUND — check symbol and try again' : (e.message || 'DATA SOURCE ERROR'))
+      setVerr(notFound ? 'TICKER NOT FOUND — check the symbol and try again' : 'The price source could not be reached just now. Try again in a moment.')
       setVstatus('error')
     }
   }
@@ -560,7 +543,6 @@ export default function PortfolioModule() {
       sessionStorage.removeItem('maddex_add_holding_symbol')
     } catch { /* private mode */ }
   }, [])
-  const [showBuilder, setShowBuilder] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [allocView3D, setAllocView3D] = useState(false)
   const [activeTab, setActiveTab] = useState('holdings')
@@ -599,7 +581,7 @@ export default function PortfolioModule() {
   // the account without a user_id, so those writes all failed in silence.
   const loadFromAccount = (rows) => setHoldings((prev) => [
     ...prev,
-    ...rows.map((r) => ({ ...r, id: `acct-${r.id}`, yfSym: toYahooSymbol(r.symbol, detectType(r.symbol)), type: detectType(r.symbol), addedAt: r.addedAt ?? new Date().toISOString().slice(0, 10) })),
+    ...rows.map((r) => ({ ...r, id: `acct-${r.id}`, yfSym: toYahooSymbol(r.symbol, detectType(r.symbol)), type: detectType(r.symbol), addedAt: r.addedAt ?? sydneyISO() })),
   ])
 
   const addHolding = async (h) => {
@@ -613,15 +595,9 @@ export default function PortfolioModule() {
     setShowAddForm(false)
   }
 
-  // Sequential — addHolding is itself async (Supabase insert when logged
-  // in) and reads/writes `holdings` via functional setState, so importing
-  // one at a time avoids racing several inserts against the same state.
-  const importFromBuilder = async (shapedHoldings) => {
-    for (const h of shapedHoldings) {
-      await addHolding(h)
-    }
-    setShowBuilder(false)
-  }
+  // No "BUILD WITH AI" (removed 16 Nov 2026): MaddenAI chose stocks and
+  // weights to meet the reader's stated criteria, a recommendation however
+  // it was worded.
 
   // CSV import. One state update for the whole file — a row-by-row addHolding
   // would replace by symbol, which is exactly what ADD AS NEW LOT must not do.
@@ -671,12 +647,12 @@ export default function PortfolioModule() {
     // misses and the row renders an em dash instead of a price.
     const q        = isCrypto ? null : (batchQuotes?.[requireYFSym(h)] ?? null)
 
-    let last = null, dayPct = 0, loadState = 'pending', nativePrice = null, currency = isAsx ? 'AUD' : 'USD'
+    let last = null, dayPct = null, loadState = 'pending', nativePrice = null, currency = isAsx ? 'AUD' : 'USD'
     if (q) {
       last        = isAsx ? q.last : usdToAud(q.last)
       nativePrice = isAsx ? null : q.last
       currency    = q.currency ?? currency
-      dayPct      = q.pct ?? 0
+      dayPct      = q.pct ?? null
       loadState   = 'live'
     } else if (!isCrypto && isError) {
       loadState = 'error'
@@ -708,7 +684,8 @@ export default function PortfolioModule() {
   const costTotal = computed.some((h) => h.totalCost == null) ? null : computed.reduce((s, h) => s + h.totalCost, 0)
   const totalPnl  = mktTotal - liveCost
   const pnlPct    = liveCost > 0 ? (totalPnl / liveCost) * 100 : 0
-  const dayPnl    = live.reduce((s, h) => s + h.mktVal * (h.dayPct / 100), 0)
+  // Rows without a day move are left out, not counted as flat.
+  const dayPnl    = live.reduce((s, h) => (h.dayPct != null && h.mktVal != null ? s + h.mktVal * (h.dayPct / 100) : s), 0)
 
   // Allocation by individual stock (not asset class) — largest position first.
   const allocData = live
@@ -733,7 +710,7 @@ export default function PortfolioModule() {
   // when the day change is yesterday's. Crypto has no day change here.
   const sessionKey = marketSession().key
   const dayInsight = (sessionKey === 'open' || sessionKey === 'after')
-    ? portfolioDayInsight(live.filter((h) => h.type !== 'crypto').map((h) => ({ mktVal: h.mktVal, dayPct: h.dayPct, sector: SECTOR_BY_SYMBOL[h.symbol] })))
+    ? portfolioDayInsight(live.filter((h) => h.type !== 'crypto' && h.dayPct != null).map((h) => ({ mktVal: h.mktVal, dayPct: h.dayPct, sector: SECTOR_BY_SYMBOL[h.symbol] })))
     : null
   const byCountry  = groupByPct(live, (h) => h.type === 'asx' ? 'Australia' : h.type === 'crypto' ? 'Crypto (borderless)' : 'United States')
   const byCurrency = groupByPct(live, (h) => h.type === 'us' ? 'USD' : 'AUD')
@@ -766,12 +743,12 @@ export default function PortfolioModule() {
     const dispSym = h.type === 'asx' ? `${h.symbol}.AX` : h.symbol
     const costCcy = h.costCurrency === 'USD' ? 'US$' : 'A$'
     const parts = [
-      `Analyse ${h.name && h.name !== h.symbol ? h.name : h.symbol} (${dispSym}).`,
+      `Describe ${h.name && h.name !== h.symbol ? h.name : h.symbol} (${dispSym}) and my position in it.`,
       `I hold ${h.shares.toLocaleString('en-AU')} units at an average cost of ${costCcy}${h.avgCost.toFixed(2)}${h.addedAt ? `, bought ${h.addedAt}` : ''}.`,
       h.last != null ? `Current price: A$${h.last.toFixed(2)}.` : null,
       h.pnl != null ? `P&L: ${h.pnl >= 0 ? '+' : '-'}A$${Math.abs(h.pnl).toLocaleString('en-AU', { maximumFractionDigits: 0 })} (${h.pnlPct >= 0 ? '+' : ''}${h.pnlPct.toFixed(1)}%).` : null,
       mktTotal && h.mktVal ? `It is ${((h.mktVal / mktTotal) * 100).toFixed(1)}% of my portfolio.` : null,
-      'What should I consider about this holding?',
+      'Describe the business, what it has reported recently, and the position figures above. Describe only: no forecast, no price and no suggestion of any action.',
       USING_MOCK_DATA ? 'Equity prices in this terminal are demo data, so treat the P&L as illustrative.' : null,
     ]
     askMaddenAI(parts.filter(Boolean).join(' '))
@@ -809,7 +786,7 @@ export default function PortfolioModule() {
       'Describe the exposure in these holdings. Cover:\n' +
       '1. Composition (sector, currency and single-name concentration)\n' +
       '2. Exposure to current events: the cash rate, the AUD, commodities\n' +
-      '3. What has driven the P&L shown\n' +
+      '3. What the P&L figures shown measure (cost against the prices shown)\n' +
       '4. Scheduled events that touch these holdings\n\n' +
       'Describe only. Do not suggest buying, selling, holding, trimming, adding or rebalancing anything, and do not use the holdings to recommend any action.\n\n' +
       `Holdings: ${JSON.stringify(live.map((h) => ({
@@ -819,7 +796,7 @@ export default function PortfolioModule() {
       })))}\n` +
       `Total value: ${fmtCur(mktTotal)}\n` +
       `Total P&L: ${fmtCur(totalPnl)} (${fmt.pct(pnlPct)})\n\n` +
-      'Format in professional markdown. Australian investor perspective. General information only, not advice.',
+      'Format in markdown. Use only the figures given. General information only, not advice.',
   }, { fullscreen: true, rawPrompt: true })
 
   // PORTFOLIO EXPOSURE REVIEW — the whole book in one prompt: each holding's
@@ -834,7 +811,7 @@ export default function PortfolioModule() {
     const mix = (rows) => rows.map((r) => `${r.label} ${Number(r.pct).toFixed(1)}%`).join(', ')
     askMaddenAI(
       'PORTFOLIO EXPOSURE REVIEW. Describe how these holdings are exposed. Cover:\n'
-      + '1. Concentration\n2. Sensitivity to the cash rate, the AUD and commodities\n3. Income vs growth character\n4. Key risks in the current environment\n\n'
+      + '1. Concentration\n2. Sensitivity to the cash rate, the AUD and commodities\n3. Income vs growth character\n4. Risks commonly described for these sectors\n\n'
       + 'Describe exposure only — no suggestion to buy, sell, hold, trim, add or rebalance anything.\n\n'
       + `Holdings by weight:\n${holdingsLines}\n\n`
       + `Sector allocation: ${mix(bySector)}\nCurrency: ${mix(byCurrency)}\n`
@@ -866,15 +843,10 @@ export default function PortfolioModule() {
           right={(
             <div className="flex items-center gap-2">
               <button onClick={() => setShowImport(true)} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide">IMPORT CSV</button>
-              <button
-                onClick={() => setShowBuilder(true)}
-                className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
-              >BUILD WITH AI ▶</button>
             </div>
           )}
         />
         <PortfolioSyncBar user={user} holdings={holdings} onLoad={loadFromAccount} />
-        {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
         {showImport && (
           <PortfolioImportModal
             holdings={holdings}
@@ -941,10 +913,6 @@ export default function PortfolioModule() {
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <button onClick={() => setShowImport(true)} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide">IMPORT CSV</button>
             <button onClick={exportCsv} className="text-2xs px-3 py-1 border border-terminal-border text-terminal-text-dim hover:text-terminal-gold hover:border-terminal-gold transition-colors font-bold tracking-wide" title="One row per lot, in AUD">EXPORT CSV</button>
-            <button
-              onClick={() => setShowBuilder(true)}
-              className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
-            >BUILD WITH AI ▶</button>
             {live.length > 0 && (
               <button
                 onClick={runAiAnalysis}
@@ -967,7 +935,6 @@ export default function PortfolioModule() {
           </div>
         )}
       />
-      {showBuilder && <PortfolioBuilderModal onImport={importFromBuilder} onClose={() => setShowBuilder(false)} />}
       {showImport && (
         <PortfolioImportModal
           holdings={holdings}
@@ -1175,7 +1142,7 @@ export default function PortfolioModule() {
                         symbol: h.symbol, name: h.name || h.symbol,
                         price:  disp(h.last),
                         pct:    h.dayPct,
-                        change: disp(h.last * (h.dayPct / 100)),
+                        change: h.dayPct != null ? disp(h.last * (h.dayPct / 100)) : null,
                         type:   h.type,
                         extra:  { nativePrice: h.nativePrice, currency: h.currency },
                       })}
@@ -1227,7 +1194,7 @@ export default function PortfolioModule() {
                         {h.pnlPct != null ? fmt.pct(h.pnlPct) : '—'}
                       </td>
                       <td className={`px-1 py-0.5 text-2xs text-right ${dayCls}`}>
-                        {h.dayPct ? fmt.pct(h.dayPct) : '—'}
+                        {h.dayPct != null ? fmt.pct(h.dayPct) : '—'}
                       </td>
                       {/* Weight reads as a proportion, so it gets drawn as
                           one — a fill behind the figure rather than a number
@@ -1313,7 +1280,7 @@ export default function PortfolioModule() {
                       symbol: h.symbol, name: h.name || h.symbol,
                       price:  disp(h.last),
                       pct:    h.dayPct,
-                      change: disp(h.last * (h.dayPct / 100)),
+                      change: h.dayPct != null ? disp(h.last * (h.dayPct / 100)) : null,
                       type:   h.type,
                     })}
                   />

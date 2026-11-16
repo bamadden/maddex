@@ -1,4 +1,5 @@
 import { PAL } from '../styles/palette.js'
+import { sydneyISO } from '../utils/dateUtils.js'
 // Portfolio transaction history.
 //
 // Holdings answer "what do I own"; transactions answer "what did I do, and
@@ -87,7 +88,7 @@ export function syncTransactionsFromHoldings(holdings = []) {
       id: `tx_auto_${h.id}`,
       createdAt: new Date().toISOString(),
       fromHolding: h.id,
-      date: h.addedAt ?? h.purchaseDate ?? new Date().toISOString().slice(0, 10),
+      date: h.addedAt ?? h.purchaseDate ?? sydneyISO(),
       type: 'BUY',
       symbol: h.symbol,
       name: h.name,

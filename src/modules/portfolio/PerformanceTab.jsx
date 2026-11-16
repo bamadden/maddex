@@ -12,7 +12,7 @@ import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { computeRisk } from './portfolioRisk'
 import Tooltip from '../../components/ui/Tooltip'
 import { PAL } from '../../styles/palette.js'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, sydneyISO } from '../../utils/dateUtils'
 
 // ─── Performance tab ────────────────────────────────────────────────────────
 //
@@ -660,8 +660,8 @@ function SectorDonut({ holdings, mktTotal }) {
       <div className="flex-1 min-w-0" style={{ minWidth: 220 }}>
         {sectors.map((s) => {
           const diff = s.indexPct == null ? null : s.pct - s.indexPct
-          const tone = diff == null ? PAL.muted : diff > 2 ? PAL.gold : diff < -2 ? PAL.muted : PAL.up
-          const verdict = diff == null ? null : diff > 2 ? 'OVERWEIGHT' : diff < -2 ? 'UNDERWEIGHT' : 'IN LINE'
+          const tone = PAL.dim
+          const verdict = diff == null ? null : diff > 2 ? 'ABOVE THE INDEX' : diff < -2 ? 'BELOW THE INDEX' : 'IN LINE'
           return (
             <div
               key={s.sector}
@@ -736,7 +736,6 @@ function RiskCard({ label, value, colour, min, max, gaugeValue, description, tip
   )
 }
 
-const AMBER = '#D69E2E', GREEN = PAL.up, RED = PAL.down
 
 function RiskMetrics({ holdings, mktTotal }) {
   const risk = useMemo(() => computeRisk(holdings, mktTotal), [holdings, mktTotal])
@@ -755,6 +754,10 @@ function RiskMetrics({ holdings, mktTotal }) {
     )
   }
 
+  // One neutral colour: these measure how the holdings move, and red /
+  // amber / green read as a verdict on them (16 Nov 2026). The Sharpe note
+  // compared with a "market average of ~1.0" that had no source.
+  const NEUTRAL = PAL.gold
   const beta = risk.portfolioBeta
   const vol = risk.portfolioVol * 100
   const asxVol = risk.asxVol * 100
@@ -765,7 +768,7 @@ function RiskMetrics({ holdings, mktTotal }) {
       <RiskCard
         label="BETA"
         value={beta.toFixed(2)}
-        colour={beta > 1.15 ? RED : beta > 1.02 ? AMBER : GREEN}
+        colour={NEUTRAL}
         min={0} max={2} gaugeValue={beta}
         description={`Moves ${beta.toFixed(2)}× with the market`}
         tip={`Sector betas weighted by position size — not a regression against an index, because this build has no index return series to regress against. Driven mainly by ${risk.topDrivers.map((d) => d.symbol).join(', ')}.`}
@@ -773,7 +776,7 @@ function RiskMetrics({ holdings, mktTotal }) {
       <RiskCard
         label="VOLATILITY (ANNUALISED)"
         value={`${vol.toFixed(1)}%`}
-        colour={vol > asxVol * 1.2 ? RED : vol > asxVol ? AMBER : GREEN}
+        colour={NEUTRAL}
         min={0} max={30} gaugeValue={vol}
         description={`vs ASX 200: ${asxVol.toFixed(1)}%`}
         tip="Annualised standard deviation of daily returns over 90 days, weighted by position. Computed from each holding's own price history — which is DEMO data in this build."
@@ -781,17 +784,17 @@ function RiskMetrics({ holdings, mktTotal }) {
       <RiskCard
         label="SHARPE RATIO"
         value={risk.sharpe.toFixed(2)}
-        colour={risk.sharpe >= 1 ? GREEN : risk.sharpe >= 0 ? AMBER : RED}
+        colour={NEUTRAL}
         min={-1} max={2} gaugeValue={risk.sharpe}
-        description={risk.sharpe >= 1 ? 'Above a market average of ~1.0' : 'Below a market average of ~1.0'}
+        description="Since-purchase return over annualised volatility"
         tip="Rough and illustrative: since-purchase return over annualised volatility. Not the textbook ratio — the numerator is a return over an unknown holding period rather than an annualised excess return over the risk-free rate."
       />
       <RiskCard
         label="MAX DRAWDOWN"
         value={`${dd.toFixed(1)}%`}
-        colour={Math.abs(dd) > 20 ? RED : Math.abs(dd) > 8 ? AMBER : GREEN}
+        colour={NEUTRAL}
         min={-30} max={0} gaugeValue={dd}
-        description={`${risk.peakDate.toLocaleDateString('en-AU', { month: 'short' })}–${risk.troughDate.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })}`}
+        description={`${formatDate(risk.peakDate, { year: false })} to ${formatDate(risk.troughDate)}`}
         tip="Largest peak-to-trough fall in book value over the last 90 days, from each holding's own price history."
       />
     </div>
@@ -816,7 +819,7 @@ export default function PerformanceTab({ holdings, lots = [], mktTotal, fmtCur, 
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)) } catch { /* per-viewer convenience */ }
     return next
   })
-  const [today] = useState(() => new Date().toLocaleDateString('en-CA'))
+  const [today] = useState(() => sydneyISO())
   const [transactions] = useState(() => getTransactions())
   const { data: yields } = useQuery({
     queryKey: ['au10yF2'],
