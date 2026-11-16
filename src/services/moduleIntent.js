@@ -50,3 +50,18 @@ export function sendModuleIntent(module, intent) {
     window.dispatchEvent(new CustomEvent('madden:module-intent', { detail: { module, intent } }))
   } catch { /* non-browser */ }
 }
+
+// The current value of each field a module exposes through useIntentState,
+// so a saved view can record it and replay it as an intent (WS2). Only
+// fields a command could already set are recorded: tabs, filters, modes.
+const live = new Map()
+export function recordIntentValue(module, field, value) {
+  const m = live.get(module) ?? {}
+  if (value === undefined || typeof value === 'function') delete m[field]
+  else m[field] = value
+  live.set(module, m)
+}
+export function currentIntent(module) {
+  const m = live.get(module)
+  return m && Object.keys(m).length ? JSON.parse(JSON.stringify(m)) : null
+}

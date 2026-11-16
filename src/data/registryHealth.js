@@ -44,6 +44,7 @@ export const HEALTH = [
   { id: 'geo-risk', modules: ['global'], asOf: '2026-10-22', maxAgeDays: 45, cls: 'editorial' },
   { id: 'chokepoint', modules: ['global'], asOf: '2026-11-15', maxAgeDays: 45, cls: 'editorial' },
   { id: 'intel-map', modules: ['global'], asOf: '2026-11-16', maxAgeDays: 45, cls: 'editorial' },
+  { id: 'glossary', modules: ['dashboard'], asOf: '2026-11-16', maxAgeDays: 365, cls: 'editorial' },
   { id: 'crypto-momentum', modules: ['crypto', 'markets'], asOf: '2026-11-07', maxAgeDays: 365, cls: 'derived' },
   { id: 'brief-bands', modules: ['brief', 'dashboard'], asOf: '2026-11-01', maxAgeDays: 365, cls: 'derived' },
   { id: 'commodity-weights', modules: ['relationships'], asOf: '2026-10-31', maxAgeDays: 365, cls: 'derived' },

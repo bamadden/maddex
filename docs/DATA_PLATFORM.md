@@ -254,6 +254,7 @@ dataset's due date unless it is re-read first.
 | `geo-risk` Country risk notes (descriptive) | editorial | Maddex, from cited reporting | manual | monthly review | 45 days | global |
 | `chokepoint` Shipping route status | editorial | Maddex, from cited reporting (per route) | manual | on change | 45 days | global |
 | `intel-map` Global map editorial content: disruptions, route notes and ratings, site notes | editorial | Maddex, from cited reporting | manual | on change | 45 days | global |
+| `glossary` Glossary of terms (command bar) | editorial | Maddex, plain definitions | manual | on change | 365 days | dashboard |
 | `crypto-momentum` Crypto momentum weights | derived | Maddex method | derived | reviewed yearly | 365 days | crypto, markets |
 | `brief-bands` Brief score bands | derived | Maddex method | derived | reviewed yearly | 365 days | brief, dashboard |
 | `commodity-weights` Commodity exposure weights | derived | Maddex method, from company revenue mix | derived | reviewed yearly | 365 days | relationships |

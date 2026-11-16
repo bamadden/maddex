@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { peekModuleIntent, takeModuleIntent } from '../services/moduleIntent'
+import { peekModuleIntent, takeModuleIntent, recordIntentValue } from '../services/moduleIntent'
 
 // One field of a module's state that a command-bar intent can set: read once
 // on mount (cold open), then kept in step with intents sent while the module
@@ -21,5 +21,7 @@ export function useIntentState(module, field, initial) {
     window.addEventListener('madden:module-intent', onIntent)
     return () => window.removeEventListener('madden:module-intent', onIntent)
   }, [module, field])
+  // Recorded for saved views (moduleIntent.currentIntent).
+  useEffect(() => { recordIntentValue(module, field, value) }, [module, field, value])
   return [value, setValue]
 }

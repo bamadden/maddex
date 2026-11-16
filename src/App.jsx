@@ -11,6 +11,7 @@ import { workspaceService } from './services/workspaceService'
 import { WorkspaceRenderer } from './components/layout/WorkspaceRenderer'
 import { shortcutService } from './services/shortcutService'
 import { viewStateService } from './services/viewStateService'
+import { currentIntent, sendModuleIntent } from './services/moduleIntent'
 import { StoreProvider, useStore } from './store/useStore'
 import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
@@ -748,11 +749,14 @@ function Terminal() {
     activeModule,
     aiPanelOpen: chatOpen,
     aiPanelMode: aiMode,
+    // The module's own tabs and filters, where it exposes them (WS2).
+    intent: currentIntent(activeModule),
   }), [activeModule, chatOpen, aiMode])
 
   const applyViewState = useCallback((state) => {
     if (!state) return
     if (state.workspace) workspaceService.setActive(state.workspace)
+    if (state.activeModule && state.intent) sendModuleIntent(state.activeModule, state.intent)
     if (state.activeModule) setActiveModule(state.activeModule)
     if (state.aiPanelMode) setAiMode(state.aiPanelMode)
     setChatOpen(!!state.aiPanelOpen)

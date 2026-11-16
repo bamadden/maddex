@@ -21,6 +21,7 @@ import {
 import { PAL } from '../../styles/palette.js'
 import { NoData } from '../ui/ModuleStates'
 import DataBadge from '../ui/DataBadge'
+import { openInRelationships } from '../../utils/openRelationships'
 
 // Phones get a placeholder that fits whole beside CMD> and the status.
 const NARROW = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 639px)').matches
@@ -274,6 +275,11 @@ function parseNaturalLanguage(raw) {
     return null
   }
 
+  // "save view Morning rates" — the current module, its tabs and filters and
+  // the AI panel, saved on this device; "view NAME" finds it again (WS2).
+  const sv = t.match(/^save (?:this |the )?view(?: as)? (.{1,40})$/i)
+  if (sv) return { kind: 'saveview', name: sv[1].trim(), say: `Save this view as "${sv[1].trim()}" on this device` }
+
   // "rba preview" / "rba analysis" — the pre-decision brief for the next
   // RBA meeting, kept in SAVED RESEARCH.
   if (/^(?:rba (?:preview|analysis|decision preview)|preview (?:the )?rba)\??$/i.test(t)) return { kind: 'rbapreview', say: 'MaddenAI RBA decision preview' }
@@ -473,7 +479,9 @@ function buildActionSuggestions(rawInput, nl) {
   ]
 }
 
-function getSuggestions(input) {
+// `extra`: the unified search (globalSearch.js) once it has loaded — glossary,
+// saved views, calendar events, Relationships nodes.
+function getSuggestions(input, extra = null) {
   const raw = input.trim()
   if (!raw || isHelpQuery(raw)) return []
   const Q = raw.toUpperCase()
@@ -522,8 +530,9 @@ function getSuggestions(input) {
     sym: `ai:${raw}`, label: `Ask MaddenAI about "${raw.length > 40 ? raw.slice(0, 40) + '…' : raw}"`,
     type: 'ai', category: 'MADDENAI', desc: 'Route this query to MaddenAI', action: 'ai', payload: raw,
   }]
+  const more = extra ? extra(raw).slice(0, 8) : []
   // A parsed command leads: it is what Enter will do.
-  return flattenGroups(nl ? [...actions, ...matched, ...ask] : [...matched, ...actions, ...ask])
+  return flattenGroups(nl ? [...actions, ...matched, ...more, ...ask] : [...matched, ...more, ...actions, ...ask])
 }
 
 // ─── Help card — "?" or "help" typed into the bar ─────────────────────────────
@@ -846,9 +855,22 @@ function nextGroupStart(items, idx, dir) {
 const TYPE_ICON = {
   asx: '📈', us: '📈', index: '📈', crypto: '₿', fx: '💱', bond: '🏛',
   module: '▶', action: '⚡', cmd: '⚡', ai: '🤖', calc: '🔢', settings: '⚙',
+  glossary: '📖', view: '🗂', event: '📅', node: '⊶',
 }
 
 const CATEGORY_LABEL = { MADDENAI: 'MADDENAI', CALC: 'CALCULATORS' }
+
+// What Enter will open, for the highlighted row (glossary, views, events,
+// nodes carry one). Announced politely to screen readers.
+function PreviewPane({ item }) {
+  if (!item?.preview) return null
+  return (
+    <div className="px-3 py-2 border-t border-terminal-border/60 bg-terminal-bg/60 sticky bottom-6" role="status" aria-live="polite" data-cmd-preview>
+      <div className="text-2xs font-bold text-terminal-gold tracking-wide">{item.preview.title}</div>
+      {item.preview.lines.map((l) => <div key={l} className="text-2xs text-terminal-text leading-snug mt-0.5">{l}</div>)}
+    </div>
+  )
+}
 
 // ─── Suggestions dropdown (memoised to avoid re-renders on every keystroke) ──
 // `quotes` maps symbol -> { price, pct } for live STOCKS/CRYPTO rows — absent
@@ -914,6 +936,7 @@ const SuggestionsList = memo(function SuggestionsList({ suggestions, suggestIdx,
           })}
         </div>
       ))}
+      <PreviewPane item={suggestions[suggestIdx]} />
       <div aria-hidden="true" className="px-3 py-1 border-t border-terminal-border/40 flex items-center sticky bottom-0 bg-terminal-panel">
         <KeyHints context="suggestions" />
       </div>
@@ -1125,11 +1148,17 @@ export default function CommandBar() {
   // As an effect it produced a visible artifact, not just a lint error: the
   // list rendered once with the PREVIOUS query's suggestions before the effect
   // replaced them, so a fast typist saw the prior match flash under the cursor.
+  // The unified search index loads on first focus (out of first paint).
+  const [extraSearch, setExtraSearch] = useState(null)
+  const loadExtraSearch = useCallback(() => {
+    if (extraSearch) return
+    import('./globalSearch').then((m) => setExtraSearch(() => m.globalSearch)).catch(() => { /* the bar works without it */ })
+  }, [extraSearch])
   const [prevQuery, setPrevQuery] = useState(debouncedValue)
   if (prevQuery !== debouncedValue) {
     setPrevQuery(debouncedValue)
     setSuggestIdx(-1)
-    setSuggestions(debouncedValue.trim() ? getSuggestions(debouncedValue) : [])
+    setSuggestions(debouncedValue.trim() ? getSuggestions(debouncedValue, extraSearch) : [])
   }
 
   // Recent commands and time-of-day suggestions, as one navigable list with
@@ -1592,6 +1621,10 @@ export default function CommandBar() {
           await routeToAI(nl.query)
           return
 
+        case 'saveview':
+          window.dispatchEvent(new CustomEvent('madden:save-view', { detail: { name: nl.name } }))
+          flash(`Saved view "${nl.name}" on this device. Type "views" to list them.`, 'text-terminal-green', 3000)
+          return
         case 'rbapreview':
           rbaPreview(VERIFIED_CONSTANTS.rba.nextMeeting)
           flash('→ MADDENAI RBA DECISION PREVIEW', 'text-terminal-green', 2000)
@@ -1633,6 +1666,25 @@ export default function CommandBar() {
   const selectSuggestion = (item) => {
     setSuggestions([]); setSuggestIdx(-1); setShowRecent(false)
     switch (item.type) {
+      case 'glossary':
+        setInputValue('')
+        setActiveModule(item.module)
+        flash(`${item.label}: ${item.desc}`, 'text-terminal-text', 9000)
+        return
+      case 'view':
+        setInputValue('')
+        window.dispatchEvent(new CustomEvent('madden:load-view', { detail: { id: item.id } }))
+        flash(`→ VIEW · ${item.label}`, 'text-terminal-green', 1500)
+        return
+      case 'event':
+        setInputValue('')
+        setActiveModule('calendar')
+        flash(`→ CALENDAR · ${item.desc}`, 'text-terminal-green', 2500)
+        return
+      case 'node':
+        setInputValue('')
+        openInRelationships(setActiveModule, item.id)
+        return
       case 'module':
         setInputValue('')
         setActiveModule(item.sym)
@@ -1739,7 +1791,8 @@ export default function CommandBar() {
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             onFocus={() => {
-              if (inputValue.trim()) setSuggestions(getSuggestions(inputValue))
+              loadExtraSearch()
+              if (inputValue.trim()) setSuggestions(getSuggestions(inputValue, extraSearch))
               else setShowRecent(true)
             }}
             placeholder={NARROW ? 'Ticker, question or ? for help' : 'Ticker · Command · Question — type HELP or ? for all commands'}
