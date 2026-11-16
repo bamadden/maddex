@@ -17,6 +17,6 @@ checked in the code before building.
 | 8 | Medium: times | "Today" in UTC or browser time in six places; drawdown dates browser-local | `Transactions.jsx:25`, `PerformanceTab.jsx:819,794`, `portfolioCsv.js:116,260`, `transactionService.js:90`, `PortfolioSnapshot.jsx:211` | Done: `sydneyISO()` and formatDate |
 | 9 | Medium: failure | Raw error text in the add form | `PortfolioModule.jsx:343` | Done: a plain sentence |
 | 10 | Low: a11y | Icon-only buttons with no name | `WhatIf.jsx:221`, `PortfolioSnapshot.jsx:223` | Done |
-| 11 | Medium: badges | Performance, Stress, What-If, Analytics and Transactions tabs use ad-hoc labels rather than the shared badges | various | Next |
+| 11 | Medium: badges | Performance, Stress, What-If, Analytics and Transactions tabs use ad-hoc labels rather than the shared badges | various | Done 16 Nov: shared DEMO badge on every price-computed tab; Transactions are your own entries, marked device-only |
 | 12 | Low: a11y | Holdings rows clickable without keyboard support | `PortfolioModule.jsx:1172` | Next |
 | — | — | Account writes only after confirmation (PortfolioSyncBar) | — | Done 16 Nov (Phase C) |

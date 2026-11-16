@@ -1023,6 +1023,15 @@ export default function PortfolioModule() {
           whichever tab is active (flex-1) share that row correctly instead
           of each becoming its own auto-sized implicit grid row. */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* Every tab that computes from prices says, in the shared badge, that
+          the prices are simulated (16 Nov 2026: the tabs carried ad-hoc
+          "DEMO" text or none). */}
+      {USING_MOCK_DATA && ['performance', 'stresstest', 'whatif', 'analytics'].includes(activeTab) && (
+        <div className="px-3 py-1 border-b border-terminal-border/50 flex items-center gap-2 flex-shrink-0" data-tab-badge>
+          <DemoBadge source="equity prices simulated" />
+          <span className="text-2xs text-terminal-text-dim">Figures in this tab are computed from those prices and your holdings.</span>
+        </div>
+      )}
       {showAddForm && (
         <div className="border-b border-terminal-border px-3 py-2 bg-terminal-panel flex-shrink-0">
           <AddHoldingForm onAdd={addHolding} onCancel={() => setShowAddForm(false)} atLimit={!canAccess('prime') && positionCount >= PORTFOLIO_LIMIT} limit={PORTFOLIO_LIMIT} initialSymbol={prefillSymbol} />
