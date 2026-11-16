@@ -684,39 +684,37 @@ export const VERIFIED_CONSTANTS = {
   // `previous` so the panel can show a real change between two dated
   // observations instead of an invented daily move. Lithium is quoted as the
   // source quotes it (CNY), not converted at a guessed rate.
+  // 16 Nov 2026: only what an official source publishes, keyless, is held.
+  // Brent and WTI are the EIA's daily spot prices (eia.gov, US government
+  // data, public domain), checked by the eia fetcher. Iron ore, coal, LNG,
+  // copper, wheat and lithium were exchange settlements read from news and
+  // data sites; no licensed feed is connected, so they are not shown (null),
+  // and every screen says so rather than showing a number.
   commodities: {
-    ironOreUSD: 90.90,        // SGX 62% Fe, close 16 Oct (Bloomberg: under $90 intraday 15 Oct)
-    thermalCoalUSD: 150.40,   // globalCOAL Newcastle, 16 Oct
-    lngUSDPerMMBtu: 30.40,    // JKM spot, 20 Oct (Bloomberg)
-    copperUSDPerLb: 6.64,     // LME 3-month US$14,635/t, 14 Oct
-    copperUSDPerTonne: 14635,
-    wheatUSDPerBu: 5.84,      // not refreshed — still the 30 Jun level
-    lithiumCNYPerTonne: 104740, // GFEX most-active lithium carbonate, 12 Oct
-    lithiumUSDPerTonne: 14200,  // 30 Jun level, kept for older readers
-    brentUSD: 108.82,         // ICE Brent Dec settle, Tue 20 Oct (CNBC; FRED Dated Brent spot 115.22 same day)
-    wtiUSD: 97.15,            // NYMEX WTI Dec settle, Tue 20 Oct (CNBC). Nov expired that day; FRED Cushing spot 107.89
-    asOfBy: {
-      ironOreUSD: '2026-10-16', thermalCoalUSD: '2026-10-16', lngUSDPerMMBtu: '2026-10-20',
-      copperUSDPerLb: '2026-10-14', lithiumCNYPerTonne: '2026-10-12', brentUSD: '2026-10-20', wtiUSD: '2026-10-20',
-      wheatUSDPerBu: '2026-06-30',
-    },
+    ironOreUSD: null,
+    thermalCoalUSD: null,
+    lngUSDPerMMBtu: null,
+    copperUSDPerLb: null,
+    copperUSDPerTonne: null,
+    wheatUSDPerBu: null,
+    lithiumCNYPerTonne: null,
+    lithiumUSDPerTonne: null,
+    brentUSD: 92.14,          // EIA Europe Brent spot FOB (RBRTE), Wed 11 Nov 2026; released 12 Nov
+    wtiUSD: 89.62,            // EIA WTI Cushing spot (RWTC), Wed 11 Nov 2026; released 12 Nov
+    asOfBy: { brentUSD: '2026-11-11', wtiUSD: '2026-11-11' },
     sourceBy: {
-      ironOreUSD: 'SGX iron ore futures close, from published market reports',
-      thermalCoalUSD: 'globalCOAL Newcastle (via Kalkine)',
-      lngUSDPerMMBtu: 'JKM LNG spot assessment, from published market reports',
-      copperUSDPerLb: 'LME 3-month',
-      lithiumCNYPerTonne: 'GFEX lithium carbonate',
-      brentUSD: 'ICE Brent futures (via CNBC)',
-      wtiUSD: 'NYMEX WTI futures (via CNBC); spot cross-checked on FRED DCOILWTICO',
+      brentUSD: 'US EIA, Europe Brent spot price FOB',
+      wtiUSD: 'US EIA, WTI Cushing spot price',
     },
-    previous: {
-      asOf: '2026-06-30',
-      ironOreUSD: 98.40, thermalCoalUSD: 124.20, lngUSDPerMMBtu: 12.40,
-      copperUSDPerLb: 4.12, brentUSD: 78.40,
+    sourceUrlBy: {
+      brentUSD: 'https://www.eia.gov/dnav/pet/hist/RBRTED.htm',
+      wtiUSD: 'https://www.eia.gov/dnav/pet/hist/RWTCD.htm',
     },
-    source: 'Indicative — exchange settlements via news and data sites; see sourceBy',
-    asOf: '2026-10-20',
-    lastVerified: '2026-10-22',
+    previous: null,
+    notShown: 'No licensed feed for iron ore, coal, LNG, copper, wheat or lithium prices is connected, so none is shown.',
+    source: 'US Energy Information Administration (eia.gov); other commodities not shown',
+    asOf: '2026-11-11',
+    lastVerified: '2026-11-16',
   },
 
   // UPDATED 2026-11-15 from Freightos's own FBX page (global container
@@ -756,29 +754,30 @@ export const VERIFIED_CONSTANTS = {
   // carried. Before the print, ASX 30-day futures implied 60% (rbawatch.com.au,
   // 27 Oct) and Bloomberg 51% (21 Oct).
   // The quote is the 29 Sep statement's own final paragraph (mr-26-27).
+  // The RBA decision being prepared for, with a market reading only when one
+  // can be read from the issuer (ASX rate tracker) and dated. 16 Nov 2026: the
+  // 3 Nov reading came from a news report (ABC, 28 Oct), not the issuer, and
+  // its meeting has passed, so its market fields are empty. The statement
+  // quote was re-read from the RBA's own release.
   rbaNextDecision: {
-    label: 'RBA 3 Nov preview',
+    label: 'RBA 3 Nov decision (passed)',
     date: '2026-11-03',
     time: '14:30',
     currentRate: 4.60,
-    hikeRate: 4.85,
-    marketHikePct: 85,
+    hikeRate: null,
+    marketHikePct: null,
     marketImpliedRate: null,
-    marketSource: 'Market pricing, as reported by ABC News (28 Oct 2026)',
-    marketAsOf: '2026-10-28',
-    marketContext: 'Up from 60% on ASX 30-day futures on 27 Oct (rbawatch.com.au), before the September quarter CPI.',
-    // A peer central bank going against its own market pricing the same week —
-    // context for how much weight an ~85% reading can bear. Markets had about
-    // 90% priced for an RBNZ hike (Babypips, Newsquawk), so roughly 10% for
-    // the hold that came, not zero.
-    peerContext: 'RBNZ surprised markets on 28 Oct, holding the OCR at 2.75% by a 4–3 vote when ~90% was priced for a hike — a reminder that a central bank can diverge from heavy market pricing.',
-    keyFactor: 'Sep quarter CPI (28 Oct): trimmed mean 1.0% q/q, 3.7% y/y — above the RBA\'s own 0.8% forecast. Headline 1.3% q/q, 3.9% y/y.',
+    marketSource: null,
+    marketAsOf: null,
+    marketContext: null,
+    peerContext: null,
+    keyFactor: null,
     statementQuote: 'The Board will continue to do what it considers necessary to bring inflation sustainably back to target, including increasing the cash rate target further if needed.',
     statementSource: 'RBA media release mr-26-27, 29 Sep 2026',
     statementUrl: 'https://www.rba.gov.au/media-releases/2026/mr-26-27.html',
-    source: 'Market pricing via abc.net.au (28 Oct); rba.gov.au',
-    asOf: '2026-10-28',
-    lastVerified: '2026-10-28',
+    source: 'rba.gov.au',
+    asOf: '2026-11-16',
+    lastVerified: '2026-11-16',
   },
 
   // ── Australia's top trading partners ──────────────────────────────────────
@@ -818,29 +817,9 @@ export const VERIFIED_CONSTANTS = {
     lastVerified: '2026-10-28',
   },
 
-  // ── Benchmark index levels ────────────────────────────────────────────────
-  // Indicative only. Live equity quotes come through dataService; these exist
-  // so the intelligence map has something to label a marker with.
-  indices: {
-    // Real closes. Re-checked 2026-10-27: ASX 200 is the Tue 27 Oct close
-    // (ABC News, MSN); S&P 500, Nasdaq Composite and Dow are the Mon 26 Oct
-    // US closes (CNBC). The rest are still 30 Sep 2026 closes from the
-    // 2026-10-03 check. STI, NZX 50 and TA-35 were dropped rather than
-    // carried forward — no current close was found.
-    //
-    // Re-checked 2026-10-29, updating those more than 2% off: Nikkei 225
-    // 64,659.47 (Thu 29 Oct close, Bloomberg); Hang Seng 23,094 (Wed 28 Oct
-    // close — Dim Sum Daily reported the 29 Oct open at 23,088, down 6); DAX
-    // 25,704.02 (Wed 28 Oct close). Within 2% and left as they were: ASX 200
-    // (~8,890 on 29 Oct, AP), S&P 500 (7,743.98), Nasdaq (26,549.85), Dow
-    // (52,475.10) and FTSE 100 (10,672–10,694, sources disagree), 28 Oct.
-    asx200: 8850.1, sp500: 7676.77, nasdaq: 26169.38, dow: 52361.58,
-    ftse100: 10606.0, nikkei225: 64659.47, hangSeng: 23094.0,
-    sseComposite: 3842.19, dax: 25704.02, sensex: 72480.29, tsx: 35235.87,
-    source: 'Index closes from published market reports (ABC News, AP and others) — indicative, not a live feed',
-    asOf: '2026-10-29',
-    lastVerified: '2026-10-29',
-  },
+  // Index closes (vc.indices) were removed on 16 Nov 2026: they were read from
+  // news reports, no screen read them, and no licensed index feed is
+  // connected.
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

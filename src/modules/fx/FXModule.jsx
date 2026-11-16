@@ -14,7 +14,7 @@ import {
 } from '../../services/api'
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl, rbaYearInWords } from '../../data/rbaDecisions'
-import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { curveForRates, BOND_CURVES_AS_OF, BOND_CURVE_SOURCES } from '../../data/bondCurves'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 // The full ten-bank schedule now lives in UpcomingDecisions, which owns the
@@ -297,15 +297,6 @@ function YieldTooltip({ active, payload, label }) {
       <div className="text-terminal-text-dim font-bold">{label}</div>
       {payload.map(p => {
         const key = p.dataKey
-        if (key === 'AUscenario') {
-          return (
-            <div key={key} className="flex items-center gap-2">
-              <span style={{ color: PAL.amber }} className="font-bold">{p.name}</span>
-              <span className="text-terminal-text-bright font-semibold">{p.value.toFixed(2)}%</span>
-              <span className="text-terminal-text-dim">illustrative</span>
-            </div>
-          )
-        }
         const curve = YIELD_CURVES[key]
         if (!curve) return null
         const prev = curve.prev[label]
@@ -606,43 +597,15 @@ function MarketPricingPanel() {
 // and by the spread monitor. So the toggle offers the comparison that is real,
 // and says plainly that the others are not available rather than drawing them.
 
-// ─── RBA scenario curves ─────────────────────────────────────────────────────
-//
-// What the AU curve might do on the day if the RBA hikes or holds, drawn as a
-// dotted line over today's curve. ILLUSTRATIVE, and built only from the one
-// measured input there is — the dated market pricing in rbaNextDecision:
-//
-//   a hike moves the front end by the UNPRICED share of the move
-//     (1 − p) × 25bp — at ~85% priced, about +4bp;
-//   a hold moves it by the PRICED share, unwound
-//     −p × 25bp — about −21bp.
-//
-// The shift fades with tenor (TENOR_WEIGHT): the cash rate anchors the front
-// end and barely reaches 10 years out. The weights are a simple assumption,
-// not an estimate fitted to past decisions, and the chart says so. This is
-// the honest version of "the curve shifts up if they hike": with a hike mostly
-// priced, the hold is the scenario that moves the curve.
-const TENOR_WEIGHT = { '3M': 1, '6M': 0.9, '1Y': 0.75, '2Y': 0.5, '3Y': 0.35, '5Y': 0.2, '10Y': 0.05, '30Y': 0 }
-const SCENARIOS = [['current', 'CURRENT'], ['hike', 'HIKE SCENARIO'], ['hold', 'HOLD SCENARIO']]
-
-function scenarioShift(kind) {
-  const nd = pendingRbaDecision()
-  if (!nd || nd.marketHikePct == null) return null
-  const move = nd.hikeRate - nd.currentRate
-  const p = nd.marketHikePct / 100
-  return kind === 'hike' ? (1 - p) * move : kind === 'hold' ? -p * move : null
-}
+// ─── RBA scenario curves: removed ────────────────────────────────────────────
+// "HIKE / HOLD SCENARIO" curves, built from one market reading, were removed on
+// 16 Nov 2026 with the RBA preview's scenarios (Ben's decision: no "if the RBA
+// hikes / holds" until built from real, sourced past episodes).
 
 function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
   const { shape } = primaryStats
   const [ghost, setGhost] = useState(false)
-  const [scenario, setScenario] = useState('current')
-  const nd = VERIFIED_CONSTANTS.rbaNextDecision
-  const scenariosAvailable = scenarioShift('hike') != null
-  const shift = scenariosAvailable ? scenarioShift(scenario) : null
-  const data = shift == null ? chartData : chartData.map((r) => ({
-    ...r, AUscenario: r.AU == null ? null : +(r.AU + shift * (TENOR_WEIGHT[r.tenor] ?? 0)).toFixed(3),
-  }))
+  const data = chartData
   const hasPrev = Object.keys(YIELD_CURVES.AU.prev ?? {}).length > 0 || Object.keys(YIELD_CURVES.US.prev ?? {}).length > 0
   // Both curves' 2s10s, in basis points. The shape word alone says which side
   // of zero the curve is on; the number says how far, and "+15bp" versus
@@ -716,27 +679,6 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
         )}
       </div>
 
-      {scenariosAvailable && (
-        <div className="flex items-center gap-1 px-2 py-1 flex-shrink-0 flex-wrap" style={{ borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
-          <span className="text-terminal-text-dim/60 tracking-wider mr-1" style={{ fontSize: 11 }}>RBA {formatDate(nd.date, { year: false }).toUpperCase()}</span>
-          {SCENARIOS.map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setScenario(k)}
-              className={`text-2xs px-2 py-0.5 rounded-full border transition-colors ${
-                scenario === k ? 'border-[#E8A33D] text-[#E8A33D] font-bold bg-[#E8A33D]/10' : 'border-terminal-border text-terminal-text-dim hover:border-[#E8A33D]'
-              }`}
-            >{label}</button>
-          ))}
-          {shift != null && (
-            <span className="ml-auto text-terminal-text-dim/60 font-mono" style={{ fontSize: 11 }}
-              title="Illustrative. The front end moves by the share of a 25bp hike the market had not priced (hike) or had priced (hold), fading with tenor. Assumed weights, not a fitted model.">
-              <span style={{ display: 'inline-block', width: 12, borderTop: '2px dotted #E8A33D', verticalAlign: 'middle', marginRight: 4 }} />
-              ILLUSTRATIVE · 3M {shift >= 0 ? '+' : ''}{Math.round(shift * 100)}bp, fading to 0 at 30Y · from ~{nd.marketHikePct}% priced
-            </span>
-          )}
-        </div>
-      )}
 
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart width="100%" height="100%">
@@ -756,10 +698,6 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
             )}
             <Line type="monotone" dataKey="AU" stroke={YIELD_CURVES.AU.color} strokeWidth={2} dot={{ fill: YIELD_CURVES.AU.color, r: 2.5 }} connectNulls isAnimationActive={false} />
             <Line type="monotone" dataKey="US" stroke={YIELD_CURVES.US.color} strokeWidth={2} strokeDasharray="5 3" dot={{ fill: YIELD_CURVES.US.color, r: 2.5 }} connectNulls isAnimationActive={false} />
-            {shift != null && (
-              <Line type="monotone" dataKey="AUscenario" name={scenario === 'hike' ? 'AU if RBA hikes' : 'AU if RBA holds'} stroke={PAL.amber}
-                strokeWidth={1.75} strokeDasharray="2 3" dot={false} connectNulls isAnimationActive={false} />
-            )}
           </LineChart>
         </SafeChart>
       </div>

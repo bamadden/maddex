@@ -4,7 +4,8 @@ import { liveDataService } from '../../../services/liveDataService'
 import { LiveBadge, HandEnteredBadge } from '../../../components/ui/VerifiedBadge'
 import { WidgetBody, WidgetRows, WidgetRow } from './_shared'
 
-// Gold is genuinely live; the rest are verified levels with no free feed.
+// Gold is live; Brent and WTI are the EIA's dated spot prices. Iron ore,
+// copper and coal have no licensed feed, so the widget says so instead.
 // The two are labelled differently rather than blended, so a reader can tell
 // which number moved this morning and which was checked last week.
 const C = VERIFIED_CONSTANTS.commodities
@@ -30,11 +31,10 @@ export default function CommodityWidget() {
       </div>
       <WidgetRows>
         {gold && <WidgetRow label="GOLD" value={`US$${gold.USD.toLocaleString()}`} change={gold.change24h} />}
-        <WidgetRow label="IRON ORE" value={`US$${C.ironOreUSD}`} />
-        <WidgetRow label="BRENT" value={`US$${C.brentUSD}`} />
-        <WidgetRow label="COPPER" value={`US$${C.copperUSDPerLb}`} />
-        <WidgetRow label="COAL" value={`US$${C.thermalCoalUSD}`} />
+        {C.brentUSD != null && <WidgetRow label="BRENT (SPOT)" value={`US$${C.brentUSD.toFixed(2)}`} />}
+        {C.wtiUSD != null && <WidgetRow label="WTI (SPOT)" value={`US$${C.wtiUSD.toFixed(2)}`} />}
       </WidgetRows>
+      <div className="text-terminal-text-dim mt-1" style={{ fontSize: 11 }} data-commodities-not-shown>{C.notShown}</div>
     </WidgetBody>
   )
 }

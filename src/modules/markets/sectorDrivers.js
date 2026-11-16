@@ -22,8 +22,11 @@ import { formatDate } from '../../utils/dateUtils'
 
 const { commodities, rba, au, fed } = VERIFIED_CONSTANTS
 
-const C_ASOF = commodities.asOf
-const C_SRC = 'verifiedConstants · commodities'
+const C_SRC = (key) => commodities.sourceBy?.[key] ?? commodities.source
+// A commodity reading, or null when none is held (most are not: no licensed
+// feed is connected), which the deep dive shows as "not connected".
+const held = (key, unit, dp = 2) => (commodities[key] == null ? null
+  : { value: `US$${commodities[key].toFixed(dp)}/${unit}`, asOf: commodities.asOfBy?.[key] ?? commodities.asOf, source: C_SRC(key) })
 
 // Direction, only where a prior value genuinely exists in the data. A driver
 // with no comparable prior gets no arrow — an arrow is a claim about movement,
@@ -46,12 +49,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
     ? { value: fx.AUDUSD.toFixed(4), asOf: fx.updated ? formatDate(fx.updated) : null, source: 'open.er-api.com daily reference rate' }
     : null
 
-  const ironOre = {
-    value: `US$${commodities.ironOreUSD.toFixed(2)}/t`,
-    asOf: C_ASOF,
-    source: C_SRC,
-    trend: dir(ironOreLatest, ironOrePrev),
-  }
+  const ironOre = held('ironOreUSD', 't') && { ...held('ironOreUSD', 't'), trend: dir(ironOreLatest, ironOrePrev) }
 
   const BY_SECTOR = {
     Materials: [
@@ -73,7 +71,7 @@ export function sectorDrivers(sectorName, ctx = {}) {
       },
       {
         name: 'Copper',
-        reading: { value: `US$${commodities.copperUSDPerLb.toFixed(2)}/lb`, asOf: C_ASOF, source: C_SRC },
+        reading: held('copperUSDPerLb', 'lb'),
         impact: 'Electrification demand; matters most for diversified miners rather than pure iron ore names.',
       },
     ],
@@ -135,17 +133,17 @@ export function sectorDrivers(sectorName, ctx = {}) {
     Energy: [
       {
         name: 'Brent crude',
-        reading: { value: `US$${commodities.brentUSD.toFixed(2)}/bbl`, asOf: C_ASOF, source: C_SRC },
+        reading: held('brentUSD', 'bbl'),
         impact: 'Woodside and Santos revenue tracks it directly, and most LNG contracts are oil-linked with a lag.',
       },
       {
         name: 'LNG spot',
-        reading: { value: `US$${commodities.lngUSDPerMMBtu.toFixed(2)}/MMBtu`, asOf: C_ASOF, source: C_SRC },
+        reading: held('lngUSDPerMMBtu', 'MMBtu'),
         impact: 'Australia is among the largest LNG exporters; spot matters for uncontracted volumes.',
       },
       {
         name: 'Thermal coal',
-        reading: { value: `US$${commodities.thermalCoalUSD.toFixed(2)}/t`, asOf: C_ASOF, source: C_SRC },
+        reading: held('thermalCoalUSD', 't'),
         impact: 'Still a meaningful earnings line for several ASX energy names despite transition pressure.',
       },
       {

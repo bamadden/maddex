@@ -196,7 +196,7 @@ export async function buildWeeklyContext(week, now = new Date()) {
     .map((x) => `- ${x.label} — updated ${dayName(x.date)}`)
 
   const commodity = (label, key, unit, dp = 2) =>
-    C[key] != null && `- ${label}: US$${C[key].toFixed(dp)}${unit} (settlement ${C.asOfBy?.[key] ?? C.asOf}${C.previous?.[key] ? `; ${C.previous[key] < C[key] ? 'up' : 'down'} ${Math.abs(((C[key] - C.previous[key]) / C.previous[key]) * 100).toFixed(0)}% since ${C.previous.asOf}` : ''})`
+    C[key] != null && `- ${label}: US$${C[key].toFixed(dp)}${unit} (as at ${C.asOfBy?.[key] ?? C.asOf}${C.previous?.[key] ? `; ${C.previous[key] < C[key] ? 'up' : 'down'} ${Math.abs(((C[key] - C.previous[key]) / C.previous[key]) * 100).toFixed(0)}% since ${C.previous.asOf}` : ''})`
   const commodityLines = [
     commodity('Iron ore 62% Fe', 'ironOreUSD', '/t'),
     commodity('Newcastle thermal coal', 'thermalCoalUSD', '/t'),
@@ -245,7 +245,7 @@ ${decisions.length ? decisions.join('\n') : '- None of the tracked central banks
 ${stories.length ? `TOP STORIES THIS WEEK — real headlines from the news feed; refer to them, do not invent others:\n${stories.join('\n')}\n\n` : ''}${changed.length ? `VERIFIED FIGURES UPDATED THIS WEEK (the terminal's own record of what changed):\n${changed.join('\n')}\n\n` : ''}RELEASES THIS WEEK (names and dates; a result is given only where confirmed — do not supply one yourself):
 ${released.length ? released.join('\n') : '- No major scheduled releases this week.'}
 
-COMMODITIES — dated settlements, quote with their dates:
+COMMODITIES — dated EIA spot prices for crude only (no other commodity price is held), quote with their dates:
 ${commodityLines.join('\n')}
 
 ${live.length ? `MARKETS:\n${live.join('\n')}\n` : ''}

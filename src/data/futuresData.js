@@ -49,12 +49,13 @@ const strip = (rate) => +(100 - rate).toFixed(2)
 // a claimed session move. Rows with no verified constant say so.
 const CMD = VERIFIED_CONSTANTS.commodities
 const SHORT_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+// The anchor is named for what it is: the EIA's spot price for crude, not
+// an exchange settlement (16 Nov 2026; the settlements were read from news).
 const settleLabel = (key) => {
   const [, m, d] = (CMD.asOfBy?.[key] ?? CMD.asOf).split('-')
-  return `SETTLE ${Number(d)} ${SHORT_MONTHS[Number(m) - 1]}`
+  return `EIA SPOT ${Number(d)} ${SHORT_MONTHS[Number(m) - 1]}`
 }
 const anchored = (key, dp = 2) => ({ price: +CMD[key].toFixed(dp), anchor: settleLabel(key) })
-const NO_ANCHOR = 'INDICATIVE — no verified price'
 
 export const FUTURES = [
   // ── Equity index ──
@@ -71,15 +72,9 @@ export const FUTURES = [
   f({ id: 'HSI-Oct26', group: 'equity', name: 'Hang Seng', expiry: 'Oct-26', price: idx('^HSI', 0),
     exchange: 'HKFE', size: 'HK$50 × index', tick: 1, tickValue: 50, currency: 'HKD', specChecked: true }),
 
-  // ── Commodity ──
-  f({ id: 'IO-Oct26', group: 'commodity', name: 'Iron Ore 62% Fe', expiry: 'Oct-26', ...anchored('ironOreUSD'),
-    exchange: 'SGX', size: '100 tonnes', tick: 0.05, tickValue: 5.00, currency: 'USD', unit: 'US$/t',
-    context: 'The single most important commodity price for the ASX. It drives revenue at BHP, RIO and FMG, and it is quoted in USD — so an Australian holder is exposed to the iron ore price and the currency at once.', specChecked: true }),
-  f({ id: 'COAL-Oct26', group: 'commodity', name: 'Newcastle Thermal Coal', expiry: 'Oct-26', ...anchored('thermalCoalUSD'),
-    exchange: 'ICE', size: '1,000 tonnes', tick: 0.05, tickValue: 50, currency: 'USD', unit: 'US$/t',
-    context: 'Priced at the Port of Newcastle — an Australian benchmark traded globally, and a direct read on export revenue.', specChecked: true }),
-  f({ id: 'CC-Oct26', group: 'commodity', name: 'Coking Coal', expiry: 'Oct-26', price: 212.40, unanchored: NO_ANCHOR,
-    exchange: 'SGX', size: '100 tonnes', tick: 0.01, tickValue: 1, currency: 'USD', unit: 'US$/t', specChecked: true }),
+  // ── Commodity. Only crude, anchored to the EIA's spot price: iron ore,
+  // thermal and coking coal had no verified price and were removed (16 Nov
+  // 2026). ──
   f({ id: 'BRN-Dec26', group: 'commodity', name: 'Brent Crude', expiry: 'Dec-26', ...anchored('brentUSD'),
     exchange: 'ICE', size: '1,000 barrels', tick: 0.01, tickValue: 10, currency: 'USD', unit: 'US$/bbl', specChecked: true }),
   // ── Currency ──

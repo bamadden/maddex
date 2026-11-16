@@ -149,13 +149,9 @@ export const MOCK_US_STOCKS = {
 // ^AXJO/^AORD/^GDAXI/000001.SS/^NZ50 are premium-gated on every vendor tried
 // — approximated from known real-world levels with a plausible growth drift.
 export const MOCK_INDICES = {
-  // Real closes. ASX: 27 Oct 2026 (ABC News, as verifiedConstants.indices).
-  // US, Europe and Asia: 30 Sep 2026 (AP / CNBC / BBN Times), except the
-  // Nikkei, Hang Seng and DAX, re-anchored 28–29 Oct to match
-  // verifiedConstants.indices (each had drifted more than 2%). All Ords and
-  // NZX 50 are not verified — the All Ords is scaled with the ASX 200 to keep
-  // its usual premium, and the NZX 50 is unchanged from its earlier
-  // approximation. Day changes are illustrative.
+  // Seed levels for the DEMO simulation, near real levels of late 2026 so the
+  // demo looks plausible; not a record of any close, and badged DEMO
+  // wherever shown. No licensed index feed is connected (16 Nov 2026).
   '^AXJO':     { name: 'ASX 200',      price: 8850.1,   changePct: 0.79,  currency: 'AUD' },
   '^AORD':     { name: 'All Ords',     price: 9125.2,   changePct: 0.75,  currency: 'AUD' },
   '^GSPC':     { name: 'S&P 500',      price: 7651.54,  changePct: -0.25, currency: 'USD' },

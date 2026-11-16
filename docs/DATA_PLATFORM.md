@@ -78,6 +78,7 @@ One file per source in `scripts/data/sources/`. Each exports `fetchRecord` and
 | `bls` | US CPI and core CPI (12 months, not seasonally adjusted), unemployment rate | BLS public API v1 | Public domain. About 25 keyless queries a day; a run makes one |
 | `ecb` | Deposit facility rate | ECB Data Portal (CSV) | Free use, citing the ECB |
 | `boc` | Target for the overnight rate | Bank of Canada Valet API (JSON) | bankofcanada.ca/terms |
+| `eia` | Brent and WTI spot prices, daily | US EIA history tables (HTML) | US government data, public domain |
 
 Notes:
 
@@ -91,6 +92,9 @@ Notes:
 - `check-stats` still reads its US history series through FRED. That is
   internal reconciliation only: FRED's terms bar showing its data to readers,
   so nothing from FRED reaches the app. The `bls` fetcher reads BLS directly.
+- Commodity prices other than crude, and index closes, are not held at all
+  (16 Nov 2026). There is no licensed keyless feed for them, and the values
+  were read from news reports. Each screen says "not shown" instead.
 - Not fetched yet, and still read by hand: the Fed target (the Fed publishes
   it in a download tool, not a keyless series), US GDP (BEA's API needs a
   key), and the BoE, BoJ, RBNZ, SNB, Riksbank and PBoC rates. Their pages are
@@ -181,10 +185,9 @@ opens.
 | `cb-announce-times` Central-bank announcement times | official | Each central bank's published calendar | manual | yearly, with changes | 30 days | fx, macro, calendar |
 | `econ-schedule` Economic calendar (Dashboard, Calendar, alerts) | official | ABS, BLS and agency release calendars | manual | monthly | 30 days | calendar, dashboard, brief, macro, news, global |
 | `corporate-actions` Dividend, results and AGM dates | official | ASX company announcements | manual | reporting seasons | 30 days | calendar, markets, portfolio |
-| `vc:commodities` Commodity reference levels | market | Exchange settlements as published (source named per figure) | manual | daily markets; read by hand | 30 days | global, macro, markets |
+| `vc:commodities` Brent and WTI crude oil spot prices (other commodities not shown: no licensed feed) | official | US Energy Information Administration | fetcher, checked by `npm run data:verify -- eia` | daily (weekly release) | 30 days | global, macro, markets, dashboard, futures |
 | `vc:freight` Freightos Baltic Index | market | Freightos (FBX) | manual | weekly | 30 days | global |
 | `vc:bonds` Australian and US 10-year yields | official | RBA table F2 (AU); US Treasury par curve (US) | fetcher, checked by `npm run data:verify -- rba` | daily | 30 days | bonds, fx, dashboard |
-| `vc:indices` Index closes (reference) | market | Published market reports (named on the figure) | manual | daily markets; read by hand | 30 days | markets, dashboard |
 | `bond-curve` Sovereign bond curves (AU, US, UK, DE, JP) | official | RBA, US Treasury, UK DMO, Bundesbank, Japan MoF | manual | daily | 30 days | bonds, fx, macro, dashboard |
 | `etf-data` ETF fees, indices and fund sizes | market | Each issuer's product page | manual | monthly | 60 days | etf, portfolio |
 | `futures-specs` Futures contract specifications | market | Each exchange's contract page | manual | on change | 365 days | futures |

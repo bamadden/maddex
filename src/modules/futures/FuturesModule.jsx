@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import {
-  FUTURES_GROUPS, impliedRate, FUTURES_SPECS_CHECKED,
+  FUTURES, FUTURES_GROUPS, impliedRate, FUTURES_SPECS_CHECKED,
 } from '../../data/futuresData'
 import { blackScholes, smileIv } from './blackScholes'
 import { useFuturesPrices } from './useFuturesPrices'
@@ -126,7 +126,7 @@ function FuturesTab() {
         <DataBadge cls="DEMO" source="prices simulated" />
         <DataBadge cls="DELAYED" source="specifications from the exchanges, read" at={FUTURES_SPECS_CHECKED} />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
-          Prices are simulated, not market data. 12 of the 30 specifications were read from the exchange; the rest say so. Futures can lose more than the margin deposited. Not a recommendation.
+          Prices are simulated, not market data. {SPECS_READ === FUTURES.length ? `All ${FUTURES.length}` : `${SPECS_READ} of the ${FUTURES.length}`} specifications were read from the exchange{SPECS_READ === FUTURES.length ? '' : '; the rest say so'}. Futures can lose more than the margin deposited. Not a recommendation.
         </span>
       </div>
 
@@ -556,6 +556,10 @@ function StructureTab() {
 }
 
 // ─── Module ─────────────────────────────────────────────────────────────────
+
+// How many contract specifications were read from the exchange, counted
+// from the data rather than typed.
+const SPECS_READ = FUTURES.filter((c) => c.specChecked).length
 
 export default function FuturesModule() {
   const [tab, setTab] = useIntentState('futures', 'tab', 'futures')

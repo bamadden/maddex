@@ -834,18 +834,18 @@ function LeadingIndicators() {
       ),
     },
     {
+      // No licensed iron ore feed is connected (16 Nov 2026), so the card
+      // says so rather than showing a figure; it shows one only when a dated
+      // reading is held.
       title: 'IRON ORE PRICE',
-      subtitle: 'SGX 62% Fe futures close',
-      current: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? `US${VERIFIED_CONSTANTS.commodities.ironOreUSD.toFixed(2)}/t` : '—',
-      note: `${formatDate(VERIFIED_CONSTANTS.commodities.asOfBy?.ironOreUSD ?? VERIFIED_CONSTANTS.commodities.asOf)}`,
-      source: VERIFIED_CONSTANTS.commodities.sourceBy?.ironOreUSD ?? VERIFIED_CONSTANTS.commodities.source, asOf: VERIFIED_CONSTANTS.commodities.lastVerified,
-      // One dated reading, not a price history: the monthly series held
-      // here was labelled SGX / Platts (licensed data), typed and undated,
-      // with a "$90 support" line (removed 15 Nov 2026).
+      subtitle: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? (VERIFIED_CONSTANTS.commodities.sourceBy?.ironOreUSD ?? '') : 'not shown',
+      current: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? `US$${VERIFIED_CONSTANTS.commodities.ironOreUSD.toFixed(2)}/t` : '—',
+      note: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? formatDate(VERIFIED_CONSTANTS.commodities.asOfBy?.ironOreUSD ?? VERIFIED_CONSTANTS.commodities.asOf) : '',
+      source: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? (VERIFIED_CONSTANTS.commodities.sourceBy?.ironOreUSD ?? VERIFIED_CONSTANTS.commodities.source) : null,
+      asOf: VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? VERIFIED_CONSTANTS.commodities.lastVerified : null,
       chart: (
         <div className="h-full flex items-center justify-center text-2xs text-terminal-text-dim/70 text-center px-2" data-iron-ore-note>
-          Maddex holds dated readings only, not a price history.
-          {VERIFIED_CONSTANTS.commodities.previous?.ironOreUSD != null && ` Previous reading: US$${VERIFIED_CONSTANTS.commodities.previous.ironOreUSD.toFixed(2)}/t (${formatDate(VERIFIED_CONSTANTS.commodities.previous.asOf)}).`}
+          {VERIFIED_CONSTANTS.commodities.ironOreUSD != null ? 'Maddex holds dated readings only, not a price history.' : VERIFIED_CONSTANTS.commodities.notShown}
         </div>
       ),
     },
@@ -891,7 +891,7 @@ function LeadingIndicators() {
               {c.chart}
             </div>
             <div className="mt-1 border-t border-terminal-border pt-1">
-              <DataBadge cls="DELAYED" source={c.source} at={c.asOf ?? null} compact />
+              {c.source ? <DataBadge cls="DELAYED" source={c.source} at={c.asOf ?? null} compact /> : <span className="text-terminal-text-dim" style={{ fontSize: 11 }}>No source connected</span>}
             </div>
           </div>
         ))}

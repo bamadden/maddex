@@ -2304,7 +2304,7 @@ function DataSourcesSection() {
     const C = c.commodities
     const day = (iso) => (iso ? formatDate(iso) : '—')
     const status = (group, field) => check?.rows?.find((r) => r.group === group && r.field === field)?.status ?? null
-    const commodity = (label, key, fmt) => C[key] != null && { name: `${label} ${fmt(C[key])}`, detail: `settlement ${day(C.asOfBy?.[key] ?? C.asOf)} · ${C.sourceBy?.[key] ?? C.source}` }
+    const commodity = (label, key, fmt) => C[key] != null && { name: `${label} ${fmt(C[key])}`, detail: `as at ${day(C.asOfBy?.[key] ?? C.asOf)} · ${C.sourceBy?.[key] ?? C.source}` }
     return [
       { name: `RBA cash rate ${c.rba.cashRate.toFixed(2)}%`, detail: `decision ${day(c.rba.lastDecision)} · ${c.rba.source}`, status: status('rba', 'cashRate') },
       { name: `AU CPI ${c.au.cpi.toFixed(1)}% (${c.au.cpiPeriod})`, detail: `released ${day(c.au.cpiLastRelease)} · ABS`, status: status('au', 'cpi') },

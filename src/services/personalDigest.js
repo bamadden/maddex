@@ -32,8 +32,10 @@ function sectorLine(sector, ctx) {
   const cm = c.commodities
   const rbaBit = nd && ndDays != null ? `RBA decides in ${ndDays} day${ndDays === 1 ? '' : 's'} (~${nd.marketHikePct}% hike priced)` : `cash rate ${c.rba.cashRate.toFixed(2)}%`
   switch (sector) {
-    case 'Materials': return `watch iron ore at US$${cm.ironOreUSD.toFixed(2)}/t (${cm.asOfBy?.ironOreUSD}) and copper at US$${cm.copperUSDPerLb.toFixed(2)}/lb — China demand matters more than the RBA`
-    case 'Energy': return `Brent US$${cm.brentUSD.toFixed(2)}/bbl and JKM LNG US$${cm.lngUSDPerMMBtu.toFixed(2)}/MMBtu (${cm.asOfBy?.brentUSD})`
+    case 'Materials': return cm.ironOreUSD != null
+      ? `iron ore US$${cm.ironOreUSD.toFixed(2)}/t (${cm.asOfBy?.ironOreUSD}); China demand matters more than the RBA`
+      : 'no iron ore or copper price is shown (no licensed feed); China demand matters more than the RBA'
+    case 'Energy': return cm.brentUSD != null ? `Brent US$${cm.brentUSD.toFixed(2)}/bbl, EIA spot (${cm.asOfBy?.brentUSD})` : 'no crude price held'
     case 'Financials': return `${rbaBit} — a hike tends to widen bank margins, with credit risk the offset`
     case 'Real Est': return `${rbaBit} — property and REITs carry the most rate pressure; AU 10Y ${c.bonds.au10y.toFixed(2)}%`
     case 'Utilities': return `bond-like income competes with an AU 10Y at ${c.bonds.au10y.toFixed(2)}%`

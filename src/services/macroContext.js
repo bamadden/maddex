@@ -31,9 +31,13 @@ export function macroContext(symbol, signal, now = Date.now()) {
 
   switch (sector) {
     case 'Materials':
-      return `Iron ore US$${c.ironOreUSD?.toFixed(2)}/t (${day(c.asOfBy?.ironOreUSD)}) — miners track China demand more than the RBA`
+      return c.ironOreUSD != null
+        ? `Iron ore US$${c.ironOreUSD.toFixed(2)}/t (${day(c.asOfBy?.ironOreUSD)}) — miners track China demand more than the RBA`
+        : 'No iron ore price is shown (no licensed feed); miners track China demand more than the RBA'
     case 'Energy':
-      return `Brent US$${c.brentUSD?.toFixed(2)} (${day(c.asOfBy?.brentUSD)}) — energy tracks oil and LNG more than local rates`
+      return c.brentUSD != null
+        ? `Brent US$${c.brentUSD.toFixed(2)}, EIA spot (${day(c.asOfBy?.brentUSD)}) — energy tracks oil and LNG more than local rates`
+        : 'Energy tracks oil and LNG more than local rates'
     case 'Financials':
       return signal.type === 'OVERSOLD'
         ? `${env}: hikes usually widen bank margins — check whether the selling is about credit quality`

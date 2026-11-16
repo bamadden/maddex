@@ -101,10 +101,9 @@ function factsBlock() {
     `- Other central banks: ECB ${ecb.cashRate.toFixed(2)}% (${ecb.lastDecisionVerb} ${fmtDay(ecb.lastDecision)}), BOJ ${boj.cashRate.toFixed(2)}% (${boj.lastDecisionVerb} ${fmtDay(boj.lastDecision)}), BOE ${boe.cashRate.toFixed(2)}% (${boe.lastDecisionVerb} ${fmtDay(boe.lastDecision)})`,
     `- US CPI ${us.cpi}% (${us.cpiPeriod}, up from ${us.cpiPrevious}%), core ${us.cpiCore}%; unemployment ${us.unemployment}% (${us.unemploymentPeriod}, from ${us.unemploymentPrevious}%); payrolls +${us.nfpThousands}k; GDP ${us.gdpQoQAnnualised}% annualised (${us.gdpPeriod})`,
     `- ${cs('CN', 'China')}; ${cs('EA', 'euro area')}; ${cs('GB', 'UK')}; ${cs('JP', 'Japan')}`,
-    `- Iron ore US$${commodities.ironOreUSD}/t, Brent US$${commodities.brentUSD}/bbl, thermal coal US$${commodities.thermalCoalUSD}/t — indicative, as at ${fmtDay(commodities.asOf)}; describe commodity direction in words rather than leaning on these levels`,
-    // Direction, measured: the theme model called a two-year-low iron ore
-    // price "elevated" when it had only the level to go on.
-    commodities.previous && `- Change since ${fmtDay(commodities.previous.asOf)}: ${[['iron ore', 'ironOreUSD'], ['Brent', 'brentUSD'], ['thermal coal', 'thermalCoalUSD']].filter(([, k]) => commodities.previous[k]).map(([n, k]) => { const c = ((commodities[k] - commodities.previous[k]) / commodities.previous[k]) * 100; return `${n} ${c >= 0 ? 'up' : 'down'} ${Math.abs(c).toFixed(0)}%` }).join(', ')}${commodities.ironOreNote ? `. ${commodities.ironOreNote}` : ''}`,
+    // Only crude is held (EIA spot); the other commodities have no licensed
+    // feed and are named as not given, so the model does not supply a level.
+    `- Crude oil, EIA spot: Brent US$${commodities.brentUSD}/bbl, WTI US$${commodities.wtiUSD}/bbl (${fmtDay(commodities.asOf)}). ${commodities.notShown} Do not state a level for any of them.`,
   ].filter(Boolean).join('\n')
 }
 

@@ -200,23 +200,25 @@ export function MarketHoursCompact({ onFocus }) {
 
 const C = VERIFIED_CONSTANTS.commodities
 const changeSince = (now, prev) => (now != null && prev ? ((now - prev) / prev) * 100 : null)
+// The held price, or null: most have no licensed feed (verifiedConstants).
+const usd = (key, unit) => (C[key] == null ? null : `US$${C[key].toFixed(2)}/${unit}`)
 
 const COMMODITIES = [
-  { key: 'iron', name: 'IRON ORE', spec: '62% Fe, SGX', price: `US$${C.ironOreUSD.toFixed(2)}/t`, asOf: C.asOfBy?.ironOreUSD,
+  { key: 'iron', name: 'IRON ORE', spec: '62% Fe, SGX', price: usd('ironOreUSD', 't'), asOf: C.asOfBy?.ironOreUSD,
     chg: changeSince(C.ironOreUSD, C.previous?.ironOreUSD), exposure: 'BHP, RIO, FMG — Australia\'s largest export',
     region: { name: 'Pilbara, WA', longitude: 118.6, latitude: -22.3 } },
-  { key: 'coal', name: 'THERMAL COAL', spec: 'Newcastle', price: `US$${C.thermalCoalUSD.toFixed(2)}/t`, asOf: C.asOfBy?.thermalCoalUSD,
+  { key: 'coal', name: 'THERMAL COAL', spec: 'Newcastle', price: usd('thermalCoalUSD', 't'), asOf: C.asOfBy?.thermalCoalUSD,
     chg: changeSince(C.thermalCoalUSD, C.previous?.thermalCoalUSD), exposure: 'Whitehaven (WHC), New Hope (NHC)',
     region: { name: 'Hunter Valley, NSW', longitude: 150.9, latitude: -32.4 } },
-  { key: 'lng', name: 'LNG', spec: 'JKM spot', price: `US$${C.lngUSDPerMMBtu.toFixed(2)}/MMBtu`, asOf: C.asOfBy?.lngUSDPerMMBtu,
+  { key: 'lng', name: 'LNG', spec: 'JKM spot', price: usd('lngUSDPerMMBtu', 'MMBtu'), asOf: C.asOfBy?.lngUSDPerMMBtu,
     chg: changeSince(C.lngUSDPerMMBtu, C.previous?.lngUSDPerMMBtu), exposure: 'Woodside (WDS), Santos (STO)',
     region: { name: 'North West Shelf, WA', longitude: 116.7, latitude: -20.6 } },
   { key: 'gold', name: 'GOLD', spec: 'PAXG proxy, live', live: true, exposure: 'Newmont (NEM), Northern Star (NST), Evolution (EVN)',
     region: { name: 'Kalgoorlie, WA', longitude: 121.47, latitude: -30.75 } },
-  { key: 'copper', name: 'COPPER', spec: 'LME 3-month', price: `US$${C.copperUSDPerLb.toFixed(2)}/lb`, asOf: C.asOfBy?.copperUSDPerLb,
+  { key: 'copper', name: 'COPPER', spec: 'LME 3-month', price: usd('copperUSDPerLb', 'lb'), asOf: C.asOfBy?.copperUSDPerLb,
     chg: changeSince(C.copperUSDPerLb, C.previous?.copperUSDPerLb), exposure: 'BHP (Olympic Dam), Sandfire (SFR)',
     region: { name: 'Olympic Dam, SA', longitude: 136.88, latitude: -30.44 } },
-  { key: 'lithium', name: 'LITHIUM', spec: 'carbonate, GFEX', price: `CNY${C.lithiumCNYPerTonne.toLocaleString('en-AU')}/t`, asOf: C.asOfBy?.lithiumCNYPerTonne,
+  { key: 'lithium', name: 'LITHIUM', spec: 'carbonate, GFEX', price: C.lithiumCNYPerTonne == null ? null : `CNY${C.lithiumCNYPerTonne.toLocaleString('en-AU')}/t`, asOf: C.asOfBy?.lithiumCNYPerTonne,
     chg: null, exposure: 'PLS, Mineral Resources (MIN), IGO',
     region: { name: 'Greenbushes, WA', longitude: 116.06, latitude: -33.86 } },
 ]
@@ -225,9 +227,9 @@ export function CommodityIntel({ gold, onFocus }) {
   return (
     <div className="flex flex-col gap-1.5">
       {COMMODITIES.map((c) => {
-        const price = c.live ? (gold ? `US$${gold.USD.toLocaleString()}/oz` : '—') : c.price
+        const price = c.live ? (gold ? `US$${gold.USD.toLocaleString()}/oz` : '—') : (c.price ?? 'not shown')
         const chg = c.live ? gold?.change24h ?? null : c.chg
-        const chgLabel = c.live ? '24h' : c.chg != null ? `since ${fmtDay(C.previous.asOf)}` : null
+        const chgLabel = c.live ? '24h' : c.chg != null ? `since ${fmtDay(C.previous?.asOf)}` : null
         return (
           <button key={c.key} onClick={() => onFocus?.({ ...c.region, zoom: 5 })}
             title={`${c.exposure}\nClick to fly the map to ${c.region.name}`}
@@ -251,8 +253,7 @@ export function CommodityIntel({ gold, onFocus }) {
         )
       })}
       <div className="text-[11px] text-terminal-text-dim/50 leading-snug">
-        Dated exchange settlements ({fmtDay(C.asOfBy?.lithiumCNYPerTonne ?? C.asOf)}–{fmtDay(C.asOf)}), not a live feed; change is since the
-        previous verified level. Gold is live via PAXG. Click a row to fly to where it is produced.
+        {C.notShown} Gold is live via PAXG. Click a row to fly to where it is produced.
       </div>
     </div>
   )
