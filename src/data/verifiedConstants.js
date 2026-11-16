@@ -24,7 +24,7 @@
 // than silently wrong.
 
 import { sydneyOffset } from '../utils/dateUtils.js'
-import { MORTGAGE_MARGIN, repaymentChange } from '../modules/calculators/calcMath.js'
+import { MORTGAGE_MARGIN, MARGIN_SOURCE, repaymentChange } from '../modules/calculators/calcMath.js'
 import { levelContextFor } from './rbaCashRatePath.js'
 
 export const VERIFY_WARN_DAYS = 7
@@ -1102,7 +1102,7 @@ export function verifiedFactsForAI() {
     // hike-impact card, with its assumptions stated.
     const from = nd.currentRate + MORTGAGE_MARGIN, d = nd.hikeRate - nd.currentRate
     const m = [600_000, 800_000].map((p) => `A$${p / 1000}K +A$${Math.round(repaymentChange(p, from, d))}/month`).join(', ')
-    lines.push(`Maddex's own mortgage arithmetic (not an RBA or lender figure) if the RBA hikes ${Math.round(d * 100)}bp and lenders pass it on in full (30-year P&I at an assumed variable rate of cash + ${MORTGAGE_MARGIN}% = ${from.toFixed(2)}% → ${(from + d).toFixed(2)}%): ${m}`)
+    lines.push(`Maddex's own mortgage arithmetic (not an RBA or lender figure) if the RBA hikes ${Math.round(d * 100)}bp and lenders pass it on in full (30-year P&I at the cash rate + a ${MORTGAGE_MARGIN} (±0.05) point margin, ${MARGIN_SOURCE}: ${from.toFixed(2)}% → ${(from + d).toFixed(2)}%): ${m}`)
   }
   // The week after an RBA decision: what was decided and said, from the
   // decision list and rba.latestStatement — filled in by a person after the

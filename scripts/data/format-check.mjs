@@ -60,7 +60,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   if (process.argv.includes('--accept')) {
     const next = { ...accepted }
-    for (const r of results) if (r.ok) next[r.id] = r.shapes
+    for (const r of results) if (r.ok) next[r.id] = Object.fromEntries(Object.entries(r.shapes).sort(([a], [b]) => a.localeCompare(b)))
     for (const r of results) if (r.ok) r.changes = []
     fs.writeFileSync(BASELINE, `${JSON.stringify(next, null, 2)}\n`)
     console.log(`Accepted today's shapes for ${results.filter((r) => r.ok).map((r) => r.id).join(', ')}.`)

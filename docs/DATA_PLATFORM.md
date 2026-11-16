@@ -175,7 +175,8 @@ opens.
 | `rba-decisions` RBA decision record | official | Reserve Bank of Australia | manual, checked by `npm run check-rba` | per meeting | 45 days | fx, macro, replay |
 | `rba-path` RBA cash-rate path since 2008 | official | Reserve Bank of Australia | manual, checked by `npm run check-stats` | per meeting | 45 days | fx, replay |
 | `rba-board` RBA Monetary Policy Board members | official | Reserve Bank of Australia | manual | on change | 365 days | fx, macro |
-| `vc:rbaNextDecision` Next RBA decision and the dated market-pricing reading | market | RBA (date); market pricing as published (source named on the reading) | manual | per meeting | 60 days | fx, brief |
+| `vc:rbaNextDecision` Next RBA decision and the dated market-pricing reading | market | RBA (date); market pricing as published (source named on the reading) | manual | per meeting | 30 days | fx, brief |
+| `rba-f6` Average variable home-loan rate (RBA F6), the source of the mortgage margin | official | RBA table F6, housing lending rates (FLRHOOVA) | fetcher, checked by `npm run data:verify -- rba` | monthly | 30 days | calculators, fx |
 | `cb-meetings` Central-bank meeting lists | official | Each central bank's published calendar | manual | yearly, with changes | 30 days | fx, macro, calendar, brief |
 | `cb-announce-times` Central-bank announcement times | official | Each central bank's published calendar | manual | yearly, with changes | 30 days | fx, macro, calendar |
 | `econ-schedule` Economic calendar (Dashboard, Calendar, alerts) | official | ABS, BLS and agency release calendars | manual | monthly | 30 days | calendar, dashboard, brief, macro, news, global |

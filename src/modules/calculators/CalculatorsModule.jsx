@@ -10,7 +10,7 @@ import {
   TAX_YEAR, TAX_BRACKETS, TAX_SOURCE, SUPER, ASFA, STAMP_DUTY, CGT,
   fullTaxPosition, stampDuty, marginalRate,
 } from '../../data/auTaxRates'
-import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, repaymentChange } from './calcMath'
+import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, MARGIN_SOURCE, F6_URL, repaymentChange } from './calcMath'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -439,7 +439,7 @@ function RbaPresets({ rate, setRate }) {
       onClick={() => setRate(value)}
       className={`font-mono px-2 py-1 border transition-colors ${String(rate) === value ? 'border-terminal-gold text-terminal-gold bg-terminal-gold/10 font-bold' : 'border-terminal-border text-terminal-text-dim hover:border-terminal-gold'}`}
       style={{ fontSize: 11, letterSpacing: '0.08em' }}
-      title={`Sets the loan rate to ${value}% — cash rate + ${MORTGAGE_MARGIN.toFixed(2)}% assumed margin`}
+      title={`Sets the loan rate to ${value}%: cash rate + ${MORTGAGE_MARGIN.toFixed(2)} (±0.05) points (${MARGIN_SOURCE})`}
     >{label}</button>
   )
   return (
@@ -515,7 +515,7 @@ function MortgageCalc() {
           <div className="font-mono text-terminal-text-dim/60 -mt-1.5 mb-2.5 leading-snug" style={{ fontSize: 11 }}>
             RBA cash rate: {VERIFIED_CONSTANTS.rba.cashRate.toFixed(2)}% ({VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'HIKE' ? 'hiked' : VERIFIED_CONSTANTS.rba.lastDecisionVerb === 'CUT' ? 'cut' : 'held'}{' '}
             {formatDate(VERIFIED_CONSTANTS.rba.lastDecision)}).
-            Default assumes variable rates of roughly RBA + {MORTGAGE_MARGIN.toFixed(1)}% — an estimate; use your lender&apos;s actual rate.
+            Default: the cash rate plus a {MORTGAGE_MARGIN.toFixed(2)} (±0.05) percentage-point spread (<a href={F6_URL} target="_blank" rel="noopener noreferrer" className="underline">{MARGIN_SOURCE}</a>). Use your lender&apos;s actual rate.
           </div>
           <Field label="LOAN TERM" value={term} onChange={setTerm} suffix="yr" />
           <Field label="REPAYMENT FREQUENCY" value={freq} onChange={setFreq}

@@ -53,12 +53,11 @@ export function drp({ shares, price, yieldPct, participation, years, growthPct =
   return { finalShares: held, finalPrice: px, drpValue, cashValue, advantage: drpValue - cashValue, cashTaken }
 }
 
-// Assumed lender margin over the cash rate for a standard variable home loan.
-// An estimate, not a sourced average — it exists so default rates move with
-// the RBA instead of going stale after every decision. Every screen that
-// shows a mortgage figure (the calculator, the Rates hike-impact card) uses
-// this one number and says it is an assumption.
-export const MORTGAGE_MARGIN = 2.14
+// Spread of variable home-loan rates over the cash rate, from RBA table
+// F6 (data/rbaLendingRates): the average outstanding owner-occupier variable
+// rate less the cash rate that month; not any lender's own margin. Every screen that shows a mortgage
+// figure uses this one number and names its source and date.
+export { MORTGAGE_MARGIN, MARGIN_SOURCE, F6_URL } from '../../data/rbaLendingRates.js'
 
 // Change in the regular repayment when the rate moves by `deltaPct`, for a
 // principal-and-interest loan. Repayments are recalculated over the full term,

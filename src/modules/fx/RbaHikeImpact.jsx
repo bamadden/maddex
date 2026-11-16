@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { MORTGAGE_MARGIN, repaymentChange } from '../calculators/calcMath'
+import { MORTGAGE_MARGIN, MARGIN_SOURCE, F6_URL, repaymentChange } from '../calculators/calcMath'
 
 // "If the RBA hikes" — what a 25bp move means, under the decision preview.
 //
@@ -61,7 +61,7 @@ export default function RbaHikeImpact() {
             </tbody>
           </table>
           <div className="font-mono text-terminal-text-dim/55 leading-snug mt-1" style={{ fontSize: 8 }}>
-            30-year principal and interest, {fromRate.toFixed(2)}% → {(fromRate + delta).toFixed(2)}% (cash rate + an assumed {MORTGAGE_MARGIN.toFixed(2)}% margin),
+            30-year principal and interest, {fromRate.toFixed(2)}% → {(fromRate + delta).toFixed(2)}% (cash rate + a {MORTGAGE_MARGIN.toFixed(2)} (±0.05) point margin: <a href={F6_URL} target="_blank" rel="noopener noreferrer" className="underline">{MARGIN_SOURCE}</a>),
             passed on in full. Your lender&apos;s rate and timing will differ.
           </div>
         </div>

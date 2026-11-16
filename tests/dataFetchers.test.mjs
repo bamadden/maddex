@@ -11,11 +11,13 @@ const VC = {
   au: { cpi: 4.3, cpiTrimmedMean: 3.6, cpiPeriod: 'Sep 2026', unemployment: 4.7, unemploymentPeriod: 'Sep 2026', gdpQoQ: 0.4, gdpAnnual: 2.1, gdpPeriod: 'Jun 2026 quarter' },
   us: { cpi: 3.7, cpiCore: 2.6, cpiPeriod: 'Sep 2026', unemployment: 4.1, unemploymentPeriod: 'Oct 2026' },
   ecb: { cashRate: 2.5 }, boc: { cashRate: 2.25 },
+  commodities: { brentUSD: 92.14, wtiUSD: 89.62, asOf: '2026-11-11', asOfBy: { brentUSD: '2026-11-11', wtiUSD: '2026-11-11' } },
 }
 
 const csv = (rows) => rows.join('\n')
 const abs = (rows) => csv(['DATAFLOW,TIME_PERIOD,OBS_VALUE', ...rows.map(([p, v]) => `X,${p},${v}`)])
 const RESPONSES = [
+  [/f6-data/, csv(['F6', 'Title,A,B', 'Series ID,FLRHOOVL,FLRHOOVA', '31/08/2026,6.1,6.2', '30/09/2026,6.1,6.2'])],
   [/a2-data/, csv(['A2 MONETARY POLICY CHANGES', 'Title,Change,New cash rate target', '30-Sep-2026,0.25,4.60', '04-Nov-2026,0.25,4.85'])],
   [/f2-data/, csv(['F2', 'Title,Australian Government 2 year bond,Australian Government 10 year bond', 'Series ID,FCMYGBAG2D,FCMYGBAG10D', '10-Nov-2026,4.744,4.989', '11-Nov-2026,4.808,5.044'])],
   [/3\.10001\.10\.50\.M/, abs([['2026-08', '4.1'], ['2026-09', '4.3']])],
@@ -30,11 +32,15 @@ const RESPONSES = [
     { seriesID: 'LNS14000000', data: [{ year: '2026', period: 'M10', value: '4.1' }] },
   ] } })],
   [/data-api\.ecb/, csv(['KEY,FREQ,TIME_PERIOD,OBS_VALUE', 'FM.D,D,2026-11-16,2.5'])],
+  [/RBRTED|RWTCD/, (url) => `<tr> <td class='B6'>&nbsp;&nbsp;2026 Nov- 9 to Nov-13</td> <td class='B3'>${/RBRTED/.test(url) ? '91.03' : '88.10'}</td> <td class='B3'>90.16</td> <td class='B3'>${/RBRTED/.test(url) ? '92.14' : '89.62'}</td> <td class='B3'>
+</td> <td class='B3'>
+</td> </tr> Release Date: 11/12/2026`],
   [/bankofcanada/, JSON.stringify({ observations: [{ d: '2026-11-12', V39079: { v: '2.50' } }] })],
 ]
 globalThis.fetch = async (url) => {
   const hit = RESPONSES.find(([re]) => re.test(String(url)))
-  return new Response(hit ? hit[1] : 'not found', { status: hit ? 200 : 404 })
+  const body = hit ? (typeof hit[1] === 'function' ? hit[1](String(url)) : hit[1]) : 'not found'
+  return new Response(body, { status: hit ? 200 : 404 })
 }
 
 for (const [id, src] of Object.entries(SOURCES)) {
@@ -49,6 +55,12 @@ for (const [id, src] of Object.entries(SOURCES)) {
     else assert.deepEqual(rows.filter((r) => r.status !== 'match').map((r) => `${r.label}: ${r.status}`), [])
   })
 }
+
+test('EIA: a weekly row gives one dated value per weekday, blanks skipped', async () => {
+  const rec = await SOURCES.eia.fetchRecord(recordingFetch({}))
+  assert.deepEqual(rec.figures.brent.latest, { date: '2026-11-11', value: 92.14 })
+  assert.equal(rec.figures.brent.recent.length, 3)
+})
 
 test('BLS: the 12-month change needs a year-earlier index; a month without one is not invented', async () => {
   const rec = await SOURCES.bls.fetchRecord(recordingFetch({}))
