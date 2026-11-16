@@ -52,3 +52,12 @@ test('Calendar: no unsourced consensus, no invented sensitivity, describe-only p
   assert.doesNotMatch(read('src/services/calendarExtras.js'), /m\.setHours\(8/)
   assert.doesNotMatch(read('src/modules/calendar/EventImpact.jsx'), /text-terminal-red|text-terminal-green|AI-ESTIMATE/)
 })
+
+test('Relationships: links validated, nodes keyboard-reachable, hop sources shown, no 0 cost', () => {
+  const m = read('src/modules/relationships/RelationshipsModule.jsx')
+  assert.match(m, /f && GRAPH\.byId\.has\(f\) \? f : null/)
+  assert.match(m, /validRipple\(/)
+  assert.match(m, /role="button" tabIndex=\{0\}/)
+  assert.doesNotMatch(m, /role="img"|Number\(h\.avgCost\) \|\| 0|costCurrency \?\? 'AUD'/)
+  assert.match(read('src/modules/relationships/RelPanels.jsx'), /data-hop-source/)
+})

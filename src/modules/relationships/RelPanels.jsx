@@ -138,7 +138,7 @@ export function PathFinder({ a, b, setA, setB, viaIndex, setViaIndex, confidence
         <div className="mt-3">
           {paths.length === 0 && (
             <div className="text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>
-              No path between these two within six hops{viaIndex ? '' : ' (index membership excluded)'} on the sourced edges in the graph.
+              No path found between these two within six hops{viaIndex ? '' : ' (index membership excluded)'} on the sourced edges in the graph. The search stops after a fixed number of steps, so a longer path may exist.
             </div>
           )}
           {paths.map((hops, i) => {
@@ -180,10 +180,10 @@ export function PathFinder({ a, b, setA, setB, viaIndex, setViaIndex, confidence
 export function ConnectedHoldings({ id, holdings, onSelectNode }) {
   const result = useMemo(() => {
     const exp = exposureMap(GRAPH, id, { maxHop: 4 })
-    const aud = holdings.filter((h) => h.currency === 'AUD')
+    const aud = holdings.filter((h) => h.currency === 'AUD' && h.cost != null)
     const totalCost = aud.reduce((s, h) => s + h.cost, 0)
     const rows = holdings.filter((h) => h.nodeId && exp.has(h.nodeId)).map((h) => ({ ...h, hops: exposurePath(exp, h.nodeId) }))
-    const connectedCost = rows.filter((r) => r.currency === 'AUD').reduce((s, r) => s + r.cost, 0)
+    const connectedCost = rows.filter((r) => r.currency === 'AUD' && r.cost != null).reduce((s, r) => s + r.cost, 0)
     return { rows, weight: totalCost > 0 ? (connectedCost / totalCost) * 100 : null, mixed: aud.length < holdings.length }
   }, [id, holdings])
   const n = GRAPH.byId.get(id)
@@ -199,7 +199,7 @@ export function ConnectedHoldings({ id, holdings, onSelectNode }) {
             {result.weight != null && result.rows.length > 0 && <span className="font-mono"> · {result.weight.toFixed(1)}% OF COST BASIS (A$)</span>}
           </div>
           <div className="text-terminal-text-dim mt-0.5 leading-snug" style={{ fontSize: 11 }}>
-            Connected means a sourced path exists, nothing more. No price effect is estimated.{result.mixed ? ' Non-A$ holdings are listed but left out of the weight.' : ''}
+            Connected means a sourced path exists, nothing more. No price effect is estimated.{result.mixed ? ' Holdings not in A$, or with no cost recorded, are listed but left out of the weight.' : ''} Costs are those saved on this device.
           </div>
           {result.rows.map((r) => (
             <div key={r.symbol} className="mt-1.5" style={{ fontSize: 11 }}>
@@ -224,9 +224,9 @@ export function RipplePanel({ origin, setOrigin, event, setEvent, ripple, holdin
   const allowed = o ? eventsFor(o) : []
   const byHop = [1, 2, 3].map((h) => [...(ripple ?? new Map())].filter(([, r]) => r.hop === h))
   const heldHit = holdings.filter((h) => h.nodeId && (ripple?.has(h.nodeId) || h.nodeId === origin))
-  const aud = holdings.filter((h) => h.currency === 'AUD')
+  const aud = holdings.filter((h) => h.currency === 'AUD' && h.cost != null)
   const totalCost = aud.reduce((s, h) => s + h.cost, 0)
-  const hitCost = heldHit.filter((h) => h.currency === 'AUD').reduce((s, h) => s + h.cost, 0)
+  const hitCost = heldHit.filter((h) => h.currency === 'AUD' && h.cost != null).reduce((s, h) => s + h.cost, 0)
   return (
     <div>
       <div className="font-mono font-bold tracking-widest" style={{ fontSize: 11, color: PAL.amber }}>EVENT RIPPLE</div>
@@ -274,6 +274,7 @@ export function RipplePanel({ origin, setOrigin, event, setEvent, ripple, holdin
                       <ConfidenceBadge c={r.via.confidence} />
                     </span>
                     <span className="block font-mono text-terminal-text-dim mt-0.5" style={{ fontSize: 11 }}>CONNECTED · via {EDGE_LABEL[r.via.type].toLowerCase()} {p.name}</span>
+                    {r.via.source && <span className="block text-terminal-text-dim/70" style={{ fontSize: 11 }} data-hop-source>{r.via.source.label} · {fmtDate(r.via.source.date ?? r.via.asOf)}</span>}
                   </button>
                 )
               })}

@@ -8,10 +8,11 @@ export const TYPE_COLOUR = {
 }
 // Solid = VERIFIED, dotted = DISCLOSED, dashed = INFERRED.
 export const DASH = { VERIFIED: null, DISCLOSED: '2 3', INFERRED: '6 4' }
-export const CONF_TONE = { VERIFIED: PAL.up, DISCLOSED: PAL.dim, INFERRED: PAL.gold }
+// No up/down green: a confidence level is not good or bad news (16 Nov 2026).
+export const CONF_TONE = { VERIFIED: PAL.blue, DISCLOSED: PAL.dim, INFERRED: PAL.gold }
 export const STALE_TONE = '#C4653A'
-// Held and watched nodes: green, so gold stays reserved for the selection.
-export const HELD_TONE = PAL.up
+// Held and watched nodes: blue, so gold stays reserved for the selection.
+export const HELD_TONE = PAL.blue
 
 export const fmtDate = (iso) => (iso ? formatDate(iso) : '—')
 export const nodeLabel = (n) => n.ticker ?? (n.type === 'person' ? n.name.split(' ').slice(-1)[0] : n.name)
