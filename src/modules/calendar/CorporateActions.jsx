@@ -35,7 +35,7 @@ export default function CorporateActions() {
     <div className="mt-6 border border-terminal-border">
       <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center gap-2 flex-wrap">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">CORPORATE ACTIONS</span>
-        <DataBadge cls="DELAYED" source="company calendars and the ASX, as at" at={CORPORATE_ACTIONS_AS_OF} />
+        <DataBadge cls="DELAYED" source="company calendars and the ASX" at={CORPORATE_ACTIONS_AS_OF} manual />
         <span className="text-2xs text-terminal-text-dim">companies can move their dates</span>
       </div>
       <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-terminal-border/50">

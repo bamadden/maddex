@@ -677,16 +677,14 @@ const HEAD = { padding: '6px 8px', fontSize: '11px', color: PAL.gold, letterSpac
 
 // ── Crypto in Australia ──────────────────────────────────────────────────────
 //
-// Four facts, each with its source, checked on AU_FACTS_CHECKED. The brief offered
-// "~25% own crypto" and "ASIC regulates exchanges since 2024"; the latest
-// survey says about 31%, and exchanges have registered with AUSTRAC since 2018
-// while ASIC licensing arrives under the 2026 Digital Assets Framework.
-const AU_FACTS_CHECKED = '2026-10-28'
+// Facts, each with its source, checked on AU_FACTS_CHECKED.
+// Re-read 16 Nov 2026 from each issuer: the survey publisher, legislation.gov.au
+// and ASIC. The AUSTRAC and ATO lines were removed: their pages could not be
+// fetched (timeout, HTTP 403), so they could not be checked.
+const AU_FACTS_CHECKED = '2026-11-16'
 const AU_CRYPTO_FACTS = [
-  ['About 3 in 10 Australian adults own or have owned crypto', 'Independent Reserve Cryptocurrency Index 2025 (31%)'],
-  ['Exchanges must register with AUSTRAC (since 2018); the Digital Assets Framework passed in April 2026 brings platforms that hold crypto for customers under ASIC financial services licensing', 'AUSTRAC; Corporations Amendment (Digital Assets Framework) Act 2026'],
-  ['Crypto is a CGT asset: disposing of it — selling, swapping or spending — can trigger capital gains tax', 'ATO'],
-  ['Capital losses on crypto offset capital gains (this year or carried forward) — not salary or other income', 'ATO'],
+  ['31% of Australians surveyed had invested in or held crypto', 'Independent Reserve Cryptocurrency Index 2025'],
+  ['The Corporations Amendment (Digital Assets Framework) Act 2026 passed Parliament on 1 April 2026; platforms that hold crypto for customers come under ASIC financial services licensing from April 2027', 'legislation.gov.au (Act No. 38, 2026); ASIC'],
 ]
 
 function AuCryptoContext() {

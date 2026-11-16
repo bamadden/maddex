@@ -18,7 +18,7 @@ export default function UpcomingListings() {
     <div className="flex-shrink-0 border-b border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">UPCOMING LISTINGS</span>
-        <DataBadge cls="DELAYED" source="ASX upcoming floats page, entered by hand" at={CORPORATE_ACTIONS_AS_OF} />
+        <DataBadge cls="DELAYED" source="ASX upcoming floats page" at={CORPORATE_ACTIONS_AS_OF} manual />
         <span className="text-2xs text-terminal-text-dim font-normal normal-case">
           ASX upcoming floats page, read {fmtDate(CORPORATE_ACTIONS_AS_OF)} ·{' '}
           <a href={rows[0]?.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-terminal-gold/80 hover:underline">asx.com.au ↗</a>

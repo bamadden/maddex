@@ -171,7 +171,7 @@ function contextBlock() {
 
 
 function policyRows() {
-  const banks = ['rba', 'fed', 'ecb', 'boe', 'boj', 'pboc', 'rbnz', 'boc', 'snb', 'riksbank']
+  const banks = ['rba', 'fed', 'ecb', 'boe', 'boj', 'pboc', 'boc', 'snb', 'riksbank']
   return banks
     .map((k) => {
       const c = VERIFIED_CONSTANTS[k]

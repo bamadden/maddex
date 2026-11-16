@@ -15,7 +15,7 @@ import {
 import { fetchFxRatesUnified } from '../../services/dataService'
 import { RBA_DECISIONS, RBA_DECISIONS_CHECKED, decisionOf, rbaStatementUrl, rbaYearInWords } from '../../data/rbaDecisions'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
-import { curveForRates, BOND_CURVES_AS_OF, BOND_CURVE_SOURCES } from '../../data/bondCurves'
+import { curveForRates, BOND_CURVES_AS_OF, BOND_CURVES_CHECKED, BOND_CURVE_SOURCES } from '../../data/bondCurves'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 // The full ten-bank schedule now lives in UpcomingDecisions, which owns the
 // 90-day calendar. This module only needs the RBA's own dates, for the hero
@@ -737,7 +737,7 @@ function BondSpreadsTable() {
     <div className="border-t border-terminal-border flex-shrink-0">
       <div className="panel-header flex items-center gap-2">
         BOND SPREADS
-        <DataBadge cls="DELAYED" source={`published end-of-day yields, ${dates.map((d) => formatDate(d, { year: false })).join(' to ')}`} compact />
+        <DataBadge cls="DELAYED" source={`published end-of-day yields, ${dates.map((d) => formatDate(d, { year: false })).join(' to ')}`} at={BOND_CURVES_CHECKED} manual compact />
       </div>
       <table className="terminal-table w-full">
         <tbody>

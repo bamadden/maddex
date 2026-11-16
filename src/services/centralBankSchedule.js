@@ -40,7 +40,6 @@ export const LAST_DECISIONS = {
   BOE:      fromVC('boe'),
   BOJ:      fromVC('boj'),
   PBOC:     fromVC('pboc'),
-  RBNZ:     fromVC('rbnz'),
   BOC:      fromVC('boc'),
   SNB:      fromVC('snb'),
   RIKSBANK: fromVC('riksbank'),

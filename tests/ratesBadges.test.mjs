@@ -16,7 +16,7 @@ test('every bank names its own source and check date; no RBA badge stands in for
     const s = src(f)
     assert.doesNotMatch(s, /HandEnteredBadge dataKey="rba"/, f)
     assert.match(s, /data-bank-source/, f)
-    assert.match(s, /source="each central bank's site, checked"/, f)
+    assert.match(s, /source="each central bank's site"[^>]*\bmanual\b/, f)
   }
 })
 

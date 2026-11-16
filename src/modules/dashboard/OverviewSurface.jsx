@@ -324,7 +324,7 @@ function ComingUp({ goTo, arrange }) {
       // The economic-calendar feed is licensed off, so this is the hand-entered
       // schedule: dated, scheduled, not a failed feed (STALE was wrong here).
       badge={data && (data.source === 'fallback'
-        ? <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} />
+        ? <DataBadge cls="DELAYED" source="agency release calendars" at={ECON_SCHEDULE_CHECKED} manual />
         : <DataBadge cls="DELAYED" source="economic calendar" />)}>
       {isLoading ? <Empty>Loading the calendar…</Empty> : !events.length ? <Empty>No scheduled events in the next 14 days.</Empty> : (
         <table className="w-full" style={{ fontSize: 12 }}>

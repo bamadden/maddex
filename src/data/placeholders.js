@@ -50,7 +50,6 @@ const CB_ORDER = [
   ['boe', 'Bank of England', 'GBP'],
   ['boj', 'Bank of Japan', 'JPY'],
   ['pboc', 'PBOC', 'CNY'],
-  ['rbnz', 'RBNZ', 'NZD'],
   ['boc', 'Bank of Canada', 'CAD'],
   ['snb', 'Swiss National Bank', 'CHF'],
   ['riksbank', 'Riksbank', 'SEK'],

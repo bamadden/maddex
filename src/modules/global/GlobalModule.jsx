@@ -157,7 +157,7 @@ const COUNTRY_DETAIL = {
   124: { currency:'CAD', tz:'America/Toronto',    exchange:'TSX',         index:'TSX Composite', flag:'🇨🇦',
          macro:{ rate:VERIFIED_CONSTANTS.boc.cashRate, rateLbl:`${VERIFIED_CONSTANTS.boc.lastDecision}, BoC` }, },
   554: { currency:'NZD', tz:'Pacific/Auckland',   exchange:'NZX',         index:'NZX 50',       flag:'🇳🇿',
-         macro:{ rate:VERIFIED_CONSTANTS.rbnz.cashRate, rateLbl:`${VERIFIED_CONSTANTS.rbnz.lastDecision}, RBNZ` }, },
+         macro:{ ...rateNotRead('RBNZ') }, },
   356: { currency:'INR', tz:'Asia/Kolkata',       exchange:'NSE',         index:'NIFTY 50',     flag:'🇮🇳',
          macro:{ ...policyRate('rbi') }, },
   410: { currency:'KRW', tz:'Asia/Seoul',         exchange:'KRX',         index:'KOSPI',        flag:'🇰🇷',
@@ -795,7 +795,7 @@ function CountryPanel({ id, newsItems, audRates: _audRates, audUsd: _audUsd = nu
         <div className={`px-3 py-2 border-b border-terminal-border/50 ${panelTab === 'economy' ? '' : 'hidden'}`}>
           <div className="flex items-center justify-between gap-2">
             {sec('Macro Statistics')}
-            {stats && <DataBadge cls="DELAYED" source="national statistics agencies, checked" at={COUNTRY_STATS_CHECKED} compact />}
+            {stats && <DataBadge cls="DELAYED" source="national statistics agencies" at={COUNTRY_STATS_CHECKED} manual compact />}
           </div>
           <div className="flex justify-between text-2xs py-0.5">
             <span className="text-terminal-text-dim">GDP Growth</span>

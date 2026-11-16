@@ -143,7 +143,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
         <div className="px-3 py-2 border-b border-terminal-border/50 flex items-center justify-between">
           <span className="text-2xs text-terminal-gold font-bold tracking-widest">THE WEEK AHEAD</span>
           <span className="text-2xs text-terminal-text-dim">next 9 days · by importance</span>
-          <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} compact />
+          <DataBadge cls="DELAYED" source="agency release calendars" at={ECON_SCHEDULE_CHECKED} manual compact />
         </div>
         {weekAhead.length === 0 ? (
           <div className="px-3 py-6 text-center text-2xs text-terminal-text-dim">

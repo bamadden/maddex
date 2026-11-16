@@ -171,7 +171,7 @@ export async function buildWeeklyContext(week, now = new Date()) {
   const decisions = [...decisionsIn(rba.decisions, 'RBA'), ...decisionsIn(fed.decisions, 'Fed')]
   // The other banks hold their latest decision only (no history list), which
   // is enough for a week: was it this week, and what was it.
-  for (const k of ['ecb', 'boj', 'boe', 'boc', 'rbnz', 'pboc', 'snb', 'riksbank']) {
+  for (const k of ['ecb', 'boj', 'boe', 'boc', 'pboc', 'snb', 'riksbank']) {
     const b = VERIFIED_CONSTANTS[k]
     if (b?.lastDecision && inRange(b.lastDecision, monday, friday)) {
       decisions.push(`- ${b.label === 'BOC' ? 'BoC' : b.label} ${dayName(b.lastDecision)}: ${b.lastDecisionVerb}${b.lastChange && b.lastChange !== '0bp' ? ` ${b.lastChange}` : ''} — rate ${b.cashRate.toFixed(2)}%${b.note ? ` (${b.note})` : ''}`)

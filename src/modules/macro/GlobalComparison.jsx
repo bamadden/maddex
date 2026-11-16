@@ -45,7 +45,7 @@ export default function GlobalComparison() {
     <div className="border border-terminal-border">
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">GLOBAL ECONOMIC COMPARISON</span>
-        <DataBadge cls="DELAYED" source="statistics offices and central banks, checked" at={COUNTRY_STATS_CHECKED} />
+        <DataBadge cls="DELAYED" source="statistics offices and central banks" at={COUNTRY_STATS_CHECKED} manual />
         <span className="ml-auto text-2xs text-terminal-text-dim font-normal normal-case">latest official prints · stance = last decision</span>
       </div>
       <div className="overflow-x-auto">

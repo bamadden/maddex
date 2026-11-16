@@ -303,7 +303,7 @@ export default function ETFModule() {
 
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap flex-shrink-0"
         style={{ background: 'rgba(214,158,46,0.06)' }}>
-        <DataBadge cls="DELAYED" source="fees, indices and fund sizes from each issuer, read" at={ETF_DATA_AS_OF} />
+        <DataBadge cls="DELAYED" source="fees, indices and fund sizes from each issuer" at={ETF_DATA_AS_OF} manual />
         <DataBadge cls="DEMO" source="prices simulated" />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           Only funds whose fees were read from the issuer are listed. No returns or yields are held. Read the issuer&apos;s PDS for full details.

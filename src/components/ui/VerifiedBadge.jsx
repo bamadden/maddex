@@ -117,5 +117,5 @@ export function AIContentBadge({ source = 'fallback', label = null, className = 
 export function HandEnteredBadge({ dataKey, className = '' }) {
   const c = VERIFIED_CONSTANTS[dataKey]
   if (!c) return null
-  return <DataBadge cls="DELAYED" source={`${c.source ?? 'hand-entered'}, checked`} at={c.lastVerified ?? null} className={className} />
+  return <DataBadge cls="DELAYED" source={c.source ?? 'source not recorded'} at={c.lastVerified ?? null} manual className={className} />
 }

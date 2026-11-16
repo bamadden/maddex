@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import {
-  BOND_MARKETS, BOND_CURVES, BOND_CURVES_AS_OF, BOND_CURVE_SOURCES, curveStats, priceFromYield, durationOf, dv01, ytm,
+  BOND_MARKETS, BOND_CURVES, BOND_CURVES_AS_OF, BOND_CURVES_CHECKED, BOND_CURVE_SOURCES, curveStats, priceFromYield, durationOf, dv01, ytm,
 } from '../../data/bondCurves'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { useBondYields } from './useBondYields'
@@ -326,14 +326,14 @@ export default function BondsModule() {
         title="BONDS"
         subtitle="Sovereign debt · full maturity spectrum · 1M to 50Y"
         moduleId="bonds"
-        right={<DataBadge cls="DELAYED" source="official end-of-day yields, latest" at={[...Object.values(BOND_CURVES_AS_OF)].filter(Boolean).sort().at(-1)} />}
+        right={<DataBadge cls="DELAYED" source={`official end-of-day yields to ${formatDate([...Object.values(BOND_CURVES_AS_OF)].filter(Boolean).sort().at(-1), { year: false })}`} at={BOND_CURVES_CHECKED} manual />}
       />
 
       {/* Provenance first, not buried in a footer. Every yield below is
           indicative; the CPI the real-yield column uses is not. */}
       <div className="px-3 py-1.5 border-b border-terminal-border flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(201,168,76,0.04)' }}>
-        <DataBadge cls="DELAYED" source="official end-of-day yields" />
+        <DataBadge cls="DELAYED" source="official end-of-day yields" at={BOND_CURVES_CHECKED} manual />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           Each curve is the publisher's own end-of-day reading: {BOND_MARKETS.map((m) => `${m.label} ${BOND_CURVE_SOURCES[m.key].series}, ${formatDate(BOND_CURVES_AS_OF[m.key])}`).join('; ')}. Only published maturities are shown. Nothing ticks: these are not live prices. Real yields use verified AU CPI of {cpi.toFixed(1)}%.
         </span>

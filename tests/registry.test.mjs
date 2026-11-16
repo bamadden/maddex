@@ -134,9 +134,11 @@ test('every dataset is within its maximum age, or flagged until a dated expiry',
   for (const f of FLAGS) assert.ok(ISO.test(f.until) && f.reason, `${f.id}: a flag needs an until date and a reason`)
 })
 
-test('max ages are as stated: rates 45 days', () => {
+test('max ages are as stated: rates 45 days', async () => {
   assert.equal(MAX_AGE_DAYS.rate, 45)
-  for (const e of DATASETS.filter((x) => x.kind === 'rate')) assert.equal(e.maxAgeDays, 45, e.id)
+  // A rate is 45 days, or 30 when it is checked by hand with no fetcher.
+  const { isManual } = await import('../src/data/registry.js')
+  for (const e of DATASETS.filter((x) => x.kind === 'rate')) assert.equal(e.maxAgeDays, isManual(e) ? 30 : 45, e.id)
 })
 
 test('the dataset table in docs/DATA_PLATFORM.md matches the registry (npm run data:docs)', async () => {
@@ -150,4 +152,39 @@ test('the dataset table in docs/DATA_PLATFORM.md matches the registry (npm run d
 test('src/data/registryHealth.js is generated from the registry and current (npm run data:docs)', async () => {
   const { healthSource } = await import('../scripts/data/registryDates.mjs')
   assert.equal(read('src/data/registryHealth.js'), await healthSource())
+})
+
+test('manually checked data: at most 30 days old, unless held with a dated reason', async () => {
+  const { MANUAL_MAX_DAYS, isManual } = await import('../src/data/registry.js')
+  assert.equal(MANUAL_MAX_DAYS, 30)
+  for (const e of DATASETS.filter(isManual)) {
+    if (e.manualHold) {
+      assert.ok(ISO.test(e.manualHold.until) && e.manualHold.reason, `${e.id}: a hold needs an until date and a reason`)
+      assert.ok(sydneyToday < e.manualHold.until, `${e.id}: its hold expired on ${e.manualHold.until}`)
+    } else assert.ok(e.maxAgeDays <= 30, `${e.id}: ${e.maxAgeDays} days`)
+  }
+})
+
+test('every badge for manually checked data reads "manually checked, DATE"', async () => {
+  const { isManual } = await import('../src/data/registry.js')
+  const { badgeText } = await import('../src/utils/dataClass.js')
+  assert.equal(badgeText({ cls: 'DELAYED', source: 'RBA', at: '2026-11-16', manual: true }), 'DELAYED · RBA · manually checked, 16 Nov 2026')
+  const consts = new Set(DATASETS.filter(isManual).map((e) => e.asOf?.date).filter(Boolean).concat(['BOND_CURVES_CHECKED']))
+  const files = fs.readdirSync('src', { recursive: true }).filter((f) => /\.jsx$/.test(f)).map((f) => `src/${f}`)
+  const bad = []
+  for (const f of files) {
+    for (const m of read(f).matchAll(/<DataBadge\b[^>]*?\bat=\{(\w+)\}[^>]*?\/>/g)) {
+      if (consts.has(m[1]) && !/\bmanual\b/.test(m[0])) bad.push(`${f}: ${m[0].slice(0, 90)}`)
+    }
+  }
+  assert.deepEqual(bad, [])
+  assert.match(read('src/components/ui/VerifiedBadge.jsx'), /at=\{c\.lastVerified \?\? null\} manual/)
+})
+
+test('the dated list of manual data in docs/DATA_PLATFORM.md matches the registry (npm run data:docs)', async () => {
+  const { manualTable, MANUAL_START, MANUAL_END } = await import('../scripts/data/registryTable.mjs')
+  const doc = read('docs/DATA_PLATFORM.md')
+  const a = doc.indexOf(MANUAL_START), b = doc.indexOf(MANUAL_END)
+  assert.ok(a >= 0 && b > a)
+  assert.equal(doc.slice(a + MANUAL_START.length, b).trim(), await manualTable())
 })

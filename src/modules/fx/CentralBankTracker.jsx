@@ -117,7 +117,7 @@ function DecisionsBoard() {
     <div className="border border-terminal-border">
       <div className="flex items-baseline justify-between px-3 py-1.5 border-b border-terminal-border">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">LAST DECISION BY BANK</span>
-        <DataBadge cls="DELAYED" source="each central bank's site, checked" at={rows.map((r) => r.checked).filter(Boolean).sort()[0] ?? null} />
+        <DataBadge cls="DELAYED" source="each central bank's site" manual at={rows.map((r) => r.checked).filter(Boolean).sort()[0] ?? null} />
       </div>
       <table className="w-full text-2xs">
         <thead>

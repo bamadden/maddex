@@ -43,6 +43,6 @@ test('every announcement time has its source page and words; unread banks have n
   assert.equal(m.RBNZ_MEETINGS_2026, undefined)
   assert.equal(m.PBOC_MEETINGS_2026, undefined)
   const { VERIFIED_CONSTANTS: V } = await import('../src/data/verifiedConstants.js')
-  assert.equal(V.rbnz.nextMeeting, null)
+  assert.equal(V.rbnz, undefined, 'RBNZ removed: rbnz.govt.nz could not be fetched to verify it')
   assert.equal(V.pboc.nextMeeting, null)
 })

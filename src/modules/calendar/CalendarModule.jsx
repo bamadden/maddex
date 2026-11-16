@@ -634,7 +634,7 @@ export default function CalendarModule() {
         // ("just now" said the latter).
         lastUpdated={calResult?.source === 'fallback' ? null : dataUpdatedAt}
         right={calResult && (calResult.source === 'fallback'
-          ? <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} />
+          ? <DataBadge cls="DELAYED" source="agency release calendars" at={ECON_SCHEDULE_CHECKED} manual />
           : <DataBadge cls="DELAYED" source="FMP economic calendar" at={dataUpdatedAt || null} />)}
       />
       <ReleaseWatchBanner className="px-3 pt-2" />

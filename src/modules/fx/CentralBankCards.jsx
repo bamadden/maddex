@@ -27,7 +27,6 @@ const BANKS = [
   { key: 'boe',      name: 'Bank of England',           flag: '🇬🇧', ccy: 'GBP' },
   { key: 'boj',      name: 'Bank of Japan',             flag: '🇯🇵', ccy: 'JPY' },
   { key: 'pboc',     name: 'PBOC',                      flag: '🇨🇳', ccy: 'CNY' },
-  { key: 'rbnz',     name: 'RBNZ',                      flag: '🇳🇿', ccy: 'NZD' },
   { key: 'boc',      name: 'Bank of Canada',            flag: '🇨🇦', ccy: 'CAD' },
   { key: 'snb',      name: 'Swiss National Bank',       flag: '🇨🇭', ccy: 'CHF' },
   { key: 'riksbank', name: 'Riksbank',                  flag: '🇸🇪', ccy: 'SEK' },
@@ -252,7 +251,7 @@ export default function CentralBankCards() {
         {/* Each bank was checked on its own date against its own site; the
             header carries the oldest, and each card names its source and
             date (16 Nov 2026: the header used to carry the RBA's alone). */}
-        <DataBadge cls="DELAYED" source="each central bank's site, checked" at={OLDEST_CHECK} />
+        <DataBadge cls="DELAYED" source="each central bank's site" at={OLDEST_CHECK} manual />
         <button
           onClick={() => setCycle((v) => !v)}
           aria-pressed={cycle}

@@ -37,6 +37,8 @@ export const YEARS = {
 const b = (maturity, coupon, yieldPct, type, indicative = false) =>
   ({ maturity, coupon, yield: yieldPct, type, years: YEARS[maturity], indicative })
 
+// When a person last re-read every curve from its issuer (docs/audit/rates.md).
+export const BOND_CURVES_CHECKED = '2026-11-15'
 export const BOND_CURVES_AS_OF = { AU: '2026-11-11', US: '2026-11-13', UK: '2026-11-12', DE: '2026-11-13', JP: '2026-11-12' }
 // What each curve is and where it was read.
 export const BOND_CURVE_SOURCES = {

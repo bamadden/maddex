@@ -225,19 +225,11 @@ export const INDEX_LABELS = {
   '^GDAXI':'DAX 40','^HSI':'Hang Seng','^NZ50':'NZX 50','000001.SS':'Shanghai',
 }
 
-export const INDEX_METADATA = {
-  '^AXJO': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'ASX',             sourceUrl:'https://www.asx.com.au' },
-  '^AORD': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'ASX',             sourceUrl:'https://www.asx.com.au' },
-  '^GSPC': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'S&P Dow Jones',   sourceUrl:'https://www.spglobal.com' },
-  '^IXIC': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'Nasdaq',          sourceUrl:'https://www.nasdaq.com' },
-  '^DJI':  { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'S&P Dow Jones',   sourceUrl:'https://www.spglobal.com' },
-  '^FTSE': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'FTSE Russell',    sourceUrl:'https://www.ftserussell.com' },
-  '^GDAXI':{ lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'Deutsche Börse',  sourceUrl:'https://www.deutsche-boerse.com' },
-  '^N225': { lastUpdated:'2026-07-01', nextRebalance:'2027-01-01', source:'Nikkei',          sourceUrl:'https://indexes.nikkei.co.jp' },
-  '^HSI':  { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'Hang Seng Indexes',sourceUrl:'https://www.hsi.com.hk' },
-  '^NZ50': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'NZX',             sourceUrl:'https://www.nzx.com' },
-  '000001.SS': { lastUpdated:'2026-09-21', nextRebalance:'2026-12-21', source:'SSE',         sourceUrl:'https://www.sse.com.cn' },
-}
+// Index composition and rebalance dates: removed 16 Nov 2026. None could be
+// verified from the index provider's own pages (the ASX states the months but
+// not the day; the All Ords date was wrong; S&P, Nikkei and Hang Seng pages
+// were blocked or unreadable). The heatmap shows no composition date.
+export const INDEX_METADATA = {}
 
 // ─── Rate sensitivity by sector ─────────────────────────────────────────────
 //

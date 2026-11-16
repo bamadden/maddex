@@ -167,7 +167,7 @@ export const VERIFIED_CONSTANTS = {
     ],
     source: 'federalreserve.gov',
     asOf: '2026-10-28',
-    lastVerified: '2026-10-29',
+    lastVerified: '2026-11-16',
   },
   ecb: {
     label: 'ECB', country: 'Euro area', cashRate: 2.50,
@@ -194,7 +194,7 @@ export const VERIFIED_CONSTANTS = {
     // 8–1, Mann for a 0.5-point rise to 4.25%; meeting ended 4 Nov. Next
     // decision 17 Dec (bankofengland.co.uk, November 2026 Monetary Policy
     // Summary). Before: held 6–3 on 17 Sep (Greene, Mann, Pill for 4.00%).
-    source: 'bankofengland.co.uk', asOf: '2026-11-05', lastVerified: '2026-11-07',
+    source: 'bankofengland.co.uk', asOf: '2026-11-05', lastVerified: '2026-11-16',
   },
   boj: {
     label: 'BOJ', country: 'Japan', cashRate: 1.25,
@@ -211,26 +211,15 @@ export const VERIFIED_CONSTANTS = {
     // about ¥860b a year from Jan 2027 (unanimous). Sources: investinglive,
     // ActionForex, FXStreet. Previous move: 1.00 → 1.25% on 18 Sep (7–2).
     // Next meeting 17–18 Dec (boj.or.jp schedule).
-    source: 'boj.or.jp', asOf: '2026-10-30', lastVerified: '2026-10-30',
+    source: 'boj.or.jp', asOf: '2026-10-30', lastVerified: '2026-11-16',
   },
   pboc: {
     label: 'PBOC', country: 'China', cashRate: 3.00,
     lastDecision: '2026-10-20', lastDecisionVerb: 'HOLD', nextMeeting: null, // no published forward LPR calendar (16 Nov 2026)
     // Was 3.10% with a Feb 2026 CUT — wrong on both counts. The 1Y LPR has
-    // been 3.00% since the May 2025 cut; 20 Oct was the 17th straight hold.
+    // been 3.00% since the May 2025 cut; 20 Oct was another hold (re-read from pbc.gov.cn, 16 Nov 2026).
     note: '1Y Loan Prime Rate (5Y LPR 3.50%)',
-    source: 'pbc.gov.cn (via Trading Economics, 20 Oct 2026)', asOf: '2026-10-20', lastVerified: '2026-10-27',
-  },
-  rbnz: {
-    label: 'RBNZ', country: 'New Zealand', cashRate: 2.75,
-    lastDecision: '2026-10-28', lastDecisionVerb: 'HOLD', nextMeeting: null, // rbnz.govt.nz unreadable by fetch (403), date removed 16 Nov 2026
-    note: 'Held 4–3 against a priced hike; Governor says further increases highly likely',
-    // UPDATED 2026-10-28: Monetary Policy Review held the OCR at 2.75% by a
-    // 4–3 vote; markets had priced ~90% for a hike to 3.00% (RNZ, Newsquawk,
-    // Babypips). Previous move: +25bp on 2 Sep. Next: Monetary Policy
-    // Statement 9 Dec (RBNZ calendar via squirrel.co.nz — the 25 Nov this
-    // schedule carried was wrong).
-    source: 'rbnz.govt.nz (via RNZ, Newsquawk)', asOf: '2026-10-28', lastVerified: '2026-10-28',
+    source: 'pbc.gov.cn (LPR announcement, 20 Oct 2026)', asOf: '2026-10-20', lastVerified: '2026-11-16',
   },
   boc: {
     label: 'BOC', country: 'Canada', cashRate: 2.50,
@@ -291,9 +280,8 @@ export const VERIFIED_CONSTANTS = {
       name: 'Kevin Warsh',
       since: '2026-05-22',
       termEnds: '2030-05-21',
-      note: 'Confirmed 13 May 2026, succeeded Jerome Powell',
       source: 'federalreserve.gov',
-      lastVerified: '2026-10-29', // chaired the 27–28 Oct FOMC press conference
+      lastVerified: '2026-11-16', // chaired the 27–28 Oct FOMC press conference
     },
     rba: {
       role: 'Governor of the Reserve Bank of Australia',
@@ -303,7 +291,7 @@ export const VERIFIED_CONSTANTS = {
       // and 2023 + 7 is 2030.
       termEnds: '2030-09-17',
       source: 'rba.gov.au',
-      lastVerified: '2026-10-01',
+      lastVerified: '2026-11-16',
     },
     ecb: {
       role: 'President of the European Central Bank',
@@ -315,8 +303,8 @@ export const VERIFIED_CONSTANTS = {
       // same day (Euronews, CNN, FXStreet). No successor named yet.
       termEnds: '2027-02-07',
       note: 'Stepping down 7 Feb 2027 (announced 29 Oct 2026); successor not yet named',
-      source: 'ecb.europa.eu (via Euronews, 29 Oct 2026)',
-      lastVerified: '2026-10-30',
+      source: 'ecb.europa.eu (press release, 29 Oct 2026; Executive Board terms of office)',
+      lastVerified: '2026-11-16',
     },
     boe: {
       role: 'Governor of the Bank of England',
@@ -324,7 +312,7 @@ export const VERIFIED_CONSTANTS = {
       since: '2020-03-16',
       termEnds: '2028-03-15',
       source: 'bankofengland.co.uk',
-      lastVerified: '2026-09-07',
+      lastVerified: '2026-11-16',
     },
     // Added 2026-10-29, so every bank on the Rates cards has its head on
     // record. Each confirmed current from coverage this month (Bloomberg,
@@ -332,34 +320,29 @@ export const VERIFIED_CONSTANTS = {
     // only where the statute fixes one; otherwise left out rather than guessed.
     boj: {
       role: 'Governor of the Bank of Japan', name: 'Kazuo Ueda', since: '2023-04-09', termEnds: '2028-04-08', termEndsDerived: true,
-      source: 'boj.or.jp', lastVerified: '2026-10-29',
+      source: 'boj.or.jp', lastVerified: '2026-11-16',
     },
     pboc: {
-      role: 'Governor of the People\'s Bank of China', name: 'Pan Gongsheng', since: '2023-07-25',
-      source: 'pbc.gov.cn', lastVerified: '2026-10-29',
-    },
-    rbnz: {
-      role: 'Governor of the Reserve Bank of New Zealand', name: 'Anna Breman', since: '2025-12-01', termEnds: '2030-11-30', termEndsDerived: true,
-      note: 'Succeeded Adrian Orr (resigned March 2025)',
-      source: 'rbnz.govt.nz', lastVerified: '2026-10-29',
+      role: 'Governor of the People\'s Bank of China', name: 'Pan Gongsheng', // start date not stated on pbc.gov.cn (16 Nov 2026), so not shown
+      source: 'pbc.gov.cn', lastVerified: '2026-11-16',
     },
     boc: {
       role: 'Governor of the Bank of Canada', name: 'Tiff Macklem', since: '2020-06-03', termEnds: '2027-06-02', termEndsDerived: true,
-      source: 'bankofcanada.ca', lastVerified: '2026-10-29',
+      source: 'bankofcanada.ca', lastVerified: '2026-11-16',
     },
     snb: {
       role: 'Chairman of the Swiss National Bank Governing Board', name: 'Martin Schlegel', since: '2024-10-01',
-      source: 'snb.ch', lastVerified: '2026-10-29',
+      source: 'snb.ch', lastVerified: '2026-11-16',
     },
     riksbank: {
       role: 'Governor of Sveriges Riksbank', name: 'Erik Thedéen', since: '2023-01-01', termEnds: '2028-12-31', termEndsDerived: true,
-      source: 'riksbank.se', lastVerified: '2026-10-29',
+      source: 'riksbank.se', lastVerified: '2026-11-16',
     },
     au: {
       treasurer: 'Jim Chalmers',
       primeMinister: 'Anthony Albanese',
       source: 'pm.gov.au / treasury.gov.au',
-      lastVerified: '2026-09-07',
+      lastVerified: '2026-11-16',
     },
   },
 
@@ -648,7 +631,7 @@ export const VERIFIED_CONSTANTS = {
     // Q3 2026 ADVANCE estimate, 3.4% annualised (BEA, 29 Oct 2026 — the
     // agency's API via check-stats and bea.gov). Q2's third estimate was 2.2%.
     // The second estimate's date is not recorded here; BEA's schedule has it.
-    gdpQoQAnnualised: 3.4, gdpPrevious: 2.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-29', gdpNextRelease: null,
+    gdpQoQAnnualised: 3.4, gdpPrevious: 2.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-29', gdpNextRelease: '2026-11-25',
     // Payroll change, thousands. Sep is the revised figure as of the Oct report.
     nfpThousands: 165, nfpPrevious: 60, nfpRelease: '2026-11-06',
     fedFundsRelease: '2026-10-28',
@@ -668,7 +651,7 @@ export const VERIFIED_CONSTANTS = {
       { period: '2026-07', value: 4.1 }, { period: '2026-08', value: 4.1 }, { period: '2026-09', value: 4.2 },
       { period: '2026-10', value: 4.1 },
     ],
-    source: 'bls.gov / bea.gov', asOf: '2026-11-06', lastVerified: '2026-11-07',
+    source: 'bls.gov / bea.gov', asOf: '2026-11-06', lastVerified: '2026-11-16',
   },
   // Euro area, UK, Japan and China: COUNTRY_STATS below is the one record of
   // their latest GDP and CPI (16 Nov 2026). The separate cn / eu / uk / jp
@@ -814,7 +797,7 @@ export const VERIFIED_CONSTANTS = {
     source: 'ABS, International Trade: Supplementary Information, Financial Year, 2024-25',
     sourceUrl: 'https://www.abs.gov.au/statistics/economy/international-trade/international-trade-supplementary-information-financial-year/latest-release',
     asOf: '2025-06-30',
-    lastVerified: '2026-10-28',
+    lastVerified: '2026-11-16',
   },
 
   // Index closes (vc.indices) were removed on 16 Nov 2026: they were read from

@@ -61,11 +61,13 @@ export const classOfDailySource = (source) => (source === 'stale' || source === 
 
 // "STALE · CoinGecko · 13:52 AEDT". `at` is ms since epoch, or an ISO date
 // for scheduled figures (shown as the date).
-export function badgeText({ cls, source, at }) {
+// `manual`: a figure a person read from its source (no feed checks it), shown
+// as "manually checked, 16 Nov 2026" (Ben's decision, 16 Nov 2026).
+export function badgeText({ cls, source, at, manual = false }) {
   const when = at == null ? null : typeof at === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(at)
     ? formatDate(at)
     : sydney(typeof at === 'string' ? Date.parse(at) : at)
-  return [cls, source, when].filter(Boolean).join(' · ')
+  return [cls, source, manual ? `manually checked, ${when ?? 'date not recorded'}` : when].filter(Boolean).join(' · ')
 }
 
 // Opens the data key (components/ui/DataLegend, mounted once in the shell).

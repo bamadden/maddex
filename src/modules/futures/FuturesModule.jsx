@@ -124,7 +124,7 @@ function FuturesTab() {
       <div className="px-3 py-1.5 border-b flex items-center gap-2 flex-wrap"
         style={{ background: 'rgba(204,68,68,0.08)', borderColor: 'rgba(204,68,68,0.3)' }}>
         <DataBadge cls="DEMO" source="prices simulated" />
-        <DataBadge cls="DELAYED" source="specifications from the exchanges, read" at={FUTURES_SPECS_CHECKED} />
+        <DataBadge cls="DELAYED" source="specifications from the exchanges" at={FUTURES_SPECS_CHECKED} manual />
         <span className="font-mono text-terminal-text-dim/70" style={{ fontSize: 11 }}>
           Prices are simulated, not market data. {SPECS_READ === FUTURES.length ? `All ${FUTURES.length}` : `${SPECS_READ} of the ${FUTURES.length}`} specifications were read from the exchange{SPECS_READ === FUTURES.length ? '' : '; the rest say so'}. Futures can lose more than the margin deposited. Not a recommendation.
         </span>

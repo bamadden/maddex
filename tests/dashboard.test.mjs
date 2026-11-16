@@ -65,7 +65,7 @@ test('coming up: every time carries its zone; the hand-entered schedule is DELAY
   assert.doesNotMatch(panel, /sydneyClock\(t\)\.time/)
   // STALE means a feed failed just now; the calendar feed is licensed off, so
   // the schedule is a dated hand-entered record (15 Nov 2026).
-  assert.match(panel, /<DataBadge cls="DELAYED" source="Maddex schedule, checked" at=\{ECON_SCHEDULE_CHECKED\} \/>/)
+  assert.match(panel, /<DataBadge cls="DELAYED" source="agency release calendars" at=\{ECON_SCHEDULE_CHECKED\} manual \/>/)
   assert.doesNotMatch(panel, /cls="STALE"|cls="LIVE"/)
 })
 

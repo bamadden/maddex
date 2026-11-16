@@ -14,7 +14,7 @@ import { rateImpact } from '../modules/portfolio/rateSensitivity'
 import { formatDate } from '../utils/dateUtils.js'
 
 const DAY = 86_400_000
-const BANKS = ['fed', 'ecb', 'boj', 'boe', 'boc', 'rbnz', 'pboc', 'snb', 'riksbank']
+const BANKS = ['fed', 'ecb', 'boj', 'boe', 'boc', 'pboc', 'snb', 'riksbank']
 
 const sydDate = (ms) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
 const dayMonth = (iso) => formatDate(iso, { year: false })
