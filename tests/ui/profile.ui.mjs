@@ -180,11 +180,18 @@ try {
 
   sectionLog('Keyboard: skip link and reachable stock rows')
   active = page
+  // The checks above reloaded the page. Wait until it has settled (its lazy
+  // modules and first data loaded) before keyboard checks: a key pressed in
+  // the first second after a reload landed on a page still mounting, and
+  // focus was lost about one run in three (16 Nov 2026).
+  await page.waitForNetworkIdle({ idleTime: 500, timeout: 20_000 }).catch(() => {})
   await page.evaluate(() => document.activeElement?.blur())
   await page.evaluate(() => document.body.focus())
   const skip = await page.evaluate(() => { const a = document.querySelector('.skip-link'); a?.focus(); return a ? getComputedStyle(a).top : null })
   if (skip && parseInt(skip, 10) >= 0) pass('skip link appears on focus')
   else fail(`skip link not visible on focus (top ${skip})`)
+  const onLink = await page.evaluate(() => document.activeElement?.classList?.contains('skip-link'))
+  if (!onLink) fail(`the skip link lost focus before Enter (focus on ${await page.evaluate(() => document.activeElement?.tagName)})`)
   await page.keyboard.press('Enter')
   const mainFocused = await page.evaluate(() => document.activeElement?.id)
   mainFocused === 'main-content' ? pass('Enter on the skip link moves focus to the module area') : fail(`focus went to ${mainFocused}`)
@@ -220,20 +227,20 @@ try {
     // Focus scrolls the tile into view; open the menu once that settles.
     await new Promise((r) => setTimeout(r, 800))
     const deepDive = !!tile.querySelector('button[aria-label^="Open the"]')
+    // Wait for each element rather than a fixed 200 ms: under load the menu
+    // and the form took longer and the check failed (16 Nov 2026).
+    const until = async (fn, ms = 4000) => { const t0 = Date.now(); let v; while (!(v = fn()) && Date.now() - t0 < ms) await new Promise((r) => setTimeout(r, 50)); return v }
     tile.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 }))
-    await new Promise((r) => setTimeout(r, 200))
-    const set = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Set sector alert')
+    const set = await until(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Set sector alert'))
     if (!set) return 'no Set sector alert item'
     set.click()
-    await new Promise((r) => setTimeout(r, 200))
-    const input = document.getElementById('sector-alert-level')
+    const input = await until(() => document.getElementById('sector-alert-level'))
     const label = document.querySelector('label[for="sector-alert-level"]')?.textContent
     return input && label ? `ok${deepDive ? '' : ' (deep-dive button not shown on focus)'}` : 'no labelled level input'
   })
   if (menu === 'ok' && !dialog) {
     await page.keyboard.press('Escape')
-    await wait(200)
-    const closed = await page.evaluate(() => !document.getElementById('sector-alert-level'))
+    const closed = await page.waitForFunction(() => !document.getElementById('sector-alert-level'), { timeout: 4000 }).then(() => true).catch(() => false)
     closed ? pass('sector alert: level typed in a labelled field in the menu; Escape closes it; no browser prompt') : fail('sector alert form stayed open after Escape')
   } else fail(`sector alert: ${menu}${dialog ? `; browser dialog "${dialog}"` : ''}`)
   page.off('dialog', onDialog)
