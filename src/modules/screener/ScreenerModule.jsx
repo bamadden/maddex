@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { formatDate, sydneyISO } from '../../utils/dateUtils'
+import { USING_MOCK_DATA } from '../../services/api'
+import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import { priceStream } from '../../services/priceStreamService'
 import { Search } from 'lucide-react'
@@ -30,8 +33,9 @@ function withDerived(s) {
   const range = s.week52High - s.week52Low
   return {
     ...s,
-    pos52: range > 0 ? ((s.price - s.week52Low) / range) * 100 : 50,
-    offHigh: s.week52High > 0 ? ((s.week52High - s.price) / s.week52High) * 100 : 0,
+    // No range or no high: unknown, not "mid-range" or "at the high".
+    pos52: range > 0 && s.price != null ? ((s.price - s.week52Low) / range) * 100 : null,
+    offHigh: s.week52High > 0 && s.price != null ? ((s.week52High - s.price) / s.week52High) * 100 : null,
   }
 }
 
@@ -109,13 +113,13 @@ const PRESETS = [
     criteria: {},
   },
   {
-    key: 'oversold', label: 'OVERSOLD QUALITY',
+    key: 'oversold', label: 'LOWER 52W RANGE · PROFITABLE',
     desc: 'Bottom 30% of 52W range · mkt cap > A$2B · profitable',
-    filter: (s) => s.pos52 < 30 && s.marketCap > 2 * B && isProfitable(s),
+    filter: (s) => s.pos52 != null && s.pos52 < 30 && s.marketCap > 2 * B && isProfitable(s),
     criteria: { pos52Max: 30 },
   },
   {
-    key: 'smallcapMomentum', label: 'SMALL CAP MOMENTUM',
+    key: 'smallcapMomentum', label: 'SMALLER CAPS UP TODAY',
     desc: 'Smallest tracked names (< A$30B) moving up today',
     filter: (s) => s.marketCap < 30 * B && s.changePct > 0,
     criteria: { changeMin: 0 },
@@ -133,19 +137,19 @@ const PRESETS = [
     criteria: { divMin: 3 },
   },
   {
-    key: 'beatenDown', label: 'BEATEN DOWN',
+    key: 'beatenDown', label: '25%+ BELOW 52W HIGH',
     desc: 'More than 25% below the 52W high · still profitable',
     filter: (s) => s.offHigh > 25 && isProfitable(s),
     criteria: { offHighMin: 25 },
   },
   {
-    key: 'value', label: 'VALUE PLAYS',
+    key: 'value', label: 'PE UNDER 15',
     desc: 'PE under 15',
     filter: (s) => s.pe > 0 && s.pe < 15,
     criteria: { peMax: 15 },
   },
   {
-    key: 'momentum', label: 'MOMENTUM',
+    key: 'momentum', label: 'UP 2%+ TODAY',
     desc: 'Up 2% or more today',
     filter: (s) => s.changePct >= 2,
     criteria: { changeMin: 2 },
@@ -165,26 +169,26 @@ const PRESETS = [
   // INFRASTRUCTURE has no GICS sector of its own; toll roads and airports
   // sit in Industrials, so that is what DEFENSIVE QUALITY screens.
   {
-    key: 'rateWinners', label: 'RATE HIKE WINNERS', group: 'rates',
-    desc: 'ASX Financials · yield > 3% · PE < 18 — banks and financials that benefit from higher net interest margins',
+    key: 'rateWinners', label: 'FINANCIALS · YIELD > 3% · PE < 18', group: 'rates',
+    desc: 'ASX Financials · yield > 3% · PE < 18 — banks and financials, whose net interest margins are commonly described as linked to the cash rate',
     filter: (s) => s.exchange === 'ASX' && s.sector === 'Financials' && s.divYield > 3 && s.pe > 0 && s.pe < 18,
     criteria: { divMin: 3, peMax: 18 },
   },
   {
-    key: 'rateVictims', label: 'RATE HIKE VICTIMS', group: 'rates',
-    desc: 'ASX property, utilities or consumer discretionary — or any ASX name on PE > 30 — rate-sensitive and high-multiple names under pressure in a tightening cycle',
+    key: 'rateVictims', label: 'RATE-SENSITIVE SECTORS · HIGH PE', group: 'rates',
+    desc: 'ASX property, utilities or consumer discretionary — or any ASX name on PE > 30 — sectors commonly described as rate-sensitive, and high-multiple names',
     filter: (s) => s.exchange === 'ASX' && (/^(Real Est|Utilities|Cons Disc)$/.test(s.sector ?? '') || s.pe > 30),
     criteria: {},
   },
   {
-    key: 'defensiveQuality', label: 'DEFENSIVE QUALITY', group: 'rates',
-    desc: 'ASX Health, Materials or Industrials (incl. infrastructure) · yield > 2% · mkt cap > A$10B — large companies with pricing power and defensive characteristics',
+    key: 'defensiveQuality', label: 'LARGE CAP · YIELD > 2%', group: 'rates',
+    desc: 'ASX Health, Materials or Industrials (incl. infrastructure) · yield > 2% · mkt cap > A$10B',
     filter: (s) => s.exchange === 'ASX' && /^(Health|Materials|Industrials)$/.test(s.sector ?? '') && s.divYield > 2 && s.marketCap > 10 * B,
     criteria: { divMin: 2 },
   },
   {
-    key: 'highYieldIncome', label: 'HIGH YIELD INCOME', group: 'rates',
-    desc: 'ASX · yield > 5% · PE < 20 (payout more likely sustainable) — Australian dividends can carry franking credits; compare with the cash rate',
+    key: 'highYieldIncome', label: 'YIELD > 5% · PE < 20', group: 'rates',
+    desc: 'ASX · yield > 5% · PE < 20 — Australian dividends can carry franking credits',
     filter: (s) => s.exchange === 'ASX' && s.divYield > 5 && s.pe > 0 && s.pe < 20,
     criteria: { divMin: 5, peMax: 20 },
   },
@@ -206,7 +210,7 @@ const QUICK_FILTERS = [
   { key: 'lowpe',  label: 'LOW PE <15',     test: (s) => s.pe > 0 && s.pe < 15 },
   { key: 'large',  label: 'LARGE CAP',      test: (s) => s.marketCap >= 50 * B },
   { key: 'up',     label: 'UP TODAY',       test: (s) => s.changePct > 0 },
-  { key: 'nearlow', label: 'NEAR 52W LOW',  test: (s) => s.pos52 < 30 },
+  { key: 'nearlow', label: 'NEAR 52W LOW',  test: (s) => s.pos52 != null && s.pos52 < 30 },
 ]
 
 const findPreset = (key) => PRESETS.find((p) => p.key === key) ?? null
@@ -245,7 +249,7 @@ function YieldContextBar({ results, insights, screenName }) {
     askMaddenAI(
       `I've screened for ${screenName}. The results show ${results.length} match${results.length === 1 ? '' : 'es'} (${names}${results.length > 12 ? ', …' : ''}) ` +
       `with an average dividend yield of ${avgYield.toFixed(1)}% (${payers} of ${results.length} pay a dividend; demo fundamentals) and an average P/E of ${pe}. ` +
-      `In the current environment, with ${env}, and a 3-year term deposit at ${au.termDeposit3y?.toFixed(2)}% (${au.termDepositSource}), what should I consider about these results? General information, not personal advice.`,
+      `In the current environment, with ${env}, and a 3-year term deposit at ${au.termDeposit3y?.toFixed(2)}% (${au.termDepositSource}), describe how these results compare on yield and P/E with those rates, what a dividend yield and franking credits are, and what the screen's criteria do and do not measure. Describe only: no forecast, no price and no suggestion of any action.`,
       { mode: 'research' },
     )
   }
@@ -253,6 +257,7 @@ function YieldContextBar({ results, insights, screenName }) {
   return (
     <div className="flex items-center gap-x-4 gap-y-1 flex-wrap px-3 py-1.5 border-b border-terminal-border flex-shrink-0 text-2xs font-mono" style={{ background: 'rgba(15,30,53,0.45)' }}>
       <span className="text-terminal-text-dim">
+        <HandEnteredBadge dataKey="rba" className="mr-1.5" />
         RBA CASH RATE <b className="text-terminal-text-bright">{cash.toFixed(2)}%</b>
         {au.termDeposit3y != null && <> · 3-YEAR TERM DEPOSIT <b className="text-terminal-text-bright">{au.termDeposit3y.toFixed(2)}%</b>
           <span className="text-terminal-text-dim/50" title={au.termDepositSource}> ({au.termDepositPeriod}, RBA F4)</span></>}
@@ -262,13 +267,13 @@ function YieldContextBar({ results, insights, screenName }) {
         <span className="text-terminal-text-dim/50"> ({payers}/{results.length} payers · demo data)</span>
       </span>
       <span className="text-terminal-text-dim">
-        vs cash <b className="tabular-nums" style={{ color: above ? PAL.up : PAL.amber }}>{premium >= 0 ? '+' : '−'}{Math.abs(premium).toFixed(1)}pp</b>
+        vs cash <b className="tabular-nums text-terminal-text-bright">{premium >= 0 ? '+' : '−'}{Math.abs(premium).toFixed(1)}pp</b>
       </span>
       <span
         className="font-bold px-1.5 py-0.5"
-        style={{ fontSize: 11, letterSpacing: '0.12em', color: above ? PAL.up : PAL.amber, border: `1px solid ${above ? 'rgba(45,138,80,0.5)' : 'rgba(232,163,61,0.5)'}` }}
+        style={{ fontSize: 11, letterSpacing: '0.12em', color: PAL.dim, border: '1px solid rgba(139,163,196,0.4)' }}
         title="Average cash dividend yield against the RBA cash rate — before franking credits, which vary by company and investor."
-      >{above ? 'YIELD PREMIUM' : 'BELOW CASH RATE'}</span>
+      >{above ? 'ABOVE THE CASH RATE' : 'BELOW THE CASH RATE'}</span>
       <button
         onClick={ask}
         className="ml-auto text-2xs font-bold px-2.5 py-0.5 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors tracking-wider"
@@ -450,9 +455,9 @@ function MatchBar({ pct }) {
   return (
     <div className="flex items-center gap-2 justify-end">
       <div className="w-14 h-1.5 bg-terminal-border/40 rounded-sm overflow-hidden">
-        <div className="h-full bg-terminal-green" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-terminal-gold/70" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-terminal-green font-bold w-8 text-right">{pct}%</span>
+      <span className="text-terminal-text-bright font-bold w-8 text-right">{pct}%</span>
     </div>
   )
 }
@@ -588,7 +593,7 @@ function buildCsv(rows, { screenName, rankable }) {
     const cells = [
       s.symbol, s.name, s.exchange, s.price.toFixed(2), s.changePct.toFixed(2),
       s.pe > 0 ? s.pe.toFixed(1) : '', s.divYield.toFixed(1), s.marketCap,
-      s.pos52.toFixed(0), s.offHigh.toFixed(1), s.sector ?? '',
+      s.pos52 != null ? s.pos52.toFixed(0) : '', s.offHigh != null ? s.offHigh.toFixed(1) : '', s.sector ?? '',
     ]
     if (rankable) cells.push(s.matchPct ?? '')
     lines.push(cells.map(csvCell).join(','))
@@ -647,8 +652,8 @@ function CompareModal({ rows, onClose }) {
     ['P/E', (s) => (s.pe > 0 ? s.pe.toFixed(1) : '—')],
     ['DIV YIELD', (s) => (s.divYield > 0 ? `${s.divYield.toFixed(1)}%` : '—')],
     ['MKT CAP', (s) => fmt.large(s.marketCap)],
-    ['52W POSITION', (s) => `${s.pos52.toFixed(0)}%`],
-    ['OFF 52W HIGH', (s) => `${s.offHigh.toFixed(1)}%`],
+    ['52W POSITION', (s) => (s.pos52 != null ? `${s.pos52.toFixed(0)}%` : '—')],
+    ['OFF 52W HIGH', (s) => (s.offHigh != null ? `${s.offHigh.toFixed(1)}%` : '—')],
     ['SECTOR', (s) => s.sector ?? '—'],
     ['MATCH', (s) => (s.matchPct != null ? `${s.matchPct}%` : '—')],
   ]
@@ -841,10 +846,9 @@ export default function ScreenerModule() {
     dispatchAskAI({
       instruction:
         `You are MaddenAI's stock screener. A user typed this natural-language screen: "${query}"\n\n` +
-        'Interpret it and describe, in plain terms, which ASX/US stocks would match and why — ' +
-        'covering PE, dividend yield, sector, market cap or momentum criteria as relevant. ' +
-        'This is a demo dataset, so speak in general terms about the type of stock rather than pulling live prices. ' +
-        'General information only, not advice.',
+        'Translate it into screening criteria (PE, dividend yield, sector, market cap or daily move) and say what each criterion measures. ' +
+        'Do not name stocks that would match, rank them, or say which are attractive. ' +
+        'Describe only: no forecast, no price and no suggestion of any action.',
     }, { rawPrompt: true })
   }
 
@@ -857,7 +861,7 @@ export default function ScreenerModule() {
       if (s.pe > 0 && s.pe > filters.peMax) return false
       if (!band.test(s)) return false
       if (s.divYield < filters.divMin) return false
-      if (s.pos52 < filters.pos52Min) return false
+      if (filters.pos52Min > 0 && (s.pos52 == null || s.pos52 < filters.pos52Min)) return false
       return true
     })
   }, [filters, filtersActive, universe])
@@ -943,7 +947,7 @@ export default function ScreenerModule() {
     const slug = screenName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'screen'
     downloadCsv(
       buildCsv(results, { screenName, rankable }),
-      `maddex-screen-${slug}-${new Date().toISOString().slice(0, 10)}.csv`,
+      `maddex-screen-${slug}-${sydneyISO()}.csv`,
     )
   }
   const shareScreen = async () => {
@@ -1104,11 +1108,11 @@ export default function ScreenerModule() {
                   <div key={s.id} className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-terminal-border/50 last:border-b-0 hover:bg-terminal-accent/10 group">
                     <button onClick={() => loadSavedScreen(s)} className="min-w-0 text-left flex-1">
                       <div className="text-2xs text-terminal-text-bright font-semibold truncate">{s.name}</div>
-                      <div className="text-2xs text-terminal-text-dim/60">{new Date(s.createdAt).toLocaleDateString('en-AU')}</div>
+                      <div className="text-2xs text-terminal-text-dim/60">{formatDate(s.createdAt)}</div>
                     </button>
                     <button
-                      onClick={() => deleteSavedScreen(s.id)}
-                      className="opacity-0 group-hover:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-red transition-opacity flex-shrink-0"
+                      onClick={() => deleteSavedScreen(s.id)} aria-label={`Delete saved screen ${s.name}`}
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-red transition-opacity flex-shrink-0"
                     >🗑</button>
                   </div>
                 ))}
@@ -1401,13 +1405,13 @@ export default function ScreenerModule() {
                           e.stopPropagation()
                           setResearchNoteAsset({ symbol: s.symbol, name: s.name, type: s.exchange === 'ASX' ? 'asx' : 'us' })
                         }}
-                        title="Generate research note"
-                        className="opacity-0 group-hover:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold px-1.5 py-0.5 rounded transition-opacity mr-1"
+                        title="Generate research note" aria-label={`Research note for ${s.symbol}`}
+                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold px-1.5 py-0.5 rounded transition-opacity mr-1"
                       >📄</button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          dispatchAskAI({ name: s.name, ticker: s.symbol, price: `${s.exchange === 'ASX' ? 'A$' : 'US$'}${s.price.toFixed(2)}`, change: fmt.pct(s.changePct), sector: s.sector })
+                          dispatchAskAI({ name: s.name, ticker: s.symbol, price: s.price != null ? `${s.exchange === 'ASX' ? 'A$' : 'US$'}${s.price.toFixed(2)}${USING_MOCK_DATA ? ' (demo price, simulated)' : ''}` : null, change: s.changePct != null ? fmt.pct(s.changePct) : null, sector: s.sector })
                         }}
                         className="opacity-0 group-hover:opacity-100 text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border hover:border-terminal-gold px-1.5 py-0.5 rounded transition-opacity"
                       >Ask MaddenAI</button>

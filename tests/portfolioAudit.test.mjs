@@ -61,3 +61,10 @@ test('Relationships: links validated, nodes keyboard-reachable, hop sources show
   assert.doesNotMatch(m, /role="img"|Number\(h\.avgCost\) \|\| 0|costCurrency \?\? 'AUD'/)
   assert.match(read('src/modules/relationships/RelPanels.jsx'), /data-hop-source/)
 })
+
+test('Screener: presets named by criteria, describe-only prompts, no 52W defaults, cash rate badged', () => {
+  const s = read('src/modules/screener/ScreenerModule.jsx')
+  assert.doesNotMatch(s, /RATE HIKE WINNERS|RATE HIKE VICTIMS|VALUE PLAYS|OVERSOLD QUALITY|DEFENSIVE QUALITY|pricing power|more likely sustainable|what should I consider|which ASX\/US stocks would match/)
+  assert.doesNotMatch(s, /\* 100 : 50,|YIELD PREMIUM|bg-terminal-green/)
+  assert.match(s, /<HandEnteredBadge dataKey="rba"/)
+})

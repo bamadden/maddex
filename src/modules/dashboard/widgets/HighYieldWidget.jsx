@@ -5,7 +5,7 @@ import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
 
-// The screener's HIGH YIELD INCOME screen (ASX · yield > 5% · PE < 20), top
+// The screener's YIELD > 5% · PE < 20 screen (ASX · yield > 5% · PE < 20), top
 // five by yield, against the cash rate — the "is the yield worth the risk"
 // question in one tile. Demo fundamentals, as in the screener.
 export default function HighYieldWidget() {
