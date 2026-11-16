@@ -24,7 +24,7 @@ import { queryHealth, healthSummary, SCREEN_FEEDS } from '../../services/dataHea
 import { useOfficialCheck } from '../../hooks/useOfficialCheck'
 import { getCachedBrief, isAuWeekend, auHour, briefHourLabel } from '../../services/morningBriefService'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
-import { readOrder, saveOrder, clearOrder, moveId, OVERVIEW_PANELS } from './overviewOrder'
+import { readOrder, saveOrder, clearOrder, moveId, OVERVIEW_PANELS, overviewKey } from './overviewOrder'
 
 // OVERVIEW — the dashboard's default view: one dense screen, in the order a
 // returning investor reads it. Market state across the top; the RBA and the
@@ -42,12 +42,12 @@ const longDate = (iso) => formatDate(iso, { weekday: true })
 
 function Panel({ title, badge, action, onAction, className = '', children, id, arrange }) {
   return (
-    <section aria-labelledby={id} className={`min-w-0 min-h-0 flex flex-col border border-terminal-border bg-terminal-panel ${className}`}>
+    <section aria-labelledby={id} tabIndex={-1} data-ov-panel className={`min-w-0 min-h-0 flex flex-col border border-terminal-border bg-terminal-panel ${className}`}>
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 border-b border-terminal-border flex-shrink-0 min-w-0">
         <h2 id={id} className="font-mono font-semibold tracking-widest text-terminal-gold whitespace-nowrap" style={{ fontSize: 11 }}>{title}</h2>
         <span className="flex-1" />
         {badge && <span className="flex flex-wrap justify-end gap-1 order-last w-full sm:order-none sm:w-auto">{badge}</span>}
-        {action && <button onClick={onAction} className="font-mono tracking-widest text-terminal-text-dim hover:text-terminal-gold whitespace-nowrap flex-shrink-0" style={{ fontSize: 11 }}>{action} →</button>}
+        {action && <button onClick={onAction} data-ov-action className="font-mono tracking-widest text-terminal-text-dim hover:text-terminal-gold whitespace-nowrap flex-shrink-0" style={{ fontSize: 11 }}>{action} →</button>}
         {arrange && (
           <span className="flex gap-1 flex-shrink-0" data-arrange={arrange.id}>
             {[[-1, '◀', 'earlier'], [1, '▶', 'later']].map(([dir, glyph, word]) => (
@@ -372,17 +372,35 @@ function DataHealthLine() {
       : 'Official stats: not checked yet this session',
   ].filter(Boolean)
   return (
-    <section aria-labelledby="ov-health" className="col-span-full flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 border border-terminal-border bg-terminal-panel font-mono" style={{ fontSize: 11 }} data-health-line>
+    <section aria-labelledby="ov-health" tabIndex={-1} data-ov-panel className="col-span-full flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 border border-terminal-border bg-terminal-panel font-mono" style={{ fontSize: 11 }} data-health-line>
       <h2 id="ov-health" className="font-semibold tracking-widest text-terminal-gold">DATA HEALTH</h2>
       <span style={{ color: tone }} aria-hidden="true">{h.ok ? '●' : '▲'}</span>
       <span className="text-terminal-text min-w-0">{parts.join(' · ')}</span>
-      <button onClick={open} className="ml-auto tracking-widest text-terminal-text-dim hover:text-terminal-gold whitespace-nowrap">DETAILS →</button>
+      <button onClick={open} data-ov-action className="ml-auto tracking-widest text-terminal-text-dim hover:text-terminal-gold whitespace-nowrap">DETAILS →</button>
     </section>
   )
 }
 
+// Keyboard (WS2): 1–9 jump to a panel in screen order, O opens the focused
+// panel's module, V switches dense mode (kept on this device). Not while
+// typing, and not with a modifier held (⌘⇧1–4 switch workspaces).
+const DENSE_KEY = 'maddex_overview_dense'
+const readDense = () => { try { return localStorage.getItem(DENSE_KEY) === '1' } catch { return false } }
 export default function OverviewSurface({ arranging = false, onDoneArranging }) {
   const { setActiveModule } = useStore()
+  const [dense, setDense] = useState(readDense)
+  useEffect(() => {
+    const onKey = (e) => {
+      const handled = overviewKey(e, {
+        panels: [...document.querySelectorAll('.overview-grid > [data-ov-panel]')],
+        active: document.activeElement,
+        toggleDense: () => setDense((d) => { try { localStorage.setItem(DENSE_KEY, d ? '0' : '1') } catch { /* this visit only */ } return !d }),
+      })
+      if (handled) { e.preventDefault(); e.stopPropagation() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const [order, setOrder] = useState(() => readOrder())
   const move = (id, dir) => setOrder((o) => { const next = moveId(o, id, dir); saveOrder(next); return next })
   const reset = () => { clearOrder(); setOrder([...OVERVIEW_PANELS]) }
@@ -390,7 +408,10 @@ export default function OverviewSurface({ arranging = false, onDoneArranging }) 
   const h = useHoldings()
   const { data: idx } = useQuery({ queryKey: ['yfBatch', 'indices'], queryFn: () => fetchIndexQuotesUnified(ALL_INDEX_SYMBOLS), staleTime: 60_000, retry: 1 })
   return (
-    <div className="flex-1 min-h-0 overflow-auto p-2">
+    <div className={`flex-1 min-h-0 overflow-auto p-2${dense ? ' overview-dense' : ''}`} data-dense={dense ? '1' : '0'}>
+      <div className="mb-1 text-right font-mono text-terminal-text-dim hidden sm:block" style={{ fontSize: 11 }} data-ov-keys>
+        Keys: 1–9 jump to a panel · O opens it · V {dense ? 'normal' : 'dense'} view
+      </div>
       {arranging && (
         <div className="mb-2 flex flex-wrap items-center gap-3 px-3 py-1.5 border border-terminal-gold/50 font-mono" style={{ fontSize: 11 }} data-arranging>
           <span className="tracking-widest text-terminal-gold">ARRANGING</span>

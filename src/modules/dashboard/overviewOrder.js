@@ -31,3 +31,26 @@ export function moveId(order, id, dir) {
   ;[next[i], next[j]] = [next[j], next[i]]
   return next
 }
+
+// The Overview's keys (WS2): 1–9 focus a panel in screen order, O opens the
+// focused panel's module, V switches dense mode. Returns true when handled.
+export function overviewKey(e, { panels, active, toggleDense }) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false
+  const t = active?.tagName
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || active?.isContentEditable) return false
+  if (/^[1-9]$/.test(e.key)) {
+    const p = panels[Number(e.key) - 1]
+    if (!p) return false
+    p.focus({ preventScroll: true }); p.scrollIntoView?.({ block: 'nearest' })
+    return true
+  }
+  if (e.key === 'o' || e.key === 'O') {
+    const panel = active?.closest?.('[data-ov-panel]')
+    const btn = panel?.querySelector('[data-ov-action]')
+    if (!btn) return false
+    btn.click()
+    return true
+  }
+  if (e.key === 'v' || e.key === 'V') { toggleDense(); return true }
+  return false
+}
