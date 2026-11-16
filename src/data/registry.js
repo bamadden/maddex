@@ -134,6 +134,7 @@ export const DATASETS = [
 // Files the scanner finds that hold no dated figures about the world.
 export const EXEMPT = {
   'src/data/registry.js': 'this registry',
+  'src/data/registryHealth.js': 'generated from this registry (npm run data:docs); the test holds it to the registry',
   'src/data/verifiedConstants.js': 'registered group by group (vc:*), each from its own lastVerified',
   'src/services/dashboardService.js': 'dashboard layout',
   'src/services/soundService.js': 'sound settings',

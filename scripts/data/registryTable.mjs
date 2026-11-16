@@ -1,6 +1,7 @@
-// The dataset table in docs/DATA_PLATFORM.md, generated from the registry so
-// the doc cannot drift from it (tests/registry.test.mjs compares them).
-//   npm run data:docs   rewrites the table in place
+// The dataset table in docs/DATA_PLATFORM.md and src/data/registryHealth.js,
+// generated from the registry so neither can drift from it
+// (tests/registry.test.mjs compares them).
+//   npm run data:docs   rewrites both
 import { DATASETS } from '../../src/data/registry.js'
 
 const cell = (s) => String(s ?? '—').replace(/\|/g, '\\|')
@@ -20,5 +21,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const a = doc.indexOf(START), b = doc.indexOf(END)
   if (a < 0 || b < 0) throw new Error('docs/DATA_PLATFORM.md has no registry markers')
   fs.writeFileSync(file, `${doc.slice(0, a + START.length)}\n${registryTable()}\n${doc.slice(b)}`)
-  console.log(`Wrote ${DATASETS.length} datasets to docs/DATA_PLATFORM.md`)
+  const { healthSource } = await import('./registryDates.mjs')
+  fs.writeFileSync(new URL('../../src/data/registryHealth.js', import.meta.url), await healthSource())
+  console.log(`Wrote ${DATASETS.length} datasets to docs/DATA_PLATFORM.md and src/data/registryHealth.js`)
 }

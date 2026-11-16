@@ -4,6 +4,7 @@ import { timeAgo } from '../../utils/dateUtils'
 import { dispatchAskAI } from '../../utils/askAI'
 import { RefreshCw } from 'lucide-react'
 import Tooltip from './Tooltip'
+import DataHealth from './DataHealth'
 import { PAL } from '../../styles/palette.js'
 
 // Relative age — "2m ago" reads faster than a wall-clock stamp for a
@@ -29,7 +30,9 @@ const MODULE_LABELS = {
   relationships: 'Relationships', company: 'Company Profile',
 }
 
-export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null, moduleId = null }) {
+// `healthId` shows data health for a header that leaves out the module
+// controls (Dashboard, Calendar); otherwise `moduleId` is used.
+export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, isFetching = false, live, right = null, moduleId = null, healthId = null }) {
   const [spinning, setSpinning] = useState(false)
   const spinTimer = useRef(null)
 
@@ -87,13 +90,16 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           available everywhere rather than only in its own panel. Always
           visible, unlike the fade-in affordances below, because it is an
           invitation rather than a utility. */}
+      {/* How current this module's figures are (data registry). */}
+      {(healthId ?? moduleId) && <DataHealth moduleId={healthId ?? moduleId} />}
+
       {moduleId && (
         <button
           onClick={() => dispatchAskAI({
             instruction:
               `I'm looking at the ${(MODULE_LABELS[moduleId] ?? moduleId).toUpperCase()} module in the Maddex terminal. `
-              + 'What is the single most important thing to know right now, and what should I watch next? '
-              + 'Be specific and brief. Do not quote prices you were not given.',
+              + 'Describe what the figures and events you were given show for this area today: what changed, what was reported, and what is scheduled. '
+              + 'Be specific and brief. Describe only: no forecast, no view on what to watch or do. Do not quote prices you were not given.',
           }, { rawPrompt: true })}
           title={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}
           aria-label={`Ask MaddenAI about ${MODULE_LABELS[moduleId] ?? moduleId}`}

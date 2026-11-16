@@ -108,6 +108,7 @@ export default function DashboardModule() {
     <div ref={shellRef} className="h-full flex flex-col min-h-0 relative">
       <ModuleHeader
         title="DASHBOARD"
+        healthId="dashboard"
         subtitle={custom ? 'Your own layout' : 'Markets, the RBA, your holdings and what changed'}
         right={
           <div className="flex items-center gap-1.5">

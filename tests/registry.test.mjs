@@ -146,3 +146,8 @@ test('the dataset table in docs/DATA_PLATFORM.md matches the registry (npm run d
   assert.ok(a >= 0 && b > a, 'registry markers in docs/DATA_PLATFORM.md')
   assert.equal(doc.slice(a + START.length, b).trim(), registryTable())
 })
+
+test('src/data/registryHealth.js is generated from the registry and current (npm run data:docs)', async () => {
+  const { healthSource } = await import('../scripts/data/registryDates.mjs')
+  assert.equal(read('src/data/registryHealth.js'), await healthSource())
+})

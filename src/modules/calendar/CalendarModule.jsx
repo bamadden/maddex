@@ -625,6 +625,7 @@ export default function CalendarModule() {
     <div className="h-full flex flex-col">
       <ModuleHeader
         title="CALENDAR"
+        healthId="calendar"
         subtitle="Economic events · Earnings"
         onRefresh={refetch}
         isFetching={isFetching}
