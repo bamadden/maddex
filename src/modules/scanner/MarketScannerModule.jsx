@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { USING_MOCK_DATA, AI_UNAVAILABLE } from '../../services/api'
 import { useStore } from '../../store/useStore'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { timeAgo, formatDate } from '../../utils/dateUtils'
@@ -24,9 +26,11 @@ import { PAL } from '../../styles/palette.js'
 // Header strip per signal type — the colour says what kind of signal it is
 // before the eye reaches a word.
 const TYPE_STYLE = {
-  BREAKOUT:   { bg: 'rgba(45,138,80,0.8)',   fg: '#E8F5EC' },
+  // Signal kinds in colours that are not the up/down pair, so no kind
+  // reads as good or bad news (16 Nov 2026).
+  BREAKOUT:   { bg: 'rgba(63,167,160,0.8)',  fg: '#E8F5F4' },
   OVERSOLD:   { bg: 'rgba(45,80,200,0.8)',   fg: '#E6ECFF' },
-  OVERBOUGHT: { bg: 'rgba(168,50,50,0.8)',   fg: '#FDECEC' },
+  OVERBOUGHT: { bg: 'rgba(163,123,209,0.8)', fg: '#F3ECFB' },
   VOLUME:     { bg: 'rgba(201,168,76,0.8)',  fg: '#1A1306' },
   GAP:        { bg: 'rgba(123,45,138,0.8)',  fg: '#F5E8F8' },
   PATTERN:    { bg: 'rgba(45,138,180,0.8)',  fg: '#E6F6FC' },
@@ -67,7 +71,7 @@ function priceStr(symbol, price) { return `${symbol.endsWith('.AX') ? 'A$' : 'US
 
 
 function detectedAtStr(ms) {
-  return new Date(ms).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST'
+  return new Date(ms).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Australia/Sydney' }) + ` ${sydneyTzAbbr(new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }))}`
 }
 
 // Signal tone, keyed off the badge text.
@@ -117,7 +121,8 @@ const toneFor = (badge) => {
 function StrengthBars({ strength }) {
   if (strength == null) return null
   const filled = Math.max(1, Math.min(5, Math.round(strength * 5)))
-  const label = filled >= 4 ? 'STRONG' : filled >= 3 ? 'MODERATE' : 'WEAK'
+  // The size of the measured reading, not a grade of the signal.
+  const label = filled >= 4 ? 'LARGE' : filled >= 3 ? 'MEDIUM' : 'SMALL'
   const tone = filled >= 4 ? PAL.gold : filled >= 3 ? PAL.dim : PAL.muted
   return (
     <div className="flex items-center gap-1.5 flex-shrink-0" title={`Signal strength: ${label}`}>
@@ -320,14 +325,17 @@ function EmptyState({ label }) {
     <SharedEmptyState
       icon="◎"
       title="No signals"
-      subtitle={`No ${label} signals detected right now. The scanner checks for breakouts, volume spikes, and unusual activity every 2 minutes.`}
+      subtitle={`No ${label} signals detected right now. The scanner checks for breakouts, volume spikes, and unusual activity on the interval set in the scanner settings.`}
       className="min-h-0 py-8"
     />
   )
 }
 
+// Every scanner prompt says when its prices are simulated (16 Nov 2026: only
+// the Breakouts prompt did).
 function analyseSignal(symbol, name, instruction) {
-  dispatchAskAI({ ticker: symbol, name, instruction }, { rawPrompt: true })
+  const demo = USING_MOCK_DATA ? 'The prices and moves below are simulated demo data in this build, not market prices. ' : ''
+  dispatchAskAI({ ticker: symbol, name, instruction: demo + instruction }, { rawPrompt: true })
 }
 
 function BreakoutsTab({ scanTime, settings }) {
@@ -520,7 +528,7 @@ function PatternCard({ candidate }) {
     setStatus('loading')
     detectPattern(candidate.symbol)
       .then((p) => { setPattern(p); setStatus('ready') })
-      .catch((e) => { setError(e.message); setStatus('error') })
+      .catch((e) => { setError(e?.message === AI_UNAVAILABLE ? AI_UNAVAILABLE : 'The pattern could not be read just now. Try again in a moment.'); setStatus('error') })
   }
 
 
@@ -559,16 +567,8 @@ function PatternCard({ candidate }) {
               invented from a DEMO price series. Confirmation and invalidation
               are what a pattern actually tells you, and they are structural —
               the model can describe them without knowing the price. */}
-          {pattern.confirmation && (
-            <div className="text-2xs text-terminal-text-dim">
-              <span className="text-terminal-green">Confirms:</span> {pattern.confirmation}
-            </div>
-          )}
-          {pattern.invalidation && (
-            <div className="text-2xs text-terminal-text-dim">
-              <span className="text-terminal-red">Invalidates:</span> {pattern.invalidation}
-            </div>
-          )}
+          {/* No "Confirms / Invalidates" lines (16 Nov 2026): what would confirm a
+              pattern is a trading setup. */}
           <div className="flex items-center gap-2 pt-0.5">
             <button
               onClick={() => analyseSignal(candidate.symbol, candidate.name,
@@ -638,7 +638,7 @@ function ScanSettings({ settings, onChange }) {
         title="Scan settings"
         aria-expanded={open}
         className="text-terminal-text-dim hover:text-terminal-gold transition-colors px-1"
-      >⚙</button>
+       aria-label="Scanner settings">⚙</button>
 
       {open && (
         <>

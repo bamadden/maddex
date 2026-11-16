@@ -214,9 +214,9 @@ export const SCENARIOS = [
       ],
     },
     facts: [
-      { label: 'Iron ore peak', value: '~US$230/t', tone: 'up', note: '12 May 2021' },
-      { label: 'FMG record close', value: 'A$26.50', tone: 'up', note: 'Late July 2021' },
-      { label: 'FMG FY21 profit', value: 'US$10.3B', tone: 'up', note: 'Revenue +74% to US$22.3B' },
+      { label: 'Iron ore peak', value: '~US$230/t', tone: null, note: '12 May 2021' },
+      { label: 'FMG record close', value: 'A$26.50', tone: null, note: 'Late July 2021' },
+      { label: 'FMG FY21 profit', value: 'US$10.3B', tone: null, note: 'Revenue +74% to US$22.3B' },
     ],
     timeline: [
       { at: '2021-05-12', text: 'Iron ore peaks near US$230/t on Chinese steel demand.', key: true },
@@ -295,9 +295,9 @@ export const SCENARIOS = [
       ],
     },
     facts: [
-      { label: 'Cash rate', value: '0.10 → 4.35%', tone: 'up' },
-      { label: 'Hikes', value: '13', tone: 'up', note: 'Four of them 50bp' },
-      { label: 'Total', value: '+425bp', tone: 'up' },
+      { label: 'Cash rate', value: '0.10 → 4.35%', tone: null },
+      { label: 'Hikes', value: '13', tone: null, note: 'Four of them 50bp' },
+      { label: 'Total', value: '+425bp', tone: null },
     ],
     timeline: [
       { at: '2022-05-03', text: 'First RBA hike since 2010: 0.10% → 0.35%.', key: true },

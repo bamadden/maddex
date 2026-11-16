@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import ModuleHeader from '../../components/ui/ModuleHeader'
-import { Viz3DLoader } from '../../components/ui/ModuleStates'
+import { Viz3DLoader, DemoBadge } from '../../components/ui/ModuleStates'
 import SafeChart from '../../components/ui/SafeChart'
 import {
-  rbaRateOn, eventOn, generateReplaySeries, generateReplayMovers, addDays,
+  rbaRateOn, eventOn, generateReplaySeries, addDays, RBA_RATE_SOURCE,
 } from '../../services/replayService'
 import { SCENARIOS, CATEGORY_STYLE } from '../../services/replayScenarios'
 import ScenarioPlayer, { FactPill } from './ScenarioPlayer'
@@ -14,7 +14,7 @@ import { PAL } from '../../styles/palette.js'
 // the user actually switches to the 3D view.
 const ReplayViewer3D = lazy(() => import('./ReplayViewer3D'))
 
-const TODAY = new Date().toISOString().slice(0, 10)
+const TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) // Sydney's date
 const SPEEDS = [
   { label: '0.5x', ms: 2000 },
   { label: '1x', ms: 1000 },
@@ -75,7 +75,6 @@ export default function MarketReplayModule() {
   const intervalRef = useRef(null)
 
   const series = useMemo(() => (activeDate ? generateReplaySeries('^AXJO', activeDate, 90) : []), [activeDate])
-  const movers = useMemo(() => (activeDate ? generateReplayMovers(activeDate) : []), [activeDate])
   const rate = activeDate ? rbaRateOn(activeDate) : null
   const event = activeDate ? eventOn(activeDate) : null
 
@@ -168,19 +167,21 @@ export default function MarketReplayModule() {
             <div className="fixed top-20 right-6 z-50 max-w-xs bg-terminal-panel border border-terminal-gold shadow-2xl p-3">
               <div className="flex items-start justify-between gap-2">
                 <span className="text-2xs text-terminal-gold font-bold tracking-widest">ON THIS DAY</span>
-                <button onClick={() => setDismissedEvent(event.date)} className="text-terminal-text-dim hover:text-terminal-red text-xs leading-none">✕</button>
+                <button onClick={() => setDismissedEvent(event.date)} aria-label="Dismiss" className="text-terminal-text-dim hover:text-terminal-red text-xs leading-none">✕</button>
               </div>
               <div className="text-2xs text-terminal-text mt-1">{event.text}</div>
+              <div className="text-2xs text-terminal-text-dim/70 mt-0.5">{event.source}</div>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="border border-terminal-border p-3">
               <div className="text-2xs text-terminal-text-dim">RBA CASH RATE (as at this date)</div>
-              <div className="text-lg font-bold text-terminal-gold">{rate?.toFixed(2)}%</div>
+              <div className="text-lg font-bold text-terminal-gold">{rate != null ? `${rate.toFixed(2)}%` : '—'}</div>
+              <div className="text-2xs text-terminal-text-dim/60">{rate != null ? RBA_RATE_SOURCE : 'Not in the record held (it starts 1 Jan 2008)'}</div>
             </div>
             <div className="border border-terminal-border p-3">
-              <div className="text-2xs text-terminal-text-dim">ASX 200 (illustrative index level)</div>
+              <div className="text-2xs text-terminal-text-dim flex items-center gap-1.5">INDEX PATH <DemoBadge source="simulated, not historical" /></div>
               <div className="text-lg font-bold text-terminal-text-bright">{series[series.length - 1]?.level.toFixed(1)}</div>
             </div>
             <div className="border border-terminal-border p-3">
@@ -191,7 +192,8 @@ export default function MarketReplayModule() {
 
           <div className="border border-terminal-border p-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xs text-terminal-gold font-bold tracking-widest">90D · ASX 200 INDEX LEVEL (ILLUSTRATIVE)</span>
+              <span className="text-2xs text-terminal-gold font-bold tracking-widest">90D · SIMULATED INDEX PATH</span>
+              <DemoBadge source="simulated, not the ASX 200's history" />
               <div className="ml-auto flex items-center border border-terminal-border rounded-full overflow-hidden">
                 <button
                   onClick={() => setView3D(false)}
@@ -222,18 +224,6 @@ export default function MarketReplayModule() {
                 </SafeChart>
               </div>
             )}
-          </div>
-
-          <div className="border border-terminal-border p-3">
-            <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">MOVERS ON THIS DAY (ILLUSTRATIVE)</div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {movers.map((m) => (
-                <div key={m.symbol} className="flex items-center justify-between border border-terminal-border/50 px-2 py-1.5">
-                  <span className="text-2xs font-bold text-terminal-text-bright">{m.symbol.replace('.AX', '')}</span>
-                  <span className={`text-2xs font-bold ${m.pct >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>{m.pct >= 0 ? '+' : ''}{m.pct.toFixed(2)}%</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="text-2xs text-terminal-text-dim/50 text-center tracking-widest">

@@ -68,3 +68,17 @@ test('Screener: presets named by criteria, describe-only prompts, no 52W default
   assert.doesNotMatch(s, /\* 100 : 50,|YIELD PREMIUM|bg-terminal-green/)
   assert.match(s, /<HandEnteredBadge dataKey="rba"/)
 })
+
+test('Scanner and Replay: no invented reasons or history, sourced rate and events, describe-only prompts', async () => {
+  const ss = read('src/services/scannerService.js')
+  assert.doesNotMatch(ss, /priced on hike expectations|losing appeal|STRONG UPTREND|TURNING UP| — stretched|"confirmation":|toISOString\(\)\.slice\(0, 10\)/)
+  const ms = read('src/modules/scanner/MarketScannerModule.jsx')
+  assert.doesNotMatch(ms, /' AEST'|Confirms:|Invalidates:|setError\(e\.message\)/)
+  assert.match(ms, /simulated demo data in this build/)
+  const R = await import('../src/services/replayService.js')
+  assert.equal(R.rbaRateOn('2008-06-01'), 7.25)
+  assert.equal(R.rbaRateOn('2007-06-01'), null)
+  assert.equal(R.generateReplayMovers, undefined)
+  assert.ok(R.EDUCATIONAL_EVENTS.length > 20 && R.EDUCATIONAL_EVENTS.every((e) => e.source && /^\d{4}-\d{2}-\d{2}$/.test(e.date)))
+  assert.doesNotMatch(read('src/modules/replay/ScenarioPlayer.jsx'), /can learn from it/)
+})

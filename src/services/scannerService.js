@@ -27,7 +27,7 @@ export function signalContext(symbol) {
   const sector = SECTOR_OF[symbol]
   return {
     line1: `${sector ? `${sector} · ` : ''}${fiveDay >= 0 ? 'up' : 'down'} ${Math.abs(fiveDay).toFixed(1)}% over 5 sessions`,
-    line2: `${Math.abs(vsMa).toFixed(1)}% ${vsMa >= 0 ? 'above' : 'below'} its 20-day average${Math.abs(vsMa) > 5 ? ' — stretched' : ''}`,
+    line2: `${Math.abs(vsMa).toFixed(1)}% ${vsMa >= 0 ? 'above' : 'below'} its 20-day average`,
   }
 }
 
@@ -252,10 +252,11 @@ export function scanMomentum() {
     // worth knowing: three positive windows is a trend, one positive and two
     // negative is a bounce inside a downtrend.
     const positives = [d5, d10, d20].filter((v) => v > 0).length
-    const signal = positives === 3 ? 'STRONG UPTREND'
-      : positives === 0 ? 'STRONG DOWNTREND'
-      : d5 > 0 ? 'TURNING UP'
-      : 'TURNING DOWN'
+    // The windows, in words: no "strong" or "turning" verdict.
+    const signal = positives === 3 ? 'UP OVER 5, 10 AND 20 DAYS'
+      : positives === 0 ? 'DOWN OVER 5, 10 AND 20 DAYS'
+      : d5 > 0 ? 'UP OVER 5 DAYS, MIXED LONGER'
+      : 'DOWN OVER 5 DAYS, MIXED LONGER'
 
     rows.push({ ...row, d5, d10, d20, score, signal, sector: SECTOR_OF[symbol] ?? null })
   }
@@ -315,7 +316,7 @@ export function getPatternCandidates() {
 }
 
 function todayKey(symbol) {
-  const day = new Date().toISOString().slice(0, 10)
+  const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
   // _v2: v1 entries hold patterns carrying an invented targetLevel. They sit
   // in real browsers and would keep being served after this fix, so the key
   // is versioned to orphan them rather than trusted to expire.
@@ -352,14 +353,12 @@ These are index values, not prices. You have NOT been given this security's pric
 
 Identify the single most notable chart pattern in this series (e.g. cup-and-handle, descending triangle, ascending triangle, head-and-shoulders, double top/bottom, flag, wedge — or "no clear pattern" if genuinely none stands out).
 
-Describe the shape only. Do NOT say which way the price is likely to go, how likely the pattern is to play out, or whether it is bullish or bearish. Do NOT provide a price target, a target level, a support or resistance price, or any figure in dollars. A target derived from data you do not have is a made-up number, and it is the part a reader would act on. Describe instead what would CONFIRM the pattern and what would INVALIDATE it, in terms of the shape: "confirmation on a close above the pattern's neckline", "invalidated if it breaks back below the lower trendline".
+Describe the shape only. Do NOT say which way the price is likely to go, how likely the pattern is to play out, or whether it is bullish or bearish. Do NOT provide a price target, a target level, a support or resistance price, or any figure in dollars. A target derived from data you do not have is a made-up number, and it is the part a reader would act on. Do not describe what would confirm or invalidate the pattern: that is a trading setup.
 
 Return JSON only:
 {
   "patternName": "short pattern name",
   "description": "1-2 sentences describing what the pattern looks like in this series, no figures",
-  "confirmation": "what would confirm the pattern, described structurally — no price levels",
-  "invalidation": "what would invalidate it, described structurally — no price levels"
 }`
 
   const pattern = await askClaudeJSON(prompt, { maxTokens: 400 })
@@ -376,11 +375,14 @@ Return JSON only:
 // Each row is compared with its sector's average move, so "moving with its
 // sector" is a measured statement, not a caption.
 const RATE_SECTORS = {
-  'Real Est':  { kind: 'REIT',          down: 'REIT under pressure', up: 'REIT firmer despite the rate backdrop' },
-  Financials:  { kind: 'Bank',          down: 'Lower — credit worries outweighing the margin benefit', up: 'Firmer — wider margins priced on hike expectations' },
-  'Cons Disc': { kind: 'Consumer name', down: 'Under pressure — rate-sensitive household spending', up: 'Firmer despite pressure on household budgets' },
-  Utilities:   { kind: 'Utility',       down: 'Bond-like income losing appeal as yields rise', up: 'Firmer despite rising yields' },
-  IT:          { kind: 'Growth name',   down: 'Long-duration earnings re-rating on higher rates', up: 'Firmer despite higher discount rates' },
+  // What happened, not why: the moves are simulated, so a reason ("credit
+  // worries", "wider margins priced on hike expectations") would be an
+  // invented account of an invented move (16 Nov 2026).
+  'Real Est':  { kind: 'REIT',          down: 'REIT lower on the day', up: 'REIT higher on the day' },
+  Financials:  { kind: 'Bank',          down: 'Bank lower on the day', up: 'Bank higher on the day' },
+  'Cons Disc': { kind: 'Consumer name', down: 'Consumer name lower on the day', up: 'Consumer name higher on the day' },
+  Utilities:   { kind: 'Utility',       down: 'Utility lower on the day', up: 'Utility higher on the day' },
+  IT:          { kind: 'Growth name',   down: 'Technology name lower on the day', up: 'Technology name higher on the day' },
 }
 
 export function scanRateSensitive(event) {

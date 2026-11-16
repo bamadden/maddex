@@ -1,4 +1,5 @@
-import { RBA_RATE_HISTORY as SHARED_RBA_HISTORY } from '../data/placeholders'
+import { RBA_TARGET_PATH, RBA_PATH_READ } from '../data/rbaCashRatePath'
+import { RBA_DECISIONS } from '../data/rbaDecisions'
 
 // Local seeded PRNG (mulberry32) + string hash — same technique mockData.js
 // uses, kept as an independent copy here since mockData doesn't export its
@@ -18,50 +19,51 @@ function mulberry32(seed) {
   }
 }
 
-// Real published RBA cash-rate changes (effective dates) — the one part of
-// this module that's sourced rather than illustrative. From May 2022 on it is
-// the shared history in data/placeholders.js, itself derived from
-// VERIFIED_CONSTANTS.rba.decisions, so a new meeting reaches Replay without a
-// second edit. Only the 2019–20 easing, which predates that series, is here.
-const PRE_2022 = [
-  { date: '2019-10-02', rate: 0.75 },
-  { date: '2020-03-04', rate: 0.50 },
-  { date: '2020-03-20', rate: 0.25 },
-  { date: '2020-11-04', rate: 0.10 },
-]
-export const RBA_RATE_HISTORY = [
-  ...PRE_2022,
-  // Holds repeat the previous rate; Replay only needs the changes.
-  ...SHARED_RBA_HISTORY
-    .filter((r, i, a) => i === 0 || r.rate !== a[i - 1].rate)
-    .map(({ date, rate }) => ({ date, rate })),
-]
+// The RBA cash rate target on any date, from the RBA's own record (the cash
+// rate target table, data/rbaCashRatePath, back to the level in force on
+// 1 Jan 2008). Null before that: the rate is not shown rather than guessed.
+// (16 Nov 2026: a shorter list fell back to 0.75% for any date before Oct
+// 2019, so 2008 showed 0.75% instead of 7.25%.)
+export const RBA_RATE_HISTORY = RBA_TARGET_PATH.map((p) => ({ date: p.effective, rate: p.rate }))
+export const RBA_RATE_SOURCE = `RBA cash rate target table, read ${RBA_PATH_READ}`
 
 export function rbaRateOn(dateStr) {
-  const applicable = RBA_RATE_HISTORY.filter((r) => r.date <= dateStr)
-  return applicable.length ? applicable[applicable.length - 1].rate : RBA_RATE_HISTORY[0].rate
+  let rate = null
+  for (const r of RBA_RATE_HISTORY) { if (r.date <= dateStr) rate = r.rate; else break }
+  return rate
 }
 
 export const PRESET_SCENARIOS = [
   { key: 'COVID', label: 'COVID CRASH — March 2020', startDate: '2020-02-15', endDate: '2020-04-15' },
   { key: 'RBA_CYCLE', label: 'RBA RATE CYCLE — May 2022 to Nov 2023', startDate: '2022-05-01', endDate: '2023-11-15' },
   { key: 'IRON_ORE', label: 'IRON ORE PEAK — July 2021', startDate: '2021-06-01', endDate: '2021-08-31' },
-  { key: 'AI_BOOM', label: 'AI BOOM — Jan 2023 to Present', startDate: '2023-01-01', endDate: new Date().toISOString().slice(0, 10) },
+  { key: 'AI_BOOM', label: 'AI BOOM — Jan 2023 to Present', startDate: '2023-01-01', endDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) },
 ]
 
+// "On this day": the RBA's own decisions only, each from its media release
+// (data/rbaDecisions) or the cash rate target table (data/rbaCashRatePath),
+// so every line has a source and a date. The typed list that stood here had
+// no sources and disagreed with the scenario data (an iron-ore "peak" on
+// 15 Jul 2021 against 12 May in the scenario; a cut dated to its effective
+// day) and was removed (16 Nov 2026).
+const EARLIEST_RELEASE = RBA_DECISIONS.at(-1).effective
 export const EDUCATIONAL_EVENTS = [
-  { date: '2020-02-20', text: 'Global markets begin a sharp selloff as COVID-19 spreads beyond China' },
-  { date: '2020-03-09', text: 'An oil price war compounds COVID fears, triggering a "Black Monday" crash' },
-  { date: '2020-03-16', text: 'ASX 200 falls over 9% in a single session — one of its worst days on record' },
-  { date: '2020-03-20', text: 'RBA cuts the cash rate to 0.25% and begins its first bond-buying program' },
-  { date: '2020-03-23', text: 'Global markets bottom out as central banks announce unprecedented stimulus' },
-  { date: '2021-07-15', text: 'Iron ore price peaks near US$230/tonne on Chinese steel demand' },
-  { date: '2022-05-04', text: 'RBA raises rates for the first time since 2010, ending the record-low-rate era' },
-  { date: '2022-06-08', text: 'RBA delivers a 50bp hike — its largest single move since 2000' },
-  { date: '2023-02-08', text: "RBA hikes for the 9th consecutive meeting as inflation stays elevated" },
-  { date: '2023-11-08', text: "RBA delivers what becomes the final hike of that cycle, taking the cash rate to 4.35%" },
-  { date: '2023-01-01', text: 'ChatGPT-driven AI enthusiasm begins reshaping tech valuations through the year' },
-  { date: '2023-05-24', text: "NVIDIA's blowout earnings guidance ignites the AI trade" },
+  // Before the decision record begins: each change from the target table, on
+  // its effective date.
+  ...RBA_TARGET_PATH.slice(1)
+    .map((p, i) => ({ p, prev: RBA_TARGET_PATH[i] }))
+    .filter(({ p }) => p.effective < EARLIEST_RELEASE)
+    .map(({ p, prev }) => ({
+      date: p.effective,
+      text: `The RBA cash rate target moves from ${prev.rate.toFixed(2)}% to ${p.rate.toFixed(2)}% (effective date)`,
+      source: RBA_RATE_SOURCE,
+    })),
+  // From then on: each change, on the day it was announced.
+  ...RBA_DECISIONS.filter((d) => d.changeBp !== 0).map((d) => ({
+    date: d.announced,
+    text: `RBA ${d.changeBp > 0 ? 'raises' : 'cuts'} the cash rate target by ${Math.abs(d.changeBp)}bp to ${d.rate.toFixed(2)}%`,
+    source: `RBA media release ${d.mr}`,
+  })),
 ]
 
 export function eventOn(dateStr) {
@@ -103,19 +105,8 @@ export function generateReplaySeries(symbol, dateStr, days = 90) {
   })
 }
 
-// A handful of date-seeded "movers" for the replay day — same technique,
-// just symbol-per-row instead of one index series.
-const REPLAY_SYMBOLS = [
-  ['BHP.AX', 'BHP Group'], ['CBA.AX', 'Commonwealth Bank'], ['CSL.AX', 'CSL Limited'],
-  ['RIO.AX', 'Rio Tinto'], ['FMG.AX', 'Fortescue'], ['WES.AX', 'Wesfarmers'],
-]
-export function generateReplayMovers(dateStr) {
-  return REPLAY_SYMBOLS.map(([symbol, name]) => {
-    const rng = mulberry32(hashStr(`${symbol}_movers_${dateStr}`))
-    const pct = (rng() - 0.5) * 6 + scenarioDrift(dateStr) * 100
-    return { symbol, name, pct }
-  })
-}
+// No "movers on this day" (removed 16 Nov 2026): random moves for real
+// tickers on real dates are invented history.
 
 // Date-only arithmetic done entirely in UTC — parsing "T00:00:00" (local)
 // then round-tripping through toISOString() silently shifts the date by a

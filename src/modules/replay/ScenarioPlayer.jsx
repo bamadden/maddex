@@ -143,6 +143,11 @@ export default function ScenarioPlayer({ scenario, onExit }) {
         <button className={`${btn} ${speed === '5x' ? 'border-terminal-gold text-terminal-gold' : 'border-terminal-border text-terminal-text-dim'}`} onClick={() => setSpeed('5x')}>⏩ 5x</button>
         <button className={`${btn} border-terminal-border text-terminal-text-dim hover:text-terminal-gold`} onClick={() => { setFrame(FRAMES); setPlaying(false) }}>⏭ JUMP TO END</button>
         <div className="flex-1 min-w-[160px] ml-2 h-1.5 bg-terminal-border/60 rounded-full overflow-hidden cursor-pointer"
+          role="slider" tabIndex={0} aria-label="Replay position" aria-valuemin={0} aria-valuemax={FRAMES} aria-valuenow={Math.round(p * FRAMES)}
+          onKeyDown={(e) => {
+            const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+            if (step) { e.preventDefault(); setPlaying(false); setFrame((f) => Math.max(0, Math.min(FRAMES, f + step * Math.ceil(FRAMES / 20)))) }
+          }}
           onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setFrame(Math.round(((e.clientX - r.left) / r.width) * FRAMES)); setPlaying(false) }}>
           <div className="h-full bg-terminal-gold transition-[width] duration-100" style={{ width: `${p * 100}%` }} />
         </div>
@@ -218,7 +223,7 @@ export default function ScenarioPlayer({ scenario, onExit }) {
             <div className="border border-terminal-border">
               <div className="px-3 py-2 border-b border-terminal-border flex items-center justify-between">
                 <span className="text-2xs text-terminal-gold font-bold tracking-widest">WHAT HAPPENED IN THIS SCENARIO</span>
-                <button onClick={() => ask(`Walk me through the ${scenario.title} (${scenario.dateLabel}) — what drove it, how markets reacted, and what an Australian investor can learn from it.`)}
+                <button onClick={() => ask(`Walk me through the ${scenario.title} (${scenario.dateLabel}) — what happened, in order, and what was reported at the time, using the sourced figures on this screen. Describe only: no lessons, no forecast and no suggestion of any action.`)}
                   className="text-2xs border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ASK MADDENAI ▶</button>
               </div>
               <div className="p-3 grid grid-cols-2 md:grid-cols-3 gap-2">
