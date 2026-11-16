@@ -5,7 +5,7 @@ import ScoreNote from '../../components/ui/ScoreNote'
 import { buildSchedule } from '../../services/dividendSchedule'
 import { fmt } from '../../utils/format'
 import { auRecessionRisk } from '../../data/recessionRisk'
-import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
+import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 // One sector map, not three — sectorMap.js already exported this and this
 // file kept its own byte-identical copy.
 import { SECTOR_BY_SYMBOL } from './sectorMap'
@@ -455,8 +455,6 @@ export default function PortfolioAnalytics({ holdings, mktTotal, fmtCur }) {
 function RateSensitivitySection({ holdings, fmtCur }) {
   const pr = useMemo(() => portfolioRate(holdings), [holdings])
   if (!pr) return null
-  const nd = pendingRbaDecision()
-  const hikeTo = nd?.hikeRate != null ? `${nd.hikeRate.toFixed(2)}%` : null
   const tone = RATE_LEVEL_STYLE[pr.rating]?.colour ?? PAL.dim
   const topText = pr.top.map(([s, w]) => `${s} (${Math.round(w * 100)}%)`).join(' and ')
   const verdict = {
@@ -479,7 +477,7 @@ function RateSensitivitySection({ holdings, fmtCur }) {
           <span className="text-2xs text-terminal-text-dim">Overall:</span>
           <span className="text-xs font-bold" style={{ color: tone }}>{pr.rating}</span>
           <span className="text-2xs text-terminal-text-dim">
-            · est. {pr.shock >= 0 ? '+' : ''}{pr.shock.toFixed(1)}% ({pr.shock >= 0 ? '+' : '−'}{fmtCur(Math.abs(pr.total * pr.shock / 100))}) if the RBA hikes 25bp
+            · est. {pr.shock >= 0 ? '+' : ''}{pr.shock.toFixed(1)}% ({pr.shock >= 0 ? '+' : '−'}{fmtCur(Math.abs(pr.total * pr.shock / 100))}) for a 25bp rise in the cash rate (a what-if, not a forecast)
           </span>
         </div>
         <div className="text-2xs text-terminal-text leading-relaxed">
@@ -488,7 +486,7 @@ function RateSensitivitySection({ holdings, fmtCur }) {
 
         <div>
           <div className="text-2xs text-terminal-text-dim tracking-widest mb-1">
-            SIMULATED IMPACT: {hikeTo ? `RBA HIKES TO ${hikeTo}` : 'A 25BP RBA HIKE'}
+            SIMULATED IMPACT: A 25BP RISE IN THE CASH RATE
           </div>
           <table className="w-full text-2xs">
             <thead>

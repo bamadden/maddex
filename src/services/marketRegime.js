@@ -56,7 +56,7 @@ export function regimePrompts() {
     { label: 'RATE HIKES & ASX SECTORS', prompt: 'Describe how the RBA and Fed rate hikes reach ASX sectors, and which sectors are most exposed to higher rates, using only the figures given. Describe only: no forecast.', dataKeys: ['asx'] },
     { label: `EARNINGS AND A ${rate} CASH RATE`, prompt: `Explain how a ${rate} cash rate reaches company earnings — margins, cash balances, borrowing costs, pricing power — by business model. Describe only: no stock picks and no suggestion of any action.`, dataKeys: ['asx'] },
     { label: 'TIGHTENING CYCLES EXPLAINED', prompt: 'Explain what a tightening cycle is and how past RBA tightening cycles have reached borrowers, savers and company earnings. Describe only: no view on investing now or later.', dataKeys: ['asx', 'aud'] },
-    { label: 'RISK OF MORE RBA HIKES', prompt: `What is the case for and against another RBA hike at the ${rba.nextMeeting} meeting, and what data between now and then matters most? Describe it in words — no market-implied probability.`, dataKeys: [] },
+    { label: 'WHAT THE RBA HAS SAID', prompt: 'Describe what the RBA said in its latest statement about inflation, the labour market and its approach, and which releases are scheduled before its next meeting, using only the figures and quotes given. Describe only: no forecast of the decision.', dataKeys: [] },
   ]
 }
 

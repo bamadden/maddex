@@ -2,18 +2,16 @@ import { useMemo, useState, useCallback } from 'react'
 import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { dispatchAskAI } from '../../utils/askAI'
 import SafeChart from '../../components/ui/SafeChart'
-import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { SECTOR_BY_SYMBOL } from './sectorMap'
 import { holdingRate } from './rateSensitivity'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
-// The coming RBA decision, for the hike scenario's label: "RBA HIKES TO
-// 4.85% (3 NOV)". Falls back to a generic label once no decision is pending.
-const ND = pendingRbaDecision()
-const RBA_HIKE_LABEL = ND?.hikeRate != null
-  ? `RBA HIKES TO ${ND.hikeRate.toFixed(2)}% (${formatDate(ND.date, { year: false }).toUpperCase()})`
-  : 'RBA HIKES 25BP'
+// The rate scenario is a generic cash-rate shock the reader sets, in basis
+// points (16 Nov 2026, Ben's decision): no link to a coming meeting and no
+// label saying what the RBA will do.
+const RATE_STEP = 25
+const rateLabel = (bp) => `CASH RATE ${bp >= 0 ? '+' : '−'}${Math.abs(bp)}BP`
 
 // Illustrative beta estimates by sector, used only by the MARKET CRASH
 // scenario (a uniform shock scaled by each holding's assumed sensitivity) —
@@ -40,8 +38,7 @@ function sectorShockPct(h, table, fallback = 0) {
 const SCENARIO_META = {
   ironOre:       { icon: '⛏',  severity: 'high' },
   audUsd:        { icon: '💱', severity: 'medium' },
-  rateHike:      { icon: '📈', severity: 'medium' },
-  rbaHike:       { icon: '🏦', severity: 'medium' },
+  rateShock:     { icon: '🏦', severity: 'medium' },
   chinaSlowdown: { icon: '🇨🇳', severity: 'high' },
   globalRecession: { icon: '🌍', severity: 'high' },
   techSelloff:   { icon: '💻', severity: 'medium' },
@@ -67,17 +64,14 @@ const SCENARIOS = [
   },
   {
     // Shares its sector assumptions with the Analytics tab's rate analysis
-    // (sectorTaxonomy.RATE_SENSITIVITY): REITs −8%, Cons Disc −5%, Utilities
-    // −4%, IT −3%, Materials −2%, Health −1%, Financials +2%. Broad AU ETFs
-    // take the ASX 200 mix; offshore holdings are left flat (currency only).
-    key: 'rbaHike', label: RBA_HIKE_LABEL, borderColor: 'border-orange-500/50 hover:border-orange-500',
-    describe: `${RBA_HIKE_LABEL} — REITs −8%, Consumer Disc −5%, Utilities −4%, Tech −3%, Materials −2%, Healthcare −1%, Financials +2% (NIM). Scenario assumptions by sector.`,
-    shock: (h) => holdingRate(h).shock / 100,
-  },
-  {
-    key: 'rateHike', label: 'RATE HIKE +50BP', borderColor: 'border-orange-500/50 hover:border-orange-500',
-    describe: 'RBA +50bp — Financials +2%, Consumer Disc −3%, Tech −8%, other sectors unchanged.',
-    shock: (h) => sectorShockPct(h, { Financials: 0.02, IT: -0.08, 'Cons Disc': -0.03 }, 0),
+    // (sectorTaxonomy.RATE_SENSITIVITY, set per 25bp rise): REITs −8%,
+    // Cons Disc −5%, Utilities −4%, IT −3%, Materials −2%, Health −1%,
+    // Financials +2%, scaled in proportion to the shock the reader sets and
+    // reversed for a fall. Broad AU ETFs take the ASX 200 mix; offshore
+    // holdings are left flat (currency only).
+    key: 'rateShock', label: rateLabel, borderColor: 'border-orange-500/50 hover:border-orange-500',
+    describe: (bp) => `Cash rate ${bp >= 0 ? '+' : '−'}${Math.abs(bp)}bp, set by you. Per 25bp rise: REITs −8%, Consumer Disc −5%, Utilities −4%, Tech −3%, Materials −2%, Healthcare −1%, Financials +2%; scaled in proportion and reversed for a fall.`,
+    shock: (h, bp) => (holdingRate(h).shock / 100) * (bp / RATE_STEP),
   },
   {
     key: 'chinaSlowdown', label: 'CHINA SLOWDOWN', borderColor: 'border-red-500/50 hover:border-red-500',
@@ -153,6 +147,7 @@ function DonutMini({ data, title }) {
 export default function StressTest({ holdings, fmtCur }) {
   const [scenarioKey, setScenarioKey] = useState(null)
   const [customOpen, setCustomOpen] = useState(false)
+  const [rateBp, setRateBp] = useState(RATE_STEP)
   const [factors, setFactors] = useState({ equities: 0, materials: 0, financials: 0, currency: 0, rates: 0 })
 
   const live = holdings.filter((h) => h.mktVal != null)
@@ -160,8 +155,8 @@ export default function StressTest({ holdings, fmtCur }) {
   const activeShockFn = useMemo(() => {
     if (customOpen) return (h) => customShock(h, factors)
     const s = SCENARIOS.find((s) => s.key === scenarioKey)
-    return s?.shock ?? null
-  }, [scenarioKey, customOpen, factors])
+    return s ? (h) => s.shock(h, rateBp) : null
+  }, [scenarioKey, customOpen, factors, rateBp])
 
   const impact = useMemo(() => {
     if (!activeShockFn) return null
@@ -185,9 +180,9 @@ export default function StressTest({ holdings, fmtCur }) {
   // table below shows — not a hardcoded guess that could drift from it.
   const estimateScenario = useCallback((scenario) => {
     if (!live.length || !totalCurrent) return null
-    const stressed = live.reduce((sum, h) => sum + h.mktVal * (1 + scenario.shock(h)), 0)
+    const stressed = live.reduce((sum, h) => sum + h.mktVal * (1 + scenario.shock(h, rateBp)), 0)
     return ((stressed - totalCurrent) / totalCurrent) * 100
-  }, [live, totalCurrent])
+  }, [live, totalCurrent, rateBp])
 
   const activeScenario = SCENARIOS.find((s) => s.key === scenarioKey)
   const biggestLoser = impact ? [...impact].sort((a, b) => a.impactVal - b.impactVal)[0] : null
@@ -236,7 +231,7 @@ export default function StressTest({ holdings, fmtCur }) {
                 <span className="flex items-center gap-1.5 min-w-0">
                   <span aria-hidden="true" className="text-[13px] leading-none flex-shrink-0">{meta.icon}</span>
                   <span className={`text-2xs font-bold tracking-wide truncate ${isSelected ? 'text-terminal-gold' : 'text-terminal-text-bright'}`}>
-                    {s.label}
+                    {typeof s.label === 'function' ? s.label(rateBp) : s.label}
                   </span>
                 </span>
                 <span className={`text-2xs font-mono tabular-nums ${est == null ? 'text-terminal-text-dim' : est >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
@@ -262,7 +257,19 @@ export default function StressTest({ holdings, fmtCur }) {
             <span className="text-2xs text-terminal-text-dim font-mono">set your own shock</span>
           </button>
         </div>
-        {activeScenario && <div className="text-2xs text-terminal-text-dim mt-2" data-scenario-note>{activeScenario.describe} The shocks are Maddex's stated assumptions (set {formatDate(STRESS_BETAS_SET)}), applied to your holdings: a what-if, not a forecast.</div>}
+        {activeScenario?.key === 'rateShock' && (
+          <label className="flex items-center gap-2 mt-2 text-2xs text-terminal-text-dim">
+            Change in the cash rate (bp)
+            <input
+              type="number" step={RATE_STEP} min={-300} max={300} value={rateBp}
+              onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) setRateBp(Math.max(-300, Math.min(300, Math.round(v)))) }}
+              className="w-20 bg-transparent border border-terminal-border px-1.5 py-1 font-mono text-terminal-text"
+              aria-label="Change in the cash rate, in basis points"
+              data-rate-bp
+            />
+          </label>
+        )}
+        {activeScenario && <div className="text-2xs text-terminal-text-dim mt-2" data-scenario-note>{typeof activeScenario.describe === 'function' ? activeScenario.describe(rateBp) : activeScenario.describe} The shocks are Maddex's stated assumptions (set {formatDate(STRESS_BETAS_SET)}), applied to your holdings: a what-if, not a forecast.</div>}
       </div>
 
       {customOpen && (
