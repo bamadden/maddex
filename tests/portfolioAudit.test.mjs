@@ -23,3 +23,9 @@ test('Sydney dates, friendly errors', () => {
   const s = all() + read('src/services/portfolioCsv.js') + read('src/services/transactionService.js')
   assert.doesNotMatch(s, /toISOString\(\)\.slice\(0, 10\)|toLocaleDateString\('en-CA'\)\)|e\.message \|\| 'DATA SOURCE ERROR'/)
 })
+
+test('News: prompts describe; tone is not a green/red verdict; no 0 for a missing move; no raw error', () => {
+  const s = read('src/modules/news/NewsModule.jsx')
+  assert.doesNotMatch(s, /likely market impact|what should I watch next|s\.label === 'BULLISH' \? PAL\.up|price_change_percentage_24h \?\? 0|setError\(e\.message/)
+  assert.doesNotMatch(s, /ENERGY: PAL\.down|CRYPTO: PAL\.up/)
+})

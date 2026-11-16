@@ -56,8 +56,10 @@ const BREAKING_RE = /rate (cut|hike)|crash|collapse|record (high|low)|emergency|
 // so one category had two colour definitions that had to be kept in step by
 // hand. The card now uses these hexes like every other surface in the module.
 const TAG_COLOR = {
-  MACRO: PAL.gold, AU: PAL.gold, EQUITY: PAL.blue, ENERGY: PAL.down, FX: PAL.dim,
-  CRYPTO: PAL.up, RATES: PAL.dim, 'M&A': PAL.gold, INTL: PAL.blue, EARNINGS: PAL.down, TECH: PAL.blue,
+  // No up/down colours on categories: red ENERGY and green CRYPTO read as a
+  // judgement (16 Nov 2026).
+  MACRO: PAL.gold, AU: PAL.gold, EQUITY: PAL.blue, ENERGY: PAL.amber, FX: PAL.dim,
+  CRYPTO: PAL.blue, RATES: PAL.dim, 'M&A': PAL.gold, INTL: PAL.blue, EARNINGS: PAL.dim, TECH: PAL.blue,
 }
 
 // ─── Persistence helpers ───────────────────────────────────────────────────────
@@ -326,6 +328,7 @@ function resolveStoryAsset(item) {
       if (!entry) continue
       price = entry.current_price; changePct = entry.price_change_percentage_24h
     }
+    if (changePct == null) continue // no move to show, rather than a 0
     return {
       label: cand.label,
       price, changePct,
@@ -347,8 +350,8 @@ function marketImpactAssets() {
     { label: 'XRP',     entry: MOCK_CRYPTO.find(c => c.id === 'ripple') },
   ]
   return picks.map(p => {
-    const changePct = p.entry.changePct ?? p.entry.price_change_percentage_24h ?? 0
-    const price = p.entry.price ?? p.entry.current_price ?? 0
+    const changePct = p.entry.changePct ?? p.entry.price_change_percentage_24h ?? null
+    const price = p.entry.price ?? p.entry.current_price ?? null
     return { label: p.label, changePct, price }
   })
 }
@@ -706,6 +709,7 @@ function MovingOnNews({ items }) {
       </div>
       <div className="flex flex-col gap-2">
         {assets.slice(0, 5).map(a => {
+          if (a.changePct == null) return null
           const up = a.changePct >= 0
           const headline = headlineForAsset(items, a.label)
           return (
@@ -787,8 +791,8 @@ function MorningBriefing() {
       })
       setText(result)
       try { localStorage.setItem(briefKey(today), result) } catch { /* best-effort cache write */ }
-    } catch (e) {
-      setError(e.message || 'Failed to generate briefing')
+    } catch {
+      setError('The briefing could not be written just now. Try again in a moment.')
     } finally {
       setLoading(false)
     }
@@ -1066,14 +1070,15 @@ function IntelColumn({ items, annotatedAll, nowTs, topic, setTopic, onOpen, mark
 
       {/* A different measure: the tone of the headlines in this feed. */}
       <div className="px-3 py-2 border-b border-terminal-border" title={`Headline tone: ${s.total} articles in this feed, scored by keyword and weighted by impact and recency. A different measure from market sentiment.`}>
-        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 11, color: s.label === 'BULLISH' ? PAL.up : s.label === 'BEARISH' ? PAL.down : PAL.gold }}>{toneWord(s.label)}</span>)}
+        {head('Headline tone', <span className="ml-auto font-mono font-bold" style={{ fontSize: 11, color: PAL.gold }}>{toneWord(s.label)}</span>)}
         <div className="flex h-2 rounded-sm overflow-hidden">
-          <div style={{ width: `${s.bullPct}%`, background: PAL.up }} />
-          <div style={{ width: `${s.neutralPct}%`, background: PAL.gold }} />
-          <div style={{ width: `${s.bearPct}%`, background: PAL.down }} />
+          {/* Shades of one colour: a headline count, not a verdict (16 Nov 2026). */}
+          <div style={{ width: `${s.bullPct}%`, background: PAL.gold }} />
+          <div style={{ width: `${s.neutralPct}%`, background: 'rgba(201,168,76,0.45)' }} />
+          <div style={{ width: `${s.bearPct}%`, background: 'rgba(201,168,76,0.2)' }} />
         </div>
         <div className="flex justify-between font-mono mt-1" style={{ fontSize: 11 }}>
-          <span style={{ color: PAL.up }}>POSITIVE {s.bullPct}%</span><span style={{ color: PAL.gold }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: PAL.down }}>NEGATIVE {s.bearPct}%</span>
+          <span style={{ color: PAL.dim }}>POSITIVE WORDS {s.bullPct}%</span><span style={{ color: PAL.dim }}>NEUTRAL {s.neutralPct}%</span><span style={{ color: PAL.dim }}>NEGATIVE WORDS {s.bearPct}%</span>
         </div>
         {trend && <div className="font-mono mt-1" style={{ fontSize: 11, color: trend.c }}>{trend.t}</div>}
       </div>
@@ -1198,7 +1203,7 @@ function NewsNudge({ stories, watchlist, nowTs }) {
   return (
     <ContextPrompt className="m-2"
       text={`${headline} — names ${names} on your watchlist.`}
-      prompt={`This high-impact story names ${names}, which ${many ? 'are' : 'is'} on my watchlist: "${story.headline}"${story.summary ? ` — ${story.summary.slice(0, 300)}` : ''}. What does it mean for ${many ? 'these stocks' : 'this stock'}, and what should I watch next? Use only what the story says; do not invent figures.`}
+      prompt={`This high-impact story names ${names}, which ${many ? 'are' : 'is'} on my watchlist: "${story.headline}"${story.summary ? ` — ${story.summary.slice(0, 300)}` : ''}. Describe what the story reports about ${many ? 'these companies' : 'this company'} and what the company has said, using only what the story says. Describe only: no forecast, no price and no suggestion of any action. Do not invent figures.`}
       action="ASK MADDENAI"
       onDismiss={() => setDismissed((d) => new Set(d).add(nudgeId(story)))} />
   )
@@ -1362,7 +1367,7 @@ export default function NewsModule() {
       ticker:      item.tickers?.length ? item.tickers.join(', ') : null,
       sector:      'News',
       date:        todayAEST(),
-      instruction: 'Analyse this news from an Australian investor perspective. What is the likely market impact for ASX and AUD?',
+      instruction: 'Describe what this story reports, who it concerns, and any ASX-listed companies or Australian sectors it names. Describe only: no forecast, no price and no suggestion of any action.',
     })
   }, [])
 
