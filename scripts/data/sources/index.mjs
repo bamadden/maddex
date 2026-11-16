@@ -4,5 +4,6 @@ import * as abs from './abs.mjs'
 import * as bls from './bls.mjs'
 import * as ecb from './ecb.mjs'
 import * as boc from './boc.mjs'
+import * as eia from './eia.mjs'
 
-export const SOURCES = { rba, abs, bls, ecb, boc }
+export const SOURCES = { rba, abs, bls, ecb, boc, eia }
