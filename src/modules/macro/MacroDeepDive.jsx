@@ -32,9 +32,10 @@ function targetRead(name, value) {
   if (!/CPI/i.test(name)) return null
   const v = parseNum(value)
   if (v == null) return null
-  if (v > 3) return { label: 'ABOVE TARGET BAND', colour: PAL.down, detail: `${v}% against the RBA's 2–3% band` }
-  if (v < 2) return { label: 'BELOW TARGET BAND', colour: '#4A9EDB', detail: `${v}% against the RBA's 2–3% band` }
-  return { label: 'IN TARGET BAND', colour: PAL.up, detail: `${v}% within the RBA's 2–3% band` }
+  const { rbaTargetLow: lo, rbaTargetHigh: hi, rbaTargetBand: band } = VERIFIED_CONSTANTS.au
+  if (v > hi) return { label: 'ABOVE TARGET BAND', colour: PAL.down, detail: `${v}% against the RBA's ${band} band` }
+  if (v < lo) return { label: 'BELOW TARGET BAND', colour: '#4A9EDB', detail: `${v}% against the RBA's ${band} band` }
+  return { label: 'IN TARGET BAND', colour: PAL.up, detail: `${v}% within the RBA's ${band} band` }
 }
 
 // How directly each indicator feeds the RBA's decision. This is a property of
@@ -196,10 +197,10 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
 // cell used to name the decision it implied (HIKE, CUT, HOLD), which is a
 // forecast of the Board (removed 16 Nov 2026).
 const QUADRANT_GUIDE = [
-  { key: 'slow-hot', note: 'Annual GDP growth below 2.25% while CPI is above the top of the 2–3% band.' },
-  { key: 'firm-hot', note: 'Annual GDP growth at or above 2.25% while CPI is above the top of the band.' },
-  { key: 'slow-cool', note: 'Annual GDP growth below 2.25% with CPI in or below the band.' },
-  { key: 'firm-cool', note: 'Annual GDP growth at or above 2.25% with CPI in or below the band.' },
+  { key: 'slow-hot', note: `Annual GDP growth below ${GROWTH_REFERENCE}% while CPI is above the top of the ${VERIFIED_CONSTANTS.au.rbaTargetBand} band.` },
+  { key: 'firm-hot', note: `Annual GDP growth at or above ${GROWTH_REFERENCE}% while CPI is above the top of the band.` },
+  { key: 'slow-cool', note: `Annual GDP growth below ${GROWTH_REFERENCE}% with CPI in or below the band.` },
+  { key: 'firm-cool', note: `Annual GDP growth at or above ${GROWTH_REFERENCE}% with CPI in or below the band.` },
 ].map((q) => ({ ...q, label: QUADRANT_LABELS[q.key] }))
 
 export function RbaSensitivityMatrix() {

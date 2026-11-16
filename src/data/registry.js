@@ -81,7 +81,7 @@ export const DATASETS = [
   d({ id: 'vc:auTrade', what: 'Australian exports and imports by partner, 2024-25', cls: 'official', kind: 'statistic', source: ABS, licence: LIC.abs, fetch: MANUAL(), cadence: 'annual', maxAgeDays: 365, modules: ['global'], asOf: { vc: 'auTrade' } }),
   d({ id: 'country-stats', what: 'Country GDP growth and CPI (Global panel)', cls: 'official', kind: 'statistic', source: { name: "Each country's statistics agency (docs/DATA_SOURCES.md)", url: null }, licence: LIC.gov, fetch: MANUAL(), cadence: 'monthly and quarterly releases', modules: ['global', 'macro'], asOf: { file: VC, date: 'COUNTRY_STATS_CHECKED' }, fallback: FB.unverifiable }),
   d({ id: 'macro-series', what: 'Macro leading-indicator series (surveys, trade, spending)', cls: 'official', kind: 'statistic', source: { name: 'ABS, Westpac-Melbourne Institute, NAB', url: null }, licence: LIC.gov, fetch: MANUAL(), cadence: 'monthly', modules: ['macro'], asOf: { file: 'src/data/placeholders.js', date: 'MACRO_SERIES_AS_OF' } }),
-  d({ id: 'tax-rates', what: 'Tax, super and duty rates', cls: 'official', kind: 'reference', source: { name: 'ATO and state revenue offices', url: 'https://www.ato.gov.au/' }, licence: LIC.gov, fetch: MANUAL(), cadence: 'each financial year', modules: ['calculators'], asOf: { file: 'src/data/auTaxRates.js', date: 'TAX_YEAR_START' } }),
+  d({ id: 'tax-rates', what: 'Tax, super and duty rates; the CGT discount; the company rate for franking', cls: 'official', kind: 'reference', source: { name: 'ATO and state revenue offices', url: 'https://www.ato.gov.au/' }, licence: LIC.gov, fetch: MANUAL(), cadence: 'each financial year', modules: ['calculators', 'portfolio'], asOf: { file: 'src/data/auTaxRates.js', date: 'TAX_YEAR_START' } }),
   d({ id: 'country-db', what: 'Country reference (capitals, languages, currencies)', cls: 'official', kind: 'reference', source: { name: 'Natural Earth and national sources', url: 'https://www.naturalearthdata.com/' }, licence: 'Public domain (Natural Earth); facts', fetch: MANUAL(), cadence: 'on change', modules: ['global'], asOf: { file: 'src/data/countryDatabase.js', date: 'COUNTRY_DB_AS_OF' } }),
 
   // ── RBA records ───────────────────────────────────────────────────────────
@@ -108,11 +108,16 @@ export const DATASETS = [
   d({ id: 'company-facts', what: 'Company facts (Relationships, Company)', cls: 'official', kind: 'statistic', source: { name: 'Company annual reports and ASX filings', url: null }, licence: LIC.issuer, fetch: MANUAL(), cadence: 'each reporting season', modules: ['company', 'relationships'], asOf: { file: 'src/data/graph/companyFacts.js', date: 'FACTS_AS_OF' } }),
   d({ id: 'key-facts', what: 'Key facts (Relationships, Company)', cls: 'official', kind: 'statistic', source: { name: 'Company filings, each fact cited', url: null }, licence: LIC.issuer, fetch: MANUAL(), cadence: 'each reporting season', modules: ['company', 'relationships'], asOf: { file: 'src/data/graph/keyFacts.js', date: 'KEY_FACTS_READ' } }),
 
+  d({ id: 'crypto-au-facts', what: 'Crypto in Australia: ownership survey, AUSTRAC and ASIC rules, CGT treatment', cls: 'official', kind: 'reference', source: { name: 'Independent Reserve, AUSTRAC, ATO, Digital Assets Framework Act 2026 (named per fact)', url: null }, licence: LIC.gov, fetch: MANUAL(), cadence: 'on change', modules: ['crypto'], asOf: { file: 'src/modules/crypto/CryptoModule.jsx', date: 'AU_FACTS_CHECKED' } }),
+
+  d({ id: 'us-circuit-breakers', what: 'US market-wide circuit-breaker thresholds', cls: 'official', kind: 'reference', source: { name: 'SEC (investor.gov); NYSE Rule 7.12', url: 'https://www.investor.gov/introduction-investing/investing-basics/glossary/stock-market-circuit-breakers' }, licence: LIC.gov, fetch: MANUAL(), cadence: 'on rule change', modules: ['markets'], asOf: { file: 'src/modules/markets/VolatilityBanner.jsx', date: 'MWCB_CHECKED' } }),
+
   // ── Editorial ─────────────────────────────────────────────────────────────
   d({ id: 'graph', what: 'Relationship graph (each link cited; links age on their own at 365 days)', cls: 'editorial', kind: 'reference', source: { name: 'Company filings, each link with its quote', url: null }, licence: LIC.maddex, fetch: { method: 'manual', how: 'proposed, verified, and approved by a person', verify: 'npm run graph:verify' }, cadence: 'on approval', modules: ['relationships', 'company', 'global'], asOf: { file: 'src/data/graph/nodes.js', date: 'GRAPH_AS_OF' } }),
   d({ id: 'geo-risk', what: 'Country risk notes (descriptive)', cls: 'editorial', kind: 'editorial', source: { name: 'Maddex, from cited reporting', url: null }, licence: LIC.maddex, fetch: MANUAL(), cadence: 'monthly review', modules: ['global'], asOf: { file: 'src/data/geopoliticalRisk.js', date: 'RISK_LAST_REVIEWED' } }),
   d({ id: 'chokepoint', what: 'Shipping route status', cls: 'editorial', kind: 'editorial', source: { name: 'Maddex, from cited reporting (per route)', url: null }, licence: LIC.maddex, fetch: MANUAL(), cadence: 'on change', modules: ['global'], asOf: { file: 'src/data/shippingRoutes.js', rows: 'SHIPPING_ROUTES', field: 'asOf', label: 'name' } }),
 
+  d({ id: 'intel-map', what: 'Global map editorial content: disruptions, route notes and ratings, site notes', cls: 'editorial', kind: 'editorial', source: { name: 'Maddex, from cited reporting', url: null }, licence: LIC.maddex, fetch: MANUAL(), cadence: 'on change', modules: ['global'], asOf: { file: 'src/modules/global/intelMapData.js', date: 'INTEL_MAP_REVIEWED' } }),
   // ── Maddex methods (derived) ──────────────────────────────────────────────
   d({ id: 'crypto-momentum', what: 'Crypto momentum weights', cls: 'derived', kind: 'method', source: { name: 'Maddex method', url: null }, licence: LIC.maddex, fetch: { method: 'derived', how: 'computed from fetched prices with these weights', verify: null }, cadence: 'reviewed yearly', modules: ['crypto', 'markets'], asOf: { file: 'src/services/maddenAiScoring.js', date: 'CRYPTO_MOMENTUM_SET' }, fallback: FB.method }),
   d({ id: 'brief-bands', what: 'Brief score bands', cls: 'derived', kind: 'method', source: { name: 'Maddex method', url: null }, licence: LIC.maddex, fetch: { method: 'derived', how: 'computed from the day\'s figures', verify: null }, cadence: 'reviewed yearly', modules: ['brief', 'dashboard'], asOf: { file: 'src/utils/briefScore.js', date: 'BRIEF_BANDS_SET' }, fallback: FB.method }),
@@ -140,7 +145,6 @@ export const EXEMPT = {
   'src/services/replayScenarios.js': 'past events, each sourced on its scenario; a past fact does not age',
   'src/services/replayService.js': 'past RBA decisions for replays; a past fact does not age',
   'src/data/globeExchanges.js': 'exchange locations and trading hours',
-  'src/modules/global/intelMapData.js': 'locations and hours; levels come from the quote layer; AU trade values cite ABS 2024-25',
   'src/data/graph/edges.js': 'each edge dated and aged by data/graph/staleness (365 days)',
   'src/services/alertsService.js': 'derived from the economic calendar (econ-schedule)',
   'src/data/globeRoutes.js': 'lane statuses derive from the dated chokepoint table (chokepoint rows)',
@@ -150,6 +154,7 @@ export const EXEMPT = {
 // that date the problem fails the test again. Never extend one without the
 // check it names: fix the data, or add a new flag with a new reason.
 export const FLAGS = [
+  { id: 'intel-map', until: '2026-11-29', reason: 'Global map editorial content (disruptions, route notes, site notes) was never dated as a whole; it also repeats the dated chokepoint table. Re-read each item from its source by fetch, or remove it, then set INTEL_MAP_REVIEWED.' },
 ]
 
 export const datasetById = Object.fromEntries(DATASETS.map((e) => [e.id, e]))

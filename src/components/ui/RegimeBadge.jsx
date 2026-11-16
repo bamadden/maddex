@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import VERIFIED_CONSTANTS from '../../data/verifiedConstants.js'
 import { currentRegime, regimeHistory, GROWTH_REFERENCE, RBA_GROWTH_ASSESSMENT } from '../../services/marketRegime'
 import ScoreNote from './ScoreNote'
 
@@ -20,7 +21,7 @@ export function RegimeBadge({ onClick }) {
 export function RegimePanel() {
   const [{ r, hist }] = useState(() => ({ r: currentRegime(), hist: regimeHistory() }))
   const rows = [
-    ['RBA', r.inputs.rba], ['Fed', r.inputs.fed], ['CPI vs 2–3% target', r.inputs.cpi],
+    ['RBA', r.inputs.rba], ['Fed', r.inputs.fed], [`CPI vs ${VERIFIED_CONSTANTS.au.rbaTargetBand} target`, r.inputs.cpi],
     [`GDP vs ${GROWTH_REFERENCE}% line`, r.inputs.gdp], ['Unemployment', r.inputs.unemployment],
   ]
   return (

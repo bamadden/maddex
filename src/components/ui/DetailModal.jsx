@@ -60,20 +60,23 @@ function CoinCircle({ symbol, size = 40 }) {
   )
 }
 
+// What each network is, by design. No counts, speeds or user numbers: none
+// had a source or date (removed 16 Nov 2026), and the market figures beside
+// this text come from the price feed.
 const COIN_DESCRIPTIONS = {
-  BTC:  'The original cryptocurrency and global store of value. Fixed supply of 21M coins, secured by proof-of-work mining.',
-  ETH:  'Programmable blockchain powering decentralised applications and smart contracts. Transitioned to proof-of-stake in 2022.',
-  XRP:  'Payment protocol and digital asset designed for instant cross-border settlements. Operated by Ripple Labs, 300+ institutional partners globally.',
-  SOL:  'High-performance blockchain processing 65,000+ transactions per second at fractions of a cent. Leading DeFi and NFT ecosystem.',
-  BNB:  'Native token of the Binance ecosystem and BNB Chain. Used for trading fee discounts, gas fees, and DeFi applications.',
-  ADA:  'Peer-reviewed, research-driven blockchain built for sustainability and scalability. Focus on emerging markets and financial inclusion.',
-  DOGE: 'Originally a meme cryptocurrency, now a widely accepted payment token with one of the largest retail communities in crypto.',
-  AVAX: 'Fast, low-cost smart contract platform with sub-second finality. Supports custom blockchains and is strong in DeFi and gaming.',
-  TON:  "The Open Network — blockchain developed from Telegram's original design. Fast growing ecosystem tied to Telegram's 900M+ user base.",
-  LINK: 'Decentralised oracle network connecting smart contracts to real-world data. Infrastructure layer for DeFi protocols.',
+  BTC:  'The first cryptocurrency. Its protocol caps supply at 21 million coins; the network is secured by proof-of-work mining.',
+  ETH:  'A programmable blockchain that runs smart contracts and decentralised applications. Moved from proof-of-work to proof-of-stake in September 2022.',
+  XRP:  'The native asset of the XRP Ledger, a network designed for payments and cross-border settlement. Ripple Labs is the company most associated with it.',
+  SOL:  'A proof-of-stake smart-contract blockchain designed for high throughput and low fees.',
+  BNB:  'The native token of BNB Chain and the Binance ecosystem, used for transaction fees on that chain.',
+  ADA:  'The native token of Cardano, a proof-of-stake smart-contract blockchain developed through published research papers.',
+  DOGE: 'A proof-of-work cryptocurrency created in 2013, originally as a joke.',
+  AVAX: 'The native token of Avalanche, a smart-contract platform that lets projects run their own linked blockchains.',
+  TON:  "The native token of The Open Network, a blockchain that grew out of Telegram's original design.",
+  LINK: 'The token of Chainlink, an oracle network that supplies outside data to smart contracts.',
 }
 function coinDescription(symbol, name) {
-  return COIN_DESCRIPTIONS[symbol] ?? `${name ?? symbol} is a digital asset traded on major cryptocurrency exchanges. Track its price, market cap, and trading volume alongside the rest of the top 20 by market cap.`
+  return COIN_DESCRIPTIONS[symbol] ?? `${name ?? symbol} is a digital asset traded on cryptocurrency exchanges.`
 }
 
 // ─── Candlestick Chart ────────────────────────────────────────────────────────

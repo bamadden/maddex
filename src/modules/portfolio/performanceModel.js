@@ -2,6 +2,7 @@ import { STANDARD_DISCLAIMER, NOT_LICENSED } from '../../services/disclosures'
 import {
   annualise, bondGrowth, cashGrowth, cgtEstimate, daysBetween, dividendsFor, heldTwelveMonths,
 } from '../../services/performanceMath'
+import { CGT } from '../../data/auTaxRates.js'
 
 // ─── Returns per position and for the portfolio ────────────────────────────
 //
@@ -101,7 +102,7 @@ export function buildReturns({ holdings, lots, transactions, toAud, today, taxRa
 }
 
 export const taxNoteFor = (rate) =>
-  `After-tax return assumes a ${rate}% tax rate and the 50% CGT discount for parcels held at least 12 months. `
+  `After-tax return assumes a ${rate}% tax rate and the ${CGT.discount * 100}% CGT discount for parcels held at least ${CGT.minMonths} months. `
   + 'Unrealised gains only: dividends are shown before tax and franking credits are not modelled. Estimate only — seek tax advice.'
 
 // Which return the card and table lead with.

@@ -7,7 +7,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 import Tooltip from '../../components/ui/Tooltip'
 import TabBar from '../../components/ui/TabBar'
 import {
-  TAX_YEAR, TAX_BRACKETS, TAX_SOURCE, SUPER, ASFA, STAMP_DUTY,
+  TAX_YEAR, TAX_BRACKETS, TAX_SOURCE, SUPER, ASFA, STAMP_DUTY, CGT,
   fullTaxPosition, stampDuty, marginalRate,
 } from '../../data/auTaxRates'
 import { compound, drp, loanPayment, amortise, superProjection, cgt, MORTGAGE_MARGIN, repaymentChange } from './calcMath'
@@ -311,7 +311,7 @@ function SuperCalc() {
           tip="The 4% rule is a rule of thumb, not a guarantee — it comes from US historical data and assumes a balanced portfolio." />
         <Metric label="YEARS TO RETIREMENT" value={`${base.years}`} />
         <Metric label="NET CONTRIBUTIONS" value={money(base.totalContrib)} tone={PAL.dim}
-          tip="After the 15% contributions tax. Gross contributions are higher." />
+          tip={`After the ${SUPER.contributionsTax * 100}% contributions tax. Gross contributions are higher.`} />
       </div>
 
       <div style={{ height: 150 }}>
@@ -663,7 +663,7 @@ function CgtCalc() {
           <Field label="PURCHASE DATE" value={buyDate} onChange={setBuyDate} type="date" />
           <Field label="SALE DATE" value={sellDate} onChange={setSellDate} type="date" />
           <Field label="MARGINAL TAX RATE" value={marginal} onChange={setMarginal}
-            options={[{ value: '0', label: '0%' }, { value: '15', label: '15%' }, { value: '30', label: '30%' }, { value: '37', label: '37%' }, { value: '45', label: '45%' }]} />
+            options={TAX_BRACKETS.map((b) => ({ value: String(Math.round(b.rate * 100)), label: `${Math.round(b.rate * 100)}%` }))} />
         </>
       }
     >
@@ -671,15 +671,15 @@ function CgtCalc() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
         <Metric label="CAPITAL GAIN" value={money(r.gain)} tone={r.gain >= 0 ? PAL.up : PAL.down} />
         <Metric label="HELD" value={`${r.heldDays.toLocaleString()} days`} />
-        <Metric label="CGT DISCOUNT" value={r.discounted ? '50% applied' : 'Not eligible'} tone={r.discounted ? PAL.up : PAL.gold} />
+        <Metric label="CGT DISCOUNT" value={r.discounted ? `${CGT.discount * 100}% applied` : 'Not eligible'} tone={r.discounted ? PAL.up : PAL.gold} />
         <Metric label="TAXABLE GAIN" value={money(r.taxable)} />
         <Metric label="TAX PAYABLE" value={money(r.tax)} tone={PAL.down} />
         <Metric label="EFFECTIVE RATE ON GAIN" value={`${r.effective.toFixed(1)}%`} />
       </div>
       <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11 }}>
         {r.discounted
-          ? `Held for more than twelve months, so only 50% of the gain is taxed — the CGT discount for Australian individuals. That is why the effective rate on the gain (${r.effective.toFixed(1)}%) is roughly half the marginal rate.`
-          : 'Held for twelve months or less, so the whole gain is taxed at your marginal rate. Holding one more day past twelve months would halve the taxable amount.'}
+          ? `Sold after the first anniversary of the purchase, so ${(1 - CGT.discount) * 100}% of the gain is taxed: the CGT discount for Australian individuals (${CGT.source}). That is why the effective rate on the gain (${r.effective.toFixed(1)}%) is below the marginal rate.`
+          : `Sold on or before the first anniversary of the purchase, so the whole gain is taxed at the marginal rate. The discount applies to a sale after the anniversary (${CGT.source}).`}
       </div>
       <div className="text-terminal-text-dim/50 leading-snug mt-2" style={{ fontSize: 11 }}>
         The gain is added to your income and can push you into a higher bracket; this uses the single marginal rate

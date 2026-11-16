@@ -106,13 +106,13 @@ export const RBA_NAIRU_NOTE = {
 }
 
 // The inflation line everywhere: the top of the RBA's 2–3% band.
-export const CPI_REFERENCE = 3
+export const CPI_REFERENCE = VERIFIED_CONSTANTS.au.rbaTargetHigh
 
 export const REGIME_STYLE = {
-  'HIKING · SLOWER GROWTH': { colour: PAL.amber, note: 'The RBA\'s last move was a rise; growth is below the 2.25% reference line, or unemployment has risen.' },
-  'HIKING · FIRMER GROWTH': { colour: PAL.amber, note: 'The RBA\'s last move was a rise; growth is at or above the 2.25% reference line.' },
-  'CUTTING · SLOWER GROWTH': { colour: PAL.dim, note: 'The RBA\'s last move was a cut; growth is below the 2.25% reference line, or unemployment has risen.' },
-  'CUTTING · FIRMER GROWTH': { colour: PAL.dim, note: 'The RBA\'s last move was a cut; growth is at or above the 2.25% reference line.' },
+  'HIKING · SLOWER GROWTH': { colour: PAL.amber, note: `The RBA's last move was a rise; growth is below the ${GROWTH_REFERENCE}% reference line, or unemployment has risen.` },
+  'HIKING · FIRMER GROWTH': { colour: PAL.amber, note: `The RBA's last move was a rise; growth is at or above the ${GROWTH_REFERENCE}% reference line.` },
+  'CUTTING · SLOWER GROWTH': { colour: PAL.dim, note: `The RBA's last move was a cut; growth is below the ${GROWTH_REFERENCE}% reference line, or unemployment has risen.` },
+  'CUTTING · FIRMER GROWTH': { colour: PAL.dim, note: `The RBA's last move was a cut; growth is at or above the ${GROWTH_REFERENCE}% reference line.` },
   'ON HOLD': { colour: PAL.dim, note: 'No RBA move in nine months.' },
 }
 

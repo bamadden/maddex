@@ -223,14 +223,16 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
 
 // ─── Expanded Chart Modal ─────────────────────────────────────────────────────
 
+const TARGET = VERIFIED_CONSTANTS.au
+
 const CHART_CONFIGS = {
   cpi: {
     title: 'AU CPI YoY (%)',
     data: null,
     color: '#f0c040',
     unit: '%',
-    refLine: 2.5,
-    refLabel: 'RBA midpoint 2.5%',
+    refLine: (VERIFIED_CONSTANTS.au.rbaTargetLow + VERIFIED_CONSTANTS.au.rbaTargetHigh) / 2,
+    refLabel: `Midpoint of the RBA's ${VERIFIED_CONSTANTS.au.rbaTargetBand} target`,
     secondKey: 'trimmed', secondLabel: 'Trimmed mean', secondColor: PAL.dim,
     legend: '○ quarterly CPI (to Mar-25) · ● monthly CPI (from Apr-25) · - - trimmed mean',
   },
@@ -2031,11 +2033,11 @@ export default function MacroModule() {
               <span className="ml-auto text-terminal-text-dim font-normal normal-case text-2xs">ABS</span>
             </div>
             <div className="flex-1 p-1">
-              <MiniChart data={AU_CPI_HISTORY} dataKey="value" color="#f0c040" refLine={2.5} unit="%" onClick={() => setExpandedChart('cpi')} />
+              <MiniChart data={AU_CPI_HISTORY} dataKey="value" color="#f0c040" refLine={CHART_CONFIGS.cpi.refLine} unit="%" onClick={() => setExpandedChart('cpi')} />
             </div>
             <div className="px-2 py-1 text-2xs text-terminal-text-dim border-t border-terminal-border flex-shrink-0">
-              RBA TARGET: 2–3% <span className={`ml-1 ${latestCPI > 3 ? 'text-terminal-red' : 'text-terminal-green'}`}>
-                {latestCPI == null ? '—' : latestCPI > 3 ? 'ABOVE THE 2–3% BAND' : latestCPI < 2 ? 'BELOW THE 2–3% BAND' : 'WITHIN THE 2–3% BAND'}
+              RBA TARGET: {TARGET.rbaTargetBand} <span className="ml-1 text-terminal-text">
+                {latestCPI == null ? '—' : latestCPI > TARGET.rbaTargetHigh ? 'ABOVE THE BAND' : latestCPI < TARGET.rbaTargetLow ? 'BELOW THE BAND' : 'WITHIN THE BAND'}
               </span>
             </div>
           </div>

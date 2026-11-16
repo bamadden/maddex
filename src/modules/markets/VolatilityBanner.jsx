@@ -14,6 +14,10 @@ import { DemoBadge } from '../../components/ui/ModuleStates'
 // controls work per security. Market-wide circuit breakers are a US
 // mechanism, set on the S&P 500 at −7%, −13% and −20%, so that is the only
 // place the banner mentions them.
+// The thresholds, read 16 Nov 2026 from investor.gov and NYSE Rule 7.12
+// (registered as us-circuit-breakers).
+const MWCB_CHECKED = '2026-11-16'
+const MWCB = { levels: [7, 13, 20], source: `NYSE Rule 7.12, checked ${MWCB_CHECKED}` }
 const US_MWCB = new Set(['^GSPC', '^IXIC', '^DJI'])
 
 export default function VolatilityBanner() {
@@ -47,7 +51,7 @@ export default function VolatilityBanner() {
         {fallers.map((i) => `${i.label ?? i.name ?? i.symbol} ${quotes[i.symbol].pct.toFixed(1)}%`).join(' · ')}
       </span>
       <span className="ml-auto text-[11px] text-terminal-text-dim">
-        {fallers.some((i) => US_MWCB.has(i.symbol)) ? 'US market-wide circuit breakers halt trading at −7%, −13% and −20% on the S&P 500' : 'Shown when an index falls 2% or more on the day'}
+        {fallers.some((i) => US_MWCB.has(i.symbol)) ? `US market-wide circuit breakers: S&P 500 falls of ${MWCB.levels.map((l) => `${l}%`).join(', ')} from the prior close (${MWCB.source})` : 'Shown when an index falls 2% or more on the day'}
       </span>
       {USING_MOCK_DATA && <DemoBadge />}
     </div>

@@ -251,7 +251,7 @@ export function auRecessionRisk(now = Date.now()) {
       growthFactor(au.gdpAnnual),
       tighteningFactor(rba.decisions, now),
       policyFactor(rba.cashRate, au.cpi),
-      inflationFactor(au.cpi, 3, "the top of the RBA's 2–3% target band"),
+      inflationFactor(au.cpi, au.rbaTargetHigh, `the top of the RBA's ${au.rbaTargetBand} target band`),
     ]),
   }
 }

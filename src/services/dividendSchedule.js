@@ -24,6 +24,7 @@
 // Payment months, 1-indexed. Sourced from each company's published dividend
 // history; these cadences have held for a decade or more.
 import { getMockFMPRow } from './mockData'
+import { COMPANY_TAX_RATE } from '../data/auTaxRates.js'
 
 export const DIVIDEND_CALENDAR = {
   'BHP.AX': { months: [3, 9],  franking: 100, note: 'Interim Mar, final Sep' },
@@ -107,7 +108,7 @@ export function incomeFor(holding) {
     // Franking credits gross up the cash dividend at the company tax rate.
     // 30/70 is the standard grossing factor for a fully franked dividend at
     // the 30% company rate; scaled by how franked this payer actually is.
-    frankingCredits: entry?.franking ? annual * (entry.franking / 100) * (30 / 70) : 0,
+    frankingCredits: entry?.franking ? annual * (entry.franking / 100) * (COMPANY_TAX_RATE / (1 - COMPANY_TAX_RATE)) : 0,
   }
 }
 

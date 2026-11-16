@@ -46,6 +46,11 @@ const EXCHANGE_BASE = [
 // than a stale one. `demo` marks the source; the panel labels it.
 const EXCHANGE_INDEX = { ASX: '^AXJO', NYSE: '^GSPC', LSE: '^FTSE', TSE: '^N225', HKEX: '^HSI', SSE: '000001.SS', FSE: '^GDAXI', NZX: '^NZ50' }
 
+// Editorial map content (disruptions, route notes, site notes) has not been
+// re-read against its sources as a whole; null until it is (registered as
+// intel-map, flagged in src/data/registry.js until 29 Nov 2026).
+export const INTEL_MAP_REVIEWED = null
+
 export const EXCHANGES = EXCHANGE_BASE.map((e) => {
   const sym = EXCHANGE_INDEX[e.id]
   const q = sym ? getMockFMPRow(sym) : null

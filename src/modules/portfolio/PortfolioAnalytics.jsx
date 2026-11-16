@@ -13,6 +13,7 @@ import { portfolioRate } from './rateSensitivity'
 import { RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import { PAL } from '../../styles/palette.js'
+import { COMPANY_TAX_RATE } from '../../data/auTaxRates.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -76,7 +77,7 @@ function DividendSection({ holdings, fmtCur }) {
           ['YIELD ON COST', sched.yieldOnCost != null ? `${sched.yieldOnCost.toFixed(2)}%` : '—', PAL.gold, 'Income ÷ what you paid'],
           ['YIELD ON VALUE', sched.yieldOnValue != null ? `${sched.yieldOnValue.toFixed(2)}%` : '—', null,
             sched.yieldOnValue != null && td != null ? `vs 1-yr term deposit ${td.toFixed(2)}% (RBA F4)` : 'Income ÷ value today'],
-          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), PAL.gold, 'Per year, at the 30% company rate'],
+          ['EST. FRANKING CREDITS', fmtCur(sched.totalCredits), PAL.gold, `Per year, at the ${COMPANY_TAX_RATE * 100}% company rate`],
         ].map(([label, value, tone, sub]) => (
           <div key={label} style={{ background: PAL.panel, padding: '10px 12px' }}>
             <div className="text-terminal-text-dim/60 tracking-wider" style={{ fontSize: 11 }}>{label}</div>

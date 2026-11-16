@@ -6,7 +6,8 @@ import { AU_TRADE_BALANCE } from '../../data/placeholders'
 import { askClaudeJSON } from '../../services/api'
 import { AIContentBadge } from '../ui/VerifiedBadge'
 import { PAL } from '../../styles/palette.js'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, sydneyISO } from '../../utils/dateUtils'
+import { ECON_SCHEDULE } from '../../services/calendarService'
 
 // ─── Economic dashboard — twelve Australian indicators ──────────────────────
 //
@@ -35,6 +36,12 @@ const day = (iso) => (iso ? formatDate(iso) : null)
 // Cash rate at each decision, from the RBA decision list.
 const cashSeries = (rba.decisions ?? []).map((d) => ({ date: d.date.slice(0, 7), label: ym(d.date.slice(0, 7)), value: d.rate }))
 
+// The next release, from the registered economic calendar (econ-schedule),
+// never typed here: null when the calendar does not list one.
+const nextScheduled = (re) => ECON_SCHEDULE.find((e) => re.test(e.event) && e.date >= sydneyISO())?.date ?? null
+const NEXT_GDP = nextScheduled(/^AU National Accounts \(\w+ qtr\)/)
+const NEXT_CPI_QUARTER = nextScheduled(/^AU CPI \(.*quarter\)/)
+
 const INDICATORS = [
   {
     key: 'cpi', label: 'CPI (annual)', unit: '%', value: au.cpi, prev: au.cpiPrevious, period: au.cpiPeriod,
@@ -48,7 +55,7 @@ const INDICATORS = [
   },
   {
     key: 'tmq', label: 'Trimmed mean (quarter)', unit: '%', value: au.cpiQuarterTrimmedQoQ, prev: au.cpiQuarterPrevious?.trimmedQoQ, period: au.cpiQuarterPeriod,
-    next: null, nextNote: 'Dec quarter: late Jan 2027', src: 'ABS CPI, Appendix 1a', hint: `RBA forecast ${au.cpiQuarterRbaForecast ?? '—'}% q/q`, upIsBad: true,
+    next: NEXT_CPI_QUARTER, src: 'ABS CPI, Appendix 1a', hint: `RBA forecast ${au.cpiQuarterRbaForecast ?? '—'}% q/q`, upIsBad: true,
   },
   {
     key: 'unemp', label: 'Unemployment', unit: '%', value: au.unemployment, prev: au.unemploymentPrevious, period: au.unemploymentPeriod,
@@ -57,12 +64,12 @@ const INDICATORS = [
   },
   {
     key: 'gdpq', label: 'GDP (quarter)', unit: '%', value: au.gdpQoQ, prev: au.gdpHistory?.at(-2)?.value, period: au.gdpPeriod,
-    next: null, nextNote: 'Sep quarter: early Dec', src: 'ABS National Accounts', hint: 'real, seasonally adjusted',
+    next: NEXT_GDP, src: 'ABS National Accounts', hint: 'real, seasonally adjusted',
     series: (au.gdpHistory ?? []).map((r) => ({ label: r.period.replace('20', '').replace('-', ' '), value: r.value })),
   },
   {
     key: 'gdpy', label: 'GDP (annual)', unit: '%', value: au.gdpAnnual, prev: au.auQuarterlyPath?.at(-2)?.gdpAnnual, period: au.gdpPeriod,
-    next: null, nextNote: 'Sep quarter: early Dec', src: 'ABS National Accounts', hint: 'trend ~2.25%',
+    next: NEXT_GDP, src: 'ABS National Accounts', hint: 'chain volume, year on year',
     series: (au.auQuarterlyPath ?? []).map((r) => ({ label: r.period, value: r.gdpAnnual })),
   },
   {
@@ -80,7 +87,7 @@ const INDICATORS = [
   },
   {
     key: 'nab', label: 'NAB business confidence', unit: '', value: au.nabConfidence, prev: au.nabConfidencePrev, period: au.nabPeriod,
-    next: null, nextNote: 'October survey: mid-November', src: 'NAB Monthly Business Survey', hint: `conditions ${au.nabConditions}; long-run average about +5`, dp: 0,
+    next: null, src: 'NAB Monthly Business Survey', hint: `conditions ${au.nabConditions}`, dp: 0,
   },
   {
     key: 'au10y', label: 'AU 10-year yield', unit: '%', value: bonds?.au10y, prev: null, period: day(bonds?.au10yAsOf),

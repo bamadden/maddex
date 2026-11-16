@@ -30,6 +30,25 @@ export const TAX_SOURCE = 'ato.gov.au — resident rates 2026-27'
 
 export const MEDICARE_LEVY = 0.02
 
+// CGT discount for individuals: half the gain is taxed when the asset was
+// held at least 12 months, not counting the days it was bought and sold
+// (ato.gov.au, "CGT discount"). So a sale after the first anniversary
+// qualifies; a sale on it does not.
+export const CGT = { discount: 0.5, minMonths: 12, source: 'ato.gov.au — CGT discount' }
+
+// Bought on 14 Jan 2026, a parcel qualifies from 15 Jan 2027. Dates are
+// 'YYYY-MM-DD'.
+export function heldTwelveMonths(boughtIso, soldIso) {
+  const b = new Date(`${boughtIso}T00:00:00Z`)
+  b.setUTCFullYear(b.getUTCFullYear() + CGT.minMonths / 12)
+  return soldIso > b.toISOString().slice(0, 10)
+}
+
+// The company tax rate that franking credits are usually calculated at (a
+// fully franked dividend carries 30/70 of itself in credits). Base-rate
+// entities frank at 25%; the dividend statement says which.
+export const COMPANY_TAX_RATE = 0.30
+
 // Low Income Tax Offset: $700 max, reduced 5c/$1 over $37,500, then 1.5c/$1
 // over $45,000, gone at $66,667. The two-stage taper is why it cannot be
 // approximated with a single percentage.

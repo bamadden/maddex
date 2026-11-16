@@ -1,4 +1,5 @@
 import { RBA_PATH, rateOn } from '../data/policySpread'
+import { CGT, TAX_BRACKETS, MEDICARE_LEVY as LEVY, heldTwelveMonths } from '../data/auTaxRates.js'
 
 // ─── Portfolio performance arithmetic ───────────────────────────────────────
 //
@@ -103,16 +104,11 @@ export function dividendsFor(position, lots, transactions, { toAud, yieldPct, to
 // get no discount, then against discountable gains, and only then is the
 // discount applied — the ATO's order. Net losses produce no refund; they carry
 // forward, which this does not track.
-export const TAX_RATES = [0, 15, 30, 37, 45]
-export const MEDICARE_LEVY = 2
-
-// A parcel qualifies for the discount when it has been held at least 12
-// months: bought on 14 Jan 2026, it qualifies from 15 Jan 2027.
-export function heldTwelveMonths(boughtIso, todayIso) {
-  const b = new Date(`${boughtIso}T00:00:00Z`)
-  b.setUTCFullYear(b.getUTCFullYear() + 1)
-  return todayIso > isoOf(b.getTime())
-}
+// The rates and the 12-month rule come from data/auTaxRates (registered as
+// tax-rates).
+export const TAX_RATES = TAX_BRACKETS.map((b) => Math.round(b.rate * 100))
+export const MEDICARE_LEVY = LEVY * 100
+export { heldTwelveMonths }
 
 // parcels: [{ gain, longTerm }]. rate: marginal rate in percent, levy included.
 export function cgtEstimate(parcels, rate) {
@@ -127,6 +123,6 @@ export function cgtEstimate(parcels, rate) {
   const lossLeft = Math.max(0, losses - shortGain)
   const longAfterLoss = Math.max(0, longGain - lossLeft)
   const carriedLoss = Math.max(0, lossLeft - longGain)
-  const taxable = shortAfterLoss + longAfterLoss * 0.5
+  const taxable = shortAfterLoss + longAfterLoss * (1 - CGT.discount)
   return { tax: taxable * (rate / 100), taxable, carriedLoss, shortGain, longGain, losses }
 }

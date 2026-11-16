@@ -76,7 +76,7 @@ const SCENARIOS = [
   },
   {
     key: 'rateHike', label: 'RATE HIKE +50BP', borderColor: 'border-orange-500/50 hover:border-orange-500',
-    describe: 'RBA +50bp — Banks up ~2%, REITs down ~5%, growth/IT down ~8%.',
+    describe: 'RBA +50bp — Financials +2%, Consumer Disc −3%, Tech −8%, other sectors unchanged.',
     shock: (h) => sectorShockPct(h, { Financials: 0.02, IT: -0.08, 'Cons Disc': -0.03 }, 0),
   },
   {
@@ -262,7 +262,7 @@ export default function StressTest({ holdings, fmtCur }) {
             <span className="text-2xs text-terminal-text-dim font-mono">set your own shock</span>
           </button>
         </div>
-        {activeScenario && <div className="text-2xs text-terminal-text-dim mt-2">{activeScenario.describe}</div>}
+        {activeScenario && <div className="text-2xs text-terminal-text-dim mt-2" data-scenario-note>{activeScenario.describe} The shocks are Maddex's stated assumptions (set {formatDate(STRESS_BETAS_SET)}), applied to your holdings: a what-if, not a forecast.</div>}
       </div>
 
       {customOpen && (

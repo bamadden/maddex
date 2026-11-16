@@ -93,7 +93,7 @@ Two notes on these checks:
 | `vc:auTrade` Australian exports and imports by partner, 2024-25 | official | Australian Bureau of Statistics | manual | annual | 365 days | global |
 | `country-stats` Country GDP growth and CPI (Global panel) | official | Each country's statistics agency (docs/DATA_SOURCES.md) | manual | monthly and quarterly releases | 60 days | global, macro |
 | `macro-series` Macro leading-indicator series (surveys, trade, spending) | official | ABS, Westpac-Melbourne Institute, NAB | manual | monthly | 60 days | macro |
-| `tax-rates` Tax, super and duty rates | official | ATO and state revenue offices | manual | each financial year | 365 days | calculators |
+| `tax-rates` Tax, super and duty rates; the CGT discount; the company rate for franking | official | ATO and state revenue offices | manual | each financial year | 365 days | calculators, portfolio |
 | `country-db` Country reference (capitals, languages, currencies) | official | Natural Earth and national sources | manual | on change | 365 days | global |
 | `rba-decisions` RBA decision record | official | Reserve Bank of Australia | manual, checked by `npm run check-rba` | per meeting | 45 days | fx, macro, replay |
 | `rba-path` RBA cash-rate path since 2008 | official | Reserve Bank of Australia | manual, checked by `npm run check-stats` | per meeting | 45 days | fx, replay |
@@ -113,9 +113,12 @@ Two notes on these checks:
 | `index-rebalance` Index constituent dates | market | S&P Dow Jones Indices announcements | manual | quarterly rebalances | 365 days | markets, dashboard, portfolio |
 | `company-facts` Company facts (Relationships, Company) | official | Company annual reports and ASX filings | manual | each reporting season | 60 days | company, relationships |
 | `key-facts` Key facts (Relationships, Company) | official | Company filings, each fact cited | manual | each reporting season | 60 days | company, relationships |
+| `crypto-au-facts` Crypto in Australia: ownership survey, AUSTRAC and ASIC rules, CGT treatment | official | Independent Reserve, AUSTRAC, ATO, Digital Assets Framework Act 2026 (named per fact) | manual | on change | 365 days | crypto |
+| `us-circuit-breakers` US market-wide circuit-breaker thresholds | official | SEC (investor.gov); NYSE Rule 7.12 | manual | on rule change | 365 days | markets |
 | `graph` Relationship graph (each link cited; links age on their own at 365 days) | editorial | Company filings, each link with its quote | manual, checked by `npm run graph:verify` | on approval | 365 days | relationships, company, global |
 | `geo-risk` Country risk notes (descriptive) | editorial | Maddex, from cited reporting | manual | monthly review | 45 days | global |
 | `chokepoint` Shipping route status | editorial | Maddex, from cited reporting (per route) | manual | on change | 45 days | global |
+| `intel-map` Global map editorial content: disruptions, route notes and ratings, site notes | editorial | Maddex, from cited reporting | manual | on change | 45 days | global |
 | `crypto-momentum` Crypto momentum weights | derived | Maddex method | derived | reviewed yearly | 365 days | crypto, markets |
 | `brief-bands` Brief score bands | derived | Maddex method | derived | reviewed yearly | 365 days | brief, dashboard |
 | `commodity-weights` Commodity exposure weights | derived | Maddex method, from company revenue mix | derived | reviewed yearly | 365 days | relationships |

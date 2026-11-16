@@ -383,6 +383,10 @@ export const VERIFIED_CONSTANTS = {
     // Main annual contributors, September 2026, as the release words them.
     cpiDrivers: 'Housing +5.2% y/y (new dwellings +4.7%, electricity +12.8% as Commonwealth rebates ended, rents +3.6%); automotive fuel +23.6% y/y (+9.4% in September).',
     rbaTargetBand: '2–3%',
+    // "maintain consumer price inflation between 2 and 3 per cent"
+    // (rba.gov.au/monetary-policy/about.html, read 16 Nov 2026).
+    rbaTargetLow: 2,
+    rbaTargetHigh: 3,
 
     // Banks' term deposit rates ($10,000), RBA statistical table F4 (CANSTAR
     // data), September 2026, published 8 Oct 2026 — series FRDIRBTD10K3Y (3

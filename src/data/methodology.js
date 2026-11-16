@@ -7,6 +7,8 @@
 // and each entry says what it is not.
 
 import { RUBRIC } from './recessionRisk'
+import { VERIFIED_CONSTANTS } from './verifiedConstants'
+import { GROWTH_REFERENCE, CPI_REFERENCE } from '../services/marketRegime'
 
 export const METHODS = {
   sentiment: {
@@ -34,8 +36,8 @@ export const METHODS = {
     what: 'A label for the current macro backdrop, from published ABS and RBA figures.',
     how: [
       'Policy: the direction of the RBA\'s last move within nine months.',
-      'Slower growth: annual GDP growth below 2.25%, a fixed reference line chosen by Maddex (not an estimate of potential growth), or unemployment up 0.2 points or more over six months.',
-      'Inflation: CPI against the top of the RBA\'s 2–3% target band (3%).',
+      `Slower growth: annual GDP growth below ${GROWTH_REFERENCE}%, a fixed reference line chosen by Maddex (not an estimate of potential growth), or unemployment up 0.2 points or more over six months.`,
+      `Inflation: CPI against the top of the RBA's ${VERIFIED_CONSTANTS.au.rbaTargetBand} target band (${CPI_REFERENCE}%).`,
       'The labels describe the rules\' result in plain words; the same words are used on the Dashboard, the Macro quadrant and in MaddenAI\'s context.',
       'Each quarter is classified with the same rules on that quarter\'s published data.',
     ],
