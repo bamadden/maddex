@@ -1135,7 +1135,7 @@ function EnhancedEvents() {
                 <div className="px-8 py-2 bg-terminal-accent/5 border-t border-terminal-border/20">
                   <div className="grid grid-cols-2 gap-4 text-2xs">
                     <div>
-                      <div className="text-terminal-gold font-bold mb-1">WHAT TO WATCH</div>
+                      <div className="text-terminal-gold font-bold mb-1">ABOUT THIS EVENT</div>
                       <div className="text-terminal-text-dim leading-relaxed">
                         {evt.description ?? (evt.region === 'AU' && evt.event.includes('RBA')
                           ? 'Reserve Bank of Australia monetary policy decision. Sets the target cash rate which flows through to all lending and deposit rates in Australia.'

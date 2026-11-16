@@ -3,13 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../services/dataService'
 import { USING_MOCK_DATA } from '../../services/api'
 import { PAL } from '../../styles/palette.js'
+import DataBadge from '../../components/ui/DataBadge'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 
 // YOUR WATCHLIST TODAY — one line of day moves, from the same quote layer as
 // the rest of the terminal (demo in this build, labelled). Hidden with no
 // watchlist.
 export function WatchlistToday({ watchlist = [] }) {
   const syms = watchlist.slice(0, 12)
-  const { data } = useQuery({
+  const { data, isError, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['briefWatchlist', ...syms],
     queryFn: () => fetchEquityQuotes(syms),
     enabled: syms.length > 0,
@@ -21,7 +23,7 @@ export function WatchlistToday({ watchlist = [] }) {
     <section className="border border-terminal-border px-4 py-3" style={{ background: 'rgba(201,168,76,0.03)' }}>
       <div className="flex items-center gap-2 mb-1.5">
         <span className="font-mono text-terminal-gold font-bold tracking-widest" style={{ fontSize: 11 }}>YOUR WATCHLIST TODAY</span>
-        {USING_MOCK_DATA && <span className="font-mono text-terminal-text-dim/60 border border-terminal-border px-1" style={{ fontSize: 11 }}>DEMO PRICES</span>}
+        {USING_MOCK_DATA ? <DemoBadge source="prices simulated" /> : dataUpdatedAt ? <DataBadge cls="DELAYED" source="quotes" at={dataUpdatedAt} /> : null}
       </div>
       {rows.length ? (
         <div className="font-mono leading-relaxed" style={{ fontSize: 12 }}>
@@ -34,7 +36,9 @@ export function WatchlistToday({ watchlist = [] }) {
           ))}
         </div>
       ) : (
-        <div className="text-2xs text-terminal-text-dim animate-pulse">Loading prices…</div>
+        isError || !isFetching
+          ? <div className="text-2xs text-terminal-text-dim">Prices for these tickers could not be loaded just now.</div>
+          : <div className="text-2xs text-terminal-text-dim animate-pulse">Loading prices…</div>
       )}
     </section>
   )
@@ -51,7 +55,7 @@ export function ScoreBreakdown({ brief }) {
     <div className="mt-3 w-full max-w-md">
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="font-mono text-terminal-gold/80 hover:text-terminal-gold tracking-widest" style={{ fontSize: 11 }}>
-        {open ? '▾ HIDE OUTLOOK BREAKDOWN' : '▸ OUTLOOK BREAKDOWN'}
+        {open ? '▾ HIDE TONE BREAKDOWN' : '▸ TONE BREAKDOWN'}
       </button>
       {open && (
         <div className="mt-2 text-left border border-terminal-border divide-y divide-terminal-border/50">

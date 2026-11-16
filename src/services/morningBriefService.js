@@ -2,7 +2,7 @@ import { askClaudeJSON } from './api'
 import { liveDataService } from './liveDataService'
 import { VERIFIED_CONSTANTS, pendingRbaDecision, rbaDecisionAt } from '../data/verifiedConstants'
 import { getEconomicCalendar, upcomingEvents } from './calendarService'
-import { sydneyTzAbbr } from '../utils/dateUtils'
+import { sydneyTzAbbr, sydneyClock } from '../utils/dateUtils'
 import { briefProfileLines } from './investorProfile'
 import { fetchNews, USING_MOCK_DATA } from './api'
 import { currentRegime } from './marketRegime'
@@ -16,14 +16,14 @@ import { currentRegime } from './marketRegime'
 // competent filler. Naming the failure mode explicitly — no throat-clearing,
 // every sentence carries a fact or a judgement — produces noticeably
 // different output from the same model.
-const BRIEF_SYSTEM = `You are a senior financial analyst writing the morning brief for sophisticated Australian investors who manage their own portfolios.
+const BRIEF_SYSTEM = `You write the morning brief for an Australian financial information service. Readers want to know what has happened and what is scheduled; they do not want to be told what to think or do.
 
 STYLE, which matters as much as the content:
 - Direct and specific. No throat-clearing, no "it is important to note", no restating the question.
-- Every sentence carries a fact, a figure you were given, or a judgement. If a sentence could appear in any brief on any day, delete it.
-- Be specific. "Watch the banks" is useless; "the banks have been sensitive to rate expectations and the RBA minutes land midweek" is not.
-- Describe and explain; do not recommend. No stock picks, ratings, price targets or return forecasts, and nothing framed as what the reader should buy, sell or hold.
-- Australian context throughout: ASX sectors, AUD, and what offshore moves mean for a Sydney open.
+- Every sentence carries a fact or a figure you were given. If a sentence could appear in any brief on any day, delete it.
+- Be specific about what happened and what is scheduled: "the RBA minutes are released at 11:30am AEDT", not "watch the banks".
+- Describe only. No forecast, no outlook, no stock picks, ratings, price targets or return forecasts, nothing about what markets will do, and nothing framed as what the reader should buy, sell, hold or watch.
+- Australian context throughout: ASX sectors, the AUD, and the offshore moves supplied, as they happened.
 
 FIGURES, which you must not invent:
 - You may quote any figure supplied in the user message.
@@ -43,14 +43,14 @@ Generate a JSON object:
     { "name": "RISK SENTIMENT", "note": "One line on risk appetite — central banks, the AUD, credit, geopolitics" }
   ],
   "sections": [
-    { "title": "MARKET OVERVIEW", "content": "3-4 sentences: the state of play going into today's session — overnight offshore action and how it feeds into the Sydney open" },
-    { "title": "AUSTRALIAN ECONOMY", "content": "3-4 sentences: RBA policy, inflation, jobs and growth using only the verified figures supplied, and what they mean for Australian investors and borrowers" },
+    { "title": "MARKET OVERVIEW", "content": "3-4 sentences: what happened overnight offshore and in the last ASX session, using only the figures supplied" },
+    { "title": "AUSTRALIAN ECONOMY", "content": "3-4 sentences: the RBA's latest decision and the latest inflation, jobs and growth figures, using only the verified figures supplied" },
     { "title": "GLOBAL CONTEXT", "content": "3-4 sentences: the Fed, bond yields, the AUD and the global themes that matter for Australia" },
     { "title": "SECTORS IN THE NEWS", "content": "The three ASX sectors most affected by today's news and data, each as 'Sector — one sentence on what is affecting it'. Separate with a newline. Describe; do not suggest acting." },
-    { "title": "WHAT TO WATCH TODAY", "content": "Three specific things to monitor, using the scheduled events supplied with their times. Separate with a newline." }
+    { "title": "SCHEDULED TODAY", "content": "The scheduled events supplied, each as 'time AEDT/AEST — event — what it measures', in time order. Only events supplied; no comment on what they might show. Separate with a newline." }
   ],
   "keyEvents": [
-    {"time": "10:30 AM", "event": "AU CPI Monthly", "impact": "HIGH"}
+    {"time": "11:30 AM AEDT", "event": "AU CPI Monthly", "impact": "the importance given with the event in the supplied schedule (HIGH, MEDIUM or LOW); never your own rating"}
   ]
 }
 
@@ -104,7 +104,7 @@ export function getWeekendMessage() {
   return {
     headline: 'Markets are closed for the weekend — see you Monday.',
     sections: [
-      { title: 'WEEKEND', content: 'No new brief is generated on weekends. Check back Monday from 7am AEST for a fresh, personalised market brief.' },
+      { title: 'WEEKEND', content: `No new brief is written at the weekend. The next can be written from Monday, ${briefHourLabel()}.` },
     ],
     keyEvents: [],
     isWeekend: true,
@@ -171,9 +171,9 @@ async function gatherPersonal(watchlist = [], holdings = []) {
     for (const h of holdings) {
       const sym = h.yfSym ?? (h.type === 'asx' ? `${h.symbol}.AX` : h.symbol)
       const row = q[sym]
-      if (!row?.last || h.type !== 'asx') continue
+      if (!row?.last || h.type !== 'asx' || row.pct == null) continue // no day move: left out, not counted as flat
       value += row.last * h.shares
-      day += row.last * h.shares * ((row.pct ?? 0) / 100)
+      day += row.last * h.shares * (row.pct / 100)
     }
     if (value > 0) out.pnl = `ASX holdings ${day >= 0 ? 'up' : 'down'} ${Math.abs((day / value) * 100).toFixed(2)}% on the day`
   }
@@ -295,7 +295,7 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   const live = [
     fx?.AUDUSD != null && `- AUD/USD: ${fx.AUDUSD.toFixed(4)}`,
     fx?.AUDJPY != null && `- AUD/JPY: ${fx.AUDJPY.toFixed(2)}`,
-    crypto?.bitcoin?.aud != null && `- Bitcoin: A$${Math.round(crypto.bitcoin.aud).toLocaleString()} (${(crypto.bitcoin.aud_24h_change ?? 0).toFixed(1)}% 24h)`,
+    crypto?.bitcoin?.aud != null && `- Bitcoin: A$${Math.round(crypto.bitcoin.aud).toLocaleString()}${crypto.bitcoin.aud_24h_change != null ? ` (${crypto.bitcoin.aud_24h_change.toFixed(1)}% 24h)` : ''}`,
     gold?.USD != null && `- Gold: US$${gold.USD.toLocaleString()}/oz`,
     fg?.value != null && `- Crypto Fear & Greed: ${fg.value} (${fg.classification})`,
   ].filter(Boolean).join('\n')
@@ -306,8 +306,8 @@ export async function generateMorningBrief(watchlist = [], portfolio = null, { f
   const profileLines = briefProfileLines()
 
   const userContent = `
-Today: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-Time: 7:00 AM ${sydneyTzAbbr(new Date().toLocaleDateString('en-CA'))}
+Today: ${new Date().toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Australia/Sydney' })} (Sydney)
+Time: ${sydneyClock(new Date()).text}
 
 VERIFIED FIGURES — you may quote these, and no others:
 - RBA cash rate: ${rba.cashRate.toFixed(2)}% (${rba.lastDecisionVerb}${rba.lastChange ? ` ${rba.lastChange}` : ''} on ${rba.lastDecision}); next meeting ${rba.nextMeeting}
@@ -318,7 +318,7 @@ VERIFIED FIGURES — you may quote these, and no others:
 - Fed next meeting: ${fed.nextMeeting}; RBA–Fed policy spread ${Math.round((rba.cashRate - fed.cashRate) * 100)}bp
 ${fedLast ? `- Latest Fed decision ${fedLast.date}: ${fedLast.decision}${fedLast.vote ? `, vote ${fedLast.vote}` : ''}${fedLast.reason ? ` — ${fedLast.reason}` : ''}` : ''}
 ${regimeLine}
-${nd && ndDays != null ? `- Next RBA decision: ${new Date(`${nd.date}T12:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })} (${nd.date}) at ${nd.time} AEDT, ${ndDays} day${ndDays === 1 ? '' : 's'} away — use this weekday, do not work one out; market pricing ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, as at ${nd.marketAsOf})` : ''}
+${nd && ndDays != null ? `- Next RBA decision: ${new Date(`${nd.date}T12:00:00Z`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })} (${nd.date}) at ${nd.time} ${sydneyTzAbbr(nd.date)}, ${ndDays} day${ndDays === 1 ? '' : 's'} away — use this weekday, do not work one out; market pricing ~${nd.marketHikePct}% for a hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, as at ${nd.marketAsOf})` : ''}
 ${bonds ? `- Bond yields: AU 10Y ${bonds.au10y.toFixed(2)}% (${bonds.au10yAsOf}), US 10Y ${bonds.us10y.toFixed(2)}% (${bonds.us10yAsOf}); spread ${spreadBp >= 0 ? '+' : ''}${spreadBp}bp (${spreadBp >= 0 ? 'AU premium' : 'US premium'})` : ''}
 ${upcoming ? `\nSCHEDULED EVENTS — next 14 days (dates are fixed; use these, not any you recall):\n${upcoming}` : ''}
 ${live ? `\nLIVE AS OF NOW:\n${live}` : ''}
@@ -338,32 +338,5 @@ Generate the morning brief now. Do not state any figure not listed above.
   trimBriefHistory()
   return stamped
 }
-
-// ── Auto-generation ────────────────────────────────────────────────────────
-//
-// Called once at app start. Generates today's brief in the background if it
-// is a weekday morning in Australia and one has not been made yet.
-//
-// THREE GUARDS, each for a reason:
-//   - Cached already: never regenerate a brief the reader may have read. A
-//     brief that changes under someone mid-morning is worse than a stale one.
-//   - Weekend: nothing to brief on, and getWeekendMessage covers the display.
-//   - Outside 6am-10am AEST: this is a morning ritual. Someone opening the
-//     terminal at 9pm wants yesterday's brief on screen, not a fresh one
-//     generated against a closed market — and it would silently spend an API
-//     call for every late-evening visit.
-//
-// Returns the brief when it generated one, null otherwise, so a caller can
-// decide whether to announce it.
-export async function autoGenerateBrief(watchlist = []) {
-  try {
-    if (localStorage.getItem(BRIEF_CACHE_KEY())) return null
-  } catch { /* storage unavailable — fall through and try */ }
-
-  if (isAuWeekend()) return null
-
-  const hour = auHour()
-  if (!(hour >= 6 && hour < 10)) return null
-
-  return generateMorningBrief(watchlist)
-}
+// No autoGenerateBrief: nothing may generate AI content without a click (16 Nov 2026;
+// tests/aiOnLoad). Generation happens from the module's own buttons.

@@ -26,7 +26,7 @@ function usedSoFar(alertsCount) {
     holdings = JSON.parse(localStorage.getItem('madden_portfolio_v2') || '[]').length
   } catch { /* private mode */ }
   return [
-    { done: briefs > 0, label: 'Morning Brief', value: briefs ? `${briefs} generated` : 'generates at 7am on weekdays' },
+    { done: briefs > 0, label: 'Morning Brief', value: briefs ? `${briefs} generated` : 'weekdays from 7am AEST (8am AEDT)' },
     { done: u.aiQueries > 0, label: 'MaddenAI', value: u.aiQueries ? `${u.aiQueries} question${u.aiQueries === 1 ? '' : 's'} asked` : 'ask it anything — press A' },
     { done: u.researchNotes > 0, label: 'Research Notes', value: u.researchNotes ? `${u.researchNotes} generated` : 'try one from any stock\'s detail panel' },
     { done: alertsCount > 0, label: 'Price Alerts', value: alertsCount ? `${alertsCount} active` : 'set one from the watchlist' },

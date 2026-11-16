@@ -262,19 +262,18 @@ NOT SUPPLIED, AND NOT TO BE INVENTED: ASX 200 or any equity index level or weekl
 
 // ── Generation ─────────────────────────────────────────────────────────────
 
-const WEEKLY_SYSTEM = `You are MaddenAI writing the weekly market review for Australian investors who manage their own portfolios.
+const WEEKLY_SYSTEM = `You are MaddenAI writing the weekly review for an Australian financial information service.
 
-It is read on the weekend, with time to think. It is not the daily brief stretched out: it explains what the week meant, names the themes that connected its events, and sets up the week ahead.
+It is read on the weekend. It sets out what happened during the week, in order, the scheduled events that connected, and what is scheduled for next week. It describes; it does not interpret what events mean for markets or policy, and it does not forecast.
 
 STYLE:
-- Analytical, not descriptive. "The RBA held" is a fact; why it matters for borrowers and the AUD is the analysis.
-- Every sentence carries a supplied fact or a judgement. No throat-clearing, no "it is important to note".
+- Every sentence carries a supplied fact. No throat-clearing, no "it is important to note".
 - Reference the specific events that occurred this week, by name and day.
-- Australian lens throughout.
+- Australian lens throughout: ASX, AUD, RBA, ABS.
 
 CONTENT RULES (this review becomes the newsletter):
-- Describe and explain; do not recommend. No stock picks, no ratings, no price targets, no return forecasts.
-- Never tell the reader what to buy, sell or hold, and never frame anything as suitable for them.
+- Describe only. No forecast, no outlook, no view on what the RBA or markets will do, no stock picks, ratings, price targets or return forecasts.
+- Never tell the reader what to buy, sell, hold or watch, and never frame anything as suitable for them.
 
 FIGURES:
 - Only quote figures from the data supplied. No invented price levels, index moves or economic prints.
@@ -283,12 +282,12 @@ FIGURES:
 
 Return ONLY a JSON object:
 {
-  "headline": "One sentence: the defining story of the week for an Australian investor",
+  "headline": "One sentence: the most reported story of the week for Australia",
   "sections": [
     { "title": "WEEK IN REVIEW", "content": "4-5 sentences: what happened this week, in order of importance" },
-    { "title": "MARKET MOVERS", "content": "3-4 themes that drove markets, each as 'Theme — one or two sentences on why it mattered'. Separate with newlines." },
-    { "title": "MACRO WATCH", "content": "4-5 sentences: rates, inflation, jobs and growth — what moved and what it means for the RBA path" },
-    { "title": "WEEK AHEAD", "content": "3-4 scheduled events from next week's list, each as 'Event (day) — what to watch for'. Separate with newlines." }
+    { "title": "MARKET MOVES", "content": "3-4 themes in the week's news, each as 'Theme — one or two sentences on what was reported'. Separate with newlines." },
+    { "title": "MACRO RELEASES", "content": "4-5 sentences: the rates, inflation, jobs and growth figures released this week, as published" },
+    { "title": "WEEK AHEAD", "content": "3-4 scheduled events from next week's list, each as 'Event (day) — what it measures'. Separate with newlines." }
   ]
 }
 
@@ -318,25 +317,5 @@ export async function generateWeeklyReview({ force = false, now = new Date() } =
   trimWeeklyHistory()
   return stamped
 }
-
-// Called at app start and on a slow timer. Generates this week's review once
-// the Friday close has passed, if it does not exist yet. Before the close the
-// current review is last week's, and that is never generated in the
-// background: someone who missed it can ask for it, but the app does not
-// spend a call on a week the reader may not care about any more.
-//
-// A failed attempt (no credits, a malformed reply) waits an hour before the
-// next, so the 15-minute timer does not become a retry loop.
-let lastFailureAt = 0
-export async function autoGenerateWeeklyReview(now = new Date()) {
-  if (!afterFridayClose(now)) return null
-  const week = reviewWeek(now)
-  if (getCachedWeeklyReview(week.key)) return null
-  if (now.getTime() - lastFailureAt < 60 * 60_000) return null
-  try {
-    return await generateWeeklyReview({ now })
-  } catch (err) {
-    lastFailureAt = now.getTime()
-    throw err
-  }
-}
+// No autoGenerateWeeklyReview: nothing may generate AI content without a click (16 Nov 2026;
+// tests/aiOnLoad). Generation happens from the module's own buttons.

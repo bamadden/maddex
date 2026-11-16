@@ -58,7 +58,7 @@ export default function DataHealthPanel() {
       { label: 'Macro themes', ok: has('maddex_ai_daily_macro-themes_'), value: has('maddex_ai_daily_macro-themes_') ? 'loaded today (shared)' : 'not yet today' },
       { label: 'Intel ticker & map narrative', ok: has('maddex_ai_daily_intel_ticker_'), value: has('maddex_ai_daily_intel_ticker_') ? 'loaded today (shared)' : 'not yet today' },
       { label: 'Market sentiment', ok: has('maddex_ai_daily_sentiment_'), value: has('maddex_ai_daily_sentiment_') ? 'loaded today (shared)' : 'not yet today' },
-      { label: 'Morning brief', ok: !!brief, value: brief ? `${t(brief.generatedAt)}` : 'weekdays from 7am' },
+      { label: 'Morning brief', ok: !!brief, value: brief ? `${t(brief.generatedAt)}` : 'weekdays from 7am AEST' },
       { label: 'Weekly review', ok: null, value: 'after the Friday close' },
     ]
   // eslint-disable-next-line react-hooks/exhaustive-deps

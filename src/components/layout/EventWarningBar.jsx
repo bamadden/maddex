@@ -54,9 +54,9 @@ export default function EventWarningBar() {
         {e.event} in {countdown(at - now)} <span className="text-terminal-text-dim font-normal">· {when} · high impact event</span>
       </span>
       <button
-        onClick={() => askMaddenAI(`${e.event} is due at ${when} on ${e.date}${e.description ? ` (${e.description})` : ''}. What should I watch for in this release, and how might ASX sectors and the AUD react either way? Do not state forecasts or consensus figures you have not been given.`)}
+        onClick={() => askMaddenAI(`${e.event} is due at ${when} on ${e.date}${e.description ? ` (${e.description})` : ''}. Describe what this release measures, who publishes it, and what the previous release showed if it is in your context. Describe only: no forecast, no consensus figure and no view on how markets might react.`)}
         className="px-2 py-0.5 bg-terminal-gold text-terminal-bg font-bold tracking-wide hover:bg-terminal-gold-bright"
-      >WHAT TO WATCH ▶</button>
+      >ABOUT THIS RELEASE ▶</button>
       <button onClick={dismiss} aria-label="Dismiss event warning" className="text-terminal-text-dim hover:text-terminal-text">✕</button>
     </div>
   )

@@ -24,10 +24,10 @@ export const METHODS = {
     not: 'It describes what has happened. It does not predict what markets will do and is not a signal to buy or sell. While no licensed equity feed is connected, the ASX and S&P 500 inputs (50 of the 82 weight points) are simulated DEMO prices, so the score is a demo composite and is badged DEMO wherever it appears.',
   },
   outlook: {
-    name: 'MaddenAI outlook (words)',
+    name: 'MaddenAI tone read (words)',
     what: 'MaddenAI\'s one-word description of the tone of the morning\'s news and data.',
     how: ['Written by the model from the figures supplied to it in the brief.', 'It is words only: the model never gives a score.'],
-    not: 'A description of tone, not a view on any investment.',
+    not: 'A description of tone, not a view on any investment. Not a recommendation.',
   },
   regime: {
     name: 'Market regime',

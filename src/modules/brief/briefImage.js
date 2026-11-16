@@ -56,7 +56,7 @@ export async function downloadBriefImage(brief, dayLabel) {
   const label = brief.scoreLabel ? toneWord(brief.scoreLabel) : ''
   if (label) {
     ctx.textAlign = 'center'
-    ctx.fillStyle = DIM; ctx.font = `500 14px ${mono}`; ctx.fillText('MADDENAI OUTLOOK', 240, 290)
+    ctx.fillStyle = DIM; ctx.font = `500 14px ${mono}`; ctx.fillText('MADDENAI TONE READ · NOT A CALL', 240, 290)
     ctx.fillStyle = outlookColour(label); ctx.font = `700 26px ${mono}`
     const words = label.split(' ')
     if (words.length > 1 && ctx.measureText(label).width > 330) {

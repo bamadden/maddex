@@ -81,5 +81,5 @@ test('every export path carries the disclaimer and data date', () => {
   assert.match(read('src/components/portfolio/PortfolioSnapshot.jsx'), /Data as at .*Past performance is not a reliable indicator/s)
   assert.match(read('src/modules/portfolio/performanceModel.js'), /Data as at \$\{today\}\. \$\{STANDARD_DISCLAIMER\}/)
   assert.match(read('src/modules/screener/ScreenerModule.jsx'), /reportFooter\(\{ asOf: Date\.now\(\), ai: false \}\)/)
-  for (const f of ['src/services/morningBriefService.js', 'src/services/weeklyReviewService.js']) assert.match(read(f), /Describe and explain; do not recommend/, f)
+  for (const f of ['src/services/morningBriefService.js', 'src/services/weeklyReviewService.js']) assert.match(read(f), /Describe only\. No forecast/, f)
 })

@@ -2,13 +2,14 @@ import { useEffect, useState, useMemo } from 'react'
 import { outlookColour } from '../../utils/briefScore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { SkeletonText } from '../../components/ui/Skeleton'
-import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey, getCachedBrief } from '../../services/morningBriefService'
+import { isAuWeekend, getWeekendMessage, generateMorningBrief, clearBriefCache, listBriefHistory, briefDayKey, getCachedBrief, briefHourLabel } from '../../services/morningBriefService'
 import { markMilestone } from '../../services/gettingStarted'
 import { canOpenBriefToday, recordBriefDay } from '../../services/usageService'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradePrompt from '../../components/ui/UpgradePrompt'
 import { useStore } from '../../store/useStore'
 import { dispatchAskAI } from '../../utils/askAI'
+import { AI_UNAVAILABLE } from '../../services/api'
 import { SentimentBar } from '../../components/ui/SentimentIndicator'
 import { useMarketSentiment } from '../../hooks/useMarketSentiment'
 import { useQuery } from '@tanstack/react-query'
@@ -17,8 +18,10 @@ import { eventStars, starString } from '../../services/calendarExtras'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
 import DataBadge from '../../components/ui/DataBadge'
+import ScoreNote from '../../components/ui/ScoreNote'
+import { daysBetweenDays } from '../../services/centralBankSchedule'
 import { useSentiment } from '../../hooks/useSentiment'
-import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
+import { sydneyTzAbbr, formatDate, sydneyISO, sydneyClock, localClock } from '../../utils/dateUtils'
 import { clean } from './briefText'
 import { SectionText, BriefSection } from './BriefParts'
 import TabBar from '../../components/ui/TabBar'
@@ -63,7 +66,8 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
 
   const { rba, fed, au } = VERIFIED_CONSTANTS
   const [now] = useState(() => Date.now())
-  const daysToRba = Math.max(0, Math.ceil((new Date(`${rba.nextMeeting}T00:00:00`) - now) / 86400000))
+  // Sydney calendar days, not the browser's midnight.
+  const daysToRba = rba.nextMeeting ? Math.max(0, daysBetweenDays(sydneyISO(now), rba.nextMeeting)) : null
 
   return (
     <div className="space-y-4">
@@ -84,7 +88,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
       <div className="border border-terminal-border p-4">
         <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
           <span className="text-sm font-bold text-terminal-text-bright">Markets are closed for the weekend.</span>
-          <span className="text-2xs text-terminal-text-dim">Next brief Monday, 7am Sydney time</span>
+          <span className="text-2xs text-terminal-text-dim">Next brief Monday, from {briefHourLabel()}</span>
         </div>
         <div className="text-2xs text-terminal-text-dim leading-relaxed">
           No daily brief on non-trading days. What follows is the week ahead and
@@ -104,7 +108,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
           </div>
           <div className="text-2xs text-terminal-text mt-1">
             Next meeting {formatDate(rba.nextMeeting, { year: false })}
-            <span className="text-terminal-gold"> · {daysToRba}d</span>
+            {daysToRba != null && <span className="text-terminal-gold"> · {daysToRba}d</span>}
           </div>
         </div>
 
@@ -150,7 +154,7 @@ function WeekendBrief({ currentDay, onOpenWeekly }) {
             {weekAhead.map((e, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-2">
                 <span className="text-2xs text-terminal-text-dim w-16 flex-shrink-0">
-                  {e.dateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' })}
+                  {formatDate(e.dateObj, { weekday: true, year: false })}
                 </span>
                 <span className="text-2xs text-terminal-text-dim/60 w-12 flex-shrink-0">
                   {e.time && e.time !== '—' ? e.time : ''}
@@ -178,8 +182,9 @@ function Outlook({ label }) {
   if (!label) return null
   return (
     <div className="text-center">
-      <div className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 11 }}>MADDENAI OUTLOOK · TONE OF THE NEWS, NOT A CALL</div>
+      <div className="font-mono text-terminal-text-dim tracking-widest" style={{ fontSize: 11 }}>MADDENAI TONE READ · THE TONE OF THE NEWS, NOT A CALL</div>
       <div className="font-mono font-bold tracking-widest mt-1" style={{ fontSize: 20, color: outlookColour(label) }}>{toneWord(label)}</div>
+      <ScoreNote method="outlook" className="mt-1" />
     </div>
   )
 }
@@ -208,7 +213,7 @@ function PreviousBriefs({ currentDay, excludeWeek }) {
   if (!items.length) return null
 
   const label = (day) =>
-    new Date(`${day}T00:00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
+    formatDate(day, { weekday: true, year: false })
 
   return (
     <div className="border-t border-terminal-border pt-3">
@@ -320,7 +325,8 @@ export default function MorningBriefModule() {
       markMilestone('brief')
       recordBriefDay()
     } catch (e) {
-      setError(e.message)
+      // The service's own sentence for an AI outage; nothing raw otherwise.
+      setError(e?.message === AI_UNAVAILABLE ? AI_UNAVAILABLE : 'The brief could not be written just now. Try again in a moment.')
       setStatus('error')
     }
   }
@@ -360,7 +366,7 @@ export default function MorningBriefModule() {
     <div className="h-full flex flex-col overflow-hidden">
       <ModuleHeader
         title="MORNING BRIEF"
-        subtitle="Daily brief 7am Sydney time, weekdays · weekly review after the Friday close"
+        subtitle={`Daily brief weekdays from ${briefHourLabel()} · weekly review after the Friday close`}
         moduleId="brief"
         isFetching={status === 'loading'}
         // Was deleting a UTC-keyed entry by hand. The cache key is now the
@@ -481,7 +487,7 @@ export default function MorningBriefModule() {
               <ScoreBreakdown brief={brief} />
               <div className="font-sans text-terminal-text-bright font-semibold mt-4 max-w-2xl leading-snug" style={{ fontSize: 20 }}>{brief.headline}</div>
               <button
-                onClick={() => dispatchAskAI({ instruction: `Elaborate on today's market brief: "${brief.headline}". Give more detail on what's driving this.` }, { rawPrompt: true })}
+                onClick={() => dispatchAskAI({ instruction: `Elaborate on today's market brief: "${brief.headline}". Describe in more detail what has been reported about it, using only figures you were given. Describe only: no forecast, no price and no suggestion of any action.` }, { rawPrompt: true })}
                 className="mt-3 text-2xs text-terminal-gold border border-terminal-gold/40 px-2.5 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
               >Ask MaddenAI for more detail →</button>
             </div>
@@ -517,7 +523,7 @@ export default function MorningBriefModule() {
             <footer className="mt-6 pt-3 border-t border-terminal-border flex items-center justify-between gap-3 flex-wrap">
               <div className="font-mono text-terminal-text-dim/60" style={{ fontSize: 11, letterSpacing: '0.14em' }}>
                 AI-GENERATED SUMMARY · FIGURES FROM VERIFIED AND LIVE DATA ONLY · GENERAL INFORMATION · NOT ADVICE
-                {brief.generatedAt && <> · {new Date(brief.generatedAt).toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</>}
+                {brief.generatedAt && <> · {formatDate(brief.generatedAt, { year: false })} {sydneyClock(new Date(brief.generatedAt)).text}{localClock(new Date(brief.generatedAt)).zone !== 'Australia/Sydney' && ` (your time ${localClock(new Date(brief.generatedAt)).text})`}</>}
               </div>
               <button
                 onClick={() => load({ force: true })}

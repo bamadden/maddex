@@ -24,7 +24,7 @@ export function intelligenceScore({ watchlist = [], priceAlerts = [] } = {}) {
     { id: 'portfolio', pts: 20, done: holdings.length > 0, label: 'Portfolio holdings', hint: 'Add your holdings — rate impact, dividends and the daily digest are written around them', action: { module: 'portfolio' } },
     { id: 'profile', pts: 15, done: profileDone, label: 'Investor profile', hint: 'Set up your investor profile to personalise MaddenAI', action: { settings: 'INVESTOR PROFILE' } },
     { id: 'alerts', pts: 15, done: alerts > 0, label: 'Price alerts', hint: 'Set a price alert on a stock you watch', action: { module: 'watchlist' } },
-    { id: 'brief', pts: 10, done: briefRead, label: 'Morning brief', hint: 'Open the morning brief — it generates at 7am on weekdays', action: { module: 'brief' } },
+    { id: 'brief', pts: 10, done: briefRead, label: 'Morning brief', hint: 'Open the morning brief — it can be written from 7am AEST on weekdays', action: { module: 'brief' } },
     { id: 'notifications', pts: 10, done: notifOn, label: 'Browser notifications', hint: 'Allow notifications so alerts reach you when the tab is in the background', action: { settings: 'NOTIFICATIONS' } },
     { id: 'shortcuts', pts: 10, done: shortcuts, label: 'Keyboard shortcuts', hint: 'Press ? to see the keyboard shortcuts', action: { shortcuts: true } },
   ]

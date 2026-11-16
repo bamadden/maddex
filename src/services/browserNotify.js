@@ -20,7 +20,7 @@ const PROMPT_KEY = 'maddex_notif_prompt_dismissed'
 export const CATEGORIES = [
   { id: 'priceAlerts',   label: 'Price alerts (when a target is hit)',     defaultOn: true },
   { id: 'events',        label: 'High-impact events (5-minute warning)',   defaultOn: true },
-  { id: 'morningBrief',  label: 'Morning brief ready (7am weekdays)',      defaultOn: true },
+  { id: 'morningBrief',  label: 'Morning brief ready (from 7am AEST, weekdays)',      defaultOn: true },
   { id: 'watchlistNews', label: 'Breaking news on watchlist stocks',       defaultOn: false },
   { id: 'marketClose',   label: 'Daily market close summary',              defaultOn: false },
 ]

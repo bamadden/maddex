@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AI_UNAVAILABLE } from '../../services/api'
 import { SkeletonText } from '../../components/ui/Skeleton'
 import { generateWeeklyReview, getCachedWeeklyReview, reviewWeek } from '../../services/weeklyReviewService'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
@@ -68,7 +69,7 @@ export default function WeeklyReviewTab({ history }) {
       setReview(await generateWeeklyReview({ force: true }))
       setStatus('idle')
     } catch (e) {
-      setError(e.message)
+      setError(e?.message === AI_UNAVAILABLE ? AI_UNAVAILABLE : 'The review could not be written just now. Try again in a moment.')
       setStatus('error')
     }
   }

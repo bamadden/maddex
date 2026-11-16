@@ -29,3 +29,17 @@ test('News: prompts describe; tone is not a green/red verdict; no 0 for a missin
   assert.doesNotMatch(s, /likely market impact|what should I watch next|s\.label === 'BULLISH' \? PAL\.up|price_change_percentage_24h \?\? 0|setError\(e\.message/)
   assert.doesNotMatch(s, /ENERGY: PAL\.down|CRYPTO: PAL\.up/)
 })
+
+test('Brief and the MaddenAI system prompt describe; no "what to watch", no judgement, no 0 for missing moves', () => {
+  const brief = fs.readFileSync('src/services/morningBriefService.js', 'utf8')
+  const weekly = fs.readFileSync('src/services/weeklyReviewService.js', 'utf8')
+  const sys = fs.readFileSync('src/services/systemPrompt.js', 'utf8')
+  for (const [n, s] of [['brief', brief], ['weekly', weekly], ['system', sys]]) {
+    assert.doesNotMatch(s, /WHAT TO WATCH|what to watch|Analytical, not descriptive|bull and bear cases each rest|do well or badly|key levels \(if relevant\)|senior financial analyst/, n)
+  }
+  assert.doesNotMatch(brief, /aud_24h_change \?\? 0|row\.pct \?\? 0|Time: 7:00 AM|\$\{nd\.time\} AEDT|autoGenerateBrief\s*\(/)
+  assert.doesNotMatch(weekly, /export async function autoGenerateWeeklyReview/)
+  const mod = fs.readFileSync('src/modules/brief/MorningBriefModule.jsx', 'utf8')
+  assert.match(mod, /<ScoreNote method="outlook"/)
+  assert.doesNotMatch(mod, /7am Sydney time|setError\(e\.message\)|MADDENAI OUTLOOK/)
+})

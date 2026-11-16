@@ -23,7 +23,7 @@ export default function MorningBriefWidget() {
     return (
       <WidgetBody className="justify-center items-center text-center">
         <span className="font-mono text-[11px]" style={{ color: PAL.dim }}>
-          ☀ {weekend ? 'Next brief Monday from 7am' : early ? 'Brief ready at 7am weekdays' : 'No brief yet today'}
+          ☀ {weekend ? 'Next brief Monday from 7am AEST' : early ? 'Brief from 7am AEST weekdays' : 'No brief yet today'}
         </span>
         {!weekend && (
           <button onClick={() => goModule('brief')} className="mt-2 font-mono text-[11px] tracking-widest px-2.5 py-1 transition-colors" style={{ color: PAL.gold, border: '1px solid rgba(201,168,76,0.4)' }}>
