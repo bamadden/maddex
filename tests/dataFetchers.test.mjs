@@ -2,6 +2,7 @@
 // compare it with the constants; mocked responses only (no network in tests).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { SOURCES } from '../scripts/data/sources/index.mjs'
 import { recordingFetch, shapeOf, row } from '../scripts/data/lib.mjs'
 
@@ -60,4 +61,24 @@ test('a format change is visible in the recorded shape', () => {
   assert.equal(shapeOf('<html>').kind, 'csv')
   assert.equal(row('x', 'k', 1, null, 'p').status, 'unavailable')
   assert.equal(row('x', 'k', null, 1, 'p').status, 'missing')
+})
+
+test('format check: a changed header, a new endpoint and a missing one are each reported', async () => {
+  const { compareShapes, report } = await import('../scripts/data/format-check.mjs')
+  const accepted = { a: { status: 200, kind: 'csv', header: 'TIME_PERIOD,OBS_VALUE' }, gone: { status: 200 } }
+  const today = { a: { status: 200, kind: 'csv', header: 'TIME_PERIOD,VALUE' }, fresh: { status: 200 } }
+  const changes = compareShapes(accepted, today)
+  assert.equal(changes.length, 3)
+  assert.match(changes.find((c) => c.url === 'a').change, /^header:/)
+  assert.deepEqual(compareShapes(accepted, accepted), [])
+  const md = report([{ name: 'X', ok: true, changes, rows: [{ status: 'drift', label: 'L', constant: 'k', ours: 1, official: 2, period: 'p' }] }], '2026-11-16')
+  assert.match(md, /3 change\(s\)/)
+  assert.match(md, /Figures that differ/)
+})
+
+test('the nightly workflow is read-only and runs the format check', () => {
+  const wf = fs.readFileSync('.github/workflows/data-format-check.yml', 'utf8')
+  assert.match(wf, /permissions:\s*\n\s*contents: read/)
+  assert.match(wf, /node scripts\/data\/format-check\.mjs/)
+  assert.doesNotMatch(wf, /git push|secrets\./)
 })

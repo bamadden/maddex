@@ -20,7 +20,8 @@
     "check-rba": "node scripts/check-rba-decisions.mjs",
     "data:docs": "node scripts/data/registryTable.mjs",
     "data:fetch": "node scripts/data/fetch.mjs",
-    "data:verify": "node scripts/data/verify.mjs"
+    "data:verify": "node scripts/data/verify.mjs",
+    "data:format-check": "node scripts/data/format-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

@@ -61,6 +61,7 @@ someone re-reads it from its source.
 |---|---|
 | `npm run data:fetch [source…]` | Fetches each source and writes a dated record to `data/records/<source>/<Sydney date>.json` (git-ignored). Each record holds the figures and the shape of every response, for the format check |
 | `npm run data:verify [source…]` | Compares the constants with the newest record, fetching today's first. Prints match, drift, or a different period, and exits 1 on any drift |
+| `npm run data:format-check` | The nightly format check, below |
 | `npm run check-stats` | The RBA cash rate (table A2), ABS CPI, trimmed mean, unemployment and GDP, and US CPI, unemployment, GDP and the Fed target. It also checks the chart histories point by point, and the dated changes that have taken effect. Runs in the gate |
 | `npm run check-rba` | The RBA decision record against the RBA's media releases |
 | `npm run graph:verify` | Each relationship link against its cited quote |
@@ -94,6 +95,37 @@ Notes:
   it in a download tool, not a keyless series), US GDP (BEA's API needs a
   key), and the BoE, BoJ, RBNZ, SNB, Riksbank and PBoC rates. Their pages are
   HTML, or behind bot checks (RBNZ returned 403 on 16 Nov).
+
+## Nightly format check
+
+`.github/workflows/data-format-check.yml` runs `npm run data:format-check`
+at 21:00 UTC each night (08:00 Sydney in daylight time). It can also be run by
+hand from the repository's Actions tab.
+
+For each source, the check:
+
+1. fetches every endpoint;
+2. compares the shape of each response with the accepted shapes in
+   `scripts/data/formats.json`: HTTP status, the CSV header and series-ID
+   rows, and the JSON keys;
+3. runs the verification.
+
+The report goes to the run's summary and is kept as an artifact for 30 days.
+
+The run fails when a source cannot be fetched or its format has changed.
+GitHub sends a failed scheduled run to the repository owner, and that is the
+alert. A figure that differs from its constant is listed in the report but
+does not fail the run, because updating it needs a person to read the
+release.
+
+When a format changes:
+
+1. check the parser in `scripts/data/sources/`;
+2. run `npm run data:format-check -- --accept` to record the new shapes;
+3. commit `formats.json`.
+
+The workflow has read-only permissions, uses no secrets, and never commits,
+so it never triggers a deploy.
 
 ## Datasets
 

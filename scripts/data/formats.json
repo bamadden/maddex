@@ -1,0 +1,85 @@
+{
+  "rba": {
+    "https://www.rba.gov.au/statistics/tables/csv/a2-data.csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "Title,Change in Cash Rate Target,New Cash Rate Target,Change in ES Rate,New ES Rate,Change in Overnight Repo Rate,New Overnight Repo Rate",
+      "seriesIds": "Series ID,ARBAMPCCCR,ARBAMPCNCRT,ARBAMPCRPESB,ARBAMPNRPESB,ARBAMPCORR,ARBAMPNORR"
+    },
+    "https://www.rba.gov.au/statistics/tables/csv/f2-data.csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "Title,Australian Government 2 year bond,Australian Government 3 year bond,Australian Government 5 year bond,Australian Government 10 year bond,Australian Government Indexed Bond",
+      "seriesIds": "Series ID,FCMYGBAG2D,FCMYGBAG3D,FCMYGBAG5D,FCMYGBAG10D,FCMYGBAGID"
+    }
+  },
+  "abs": {
+    "https://data.api.abs.gov.au/rest/data/ABS,CPI,2.0.0/3.10001.10.50.M?startPeriod=*&format=csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "DATAFLOW,MEASURE,INDEX,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,OBS_STATUS,DECIMALS,OBS_COMMENT,BASE_PERIOD",
+      "seriesIds": null
+    },
+    "https://data.api.abs.gov.au/rest/data/ABS,CPI,2.0.0/3.999902.20.50.M?startPeriod=*&format=csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "DATAFLOW,MEASURE,INDEX,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,OBS_STATUS,DECIMALS,OBS_COMMENT,BASE_PERIOD",
+      "seriesIds": null
+    },
+    "https://data.api.abs.gov.au/rest/data/ABS,ANA_AGG,1.0.0/M1.GPM.20.AUS.Q?startPeriod=*&format=csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "DATAFLOW,MEASURE,DATA_ITEM,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,UNIT_MULT,OBS_STATUS,OBS_COMMENT",
+      "seriesIds": null
+    },
+    "https://data.api.abs.gov.au/rest/data/ABS,CPI,2.0.0/2.10001.10.50.Q?startPeriod=*&format=csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "DATAFLOW,MEASURE,INDEX,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,OBS_STATUS,DECIMALS,OBS_COMMENT,BASE_PERIOD",
+      "seriesIds": null
+    },
+    "https://data.api.abs.gov.au/rest/data/ABS,LF,1.0.0/M13.3.1599.20.AUS.M?startPeriod=*&format=csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "DATAFLOW,MEASURE,SEX,AGE,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,UNIT_MULT,OBS_STATUS,OBS_COMMENT,DECIMALS",
+      "seriesIds": null
+    },
+    "https://data.api.abs.gov.au/rest/data/ABS,ANA_AGG,1.0.0/M2.GPM.20.AUS.Q?startPeriod=*&format=csv": {
+      "status": 200,
+      "kind": "csv",
+      "header": "DATAFLOW,MEASURE,DATA_ITEM,TSEST,REGION,FREQ,TIME_PERIOD,OBS_VALUE,UNIT_MEASURE,UNIT_MULT,OBS_STATUS,OBS_COMMENT",
+      "seriesIds": null
+    }
+  },
+  "bls": {
+    "https://api.bls.gov/publicAPI/v1/timeseries/data/": {
+      "status": 200,
+      "kind": "json",
+      "keys": [
+        "Results",
+        "message",
+        "responseTime",
+        "status"
+      ]
+    }
+  },
+  "ecb": {
+    "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.DFR.LEV?lastNObservations=*&format=csvdata": {
+      "status": 200,
+      "kind": "csv",
+      "header": "KEY,FREQ,REF_AREA,CURRENCY,PROVIDER_FM,INSTRUMENT_FM,PROVIDER_FM_ID,DATA_TYPE_FM,TIME_PERIOD,OBS_VALUE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK,OBS_COM,TIME_FORMAT,BREAKS,COLLECTION,COMPILING_ORG,DISS_ORG,DOM_SER_IDS,FM_CONTRACT_TIME,FM_COUPON_RATE,FM_IDENTIFIER,FM_LOT_SIZE,FM_MATURITY,FM_OUTS_AMOUNT,FM_PUT_CALL,FM_STRIKE_PRICE,PUBL_MU,PUBL_PUBLIC,UNIT_INDEX_BASE,COMPILATION,COVERAGE,DECIMALS,SOURCE_AGENCY,SOURCE_PUB,TITLE,TITLE_COMPL,UNIT,UNIT_MULT",
+      "seriesIds": null
+    }
+  },
+  "boc": {
+    "https://www.bankofcanada.ca/valet/observations/V39079/json?recent=*": {
+      "status": 200,
+      "kind": "json",
+      "keys": [
+        "observations",
+        "seriesDetail",
+        "terms"
+      ]
+    }
+  }
+}

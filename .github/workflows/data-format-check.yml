@@ -1,0 +1,34 @@
+# Nightly data format-change check (docs/DATA_PLATFORM.md, WS1 step 3).
+# Fetches every keyless source, compares each response's format with the
+# accepted shapes in scripts/data/formats.json, verifies the figures, and
+# writes the report to the run summary and as an artifact. Read-only: it
+# never commits, so it never triggers a deploy. A failed run (a source down
+# or its format changed) is GitHub's notification.
+name: data format check
+
+on:
+  schedule:
+    - cron: '0 21 * * *'   # 08:00 Sydney in daylight time (07:00 in standard time)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fetch, compare formats, verify figures
+        run: node scripts/data/format-check.mjs
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-format-check
+          path: reports/data-format-check.md
+          retention-days: 30
