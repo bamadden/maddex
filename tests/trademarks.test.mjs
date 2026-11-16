@@ -28,7 +28,8 @@ test('the register lists the removals, the scheduled strings and the names in us
 })
 
 test('basemap providers are credited on the map', () => {
-  const m = read('src/modules/global/DeckGLMap.jsx')
-  assert.match(m, /© OpenStreetMap contributors © CARTO/)
+  const m = read('src/modules/global/DeckGLMap.jsx') + read('src/modules/global/basemap.js')
+  assert.match(m, /OpenFreeMap © OpenMapTiles · Data © OpenStreetMap contributors/)
+  assert.doesNotMatch(m, /cartocdn/)
   assert.match(m, /data-map-credit/)
 })

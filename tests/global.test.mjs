@@ -253,3 +253,13 @@ test('Global: commodity sites carry places and companies, not typed production, 
   for (const c of COMMODITY_SITES) for (const k of ['production', 'globalSharePct', 'auRank']) assert.equal(c[k], undefined, `${c.id}.${k}`)
   assert.doesNotMatch(fs.readFileSync('src/modules/global/MapDetailPanel.jsx', 'utf8'), /% of world supply|Annual production|global rank/)
 })
+
+test('Global base map: OpenFreeMap with its credit, no CARTO, and a plain fallback when tiles fail', () => {
+  const m = fs.readFileSync('src/modules/global/DeckGLMap.jsx', 'utf8')
+  const b = fs.readFileSync('src/modules/global/basemap.js', 'utf8')
+  assert.doesNotMatch(m + b, /cartocdn|© CARTO/)
+  assert.match(b, /tiles\.openfreemap\.org\/styles\/dark/)
+  assert.match(b, /OpenFreeMap © OpenMapTiles · Data © OpenStreetMap contributors/)
+  assert.match(m, /\{showBasemap && \(\n\s*<Map/)
+  assert.match(m, /Base map unavailable: markers shown on a plain background/)
+})

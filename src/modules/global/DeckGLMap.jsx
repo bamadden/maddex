@@ -3,6 +3,7 @@ import { loadCountries } from '../../utils/naturalEarth'
 import DeckGL from '@deck.gl/react'
 import { MapView, FlyToInterpolator } from '@deck.gl/core'
 import { Map } from 'react-map-gl/maplibre'
+import { OFM_DARK, OFM_CREDIT, useBasemapStyle } from './basemap'
 import { ScatterplotLayer, TextLayer, ArcLayer, ColumnLayer, PathLayer, GeoJsonLayer, IconLayer } from '@deck.gl/layers'
 import { HeatmapLayer, HexagonLayer } from '@deck.gl/aggregation-layers'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -57,8 +58,12 @@ const rasterStyle = (url, attribution) => ({
 
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
 
+
 const MAP_STYLES = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  // OpenFreeMap's dark style (16 Nov 2026; CARTO tiles were used without a
+  // key, so without a licence). The style is fetched by useBasemapStyle so
+  // INTEL can drop its label layers and a failure can fall back cleanly.
+  dark: OFM_DARK,
   // Imagery, a faint hillshade for relief, and Esri's reference labels on
   // top so place names stay readable over photography.
   satellite: {
@@ -78,15 +83,15 @@ const MAP_STYLES = {
     `${ESRI}/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}`,
     'Relief © Esri',
   ),
-  intel: 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json',
+  intel: OFM_DARK,
 }
 
 // The credit each basemap's provider requires. MapLibre's own attribution
 // control sits under deck.gl's canvas here, so the credit is drawn as an
 // overlay instead (docs/DATA_SOURCES.md lists each provider's terms).
 const MAP_CREDIT = {
-  dark: '© OpenStreetMap contributors © CARTO',
-  intel: '© OpenStreetMap contributors © CARTO',
+  dark: OFM_CREDIT,
+  intel: OFM_CREDIT,
   satellite: 'Imagery © Esri, Maxar, Earthstar Geographics',
   terrain: 'Relief © Esri',
 }
@@ -368,6 +373,22 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   // dark-matter proper carries borders, coastlines and city labels, so the
   // first frame is recognisably a map.
   const [mapStyle, setMapStyle] = useState('dark')
+  const basemap = useBasemapStyle(mapStyle, MAP_STYLES[mapStyle])
+  // Tiles that keep failing after the style loaded: the basemap is dropped
+  // and the plain dark background shows, with every marker still drawn.
+  const [tilesFailedFor, setTilesFailedFor] = useState(null)
+  const tilesFailed = tilesFailedFor === mapStyle
+  useEffect(() => {
+    if (!basemap.style) return
+    let errors = 0, map = null, tries = 0
+    const onError = (e) => { if (e?.tile || e?.sourceId) { errors += 1; if (errors >= 6) setTilesFailedFor(mapStyle) } }
+    const id = setInterval(() => {
+      map = mapRef.current?.getMap?.() ?? null
+      if (map || ++tries > 40) { clearInterval(id); map?.on('error', onError) }
+    }, 150)
+    return () => { clearInterval(id); map?.off('error', onError) }
+  }, [basemap.style, mapStyle])
+  const showBasemap = Boolean(basemap.style) && !tilesFailed
   const [quakes, setQuakes] = useState([])
   const [majorQuakes, setMajorQuakes] = useState([])
   const [quakeState, setQuakeState] = useState('loading')
@@ -1051,7 +1072,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   // be decoration that says 7 while a feed is down.
   const feedStatus = useMemo(() => [
     { label: 'USGS seismic',        cls: 'LIVE', ok: quakeState === 'ready' },
-    { label: 'Basemap tiles',       cls: 'TILES', ok: Boolean(MAP_STYLES[mapStyle]) },
+    { label: 'Basemap tiles (OpenFreeMap)', cls: 'TILES', ok: showBasemap },
     { label: 'Exchange sessions',   cls: 'REFERENCE', ok: true },
     { label: 'Trade routes, disruption zones, events', cls: 'REFERENCE', ok: TRADE_ROUTES.length > 0 },
     { label: 'Intel narrative (AI)', cls: 'AI', ok: narrativeSource === 'live' || narrativeSource === 'cache' },
@@ -1059,7 +1080,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
     // they count only then. Listed always, they read as a failed feed — "4/6
     // SOURCES ACTIVE" — on every visit that never asked for them.
     ...(layerOn.countries || layerOn.density ? [{ label: 'Country outlines', cls: 'TILES', ok: Boolean(countries) }] : []),
-  ], [quakeState, mapStyle, narrativeSource, countries, layerOn.countries, layerOn.density])
+  ], [quakeState, showBasemap, narrativeSource, countries, layerOn.countries, layerOn.density])
 
   const shell = fullscreen
     ? { position: 'fixed', inset: 0, zIndex: 9999 }
@@ -1116,10 +1137,10 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
         layers={layers}
         getCursor={({ isHovering }) => (isHovering ? 'pointer' : 'grab')}
       >
-        {MAP_STYLES[mapStyle] && (
+        {showBasemap && (
           <Map
             ref={mapRef}
-            mapStyle={MAP_STYLES[mapStyle]}
+            mapStyle={basemap.style}
             reuseMaps
             attributionControl={false}
 
@@ -1138,7 +1159,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
       </DeckGL>
       {MAP_CREDIT[mapStyle] && (
         <div data-map-credit className="absolute bottom-0 right-0 z-10 px-1.5 py-0.5 bg-black/60 text-terminal-text-dim font-mono pointer-events-auto" style={{ fontSize: 11 }}>
-          {MAP_CREDIT[mapStyle]}
+          {showBasemap ? MAP_CREDIT[mapStyle] : (basemap.failed || tilesFailed) ? 'Base map unavailable: markers shown on a plain background' : MAP_CREDIT[mapStyle]}
         </div>
       )}
 
