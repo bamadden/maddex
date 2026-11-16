@@ -38,7 +38,7 @@ const FINANCIAL_PLACES = [
   { test: /london stock exchange|paternoster/i, title: 'LSE', context: 'London Stock Exchange · City of London', lat: 51.5150, lon: -0.0992, zoom: 16 },
   { test: /tokyo stock exchange|kabutocho|nihonbashi/i, title: 'TSE', context: 'Tokyo Stock Exchange · Nihonbashi, Tokyo', lat: 35.6828, lon: 139.7790, zoom: 16 },
   { test: /iron ore|pilbara|port hedland|newman/i, title: 'PILBARA IRON ORE REGION · WESTERN AUSTRALIA', lat: -22.3, lon: 118.6, zoom: 6,
-    context: `BHP, Rio Tinto and Fortescue operations · iron ore export earnings A$116b in 2024-25 (Resources and Energy Quarterly)${PILBARA_ORE ? ` · iron ore US$${PILBARA_ORE.toFixed(2)}/t (${C.commodities.asOfBy?.ironOreUSD})` : ''}`,
+    context: `BHP, Rio Tinto and Fortescue operations${PILBARA_ORE ? ` · iron ore US$${PILBARA_ORE.toFixed(2)}/t (${C.commodities.asOfBy?.ironOreUSD})` : ''}`,
     ask: 'Describe the Pilbara iron ore industry: who operates there, where the ore goes, and what has been reported recently. Describe only: no forecasts and no view on markets or stocks.', sector: 'Materials' },
 ]
 const placeFor = (query) => FINANCIAL_PLACES.find((p) => p.test.test(query)) ?? null

@@ -24,9 +24,10 @@ test('every module with datasets gets a health summary; today nothing is past it
     assert.ok(total > 0, m)
     assert.ok(!rows.some((r) => r.state === 'past'), `${m}: ${rows.filter((r) => r.state === 'past').map((r) => r.id)}`)
   }
-  // The one undated dataset is the flagged Global map content.
-  assert.deepEqual(HEALTH.filter((h) => h.cls !== 'demo' && !h.asOf).map((h) => h.id), ['intel-map'])
-  assert.equal(moduleHealth('global').attention, 1)
+  // Every dataset that is not demo has an as-of date (the Global map content
+  // was the last undated one, reviewed 16 Nov 2026).
+  assert.deepEqual(HEALTH.filter((h) => h.cls !== 'demo' && !h.asOf).map((h) => h.id), [])
+  assert.equal(moduleHealth('global').attention, 0)
 })
 
 test('every module header shows data health, and the panel loads only when opened', () => {

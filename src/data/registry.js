@@ -168,7 +168,6 @@ export const EXEMPT = {
 // that date the problem fails the test again. Never extend one without the
 // check it names: fix the data, or add a new flag with a new reason.
 export const FLAGS = [
-  { id: 'intel-map', until: '2026-11-29', reason: 'Global map editorial content (disruptions, route notes, site notes) was never dated as a whole; it also repeats the dated chokepoint table. Re-read each item from its source by fetch, or remove it, then set INTEL_MAP_REVIEWED.' },
 ]
 
 export const datasetById = Object.fromEntries(DATASETS.map((e) => [e.id, e]))

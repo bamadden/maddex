@@ -11,7 +11,6 @@ import { formatDate } from '../../utils/dateUtils'
 import { routeFor, brentReading, ROUTE_STATUS_SOURCE } from '../../data/shippingRoutes'
 import DataBadge from '../../components/ui/DataBadge'
 
-const RISK_TONE = { LOW: PAL.up, MEDIUM: PAL.gold, ELEVATED: '#D9773B', HIGH: PAL.down }
 // Main WA export port, for the route distance (the arcs start from a map anchor).
 const PORT_HEDLAND = [118.6, -20.3]
 const SYDNEY = [151.2, -33.9]
@@ -83,7 +82,7 @@ function TickerPills({ tickers, watchlist = [] }) {
 // the commodity itself, else the first ASX ticker named — and a link to it.
 // Nothing renders when the card names nothing the graph holds.
 function RelationshipsLink({ data, setActiveModule }) {
-  const tickers = [...(data?.asx ?? []), ...(data?.topStocks ?? []), ...(data?.asxImpact ?? [])].map((t) => (typeof t === 'string' ? t : t?.ticker))
+  const tickers = [...(data?.asx ?? []), ...(data?.topStocks ?? []), ...(data?.asxStocks ?? [])].map((t) => (typeof t === 'string' ? t : t?.ticker))
   const target = graphNodeForCommodity(data?.commodity) ?? tickers.map(graphNodeForTicker).find(Boolean)
   if (!target) return null
   return (
@@ -176,7 +175,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
         {type === 'disruption' && (
           <>
             <div style={{ color: PAL.down, fontFamily: '"IBM Plex Mono", monospace', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-              ⚠ {data.title}
+              {data.title}
             </div>
             <div style={{ ...S.muted, marginBottom: 12 }}>{data.detail}</div>
 
@@ -204,20 +203,26 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
             <div style={S.label}>Commodities in the lane</div>
             <div style={{ marginBottom: 12 }}><TickerPills tickers={data.commodities} /></div>
 
-            <div style={S.label}>ASX exposure</div>
-            <div style={{ marginBottom: 12 }}>
-              {data.asxImpact?.length
-                ? data.asxImpact.map((a) => (
-                    <div key={a.ticker} style={{ marginBottom: 4 }}>
-                      <TickerPills tickers={[a.ticker]} watchlist={watchlist} />
-                      <span style={{ ...S.muted, fontSize: 11 }}>{a.why}</span>
-                    </div>
-                  ))
-                : <div style={{ ...S.muted, color: PAL.muted }}>No direct ASX exposure identified</div>}
-            </div>
+            {data.asxStocks?.length > 0 && (
+              <>
+                <div style={S.label}>ASX companies on this route</div>
+                <div style={{ marginBottom: 4 }}><TickerPills tickers={data.asxStocks} watchlist={watchlist} /></div>
+                {data.asxNote && <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{data.asxNote}</div>}
+              </>
+            )}
 
-            <div style={S.label}>Active since</div>
-            <div style={S.value}>{data.startDate}</div>
+            {data.sources?.length > 0 && (
+              <>
+                <div style={S.label}>Sources</div>
+                <div style={{ marginBottom: 12 }} data-zone-sources>
+                  {data.sources.map((src) => (
+                    <div key={src.url} style={{ ...S.muted, fontSize: 11, marginBottom: 2 }}>
+                      <a href={src.url} target="_blank" rel="noopener noreferrer" className="underline">{src.publisher}</a>, {formatDate(src.date)}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             <button onClick={() => onFlyTo?.({ longitude: data.coordinates[0], latitude: data.coordinates[1], zoom: 5, pitch: 40, bearing: 0 })}
               className="btn-secondary btn-sm" style={{ width: '100%' }}>
@@ -282,16 +287,6 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                 <>
                   <div style={S.label}>Sea lanes</div>
                   <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{note.lanes}</div>
-                  <div style={{ ...S.label, display: 'flex', justifyContent: 'space-between' }}><span>Risk factors</span><span style={{ color: PAL.muted }}>EDITORIAL</span></div>
-                  {note.risks.map(([k, level, why]) => (
-                    <div key={k} style={{ marginBottom: 7 }} title={why}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: '"IBM Plex Mono", monospace', fontSize: 11 }}>
-                        <span style={{ color: '#C8D3E0' }}>● {k}</span>
-                        <span style={{ color: RISK_TONE[level], fontWeight: 700 }}>{level}</span>
-                      </div>
-                      <div style={{ ...S.muted, fontSize: 11, lineHeight: 1.4 }}>{why}</div>
-                    </div>
-                  ))}
                 </>
               )}
               <button onClick={() => askAI(`Tell me about Australia's ${exp ? 'export' : 'import'} trade ${exp ? 'with' : 'from'} ${partner}: A$${data.bn.toFixed(1)}b in ${VERIFIED_CONSTANTS.auTrade?.period} (ABS), mainly ${data.main}. Describe what moves along this route and what has been reported about it recently. Describe only: no forecasts and no view on markets or stocks.`)}
@@ -347,11 +342,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                   )}
                   {price != null && <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{c.sourceBy?.[x.price]} · as at {c.asOfBy?.[x.price]}</div>}
                   <div style={S.label}>Production</div>
-                  <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{data.id === 'au-pilbara' ? 'See export earnings above (Resources and Energy Quarterly).' : 'Regional production volume not yet sourced in this build.'}</div>
-                  <div style={S.label}>Operational risks</div>
-                  <ul style={{ margin: '0 0 12px', paddingLeft: 14 }}>
-                    {x.risks.map((rk) => <li key={rk} style={{ ...S.muted, fontSize: 11, lineHeight: 1.5 }}>{rk}</li>)}
-                  </ul>
+                  <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>Regional production volume not yet sourced in this build.</div>
                 </>
               )
             })()}

@@ -10,6 +10,7 @@
 // public APIs wired up in the component itself.
 
 import { getMockFMPRow } from '../../services/mockData'
+import { routeFor } from '../../data/shippingRoutes'
 
 const EXCHANGE_BASE = [
   { id: 'ASX',  city: 'Sydney',    flag: '🇦🇺', lon: 151.2093, lat: -33.8688, index: 'ASX 200',        openHour: 10,   closeHour: 16,   tz: 'Australia/Sydney',
@@ -46,10 +47,14 @@ const EXCHANGE_BASE = [
 // than a stale one. `demo` marks the source; the panel labels it.
 const EXCHANGE_INDEX = { ASX: '^AXJO', NYSE: '^GSPC', LSE: '^FTSE', TSE: '^N225', HKEX: '^HSI', SSE: '000001.SS', FSE: '^GDAXI', NZX: '^NZ50' }
 
-// Editorial map content (disruptions, route notes, site notes) has not been
-// re-read against its sources as a whole; null until it is (registered as
-// intel-map, flagged in src/data/registry.js until 29 Nov 2026).
-export const INTEL_MAP_REVIEWED = null
+// Editorial map content, reviewed 16 Nov 2026 (Ben's decision: re-read from a
+// sourced feed or remove). What remains is places, names and lanes, plus the
+// shipping zones, whose status and text now come from the dated, sourced
+// chokepoint table (data/shippingRoutes). Removed: the zones' own narratives
+// and start dates, the geopolitical event cards, cable capacities and owners,
+// base descriptions, route risk ratings, site risk lists and an unsourced
+// export figure. None had a source or date.
+export const INTEL_MAP_REVIEWED = '2026-11-16'
 
 export const EXCHANGES = EXCHANGE_BASE.map((e) => {
   const sym = EXCHANGE_INDEX[e.id]
@@ -66,74 +71,55 @@ export const EXCHANGES = EXCHANGE_BASE.map((e) => {
 // AU routes: `value` is A$b of AU EXPORTS to that market, ABS 2024-25 (see
 // verifiedConstants.auTrade); null where no sourced figure is held. The
 // non-AU routes are illustrative.
+// Arcs. AU values are the ABS's 2024-25 export totals (verifiedConstants.auTrade);
+// other arcs carry no value (the typed, illustrative values were removed 16 Nov
+// 2026), and no arc lists goods (no source).
 export const TRADE_ROUTES = [
-  { id: 'AU-CN',   from: [151.2, -33.9], to: [121.5, 31.2],  value: 188.7, exports: 'Iron Ore, Coal, LNG, Gold',  color: [201, 168, 76], thickness: 6 },
-  { id: 'AU-JP',   from: [151.2, -33.9], to: [139.7, 35.7],  value: 69.7, exports: 'LNG, Coal, Beef',            color: [201, 168, 76], thickness: 3 },
-  { id: 'AU-KR',   from: [151.2, -33.9], to: [126.9, 37.6],  value: 41.3, exports: 'Iron Ore, LNG, Coal',        color: [201, 168, 76], thickness: 2.5 },
-  { id: 'AU-IN',   from: [151.2, -33.9], to: [72.9, 19.1],   value: 35.0, exports: 'Coal, Gold, Education',      color: [201, 168, 76], thickness: 2 },
-  { id: 'AU-US',   from: [151.2, -33.9], to: [-74.0, 40.7],  value: 54.6, exports: 'Beef, Wine, Tourism',        color: [45, 138, 80],  thickness: 2 },
-  { id: 'AU-UK',   from: [151.2, -33.9], to: [-0.1, 51.5],   value: null, exports: 'Resources, Finance',         color: [45, 138, 80],  thickness: 1.5 },
-  { id: 'AU-SG',   from: [151.2, -33.9], to: [103.8, 1.4],   value: null, exports: 'LNG, Education',             color: [201, 168, 76], thickness: 1.5 },
-  { id: 'US-CN',   from: [-74.0, 40.7],  to: [121.5, 31.2],  value: 690, exports: 'Tech, Agriculture',          color: [100, 140, 200], thickness: 5 },
-  { id: 'EU-CN',   from: [8.7, 50.1],    to: [121.5, 31.2],  value: 480, exports: 'Machinery, Vehicles',        color: [100, 140, 200], thickness: 4 },
-  { id: 'RED-SEA', from: [8.7, 50.1],    to: [72.9, 19.1],   value: 200, exports: 'EU-Asia shipping',           color: [168, 50, 50],  thickness: 3, disrupted: true },
+  { id: 'AU-CN',   from: [151.2, -33.9], to: [121.5, 31.2],  value: 188.7, color: [201, 168, 76], thickness: 6 },
+  { id: 'AU-JP',   from: [151.2, -33.9], to: [139.7, 35.7],  value: 69.7, color: [201, 168, 76], thickness: 3 },
+  { id: 'AU-KR',   from: [151.2, -33.9], to: [126.9, 37.6],  value: 41.3, color: [201, 168, 76], thickness: 2.5 },
+  { id: 'AU-IN',   from: [151.2, -33.9], to: [72.9, 19.1],   value: 35.0, color: [201, 168, 76], thickness: 2 },
+  { id: 'AU-US',   from: [151.2, -33.9], to: [-74.0, 40.7],  value: 54.6, color: [45, 138, 80],  thickness: 2 },
+  { id: 'AU-UK',   from: [151.2, -33.9], to: [-0.1, 51.5],   value: null, color: [45, 138, 80],  thickness: 1.5 },
+  { id: 'AU-SG',   from: [151.2, -33.9], to: [103.8, 1.4],   value: null, color: [201, 168, 76], thickness: 1.5 },
+  { id: 'US-CN',   from: [-74.0, 40.7],  to: [121.5, 31.2],  value: null, color: [100, 140, 200], thickness: 5 },
+  { id: 'EU-CN',   from: [8.7, 50.1],    to: [121.5, 31.2],  value: null, color: [100, 140, 200], thickness: 4 },
+  { id: 'RED-SEA', from: [8.7, 50.1],    to: [72.9, 19.1],   value: null, color: [168, 50, 50],  thickness: 3, disrupted: routeFor('red-sea')?.status === 'DISRUPTED' },
 ]
 
 // AU-only subset, used by Australia focus mode so the arc layer doesn't have
 // to be refiltered on every render.
 export const AU_TRADE_ROUTES = TRADE_ROUTES.filter((r) => r.id.startsWith('AU-'))
 
-export const SHIPPING_DISRUPTIONS = [
-  { id: 'hormuz', name: 'Strait of Hormuz', coordinates: [56.3, 26.6], radius: 300000,
-    title: 'Hormuz Closure — Iran War',
-    detail: 'Largely closed since the US–Israel war on Iran began on 28 Feb. Iran has mined the strait and claims sovereignty over it; October has seen near-daily strikes on tankers.',
-    impact: 'Gulf crude and Qatari LNG cargoes are cut off from their usual route.',
-    showBrent: true,
-    affectedRoutes: ['Gulf crude', 'Qatar LNG', 'Oil tankers'],
-    commodities: ['Crude Oil', 'LNG', 'Fertiliser'],
-    asxImpact: [{ ticker: 'WDS', why: 'LNG producer; Qatari LNG is cut off from its usual route' }, { ticker: 'WHC', why: 'Coal producer; some Asian buyers burn coal in place of gas' }, { ticker: 'QAN', why: 'Jet fuel is a main cost' }],
-    startDate: '2026-02-28' },
-  { id: 'red-sea', name: 'Red Sea', coordinates: [43.0, 13.5], radius: 450000,
-    title: 'Houthi Attacks — Red Sea',
-    detail: 'Ongoing attacks on commercial shipping. Major carriers diverting around the Cape of Good Hope, a longer route between Europe and Asia.',
-    impact: 'Longer voyages bear on Asia–Europe freight costs.',
-    affectedRoutes: ['EU-Asia', 'Oil tankers', 'Container ships'],
-    commodities: ['Containers', 'Crude Oil', 'LNG'],
-    asxImpact: [{ ticker: 'WDS', why: 'LNG shipping cost and route risk' }, { ticker: 'STO', why: 'Oil and gas producer' }],
-    startDate: '2023-11-19' },
+// Each zone's status, text and sources are the chokepoint table's entry for
+// it (routeFor), so the map and the route table cannot disagree. Geometry and
+// the lanes and goods that pass through are reference facts.
+const ZONES = [
+  { id: 'hormuz', name: 'Strait of Hormuz', coordinates: [56.3, 26.6], radius: 300000, showBrent: true,
+    affectedRoutes: ['Gulf crude', 'Qatar LNG', 'Oil tankers'], commodities: ['Crude Oil', 'LNG', 'Fertiliser'] },
   { id: 'taiwan', name: 'Taiwan Strait', coordinates: [120.5, 24.5], radius: 220000,
-    title: 'Taiwan Strait — Military Tension',
-    detail: 'Intermittent PLA exercise activity. A main lane for container traffic and for the semiconductor supply chain.',
-    impact: 'Shipping insurance and routing are sensitive to exercise activity.',
-    affectedRoutes: ['Trans-Pacific', 'Intra-Asia'],
-    commodities: ['Semiconductors', 'Containers', 'Electronics'],
-    asxImpact: [{ ticker: 'WTC', why: 'Logistics software exposure' }, { ticker: 'BHP', why: 'China demand channel' }],
-    startDate: '2024-01-01' },
+    affectedRoutes: ['Trans-Pacific', 'Intra-Asia'], commodities: ['Semiconductors', 'Containers', 'Electronics'] },
   { id: 'malacca', name: 'Strait of Malacca', coordinates: [103.5, 1.5], radius: 120000,
-    title: 'Strait of Malacca — Piracy Risk',
-    detail: 'Open; piracy reports in one of the busiest shipping lanes. A main route for Australian LNG heading to North Asia.',
-    impact: 'Piracy reports; traffic moving.',
-    affectedRoutes: ['AU-Asia LNG', 'Oil tankers'],
-    commodities: ['LNG', 'Crude Oil'],
-    asxImpact: [{ ticker: 'WDS', why: 'Primary LNG export lane' }],
-    startDate: '2024-06-01' },
-  { id: 'suez', name: 'Suez Canal', coordinates: [32.5, 30.5], radius: 80000,
-    title: 'Suez Canal — Reduced Traffic',
-    detail: 'Traffic reduced as vessels divert from the Red Sea; canal authority revenue has fallen.',
-    impact: 'Knock-on effects for global freight rates',
-    affectedRoutes: ['EU-Asia', 'EU-East Africa'],
-    commodities: ['Containers', 'Crude Oil'],
-    asxImpact: [{ ticker: 'QAN', why: 'Fuel cost pass-through' }],
-    startDate: '2023-12-01' },
+    affectedRoutes: ['AU-Asia LNG', 'Oil tankers'], commodities: ['LNG', 'Crude Oil'] },
+  { id: 'suez', name: 'Suez Canal and Red Sea', coordinates: [32.5, 30.5], radius: 80000,
+    affectedRoutes: ['EU-Asia', 'EU-East Africa'], commodities: ['Containers', 'Crude Oil'] },
   { id: 'panama', name: 'Panama Canal', coordinates: [-79.9, 9.1], radius: 60000,
-    title: 'Panama Canal — Water Levels',
-    detail: 'Operating normally after the drought-related transit limits of 2023–24.',
-    impact: 'No current restriction recorded.',
-    affectedRoutes: ['US East Coast-Asia', 'LNG tankers'],
-    commodities: ['LNG', 'Containers', 'Grain'],
-    asxImpact: [],
-    startDate: '2023-09-01' },
+    affectedRoutes: ['US East Coast-Asia', 'LNG tankers'], commodities: ['LNG', 'Containers', 'Grain'] },
 ]
+export const SHIPPING_DISRUPTIONS = ZONES.map((z) => {
+  const r = routeFor(z.id)
+  if (!r) return null
+  return {
+    ...z,
+    title: `${r.name} — ${r.status}`,
+    detail: r.note,
+    impact: r.commodity,
+    asxStocks: (r.asxStocks ?? []).map((t) => t.replace(/\.AX$/, '')),
+    asxNote: r.asxNote ?? null,
+    sources: r.sources ?? [],
+    asOf: r.asOf,
+  }
+}).filter(Boolean)
 
 // Where each commodity is produced, and by whom: places and company names
 // only. The production volumes, shares of world supply and producer ranks
@@ -150,47 +136,23 @@ export const COMMODITY_SITES = [
   { id: 'ukraine-wheat',   lon: 32.0,  lat: 49.0,  commodity: 'Wheat',        country: 'Ukraine',      companies: ['Various'],                asx: ['GNC'],               color: [220, 180, 60], disrupted: true },
 ]
 
-export const GEOPOLITICAL_EVENTS = [
-  { id: 'ukraine',     lon: 32.0,  lat: 49.0,  title: 'Russia-Ukraine War', type: 'CONFLICT',
-    summary: 'Ongoing conflict. Wheat and fertiliser disruption. Energy prices elevated.',
-    marketImpact: 'Bears on EU energy costs, food prices and defence spending',
-    asxExposure: 'WDS, STO (LNG demand), GNC (wheat)',
-    alliances: ['NATO (indirect)', 'Five Eyes intelligence sharing'], },
-  { id: 'taiwan-geo',  lon: 120.9, lat: 23.7, title: 'China-Taiwan Tensions',     type: 'GEOPOLITICAL',
-    summary: 'Elevated military activity. Semiconductor supply chain risk.',
-    marketImpact: 'Bears on technology supply chains, including TSMC chip output',
-    asxExposure: 'Tech sector, WTC (supply chain software)',
-    alliances: ['AUKUS', 'Quad', 'Five Eyes'], },
-  { id: 'middle-east', lon: 34.8,  lat: 31.5, title: 'Middle East Conflict',     type: 'CONFLICT',
-    summary: 'Regional escalation risk. Oil supply disruption threat.',
-    marketImpact: 'Bears on oil prices and on demand for assets seen as safe havens',
-    asxExposure: 'WDS, STO (oil price), gold miners',
-    alliances: ['US-led coalition'], },
-  { id: 'china-econ',  lon: 116.4, lat: 39.9, title: 'China Economic Slowdown',   type: 'ECONOMIC',
-    summary: 'Property sector stress. Consumer confidence low.',
-    marketImpact: 'Bears on demand for Australian commodity exports',
-    asxExposure: 'BHP, RIO, FMG, S32 — direct exposure',
-    alliances: ['RCEP', 'ChAFTA (bilateral)'], },
-  { id: 'us-election', lon: -77.0, lat: 38.9, title: 'US Policy Risk',   type: 'POLITICAL',
-    summary: 'Trade policy uncertainty. Tariff risk.',
-    marketImpact: 'Bears on the US dollar and trade-exposed sectors',
-    asxExposure: 'US-listed ADRs, tech sector',
-    alliances: ['ANZUS', 'AUKUS', 'Five Eyes'], },
-]
+// Geopolitical event cards (war, tensions, slowdown, policy risk) were
+// editorial summaries with no source or date, and were removed on 16 Nov 2026.
+export const GEOPOLITICAL_EVENTS = []
 
 // Paths are [lat, lon] pairs as sourced; the map layer flips them to the
 // [lon, lat] order deck.gl expects.
 export const UNDERSEA_CABLES = [
-  { name: 'Southern Cross NEXT',  path: [[-33.9, 151.2], [21.3, -157.8], [37.7, -122.4]], capacity: '72 Tbps', owner: 'Telstra / Spark' },
-  { name: 'Australia-Japan Cable', path: [[-33.9, 151.2], [1.4, 103.8], [35.7, 139.7]],   capacity: '40 Tbps', owner: 'Consortium' },
-  { name: 'INDIGO-West',           path: [[-31.9, 115.8], [4.2, 73.5], [19.1, 72.9]],     capacity: '24 Tbps', owner: 'Google / Telstra' },
+  { name: 'Southern Cross NEXT',  path: [[-33.9, 151.2], [21.3, -157.8], [37.7, -122.4]] },
+  { name: 'Australia-Japan Cable', path: [[-33.9, 151.2], [1.4, 103.8], [35.7, 139.7]] },
+  { name: 'INDIGO-West',           path: [[-31.9, 115.8], [4.2, 73.5], [19.1, 72.9]] },
 ]
 
 export const MILITARY_BASES = [
-  { name: 'Pine Gap',             lon: 133.7, lat: -23.8, country: 'AU / US',      type: 'Intelligence', significance: 'Joint signals intelligence facility' },
-  { name: 'RAAF Darwin',          lon: 130.9, lat: -12.4, country: 'Australia',    type: 'Air Base',     significance: 'US Marine rotation. Northern defence.' },
-  { name: 'Guam (Andersen AFB)',  lon: 144.9, lat: 13.6,  country: 'United States', type: 'Air / Naval', significance: 'Key Pacific power projection hub' },
-  { name: 'Diego Garcia',         lon: 72.4,  lat: -7.3,  country: 'UK / US',      type: 'Naval / Air',  significance: 'Indian Ocean strategic base' },
+  { name: 'Pine Gap',             lon: 133.7, lat: -23.8, country: 'AU / US',      type: 'Intelligence' },
+  { name: 'RAAF Darwin',          lon: 130.9, lat: -12.4, country: 'Australia',    type: 'Air Base' },
+  { name: 'Guam (Andersen AFB)',  lon: 144.9, lat: 13.6,  country: 'United States', type: 'Air / Naval' },
+  { name: 'Diego Garcia',         lon: 72.4,  lat: -7.3,  country: 'UK / US',      type: 'Naval / Air' },
 ]
 
 // Major AU production regions, labelled only in Australia focus mode.
@@ -342,7 +304,7 @@ export const GEO_NARRATIVE_FIELDS = ['summary', 'marketImpact']
 // producing LNG hub in the north-west is the North West Shelf at Karratha.
 export const AU_KEY_SITES = [
   { id: 'au-pilbara', name: 'Pilbara', region: 'WA', commodity: 'Iron ore', lon: 118.6, lat: -22.3,
-    asx: ['BHP', 'RIO', 'FMG'], note: 'Iron ore export earnings A$116b in 2024-25 — Australia\'s largest export (Resources and Energy Quarterly).' },
+    asx: ['BHP', 'RIO', 'FMG'], note: 'Iron ore mining region; exports through Port Hedland and Dampier.' },
   { id: 'au-bowen', name: 'Bowen Basin', region: 'QLD', commodity: 'Coal (mostly metallurgical)', lon: 148.2, lat: -22.5,
     asx: ['BHP', 'WHC'], note: 'Steelmaking coal for Japan, India, Korea and China.' },
   { id: 'au-nws', name: 'North West Shelf', region: 'WA (Karratha)', commodity: 'LNG', lon: 116.8, lat: -20.7,
@@ -362,10 +324,10 @@ export const AU_KEY_SITES = [
 export const AU_IMPACT = {
   'China':                    { score: 3, why: 'Largest trade partner — biggest export market and import source' },
   'United States of America': { score: 3, why: 'Alliance, capital flows; #2 import source, #3 export market' },
-  'Japan':                    { score: 3, why: '#2 export market — LNG and coal' },
-  'South Korea':              { score: 2, why: '#4 export market — iron ore, coal, LNG' },
-  'India':                    { score: 2, why: '#5 export market — coal and gold' },
-  'Singapore':                { score: 2, why: 'Main refined-fuel supplier; #4 import source' },
+  'Japan':                    { score: 3, why: '#2 export market' },
+  'South Korea':              { score: 2, why: '#4 export market' },
+  'India':                    { score: 2, why: '#5 export market' },
+  'Singapore':                { score: 2, why: '#4 import source' },
   'Taiwan':                   { score: 2, why: 'Sits on the shipping lanes for North Asian trade' },
   'Saudi Arabia':             { score: 2, why: 'Oil prices and Gulf shipping' },
   'Iran':                     { score: 2, why: 'Strait of Hormuz — oil and LNG prices' },
@@ -374,7 +336,7 @@ export const AU_IMPACT = {
   'Russia':                   { score: 2, why: 'Energy and grain markets' },
   'Indonesia':                { score: 1, why: 'Nearest large neighbour; regional stability' },
   'New Zealand':              { score: 1, why: 'Closest economic partner (CER)' },
-  'Thailand':                 { score: 1, why: '#5 import source — vehicles' },
+  'Thailand':                 { score: 1, why: '#5 import source' },
   'United Kingdom':           { score: 1, why: 'Investment and financial ties' },
   'Malaysia':                 { score: 1, why: 'Fuel and regional trade' },
   'Vietnam':                  { score: 1, why: 'Growing export market' },
@@ -415,24 +377,15 @@ export const FINANCIAL_DISTRICTS = [
 // EDITORIAL on the card, and say why.
 export const ROUTE_NOTES = {
   'China': {
-    lanes: 'From WA ports through the Lombok and Makassar straits, then the South China Sea; east-coast cargoes via the Coral Sea and Philippine waters.',
-    risks: [
-      ['Geopolitical tension', 'ELEVATED', 'China restricted Australian coal, barley and wine in 2020–24; the trade has normalised but the precedent stands.'],
-      ['Shipping disruption', 'LOW', 'No chokepoint on the route is currently disrupted.'],
-      ['Tariff / trade-measure risk', 'MEDIUM', 'Iron ore has never been targeted — China lacks a substitute at scale — but other goods have.'],
-    ] },
+    lanes: 'From WA ports through the Lombok and Makassar straits, then the South China Sea; east-coast cargoes via the Coral Sea and Philippine waters.' },
   'Japan': {
-    lanes: 'North through the Lombok/Makassar straits or east of the Philippines; LNG from the North West Shelf and Gladstone.',
-    risks: [['Geopolitical tension', 'LOW', 'Treaty-level partner (Reciprocal Access Agreement, 2023).'], ['Shipping disruption', 'LOW', 'Open sea lanes.'], ['Tariff / trade-measure risk', 'LOW', 'JAEPA free-trade agreement in force since 2015.']] },
+    lanes: 'North through the Lombok/Makassar straits or east of the Philippines; LNG from the North West Shelf and Gladstone.' },
   'United States': {
-    lanes: 'Across the Pacific; much of the value is gold and services, which move by air and wire rather than ship.',
-    risks: [['Geopolitical tension', 'LOW', 'Alliance partner.'], ['Shipping disruption', 'LOW', 'Open ocean.'], ['Tariff / trade-measure risk', 'MEDIUM', 'US tariff policy has been volatile since 2025.']] },
+    lanes: 'Across the Pacific; much of the value is gold and services, which move by air and wire rather than ship.' },
   'South Korea': {
-    lanes: 'North via the Lombok/Makassar straits; iron ore, coal and LNG to the steel and power sectors.',
-    risks: [['Geopolitical tension', 'LOW', 'KAFTA in force since 2014.'], ['Shipping disruption', 'LOW', 'Open sea lanes.'], ['Tariff / trade-measure risk', 'LOW', 'Free-trade agreement.']] },
+    lanes: 'North via the Lombok/Makassar straits; iron ore, coal and LNG to the steel and power sectors.' },
   'India': {
-    lanes: 'West across the Indian Ocean, often through the Sunda Strait or around Sumatra.',
-    risks: [['Geopolitical tension', 'LOW', 'ECTA interim agreement in force since 2022.'], ['Shipping disruption', 'LOW', 'Open sea lanes.'], ['Tariff / trade-measure risk', 'MEDIUM', 'Tariff cuts are being phased in; coal and gold flows depend on Indian policy.']] },
+    lanes: 'West across the Indian Ocean, often through the Sunda Strait or around Sumatra.' },
 }
 
 // Two coordinates to a great-circle distance in km.
@@ -448,21 +401,16 @@ export function greatCircleKm([lon1, lat1], [lon2, lat2]) {
 // `price` names a verifiedConstants.commodities key (dated, sourced); null
 // where the terminal holds no price for what the region produces (Bowen is
 // mostly METALLURGICAL coal and only a thermal price is held, so none is
-// shown rather than the wrong one). `risks` are operational facts of the
-// place, not ratings. `sector` is the Screener sector for SEE RELATED STOCKS.
+// shown rather than the wrong one). `sector` is the Screener sector for SEE
+// RELATED STOCKS. (The per-site risk lists were removed 16 Nov 2026: no
+// source.)
 export const SITE_EXTRAS = {
-  'au-pilbara':    { price: 'ironOreUSD', priceLabel: 'Iron ore 62% Fe', unit: 'US$/t', sector: 'Materials',
-    risks: ['Cyclone season Nov–Apr can close Port Hedland and Dampier', 'Rail and port capacity sets the export ceiling', 'Price set by Chinese steel demand'] },
-  'au-bowen':      { price: null, priceLabel: 'Metallurgical coal', sector: 'Materials',
-    risks: ['Wet-season flooding (Dec–Mar) disrupts pits and rail', 'Underground mine safety incidents', 'Demand tied to Asian steelmaking'] },
-  'au-nws':        { price: 'lngUSDPerMMBtu', priceLabel: 'LNG (JKM spot)', unit: 'US$/MMBtu', sector: 'Energy',
-    risks: ['Ageing fields — output declining toward end of life', 'Cyclone season shut-ins', 'Environmental approvals for life extension'] },
-  'au-curtis':     { price: 'lngUSDPerMMBtu', priceLabel: 'LNG (JKM spot)', unit: 'US$/MMBtu', sector: 'Energy',
-    risks: ['East-coast gas reservation and price-cap policy', 'Coal-seam gas well decline needs constant drilling', 'Cyclone and flood exposure at Gladstone'] },
-  'au-cooper':     { price: 'brentUSD', priceLabel: 'Brent crude (oil reference)', unit: 'US$/bbl', sector: 'Energy',
-    risks: ['Channel Country flooding cuts road access', 'Mature basin — high cost per well', 'East-coast gas market regulation'] },
-  'au-kalgoorlie': { price: null, priceLabel: 'Gold', sector: 'Materials',
-    risks: ['Labour and cost inflation across WA mining', 'Grade decline in older pits', 'Water supply in a semi-arid region'] },
+  'au-pilbara':    { price: 'ironOreUSD', priceLabel: 'Iron ore 62% Fe', unit: 'US$/t', sector: 'Materials' },
+  'au-bowen':      { price: null, priceLabel: 'Metallurgical coal', sector: 'Materials' },
+  'au-nws':        { price: 'lngUSDPerMMBtu', priceLabel: 'LNG (JKM spot)', unit: 'US$/MMBtu', sector: 'Energy' },
+  'au-curtis':     { price: 'lngUSDPerMMBtu', priceLabel: 'LNG (JKM spot)', unit: 'US$/MMBtu', sector: 'Energy' },
+  'au-cooper':     { price: 'brentUSD', priceLabel: 'Brent crude (oil reference)', unit: 'US$/bbl', sector: 'Energy' },
+  'au-kalgoorlie': { price: null, priceLabel: 'Gold', sector: 'Materials' },
 }
 
 // Where each central bank sits, for the map's decision markers.
@@ -472,6 +420,5 @@ export const CENTRAL_BANK_SITES = {
   EU: { bank: 'ECB', city: 'Frankfurt', lon: 8.7047, lat: 50.1096 },
   JP: { bank: 'BOJ', city: 'Tokyo', lon: 139.7712, lat: 35.6862 },
   UK: { bank: 'BoE', city: 'London', lon: -0.0886, lat: 51.5142 },
-  NZ: { bank: 'RBNZ', city: 'Wellington', lon: 174.7787, lat: -41.2865 },
   CA: { bank: 'BoC', city: 'Ottawa', lon: -75.7009, lat: 45.4208 },
 }

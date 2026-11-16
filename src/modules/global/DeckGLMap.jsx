@@ -1445,17 +1445,14 @@ function MapTooltip({ tooltip }) {
     trade: () => (
       <>
         <div style={gold}>TRADE ROUTE</div>
-        <div style={{ marginBottom: 2 }}>{object.exports}</div>
-        {object.value != null && (
-          <div style={dim}>{object.id?.startsWith('AU-') ? `A$${object.value}b AU exports (ABS 2024-25)` : `A$${object.value}B annually (illustrative)`}</div>
-        )}
-        {object.disrupted && <div style={{ color: PAL.down, marginTop: 4, fontSize: 11 }}>⚠ DISRUPTED</div>}
+        {object.value != null && <div style={dim}>A${object.value}b AU exports (ABS 2024-25)</div>}
+        {object.disrupted && <div style={{ color: PAL.down, marginTop: 4, fontSize: 11 }}>DISRUPTED (route table)</div>}
       </>
     ),
     disruption: () => (
       <>
-        <div style={{ color: PAL.down, fontWeight: 700, marginBottom: 4 }}>⚠ {routeFor(object.id)?.status ?? 'STATUS NOT RECORDED'} — {object.name}</div>
-        <div style={dim}>{object.detail.slice(0, 110)}…</div>
+        <div style={{ color: PAL.down, fontWeight: 700, marginBottom: 4 }}>{routeFor(object.id)?.status ?? 'STATUS NOT RECORDED'} — {object.name}</div>
+        <div style={dim}>{(object.detail ?? '').slice(0, 110)}{(object.detail ?? '').length > 110 ? '…' : ''}</div>
         <div style={{ color: PAL.gold, fontSize: 11, marginTop: 4 }}>{object.impact}</div>
       </>
     ),
@@ -1485,15 +1482,13 @@ function MapTooltip({ tooltip }) {
     cable: () => (
       <>
         <div style={{ color: '#6496FF', fontWeight: 700, marginBottom: 4 }}>{object.name}</div>
-        <div style={dim}>Capacity {object.capacity}</div>
-        <div style={{ fontSize: 11, color: PAL.muted }}>{object.owner}</div>
+        <div style={dim}>Undersea cable route (approximate)</div>
       </>
     ),
     military: () => (
       <>
         <div style={{ color: '#8C8CFF', fontWeight: 700, marginBottom: 4 }}>✦ {object.name}</div>
         <div style={{ ...dim, marginBottom: 2 }}>{object.country} · {object.type}</div>
-        <div style={{ fontSize: 11, color: PAL.muted, lineHeight: 1.5 }}>{object.significance}</div>
       </>
     ),
   }[type]

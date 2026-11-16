@@ -107,7 +107,7 @@ export const VERIFIED_CONSTANTS = {
     ],
     source: 'rba.gov.au (mr-26-30)',
     asOf: '2026-11-03',
-    lastVerified: '2026-11-03',
+    lastVerified: '2026-11-16',
   },
   fed: {
     label: 'Fed',
@@ -183,7 +183,7 @@ export const VERIFIED_CONSTANTS = {
     // key-rates page unchanged since 16 Sep; FX.co). "Data-dependent and
     // meeting-by-meeting", energy prices an upside risk to inflation. No vote
     // published. Last move: +25bp on 10 Sep. Next: 17 Dec (ECB calendar).
-    source: 'ecb.europa.eu', asOf: '2026-10-29', lastVerified: '2026-10-30',
+    source: 'ecb.europa.eu', asOf: '2026-10-29', lastVerified: '2026-11-16',
   },
   boe: {
     label: 'BOE', country: 'United Kingdom', cashRate: 4.00,
@@ -232,7 +232,7 @@ export const VERIFIED_CONSTANTS = {
     // Governing Council decides by consensus. Next announcement 9 Dec.
     // Cycle low: 2.25% from the 29 Oct 2025 cut, held until this hike.
     cycleLow: { rate: 2.25, date: '2025-10-29' },
-    source: 'bankofcanada.ca', asOf: '2026-10-28', lastVerified: '2026-10-29',
+    source: 'bankofcanada.ca', asOf: '2026-10-28', lastVerified: '2026-11-16',
   },
   snb: {
     label: 'SNB', country: 'Switzerland', cashRate: 0.00,
@@ -606,7 +606,7 @@ export const VERIFIED_CONSTANTS = {
 
     source: 'abs.gov.au',
     asOf: '2026-10-28',
-    lastVerified: '2026-10-28',
+    lastVerified: '2026-11-16',
   },
 
   // ── Other major economies ─────────────────────────────────────────────────
