@@ -95,3 +95,10 @@ test('daily Global prompts ask for description: no model-made severity, trend or
   assert.deepEqual(map.GEO_NARRATIVE_FIELDS, ['summary', 'marketImpact'])
   assert.ok(!map.SHIPPING_NARRATIVE_FIELDS.includes('trend'))
 })
+
+test('RBA preview: no hike/hold scenarios or sector reactions (Ben, 16 Nov 2026)', () => {
+  const s = fs.readFileSync('src/components/layout/AIPanel.jsx', 'utf8')
+  const p = s.slice(s.indexOf('const rbaPreviewInstruction'), s.indexOf('const RBA_PREVIEW_WORDS'))
+  assert.doesNotMatch(p, /IF THE RBA HIKES|IF THE RBA HOLDS|SECTOR BY SECTOR|AND WHY|WHAT TO WATCH|genuine scenario/)
+  assert.match(p, /no scenarios for what happens if the RBA moves or holds/)
+})

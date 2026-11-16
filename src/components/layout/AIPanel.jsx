@@ -281,17 +281,17 @@ Under RISK MATRIX, list the main risks as "- Risk — likelihood (low/medium/hig
 // module. The pre-decision brief: research mode, six fixed sections, kept in
 // SAVED RESEARCH. The word budget follows the plan's output cap (the server's
 // MAX_TOKENS.chat) so the brief is never cut off mid-section.
+// Describe-only (16 Nov 2026, Ben's decision): the "IF THE RBA HIKES —
+// SECTOR BY SECTOR" and "IF THE RBA HOLDS" scenarios are removed until they
+// can be built from real, sourced past episodes.
 const rbaPreviewInstruction = (words) => `[MODE]
 User asked for the RBA DECISION PREVIEW. Write ${words} words in total, with exactly these section headers, each on its own line in capitals followed by a colon, in this order:
 CURRENT RATE ENVIRONMENT:
 WHAT THE CPI SHOWED:
-MARKET PRICING AND WHY:
-IF THE RBA HIKES — SECTOR BY SECTOR:
-IF THE RBA HOLDS — THE SURPRISE SCENARIO:
-WHAT TO WATCH IN THE STATEMENT:
-Use the RBA, CPI, market-pricing, mortgage and statement figures in your context and attribute each (ABS, RBA, the named pricing source and its date). Under the sector section cover banks, REITs, consumer discretionary, utilities, materials and the AUD, each as direction and mechanism — never price targets. Treat a hold as a genuine scenario, not a footnote. End with a one-line reminder that this is general information, not advice. Skip the FOLLOW_UPS line for this answer.
-
-`
+MARKET PRICING:
+WHAT THE LAST STATEMENT SAID:
+WHAT IS SCHEDULED:
+Use the RBA, CPI, market-pricing, mortgage and statement figures in your context and attribute each (ABS, RBA, the named pricing source and its date). Market pricing is the dated reading in your context, stated as a reading with its source and date; do not explain or interpret it. Describe only: no forecast of the decision, no scenarios for what happens if the RBA moves or holds, no sector or market reactions, no price targets. End with a one-line reminder that this is general information, not advice. Skip the FOLLOW_UPS line for this answer.`
 const RBA_PREVIEW_WORDS = { core: '900-1100', prime: '2000-2500', apex: '2000-2500' }
 
 // Personas — tone and depth, sent in the user turn like the response mode, so

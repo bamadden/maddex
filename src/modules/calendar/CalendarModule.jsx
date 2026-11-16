@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import CorporateActions from './CorporateActions'
 import { PredictedEvents, EventImpactHistory } from './PredictiveCalendar'
-import EventImpact from './EventImpact'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
@@ -262,7 +261,9 @@ function EconomicEventCard({ event, onReminderChange }) {
           <div className="text-2xs text-terminal-text-dim italic mb-2 pb-2 border-b border-terminal-border/30">{event.description}</div>
         )}
 
-        {event.importance === 'high' && <EventImpact event={event} />}
+        {/* No "historical impact analysis" (removed 16 Nov 2026, Ben's decision):
+            it described how markets tended to react to a hotter or cooler
+            release, a conditional scenario not built from sourced episodes. */}
 
         {/* No "MARKET SENSITIVITY" dots (removed 16 Nov 2026): they were the
             event's importance copied onto AUD, banks and bonds, not a

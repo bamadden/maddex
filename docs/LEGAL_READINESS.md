@@ -105,6 +105,9 @@ do, but both are conditional market scenarios ahead of a scheduled event:
    and "IF THE RBA HOLDS". This feeds the held RBA preview, so it has not been
    changed.
 
-Question: keep (as general information about past tendencies), reword to past
-episodes only, or remove? Until Ben decides, (1) is labelled "not a forecast of
-this release" in neutral colours and (2) is untouched.
+**Decided 16 Nov 2026 (Ben): both removed** until they can be built from real,
+sourced past episodes. The event-impact panel and its service are deleted; the
+RBA preview prompt keeps rate, CPI, the dated market reading, the last
+statement and the schedule, with no hike/hold scenarios. The held
+`RbaHikeImpact.jsx` still shows an "IF THE RBA HIKES TO x%" mortgage panel:
+not covered by the decision, flagged to Ben.

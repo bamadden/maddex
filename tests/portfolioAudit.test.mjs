@@ -50,7 +50,7 @@ test('Calendar: no unsourced consensus, no invented sensitivity, describe-only p
   assert.match(s, /event\.forecastSource &&/)
   assert.doesNotMatch(s, /setHours\(0, 0, 0, 0\)\)\n|new Date\(now\.getFullYear\(\), now\.getMonth\(\), now\.getDate\(\)\)/)
   assert.doesNotMatch(read('src/services/calendarExtras.js'), /m\.setHours\(8/)
-  assert.doesNotMatch(read('src/modules/calendar/EventImpact.jsx'), /text-terminal-red|text-terminal-green|AI-ESTIMATE/)
+  assert.ok(!fs.existsSync('src/modules/calendar/EventImpact.jsx') && !fs.existsSync('src/services/eventImpact.js'), 'event impact scenarios removed')
 })
 
 test('Relationships: links validated, nodes keyboard-reachable, hop sources shown, no 0 cost', () => {
