@@ -230,7 +230,7 @@ function AlertRow({ symbol, price, alerts, addAlert, removeAlert, onClose, colSp
               className="text-2xs font-bold px-3 py-1 bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-40"
             >SET ⚡</button>
 
-            <button onClick={onClose} className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-auto">✕</button>
+            <button onClick={onClose} aria-label="Close" className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-auto">✕</button>
           </div>
 
           {mine.length > 0 && (
@@ -730,7 +730,9 @@ export default function WatchlistModule() {
       worst: sorted[sorted.length - 1],
       total: priced.length,
       // One unit of each, in A$ — a reference figure, not a holding.
-      unitValue: rows.reduce((s2, r) => s2 + (r.price ?? 0), 0),
+      // Priced rows only: a missing price is left out and counted, not added as 0.
+      unitValue: rows.reduce((s2, r) => (r.price != null ? s2 + r.price : s2), 0),
+      unpriced: rows.filter((r) => r.price == null).length,
       // Since added: only rows with a recorded entry price.
       since: (() => {
         const s = rows.map((r) => ({ r, s: sinceAdded(r.symbol, r.price) })).filter((x) => x.s).sort((a, b) => b.s.pct - a.s.pct)
@@ -828,7 +830,7 @@ export default function WatchlistModule() {
     const url = URL.createObjectURL(new Blob([watchlistToCsv(exportRows())], { type: 'text/csv;charset=utf-8;' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = `maddex-watchlist-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `maddex-watchlist-${new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })}.csv`
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -1238,7 +1240,7 @@ export default function WatchlistModule() {
           <span className="text-terminal-text-dim/25">|</span>
           <Tooltip content="One unit of every ticker, added up in A$. A reference figure for the list, not a portfolio value.">
             <span className="text-2xs text-terminal-text-dim whitespace-nowrap">
-              1 unit each: <span className="text-terminal-text-bright tabular-nums">{fmt.aud(overview.unitValue)}</span>
+              1 unit each: <span className="text-terminal-text-bright tabular-nums">{fmt.aud(overview.unitValue)}</span>{overview.unpriced > 0 && ` (${overview.unpriced} without a price left out)`}
             </span>
           </Tooltip>
 
@@ -1665,7 +1667,7 @@ export default function WatchlistModule() {
                           <td key={c.key} className="px-2 py-1 text-right tabular-nums whitespace-nowrap">
                             {since ? (
                               <span
-                                title={`From A$${since.entryPrice.toFixed(2)}${since.entryAt ? ` on ${new Date(since.entryAt).toLocaleDateString('en-AU')}` : ''}`}
+                                title={`From A$${since.entryPrice.toFixed(2)}${since.entryAt ? ` on ${formatDate(since.entryAt)}` : ''}`}
                                 style={{ color: since.pct >= 0 ? PAL.up : PAL.down, fontSize: 11 }}
                               >
                                 {since.pct >= 0 ? '▲ +' : '▼ '}{Math.abs(since.pct).toFixed(2)}%

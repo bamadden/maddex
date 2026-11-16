@@ -101,7 +101,7 @@ export function TargetRow({ symbol, label, price, current, onSave, onClear, onCl
           </label>
           {valid && price != null && (
             <span className="text-2xs text-terminal-text-dim">
-              {n >= price ? 'upside' : 'downside'} target, {Math.abs(((n - price) / price) * 100).toFixed(1)}% from here
+              {Math.abs(((n - price) / price) * 100).toFixed(1)}% {n >= price ? 'above' : 'below'} the last price
             </span>
           )}
           <button onClick={save} disabled={!valid} className="btn-primary btn-sm disabled:opacity-40">SAVE</button>

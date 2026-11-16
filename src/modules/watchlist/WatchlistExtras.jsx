@@ -17,7 +17,7 @@ const volFmt = (v) => (v == null ? '—' : v >= 1e9 ? `${(v / 1e9).toFixed(2)}B`
 export function HoverPreview({ row, sector, x, y, onAnalyse, onAlert, onChart, onEnter, onLeave }) {
   const left = Math.min(x + 18, window.innerWidth - 296)
   const top = Math.min(Math.max(8, y - 20), window.innerHeight - 230)
-  const up = (row.pct ?? 0) >= 0
+  const up = row.pct != null && row.pct >= 0
   const pos = row.week52Low != null && row.week52High != null && row.week52High > row.week52Low && row.price != null
     ? Math.min(100, Math.max(0, ((row.price - row.week52Low) / (row.week52High - row.week52Low)) * 100)) : null
   const exch = row.type === 'asx' ? 'ASX' : row.type === 'crypto' ? 'CRYPTO' : 'US'

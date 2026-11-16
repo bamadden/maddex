@@ -56,3 +56,11 @@ test('every list kept only in this browser says so, in the one shared sentence',
   for (const [f, what] of Object.entries(where)) assert.match(fs.readFileSync(f, 'utf8'), new RegExp(`<DeviceOnlyNote what="${what}"`), f)
   assert.match(fs.readFileSync('src/modules/watchlist/WatchlistSyncBar.jsx', 'utf8'), /Saved on this device only\./)
 })
+
+test('Watchlist: no "upside/downside target" wording; no missing price added as 0; Sydney dates', () => {
+  const parts = fs.readFileSync('src/modules/watchlist/WatchlistRowParts.jsx', 'utf8')
+  assert.doesNotMatch(parts, /upside|downside|target, /)
+  const mod = fs.readFileSync('src/modules/watchlist/WatchlistModule.jsx', 'utf8')
+  assert.doesNotMatch(mod, /r\.price \?\? 0|toISOString\(\)\.slice\(0, 10\)\}\.csv|toLocaleDateString\('en-AU'\)/)
+  assert.doesNotMatch(fs.readFileSync('src/modules/watchlist/WatchlistExtras.jsx', 'utf8'), /row\.pct \?\? 0/)
+})
