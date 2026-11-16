@@ -44,7 +44,8 @@ function saveAlerts(alerts) {
 
 // Local calendar date, so "once a day" resets at the user's midnight — the
 // UTC date rolled over at 10–11am in Sydney, mid-session.
-export const localDay = (d = new Date()) => d.toLocaleDateString('en-CA')
+// Sydney's day: event and alert dates are Sydney dates.
+export const localDay = (d = new Date()) => d.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
 
 // ── Trigger history ──────────────────────────────────────────────────────────
 // The last 20 alerts that fired, from either store, so you can compare what

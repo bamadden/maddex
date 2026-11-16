@@ -89,3 +89,22 @@ Also on 5 Nov: the expired stats exceptions for the 3 Nov hike were removed
 18. FRED and BLS are used only by a maintainers' script that reconciles our hand-entered US figures — is that permitted "internal commercial use" under FRED's terms, or does it need the St. Louis Fed's consent?
 19. Displaying news headlines, summaries and links from publisher RSS feeds in a paid product — permitted, or does each publisher need a licence?
 20. Nominative use of index names (S&P/ASX 200, Nikkei 225, etc.) and showing *DEMO* index levels under those names — any trade mark or index-licensing exposure?
+
+
+## Open legal question for Ben (16 Nov 2026)
+
+Two MaddenAI features describe how markets have *tended* to respond to an
+outcome before it happens. Neither states a figure or tells the reader what to
+do, but both are conditional market scenarios ahead of a scheduled event:
+
+1. Calendar → HISTORICAL IMPACT ANALYSIS (`services/eventImpact.js`): "how
+   markets have historically tended to respond when this release surprised
+   (a) to the upside and (b) to the downside".
+2. RBA DECISION PREVIEW (`components/layout/AIPanel.jsx`, prompt
+   `rbaPreviewInstruction`): sections "IF THE RBA HIKES — SECTOR BY SECTOR"
+   and "IF THE RBA HOLDS". This feeds the held RBA preview, so it has not been
+   changed.
+
+Question: keep (as general information about past tendencies), reword to past
+episodes only, or remove? Until Ben decides, (1) is labelled "not a forecast of
+this release" in neutral colours and (2) is untouched.

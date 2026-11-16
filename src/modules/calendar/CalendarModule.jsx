@@ -5,20 +5,21 @@ import EventImpact from './EventImpact'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import ModuleHeader from '../../components/ui/ModuleHeader'
+import { InlineLoading } from '../../components/ui/ModuleStates'
 import {
   eventStars, starString, earningsSeason, buildIcs, eventInstant,
   REMINDER_OFFSETS, addReminder, removeReminder, dismissReminder,
   remindersForEvent, pendingReminders,
 } from '../../services/calendarExtras'
 import { getEconomicCalendar, upcomingEvents, ECON_SCHEDULE_CHECKED } from '../../services/calendarService'
-import { LAST_DECISIONS } from '../../services/centralBankSchedule'
+import { LAST_DECISIONS, daysBetweenDays } from '../../services/centralBankSchedule'
 import { useReleaseWatch } from '../../hooks/useReleaseWatch'
 import { releaseKey } from '../../services/releaseWatch'
 import ReleaseWatchBanner from '../../components/ui/ReleaseWatchBanner'
 import { upcomingEarnings } from '../../services/earningsCalendar'
 import { dispatchAskAI } from '../../utils/askAI'
 import { logActivity } from '../../services/activityLogService'
-import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
+import { sydneyTzAbbr, formatDate, sydneyISO } from '../../utils/dateUtils'
 import { peekModuleIntent, takeModuleIntent } from '../../services/moduleIntent'
 import { PAL } from '../../styles/palette.js'
 import { useNow } from '../../hooks/useNow'
@@ -77,11 +78,11 @@ function MonthCalendar({ month, onMonthChange, selectedKey, onSelect, eventDays,
   return (
     <div className="p-2 border-b border-terminal-border flex-shrink-0">
       <div className="flex items-center justify-between mb-2">
-        <button onClick={() => onMonthChange(new Date(year, m - 1, 1))} className="text-terminal-text-dim hover:text-terminal-gold px-1">←</button>
+        <button onClick={() => onMonthChange(new Date(year, m - 1, 1))} aria-label="Previous month" className="text-terminal-text-dim hover:text-terminal-gold px-1">←</button>
         <span className="text-2xs font-bold text-terminal-gold tracking-wider">
           {month.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }).toUpperCase()}
         </span>
-        <button onClick={() => onMonthChange(new Date(year, m + 1, 1))} className="text-terminal-text-dim hover:text-terminal-gold px-1">→</button>
+        <button onClick={() => onMonthChange(new Date(year, m + 1, 1))} aria-label="Next month" className="text-terminal-text-dim hover:text-terminal-gold px-1">→</button>
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
@@ -118,22 +119,20 @@ function MonthCalendar({ month, onMonthChange, selectedKey, onSelect, eventDays,
 // ─── Left panel: upcoming list ───────────────────────────────────────────────
 
 function groupEvents(events) {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const weekEnd = new Date(today.getTime() + 7 * 86400000)
-  const nextWeekEnd = new Date(today.getTime() + 14 * 86400000)
+  // Grouped by Sydney calendar days (event dates are Sydney dates).
+  const todayKey = sydneyISO()
   const groups = { TODAY: [], 'THIS WEEK': [], 'NEXT WEEK': [], LATER: [] }
   for (const e of events) {
-    const d = e.dateObj
-    if (d.getTime() === today.getTime()) groups.TODAY.push(e)
-    else if (d < weekEnd) groups['THIS WEEK'].push(e)
-    else if (d < nextWeekEnd) groups['NEXT WEEK'].push(e)
+    const n = daysBetweenDays(todayKey, toDateKey(e.dateObj))
+    if (n === 0) groups.TODAY.push(e)
+    else if (n < 7) groups['THIS WEEK'].push(e)
+    else if (n < 14) groups['NEXT WEEK'].push(e)
     else groups.LATER.push(e)
   }
   return groups
 }
 
-function UpcomingList({ events, onSelect, selectedKey }) {
+function UpcomingList({ events, onSelect, selectedKey, loading = false }) {
   const groups = useMemo(() => groupEvents(events), [events])
   return (
     <div className="flex-1 overflow-y-auto thin-scrollbar">
@@ -165,7 +164,9 @@ function UpcomingList({ events, onSelect, selectedKey }) {
         </div>
       ))}
       {events.length === 0 && (
-        <div className="p-4 text-center text-2xs text-terminal-text-dim">No events match this filter</div>
+        loading
+          ? <InlineLoading label="Loading events" className="p-4" />
+          : <div className="p-4 text-center text-2xs text-terminal-text-dim">No events match this filter</div>
       )}
     </div>
   )
@@ -198,18 +199,9 @@ function CountdownWidget({ event }) {
 
 // ─── Event cards ──────────────────────────────────────────────────────────────
 
-function SensitivityBar({ label, dots }) {
-  return (
-    <div className="flex items-center gap-2 text-2xs">
-      <span className="text-terminal-text-dim w-20">{label}</span>
-      <span className="text-terminal-gold tracking-widest">{'●'.repeat(dots)}{'○'.repeat(3 - dots)}</span>
-    </div>
-  )
-}
 
 function EconomicEventCard({ event, onReminderChange }) {
   const rbaMatch = event.event.includes('RBA') ? LAST_DECISIONS.RBA : null
-  const sensitivity = event.importance === 'high' ? 3 : event.importance === 'medium' ? 2 : 1
   const released = useReleaseWatch().some((r) => r.key === releaseKey(event))
 
   return (
@@ -255,10 +247,12 @@ function EconomicEventCard({ event, onReminderChange }) {
                 <div className="text-terminal-text-bright font-semibold">{event.prev}</div>
               </div>
             )}
-            {event.forecast && event.forecast !== '—' && (
+            {/* A forecast is shown only with the source that published it. */}
+            {event.forecast && event.forecast !== '—' && event.forecastSource && (
               <div>
-                <div className="text-terminal-text-dim/60">CONSENSUS</div>
+                <div className="text-terminal-text-dim/60">FORECASTS</div>
                 <div className="text-terminal-text-bright font-semibold">{event.forecast}</div>
+                <div className="text-terminal-text-dim/60">{event.forecastSource}</div>
               </div>
             )}
           </div>
@@ -270,18 +264,15 @@ function EconomicEventCard({ event, onReminderChange }) {
 
         {event.importance === 'high' && <EventImpact event={event} />}
 
-        <div className="space-y-1 mb-2">
-          <div className="text-[11px] text-terminal-text-dim/60 tracking-widest">MARKET SENSITIVITY</div>
-          <SensitivityBar label={event.region === 'AU' ? 'AUD/USD' : 'USD Index'} dots={sensitivity} />
-          <SensitivityBar label={event.region === 'AU' ? 'ASX Banks' : 'US Equities'} dots={Math.max(1, sensitivity - 1)} />
-          <SensitivityBar label="Bonds" dots={sensitivity} />
-        </div>
+        {/* No "MARKET SENSITIVITY" dots (removed 16 Nov 2026): they were the
+            event's importance copied onto AUD, banks and bonds, not a
+            measured sensitivity. */}
 
         <button
           onClick={() => dispatchAskAI({
             name: event.event,
             date: event.date,
-            instruction: `Explain the likely market impact of this scheduled event: ${event.event} (${event.region}, ${event.importance} importance). What should investors watch for?`,
+            instruction: `Describe this scheduled event: ${event.event} (${event.region}). Who publishes it, what it measures, and what the previous release showed if it is in your context. Describe only: no forecast, no price and no suggestion of any action.`,
           }, { rawPrompt: false })}
           className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
         >
@@ -348,12 +339,12 @@ function EarningsEventCard({ event, onReminderChange }) {
             onClick={() => dispatchAskAI({
               name: event.company, ticker: bareTicker, date: event.date,
               instruction: isAgm
-                ? `${event.company} (${event.ticker}) holds its AGM on ${event.date}. What do shareholders typically watch at its AGM — trading update, remuneration vote, strategy — and what matters most this year?`
-                : `Give an earnings preview for ${event.company} (${event.ticker})'s upcoming ${event.reportType ?? ''} results: what to watch for, bull case, and bear case.`,
+                ? `${event.company} (${event.ticker}) holds its AGM on ${event.date}. Describe the business typically put to an ASX AGM (resolutions, remuneration vote, any trading update) and what the company has published about this one. Describe only: no forecast, no price and no suggestion of any action.`
+                : `${event.company} (${event.ticker}) reports its ${event.reportType ?? ''} results on ${event.date}. Describe the business, its segments and what it reported last time, from what is in your context. Describe only: no forecast, no price and no suggestion of any action. No bull or bear case.`,
             })}
             className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
           >
-            {isAgm ? 'AGM PREVIEW →' : 'FULL EARNINGS PREVIEW →'}
+            {isAgm ? 'ABOUT THIS AGM →' : 'ABOUT THIS COMPANY →'}
           </button>
           <button
             onClick={setReminder}
@@ -511,7 +502,7 @@ function WeekView({ anchorDate, events, selectedKey, onSelect }) {
     () => Array.from({ length: 5 }, (_, i) => new Date(monday.getTime() + i * 86400000)),
     [monday],
   )
-  const todayKey = toDateKey(new Date())
+  const todayKey = sydneyISO()
 
   return (
     <div className="grid grid-cols-5 gap-1">
@@ -562,7 +553,7 @@ export default function CalendarModule() {
     const d = peekModuleIntent('calendar')?.date
     return d ? new Date(`${d}T00:00:00`) : new Date()
   })
-  const [selectedKey, setSelectedKey] = useState(() => peekModuleIntent('calendar')?.date ?? toDateKey(new Date()))
+  const [selectedKey, setSelectedKey] = useState(() => peekModuleIntent('calendar')?.date ?? sydneyISO())
   useEffect(() => { takeModuleIntent('calendar') }, [])
   const [filter, setFilter] = useState('all')
   const [view, setView] = useState('month')
@@ -596,7 +587,7 @@ export default function CalendarModule() {
   }), [allEvents, filter])
 
   const eventDays = useMemo(() => new Set(allEvents.map((e) => toDateKey(e.dateObj))), [allEvents])
-  const todayKey = toDateKey(new Date())
+  const todayKey = sydneyISO()
 
   // Counted from the events actually loaded, so the banner cannot announce a
   // season this app has no events for.
@@ -622,10 +613,12 @@ export default function CalendarModule() {
   const dayEvents = filtered.filter((e) => toDateKey(e.dateObj) === selectedKey)
   const nextFutureEvent = allEvents.find((e) => e.dateObj > new Date())
   const selectedDateObj = new Date(`${selectedKey}T00:00:00`)
-  const isFuture = selectedDateObj > new Date(new Date().setHours(0, 0, 0, 0))
-  const relLabel = selectedKey === todayKey ? 'Today'
-    : isFuture ? `In ${plural(Math.ceil((selectedDateObj - new Date()) / 86400000), 'day')}`
-    : `${plural(Math.ceil((new Date() - selectedDateObj) / 86400000), 'day')} ago`
+  // Sydney calendar days between today and the selected date.
+  const dayGap = daysBetweenDays(todayKey, selectedKey)
+  const isFuture = dayGap > 0
+  const relLabel = dayGap === 0 ? 'Today'
+    : isFuture ? `In ${plural(dayGap, 'day')}`
+    : `${plural(-dayGap, 'day')} ago`
 
   return (
     <div className="h-full flex flex-col">
@@ -640,7 +633,7 @@ export default function CalendarModule() {
         lastUpdated={calResult?.source === 'fallback' ? null : dataUpdatedAt}
         right={calResult && (calResult.source === 'fallback'
           ? <DataBadge cls="DELAYED" source="Maddex schedule, checked" at={ECON_SCHEDULE_CHECKED} />
-          : <DataBadge cls="DELAYED" source="economic calendar" at={dataUpdatedAt || null} />)}
+          : <DataBadge cls="DELAYED" source="FMP economic calendar" at={dataUpdatedAt || null} />)}
       />
       <ReleaseWatchBanner className="px-3 pt-2" />
       {season.active && (
@@ -705,14 +698,14 @@ export default function CalendarModule() {
               </button>
             ))}
           </div>
-          <UpcomingList events={filtered} onSelect={setSelectedKey} selectedKey={selectedKey} />
+          <UpcomingList events={filtered} onSelect={setSelectedKey} selectedKey={selectedKey} loading={!calResult && isFetching} />
         </div>
 
         {/* RIGHT PANEL */}
         <div className="flex-1 overflow-y-auto p-4 min-w-0">
           <div className="mb-1">
             <div className="text-lg font-bold text-white uppercase tracking-wide">
-              {selectedDateObj.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {formatDate(selectedKey, { weekday: true })}
             </div>
             <div className="text-2xs text-terminal-text-dim">{relLabel}</div>
           </div>
@@ -728,12 +721,14 @@ export default function CalendarModule() {
             </div>
           )}
 
-          {dayEvents.length === 0 ? (
+          {dayEvents.length === 0 && !calResult && isFetching ? (
+            <InlineLoading label="Loading events" className="mt-6" />
+          ) : dayEvents.length === 0 ? (
             <div className="mt-6 text-center">
               <div className="text-xs text-terminal-text-dim mb-1">No major scheduled events</div>
               {nextFutureEvent && (
                 <div className="text-2xs text-terminal-text-dim/60">
-                  The next event is in {plural(Math.ceil((nextFutureEvent.dateObj - new Date()) / 86400000), 'day')}: {nextFutureEvent.label}
+                  The next event is in {plural(daysBetweenDays(todayKey, toDateKey(nextFutureEvent.dateObj)), 'day')}: {nextFutureEvent.label}
                 </div>
               )}
             </div>

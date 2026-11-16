@@ -43,3 +43,12 @@ test('Brief and the MaddenAI system prompt describe; no "what to watch", no judg
   assert.match(mod, /<ScoreNote method="outlook"/)
   assert.doesNotMatch(mod, /7am Sydney time|setError\(e\.message\)|MADDENAI OUTLOOK/)
 })
+
+test('Calendar: no unsourced consensus, no invented sensitivity, describe-only prompts, Sydney days', () => {
+  const s = read('src/modules/calendar/CalendarModule.jsx')
+  assert.doesNotMatch(s, /MARKET SENSITIVITY|>CONSENSUS<|likely market impact|bull case, and bear case|What should investors watch/)
+  assert.match(s, /event\.forecastSource &&/)
+  assert.doesNotMatch(s, /setHours\(0, 0, 0, 0\)\)\n|new Date\(now\.getFullYear\(\), now\.getMonth\(\), now\.getDate\(\)\)/)
+  assert.doesNotMatch(read('src/services/calendarExtras.js'), /m\.setHours\(8/)
+  assert.doesNotMatch(read('src/modules/calendar/EventImpact.jsx'), /text-terminal-red|text-terminal-green|AI-ESTIMATE/)
+})

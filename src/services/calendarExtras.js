@@ -17,6 +17,7 @@
 // result is not connected.
 
 import { eventInstant as sydneyInstant } from './calendarService'
+import { zonedInstant } from './centralBankSchedule'
 
 const REMINDER_KEY = 'maddex_event_reminders'
 
@@ -112,11 +113,8 @@ export function reminderFireTime(event, offsetKey) {
   if (!at) return null
   const offset = REMINDER_OFFSETS.find((o) => o.key === offsetKey)
   if (!offset) return null
-  if (offset.key === 'morning') {
-    const m = new Date(at)
-    m.setHours(8, 0, 0, 0)
-    return m
-  }
+  // 8am Sydney on the event's date (it was 8am in the browser's zone).
+  if (offset.key === 'morning') return new Date(zonedInstant(event.date, '08:00', 'Australia/Sydney'))
   return new Date(at.getTime() - offset.minutes * 60000)
 }
 
@@ -171,7 +169,7 @@ export function remindersForEvent(event) {
 // keeps the store from growing without bound.
 export function pendingReminders(now = Date.now()) {
   const list = readReminders()
-  const live = list.filter((r) => new Date(`${r.eventDate}T23:59:59`).getTime() >= now)
+  const live = list.filter((r) => zonedInstant(r.eventDate, '23:59', 'Australia/Sydney') >= now) // end of the Sydney day
   if (live.length !== list.length) writeReminders(live)
   return live.filter((r) => !r.dismissed && new Date(r.fireAt).getTime() <= now)
 }

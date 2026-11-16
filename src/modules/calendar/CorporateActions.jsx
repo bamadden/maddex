@@ -15,7 +15,7 @@ const fmtAud = (n) => (n >= 1e6 ? `A$${(n / 1e6).toFixed(n % 1e6 ? 1 : 0)}M` : `
 export default function CorporateActions() {
   const [filter, setFilter] = useState('all')
   const [open, setOpen] = useState(null)
-  const today = new Date().toLocaleDateString('en-CA')
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
 
   const rows = useMemo(() => {
     const listings = ASX_LISTINGS.filter((l) => l.date && l.date >= today).map((l) => ({
@@ -75,7 +75,7 @@ export default function CorporateActions() {
                             <button
                               onClick={() => dispatchAskAI({
                                 name: r.company, ticker: r.ticker, date: r.date,
-                                instruction: `${r.company} (${r.ticker.replace(/\.AX$/, '')}): ${r.detail} What should an Australian investor understand about this event, and what usually matters around it? General information only.`,
+                                instruction: `${r.company} (${r.ticker.replace(/\.AX$/, '')}): ${r.detail} Describe what this event is, how it works on the ASX, and what the company has published about it. Describe only: no forecast, no price and no suggestion of any action.`,
                               }, { rawPrompt: true })}
                               className="text-[11px] font-bold text-terminal-gold border border-terminal-gold/50 px-1.5 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                             >ASK MADDENAI</button>

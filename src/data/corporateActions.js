@@ -58,7 +58,7 @@ export const ASX_LISTINGS = [
   { code: 'S88', company: 'Super Minerals', sector: 'Resources', date: null, raiseAud: 7_000_000, price: 0.20, note: 'Listing date TBA', ...ASX_FLOATS },
 ]
 
-export function listingStatus(l, today = new Date().toLocaleDateString('en-CA')) {
+export function listingStatus(l, today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })) {
   if (!l.date) return 'TBA'
   return l.date >= today ? 'UPCOMING' : 'DATE PASSED'
 }

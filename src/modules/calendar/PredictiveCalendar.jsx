@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { DemoBadge } from '../../components/ui/ModuleStates'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { getMockFMPHistory } from '../../services/mockData'
 import { PAL } from '../../styles/palette.js'
@@ -138,7 +139,7 @@ export function EventImpactHistory() {
                 <td className="px-2 text-right font-mono text-terminal-text-bright">{r.result}{r.extra && <span className="text-terminal-text-dim"> {r.extra}</span>}</td>
                 <td className="px-2 text-right text-terminal-text-dim/50">—</td>
                 <td className="px-3 text-right font-mono" style={{ color: mv == null ? undefined : mv >= 0 ? PAL.up : PAL.down }}>
-                  {mv == null ? <span className="text-terminal-text-dim/50">—</span> : <>{mv >= 0 ? '+' : ''}{mv.toFixed(2)}% <span className="text-terminal-text-dim/50">(demo)</span></>}
+                  {mv == null ? <span className="text-terminal-text-dim/50">—</span> : <>{mv >= 0 ? '+' : ''}{mv.toFixed(2)}% <DemoBadge /></>}
                 </td>
               </tr>
             )

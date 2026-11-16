@@ -41,6 +41,7 @@ const FALLBACK_EVENTS = [
   // verifiedConstants.au (cpiQuarter*), once.
   { date: '2026-10-28', time: '11:30', event: 'AU CPI (Sep, incl. Sep quarter)',     region: 'AU', importance: 'high',
     forecast: VERIFIED_CONSTANTS.au.cpiQuarterForecasts,
+    forecastSource: 'RBA Statement on Monetary Policy and the big four banks, as named',
     prev: `Aug: ${VERIFIED_CONSTANTS.au.cpiPrevious.toFixed(1)}% y/y, trimmed mean ${VERIFIED_CONSTANTS.au.cpiTrimmedMeanPrevious.toFixed(1)}% (revised)`,
     sourceUrl: VERIFIED_CONSTANTS.au.cpiQuarterUrl, sourceLabel: 'ABS.GOV.AU', watch: ['cpi', 'cpiTrimmedMean'],
     description: (() => {
@@ -160,6 +161,7 @@ async function fetchLiveCalendar() {
       region:     e.country,
       importance: (e.impact || 'low').toLowerCase(),
       forecast:   e.estimate ?? '—',
+      forecastSource: e.estimate != null ? 'FMP economic calendar' : null,
       prev:       e.previous ?? '—',
     }))
 }
