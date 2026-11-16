@@ -112,7 +112,7 @@ export function AIContentBadge({ source = 'fallback', label = null, className = 
 // The same provenance in the one vocabulary (15 Nov 2026): DELAYED, the
 // source, and the date it was last checked. A hand-entered figure is a
 // scheduled publication copied by a person, not a feed; how old it may get
-// is enforced by the freshness guard (src/data/freshness.js), not by a
+// is enforced by the data registry (src/data/registry.js), not by a
 // second badge style. VerifiedBadge above stays only in the held RBA files.
 export function HandEnteredBadge({ dataKey, className = '' }) {
   const c = VERIFIED_CONSTANTS[dataKey]

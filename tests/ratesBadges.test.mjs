@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { VERIFIED_CONSTANTS as V } from '../src/data/verifiedConstants.js'
-import { MAX_AGE_DAYS } from '../src/data/freshness.js'
+import { MAX_AGE_DAYS } from '../src/data/registry.js'
 import { LAST_DECISIONS } from '../src/services/centralBankSchedule.js'
 
 const src = (f) => readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')

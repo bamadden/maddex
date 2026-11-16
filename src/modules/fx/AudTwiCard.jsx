@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import DataBadge from '../../components/ui/DataBadge'
-import { MAX_AGE_DAYS } from '../../data/freshness'
+import { MAX_AGE_DAYS } from '../../data/registry'
 import { useAudStrength, meanMove, STRENGTH_MAJORS, strengthState } from './useAudStrength'
 import { StaleBadge } from '../../components/ui/ModuleStates'
 import { PAL } from '../../styles/palette.js'

@@ -18,7 +18,7 @@ const CACHE_MS  = 6 * 60 * 60 * 1000 // 6 hours — calendar doesn't change ofte
 // RBA/FOMC calendar). Past entries fall out of `upcomingEvents()` on their
 // own — nothing here needs to be removed as time passes.
 // When the schedule below was last checked against its sources (the
-// freshness guard, src/data/freshness.js, holds it to 30 days).
+// data registry, src/data/registry.js, holds it to 30 days).
 export const ECON_SCHEDULE_CHECKED = '2026-11-15'
 
 const FALLBACK_EVENTS = [
