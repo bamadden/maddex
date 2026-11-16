@@ -18,7 +18,9 @@
     "graph:report": "node scripts/graph-report.mjs",
     "check-secrets": "node scripts/check-client-secrets.mjs",
     "check-rba": "node scripts/check-rba-decisions.mjs",
-    "data:docs": "node scripts/data/registryTable.mjs"
+    "data:docs": "node scripts/data/registryTable.mjs",
+    "data:fetch": "node scripts/data/fetch.mjs",
+    "data:verify": "node scripts/data/verify.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

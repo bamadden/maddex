@@ -36,3 +36,6 @@ supabase/.temp
 
 # UI test evidence (screenshots, traces) from failed runs
 tests/ui/artifacts
+
+# Dated source records (npm run data:fetch); the nightly check keeps its own
+data/records/
