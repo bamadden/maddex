@@ -72,11 +72,14 @@ export const VERIFIED_CONSTANTS = {
     // Minutes of the 28–29 Sep meeting, released Tue 13 Oct 2026. Wording
     // checked against the CommBank and FXStreet write-ups of the minutes; the
     // quoted phrase is the minutes' own.
+    // Re-read 19 Nov 2026 from the RBA's own page for the 3 Nov meeting
+    // (released 17 Nov, two weeks after, as the RBA publishes them).
     minutes: {
-      released: '2026-10-13',
-      meeting: '2026-09-29',
-      summary: 'Board briefly weighed a pause, but stronger July inflation, widespread cost pressures and upside risks already unfolding made the case to act promptly. Unanimous. Open to "increasing the cash rate target further if required".',
-      source: 'rba.gov.au minutes (via commbank.com.au, fxstreet.com)',
+      released: '2026-11-17',
+      meeting: '2026-11-03',
+      summary: 'Members weighed a 25bp rise against leaving the cash rate unchanged. The case to raise rested on a further deterioration in the inflation outlook, continued upside risks to the inflation forecast and an assessment that financial conditions may not be as restrictive as needed. Six members voted to raise the cash rate target to 4.85%; three voted to leave it at 4.60%.',
+      source: 'rba.gov.au, minutes of the 3 Nov 2026 Monetary Policy Board meeting',
+      url: 'https://www.rba.gov.au/monetary-policy/rba-board-minutes/2026/2026-11-03.html',
     },
     // Every decision since the last move of the 2025 easing cycle, by
     // ANNOUNCEMENT date (day two of the meeting, 2:30pm Sydney). Meeting dates
