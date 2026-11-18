@@ -139,7 +139,7 @@ function DriverRow({ driver }) {
               {trend && <span className={`text-2xs ${trendCls}`}>{trend}</span>}
             </div>
             <div className="text-2xs text-terminal-text-dim/50">
-              {r.asOf ? `as at ${r.asOf}` : 'date not given'}
+              {r.asOf ? `as at ${/^\d{4}-\d{2}-\d{2}$/.test(r.asOf) ? formatDate(r.asOf) : r.asOf}` : 'date not given'}
             </div>
           </>
         ) : (

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { formatDate } from '../../utils/dateUtils'
 import {
   auRecessionRisk, usRecessionRisk, combinedRisk,
   BAND_TONE, STATE_TONE, AU_RECESSIONS, RUBRIC,
@@ -85,7 +86,7 @@ function RegionCard({ risk }) {
           <div className="text-2xs font-bold tracking-widest" style={{ color: BAND_TONE[risk.band] }}>
             {risk.band}
           </div>
-          <div className="text-2xs text-terminal-text-dim/60 mt-0.5">inputs as at {risk.asOf}</div>
+          <div className="text-2xs text-terminal-text-dim/60 mt-0.5">inputs as at {risk.asOf ? formatDate(risk.asOf) : 'date not recorded'}</div>
         </div>
       </div>
 

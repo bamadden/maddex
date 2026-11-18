@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
-import { sydneyOffset } from '../../utils/dateUtils'
+import { sydneyOffset, formatDate } from '../../utils/dateUtils'
 import { askMaddenAI } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
 
@@ -85,7 +85,7 @@ export default function CpiPreviewPanel() {
             <div className="text-2xs leading-snug">
               <div className="text-terminal-text-dim tracking-widest mb-1">MARKET PRICING, 3 NOV</div>
               <b className="text-terminal-text-bright">~{nd.marketHikePct}% hike</b>
-              <span className="text-terminal-text-dim"> to {nd.hikeRate.toFixed(2)}% — {nd.marketSource}, as at {nd.marketAsOf}. A dated reading, not a live feed. {nd.marketContext}</span>
+              <span className="text-terminal-text-dim"> to {nd.hikeRate.toFixed(2)}% — {nd.marketSource}, as at {formatDate(nd.marketAsOf)}. A dated reading, not a live feed. {nd.marketContext}</span>
             </div>
           )}
           <div className="text-2xs text-terminal-text-dim/60 mt-2 leading-snug">

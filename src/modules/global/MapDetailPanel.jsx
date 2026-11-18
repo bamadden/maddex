@@ -340,7 +340,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
                   ) : (
                     <div style={{ ...S.muted, marginBottom: 2 }}>No verified price held for this product.</div>
                   )}
-                  {price != null && <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{c.sourceBy?.[x.price]} · as at {c.asOfBy?.[x.price]}</div>}
+                  {price != null && <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>{c.sourceBy?.[x.price]} · as at {formatDate(c.asOfBy?.[x.price] ?? c.asOf)}</div>}
                   <div style={S.label}>Production</div>
                   <div style={{ ...S.muted, fontSize: 11, marginBottom: 12 }}>Regional production volume not yet sourced in this build.</div>
                 </>

@@ -10,7 +10,7 @@ const ALERTS_KEY = 'maddex_alerts_engine_v1'
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
 
 export const ALERT_TYPES = [
-  { key: 'PRICE',           label: 'Price above/below',    unit: '$',  needsSymbol: true,  needsCondition: true },
+  { key: 'PRICE',           label: 'Price above/below',    unit: 'A$',  needsSymbol: true,  needsCondition: true },
   { key: 'SESSION_MOVE',    label: '% move in a day',      unit: '%',  needsSymbol: 'optional', needsCondition: 'move' },
   { key: 'VOLUME_SPIKE',    label: 'Volume vs 20-day avg', unit: 'x',  needsSymbol: true,  needsCondition: false },
   { key: 'RANGE_52W',       label: '52-week high/low',     unit: '',   needsSymbol: true,  needsCondition: 'range', noValue: true },

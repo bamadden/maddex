@@ -761,10 +761,10 @@ export default function DetailModal() {
   }
 
   const yFmt = (v) => {
-    if (v >= 10000) return `$${(v / 1000).toFixed(0)}K`
-    if (v >= 1000)  return `$${(v / 1000).toFixed(1)}K`
-    if (v >= 1)     return `$${v.toFixed(2)}`
-    return `$${v.toFixed(4)}`
+    if (v >= 10000) return `A$${(v / 1000).toFixed(0)}K`
+    if (v >= 1000)  return `A$${(v / 1000).toFixed(1)}K`
+    if (v >= 1)     return `A$${v.toFixed(2)}`
+    return `A$${v.toFixed(4)}`
   }
 
   // ─── Crypto raw data from cache ───────────────────────────────────────────────

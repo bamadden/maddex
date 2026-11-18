@@ -1024,7 +1024,7 @@ function DataProvenancePanel() {
           <ProvenanceRow
             key={c.key}
             name={c.label}
-            detail={c.asOf ? `as at ${c.asOf}` : '—'}
+            detail={c.asOf ? `as at ${formatDate(c.asOf)}` : '—'}
             status={c.stale ? 'stale' : 'fresh'}
             right={
               <span className="text-2xs text-terminal-text-dim flex-shrink-0 tabular-nums w-24 text-right">

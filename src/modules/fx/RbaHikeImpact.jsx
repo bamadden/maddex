@@ -28,7 +28,7 @@ const SECTORS = [
   { name: 'MATERIALS', dir: '→', why: 'Driven more by China and commodity prices', tone: '#8BA3C4' },
 ]
 
-const money = (v) => `$${Math.round(v).toLocaleString('en-AU')}`
+const money = (v) => `A$${Math.round(v).toLocaleString('en-AU')}`
 
 export default function RbaHikeImpact() {
   const [now] = useState(() => Date.now())

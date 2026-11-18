@@ -23,7 +23,7 @@
 // staleness badge in the UI, so a forgotten update becomes visible rather
 // than silently wrong.
 
-import { sydneyOffset } from '../utils/dateUtils.js'
+import { sydneyOffset, formatDate } from '../utils/dateUtils.js'
 import { MORTGAGE_MARGIN, MARGIN_SOURCE, repaymentChange } from '../modules/calculators/calcMath.js'
 import { levelContextFor } from './rbaCashRatePath.js'
 
@@ -865,7 +865,7 @@ export function provenance(key) {
   if (!c) return 'Unknown source'
   const days = daysSinceVerified(key)
   const age = days == null ? 'never verified' : days === 0 ? 'verified today' : `verified ${days}d ago`
-  return `${c.source ?? 'Manually maintained'} · as at ${c.asOf ?? '—'} · ${age}`
+  return `${c.source ?? 'Manually maintained'} · as at ${c.asOf ? formatDate(c.asOf) : '—'} · ${age}`
 }
 
 // Every group with a lastVerified, for the settings data-status table.

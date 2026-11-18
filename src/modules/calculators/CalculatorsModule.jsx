@@ -607,8 +607,8 @@ function StampDutyCalc() {
             {r.state.firstHomeNote}
           </div>
           <div className="text-terminal-text-dim/50 leading-snug mt-1" style={{ fontSize: 11 }}>
-            Source: {r.state.source}. Checked against two published worked examples — $500,000 → $8,750 and
-            $800,000 → $21,850 on the home concession — both reproduce exactly.
+            Source: {r.state.source}. Checked against two published worked examples — A$500,000 → A$8,750 and
+            A$800,000 → A$21,850 on the home concession — both reproduce exactly.
           </div>
         </>
       ) : (
@@ -617,7 +617,7 @@ function StampDutyCalc() {
           <div className="text-terminal-text-dim leading-relaxed" style={{ fontSize: 11, maxWidth: 520 }}>
             The complete band schedule for {r?.state?.name ?? 'this state'} is not recorded in this build, so no
             figure is produced. Stamp duty is a five-figure number people budget against, and a schedule that is
-            right at the bottom and estimated above $400,000 — which is where essentially every purchase sits —
+            right at the bottom and estimated above A$400,000 — which is where essentially every purchase sits —
             would be confidently wrong exactly where it matters.
           </div>
           <div className="grid grid-cols-2 gap-3 mt-3">

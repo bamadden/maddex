@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
-import { sydneyTzAbbr } from '../../utils/dateUtils'
+import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
 import { rbaPreview } from '../../utils/askAI'
 
 // The next RBA decision, for the week before it.
@@ -53,7 +53,7 @@ export default function RbaDecisionPreview() {
             ~{nd.marketHikePct}% priced for {nd.hikeRate.toFixed(2)}%, ~{100 - nd.marketHikePct}% for a hold at {nd.currentRate.toFixed(2)}%.
           </div>
           <div className="font-mono text-terminal-text-dim/60 leading-snug mt-1" style={{ fontSize: 8 }}>
-            Market-implied estimate as at {nd.marketAsOf}: {nd.marketSource}{nd.marketImpliedRate != null && <> implied {nd.marketImpliedRate.toFixed(2)}%</>}.
+            Market-implied estimate as at {formatDate(nd.marketAsOf)}: {nd.marketSource}{nd.marketImpliedRate != null && <> implied {nd.marketImpliedRate.toFixed(2)}%</>}.
             A dated reading, not a live feed. {nd.marketContext}
           </div>
           {nd.peerContext && (

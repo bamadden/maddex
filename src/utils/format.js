@@ -1,5 +1,16 @@
 import { timeAgo } from './dateUtils'
 
+// A$ / US$ prefixes; any other ISO code is written after the amount.
+export const CURRENCY_PREFIX = { AUD: 'A$', USD: 'US$' }
+export const MINUS = '\u2212'
+function money(n, currency, decimals) {
+  if (n == null || isNaN(n)) return '—'
+  const abs = new Intl.NumberFormat('en-AU', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(Math.abs(n))
+  const sign = n < 0 ? MINUS : ''
+  const pre = CURRENCY_PREFIX[currency]
+  return pre ? `${sign}${pre}${abs}` : `${sign}${abs} ${currency}`
+}
+
 export const fmt = {
   // Plain number with commas — used for rates, index points, share counts
   price: (n, decimals = 2) => {
@@ -10,18 +21,16 @@ export const fmt = {
     }).format(n)
   },
 
-  // AUD currency — default shows $, clarify=true shows A$
-  aud: (n, { decimals = 2, clarify = false } = {}) => {
-    if (n == null || isNaN(n)) return '—'
-    const abs = new Intl.NumberFormat('en-AU', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }).format(Math.abs(n))
-    return `${n < 0 ? '-' : ''}${clarify ? 'A$' : '$'}${abs}`
-  },
+  // Money always names its currency (WS3, 19 Nov 2026): A$ or US$, never a
+  // bare "$", and a true minus sign. `clarify` is accepted and ignored: it
+  // used to switch "$" to "A$", and no call site set it, so every amount read
+  // as an unlabelled dollar.
+  aud: (n, { decimals = 2 } = {}) => money(n, 'AUD', decimals),
+  usd: (n, { decimals = 2 } = {}) => money(n, 'USD', decimals),
+  money: (n, currency = 'AUD', { decimals = 2 } = {}) => money(n, currency, decimals),
 
   // Backwards-compat alias → AUD
-  currency: (n, _unused) => fmt.aud(n),
+  currency: (n) => fmt.aud(n),
 
   pct: (n, showSign = true) => {
     if (n == null || isNaN(n)) return '—'
