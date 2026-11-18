@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { RBA_RATE_HISTORY, FED_RATE_HISTORY } from '../../data/placeholders'
@@ -155,10 +156,10 @@ export default function PolicyPathChart({ years }) {
                 <stop offset="95%" stopColor={RBA_COLOUR} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="t" type="number" scale="time" domain={[from, to]} ticks={ticks} tick={{ fontSize: 11 }}
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="t" type="number" scale="time" domain={[from, to]} ticks={ticks} tick={CHART.tick}
               tickFormatter={(t) => new Date(t).toLocaleDateString('en-AU', { month: 'short', year: '2-digit', timeZone: 'UTC' })} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} domain={[0, 6]} ticks={[0, 1, 2, 3, 4, 5, 6]} width={30} />
+            <YAxis tick={CHART.tick} tickFormatter={(v) => `${v}%`} domain={[0, 6]} ticks={[0, 1, 2, 3, 4, 5, 6]} width={30} />
             {!picked && <Tooltip content={<HoverTooltip />} />}
             {/* Fed first so the RBA layer, and its dots, sit on top where the two
                 banks met within a day of each other (17/18 Mar). */}

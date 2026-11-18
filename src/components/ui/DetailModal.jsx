@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { InlineLoading, NoData } from './ModuleStates'
 import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
@@ -1265,9 +1266,9 @@ export default function DetailModal() {
           ) : compareOpen && compareData.length > 1 ? (
             <SafeChart provenance={equityProvenance()} label="Price history" width="100%" height="100%">
               <LineChart data={compareData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                <CartesianGrid stroke={PAL.header} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 11 }} domain={['auto', 'auto']} width={40} tickFormatter={(v) => v.toFixed(0)} />
+                <CartesianGrid {...CHART.grid} />
+                <XAxis dataKey="date" tick={CHART.tick} interval="preserveStartEnd" />
+                <YAxis tick={CHART.tick} domain={['auto', 'auto']} width={40} tickFormatter={(v) => v.toFixed(0)} />
                 <Tooltip
                   contentStyle={{ background: PAL.panel, border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
                   formatter={(v, name) => [`${v.toFixed(1)}`, name === 'a' ? symbol : compareSymbol]}
@@ -1305,18 +1306,18 @@ export default function DetailModal() {
                       <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke={PAL.header} vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
+                  <CartesianGrid {...CHART.grid} />
+                  <XAxis dataKey="date" tick={CHART.tick} interval="preserveStartEnd" />
+                  <YAxis tick={CHART.tick} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
                   <Area type="monotone" dataKey="price" stroke={PAL.gold} strokeWidth={1.5} fill="url(#modalAreaGrad)" dot={false} isAnimationActive={false} />
                   <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} />
                 </AreaChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                  <CartesianGrid stroke={PAL.header} vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
+                  <CartesianGrid {...CHART.grid} />
+                  <XAxis dataKey="date" tick={CHART.tick} interval="preserveStartEnd" />
+                  <YAxis tick={CHART.tick} tickFormatter={yFmt} domain={['auto', 'auto']} width={60} />
                   <Tooltip content={<ChartTooltip />} />
                   <Line type="monotone" dataKey="price" stroke="#4a90d9" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                   <Brush dataKey="date" height={20} stroke="rgba(201,168,76,0.3)" fill={PAL.panel} />

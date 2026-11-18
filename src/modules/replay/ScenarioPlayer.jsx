@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceDot } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
@@ -176,10 +177,10 @@ export default function ScenarioPlayer({ scenario, onExit }) {
                       <stop offset="100%" stopColor={PAL.gold} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke={PAL.header} vertical={false} />
+                  <CartesianGrid {...CHART.grid} />
                   <XAxis dataKey="p" type="number" domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]}
-                    tickFormatter={(v) => path[Math.round(v * FRAMES)]?.label ?? ''} tick={{ fontSize: 11 }} stroke={PAL.muted} />
-                  <YAxis domain={domain} tick={{ fontSize: 11 }} stroke={PAL.muted} width={52} tickFormatter={(v) => fmt(v, series.dp > 1 ? 1 : series.dp)} />
+                    tickFormatter={(v) => path[Math.round(v * FRAMES)]?.label ?? ''} tick={CHART.tick} stroke={PAL.muted} />
+                  <YAxis domain={domain} tick={CHART.tick} stroke={PAL.muted} width={52} tickFormatter={(v) => fmt(v, series.dp > 1 ? 1 : series.dp)} />
                   <Tooltip
                     content={({ active, payload }) => active && payload?.length ? (
                       <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">

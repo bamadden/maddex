@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { InlineLoading } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { sydneyTzNow, formatDate, sydneyClock } from '../../utils/dateUtils'
@@ -192,7 +193,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
             <PolarRadiusAxis
               angle={90}
               domain={[0, 100]}
-              tick={{ fill: '#374151', fontSize: 11, fontFamily: MONO }}
+              tick={CHART.tick}
               tickCount={5}
               stroke="rgba(30,70,140,0.2)"
             />

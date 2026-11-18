@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
@@ -44,9 +45,9 @@ function DividendSection({ holdings, fmtCur }) {
       <div style={{ height: 150 }}>
         <SafeChart provenance={equityProvenance(undefined, "dividend data")} label="Estimated dividend income by month" width="100%" height="100%">
           <BarChart data={year} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: PAL.muted }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: PAL.muted }} axisLine={false} tickLine={false} width={44}
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="label" tick={CHART.tick} axisLine={false} tickLine={false} />
+            <YAxis tick={CHART.tick} axisLine={false} tickLine={false} width={44}
               tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : Math.round(v))} />
             <RTooltip
               cursor={{ fill: 'rgba(201,168,76,0.06)' }}

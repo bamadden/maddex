@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS, RATE_SENSITIVITY, RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
@@ -469,9 +470,9 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
               <div style={{ height: 220 }}>
                 <SafeChart provenance={equityProvenance()} label="Sector performance" width="100%" height="100%">
                   <AreaChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" />
-                    <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
+                    <CartesianGrid {...CHART.grid} />
+                    <XAxis dataKey="date" tick={CHART.tick} stroke="var(--t-text-dim)" />
+                    <YAxis tick={CHART.tick} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
                     <Tooltip
                       contentStyle={{ background: 'var(--t-panel)', border: '1px solid var(--t-border)', fontSize: 11 }}
                       formatter={(v) => (typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—')}
@@ -684,9 +685,9 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
               <div style={{ height: 260 }}>
                 <SafeChart provenance={equityProvenance()} label="Sector performance, rebased" width="100%" height="100%">
                   <AreaChart data={perfSeries}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" minTickGap={24} />
-                    <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
+                    <CartesianGrid {...CHART.grid} />
+                    <XAxis dataKey="date" tick={CHART.tick} stroke="var(--t-text-dim)" minTickGap={24} />
+                    <YAxis tick={CHART.tick} stroke="var(--t-text-dim)" tickFormatter={(v) => `${v.toFixed(0)}%`} />
                     <Tooltip
                       contentStyle={{ background: 'var(--t-panel)', border: '1px solid var(--t-border)', fontSize: 11 }}
                       formatter={(v) => (typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—')}

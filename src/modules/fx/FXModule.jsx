@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import DataBadge from '../../components/ui/DataBadge'
 import { InlineLoading, NoData, Unavailable, StaleBadge } from '../../components/ui/ModuleStates'
 import { formatDate } from '../../utils/dateUtils'
@@ -250,10 +251,10 @@ function FxHistoryModal({ pair, onClose }) {
                     <stop offset="95%" stopColor={PAL.gold} stopOpacity={0}   />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke={PAL.header} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
+                <CartesianGrid {...CHART.grid} />
+                <XAxis dataKey="date" tick={CHART.tick} interval={4} />
                 <YAxis
-                  tick={{ fontSize: 11 }}
+                  tick={CHART.tick}
                   tickFormatter={v => v.toFixed(4)}
                   domain={[yMin, yMax]}
                   width={55}
@@ -683,9 +684,9 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
       <div style={{ height: 160 }} className="px-2 py-2">
         <SafeChart provenance="panel" label="Australian and US yield curves" width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="tenor" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="tenor" tick={CHART.tick} />
+            <YAxis tick={CHART.tick} tickFormatter={v => `${v.toFixed(1)}%`} domain={[yMin, yMax]} width={36} />
             <Tooltip content={<YieldTooltip />} />
             {/* Ghosts first, so today's curves paint over them. */}
             {ghost && (

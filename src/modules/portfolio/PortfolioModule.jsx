@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { sydneyClock, formatDate, sydneyISO } from '../../utils/dateUtils'
 import { Briefcase } from 'lucide-react'
@@ -1336,12 +1337,12 @@ export default function PortfolioModule() {
               <div className="h-36 p-1 flex-shrink-0">
                 <SafeChart provenance={equityProvenance()} label="Profit and loss by position" width="100%" height="100%">
                   <BarChart data={pnlData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke={PAL.header} vertical={false} />
+                    <CartesianGrid {...CHART.grid} />
                     {/* Break-even, so winners and losers read as sides of a
                         line rather than just bars of different heights. */}
                     <ReferenceLine y={0} stroke={PAL.gold} strokeDasharray="4 4" strokeOpacity={0.5} />
-                    <XAxis dataKey="symbol" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="symbol" tick={CHART.tick} />
+                    <YAxis tick={CHART.tick} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null

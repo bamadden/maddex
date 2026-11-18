@@ -4,12 +4,15 @@
 // PAL; series colours follow the entity, not its rank (docs/DESIGN_SYSTEM.md).
 import { PAL } from './palette.js'
 
+// Recharts' default tick grey (#666) is about 3:1 on the panel and fails AA;
+// muted passes (5.0:1).
 const tick = { fill: PAL.muted, fontSize: 11 }
 
 export const CHART = {
+  tick,
   xAxis: { tick, axisLine: false, tickLine: false },
   yAxis: { tick, axisLine: false, tickLine: false, width: 52 },
-  grid: { stroke: 'rgba(139,163,196,0.12)', vertical: false },
+  grid: { stroke: PAL.header, vertical: false },
   line: { strokeWidth: 2, dot: false, isAnimationActive: false },
   tooltip: {
     contentStyle: { background: PAL.panel, border: '1px solid rgba(201,168,76,0.3)', borderRadius: 2, fontSize: 11, color: PAL.bright },

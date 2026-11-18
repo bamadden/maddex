@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
@@ -1288,9 +1289,9 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                           <stop offset="95%" stopColor={col} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid stroke={PAL.header} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                      <YAxis tick={{ fontSize: 11 }} domain={['auto','auto']} width={36}
+                      <CartesianGrid {...CHART.grid} />
+                      <XAxis dataKey="date" tick={CHART.tick} interval="preserveStartEnd" />
+                      <YAxis tick={CHART.tick} domain={['auto','auto']} width={36}
                         tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
                       <Tooltip content={<CompositeTooltip />} />
                       <Area type="monotone" dataKey="pct" stroke={col} strokeWidth={1.5}
@@ -1318,9 +1319,9 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                               <stop offset="95%" stopColor={col} stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid stroke={PAL.header} vertical={false} />
-                          <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                          <YAxis tick={{ fontSize: 11 }} domain={['auto','auto']} width={36} />
+                          <CartesianGrid {...CHART.grid} />
+                          <XAxis dataKey="date" tick={CHART.tick} interval="preserveStartEnd" />
+                          <YAxis tick={CHART.tick} domain={['auto','auto']} width={36} />
                           <Tooltip content={<ChartTooltip />} />
                           <Area type="monotone" dataKey="price" stroke={col} strokeWidth={1.5}
                             fill="url(#sectorGrad)" dot={false} isAnimationActive={false} connectNulls />

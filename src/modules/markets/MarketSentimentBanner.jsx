@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, LineChart, Line, XAxis, YAxis, ReferenceLine } from 'recharts'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
@@ -261,14 +262,14 @@ function TrendSection({ currentScore }) {
               scale="time"
               domain={['dataMin', 'dataMax']}
               tickFormatter={(v) => fmtTimestamp(v, tab)}
-              tick={{ fontSize: 11, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
+              tick={CHART.tick}
               tickCount={5}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               domain={[0, 100]}
-              tick={{ fontSize: 11, fill: 'var(--color-text-dim, #8BA3C4)', fontFamily: 'IBM Plex Mono, monospace' }}
+              tick={CHART.tick}
               axisLine={false}
               tickLine={false}
               ticks={[0, 33, 66, 100]}
@@ -391,7 +392,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
                   <PolarGrid stroke="rgba(30,70,140,0.35)" />
                   <PolarAngleAxis
                     dataKey="factor"
-                    tick={{ fill: 'var(--color-text-dim, #8BA3C4)', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
+                    tick={CHART.tick}
                   />
                   <Radar
                     name="Score"

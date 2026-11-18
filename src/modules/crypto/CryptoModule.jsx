@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { InlineLoading, NoData, Unavailable } from '../../components/ui/ModuleStates'
 import DefiPanel from './DefiPanel'
 import { useQuery } from '@tanstack/react-query'
@@ -559,7 +560,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
                     <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey={timeframe === '1D' ? 'time' : 'date'} tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                <XAxis dataKey={timeframe === '1D' ? 'time' : 'date'} tick={CHART.tick} interval="preserveStartEnd" />
                 <YAxis yAxisId="p" hide domain={['auto', 'auto']} />
                 {/* Volume on its own axis, scaled so the tallest bar reaches a
                     quarter of the chart and sits under the price line. */}

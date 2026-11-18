@@ -1,4 +1,5 @@
 import { useRef, useMemo, useState } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import { useQuery, useQueries } from '@tanstack/react-query'
@@ -237,9 +238,9 @@ function CompareIndicesModal({ indices, onClose }) {
           ) : (
             <SafeChart provenance={equityProvenance(undefined, "index levels")} label="Index history" width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                <CartesianGrid stroke={PAL.header} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 11 }} domain={['auto', 'auto']} width={45} tickFormatter={(v) => v.toFixed(0)} />
+                <CartesianGrid {...CHART.grid} />
+                <XAxis dataKey="date" tick={CHART.tick} interval="preserveStartEnd" />
+                <YAxis tick={CHART.tick} domain={['auto', 'auto']} width={45} tickFormatter={(v) => v.toFixed(0)} />
                 <Tooltip
                   contentStyle={{ background: PAL.panel, border: '1px solid rgba(201,168,76,0.3)', borderRadius: '2px', fontFamily: 'IBM Plex Mono', fontSize: '11px' }}
                   formatter={(v, name) => [v?.toFixed(1), indices.find(i => i.symbol === name)?.label ?? name]}

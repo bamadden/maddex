@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { Viz3DLoader, DemoBadge } from '../../components/ui/ModuleStates'
@@ -215,9 +216,9 @@ export default function MarketReplayModule() {
               <div style={{ height: 220 }}>
                 <SafeChart provenance="panel" width="100%" height="100%">
                   <AreaChart data={series}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
-                    <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
+                    <CartesianGrid {...CHART.grid} />
+                    <XAxis dataKey="date" tick={CHART.tick} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />
+                    <YAxis tick={CHART.tick} stroke="var(--t-text-dim)" domain={['auto', 'auto']} />
                     <Tooltip content={<ChartTip />} />
                     <Area type="monotone" dataKey="level" stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.15} />
                   </AreaChart>

@@ -1,4 +1,5 @@
 import { useEffect, useState, Fragment } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { equityProvenance } from '../../utils/chartProvenance'
 import { useQueries } from '@tanstack/react-query'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
@@ -249,9 +250,9 @@ export default function ComparisonView() {
               <div className="h-48 px-3 pt-1">
                 <SafeChart provenance={equityProvenance()} label="Relative performance, rebased to 100" width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke={PAL.header} vertical={false} />
+                    <CartesianGrid {...CHART.grid} />
                     <XAxis dataKey="i" tick={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} width={36} domain={yDomain} />
+                    <YAxis tick={CHART.tick} width={36} domain={yDomain} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null

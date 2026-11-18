@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { InlineLoading, Unavailable } from '../../components/ui/ModuleStates'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import { sydneyTzAbbr, sydneyTzNow, formatDate, sydneyClock, localClock } from '../../utils/dateUtils'
@@ -202,9 +203,9 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
     )}
     <SafeChart provenance="panel" width="100%" height="100%">
       <LineChart data={data} margin={{ top: 4, right: 18, left: 0, bottom: 4 }}>
-        <CartesianGrid stroke={PAL.header} vertical={false} />
-        <XAxis tick={{ fontSize: 11 }} interval={1} {...timeAxis(data, 4)} />
-        <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}${unit}`} domain={['auto', 'auto']} />
+        <CartesianGrid {...CHART.grid} />
+        <XAxis tick={CHART.tick} interval={1} {...timeAxis(data, 4)} />
+        <YAxis tick={CHART.tick} tickFormatter={(v) => `${v}${unit}`} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTooltip unit={unit} color={color} />} />
         {refLine != null && <ReferenceLine y={refLine} stroke={PAL.gold} strokeDasharray="2 2" />}
         <Line
@@ -377,10 +378,10 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
               onMouseUp={handleMouseUp}
               style={{ cursor: refLeft != null ? 'col-resize' : 'crosshair' }}
             >
-              <CartesianGrid stroke={PAL.header} vertical={false} />
-              <XAxis tick={{ fontSize: 11, fill: PAL.muted }} interval={1} allowDataOverflow {...timeAxis(viewData, 10)} />
+              <CartesianGrid {...CHART.grid} />
+              <XAxis tick={CHART.tick} interval={1} allowDataOverflow {...timeAxis(viewData, 10)} />
               <YAxis
-                tick={{ fontSize: 11, fill: PAL.muted }}
+                tick={CHART.tick}
                 tickFormatter={(v) => `${v}${cfg.unit}`}
                 domain={['auto', 'auto']}
                 width={50}
@@ -595,10 +596,10 @@ function RBADashboard({ askAI }) {
                     <stop offset="95%" stopColor={PAL.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke={PAL.header} vertical={false} />
+                <CartesianGrid {...CHART.grid} />
                 <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={RATE_TICKS} interval={0}
-                  tick={{ fontSize: 11 }} tickFormatter={(t) => String(new Date(t).getUTCFullYear())} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} width={32} />
+                  tick={CHART.tick} tickFormatter={(t) => String(new Date(t).getUTCFullYear())} />
+                <YAxis tick={CHART.tick} tickFormatter={v => `${v}%`} domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} width={32} />
                 <Tooltip content={({ active, payload }) =>
                   active && payload?.length
                     ? <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
@@ -766,9 +767,9 @@ function LeadingIndicators() {
       chart: (
         <SafeChart provenance="panel" width="100%" height="100%">
           <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
-            <YAxis tick={{ fontSize: 11 }} domain={[70, 110]} width={34} />
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="date" tick={CHART.tick} interval={4} />
+            <YAxis tick={CHART.tick} domain={[70, 110]} width={34} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={100} stroke={PAL.gold} strokeDasharray="3 3"
               // position:'right' places the label OUTSIDE the plot area, so it
@@ -791,9 +792,9 @@ function LeadingIndicators() {
       chart: (
         <SafeChart provenance="panel" width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
-            <YAxis tick={{ fontSize: 11 }} domain={[-30, 10]} width={28} />
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="date" tick={CHART.tick} interval={4} />
+            <YAxis tick={CHART.tick} domain={[-30, 10]} width={28} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke={PAL.gold} strokeDasharray="3 3" />
             <Bar dataKey="value" isAnimationActive={false} radius={[1,1,0,0]}>
@@ -821,9 +822,9 @@ function LeadingIndicators() {
                 <stop offset="95%" stopColor={PAL.up} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}B`} domain={[-4, 12]} width={32} />
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="date" tick={CHART.tick} interval={4} />
+            <YAxis tick={CHART.tick} tickFormatter={v => `${v}B`} domain={[-4, 12]} width={32} />
             <Tooltip content={<SentimentTooltip />} />
             <ReferenceLine y={0} stroke={PAL.gold} strokeDasharray="2 2" />
             <Area type="monotone" dataKey="value" stroke={PAL.up} strokeWidth={1.5}

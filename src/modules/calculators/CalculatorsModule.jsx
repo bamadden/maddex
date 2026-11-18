@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { useIntentState } from '../../hooks/useModuleIntent'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ReferenceLine } from 'recharts'
@@ -152,9 +153,9 @@ function CompoundCalc({ prefill }) {
       <div style={{ height: 180 }}>
         <SafeChart provenance="calculated" label="Projected value" width="100%" height="100%">
           <AreaChart data={r.series} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="year" tick={CHART.tick} />
+            <YAxis tick={CHART.tick} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
             <RTooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null
@@ -317,9 +318,9 @@ function SuperCalc() {
       <div style={{ height: 150 }}>
         <SafeChart provenance="calculated" label="Projected super balance" width="100%" height="100%">
           <AreaChart data={base.series} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid stroke={PAL.header} vertical={false} />
-            <XAxis dataKey="age" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid {...CHART.grid} />
+            <XAxis dataKey="age" tick={CHART.tick} />
+            <YAxis tick={CHART.tick} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
             <RTooltip content={({ active, payload, label }) => (!active || !payload?.length) ? null : (
               <div className="bg-terminal-panel border border-terminal-border px-2 py-1 text-2xs">
                 <div className="text-terminal-text-dim">Age {label}</div>

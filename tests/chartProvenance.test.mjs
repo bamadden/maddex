@@ -53,3 +53,17 @@ test('the components page, its baselines and the design doc are in step', () => 
   assert.match(JSON.parse(fs.readFileSync('package.json', 'utf8')).scripts['test:ui'], /visual\.ui\.mjs/, 'the gate runs the visual suite')
   assert.match(fs.readFileSync('src/App.jsx', 'utf8'), /includes\('components'\)\) return page\(<ComponentsPage \/>\)/)
 })
+
+test('one chart style: every tick and grid comes from the chart theme (ticks pass AA contrast)', async () => {
+  const { CHART } = await import('../src/styles/chartTheme.js')
+  const { PAL } = await import('../src/styles/palette.js')
+  assert.equal(CHART.tick.fill, PAL.muted)
+  assert.equal(CHART.tick.fontSize, 11)
+  const bad = []
+  for (const f of SRC) {
+    const s = fs.readFileSync(f, 'utf8')
+    for (const m of s.matchAll(/tick=\{\{[^}]*\}\}/g)) bad.push(`${f}: ${m[0].slice(0, 60)}`)
+    for (const m of s.matchAll(/<CartesianGrid\b[^>]*\/>/g)) if (!/\{\.\.\.CHART\.grid\}/.test(m[0])) bad.push(`${f}: ${m[0].slice(0, 60)}`)
+  }
+  assert.deepEqual(bad, [])
+})

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CHART } from '../../styles/chartTheme'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import SafeChart from '../ui/SafeChart'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
@@ -182,9 +183,9 @@ function IndicatorCard({ ind, expanded, onToggle }) {
             <div style={{ height: 150 }}>
               <SafeChart provenance={{ cls: "DELAYED", source: `${ind.src}, ${ind.period}` }} label={`${ind.label} history`} width="100%" height="100%">
                 <AreaChart data={ind.series} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" interval="preserveStartEnd" minTickGap={24} />
-                  <YAxis tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" domain={['auto', 'auto']} width={34} />
+                  <CartesianGrid {...CHART.grid} />
+                  <XAxis dataKey="label" tick={CHART.tick} stroke="var(--t-text-dim)" interval="preserveStartEnd" minTickGap={24} />
+                  <YAxis tick={CHART.tick} stroke="var(--t-text-dim)" domain={['auto', 'auto']} width={34} />
                   <Tooltip content={<ChartTip />} />
                   <Area type={ind.step ? 'stepAfter' : 'monotone'} dataKey="value" stroke={PAL.gold} fill={PAL.gold} fillOpacity={0.15} isAnimationActive={false} connectNulls />
                 </AreaChart>
