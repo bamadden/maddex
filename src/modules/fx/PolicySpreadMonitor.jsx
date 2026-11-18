@@ -99,7 +99,7 @@ export default function PolicySpreadMonitor() {
           {yearAgo != null && <span>{signedBp(yearAgo)} → {signedBp(today)}</span>}
         </div>
         <div style={{ height: 70 }}>
-          <SafeChart width="100%" height="100%">
+          <SafeChart provenance="panel" label="AU–US policy spread" width="100%" height="100%">
             <LineChart data={series} margin={{ top: 6, right: 4, left: 4, bottom: 0 }}>
               <XAxis dataKey="t" type="number" domain={['dataMin', 'dataMax']} hide />
               <YAxis domain={['dataMin - 15', 'dataMax + 15']} hide />

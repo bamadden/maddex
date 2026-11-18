@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
+import { equityProvenance } from '../../utils/chartProvenance'
 import { InlineLoading, NoData } from './ModuleStates'
 import { sydneyTzNow, formatDate } from '../../utils/dateUtils'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
@@ -1262,7 +1263,7 @@ export default function DetailModal() {
           ) : chartData.length < 10 ? (
             <DataUnavailable label={`INSUFFICIENT DATA (${chartData.length} pts)`} className="h-full" />
           ) : compareOpen && compareData.length > 1 ? (
-            <SafeChart width="100%" height="100%">
+            <SafeChart provenance={equityProvenance()} label="Price history" width="100%" height="100%">
               <LineChart data={compareData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                 <CartesianGrid stroke={PAL.header} vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
@@ -1295,7 +1296,7 @@ export default function DetailModal() {
               <DataUnavailable label="NOT ENOUGH OHLC DATA FOR PRO CHART" className="h-full" />
             )
           ) : (
-            <SafeChart width="100%" height="100%">
+            <SafeChart provenance={equityProvenance()} label="Price history" width="100%" height="100%">
               {chartType === 'area' ? (
                 <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                   <defs>

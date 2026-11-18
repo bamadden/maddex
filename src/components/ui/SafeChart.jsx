@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ResponsiveContainer } from 'recharts'
+import DataBadge from './DataBadge'
 
 // ─── SafeChart ─────────────────────────────────────────────────────────────
 //
@@ -25,7 +26,16 @@ import { ResponsiveContainer } from 'recharts'
 // in a flex column shifts everything below it and then shifts it back a frame
 // later. The placeholder reserves the same box the chart will occupy, so the
 // layout is stable from first paint.
-export default function SafeChart({ height = '100%', width = '100%', minHeight, children, ...rest }) {
+// PROVENANCE (WS3, 19 Nov 2026). Every chart says where its data comes from
+// and how current it is. `provenance` is required:
+//   { cls, source, at, manual }  shown as a badge in the chart's corner
+//   'panel'      the enclosing panel's header already shows class, source and
+//                date for exactly this data (the chart adds no badge)
+//   'sparkline'  a decorative inline trend beside a figure that is badged
+//   'calculated' computed on this screen from the reader's own inputs or
+//                holdings; captioned so
+// `label` names the chart for screen readers (role="figure").
+export default function SafeChart({ height = '100%', width = '100%', minHeight, children, provenance, label, ...rest }) {
   const ref = useRef(null)
   // The measured box, handed to ResponsiveContainer as its starting size.
   // Without it Recharts 3 renders its first frame at -1 x -1 — before its own
@@ -79,7 +89,15 @@ export default function SafeChart({ height = '100%', width = '100%', minHeight, 
   const boxHeight = typeof height === 'number' ? height : '100%'
 
   return (
-    <div ref={ref} style={{ width: '100%', height: boxHeight, minHeight }}>
+    <div ref={ref} style={{ width: '100%', height: boxHeight, minHeight, position: 'relative' }} role="figure" aria-label={label} data-provenance={typeof provenance === 'string' ? provenance : provenance ? 'badge' : 'missing'}>
+      {provenance === 'calculated' && (
+        <div className="font-mono text-terminal-text-dim" style={{ position: 'absolute', top: 2, right: 4, zIndex: 2, fontSize: 11 }}>Calculated from your inputs</div>
+      )}
+      {provenance && typeof provenance === 'object' && (
+        <div style={{ position: 'absolute', top: 2, right: 2, zIndex: 2, pointerEvents: 'auto' }}>
+          <DataBadge cls={provenance.cls} source={provenance.source} at={provenance.at ?? null} manual={!!provenance.manual} />
+        </div>
+      )}
       {ready && (
         <ResponsiveContainer width={width} height={height} initialDimension={ready} {...rest}>
           {children}

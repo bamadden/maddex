@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { equityProvenance } from '../../utils/chartProvenance'
 import { sydneyClock, formatDate, sydneyISO } from '../../utils/dateUtils'
 import { Briefcase } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -1298,7 +1299,7 @@ export default function PortfolioModule() {
             ) : (
             <>
               <div className="h-40 p-2 flex-shrink-0">
-                <SafeChart width="100%" height="100%">
+                <SafeChart provenance="panel" label="Allocation" width="100%" height="100%">
                   <PieChart>
                     <Pie data={allocData} cx="50%" cy="50%" innerRadius={30} outerRadius={58}
                       dataKey="value" isAnimationActive={false}>
@@ -1333,7 +1334,7 @@ export default function PortfolioModule() {
             <>
               <div className="panel-header border-t border-terminal-border flex-shrink-0">P&amp;L BY POSITION</div>
               <div className="h-36 p-1 flex-shrink-0">
-                <SafeChart width="100%" height="100%">
+                <SafeChart provenance={equityProvenance()} label="Profit and loss by position" width="100%" height="100%">
                   <BarChart data={pnlData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke={PAL.header} vertical={false} />
                     {/* Break-even, so winners and losers read as sides of a

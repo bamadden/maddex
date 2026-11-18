@@ -168,7 +168,7 @@ export default function ScenarioPlayer({ scenario, onExit }) {
               <span className="ml-auto text-2xs text-terminal-text-dim/60">{series.unit !== '%' && series.unit !== 'pts' ? series.unit : ''}</span>
             </div>
             <div style={{ height: 260 }}>
-              <SafeChart width="100%" height="100%">
+              <SafeChart provenance="panel" width="100%" height="100%">
                 <AreaChart data={shown} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="replayFill" x1="0" y1="0" x2="0" y2="1">

@@ -147,7 +147,7 @@ export default function PolicyPathChart({ years }) {
         </span>
       </div>
       <div className="relative flex-1 min-h-0 [&_*:focus]:outline-none" onClick={() => setPicked(null)}>
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance={{ cls: "DELAYED", source: "RBA table A2; Federal Reserve", at: VERIFIED_CONSTANTS.rba.lastVerified }} label="RBA and Fed policy paths" width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 10, left: 0, bottom: 4 }} accessibilityLayer={false}>
             <defs>
               <linearGradient id="rbaPathGrad" x1="0" y1="0" x2="0" y2="1">

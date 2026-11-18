@@ -213,7 +213,7 @@ export default function MarketReplayModule() {
               </div>
             ) : (
               <div style={{ height: 220 }}>
-                <SafeChart width="100%" height="100%">
+                <SafeChart provenance="panel" width="100%" height="100%">
                   <AreaChart data={series}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" tickFormatter={(v) => v.slice(5)} />

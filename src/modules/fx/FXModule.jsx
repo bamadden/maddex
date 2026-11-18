@@ -242,7 +242,7 @@ function FxHistoryModal({ pair, onClose }) {
               LOADING RATE HISTORY...
             </div>
           ) : (
-            <SafeChart width="100%" height="100%">
+            <SafeChart provenance="panel" label="Exchange rate history" width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="fxGrad" x1="0" y1="0" x2="0" y2="1">
@@ -681,7 +681,7 @@ function YieldCurveDualPanel({ chartData, yMin, yMax, primaryStats }) {
 
 
       <div style={{ height: 160 }} className="px-2 py-2">
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="panel" label="Australian and US yield curves" width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke={PAL.header} vertical={false} />
             <XAxis dataKey="tenor" tick={{ fontSize: 11 }} />

@@ -127,7 +127,7 @@ Return JSON only:
 function Spark({ data, step }) {
   return (
     <div style={{ width: 80, height: 28 }}>
-      <SafeChart width="100%" height="100%">
+      <SafeChart provenance="sparkline" width="100%" height="100%">
         <LineChart data={data}>
           <Line type={step ? 'stepAfter' : 'monotone'} dataKey="value" stroke={PAL.gold} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
         </LineChart>
@@ -180,7 +180,7 @@ function IndicatorCard({ ind, expanded, onToggle }) {
         <div className="border-t border-terminal-border/60 p-3 space-y-3">
           {ind.series?.length > 2 ? (
             <div style={{ height: 150 }}>
-              <SafeChart width="100%" height="100%">
+              <SafeChart provenance={{ cls: "DELAYED", source: `${ind.src}, ${ind.period}` }} label={`${ind.label} history`} width="100%" height="100%">
                 <AreaChart data={ind.series} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" interval="preserveStartEnd" minTickGap={24} />

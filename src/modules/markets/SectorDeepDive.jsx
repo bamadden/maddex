@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { equityProvenance } from '../../utils/chartProvenance'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { ASX_SECTOR_STOCKS, INDEX_SECTORS, INDEX_LABELS, RATE_SENSITIVITY, RATE_LEVEL_STYLE } from '../../data/sectorTaxonomy'
 import { useStore } from '../../store/useStore'
@@ -466,7 +467,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
             <div className="border border-terminal-border p-3">
               <div className="text-2xs text-terminal-gold font-bold tracking-widest mb-2">30D · {sectorName.toUpperCase()} VS {indexLabel.toUpperCase()}</div>
               <div style={{ height: 220 }}>
-                <SafeChart width="100%" height="100%">
+                <SafeChart provenance={equityProvenance()} label="Sector performance" width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" />
@@ -681,7 +682,7 @@ export default function SectorDeepDive({ sectorName, indexId, openModal, onClose
                 {activePeriod.label} · REBASED TO 0% AT PERIOD START
               </div>
               <div style={{ height: 260 }}>
-                <SafeChart width="100%" height="100%">
+                <SafeChart provenance={equityProvenance()} label="Sector performance, rebased" width="100%" height="100%">
                   <AreaChart data={perfSeries}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--t-border)" opacity={0.3} />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--t-text-dim)" minTickGap={24} />

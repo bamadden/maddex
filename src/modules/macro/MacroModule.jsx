@@ -200,7 +200,7 @@ const MiniChart = ({ data, dataKey, color, refLine, unit = '', onClick }) => (
         ⤢
       </span>
     )}
-    <SafeChart width="100%" height="100%">
+    <SafeChart provenance="panel" width="100%" height="100%">
       <LineChart data={data} margin={{ top: 4, right: 18, left: 0, bottom: 4 }}>
         <CartesianGrid stroke={PAL.header} vertical={false} />
         <XAxis tick={{ fontSize: 11 }} interval={1} {...timeAxis(data, 4)} />
@@ -368,7 +368,7 @@ function ExpandedChartModal({ chartKey, data, onClose }) {
 
         {/* Chart — drag to zoom, double-click to reset, Brush for scrub/pan */}
         <div className="flex-1 p-4" ref={chartWrapRef} onDoubleClick={resetZoom}>
-          <SafeChart width="100%" height="100%">
+          <SafeChart provenance="panel" width="100%" height="100%">
             <LineChart
               data={viewData}
               margin={{ top: 12, right: 20, left: 0, bottom: 8 }}
@@ -587,7 +587,7 @@ function RBADashboard({ askAI }) {
         <div className="p-2 flex flex-col h-full">
           <div className="text-2xs text-terminal-text-dim mb-1 flex-shrink-0">CASH RATE HISTORY (May 2022 – {RATE_HISTORY_END}) · {DECISIONS_THIS_YEAR}</div>
           <div className="flex-1 min-h-0">
-            <SafeChart width="100%" height="100%">
+            <SafeChart provenance={{ cls: "DELAYED", source: "RBA decisions and table A2", at: VERIFIED_CONSTANTS.rba.lastVerified }} label="RBA cash rate history" width="100%" height="100%">
               <AreaChart data={RATE_SERIES} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
                 <defs>
                   <linearGradient id="rbaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -764,7 +764,7 @@ function LeadingIndicators() {
       note: `${AU_CONSUMER_SENTIMENT.at(-1)?.date ?? ''} · below 100: more pessimists than optimists`,
       source: 'Westpac–Melbourne Institute (westpaciq.com.au)', asOf: MACRO_SERIES_AS_OF,
       chart: (
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="panel" width="100%" height="100%">
           <LineChart data={AU_CONSUMER_SENTIMENT} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid stroke={PAL.header} vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
@@ -789,7 +789,7 @@ function LeadingIndicators() {
       note: `${VERIFIED_CONSTANTS.au.nabPeriod} — conditions ${VERIFIED_CONSTANTS.au.nabConditions}`,
       source: 'NAB Monthly Business Survey (nab.com.au)', asOf: VERIFIED_CONSTANTS.au.nabRelease,
       chart: (
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="panel" width="100%" height="100%">
           <BarChart data={AU_BUSINESS_CONFIDENCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid stroke={PAL.header} vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
@@ -813,7 +813,7 @@ function LeadingIndicators() {
       note: `${VERIFIED_CONSTANTS.au.tradeBalancePeriod} — ${VERIFIED_CONSTANTS.au.tradeBalanceBn >= 0 ? 'SURPLUS' : 'DEFICIT'}`,
       source: 'ABS International Trade in Goods (Data API)', asOf: VERIFIED_CONSTANTS.au.tradeBalanceRelease,
       chart: (
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="panel" width="100%" height="100%">
           <AreaChart data={AU_TRADE_BALANCE} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="tradeGrad" x1="0" y1="0" x2="0" y2="1">

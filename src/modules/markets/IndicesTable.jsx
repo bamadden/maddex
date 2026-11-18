@@ -1,4 +1,5 @@
 import { useRef, useMemo, useState } from 'react'
+import { equityProvenance } from '../../utils/chartProvenance'
 import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { fetchYFHistory, transformYFHistory, YF_INDICES, USING_MOCK_DATA, EQUITY_SOURCE } from '../../services/api'
@@ -234,7 +235,7 @@ function CompareIndicesModal({ indices, onClose }) {
           {chartData.length < 2 ? (
             <InlineLoading label="Loading" className="flex items-center justify-center h-full" />
           ) : (
-            <SafeChart width="100%" height="100%">
+            <SafeChart provenance={equityProvenance(undefined, "index levels")} label="Index history" width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                 <CartesianGrid stroke={PAL.header} vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />

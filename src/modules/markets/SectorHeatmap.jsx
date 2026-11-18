@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
+import { equityProvenance } from '../../utils/chartProvenance'
 import { InlineLoading, NoData } from '../../components/ui/ModuleStates'
 import DataBadge from '../../components/ui/DataBadge'
 import { sydneyClock } from '../../utils/dateUtils'
@@ -1279,7 +1280,7 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                 const last = composite.points[composite.points.length - 1]?.pct
                 const col = last == null ? PAL.muted : last >= 0 ? PAL.up : PAL.down
                 return (
-                  <SafeChart width="100%" height={118}>
+                  <SafeChart provenance={equityProvenance()} label="Sector composite, 30 days" width="100%" height={118}>
                     <AreaChart data={composite.points} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                       <defs>
                         <linearGradient id="sectorCompositeGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1309,7 +1310,7 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                   {chartData.length >= 2 && (() => {
                     const col = proxyQuotes?.[proxySym]?.pct >= 0 ? PAL.up : PAL.down
                     return (
-                      <SafeChart width="100%" height={118}>
+                      <SafeChart provenance={equityProvenance()} label="Sector proxy, 30 days" width="100%" height={118}>
                         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
                           <defs>
                             <linearGradient id="sectorGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1684,7 +1685,7 @@ function IndexView({ selectedIndex, openModal }) {
                 <InlineLoading label="Loading" className="flex items-center justify-center h-full" />
               )}
               {!idxHistLoading && idxChartData.length >= 2 && (
-                <SafeChart width="100%" height={90}>
+                <SafeChart provenance="panel" width="100%" height={90}>
                   <AreaChart data={idxChartData} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
                     <defs>
                       <linearGradient id="idxGrad" x1="0" y1="0" x2="0" y2="1">

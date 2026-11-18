@@ -150,7 +150,7 @@ function CompoundCalc({ prefill }) {
         <Metric label="RETURN ON CONTRIBUTIONS" value={`${r.roi.toFixed(1)}%`} tone={r.roi >= 0 ? PAL.up : PAL.down} />
       </div>
       <div style={{ height: 180 }}>
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="calculated" label="Projected value" width="100%" height="100%">
           <AreaChart data={r.series} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke={PAL.header} vertical={false} />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
@@ -315,7 +315,7 @@ function SuperCalc() {
       </div>
 
       <div style={{ height: 150 }}>
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="calculated" label="Projected super balance" width="100%" height="100%">
           <AreaChart data={base.series} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid stroke={PAL.header} vertical={false} />
             <XAxis dataKey="age" tick={{ fontSize: 11 }} />

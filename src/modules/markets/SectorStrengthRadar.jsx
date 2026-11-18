@@ -175,7 +175,7 @@ export default function SectorStrengthRadar({ selectedIndex = '^AXJO' }) {
 
       {/* Radar chart */}
       <div style={{ height: 500 }} className="flex-shrink-0 w-full">
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="panel" width="100%" height="100%">
           <RadarChart
             cx="50%" cy="50%"
             outerRadius="75%"

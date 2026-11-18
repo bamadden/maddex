@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { equityProvenance } from '../../utils/chartProvenance'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, Customized, LineChart, Line, XAxis, YAxis, ReferenceLine } from 'recharts'
 import { useMarketSentiment, sentimentTooltip } from '../../hooks/useMarketSentiment'
 import SafeChart from '../../components/ui/SafeChart'
@@ -252,7 +253,7 @@ function TrendSection({ currentScore }) {
           BUILDING HISTORY — scores recorded each session
         </div>
       ) : (
-        <SafeChart width="100%" height={90}>
+        <SafeChart provenance={equityProvenance(undefined, "sentiment inputs")} label="Sentiment score history" width="100%" height={90}>
           <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <XAxis
               dataKey="t"
@@ -384,7 +385,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
             {/* Radar chart */}
             <div style={{ flex: '0 0 auto' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-dim, #8BA3C4)', letterSpacing: '0.08em', marginBottom: 4 }}>COMPONENT SCORES</div>
-              <SafeChart width="100%" height={210}>
+              <SafeChart provenance={equityProvenance(undefined, "sentiment inputs")} label="Sentiment component scores" width="100%" height={210}>
                 <RadarChart data={radarData} margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
                   <Customized component={RadarZones} />
                   <PolarGrid stroke="rgba(30,70,140,0.35)" />

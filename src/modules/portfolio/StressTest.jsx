@@ -126,7 +126,7 @@ function DonutMini({ data, title }) {
     <div className="flex-1 min-w-[160px]">
       <div className="text-2xs text-terminal-text-dim text-center mb-1">{title}</div>
       <div style={{ height: 140 }}>
-        <SafeChart width="100%" height="100%">
+        <SafeChart provenance="calculated" label={title} width="100%" height="100%">
           <PieChart>
             <Pie data={data} cx="50%" cy="50%" innerRadius={30} outerRadius={55} dataKey="value" isAnimationActive={false}>
               {data.map((d, i) => <Cell key={d.name} fill={STOCK_PALETTE[i % STOCK_PALETTE.length]} stroke="#040d1a" strokeWidth={1} />)}
