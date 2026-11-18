@@ -40,3 +40,4 @@ tests/ui/artifacts
 # Dated source records (npm run data:fetch); the nightly check keeps its own
 data/records/
 reports/
+docs/components/*.actual.png

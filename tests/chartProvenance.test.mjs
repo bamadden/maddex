@@ -40,3 +40,16 @@ test('equity charts are DEMO while prices are simulated', async () => {
   assert.equal(p.cls, USING_MOCK_DATA ? 'DEMO' : 'DELAYED')
   assert.equal(p.at, 1)
 })
+
+test('the components page, its baselines and the design doc are in step', () => {
+  const page = fs.readFileSync('src/ComponentsPage.jsx', 'utf8')
+  const ids = [...page.matchAll(/<Section id="([\w-]+)"/g)].map((m) => m[1])
+  assert.ok(ids.length >= 7)
+  const doc = fs.readFileSync('docs/DESIGN_SYSTEM.md', 'utf8')
+  for (const id of ids) {
+    assert.ok(fs.existsSync(`docs/components/${id}.png`), `baseline for ${id}`)
+    assert.match(doc, new RegExp(`components/${id}\\.png`), `doc shows ${id}`)
+  }
+  assert.match(JSON.parse(fs.readFileSync('package.json', 'utf8')).scripts['test:ui'], /visual\.ui\.mjs/, 'the gate runs the visual suite')
+  assert.match(fs.readFileSync('src/App.jsx', 'utf8'), /includes\('components'\)\) return page\(<ComponentsPage \/>\)/)
+})

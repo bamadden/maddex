@@ -95,6 +95,7 @@ const WelcomeModal       = lazy(() => import('./components/onboarding/WelcomeMod
 const AuthModal          = lazy(() => import('./components/auth/AuthModal'))
 const OnboardingFlow     = lazy(() => import('./components/auth/OnboardingFlow'))
 const DiagPage           = lazy(() => import('./DiagPage'))
+const ComponentsPage     = lazy(() => import('./ComponentsPage'))
 const SharedWatchlistPage    = lazy(() => import('./pages/SharedWatchlistPage'))
 const SharedResearchNotePage = lazy(() => import('./pages/SharedResearchNotePage'))
 const SharedPortfolioPage    = lazy(() => import('./pages/SharedPortfolioPage'))
@@ -1034,6 +1035,7 @@ const focusCommandBar = () => document.querySelector('[data-command-bar]')?.focu
 export default function App() {
   const page = (el) => <Suspense fallback={<AppLoader />}>{el}</Suspense>
   if (window.location.search.includes('diag')) return page(<DiagPage />)
+  if (window.location.search.includes('components')) return page(<ComponentsPage />)
   const watchlistShare = window.location.pathname.match(/^\/watchlist\/share\/([a-z0-9-]+)$/i)
   if (watchlistShare) return page(<SharedWatchlistPage id={watchlistShare[1]} />)
   const researchShare = window.location.pathname.match(/^\/research\/share\/([a-z0-9-]+)$/i)
