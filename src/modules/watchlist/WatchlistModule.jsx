@@ -1513,7 +1513,7 @@ export default function WatchlistModule() {
                     // Without either, an HTML5 drag on a dense table gives no
                     // indication of what is moving or where it will land.
                     opacity: draggingIdx === i ? 0.5 : 1,
-                    borderTop: dragOverIdx === i && draggingIdx !== i ? '2px solid #C9A84C' : undefined,
+                    borderTop: dragOverIdx === i && draggingIdx !== i ? `2px solid ${PAL.gold}` : undefined,
                     // Keyboard focus and bulk selection.
                     boxShadow: focusSym === row.symbol ? 'inset 0 0 0 1px rgba(201,168,76,0.55)' : undefined,
                     background: selected.has(row.symbol) ? 'rgba(201,168,76,0.07)' : undefined,

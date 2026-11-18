@@ -63,7 +63,7 @@ function Scrim({ hole, pad = 6 }) {
       <div className="fixed left-0" style={{ top: t, height: b - t, width: l, background: shade }} />
       <div className="fixed right-0" style={{ top: t, height: b - t, left: r, background: shade }} />
       <div className="fixed pointer-events-none pulse-gold"
-        style={{ top: t, left: l, width: r - l, height: b - t, border: '2px solid #C9A84C', borderRadius: 3 }} />
+        style={{ top: t, left: l, width: r - l, height: b - t, border: `2px solid ${PAL.gold}`, borderRadius: 3 }} />
     </>
   )
 }

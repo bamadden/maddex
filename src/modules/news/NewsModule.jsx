@@ -654,7 +654,7 @@ const StoryRow = memo(function StoryRow({ item, isUnread, isPulsing, onOpen, onO
   return (
     <div
       className={`news-row group border-b border-terminal-border cursor-pointer hover:bg-terminal-surface2 transition-colors ${isPulsing ? 'news-pulse' : ''}`}
-      style={item.inWatchlist ? { borderLeft: '3px solid #C9A84C', background: 'rgba(201,168,76,0.04)' } : { borderLeft: '3px solid transparent' }}
+      style={item.inWatchlist ? { borderLeft: `3px solid ${PAL.gold}`, background: 'rgba(201,168,76,0.04)' } : { borderLeft: '3px solid transparent' }}
       onClick={() => onOpen(item)}
     >
       <div className="flex items-center gap-2 px-3" style={{ height: 40 }}>

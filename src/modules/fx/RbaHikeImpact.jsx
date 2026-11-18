@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PAL } from '../../styles/palette.js'
 import { pendingRbaDecision } from '../../data/verifiedConstants'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
 import { MORTGAGE_MARGIN, MARGIN_SOURCE, F6_URL, repaymentChange } from '../calculators/calcMath'
@@ -25,7 +26,7 @@ const SECTORS = [
   { name: 'REITS', dir: '↓', why: 'Higher discount rates and funding costs', tone: '#CC4444' },
   { name: 'CONSUMER', dir: '↓', why: 'Less disposable income for mortgaged households', tone: '#CC4444' },
   { name: 'UTILITIES', dir: '↓', why: 'Bond-like income loses appeal as yields rise', tone: '#CC4444' },
-  { name: 'MATERIALS', dir: '→', why: 'Driven more by China and commodity prices', tone: '#8BA3C4' },
+  { name: 'MATERIALS', dir: '→', why: 'Driven more by China and commodity prices', tone: PAL.dim },
 ]
 
 const money = (v) => `A$${Math.round(v).toLocaleString('en-AU')}`
@@ -55,7 +56,7 @@ export default function RbaHikeImpact() {
               {LOANS.map((p) => (
                 <tr key={p}>
                   <td className="text-terminal-text-dim py-0.5">{money(p)} variable</td>
-                  <td className="text-right tabular-nums font-bold" style={{ color: '#E8A33D' }}>+{money(repaymentChange(p, fromRate, delta))}/month</td>
+                  <td className="text-right tabular-nums font-bold" style={{ color: PAL.amber }}>+{money(repaymentChange(p, fromRate, delta))}/month</td>
                 </tr>
               ))}
             </tbody>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PAL } from '../../styles/palette.js'
 import { pendingRbaDecision, rbaDecisionAt } from '../../data/verifiedConstants'
 import VerifiedBadge from '../../components/ui/VerifiedBadge'
 import { sydneyTzAbbr, formatDate } from '../../utils/dateUtils'
@@ -57,7 +58,7 @@ export default function RbaDecisionPreview() {
             A dated reading, not a live feed. {nd.marketContext}
           </div>
           {nd.peerContext && (
-            <div className="font-mono leading-snug mt-1.5" style={{ fontSize: 9, color: '#E8A33D' }}>⚑ {nd.peerContext}</div>
+            <div className="font-mono leading-snug mt-1.5" style={{ fontSize: 9, color: PAL.amber }}>⚑ {nd.peerContext}</div>
           )}
         </div>
         <div className="mt-2 md:mt-0">

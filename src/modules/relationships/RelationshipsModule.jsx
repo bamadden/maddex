@@ -445,7 +445,7 @@ export default function RelationshipsModule() {
             {[['about', 'ABOUT'], ['node', 'NODE'], ['edge', 'EDGE'], ['paths', 'PATHS'], ['ripple', 'RIPPLE']].map(([k, label]) => (
               <button key={k} onClick={() => setTab(k)} disabled={(k === 'node' && !selected) || (k === 'edge' && !selectedEdge)}
                 className="flex-1 font-mono tracking-widest py-1.5 disabled:opacity-30"
-                style={{ fontSize: 11, color: tab === k ? PAL.gold : PAL.muted, borderBottom: tab === k ? '2px solid #C9A84C' : '2px solid transparent' }}>
+                style={{ fontSize: 11, color: tab === k ? PAL.gold : PAL.muted, borderBottom: tab === k ? `2px solid ${PAL.gold}` : '2px solid transparent' }}>
                 {label}
               </button>
             ))}

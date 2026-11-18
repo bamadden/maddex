@@ -119,7 +119,7 @@ function ScoreGradientBar({ score }) {
       <div style={{
         height: 6,
         borderRadius: 3,
-        background: 'linear-gradient(to right, #EB6B66, #c9a84c, #3FB06B)',
+        background: `linear-gradient(to right, ${PAL.down}, ${PAL.gold}, ${PAL.up})`,
         position: 'relative',
       }}>
         <div style={{
@@ -277,7 +277,7 @@ function TrendSection({ currentScore }) {
             <ReferenceLine y={33} stroke="rgba(168,50,50,0.3)"  strokeDasharray="3 3" />
             <ReferenceLine y={66} stroke="rgba(201,168,76,0.3)" strokeDasharray="3 3" />
             <Tooltip
-              contentStyle={{ background: '#0a0e1a', border: '1px solid #C9A84C', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
+              contentStyle={{ background: '#0a0e1a', border: `1px solid ${PAL.gold}`, fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
               labelFormatter={(v) => fmtTimestamp(v, tab)}
               formatter={(v) => [`${v}/100`, 'Score']}
             />
@@ -403,7 +403,7 @@ function SentimentModal({ sentiment, asxChanges, fearGreed, onClose, ms }) {
                     strokeWidth={1.5}
                   />
                   <Tooltip
-                    contentStyle={{ background: '#0a0e1a', border: '1px solid #C9A84C', fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
+                    contentStyle={{ background: '#0a0e1a', border: `1px solid ${PAL.gold}`, fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
                     formatter={(v) => [`${v}/100`, 'Score']}
                   />
                 </RadarChart>

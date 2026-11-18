@@ -59,7 +59,7 @@ function WidgetCell({ widget, index, editMode, onRemove, drag, columns }) {
         ...(editMode ? { outline: '1px dashed rgba(201,168,76,0.3)', outlineOffset: -1 } : null),
         ...(editMode ? { cursor: isDragging ? 'grabbing' : 'grab' } : null),
         ...(isDragging ? { opacity: 0.5, transform: 'scale(0.98)' } : null),
-        ...(isTarget ? { outline: '2px dashed #C9A84C', outlineOffset: -2, background: 'rgba(201,168,76,0.08)' } : null),
+        ...(isTarget ? { outline: `2px dashed ${PAL.gold}`, outlineOffset: -2, background: 'rgba(201,168,76,0.08)' } : null),
         transition: 'opacity 120ms, transform 120ms, background-color 120ms',
       }}
     >

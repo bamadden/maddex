@@ -399,7 +399,7 @@ export default function IndicesTable({ openModal, selectedIndex, onSelectIndex }
               }`}
               style={{
                 padding: '8px 12px',
-                borderTop: isSelected ? '2px solid #C9A84C' : '2px solid transparent',
+                borderTop: isSelected ? `2px solid ${PAL.gold}` : '2px solid transparent',
               }}
             >
               {hoveredIdx === symbol && sparkPoints.length >= 2 && (

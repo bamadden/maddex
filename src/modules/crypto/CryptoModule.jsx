@@ -486,7 +486,7 @@ function CoinDetailPanel({ coin, currPrefix, usdToAud, audToUsd, chartData, char
           {recovery != null && (
             <>
               <div className="relative h-1.5 rounded-full mt-2" style={{ background: 'rgba(100,130,160,0.2)' }}>
-                <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${recovery}%`, background: 'linear-gradient(90deg, rgba(168,50,50,0.6), #C9A84C)' }} />
+                <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${recovery}%`, background: `linear-gradient(90deg, rgba(168,50,50,0.6), ${PAL.gold})` }} />
                 <span className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full" style={{ left: `calc(${recovery}% - 4px)`, background: PAL.bright }} />
               </div>
               <div className="flex justify-between text-[11px] text-terminal-text-dim mt-1">
@@ -911,7 +911,7 @@ export default function CryptoModule() {
         {/* ── CENTRE: elite coin table ── */}
         <div className={`${mobilePanel === 'table' ? 'block' : 'hidden'} md:block flex-1 min-w-0 overflow-auto`} style={{ background: PAL.panel, position: 'relative' }}>
           <div ref={titleBarRef} className="panel-header crypto-title-bar flex items-center gap-2 flex-wrap"
-            style={{ position: 'sticky', top: 0, zIndex: 20, background: PAL.panel, borderBottom: '1px solid #0F1E35', margin: 0 }}>
+            style={{ position: 'sticky', top: 0, zIndex: 20, background: PAL.panel, borderBottom: `1px solid ${PAL.header}`, margin: 0 }}>
             {/* The Binance fallback is a fixed list of 12 majors with no market caps. */}
             <span>{rawMarketsResult?.meta?.provider === 'Binance' ? `${rawMarkets?.length ?? ''} MAJOR COINS` : 'TOP 20 BY MKT CAP'} ({priceCcy})</span>
             {rawMarkets && marketsDelayed && <StaleBadge cachedAt={rawMarketsResult?.cachedAt} source={rawMarketsResult?.meta?.provider} />}
@@ -1125,7 +1125,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead style={{ position: 'sticky', top: titleBarHeight + 2, zIndex: 10 }}>
-        <tr style={{ background: PAL.panel, borderBottom: '1px solid #C9A84C' }}>
+        <tr style={{ background: PAL.panel, borderBottom: `1px solid ${PAL.gold}` }}>
           {cols.map(col => (
             <th
               key={col.key}
@@ -1164,7 +1164,7 @@ function SortableCoinTable({ markets, currPrefix, usdToAud, audToUsd, titleBarHe
               style={{
                 height: 36, borderBottom: '1px solid rgba(13,34,68,0.4)', cursor: 'pointer',
                 background: isSelected ? 'rgba(201,168,76,0.08)' : 'transparent',
-                boxShadow: isSelected ? 'inset 3px 0 0 #C9A84C' : 'none',
+                boxShadow: isSelected ? `inset 3px 0 0 ${PAL.gold}` : 'none',
               }}
               onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(201,168,76,0.05)' }}
               onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(201,168,76,0.08)' : 'transparent' }}

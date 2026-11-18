@@ -985,7 +985,7 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
                   aria-pressed={isSelected}
                   style={{
                     backgroundColor: bg,
-                    border: isSelected ? '2px solid #C9A84C' : '1px solid rgba(0,0,0,0.3)',
+                    border: isSelected ? `2px solid ${PAL.gold}` : '1px solid rgba(0,0,0,0.3)',
                     filter: isHovered ? 'brightness(1.25)' : '',
                     // Inset separation reads as depth between adjacent tiles;
                     // an outer hairline just draws a grid over the heat.

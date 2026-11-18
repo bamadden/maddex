@@ -33,7 +33,7 @@ export default function TrialExpiredModal({ onContinue }) {
 
   return (
     <div className="fixed inset-0 z-[300] bg-terminal-bg flex items-center justify-center font-mono p-4"
-      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
+      style={{ backgroundImage: `radial-gradient(circle, ${PAL.header} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}>
       <div className="w-full max-w-lg shadow-2xl px-8 pt-9 pb-7 text-center"
         style={{ backgroundColor: PAL.panel, backgroundImage: 'linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0) 34%)', border: '1px solid rgba(201,168,76,0.45)' }}>
         <img src="/icons/icon-mark-192.png" alt="" aria-hidden="true" className="mx-auto" style={{ width: 52, height: 52, objectFit: 'contain' }} />

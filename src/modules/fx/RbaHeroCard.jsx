@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PAL } from '../../styles/palette.js'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
 import VERIFIED_CONSTANTS, { provenance, pendingRbaDecision } from '../../data/verifiedConstants'
 import { sydneyTzAbbr, sydneyISO } from '../../utils/dateUtils'
@@ -38,7 +39,7 @@ const RBA_TIME = (() => { const [h, m] = ANNOUNCE_AT.rba[0].split(':').map(Numbe
 
 // The reading as a row, in the layout the HIKE / HOLD rows had: label, bar,
 // percentage, the rate it prices. One neutral colour whatever the value.
-const NEUTRAL = '#8BA3C4'
+const NEUTRAL = PAL.dim
 function PricingBar({ label, pct, rate }) {
   return (
     <div className="flex items-center gap-2 font-mono" style={{ fontSize: 10 }}>
@@ -151,7 +152,7 @@ export default function RbaHeroCard({ onAskAI }) {
             <span
               className="font-bold"
               style={{
-                color: '#C9A84C',
+                color: PAL.gold,
                 border: '1px solid rgba(201,168,76,0.3)',
                 background: 'transparent',
                 padding: '2px 6px', borderRadius: 2, letterSpacing: '0.14em',

@@ -161,7 +161,7 @@ export default function MapLocationSearch({ onSelect, onClear, hasPin, mapHovere
       )}
 
       {card && (
-        <div className="mt-2 px-3 py-2.5" style={{ background: 'rgba(6,13,26,0.94)', border: '1px solid rgba(201,168,76,0.35)', borderLeft: '3px solid #C9A84C', borderRadius: 3 }}>
+        <div className="mt-2 px-3 py-2.5" style={{ background: 'rgba(6,13,26,0.94)', border: '1px solid rgba(201,168,76,0.35)', borderLeft: `3px solid ${PAL.gold}`, borderRadius: 3 }}>
           <div className="text-terminal-gold font-bold tracking-widest" style={{ fontSize: 11 }}>{card.title}</div>
           <div className="text-terminal-text mt-0.5" style={{ fontSize: 11 }}>{card.context}</div>
           <div className="text-terminal-text-dim/60 truncate mt-0.5" style={{ fontSize: 11 }}>{card.place}</div>

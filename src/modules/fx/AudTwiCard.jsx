@@ -50,7 +50,7 @@ export default function AudTwiCard() {
     <div
       className="border-b border-terminal-border flex-shrink-0"
       style={{
-        borderLeft: '3px solid #C9A84C',
+        borderLeft: `3px solid ${PAL.gold}`,
         background: 'linear-gradient(90deg, rgba(201,168,76,0.06) 0%, rgba(201,168,76,0.015) 60%, transparent 100%)',
         padding: '12px 16px',
       }}

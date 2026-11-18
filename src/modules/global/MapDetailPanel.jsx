@@ -380,7 +380,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
 
             {data.disrupted && (
               <div style={{ marginTop: 12, padding: '6px 8px', background: 'rgba(168,50,50,0.12)',
-                borderLeft: '2px solid #EB6B66', fontSize: 11, color: '#C88', fontFamily: '"IBM Plex Mono", monospace' }}>
+                borderLeft: `2px solid ${PAL.down}`, fontSize: 11, color: '#C88', fontFamily: '"IBM Plex Mono", monospace' }}>
                 ⚠ SUPPLY DISRUPTED
               </div>
             )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PAL } from '../../styles/palette.js'
 import { useStore } from '../../store/useStore'
 import { useProfile } from '../../hooks/useProfile'
 import { trialState, startUpgrade, upgradeCta } from '../../services/plans'
@@ -62,7 +63,7 @@ export default function TrialNudges() {
   }
   return (
     <div role="status" className="fixed z-[180] right-4 bottom-16 w-80 bg-terminal-panel shadow-2xl p-3 font-sans"
-      style={{ border: '1px solid rgba(201,168,76,0.6)', borderLeft: '3px solid #C9A84C' }}>
+      style={{ border: '1px solid rgba(201,168,76,0.6)', borderLeft: `3px solid ${PAL.gold}` }}>
       <div className="flex items-start gap-2">
         <span className="font-mono font-bold text-terminal-gold tracking-widest flex-1" style={{ fontSize: 11 }}>{card.title} →</span>
         <button onClick={close} aria-label="Dismiss" className="text-terminal-text-dim hover:text-terminal-text-bright leading-none">✕</button>

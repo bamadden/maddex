@@ -271,7 +271,7 @@ export default function AuthModal({ deletedMessage }) {
 
   return (
     <div className="fixed inset-0 z-[200] bg-terminal-bg flex items-center justify-center font-mono"
-      style={{ backgroundImage: 'radial-gradient(circle, #0F1E35 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      style={{ backgroundImage: `radial-gradient(circle, ${PAL.header} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}
     >
       <div className="w-full max-w-[420px] border border-terminal-gold bg-terminal-panel shadow-2xl mx-4">
         {/* Header */}

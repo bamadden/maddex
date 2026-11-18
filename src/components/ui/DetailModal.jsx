@@ -222,7 +222,7 @@ function RangeBar({ price, low, high }) {
         <div className="relative" style={{ height: 5, borderRadius: 3, background: 'rgba(99,120,153,0.22)' }}>
           <div
             className="absolute inset-y-0 left-0"
-            style={{ width: '100%', borderRadius: 3, opacity: 0.35, background: 'linear-gradient(90deg,#EB6B66,#C9A84C,#3FB06B)' }}
+            style={{ width: '100%', borderRadius: 3, opacity: 0.35, background: `linear-gradient(90deg,${PAL.down},${PAL.gold},${PAL.up})` }}
           />
           <span
             className="absolute"

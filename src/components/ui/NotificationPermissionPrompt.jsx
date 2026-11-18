@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PAL } from '../../styles/palette.js'
 import { requestPermission, dismissPrompt, shouldOfferPrompt } from '../../services/browserNotify'
 
 // Shown once, when the user sets their first alert, before the browser's own
@@ -19,7 +20,7 @@ export default function NotificationPermissionPrompt({ suppressed = false }) {
   const close = () => { dismissPrompt(); setOpen(false) }
   return (
     <div className="fixed bottom-16 right-6 z-[160] w-[340px] font-mono shadow-2xl"
-      style={{ background: 'rgba(7,20,40,0.98)', border: '1px solid rgba(201,168,76,0.45)', borderLeft: '3px solid #C9A84C' }}
+      style={{ background: 'rgba(7,20,40,0.98)', border: '1px solid rgba(201,168,76,0.45)', borderLeft: `3px solid ${PAL.gold}` }}
       role="dialog" aria-label="Enable notifications">
       <div className="p-4">
         <div className="text-2xs font-bold tracking-widest text-terminal-gold mb-1.5">🔔 GET ALERTED IN THE BACKGROUND</div>
