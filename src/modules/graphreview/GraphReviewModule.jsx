@@ -24,6 +24,7 @@ const RED = '#C4653A'
 const GREEN = PAL.up
 const TABS = [
   { id: 'NEEDS_HUMAN', label: 'NEEDS HUMAN' },
+  { id: 'NEEDS_NODE', label: 'PENDING COUNTERPARTY' },
   { id: 'AGREED', label: 'AGREED' },
   { id: 'AUTO_REJECTED', label: 'AUTO-REJECTED' },
 ]
@@ -268,7 +269,7 @@ export default function GraphReviewModule() {
           <div className="text-terminal-text-dim" style={{ fontSize: 11 }}>Read-only log. These failed a Stage 1 check and cannot be approved; fix the cause (for example, add the missing node in nodes.js) and re-run <span className="font-mono">npm run graph:verify</span> and <span className="font-mono">graph:triage</span>.</div>
         )}
         {inTab.length === 0 && <div className="text-terminal-text-dim" style={{ fontSize: 12 }}>Nothing in {TABS.find((t) => t.id === tab).label}.</div>}
-        {inTab.map((i) => <Card key={i.id} item={i} mode={tab === 'AUTO_REJECTED' ? 'log' : 'review'} onDone={onDone} />)}
+        {inTab.map((i) => <Card key={i.id} item={i} mode={tab === 'AUTO_REJECTED' || tab === 'NEEDS_NODE' ? 'log' : 'review'} onDone={onDone} />)}
         {Object.keys(done).length > 0 && (
           <div className="font-mono text-terminal-text-dim" style={{ fontSize: 11 }}>
             This session: {Object.values(done).filter((a) => a !== 'reject').length} approved, {Object.values(done).filter((a) => a === 'reject').length} rejected. The graph reloads with approved edges.

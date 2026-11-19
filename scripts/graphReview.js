@@ -55,6 +55,7 @@ function buildEdge(ctx, doc, p, { reviewer, now, typeFix, bulk }) {
   const t = ctx.triage.items.find((i) => i.id === p.id)
   if (!t) return { error: 'not triaged — run npm run graph:triage' }
   if (t.bucket === 'AUTO_REJECTED') return { error: `auto-rejected: ${t.reasons.join('; ')}` }
+  if (t.bucket === 'NEEDS_NODE') return { error: `a counterparty is not in the graph yet: ${t.reasons.join('; ')}` }
   const v1 = ctx.verification[p.id]
   if (!v1?.ok || v1.match?.result !== 'verified') return { error: 'quote not verified (stage 1)' }
   const v2 = ctx.secondPass[p.id]

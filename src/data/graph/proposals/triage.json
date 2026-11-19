@@ -1,10 +1,11 @@
 {
   "stage": 3,
-  "generatedAt": "2026-11-01T03:47:37.640Z",
+  "generatedAt": "2026-11-19T06:12:37.834Z",
   "counts": {
     "NEEDS_HUMAN": 14,
+    "NEEDS_NODE": 9,
     "AGREED": 4,
-    "AUTO_REJECTED": 10
+    "AUTO_REJECTED": 1
   },
   "items": [
     {
@@ -223,6 +224,195 @@
       }
     },
     {
+      "id": "3331ecd321d5e5e4",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Jenny Bryant\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Jenny Bryant"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Jenny Bryant",
+        "to": "Flybuys",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "3f134ad6bb9d7af2",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"John Gualtieri\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "John Gualtieri"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "John Gualtieri",
+        "to": "Officeworks",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "49825090a161234d",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Michael Schneider\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Michael Schneider"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Michael Schneider",
+        "to": "Bunnings Group",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "66cbec65796dc2a1",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Aaron Hood\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Aaron Hood"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Aaron Hood",
+        "to": "Wesfarmers Chemicals, Energy & Fertilisers",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "684295afab472232",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Naomi Flutter\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Naomi Flutter"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Naomi Flutter",
+        "to": "Wespine Industries",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "bd7365cc69459b7b",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Michael Britton\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Michael Britton"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Michael Britton",
+        "to": "Wespine Industries",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "d42b86bcf02fa037",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Aleksandra Spaseska\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Aleksandra Spaseska"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Aleksandra Spaseska",
+        "to": "Kmart Group",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "e19fe13c88028c77",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Aaron Hood\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Aaron Hood"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Aaron Hood",
+        "to": "Covalent Lithium",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
+      "id": "fd638258fc764547",
+      "file": "WES-2026-06-30.json",
+      "bucket": "NEEDS_NODE",
+      "reasons": [
+        "counterparty \"Emily Amos\" (from) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage"
+      ],
+      "pending": [
+        {
+          "side": "from",
+          "name": "Emily Amos"
+        }
+      ],
+      "claim": {
+        "type": "director_of",
+        "from": "Emily Amos",
+        "to": "Wesfarmers Health",
+        "weight": null,
+        "page": 18
+      }
+    },
+    {
       "id": "4bb630f61b010e18",
       "file": "WES-2026-06-30.json",
       "bucket": "AGREED",
@@ -287,126 +477,6 @@
       }
     },
     {
-      "id": "3331ecd321d5e5e4",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Jenny Bryant\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Jenny Bryant",
-        "to": "Flybuys",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "3f134ad6bb9d7af2",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"John Gualtieri\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "John Gualtieri",
-        "to": "Officeworks",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "49825090a161234d",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Michael Schneider\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Michael Schneider",
-        "to": "Bunnings Group",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "66cbec65796dc2a1",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Aaron Hood\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Aaron Hood",
-        "to": "Wesfarmers Chemicals, Energy & Fertilisers",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "684295afab472232",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Naomi Flutter\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Naomi Flutter",
-        "to": "Wespine Industries",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "bd7365cc69459b7b",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Michael Britton\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Michael Britton",
-        "to": "Wespine Industries",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "d42b86bcf02fa037",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Aleksandra Spaseska\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Aleksandra Spaseska",
-        "to": "Kmart Group",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
-      "id": "e19fe13c88028c77",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Aaron Hood\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Aaron Hood",
-        "to": "Covalent Lithium",
-        "weight": null,
-        "page": 18
-      }
-    },
-    {
       "id": "eeb3fba1121adf16",
       "file": "WES-2026-06-30.json",
       "bucket": "AUTO_REJECTED",
@@ -419,21 +489,6 @@
         "to": "Australian Gold Reagents Pty Ltd",
         "weight": 75,
         "page": 186
-      }
-    },
-    {
-      "id": "fd638258fc764547",
-      "file": "WES-2026-06-30.json",
-      "bucket": "AUTO_REJECTED",
-      "reasons": [
-        "stage 1: from \"Emily Amos\" does not resolve to a known node"
-      ],
-      "claim": {
-        "type": "director_of",
-        "from": "Emily Amos",
-        "to": "Wesfarmers Health",
-        "weight": null,
-        "page": 18
       }
     }
   ]

@@ -71,7 +71,7 @@ test('triage output: only pending proposals, every reason kept, buckets in order
   ] }]
   const out = buildTriage(docs, { a: v1ok, b: v1ok, c: { ok: false, reasons: ['type "x" is not allowed'] } }, { a: v2(), b: v2() }, [], '2026-11-01T00:00:00Z')
   assert.deepEqual(out.items.map((i) => [i.id, i.bucket]), [['b', 'NEEDS_HUMAN'], ['a', 'AGREED'], ['c', 'AUTO_REJECTED']])
-  assert.deepEqual(out.counts, { NEEDS_HUMAN: 1, AGREED: 1, AUTO_REJECTED: 1 })
+  assert.deepEqual(out.counts, { NEEDS_HUMAN: 1, NEEDS_NODE: 0, AGREED: 1, AUTO_REJECTED: 1 })
   assert.ok(out.items.every((i) => i.reasons.length > 0))
   assert.deepEqual(out.items[1].claim, { type: 'owns', from: 'Wesfarmers', to: 'Flybuys', weight: 50, page: 57 })
   assert.deepEqual(Object.keys(out.counts), BUCKETS)
@@ -82,4 +82,29 @@ test('the committed triage.json is what the committed Stage 1 and 2 records prod
   const committed = JSON.parse(fs.readFileSync(path.join(dir, 'triage.json'), 'utf8'))
   const recomputed = triageFromDisk(dir, committed.generatedAt)
   assert.deepEqual(recomputed, committed)
+})
+
+// 19 Nov 2026 (WS5): a proposal whose only fault is a counterparty missing
+// from the graph waits for a person in its own bucket; it cannot be approved.
+test('an unknown counterparty goes to the review queue as NEEDS_NODE, never approved', () => {
+  const t = triageOne(p(), { ok: false, reasons: ['from "Aaron Hood" does not resolve to a known node'] }, v2())
+  assert.equal(t.bucket, 'NEEDS_NODE')
+  assert.deepEqual(t.pending, [{ side: 'from', name: 'Aaron Hood' }])
+  assert.match(t.reasons[0], /add it to nodes\.js with its own source/)
+  const mixed = triageOne(p(), { ok: false, reasons: ['from "X" does not resolve to a known node', 'quote not found word for word in the source'] }, v2())
+  assert.equal(mixed.bucket, 'AUTO_REJECTED', 'any other failure still rejects')
+  assert.ok(BUCKETS.includes('NEEDS_NODE'))
+  const review = fs.readFileSync('scripts/graphReview.js', 'utf8')
+  assert.match(review, /t\.bucket === 'NEEDS_NODE'\) return \{ error:/)
+})
+
+test('every pending proposal has a Stage 1 record, and new proposals run verify, triage and report automatically', () => {
+  const dir = 'src/data/graph/proposals'
+  const v = JSON.parse(fs.readFileSync(path.join(dir, 'verification.json'), 'utf8')).results
+  for (const f of fs.readdirSync(dir).filter((f) => /^[A-Z0-9]+-\d{4}-\d{2}-\d{2}\.json$/.test(f))) {
+    for (const x of JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')).proposals) if (x.status === 'pending') assert.ok(v[x.id], `${f} ${x.id} not verified`)
+  }
+  const propose = fs.readFileSync('scripts/propose-edges.mjs', 'utf8')
+  assert.match(propose, /\['graph-verify\.mjs', 'graph-triage\.mjs', 'graph-report\.mjs'\]/)
+  assert.doesNotMatch(propose.slice(propose.indexOf('Stages 1 and 3')), /graph-second-pass/, 'the billed second pass is never run automatically')
 })

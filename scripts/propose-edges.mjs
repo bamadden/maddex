@@ -163,3 +163,9 @@ fs.writeFileSync(out, JSON.stringify({
   usage: response.usage, proposals: accepted, rejected,
 }, null, 2) + '\n')
 console.log(`\n${accepted.length} proposed, ${rejected.length} rejected → ${path.relative(ROOT, out)}`)
+
+// Stages 1 and 3 run on every new proposals file (19 Nov 2026): both are
+// deterministic and free. Stage 2 (the blind second pass) is a billed model
+// call and stays a separate, deliberate step. Nothing here approves anything.
+const { execFileSync } = await import('node:child_process')
+for (const s of ['graph-verify.mjs', 'graph-triage.mjs', 'graph-report.mjs']) execFileSync(process.execPath, [path.join(ROOT, 'scripts', s)], { stdio: 'inherit', cwd: ROOT })

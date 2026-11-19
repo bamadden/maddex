@@ -1,6 +1,10 @@
 // Stage 3 of the review pipeline: sort every pending proposal into one of
 // three buckets, with every reason recorded.
 //
+//   NEEDS_NODE     passed every Stage 1 check except that a counterparty is
+//                  not in the graph yet (19 Nov 2026). A person adds the node
+//                  in nodes.js with its own source, then re-runs verify and
+//                  triage; it cannot be approved before that.
 //   AUTO_REJECTED  failed a Stage 1 check (or was never verified).
 //   NEEDS_HUMAN    the two passes disagree; the second pass is not highly
 //                  confident or its reply failed the code checks; there is
@@ -13,7 +17,8 @@
 // Triage only routes. Nothing here approves or publishes: every bucket,
 // AGREED included, still needs a person's approval in the review queue.
 
-export const BUCKETS = ['NEEDS_HUMAN', 'AGREED', 'AUTO_REJECTED']
+export const BUCKETS = ['NEEDS_HUMAN', 'NEEDS_NODE', 'AGREED', 'AUTO_REJECTED']
+const UNRESOLVED = /^(from|to) "(.+)" does not resolve to a known node$/
 export const ALWAYS_HUMAN_TYPES = ['customer', 'supplier', 'joint_venture']
 
 import { EDGE_OF } from './secondPass.js'
@@ -21,7 +26,13 @@ import { EDGE_OF } from './secondPass.js'
 // existing: Map of `${from}|${type}|${to}` → the edge already in the graph.
 export function triageOne(p, v1, v2, existing = new Map()) {
   if (!v1) return { bucket: 'AUTO_REJECTED', reasons: ['not verified (run npm run graph:verify)'] }
-  if (!v1.ok) return { bucket: 'AUTO_REJECTED', reasons: v1.reasons.map((r) => `stage 1: ${r}`) }
+  if (!v1.ok) {
+    const missing = v1.reasons.map((r) => UNRESOLVED.exec(r))
+    if (missing.length && missing.every(Boolean)) {
+      return { bucket: 'NEEDS_NODE', reasons: missing.map((m) => `counterparty "${m[2]}" (${m[1]}) is not in the graph: add it to nodes.js with its own source, then run graph:verify and graph:triage`), pending: missing.map((m) => ({ side: m[1], name: m[2] })) }
+    }
+    return { bucket: 'AUTO_REJECTED', reasons: v1.reasons.map((r) => `stage 1: ${r}`) }
+  }
   const human = []
   if (!v2) human.push('no second pass yet (run npm run graph:second-pass)')
   else {
@@ -46,7 +57,7 @@ export function buildTriage(docs, verification, secondPass, edges = [], generate
     for (const p of doc.proposals ?? []) {
       if (p.status !== 'pending') continue
       const t = triageOne(p, verification[p.id], secondPass[p.id], existing)
-      items.push({ id: p.id, file: doc.file, bucket: t.bucket, reasons: t.reasons,
+      items.push({ id: p.id, file: doc.file, bucket: t.bucket, reasons: t.reasons, ...(t.pending ? { pending: t.pending } : {}),
         claim: { type: p.type, from: p.from.name, to: p.to.name, weight: p.weight ?? null, page: p.page } })
     }
   }
