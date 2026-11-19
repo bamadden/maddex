@@ -23,7 +23,7 @@ import DigestCard from '../ai/DigestCard'
 import { soundService } from '../../services/soundService'
 import { createAlert } from '../../services/alertsService'
 import { logActivity } from '../../services/activityLogService'
-import { listConversations, saveConversation, deleteConversation } from '../../services/aiHistoryService'
+import { listConversations, saveConversation, deleteConversation, clearAllHistory, exportConversation, exportAllConversations, downloadExport } from '../../services/aiHistoryService'
 import { getAiPreferences } from '../../services/aiPreferencesService'
 import { getInvestorContext, getProfilePrompts } from '../../services/investorProfile'
 import { formatInline, splitFollowUps, toShareText, findTickers } from '../../services/aiResponseFormat'
@@ -785,6 +785,15 @@ export default function AIPanel({ wide = false, onListening }) {
     setHistoryList(listConversations())
     setCurrentConvId((cur) => (cur === id ? null : cur))
   }, [])
+  const exportOne = useCallback((conv, e) => { e.stopPropagation(); downloadExport(exportConversation(conv, 'md')) }, [])
+  // Delete all asks once, inline: what goes, and that it is this device only.
+  const [confirmClearHistory, setConfirmClearHistory] = useState(false)
+  const clearAll = useCallback(() => {
+    clearAllHistory()
+    setHistoryList([])
+    setCurrentConvId(null)
+    setConfirmClearHistory(false)
+  }, [])
   const { profile } = useAuthStore()
   const { plan, limits, canUse } = useSubscription()
   const investorProfile = useInvestorProfile()
@@ -1510,6 +1519,16 @@ export default function AIPanel({ wide = false, onListening }) {
                 <span
                   role="button"
                   tabIndex={0}
+                  onClick={(e) => exportOne(conv, e)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') exportOne(conv, e) }}
+                  className="text-terminal-text-dim/40 hover:text-terminal-gold text-2xs opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 px-0.5"
+                  title="Export as Markdown"
+                  aria-label={`Export ${conv.title || 'conversation'} as Markdown`}
+                  data-export-conversation
+                >↓</span>
+                <span
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => removeConversation(conv.id, e)}
                   onKeyDown={(e) => { if (e.key === 'Enter') removeConversation(conv.id, e) }}
                   className="text-terminal-text-dim/40 hover:text-terminal-red text-2xs opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 px-0.5"
@@ -1518,6 +1537,22 @@ export default function AIPanel({ wide = false, onListening }) {
               </button>
             ))}
           </div>
+          {historyList.length > 0 && (
+            <div className="px-3 py-2 border-t border-terminal-border flex flex-wrap items-center gap-2 font-mono" style={{ fontSize: 11 }} data-history-actions>
+              {confirmClearHistory ? (
+                <>
+                  <span className="text-terminal-text">Delete all {historyList.length} conversations on this device? This cannot be undone.</span>
+                  <button type="button" onClick={clearAll} className="text-terminal-gold border border-terminal-gold/50 px-1.5 hover:bg-terminal-gold hover:text-terminal-bg">DELETE ALL</button>
+                  <button type="button" onClick={() => setConfirmClearHistory(false)} className="text-terminal-text-dim hover:text-terminal-text">CANCEL</button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => downloadExport(exportAllConversations())} className="text-terminal-text-dim hover:text-terminal-gold" data-export-all>EXPORT ALL (JSON)</button>
+                  <button type="button" onClick={() => setConfirmClearHistory(true)} className="text-terminal-text-dim hover:text-terminal-gold ml-auto">DELETE ALL…</button>
+                </>
+              )}
+            </div>
+          )}
         </aside>
       )}
       <div className="flex-1 min-w-0 flex flex-col">

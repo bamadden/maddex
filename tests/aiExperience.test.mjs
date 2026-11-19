@@ -47,3 +47,22 @@ test('the panel shows how many questions the plan allows today', () => {
   assert.match(panel, /data-ai-usage/)
   assert.match(panel, /questions left today on your \{plan\.toUpperCase\(\)\} plan \(counted on this device\)/)
 })
+
+test('a conversation exports as Markdown or JSON, with each answer\'s sources; delete all asks first', async () => {
+  const { conversationToMarkdown, exportConversation } = await import('../src/services/aiHistoryService.js')
+  const conv = { id: 'c1', title: 'RBA and CPI', date: '2026-11-19T04:00:00Z', messages: [
+    { role: 'user', content: 'What did CPI show?' },
+    { role: 'assistant', content: 'Annual CPI was 4.3% in September (ABS).\nFOLLOW_UPS: a | b | c', meta: { model: 'm', versions: ['system@1'], sources: [{ source: 'Australian Bureau of Statistics', asOf: '2026-11-19' }] } },
+  ] }
+  const md = conversationToMarkdown(conv)
+  assert.match(md, /^# RBA and CPI/)
+  assert.match(md, /\*\*You:\*\* What did CPI show\?/)
+  assert.doesNotMatch(md, /FOLLOW_UPS/)
+  assert.match(md, /Figures given to MaddenAI: Australian Bureau of Statistics, 2026-11-19/)
+  assert.match(md, /not personal advice/)
+  assert.equal(exportConversation(conv, 'json').filename, 'maddex-rba-and-cpi-2026-11-19.json')
+  assert.deepEqual(JSON.parse(exportConversation(conv, 'json').body), conv)
+  const panel = fs.readFileSync('src/components/layout/AIPanel.jsx', 'utf8')
+  assert.match(panel, /data-export-conversation/)
+  assert.match(panel, /Delete all \{historyList\.length\} conversations on this device\? This cannot be undone\./)
+})

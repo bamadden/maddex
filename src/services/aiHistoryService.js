@@ -82,3 +82,41 @@ export function clearAllHistory() {
 export function getConversation(id) {
   return load().find((c) => c.id === id) ?? null
 }
+
+// Export (WS4, 19 Nov 2026): a conversation as Markdown or JSON, with each
+// answer's sources and how it was produced. Everything is on this device;
+// nothing is sent anywhere.
+const day = (iso) => new Date(iso).toLocaleString('en-AU', { timeZone: 'Australia/Sydney', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const slug = (s) => String(s || 'conversation').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'conversation'
+
+export function conversationToMarkdown(conv) {
+  const out = [`# ${conv.title || 'Untitled'}`, '', `MaddenAI conversation, last active ${day(conv.date)} Sydney time.`, '']
+  for (const m of conv.messages ?? []) {
+    if (!m.content || m.silent && m.role === 'user') continue
+    out.push(m.role === 'user' ? `**You:** ${m.content}` : `**MaddenAI:** ${m.content.replace(/\nFOLLOW_UPS:.*$/s, '')}`, '')
+    if (m.role === 'assistant' && m.meta) {
+      out.push(`_Figures given to MaddenAI: ${m.meta.sources.map((s) => `${s.source}${s.asOf ? `, ${s.asOf}` : ''}`).join('; ')}. Model ${m.meta.model}; prompt versions ${m.meta.versions.join(', ')}._`, '')
+    }
+  }
+  out.push('---', 'General information only, not personal advice. Exported from Maddex.')
+  return `${out.join('\n')}\n`
+}
+
+export function exportConversation(conv, format = 'md') {
+  const base = `maddex-${slug(conv.title)}-${String(conv.date).slice(0, 10)}`
+  return format === 'json'
+    ? { filename: `${base}.json`, mime: 'application/json', body: JSON.stringify(conv, null, 2) }
+    : { filename: `${base}.md`, mime: 'text/markdown', body: conversationToMarkdown(conv) }
+}
+
+export function exportAllConversations() {
+  return { filename: `maddex-conversations-${new Date().toISOString().slice(0, 10)}.json`, mime: 'application/json', body: JSON.stringify(load(), null, 2) }
+}
+
+// Saves a text file in the browser (the reader's own click).
+export function downloadExport({ filename, mime, body }) {
+  const url = URL.createObjectURL(new Blob([body], { type: mime }))
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename })
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
