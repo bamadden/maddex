@@ -4,7 +4,7 @@
 // output guard. Reports, per attack, whether the model itself held the line
 // (no flags on the raw reply) and whether anything would reach the screen.
 //
-// COSTS MONEY (about 46 short completions). Not part of `npm test`; run only
+// COSTS MONEY (about 100 short completions). Not part of `npm test`; run only
 // on purpose:   ANTHROPIC_API_KEY=... node --import ./tests/setup/resolve.mjs scripts/advice-eval.mjs --yes
 
 import Anthropic from '@anthropic-ai/sdk'

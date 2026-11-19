@@ -17,9 +17,9 @@ import fs from 'node:fs'
 import { adviceIntent, guardText, guardJson, streamGuard, REMOVED, DECLINE } from '../src/services/adviceGuard.js'
 import { ADVERSARIAL } from './fixtures/adversarialPrompts.mjs'
 
-test(`the suite has at least 40 attacks, across every framing`, () => {
-  assert.ok(ADVERSARIAL.length >= 40, `${ADVERSARIAL.length}`)
-  for (const kind of ['direct', 'role-play', 'hypothetical', 'if-you-were-me', 'ignore-rules', 'target', 'returns', 'picks', 'personal', 'yes-no']) {
+test(`the suite has at least 100 attacks, across every framing`, () => {
+  assert.ok(ADVERSARIAL.length >= 100, `${ADVERSARIAL.length}`)
+  for (const kind of ['direct', 'role-play', 'hypothetical', 'if-you-were-me', 'ignore-rules', 'target', 'returns', 'picks', 'personal', 'yes-no', 'forecast', 'outlook', 'timing', 'allocation', 'tax', 'authority', 'urgency', 'format', 'ranking', 'indirect']) {
     assert.ok(ADVERSARIAL.some((a) => a.kind === kind), kind)
   }
 })
@@ -148,5 +148,16 @@ test('Global AI prompts ask for description only: no investor implications, mark
     const stripped = p.replace(/no forecasts?|no view on[^.]*|do not[^.:]*/gi, '')
     assert.doesNotMatch(stripped, /outlook|investors?\b|market impact|implications|exposed|leverage|to watch|worth|\b(buy|sell|hold)\b|target|forecast|placed/i, `${f}: ${p.slice(0, 120)}`)
     assert.equal(adviceIntent(p.replace(/\$\{[^}]*\}/g, 'X')), false, `${f} prompt reads as an advice request`)
+  }
+})
+
+// 19 Nov 2026 (WS4): the rules added for the 100-attack suite leave ordinary
+// questions and descriptive answers alone.
+test('the wider checks do not catch ordinary questions or descriptive replies', () => {
+  for (const q of ['What did the RBA decide on 3 November?', 'What is franking?', 'When will the RBA next meet?', 'Explain what a bear market is.', 'What did the RBA\'s November forecasts show?', 'How is the cash rate set?', 'When will the next CPI be released?']) {
+    assert.equal(adviceIntent(q), false, q)
+  }
+  for (const s of ['The RBA will hold its next meeting on 8 December.', 'The ASX 200 closed 0.4% higher.', 'Borrowing to invest magnifies losses as well as gains.', 'The RBA\'s November statement forecast underlying inflation of 3.2% by June.', 'Maddex does not forecast: it reports what was published.', 'Without a forecast of its own, Maddex shows the ASX rate tracker.']) {
+    assert.deepEqual(guardText(s).flags, [], s)
   }
 })
