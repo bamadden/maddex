@@ -66,3 +66,11 @@ test('a conversation exports as Markdown or JSON, with each answer\'s sources; d
   assert.match(panel, /data-export-conversation/)
   assert.match(panel, /Delete all \{historyList\.length\} conversations on this device\? This cannot be undone\./)
 })
+
+test('the account export includes MaddenAI conversations and saved graph views; delete clears every Maddex key', () => {
+  const exp = fs.readFileSync('src/services/exportAllService.js', 'utf8')
+  assert.match(exp, /'ai-conversations\.json'.*maddex_ai_conversations/)
+  assert.match(exp, /'relationship-views\.json'.*maddex_rel_subgraphs/)
+  const settings = fs.readFileSync('src/components/settings/SettingsPanel.jsx', 'utf8')
+  assert.match(settings, /\/\^madd\(ex\|en\)\[_-\]\/\.test\(k\)\)\.forEach\(\(k\) => localStorage\.removeItem\(k\)\)/)
+})

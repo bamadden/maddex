@@ -49,6 +49,10 @@ export async function buildExportZip() {
     'transactions.csv': strToU8(toCsv(getTransactions())),
     'settings.json': strToU8(JSON.stringify({ exportedAt: new Date().toISOString(), settings: settingsSnapshot() }, null, 2)),
   }
+  // 19 Nov 2026: MaddenAI conversations and saved graph views are this
+  // reader's data too.
+  files['ai-conversations.json'] = strToU8(JSON.stringify(read('maddex_ai_conversations', []), null, 2))
+  files['relationship-views.json'] = strToU8(JSON.stringify(read('maddex_rel_subgraphs', []), null, 2))
   const notes = listNoteHistory()
   if (notes.length) {
     const { buildNotePdf, noteFilename } = await import('../components/researchNote/notePdf')

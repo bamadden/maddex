@@ -14,6 +14,7 @@ import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel
 import { ConfidenceBadge, StaleBadge, WeightBadge, EdgeDetail, PathFinder, ConnectedHoldings, RipplePanel } from './RelPanels'
 import { PAL } from '../../styles/palette.js'
 import DataBadge from '../../components/ui/DataBadge'
+import { listSubgraphs, saveSubgraph, deleteSubgraph, restoreSubgraph } from './savedSubgraphs'
 import { buildSimulation, settle, labelled, nodeRadius, LARGE_GRAPH, LABEL_ZOOM } from './graphLayout'
 
 // RELATIONSHIPS — the company graph.
@@ -354,6 +355,20 @@ export default function RelationshipsModule() {
   const [shownPath, setShownPath] = useState(null) // { i, hops }
   const [overlay, setOverlay] = useState(false)
   const [holdings] = useState(loadHoldings)
+  const [saved, setSaved] = useState(listSubgraphs)
+  const [naming, setNaming] = useState(null) // the name being typed, or null
+  const [showSaved, setShowSaved] = useState(false)
+  const saveView = () => {
+    if (!naming?.trim()) return
+    saveSubgraph({ name: naming, focus, depth, types, confidence, origin, event })
+    setSaved(listSubgraphs()); setNaming(null)
+  }
+  const openSaved = (sg) => {
+    const r = restoreSubgraph(sg, { hasNode: (id) => GRAPH.byId.has(id), edgeTypes: EDGE_TYPES, levels: CONFIDENCE, events: RIPPLE_EVENTS })
+    setFocus(r.focus); setSelected(r.focus); setDepth(r.depth); setTypes(r.types); setConfidence(r.confidence)
+    setOrigin(r.ripple?.origin ?? null); setEvent(r.ripple?.event ?? null)
+    setTab(r.ripple ? 'ripple' : r.focus ? 'node' : 'about'); setShowSaved(false)
+  }
   const [now] = useState(() => Date.now())
   const { watchlist } = useStore()
   const held = useMemo(() => new Set(holdings.map((h) => h.nodeId).filter(Boolean)), [holdings])
@@ -431,6 +446,35 @@ export default function RelationshipsModule() {
         {CONFIDENCE.map((c) => <Chip key={c} on={confidence.has(c)} tone={CONF_TONE[c]} onClick={() => toggle(confidence, setConfidence, c)}>{c}</Chip>)}
         <span className="w-px h-4 bg-terminal-border mx-1" />
         <Chip on={overlay} tone={HELD_TONE} onClick={() => setOverlay((v) => !v)}>MY HOLDINGS{overlay ? ` · ${held.size} HELD · ${watched.size} WATCHED` : ''}</Chip>
+        <span className="w-px h-4 bg-terminal-border mx-1" />
+        {/* Saved subgraphs: the filters only, kept on this device. */}
+        {naming == null
+          ? <Chip on={false} onClick={() => setNaming(focus ? nodeLabel(GRAPH.byId.get(focus)) : '')}>SAVE VIEW</Chip>
+          : (
+            <form className="flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); saveView() }} data-save-subgraph>
+              <input autoFocus value={naming} onChange={(e) => setNaming(e.target.value)} aria-label="Name for this saved view" maxLength={60}
+                className="bg-terminal-bg border border-terminal-border px-1.5 py-0.5 font-mono text-terminal-text-bright outline-none focus:border-terminal-gold/60" style={{ fontSize: 11, width: 140 }} />
+              <Chip on onClick={saveView}>SAVE</Chip>
+              <Chip on={false} onClick={() => setNaming(null)}>CANCEL</Chip>
+            </form>
+          )}
+        <div className="relative">
+          <Chip on={showSaved} onClick={() => setShowSaved((v) => !v)}>SAVED · {saved.length}</Chip>
+          {showSaved && (
+            <div className="absolute z-20 right-0 mt-1 w-64 bg-terminal-panel border border-terminal-border shadow-2xl" data-saved-subgraphs>
+              {saved.length === 0
+                ? <div className="px-2 py-2 text-terminal-text-dim" style={{ fontSize: 11 }}>No saved views yet. SAVE VIEW keeps the focus, depth and filters on this device.</div>
+                : saved.map((sg) => (
+                  <div key={sg.id} className="flex items-center gap-1 px-2 py-1 border-b border-terminal-border/40">
+                    <button onClick={() => openSaved(sg)} className="flex-1 min-w-0 text-left text-terminal-text hover:text-terminal-gold truncate" style={{ fontSize: 11 }}>
+                      {sg.name} <span className="font-mono text-terminal-text-dim">{sg.focus ? `· ${sg.depth} HOP${sg.depth > 1 ? 'S' : ''}` : '· WHOLE GRAPH'}{sg.event ? ' · RIPPLE' : ''}</span>
+                    </button>
+                    <button onClick={() => { deleteSubgraph(sg.id); setSaved(listSubgraphs()) }} aria-label={`Delete saved view ${sg.name}`} className="text-terminal-text-dim hover:text-terminal-gold px-1" style={{ fontSize: 11 }}>✕</button>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">

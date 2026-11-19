@@ -54,3 +54,17 @@ test('a large view shows minor labels only when zoomed in; the tick no longer sc
   assert.doesNotMatch(src, /sim\.nodes\(\)\.find|links\.find\(/, 'per-element linear search in the tick')
   assert.match(src, /settle\(sim\)/)
 })
+
+test('a saved subgraph keeps the filters only, and restores safely against today\'s graph', async () => {
+  const { subgraphFrom, restoreSubgraph } = await import('../src/modules/relationships/savedSubgraphs.js')
+  const sg = subgraphFrom({ name: '  BHP owners ', focus: 'bhp', depth: 2, types: new Set(['owns', 'director_of']), confidence: new Set(['VERIFIED']), origin: null, event: null }, '2026-11-19T00:00:00Z')
+  assert.equal(sg.name, 'BHP owners')
+  assert.deepEqual(Object.keys(sg).sort(), ['confidence', 'depth', 'event', 'focus', 'id', 'name', 'origin', 'savedAt', 'types'], 'no figures stored')
+  const env = { hasNode: (id) => id === 'bhp', edgeTypes: ['owns', 'competes_with'], levels: ['VERIFIED', 'DISCLOSED'], events: { shock: {} } }
+  const r = restoreSubgraph(sg, env)
+  assert.equal(r.focus, 'bhp')
+  assert.deepEqual([...r.types], ['owns'], 'a type no longer in the graph is dropped')
+  const gone = restoreSubgraph({ ...sg, focus: 'removed', depth: 9, types: ['old'], origin: 'removed', event: 'shock' }, env)
+  assert.equal(gone.focus, null); assert.equal(gone.depth, 2); assert.deepEqual([...gone.types], env.edgeTypes); assert.equal(gone.ripple, null)
+  assert.match(fs.readFileSync('src/modules/relationships/RelationshipsModule.jsx', 'utf8'), /data-save-subgraph/)
+})
