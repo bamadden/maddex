@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, forceX, forceY } from 'd3-force'
 import { select } from 'd3-selection'
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom'
 import { drag as d3drag } from 'd3-drag'
@@ -15,6 +14,7 @@ import { TYPE_COLOUR, DASH, CONF_TONE, HELD_TONE, STALE_TONE, fmtDate, nodeLabel
 import { ConfidenceBadge, StaleBadge, WeightBadge, EdgeDetail, PathFinder, ConnectedHoldings, RipplePanel } from './RelPanels'
 import { PAL } from '../../styles/palette.js'
 import DataBadge from '../../components/ui/DataBadge'
+import { buildSimulation, settle, labelled, nodeRadius, LARGE_GRAPH, LABEL_ZOOM } from './graphLayout'
 
 // RELATIONSHIPS — the company graph.
 //
@@ -52,7 +52,7 @@ function loadHoldings() {
   }
   return [...by.values()]
 }
-const radius = (n) => (n.type === 'company' ? (n.top20 ? 9 : 6) : n.type === 'person' ? 4 : 8)
+const radius = nodeRadius
 
 function Chip({ on, onClick, children, tone }) {
   return (
@@ -75,37 +75,48 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
   const svgRef = useRef(null)
   const rootRef = useRef(null)
   const [layout, setLayout] = useState({ nodes: [], links: [] })
+  const [zoomK, setZoomK] = useState(1)
   const positions = useRef(new Map())
+  const large = view.nodes.length > LARGE_GRAPH
 
   useEffect(() => {
     const svg = svgRef.current
     const { width, height } = svg.getBoundingClientRect()
     const nodes = view.nodes.map((n) => ({ ...n, ...(positions.current.get(n.id) ?? { x: width / 2 + (Math.random() - 0.5) * 200, y: height / 2 + (Math.random() - 0.5) * 200 }) }))
     const links = view.edges.map((e) => ({ ...e, source: e.from, target: e.to }))
-    const sim = forceSimulation(nodes)
-      .force('link', forceLink(links).id((d) => d.id).distance((l) => (l.type === 'director_of' ? 28 : l.type === 'member_of' ? 90 : 60)).strength(0.5))
-      .force('charge', forceManyBody().strength(-180))
-      .force('center', forceCenter(width / 2, height / 2))
-      .force('x', forceX(width / 2).strength(0.04))
-      .force('y', forceY(height / 2).strength(0.04))
-      .force('collide', forceCollide((d) => radius(d) + 10))
+    const sim = buildSimulation(nodes, links, { width, height })
+    // A large view is laid out to rest before it is drawn (graphLayout.js).
+    if (nodes.length > LARGE_GRAPH) settle(sim)
     setLayout({ nodes, links })
 
     const root = rootRef.current
+    // Lookups by id, built once per layout: the old tick searched every node
+    // and edge for every element, which grows with the square of the view.
+    const byId = new Map(nodes.map((n) => [n.id, n]))
+    const byEdge = new Map(links.map((l) => [l.id, l]))
+    let els = null
     const tick = () => {
-      for (const el of root.querySelectorAll('[data-nid]')) {
-        const d = sim.nodes().find((n) => n.id === el.dataset.nid)
+      els ??= { n: [...root.querySelectorAll('[data-nid]')], e: [...root.querySelectorAll('[data-eid]')] }
+      if (!els.n.length) { els = null; return }
+      for (const el of els.n) {
+        const d = byId.get(el.dataset.nid)
         if (d) el.setAttribute('transform', `translate(${d.x},${d.y})`)
       }
-      for (const el of root.querySelectorAll('[data-eid]')) {
-        const l = links.find((x) => x.id === el.dataset.eid)
+      for (const el of els.e) {
+        const l = byEdge.get(el.dataset.eid)
         if (l) { el.setAttribute('x1', l.source.x); el.setAttribute('y1', l.source.y); el.setAttribute('x2', l.target.x); el.setAttribute('y2', l.target.y) }
       }
       for (const n of nodes) positions.current.set(n.id, { x: n.x, y: n.y })
     }
     sim.on('tick', tick)
 
-    const z = d3zoom().scaleExtent([0.3, 4]).on('zoom', (ev) => root.setAttribute('transform', ev.transform))
+    let lastK = 1
+    const z = d3zoom().scaleExtent([0.1, 4]).on('zoom', (ev) => {
+      root.setAttribute('transform', ev.transform)
+      // Re-render labels only when crossing the label threshold.
+      if ((ev.transform.k >= LABEL_ZOOM) !== (lastK >= LABEL_ZOOM)) setZoomK(ev.transform.k)
+      lastK = ev.transform.k
+    })
     select(svg).call(z).on('dblclick.zoom', null)
     select(svg).call(z.transform, zoomIdentity)
 
@@ -120,6 +131,8 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
     }
     const fitTimer = setTimeout(fit, 900)
     sim.on('end', fit)
+    // Settled already: place everything once React has drawn it, then fit.
+    const placed = nodes.length > LARGE_GRAPH ? requestAnimationFrame(() => { tick(); fit() }) : null
 
     // Drag after React has rendered the nodes for this layout.
     const id = requestAnimationFrame(() => {
@@ -129,7 +142,7 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
         .on('drag', (ev) => { ev.subject.fx = ev.x; ev.subject.fy = ev.y })
         .on('end', (ev) => { if (!ev.active) sim.alphaTarget(0); ev.subject.fx = null; ev.subject.fy = null }))
     })
-    return () => { sim.stop(); clearTimeout(fitTimer); cancelAnimationFrame(id); select(svg).on('.zoom', null) }
+    return () => { sim.stop(); clearTimeout(fitTimer); cancelAnimationFrame(id); if (placed) cancelAnimationFrame(placed); select(svg).on('.zoom', null) }
   }, [view])
 
   const lit = (id) => !exposure || id === origin || exposure.has(id)
@@ -176,10 +189,10 @@ function GraphCanvas({ view, selected, onSelect, onSelectEdge, selectedEdge, exp
               {n.type === 'company' && thin.has(n.id)
                 ? <circle r={radius(n)} fill="#040A14" stroke={TYPE_COLOUR[n.type]} strokeWidth={1.5} strokeDasharray="2 2" />
                 : <circle r={radius(n)} fill={TYPE_COLOUR[n.type]} fillOpacity={n.type === 'person' ? 0.7 : 0.9} stroke="#040A14" strokeWidth={1} />}
-              <text y={radius(n) + 10} textAnchor="middle" className="font-mono select-none"
+              {labelled(n, { large, zoom: zoomK, selected, lit: (x) => exposure?.has(x) || held?.has(x) || watched?.has(x) }) && <text y={radius(n) + 10} textAnchor="middle" className="font-mono select-none"
                 style={{ fontSize: n.type === 'person' ? 11 : 11, fill: isSel ? PAL.gold : PAL.dim, letterSpacing: '0.06em', pointerEvents: 'none' }}>
                 {nodeLabel(n)}{hop ? ` ·${hop}` : ''}
-              </text>
+              </text>}
             </g>
           )
         })}
