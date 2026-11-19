@@ -408,11 +408,11 @@ export const VERIFIED_CONSTANTS = {
 
     // UPDATED 2026-10-18 — Labour Force, September 2026 (released Thu 15 Oct):
     // up 0.1pt to 4.7% seasonally adjusted, a five-year high. Trend 4.6%.
-    unemployment: 4.7,
-    unemploymentPeriod: 'Sep 2026',
-    unemploymentPrevious: 4.6,          // Aug 2026, as published 24 Sep
-    unemploymentLastRelease: '2026-10-15',
-    unemploymentNextRelease: '2026-11-19',
+    unemployment: 4.9,                  // Oct 2026, ABS Data API 19 Nov (4.86 unrounded)
+    unemploymentPeriod: 'Oct 2026',
+    unemploymentPrevious: 4.7,          // Sep 2026, as published 15 Oct (current vintage 4.74)
+    unemploymentLastRelease: '2026-11-19',
+    unemploymentNextRelease: '2026-12-17',
 
 
     // UPDATED 2026-09-07 — this was two quarters stale, reading 1.3% as at
@@ -593,6 +593,7 @@ export const VERIFIED_CONSTANTS = {
       { period: '2026-01', value: 4.1 }, { period: '2026-02', value: 4.3 }, { period: '2026-03', value: 4.3 },
       { period: '2026-04', value: 4.5 }, { period: '2026-05', value: 4.4 }, { period: '2026-06', value: 4.4 },
       { period: '2026-07', value: 4.5 }, { period: '2026-08', value: 4.7 }, { period: '2026-09', value: 4.7 },
+      { period: '2026-10', value: 4.9 },
     ],
 
     // Real GDP, % change on the previous quarter, seasonally adjusted chain

@@ -115,6 +115,9 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-10-28', event: 'FOMC Rate Decision',            region: 'US', result: 'HOLD at 3.75–4.00% (10–2; two dissents for a hike)' },
   { date: '2026-10-29', event: 'ECB Rate Decision',             region: 'EU', result: 'HOLD at 2.50% deposit rate (Lagarde to step down 7 Feb 2027)' },
   { date: '2026-10-30', event: 'Bank of Japan Rate Decision',   region: 'JP', result: 'HOLD at 1.25% (8–1; Takata for a hike to 1.5%)' },
+  { date: '2026-11-03', event: 'RBA Rate Decision',             region: 'AU', result: 'HIKE +25bp to 4.85% (6–3)' },
+  { date: '2026-11-05', event: 'Bank of England Rate Decision', region: 'UK', result: 'HIKE +25bp to 4.00% (8–1)' },
+  { date: '2026-11-19', event: 'AU Unemployment Rate (Oct)',    region: 'AU', result: '4.9%' },
 ]
 
 function readCache() {
