@@ -14,7 +14,7 @@ export const HEALTH = [
   { id: 'vc:riksbank', modules: ['fx', 'global'], asOf: '2026-11-15', maxAgeDays: 30, cls: 'official' },
   { id: 'vc:centralBankOfficials', modules: ['fx', 'macro'], asOf: '2026-11-16', maxAgeDays: 30, cls: 'official' },
   { id: 'policy-rates', modules: ['global'], asOf: '2026-11-15', maxAgeDays: 30, cls: 'official' },
-  { id: 'vc:au', modules: ['macro', 'dashboard', 'brief', 'fx', 'calculators'], asOf: '2026-11-16', maxAgeDays: 60, cls: 'official' },
+  { id: 'vc:au', modules: ['macro', 'dashboard', 'brief', 'fx', 'calculators'], asOf: '2026-11-19', maxAgeDays: 60, cls: 'official' },
   { id: 'vc:us', modules: ['macro', 'dashboard', 'brief'], asOf: '2026-11-16', maxAgeDays: 60, cls: 'official' },
   { id: 'vc:auTrade', modules: ['global'], asOf: '2026-11-16', maxAgeDays: 30, cls: 'official' },
   { id: 'country-stats', modules: ['global', 'macro'], asOf: '2026-11-15', maxAgeDays: 30, cls: 'official' },

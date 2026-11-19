@@ -1611,11 +1611,19 @@ function extractAnthropicErrorMessage(text) {
 // ("credit balance is too low", "prompt is too long") is the operator's to
 // read in the server log, not the reader's; each failure maps to one of
 // three plain lines.
+// The model MaddenAI's chat runs on (shown under each answer).
+export const AI_MODEL = 'claude-sonnet-4-6'
+
 export const AI_UNAVAILABLE = 'MaddenAI is unavailable right now. Everything else in Maddex works as normal; please try again later.'
 const AI_BUSY = 'MaddenAI is busy right now. Please try again in a minute.'
 const AI_TOO_LONG = 'That request is too long for MaddenAI. Please try a shorter question.'
+// The provider account is out of credit or its billing needs attention (19
+// Nov 2026): a pause on Maddex's side, not an outage and not the reader's
+// plan limit, so it says so. Still no vendor wording.
+export const AI_PAUSED = "MaddenAI is paused: Maddex's AI service needs attention on our side, not yours. Everything else in Maddex works as normal."
 export function userFacingAiError(status, message) {
   const m = message ?? ''
+  if (status === 402 || /credit balance|billing|insufficient (credit|funds)|quota exceeded/i.test(m)) return AI_PAUSED
   if (status === 429 || status === 529 || /overloaded|rate limit/i.test(m)) return AI_BUSY
   if (/prompt is too long|too many tokens|context length/i.test(m)) return AI_TOO_LONG
   return AI_UNAVAILABLE
@@ -1688,7 +1696,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
-      model:      'claude-sonnet-4-6',
+      model:      AI_MODEL,
       max_tokens: options.maxTokens ?? 1024,
       stream:     true,
       system:     systemPrompt,

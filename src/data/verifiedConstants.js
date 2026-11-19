@@ -609,8 +609,8 @@ export const VERIFIED_CONSTANTS = {
     historyAsOf: '2026-10-19',
 
     source: 'abs.gov.au',
-    asOf: '2026-10-28',
-    lastVerified: '2026-11-16',
+    asOf: '2026-11-19',
+    lastVerified: '2026-11-19',
   },
 
   // ── Other major economies ─────────────────────────────────────────────────

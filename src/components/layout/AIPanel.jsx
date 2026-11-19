@@ -7,7 +7,9 @@ import { saveInsight, isInsightSaved, listInsights, removeInsight, clearInsights
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import { askClaude, AiAccessError } from '../../services/api'
+import { askClaude, AiAccessError, AI_MODEL } from '../../services/api'
+import { buildAnswerMeta } from '../../services/answerMeta'
+import AnswerMeta from '../ai/AnswerMeta'
 import { buildSystemPrompt } from '../../services/systemPrompt'
 import { detectQueryIntent, intentGuidance } from '../../services/queryIntent'
 import { RBA_MEETINGS_2026, LAST_DECISIONS, getNextMeeting } from '../../services/centralBankSchedule'
@@ -1061,9 +1063,15 @@ export default function AIPanel({ wide = false, onListening }) {
       )
       const autoSaved = !!(save?.auto && result.text)
       if (autoSaved) saveProseNote({ kind: save.kind, asset: save.asset, body: result.text })
+      const level = investorProfile?.experience ?? profile?.experience_level ?? 'INTERMEDIATE'
+      const meta = buildAnswerMeta({
+        result, model: AI_MODEL, pendingRba: !!pendingRbaDecision(),
+        prompts: [[`system:${String(level).toLowerCase()}`, buildSystemPrompt(level)], [`persona:${persona}`, personaLine(persona)], ...(rbaPreview ? [['mode:rba-preview', rbaPreviewInstruction('{words}')]] : deepDive ? [['mode:deep-dive', DEEP_DIVE_INSTRUCTION]] : research ? [['mode:research', RESEARCH_INSTRUCTION]] : [['follow-ups', FOLLOW_UP_GUIDE]])],
+      })
       updateLastChatMessage((prev) => ({
         ...prev,
         stats: { elapsed: result.elapsed, outputTokens: result.outputTokens },
+        meta,
         savedResearch: autoSaved,
       }))
       addNotification('SYSTEM', 'MaddenAI analysis ready')
@@ -1733,6 +1741,7 @@ export default function AIPanel({ wide = false, onListening }) {
                 </div>
 
                 <FormattedResponse text={body} />
+                {!streaming && msg.meta && <AnswerMeta meta={msg.meta} />}
 
                 {/* Suggested follow-ups — parsed off the reply's FOLLOW_UPS
                     line. Only on the latest reply: on older ones they would
@@ -1788,6 +1797,13 @@ export default function AIPanel({ wide = false, onListening }) {
         </div>
       </div>
 
+      {/* Usage: what the plan allows today, as counted on this device. The
+          server checks the account's own count on every question. */}
+      {limits.aiPerDay < 1000 && (
+        <div className={`px-2 pt-1 font-mono text-terminal-text-dim ${isFullscreen ? 'max-w-[800px] mx-auto w-full' : ''}`} style={{ fontSize: 11 }} data-ai-usage>
+          {Math.max(0, limits.aiPerDay - aiQueriesToday())} of {limits.aiPerDay} questions left today on your {plan.toUpperCase()} plan (counted on this device)
+        </div>
+      )}
       {/* Input */}
       <div className={`border-t border-terminal-border p-2 flex gap-2 flex-shrink-0 ${isFullscreen ? 'max-w-[800px] mx-auto w-full' : ''}`}>
         <input

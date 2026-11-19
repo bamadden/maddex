@@ -111,8 +111,11 @@ test('nothing is requested while the tab is hidden; an account error reads as a 
 })
 
 test('every AI failure maps to a plain line; no vendor wording is passed through', async () => {
-  const { userFacingAiError, AI_UNAVAILABLE } = await import('../src/services/api.js')
-  for (const [status, msg] of [[400, 'Your credit balance is too low'], [401, 'invalid x-api-key'], [500, 'Internal server error'], [400, 'messages.0: unexpected field'], [undefined, undefined]]) {
+  const { userFacingAiError, AI_UNAVAILABLE, AI_PAUSED } = await import('../src/services/api.js')
+  // Out of credit is its own plain state since 19 Nov 2026 (WS4): paused on
+  // Maddex's side, still without vendor wording.
+  assert.equal(userFacingAiError(400, 'Your credit balance is too low'), AI_PAUSED)
+  for (const [status, msg] of [[401, 'invalid x-api-key'], [500, 'Internal server error'], [400, 'messages.0: unexpected field'], [undefined, undefined]]) {
     assert.equal(userFacingAiError(status, msg), AI_UNAVAILABLE)
   }
   assert.match(userFacingAiError(529, 'Overloaded'), /busy/)

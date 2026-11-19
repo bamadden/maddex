@@ -633,6 +633,14 @@ try {
   await runCommand(page, 'ai what does the profile show')
   for (let i = 0; i < 20 && counts.mocked === 0; i++) await wait(500)
   counts.mocked > 0 ? pass(`${counts.mocked} /api/claude request(s) answered by the mock; ${counts.shared} shared-content read(s) mocked`) : fail('the AI request never reached the mock')
+  // Every answer shows its dated sources and how it was produced (WS4).
+  const meta = await page.waitForSelector('[data-answer-meta]', { timeout: 15_000 }).then(() => page.evaluate(() => {
+    const m = document.querySelector('[data-answer-meta]')
+    return { sources: m.querySelector('[data-answer-sources]')?.innerText ?? '', produced: !!m.querySelector('[data-answer-produced]'), dated: /\d{1,2} [A-Z][a-z]{2} \d{4}/.test(m.innerText) }
+  })).catch(() => null)
+  meta && /FIGURES GIVEN TO MADDENAI/.test(meta.sources) && meta.produced && meta.dated
+    ? pass(`answer shows sources and how it was produced: ${meta.sources.slice(0, 90)}`)
+    : fail(`no sources / production record under the answer (${JSON.stringify(meta)})`)
   await closePage(page)
 } finally {
   await Promise.allSettled(captures)
