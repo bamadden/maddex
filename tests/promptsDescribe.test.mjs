@@ -97,8 +97,10 @@ test('daily Global prompts ask for description: no model-made severity, trend or
 })
 
 test('RBA preview: no hike/hold scenarios or sector reactions (Ben, 16 Nov 2026)', () => {
-  const s = fs.readFileSync('src/components/layout/AIPanel.jsx', 'utf8')
-  const p = s.slice(s.indexOf('const rbaPreviewInstruction'), s.indexOf('const RBA_PREVIEW_WORDS'))
+  // The prompt moved to services/aiPrompts (19 Nov 2026), with the other
+  // mode prompts.
+  const s = fs.readFileSync('src/services/aiPrompts.js', 'utf8')
+  const p = s.slice(s.indexOf('export const rbaPreviewInstruction'), s.indexOf('// Personas'))
   assert.doesNotMatch(p, /IF THE RBA HIKES|IF THE RBA HOLDS|SECTOR BY SECTOR|AND WHY|WHAT TO WATCH|genuine scenario/)
   assert.match(p, /no scenarios for what happens if the RBA moves or holds/)
 })

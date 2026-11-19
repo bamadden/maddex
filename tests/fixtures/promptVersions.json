@@ -1,0 +1,17 @@
+{
+  "system": "system@9cb2bbc1",
+  "system:beginner": "system:beginner@fa297b9a",
+  "system:intermediate": "system:intermediate@bb963911",
+  "system:advanced": "system:advanced@c89043f2",
+  "system:professional": "system:professional@a17908b3",
+  "follow-ups": "follow-ups@7288268a",
+  "mode:research": "mode:research@e085da5b",
+  "mode:deep-dive": "mode:deep-dive@8262b142",
+  "mode:rba-preview": "mode:rba-preview@a6a01193",
+  "persona:analyst": "persona:analyst@f916f984",
+  "persona:educator": "persona:educator@f3ea1c78",
+  "persona:strategist": "persona:strategist@9ffb1ad9",
+  "persona:brief": "persona:brief@5467c905",
+  "boundary-reminder": "boundary-reminder@611acbfb",
+  "json-system": "json-system@d87be438"
+}

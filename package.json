@@ -22,7 +22,8 @@
     "data:fetch": "node scripts/data/fetch.mjs",
     "data:verify": "node scripts/data/verify.mjs",
     "data:format-check": "node scripts/data/format-check.mjs",
-    "test:visual": "node tests/ui/visual.ui.mjs"
+    "test:visual": "node tests/ui/visual.ui.mjs",
+    "prompts:accept": "node --import ./tests/setup/resolve.mjs scripts/prompts-accept.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

@@ -21,13 +21,9 @@ import { guardText, GUARD_VERSION } from '../src/services/adviceGuard.js'
 
 export const RECORD_RETENTION_DAYS = 730
 
-// FNV-1a, 32-bit hex: identifies a text without storing it.
-export function textHash(text) {
-  let h = 0x811c9dc5
-  const s = String(text ?? '')
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 }
-  return h.toString(16).padStart(8, '0')
-}
+// FNV-1a, shared with the prompt registry (src/utils/textHash.js).
+import { textHash } from '../src/utils/textHash.js'
+export { textHash }
 
 const systemText = (system) => (Array.isArray(system) ? system.map((b) => b?.text ?? '').join('\n') : String(system ?? ''))
 const lastUserText = (messages) => {

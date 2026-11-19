@@ -38,6 +38,7 @@ import { useResearchHistory } from '../../hooks/useResearchHistory'
 import { saveProseNote } from '../../services/researchNoteService'
 import { EARNINGS_2026 } from '../../services/earningsCalendar'
 import { PAL } from '../../styles/palette.js'
+import { FOLLOW_UP_GUIDE, RESEARCH_INSTRUCTION, DEEP_DIVE_INSTRUCTION, rbaPreviewInstruction, PERSONAS, personaLine } from '../../services/aiPrompts'
 
 // ── MaddenAI daily query limit ─────────────────────────────────────────────
 // Per plan (services/plans LIMITS.aiPerDay): 10 on Core, 50 on Prime,
@@ -238,74 +239,8 @@ function getQuickPrompts(activeModule, selectedSymbol, profilePrompts = null) {
 // percentage colouring and the FOLLOW_UPS parser live in
 // services/aiResponseFormat.js, where they can be tested without React.
 
-// Instruction appended to the chat system prompt. Constant, so it caches with
-// the rest of the prefix; the line it asks for is parsed off the reply by
-// splitFollowUps and rendered as chips rather than shown as text.
-const FOLLOW_UP_GUIDE = `
-
-FOLLOW-UP SUGGESTIONS: End every reply with one final line in exactly this form, and nothing after it:
-FOLLOW_UPS: question one | question two | question three
-Three questions this user would plausibly ask next, each under 60 characters, phrased as the user would type them. Each must name the specific company, asset, indicator or event you discussed and go one step further than your answer: a driver, a comparison with a named peer, or a scenario. Make the three different in kind (for example one on a driver, one a comparison, one a risk scenario).
-Good, after a BHP answer: How does iron ore affect BHP's dividend? | Compare BHP vs RIO on valuation | What if China's steel output falls further?
-Never generic: "Tell me more", "What else?", "Any other risks?", "Can you explain further?" are not acceptable.`
-
-// RESEARCH mode instruction. Sent in the user turn, not the system prompt,
-// so switching modes never changes the cached prefix.
-const RESEARCH_INSTRUCTION = `[MODE]
-User is in RESEARCH mode. Provide comprehensive, structured analysis.
-Use clear section headers, each on its own line in capitals followed by a colon, in this order:
-OVERVIEW:
-ANALYSIS:
-RISKS:
-CONCLUSION:
-Be thorough — this is a deep dive, not a quick answer. The rules on figures still apply: quote only figures you were given.
-
-`
-
-// DEEP DIVE — "deep dive BHP" in the command bar or DEEP DIVE on a stock's
-// detail panel. Research mode with a fixed six-part structure and a longer
-// budget; the answer is kept in SAVED RESEARCH automatically.
-const DEEP_DIVE_INSTRUCTION = `[MODE]
-User asked for a DEEP DIVE. Write 900-1100 words in total — 1,200 is a hard ceiling, whatever the persona — with exactly these section headers, each on its own line in capitals followed by a colon, in this order:
-BUSINESS MODEL:
-FINANCIAL QUALITY:
-COMPETITIVE POSITION:
-MACRO TAILWINDS AND HEADWINDS:
-RISK MATRIX:
-QUESTIONS FOR FURTHER READING:
-Under RISK MATRIX, list the main risks as "- Risk — likelihood (low/medium/high), impact (low/medium/high): one line why". Under QUESTIONS FOR FURTHER READING, 3-5 questions a reader could check in the company's own reports or announcements. The rules on figures still apply: quote only figures you were given, and describe the company's own financials in words — no price targets, no ratings. Skip the FOLLOW_UPS line for this answer.
-
-`
-
-// RBA PREVIEW — "rba preview" in the command bar or RBA PREVIEW on the Rates
-// module. The pre-decision brief: research mode, six fixed sections, kept in
-// SAVED RESEARCH. The word budget follows the plan's output cap (the server's
-// MAX_TOKENS.chat) so the brief is never cut off mid-section.
-// Describe-only (16 Nov 2026, Ben's decision): the "IF THE RBA HIKES —
-// SECTOR BY SECTOR" and "IF THE RBA HOLDS" scenarios are removed until they
-// can be built from real, sourced past episodes.
-const rbaPreviewInstruction = (words) => `[MODE]
-User asked for the RBA DECISION PREVIEW. Write ${words} words in total, with exactly these section headers, each on its own line in capitals followed by a colon, in this order:
-CURRENT RATE ENVIRONMENT:
-WHAT THE CPI SHOWED:
-MARKET PRICING:
-WHAT THE LAST STATEMENT SAID:
-WHAT IS SCHEDULED:
-Use the RBA, CPI, market-pricing, mortgage and statement figures in your context and attribute each (ABS, RBA, the named pricing source and its date). Market pricing is the dated reading in your context, stated as a reading with its source and date; do not explain or interpret it. Describe only: no forecast of the decision, no scenarios for what happens if the RBA moves or holds, no sector or market reactions, no price targets. End with a one-line reminder that this is general information, not advice. Skip the FOLLOW_UPS line for this answer.`
 const RBA_PREVIEW_WORDS = { core: '900-1100', prime: '2000-2500', apex: '2000-2500' }
 
-// Personas — tone and depth, sent in the user turn like the response mode, so
-// switching never changes the cached system prefix.
-const PERSONAS = [
-  ['analyst', 'ANALYST', 'Direct and expert. Assumes market knowledge; leads with the conclusion and the mechanism, no definitions.'],
-  ['educator', 'EDUCATOR', 'Patient and accessible. Explains each concept and term the first time it appears, and what it means for an everyday investor.'],
-  ['strategist', 'STRATEGIST', 'Big picture and portfolio-focused. Frames the answer as themes across asset classes and what they mean for positioning — as general information, never personal advice.'],
-  ['brief', 'BRIEF', 'Ultra-concise, for quick checks during market hours. Answer in at most three short bullet points (one sentence each), no preamble, no headers, no pleasantries, no closing summary. Lead with the answer. Still attribute figures and keep the one-line general-information note only if the answer touches on whether to buy or sell.'],
-]
-const personaLine = (id) => {
-  const p = PERSONAS.find(([k]) => k === id) ?? PERSONAS[0]
-  return `[PERSONA]\nYou are in ${p[1]} mode. ${p[2]} Adjust your tone and depth accordingly.\n\n`
-}
 
 // Earnings-season prompts, offered when three or more tracked companies
 // report in the next fortnight.

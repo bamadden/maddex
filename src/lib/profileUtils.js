@@ -67,9 +67,12 @@ export const EXPERIENCE_LEVELS = [
   { value: 'PROFESSIONAL', label: 'PROFESSIONAL', desc: 'Finance professional or sophisticated investor' },
 ]
 
+// The READING LEVEL control (WS4): vocabulary and how much is explained,
+// never what is covered (19 Nov 2026: ADVANCED's 'focus on technical analysis'
+// changed content and was removed).
 export const EXPERIENCE_CONTEXT = {
   BEGINNER:     'The user is new to investing. Explain concepts clearly, avoid jargon, and define technical terms when used.',
   INTERMEDIATE: 'The user has some investment experience. Use standard financial terminology without over-explaining basics.',
-  ADVANCED:     'The user is an experienced investor. Use advanced terminology and focus on technical analysis.',
-  PROFESSIONAL: 'The user is a finance professional. Use professional-grade analysis, be highly technical and concise.',
+  ADVANCED:     'The user is an experienced investor. Use advanced terminology without explaining basics.',
+  PROFESSIONAL: 'The user is a finance professional. Use professional vocabulary and be concise.',
 }

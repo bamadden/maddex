@@ -1789,11 +1789,15 @@ export const askClaude = async (messages, onToken, options = {}) => {
 // being told not to, and parse. Throws the same clean, already-unwrapped
 // error askClaude() throws on an API failure; throws a distinct message on
 // a JSON parse failure so callers can tell the two apart if they want to.
+// The system prompt for JSON calls that pass none (registered in
+// services/promptRegistry; its version is tested).
+export const JSON_SYSTEM_PROMPT = 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. Always respond with ONLY valid JSON — no markdown, no commentary outside the JSON object.'
+
 export async function askClaudeJSON(prompt, options = {}) {
   const { text } = await askClaude(
     [{ role: 'user', content: prompt }],
     null,
-    { guard: false, template: options.template ?? 'json', maxTokens: options.maxTokens ?? 1500, systemPrompt: options.systemPrompt ?? 'You are MaddenAI, the financial intelligence analyst embedded in the Maddex terminal. Always respond with ONLY valid JSON — no markdown, no commentary outside the JSON object.' },
+    { guard: false, template: options.template ?? 'json', maxTokens: options.maxTokens ?? 1500, systemPrompt: options.systemPrompt ?? JSON_SYSTEM_PROMPT },
   )
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
   let parsed
