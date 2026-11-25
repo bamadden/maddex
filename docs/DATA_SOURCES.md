@@ -114,8 +114,8 @@ figure, labelled. Agency releases are public statistics; no feed is called.
 | Country | Figure | Value | Measure | Period | Released | Agency and page read |
 |---|---|---|---|---|---|---|
 | Australia | GDP growth | 2.1% | y/y, chain volume | Jun 2026 quarter | 2026-09-03 | ABS: https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/latest-release |
-| Australia | CPI | 4.3% | CPI, 12 months (monthly) | Sep 2026 | 2026-10-28 | ABS: https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release |
-| United States | GDP growth | 3.4% | q/q annualised | Q3 2026 | 2026-10-29 | BEA: https://www.bea.gov/data/gdp/gross-domestic-product |
+| Australia | CPI | 4.9% | CPI, 12 months (monthly) | Oct 2026 | 2026-11-25 | ABS: https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/latest-release |
+| United States | GDP growth | 4.3% | q/q annualised | Q3 2026 | 2026-11-25 | BEA: https://www.bea.gov/data/gdp/gross-domestic-product |
 | United States | CPI | 3.7% | CPI-U, 12 months | Sep 2026 | 2026-10-14 | BLS: https://www.bls.gov/cpi/ |
 | China | GDP growth | 4.5% | y/y, constant prices | Q3 2026 | 2026-10-21 | NBS: https://www.stats.gov.cn/english/PressRelease/202610/t20261021_1965671.html |
 | China | CPI | 0.7% | CPI, y/y | Oct 2026 | 2026-11-10 | NBS: https://www.stats.gov.cn/english/PressRelease/202611/t20261111_1965808.html |

@@ -351,23 +351,23 @@ export const VERIFIED_CONSTANTS = {
 
 // ── Australian economy ────────────────────────────────────────────────────
   au: {
-    // UPDATED 2026-10-28 — ABS monthly CPI, September 2026 (released Wed 28
-    // Oct, 11:30 AEDT): "The Consumer Price Index (CPI) rose 4.3%, up from
-    // 4.0% in the 12 months to August 2026." Trimmed mean 3.6%, "up from a
-    // revised 3.5%" (August revised down from 3.6% on new seasonal factors).
-    // Confirmed against the ABS Data API (ABS,CPI,2.0.0 3.10001.10.50.M and
-    // 3.999902.20.50.M).
-    cpi: 4.3,
-    cpiPeriod: 'Sep 2026',
-    cpiPrevious: 4.0,
-    cpiPreviousPeriod: 'Aug 2026',
-    cpiLastRelease: '2026-10-28',
-    cpiNextRelease: '2026-11-25',       // October CPI, per the ABS release page
-    cpiTrimmedMean: 3.6,
-    cpiTrimmedMeanPrevious: 3.5,        // Aug 2026, revised
-    cpiMoM: 0.8,                        // Sep, original (0.6% seasonally adjusted)
-    // Main annual contributors, September 2026, as the release words them.
-    cpiDrivers: 'Housing +5.2% y/y (new dwellings +4.7%, electricity +12.8% as Commonwealth rebates ended, rents +3.6%); automotive fuel +23.6% y/y (+9.4% in September).',
+    // UPDATED 2026-11-26 — ABS monthly CPI, October 2026 (released Wed 25
+    // Nov, 11:30 AEDT): "The Consumer Price Index (CPI) rose 4.9%, up from
+    // 4.3% in the 12 months to September 2026. Trimmed mean inflation was
+    // 3.8%, up from 3.6%." Monthly: +0.5% original, +0.7% seasonally
+    // adjusted. Confirmed against the ABS Data API (ABS,CPI,2.0.0
+    // 3.10001.10.50.M, 3.999902.20.50.M, 2.10001.10.50.M).
+    cpi: 4.9,
+    cpiPeriod: 'Oct 2026',
+    cpiPrevious: 4.3,
+    cpiPreviousPeriod: 'Sep 2026',
+    cpiLastRelease: '2026-11-25',
+    cpiNextRelease: '2027-01-06',       // November CPI, per the ABS release page
+    cpiTrimmedMean: 3.8,
+    cpiTrimmedMeanPrevious: 3.6,        // Sep 2026, unrevised
+    cpiMoM: 0.5,                        // Oct, original (0.7% seasonally adjusted)
+    // Main annual contributors, October 2026, as the release words them.
+    cpiDrivers: 'Housing +6.4% y/y (electricity +25.2% as Commonwealth rebates ended, new dwellings +5.1%, rents +3.5%); automotive fuel +32.5% y/y (+6.3% in October).',
     rbaTargetBand: '2–3%',
     // "maintain consumer price inflation between 2 and 3 per cent"
     // (rba.gov.au/monetary-policy/about.html, read 16 Nov 2026).
@@ -571,12 +571,13 @@ export const VERIFIED_CONSTANTS = {
       { period: '2026-01', value: 3.8, trimmed: 3.3, type: 'monthly' },
       { period: '2026-02', value: 3.7, trimmed: 3.3, type: 'monthly' },
       { period: '2026-03', value: 4.6, trimmed: 3.3, type: 'monthly' },
-      { period: '2026-04', value: 4.2, trimmed: 3.3, type: 'monthly' },
+      { period: '2026-04', value: 4.2, trimmed: 3.4, type: 'monthly' },   // trimmed 3.3→3.4 in the 25 Nov vintage
       { period: '2026-05', value: 4.0, trimmed: 3.5, type: 'monthly' },
       { period: '2026-06', value: 3.8, trimmed: 3.6, type: 'monthly' },
       { period: '2026-07', value: 3.5, trimmed: 3.6, type: 'monthly' },
-      { period: '2026-08', value: 4.0, trimmed: 3.5, type: 'monthly' },   // trimmed revised from 3.6 on 28 Oct (as were Jul 25 3.1→3.0, Apr 26 3.4→3.3: new seasonal factors)
+      { period: '2026-08', value: 4.0, trimmed: 3.6, type: 'monthly' },   // trimmed 3.6→3.5 on 28 Oct, back to 3.6 on 25 Nov (seasonal factors re-estimated each month)
       { period: '2026-09', value: 4.3, trimmed: 3.6, type: 'monthly' },
+      { period: '2026-10', value: 4.9, trimmed: 3.8, type: 'monthly' },
     ],
 
     // Unemployment rate, seasonally adjusted (ABS,LF,1.0.0 M13.3.1599.20.AUS.M),
@@ -591,7 +592,7 @@ export const VERIFIED_CONSTANTS = {
       { period: '2025-07', value: 4.3 }, { period: '2025-08', value: 4.2 }, { period: '2025-09', value: 4.4 },
       { period: '2025-10', value: 4.3 }, { period: '2025-11', value: 4.3 }, { period: '2025-12', value: 4.1 },
       { period: '2026-01', value: 4.1 }, { period: '2026-02', value: 4.3 }, { period: '2026-03', value: 4.3 },
-      { period: '2026-04', value: 4.5 }, { period: '2026-05', value: 4.4 }, { period: '2026-06', value: 4.4 },
+      { period: '2026-04', value: 4.5 }, { period: '2026-05', value: 4.4 }, { period: '2026-06', value: 4.5 },   // Jun revised 4.4→4.5 (ABS Data API, Oct vintage)
       { period: '2026-07', value: 4.5 }, { period: '2026-08', value: 4.7 }, { period: '2026-09', value: 4.7 },
       { period: '2026-10', value: 4.9 },
     ],
@@ -632,10 +633,11 @@ export const VERIFIED_CONSTANTS = {
     // the October report, released Fri 6 Nov. Payrolls 159,293k in Oct vs
     // 159,128k in Sep (+165k); Sep revised to +60k from +29k. Both preliminary.
     unemployment: 4.1, unemploymentPrevious: 4.2, unemploymentPeriod: 'Oct 2026', unemploymentRelease: '2026-11-06',
-    // Q3 2026 ADVANCE estimate, 3.4% annualised (BEA, 29 Oct 2026 — the
-    // agency's API via check-stats and bea.gov). Q2's third estimate was 2.2%.
-    // The second estimate's date is not recorded here; BEA's schedule has it.
-    gdpQoQAnnualised: 3.4, gdpPrevious: 2.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-10-29', gdpNextRelease: '2026-11-25',
+    // Q3 2026 SECOND estimate, 4.3% annualised (BEA, 25 Nov 2026, US date;
+    // bea.gov: "increased at an annual rate of 4.3 percent ... according to
+    // the second estimate"; FRED A191RL1Q225SBEA agrees). The advance
+    // estimate (29 Oct) was 3.4%. Q2 2.2%. Third estimate 23 Dec (BEA).
+    gdpQoQAnnualised: 4.3, gdpPrevious: 2.2, gdpPeriod: 'Q3 2026', gdpRelease: '2026-11-25', gdpNextRelease: '2026-12-23',
     // Payroll change, thousands. Sep is the revised figure as of the Oct report.
     nfpThousands: 165, nfpPrevious: 60, nfpRelease: '2026-11-06',
     fedFundsRelease: '2026-10-28',
@@ -686,9 +688,9 @@ export const VERIFIED_CONSTANTS = {
     wheatUSDPerBu: null,
     lithiumCNYPerTonne: null,
     lithiumUSDPerTonne: null,
-    brentUSD: 92.14,          // EIA Europe Brent spot FOB (RBRTE), Wed 11 Nov 2026; released 12 Nov
-    wtiUSD: 89.62,            // EIA WTI Cushing spot (RWTC), Wed 11 Nov 2026; released 12 Nov
-    asOfBy: { brentUSD: '2026-11-11', wtiUSD: '2026-11-11' },
+    brentUSD: 91.80,          // EIA Europe Brent spot FOB (RBRTE), Tue 24 Nov 2026; released 25 Nov
+    wtiUSD: 82.24,            // EIA WTI Cushing spot (RWTC), Tue 24 Nov 2026; released 25 Nov
+    asOfBy: { brentUSD: '2026-11-24', wtiUSD: '2026-11-24' },
     sourceBy: {
       brentUSD: 'US EIA, Europe Brent spot price FOB',
       wtiUSD: 'US EIA, WTI Cushing spot price',
@@ -700,8 +702,8 @@ export const VERIFIED_CONSTANTS = {
     previous: null,
     notShown: 'No licensed feed for iron ore, coal, LNG, copper, wheat or lithium prices is connected, so none is shown.',
     source: 'US Energy Information Administration (eia.gov); other commodities not shown',
-    asOf: '2026-11-11',
-    lastVerified: '2026-11-16',
+    asOf: '2026-11-24',
+    lastVerified: '2026-11-26',
   },
 
   // UPDATED 2026-11-15 from Freightos's own FBX page (global container

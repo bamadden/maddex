@@ -118,6 +118,8 @@ const FALLBACK_PREVIOUS = [
   { date: '2026-11-03', event: 'RBA Rate Decision',             region: 'AU', result: 'HIKE +25bp to 4.85% (6–3)' },
   { date: '2026-11-05', event: 'Bank of England Rate Decision', region: 'UK', result: 'HIKE +25bp to 4.00% (8–1)' },
   { date: '2026-11-19', event: 'AU Unemployment Rate (Oct)',    region: 'AU', result: '4.9%' },
+  { date: '2026-11-25', event: 'AU CPI (Oct)',                  region: 'AU', result: '4.9% y/y · trimmed mean 3.8%' },
+  { date: '2026-11-26', event: 'US GDP, Q3 second estimate',    region: 'US', result: '4.3% annualised (advance 3.4%)' },
 ]
 
 function readCache() {

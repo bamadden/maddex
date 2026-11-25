@@ -30,7 +30,7 @@ export const HEALTH = [
   { id: 'cb-announce-times', modules: ['fx', 'macro', 'calendar'], asOf: '2026-11-16', maxAgeDays: 30, cls: 'official' },
   { id: 'econ-schedule', modules: ['calendar', 'dashboard', 'brief', 'macro', 'news', 'global'], asOf: '2026-11-15', maxAgeDays: 30, cls: 'official' },
   { id: 'corporate-actions', modules: ['calendar', 'markets', 'portfolio'], asOf: '2026-11-16', maxAgeDays: 30, cls: 'official' },
-  { id: 'vc:commodities', modules: ['global', 'macro', 'markets', 'dashboard', 'futures'], asOf: '2026-11-16', maxAgeDays: 30, cls: 'official' },
+  { id: 'vc:commodities', modules: ['global', 'macro', 'markets', 'dashboard', 'futures'], asOf: '2026-11-26', maxAgeDays: 30, cls: 'official' },
   { id: 'vc:freight', modules: ['global'], asOf: '2026-11-15', maxAgeDays: 30, cls: 'market' },
   { id: 'vc:bonds', modules: ['bonds', 'fx', 'dashboard'], asOf: '2026-11-15', maxAgeDays: 30, cls: 'official' },
   { id: 'bond-curve', modules: ['bonds', 'fx', 'macro', 'dashboard'], asOf: '2026-11-11', maxAgeDays: 30, cls: 'official' },

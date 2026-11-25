@@ -14,8 +14,8 @@ const panel = fx.slice(fx.indexOf('function RbaRateComparisonBar'), fx.indexOf('
 
 test('the two CPI figures are different measures, and both are as the ABS published them', () => {
   const { au } = VERIFIED_CONSTANTS
-  assert.equal(au.cpi, 4.3)
-  assert.equal(au.cpiPeriod, 'Sep 2026')
+  assert.equal(au.cpi, 4.9)                      // October monthly, released 25 Nov 2026
+  assert.equal(au.cpiPeriod, 'Oct 2026')
   assert.equal(au.cpiQuarterPeriod, 'Sep 2026 quarter')
   assert.equal(au.cpiQuarterYoY, Math.round((103.64 / 99.73 - 1) * 1000) / 10)
 })
