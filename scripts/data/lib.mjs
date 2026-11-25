@@ -30,6 +30,18 @@ export function shapeOf(text) {
   if (/^[[{]/.test(t)) {
     try { const j = JSON.parse(t); return { kind: 'json', keys: Object.keys(Array.isArray(j) ? j[0] ?? {} : j).sort() } } catch { return { kind: 'invalid-json' } }
   }
+  // HTML (the EIA history tables): the title, the table's column headings and
+  // whether the cells the parser reads are there. Never the page itself: it
+  // carries each day's prices, so it differs every night (26 Nov 2026).
+  if (/^<(!doctype|html)/i.test(t)) {
+    const clean = (s) => s.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+    return {
+      kind: 'html',
+      title: clean(t.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? ''),
+      columns: [...t.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map((m) => clean(m[1])).slice(0, 12),
+      cells: ['B6', 'B3'].filter((c) => t.includes(`<td class='${c}'>`)),
+    }
+  }
   const lines = t.split(/\r?\n/)
   const pick = (label) => lines.find((l) => l.startsWith(`${label},`)) ?? null
   return { kind: 'csv', header: pick('Title') ?? lines[0], seriesIds: pick('Series ID') }

@@ -70,9 +70,27 @@ test('BLS: the 12-month change needs a year-earlier index; a month without one i
 test('a format change is visible in the recorded shape', () => {
   assert.deepEqual(shapeOf('TIME_PERIOD,OBS_VALUE\n2026-09,4.3'), { kind: 'csv', header: 'TIME_PERIOD,OBS_VALUE', seriesIds: null })
   assert.deepEqual(shapeOf('{"b":1,"a":2}'), { kind: 'json', keys: ['a', 'b'] })
-  assert.equal(shapeOf('<html>').kind, 'csv')
+  assert.equal(shapeOf('<html>').kind, 'html')
   assert.equal(row('x', 'k', 1, null, 'p').status, 'unavailable')
   assert.equal(row('x', 'k', null, 1, 'p').status, 'missing')
+})
+
+test('an HTML table page is fingerprinted by its structure, not its daily figures', () => {
+  const page = (price) => "<!DOCTYPE HTML>\r <html><head><title>Europe Brent Spot Price FOB  (Dollars per Barrel)</title></head>\r"
+    + "<table><tr><th class='G2'>Week Of</th><th class='G'>Mon&nbsp;</th></tr>"
+    + `<tr><td class='B6'>&nbsp;2026 Nov-23 to Nov-27</td><td class='B3'>${price}</td></tr></table></html>`
+  const shape = shapeOf(page('63.10'))
+  assert.deepEqual(shape, { kind: 'html', title: 'Europe Brent Spot Price FOB (Dollars per Barrel)', columns: ['Week Of', 'Mon'], cells: ['B6', 'B3'] })
+  assert.deepEqual(shapeOf(page('64.02')), shape)
+  assert.ok(JSON.stringify(shape).length < 300)
+  assert.deepEqual(shapeOf(page('1').replace(/B3/g, 'X9')).cells, ['B6'])
+})
+
+test('format check: a long shape value is clipped in the report', async () => {
+  const { compareShapes } = await import('../scripts/data/format-check.mjs')
+  const [c] = compareShapes({ a: { header: 'x'.repeat(500_000) } }, { a: { header: 'y'.repeat(500_000) } })
+  assert.ok(c.change.length < 500)
+  assert.match(c.change, /500002 chars/)
 })
 
 test('format check: a changed header, a new endpoint and a missing one are each reported', async () => {

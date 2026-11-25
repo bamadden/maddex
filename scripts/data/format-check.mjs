@@ -18,13 +18,17 @@ import { VERIFIED_CONSTANTS } from '../../src/data/verifiedConstants.js'
 
 const BASELINE = new URL('./formats.json', import.meta.url)
 
+// A shape value can be long (a CSV header row); the report stays readable and
+// under GitHub's 1 MB step-summary limit (an EIA page was pasted whole, 26 Nov).
+const clip = (v, n = 160) => { const s = JSON.stringify(v) ?? 'undefined'; return s.length > n ? `${s.slice(0, n)}… (${s.length} chars)` : s }
+
 export function compareShapes(accepted = {}, today = {}) {
   const changes = []
   for (const [url, shape] of Object.entries(today)) {
     const was = accepted[url]
     if (!was) { changes.push({ url, change: 'new endpoint (not in the accepted shapes)' }); continue }
     for (const k of new Set([...Object.keys(was), ...Object.keys(shape)])) {
-      if (JSON.stringify(was[k]) !== JSON.stringify(shape[k])) changes.push({ url, change: `${k}: ${JSON.stringify(was[k])} → ${JSON.stringify(shape[k])}` })
+      if (JSON.stringify(was[k]) !== JSON.stringify(shape[k])) changes.push({ url, change: `${k}: ${clip(was[k])} → ${clip(shape[k])}` })
     }
   }
   for (const url of Object.keys(accepted)) if (!(url in today)) changes.push({ url, change: 'no longer requested (or the fetch stopped before it)' })
