@@ -55,6 +55,7 @@ Also on 5 Nov: the expired stats exceptions for the 3 Nov hike were removed
 12. **ExchangeRate-API key has reached its quota** ("quota-reached"), so gold/silver in the tape are unavailable regardless of the move to the server.
 13. Fill in the contacts table in `docs/DATA_BREACH_RESPONSE.md`.
 14. Optional: `scripts/advice-eval.mjs --yes` runs the 100 attacks against the live model (billed, about 100 short calls) to measure how often the guard has to step in.
+15. **Launch-site waitlist (26 Nov, `docs/WAITLIST_API.md`)**: built with double opt-in, unsubscribe and one-click unsubscribe, but answers 503 until you (a) set `WAITLIST_TOKEN_SECRET` and `WAITLIST_ALLOWED_ORIGINS` in Vercel and (b) connect a sender in `api/_mailer.js`. The sender must add your identity and contact details (Spam Act 2003, s 17). Rate limits are per serverless instance; a shared store or a Vercel Firewall rule needs an account. Lawyer question 21 below covers the consent wording.
 
 ## Questions for a financial services lawyer
 
@@ -89,6 +90,9 @@ Also on 5 Nov: the expired stats exceptions for the 3 Nov hike were removed
 18. FRED and BLS are used only by a maintainers' script that reconciles our hand-entered US figures — is that permitted "internal commercial use" under FRED's terms, or does it need the St. Louis Fed's consent?
 19. Displaying news headlines, summaries and links from publisher RSS feeds in a paid product — permitted, or does each publisher need a licence?
 20. Nominative use of index names (S&P/ASX 200, Nikkei 225, etc.) and showing *DEMO* index levels under those names — any trade mark or index-licensing exposure?
+
+**Email marketing**
+21. Is the launch-site consent wording ("Email me about Maddex early access and its launch. I can unsubscribe at any time.", unticked box, double opt-in) express consent under the Spam Act 2003 for launch and early-access emails? Does a confirmed row (address, source, confirmation time, wording version by date) keep an adequate record of it? Does the site need its own privacy collection notice (APP 5) at the form?
 
 
 ## Open legal question for Ben (16 Nov 2026)
