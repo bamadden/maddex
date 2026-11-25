@@ -96,3 +96,9 @@ test('the endpoint answers 204 to anything it cannot read, 405 to a GET, and cap
   const lines = await capture(async () => { for (let i = 0; i < 20; i++) await handler({ method: 'POST', body: Array(20).fill(one) }, fakeRes(), 10 * 60_000) })
   assert.equal(lines.length, 120)
 })
+
+test('docs/SECURITY.md covers every API endpoint, the per-instance limits, the Firewall steps and the report-only status', () => {
+  const doc = fs.readFileSync('docs/SECURITY.md', 'utf8')
+  for (const f of fs.readdirSync('api').filter((f) => !f.startsWith('_') && f.endsWith('.js'))) assert.ok(doc.includes(`/api/${f.replace(/\.js$/, '')}`), f)
+  for (const k of ['per instance', 'Firewall', 'Rate Limit', 'Key: IP Address', 'report-only', '[csp]', 'MIGRATION_012']) assert.ok(doc.includes(k), k)
+})

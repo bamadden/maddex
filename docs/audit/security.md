@@ -2,7 +2,15 @@
 
 Read-only audit of the migrations' row-level security, the HTTP headers
 production serves, the serverless endpoints and their limits. Ranked by
-impact. Nothing here has been changed yet.
+impact.
+
+**Status, 26 Nov (Ben's decisions the same day):**
+- **1:** migration 012 written, not applied (`docs/MIGRATION_012.md`).
+- **2:** headers live; the CSP is report-only, with `/api/csp-report`.
+- **3:** the newsletter is on double opt-in.
+- **4:** documented, with the Firewall steps in `docs/SECURITY.md`.
+- **5:** the redirect fix is live.
+- **6 and 7:** open.
 
 ## High
 

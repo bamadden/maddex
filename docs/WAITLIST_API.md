@@ -195,8 +195,8 @@ memory.** Vercel runs several instances, so the effective limit is per
 instance. That is enough against a single script, not against a distributed
 one. For a shared limit, connect a shared store (for example Upstash Redis or
 Vercel KV; it would need an account) through the `hit(key, windowSeconds)`
-interface in `memoryStore()`, or add a Vercel Firewall rate-limit rule on
-`/api/waitlist`.
+interface in `memoryStore()`, or add the Vercel Firewall rate-limit rule on
+`/api/waitlist` (step by step in `docs/SECURITY.md`).
 
 ## Configuration (Vercel, server-only, never `VITE_`)
 

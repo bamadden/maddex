@@ -76,3 +76,104 @@ In `vercel.json`, rename the header key `Content-Security-Policy-Report-Only`
 to `Content-Security-Policy` and change the test that requires report-only.
 Keep the reporting, then run the full gate and the signed-in live check, and
 push. To back out, rename it back.
+
+## Endpoints
+
+| Endpoint | Who may call it | Limits in the code |
+|---|---|---|
+| `/api/claude` | Signed in (Supabase token checked) | Per user per day, by plan, counted in `ai_usage` (shared across instances) |
+| `/api/ai-daily` | Anyone | Fixed kinds, today's date only; cached by the CDN to Sydney midnight; 40 generations per instance per day |
+| `/api/waitlist` | The launch site's origins and the terminal | Per IP, per address and a send cap: **per instance** (below) |
+| `/api/csp-report` | Browsers | 120 log lines a minute per instance; 64 KB body cap |
+| `/api/rss` | Anyone | Allowlisted hosts only, redirects too (26 Nov); cached by the CDN for 15 minutes |
+| `/api/account-export`, `/api/account-delete` | Signed in | None |
+| `/api/alert-email` | Signed in | Answers 503 while email alerts are not offered (no sender key) |
+| `/api/metals` | Anyone | Cached by the CDN for an hour |
+| `/api/terminal-api` | Anyone | Answers 410 Gone |
+
+## Rate limits: what the code can and cannot do
+
+The waitlist and CSP-report limits are counted **in each serverless
+instance's memory**. Vercel runs as many instances as traffic needs, and a
+new one starts with empty counters. So:
+- One script hitting the endpoint from one place is limited. Its requests
+  mostly land on warm instances, and the per-address limit stops it
+  re-sending to one inbox.
+- A distributed attacker, spread across instances, can exceed the stated
+  numbers several times over.
+- A limit that holds across instances needs a shared counter. That means
+  either the edge (Vercel Firewall, below: no code, a dashboard change) or a
+  shared store (Upstash Redis or Vercel KV, which needs an account).
+  `memoryStore()` in `api/_waitlist.js` is the place a shared store would
+  plug in (`hit(key, windowSeconds)`).
+
+The edge rules below are the recommended fix. They are Ben's to add,
+because they need the Vercel dashboard.
+
+## Vercel Firewall rules (step by step)
+
+These limit requests per IP at Vercel's edge, before any function runs, across
+every instance. The code's own limits stay as a second layer.
+
+**Plans:** rate limiting is a Firewall feature whose availability and rule
+count depend on the Vercel plan. If the **Rate Limit** action is missing or
+greyed out in step 4, the plan does not include it. Use **Log**, or **Deny**
+for clearly abusive paths, instead, or tell me and we will use a shared
+store.
+
+1. Open <https://vercel.com/dashboard> and choose the **maddex** project.
+2. Choose **Firewall** in the top bar, then **Configure** (or **Rules**), then
+   **New Rule** (or **+ Add Rule**).
+3. Give the rule the name in the table. Under **If**, add the condition shown:
+   **Request Path**, the operator, and the value. For the first rule, also
+   add **Method** **equals** `POST` (AND).
+4. Under **Then**, choose **Rate Limit**:
+   - **Fixed window**, with the window and limit from the table;
+   - **Key: IP Address**;
+   - **Follow-up action: Deny** (it answers 429).
+
+   To watch before blocking, choose **Log** first, leave it for a day, then
+   edit the rule to **Rate Limit**.
+5. **Save**. Add the rules in this order, the specific ones above the last
+   (catch-all) rule. Then **Review Changes** and **Publish**. Firewall
+   changes take effect without a deploy.
+
+| # | Name | If Request Path | Window | Limit per IP | Why |
+|---|---|---|---|---|---|
+| 1 | Waitlist sign-ups | **equals** `/api/waitlist` (and Method **equals** `POST`) | 60 s | 10 | Each sign-up sends an email; the code allows 5 in 10 min per IP per instance |
+| 2 | CSP reports | **equals** `/api/csp-report` | 60 s | 60 | Keeps a flood out of the log |
+| 3 | Account export and delete | **starts with** `/api/account-` | 60 s | 10 | Signed-in only, and each one reads or deletes everything; no code limit |
+| 4 | MaddenAI | **starts with** `/api/claude` | 60 s | 30 | The per-user daily limits stay; this stops bursts |
+| 5 | Feed proxy | **starts with** `/api/rss` | 60 s | 120 | The News module loads about 12 feeds at once |
+| 6 | All other API | **starts with** `/api/` | 60 s | 300 | The catch-all; the Frankfurter, RBA, FRED and IMF proxies live here |
+
+**Checking a rule works** (rule 1, from your own machine). The address uses
+the reserved `.invalid` domain, so no email can be delivered. Nothing is
+stored, because nothing is confirmed:
+
+```sh
+for i in $(seq 1 12); do
+  curl -s -o /dev/null -w "%{http_code} " -X POST \
+    -H "Origin: https://maddex.vercel.app" -H "content-type: application/json" \
+    -d '{"email":"firewall-test@example.invalid","consent":true}' \
+    https://maddex.vercel.app/api/waitlist
+done; echo
+```
+
+Before the rule, every answer is the endpoint's own (`503` until the waitlist
+is configured). After it, the eleventh and twelfth answer `429` from the
+edge. **Firewall → Overview** (or the rule's own view) lists the blocked
+requests.
+
+## Owed (as of 26 Nov 2026)
+
+- **Migration 012:** Ben to apply (`docs/MIGRATION_012.md`). Until then the
+  public key can create waitlist rows that look confirmed.
+- **CSP:** stays report-only until a few days of `[csp]` logs show nothing
+  new and Ben says to enforce it.
+- **Firewall rules:** Ben to add, as above.
+- **Live check of the RLS policies** in the database itself (not only the
+  migration files): needs the Supabase SQL Editor (`pg_policies`).
+- **`ai_usage` token columns** can be edited by their own user. Limits count
+  rows, so no limit is affected, but per-user cost figures are unreliable.
+  Low; the fix is a server-side write.
