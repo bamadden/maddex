@@ -1,54 +1,60 @@
 import { useEffect, useState } from 'react'
 import {
-  NEWSLETTER, NEWSLETTER_CHANGED_EVENT, isValidEmail, subscribeNewsletter, subscribedEmail,
+  NEWSLETTER, NEWSLETTER_CHANGED_EVENT, NEWSLETTER_CONSENT, isValidEmail, subscribeNewsletter, pendingConfirmation,
 } from '../../services/newsletterService'
 import { useAuthStore } from '../../store/useAuthStore'
+import { formatDate } from '../../utils/dateUtils'
 
 // The newsletter sign-up, offered only in Settings → About until editions
 // exist. (The banner in News and the edition/archive sections in Brief were
-// removed on 1 Nov 2026: there was nothing to subscribe to yet.)
+// removed on 1 Nov 2026: there was nothing to subscribe to yet.) Double
+// opt-in since 26 Nov 2026: this device only ever knows that a confirmation
+// email was sent, so it never says "subscribed".
 
-function useSubscribed() {
-  const [email, setEmail] = useState(subscribedEmail)
+function usePending() {
+  const [pending, setPending] = useState(() => pendingConfirmation())
   useEffect(() => {
-    const sync = () => setEmail(subscribedEmail())
+    const sync = () => setPending(pendingConfirmation())
     window.addEventListener(NEWSLETTER_CHANGED_EVENT, sync)
     return () => window.removeEventListener(NEWSLETTER_CHANGED_EVENT, sync)
   }, [])
-  return email
+  return pending
 }
 
-function SubscribedNote({ email, compact }) {
+function PendingNote({ pending, onAgain }) {
   return (
-    <div className={`font-mono text-terminal-green ${compact ? 'text-2xs' : 'text-xs'}`}>
-      You're subscribed ✓ <span className="text-terminal-text-dim">{email}</span>
+    <div className="font-mono text-2xs text-terminal-text-dim leading-relaxed" role="status">
+      <span className="text-terminal-gold">Check your inbox.</span> A confirmation link went to{' '}
+      <span className="text-terminal-text-bright">{pending.email}</span> on {formatDate(pending.at.slice(0, 10))}. You are subscribed once you press Confirm in that email; the link works for 48 hours.{' '}
+      <button type="button" onClick={onAgain} className="text-terminal-gold underline">Use another address</button>
     </div>
   )
+}
+
+const MESSAGES = {
+  invalid: { tone: 'text-terminal-red', text: 'Enter a valid email address.' },
+  consent: { tone: 'text-terminal-red', text: 'Tick the box to agree to the newsletter emails.' },
+  rate_limited: { tone: 'text-terminal-gold', text: 'Too many attempts. Try again in a few minutes.' },
+  unavailable: { tone: 'text-terminal-gold', text: "Sign-up isn't open just now. Nothing was recorded; please try again later." },
 }
 
 function SignupForm({ autoFocus = false, compact = false }) {
   const { user } = useAuthStore()
   const [email, setEmail] = useState(user?.email ?? '')
-  const [status, setStatus] = useState('idle') // idle | saving | subscribed | already | local | invalid
+  const [consent, setConsent] = useState(false)
+  const [status, setStatus] = useState('idle') // idle | saving | pending | invalid | consent | rate_limited | unavailable
 
   const submit = async (e) => {
     e.preventDefault()
     if (!isValidEmail(email)) { setStatus('invalid'); return }
+    if (!consent) { setStatus('consent'); return }
     setStatus('saving')
-    setStatus(await subscribeNewsletter(email))
+    setStatus(await subscribeNewsletter(email, consent))
   }
-
-  if (status === 'local') {
-    return (
-      <div className="font-mono text-2xs text-terminal-text-dim leading-relaxed">
-        <span className="text-terminal-gold">Not subscribed yet.</span> The subscriber list couldn't be reached —{' '}
-        <button type="button" onClick={() => setStatus('idle')} className="text-terminal-gold underline">try again</button>.
-      </div>
-    )
-  }
+  const msg = MESSAGES[status]
 
   return (
-    <form onSubmit={submit} className="font-mono">
+    <form onSubmit={submit} className="font-mono" noValidate>
       <div className="flex gap-2">
         <input
           type="email" value={email} autoFocus={autoFocus}
@@ -61,19 +67,24 @@ function SignupForm({ autoFocus = false, compact = false }) {
           className={`font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors disabled:opacity-50 ${compact ? 'px-2.5 text-[11px]' : 'px-3 text-2xs'}`}
         >{status === 'saving' ? '…' : 'SUBSCRIBE'}</button>
       </div>
-      {status === 'invalid' && <div className="text-2xs text-terminal-red mt-1">Enter a valid email address.</div>}
+      <label className="flex items-start gap-2 mt-2 text-2xs text-terminal-text-dim leading-snug cursor-pointer">
+        <input type="checkbox" checked={consent} onChange={(e) => { setConsent(e.target.checked); setStatus('idle') }} className="mt-0.5 accent-terminal-gold" data-newsletter-consent />
+        <span>{NEWSLETTER_CONSENT}</span>
+      </label>
+      {msg && <div className={`text-2xs mt-1 ${msg.tone}`} role="alert">{msg.text}</div>}
     </form>
   )
 }
 
 // Settings → About.
 export function NewsletterCard() {
-  const email = useSubscribed()
+  const pending = usePending()
+  const [again, setAgain] = useState(false)
   return (
     <div className="border border-terminal-gold/30 p-3" style={{ background: 'rgba(201,168,76,0.04)' }}>
       <div className="text-2xs text-terminal-gold font-bold tracking-widest">{NEWSLETTER.name}</div>
       <div className="text-2xs text-terminal-text-dim mt-1 mb-2.5">{NEWSLETTER.tagline}</div>
-      {email ? <SubscribedNote email={email} /> : <SignupForm />}
+      {pending && !again ? <PendingNote pending={pending} onAgain={() => setAgain(true)} /> : <SignupForm />}
     </div>
   )
 }

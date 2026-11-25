@@ -1,7 +1,8 @@
-# Waitlist API (launch site early access)
+# Waitlist API (launch site early access, and the newsletter)
 
-The endpoint the launch site's early-access form posts to. Built 26 Nov 2026
-(WS1). Code: `api/waitlist.js` (handler), `api/_waitlist.js` (checks, tokens,
+The endpoint the launch site's early-access form posts to. The terminal's
+newsletter sign-up (Settings → About) uses it too, with `list:
+"newsletter"`. Built 26 Nov 2026 (WS1). Code: `api/waitlist.js` (handler), `api/_waitlist.js` (checks, tokens,
 limits, email and pages), `api/_mailer.js` (sender interface). Tests:
 `tests/waitlist.test.mjs` (mocks only).
 
@@ -40,13 +41,18 @@ Content-Type: application/json
 { "email": "pat@example.com", "consent": true, "website": "" }
 ```
 
+The launch site needs no `list` field: it defaults to `"launch"`.
+
 | Field | Required | Rule |
 |---|---|---|
 | `email` | yes | A single address of up to 254 characters. It is trimmed and lower-cased. A Unicode domain is stored in its ASCII (punycode) form, and the local part must be ASCII. Dots and `+tags` are kept. |
 | `consent` | yes | The JSON value `true`. `"true"`, `1` or a missing field is refused. |
+| `list` | no | `"launch"` (the default: the early-access list) or `"newsletter"` (The Maddex Intelligence Brief). Anything else → `400 unknown_list`. |
 | `website` | no | **Honeypot.** Render it hidden from people (see below) and send it empty. If it is filled in, the endpoint answers as normal and sends nothing. |
 
 Any other field is refused (`unexpected_field`), and so is a body over 2 KB.
+Each list has its own consent wording, row source (`launch-site` or
+`newsletter`) and unsubscribe: unsubscribing from one leaves the other.
 
 ### Responses
 
@@ -55,9 +61,10 @@ Any other field is refused (`unexpected_field`), and so is a body over 2 KB.
 | 202 | `{ "ok": true, "status": "pending", "message": "If that address can receive email, a confirmation link is on its way. It works for 48 hours." }` | Accepted. This is the **only** success answer, whatever the address's state. Show the message as given. |
 | 400 | `{ "error": "invalid_email" }` | The address is not valid. |
 | 400 | `{ "error": "consent_required" }` | `consent` was not `true`. |
-| 400 | `{ "error": "unexpected_field" }` | A field other than the three above was sent. |
+| 400 | `{ "error": "unexpected_field" }` | A field other than the four above was sent. |
+| 400 | `{ "error": "unknown_list" }` | `list` was not `launch` or `newsletter`. |
 | 400 | `{ "error": "invalid_body" }` | The body was not a JSON object, or was malformed JSON. |
-| 403 | `{ "error": "origin_not_allowed" }` | The `Origin` is missing or not on the allowlist. |
+| 403 | `{ "error": "origin_not_allowed" }` | The `Origin` is missing, or is neither on the allowlist nor the terminal's own origin (`WAITLIST_PUBLIC_URL`). |
 | 405 | `{ "error": "method_not_allowed" }` | Not a POST. |
 | 413 | `{ "error": "too_large" }` | The body was over 2 KB. |
 | 415 | `{ "error": "json_required" }` | The `Content-Type` was not `application/json`. |
@@ -107,7 +114,8 @@ the version in force when it was confirmed, which is its `created_at`.
 
 | Version | In force | Wording |
 |---|---|---|
-| `waitlist-consent-2026-11-26` | from 26 Nov 2026 | Email me about Maddex early access and its launch. I can unsubscribe at any time. |
+| `waitlist-consent-2026-11-26` (list `launch`) | from 26 Nov 2026 | Email me about Maddex early access and its launch. I can unsubscribe at any time. |
+| `newsletter-consent-2026-11-26` (list `newsletter`, shown in the terminal) | from 26 Nov 2026 | Email me The Maddex Intelligence Brief, a weekly newsletter. I can unsubscribe at any time. |
 
 The confirmation token also carries the version. A link issued under earlier
 wording is refused as `expired_token` (sign up again), so a row's date always
@@ -159,8 +167,9 @@ POST /api/waitlist?action=unsubscribe&token=<token>   → unsubscribes
   `List-Unsubscribe: <…?action=unsubscribe&token=…>` and
   `List-Unsubscribe-Post: List-Unsubscribe=One-Click`, and mail clients POST
   to that URL with no `Origin`.
-- It deletes the address's `launch-site` row. Rows from other sources are
-  separate consents and are left alone.
+- It deletes the address's row for the token's list (`launch-site` or
+  `newsletter`). Rows from other sources are separate consents and are left
+  alone.
 - It answers `200 { "ok": true, "status": "unsubscribed" }` whether or not
   there was a row.
 - Unsubscribe links do not expire.
@@ -208,8 +217,8 @@ requires.
 
 ## Data held
 
-One row per confirmed address in `public.waitlist`: `email`, `source =
-'launch-site'`, `created_at` (when it was confirmed), `tier = null`,
+One row per confirmed address and list in `public.waitlist`: `email`,
+`source` (`'launch-site'` or `'newsletter'`), `created_at` (when it was confirmed), `tier = null`,
 `user_id = null`. No IP, name or tracking data is stored, and unconfirmed
 sign-ups are not stored at all.
 
@@ -226,3 +235,8 @@ sign-ups are not stored at all.
 - **Logs:** the endpoint logs no address, IP or token, only the action and
   the HTTP status. Vercel's request logs keep the path and query, so they
   hold link tokens, but those are encrypted and do not show the address.
+- **Only this endpoint can write these rows** once migration 012 is applied
+  (`docs/MIGRATION_012.md`). Before it, the public key could insert a
+  `launch-site` or `newsletter` row directly, bypassing confirmation.
+  Newsletter rows created before 26 Nov were inserted straight from the
+  browser, unconfirmed. The migration does not touch them; see that doc.

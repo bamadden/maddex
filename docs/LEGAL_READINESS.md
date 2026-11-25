@@ -55,7 +55,7 @@ Also on 5 Nov: the expired stats exceptions for the 3 Nov hike were removed
 12. **ExchangeRate-API key has reached its quota** ("quota-reached"), so gold/silver in the tape are unavailable regardless of the move to the server.
 13. Fill in the contacts table in `docs/DATA_BREACH_RESPONSE.md`.
 14. Optional: `scripts/advice-eval.mjs --yes` runs the 100 attacks against the live model (billed, about 100 short calls) to measure how often the guard has to step in.
-15. **Launch-site waitlist (26 Nov, `docs/WAITLIST_API.md`)**: built with double opt-in, unsubscribe and one-click unsubscribe, but answers 503 until you (a) set `WAITLIST_TOKEN_SECRET` and `WAITLIST_ALLOWED_ORIGINS` in Vercel and (b) connect a sender in `api/_mailer.js`. The sender must add your identity and contact details (Spam Act 2003, s 17). Rate limits are per serverless instance; a shared store or a Vercel Firewall rule needs an account. Lawyer question 21 below covers the consent wording.
+15. **Launch-site waitlist (26 Nov, `docs/WAITLIST_API.md`)**: built with double opt-in, unsubscribe and one-click unsubscribe, but answers 503 until you (a) set `WAITLIST_TOKEN_SECRET` and `WAITLIST_ALLOWED_ORIGINS` in Vercel and (b) connect a sender in `api/_mailer.js`. The sender must add your identity and contact details (Spam Act 2003, s 17). Rate limits are per serverless instance; a shared store or a Vercel Firewall rule needs an account. Lawyer question 21 below covers the consent wording. **Apply migration 012** (`docs/MIGRATION_012.md`): until then the public key can create rows that look confirmed. The terminal's newsletter sign-up now uses the same double opt-in (26 Nov).
 
 ## Questions for a financial services lawyer
 

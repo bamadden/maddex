@@ -1,13 +1,14 @@
-import { supabase } from '../lib/supabase'
 import { getCachedWeeklyReview, reviewWeek } from './weeklyReviewService'
 
 // The Maddex Intelligence Brief — the weekly newsletter.
 //
-// Subscribers go into the same Supabase `waitlist` table as the payments
-// waitlist, with source 'newsletter' (unique per email and source — see
-// supabase/migrations/006_newsletter.sql). The table is insert-only from the
-// client, so "already subscribed" is known two ways: this device remembers
-// the address, or the insert comes back as a duplicate.
+// Sign-up is double opt-in through /api/waitlist (list 'newsletter',
+// docs/WAITLIST_API.md; 26 Nov 2026): the endpoint emails a confirmation
+// link and writes the row (waitlist, source 'newsletter') only when its owner
+// confirms. The browser no longer writes to the table: migration 012 stops
+// the public key from creating newsletter rows. The answer is the same
+// whether or not the address is already subscribed, so this device only
+// knows that a confirmation was sent, never that someone is subscribed.
 //
 // The newsletter site does not exist yet; NEWSLETTER.url is the placeholder
 // the editions will live at.
@@ -19,33 +20,46 @@ export const NEWSLETTER = {
   url: 'https://maddex.com.au/newsletter',
 }
 
-const SUBSCRIBED_KEY = 'maddex_newsletter_email'
+// The words beside the consent box. Must match LISTS.newsletter.consent.text
+// in api/_waitlist.js (a test checks): the server records that version.
+export const NEWSLETTER_CONSENT = 'Email me The Maddex Intelligence Brief, a weekly newsletter. I can unsubscribe at any time.'
+
+const PENDING_KEY = 'maddex_newsletter_pending'
 export const NEWSLETTER_CHANGED_EVENT = 'maddex:newsletter-changed'
 
 export const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s ?? '').trim())
 
-export function subscribedEmail() {
-  try { return localStorage.getItem(SUBSCRIBED_KEY) } catch { return null }
+// { email, at } when this device asked for a confirmation email, else null.
+export function pendingConfirmation(storage = globalThis.localStorage) {
+  try { const v = JSON.parse(storage.getItem(PENDING_KEY) ?? 'null'); return v?.email ? v : null } catch { return null }
 }
 
-// → 'subscribed' (server has it), 'already' (server already had it),
-//   'local' (server unreachable — not recorded anywhere, and the UI says
-//   so), 'invalid'.
-export async function subscribeNewsletter(email) {
+// → 'pending' (a confirmation email is on its way), 'invalid', 'consent',
+//   'rate_limited', 'unavailable' (not open yet, or unreachable: nothing
+//   recorded anywhere, and the UI says so).
+export async function subscribeNewsletter(email, consent, { fetchImpl = (...a) => fetch(...a), storage = globalThis.localStorage, now = () => new Date() } = {}) {
   if (!isValidEmail(email)) return 'invalid'
+  if (consent !== true) return 'consent'
   const addr = email.trim().toLowerCase()
-  let result = 'local'
+  let r
   try {
-    const { error } = await supabase.from('waitlist').insert({ email: addr, source: 'newsletter' })
-    result = !error ? 'subscribed' : /duplicate|unique/i.test(error.message ?? '') ? 'already' : 'local'
-  } catch { /* offline or no client */ }
-  // Remembered only once the server has the address — a device-only copy
-  // would show "You're subscribed" to someone nobody can email.
-  if (result !== 'local') {
-    try { localStorage.setItem(SUBSCRIBED_KEY, addr) } catch { /* private mode */ }
+    r = await fetchImpl('/api/waitlist', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: addr, consent: true, website: '', list: 'newsletter' }),
+    })
+  } catch { return 'unavailable' }
+  if (r.status === 202) {
+    try { storage.setItem(PENDING_KEY, JSON.stringify({ email: addr, at: now().toISOString() })) } catch { /* private mode */ }
     try { window.dispatchEvent(new Event(NEWSLETTER_CHANGED_EVENT)) } catch { /* non-browser */ }
+    return 'pending'
   }
-  return result
+  if (r.status === 429) return 'rate_limited'
+  if (r.status === 400) {
+    const body = await r.json().catch(() => ({}))
+    return body.error === 'invalid_email' ? 'invalid' : body.error === 'consent_required' ? 'consent' : 'unavailable'
+  }
+  return 'unavailable'
 }
 
 // The latest edition is the week the weekly review covers: Monday to Friday,

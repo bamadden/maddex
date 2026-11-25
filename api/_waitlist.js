@@ -1,30 +1,46 @@
-// The launch site's early-access list (WS1, 26 Nov 2026): everything the
-// endpoint (api/waitlist.js) needs that is not the request itself — input
-// checks, signed tokens, rate limits, CORS, and the emails and pages. The
-// contract is docs/WAITLIST_API.md.
+// The mailing lists behind api/waitlist.js (WS1, 26 Nov 2026): the launch
+// site's early-access list and the terminal's newsletter. Everything the
+// endpoint needs that is not the request itself — input checks, sealed
+// tokens, rate limits, CORS, and the emails and pages. The contract is
+// docs/WAITLIST_API.md.
 //
 // Nothing about an address is stored until its owner confirms: the
-// confirmation token carries the address, signed, so a pending sign-up lives
-// only in the email. A confirmed address is one row in public.waitlist
-// (source 'launch-site'); unsubscribing deletes it.
+// confirmation token carries the address, sealed, so a pending sign-up lives
+// only in the email. A confirmed address is one row in public.waitlist (its
+// list's source); unsubscribing deletes it. Since migration 012 the public
+// key cannot write these rows at all.
 
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto'
 import { domainToASCII } from 'node:url'
 
-export const SOURCE = 'launch-site'
 export const CONFIRM_TTL_HOURS = 48
 
-// The words the launch site shows beside its consent box. A change of wording
-// is a new version; docs/WAITLIST_API.md lists each with its dates, which is
-// how a row's consent is known (its created_at is when it was confirmed).
-export const CONSENT = {
-  version: 'waitlist-consent-2026-11-26',
-  text: 'Email me about Maddex early access and its launch. I can unsubscribe at any time.',
+// Each list: the waitlist.source its rows carry, the words shown beside its
+// consent box, and its email. A change of wording is a new version;
+// docs/WAITLIST_API.md lists each with its dates, which is how a row's
+// consent is known (its created_at is when it was confirmed).
+export const LISTS = {
+  launch: {
+    source: 'launch-site',
+    consent: { version: 'waitlist-consent-2026-11-26', text: 'Email me about Maddex early access and its launch. I can unsubscribe at any time.' },
+    name: 'the Maddex early-access list',
+    about: 'emails about Maddex early access and its launch',
+    subject: 'Confirm your Maddex early-access sign-up',
+  },
+  newsletter: {
+    source: 'newsletter',
+    consent: { version: 'newsletter-consent-2026-11-26', text: 'Email me The Maddex Intelligence Brief, a weekly newsletter. I can unsubscribe at any time.' },
+    name: 'The Maddex Intelligence Brief',
+    about: 'The Maddex Intelligence Brief, a weekly newsletter',
+    subject: 'Confirm your subscription to The Maddex Intelligence Brief',
+  },
 }
+export const SOURCE = LISTS.launch.source
+export const CONSENT = LISTS.launch.consent
 
 // ── Input ────────────────────────────────────────────────────────────────────
 
-export const FIELDS = ['email', 'consent', 'website'] // website: the honeypot
+export const FIELDS = ['email', 'consent', 'website', 'list'] // website: the honeypot
 const LOCAL = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/
 const LABEL = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/
 
@@ -46,8 +62,9 @@ export function normaliseEmail(raw) {
   return email.length <= 254 ? email : null
 }
 
-// { email, honeypot } or { error }. Only the three fields are accepted, and
-// consent must be the JSON value true (not "true", not 1).
+// { email, list, honeypot } or { error }. Only these fields are accepted,
+// consent must be the JSON value true (not "true", not 1), and list is
+// 'launch' (the default) or 'newsletter'.
 export function readSubscribe(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { error: 'invalid_body' }
   if (JSON.stringify(body).length > 2048) return { error: 'too_large' }
@@ -56,8 +73,10 @@ export function readSubscribe(body) {
   const honeypot = typeof body.website === 'string' && body.website.trim() !== ''
   const email = normaliseEmail(body.email)
   if (!email) return { error: 'invalid_email', honeypot }
+  const list = body.list ?? 'launch'
+  if (typeof list !== 'string' || !Object.hasOwn(LISTS, list)) return { error: 'unknown_list', honeypot }
   if (body.consent !== true) return { error: 'consent_required', honeypot }
-  return { email, honeypot }
+  return { email, list, honeypot }
 }
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
@@ -69,9 +88,9 @@ export function readSubscribe(body) {
 
 const tokenKey = (secret) => createHash('sha256').update(`waitlist-token-key:${secret}`).digest()
 
-export function makeToken(secret, purpose, email, { now = Date.now(), ttlHours = null } = {}) {
-  const payload = { e: email, t: Math.floor(now / 1000) }
-  if (purpose === 'confirm') payload.v = CONSENT.version
+export function makeToken(secret, purpose, email, { now = Date.now(), ttlHours = null, list = 'launch' } = {}) {
+  const payload = { e: email, l: list, t: Math.floor(now / 1000) }
+  if (purpose === 'confirm') payload.v = LISTS[list].consent.version
   if (ttlHours != null) payload.x = payload.t + ttlHours * 3600
   const iv = randomBytes(12)
   const c = createCipheriv('aes-256-gcm', tokenKey(secret), iv)
@@ -94,9 +113,9 @@ export function readToken(secret, purpose, token, { now = Date.now() } = {}) {
     d.setAuthTag(raw.subarray(raw.length - 16))
     p = JSON.parse(Buffer.concat([d.update(raw.subarray(12, raw.length - 16)), d.final()]).toString('utf8'))
   } catch { return { error: 'invalid_token' } }
-  if (normaliseEmail(p?.e) !== p.e) return { error: 'invalid_token' }
+  if (normaliseEmail(p?.e) !== p.e || !Object.hasOwn(LISTS, p.l)) return { error: 'invalid_token' }
   if (p.x != null && Math.floor(now / 1000) > p.x) return { error: 'expired_token' }
-  if (purpose === 'confirm' && p.v !== CONSENT.version) return { error: 'expired_token' }
+  if (purpose === 'confirm' && p.v !== LISTS[p.l].consent.version) return { error: 'expired_token' }
   return p
 }
 
@@ -187,9 +206,10 @@ export function parseOrigins(value) {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
-export function confirmEmail({ confirmUrl, unsubscribeUrl, unsubscribePost }) {
+export function confirmEmail({ confirmUrl, unsubscribeUrl, unsubscribePost, list = 'launch' }) {
+  const L = LISTS[list]
   const text = [
-    'Confirm your place on the Maddex early-access list.',
+    `Confirm that you want ${L.about}.`,
     '',
     `Confirm: ${confirmUrl}`,
     '',
@@ -198,12 +218,12 @@ export function confirmEmail({ confirmUrl, unsubscribeUrl, unsubscribePost }) {
     'Maddex provides general information only, not financial advice.',
     `Unsubscribe: ${unsubscribeUrl}`,
   ].join('\n')
-  const html = `<p>Confirm your place on the Maddex early-access list.</p>
+  const html = `<p>Confirm that you want ${esc(L.about)}.</p>
 <p><a href="${esc(confirmUrl)}">Confirm my email address</a></p>
 <p>The link works for ${CONFIRM_TTL_HOURS} hours. If you did not ask to join, ignore this email: nothing is kept unless the link is used.</p>
 <p style="color:#666;font-size:12px">Maddex provides general information only, not financial advice. <a href="${esc(unsubscribeUrl)}">Unsubscribe</a></p>`
   return {
-    subject: 'Confirm your Maddex early-access sign-up',
+    subject: L.subject,
     text,
     html,
     // RFC 8058 one-click unsubscribe: mail clients POST to this URL.

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { createHandler, readConfig } from '../api/waitlist.js'
 import {
-  normaliseEmail, readSubscribe, makeToken, readToken, memoryStore, counter, allow, clientIp, parseOrigins, LIMITS, CONSENT, SOURCE, confirmEmail,
+  LISTS, normaliseEmail, readSubscribe, makeToken, readToken, memoryStore, counter, allow, clientIp, parseOrigins, LIMITS, CONSENT, SOURCE, confirmEmail,
 } from '../api/_waitlist.js'
 import { mockMailer, configuredMailer } from '../api/_mailer.js'
 
@@ -62,7 +62,10 @@ test('addresses are trimmed, lower-cased, and checked; tags and dots are kept', 
 })
 
 test('a sign-up takes the email, consent and the honeypot, and nothing else', () => {
-  assert.deepEqual(readSubscribe({ email: 'a@x.com', consent: true }), { email: 'a@x.com', honeypot: false })
+  assert.deepEqual(readSubscribe({ email: 'a@x.com', consent: true }), { email: 'a@x.com', list: 'launch', honeypot: false })
+  assert.equal(readSubscribe({ email: 'a@x.com', consent: true, list: 'newsletter' }).list, 'newsletter')
+  assert.equal(readSubscribe({ email: 'a@x.com', consent: true, list: 'everything' }).error, 'unknown_list')
+  assert.equal(readSubscribe({ email: 'a@x.com', consent: true, list: 'toString' }).error, 'unknown_list')
   assert.equal(readSubscribe({ email: 'a@x.com', consent: 'true' }).error, 'consent_required')
   assert.equal(readSubscribe({ email: 'a@x.com', consent: 1 }).error, 'consent_required')
   assert.equal(readSubscribe({ email: 'a@x.com' }).error, 'consent_required')
@@ -423,4 +426,105 @@ test('docs/WAITLIST_API.md states the consent wording and version the code uses'
   assert.ok(doc.includes(CONSENT.text), 'consent text')
   assert.ok(doc.includes(CONSENT.version), 'consent version')
   for (const k of ['WAITLIST_TOKEN_SECRET', 'WAITLIST_ALLOWED_ORIGINS', 'WAITLIST_PUBLIC_URL', 'not_configured', 'rate_limited', 'website']) assert.ok(doc.includes(k), k)
+})
+
+// ── The newsletter list (26 Nov 2026) ──
+
+test('the terminal (its own origin) can sign up to the newsletter; the email, row and unsubscribe are the newsletter\'s', async () => {
+  const s = setup()
+  const r = await s.call({ origin: 'https://maddex.vercel.app', body: { email: 'Pat@Example.com', consent: true, website: '', list: 'newsletter' } })
+  assert.equal(r.statusCode, 202)
+  const m = s.mailer.sent[0]
+  assert.equal(m.subject, LISTS.newsletter.subject)
+  assert.match(m.text, /Maddex Intelligence Brief/)
+  assert.equal(s.calls.length, 0, 'nothing stored before confirmation')
+  const token = linkFrom(m, 'confirm').searchParams.get('token')
+  const page = await s.call({ method: 'GET', query: { action: 'confirm', token }, origin: null, type: null })
+  assert.match(page.text, /Maddex Intelligence Brief/)
+  await s.call({ query: { action: 'confirm', token }, origin: 'null', type: 'application/x-www-form-urlencoded' })
+  assert.deepEqual(JSON.parse(s.calls[0].body), [{ email: 'pat@example.com', source: 'newsletter' }])
+  await s.call({ query: { action: 'unsubscribe', token: linkFrom(m, 'unsubscribe').searchParams.get('token') }, origin: null, type: 'application/x-www-form-urlencoded', body: { 'List-Unsubscribe': 'One-Click' } })
+  assert.equal(s.calls[1].url, 'https://db.example/rest/v1/waitlist?email=eq.pat%40example.com&source=eq.newsletter')
+})
+
+test('each list has its own consent wording and version, and a token is bound to its list', () => {
+  assert.notEqual(LISTS.newsletter.consent.version, LISTS.launch.consent.version)
+  assert.equal(readToken(SECRET, 'confirm', makeToken(SECRET, 'confirm', 'a@x.com', { now: T0, ttlHours: 48, list: 'newsletter' }), { now: T0 }).l, 'newsletter')
+  assert.equal(readToken(SECRET, 'confirm', makeToken(SECRET, 'confirm', 'a@x.com', { now: T0, ttlHours: 48 }), { now: T0 }).l, 'launch')
+  const doc = fs.readFileSync('docs/WAITLIST_API.md', 'utf8')
+  for (const L of Object.values(LISTS)) { assert.ok(doc.includes(L.consent.text), L.source); assert.ok(doc.includes(L.consent.version), L.source) }
+})
+
+test('the newsletter sign-up is still refused from any other origin', async () => {
+  const s = setup()
+  const r = await s.call({ origin: 'https://evil.example', body: { email: 'a@x.com', consent: true, list: 'newsletter' } })
+  assert.equal(r.statusCode, 403)
+  assert.equal(s.mailer.sent.length, 0)
+})
+
+// ── The terminal's client ──
+
+test('the terminal posts the newsletter sign-up to the endpoint, never to the table, and never claims "subscribed"', async () => {
+  const { subscribeNewsletter, pendingConfirmation, NEWSLETTER_CONSENT } = await import('../src/services/newsletterService.js')
+  assert.equal(NEWSLETTER_CONSENT, LISTS.newsletter.consent.text)
+  const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) } }
+  const calls = []
+  const ok = async (u, o) => { calls.push([u, JSON.parse(o.body)]); return { status: 202, json: async () => ({}) } }
+  const st = mem()
+  assert.equal(await subscribeNewsletter(' Pat@Example.com ', true, { fetchImpl: ok, storage: st, now: () => new Date('2026-11-26T00:00:00Z') }), 'pending')
+  assert.deepEqual(calls[0], ['/api/waitlist', { email: 'pat@example.com', consent: true, website: '', list: 'newsletter' }])
+  assert.deepEqual(pendingConfirmation(st), { email: 'pat@example.com', at: '2026-11-26T00:00:00.000Z' })
+  assert.equal(await subscribeNewsletter('pat@example.com', false, { fetchImpl: ok, storage: mem() }), 'consent')
+  assert.equal(calls.length, 1, 'no request without consent')
+  const st2 = mem()
+  assert.equal(await subscribeNewsletter('pat@example.com', true, { fetchImpl: async () => ({ status: 503, json: async () => ({ error: 'not_configured' }) }), storage: st2 }), 'unavailable')
+  assert.equal(pendingConfirmation(st2), null, 'nothing remembered when nothing was sent')
+  assert.equal(await subscribeNewsletter('pat@example.com', true, { fetchImpl: async () => { throw new Error('offline') }, storage: mem() }), 'unavailable')
+  assert.equal(await subscribeNewsletter('pat@example.com', true, { fetchImpl: async () => ({ status: 429 }), storage: mem() }), 'rate_limited')
+  const src = fs.readFileSync('src/services/newsletterService.js', 'utf8') + fs.readFileSync('src/components/newsletter/Newsletter.jsx', 'utf8')
+  assert.doesNotMatch(src, /from\('waitlist'\)|supabase/)
+  assert.doesNotMatch(src, /You're subscribed|You are subscribed ✓/)
+  assert.match(fs.readFileSync('src/components/newsletter/Newsletter.jsx', 'utf8'), /useState\(false\)[\s\S]*type="checkbox" checked=\{consent\}/) // unticked by default
+})
+
+// ── Migration 012 ──
+
+test('migration 012: the public key may insert only a payments-waitlist row from the terminal', () => {
+  const sql = fs.readFileSync('supabase/migrations/012_waitlist_insert_rules.sql', 'utf8')
+  const code = sql.replace(/--.*$/gm, '')
+  assert.match(code, /DROP POLICY IF EXISTS "Anyone can join the waitlist" ON public\.waitlist/)
+  assert.match(code, /FOR INSERT TO anon, authenticated/)
+  assert.match(code, /source = 'terminal'/)
+  assert.match(code, /user_id IS NULL OR user_id = auth\.uid\(\)/)
+  assert.match(code, /created_at BETWEEN NOW\(\) - INTERVAL '5 minutes' AND NOW\(\) \+ INTERVAL '5 minutes'/)
+  assert.doesNotMatch(code, /WITH CHECK \(true\)/i)
+  // a policy change only: no data is touched, and no read/update/delete is opened
+  assert.doesNotMatch(code, /\b(DELETE FROM|UPDATE public|TRUNCATE|INSERT INTO|ALTER TABLE)\b/i)
+  assert.doesNotMatch(code, /FOR (SELECT|UPDATE|DELETE|ALL)\b/i)
+})
+
+test('migration 012 admits every insert the browser still makes, and nothing the endpoint now owns', () => {
+  // The rule, as the migration states it.
+  const admits = (row, uid = null) => row.source === 'terminal' && (row.user_id == null || row.user_id === uid)
+  // Every browser insert into waitlist, found in the source.
+  const inserts = []
+  const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = `${d}/${f.name}`; if (f.isDirectory()) walk(p); else if (/\.jsx?$/.test(f.name)) { const t = fs.readFileSync(p, 'utf8'); for (const m of t.matchAll(/from\('waitlist'\)\.(insert|upsert)\(([^)]*)\)/g)) inserts.push([p, m[2]]) } } }
+  walk('src')
+  assert.deepEqual(inserts.map(([p]) => p), ['src/components/billing/PlanModals.jsx'])
+  const [, arg] = inserts[0]
+  assert.match(arg, /source: 'terminal'/)
+  assert.doesNotMatch(arg, /user_id|created_at/)
+  assert.ok(admits({ email: 'a@x.com', tier: 'apex', source: 'terminal' }))
+  assert.ok(admits({ email: 'a@x.com', source: 'terminal', user_id: 'u1' }, 'u1'))
+  for (const bad of [{ source: 'launch-site' }, { source: 'newsletter' }, { source: null }, { source: 'terminal', user_id: 'someone-else' }]) assert.ok(!admits(bad, 'u1'), JSON.stringify(bad))
+  for (const L of Object.values(LISTS)) assert.ok(!admits({ source: L.source }), L.source)
+})
+
+test('docs/MIGRATION_012.md gives the project, the steps, the verification and the undo', () => {
+  const doc = fs.readFileSync('docs/MIGRATION_012.md', 'utf8')
+  for (const k of ['onzaybvpqkpqupzluapo', 'supabase/checks/012_verify.sql', 'Does it touch existing data', 'DROP POLICY IF EXISTS "The terminal may add a payments waitlist row"', 'pg_policies']) assert.ok(doc.includes(k), k)
+  const check = fs.readFileSync('supabase/checks/012_verify.sql', 'utf8')
+  assert.match(check, /SET LOCAL ROLE anon/)
+  assert.match(check, /RAISE EXCEPTION 'RESULT: %', res;\s*END \$\$;\s*ROLLBACK;/) // always rolled back
+  assert.doesNotMatch(check, /\bCOMMIT\b/)
 })

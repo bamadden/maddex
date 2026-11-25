@@ -20,7 +20,7 @@
 // and SUPABASE_SERVICE_KEY (to write). Anything missing → 503 not_configured.
 
 import {
-  SOURCE, CONFIRM_TTL_HOURS, LIMITS, readSubscribe, makeToken, readToken, memoryStore, counter, hashKey, allow,
+  LISTS, CONFIRM_TTL_HOURS, LIMITS, readSubscribe, makeToken, readToken, memoryStore, counter, hashKey, allow,
   clientIp, parseOrigins, confirmEmail, page, PAGE_HEADERS,
 } from './_waitlist.js'
 import { configuredMailer } from './_mailer.js'
@@ -74,7 +74,8 @@ export function createHandler({ env = process.env, mailer = configuredMailer(), 
     // ── Sign-up ──
     if (action === 'subscribe') {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST, OPTIONS'); return json(405, { error: 'method_not_allowed' }) }
-      if (!allowed) return json(403, { error: 'origin_not_allowed' })
+      // The launch site (allowlisted), or the terminal itself (same origin).
+      if (!allowed && !(origin != null && origin === cfg.publicUrl)) return json(403, { error: 'origin_not_allowed' })
       if (!type.includes('application/json')) return json(415, { error: 'json_required' })
       if (!cfg.secret || !cfg.publicUrl || !cfg.db || !mailer) return json(503, { error: 'not_configured' })
       if (!(await allow(store, hashKey(cfg.secret, 'ip', clientIp(headers)), LIMITS.subscribeIp, now()))) return tooMany(res)
@@ -92,9 +93,11 @@ export function createHandler({ env = process.env, mailer = configuredMailer(), 
 
       const t = now()
       const link = (a, token) => `${cfg.publicUrl}/api/waitlist?action=${a}&token=${token}`
-      const unsub = makeToken(cfg.secret, 'unsubscribe', input.email, { now: t })
+      const list = input.list
+      const unsub = makeToken(cfg.secret, 'unsubscribe', input.email, { now: t, list })
       const msg = confirmEmail({
-        confirmUrl: link('confirm', makeToken(cfg.secret, 'confirm', input.email, { now: t, ttlHours: CONFIRM_TTL_HOURS })),
+        list,
+        confirmUrl: link('confirm', makeToken(cfg.secret, 'confirm', input.email, { now: t, ttlHours: CONFIRM_TTL_HOURS, list })),
         unsubscribeUrl: link('unsubscribe', unsub),
         unsubscribePost: link('unsubscribe', unsub),
       })
@@ -107,9 +110,6 @@ export function createHandler({ env = process.env, mailer = configuredMailer(), 
 
     // ── The emailed links ──
     const isConfirm = action === 'confirm'
-    const words = isConfirm
-      ? { title: 'Confirm your sign-up', message: 'Confirm that you want emails about Maddex early access and its launch.', button: 'Confirm my email address' }
-      : { title: 'Unsubscribe', message: 'Stop all emails about Maddex early access and its launch, and remove your address from the list.', button: 'Unsubscribe' }
     if (!cfg.secret || !cfg.db) return reply(503, { error: 'not_configured' }, { title: 'Not available', message: 'This link cannot be used just now. Please try again later.' })
     if (!['GET', 'POST'].includes(req.method)) { res.setHeader('Allow', 'GET, POST'); return reply(405, { error: 'method_not_allowed' }, { title: 'Not available', message: 'Open the link from the email.' }) }
     // A form on our own page (its no-referrer policy makes the browser send
@@ -133,6 +133,10 @@ export function createHandler({ env = process.env, mailer = configuredMailer(), 
       return reply(400, { error: p.error }, { title: 'Link not valid', message })
     }
 
+    const L = LISTS[p.l]
+    const words = isConfirm
+      ? { title: 'Confirm your sign-up', message: `Confirm that you want ${L.about}.`, button: 'Confirm my email address' }
+      : { title: 'Unsubscribe', message: `Stop ${L.about}, and remove your address from that list.`, button: 'Unsubscribe' }
     if (req.method === 'GET') return html(200, { ...words, action: `/api/waitlist?action=${action}&token=${token}` })
 
     const db = { apikey: cfg.db.key, authorization: `Bearer ${cfg.db.key}` }
@@ -140,9 +144,9 @@ export function createHandler({ env = process.env, mailer = configuredMailer(), 
       ? await fetchImpl(`${cfg.db.url}/rest/v1/waitlist?on_conflict=email,source`, {
         method: 'POST',
         headers: { ...db, 'content-type': 'application/json', prefer: 'resolution=ignore-duplicates,return=minimal' },
-        body: JSON.stringify([{ email: p.e, source: SOURCE }]),
+        body: JSON.stringify([{ email: p.e, source: L.source }]),
       }).catch(() => null)
-      : await fetchImpl(`${cfg.db.url}/rest/v1/waitlist?email=eq.${encodeURIComponent(p.e)}&source=eq.${SOURCE}`, {
+      : await fetchImpl(`${cfg.db.url}/rest/v1/waitlist?email=eq.${encodeURIComponent(p.e)}&source=eq.${L.source}`, {
         method: 'DELETE', headers: { ...db, prefer: 'return=minimal' },
       }).catch(() => null)
     if (!r?.ok) {
@@ -150,8 +154,8 @@ export function createHandler({ env = process.env, mailer = configuredMailer(), 
       return reply(502, { error: 'save_failed' }, { title: 'Not saved', message: 'That did not go through. Please try the link again in a few minutes.' })
     }
     return isConfirm
-      ? reply(200, { ok: true, status: 'confirmed' }, { title: 'You are on the list', message: 'We will email you about early access and the launch. Every email has an unsubscribe link.' })
-      : reply(200, { ok: true, status: 'unsubscribed' }, { title: 'Unsubscribed', message: 'Your address has been removed from the list. You will get no more emails about early access or the launch.' })
+      ? reply(200, { ok: true, status: 'confirmed' }, { title: 'You are on the list', message: `You will get ${L.about}. Every email has an unsubscribe link.` })
+      : reply(200, { ok: true, status: 'unsubscribed' }, { title: 'Unsubscribed', message: `Your address has been removed from ${L.name}. You will get no more of its emails.` })
   }
 }
 
