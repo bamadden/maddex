@@ -7,7 +7,12 @@ import { displayService } from '../../services/displayService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { useAuthStore } from '../../store/useAuthStore'
-import NotificationCenter from '../ui/NotificationCenter'
+// Lazy (WS6, 20 Nov 2026): the bell and the alert checkers inside it load
+// just after first paint. The placeholder is the same size, so nothing moves.
+const NotificationCenter = lazy(() => import('../ui/NotificationCenter'))
+const BellPlaceholder = () => (
+  <span className="relative flex items-center justify-center w-6 h-7 text-terminal-text-dim" aria-hidden="true" data-tour="bell"><span className="text-sm">◎</span></span>
+)
 import { getInitials } from '../../lib/profileUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import Tooltip from '../ui/Tooltip'
@@ -482,7 +487,7 @@ export default function TopBar() {
           // Gated behind `user`, a signed-out visitor could set a price alert
           // from the watchlist, see it saved and badged, and have it never once
           // be evaluated. The component reads nothing from auth.
-          <NotificationCenter key="bell" />,
+          <Suspense key="bell" fallback={<BellPlaceholder />}><NotificationCenter /></Suspense>,
           user ? <UserMenu key="user" /> : null,
         ]
           .filter(Boolean)

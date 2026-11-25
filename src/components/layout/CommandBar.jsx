@@ -987,7 +987,8 @@ const IdleList = memo(function IdleList({ items, activeIdx, onSelect }) {
 
 // ─── Main CommandBar ──────────────────────────────────────────────────────────
 
-export default function CommandBar() {
+// early: what the first-paint shell took before this loaded (CommandBarShell).
+export default function CommandBar({ early = null } = {}) {
   const {
     setActiveModule, pushCmdHistory, cmdHistory,
     setChatOpen, addChatMessage, updateLastChatMessage,
@@ -1000,7 +1001,7 @@ export default function CommandBar() {
 
   const { audUsd } = useAudRates()
 
-  const [inputValue,  setInputValue]  = useState('')
+  const [inputValue,  setInputValue]  = useState(() => early?.value ?? '')
   const [status,      setStatus]      = useState('READY')
   const [histIdx,     setHistIdx]     = useState(-1)
   const [suggestions, setSuggestions] = useState([])
@@ -1015,6 +1016,7 @@ export default function CommandBar() {
   const debouncedValue = useDebounce(inputValue, 150)
 
   const inputRef   = useRef(null)
+  useEffect(() => { if (early?.focused) inputRef.current?.focus() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const wrapperRef = useRef(null)
 
   // ── History stored in localStorage ──────────────────────────────────────────

@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { InlineLoading } from './components/ui/ModuleStates'
-import NotificationPermissionPrompt from './components/ui/NotificationPermissionPrompt'
 import PlanOverlays from './components/billing/PlanOverlays'
 import { gatedModule } from './components/billing/ModuleGate'
 import { MODULE_FEATURE, trialEndedSeen, devTrialDay } from './services/plans'
@@ -17,9 +16,7 @@ import { useAuthStore } from './store/useAuthStore'
 import { fetchNews } from './services/api'
 import AppLoader from './components/ui/AppLoader'
 import NotFoundPage from './pages/NotFoundPage'
-import AlertSuggestion from './components/ui/AlertSuggestion'
 import { APP_VERSION } from './components/layout/NavBar'
-import ContextualTip from './components/onboarding/ContextualTip'
 import {
   hasBeenWelcomed, markWelcomed, shouldShowWhatsNew, markWhatsNewSeen,
 } from './services/onboardingState'
@@ -27,7 +24,10 @@ import TopBar from './components/layout/TopBar'
 import EventWarningBar from './components/layout/EventWarningBar'
 import NavBar, { MobileNavBar } from './components/layout/NavBar'
 import TickerTape from './components/layout/TickerTape'
-import CommandBar from './components/layout/CommandBar'
+import CommandBarShell from './components/layout/CommandBarShell'
+import { earlyCommand } from './components/layout/commandEarly'
+// Loads just after first paint; the shell stands in (WS6, 20 Nov 2026).
+const CommandBar = lazy(() => import('./components/layout/CommandBar'))
 import AIPanelGate from './components/layout/AIPanelGate'
 // Every routable module is lazy.
 //
@@ -107,7 +107,12 @@ import { FloatingWindow } from './components/ui/FloatingWindow'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { installErrorCapture, recordTiming, setDiagnosticsModule, takeModuleSwitch } from './services/diagnostics'
 import OfflineBanner from './components/layout/OfflineBanner'
-import TrialNudges from './components/ui/TrialNudges'
+// Overlays that render nothing on most loads: loaded just after first paint
+// (WS6, 20 Nov 2026). Each is mounted inside <Suspense fallback={null}>.
+const NotificationPermissionPrompt = lazy(() => import('./components/ui/NotificationPermissionPrompt'))
+const AlertSuggestion = lazy(() => import('./components/ui/AlertSuggestion'))
+const ContextualTip = lazy(() => import('./components/onboarding/ContextualTip'))
+const TrialNudges = lazy(() => import('./components/ui/TrialNudges'))
 
 installErrorCapture()
 
@@ -893,28 +898,30 @@ function Terminal() {
                 rather than reusing the previous one's dismissed state. Only
                 renders at all for a user in their first week — see
                 onboardingState.js. */}
-            <ContextualTip
-              key={`tip-${activeModule}`}
-              moduleId={activeModule}
-              suppressed={showWelcome || showTour || showWhatsNew}
-            />
+            <Suspense fallback={null}>
+              <ContextualTip
+                key={`tip-${activeModule}`}
+                moduleId={activeModule}
+                suppressed={showWelcome || showTour || showWhatsNew}
+              />
+            </Suspense>
             {/* MaddenAI's tooltip teaches the shortcut the first time the
                 panel is opened — the moment someone has reached it the slow way. */}
             {chatOpen && (
-              <ContextualTip key="tip-maddenai" moduleId="maddenai" suppressed={showWelcome || showTour || showWhatsNew} />
+              <Suspense fallback={null}><ContextualTip key="tip-maddenai" moduleId="maddenai" suppressed={showWelcome || showTour || showWhatsNew} /></Suspense>
             )}
           </div>
         )}
         </main>
         {layout !== 'focus' && layout !== 'split' && <AIPanelGate wide={layout === 'research'} />}
       </div>
-      <CommandBar />
+      <Suspense fallback={<CommandBarShell />}><CommandBar early={earlyCommand} /></Suspense>
       <StatusBar lastUpdated={statusUpdatedAt} />
       <LegalFooter />
       <MobileNavBar />
       <Suspense fallback={null}>{modalAsset && <DetailModal />}</Suspense>
       <OfflineBanner />
-      <TrialNudges />
+      <Suspense fallback={null}><TrialNudges /></Suspense>
       <Suspense fallback={null}>{compareAssets != null && <ComparisonView />}</Suspense>
       {showShortcuts && <ShortcutModal onClose={() => setShowShortcuts(false)} />}
       {correlationAssets && (
@@ -944,10 +951,10 @@ function Terminal() {
       })}
       {!acknowledged && <DisclaimerAcknowledgement onAcknowledge={async () => { await recordAcknowledgement({ user: ackUser, updateUserMetadata: ackSave }); setAcknowledged(true) }} />}
       {showWelcome && <Suspense fallback={null}><WelcomeModal onGetStarted={completeWelcome} /></Suspense>}
-      <NotificationPermissionPrompt suppressed={!acknowledged || showWelcome || showTour} />
+      <Suspense fallback={null}><NotificationPermissionPrompt suppressed={!acknowledged || showWelcome || showTour} /></Suspense>
       <Suspense fallback={null}><DataLegend /></Suspense>
       <PlanOverlays />
-      <AlertSuggestion />
+      <Suspense fallback={null}><AlertSuggestion /></Suspense>
       {acknowledged && !showWelcome && showTour && (
         <Suspense fallback={null}>
           <SetupWizard key={replayTour ? 'replay' : 'tour'} onComplete={completeTour}
