@@ -34,8 +34,10 @@ The policy allows:
 - styles from this site, inline styles (React sets `style=`), and Google Fonts;
 - fonts from this site and Google Fonts;
 - images from any https host, `data:` and `blob:`;
-- network requests (`connect-src`) to this site's `/api/*` and the hosts the
-  signed-in app was seen using on 26 Nov:
+- network requests (`connect-src`) to `data:` URLs (a library reads inline
+  data that way; this was the one violation in the 26 Nov signed-in pass),
+  to this site's `/api/*`, and to the hosts the signed-in app was seen using
+  on 26 Nov:
   - Supabase (project `onzaybvpqkpqupzluapo`)
   - CoinGecko and Binance
   - alternative.me and mempool.space

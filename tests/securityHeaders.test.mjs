@@ -36,6 +36,8 @@ test('the CSP is report-only (not enforced), strict on scripts, and reports to /
   // The hosts the signed-in app was seen fetching from on 26 Nov (all 19 modules).
   for (const h of ['https://onzaybvpqkpqupzluapo.supabase.co', 'https://api.coingecko.com', 'https://tiles.openfreemap.org', 'https://earthquake.usgs.gov']) assert.ok(d['connect-src'].includes(h), h)
   assert.ok(!d['connect-src'].some((h) => /anthropic/.test(h)), 'the browser never calls Anthropic directly')
+  // The only violation in the 26 Nov signed-in pass: a library fetching a data: URL.
+  assert.ok(d['connect-src'].includes('data:'))
 })
 
 test('nothing in the app frames its own pages (X-Frame-Options DENY would break it)', () => {

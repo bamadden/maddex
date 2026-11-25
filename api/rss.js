@@ -23,8 +23,28 @@ const ALLOWED_HOSTS = [
   'nikkei.com', 'nytimes.com',
 ]
 
-const hostAllowed = (host) =>
+export const hostAllowed = (host) =>
   ALLOWED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
+
+// Redirects are followed by hand, at most MAX_HOPS, and only to http(s) on an
+// allowed host (26 Nov 2026). fetch's default 'follow' checked only the first
+// URL, so an open redirect on any feed host would have made this fetch, and
+// return, an arbitrary address.
+const MAX_HOPS = 3
+export async function fetchAllowed(url, init = {}, fetchImpl = fetch) {
+  let target = new URL(url)
+  for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    const r = await fetchImpl(target.toString(), { ...init, redirect: 'manual' })
+    if (r.status < 300 || r.status > 399) return { response: r, url: target }
+    const loc = r.headers?.get?.('location')
+    if (!loc) return { error: `Upstream ${r.status} without a Location` }
+    let next
+    try { next = new URL(loc, target) } catch { return { error: 'Upstream redirect to an invalid URL' } }
+    if (!/^https?:$/.test(next.protocol) || !hostAllowed(next.hostname)) return { error: `Upstream redirect to a host that is not allowed: ${next.hostname || next.protocol}` }
+    target = next
+  }
+  return { error: `More than ${MAX_HOPS} redirects` }
+}
 
 // Entity decoding. Feeds are inconsistent about escaping — the same
 // publisher will send &amp;amp; in one item and a raw ampersand in the next —
@@ -86,7 +106,7 @@ export function parseFeed(xml) {
   }).filter((i) => i.title)
 }
 
-export default async function handler(req, res) {
+export default async function handler(req, res, fetchImpl = fetch) {
   const raw = (req.query?.url) ?? new URL(req.url, 'http://localhost').searchParams.get('url')
   if (!raw) return res.status(400).json({ error: 'Missing url parameter' })
 
@@ -96,14 +116,16 @@ export default async function handler(req, res) {
   if (!hostAllowed(target.hostname)) return res.status(403).json({ error: `Host not allowed: ${target.hostname}` })
 
   try {
-    const upstream = await fetch(target.toString(), {
+    const got = await fetchAllowed(target.toString(), {
       headers: {
         // Several publishers return 403 to a request with no User-Agent.
         'User-Agent': 'Mozilla/5.0 (compatible; MaddexTerminal/1.0; +https://maddex.com.au)',
         Accept: 'application/rss+xml, application/xml, text/xml, */*',
       },
       signal: AbortSignal.timeout(8000),
-    })
+    }, fetchImpl)
+    if (got.error) return res.status(502).json({ error: got.error, items: [] })
+    const upstream = got.response
     if (!upstream.ok) return res.status(502).json({ error: `Upstream ${upstream.status}`, items: [] })
 
     const xml = await upstream.text()
