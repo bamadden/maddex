@@ -104,3 +104,23 @@ test('Macro countdowns and reminders run on Sydney time; the FOMC is shown in Sy
   assert.match(s, /const todayIso = new Date\(\)\.toLocaleDateString\('en-CA', \{ timeZone: 'Australia\/Sydney' \}\)/)
   assert.doesNotMatch(read('src/modules/macro/MacroDeepDive.jsx'), /Australia\/Brisbane/)
 })
+
+// 26 Nov 2026: the quarterly result panel keyed on cpiLastRelease, so the
+// October MONTHLY release reopened it with the passed RBA decision's empty
+// market fields, and the Macro module crashed in production (null.toFixed).
+test('the quarterly CPI result panel keys on the quarterly release, and copes with empty market fields', async () => {
+  const { cpiResultShown } = await import('../src/modules/macro/cpiResultWindow.js')
+  const { VERIFIED_CONSTANTS } = await import('../src/data/verifiedConstants.js')
+  const a = VERIFIED_CONSTANTS.au
+  const nd = VERIFIED_CONSTANTS.rbaNextDecision
+  const at = (iso) => new Date(iso).getTime()
+  assert.equal(a.cpiQuarterReleased, '2026-10-28')
+  assert.equal(cpiResultShown(a, nd, at('2026-11-26T01:00:00Z')), false, 'not reopened by the monthly release')
+  assert.equal(cpiResultShown(a, { date: '2026-11-03', time: '14:30' }, at('2026-10-29T00:00:00Z')), true, 'shown between the quarterly release and the decision')
+  assert.equal(cpiResultShown(a, null, at('2026-10-30T00:00:00Z')), true)
+  assert.equal(cpiResultShown(a, null, at('2026-11-01T00:00:00Z')), false, '72 hours without a decision')
+  const src = fs.readFileSync('src/modules/macro/CpiPreviewPanel.jsx', 'utf8')
+  assert.match(src, /nd\?\.hikeRate != null && nd\?\.marketHikePct != null/)
+  assert.doesNotMatch(src, /\bnd\.hikeRate\.toFixed/)
+  assert.doesNotMatch(src, /Monthly: September/)
+})

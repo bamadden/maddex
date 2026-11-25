@@ -642,6 +642,21 @@ try {
     ? pass(`answer shows sources and how it was produced: ${meta.sources.slice(0, 90)}`)
     : fail(`no sources / production record under the answer (${JSON.stringify(meta)})`)
   await closePage(page)
+
+  // Every module opens without hitting its error boundary (26 Nov 2026: the
+  // October CPI update crashed Macro in production and nothing here opened it).
+  sectionLog('Every module opens without an error')
+  const mods = await newPage(browser, { width: 1440 })
+  active = mods
+  const crashed = []
+  for (const name of ['MARKETS', 'CRYPTO', 'RATES', 'MACRO', 'GLOBAL', 'WATCHLIST', 'PORTFOLIO', 'NEWS', 'BRIEF', 'CALENDAR', 'SCANNER', 'SCREENER', 'REPLAY', 'RELATIONSHIPS', 'BONDS', 'ETFS', 'FUTURES', 'CALC', 'DASHBOARD']) {
+    await runCommand(mods, name)
+    await wait(1800)
+    const err = await mods.evaluate(() => /\bhit an error\b/i.test(document.body.innerText) ? document.body.innerText.match(/[^\n]*hit an error[^\n]*\n?[^\n]*/i)?.[0] : null)
+    if (err) crashed.push(`${name}: ${err.replace(/\s+/g, ' ').slice(0, 120)}`)
+  }
+  crashed.length ? fail(`modules hit their error boundary: ${crashed.join(' | ')}`) : pass('19 modules opened, none hit its error boundary')
+  await closePage(mods)
 } finally {
   await Promise.allSettled(captures)
   await browser.close()

@@ -391,6 +391,7 @@ export const VERIFIED_CONSTANTS = {
     // from Appendix 1a — seasonally adjusted, on the pre-October 2025 basis —
     // and is NOT on the Data API: A3604510W (q/q), A3604511X (y/y).
     cpiQuarterPeriod: 'Sep 2026 quarter',
+    cpiQuarterReleased: '2026-10-28',  // with the September monthly CPI (quarterly result panel keys on this, not cpiLastRelease)
     cpiQuarterQoQ: 1.3,
     cpiQuarterYoY: 3.9,
     cpiQuarterTrimmedQoQ: 1.0,

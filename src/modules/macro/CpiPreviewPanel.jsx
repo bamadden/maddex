@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
-import { sydneyOffset, formatDate } from '../../utils/dateUtils'
+import { formatDate } from '../../utils/dateUtils'
 import { askMaddenAI } from '../../utils/askAI'
 import { PAL } from '../../styles/palette.js'
+import { cpiResultShown } from './cpiResultWindow'
 
 // The September quarter CPI result, the last major print before the 3 Nov RBA
 // decision. Shown from the release until that decision (or three days, if no
@@ -15,7 +16,6 @@ import { PAL } from '../../styles/palette.js'
 // measured against. Every figure is from verifiedConstants.au, as published
 // by the ABS.
 
-const SHOW_AFTER_MS = 72 * 3600_000
 const pct = (v) => `${v.toFixed(1)}%`
 
 function useNow(ms = 60_000) {
@@ -28,12 +28,8 @@ export default function CpiPreviewPanel() {
   const a = VERIFIED_CONSTANTS.au
   const nd = VERIFIED_CONSTANTS.rbaNextDecision
   const now = useNow()
-  if (a.cpiQuarterTrimmedQoQ == null) return null
-
-  const released = new Date(`${a.cpiLastRelease}T11:30:00${sydneyOffset(a.cpiLastRelease)}`).getTime()
-  const decision = nd ? new Date(`${nd.date}T${nd.time}:00${sydneyOffset(nd.date)}`).getTime() : null
-  const until = decision && decision > released ? decision : released + SHOW_AFTER_MS
-  if (now < released || now >= until) return null
+  if (!cpiResultShown(a, nd, now)) return null
+  const pricing = nd?.hikeRate != null && nd?.marketHikePct != null ? nd : null
 
   const pq = a.cpiQuarterPrevious
   const rows = [
@@ -47,7 +43,7 @@ export default function CpiPreviewPanel() {
     <div className="border-b border-terminal-border" style={{ background: 'rgba(201,168,76,0.04)' }}>
       <div className="panel-header flex items-center gap-2 flex-wrap">
         <span className="text-terminal-gold">SEP QUARTER (Q3) CPI — RESULT</span>
-        <span className="text-2xs font-bold px-1.5" style={{ color: PAL.up, border: '1px solid #2D8A5066' }}>RELEASED {a.cpiLastRelease}</span>
+        <span className="text-2xs font-bold px-1.5" style={{ color: PAL.up, border: '1px solid #2D8A5066' }}>RELEASED {a.cpiQuarterReleased}</span>
         <HandEnteredBadge dataKey="au" />
         <span className="ml-auto flex items-center gap-2">
           <a href={a.cpiQuarterUrl} target="_blank" rel="noopener noreferrer" className="text-2xs text-terminal-gold hover:underline">ABS.GOV.AU ↗</a>
@@ -75,17 +71,17 @@ export default function CpiPreviewPanel() {
             </tbody>
           </table>
           <div className="text-2xs text-terminal-text-dim/70 mt-1.5 leading-snug">
-            Forecasts: {a.cpiQuarterForecasts} Monthly: September {pct(a.cpi)} y/y ({a.cpiMoM >= 0 ? '+' : ''}{pct(a.cpiMoM)} m/m), trimmed mean {pct(a.cpiTrimmedMean)}.
+            Forecasts: {a.cpiQuarterForecasts} Monthly: {a.cpiPeriod} {pct(a.cpi)} y/y ({a.cpiMoM >= 0 ? '+' : ''}{pct(a.cpiMoM)} m/m), trimmed mean {pct(a.cpiTrimmedMean)}.
             {a.cpiDrivers && <> Drivers: {a.cpiDrivers}</>}
           </div>
         </div>
 
         <div className="p-3">
-          {nd && (
+          {pricing && (
             <div className="text-2xs leading-snug">
               <div className="text-terminal-text-dim tracking-widest mb-1">MARKET PRICING, 3 NOV</div>
-              <b className="text-terminal-text-bright">~{nd.marketHikePct}% hike</b>
-              <span className="text-terminal-text-dim"> to {nd.hikeRate.toFixed(2)}% — {nd.marketSource}, as at {formatDate(nd.marketAsOf)}. A dated reading, not a live feed. {nd.marketContext}</span>
+              <b className="text-terminal-text-bright">~{pricing.marketHikePct}% hike</b>
+              <span className="text-terminal-text-dim"> to {pricing.hikeRate.toFixed(2)}% — {pricing.marketSource}, as at {formatDate(pricing.marketAsOf)}. A dated reading, not a live feed. {pricing.marketContext}</span>
             </div>
           )}
           <div className="text-2xs text-terminal-text-dim/60 mt-2 leading-snug">
