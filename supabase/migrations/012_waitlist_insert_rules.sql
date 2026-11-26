@@ -1,7 +1,8 @@
 -- Migration 012: what the public (anon) key may insert into the waitlist.
 --
--- NOT APPLIED. Ben applies it in the Supabase SQL Editor; the steps, the
--- verification and the rollback are in docs/MIGRATION_012.md. Apply it only
+-- APPLIED 26 Nov 2026 (SQL Editor, onzaybvpqkpqupzluapo; verified before and
+-- after). The steps, the verification and the rollback are in
+-- docs/MIGRATION_012.md. Apply it only
 -- AFTER the release that moves the newsletter sign-up to /api/waitlist is
 -- live (26 Nov 2026), or the terminal's newsletter sign-up stops working.
 --

@@ -1,7 +1,19 @@
 # Migration 012: who may add rows to the waitlist
 
 File: `supabase/migrations/012_waitlist_insert_rules.sql`. Written 26 Nov
-2026. **Not applied. Ben applies it.**
+2026. **Applied 26 Nov 2026**, on Ben's instruction, in the SQL Editor of
+`onzaybvpqkpqupzluapo`. The file was set in the editor from the repo and
+checked byte for byte (SHA-256) before Run.
+
+| Check | Result |
+|---|---|
+| Before (`012_verify.sql`) | `FAIL launch-site accepted \| FAIL newsletter accepted \| FAIL back-dated row accepted \| CHECK row for another account: refused by the foreign key, not the policy \| PASS terminal row accepted (rolled back)` |
+| Run | Supabase first showed *"Potential issue detected. This query includes destructive operations…"* for the two DROP POLICY lines. Cancelled, asked Ben, then run on his yes. Result: `Success. No rows returned` |
+| After (`012_verify.sql`) | `PASS launch-site refused \| PASS newsletter refused \| PASS back-dated row refused \| PASS row for another account refused \| PASS terminal row accepted (rolled back)` |
+| Newsletter rows (`source = 'newsletter'`) | **0 rows.** None existed, so there was nothing to delete and nothing was deleted. |
+
+Note for a rerun: Supabase shows the "destructive operations" dialog for any
+`DROP`. Here it means only the two `DROP POLICY` lines.
 
 ## What it changes, in plain English
 
@@ -51,7 +63,7 @@ FROM public.waitlist GROUP BY source ORDER BY source;
 
 Whether to keep the unconfirmed newsletter rows, or delete them and let
 those people sign up again with confirmation, is your decision. The
-migration leaves them alone.
+migration leaves them alone. (On 26 Nov there were none.)
 
 ## When to apply it
 

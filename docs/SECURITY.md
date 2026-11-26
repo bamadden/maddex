@@ -167,8 +167,7 @@ requests.
 
 ## Owed (as of 26 Nov 2026)
 
-- **Migration 012:** Ben to apply (`docs/MIGRATION_012.md`). Until then the
-  public key can create waitlist rows that look confirmed.
+- ~~Migration 012~~: applied and verified 26 Nov (`docs/MIGRATION_012.md`).
 - **CSP:** stays report-only until a few days of `[csp]` logs show nothing
   new and Ben says to enforce it.
 - **Firewall rules:** Ben to add, as above.
