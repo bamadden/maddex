@@ -74,8 +74,8 @@ Updated 26 Nov 2026 (WS2 re-audit, `docs/audit/ws2-2026-11-26.md`).
   - A view keeps the layout (split or single pane) and the state of the
     Dashboard, Scanner, Screener, Markets, Macro, News, Watchlist, Bonds,
     Futures, Calculators, ETFs and company pages.
-  - Still open: a view cannot be renamed, and a view beyond the tenth is
-    dropped without a warning.
+  - `rename view OLD to NEW` renames one, and a save that would drop the
+    oldest of ten warns first.
 - **Search breadth: mostly closed.** Search reaches the glossary, saved
   views, economic-calendar events and Relationships nodes. Earnings and
   dividend dates are not searchable yet, and choosing an event opens

@@ -53,7 +53,7 @@ test('saved views keep the module state it exposes, and are saved and found from
   assert.match(fs.readFileSync('src/hooks/useModuleIntent.js', 'utf8'), /recordIntentValue\(module, field, value\)/)
   const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
   assert.match(bar, /\^save \(\?:this \|the \)\?view/)
-  assert.match(bar, /case 'saveview':[\s\S]{0,200}madden:save-view/)
+  assert.match(bar, /case 'saveview':[\s\S]{0,900}madden:save-view/)
 })
 
 // WS2 re-audit, 26 Nov 2026.
@@ -144,4 +144,22 @@ test('CUSTOM widgets move with ◀ ▶ (keyboard and touch), through the same ch
   assert.match(grid, /const swap = \(from, to, dryRun = false\)/)
   assert.match(grid, /const handleDrop = \(dropIndex\) => \{ swap\(dragRef\.current, dropIndex\)/)
   assert.match(grid, /aria-label=\{`Move \$\{meta\?\.name \?\? widget\.widgetId\} \$\{word\}`\}/)
+})
+
+test('a view can be renamed; saving an eleventh new view warns first, naming the view it would drop', async () => {
+  const store = new Map()
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) }
+  const { viewStateService, MAX_SAVED_VIEWS } = await import('../src/services/viewStateService.js')
+  for (let i = 0; i < MAX_SAVED_VIEWS; i++) viewStateService.saveView(`View ${i}`, { activeModule: 'fx' })
+  assert.equal(viewStateService.wouldDrop('A new one').name, 'View 0', 'the oldest')
+  assert.equal(viewStateService.wouldDrop('view 5'), null, 'an existing name replaces, drops nothing')
+  const v = viewStateService.findByName('View 3')
+  assert.equal(viewStateService.renameView(v.id, 'Morning rates'), 'renamed')
+  assert.equal(viewStateService.findByName('morning rates').id, v.id)
+  assert.equal(viewStateService.renameView(v.id, 'View 4'), 'taken')
+  assert.equal(viewStateService.renameView('nope', 'X'), 'missing')
+  const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
+  assert.match(bar, /kind: 'renameview'/)
+  assert.match(bar, /viewStateService\.wouldDrop\(nl\.name\)[\s\S]{0,200}pendingDropRef\.current !== nl\.name\.toLowerCase\(\)/)
+  assert.match(fs.readFileSync('src/components/layout/WorkspaceSwitcher.jsx', 'utf8'), /data-view-drop-warning/)
 })

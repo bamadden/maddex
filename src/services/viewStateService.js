@@ -40,11 +40,33 @@ class ViewStateService {
     // A name already saved is replaced, not duplicated (WS2 audit).
     const label = name || 'Untitled View'
     const views = this.getSavedViews().filter((v) => v.name.toLowerCase() !== label.toLowerCase())
-    const view = { id: `view_${Date.now()}`, name: label, timestamp: Date.now(), state }
+    // Unique even for two saves in one millisecond (rename and delete go by id).
+    const view = { id: `view_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name: label, timestamp: Date.now(), state }
     const next = [view, ...views].slice(0, MAX_SAVED_VIEWS)
     try { localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next)) } catch { /* best-effort */ }
     this.emit()
     return view.id
+  }
+
+  // The view a save under this name would push out (the oldest, when the
+  // list is full and the name is new), or null (WS2 audit, 26 Nov 2026: the
+  // eleventh view dropped the oldest without a word).
+  wouldDrop(name) {
+    const label = (name || 'Untitled View').toLowerCase()
+    const views = this.getSavedViews()
+    if (views.some((v) => v.name.toLowerCase() === label)) return null
+    return views.length >= MAX_SAVED_VIEWS ? views[views.length - 1] : null
+  }
+
+  // → 'renamed' | 'missing' | 'taken' (another view has that name).
+  renameView(id, name) {
+    const label = String(name ?? '').trim().slice(0, 40)
+    const views = this.getSavedViews()
+    if (!label || !views.some((v) => v.id === id)) return 'missing'
+    if (views.some((v) => v.id !== id && v.name.toLowerCase() === label.toLowerCase())) return 'taken'
+    try { localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(views.map((v) => (v.id === id ? { ...v, name: label } : v)))) } catch { /* best-effort */ }
+    this.emit()
+    return 'renamed'
   }
 
   deleteView(id) {

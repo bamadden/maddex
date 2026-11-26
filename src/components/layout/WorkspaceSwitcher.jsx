@@ -249,7 +249,12 @@ function SavedViewsMenu() {
                 className="flex-1 bg-terminal-bg border border-terminal-border px-1.5 py-1 text-2xs text-terminal-text-bright outline-none focus:border-terminal-gold"
               />
             </div>
-          ) : (
+          ) : null}
+          {saving ? (viewStateService.wouldDrop(name.trim()) && (
+            <div className="px-2 pb-2 text-2xs text-terminal-gold leading-snug" role="status" data-view-drop-warning>
+              10 views saved: Enter drops &quot;{viewStateService.wouldDrop(name.trim()).name}&quot;, the oldest.
+            </div>
+          )) : (
             <button
               onClick={() => setSaving(true)}
               className="block w-full text-left px-3 py-2 text-2xs text-terminal-gold hover:bg-terminal-surface2 tracking-wide border-b border-terminal-border/40"

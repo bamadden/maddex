@@ -283,6 +283,8 @@ function parseNaturalLanguage(raw) {
   // "views" lists them; "view NAME" / "open view NAME" opens one (WS2 audit:
   // both fell through to a ticker lookup and to MaddenAI).
   if (/^(?:saved )?views$/i.test(t)) return { kind: 'listviews', say: 'List the views saved on this device' }
+  const rv = t.match(/^rename (?:the )?view (.{1,40}?) (?:to|as) (.{1,40})$/i)
+  if (rv) return { kind: 'renameview', name: rv[1].trim(), to: rv[2].trim(), say: `Rename the saved view "${rv[1].trim()}" to "${rv[2].trim()}"` }
   const dv = t.match(/^(?:delete|remove) (?:the )?view (.{1,40})$/i)
   if (dv) return { kind: 'deleteview', name: dv[1].trim(), say: `Delete the saved view "${dv[1].trim()}" from this device` }
   const ov = t.match(/^(?:open |load )?view (.{1,40})$/i)
@@ -1024,6 +1026,7 @@ export default function CommandBar({ early = null } = {}) {
   const debouncedValue = useDebounce(inputValue, 150)
 
   const inputRef   = useRef(null)
+  const pendingDropRef = useRef(null) // a save confirmed by repeating it (saved views full)
   useEffect(() => { if (early?.focused) inputRef.current?.focus() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const wrapperRef = useRef(null)
 
@@ -1638,6 +1641,13 @@ export default function CommandBar({ early = null } = {}) {
           flash(names.length ? `Saved views: ${names.slice(0, 6).join(' · ')}${names.length > 6 ? ` (+${names.length - 6})` : ''} — type "view NAME"` : 'No saved views yet. Type "save view NAME" to keep this one.', 'text-terminal-green', 6000)
           return
         }
+        case 'renameview': {
+          const v = viewStateService.findByName(nl.name)
+          if (!v) { flash(`No single saved view matches "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
+          const r = viewStateService.renameView(v.id, nl.to)
+          flash(r === 'renamed' ? `Renamed "${v.name}" to "${nl.to}".` : r === 'taken' ? `Another saved view is already called "${nl.to}".` : 'That name cannot be used.', r === 'renamed' ? 'text-terminal-green' : 'text-terminal-gold', 3500)
+          return
+        }
         case 'deleteview': {
           const v = viewStateService.findByName(nl.name)
           if (!v) { flash(`No single saved view matches "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
@@ -1652,10 +1662,21 @@ export default function CommandBar({ early = null } = {}) {
           flash(`→ VIEW "${v.name}"`, 'text-terminal-green', 2000)
           return
         }
-        case 'saveview':
+        case 'saveview': {
+          // Full list and a new name: say which view would go, and save only
+          // when the same command is given again.
+          const drop = viewStateService.wouldDrop(nl.name)
+          if (drop && pendingDropRef.current !== nl.name.toLowerCase()) {
+            pendingDropRef.current = nl.name.toLowerCase()
+            flash(`10 views saved: this would drop "${drop.name}", the oldest. Press Enter again to save, or "delete view NAME" first.`, 'text-terminal-gold', 8000)
+            setInputValue(raw)
+            return
+          }
+          pendingDropRef.current = null
           window.dispatchEvent(new CustomEvent('madden:save-view', { detail: { name: nl.name } }))
           flash(`Saved view "${nl.name}" on this device. Type "views" to list them.`, 'text-terminal-green', 3000)
           return
+        }
         case 'rbapreview':
           rbaPreview(VERIFIED_CONSTANTS.rba.nextMeeting)
           flash('→ MADDENAI RBA DECISION PREVIEW', 'text-terminal-green', 2000)
