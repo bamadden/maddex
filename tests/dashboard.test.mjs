@@ -117,3 +117,23 @@ test('CUSTOM: a swap never puts one widget on top of another (WS2 re-audit H1)',
     if (n) assert.equal(new Set(cells(n)).size, cells(n).length, `swap ${i}↔${j} overlaps`)
   }
 })
+
+// 26 Nov 2026 (WS2, CUSTOM at phone width): edits work on the saved layout,
+// not the one-column copy a phone draws. On the copy every swap overlapped
+// (all moves disabled), and a saved swap would have replaced the layout with
+// its squashed copy. The one-column order follows the saved reading order.
+test('CUSTOM at phone width: edits use the saved layout; the drawn order follows it', async () => {
+  const mod = read('src/modules/dashboard/DashboardModule.jsx')
+  const grid = read('src/modules/dashboard/DashboardGrid.jsx')
+  assert.match(mod, /layout=\{effective\}\s+savedLayout=\{layout\}/)
+  assert.doesNotMatch(mod, /editMode && !isNarrow|custom && !isNarrow && \(\s*<button\s+onClick=\{\(\) => setEditMode/)
+  assert.match(grid, /swapPlacement\(savedLayout\.widgets, from, to, savedLayout\.columns/)
+  assert.match(grid, /dashboardService\.save\(\{ \.\.\.savedLayout,/)
+  assert.doesNotMatch(grid, /dashboardService\.save\(\{ \.\.\.layout,/)
+  assert.match(grid, /order: columns === 1 \? order : undefined/)
+  const { swapPlacement } = await import('../src/modules/dashboard/gridPlacement.js')
+  const saved = [{ widgetId: 'a', col: 0, row: 0, w: 1, h: 1 }, { widgetId: 'b', col: 1, row: 0, w: 1, h: 1 }, { widgetId: 'c', col: 0, row: 1, w: 2, h: 1 }]
+  const squashed = saved.map((w) => ({ ...w, col: 0, w: 1 }))
+  assert.equal(swapPlacement(squashed, 0, 1, 1), null, 'on the drawn copy the swap is refused')
+  assert.deepEqual(swapPlacement(saved, 0, 1, 3).map((w) => [w.widgetId, w.col, w.w]), [['a', 1, 1], ['b', 0, 1], ['c', 0, 2]])
+})

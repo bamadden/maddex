@@ -67,7 +67,7 @@ export default function DashboardModule() {
   // would be a setState-during-effect (the cascading-render pattern), and it
   // would also DISCARD the user's choice, so widening the window would come
   // back with edit mode off rather than as they left it.
-  const editing = editMode && !isNarrow && custom
+  const editing = editMode && custom
 
   // Widgets navigate by event so they can render anywhere, including inside
   // a popout window with no store provider in scope.
@@ -143,7 +143,9 @@ export default function DashboardModule() {
                 style={showPicker ? undefined : { border: '1px solid rgba(201,168,76,0.2)' }}
               >⊞ LAYOUT</button>
             )}
-            {custom && !isNarrow && (
+            {/* Edit works at every width (WS2: ◀ ▶ and ✕ need no pointer;
+                at phone width + ADD WIDGET places in the first free slot). */}
+            {custom && (
               <button
                 onClick={() => setEditMode((v) => !v)}
                 data-tip="dashboard-edit"
@@ -180,6 +182,7 @@ export default function DashboardModule() {
       {custom ? (
         <DashboardGrid
           layout={effective}
+          savedLayout={layout}
           editMode={editing}
           onAddAt={(col, row) => { setAddAt({ col, row }); }}
         />

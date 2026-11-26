@@ -37,8 +37,8 @@ function rbaCard(now) {
     tag: 'RBA',
     tone: 'gold',
     title: `RBA decision ${when}${priced ? ` — ~${nd.marketHikePct}% hike priced` : ''}`,
-    body: `${weekday(nd.date)} ${dayMonth(nd.date)}, ${nd.time} AEDT. ${priced ? `Markets price ~${nd.marketHikePct}% for a 25bp hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, ${dayMonth(nd.marketAsOf)}).` : `The cash rate is ${nd.currentRate.toFixed(2)}%.`}${cpi} Watch the statement for whether the Board signals more after this one.`,
-    prompt: `The RBA decides on ${dayMonth(nd.date)}. Using the market pricing, CPI and RBA statement figures in your context, what should I watch for, and what would a hike versus a hold mean for the AUD and ASX sectors?`,
+    body: `${weekday(nd.date)} ${dayMonth(nd.date)}, ${nd.time} AEDT. ${priced ? `Markets price ~${nd.marketHikePct}% for a 25bp hike to ${nd.hikeRate.toFixed(2)}% (${nd.marketSource}, ${dayMonth(nd.marketAsOf)}).` : `The cash rate is ${nd.currentRate.toFixed(2)}%.`}${cpi} The Board's statement is released with the decision.`,
+    prompt: `The RBA decides on ${dayMonth(nd.date)}. Using the market pricing, CPI and RBA statement figures in your context, describe what the Board's last statement said, how markets are priced, and which ASX sectors are reported as sensitive to the cash rate. Describe only: no forecast of the decision.`,
     source: nd.source,
   }
 }

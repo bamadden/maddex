@@ -70,6 +70,50 @@ function withHistoryCache(messages) {
   ))
 }
 
+// Upstream failures, classified (26 Nov 2026, live testing). The vendor's
+// own text ("credit balance is too low", request ids) is logged here and
+// never sent to the browser; the client words each code for the reader
+// (services/api.js userFacingAiError).
+export const UPSTREAM_TIMEOUT_MS = 30_000 // until the response starts
+export const STREAM_IDLE_MS = 45_000 // between chunks once it has
+export function upstreamError(status, text = '') {
+  const t = String(text)
+  const code = status === 401 || status === 403 || /authentication_error|invalid x-api-key/i.test(t) ? 'UPSTREAM_AUTH'
+    : status === 402 || /credit balance|billing|insufficient (credit|funds)|quota/i.test(t) ? 'UPSTREAM_PAUSED'
+    : status === 429 || status === 529 || /overloaded|rate.?limit/i.test(t) ? 'UPSTREAM_BUSY'
+      : /prompt is too long|too many tokens|context length/i.test(t) ? 'UPSTREAM_TOO_LONG'
+        : 'UPSTREAM_ERROR'
+  const out = code === 'UPSTREAM_BUSY' ? 503 : code === 'UPSTREAM_TOO_LONG' ? 400 : 502
+  return { status: out, body: { error: 'MaddenAI upstream request failed', code } }
+}
+
+// Starts the upstream request; aborts if no response within timeoutMs.
+// → { res } or { timedOut: true } or { failed: message }
+export async function startUpstream(init, { fetchImpl = fetch, timeoutMs = UPSTREAM_TIMEOUT_MS } = {}) {
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), timeoutMs)
+  try {
+    return { res: await fetchImpl('https://api.anthropic.com/v1/messages', { ...init, signal: ctl.signal }), ctl }
+  } catch (e) {
+    return ctl.signal.aborted ? { timedOut: true } : { failed: e.message }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// One read, abandoned (and the request cancelled) after idleMs without data.
+export async function readWithIdle(reader, ctl, idleMs = STREAM_IDLE_MS) {
+  let timer
+  const idle = new Promise((resolve) => { timer = setTimeout(() => resolve({ idle: true }), idleMs) })
+  try {
+    const r = await Promise.race([reader.read(), idle])
+    if (r.idle) { ctl?.abort(); reader.cancel?.().catch?.(() => {}) }
+    return r
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 function logCacheStats(usage) {
   if (!usage) return
   console.log('[CLAUDE CACHE STATS]', {
@@ -103,7 +147,7 @@ export default async function handler(req, res) {
   })
 
   try {
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const up = await startUpstream({
       method: 'POST',
       headers: {
         'content-type':       'application/json',
@@ -118,10 +162,21 @@ export default async function handler(req, res) {
         stream:     stream !== false,
       }),
     })
+    if (up.timedOut) {
+      console.error(`[claude] upstream gave no response in ${UPSTREAM_TIMEOUT_MS / 1000}s`)
+      return res.status(504).json({ error: 'MaddenAI upstream request timed out', code: 'UPSTREAM_TIMEOUT' })
+    }
+    if (up.failed) {
+      console.error('[claude] upstream unreachable:', up.failed)
+      return res.status(502).json({ error: 'MaddenAI upstream request failed', code: 'UPSTREAM_ERROR' })
+    }
+    const anthropicRes = up.res
 
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text()
-      return res.status(anthropicRes.status).json({ error: errText })
+      console.error(`[claude] upstream HTTP ${anthropicRes.status}:`, errText.slice(0, 300))
+      const e = upstreamError(anthropicRes.status, errText)
+      return res.status(e.status).json(e.body)
     }
 
     // Non-streaming callers (stream: false) get the plain JSON response back.
@@ -146,7 +201,9 @@ export default async function handler(req, res) {
     let pending   = ''
     let replyText = ''
     while (true) {
-      const { done, value } = await reader.read()
+      const r = await readWithIdle(reader, up.ctl)
+      if (r.idle) { console.error(`[claude] stream idle ${STREAM_IDLE_MS / 1000}s; ended`); break }
+      const { done, value } = r
       if (done) break
       // Forward bytes untouched; decode a copy to read usage — input tokens
       // ride on message_start, output tokens on the final message_delta.
@@ -171,7 +228,8 @@ export default async function handler(req, res) {
     await recordTokens(g, usage)
     await saveRecord(g.db, recordOf(replyText))
   } catch (err) {
-    if (!res.headersSent) return res.status(500).json({ error: err.message })
+    console.error('[claude] failed:', err.message)
+    if (!res.headersSent) return res.status(500).json({ error: 'MaddenAI request failed', code: 'UPSTREAM_ERROR' })
     res.end()
   }
 }

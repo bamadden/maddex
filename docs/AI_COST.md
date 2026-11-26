@@ -107,3 +107,23 @@ billed figures; the endpoint logs real usage (`[ai-daily]` in the Vercel logs) t
   `services/plans.js` apply.
 - **Scanner pattern notes and earnings previews.** Both are generated only when a
   reader opens one.
+
+## Live test runs (paid)
+
+Not in the table: the production cron generation of 26 Nov 2026 (`/api/ai-daily?generate=all`, server key, seven replies, about US$0.08 by the daily-content estimate above; its second trigger generated nothing).
+
+Each run of `scripts/ai-live` (Ben opened paid testing until Fri 27 Nov 2026 14:45 Brisbane). Tokens from the API's own usage; cost estimated at the Sonnet 4.6 prices above (cache write 3.75, cache read 0.30 US$/M).
+
+| Run | Started (UTC) | Calls | Input | Output | Cache write | Cache read | Est. US$ | Note |
+|---|---|---|---|---|---|---|---|---|
+| harness-check | 2026-11-26 04:48 | 1 | 16 | 5 | 0 | 0 | 0.000 | harness check |
+| adversarial:all-run1 | 2026-11-26 04:49 | 304 | 145427 | 67600 | 22614 | 550274 | 1.700 | 152 attacks (all, 1×) |
+| adversarial:all-run2 | 2026-11-26 04:59 | 608 | 324449 | 131731 | 23562 | 1170246 | 3.389 | 304 attacks (all, 2×) |
+| daily:content-check | 2026-11-26 05:23 | 7 | 4626 | 624 | 0 | 0 | 0.023 | judge on the seven stored daily replies |
+| buttons:every-control | 2026-11-26 05:15 | 26 | 325407 | 17665 | 0 | 0 | 1.241 | 26 replies from 28 controls (fictional data) |
+| buttons:judge | 2026-11-26 05:29 | 26 | 20795 | 1896 | 0 | 0 | 0.091 | judge for 26 control replies |
+| buttons:every-control | 2026-11-26 05:36 | 14 | 147279 | 10514 | 0 | 0 | 0.600 | 14 replies from 17 controls (fictional data) |
+| buttons:judge | 2026-11-26 05:45 | 14 | 11636 | 991 | 0 | 0 | 0.050 | judge for 14 control replies |
+| buttons:every-control | 2026-11-26 05:47 | 6 | 52396 | 6400 | 0 | 0 | 0.253 | 6 replies from 7 controls (fictional data) |
+| buttons:judge | 2026-11-26 05:51 | 6 | 6476 | 438 | 0 | 0 | 0.026 | judge for 6 control replies |
+| adversarial:all-run3-final | 2026-11-26 05:47 | 304 | 162036 | 65798 | 23946 | 582686 | 1.738 | 152 attacks (all, 1×) |

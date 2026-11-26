@@ -788,7 +788,11 @@ function MorningBriefing() {
           'This panel renders plain text only — never use markdown. No #/## headings, no **bold**, ' +
           'no --- rules, no bullet syntax. Write flowing prose paragraphs separated by blank lines. ' +
           'You never state a financial figure that was not supplied to you in the user message. '
-          + 'If you have no figure for a market, you omit that market rather than describing it.',
+          + 'If you have no figure for a market, you omit that market rather than describing it. '
+          // A custom system prompt replaces the main one, so the advice line
+          // is restated here (live sweep, 26 Nov 2026: "themes to monitor").
+          + 'Maddex gives general information only: never recommend buying, selling or holding, never forecast a price, rate or market, '
+          + 'and never tell the reader what to watch, monitor or treat as a signal.',
       })
       setText(result)
       try { localStorage.setItem(briefKey(today), result) } catch { /* best-effort cache write */ }

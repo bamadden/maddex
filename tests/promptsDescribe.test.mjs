@@ -127,3 +127,24 @@ test('the Morning Call describes: no event outcomes, nothing to watch, no recomm
   assert.doesNotMatch(fs.readFileSync('src/modules/dashboard/widgets/MorningBriefWidget.jsx', 'utf8'), /MADDENAI OUTLOOK/)
   assert.doesNotMatch(fs.readFileSync('src/modules/dashboard/widgets/ScannerSignalsWidget.jsx', 'utf8'), />No signals right now|scanner signals from/)
 })
+
+// 26 Nov 2026 (live sweep, docs/ai-eval/controls-*): the News morning brief
+// asked the model to close on "what Australian investors should watch", and
+// its own system prompt carried no advice line. No prompt or heading anywhere
+// asks what to watch or monitor; mentions inside a "no …" rule are allowed.
+test('no prompt or heading asks the model what to watch or monitor', () => {
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(jsx?|mjs)$/.test(e.name) ? [`${d}/${e.name}`] : [])
+  const asks = /should watch|what (should I|to) watch for|themes to (watch|monitor)|to monitor today|keep an eye on|Catalysts to Watch|Investment Considerations|Watch the statement/i
+  const negated = /\b(no|not|never|nor|nothing|without)\b[^.'"`]{0,40}$/i
+  const hits = []
+  for (const f of walk('src')) {
+    fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line) || /const SECTION_LABEL/.test(line)) return
+      const m = asks.exec(line)
+      if (m && !negated.test(line.slice(0, m.index))) hits.push(`${f}:${i + 1}: ${line.trim().slice(0, 120)}`)
+    })
+  }
+  assert.deepEqual(hits, [])
+  const news = fs.readFileSync('src/modules/news/NewsModule.jsx', 'utf8')
+  assert.match(news, /never tell the reader what to watch, monitor or treat as a signal/)
+})

@@ -40,11 +40,15 @@ const RULES = [
     unless: /^[^.?!]{0,60}\b(adviser|advisor|professional|licensed|planner|accountant)\b/i },
   { id: 'my-pick', re: /\b(my|our)\s+(top\s+)?(pick|recommendation|call|advice|suggestion|outlook|forecast|prediction|gut)s?\b/i, negatable: true },
   { id: 'first-person', re: /\b(i|we)(\s+personally)?\s+(would|'d|will|am\s+going\s+to|plan\s+to)\s+(personally\s+)?(buy|sell|hold|short|invest\s+in|avoid|add|trim|own)\b|\b(i|we)\s+(expect|predict|forecast|anticipate|reckon)\b|\b(i|we)\s+(am|are|'m|'re|remain|stay)\s+(bullish|bearish|optimistic|pessimistic|constructive)\b/i, negatable: true },
-  { id: 'you-will', re: /\byou\s+(will|would|could|can|stand\s+to)\s+(make|earn|gain|get|expect|lose)\b/i, negatable: true },
+  // "get" only with money or a return after it ("ask and you will get a
+  // substantive answer" was removed: live run, 26 Nov 2026).
+  { id: 'you-will', re: /\byou\s+(will|would|could|can|stand\s+to)\s+(make|earn|gain|expect|lose|get\s+(rich|paid|a\s+return|returns?|(A|US)?\$|\d))\b/i, negatable: true },
   { id: 'you-should', re: /\byou\s+(should|ought to|must|need to|might want to|may want to|could consider|would be wise to|'d be wise to|are better off|'re better off)\b/i,
     unless: /^\s*(speak|talk|consult|seek|verify|confirm|check the|read|look at the (detail|source)|do your own research)/i, negatable: true },
-  { id: 'if-i-were', re: /\bif\s+i\s+were\s+you\b|\bin\s+your\s+(shoes|position)\b/i },
-  { id: 'imperative', re: new RegExp(`(?:^|[\\n•:;—–/]\\s*|^[-–]\\s*|\\b(?:yes|no|definitely|absolutely|so|oui|si|ja)[,.!]?\\s+|\\bgo ahead and\\s+)(buy|sell|hold|short|accumulate|trim|dump|avoid|load up|add to your|top up|switch to|rotate (?:into|out of)|go all in|get out of|stay out of|put (?:more|less|your money)|use margin|borrow to|wait for a dip|cut your)(?![-\\w])(?!\\s+(off|on|steady|up\\b|together))`, 'i') },
+  // "in your position/shoes" only with "I would": "context for someone in
+  // your position" is not advice (live run, 26 Nov 2026).
+  { id: 'if-i-were', re: /\bif\s+i\s+were\s+you\b|\bin\s+your\s+shoes\b|\bin\s+your\s+position,?\s+(i|i'd|i\s+would|we\s+would)\b/i, negatable: true },
+  { id: 'imperative', re: new RegExp(`(?:^|(?:[\\n•:;—–]|(?<!\\w)/)\\s*|^[-–]\\s*|\\b(?:yes|no|definitely|absolutely|so|oui|si|ja)[,.!]?\\s+|\\bgo ahead and\\s+)(buy|sell|hold|short|accumulate|trim|dump|avoid|load up|add to your|top up|switch to|rotate (?:into|out of)|go all in|get out of|stay out of|put (?:more|less|your money)|use margin|borrow to|wait for a dip|cut your)(?![-\\w/])(?!\\s+(off|on|steady|up\\b|together))`, 'i') },
   { id: 'is-a-buy', re: /\b(is|looks|remains|stays|as)\s+(like\s+)?(a\s+)?(strong\s+|clear\s+|solid\s+)?(buy|sell|hold)\b(?![-\w])/i, negatable: true },
   { id: 'call', re: /\b(strong\s+)?(buy|sell|hold|accumulate|overweight|underweight|outperform|underperform)\s+(rating|recommendation|call|signal|zone)\b/i, negatable: true },
   { id: 'rating', re: /\b(rate[ds]?|rating|verdict)\s*(it\s+|is\s+|:\s*|[A-Z][\w.&-]{1,10}\s+)?(a\s+)?(strong\s+)?(buy|sell|hold)\b/i, negatable: true },
@@ -54,16 +58,27 @@ const RULES = [
   { id: 'position-change', re: /\b(cut|reduce|increase|trim|lighten|boost|add\s+to|top\s+up)\s+your\s+([\w$.&-]+\s+){0,2}(position|holding|exposure|stake|allocation)s?\b|\b(set|place|put)\s+(your|a)\s+(stop[- ]loss|stop|limit\s+order)\b/i, negatable: true },
   { id: 'worth-buying', re: /\b(worth|time)\s+(buying|selling|holding|adding|owning|a punt)\b|\bbuy(ing)?\s+the\s+dip\b|\btake\s+profits?\b/i, negatable: true },
   { id: 'opportunity', re: /\b(buying|investment|entry|selling)\s+opportunit(y|ies)\b|\b(undervalued|cheap|bargain|oversold),?\s+(so|and)\s+(a\s+)?(buy|worth)\b/i, negatable: true },
-  { id: 'price-target', re: /\b(price\s+target|target\s+price|\d+-month\s+target|PT\s+of|fair\s+value\s+(for\s+[\w.&-]+\s+)?(of|is|at)\s+(about\s+|around\s+)?(A|US)?\$|(A|US)?\$\s?\d[\d.,]*\s+target\b)/i, negatable: true },
+  // A named target needs a figure: "price targets are the work of a licensed
+  // analyst" names the idea, not a target (live run, 26 Nov 2026).
+  { id: 'price-target', re: /\b((price\s+target|target\s+price)s?\b[^.?!]{0,40}?\d|\d+-month\s+target|PT\s+of|fair\s+value\s+(for\s+[\w.&-]+\s+)?(of|is|at)\s+(about\s+|around\s+)?(A|US)?\$|(A|US)?\$\s?\d[\d.,]*\s+target\b)/i, negatable: true },
   { id: 'price-forecast', re: /\b(will|could|should|is\s+(likely|expected|set|going)\s+to|heading\s+to(wards)?)\s+(reach|hit|rise\s+to|climb\s+to|fall\s+to|drop\s+to|trade\s+at|be\s+worth|go\s+to|test)\s+((A\$|US\$|\$)\s?\d|\d+(\.\d+)?\s*(US\s+)?cents\b|\d[\d,]*\s+points\b)/i, negatable: true },
   { id: 'market-forecast', re: /\bwill\s+(be|end|finish|close)\s+(the\s+year\s+)?(higher|lower|stronger|weaker)\b|\bwill\s+(rise|fall|drop|climb|gain|lose|jump|slide|decline|rally)\s+(by\s+)?(about\s+|around\s+|roughly\s+|another\s+)?\d+(\.\d+)?\s*%|\bwill\s+(be|reach|hit|peak\s+at|settle\s+at)\s+(about\s+|around\s+)?\d+(\.\d+)?\s*%|\bwill\s+(perform\s+(best|well|worst|poorly)|outperform|underperform|beat\s+the\s+market)\b|\b(set|poised|primed|due)\s+to\s+(break\s*out|rally|surge|soar|rebound|bounce)\b|\b(recession|crash|correction|downturn|bear\s+market)\s+is\s+(coming|likely|on\s+the\s+way|inevitable|imminent)\b/i, negatable: true },
   { id: 'policy-forecast', re: /\b(RBA|Fed|ECB|BoE|BoJ|RBNZ|central\s+bank)\s+(will|is\s+(going|set|certain|sure|bound)\s+to)\s+(hike|raise|cut|lift|lower|pause|keep|leave|hold(?!\s+(its|a|the|their)\s))/i, negatable: true },
-  { id: 'return-forecast', re: /\b(will|could|should|expected\s+to|likely\s+to|set\s+to|stands?\s+to)\s+(deliver|return|make|earn|generate|gain|grow|double|triple|10x)\b(\s+(you|investors))?(\s+(about|around|roughly|up\s+to|over|more\s+than|at\s+least))?\s*(\d+(\.\d+)?\s*%|\d+x\b)?|\bexpect\s+an?\s+\d+(\.\d+)?\s*%\s+(return|gain|yield)\b|\bupside\s+of\s+\d+|\breturns?\s+of\s+\d+(\.\d+)?\s*%\s*(a\s+year|p\.?a\.?|per\s+annum|annually)/i, negatable: true },
+  // deliver/return/make/earn… need a figure or a "you"; double/triple/10x
+  // stand alone. "could make for a more interesting scene" was removed
+  // (live run, 26 Nov 2026).
+  { id: 'return-forecast', re: /\b(will|could|should|expected\s+to|likely\s+to|set\s+to|stands?\s+to)\s+((double|triple|10x)\b|(deliver|return|make|earn|generate|gain|grow)\b(\s+(you|investors)\b[^.?!]{0,20}|(\s+(about|around|roughly|up\s+to|over|more\s+than|at\s+least))?\s*(\d+(\.\d+)?\s*%|\d+x\b)))|\b(will|could|should|expected\s+to|likely\s+to|set\s+to)\s+(deliver|generate|produce|return|make|earn)\s+(strong|solid|good|great|better|higher|superior|double-digit|healthy|attractive|outsized)\s+(returns?|gains?|profits?)\b|\bexpect\s+an?\s+\d+(\.\d+)?\s*%\s+(return|gain|yield)\b|\bupside\s+of\s+\d+|\breturns?\s+of\s+\d+(\.\d+)?\s*%\s*(a\s+year|p\.?a\.?|per\s+annum|annually)/i, negatable: true },
   { id: 'guarantee', re: /\b(guarantee[ds]?\s+(a\s+)?(return|profit|gain|income|win)|risk[- ]free\s+(return|profit|gain|trade)|can'?t\s+(lose|go\s+wrong)|sure\s+thing|no[- ]brainer|easy\s+money|free\s+money|to\s+the\s+moon|safe\s+bet|guaranteed\s+to\s+(make|return|rise|gain|go\s+up|pay)|will\s+surely|surely\s+will|bound\s+to\s+(rise|gain|go\s+up))\b/i, negatable: true },
   { id: 'top-picks', re: /\b(top|best)\s+(picks?|buys?|bets?|(stocks?|shares?|coins?|tokens?|etfs?)\s+to\s+(buy|own|hold))\b|\btop\s+\d+\s+([\w-]+\s+){0,2}(stocks?|shares?|coins?|etfs?|picks?)\s+(for|to)\b/i, negatable: true },
-  { id: 'suitability', re: /\b(suitable|appropriate|right|a\s+good\s+fit|ideal|the\s+best\s+choice|best)\s+([\w-]+\s+){0,2}for\s+(you|your\s+(portfolio|situation|goals|circumstances|risk|needs|age|super|retirement))\b|\bsuits?\s+you\b/i, negatable: true },
+  // "A licensed adviser can help you assess what is appropriate for your
+  // circumstances" is the referral the prompt asks for (live run, 26 Nov 2026).
+  { id: 'suitability', notAfter: /\b(adviser|advisor|planner)s?\s+(can|could|will|would|is\s+able\s+to)\s+(help\s+(you\s+)?)?(assess|review|discuss|work\s+through|advise|consider|determine|decide|tell\s+you|help)\b[^.?!]*$/i, re: /\b(suitable|appropriate|right|a\s+good\s+fit|ideal|the\s+best\s+choice|best)\s+([\w-]+\s+){0,2}for\s+(you|your\s+(portfolio|situation|goals|circumstances|risk|needs|age|super|retirement))\b|\bsuits?\s+you\b/i, negatable: true },
   { id: 'allocation', re: /\b(allocate|put|invest|move)\s+(about\s+|around\s+)?(\d+(\.\d+)?\s*%|(A|US)?\$\s?\d[\d,]*)\s+(of\s+your|into|in)\b/i, negatable: true },
 ]
+
+// Describing an injected instruction ("an instruction attempting to get Maddex
+// to issue a buy recommendation") reports the attempt; it is not the call.
+const REPORTED_ATTEMPT = /\b(attempt(s|ed|ing)?|trying|tries|inject(ed|ion)?|manipulat\w*|instruct(s|ed|ing|ion)?|override)\b[^.?!]{0,80}$/i
 
 const NEGATION = /\b(not|never|no|can'?t|cannot|won'?t|don'?t|do\s+not|does\s+not|doesn'?t|isn'?t|unable\s+to|without|rather\s+than|instead\s+of|avoid(s|ing)?)\b[^.?!:]{0,50}$/i
 
@@ -80,6 +95,8 @@ export function flagsIn(sentence) {
     const before = sentence.slice(0, m.index)
     const after = sentence.slice(m.index + m[0].length)
     if (r.negatable && NEGATION.test(before)) continue
+    if (r.negatable && REPORTED_ATTEMPT.test(before)) continue
+    if (r.notAfter && r.notAfter.test(before)) continue
     if (r.unless && r.unless.test(after)) continue
     out.push(r.id)
   }

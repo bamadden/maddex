@@ -11,7 +11,7 @@ import { PAL } from '../../styles/palette.js'
 // borders on each tile, which double up between neighbours and leave a 2px
 // line down the middle of the grid.
 
-function WidgetCell({ widget, index, editMode, onRemove, onStep, drag, columns }) {
+function WidgetCell({ widget, index, editMode, onRemove, onStep, drag, columns, order }) {
   const meta = dashboardService.getWidget(widget.widgetId)
   const isDragging = drag.dragIndex === index
   const isTarget = drag.overIndex === index && drag.dragIndex !== index
@@ -47,7 +47,8 @@ function WidgetCell({ widget, index, editMode, onRemove, onStep, drag, columns }
         // another — the portfolio and market score sat hidden under Next Event.
         gridRow: columns === 1 ? 'auto' : `${widget.row + 1} / span ${widget.h}`,
         // …in reading order (row, then column), whatever order they were saved in.
-        order: columns === 1 ? widget.row * 100 + widget.col : undefined,
+        // One column: the saved reading order (the drawn copy's columns are all 0).
+        order: columns === 1 ? order : undefined,
         background: PAL.bg,
         position: 'relative',
         // 140 in a single column: a phone shows one widget per row, so each gets
@@ -177,7 +178,10 @@ function useResponsiveColumns(preferred, containerRef) {
   return preferred
 }
 
-export default function DashboardGrid({ layout, editMode, onAddAt }) {
+// layout: what is drawn (narrowed to the viewport's columns); savedLayout:
+// the layout as saved, which every edit works on, so a phone never saves its
+// squashed one-column copy over it.
+export default function DashboardGrid({ layout, savedLayout = layout, editMode, onAddAt }) {
   const gridRef = useRef(null)
   const columns = useResponsiveColumns(layout.columns || 3, gridRef)
   // The index being dragged is held in a ref AND in state, deliberately.
@@ -204,15 +208,18 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
   // refused rather than silently losing a tile.
   // dryRun: only report whether the swap can be made.
   const swap = (from, to, dryRun = false) => {
-    const next = swapPlacement(layout.widgets, from, to, columns)
+    // In the saved layout's columns: the placement saved is the one edited,
+    // whatever narrower grid is drawn (a phone draws one column).
+    const next = swapPlacement(savedLayout.widgets, from, to, savedLayout.columns || 3)
     if (!next) return false
-    if (!dryRun) dashboardService.save({ ...layout, id: 'custom', widgets: next })
+    if (!dryRun) dashboardService.save({ ...savedLayout, id: 'custom', widgets: next })
     return true
   }
   const handleDrop = (dropIndex) => { swap(dragRef.current, dropIndex); endDrag() }
 
   // ◀ ▶: the neighbour in reading order (row, then column).
-  const reading = layout.widgets.map((w, i) => i).sort((i, j) => (layout.widgets[i].row - layout.widgets[j].row) || (layout.widgets[i].col - layout.widgets[j].col))
+  const sw = savedLayout.widgets
+  const reading = sw.map((w, i) => i).sort((i, j) => (sw[i].row - sw[j].row) || (sw[i].col - sw[j].col))
   const step = (index, dir, dryRun = false) => {
     const k = reading.indexOf(index) + dir
     return k >= 0 && k < reading.length ? swap(index, reading[k], dryRun) : false
@@ -263,10 +270,15 @@ export default function DashboardGrid({ layout, editMode, onAddAt }) {
           onStep={step}
           drag={drag}
           columns={columns}
+          order={reading.indexOf(index)}
         />
       ))}
 
-      {editMode && <EmptyCells layout={layout} onAdd={onAddAt} />}
+      {/* Empty cells are in the saved layout's coordinates; when fewer columns
+          are drawn, one button adds in the first free slot instead. */}
+      {editMode && (columns >= (savedLayout.columns || 3)
+        ? <EmptyCells layout={savedLayout} onAdd={onAddAt} />
+        : <button onClick={() => onAddAt(null, null)} className="dash-empty-cell font-mono tracking-widest" style={{ minHeight: 88, background: 'rgba(201,168,76,0.02)', border: '1px dashed rgba(201,168,76,0.25)', color: 'rgba(201,168,76,0.7)', fontSize: 11, order: 99999 }}>+ ADD WIDGET</button>)}
     </div>
   )
 }

@@ -381,7 +381,7 @@ export default function ComparisonView() {
               <div className="p-3 flex justify-center">
                 <button
                   onClick={() => dispatchAskAI({
-                    instruction: `Compare ${symbols.map((a) => a.symbol).join(', ')} as investment considerations for an Australian investor. What are the key differences someone should understand — business model, what drives each one, and how they would behave differently in the same conditions? Do not quote prices or valuations; you have not been given them. General information only, not advice.`,
+                    instruction: `Compare ${symbols.map((a) => a.symbol).join(', ')} for an Australian reader: describe the differences in business model, in what has been reported as driving each one, and in what each is exposed to. Describe only: no ranking, no forecast and no view on which to own. Do not quote prices or valuations; you have not been given them. General information only, not advice.`,
                   }, { rawPrompt: true })}
                   className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
                 >Compare these stocks with MaddenAI →</button>

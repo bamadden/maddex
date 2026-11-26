@@ -88,10 +88,10 @@ export default function PrintableNote({ note, forwardRef }) {
           </Section>
         )) : <Section title="Executive Summary"><Prose text={note.executiveSummary} /></Section>}
         {note.businessOverview && <Section title="Business Overview"><Prose text={note.businessOverview} /></Section>}
-        {note.investmentConsiderations?.length > 0 && <Section title="Investment Considerations"><List items={note.investmentConsiderations} /></Section>}
+        {note.investmentConsiderations?.length > 0 && <Section title="Supportive and Cautionary Facts"><List items={note.investmentConsiderations} /></Section>}
         {note.macroContext && <Section title="Sector & Macro Context"><Prose text={note.macroContext} /></Section>}
         {note.risks?.length > 0 && <Section title="Key Risks"><List items={note.risks} numbered /></Section>}
-        {note.catalysts?.length > 0 && <Section title="Catalysts to Watch"><List items={note.catalysts} numbered /></Section>}
+        {note.catalysts?.length > 0 && <Section title="Scheduled Events"><List items={note.catalysts} numbered /></Section>}
         {/* Notes saved before the six-section format. */}
         {note.investmentThesis && <Section title="Investment Thesis"><Prose text={note.investmentThesis} /></Section>}
         {note.valuationAnalysis && <Section title="Valuation"><Prose text={note.valuationAnalysis} /></Section>}

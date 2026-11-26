@@ -136,10 +136,10 @@ export function buildNotePdf(note) {
   }
 
   if (note.businessOverview) { section('Business Overview'); para(note.businessOverview) }
-  if (note.investmentConsiderations?.length) { section('Investment Considerations'); list(note.investmentConsiderations, false) }
+  if (note.investmentConsiderations?.length) { section('Supportive and Cautionary Facts'); list(note.investmentConsiderations, false) }
   if (note.macroContext) { section('Sector & Macro Context'); para(note.macroContext) }
   if (note.risks?.length) { section('Key Risks'); list(note.risks, true) }
-  if (note.catalysts?.length) { section('Catalysts to Watch'); list(note.catalysts, true) }
+  if (note.catalysts?.length) { section('Scheduled Events'); list(note.catalysts, true) }
 
   // Notes saved before the six-section format still carry these.
   if (note.investmentThesis) { section('Investment Thesis'); para(note.investmentThesis) }

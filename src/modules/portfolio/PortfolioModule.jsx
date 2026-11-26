@@ -783,6 +783,8 @@ export default function PortfolioModule() {
     return sum / mktTotal
   })()
 
+  const cents = (v) => (v == null ? null : Math.round(v * 100) / 100)
+  const round1 = (v) => (v == null ? null : Math.round(v * 10) / 10)
   const runAiAnalysis = () => dispatchAskAI({
     instruction:
       'Describe the exposure in these holdings. Cover:\n' +
@@ -791,10 +793,15 @@ export default function PortfolioModule() {
       '3. What the P&L figures shown measure (cost against the prices shown)\n' +
       '4. Scheduled events that touch these holdings\n\n' +
       'Describe only. Do not suggest buying, selling, holding, trimming, adding or rebalancing anything, and do not use the holdings to recommend any action.\n\n' +
-      `Holdings: ${JSON.stringify(live.map((h) => ({
+      // Every value names its currency and is rounded as shown: avgCost was
+      // sent in the holding's own currency beside AUD prices, unlabelled, and
+      // the model called an AUD price "US$" (live sweep, 26 Nov 2026).
+      `Holdings (all values in AUD unless the field names another currency): ${JSON.stringify(live.map((h) => ({
         symbol: h.symbol, type: h.type, shares: h.shares,
-        avgCost: h.avgCost, last: h.last, mktVal: h.mktVal,
-        pnl: h.pnl, pnlPct: h.pnlPct, dayPct: h.dayPct,
+        avgCostAud: cents(h.totalCost != null && h.shares ? h.totalCost / h.shares : null), lastAud: cents(h.last), mktValAud: cents(h.mktVal),
+        pnlAud: cents(h.pnl), pnlPct: round1(h.pnlPct), dayPct: round1(h.dayPct),
+        dayMoveAud: cents(h.mktVal != null && h.dayPct != null ? h.mktVal - h.mktVal / (1 + h.dayPct / 100) : null),
+        ...(h.nativePrice != null && h.currency !== 'AUD' ? { [`last${h.currency}`]: cents(h.nativePrice), [`avgCost${h.costCurrency ?? h.currency}`]: cents(h.avgCost) } : {}),
       })))}\n` +
       `Total value: ${fmtCur(mktTotal)}\n` +
       `Total P&L: ${fmtCur(totalPnl)} (${fmt.pct(pnlPct)})\n\n` +

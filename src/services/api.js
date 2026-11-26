@@ -1621,7 +1621,12 @@ const AI_TOO_LONG = 'That request is too long for MaddenAI. Please try a shorter
 // Nov 2026): a pause on Maddex's side, not an outage and not the reader's
 // plan limit, so it says so. Still no vendor wording.
 export const AI_PAUSED = "MaddenAI is paused: Maddex's AI service needs attention on our side, not yours. Everything else in Maddex works as normal."
-export function userFacingAiError(status, message) {
+// code: the server's classification (api/claude.js upstreamError).
+export function userFacingAiError(status, message, code) {
+  if (code === 'UPSTREAM_PAUSED') return AI_PAUSED
+  if (code === 'UPSTREAM_BUSY') return AI_BUSY
+  if (code === 'UPSTREAM_TOO_LONG') return AI_TOO_LONG
+  if (code === 'UPSTREAM_TIMEOUT' || code === 'UPSTREAM_ERROR' || code === 'UPSTREAM_AUTH') return AI_UNAVAILABLE
   const m = message ?? ''
   if (status === 402 || /credit balance|billing|insufficient (credit|funds)|quota exceeded/i.test(m)) return AI_PAUSED
   if (status === 429 || status === 529 || /overloaded|rate limit/i.test(m)) return AI_BUSY
@@ -1722,7 +1727,7 @@ export const askClaude = async (messages, onToken, options = {}) => {
     }
     // One line, no vendor text: the reason is in the server log.
     console.warn(`[MaddenAI] unavailable (HTTP ${response.status})`)
-    throw new Error(userFacingAiError(response.status, extractAnthropicErrorMessage(errText)))
+    throw new Error(userFacingAiError(response.status, extractAnthropicErrorMessage(errText), info?.code))
   }
   const reader     = response.body.getReader()
   const decoder    = new TextDecoder()

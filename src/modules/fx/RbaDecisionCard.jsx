@@ -52,7 +52,7 @@ export default function RbaDecisionCard() {
       </div>
       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
         <button
-          onClick={() => askMaddenAI(`The RBA ${(PAST[verb] ?? verb).toLowerCase()} the cash rate${verb !== 'HOLD' && bp ? ` by ${bp}` : ''} to ${rate} on ${rba.lastDecision}${rba.minutes?.meeting === rba.lastDecision ? `, and its minutes said: ${rba.minutes.summary}` : ''}. What does this mean for mortgages, savers, the AUD and ASX sectors — and what would make the board move again at the next meeting on ${rba.nextMeeting}?`)}
+          onClick={() => askMaddenAI(`The RBA ${(PAST[verb] ?? verb).toLowerCase()} the cash rate${verb !== 'HOLD' && bp ? ` by ${bp}` : ''} to ${rate} on ${rba.lastDecision}${rba.minutes?.meeting === rba.lastDecision ? `, and its minutes said: ${rba.minutes.summary}` : ''}. Describe how a change of this kind is reported to pass through to mortgages, savers, the AUD and ASX sectors, and what the Board said it will weigh before its next meeting on ${rba.nextMeeting}. Describe only: no forecast of the next decision, and no worked examples or dollar amounts you were not given.`)}
           className="px-2 py-1 text-2xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright whitespace-nowrap"
         >ASK MADDENAI WHAT THIS MEANS ▶</button>
         {/* Which of the reader's holdings connect to the cash rate — the

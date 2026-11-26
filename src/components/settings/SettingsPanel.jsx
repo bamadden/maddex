@@ -1467,6 +1467,8 @@ const CREDIT_STATES = {
   active:      { label: 'ACTIVE',      colour: PAL.up, note: 'Key configured and funded.' },
   no_key:      { label: 'NO API KEY',  colour: PAL.down, note: 'ANTHROPIC_API_KEY is not set on the server.' },
   no_credits:  { label: 'NO CREDITS',  colour: PAL.gold, note: 'The key works but the account has no balance.' },
+  signed_out:  { label: 'SIGN IN',     colour: PAL.muted, note: 'Sign in to check MaddenAI.' },
+  limit:       { label: 'DAILY LIMIT', colour: PAL.gold, note: "Today's MaddenAI limit on your plan is used; it resets at midnight Sydney time." },
   rate_limit:  { label: 'RATE LIMITED', colour: PAL.gold, note: 'Too many requests — this usually clears in a minute.' },
   error:       { label: 'API ERROR',   colour: PAL.down, note: 'Could not reach the API.' },
   checking:    { label: 'CHECKING…',   colour: PAL.muted, note: '' },
@@ -1476,9 +1478,12 @@ const CREDIT_STATES = {
 
 async function checkCredits() {
   try {
+    // Signed in, like every MaddenAI call (api/_aiGuard.js); the server's
+    // code says which failure it is (api/claude.js upstreamError).
+    const token = (await supabase.auth.getSession().catch(() => null))?.data?.session?.access_token
     const r = await fetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1,
@@ -1487,6 +1492,13 @@ async function checkCredits() {
       }),
     })
     const data = await r.json().catch(() => ({}))
+    const code = data?.code ?? ''
+    if (/^AUTH_/.test(code)) return 'signed_out'
+    if (code === 'DAILY_LIMIT') return 'limit'
+    if (code === 'UPSTREAM_AUTH') return 'no_key'
+    if (code === 'UPSTREAM_PAUSED') return 'no_credits'
+    if (code === 'UPSTREAM_BUSY') return 'rate_limit'
+    // The dev proxy passes the vendor's own reply through.
     const type = data?.error?.type ?? ''
     const msg = String(data?.error?.message ?? '')
 

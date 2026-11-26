@@ -127,7 +127,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
                 <div className="text-terminal-text-bright text-sm font-semibold">Generate an institutional-quality research note</div>
                 <div className="text-terminal-text-dim text-2xs max-w-sm leading-relaxed">
                   MaddenAI writes a six-section note on {asset.name} ({asset.symbol}): executive summary, business
-                  overview, investment considerations, sector and macro context, key risks and catalysts to watch.
+                  overview, supportive and cautionary facts, sector and macro context, key risks and scheduled events.
                   No price targets, no ratings. Exportable as a PDF.
                 </div>
                 <button

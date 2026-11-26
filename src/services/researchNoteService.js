@@ -53,9 +53,9 @@ SECTIONS — return JSON with exactly these keys:
 }
 
 Rules:
-- The section names (EXECUTIVE SUMMARY, BUSINESS OVERVIEW, INVESTMENT CONSIDERATIONS, SECTOR & MACRO CONTEXT, KEY RISKS, CATALYSTS TO WATCH) are added by the layout. Do not write them inside the values.
+- The section names (EXECUTIVE SUMMARY, BUSINESS OVERVIEW, SUPPORTIVE AND CAUTIONARY FACTS, SECTOR & MACRO CONTEXT, KEY RISKS, SCHEDULED EVENTS) are added by the layout. Do not write them inside the values.
 - Be specific to this company. If a sentence would be true of any company in its sector, cut it.
-- Investment considerations: 3-5. Key risks: exactly 3. Catalysts: exactly 3.
+- Supportive and cautionary facts: 3-5. Key risks: exactly 3. Scheduled events: exactly 3.
 - Total length across all sections: 400-600 words. Keep to each section's budget; a note that runs long gets cut by the reader, not finished.
 - Do not state what the RBA or any central bank will do as settled ("would almost certainly seal a hike"). Say which way a result would push and leave the decision open.
 - Australian English. Plain, precise prose; no hype.
@@ -79,7 +79,8 @@ export const NOTE_DISCLAIMER = `${AI_ASSISTED} ${STANDARD_DISCLAIMER} It is not 
 // fields the model should not be trusted with. The exchange comes from the
 // symbol where the symbol says it; the counts are trimmed, never padded — a
 // missing third risk is shown as two, not invented.
-const SECTION_LABEL = /^\s*(EXECUTIVE SUMMARY|BUSINESS OVERVIEW|INVESTMENT CONSIDERATIONS|SECTOR & MACRO CONTEXT|KEY RISKS|CATALYSTS TO WATCH)\s*[—:-]\s*/i
+// The old section names too, should the model still print one.
+const SECTION_LABEL = /^\s*(EXECUTIVE SUMMARY|BUSINESS OVERVIEW|SUPPORTIVE AND CAUTIONARY FACTS|INVESTMENT CONSIDERATIONS|SECTOR & MACRO CONTEXT|KEY RISKS|SCHEDULED EVENTS|CATALYSTS TO WATCH)\s*[—:-]\s*/i
 const unlabel = (v) => (typeof v === 'string' ? v.replace(SECTION_LABEL, '') : v)
 
 export function normaliseNote(note) {
