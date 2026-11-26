@@ -926,7 +926,7 @@ export default function PortfolioModule() {
                 onClick={runStrategySession}
                 title="A holistic MaddenAI review of the whole portfolio — save it to research afterwards"
                 className="text-2xs px-3 py-1 border border-terminal-gold text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors font-bold tracking-wide"
-              >EXPOSURE REVIEW ▶</button>
+              >MADDENAI EXPOSURE REVIEW ▶</button>
             )}
             {live.length > 0 && (
               <button

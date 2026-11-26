@@ -802,15 +802,10 @@ function MorningBriefing() {
   // News module loads. The open state is remembered, so a panel left open
   // last time used to generate on arrival: an AI request on load. Arriving
   // open with no brief for today shows a WRITE button instead.
-  const openedHere = useRef(false)
-  const toggle = () => { openedHere.current = true; setExpanded((v) => !v) }
-  useEffect(() => {
-    if (openedHere.current && expanded && !text && !loading && !error) {
-      const t = setTimeout(generate, 0)
-      return () => clearTimeout(t)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expanded])
+  // Expanding shows the briefing if one was written today, and otherwise the
+  // ASK MADDENAI button: it no longer writes itself on expand (Ben's rule,
+  // 26 Nov 2026: AI only from a labelled AI control).
+  const toggle = () => setExpanded((v) => !v)
 
   return (
     <div className="border-b border-terminal-border flex-shrink-0">
@@ -839,12 +834,12 @@ function MorningBriefing() {
           title="Regenerate"
           aria-label="Regenerate the morning brief summary"
           className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-1"
-        >↻</button>
+        >↻ AI</button>
       </div>
       {expanded && (
         <div className="px-3 pb-3 text-xs text-terminal-text leading-relaxed panel-fade">
           {error ? (
-            <div data-ai-unavailable className="text-terminal-gold text-2xs">{error} <button onClick={generate} className="underline hover:text-terminal-gold">Try again</button></div>
+            <div data-ai-unavailable className="text-terminal-gold text-2xs">{error} <button onClick={generate} className="underline hover:text-terminal-gold">Ask MaddenAI again</button></div>
           ) : text ? (
             <>
               {renderBriefParagraphs(text)}
@@ -868,7 +863,7 @@ function MorningBriefing() {
           ) : loading ? (
             <div className="text-terminal-text-dim text-2xs animate-pulse">MaddenAI is drafting today's briefing…</div>
           ) : (
-            <button onClick={generate} className="text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">WRITE TODAY'S BRIEFING</button>
+            <button onClick={generate} className="text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ASK MADDENAI TO WRITE TODAY'S BRIEFING</button>
           )}
         </div>
       )}

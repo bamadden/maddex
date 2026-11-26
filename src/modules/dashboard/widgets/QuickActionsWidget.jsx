@@ -1,5 +1,6 @@
 import {} from './_shared'
 import { goModule } from './navigate'
+import { useStore } from '../../../store/useStore'
 import { useContainerWidth } from '../../../hooks/useContainerWidth'
 import { PAL } from '../../../styles/palette.js'
 
@@ -24,6 +25,7 @@ export default function QuickActionsWidget() {
   // two-column phone layout permanently. Below 260px, three columns gives
   // each button under 85px and the label starts wrapping.
   const { ref, isNarrow } = useContainerWidth({ narrowAt: 260 })
+  const { setChatOpen } = useStore()
 
   return (
     <div
@@ -34,9 +36,10 @@ export default function QuickActionsWidget() {
       {ACTIONS.map((a) => (
         <button
           key={a.label}
-          onClick={() => (a.ai
-            ? window.dispatchEvent(new CustomEvent('madden:ask-ai', { detail: { prompt: '', context: 'Dashboard' } }))
-            : goModule(a.to))}
+          // ASK AI opens the MaddenAI panel for the reader to type; it sends
+          // nothing itself. (It dispatched an empty prompt, which the panel
+          // dropped, so the button did nothing: audit, 26 Nov 2026.)
+          onClick={() => (a.ai ? setChatOpen(true) : goModule(a.to))}
           className="flex flex-col items-center justify-center gap-1 transition-colors"
           // 44px is the minimum comfortable touch target. It applies at every
           // size — a cramped button is no easier to hit with a mouse, it is

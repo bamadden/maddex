@@ -58,7 +58,7 @@ function WeeklyNotesBar() {
           onClick={write}
           disabled={run.busy}
           className="text-[11px] font-bold font-mono tracking-wider border border-terminal-gold/50 text-terminal-gold px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors disabled:opacity-40"
-        >{run.busy ? 'WRITING…' : "WRITE THIS WEEK'S NOTES"}</button>
+        >{run.busy ? 'WRITING…' : "WRITE THIS WEEK'S NOTES WITH MADDENAI"}</button>
       )}
     </div>
   )

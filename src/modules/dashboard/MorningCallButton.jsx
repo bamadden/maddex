@@ -29,6 +29,6 @@ export default function MorningCallButton() {
       onClick={() => askMaddenAI(PROMPT)}
       title="Weekdays 6–10am Sydney: an interactive morning call from MaddenAI"
       className="text-2xs px-2.5 py-1 font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
-    >☀ MORNING CALL</button>
+    >☀ MADDENAI MORNING CALL</button>
   )
 }

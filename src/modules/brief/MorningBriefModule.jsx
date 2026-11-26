@@ -369,11 +369,11 @@ export default function MorningBriefModule() {
         subtitle={`Daily brief weekdays from ${briefHourLabel()} · weekly review after the Friday close`}
         moduleId="brief"
         isFetching={status === 'loading'}
-        // Was deleting a UTC-keyed entry by hand. The cache key is now the
-        // LOCAL date, so that removed a key that does not exist and left the
-        // real one in place — refresh would have appeared to do nothing.
-        // clearBriefCache owns the key format instead of this file guessing.
-        onRefresh={() => load({ force: true })}
+        // The header's refresh (and R) re-reads today's brief; it does not
+        // write one. Writing is ↻ REGENERATE WITH MADDENAI and GENERATE BRIEF
+        // WITH MADDENAI only (Ben's rule, 26 Nov 2026: a control that does
+        // not name the AI must not call it).
+        onRefresh={() => load()}
         right={
           tab === 'daily' && brief && !brief.isWeekend ? (
             <div className="flex items-center gap-1.5">
@@ -382,7 +382,7 @@ export default function MorningBriefModule() {
                 disabled={status === 'loading'}
                 className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors disabled:opacity-40"
                 style={{ border: '1px solid rgba(201,168,76,0.2)' }}
-              >{status === 'loading' ? 'GENERATING…' : '↻ REGENERATE'}</button>
+              >{status === 'loading' ? 'GENERATING…' : '↻ REGENERATE WITH MADDENAI'}</button>
               <button
                 onClick={share}
                 className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
@@ -435,7 +435,7 @@ export default function MorningBriefModule() {
             <button
               onClick={() => load({ force: true })}
               className="mt-2 px-5 py-2 text-xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors"
-            >GENERATE BRIEF NOW</button>
+            >GENERATE BRIEF WITH MADDENAI</button>
           </div>
         )}
 
@@ -449,7 +449,7 @@ export default function MorningBriefModule() {
               <button
                 onClick={() => load({ force: true })}
                 className="text-2xs text-terminal-gold border border-terminal-gold px-3 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-              >RETRY</button>
+              >RETRY WITH MADDENAI</button>
             </div>
           </div>
         )}
@@ -529,7 +529,7 @@ export default function MorningBriefModule() {
                 onClick={() => load({ force: true })}
                 className="font-mono text-[11px] tracking-widest px-2 py-1 rounded-sm text-terminal-text-dim hover:text-terminal-gold transition-colors"
                 style={{ border: '1px solid rgba(201,168,76,0.2)' }}
-              >↻ REGENERATE</button>
+              >↻ REGENERATE WITH MADDENAI</button>
             </footer>
 
             <div className="mt-6"><PreviousBriefs currentDay={briefDayKey()} /></div>

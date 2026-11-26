@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { VERIFIED_CONSTANTS, pendingRbaDecision } from '../../data/verifiedConstants'
 import { askClaude } from '../../services/api'
 import { AIContentBadge } from '../../components/ui/VerifiedBadge'
@@ -61,34 +61,27 @@ function rbaRelevance(name = '') {
 const CACHE_PREFIX = 'maddex_macro_read_' 
 const dayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
 
-// One short interpretation per indicator per day.
+// One short interpretation per indicator per day, written only when the reader
+// presses ASK MADDENAI TO INTERPRET (Ben's rule, 26 Nov 2026: no AI request on
+// view or open; until then opening an indicator sent one). Opening the panel
+// shows today's cached reading if there is one, and otherwise the button.
 //
 // The figure is supplied in the prompt and the model is told it may quote that
 // and nothing else — same contract as every other AI surface in this terminal.
-// Cached per day because the underlying reading only changes on release, so
-// regenerating on every expand would spend a call to say the same thing.
+// Cached per day because the underlying reading only changes on release.
 function useIndicatorRead(indicator, nextRelease) {
-  const [state, setState] = useState({ status: 'idle', text: '', source: 'live' })
+  const key = indicator ? `${CACHE_PREFIX}${indicator.name}_${dayKey()}` : null
+  const cachedFor = (k) => { try { return k ? localStorage.getItem(k) : null } catch { return null } }
+  const [state, setState] = useState(() => {
+    const cached = cachedFor(key)
+    return cached ? { status: 'ready', text: cached, source: 'cache' } : { status: 'idle', text: '', source: 'live' }
+  })
+  const alive = useRef(true)
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
-  useEffect(() => {
+  const ask = useCallback(() => {
     if (!indicator) return
-    const key = `${CACHE_PREFIX}${indicator.name}_${dayKey()}`
-    let alive = true
-
-    // Deferred rather than set in the effect body. Calling setState
-    // synchronously as an effect runs is what triggers the cascading-render
-    // lint rule, and the codebase already defers this way in NewsModule and
-    // MorningBriefModule.
-    let cached = null
-    try { cached = localStorage.getItem(key) } catch { /* storage unavailable */ }
-
-    if (cached) {
-      const t = setTimeout(() => { if (alive) setState({ status: 'ready', text: cached, source: 'cache' }) }, 0)
-      return () => { alive = false; clearTimeout(t) }
-    }
-
-    const t = setTimeout(() => { if (alive) setState({ status: 'loading', text: '', source: 'live' }) }, 0)
-
+    setState({ status: 'loading', text: '', source: 'live' })
     const prompt = `Describe one Australian economic indicator.
 
 Indicator: ${indicator.name}
@@ -103,17 +96,15 @@ Plain prose, no markdown, no headings.`
 
     askClaude([{ role: 'user', content: prompt }], null, { maxTokens: 320 })
       .then(({ text }) => {
-        if (!alive) return
+        if (!alive.current) return
         const clean = String(text ?? '').trim()
         try { localStorage.setItem(key, clean) } catch { /* quota */ }
         setState({ status: 'ready', text: clean, source: 'live' })
       })
-      .catch(() => { if (alive) setState({ status: 'error', text: '', source: 'live' }) })
+      .catch(() => { if (alive.current) setState({ status: 'error', text: '', source: 'live' }) })
+  }, [indicator, nextRelease, key])
 
-    return () => { alive = false; clearTimeout(t) }
-  }, [indicator, nextRelease])
-
-  return state
+  return { ...state, ask }
 }
 
 export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
@@ -165,13 +156,21 @@ export function IndicatorDeepDive({ indicator, nextRelease, onClose }) {
         <div className="border-t border-terminal-border/40 pt-2">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] text-terminal-gold font-bold tracking-widest">MADDENAI INTERPRETATION</span>
-            <AIContentBadge source={read.source === 'cache' ? 'cache' : 'live'} />
+            {read.status === 'ready' && <AIContentBadge source={read.source === 'cache' ? 'cache' : 'live'} />}
           </div>
+          {read.status === 'idle' && (
+            <button type="button" onClick={read.ask} className="text-2xs font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 transition-colors">
+              ASK MADDENAI TO INTERPRET ▶
+            </button>
+          )}
           {read.status === 'loading' && (
             <div className="text-2xs text-terminal-text-dim animate-pulse">Reading the print…</div>
           )}
           {read.status === 'error' && (
-            <div className="text-2xs text-terminal-text-dim">Interpretation unavailable right now.</div>
+            <div className="text-2xs text-terminal-text-dim">
+              Interpretation unavailable right now.{' '}
+              <button type="button" onClick={read.ask} className="text-terminal-gold underline">Ask MaddenAI again</button>
+            </div>
           )}
           {read.status === 'ready' && (
             <div className="text-2xs text-terminal-text leading-relaxed">{read.text}</div>

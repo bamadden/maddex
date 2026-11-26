@@ -11,8 +11,6 @@ import { useStore } from '../../store/useStore'
 import { fetchEquityQuotes, fetchIndexQuotesUnified } from '../../services/dataService'
 import { USING_MOCK_DATA } from '../../services/api'
 import { detectAssetType, toYahooSymbol } from '../../utils/assetUtils'
-import { dispatchAskAI } from '../../utils/askAI'
-import { getAiPreferences } from '../../services/aiPreferencesService'
 import { loadAlerts, checkAlerts, markTriggered, recordAlertHistory } from '../../services/alertsService'
 import { upcomingEarnings, daysUntil } from '../../services/earningsCalendar'
 import { logActivity } from '../../services/activityLogService'
@@ -494,39 +492,14 @@ export default function NotificationCenter() {
           // An app-raised alert — it counts against the plan's daily cap.
           if (!takeSmartSlot(`move:${key}`)) continue
           alertedMoversToday.current.add(key)
-          const dir = pct >= 0 ? 'up' : 'down'
           const range = typical != null ? ` — above its typical daily range (±${typical.toFixed(1)}%)` : ''
           const demo = USING_MOCK_DATA ? ' (DEMO prices)' : ''
 
-          // The auto-analysis honours the Auto-Analyse preference, which
-          // defaults OFF. It previously fired regardless — so a setting that
-          // exists, is documented in Settings and defaults to off was silently
-          // overridden, and the AI panel took over the screen and spent a call
-          // on nearly every load (demo prices jitter across ±2% constantly).
-          // A notification is a notification; opening a panel over whatever
-          // someone was reading is not.
-          if (!getAiPreferences().autoAnalyse) {
-            addNotification('WATCHLIST_MOVE', `📊 ${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today${range}${demo}`)
-            continue
-          }
-
-          addNotification('WATCHLIST_MOVE', `📊 ${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today${range}${demo} — asking MaddenAI why`)
-          dispatchAskAI({
-            name: q.name ?? sym, ticker: sym,
-            price: q.price != null ? q.price.toFixed(2) : undefined,
-            change: `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`,
-            instruction:
-              `This watchlist stock just moved ${dir} ${Math.abs(pct).toFixed(2)}% today. ` +
-              // "Give the most likely specific reason" asked for a cause the
-              // model has no news feed to know, and it answered with a list of
-              // candidates — an earnings miss OR a tariff escalation OR a
-              // regulatory ruling — presented as analysis. Naming what to
-              // check is honest and more useful than a guess dressed as a
-              // finding.
-              'In 1-2 sentences: say what category of driver a move this size in this sector usually implies, ' +
-              'and name the specific thing to check to confirm it. Do not assert a cause you have not been given — ' +
-              'you have no news feed for this move. Concise and direct; this is a push alert, not a report.',
-          })
+          // A notification only. It used to ask MaddenAI why when the
+          // Auto-Analyse setting was on, a request on a timer nobody pressed;
+          // the setting was removed on 26 Nov 2026 (AI only from a labelled
+          // AI control).
+          addNotification('WATCHLIST_MOVE', `📊 ${sym} moved ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today${range}${demo}`)
         }
       } catch {
         // Try again next tick

@@ -105,9 +105,16 @@ const fmt = (ind, v) => (v == null ? '—' : `${ind.prefix ?? ''}${v.toFixed(ind
 // ─── Commentary ───────────────────────────────────────────────────────────────
 
 const CACHE_PREFIX = 'maddex_indicator_comment_'
+const commentKey = (ind) => `${CACHE_PREFIX}${ind.key}_${new Date().toLocaleDateString('en-CA')}_${ind.value}`
+// Today's commentary if it was already asked for; never a request.
+function cachedComment(ind) {
+  try { const c = localStorage.getItem(commentKey(ind)); return c ? JSON.parse(c) : null } catch { return null }
+}
+// Only from the ASK MADDENAI button (26 Nov 2026: expanding a card used to send it).
 async function commentOn(ind) {
-  const cacheKey = `${CACHE_PREFIX}${ind.key}_${new Date().toLocaleDateString('en-CA')}_${ind.value}`
-  try { const c = localStorage.getItem(cacheKey); if (c) return JSON.parse(c) } catch { /* regenerate */ }
+  const cacheKey = commentKey(ind)
+  const cached = cachedComment(ind)
+  if (cached) return cached
   const recent = ind.series?.slice(-6).map((r) => `${r.label}: ${r.value}`).join(', ')
   const prompt = `You are MaddenAI. Describe this Australian economic indicator. Use ONLY the figures given — do not state any other number, and do not forecast the next reading.
 
@@ -148,17 +155,15 @@ function ChartTip({ active, payload, label }) {
 }
 
 function IndicatorCard({ ind, expanded, onToggle }) {
-  const [c, setC] = useState({ status: 'idle', data: null })
+  const [c, setC] = useState(() => { const d = cachedComment(ind); return d ? { status: 'ready', data: d } : { status: 'idle', data: null } })
   const delta = ind.value != null && ind.prev != null ? ind.value - ind.prev : null
   const worse = delta == null || delta === 0 ? null : ind.upIsBad ? delta > 0 : delta < 0
   const tone = worse == null ? PAL.dim : worse ? PAL.down : PAL.up
 
-  const toggle = () => {
-    onToggle()
-    if (!expanded && c.status === 'idle') {
-      setC({ status: 'loading', data: null })
-      commentOn(ind).then((d) => setC({ status: 'ready', data: d })).catch(() => setC({ status: 'error', data: null }))
-    }
+  const toggle = () => onToggle()
+  const ask = () => {
+    setC({ status: 'loading', data: null })
+    commentOn(ind).then((d) => setC({ status: 'ready', data: d })).catch(() => setC({ status: 'error', data: null }))
   }
 
   return (
@@ -206,8 +211,11 @@ function IndicatorCard({ ind, expanded, onToggle }) {
               <span className="text-2xs text-terminal-gold font-bold tracking-widest">MADDENAI COMMENTARY</span>
               {c.status === 'ready' && <AIContentBadge source="live" />}
             </div>
+            {c.status === 'idle' && (
+              <button type="button" onClick={ask} className="text-2xs font-bold tracking-widest border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 transition-colors">ASK MADDENAI TO INTERPRET ▶</button>
+            )}
             {c.status === 'loading' && <div className="text-2xs text-terminal-gold animate-pulse">Reading the latest print…</div>}
-            {c.status === 'error' && <div className="text-2xs text-terminal-text-dim">Commentary unavailable right now.</div>}
+            {c.status === 'error' && <div className="text-2xs text-terminal-text-dim">Commentary unavailable right now. <button type="button" onClick={ask} className="text-terminal-gold underline">Ask MaddenAI again</button></div>}
             {c.status === 'ready' && c.data && (
               <div className="space-y-1">
                 <div className="text-2xs text-terminal-text leading-relaxed">{c.data.read}</div>

@@ -132,7 +132,7 @@ export default function UnusualActivityTracker() {
                       instruction: `${s.symbol.replace('.AX', '')} (DEMO data — simulated prices and volume): volume ${s.volumeRatio.toFixed(1)}x its 20-day average, price ${s.priceChange >= 0 ? 'up' : 'down'} ${Math.abs(s.priceChange).toFixed(2)}% on the day. Describe, in general terms, what volume and price moves of this kind measure. These are demo figures; do not suggest any action.`,
                     }, { rawPrompt: true })}
                     className="btn-secondary btn-sm flex-shrink-0"
-                  >ANALYSE</button>
+                  >ANALYSE WITH AI</button>
                 </div>
               </div>
             </div>

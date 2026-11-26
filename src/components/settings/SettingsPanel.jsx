@@ -1002,7 +1002,7 @@ function DataProvenancePanel() {
             disabled={busy != null}
             className="btn-secondary btn-sm disabled:opacity-40"
           >
-            {busy === 'ai' ? 'GENERATING…' : 'REGENERATE'}
+            {busy === 'ai' ? 'GENERATING…' : 'REGENERATE WITH AI'}
           </button>
         </div>
         <div className="text-2xs text-terminal-text-dim mb-1">
@@ -1468,7 +1468,7 @@ const CREDIT_STATES = {
   rate_limit:  { label: 'RATE LIMITED', colour: PAL.gold, note: 'Too many requests — this usually clears in a minute.' },
   error:       { label: 'API ERROR',   colour: PAL.down, note: 'Could not reach the API.' },
   checking:    { label: 'CHECKING…',   colour: PAL.muted, note: '' },
-  unchecked:   { label: 'NOT CHECKED', colour: PAL.muted, note: 'Press CHECK NOW to test the AI connection.' },
+  unchecked:   { label: 'NOT CHECKED', colour: PAL.muted, note: 'Press CHECK MADDENAI NOW to test the AI connection.' },
   unknown:     { label: 'UNKNOWN',     colour: PAL.muted, note: 'Unexpected response shape.' },
 }
 
@@ -1551,7 +1551,7 @@ function MaddenAISection() {
           <button
             onClick={() => { setCredits('checking'); checkCredits().then(setCredits) }}
             className="btn-secondary btn-sm"
-          >CHECK NOW</button>
+          >CHECK MADDENAI NOW</button>
           {(credits === 'no_credits' || credits === 'no_key') && (
             <a
               href="https://console.anthropic.com/settings/billing"
@@ -1625,10 +1625,6 @@ function MaddenAISection() {
 
       <FieldRow label="Context Awareness" note="Grounds responses in what you're currently viewing — active module, open asset, watchlist, portfolio size">
         <Toggle value={prefs.contextAwareness} onChange={(v) => setPref('contextAwareness', v)} />
-      </FieldRow>
-
-      <FieldRow label="Auto-Analyse" note="Automatically ask MaddenAI to analyse an asset when you open its detail view (while the AI panel is open)">
-        <Toggle value={prefs.autoAnalyse} onChange={(v) => setPref('autoAnalyse', v)} />
       </FieldRow>
 
       <div className="pt-2 border-t border-terminal-border/30">

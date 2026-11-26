@@ -1,28 +1,28 @@
-import { useState, useEffect } from 'react'
-import { generateEarningsPreview } from '../../services/earningsPreviewService'
+import { useState } from 'react'
+import { generateEarningsPreview, cachedEarningsPreview } from '../../services/earningsPreviewService'
 import { daysUntil } from '../../services/earningsCalendar'
 import { PAL } from '../../styles/palette.js'
 
 export default function EarningsPreviewPanel({ ticker, earningsDate, companyName, onClose }) {
-  const [status, setStatus] = useState('loading') // loading | ready | error | unavailable
-  const [preview, setPreview] = useState(null)
-  const [error, setError] = useState(null)
+  // Opening the panel sends nothing (Ben's rule, 26 Nov 2026): it shows a
+  // preview already written for this date, or the ASK MADDENAI button.
   const d = daysUntil(earningsDate)
+  const [preview, setPreview] = useState(() => cachedEarningsPreview(ticker, earningsDate))
+  const [status, setStatus] = useState(() => (preview ? 'ready' : d > 7 || d < 0 ? 'unavailable' : 'idle')) // idle | loading | ready | error | unavailable
+  const [error, setError] = useState(null)
 
-  useEffect(() => {
-    const t = setTimeout(async () => {
-      try {
-        const result = await generateEarningsPreview(ticker, earningsDate)
-        if (!result) { setStatus('unavailable'); return }
-        setPreview(result)
-        setStatus('ready')
-      } catch (e) {
-        setError(e.message)
-        setStatus('error')
-      }
-    }, 0)
-    return () => clearTimeout(t)
-  }, [ticker, earningsDate])
+  const ask = async () => {
+    setStatus('loading')
+    try {
+      const result = await generateEarningsPreview(ticker, earningsDate)
+      if (!result) { setStatus('unavailable'); return }
+      setPreview(result)
+      setStatus('ready')
+    } catch (e) {
+      setError(e.message)
+      setStatus('error')
+    }
+  }
 
   return (
     <div className="modal-backdrop fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
@@ -39,6 +39,13 @@ export default function EarningsPreviewPanel({ ticker, earningsDate, companyName
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
+          {status === 'idle' && (
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-center px-6">
+              <button type="button" onClick={ask} className="text-2xs font-bold tracking-widest border border-terminal-gold/50 text-terminal-gold px-3 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors">ASK MADDENAI FOR AN EARNINGS PREVIEW ▶</button>
+              <span className="text-2xs text-terminal-text-dim">General information, written by MaddenAI from the company&apos;s published results calendar.</span>
+            </div>
+          )}
+
           {status === 'loading' && (
             <div className="flex flex-col items-center justify-center py-16 gap-2">
               <div className="text-terminal-gold text-2xs tracking-widest animate-pulse">MADDENAI · PREVIEWING {ticker.replace('.AX', '')} EARNINGS...</div>
@@ -55,6 +62,7 @@ export default function EarningsPreviewPanel({ ticker, earningsDate, companyName
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-center px-6">
               <span className="text-terminal-red text-lg">⚠</span>
               <div className="text-2xs text-terminal-red">{error}</div>
+              <button type="button" onClick={ask} className="text-2xs text-terminal-gold underline">Ask MaddenAI again</button>
             </div>
           )}
 

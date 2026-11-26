@@ -56,7 +56,7 @@ export default function EventWarningBar() {
       <button
         onClick={() => askMaddenAI(`${e.event} is due at ${when} on ${e.date}${e.description ? ` (${e.description})` : ''}. Describe what this release measures, who publishes it, and what the previous release showed if it is in your context. Describe only: no forecast, no consensus figure and no view on how markets might react.`)}
         className="px-2 py-0.5 bg-terminal-gold text-terminal-bg font-bold tracking-wide hover:bg-terminal-gold-bright"
-      >ABOUT THIS RELEASE ▶</button>
+      >ASK MADDENAI ABOUT THIS RELEASE ▶</button>
       <button onClick={dismiss} aria-label="Dismiss event warning" className="text-terminal-text-dim hover:text-terminal-text">✕</button>
     </div>
   )

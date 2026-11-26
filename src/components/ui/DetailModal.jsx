@@ -1375,7 +1375,7 @@ export default function DetailModal() {
               title="Six-part long-form MaddenAI analysis, kept in SAVED RESEARCH"
               className="w-full text-xs font-bold tracking-widest px-3 py-2 border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors cursor-pointer"
             >
-              ◆ DEEP DIVE
+              ◆ MADDENAI DEEP DIVE
             </button>
           )}
           {(isStockOrIdx || isCryptoModal) && (

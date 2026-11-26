@@ -298,7 +298,7 @@ export default function SetupWizard({ onComplete, initialStep = 1, onStep }) {
                 {AI_PROMPT}
               </div>
               {aiState === 'idle' && (
-                <div className="mt-3"><Primary onClick={sendAi}>SEND THIS →</Primary></div>
+                <div className="mt-3"><Primary onClick={sendAi}>ASK MADDENAI →</Primary></div>
               )}
               {aiState === 'waiting' && (
                 <div className="mt-3 text-xs text-terminal-gold animate-pulse">MaddenAI is answering in the panel →</div>

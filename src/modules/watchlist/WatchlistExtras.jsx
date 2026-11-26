@@ -57,7 +57,7 @@ export function HoverPreview({ row, sector, x, y, onAnalyse, onAlert, onChart, o
         <span className="text-terminal-text-dim col-span-2">Vol <span className="text-terminal-text-bright tabular-nums">{volFmt(row.volume)}</span>{row.volRatio != null && <span className="tabular-nums"> ({row.volRatio.toFixed(1)}× avg)</span>}</span>
       </div>
       <div className="flex gap-1.5 mt-2.5">
-        {[['ANALYSE', onAnalyse], ['ALERT', onAlert], ['CHART', onChart]].map(([l, fn]) => (
+        {[['ANALYSE WITH AI', onAnalyse], ['ALERT', onAlert], ['CHART', onChart]].map(([l, fn]) => (
           <button key={l} onClick={fn} className="flex-1 font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg transition-colors py-1" style={{ fontSize: 11 }}>{l}</button>
         ))}
       </div>

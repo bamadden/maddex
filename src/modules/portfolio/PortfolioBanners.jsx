@@ -54,7 +54,7 @@ export function PortfolioBanners({ holdings }) {
               : 'None of your holdings is strongly rate-sensitive.'}
           </span>
           <button onClick={() => askMaddenAI('The RBA has just made a decision (figures in your context). Describe which of my holdings are in rate-sensitive sectors and the channels through which a cash-rate change is usually described as reaching those sectors. Describe only: no forecast, no price and no suggestion of any action.')}
-            className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 hover:bg-terminal-gold hover:text-terminal-bg">RATE-SENSITIVE HOLDINGS ▶</button>
+            className="text-2xs font-bold text-terminal-gold border border-terminal-gold/40 px-2 hover:bg-terminal-gold hover:text-terminal-bg">ASK MADDENAI: RATE-SENSITIVE HOLDINGS ▶</button>
         </div>
       )}
       {events.length > 0 && (
@@ -67,7 +67,7 @@ export function PortfolioBanners({ holdings }) {
               <button key={`${e.ticker}-${e.date}-${e.what}`} onClick={() => askMaddenAI(prompt)}
                 title={`${e.sourced ? 'From the company\'s financial calendar' : 'Approximate date'} — click to ask MaddenAI`}
                 className="text-2xs border border-terminal-gold/30 px-2 py-0.5 hover:border-terminal-gold hover:text-terminal-gold">
-                <b>{bare(e.ticker)}</b> {e.what} {e.date === today ? 'today' : day(e.date)} ▶
+                <b>{bare(e.ticker)}</b> {e.what} {e.date === today ? 'today' : day(e.date)} · ASK MADDENAI ▶
               </button>
             )
           })}

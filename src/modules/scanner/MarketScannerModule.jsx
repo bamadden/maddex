@@ -269,7 +269,7 @@ function ResultCard({ badge, badgeColor: _badgeColor, symbol, name, metricLabel,
           onClick={onAnalyse}
           className="text-2xs font-bold px-2.5 py-1 rounded-sm transition-colors opacity-90 group-hover:opacity-100"
           style={{ color: tone, border: `1px solid ${tone}66` }}
-        >ANALYSE</button>
+        >ANALYSE WITH AI</button>
       </div>
     </div>
     </div>
@@ -574,7 +574,7 @@ function PatternCard({ candidate }) {
               onClick={() => analyseSignal(candidate.symbol, candidate.name,
                 `${tickerOf(candidate.symbol)}'s recent prices resemble a ${pattern.patternName} pattern. Explain what the pattern is and how it is described in technical analysis. Describe only: no forecast, no price and no suggestion of any action.`)}
               className="text-2xs text-terminal-gold border border-terminal-gold/40 px-2 py-0.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-            >ANALYSE</button>
+            >ANALYSE WITH AI</button>
             <span
               title="Pattern read by MaddenAI from the shape of the recent series. No price target — chart patterns here describe structure, not a level to trade to."
               style={{

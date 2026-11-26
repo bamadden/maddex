@@ -1150,21 +1150,8 @@ export default function AIPanel({ wide = false, onListening }) {
   // loaded, and needs the listener attached first.
   useEffect(() => { onListening?.() }, [onListening])
 
-  // Auto-analyse — when enabled in Settings, opening an asset's detail view
-  // while the AI panel is already open auto-sends the ANALYSE quick prompt
-  // for it, so a new symbol never gets analysed twice in a row.
-  const lastAutoAnalysedRef = useRef(null)
-  useEffect(() => {
-    // Auto-analyse: fires a prompt when a new asset opens while the panel is
-    // already open. send() is an async side effect on the network, not derived
-    // state — there is nothing here to compute during render.
-    if (!chatOpen || !modalAsset?.symbol) return
-    if (!getAiPreferences().autoAnalyse) return
-    if (lastAutoAnalysedRef.current === modalAsset.symbol) return
-    lastAutoAnalysedRef.current = modalAsset.symbol
-    const prompt = getQuickPrompts(activeModule, modalAsset.symbol)[0]?.prompt
-    if (prompt) send(prompt)
-  }, [modalAsset, chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  // (Auto-analyse, which sent a prompt when an asset's detail view opened,
+  // was removed on 26 Nov 2026: AI only from a labelled AI control.)
 
   // Opens the asset panel for a ticker mentioned in a reply. Reads the symbol
   // off the element rather than the text, so a ticker rendered inside other

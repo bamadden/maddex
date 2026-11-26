@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { upcomingEarnings, daysUntil, EARNINGS_2026 } from '../../services/earningsCalendar'
 import { getPrep, togglePrepItem, prunePrep } from '../../services/earningsPrep'
 import { useStore } from '../../store/useStore'
-import EarningsPreviewPanel from '../../components/earningsPreview/EarningsPreviewPanel'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -76,7 +75,6 @@ export default function EarningsCalendar() {
     return next ? new Date(`${next.date}T00:00:00`) : new Date()
   })
   const [selectedDate, setSelectedDate] = useState(null)
-  const [preview, setPreview] = useState(null)
   const [prepTicker, setPrepTicker] = useState(null)
   const [, bump] = useState(0)
 
@@ -289,7 +287,6 @@ export default function EarningsCalendar() {
         </div>
       </div>
 
-      {preview && <EarningsPreviewPanel entry={preview} onClose={() => setPreview(null)} />}
     </div>
   )
 }

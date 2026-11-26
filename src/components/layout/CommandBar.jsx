@@ -1349,9 +1349,11 @@ export default function CommandBar({ early = null } = {}) {
       return
     }
 
-    // Fallback to AI
-    flash('NOT FOUND — ROUTING TO AI...', 'text-terminal-gold', 1000)
-    setTimeout(() => routeToAI(raw), 800)
+    // Not found: offer MaddenAI rather than send to it. It used to route the
+    // text to the AI after 800 ms, a request the reader had not asked for
+    // (Ben's rule, 26 Nov 2026). The bar now reads "ai <text>": Enter asks.
+    setInputValue(`ai ${raw}`)
+    flash('NOT FOUND — PRESS ENTER TO ASK MADDENAI', 'text-terminal-gold', 4000)
   }
 
   // ── Movers fetch ──────────────────────────────────────────────────────────────

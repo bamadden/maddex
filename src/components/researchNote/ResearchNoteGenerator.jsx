@@ -133,7 +133,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
                 <button
                   onClick={generate}
                   className="mt-2 text-xs font-bold text-terminal-gold border border-terminal-gold/50 px-5 py-2 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                >GENERATE RESEARCH NOTE</button>
+                >GENERATE WITH MADDENAI</button>
               </div>
             )}
 
@@ -157,7 +157,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
                 <button
                   onClick={generate}
                   className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-4 py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
-                >RETRY</button>
+                >RETRY WITH MADDENAI</button>
               </div>
             )}
 
@@ -169,7 +169,7 @@ export default function ResearchNoteGenerator({ asset: assetProp, initialNote = 
                     {!note.body && <button
                       onClick={generate}
                       className="text-2xs text-terminal-text-dim hover:text-terminal-gold border border-terminal-border px-3 py-1.5 transition-colors"
-                    >REGENERATE</button>}
+                    >REGENERATE WITH MADDENAI</button>}
                     <button
                       onClick={handleCopy}
                       title="Copy the executive summary, data date and disclaimer to share"

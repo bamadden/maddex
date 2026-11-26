@@ -44,7 +44,7 @@ export default function RbaDecisionPreview() {
           onClick={() => rbaPreview(nd.date)}
           title="MaddenAI's six-part pre-decision brief — kept in Saved Research. Also: type 'rba preview' in the command bar."
           className="ml-auto text-2xs font-bold border border-terminal-gold/50 text-terminal-gold hover:bg-terminal-gold hover:text-terminal-bg px-2 py-0.5 transition-colors tracking-widest"
-        >RBA PREVIEW ▶</button>
+        >MADDENAI RBA PREVIEW ▶</button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 mt-1.5">

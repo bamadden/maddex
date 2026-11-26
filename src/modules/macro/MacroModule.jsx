@@ -2023,6 +2023,7 @@ export default function MacroModule() {
           const ind = AU_MACRO.find((i) => i.name === openIndicator)
           return ind ? (
             <IndicatorDeepDive
+              key={ind.name}
               indicator={ind}
               nextRelease={NEXT_RELEASE[ind.name]}
               onClose={() => setOpenIndicator(null)}

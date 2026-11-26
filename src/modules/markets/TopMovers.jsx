@@ -225,7 +225,7 @@ function SortableTable({ items, audUsd, onRowClick, newsBy }) {
                 onClick={(e) => { e.stopPropagation(); askMaddenAI(`Analyse ${q.name ?? displaySym(q.symbol)} (${q.symbol}) — it is among today's ${q.dayChangePct >= 0 ? 'top gainers' : 'biggest losers'}${newsBy?.[displaySym(q.symbol)] ? `, and the latest headline naming it is "${newsBy[displaySym(q.symbol)].headline}"` : ', with no recent headline naming it'}. Describe what has been reported about it and what a move of this kind can reflect. Describe only: do not forecast the price, name anything to watch, or suggest any action.${USING_MOCK_DATA ? ' Prices here are demo data, so do not treat the size of the move as real.' : ''}`) }}
                 title={`Analyse ${displaySym(q.symbol)} with MaddenAI`}
                 className="ml-1 text-[11px] font-bold tracking-wider border border-terminal-gold/40 text-terminal-gold px-1 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-terminal-gold hover:text-terminal-bg transition-opacity"
-              >ANALYSE</button>
+              >ANALYSE WITH AI</button>
             </td>
             <td className="px-1.5 py-0.5 text-2xs text-terminal-text-dim truncate max-w-[220px] hidden lg:table-cell" title={q.name ?? undefined}>{shortName(q.name)}</td>
             <td className="px-1.5 py-0.5 hidden lg:table-cell align-middle" style={{ width: 58, minWidth: 58 }}>

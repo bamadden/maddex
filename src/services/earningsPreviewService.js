@@ -4,6 +4,13 @@ import { askClaudeJSON } from './api'
 // Only generates within a 7-day lookahead window (and never for a date
 // that's already passed) — outside that window this returns null so
 // callers can decide not to show a preview affordance at all.
+// A preview already written for this report date, or null. Never a request:
+// the panel shows this on open and asks the model only from its ASK MADDENAI
+// button (26 Nov 2026).
+export function cachedEarningsPreview(ticker, earningsDate) {
+  try { const c = localStorage.getItem(`maddex_earnings_preview_v2_${ticker}_${earningsDate}`); return c ? JSON.parse(c) : null } catch { return null }
+}
+
 export async function generateEarningsPreview(ticker, earningsDate) {
   const daysUntil = Math.ceil((new Date(`${earningsDate}T00:00:00`) - new Date()) / 86400000)
   if (daysUntil > 7 || daysUntil < 0) return null

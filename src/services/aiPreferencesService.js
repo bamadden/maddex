@@ -4,7 +4,6 @@
 // is an acceptable tradeoff over wiring a full subscription).
 const KEY = 'maddex_ai_preferences'
 const DEFAULTS = {
-  autoAnalyse: false,
   contextAwareness: true,
   disclaimerFrequency: 'session', // 'always' | 'session' | 'never'
 }

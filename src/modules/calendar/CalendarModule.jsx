@@ -345,7 +345,7 @@ function EarningsEventCard({ event, onReminderChange }) {
             })}
             className="text-2xs font-bold text-terminal-gold border border-terminal-gold/50 px-2 py-1 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"
           >
-            {isAgm ? 'ABOUT THIS AGM →' : 'ABOUT THIS COMPANY →'}
+            {isAgm ? 'ASK MADDENAI ABOUT THIS AGM →' : 'ASK MADDENAI ABOUT THIS COMPANY →'}
           </button>
           <button
             onClick={setReminder}

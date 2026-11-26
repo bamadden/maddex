@@ -3,6 +3,7 @@
 //
 //   node scripts/smoke/sweep.mjs production [https://maddex.vercel.app]
 //   node scripts/smoke/sweep.mjs modules    [http://localhost:5174]
+//   node scripts/smoke/sweep.mjs signed-in  [https://maddex.vercel.app]
 //
 // production — the live site, signed out. Production shows only the sign-in
 //   screen to a signed-out visitor (App.jsx), so this checks that screen
@@ -14,6 +15,15 @@
 //   of the deployed commit (the dev build skips sign-in). Fails on an error
 //   boundary, a console error or uncaught exception, raw error text on the
 //   page, any AI request on load, or a module with no data badge.
+// signed-in — the same module sweep on the live site, signed in as the test
+//   account in MADDEX_TEST_EMAIL / MADDEX_TEST_PASSWORD (repo secrets in CI;
+//   docs/SMOKE_TEST.md). The credentials are typed into the sign-in form and
+//   never printed: every line this script writes has them scrubbed.
+//
+// In every module sweep, each expand toggle and clickable card on the page is
+// opened (not ones labelled AI, not destructive ones): opening a card must
+// send no AI request (Ben's rule, 26 Nov 2026: AI runs only from a labelled
+// AI control).
 //
 // Every /api/claude and anthropic.com request is refused and counted (a
 // failure), and /api/ai-daily is answered with an empty mock: nothing here
@@ -41,11 +51,21 @@ export const NO_DATA_SCREENS = {
 
 export const RAW_ERROR = /\b(TypeError|ReferenceError|SyntaxError|RangeError|Cannot read propert(y|ies) of|is not a function|is not defined|undefined is not|Unexpected token|Uncaught)\b|\[object Object\]|\bNaN(%|\b)|\bInfinity%/
 
+// The test account's credentials, scrubbed from everything this prints.
+const SECRETS = [process.env.MADDEX_TEST_EMAIL, process.env.MADDEX_TEST_EMAIL?.split('@')[0], process.env.MADDEX_TEST_PASSWORD]
+  .filter((v) => typeof v === 'string' && v.length >= 3)
+export const scrub = (text, secrets = SECRETS) => secrets.reduce((t, v) => t.split(v).join('[test account]'), String(text))
+const say = (line) => console.log(scrub(line))
+
 const failures = []
 const warnings = []
-const fail = (m) => { failures.push(m); console.log(`  ✖ ${m}`) }
-const pass = (m) => console.log(`  ✔ ${m}`)
-const warn = (m) => { warnings.push(m); console.log(`  ⚠ ${m}`) }
+const fail = (m) => { failures.push(m); say(`  ✖ ${m}`) }
+const pass = (m) => say(`  ✔ ${m}`)
+const warn = (m) => { warnings.push(m); say(`  ⚠ ${m}`) }
+
+// Controls the card-opening pass never presses: AI controls (they are meant
+// to send) and anything that changes or removes data, or leaves the page.
+export const DO_NOT_PRESS = /\b(AI|MADDENAI|ASK|GENERATE|REGENERATE|DELETE|REMOVE|CLEAR|RESET|SIGN OUT|LOG OUT|EXPORT|IMPORT|SAVE|SEND|SUBMIT|BUY|SELL|UPGRADE|JOIN|SUBSCRIBE|CONFIRM)\b/i
 
 async function openPage(browser, { seed = false } = {}) {
   const page = await browser.newPage()
@@ -69,6 +89,10 @@ async function openPage(browser, { seed = false } = {}) {
     log.errors.push(t.slice(0, 200))
   })
   page.on('pageerror', (e) => log.errors.push(`uncaught: ${String(e.message ?? e).slice(0, 200)}`))
+  // A native dialog (alert/confirm) blocks the page; dismiss it (never
+  // accept: it may confirm a deletion) and report it.
+  log.dialogs = []
+  page.on('dialog', (d) => { log.dialogs.push(`${d.type()}: ${d.message().slice(0, 80)}`); d.dismiss().catch(() => {}) })
   page.on('response', (r) => { if (r.status() >= 400 && !/\/api\/claude|anthropic/.test(r.url())) log.network.push(`${r.status()} ${new URL(r.url()).host}${new URL(r.url()).pathname}`.slice(0, 120)) })
   page.on('requestfailed', (r) => { if (!/\/api\/claude|anthropic/.test(r.url())) log.network.push(`failed ${new URL(r.url()).host}`) })
   if (seed) {
@@ -93,7 +117,7 @@ async function runCommand(page, text) {
 }
 
 async function production(browser) {
-  console.log(`Production, signed out: ${BASE}`)
+  say(`Production, signed out: ${BASE}`)
   const { page, log } = await openPage(browser)
   const res = await page.goto(BASE, { waitUntil: 'networkidle2', timeout: 60_000 })
   await wait(3000)
@@ -122,12 +146,44 @@ async function production(browser) {
   for (const n of new Set(log.network)) warn(`network: ${n}`)
 }
 
-async function modules(browser) {
-  console.log(`Every module on today's date (${new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })}, Sydney; the real clock): ${BASE}`)
-  const { page, log } = await openPage(browser, { seed: true })
-  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+// Opens every expand toggle and clickable card in <main> that is not an AI or
+// destructive control, closing anything that opens over the page, and returns
+// how many were opened.
+async function openCards(page, log, culprits = [], deadline = Date.now() + 20_000) {
+  const handles = await page.$$('main [aria-expanded="false"], main [data-kb-click]')
+  let opened = 0
+  for (const h of handles.slice(0, 40)) {
+    // Stops itself at the deadline: a race would leave it clicking into the
+    // next module.
+    if (Date.now() > deadline) return { opened, timedOut: true }
+    const ok = await h.evaluate((el, re) => {
+      const label = `${el.innerText ?? ''} ${el.getAttribute('aria-label') ?? ''} ${el.getAttribute('title') ?? ''}`
+      const r = el.getBoundingClientRect()
+      if (!(r.width > 0 && r.height > 0) || new RegExp(re, 'i').test(label) || el.closest('a[href]')) return false
+      // A click lands on whatever is at the centre: if that is a control of
+      // its own inside the card, judge that control's label instead.
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+      const inner = hit?.closest('button, a[href], [role="button"]')
+      if (inner && inner !== el && el.contains(inner)) {
+        const l = `${inner.innerText ?? ''} ${inner.getAttribute('aria-label') ?? ''}`
+        return !new RegExp(re, 'i').test(l) && !inner.matches('a[href]')
+      }
+      return true
+    }, DO_NOT_PRESS.source).catch(() => false)
+    if (!ok) continue
+    const before = log.ai.length
+    await Promise.race([h.click(), wait(2000)]).then(() => { opened++ }).catch(() => {})
+    await wait(150)
+    if (log.ai.length > before) culprits.push(await h.evaluate((el) => (el.innerText || el.getAttribute('aria-label') || el.tagName).replace(/\s+/g, ' ').trim().slice(0, 40)).catch(() => '?'))
+    await page.keyboard.press('Escape').catch(() => {})
+  }
+  return { opened, timedOut: false }
+}
+
+async function sweepModules(page, log) {
   await page.waitForSelector('[data-command-bar]', { timeout: 60_000 })
   await wait(3000)
+  let cards = 0
   for (const name of MODULES) {
     const before = log.errors.length
     await runCommand(page, name)
@@ -148,17 +204,73 @@ async function modules(browser) {
     if (log.errors.length > before) problems.push(`console: ${log.errors.slice(before).join(' | ').slice(0, 300)}`)
     if (s.nested.length) problems.push(`${s.nested.length} interactive element(s) nested in another: ${[...new Set(s.nested)].slice(0, 3).join('; ')}`)
     if (!s.badges && !NO_DATA_SCREENS[name]?.test(s.text)) problems.push('no data badge')
+    // Then open every card and toggle on the page: still no AI request.
+    // Bounded: a card that opens something Escape does not close must not
+    // stall the run.
+    const aiBefore = log.ai.length
+    const culprits = []
+    const { opened, timedOut } = await openCards(page, log, culprits)
+    if (timedOut) warn(`${name}: opened ${opened} card(s) in 20 s and stopped there`)
+    cards += opened
+    if (log.ai.length > aiBefore) problems.push(`opening its cards sent ${log.ai.length - aiBefore} AI request(s)${culprits.length ? `, from: ${[...new Set(culprits)].map((c) => `"${c}"`).join(', ')}` : ''}`)
+    // A fresh load before the next module: whatever a card opened (a modal,
+    // a drawer, another view) must not cover the next module's checks.
+    if (opened !== 0) {
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 }).catch(() => {})
+      await page.waitForSelector('[data-command-bar]', { timeout: 60_000 }).catch(() => {})
+      await wait(1500)
+    }
     if (problems.length) fail(`${name}: ${problems.join('; ')}`)
-    else pass(`${name}: ${s.badges ? `${s.badges} data badge(s)` : 'no data shown (its own empty or calculated screen)'}`)
+    else pass(`${name}: ${s.badges ? `${s.badges} data badge(s)` : 'no data shown (its own empty or calculated screen)'}; ${opened} card(s) opened, no AI request`)
   }
-  log.ai.length ? fail(`${log.ai.length} AI request(s) (${[...new Set(log.ai)].join(', ')})`) : pass('no AI request across every module')
+  log.ai.length ? fail(`${log.ai.length} AI request(s) (${[...new Set(log.ai)].join(', ')})`) : pass(`no AI request across every module and ${cards} opened card(s)`)
+  for (const d of new Set(log.dialogs)) warn(`a native browser dialog opened (dismissed): ${d}`)
   for (const n of new Set(log.network)) warn(`network: ${n}`)
 }
 
+async function modules(browser) {
+  say(`Every module on today's date (${new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })}, Sydney; the real clock): ${BASE}`)
+  const { page, log } = await openPage(browser, { seed: true })
+  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  await sweepModules(page, log)
+}
+
+async function signedIn(browser) {
+  const email = process.env.MADDEX_TEST_EMAIL
+  const password = process.env.MADDEX_TEST_PASSWORD
+  if (!email || !password) { warn('MADDEX_TEST_EMAIL / MADDEX_TEST_PASSWORD are not set: the signed-in sweep was skipped (docs/SMOKE_TEST.md)'); return }
+  say(`Every module, signed in as the test account, on today's date: ${BASE}`)
+  const { page, log } = await openPage(browser, { seed: true })
+  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  const form = await page.waitForFunction(() => [...document.querySelectorAll('form')].find((f) => f.querySelector('input[type="password"]') && /SIGN IN/.test(f.innerText)), { timeout: 60_000 }).catch(() => null)
+  if (!form) { fail('the sign-in form did not appear'); return }
+  const f = form.asElement()
+  await (await f.$('input[type="email"]')).type(email)
+  await (await f.$('input[type="password"]')).type(password)
+  const submit = await f.$('button[type="submit"]')
+  if (submit) await submit.click()
+  else await page.keyboard.press('Enter')
+  const state = await page.waitForFunction(() => {
+    const t = document.body.innerText
+    if (document.querySelector('[data-command-bar]')) return 'in'
+    if (/Invalid login|invalid credentials|Email not confirmed/i.test(t)) return 'refused'
+    if (/Terms of Use/i.test(t) && /ACCEPT/i.test(t) && !document.querySelector('[data-command-bar]')) return 'terms'
+    return null
+  }, { timeout: 60_000 }).then((h) => h.jsonValue()).catch(() => 'timeout')
+  if (state !== 'in') {
+    fail({ refused: 'the test account was refused at sign-in (check the secrets)', terms: 'the test account has not accepted the Terms of Use: sign in once by hand (docs/SMOKE_TEST.md step 4)', timeout: 'signing in did not reach the terminal within 60 s' }[state])
+    return
+  }
+  if (await page.$('[data-disclaimer-ack], [aria-label*="isclaimer"]')) warn('the disclaimer acknowledgement is showing: acknowledge it once by hand (docs/SMOKE_TEST.md step 4)')
+  pass('signed in as the test account')
+  await sweepModules(page, log)
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  if (!['production', 'modules'].includes(MODE)) { console.error('usage: sweep.mjs production|modules [base-url]'); process.exit(2) }
+  const RUN = { production, modules, 'signed-in': signedIn }
+  if (!RUN[MODE]) { console.error('usage: sweep.mjs production|modules|signed-in [base-url]'); process.exit(2) }
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: process.env.CI ? ['--no-sandbox'] : [] })
-  try { await (MODE === 'production' ? production(browser) : modules(browser)) } finally { await browser.close() }
-  console.log(failures.length ? `\n${failures.length} smoke check(s) failed.` : `\nAll smoke checks passed${warnings.length ? ` (${warnings.length} warning(s))` : ''}.`)
+  try { await RUN[MODE](browser) } finally { await browser.close() }
+  say(failures.length ? `\n${failures.length} smoke check(s) failed.` : `\nAll smoke checks passed${warnings.length ? ` (${warnings.length} warning(s))` : ''}.`)
   process.exit(failures.length ? 1 : 0)
 }

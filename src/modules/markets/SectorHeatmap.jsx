@@ -1212,10 +1212,10 @@ function SectorsView({ sectorConfig, proxyQuotes, proxyAt, histData, secondaryMe
               {constQuotes && !constFetching && (USING_MOCK_DATA ? <DemoBadge /> : <DataBadge cls="LIVE" source={EQUITY_SOURCE} at={constAt || null} />)}
               {isASX && RATE_SENSITIVITY[selected] && <RatePill s={RATE_SENSITIVITY[selected]} sector={selected} />}
               <button
-                onClick={askAISector}
+                onClick={() => askAISector()}
                 className="ml-auto text-2xs border border-terminal-gold/40 text-terminal-gold/70 hover:border-terminal-gold hover:text-terminal-gold px-1.5 py-0.5 transition-colors"
               >
-                AI ▶
+                ASK AI ▶
               </button>
               <button
                 onClick={() => onOpenDeepDive?.(selected)}

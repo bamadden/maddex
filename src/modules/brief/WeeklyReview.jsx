@@ -48,7 +48,7 @@ export function WeeklyReviewBody({ review, kicker = 'WEEK IN REVIEW', onRegenera
         </div>
         {onRegenerate && (
           <button onClick={onRegenerate} disabled={busy} className={REGEN_BTN} style={{ border: '1px solid rgba(201,168,76,0.2)' }}>
-            {busy ? 'GENERATING…' : '↻ REGENERATE'}
+            {busy ? 'GENERATING…' : '↻ REGENERATE WITH MADDENAI'}
           </button>
         )}
       </footer>
@@ -99,7 +99,7 @@ export default function WeeklyReviewTab({ history }) {
           </div>
           <button onClick={generate}
             className="mt-2 px-5 py-2 text-xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright transition-colors">
-            {status === 'error' ? 'RETRY' : 'GENERATE REVIEW NOW'}
+            {status === 'error' ? 'RETRY WITH MADDENAI' : 'GENERATE REVIEW WITH MADDENAI'}
           </button>
         </div>
       )}

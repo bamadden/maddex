@@ -54,7 +54,7 @@ export default function RbaDecisionCard() {
         <button
           onClick={() => askMaddenAI(`The RBA ${(PAST[verb] ?? verb).toLowerCase()} the cash rate${verb !== 'HOLD' && bp ? ` by ${bp}` : ''} to ${rate} on ${rba.lastDecision}${rba.minutes?.meeting === rba.lastDecision ? `, and its minutes said: ${rba.minutes.summary}` : ''}. What does this mean for mortgages, savers, the AUD and ASX sectors — and what would make the board move again at the next meeting on ${rba.nextMeeting}?`)}
           className="px-2 py-1 text-2xs font-bold tracking-widest bg-terminal-gold text-terminal-bg hover:bg-terminal-gold-bright whitespace-nowrap"
-        >WHAT THIS MEANS ▶</button>
+        >ASK MADDENAI WHAT THIS MEANS ▶</button>
         {/* Which of the reader's holdings connect to the cash rate — the
             Relationships event ripple. Connection only, not a forecast. */}
         <button onClick={() => openRipple(setActiveModule, 'macro:rba-cash-rate', 'rate')}
