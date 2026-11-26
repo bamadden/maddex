@@ -141,12 +141,14 @@ This restores the old rule exactly, hole included.
 - that it contains no statement that changes data;
 - that it opens no read, update or delete.
 
-The tests read the SQL and the source. They do not run Postgres:
-- No local Postgres is installed.
-- Adding PGlite (Postgres in WebAssembly) as a dev dependency was refused
-  by this session's permission settings.
-- `supabase/checks/012_verify.sql` is therefore the check against the real
-  database.
+`tests/migrationsPg.test.mjs` (since 26 Nov, with Ben's approval of
+PGlite, Postgres in process) applies every migration to a fresh database and
+runs `supabase/checks/012_verify.sql` exactly as written:
+- before 012, it must find the hole (the same FAIL and CHECK lines production
+  showed);
+- after 012, every line must PASS;
+- a signed-in user may add a terminal row for their own account only, and
+  the service role still writes confirmed rows;
+- the public key still cannot read the list.
 
-If you allow PGlite, a test can run the real migrations, 012 included, and
-the same five inserts as the anon role on every gate.
+It runs in `npm test`, so in every gate.
