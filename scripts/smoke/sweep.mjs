@@ -34,7 +34,7 @@
 import puppeteer from 'puppeteer-core'
 
 const MODE = process.argv[2]
-const BASE = (process.argv[3] ?? (MODE === 'production' ? 'https://maddex.vercel.app' : 'http://localhost:5174')).replace(/\/$/, '')
+const BASE = (process.argv[3] ?? (MODE === 'modules' ? 'http://localhost:5174' : 'https://maddex.vercel.app')).replace(/\/$/, '')
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -253,7 +253,7 @@ async function signedIn(browser) {
   const state = await page.waitForFunction(() => {
     const t = document.body.innerText
     if (document.querySelector('[data-command-bar]')) return 'in'
-    if (/Invalid login|invalid credentials|Email not confirmed/i.test(t)) return 'refused'
+    if (/Invalid email or password|Invalid login|invalid credentials|Email not confirmed/i.test(t)) return 'refused' // AuthModal's friendlySignInError
     if (/Terms of Use/i.test(t) && /ACCEPT/i.test(t) && !document.querySelector('[data-command-bar]')) return 'terms'
     return null
   }, { timeout: 60_000 }).then((h) => h.jsonValue()).catch(() => 'timeout')

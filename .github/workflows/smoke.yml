@@ -11,6 +11,12 @@
 #     deployed commit (the dev build skips sign-in; production shows only the
 #     sign-in screen signed out). Placeholder Supabase values: a signed-out
 #     sweep never reaches the database.
+#  3. signed in: the same module sweep on the live site (the deployed commit),
+#     signed in as the test account. Its email and password come only from
+#     the repo secrets MADDEX_TEST_EMAIL and MADDEX_TEST_PASSWORD, are passed
+#     only to this step, and are never printed (the script scrubs them from
+#     its output and GitHub masks secrets in logs). Skipped, with a notice,
+#     until both secrets exist. Setup: docs/SMOKE_TEST.md.
 name: smoke test
 
 on:
@@ -50,3 +56,14 @@ jobs:
           npx vite --port 5174 --strictPort > vite.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:5174/ > /dev/null && break; sleep 2; done
           node scripts/smoke/sweep.mjs modules http://localhost:5174
+      - name: Every module, signed in as the test account
+        if: always()
+        env:
+          MADDEX_TEST_EMAIL: ${{ secrets.MADDEX_TEST_EMAIL }}
+          MADDEX_TEST_PASSWORD: ${{ secrets.MADDEX_TEST_PASSWORD }}
+        run: |
+          if [ -z "$MADDEX_TEST_EMAIL" ] || [ -z "$MADDEX_TEST_PASSWORD" ]; then
+            echo "::notice::The test-account secrets are not set: the signed-in sweep was skipped (docs/SMOKE_TEST.md)."
+            exit 0
+          fi
+          node scripts/smoke/sweep.mjs signed-in https://maddex.vercel.app
