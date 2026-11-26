@@ -656,6 +656,31 @@ try {
     if (err) crashed.push(`${name}: ${err.replace(/\s+/g, ' ').slice(0, 120)}`)
   }
   crashed.length ? fail(`modules hit their error boundary: ${crashed.join(' | ')}`) : pass('19 modules opened, none hit its error boundary')
+
+  // Macro's indicator cards hold their own source link and check badge, so
+  // the card is not a button (26 Nov 2026). A REAL mouse click on the figure
+  // must still open the read (an overlay version passed a scripted click and
+  // failed a real one), and a click on the source link must not toggle it.
+  await runCommand(mods, 'MACRO')
+  await mods.waitForFunction(() => [...document.querySelectorAll('button[aria-expanded]')].some((b) => /AU CPI YoY/.test(b.innerText)), { timeout: 20_000 }).catch(() => null)
+  const cpiBox = await mods.evaluateHandle(() => [...document.querySelectorAll('button[aria-expanded]')].find((b) => /AU CPI YoY/.test(b.innerText))?.closest('div.relative'))
+  const fig = await cpiBox.asElement()?.$('.text-sm')
+  if (!fig) fail('Macro: the AU CPI card was not found')
+  else {
+    await fig.click() // puppeteer moves the real mouse to the element and presses
+    await wait(400)
+    const open = await mods.evaluate(() => [...document.querySelectorAll('button[aria-expanded]')].find((b) => /AU CPI YoY/.test(b.innerText))?.getAttribute('aria-expanded'))
+    open === 'true' ? pass('a real click on a Macro card figure opens its read') : fail(`a real click on the Macro CPI card did not open it (aria-expanded ${open})`)
+    await fig.click(); await wait(300)
+    const linkToggles = await mods.evaluate(() => {
+      const box = [...document.querySelectorAll('button[aria-expanded]')].find((b) => /AU CPI YoY/.test(b.innerText)).closest('div.relative')
+      const a = box.querySelector('a[href]'); if (!a) return 'no link'
+      a.addEventListener('click', (e) => e.preventDefault(), { once: true })
+      a.click()
+      return box.querySelector('button[aria-expanded]').getAttribute('aria-expanded')
+    })
+    linkToggles === 'false' ? pass('the card\'s source link does not toggle the card') : fail(`the source link toggled the card (${linkToggles})`)
+  }
   await closePage(mods)
 } finally {
   await Promise.allSettled(captures)

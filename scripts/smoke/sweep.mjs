@@ -138,8 +138,8 @@ async function modules(browser) {
         text: main.innerText,
         badges: main.querySelectorAll('[data-class]').length,
         crashed: /\bhit an error\b/i.test(document.body.innerText),
-        nested: [...document.querySelectorAll('button button, button a[href], a[href] button, a[href] a[href]')]
-          .map((x) => `"${x.innerText.replace(/\s+/g, ' ').trim().slice(0, 30)}" inside "${x.parentElement.closest('button, a[href]').innerText.replace(/\s+/g, ' ').trim().slice(0, 40)}"`),
+        nested: [...document.querySelectorAll(['button', 'a[href]', '[role="button"]'].flatMap((o) => ['button', 'a[href]', '[role="button"]'].map((i) => `${o} ${i}`)).join(', '))]
+          .map((x) => `"${x.innerText.replace(/\s+/g, ' ').trim().slice(0, 30)}" inside "${x.parentElement.closest('button, a[href], [role="button"]').innerText.replace(/\s+/g, ' ').trim().slice(0, 40)}"`),
       }
     })
     const problems = []

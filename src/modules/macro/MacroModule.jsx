@@ -1971,12 +1971,23 @@ export default function MacroModule() {
           {AU_MACRO.slice(0, 8).map((ind) => (
             // The card is not a button: its badge and source link are controls
             // of their own, and a control inside a button is invalid HTML
-            // (found by the smoke sweep, 26 Nov 2026). The name is the button,
-            // and its ::after covers the card, so the whole card still opens
-            // the read; the badge and link sit above that layer.
+            // (found by the smoke sweep, 26 Nov 2026). The name is the button
+            // (keyboard and screen readers); a click anywhere else on the card
+            // does the same, except on the card's own controls. (A ::after
+            // overlay on the button was tried first: a press moved it, so the
+            // release landed outside and no click reached the button.)
+            // The pointer cursor is [cursor:pointer], not cursor-pointer, so
+            // utils/keyboardClickables does not make the card a second
+            // role="button" around the name button and the source link.
             <div
               key={ind.name}
-              className="relative border-r border-terminal-border p-2 text-left hover:bg-terminal-accent/20 transition-colors"
+              onClick={(e) => {
+                // Only controls inside the card count, not an ancestor.
+                const control = e.target.closest('button, a[href], [role="button"]')
+                if (control && e.currentTarget.contains(control)) return
+                setOpenIndicator((cur) => (cur === ind.name ? null : ind.name))
+              }}
+              className="relative border-r border-terminal-border p-2 text-left hover:bg-terminal-accent/20 transition-colors [cursor:pointer]"
               style={openIndicator === ind.name ? { background: 'rgba(201,168,76,0.08)' } : undefined}
             >
               <div className="flex items-center gap-1 mb-0.5">
@@ -1986,9 +1997,9 @@ export default function MacroModule() {
                   onClick={() => setOpenIndicator((cur) => (cur === ind.name ? null : ind.name))}
                   aria-expanded={openIndicator === ind.name}
                   title={`${ind.name} — click for the full read`}
-                  className="text-2xs text-terminal-text-dim leading-tight text-left after:absolute after:inset-0 after:content-['']"
+                  className="text-2xs text-terminal-text-dim leading-tight text-left hover:text-terminal-gold"
                 >{ind.name}</button>
-                {LIVE_CHECK_FIELD[ind.name] && <LiveCheckBadge field={LIVE_CHECK_FIELD[ind.name]} className="ml-auto relative z-10" />}
+                {LIVE_CHECK_FIELD[ind.name] && <LiveCheckBadge field={LIVE_CHECK_FIELD[ind.name]} className="ml-auto" />}
               </div>
               <div className="text-sm font-bold text-terminal-text-bright">
                 {ind.name === 'RBA Cash Rate' ? rbaRateStr : ind.value}
@@ -1997,7 +2008,7 @@ export default function MacroModule() {
                 <span className="text-2xs text-terminal-text-dim">PREV: {ind.prev ?? '—'}</span>
               </div>
               <div className="text-2xs text-terminal-text-dim mt-0.5">
-                <span data-macro-period>{ind.period}</span> · released {formatDate(ind.date, { year: false })} · <span className="relative z-10"><SourceLink src={ind.src} /></span>
+                <span data-macro-period>{ind.period}</span> · released {formatDate(ind.date, { year: false })} · <SourceLink src={ind.src} />
               </div>
               {NEXT_RELEASE[ind.name] && (
                 <div className="text-2xs text-terminal-gold/70 mt-0.5">NEXT: {NEXT_RELEASE[ind.name]}</div>

@@ -8,7 +8,11 @@
 // cursor-pointer class or an inline style) and is not already interactive.
 //
 // Rows keep their table semantics (no role is added to a <tr>); other
-// elements get role="button".
+// elements get role="button", unless they hold controls of their own (a
+// card with a READ link, a data badge): a role="button" around buttons is
+// nested interactive content, which screen readers flatten (found by the
+// smoke sweep, 26 Nov 2026). Those stay reachable with Tab and Enter, with
+// no role.
 
 const SELECTOR = [
   'tr[class*="cursor-pointer"]', 'div[class*="cursor-pointer"]', 'li[class*="cursor-pointer"]', 'span[class*="cursor-pointer"]', 'td[class*="cursor-pointer"]',
@@ -23,7 +27,8 @@ export function enhance(root) {
     if (el.querySelector(':scope > button:only-child, :scope > a:only-child')) continue
     el.setAttribute('tabindex', '0')
     el.setAttribute('data-kb-click', '')
-    if (el.tagName !== 'TR' && el.tagName !== 'TD' && !el.hasAttribute('role')) el.setAttribute('role', 'button')
+    const holdsControls = el.querySelector(`${INTERACTIVE},${SELECTOR}`)
+    if (el.tagName !== 'TR' && el.tagName !== 'TD' && !el.hasAttribute('role') && !holdsControls) el.setAttribute('role', 'button')
   }
 }
 

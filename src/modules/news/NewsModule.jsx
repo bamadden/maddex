@@ -814,13 +814,11 @@ function MorningBriefing() {
 
   return (
     <div className="border-b border-terminal-border flex-shrink-0">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={toggle}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggle() }}
-        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-terminal-accent/10 transition-colors cursor-pointer"
-      >
+      {/* The toggle and the regenerate button sit side by side: the header was
+          a role="button" holding ↻, a control inside a control (smoke sweep,
+          26 Nov 2026). */}
+      <div className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-terminal-accent/10 transition-colors">
+        <button type="button" onClick={toggle} aria-expanded={expanded} className="flex items-center gap-2 flex-1 min-w-0 text-left">
         <span className="text-2xs font-bold text-terminal-gold tracking-widest">MORNING BRIEF</span>
         <span className="text-2xs text-terminal-text-dim">{today}</span>
         {/* Not a LIVE badge. The figures inside are live; the prose around
@@ -830,15 +828,18 @@ function MorningBriefing() {
             halves rather than a fourth badge being added beside it. */}
         <AIContentBadge source="live" label="AI SUMMARY · LIVE DATA" />
         {loading && <span className="text-2xs text-terminal-text-dim animate-pulse">generating…</span>}
-        <button
-          onClick={(e) => { e.stopPropagation(); generate() }}
-          title="Regenerate"
-          className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-1"
-        >↻</button>
         {!expanded && text && (
           <span className="text-2xs text-terminal-text-dim truncate min-w-0 flex-1" style={{ maxWidth: '60%' }}>{text.replace(/[#*]/g, '').split(/(?<=\.)\s/).slice(1, 2).join(' ') || text.slice(0, 140)}</span>
         )}
         <span className="ml-auto text-terminal-text-dim text-2xs">{expanded ? '▲' : '▼'}</span>
+        </button>
+        <button
+          type="button"
+          onClick={generate}
+          title="Regenerate"
+          aria-label="Regenerate the morning brief summary"
+          className="text-2xs text-terminal-text-dim hover:text-terminal-gold ml-1"
+        >↻</button>
       </div>
       {expanded && (
         <div className="px-3 pb-3 text-xs text-terminal-text leading-relaxed panel-fade">
