@@ -55,3 +55,54 @@ test('saved views keep the module state it exposes, and are saved and found from
   assert.match(bar, /\^save \(\?:this \|the \)\?view/)
   assert.match(bar, /case 'saveview':[\s\S]{0,200}madden:save-view/)
 })
+
+// WS2 re-audit, 26 Nov 2026.
+test('"view NAME" opens a saved view by name, "views" lists them, and a name saved again replaces the old one', async () => {
+  const store = new Map()
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) }
+  const { viewStateService } = await import('../src/services/viewStateService.js')
+  viewStateService.saveView('Morning rates', { activeModule: 'fx' })
+  viewStateService.saveView('Macro dense', { activeModule: 'macro' })
+  viewStateService.saveView('morning RATES', { activeModule: 'fx', layout: 'split' })
+  const views = viewStateService.getSavedViews()
+  assert.equal(views.length, 2, 'saved again under the same name: replaced')
+  assert.equal(viewStateService.findByName('morning rates').state.layout, 'split')
+  assert.equal(viewStateService.findByName('macro').name, 'Macro dense')        // the only one starting with it
+  assert.equal(viewStateService.findByName('dense').name, 'Macro dense')        // the only one containing it
+  viewStateService.saveView('Macro wide', { activeModule: 'macro' })
+  assert.equal(viewStateService.findByName('macro'), null, 'two match: none chosen')
+  assert.equal(viewStateService.findByName('nothing'), null)
+  const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
+  assert.match(bar, /kind: 'listviews'/)
+  assert.match(bar, /kind: 'openview'/)
+  assert.match(bar, /case 'openview':[\s\S]{0,300}viewStateService\.findByName\(nl\.name\)[\s\S]{0,300}madden:load-view/)
+})
+
+test('saved views keep the Dashboard, Scanner, Screener, Markets, Macro, News and Watchlist state, and the split layout', () => {
+  const uses = {
+    'src/modules/dashboard/DashboardModule.jsx': "useIntentState('dashboard', 'view'",
+    'src/modules/dashboard/OverviewSurface.jsx': "useIntentState('dashboard', 'dense'",
+    'src/modules/scanner/MarketScannerModule.jsx': "useIntentState('scanner', 'tab'",
+    'src/modules/screener/ScreenerModule.jsx': "useIntentState('screener', 'filters'",
+    'src/modules/markets/MarketsModule.jsx': "useIntentState('markets', 'index'",
+    'src/modules/macro/MacroModule.jsx': "useIntentState('macro', 'calendarFilter'",
+    'src/modules/news/NewsModule.jsx': "useIntentState('news', 'category'",
+    'src/modules/watchlist/WatchlistModule.jsx': "useIntentState('watchlist', 'sortKey'",
+  }
+  for (const [f, u] of Object.entries(uses)) assert.ok(fs.readFileSync(f, 'utf8').includes(u), `${f}: ${u}`)
+  const app = fs.readFileSync('src/App.jsx', 'utf8')
+  assert.match(app, /\n    layout,\n  \}\), \[activeModule, chatOpen, aiMode, layout\]\)/)
+  assert.match(app, /if \(state\.layout\) setLayout\(state\.layout\)/)
+})
+
+test('saved-view dates are Sydney dates, and the Overview keys stand aside for an open dialog', async () => {
+  assert.doesNotMatch(fs.readFileSync('src/components/layout/globalSearch.js', 'utf8'), /toISOString\(\)\.slice\(0, 10\)/)
+  const { overviewKey } = await import('../src/modules/dashboard/overviewOrder.js')
+  let toggled = 0
+  globalThis.document = { querySelector: (sel) => (/role="dialog"/.test(sel) ? {} : null) }
+  assert.equal(overviewKey({ key: 'v' }, { panels: [], active: null, toggleDense: () => toggled++ }), false)
+  globalThis.document = { querySelector: () => null }
+  assert.equal(overviewKey({ key: 'v' }, { panels: [], active: null, toggleDense: () => toggled++ }), true)
+  assert.equal(toggled, 1)
+  delete globalThis.document
+})

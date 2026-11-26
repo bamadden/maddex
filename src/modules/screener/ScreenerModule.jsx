@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import { formatDate, sydneyISO } from '../../utils/dateUtils'
 import { USING_MOCK_DATA } from '../../services/api'
 import { HandEnteredBadge } from '../../components/ui/VerifiedBadge'
@@ -736,13 +737,13 @@ export default function ScreenerModule() {
   // SCREEN THIS SECTOR (Markets heatmap and sector deep dive) arrives as a
   // module intent carrying a GICS sector name; the screener's rows use the
   // demo layer's short names, so the name is mapped across.
-  const [filters, setFilters] = useState(() => {
+  const [filters, setFilters] = useIntentState('screener', 'filters', () => {
     const intent = takeModuleIntent('screener')
     const want = intent?.sector ? (GICS_TO_SHORT[intent.sector] ?? intent.sector) : null
     return want && SECTORS.includes(want) ? { ...DEFAULT_FILTERS, sector: want } : DEFAULT_FILTERS
   })
-  const [sortKey, setSortKey] = useState('matchPct')
-  const [sortDir, setSortDir] = useState('desc')
+  const [sortKey, setSortKey] = useIntentState('screener', 'sortKey', 'matchPct')
+  const [sortDir, setSortDir] = useIntentState('screener', 'sortDir', 'desc')
   const [researchNoteAsset, setResearchNoteAsset] = useState(null)
   const [savedScreens, setSavedScreens] = useState(() => loadSavedScreens())
   const [showSavePrompt, setShowSavePrompt] = useState(false)
@@ -783,7 +784,7 @@ export default function ScreenerModule() {
   }, [scanAt])
   // Persisted: a reader who prefers cards prefers them tomorrow too, and the
   // choice is about how someone reads rather than about this particular screen.
-  const [view, setView] = useState(() => {
+  const [view, setView] = useIntentState('screener', 'view', () => {
     try { return localStorage.getItem('maddex_screener_view') === 'cards' ? 'cards' : 'table' }
     catch { return 'table' }
   })

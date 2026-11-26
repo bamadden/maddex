@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import { CHART } from '../../styles/chartTheme'
 import { InlineLoading, Unavailable } from '../../components/ui/ModuleStates'
 import LiveCheckBadge from '../../components/ui/LiveCheckBadge'
@@ -1010,7 +1011,7 @@ const CALENDAR_FILTERS = ['ALL', 'AU', 'US', 'ASIA', 'HIGH IMPACT']
 
 function EnhancedEvents() {
   const [expanded, setExpanded] = useState(null)
-  const [filter, setFilter] = useState('ALL')
+  const [filter, setFilter] = useIntentState('macro', 'calendarFilter', 'ALL')
   const [reminders, setReminders] = useState(readReminders)
   const { addNotification } = useStore()
   const { data: calResult, isLoading } = useQuery({

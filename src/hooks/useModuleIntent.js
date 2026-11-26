@@ -10,7 +10,8 @@ import { peekModuleIntent, takeModuleIntent, recordIntentValue } from '../servic
 // can read several fields of one intent. Taking it in the first initialiser
 // left the second field reading an empty map.
 export function useIntentState(module, field, initial) {
-  const [value, setValue] = useState(() => peekModuleIntent(module)?.[field] ?? initial)
+  // initial may be a function, as with useState (a lazy read of storage).
+  const [value, setValue] = useState(() => peekModuleIntent(module)?.[field] ?? (typeof initial === 'function' ? initial() : initial))
   useEffect(() => { takeModuleIntent(module) }, [module])
   useEffect(() => {
     const onIntent = (e) => {

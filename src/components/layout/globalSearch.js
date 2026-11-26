@@ -25,9 +25,9 @@ export function viewRows(raw, views = viewStateService.getSavedViews()) {
   const q = norm(raw).replace(/^(open |load )?view /, '')
   if (q.length < 2 && !/^views?$/.test(norm(raw))) return []
   return views.filter((v) => /^views?$/.test(norm(raw)) || norm(v.name).includes(q)).slice(0, PER).map((v) => ({
-    sym: `view:${v.id}`, label: v.name, desc: `Saved view · ${moduleLabel(v.state?.activeModule)} · ${formatDate(new Date(v.timestamp).toISOString().slice(0, 10))}`,
+    sym: `view:${v.id}`, label: v.name, desc: `Saved view · ${moduleLabel(v.state?.activeModule)} · ${formatDate(sydneyISO(new Date(v.timestamp)))}`,
     type: 'view', category: 'SAVED VIEWS', id: v.id,
-    preview: { title: v.name, lines: [`Opens ${moduleLabel(v.state?.activeModule)}${v.state?.intent ? ' with the settings it had' : ''}.`, `Saved ${formatDate(new Date(v.timestamp).toISOString().slice(0, 10))}, on this device.`] },
+    preview: { title: v.name, lines: [`Opens ${moduleLabel(v.state?.activeModule)}${v.state?.intent ? ' with the settings it had' : ''}.`, `Saved ${formatDate(sydneyISO(new Date(v.timestamp)))}, on this device.`] },
   }))
 }
 

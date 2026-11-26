@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import MorningCallButton from './MorningCallButton'
 import DashboardStatusBar from './DashboardStatusBar'
 import { useStore } from '../../store/useStore'
@@ -42,7 +43,8 @@ export default function DashboardModule() {
   )
   const layout = dashboardService.getLayout()
 
-  const [view, setViewState] = useState(readView)
+  // Saved views keep OVERVIEW/CUSTOM (WS2 audit).
+  const [view, setViewState] = useIntentState('dashboard', 'view', readView)
   const setView = (v) => { setViewState(v); try { localStorage.setItem(VIEW_KEY, v) } catch { /* private mode */ } }
   const custom = view === 'custom'
   const [arranging, setArranging] = useState(false)

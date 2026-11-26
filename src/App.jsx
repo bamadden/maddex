@@ -757,7 +757,10 @@ function Terminal() {
     aiPanelMode: aiMode,
     // The module's own tabs and filters, where it exposes them (WS2).
     intent: currentIntent(activeModule),
-  }), [activeModule, chatOpen, aiMode])
+    // The screen layout (standard, split, focus, research): a split view
+    // reopened as a single pane (WS2 audit, 26 Nov 2026).
+    layout,
+  }), [activeModule, chatOpen, aiMode, layout])
 
   const applyViewState = useCallback((state) => {
     if (!state) return
@@ -765,8 +768,9 @@ function Terminal() {
     if (state.activeModule && state.intent) sendModuleIntent(state.activeModule, state.intent)
     if (state.activeModule) setActiveModule(state.activeModule)
     if (state.aiPanelMode) setAiMode(state.aiPanelMode)
+    if (state.layout) setLayout(state.layout)
     setChatOpen(!!state.aiPanelOpen)
-  }, [setActiveModule, setAiMode, setChatOpen])
+  }, [setActiveModule, setAiMode, setChatOpen, setLayout])
 
   const [restorePrompt, setRestorePrompt] = useState(() => !!viewStateService.loadAutosave())
 

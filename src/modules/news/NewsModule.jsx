@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import DeviceOnlyNote from '../../components/ui/DeviceOnlyNote'
 import { timeAgo as sharedTimeAgo } from '../../utils/dateUtils'
 import { useQuery } from '@tanstack/react-query'
@@ -1206,12 +1207,12 @@ function NewsNudge({ stories, watchlist, nowTs }) {
 }
 
 export default function NewsModule() {
-  const [activeCategory, setActiveCategory] = useState(() => {
+  const [activeCategory, setActiveCategory] = useIntentState('news', 'category', () => {
     const saved = loadCategory()
     return saved === 'SAVED' || DISPLAY_CATEGORIES.some(c => c.key === saved) ? saved : 'ALL'
   })
   const [searchTerm, setSearchTerm]   = useState('')
-  const [sourceFilter, setSourceFilter] = useState('ALL')
+  const [sourceFilter, setSourceFilter] = useIntentState('news', 'source', 'ALL')
   const [timeFilter, setTimeFilter]   = useState('ALL')
   const [topic, setTopic]             = useState(null)
   // The story open in the article panel, by headline (ids are not stable

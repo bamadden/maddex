@@ -1,3 +1,4 @@
+import { viewStateService } from '../../services/viewStateService'
 import { useState, useRef, useEffect, useCallback, memo, Fragment } from 'react'
 import { deepDive, rbaPreview } from '../../utils/askAI'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
@@ -279,6 +280,11 @@ function parseNaturalLanguage(raw) {
   // the AI panel, saved on this device; "view NAME" finds it again (WS2).
   const sv = t.match(/^save (?:this |the )?view(?: as)? (.{1,40})$/i)
   if (sv) return { kind: 'saveview', name: sv[1].trim(), say: `Save this view as "${sv[1].trim()}" on this device` }
+  // "views" lists them; "view NAME" / "open view NAME" opens one (WS2 audit:
+  // both fell through to a ticker lookup and to MaddenAI).
+  if (/^(?:saved )?views$/i.test(t)) return { kind: 'listviews', say: 'List the views saved on this device' }
+  const ov = t.match(/^(?:open |load )?view (.{1,40})$/i)
+  if (ov) return { kind: 'openview', name: ov[1].trim(), say: `Open the saved view "${ov[1].trim()}"` }
 
   // "rba preview" / "rba analysis" — the pre-decision brief for the next
   // RBA meeting, kept in SAVED RESEARCH.
@@ -1625,6 +1631,18 @@ export default function CommandBar({ early = null } = {}) {
           await routeToAI(nl.query)
           return
 
+        case 'listviews': {
+          const names = viewStateService.getSavedViews().map((v) => v.name)
+          flash(names.length ? `Saved views: ${names.slice(0, 6).join(' · ')}${names.length > 6 ? ` (+${names.length - 6})` : ''} — type "view NAME"` : 'No saved views yet. Type "save view NAME" to keep this one.', 'text-terminal-green', 6000)
+          return
+        }
+        case 'openview': {
+          const v = viewStateService.findByName(nl.name)
+          if (!v) { flash(`No single saved view matches "${nl.name}". Type "views" to list them.`, 'text-terminal-gold', 4000); return }
+          window.dispatchEvent(new CustomEvent('madden:load-view', { detail: { id: v.id } }))
+          flash(`→ VIEW "${v.name}"`, 'text-terminal-green', 2000)
+          return
+        }
         case 'saveview':
           window.dispatchEvent(new CustomEvent('madden:save-view', { detail: { name: nl.name } }))
           flash(`Saved view "${nl.name}" on this device. Type "views" to list them.`, 'text-terminal-green', 3000)

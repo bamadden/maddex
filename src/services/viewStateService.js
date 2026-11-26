@@ -37,8 +37,10 @@ class ViewStateService {
   }
 
   saveView(name, state) {
-    const views = this.getSavedViews()
-    const view = { id: `view_${Date.now()}`, name: name || 'Untitled View', timestamp: Date.now(), state }
+    // A name already saved is replaced, not duplicated (WS2 audit).
+    const label = name || 'Untitled View'
+    const views = this.getSavedViews().filter((v) => v.name.toLowerCase() !== label.toLowerCase())
+    const view = { id: `view_${Date.now()}`, name: label, timestamp: Date.now(), state }
     const next = [view, ...views].slice(0, MAX_SAVED_VIEWS)
     try { localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next)) } catch { /* best-effort */ }
     this.emit()
@@ -53,6 +55,20 @@ class ViewStateService {
 
   getView(id) {
     return this.getSavedViews().find((v) => v.id === id) ?? null
+  }
+
+  // "view NAME" in the command bar: the exact name, else the only one that
+  // starts with it, else the only one that contains it (WS2 audit).
+  findByName(raw) {
+    const q = String(raw ?? '').trim().toLowerCase()
+    if (!q) return null
+    const views = this.getSavedViews()
+    const exact = views.find((v) => v.name.toLowerCase() === q)
+    if (exact) return exact
+    const starts = views.filter((v) => v.name.toLowerCase().startsWith(q))
+    if (starts.length === 1) return starts[0]
+    const has = views.filter((v) => v.name.toLowerCase().includes(q))
+    return has.length === 1 ? has[0] : null
   }
 
   saveAutosave(state) {

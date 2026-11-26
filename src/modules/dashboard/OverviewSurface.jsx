@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useStore } from '../../store/useStore'
 import { YF_INDICES, USING_MOCK_DATA, EQUITY_SOURCE, transformCryptoMarkets } from '../../services/api'
@@ -396,7 +397,7 @@ const DENSE_KEY = 'maddex_overview_dense'
 const readDense = () => { try { return localStorage.getItem(DENSE_KEY) === '1' } catch { return false } }
 export default function OverviewSurface({ arranging = false, onDoneArranging }) {
   const { setActiveModule } = useStore()
-  const [dense, setDense] = useState(readDense)
+  const [dense, setDense] = useIntentState('dashboard', 'dense', readDense)
   useEffect(() => {
     const onKey = (e) => {
       const handled = overviewKey(e, {

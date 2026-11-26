@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import { sydneyTzAbbr } from '../../utils/dateUtils'
 import { USING_MOCK_DATA, AI_UNAVAILABLE } from '../../services/api'
 import { useStore } from '../../store/useStore'
 import ScoreNote from '../../components/ui/ScoreNote'
 import { timeAgo, formatDate } from '../../utils/dateUtils'
-import { takeModuleIntent } from '../../services/moduleIntent'
 import ModuleHeader from '../../components/ui/ModuleHeader'
 import { DemoBadge } from '../../components/ui/ModuleStates'
 import { EmptyState as SharedEmptyState } from '../../components/ui/EmptyState'
@@ -697,10 +697,9 @@ export default function MarketScannerModule() {
   // has to work whether or not this module is already mounted. The intent
   // covers the cold case — read here, on mount, after the lazy chunk finally
   // arrives — and the event below covers the warm one.
-  const [activeTab, setActiveTab] = useState(() => {
-    const intent = takeModuleIntent('scanner')
-    return TABS.some((t) => t.key === intent?.tab) ? intent.tab : 'breakouts'
-  })
+  // The tab is module intent state: a command-bar intent sets it, and saved
+  // views keep it (WS2 audit).
+  const [activeTab, setActiveTab] = useIntentState('scanner', 'tab', 'breakouts')
 
   useEffect(() => {
     const onTab = (e) => {

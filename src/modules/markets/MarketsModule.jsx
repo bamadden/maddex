@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import IndicesTable from './IndicesTable'
 import SectorHeatmap from './SectorHeatmap'
 import SectorStrengthRadar from './SectorStrengthRadar'
@@ -16,7 +16,7 @@ import ModuleHeader from '../../components/ui/ModuleHeader'
 
 export default function MarketsModule() {
   const { openModal } = useStore()
-  const [selectedIndex, setSelectedIndex] = useState('^AXJO')
+  const [selectedIndex, setSelectedIndex] = useIntentState('markets', 'index', '^AXJO')
 
   return (
     <div

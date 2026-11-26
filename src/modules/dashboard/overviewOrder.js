@@ -38,6 +38,8 @@ export function overviewKey(e, { panels, active, toggleDense }) {
   if (e.metaKey || e.ctrlKey || e.altKey) return false
   const t = active?.tagName
   if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || active?.isContentEditable) return false
+  // Not behind an open dialog (Settings, Help): the keys belong to it (WS2 audit).
+  if (globalThis.document?.querySelector?.('[role="dialog"], [aria-modal="true"]')) return false
   if (/^[1-9]$/.test(e.key)) {
     const p = panels[Number(e.key) - 1]
     if (!p) return false

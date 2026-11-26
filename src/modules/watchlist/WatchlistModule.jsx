@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, Fragment } from 'react'
+import { useIntentState } from '../../hooks/useModuleIntent'
 import DataBadge from '../../components/ui/DataBadge'
 import {
   rememberEntryPrice, sinceAdded, metaFor, setNote, watchlistToText, watchlistToCsv,
@@ -517,8 +518,8 @@ export default function WatchlistModule() {
   const [confirmClear, setConfirmClear] = useState(false)
   // Sort restored on mount. `null` is a restorable state, not an absence — it
   // means manual order, which is what drag-to-reorder produces.
-  const [sortKey, setSortKey] = useState(() => loadSort(Object.keys(SORT_VALUE)).column)
-  const [sortDir, setSortDir] = useState(() => loadSort(Object.keys(SORT_VALUE)).direction)
+  const [sortKey, setSortKey] = useIntentState('watchlist', 'sortKey', () => loadSort(Object.keys(SORT_VALUE)).column)
+  const [sortDir, setSortDir] = useIntentState('watchlist', 'sortDir', () => loadSort(Object.keys(SORT_VALUE)).direction)
   const [columns, setColumns] = useState(() => loadColumns(DEFAULT_COLUMNS))
   const [colMenuOpen, setColMenuOpen] = useState(false)
   const colMenuRef = useRef(null)
