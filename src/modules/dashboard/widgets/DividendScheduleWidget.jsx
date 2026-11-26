@@ -4,6 +4,7 @@ import { getMockFMPRow } from '../../../services/mockData'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // When the portfolio's income arrives — the same schedule the Portfolio
 // Analytics tab builds (services/dividendSchedule), valued at the demo prices
@@ -29,7 +30,9 @@ export default function DividendScheduleWidget() {
   return (
     <WidgetBody>
       <div className="flex items-baseline justify-between gap-2 flex-shrink-0 font-mono">
-        <span className="tabular-nums" style={{ fontSize: 20, color: PAL.bright }}>{money(sched.totalAnnual)}<span style={{ fontSize: 11, color: PAL.muted }}> /yr</span></span>
+        {/* An illustration at demo yields, not income anyone will receive: it
+            read "A$…/yr" with "Next:" like a forecast (WS2 audit, 26 Nov 2026). */}
+        <span className="tabular-nums" style={{ fontSize: 20, color: PAL.bright }}>{money(sched.totalAnnual)}<span style={{ fontSize: 11, color: PAL.muted }}> a year at demo yields</span></span>
         <span style={{ fontSize: 11, color: PAL.gold }}>+{money(sched.totalCredits)} franking</span>
       </div>
       <div className="flex-1 min-h-0 flex items-end gap-1.5 mt-2">
@@ -41,8 +44,9 @@ export default function DividendScheduleWidget() {
         ))}
       </div>
       <span className="font-mono text-[11px] flex-shrink-0 mt-1" style={{ color: PAL.muted }}>
-        {sched.next ? `Next: ${sched.next.label} · ` : ''}estimated from demo yields
+        Illustration from demo yields and usual payment months, not a forecast of income{sched.next ? ` · usually paid next: ${sched.next.label}` : ''}
       </span>
+      <div className="mt-1"><DataBadge cls="DEMO" source="dividend yields · demo data" /></div>
     </WidgetBody>
   )
 }

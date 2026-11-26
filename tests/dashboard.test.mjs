@@ -82,3 +82,22 @@ test('panel order: moves, survives a reload, ignores stale entries, resets', asy
   clearOrder(storage)
   assert.deepEqual(readOrder(storage), OVERVIEW_PANELS)
 })
+
+// WS2 re-audit, 26 Nov 2026: ten CUSTOM widgets showed figures with no class.
+test('every Dashboard widget that shows data carries the shared badge; the rest say why not', () => {
+  const dir = 'src/modules/dashboard/widgets'
+  const EXEMPT = {
+    'ActivityFeedWidget.jsx': "the reader's own activity in Maddex, not sourced data",
+    'CalcQuickWidget.jsx': "results calculated from the reader's own inputs",
+    'QuickActionsWidget.jsx': 'navigation buttons only',
+  }
+  const BADGE = /<DataBadge |<WidgetSource |<AIContentBadge |<HandEnteredBadge |<VerifiedBadge /
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('Widget.jsx'))) {
+    const src = fs.readFileSync(`${dir}/${f}`, 'utf8')
+    if (EXEMPT[f]) { assert.doesNotMatch(src, /useQuery|VERIFIED_CONSTANTS|getMock/, `${f} is exempt but reads data`); continue }
+    assert.match(src, BADGE, `${f}: no data badge`)
+  }
+  const div = fs.readFileSync(`${dir}/DividendScheduleWidget.jsx`, 'utf8')
+  assert.doesNotMatch(div, /> \/yr</)
+  assert.match(div, /not a forecast of income/)
+})

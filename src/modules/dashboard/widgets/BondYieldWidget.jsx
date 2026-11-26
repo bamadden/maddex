@@ -4,6 +4,7 @@ import { WidgetBody } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
 import { formatDate } from '../../../utils/dateUtils'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // AU and US 10Y side by side, with the spread between them — the one number
 // that says which way yield is pulling the AUD. Yields are the sourced
@@ -51,6 +52,7 @@ export default function BondYieldWidget() {
           </button>
         </div>
       </div>
+      <div className="mt-1"><DataBadge cls="DEMO" source="RBA F2 close + simulated tick" at={BOND_CURVES_AS_OF.AU} /></div>
     </WidgetBody>
   )
 }

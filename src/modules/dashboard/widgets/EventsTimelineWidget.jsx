@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { getEconomicCalendar, pendingEvents } from '../../../services/calendarService'
+import { getEconomicCalendar, pendingEvents, ECON_SCHEDULE_CHECKED } from '../../../services/calendarService'
 import { eventStars, starString } from '../../../services/calendarExtras'
 import { setModuleIntent } from '../../../services/moduleIntent'
 import { sydneyTzAbbr, formatDate } from '../../../utils/dateUtils'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // EVENTS TIMELINE — the next seven days as columns, one per day that has
 // something on, from the same calendar the Calendar module reads (dates and
@@ -81,6 +82,7 @@ export default function EventsTimelineWidget() {
           +{hidden} more this week →
         </button>
       )}
+      <div className="mt-1"><DataBadge cls="DELAYED" source="agency release calendars" at={ECON_SCHEDULE_CHECKED} manual /></div>
     </WidgetBody>
   )
 }

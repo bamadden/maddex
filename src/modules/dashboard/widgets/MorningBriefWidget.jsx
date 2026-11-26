@@ -5,6 +5,7 @@ import { getCachedBrief, isAuWeekend, auHour } from '../../../services/morningBr
 import { outlookColour } from '../../../utils/briefScore'
 import { toneWord } from '../../../utils/tone'
 import { PAL } from '../../../styles/palette.js'
+import { AIContentBadge } from '../../../components/ui/VerifiedBadge'
 
 // Today's morning brief, read from the brief module's own cache — no second
 // AI call. When there is no brief for today it says when one arrives and
@@ -50,6 +51,7 @@ export default function MorningBriefWidget() {
       <button onClick={() => goModule('brief')} className="font-mono text-[11px] tracking-widest text-left flex-shrink-0 mt-1" style={{ color: PAL.gold }}>
         READ FULL BRIEF →
       </button>
+      <div className="mt-1"><AIContentBadge source="cache" /></div>
     </WidgetBody>
   )
 }

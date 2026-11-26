@@ -3,6 +3,7 @@ import { useEtfPrices } from '../../etf/useEtfPrices'
 import { WidgetBody, WidgetRows, WidgetRow } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // The three ETFs that have moved most today, either direction. Prices run on
 // the ETF module's simulated tick, and the tile says so.
@@ -32,6 +33,7 @@ export default function ETFMoverWidget() {
           ETFs →
         </button>
       </div>
+      <div className="mt-1"><DataBadge cls="DEMO" source="ETF prices · simulated tick" /></div>
     </WidgetBody>
   )
 }

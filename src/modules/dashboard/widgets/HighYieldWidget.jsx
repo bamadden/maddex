@@ -4,6 +4,7 @@ import { MOCK_ASX_STOCKS } from '../../../services/mockData'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // The screener's YIELD > 5% · PE < 20 screen (ASX · yield > 5% · PE < 20), top
 // five by yield, against the cash rate — the "is the yield worth the risk"
@@ -31,6 +32,7 @@ export default function HighYieldWidget() {
         ))}
       </div>
       <span className="font-mono text-[11px] flex-shrink-0" style={{ color: PAL.muted }}>vs RBA cash {cash.toFixed(2)}% · before franking · demo yields</span>
+      <div className="mt-1"><DataBadge cls="DEMO" source="dividend yields · demo data" /></div>
     </WidgetBody>
   )
 }

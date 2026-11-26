@@ -4,10 +4,11 @@ import { fetchEquityQuotes } from '../../../services/dataService'
 import { requireYFSym } from '../../../utils/tickerGuard'
 import { useAudRates } from '../../../hooks/useAudRates'
 import { recordPortfolioValue, getPortfolioHistory, marketDayKey } from '../../../services/portfolioHistory'
-import { WidgetBody, WidgetEmpty, Sparkline, ChangePill } from './_shared'
+import { WidgetBody, WidgetEmpty, Sparkline, ChangePill, WidgetSource } from './_shared'
 import { goModule } from './navigate'
 import { computePortfolioSnapshot } from '../portfolioSnapshot'
 import { PAL } from '../../../styles/palette.js'
+import { USING_MOCK_DATA, EQUITY_SOURCE } from '../../../services/api'
 
 const PORTFOLIO_KEY = 'madden_portfolio_v2'
 
@@ -35,7 +36,7 @@ export default function PortfolioSnapshotWidget() {
     () => priceable.map(requireYFSym).filter(Boolean),
     [priceable],
   )
-  const { data } = useQuery({
+  const { data, dataUpdatedAt } = useQuery({
     queryKey: ['dashPortfolio', symbols],
     queryFn: () => fetchEquityQuotes(symbols),
     enabled: symbols.length > 0,
@@ -153,6 +154,7 @@ export default function PortfolioSnapshotWidget() {
           </div>
         ))}
       </div>
+      <WidgetSource result={data} demo={USING_MOCK_DATA} source={EQUITY_SOURCE} fetchedAt={dataUpdatedAt} />
     </WidgetBody>
   )
 }

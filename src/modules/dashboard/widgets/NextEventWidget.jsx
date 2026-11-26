@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { getEconomicCalendar, pendingEvents, eventInstant } from '../../../services/calendarService'
+import { getEconomicCalendar, pendingEvents, eventInstant, ECON_SCHEDULE_CHECKED } from '../../../services/calendarService'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import ReleaseWatchBanner from '../../../components/ui/ReleaseWatchBanner'
 import { PAL } from '../../../styles/palette.js'
 import { formatDate } from '../../../utils/dateUtils'
 import { useNow } from '../../../hooks/useNow'
+import DataBadge from '../../../components/ui/DataBadge'
 
 const IMPACT = {
   high:   { label: 'HIGH',   colour: PAL.down },
@@ -154,6 +155,7 @@ export default function NextEventWidget() {
           >{thisWeek} this week →</button>
         </div>
       </div>
+      <div className="mt-1"><DataBadge cls="DELAYED" source="agency release calendars" at={ECON_SCHEDULE_CHECKED} manual /></div>
     </WidgetBody>
   )
 }

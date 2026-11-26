@@ -3,11 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import VERIFIED_CONSTANTS, { pendingRbaDecision } from '../../../data/verifiedConstants'
 import { liveDataService } from '../../../services/liveDataService'
 import { fetchIndexQuotesUnified } from '../../../services/dataService'
-import { USING_MOCK_DATA } from '../../../services/api'
+import { USING_MOCK_DATA, EQUITY_SOURCE } from '../../../services/api'
 import { sydneyOffset } from '../../../utils/dateUtils'
-import { WidgetBody } from './_shared'
+import { WidgetBody, WidgetSource } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // MARKET PULSE — the five numbers that matter right now, one line each.
 //
@@ -106,6 +107,10 @@ export default function MarketPulseWidget() {
       <div className="flex items-center gap-1.5 font-mono flex-shrink-0" style={{ fontSize: 11, color: PAL.muted }}>
         <span className="rounded-full" style={{ width: 4, height: 4, background: ago != null && ago < 90 ? PAL.up : PAL.muted }} />
         {ago == null ? 'loading feeds…' : `feeds updated ${ago < 60 ? `${ago}s` : `${Math.round(ago / 60)}m`} ago · RBA/CPI verified`}
+      </div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        <WidgetSource result={idx} demo={USING_MOCK_DATA} source={`ASX 200 · ${EQUITY_SOURCE}`} fetchedAt={dataUpdatedAt} />
+        <div className="mt-1"><DataBadge cls="DELAYED" source="RBA, ABS" at={VERIFIED_CONSTANTS.au.cpiLastRelease} /></div>
       </div>
     </WidgetBody>
   )

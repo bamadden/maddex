@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchEquityQuotes } from '../../../services/dataService'
 import { ASX_SECTOR_STOCKS, SECTOR_ABBR } from '../../../data/sectorTaxonomy'
-import {WidgetBody} from './_shared'
+import { WidgetBody, WidgetSource } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import { USING_MOCK_DATA, EQUITY_SOURCE } from '../../../services/api'
 
 // One representative stock per sector. A full sector aggregate is the
 // Markets module's job; this is a glance, and fetching 100 symbols for a
@@ -12,7 +13,7 @@ const SECTORS = Object.keys(ASX_SECTOR_STOCKS ?? {}).slice(0, 8)
 
 export default function SectorBreadthWidget() {
   const leaders = SECTORS.map((s) => ASX_SECTOR_STOCKS[s]?.[0]).filter(Boolean)
-  const { data } = useQuery({
+  const { data, dataUpdatedAt } = useQuery({
     queryKey: ['dashSectorBreadth', leaders],
     queryFn: () => fetchEquityQuotes(leaders),
     enabled: leaders.length > 0,
@@ -47,6 +48,7 @@ export default function SectorBreadthWidget() {
           )
         })}
       </div>
+      <WidgetSource result={data} demo={USING_MOCK_DATA} source={`sector leaders · ${EQUITY_SOURCE}`} fetchedAt={dataUpdatedAt} />
     </WidgetBody>
   )
 }

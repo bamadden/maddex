@@ -4,9 +4,10 @@ import { timeAgo } from '../../../utils/dateUtils'
 import {WidgetBody, WidgetEmpty} from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 export default function NewsFeedWidget() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ['news'],
     queryFn: fetchNews,
     staleTime: 3 * 60_000,
@@ -30,6 +31,7 @@ export default function NewsFeedWidget() {
           </button>
         ))}
       </div>
+      <div className="mt-1"><DataBadge cls="LIVE" source="publisher RSS feeds" at={dataUpdatedAt || null} /></div>
     </WidgetBody>
   )
 }

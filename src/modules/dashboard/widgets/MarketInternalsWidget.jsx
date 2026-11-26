@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { getMockFMPHistory } from '../../../services/mockData'
-import { USING_MOCK_DATA } from '../../../services/api'
+import { USING_MOCK_DATA, EQUITY_SOURCE } from '../../../services/api'
 import { ASX_UNIVERSE, useAsxUniverseQuotes } from '../../markets/useAsxUniverse'
-import { WidgetBody } from './_shared'
+import { WidgetBody, WidgetSource } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
 
@@ -13,7 +13,7 @@ import { PAL } from '../../../styles/palette.js'
 // that needs a year of history per name, which the Markets panel fetches and
 // a dashboard tile should not.
 export default function MarketInternalsWidget() {
-  const { data } = useAsxUniverseQuotes()
+  const { data, dataUpdatedAt } = useAsxUniverseQuotes()
   const s = useMemo(() => {
     let adv = 0, dec = 0
     for (const q of Object.values(data?.data ?? {})) {
@@ -55,6 +55,7 @@ export default function MarketInternalsWidget() {
         )}
       </button>
       <span className="font-mono text-[11px] flex-shrink-0" style={{ color: PAL.muted }}>{USING_MOCK_DATA ? 'DEMO · ' : ''}{ASX_UNIVERSE.length} tracked ASX names · same as Markets</span>
+      <WidgetSource result={data} demo={USING_MOCK_DATA} source={`${ASX_UNIVERSE.length} ASX names · ${EQUITY_SOURCE}`} fetchedAt={dataUpdatedAt} />
     </WidgetBody>
   )
 }

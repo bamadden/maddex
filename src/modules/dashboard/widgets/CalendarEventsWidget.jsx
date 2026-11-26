@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { getEconomicCalendar, pendingEvents } from '../../../services/calendarService'
+import { getEconomicCalendar, pendingEvents, ECON_SCHEDULE_CHECKED } from '../../../services/calendarService'
 import {WidgetBody, WidgetEmpty} from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
 import { formatDate } from '../../../utils/dateUtils'
+import DataBadge from '../../../components/ui/DataBadge'
 
 export default function CalendarEventsWidget() {
   const { data, isLoading } = useQuery({ queryKey: ['econCalendar'], queryFn: getEconomicCalendar, staleTime: 6 * 60 * 60_000 })
@@ -26,6 +27,7 @@ export default function CalendarEventsWidget() {
           </button>
         ))}
       </div>
+      <div className="mt-1"><DataBadge cls="DELAYED" source="agency release calendars" at={ECON_SCHEDULE_CHECKED} manual /></div>
     </WidgetBody>
   )
 }

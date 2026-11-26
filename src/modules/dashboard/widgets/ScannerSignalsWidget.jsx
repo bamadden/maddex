@@ -4,6 +4,7 @@ import { setModuleIntent } from '../../../services/moduleIntent'
 import { WidgetBody, WidgetEmpty } from './_shared'
 import { goModule } from './navigate'
 import { PAL } from '../../../styles/palette.js'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // The scanner's strongest current signals — the same scan functions the
 // Scanner module runs, on the same DEMO price series, so a signal here is one
@@ -42,6 +43,7 @@ export default function ScannerSignalsWidget() {
         ))}
       </div>
       <span className="font-mono text-[11px] flex-shrink-0" style={{ color: PAL.muted }}>DEMO · scanner matches from simulated prices</span>
+      <div className="mt-1"><DataBadge cls="DEMO" source="scanner · simulated prices" /></div>
     </WidgetBody>
   )
 }

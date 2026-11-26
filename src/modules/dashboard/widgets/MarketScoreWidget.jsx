@@ -7,6 +7,7 @@ import { goModule } from './navigate'
 import { currentRegime } from '../../../services/marketRegime'
 import { PAL } from '../../../styles/palette.js'
 import ScoreNote from '../../../components/ui/ScoreNote'
+import DataBadge from '../../../components/ui/DataBadge'
 
 // Five colour bands for the gauge: how far the session's moves were from
 // balanced, in either direction. Colour describes direction, not a call.
@@ -176,6 +177,7 @@ export default function MarketScoreWidget() {
           {stamp && <span className="font-mono text-[11px] truncate" style={{ color: PAL.muted }}>{stamp}</span>}
         </div>
       </div>
+      <div className="mt-1"><DataBadge cls={ms.demo ? 'DEMO' : ms.stale ? 'STALE' : 'DELAYED'} source="Maddex composite" at={ms.asOf ?? null} /></div>
     </WidgetBody>
   )
 }
