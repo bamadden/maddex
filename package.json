@@ -13,6 +13,8 @@
     "propose-edges": "node scripts/propose-edges.mjs",
     "test:ui": "node tests/ui/profile.ui.mjs && node tests/ui/visual.ui.mjs",
     "check:first-paint": "node scripts/check-first-paint.mjs",
+    "smoke:prod": "node scripts/smoke/sweep.mjs production",
+    "smoke:modules": "node scripts/smoke/sweep.mjs modules",
     "graph:verify": "node scripts/graph-verify.mjs",
     "graph:second-pass": "node --env-file-if-exists=.env scripts/graph-second-pass.mjs",
     "graph:triage": "node scripts/graph-triage.mjs",

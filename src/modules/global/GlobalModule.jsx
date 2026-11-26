@@ -1769,20 +1769,25 @@ function CollapsibleSection({ id, title, badge, defaultOpen = true, hidden = fal
       {/* Scoped to this panel rather than reusing .panel-header, which every
           other module also renders — restyling it here would silently change
           fourteen modules to suit one. */}
-      <button
-        onClick={toggle}
-        aria-expanded={open}
-        className="intel-section-header w-full flex items-center justify-between"
-      >
-        <span className="flex items-center gap-2 min-w-0">
+      {/* The badge is a button itself (it opens the data key), so it sits
+          beside the toggle, never inside it: a button inside a button is
+          invalid HTML and confuses keyboard and screen-reader users (found
+          by the smoke sweep, 26 Nov 2026). */}
+      <div className="intel-section-header w-full flex items-center justify-between">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          className="flex items-center gap-2 min-w-0 flex-1 h-full text-left"
+        >
           <span
             className="flex-shrink-0 transition-transform duration-200"
             style={{ fontSize: 11, color: PAL.muted, transform: open ? 'none' : 'rotate(-90deg)' }}
           >▾</span>
           <span className="intel-section-title truncate">{title}</span>
-        </span>
+        </button>
         {badge && <span className="flex-shrink-0">{badge}</span>}
-      </button>
+      </div>
       {open && <div className="intel-section-body">{children}</div>}
     </div>
   )

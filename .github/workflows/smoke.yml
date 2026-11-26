@@ -1,0 +1,52 @@
+# Post-deploy smoke test (scripts/smoke/sweep.mjs; docs/SECURITY.md). Runs
+# after every successful Production deploy (Vercel reports each one to GitHub
+# as a deployment), nightly, and by hand. Read-only: it needs no secret, never
+# commits, and never makes an AI call (the sweep refuses /api/claude and
+# anthropic.com and mocks /api/ai-daily). A failed run is GitHub's
+# notification.
+#
+#  1. production: the live site signed out (the sign-in screen, headers, and
+#     each API endpoint's designed answer).
+#  2. modules: every module on the REAL current date, on a dev server of the
+#     deployed commit (the dev build skips sign-in; production shows only the
+#     sign-in screen signed out). Placeholder Supabase values: a signed-out
+#     sweep never reaches the database.
+name: smoke test
+
+on:
+  deployment_status:
+  schedule:
+    - cron: '30 20 * * *'   # 07:30 Sydney in daylight time, before the 21:00 UTC data check
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event_name != 'deployment_status' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      CHROME_PATH: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Production, signed out
+        run: node scripts/smoke/sweep.mjs production https://maddex.vercel.app
+      - name: Every module, today's date
+        if: always()
+        env:
+          VITE_SUPABASE_URL: https://supabase.invalid
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+        run: |
+          npx vite --port 5174 --strictPort > vite.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5174/ > /dev/null && break; sleep 2; done
+          node scripts/smoke/sweep.mjs modules http://localhost:5174

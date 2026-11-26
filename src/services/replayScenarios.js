@@ -321,6 +321,15 @@ export const SCENARIOS = [
 
 export const scenarioById = (id) => SCENARIOS.find((s) => s.id === id) ?? null
 
+// The date a scenario's figures are as at (its last day), and the source its
+// badge names (the first; the player lists them all). 26 Nov 2026: the cards
+// showed sourced figures with no badge or source.
+export const scenarioAsOf = (s) => s.window?.date ?? s.window?.to ?? null
+export const scenarioSource = (s) => {
+  const first = String(s.sources?.[0] ?? 'source not recorded').split(' — ')[0]
+  return s.sources?.length > 1 ? `${first} +${s.sources.length - 1}` : first
+}
+
 // ── Time axis ───────────────────────────────────────────────────────────────
 
 const minutes = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m }

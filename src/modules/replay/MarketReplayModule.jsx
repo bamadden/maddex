@@ -7,7 +7,8 @@ import SafeChart from '../../components/ui/SafeChart'
 import {
   rbaRateOn, eventOn, generateReplaySeries, addDays, RBA_RATE_SOURCE,
 } from '../../services/replayService'
-import { SCENARIOS, CATEGORY_STYLE } from '../../services/replayScenarios'
+import { SCENARIOS, CATEGORY_STYLE, scenarioAsOf, scenarioSource } from '../../services/replayScenarios'
+import DataBadge from '../../components/ui/DataBadge'
 import ScenarioPlayer, { FactPill } from './ScenarioPlayer'
 import { PAL } from '../../styles/palette.js'
 
@@ -55,6 +56,7 @@ function ScenarioCard({ s, onPlay }) {
         <div className="flex flex-wrap gap-1 mt-auto pt-1">
           {s.facts.slice(0, 3).map((f) => <FactPill key={f.label} f={f} />)}
         </div>
+        <div><DataBadge cls="DELAYED" source={scenarioSource(s)} at={scenarioAsOf(s)} /></div>
         <button
           onClick={onPlay}
           className="mt-1 text-2xs font-bold tracking-widest border border-terminal-gold/60 text-terminal-gold py-1.5 hover:bg-terminal-gold hover:text-terminal-bg transition-colors"

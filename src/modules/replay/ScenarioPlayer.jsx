@@ -3,7 +3,8 @@ import { CHART } from '../../styles/chartTheme'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceDot } from 'recharts'
 import SafeChart from '../../components/ui/SafeChart'
 import { dispatchAskAI, todayAEST } from '../../utils/askAI'
-import { CATEGORY_STYLE, progressOf, reconstructPath } from '../../services/replayScenarios'
+import { CATEGORY_STYLE, progressOf, reconstructPath, scenarioAsOf, scenarioSource } from '../../services/replayScenarios'
+import DataBadge from '../../components/ui/DataBadge'
 import { PAL } from '../../styles/palette.js'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -241,7 +242,7 @@ export default function ScenarioPlayer({ scenario, onExit }) {
                 <ul className="space-y-1">
                   {scenario.lessons.map((l) => <li key={l} className="text-2xs text-terminal-text leading-snug">— {l}</li>)}
                 </ul>
-                <div className="text-2xs text-terminal-text-dim/50 mt-2">Sources: {scenario.sources.join(' · ')}</div>
+                <div className="text-2xs text-terminal-text-dim/50 mt-2 flex flex-wrap items-center gap-1.5"><DataBadge cls="DELAYED" source={scenarioSource(scenario)} at={scenarioAsOf(scenario)} /> Sources: {scenario.sources.join(' · ')}</div>
               </div>
             </div>
             <Quiz scenario={scenario} onAsk={ask} />

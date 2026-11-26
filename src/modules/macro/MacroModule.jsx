@@ -1969,18 +1969,26 @@ export default function MacroModule() {
 
         <div className="grid grid-cols-4 xl:grid-cols-8 border-b border-terminal-border">
           {AU_MACRO.slice(0, 8).map((ind) => (
-            <button
+            // The card is not a button: its badge and source link are controls
+            // of their own, and a control inside a button is invalid HTML
+            // (found by the smoke sweep, 26 Nov 2026). The name is the button,
+            // and its ::after covers the card, so the whole card still opens
+            // the read; the badge and link sit above that layer.
+            <div
               key={ind.name}
-              onClick={() => setOpenIndicator((cur) => (cur === ind.name ? null : ind.name))}
-              aria-expanded={openIndicator === ind.name}
-              title={`${ind.name} — click for the full read`}
-              className="border-r border-terminal-border p-2 text-left hover:bg-terminal-accent/20 transition-colors"
+              className="relative border-r border-terminal-border p-2 text-left hover:bg-terminal-accent/20 transition-colors"
               style={openIndicator === ind.name ? { background: 'rgba(201,168,76,0.08)' } : undefined}
             >
               <div className="flex items-center gap-1 mb-0.5">
                 <FreshnessDot date={ind.date} name={ind.name} />
-                <div className="text-2xs text-terminal-text-dim leading-tight">{ind.name}</div>
-                {LIVE_CHECK_FIELD[ind.name] && <LiveCheckBadge field={LIVE_CHECK_FIELD[ind.name]} className="ml-auto" />}
+                <button
+                  type="button"
+                  onClick={() => setOpenIndicator((cur) => (cur === ind.name ? null : ind.name))}
+                  aria-expanded={openIndicator === ind.name}
+                  title={`${ind.name} — click for the full read`}
+                  className="text-2xs text-terminal-text-dim leading-tight text-left after:absolute after:inset-0 after:content-['']"
+                >{ind.name}</button>
+                {LIVE_CHECK_FIELD[ind.name] && <LiveCheckBadge field={LIVE_CHECK_FIELD[ind.name]} className="ml-auto relative z-10" />}
               </div>
               <div className="text-sm font-bold text-terminal-text-bright">
                 {ind.name === 'RBA Cash Rate' ? rbaRateStr : ind.value}
@@ -1989,12 +1997,12 @@ export default function MacroModule() {
                 <span className="text-2xs text-terminal-text-dim">PREV: {ind.prev ?? '—'}</span>
               </div>
               <div className="text-2xs text-terminal-text-dim mt-0.5">
-                <span data-macro-period>{ind.period}</span> · released {formatDate(ind.date, { year: false })} · <SourceLink src={ind.src} />
+                <span data-macro-period>{ind.period}</span> · released {formatDate(ind.date, { year: false })} · <span className="relative z-10"><SourceLink src={ind.src} /></span>
               </div>
               {NEXT_RELEASE[ind.name] && (
                 <div className="text-2xs text-terminal-gold/70 mt-0.5">NEXT: {NEXT_RELEASE[ind.name]}</div>
               )}
-            </button>
+            </div>
           ))}
         </div>
 
