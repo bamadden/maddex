@@ -48,7 +48,10 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
 
   return (
     <div
-      className="group/mh flex-shrink-0 relative flex items-center h-12"
+      // At phone width the header wraps (title on its own, controls on a
+      // second line) instead of squeezing the title: DASHBOARD read "DASHE"
+      // at 390px behind its tabs (WS2 audit, 26 Nov 2026).
+      className="group/mh flex-shrink-0 relative flex flex-wrap sm:flex-nowrap items-center gap-y-1 min-h-12 py-1.5 sm:py-0 sm:h-12"
       style={{
         padding: '0 20px',
         background: '#030912',
@@ -57,7 +60,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
     >
       {/* Identity: name, then an optional sub-label on the same baseline —
           a second line here made the header's height vary per module. */}
-      <div className="flex items-baseline min-w-0">
+      <div className="flex items-baseline shrink-0 sm:shrink sm:min-w-0">
         {/* 13px, not 11 — keeps the gold mono terminal identity while staying
             legible at a glance as the module you're currently in. */}
         <span
@@ -67,7 +70,7 @@ export default function ModuleHeader({ title, subtitle, lastUpdated, onRefresh, 
           {title}
         </span>
         {subtitle && (
-          <span className="font-sans text-[11px] truncate" style={{ marginLeft: 12, color: PAL.muted }}>
+          <span className="font-sans text-[11px] truncate hidden sm:inline" style={{ marginLeft: 12, color: PAL.muted }}>
             {subtitle}
           </span>
         )}

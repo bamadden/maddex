@@ -1402,3 +1402,10 @@ input.cmd-input:focus,
   .overview-grid > section { min-height: 0; }
   .overview-grid > .overview-wide { grid-column: span 2; }
 }
+
+/* Top bar at phone width (TopBar.jsx): only .tb-phone items show, and the
+   first of them has nothing before it to divide from. */
+@media (max-width: 639.98px) {
+  .tb-phone .tb-divider { display: none; }
+  .tb-phone ~ .tb-phone .tb-divider { display: flex; }
+}

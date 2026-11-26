@@ -465,21 +465,25 @@ export default function TopBar() {
       {/* RIGHT — compact groups on one line. Dividers are interleaved between
           present items only, so a signed-out or non-demo session never leaves
           a separator dangling with nothing after it. */}
+      {/* At phone width the informational items (market dots, sentiment,
+          clock, official-data dot) step aside so the controls fit: at 390px
+          the group ran to 508px and the bell and account menu were off the
+          screen (WS2 audit, 26 Nov 2026). The Dashboard shows all four. */}
       <div className="flex items-center flex-shrink-0 pr-3">
         {[
-          <MarketDots key="markets" now={time} />,
-          <Suspense key="sentiment" fallback={null}><SentimentTick /></Suspense>,
-          <span
+          { phone: false, node: <MarketDots key="markets" now={time} /> },
+          { phone: false, node: <Suspense key="sentiment" fallback={null}><SentimentTick /></Suspense> },
+          { phone: false, node: <span
             key="clock"
             title={`Sydney market time (${clock.tz})`}
             data-clock
             className="text-[11px] font-mono text-terminal-muted whitespace-nowrap flex-shrink-0"
           >
             {clock.time} <span className="text-terminal-text-dim/60">{clock.tz}</span>
-          </span>,
-          <OfficialDataDot key="official" />,
-          canUse('priorityRefresh') ? <RefreshAllButton key="refresh" /> : null,
-          USING_MOCK_DATA ? <DataFreshnessBadge key="data" interactive={!canUse('priorityRefresh')} /> : null,
+          </span> },
+          { phone: false, node: <OfficialDataDot key="official" /> },
+          canUse('priorityRefresh') ? { phone: true, node: <RefreshAllButton key="refresh" /> } : null,
+          USING_MOCK_DATA ? { phone: true, node: <DataFreshnessBadge key="data" interactive={!canUse('priorityRefresh')} /> } : null,
           // Mounted for everyone, not just signed-in users.
           //
           // NotificationCenter is not just the bell — every alert checker in
@@ -487,11 +491,18 @@ export default function TopBar() {
           // Gated behind `user`, a signed-out visitor could set a price alert
           // from the watchlist, see it saved and badged, and have it never once
           // be evaluated. The component reads nothing from auth.
-          <Suspense key="bell" fallback={<BellPlaceholder />}><NotificationCenter /></Suspense>,
-          user ? <UserMenu key="user" /> : null,
+          { phone: true, node: <Suspense key="bell" fallback={<BellPlaceholder />}><NotificationCenter /></Suspense> },
+          user ? { phone: true, node: <UserMenu key="user" /> } : null,
         ]
           .filter(Boolean)
-          .flatMap((node, i) => (i === 0 ? [node] : [<Divider key={`d${i}`} />, node]))}
+          // Each item carries its own divider, hidden with it at phone width;
+          // at phone width the first item shown drops its divider (index.css).
+          .map(({ phone, node }, i) => (
+            <span key={node.key ?? i} className={`${phone ? 'flex tb-phone' : 'hidden sm:flex'} items-center`} data-tb-item>
+              {i > 0 && <span className="tb-divider flex items-center"><Divider /></span>}
+              {node}
+            </span>
+          ))}
       </div>
 
       {showSettings && (
