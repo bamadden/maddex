@@ -556,6 +556,19 @@ export default function CalendarModule() {
   })
   const [selectedKey, setSelectedKey] = useState(() => peekModuleIntent('calendar')?.date ?? sydneyISO())
   useEffect(() => { takeModuleIntent('calendar') }, [])
+  // A date sent while Calendar is already showing (a search result for an
+  // event or a company date): go to that month and select the day.
+  useEffect(() => {
+    const onIntent = (e) => {
+      const d = e.detail?.module === 'calendar' ? e.detail.intent?.date : null
+      if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return
+      takeModuleIntent('calendar')
+      setMonth(new Date(`${d}T00:00:00`))
+      setSelectedKey(d)
+    }
+    window.addEventListener('madden:module-intent', onIntent)
+    return () => window.removeEventListener('madden:module-intent', onIntent)
+  }, [])
   const [filter, setFilter] = useState('all')
   const [view, setView] = useState('month')
   // Bumped whenever a reminder is added or removed, so components reading the

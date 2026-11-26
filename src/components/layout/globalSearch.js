@@ -38,7 +38,7 @@ export function eventRows(raw, events = ECON_SCHEDULE, today = sydneyISO()) {
   return events.filter((e) => e.date >= today && norm(e.event).includes(q)).slice(0, PER).map((e) => ({
     sym: `event:${e.date}:${e.event}`, label: formatDate(e.date, { year: false }), desc: `${e.event}${e.time ? ` · ${e.time} Sydney` : ''}`,
     type: 'event', category: 'CALENDAR',
-    preview: { title: e.event, lines: [`${formatDate(e.date)}${e.time ? `, ${e.time} Sydney time` : ''} · ${e.region}`, 'From the economic calendar (agency release calendars, manually checked). Enter opens Calendar.'] },
+    preview: { title: e.event, lines: [`${formatDate(e.date)}${e.time ? `, ${e.time} Sydney time` : ''} · ${e.region}`, 'From the economic calendar (agency release calendars, manually checked). Enter opens Calendar on that day.'] },
   }))
 }
 
@@ -67,7 +67,7 @@ export function companyDateRows(raw, actions = CORPORATE_ACTIONS, today = sydney
     return {
       sym: `cdate:${a.date}:${a.ticker}:${a.type}`, label: formatDate(a.date, { year: false }), desc: `${a.company} (${a.ticker.replace(/\.AX$/, '')}) · ${kind}`,
       type: 'event', category: 'COMPANY DATES',
-      preview: { title: `${a.company} · ${kind}`, lines: [`${formatDate(a.date)} · ${a.detail}`, `From ${a.source} (checked ${formatDate(CORPORATE_ACTIONS_AS_OF)}). Enter opens Calendar.`] },
+      preview: { title: `${a.company} · ${kind}`, lines: [`${formatDate(a.date)} · ${a.detail}`, `From ${a.source} (checked ${formatDate(CORPORATE_ACTIONS_AS_OF)}). Enter opens Calendar on that day.`] },
     }
   })
 }

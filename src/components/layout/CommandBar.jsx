@@ -1730,11 +1730,15 @@ export default function CommandBar({ early = null } = {}) {
         window.dispatchEvent(new CustomEvent('madden:load-view', { detail: { id: item.id } }))
         flash(`→ VIEW · ${item.label}`, 'text-terminal-green', 1500)
         return
-      case 'event':
+      // Opens Calendar AT the event: its date selected (WS2 audit).
+      case 'event': {
         setInputValue('')
+        const date = /^(?:event|cdate):(\d{4}-\d{2}-\d{2}):/.exec(item.sym ?? '')?.[1]
+        if (date) sendModuleIntent('calendar', { date })
         setActiveModule('calendar')
         flash(`→ CALENDAR · ${item.desc}`, 'text-terminal-green', 2500)
         return
+      }
       case 'node':
         setInputValue('')
         openInRelationships(setActiveModule, item.id)

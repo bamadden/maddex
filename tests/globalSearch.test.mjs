@@ -163,3 +163,11 @@ test('a view can be renamed; saving an eleventh new view warns first, naming the
   assert.match(bar, /viewStateService\.wouldDrop\(nl\.name\)[\s\S]{0,200}pendingDropRef\.current !== nl\.name\.toLowerCase\(\)/)
   assert.match(fs.readFileSync('src/components/layout/WorkspaceSwitcher.jsx', 'utf8'), /data-view-drop-warning/)
 })
+
+test('choosing an event or a company date opens Calendar on that day, cold or already showing', () => {
+  const bar = fs.readFileSync('src/components/layout/CommandBar.jsx', 'utf8')
+  assert.match(bar, /case 'event': \{[\s\S]{0,300}\(\?:event\|cdate\):[\s\S]{0,120}sendModuleIntent\('calendar', \{ date \}\)/)
+  const cal = fs.readFileSync('src/modules/calendar/CalendarModule.jsx', 'utf8')
+  assert.match(cal, /peekModuleIntent\('calendar'\)\?\.date/)                           // cold
+  assert.match(cal, /e\.detail\?\.module === 'calendar' \? e\.detail\.intent\?\.date/)   // warm
+})
