@@ -75,6 +75,9 @@ async function openPage(browser, { seed = false } = {}) {
   page.on('request', (req) => {
     const u = new URL(req.url())
     if (u.pathname.startsWith('/api/claude') || /(^|\.)anthropic\.com$/.test(u.hostname)) { log.ai.push(u.pathname); return req.abort() }
+    // Viewing must never trigger the daily generation (Ben's decision, 26 Nov
+    // 2026): a page asking for it is a failure, counted with the AI requests.
+    if (u.pathname.startsWith('/api/ai-daily') && u.searchParams.has('generate')) { log.ai.push('/api/ai-daily?generate (from a page)'); return req.abort() }
     if (u.pathname.startsWith('/api/ai-daily')) return req.respond({ status: 200, contentType: 'application/json', body: '{"data":null}' })
     return req.continue()
   })
@@ -143,6 +146,16 @@ async function production(browser) {
     const s = await fetch(`${BASE}${path}`, { method, headers: { accept: 'application/json' } }).then((r) => r.status).catch(() => 0)
     ok.includes(s) ? pass(`${method} ${path.split('?')[0]} → ${s}`) : fail(`${method} ${path} → ${s} (expected ${ok.join(' or ')})`)
   }
+  // The shared daily AI content: generated only by the scheduled job. A
+  // non-cron call to the job is refused, and a view reads (stored content, or
+  // "not generated"), never an error and never a generation.
+  const gen = await fetch(`${BASE}/api/ai-daily?generate=all`).then((r) => r.status).catch(() => 0)
+  gen === 401 ? pass('the daily AI job refuses a non-cron caller (401)') : fail(`GET /api/ai-daily?generate=all → ${gen} (expected 401)`)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+  const view = await fetch(`${BASE}/api/ai-daily?kind=sentiment&day=${today}`).then(async (r) => ({ s: r.status, b: await r.json().catch(() => null) })).catch(() => ({ s: 0 }))
+  view.s === 200 && (view.b?.status === 'not_generated' || view.b?.data != null)
+    ? pass(`a view of the daily AI content reads only: ${view.b?.status === 'not_generated' ? 'not generated yet today' : `generated ${view.b?.generatedAt}`}`)
+    : fail(`GET /api/ai-daily?kind=sentiment → ${view.s} ${JSON.stringify(view.b)?.slice(0, 80)}`)
   for (const n of new Set(log.network)) warn(`network: ${n}`)
 }
 

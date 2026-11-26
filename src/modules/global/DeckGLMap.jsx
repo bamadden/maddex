@@ -285,7 +285,8 @@ function useCountries(enabled) {
 function useIntelNarratives() {
   const [shipping, setShipping] = useState(SHIPPING_DISRUPTIONS)
   const [geo, setGeo] = useState(GEOPOLITICAL_EVENTS)
-  const [source, setSource] = useState('fallback')
+  const [source, setSource] = useState('not_generated')
+  const [generatedAt, setGeneratedAt] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -297,6 +298,7 @@ function useIntelNarratives() {
       if (ship.status === 'fulfilled' && Array.isArray(ship.value.data)) {
         setShipping(overlayNarrative(SHIPPING_DISRUPTIONS, ship.value.data, SHIPPING_NARRATIVE_FIELDS))
         setSource(ship.value.source)
+        setGeneratedAt(ship.value.generatedAt ?? null)
       }
       if (risk.status === 'fulfilled' && Array.isArray(risk.value.data)) {
         setGeo(overlayNarrative(GEOPOLITICAL_EVENTS, risk.value.data, GEO_NARRATIVE_FIELDS))
@@ -305,7 +307,7 @@ function useIntelNarratives() {
     return () => { alive = false }
   }, [])
 
-  return { shipping, geo, source }
+  return { shipping, geo, source, generatedAt }
 }
 
 // Stacking order for everything that floats over the map, in one place.
@@ -401,7 +403,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
   const [mapWidth, setMapWidth] = useState(null)
   const wrapRef = useRef(null)
   const mapRef = useRef(null)
-  const { shipping: shippingRows, geo: geoRows, source: narrativeSource } = useIntelNarratives()
+  const { shipping: shippingRows, geo: geoRows, source: narrativeSource, generatedAt: narrativeAt } = useIntelNarratives()
 
   // Country outlines drive both the market-performance fill and the density
   // hexagons, so one fetch serves both.
@@ -1226,7 +1228,7 @@ export default function DeckGLMap({ onExchangeSelect, watchlist = [], chromeInse
 
       {selected && (
         <MapDetailPanel object={selected} onClose={() => setSelected(null)} onFlyTo={flyTo}
-          watchlist={watchlist} width={panelWidth} insetRight={insetR} narrativeSource={narrativeSource} />
+          watchlist={watchlist} width={panelWidth} insetRight={insetR} narrativeSource={narrativeSource} narrativeAt={narrativeAt} />
       )}
 
       {/* Seismic status. Reports the feed's real state rather than only

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VERIFIED_CONSTANTS } from '../../data/verifiedConstants'
 import { RBA_RATE_HISTORY } from '../../data/placeholders'
-import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import { DailyAIStamp } from '../../components/ui/VerifiedBadge'
 import DataBadge from '../../components/ui/DataBadge'
 import aiContentService from '../../services/aiContentService'
 import { PAL } from '../../styles/palette.js'
@@ -141,7 +141,7 @@ function DecisionDots({ rows }) {
   )
 }
 
-function CardBody({ bank, c, now, bias, biasSource }) {
+function CardBody({ bank, c, now, bias, biasSource, biasAt }) {
   const gov = VERIFIED_CONSTANTS.centralBankOfficials?.[bank.key]
   const next = c.nextMeeting ? new Date(`${c.nextMeeting}T00:00:00`) : null
   const daysAway = next ? Math.max(0, Math.ceil((next.getTime() - now) / 86400000)) : null
@@ -195,10 +195,10 @@ function CardBody({ bank, c, now, bias, biasSource }) {
       <div>
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="font-mono text-terminal-text-dim/50" style={{ fontSize: 11, letterSpacing: '0.14em' }}>POLICY BIAS</span>
-          <AIContentBadge source={biasSource} label="AI-ESTIMATE" />
+          {biasSource !== 'loading' && <DailyAIStamp source={biasSource} generatedAt={biasAt} />}
         </div>
         <div className="font-mono text-terminal-text-dim leading-snug" style={{ fontSize: 11 }}>
-          {bias ?? (biasSource === 'loading' ? 'Reading…' : 'Unavailable — the daily generation did not return.')}
+          {bias ?? (biasSource === 'loading' ? 'Reading…' : 'Not generated yet today.')}
         </div>
       </div>
     </div>
@@ -214,23 +214,25 @@ export default function CentralBankCards() {
 
   const [bias, setBias] = useState(null)
   const [biasSource, setBiasSource] = useState(null)
+  const [biasAt, setBiasAt] = useState(null)
   // A ref, not state: this is a run-once latch, and a failed generation should
   // not refire on every subsequent card the user opens.
   const requested = useRef(false)
 
-  // Lazily generated: the first expansion triggers the day's single call, and
-  // a module visit that never opens a card costs nothing.
+  // Read on the first expansion: today's stored policy bias, written once a
+  // day on a schedule. A view never generates it (Ben's decision, 26 Nov 2026).
   useEffect(() => {
     if (open == null || requested.current) return
     requested.current = true
     let live = true
     aiContentService.getPolicyBias()
-      .then(({ data, source }) => {
+      .then(({ data, source, generatedAt }) => {
         if (!live) return
         setBias(data ?? {})
-        setBiasSource(source === 'failed' ? 'failed' : source)
+        setBiasSource(source)
+        setBiasAt(generatedAt ?? null)
       })
-      .catch(() => { if (live) setBiasSource('failed') })
+      .catch(() => { if (live) setBiasSource('not_generated') })
     return () => { live = false }
   }, [open])
 
@@ -333,7 +335,7 @@ export default function CentralBankCards() {
                 }}
               >
                 <div style={{ overflow: 'hidden' }}>
-                  {isOpen && <CardBody bank={b} c={c} now={now} bias={bias?.[b.key]} biasSource={biasState} />}
+                  {isOpen && <CardBody bank={b} c={c} now={now} bias={bias?.[b.key]} biasSource={biasState} biasAt={biasAt} />}
                 </div>
               </div>
 

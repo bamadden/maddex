@@ -58,7 +58,8 @@ test('every AI path records: the proxy (streamed and not) and the shared daily c
   assert.match(proxy, /await saveRecord\(g\.db, recordOf\(replyText\)\)/)
   assert.match(proxy, /await saveRecord\(g\.db, recordOf\(\(data\.content/)
   assert.match(proxy, /x-maddex-template/)
-  assert.match(read('api/ai-daily.js'), /saveRecord\(serviceDb\(\), buildRecord\(/)
+  // The daily job stores each reply as its record (and views read it back).
+  assert.match(read('api/ai-daily.js'), /await saveRecord\(db, buildRecord\(/)
   const api = read('src/services/api.js')
   assert.match(api, /'x-maddex-template'/)
   assert.match(api, /'x-maddex-data-date'/)

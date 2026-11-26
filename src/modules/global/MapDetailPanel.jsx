@@ -1,7 +1,7 @@
 import { dispatchAskAI } from '../../utils/askAI'
 import { graphNodeForTicker, graphNodeForCommodity } from '../../data/graph/nodes'
 import { openInRelationships } from '../../utils/openRelationships'
-import { AIContentBadge } from '../../components/ui/VerifiedBadge'
+import { DailyAIStamp } from '../../components/ui/VerifiedBadge'
 import { sessionCountdown, formatCountdown, ROUTE_NOTES, SITE_EXTRAS, greatCircleKm } from './intelMapData'
 import VERIFIED_CONSTANTS from '../../data/verifiedConstants'
 import { useStore } from '../../store/useStore'
@@ -96,7 +96,7 @@ function RelationshipsLink({ data, setActiveModule }) {
 // `width` is supplied by the map, which sizes it against its own measured
 // width rather than the viewport's — the map is one column of three, so a
 // wide window does not imply a wide map.
-export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300, insetRight = 0, narrativeSource = 'fallback' }) {
+export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [], width = 300, insetRight = 0, narrativeSource = 'not_generated', narrativeAt = null }) {
   const { type, data } = object
   const { setActiveModule } = useStore()
   const askAI = (instruction) => dispatchAskAI({ instruction }, { rawPrompt: true })
@@ -131,7 +131,7 @@ export default function MapDetailPanel({ object, onClose, onFlyTo, watchlist = [
           {/* Only where the words on this card were actually rewritten by
               MaddenAI. A row the overlay did not match keeps its editorial
               prose and says nothing, which is the honest signal. */}
-          {data?.aiNarrative && <AIContentBadge source={narrativeSource} />}
+          {data?.aiNarrative && <DailyAIStamp source={narrativeSource} generatedAt={narrativeAt} />}
         </span>
         <button onClick={onClose} aria-label="Close"
           style={{ background: 'none', border: 'none', color: PAL.muted, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>

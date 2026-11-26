@@ -82,7 +82,7 @@ push. To back out, rename it back.
 | Endpoint | Who may call it | Limits in the code |
 |---|---|---|
 | `/api/claude` | Signed in (Supabase token checked) | Per user per day, by plan, counted in `ai_usage` (shared across instances) |
-| `/api/ai-daily` | Anyone | Fixed kinds, today's date only; cached by the CDN to Sydney midnight; 40 generations per instance per day |
+| `/api/ai-daily` | Anyone may read; only the daily cron may generate (`?generate=all`: CRON_SECRET or Vercel's cron agent, else 401) | Fixed kinds, today's date only; one generation per type per Sydney day (checked against the stored records); a view only reads |
 | `/api/waitlist` | The launch site's origins and the terminal | Per IP, per address and a send cap: **per instance** (below) |
 | `/api/csp-report` | Browsers | 120 log lines a minute per instance; 64 KB body cap |
 | `/api/rss` | Anyone | Allowlisted hosts only, redirects too (26 Nov); cached by the CDN for 15 minutes |

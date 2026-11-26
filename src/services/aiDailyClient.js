@@ -25,8 +25,10 @@ export function clearDaily(kind) {
 
 const inFlight = new Map()
 
-// → { data, generatedAt, source: 'cache' | 'shared' | 'stale' }; throws when
-// nothing at all is available.
+// → { data, generatedAt, source: 'cache' | 'shared' }, or { notGenerated: true }
+// when today's has not been generated (the scheduled job has not run, or it
+// failed). Yesterday's copy is not shown in its place, and a view never asks
+// for one to be made (Ben's decision, 26 Nov 2026).
 export async function getDaily(kind) {
   const day = sydneyDay()
   const mine = readDaily(kind, day)
@@ -36,15 +38,14 @@ export async function getDaily(kind) {
     await whenVisible()
     try {
       const r = await fetch(`/api/ai-daily?kind=${encodeURIComponent(kind)}&day=${day}`)
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      if (!r.ok) return { notGenerated: true }
       const payload = await r.json()
+      if (payload.status === 'not_generated' || payload.data == null) return { notGenerated: true }
       const entry = { data: payload.data, generatedAt: payload.generatedAt }
       try { localStorage.setItem(keyFor(kind, payload.day ?? day), JSON.stringify(entry)) } catch { /* quota */ }
       return { ...entry, source: 'shared' }
-    } catch (err) {
-      const old = readDaily(kind, yesterday())
-      if (old) return { ...old, source: 'stale' }
-      throw err
+    } catch {
+      return { notGenerated: true }
     }
   })()
   inFlight.set(kind, run)

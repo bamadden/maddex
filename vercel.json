@@ -89,5 +89,16 @@
         }
       ]
     }
-  ]
+  ],
+  "crons": [
+    {
+      "path": "/api/ai-daily?generate=all",
+      "schedule": "0 19 * * *"
+    }
+  ],
+  "functions": {
+    "api/ai-daily.js": {
+      "maxDuration": 60
+    }
+  }
 }

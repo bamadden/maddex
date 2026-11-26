@@ -38,7 +38,7 @@ import { aiContentService } from '../../services/aiContentService'
 import { VERIFIED_CONSTANTS, COUNTRY_STATS } from '../../data/verifiedConstants'
 import { rbaYearInWords } from '../../data/rbaDecisions'
 import { BOND_CURVES_AS_OF } from '../../data/bondCurves'
-import { AIContentBadge, HandEnteredBadge } from '../../components/ui/VerifiedBadge'
+import { HandEnteredBadge, DailyAIStamp } from '../../components/ui/VerifiedBadge'
 import IndicatorForecaster from '../../components/macro/IndicatorForecaster'
 import GlobalComparison from './GlobalComparison'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell, Brush } from 'recharts'
@@ -1324,26 +1324,29 @@ const MACRO_INDICATORS = [
 // recalled by the model. See aiContentService.
 function useMacroRegime() {
   const [ai, setAi] = useState(null)
-  const [source, setSource] = useState('fallback')
+  const [source, setSource] = useState('not_generated')
+  const [generatedAt, setGeneratedAt] = useState(null)
 
   useEffect(() => {
     let alive = true
-    aiContentService.getMacroRegime().then(({ data, source: src }) => {
+    aiContentService.getMacroRegime().then(({ data, source: src, generatedAt: at }) => {
       if (!alive || !data?.regime) return
       setAi(data)
       setSource(src)
-    }).catch(() => { /* fallback already rendered */ })
+      setGeneratedAt(at)
+    }).catch(() => { /* the editorial default is already rendered */ })
     return () => { alive = false }
   }, [])
 
   return useMemo(() => {
-    if (!ai) return { regime: MACRO_REGIME, indicators: MACRO_INDICATORS, source, ai: null }
+    if (!ai) return { regime: MACRO_REGIME, indicators: MACRO_INDICATORS, source, generatedAt, ai: null }
 
     const base = REGIME_GAUGE[ai.regime] ?? REGIME_GAUGE.NEUTRAL
     const angle = Math.max(-85, Math.min(85, base.angle + (RISK_NUDGE[ai.riskAppetite] ?? 0)))
 
     return {
       source,
+      generatedAt,
       ai,
       regime: { label: ai.regime, angle, color: base.color, reason: ai.description },
       indicators: [
@@ -1356,17 +1359,17 @@ function useMacroRegime() {
           context: ai.implications?.commodities ?? '' },
       ],
     }
-  }, [ai, source])
+  }, [ai, source, generatedAt])
 }
 
 function MacroRegimeGauge() {
-  const { regime, indicators, ai, source } = useMacroRegime()
+  const { regime, indicators, ai, source, generatedAt } = useMacroRegime()
   return (
     <div className="border border-terminal-border p-3 bg-terminal-panel/40">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-2xs text-terminal-gold font-bold tracking-widest">MACRO REGIME</span>
         <span className="text-lg font-bold ml-1" style={{ color: regime.color }}>{regime.label}</span>
-        <AIContentBadge source={source} className="ml-auto" />
+        <DailyAIStamp source={source} generatedAt={generatedAt} className="ml-auto" />
       </div>
 
       {/* The growth/inflation quadrant chart moved up into the GROWTH /
@@ -1443,7 +1446,7 @@ const SECTOR_TONE = {
 
 const HORIZON_TONE = { IMMEDIATE: PAL.amber, 'SHORT-TERM': PAL.gold, 'MEDIUM-TERM': PAL.dim }
 
-function MacroThemeCard({ theme, expanded, onToggle, source }) {
+function MacroThemeCard({ theme, expanded, onToggle, source, generatedAt }) {
   const color = THEME_IMPACT_COLOR[theme.impact] ?? 'var(--color-text-dim)'
   const analysis = theme.analysis ?? theme.impactNote ?? theme.note
   const chartCfg = THEME_CHART_MAP[theme.category]
@@ -1491,7 +1494,7 @@ function MacroThemeCard({ theme, expanded, onToggle, source }) {
           <div className="px-2.5 pb-2.5 pt-1.5 border-t border-terminal-border/40">
             {analysis && (
               <div className="text-2xs text-terminal-text-dim leading-relaxed mb-2 whitespace-pre-line">
-                <span className="mr-1.5 align-middle"><AIContentBadge source={source} label="ESTIMATE" /></span>
+                <span className="mr-1.5 align-middle"><DailyAIStamp source={source} generatedAt={generatedAt} /></span>
                 {analysis}
               </div>
             )}
@@ -1556,7 +1559,6 @@ function MacroThemesSection() {
   // every card below them twice and neither is easier to read for it.
   const [openTitle, setOpenTitle] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [refreshedAt, setRefreshedAt] = useState(null)
 
   const { data: themeResult, isLoading } = useQuery({
     queryKey:  ['macroThemes', todayKey],
@@ -1566,8 +1568,7 @@ function MacroThemesSection() {
   const themes     = themeResult?.themes ?? FALLBACK_THEMES
   const implications = themeResult?.implications ?? FALLBACK_IMPLICATIONS
   const badgeSource = themeResult?.source ?? 'fallback'
-  const isLive     = themeResult?.source === 'live'
-  const isFallback = themeResult?.source === 'fallback'
+  const isFallback = themeResult?.source === 'fallback' || themeResult?.source === 'not_generated'
 
   // Refresh has to clear the day's cache first. Without that, refetching calls
   // getMacroThemes, which hands straight back the cached day — a spinner that
@@ -1577,7 +1578,6 @@ function MacroThemesSection() {
     clearMacroThemeCache()
     try {
       await queryClient.refetchQueries({ queryKey: ['macroThemes', todayKey] })
-      setRefreshedAt(Date.now())
     } finally {
       setRefreshing(false)
     }
@@ -1587,12 +1587,11 @@ function MacroThemesSection() {
     <div>
       <div className="text-2xs text-terminal-gold tracking-widest font-bold mb-2 flex items-center gap-2 flex-wrap">
         KEY MACRO THEMES
-        {isLoading    && <span className="text-terminal-text-dim font-normal normal-case animate-pulse">GENERATING...</span>}
-        {isLive       && <span className="text-terminal-green font-normal normal-case">● MaddenAI · updated today</span>}
-        {isFallback   && <span className="text-terminal-text-dim font-normal normal-case">Baseline themes</span>}
-        {refreshedAt && !refreshing && (
-          <span className="text-terminal-text-dim/60 font-normal normal-case">Generated just now</span>
-        )}
+        {/* Reading today's stored themes, never generating them: they are
+            written once a day on a schedule (Ben's decision, 26 Nov 2026). */}
+        {isLoading && <span className="text-terminal-text-dim font-normal normal-case animate-pulse">LOADING…</span>}
+        {!isLoading && <DailyAIStamp source={badgeSource} generatedAt={themeResult?.generatedAt ?? null} />}
+        {isFallback && <span className="text-terminal-text-dim font-normal normal-case">Baseline themes (editorial)</span>}
         <button
           onClick={refresh}
           disabled={refreshing}
@@ -1609,6 +1608,7 @@ function MacroThemesSection() {
               key={t.title}
               theme={t}
               source={badgeSource}
+              generatedAt={themeResult?.generatedAt ?? null}
               expanded={openTitle === t.title}
               onToggle={() => setOpenTitle((cur) => (cur === t.title ? null : t.title))}
             />
@@ -1620,7 +1620,7 @@ function MacroThemesSection() {
         <div className="mt-2 border border-terminal-border p-2.5" style={{ background: 'rgba(201,168,76,0.03)' }}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-2xs text-terminal-gold font-bold tracking-widest">SECTOR CHANNELS</span>
-            <AIContentBadge source={badgeSource} label="ESTIMATE" />
+            <DailyAIStamp source={badgeSource} generatedAt={themeResult?.generatedAt ?? null} />
           </div>
           {[['Materials', implications.materials], ['Financials', implications.financials], ['defensive', implications.defensive]].map(([k, v]) => (
             <div key={k} className="text-2xs leading-relaxed text-terminal-text">

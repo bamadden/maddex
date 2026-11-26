@@ -944,6 +944,8 @@ function DataProvenancePanel() {
     setTick((n) => n + 1)
   }
 
+  // Re-reads today's shared AI text; it cannot write any (it is generated once
+  // a day by the scheduled job: Ben's decision, 26 Nov 2026).
   const regenerateAI = async () => {
     setBusy('ai')
     aiContentService.clearCache()
@@ -1002,7 +1004,7 @@ function DataProvenancePanel() {
             disabled={busy != null}
             className="btn-secondary btn-sm disabled:opacity-40"
           >
-            {busy === 'ai' ? 'GENERATING…' : 'REGENERATE WITH AI'}
+            {busy === 'ai' ? 'READING…' : "RE-READ TODAY'S AI TEXT"}
           </button>
         </div>
         <div className="text-2xs text-terminal-text-dim mb-1">

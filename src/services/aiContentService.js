@@ -27,15 +27,11 @@ import { sydneyDay } from './aiDaily'
 
 const yesterday = () => sydneyDay(new Date(Date.now() - 86_400_000))
 
-// → { data, source: 'cache' | 'live' | 'stale' | 'failed' }
+// → { data, generatedAt, source: 'cache' | 'live' | 'not_generated' }
 async function shared(key) {
-  try {
-    const { data, source } = await getDaily(key)
-    return { data, source: source === 'shared' ? 'live' : source }
-  } catch (err) {
-    console.warn(`[AIContent] ${key} failed:`, err.message)
-    return { data: null, source: 'failed' }
-  }
+  const r = await getDaily(key)
+  if (r.notGenerated) return { data: null, generatedAt: null, source: 'not_generated' }
+  return { data: r.data, generatedAt: r.generatedAt ?? null, source: r.source === 'shared' ? 'live' : r.source }
 }
 
 export const aiContentService = {

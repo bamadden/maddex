@@ -65,10 +65,9 @@ export function clearMacroThemeCache() {
 }
 
 export async function getMacroThemes() {
-  try {
-    const { data, source } = await getDaily('macro-themes')
-    return { ...data, source: source === 'shared' ? 'live' : source }
-  } catch {
-    return { themes: FALLBACK_THEMES, implications: FALLBACK_IMPLICATIONS, source: 'fallback' }
-  }
+  const r = await getDaily('macro-themes')
+  // Not generated today: the editorial baseline themes, labelled as such, and
+  // the stamp says "Not generated yet today".
+  if (r.notGenerated) return { themes: FALLBACK_THEMES, implications: FALLBACK_IMPLICATIONS, source: 'not_generated', generatedAt: null }
+  return { ...r.data, source: r.source === 'shared' ? 'live' : r.source, generatedAt: r.generatedAt ?? null }
 }

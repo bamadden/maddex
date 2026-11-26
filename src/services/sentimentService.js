@@ -13,6 +13,8 @@ import { getDaily } from './aiDailyClient'
 // can change what another reader sees. The keyword fallback in useSentiment
 // still uses them when the shared score is unavailable.
 export async function calculateSentiment() {
-  const { data, generatedAt } = await getDaily('sentiment')
-  return { ...data, generatedAt }
+  const r = await getDaily('sentiment')
+  // Not generated today: the caller falls back to the keyword measure.
+  if (r.notGenerated) throw new Error('not generated yet today')
+  return { ...r.data, generatedAt: r.generatedAt }
 }
